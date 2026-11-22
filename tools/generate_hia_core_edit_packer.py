@@ -8,20 +8,22 @@ from tools.generate_hia_elf_linker import SOURCE as LINK_SOURCE
 
 MAGIC = int.from_bytes(b'HIACED02', 'little')
 EXTENDED_MAGIC = int.from_bytes(b'HIACED03', 'little')
+WIDE_MAGIC = int.from_bytes(b'HIACED04', 'little')
 SOURCE = r'''
 def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 64:
         return 16
     tag = uint(s, 0, 8)
-    if tag != PACK_MAGIC and tag != EXTENDED_PACK_MAGIC:
+    if tag != PACK_MAGIC and tag != EXTENDED_PACK_MAGIC and tag != WIDE_PACK_MAGIC:
         return 16
     stub = uint(s, 8, 8)
     calls = uint(s, 16, 8)
     parts = uint(s, 24, 8)
     extended = tag == EXTENDED_PACK_MAGIC
-    slots = choose(extended, 6, 4)
+    wide = tag == WIDE_PACK_MAGIC
+    slots = choose(wide, 9, choose(extended, 6, 4))
     prefix = 32 + slots * 8
-    if length(s) < prefix or (extended and parts < 5):
+    if length(s) < prefix or (extended and parts < 5) or (wide and parts < 7):
         return 16
     if stub < 5 or stub > 8016 or calls == 0 or calls > 32 or parts == 0 or parts > slots:
         return 16
@@ -126,7 +128,8 @@ def header(o:mutbuf, size:u64) -> u64:
 
 def render():
     helpers = LINK_SOURCE[LINK_SOURCE.index('\ndef uint('):]
-    policy = SOURCE.replace('EXTENDED_PACK_MAGIC', str(EXTENDED_MAGIC)).replace('PACK_MAGIC', str(MAGIC))
+    policy = (SOURCE.replace('WIDE_PACK_MAGIC', str(WIDE_MAGIC))
+              .replace('EXTENDED_PACK_MAGIC', str(EXTENDED_MAGIC)).replace('PACK_MAGIC', str(MAGIC)))
     return render_assembly(document(policy + helpers, 'core_edit_packer'))
 
 

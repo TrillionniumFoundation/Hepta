@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2, MACHINE_V3
+from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2, MACHINE_V3, MACHINE_V4
 from hepta.hia_program import MAX_BLOCKS, MAX_FUNCTIONS
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
@@ -12,6 +12,8 @@ from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal
 from tools.generate_hia_worker_inspection_effect import function
 
 SOURCE = Path('examples/hia_bootstrap/worker_block_layout.hepta')
+REGISTER_SOURCE = SOURCE.with_name('worker_register_schedule.hepta')
+REGISTER_PACKET = b'HIABLP04'
 KEYS = ('schema', 'core_sha256', 'block_order', 'functions', 'name', 'blocks', 'id',
         'function_order', 'function_alignment', 'scratch_registers', 'r10', 'r11',
         'instruction_selection', 'move_immediate', 'alu_immediate', 'scalar_select', 'value_registers')
@@ -254,11 +256,11 @@ def next(w:mutbuf, node:u64) -> u64:
 '''
 
 
-def program():
+def program(*, with_registers=False):
     constants = {f'K_{name}': index for index,name in enumerate(KEYS, 1)}
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      TAG=int.from_bytes(PACKET, 'little'), MACHINE_TAG=int.from_bytes(MACHINE_PACKET, 'little'),
-                     SELECT_TAG=int.from_bytes(SELECT_PACKET, 'little'),
+                     SELECT_TAG=int.from_bytes(REGISTER_PACKET if with_registers else SELECT_PACKET, 'little'),
                      NODES=MAX_NODES, INPUT_MAX=INPUT_BYTES,
                      PREFLIGHT=PREFLIGHT_BYTES, WORKSPACE=WORKSPACE_BYTES,
                      FN_MAX=MAX_FUNCTIONS, BLOCK_MAX=MAX_BLOCKS)
@@ -266,7 +268,18 @@ def program():
     original_guard = 'if length(s) > 8388608 or length(w) < 128'
     assert decoder.count(original_guard) == 2
     decoder = decoder.replace(original_guard, original_guard.replace('8388608', str(INPUT_BYTES)))
-    policy = re.sub(r'\b(' + '|'.join(constants) + r')\b', lambda m: str(constants[m[0]]), POLICY)
+    policy = POLICY
+    if with_registers:
+        # This schedule is admitted only alongside the independent HIA
+        # lifetime projection of the very same input. It emits numeric choices.
+        policy = policy.replace('select_version = select_schema(w, schema)',
+                                'select_version = select_schema(w, schema) or leaf_schema(w, schema)')
+        policy = policy.replace('    advanced = select_version or machine_schema(w, schema)',
+                                '    if select_version == False:\n        return INVALID\n'
+                                '    advanced = True')
+        policy = policy.replace('get(w, assigned) != 6 or get(w, assigned + 32) != 0',
+                                'get(w, assigned) != 6')
+    policy = re.sub(r'\b(' + '|'.join(constants) + r')\b', lambda m: str(constants[m[0]]), policy)
     return '\n'.join((
         policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(constants['NONE'])),
         comparison_table('key_id', KEYS), literal_match('layout_schema', LAYOUT_V1),
@@ -278,9 +291,12 @@ def program():
         )),
         *(function(CONTEXT, name).replace('NONE', str(constants['NONE']))
           for name in ('digest_text', 'equal_span')),
+        literal_match('leaf_schema', MACHINE_V4) if with_registers else '',
         decoder,
     ))
 
 
 if __name__ == '__main__':
     SOURCE.write_text(render_assembly(document(program(), SOURCE.stem)), encoding='utf-8')
+    REGISTER_SOURCE.write_text(render_assembly(document(program(with_registers=True), REGISTER_SOURCE.stem)),
+                               encoding='utf-8')

@@ -3159,324 +3159,199 @@ block b0(v0:mutbuf,v1:mutbuf,v2:u64)
 end
 fn f26(out:mutbuf,scratch:mutbuf,base:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(out:mutbuf,scratch:mutbuf,base:u64)
-  displacement0:u64 = const() {"value":0}
-  target0:u64 = int.add.wrap(base,displacement0)
-  index0:usize = int.cast(target0) {"mode":"wrap"}
+  base_index:usize = int.cast(base) {"mode":"wrap"}
+  stride:usize = const() {"value":8}
+  displacement:usize = const() {"value":0}
+  index0:usize = int.add.wrap(base_index,displacement)
   payload0:u64 = const() {"value":8241992084934887980}
   _ = buffer.store.u64.le(out,index0,payload0)
-  displacement8:u64 = const() {"value":8}
-  target8:u64 = int.add.wrap(base,displacement8)
-  index8:usize = int.cast(target8) {"mode":"wrap"}
+  index8:usize = int.add.wrap(index0,stride)
   payload8:u64 = const() {"value":8386095462913175141}
   _ = buffer.store.u64.le(out,index8,payload8)
-  displacement16:u64 = const() {"value":16}
-  target16:u64 = int.add.wrap(base,displacement16)
-  index16:usize = int.cast(target16) {"mode":"wrap"}
+  index16:usize = int.add.wrap(index8,stride)
   payload16:u64 = const() {"value":7306090258408890216}
   _ = buffer.store.u64.le(out,index16,payload16)
-  displacement24:u64 = const() {"value":24}
-  target24:u64 = int.add.wrap(base,displacement24)
-  index24:usize = int.cast(target24) {"mode":"wrap"}
+  index24:usize = int.add.wrap(index16,stride)
   payload24:u64 = const() {"value":8243112814930845540}
   _ = buffer.store.u64.le(out,index24,payload24)
-  displacement32:u64 = const() {"value":32}
-  target32:u64 = int.add.wrap(base,displacement32)
-  index32:usize = int.cast(target32) {"mode":"wrap"}
+  index32:usize = int.add.wrap(index24,stride)
   payload32:u64 = const() {"value":7310305785733462562}
   _ = buffer.store.u64.le(out,index32,payload32)
-  displacement40:u64 = const() {"value":40}
-  target40:u64 = int.add.wrap(base,displacement40)
-  index40:usize = int.cast(target40) {"mode":"wrap"}
+  index40:usize = int.add.wrap(index32,stride)
   payload40:u64 = const() {"value":8030604377425185324}
   _ = buffer.store.u64.le(out,index40,payload40)
-  displacement48:u64 = const() {"value":48}
-  target48:u64 = int.add.wrap(base,displacement48)
-  index48:usize = int.cast(target48) {"mode":"wrap"}
+  index48:usize = int.add.wrap(index40,stride)
   payload48:u64 = const() {"value":2459029315949193574}
   _ = buffer.store.u64.le(out,index48,payload48)
-  displacement56:u64 = const() {"value":56}
-  target56:u64 = int.add.wrap(base,displacement56)
-  index56:usize = int.cast(target56) {"mode":"wrap"}
+  index56:usize = int.add.wrap(index48,stride)
   payload56:u64 = const() {"value":7595371767660569960}
   _ = buffer.store.u64.le(out,index56,payload56)
-  displacement64:u64 = const() {"value":64}
-  target64:u64 = int.add.wrap(base,displacement64)
-  index64:usize = int.cast(target64) {"mode":"wrap"}
+  index64:usize = int.add.wrap(index56,stride)
   payload64:u64 = const() {"value":7021788497383009889}
   _ = buffer.store.u64.le(out,index64,payload64)
-  displacement72:u64 = const() {"value":72}
-  target72:u64 = int.add.wrap(base,displacement72)
-  index72:usize = int.cast(target72) {"mode":"wrap"}
+  index72:usize = int.add.wrap(index64,stride)
   payload72:u64 = const() {"value":8386658473162845805}
   _ = buffer.store.u64.le(out,index72,payload72)
-  displacement80:u64 = const() {"value":80}
-  target80:u64 = int.add.wrap(base,displacement80)
-  index80:usize = int.cast(target80) {"mode":"wrap"}
+  index80:usize = int.add.wrap(index72,stride)
   payload80:u64 = const() {"value":8659710104262241325}
   _ = buffer.store.u64.le(out,index80,payload80)
-  displacement88:u64 = const() {"value":88}
-  target88:u64 = int.add.wrap(base,displacement88)
-  index88:usize = int.cast(target88) {"mode":"wrap"}
+  index88:usize = int.add.wrap(index80,stride)
   payload88:u64 = const() {"value":3564086956895712824}
   _ = buffer.store.u64.le(out,index88,payload88)
-  displacement96:u64 = const() {"value":96}
-  target96:u64 = int.add.wrap(base,displacement96)
-  index96:usize = int.cast(target96) {"mode":"wrap"}
+  index96:usize = int.add.wrap(index88,stride)
   payload96:u64 = const() {"value":8462864171154418722}
   _ = buffer.store.u64.le(out,index96,payload96)
-  displacement104:u64 = const() {"value":104}
-  target104:u64 = int.add.wrap(base,displacement104)
-  index104:usize = int.cast(target104) {"mode":"wrap"}
+  index104:usize = int.add.wrap(index96,stride)
   payload104:u64 = const() {"value":8314031276334609518}
   _ = buffer.store.u64.le(out,index104,payload104)
-  displacement112:u64 = const() {"value":112}
-  target112:u64 = int.add.wrap(base,displacement112)
-  index112:usize = int.cast(target112) {"mode":"wrap"}
+  index112:usize = int.add.wrap(index104,stride)
   payload112:u64 = const() {"value":7957695015410300275}
   _ = buffer.store.u64.le(out,index112,payload112)
-  displacement120:u64 = const() {"value":120}
-  target120:u64 = int.add.wrap(base,displacement120)
-  index120:usize = int.cast(target120) {"mode":"wrap"}
+  index120:usize = int.add.wrap(index112,stride)
   payload120:u64 = const() {"value":2314861594967417459}
   _ = buffer.store.u64.le(out,index120,payload120)
-  displacement128:u64 = const() {"value":128}
-  target128:u64 = int.add.wrap(base,displacement128)
-  index128:usize = int.cast(target128) {"mode":"wrap"}
+  index128:usize = int.add.wrap(index120,stride)
   payload128:u64 = const() {"value":8679965255354425376}
   _ = buffer.store.u64.le(out,index128,payload128)
-  displacement136:u64 = const() {"value":136}
-  target136:u64 = int.add.wrap(base,displacement136)
-  index136:usize = int.cast(target136) {"mode":"wrap"}
+  index136:usize = int.add.wrap(index128,stride)
   payload136:u64 = const() {"value":2320539275813746720}
   _ = buffer.store.u64.le(out,index136,payload136)
-  displacement144:u64 = const() {"value":144}
-  target144:u64 = int.add.wrap(base,displacement144)
-  index144:usize = int.cast(target144) {"mode":"wrap"}
+  index144:usize = int.add.wrap(index136,stride)
   payload144:u64 = const() {"value":7959393399087714380}
   _ = buffer.store.u64.le(out,index144,payload144)
-  displacement152:u64 = const() {"value":152}
-  target152:u64 = int.add.wrap(base,displacement152)
-  index152:usize = int.cast(target152) {"mode":"wrap"}
+  index152:usize = int.add.wrap(index144,stride)
   payload152:u64 = const() {"value":7236828442999482740}
   _ = buffer.store.u64.le(out,index152,payload152)
-  displacement160:u64 = const() {"value":160}
-  target160:u64 = int.add.wrap(base,displacement160)
-  index160:usize = int.cast(target160) {"mode":"wrap"}
+  index160:usize = int.add.wrap(index152,stride)
   payload160:u64 = const() {"value":8241990192000560928}
   _ = buffer.store.u64.le(out,index160,payload160)
-  displacement168:u64 = const() {"value":168}
-  target168:u64 = int.add.wrap(base,displacement168)
-  index168:usize = int.cast(target168) {"mode":"wrap"}
+  index168:usize = int.add.wrap(index160,stride)
   payload168:u64 = const() {"value":7809632574950809721}
   _ = buffer.store.u64.le(out,index168,payload168)
-  displacement176:u64 = const() {"value":176}
-  target176:u64 = int.add.wrap(base,displacement176)
-  index176:usize = int.cast(target176) {"mode":"wrap"}
+  index176:usize = int.add.wrap(index168,stride)
   payload176:u64 = const() {"value":3180184835786306145}
   _ = buffer.store.u64.le(out,index176,payload176)
-  displacement184:u64 = const() {"value":184}
-  target184:u64 = int.add.wrap(base,displacement184)
-  index184:usize = int.cast(target184) {"mode":"wrap"}
+  index184:usize = int.add.wrap(index176,stride)
   payload184:u64 = const() {"value":7017490165746638858}
   _ = buffer.store.u64.le(out,index184,payload184)
-  displacement192:u64 = const() {"value":192}
-  target192:u64 = int.add.wrap(base,displacement192)
-  index192:usize = int.cast(target192) {"mode":"wrap"}
+  index192:usize = int.add.wrap(index184,stride)
   payload192:u64 = const() {"value":7809643279136287852}
   _ = buffer.store.u64.le(out,index192,payload192)
-  displacement200:u64 = const() {"value":200}
-  target200:u64 = int.add.wrap(base,displacement200)
-  index200:usize = int.cast(target200) {"mode":"wrap"}
+  index200:usize = int.add.wrap(index192,stride)
   payload200:u64 = const() {"value":8463501140580069228}
   _ = buffer.store.u64.le(out,index200,payload200)
-  displacement208:u64 = const() {"value":208}
-  target208:u64 = int.add.wrap(base,displacement208)
-  index208:usize = int.cast(target208) {"mode":"wrap"}
+  index208:usize = int.add.wrap(index200,stride)
   payload208:u64 = const() {"value":2336361558313037426}
   _ = buffer.store.u64.le(out,index208,payload208)
-  displacement216:u64 = const() {"value":216}
-  target216:u64 = int.add.wrap(base,displacement216)
-  index216:usize = int.cast(target216) {"mode":"wrap"}
+  index216:usize = int.add.wrap(index208,stride)
   payload216:u64 = const() {"value":7526470944280310383}
   _ = buffer.store.u64.le(out,index216,payload216)
-  displacement224:u64 = const() {"value":224}
-  target224:u64 = int.add.wrap(base,displacement224)
-  index224:usize = int.cast(target224) {"mode":"wrap"}
+  index224:usize = int.add.wrap(index216,stride)
   payload224:u64 = const() {"value":7019260659954052640}
   _ = buffer.store.u64.le(out,index224,payload224)
-  displacement232:u64 = const() {"value":232}
-  target232:u64 = int.add.wrap(base,displacement232)
-  index232:usize = int.cast(target232) {"mode":"wrap"}
+  index232:usize = int.add.wrap(index224,stride)
   payload232:u64 = const() {"value":7812726245383104883}
   _ = buffer.store.u64.le(out,index232,payload232)
-  displacement240:u64 = const() {"value":240}
-  target240:u64 = int.add.wrap(base,displacement240)
-  index240:usize = int.cast(target240) {"mode":"wrap"}
+  index240:usize = int.add.wrap(index232,stride)
   payload240:u64 = const() {"value":8317708060514673519}
   _ = buffer.store.u64.le(out,index240,payload240)
-  displacement248:u64 = const() {"value":248}
-  target248:u64 = int.add.wrap(base,displacement248)
-  index248:usize = int.cast(target248) {"mode":"wrap"}
+  index248:usize = int.add.wrap(index240,stride)
   payload248:u64 = const() {"value":7165064744915902523}
   _ = buffer.store.u64.le(out,index248,payload248)
-  displacement256:u64 = const() {"value":256}
-  target256:u64 = int.add.wrap(base,displacement256)
-  index256:usize = int.cast(target256) {"mode":"wrap"}
+  index256:usize = int.add.wrap(index248,stride)
   payload256:u64 = const() {"value":7809639177543117088}
   _ = buffer.store.u64.le(out,index256,payload256)
-  displacement264:u64 = const() {"value":264}
-  target264:u64 = int.add.wrap(base,displacement264)
-  index264:usize = int.cast(target264) {"mode":"wrap"}
+  index264:usize = int.add.wrap(index256,stride)
   payload264:u64 = const() {"value":7311142235131968105}
   _ = buffer.store.u64.le(out,index264,payload264)
-  displacement272:u64 = const() {"value":272}
-  target272:u64 = int.add.wrap(base,displacement272)
-  index272:usize = int.cast(target272) {"mode":"wrap"}
+  index272:usize = int.add.wrap(index264,stride)
   payload272:u64 = const() {"value":2478515234623486322}
   _ = buffer.store.u64.le(out,index272,payload272)
-  displacement280:u64 = const() {"value":280}
-  target280:u64 = int.add.wrap(base,displacement280)
-  index280:usize = int.cast(target280) {"mode":"wrap"}
+  index280:usize = int.add.wrap(index272,stride)
   payload280:u64 = const() {"value":7359480063426824748}
   _ = buffer.store.u64.le(out,index280,payload280)
-  displacement288:u64 = const() {"value":288}
-  target288:u64 = int.add.wrap(base,displacement288)
-  index288:usize = int.cast(target288) {"mode":"wrap"}
+  index288:usize = int.add.wrap(index280,stride)
   payload288:u64 = const() {"value":7308327836159665522}
   _ = buffer.store.u64.le(out,index288,payload288)
-  displacement296:u64 = const() {"value":296}
-  target296:u64 = int.add.wrap(base,displacement296)
-  index296:usize = int.cast(target296) {"mode":"wrap"}
+  index296:usize = int.add.wrap(index288,stride)
   payload296:u64 = const() {"value":7791334147353834337}
   _ = buffer.store.u64.le(out,index296,payload296)
-  displacement304:u64 = const() {"value":304}
-  target304:u64 = int.add.wrap(base,displacement304)
-  index304:usize = int.cast(target304) {"mode":"wrap"}
+  index304:usize = int.add.wrap(index296,stride)
   payload304:u64 = const() {"value":8028911400105899625}
   _ = buffer.store.u64.le(out,index304,payload304)
-  displacement312:u64 = const() {"value":312}
-  target312:u64 = int.add.wrap(base,displacement312)
-  index312:usize = int.cast(target312) {"mode":"wrap"}
+  index312:usize = int.add.wrap(index304,stride)
   payload312:u64 = const() {"value":2322571457629282659}
   _ = buffer.store.u64.le(out,index312,payload312)
-  displacement320:u64 = const() {"value":320}
-  target320:u64 = int.add.wrap(base,displacement320)
-  index320:usize = int.cast(target320) {"mode":"wrap"}
+  index320:usize = int.add.wrap(index312,stride)
   payload320:u64 = const() {"value":7882826708655696236}
   _ = buffer.store.u64.le(out,index320,payload320)
-  displacement328:u64 = const() {"value":328}
-  target328:u64 = int.add.wrap(base,displacement328)
-  index328:usize = int.cast(target328) {"mode":"wrap"}
+  index328:usize = int.add.wrap(index320,stride)
   payload328:u64 = const() {"value":7164793138684981871}
   _ = buffer.store.u64.le(out,index328,payload328)
-  displacement336:u64 = const() {"value":336}
-  target336:u64 = int.add.wrap(base,displacement336)
-  index336:usize = int.cast(target336) {"mode":"wrap"}
+  index336:usize = int.add.wrap(index328,stride)
   payload336:u64 = const() {"value":7883868302834887028}
   _ = buffer.store.u64.le(out,index336,payload336)
-  displacement344:u64 = const() {"value":344}
-  target344:u64 = int.add.wrap(base,displacement344)
-  index344:usize = int.cast(target344) {"mode":"wrap"}
+  index344:usize = int.add.wrap(index336,stride)
   payload344:u64 = const() {"value":2338615488418245744}
   _ = buffer.store.u64.le(out,index344,payload344)
-  displacement352:u64 = const() {"value":352}
-  target352:u64 = int.add.wrap(base,displacement352)
-  index352:usize = int.cast(target352) {"mode":"wrap"}
+  index352:usize = int.add.wrap(index344,stride)
   payload352:u64 = const() {"value":8391086206487980148}
   _ = buffer.store.u64.le(out,index352,payload352)
-  displacement360:u64 = const() {"value":360}
-  target360:u64 = int.add.wrap(base,displacement360)
-  index360:usize = int.cast(target360) {"mode":"wrap"}
+  index360:usize = int.add.wrap(index352,stride)
   payload360:u64 = const() {"value":7070761857394699873}
   _ = buffer.store.u64.le(out,index360,payload360)
-  displacement368:u64 = const() {"value":368}
-  target368:u64 = int.add.wrap(base,displacement368)
-  index368:usize = int.cast(target368) {"mode":"wrap"}
+  index368:usize = int.add.wrap(index360,stride)
   payload368:u64 = const() {"value":7020378939279635577}
   _ = buffer.store.u64.le(out,index368,payload368)
-  displacement376:u64 = const() {"value":376}
-  target376:u64 = int.add.wrap(base,displacement376)
-  index376:usize = int.cast(target376) {"mode":"wrap"}
+  index376:usize = int.add.wrap(index368,stride)
   payload376:u64 = const() {"value":732998718338987118}
   _ = buffer.store.u64.le(out,index376,payload376)
-  displacement384:u64 = const() {"value":384}
-  target384:u64 = int.add.wrap(base,displacement384)
-  index384:usize = int.cast(target384) {"mode":"wrap"}
+  index384:usize = int.add.wrap(index376,stride)
   payload384:u64 = const() {"value":8026084285123403808}
   _ = buffer.store.u64.le(out,index384,payload384)
-  displacement392:u64 = const() {"value":392}
-  target392:u64 = int.add.wrap(base,displacement392)
-  index392:usize = int.cast(target392) {"mode":"wrap"}
+  index392:usize = int.add.wrap(index384,stride)
   payload392:u64 = const() {"value":7596853926509442162}
   _ = buffer.store.u64.le(out,index392,payload392)
-  displacement400:u64 = const() {"value":400}
-  target400:u64 = int.add.wrap(base,displacement400)
-  index400:usize = int.cast(target400) {"mode":"wrap"}
+  index400:usize = int.add.wrap(index392,stride)
   payload400:u64 = const() {"value":8675375937194582382}
   _ = buffer.store.u64.le(out,index400,payload400)
-  displacement408:u64 = const() {"value":408}
-  target408:u64 = int.add.wrap(base,displacement408)
-  index408:usize = int.cast(target408) {"mode":"wrap"}
+  index408:usize = int.add.wrap(index400,stride)
   payload408:u64 = const() {"value":4282482794392019813}
   _ = buffer.store.u64.le(out,index408,payload408)
-  displacement416:u64 = const() {"value":416}
-  target416:u64 = int.add.wrap(base,displacement416)
-  index416:usize = int.cast(target416) {"mode":"wrap"}
+  index416:usize = int.add.wrap(index408,stride)
   payload416:u64 = const() {"value":7214893529555956768}
   _ = buffer.store.u64.le(out,index416,payload416)
-  displacement424:u64 = const() {"value":424}
-  target424:u64 = int.add.wrap(base,displacement424)
-  index424:usize = int.cast(target424) {"mode":"wrap"}
+  index424:usize = int.add.wrap(index416,stride)
   payload424:u64 = const() {"value":8246126602173161583}
   _ = buffer.store.u64.le(out,index424,payload424)
-  displacement432:u64 = const() {"value":432}
-  target432:u64 = int.add.wrap(base,displacement432)
-  index432:usize = int.cast(target432) {"mode":"wrap"}
+  index432:usize = int.add.wrap(index424,stride)
   payload432:u64 = const() {"value":7810121798890646895}
   _ = buffer.store.u64.le(out,index432,payload432)
-  displacement440:u64 = const() {"value":440}
-  target440:u64 = int.add.wrap(base,displacement440)
-  index440:usize = int.cast(target440) {"mode":"wrap"}
+  index440:usize = int.add.wrap(index432,stride)
   payload440:u64 = const() {"value":732998705756397925}
   _ = buffer.store.u64.le(out,index440,payload440)
-  displacement448:u64 = const() {"value":448}
-  target448:u64 = int.add.wrap(base,displacement448)
-  index448:usize = int.cast(target448) {"mode":"wrap"}
+  index448:usize = int.add.wrap(index440,stride)
   payload448:u64 = const() {"value":7956009110550356000}
   _ = buffer.store.u64.le(out,index448,payload448)
-  displacement456:u64 = const() {"value":456}
-  target456:u64 = int.add.wrap(base,displacement456)
-  index456:usize = int.cast(target456) {"mode":"wrap"}
+  index456:usize = int.add.wrap(index448,stride)
   payload456:u64 = const() {"value":7020949229534340459}
   _ = buffer.store.u64.le(out,index456,payload456)
-  displacement464:u64 = const() {"value":464}
-  target464:u64 = int.add.wrap(base,displacement464)
-  index464:usize = int.cast(target464) {"mode":"wrap"}
+  index464:usize = int.add.wrap(index456,stride)
   payload464:u64 = const() {"value":7091317973712004452}
   _ = buffer.store.u64.le(out,index464,payload464)
-  displacement472:u64 = const() {"value":472}
-  target472:u64 = int.add.wrap(base,displacement472)
-  index472:usize = int.cast(target472) {"mode":"wrap"}
+  index472:usize = int.add.wrap(index464,stride)
   payload472:u64 = const() {"value":8027701951508586595}
   _ = buffer.store.u64.le(out,index472,payload472)
-  displacement480:u64 = const() {"value":480}
-  target480:u64 = int.add.wrap(base,displacement480)
-  index480:usize = int.cast(target480) {"mode":"wrap"}
+  index480:usize = int.add.wrap(index472,stride)
   payload480:u64 = const() {"value":8603126950868841587}
   _ = buffer.store.u64.le(out,index480,payload480)
-  displacement488:u64 = const() {"value":488}
-  target488:u64 = int.add.wrap(base,displacement488)
-  index488:usize = int.cast(target488) {"mode":"wrap"}
+  index488:usize = int.add.wrap(index480,stride)
   payload488:u64 = const() {"value":2334397743342383713}
   _ = buffer.store.u64.le(out,index488,payload488)
-  displacement496:u64 = const() {"value":496}
-  target496:u64 = int.add.wrap(base,displacement496)
-  index496:usize = int.cast(target496) {"mode":"wrap"}
+  index496:usize = int.add.wrap(index488,stride)
   payload496:u64 = const() {"value":4279657096736502388}
   _ = buffer.store.u64.le(out,index496,payload496)
-  displacement504:u64 = const() {"value":504}
-  target504:u64 = int.add.wrap(base,displacement504)
-  index504:usize = int.cast(target504) {"mode":"wrap"}
+  index504:usize = int.add.wrap(index496,stride)
   payload504:u64 = const() {"value":2334402177157656096}
   _ = buffer.store.u64.le(out,index504,payload504)
   result:u64 = const() {"value":0}
@@ -3484,324 +3359,199 @@ block b0(out:mutbuf,scratch:mutbuf,base:u64)
 end
 fn f27(out:mutbuf,scratch:mutbuf,base:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(out:mutbuf,scratch:mutbuf,base:u64)
-  displacement512:u64 = const() {"value":512}
-  target512:u64 = int.add.wrap(base,displacement512)
-  index512:usize = int.cast(target512) {"mode":"wrap"}
+  base_index:usize = int.cast(base) {"mode":"wrap"}
+  stride:usize = const() {"value":8}
+  displacement:usize = const() {"value":512}
+  index512:usize = int.add.wrap(base_index,displacement)
   payload512:u64 = const() {"value":8028075858292209765}
   _ = buffer.store.u64.le(out,index512,payload512)
-  displacement520:u64 = const() {"value":520}
-  target520:u64 = int.add.wrap(base,displacement520)
-  index520:usize = int.cast(target520) {"mode":"wrap"}
+  index520:usize = int.add.wrap(index512,stride)
   payload520:u64 = const() {"value":8029390865575714926}
   _ = buffer.store.u64.le(out,index520,payload520)
-  displacement528:u64 = const() {"value":528}
-  target528:u64 = int.add.wrap(base,displacement528)
-  index528:usize = int.cast(target528) {"mode":"wrap"}
+  index528:usize = int.add.wrap(index520,stride)
   payload528:u64 = const() {"value":8099007542707705376}
   _ = buffer.store.u64.le(out,index528,payload528)
-  displacement536:u64 = const() {"value":536}
-  target536:u64 = int.add.wrap(base,displacement536)
-  index536:usize = int.cast(target536) {"mode":"wrap"}
+  index536:usize = int.add.wrap(index528,stride)
   payload536:u64 = const() {"value":7017504804090243119}
   _ = buffer.store.u64.le(out,index536,payload536)
-  displacement544:u64 = const() {"value":544}
-  target544:u64 = int.add.wrap(base,displacement544)
-  index544:usize = int.cast(target544) {"mode":"wrap"}
+  index544:usize = int.add.wrap(index536,stride)
   payload544:u64 = const() {"value":7022360269177252972}
   _ = buffer.store.u64.le(out,index544,payload544)
-  displacement552:u64 = const() {"value":552}
-  target552:u64 = int.add.wrap(base,displacement552)
-  index552:usize = int.cast(target552) {"mode":"wrap"}
+  index552:usize = int.add.wrap(index544,stride)
   payload552:u64 = const() {"value":733063231912419955}
   _ = buffer.store.u64.le(out,index552,payload552)
-  displacement560:u64 = const() {"value":560}
-  target560:u64 = int.add.wrap(base,displacement560)
-  index560:usize = int.cast(target560) {"mode":"wrap"}
+  index560:usize = int.add.wrap(index552,stride)
   payload560:u64 = const() {"value":7882821499124588576}
   _ = buffer.store.u64.le(out,index560,payload560)
-  displacement568:u64 = const() {"value":568}
-  target568:u64 = int.add.wrap(base,displacement568)
-  index568:usize = int.cast(target568) {"mode":"wrap"}
+  index568:usize = int.add.wrap(index560,stride)
   payload568:u64 = const() {"value":8098994000674562657}
   _ = buffer.store.u64.le(out,index568,payload568)
-  displacement576:u64 = const() {"value":576}
-  target576:u64 = int.add.wrap(base,displacement576)
-  index576:usize = int.cast(target576) {"mode":"wrap"}
+  index576:usize = int.add.wrap(index568,stride)
   payload576:u64 = const() {"value":8083505486523949428}
   _ = buffer.store.u64.le(out,index576,payload576)
-  displacement584:u64 = const() {"value":584}
-  target584:u64 = int.add.wrap(base,displacement584)
-  index584:usize = int.cast(target584) {"mode":"wrap"}
+  index584:usize = int.add.wrap(index576,stride)
   payload584:u64 = const() {"value":7218827518020120434}
   _ = buffer.store.u64.le(out,index584,payload584)
-  displacement592:u64 = const() {"value":592}
-  target592:u64 = int.add.wrap(base,displacement592)
-  index592:usize = int.cast(target592) {"mode":"wrap"}
+  index592:usize = int.add.wrap(index584,stride)
   payload592:u64 = const() {"value":7020598847024231017}
   _ = buffer.store.u64.le(out,index592,payload592)
-  displacement600:u64 = const() {"value":600}
-  target600:u64 = int.add.wrap(base,displacement600)
-  index600:usize = int.cast(target600) {"mode":"wrap"}
+  index600:usize = int.add.wrap(index592,stride)
   payload600:u64 = const() {"value":2463880412791204212}
   _ = buffer.store.u64.le(out,index600,payload600)
-  displacement608:u64 = const() {"value":608}
-  target608:u64 = int.add.wrap(base,displacement608)
-  index608:usize = int.cast(target608) {"mode":"wrap"}
+  index608:usize = int.add.wrap(index600,stride)
   payload608:u64 = const() {"value":7022364309382498860}
   _ = buffer.store.u64.le(out,index608,payload608)
-  displacement616:u64 = const() {"value":616}
-  target616:u64 = int.add.wrap(base,displacement616)
-  index616:usize = int.cast(target616) {"mode":"wrap"}
+  index616:usize = int.add.wrap(index608,stride)
   payload616:u64 = const() {"value":7935940927438419316}
   _ = buffer.store.u64.le(out,index616,payload616)
-  displacement624:u64 = const() {"value":624}
-  target624:u64 = int.add.wrap(base,displacement624)
-  index624:usize = int.cast(target624) {"mode":"wrap"}
+  index624:usize = int.add.wrap(index616,stride)
   payload624:u64 = const() {"value":7882811612164879457}
   _ = buffer.store.u64.le(out,index624,payload624)
-  displacement632:u64 = const() {"value":632}
-  target632:u64 = int.add.wrap(base,displacement632)
-  index632:usize = int.cast(target632) {"mode":"wrap"}
+  index632:usize = int.add.wrap(index624,stride)
   payload632:u64 = const() {"value":8029460070451672169}
   _ = buffer.store.u64.le(out,index632,payload632)
-  displacement640:u64 = const() {"value":640}
-  target640:u64 = int.add.wrap(base,displacement640)
-  index640:usize = int.cast(target640) {"mode":"wrap"}
+  index640:usize = int.add.wrap(index632,stride)
   payload640:u64 = const() {"value":8391722768137543540}
   _ = buffer.store.u64.le(out,index640,payload640)
-  displacement648:u64 = const() {"value":648}
-  target648:u64 = int.add.wrap(base,displacement648)
-  index648:usize = int.cast(target648) {"mode":"wrap"}
+  index648:usize = int.add.wrap(index640,stride)
   payload648:u64 = const() {"value":2459000624606504037}
   _ = buffer.store.u64.le(out,index648,payload648)
-  displacement656:u64 = const() {"value":656}
-  target656:u64 = int.add.wrap(base,displacement656)
-  index656:usize = int.cast(target656) {"mode":"wrap"}
+  index656:usize = int.add.wrap(index648,stride)
   payload656:u64 = const() {"value":7310593918082512243}
   _ = buffer.store.u64.le(out,index656,payload656)
-  displacement664:u64 = const() {"value":664}
-  target664:u64 = int.add.wrap(base,displacement664)
-  index664:usize = int.cast(target664) {"mode":"wrap"}
+  index664:usize = int.add.wrap(index656,stride)
   payload664:u64 = const() {"value":8313474979318685540}
   _ = buffer.store.u64.le(out,index664,payload664)
-  displacement672:u64 = const() {"value":672}
-  target672:u64 = int.add.wrap(base,displacement672)
-  index672:usize = int.cast(target672) {"mode":"wrap"}
+  index672:usize = int.add.wrap(index664,stride)
   payload672:u64 = const() {"value":4189037465692366947}
   _ = buffer.store.u64.le(out,index672,payload672)
-  displacement680:u64 = const() {"value":680}
-  target680:u64 = int.add.wrap(base,displacement680)
-  index680:usize = int.cast(target680) {"mode":"wrap"}
+  index680:usize = int.add.wrap(index672,stride)
   payload680:u64 = const() {"value":2459000718892882720}
   _ = buffer.store.u64.le(out,index680,payload680)
-  displacement688:u64 = const() {"value":688}
-  target688:u64 = int.add.wrap(base,displacement688)
-  index688:usize = int.cast(target688) {"mode":"wrap"}
+  index688:usize = int.add.wrap(index680,stride)
   payload688:u64 = const() {"value":7595371767660569960}
   _ = buffer.store.u64.le(out,index688,payload688)
-  displacement696:u64 = const() {"value":696}
-  target696:u64 = int.add.wrap(base,displacement696)
-  index696:usize = int.cast(target696) {"mode":"wrap"}
+  index696:usize = int.add.wrap(index688,stride)
   payload696:u64 = const() {"value":7021788497383009889}
   _ = buffer.store.u64.le(out,index696,payload696)
-  displacement704:u64 = const() {"value":704}
-  target704:u64 = int.add.wrap(base,displacement704)
-  index704:usize = int.cast(target704) {"mode":"wrap"}
+  index704:usize = int.add.wrap(index696,stride)
   payload704:u64 = const() {"value":2308706284351139437}
   _ = buffer.store.u64.le(out,index704,payload704)
-  displacement712:u64 = const() {"value":712}
-  target712:u64 = int.add.wrap(base,displacement712)
-  index712:usize = int.cast(target712) {"mode":"wrap"}
+  index712:usize = int.add.wrap(index704,stride)
   payload712:u64 = const() {"value":8390317603714768928}
   _ = buffer.store.u64.le(out,index712,payload712)
-  displacement720:u64 = const() {"value":720}
-  target720:u64 = int.add.wrap(base,displacement720)
-  index720:usize = int.cast(target720) {"mode":"wrap"}
+  index720:usize = int.add.wrap(index712,stride)
   payload720:u64 = const() {"value":8246141913630518881}
   _ = buffer.store.u64.le(out,index720,payload720)
-  displacement728:u64 = const() {"value":728}
-  target728:u64 = int.add.wrap(base,displacement728)
-  index728:usize = int.cast(target728) {"mode":"wrap"}
+  index728:usize = int.add.wrap(index720,stride)
   payload728:u64 = const() {"value":3636144796469454703}
   _ = buffer.store.u64.le(out,index728,payload728)
-  displacement736:u64 = const() {"value":736}
-  target736:u64 = int.add.wrap(base,displacement736)
-  index736:usize = int.cast(target736) {"mode":"wrap"}
+  index736:usize = int.add.wrap(index728,stride)
   payload736:u64 = const() {"value":2459000718892870690}
   _ = buffer.store.u64.le(out,index736,payload736)
-  displacement744:u64 = const() {"value":744}
-  target744:u64 = int.add.wrap(base,displacement744)
-  index744:usize = int.cast(target744) {"mode":"wrap"}
+  index744:usize = int.add.wrap(index736,stride)
   payload744:u64 = const() {"value":7595371767660569960}
   _ = buffer.store.u64.le(out,index744,payload744)
-  displacement752:u64 = const() {"value":752}
-  target752:u64 = int.add.wrap(base,displacement752)
-  index752:usize = int.cast(target752) {"mode":"wrap"}
+  index752:usize = int.add.wrap(index744,stride)
   payload752:u64 = const() {"value":7021788497383009889}
   _ = buffer.store.u64.le(out,index752,payload752)
-  displacement760:u64 = const() {"value":760}
-  target760:u64 = int.add.wrap(base,displacement760)
-  index760:usize = int.cast(target760) {"mode":"wrap"}
+  index760:usize = int.add.wrap(index752,stride)
   payload760:u64 = const() {"value":2308706284384693869}
   _ = buffer.store.u64.le(out,index760,payload760)
-  displacement768:u64 = const() {"value":768}
-  target768:u64 = int.add.wrap(base,displacement768)
-  index768:usize = int.cast(target768) {"mode":"wrap"}
+  index768:usize = int.add.wrap(index760,stride)
   payload768:u64 = const() {"value":8390317603714768928}
   _ = buffer.store.u64.le(out,index768,payload768)
-  displacement776:u64 = const() {"value":776}
-  target776:u64 = int.add.wrap(base,displacement776)
-  index776:usize = int.cast(target776) {"mode":"wrap"}
+  index776:usize = int.add.wrap(index768,stride)
   payload776:u64 = const() {"value":8246141913630518881}
   _ = buffer.store.u64.le(out,index776,payload776)
-  displacement784:u64 = const() {"value":784}
-  target784:u64 = int.add.wrap(base,displacement784)
-  index784:usize = int.cast(target784) {"mode":"wrap"}
+  index784:usize = int.add.wrap(index776,stride)
   payload784:u64 = const() {"value":3780259984545310575}
   _ = buffer.store.u64.le(out,index784,payload784)
-  displacement792:u64 = const() {"value":792}
-  target792:u64 = int.add.wrap(base,displacement792)
-  index792:usize = int.cast(target792) {"mode":"wrap"}
+  index792:usize = int.add.wrap(index784,stride)
   payload792:u64 = const() {"value":2459000718892870690}
   _ = buffer.store.u64.le(out,index792,payload792)
-  displacement800:u64 = const() {"value":800}
-  target800:u64 = int.add.wrap(base,displacement800)
-  index800:usize = int.cast(target800) {"mode":"wrap"}
+  index800:usize = int.add.wrap(index792,stride)
   payload800:u64 = const() {"value":7595371767660569960}
   _ = buffer.store.u64.le(out,index800,payload800)
-  displacement808:u64 = const() {"value":808}
-  target808:u64 = int.add.wrap(base,displacement808)
-  index808:usize = int.cast(target808) {"mode":"wrap"}
+  index808:usize = int.add.wrap(index800,stride)
   payload808:u64 = const() {"value":7021788497383009889}
   _ = buffer.store.u64.le(out,index808,payload808)
-  displacement816:u64 = const() {"value":816}
-  target816:u64 = int.add.wrap(base,displacement816)
-  index816:usize = int.cast(target816) {"mode":"wrap"}
+  index816:usize = int.add.wrap(index808,stride)
   payload816:u64 = const() {"value":2308706284418248301}
   _ = buffer.store.u64.le(out,index816,payload816)
-  displacement824:u64 = const() {"value":824}
-  target824:u64 = int.add.wrap(base,displacement824)
-  index824:usize = int.cast(target824) {"mode":"wrap"}
+  index824:usize = int.add.wrap(index816,stride)
   payload824:u64 = const() {"value":8390317603714768928}
   _ = buffer.store.u64.le(out,index824,payload824)
-  displacement832:u64 = const() {"value":832}
-  target832:u64 = int.add.wrap(base,displacement832)
-  index832:usize = int.cast(target832) {"mode":"wrap"}
+  index832:usize = int.add.wrap(index824,stride)
   payload832:u64 = const() {"value":8246141913630518881}
   _ = buffer.store.u64.le(out,index832,payload832)
-  displacement840:u64 = const() {"value":840}
-  target840:u64 = int.add.wrap(base,displacement840)
-  index840:usize = int.cast(target840) {"mode":"wrap"}
+  index840:usize = int.add.wrap(index832,stride)
   payload840:u64 = const() {"value":3924375172621166447}
   _ = buffer.store.u64.le(out,index840,payload840)
-  displacement848:u64 = const() {"value":848}
-  target848:u64 = int.add.wrap(base,displacement848)
-  index848:usize = int.cast(target848) {"mode":"wrap"}
+  index848:usize = int.add.wrap(index840,stride)
   payload848:u64 = const() {"value":2459000718892870690}
   _ = buffer.store.u64.le(out,index848,payload848)
-  displacement856:u64 = const() {"value":856}
-  target856:u64 = int.add.wrap(base,displacement856)
-  index856:usize = int.cast(target856) {"mode":"wrap"}
+  index856:usize = int.add.wrap(index848,stride)
   payload856:u64 = const() {"value":7595371767660569960}
   _ = buffer.store.u64.le(out,index856,payload856)
-  displacement864:u64 = const() {"value":864}
-  target864:u64 = int.add.wrap(base,displacement864)
-  index864:usize = int.cast(target864) {"mode":"wrap"}
+  index864:usize = int.add.wrap(index856,stride)
   payload864:u64 = const() {"value":7021788497383009889}
   _ = buffer.store.u64.le(out,index864,payload864)
-  displacement872:u64 = const() {"value":872}
-  target872:u64 = int.add.wrap(base,displacement872)
-  index872:usize = int.cast(target872) {"mode":"wrap"}
+  index872:usize = int.add.wrap(index864,stride)
   payload872:u64 = const() {"value":2308706284451802733}
   _ = buffer.store.u64.le(out,index872,payload872)
-  displacement880:u64 = const() {"value":880}
-  target880:u64 = int.add.wrap(base,displacement880)
-  index880:usize = int.cast(target880) {"mode":"wrap"}
+  index880:usize = int.add.wrap(index872,stride)
   payload880:u64 = const() {"value":8390317603714768928}
   _ = buffer.store.u64.le(out,index880,payload880)
-  displacement888:u64 = const() {"value":888}
-  target888:u64 = int.add.wrap(base,displacement888)
-  index888:usize = int.cast(target888) {"mode":"wrap"}
+  index888:usize = int.add.wrap(index880,stride)
   payload888:u64 = const() {"value":8246141913630518881}
   _ = buffer.store.u64.le(out,index888,payload888)
-  displacement896:u64 = const() {"value":896}
-  target896:u64 = int.add.wrap(base,displacement896)
-  index896:usize = int.cast(target896) {"mode":"wrap"}
+  index896:usize = int.add.wrap(index888,stride)
   payload896:u64 = const() {"value":4068490360697022319}
   _ = buffer.store.u64.le(out,index896,payload896)
-  displacement904:u64 = const() {"value":904}
-  target904:u64 = int.add.wrap(base,displacement904)
-  index904:usize = int.cast(target904) {"mode":"wrap"}
+  index904:usize = int.add.wrap(index896,stride)
   payload904:u64 = const() {"value":2459000718892870690}
   _ = buffer.store.u64.le(out,index904,payload904)
-  displacement912:u64 = const() {"value":912}
-  target912:u64 = int.add.wrap(base,displacement912)
-  index912:usize = int.cast(target912) {"mode":"wrap"}
+  index912:usize = int.add.wrap(index904,stride)
   payload912:u64 = const() {"value":7595371767660569960}
   _ = buffer.store.u64.le(out,index912,payload912)
-  displacement920:u64 = const() {"value":920}
-  target920:u64 = int.add.wrap(base,displacement920)
-  index920:usize = int.cast(target920) {"mode":"wrap"}
+  index920:usize = int.add.wrap(index912,stride)
   payload920:u64 = const() {"value":7021788497383009889}
   _ = buffer.store.u64.le(out,index920,payload920)
-  displacement928:u64 = const() {"value":928}
-  target928:u64 = int.add.wrap(base,displacement928)
-  index928:usize = int.cast(target928) {"mode":"wrap"}
+  index928:usize = int.add.wrap(index920,stride)
   payload928:u64 = const() {"value":2314861350577647213}
   _ = buffer.store.u64.le(out,index928,payload928)
-  displacement936:u64 = const() {"value":936}
-  target936:u64 = int.add.wrap(base,displacement936)
-  index936:usize = int.cast(target936) {"mode":"wrap"}
+  index936:usize = int.add.wrap(index928,stride)
   payload936:u64 = const() {"value":8463145646131129437}
   _ = buffer.store.u64.le(out,index936,payload936)
-  displacement944:u64 = const() {"value":944}
-  target944:u64 = int.add.wrap(base,displacement944)
-  index944:usize = int.cast(target944) {"mode":"wrap"}
+  index944:usize = int.add.wrap(index936,stride)
   payload944:u64 = const() {"value":6873730482084737136}
   _ = buffer.store.u64.le(out,index944,payload944)
-  displacement952:u64 = const() {"value":952}
-  target952:u64 = int.add.wrap(base,displacement952)
-  index952:usize = int.cast(target952) {"mode":"wrap"}
+  index952:usize = int.add.wrap(index944,stride)
   payload952:u64 = const() {"value":2482439301651198063}
   _ = buffer.store.u64.le(out,index952,payload952)
-  displacement960:u64 = const() {"value":960}
-  target960:u64 = int.add.wrap(base,displacement960)
-  index960:usize = int.cast(target960) {"mode":"wrap"}
+  index960:usize = int.add.wrap(index952,stride)
   payload960:u64 = const() {"value":2314885530453221434}
   _ = buffer.store.u64.le(out,index960,payload960)
-  displacement968:u64 = const() {"value":968}
-  target968:u64 = int.add.wrap(base,displacement968)
-  index968:usize = int.cast(target968) {"mode":"wrap"}
+  index968:usize = int.add.wrap(index960,stride)
   payload968:u64 = const() {"value":7236828503380419106}
   _ = buffer.store.u64.le(out,index968,payload968)
-  displacement976:u64 = const() {"value":976}
-  target976:u64 = int.add.wrap(base,displacement976)
-  index976:usize = int.cast(target976) {"mode":"wrap"}
+  index976:usize = int.add.wrap(index968,stride)
   payload976:u64 = const() {"value":2459000718892870690}
   _ = buffer.store.u64.le(out,index976,payload976)
-  displacement984:u64 = const() {"value":984}
-  target984:u64 = int.add.wrap(base,displacement984)
-  index984:usize = int.cast(target984) {"mode":"wrap"}
+  index984:usize = int.add.wrap(index976,stride)
   payload984:u64 = const() {"value":2482731813604452706}
   _ = buffer.store.u64.le(out,index984,payload984)
-  displacement992:u64 = const() {"value":992}
-  target992:u64 = int.add.wrap(base,displacement992)
-  index992:usize = int.cast(target992) {"mode":"wrap"}
+  index992:usize = int.add.wrap(index984,stride)
   payload992:u64 = const() {"value":7071249687275113004}
   _ = buffer.store.u64.le(out,index992,payload992)
-  displacement1000:u64 = const() {"value":1000}
-  target1000:u64 = int.add.wrap(base,displacement1000)
-  index1000:usize = int.cast(target1000) {"mode":"wrap"}
+  index1000:usize = int.add.wrap(index992,stride)
   payload1000:u64 = const() {"value":732998714241479785}
   _ = buffer.store.u64.le(out,index1000,payload1000)
-  displacement1008:u64 = const() {"value":1008}
-  target1008:u64 = int.add.wrap(base,displacement1008)
-  index1008:usize = int.cast(target1008) {"mode":"wrap"}
+  index1008:usize = int.add.wrap(index1000,stride)
   payload1008:u64 = const() {"value":8388343679661645856}
   _ = buffer.store.u64.le(out,index1008,payload1008)
-  displacement1016:u64 = const() {"value":1016}
-  target1016:u64 = int.add.wrap(base,displacement1016)
-  index1016:usize = int.cast(target1016) {"mode":"wrap"}
+  index1016:usize = int.add.wrap(index1008,stride)
   payload1016:u64 = const() {"value":2308706285441218606}
   _ = buffer.store.u64.le(out,index1016,payload1016)
   result:u64 = const() {"value":0}
@@ -3809,324 +3559,199 @@ block b0(out:mutbuf,scratch:mutbuf,base:u64)
 end
 fn f28(out:mutbuf,scratch:mutbuf,base:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(out:mutbuf,scratch:mutbuf,base:u64)
-  displacement1024:u64 = const() {"value":1024}
-  target1024:u64 = int.add.wrap(base,displacement1024)
-  index1024:usize = int.cast(target1024) {"mode":"wrap"}
+  base_index:usize = int.cast(base) {"mode":"wrap"}
+  stride:usize = const() {"value":8}
+  displacement:usize = const() {"value":1024}
+  index1024:usize = int.add.wrap(base_index,displacement)
   payload1024:u64 = const() {"value":7813586345781108768}
   _ = buffer.store.u64.le(out,index1024,payload1024)
-  displacement1032:u64 = const() {"value":1032}
-  target1032:u64 = int.add.wrap(base,displacement1032)
-  index1032:usize = int.cast(target1032) {"mode":"wrap"}
+  index1032:usize = int.add.wrap(index1024,stride)
   payload1032:u64 = const() {"value":2308706285206266158}
   _ = buffer.store.u64.le(out,index1032,payload1032)
-  displacement1040:u64 = const() {"value":1040}
-  target1040:u64 = int.add.wrap(base,displacement1040)
-  index1040:usize = int.cast(target1040) {"mode":"wrap"}
+  index1040:usize = int.add.wrap(index1032,stride)
   payload1040:u64 = const() {"value":7813586345781108768}
   _ = buffer.store.u64.le(out,index1040,payload1040)
-  displacement1048:u64 = const() {"value":1048}
-  target1048:u64 = int.add.wrap(base,displacement1048)
-  index1048:usize = int.cast(target1048) {"mode":"wrap"}
+  index1048:usize = int.add.wrap(index1040,stride)
   payload1048:u64 = const() {"value":2308706285474770478}
   _ = buffer.store.u64.le(out,index1048,payload1048)
-  displacement1056:u64 = const() {"value":1056}
-  target1056:u64 = int.add.wrap(base,displacement1056)
-  index1056:usize = int.cast(target1056) {"mode":"wrap"}
+  index1056:usize = int.add.wrap(index1048,stride)
   payload1056:u64 = const() {"value":7813586345781108768}
   _ = buffer.store.u64.le(out,index1056,payload1056)
-  displacement1064:u64 = const() {"value":1064}
-  target1064:u64 = int.add.wrap(base,displacement1064)
-  index1064:usize = int.cast(target1064) {"mode":"wrap"}
+  index1064:usize = int.add.wrap(index1056,stride)
   payload1064:u64 = const() {"value":2314861393141198638}
   _ = buffer.store.u64.le(out,index1064,payload1064)
-  displacement1072:u64 = const() {"value":1072}
-  target1072:u64 = int.add.wrap(base,displacement1072)
-  index1072:usize = int.cast(target1072) {"mode":"wrap"}
+  index1072:usize = int.add.wrap(index1064,stride)
   payload1072:u64 = const() {"value":8030606908268355616}
   _ = buffer.store.u64.le(out,index1072,payload1072)
-  displacement1080:u64 = const() {"value":1080}
-  target1080:u64 = int.add.wrap(base,displacement1080)
-  index1080:usize = int.cast(target1080) {"mode":"wrap"}
+  index1080:usize = int.add.wrap(index1072,stride)
   payload1080:u64 = const() {"value":732998722936188535}
   _ = buffer.store.u64.le(out,index1080,payload1080)
-  displacement1088:u64 = const() {"value":1088}
-  target1088:u64 = int.add.wrap(base,displacement1088)
-  index1088:usize = int.cast(target1088) {"mode":"wrap"}
+  index1088:usize = int.add.wrap(index1080,stride)
   payload1088:u64 = const() {"value":8245917341446053920}
   _ = buffer.store.u64.le(out,index1088,payload1088)
-  displacement1096:u64 = const() {"value":1096}
-  target1096:u64 = int.add.wrap(base,displacement1096)
-  index1096:usize = int.cast(target1096) {"mode":"wrap"}
+  index1096:usize = int.add.wrap(index1088,stride)
   payload1096:u64 = const() {"value":7233174017613983602}
   _ = buffer.store.u64.le(out,index1096,payload1096)
-  displacement1104:u64 = const() {"value":1104}
-  target1104:u64 = int.add.wrap(base,displacement1104)
-  index1104:usize = int.cast(target1104) {"mode":"wrap"}
+  index1104:usize = int.add.wrap(index1096,stride)
   payload1104:u64 = const() {"value":2459000718892870690}
   _ = buffer.store.u64.le(out,index1104,payload1104)
-  displacement1112:u64 = const() {"value":1112}
-  target1112:u64 = int.add.wrap(base,displacement1112)
-  index1112:usize = int.cast(target1112) {"mode":"wrap"}
+  index1112:usize = int.add.wrap(index1104,stride)
   payload1112:u64 = const() {"value":7146775438518809954}
   _ = buffer.store.u64.le(out,index1112,payload1112)
-  displacement1120:u64 = const() {"value":1120}
-  target1120:u64 = int.add.wrap(base,displacement1120)
-  index1120:usize = int.cast(target1120) {"mode":"wrap"}
+  index1120:usize = int.add.wrap(index1112,stride)
   payload1120:u64 = const() {"value":2314861393141657711}
   _ = buffer.store.u64.le(out,index1120,payload1120)
-  displacement1128:u64 = const() {"value":1128}
-  target1128:u64 = int.add.wrap(base,displacement1128)
-  index1128:usize = int.cast(target1128) {"mode":"wrap"}
+  index1128:usize = int.add.wrap(index1120,stride)
   payload1128:u64 = const() {"value":7306640099798818848}
   _ = buffer.store.u64.le(out,index1128,payload1128)
-  displacement1136:u64 = const() {"value":1136}
-  target1136:u64 = int.add.wrap(base,displacement1136)
-  index1136:usize = int.cast(target1136) {"mode":"wrap"}
+  index1136:usize = int.add.wrap(index1128,stride)
   payload1136:u64 = const() {"value":8241439366923366002}
   _ = buffer.store.u64.le(out,index1136,payload1136)
-  displacement1144:u64 = const() {"value":1144}
-  target1144:u64 = int.add.wrap(base,displacement1144)
-  index1144:usize = int.cast(target1144) {"mode":"wrap"}
+  index1144:usize = int.add.wrap(index1136,stride)
   payload1144:u64 = const() {"value":2308706285222588001}
   _ = buffer.store.u64.le(out,index1144,payload1144)
-  displacement1152:u64 = const() {"value":1152}
-  target1152:u64 = int.add.wrap(base,displacement1152)
-  index1152:usize = int.cast(target1152) {"mode":"wrap"}
+  index1152:usize = int.add.wrap(index1144,stride)
   payload1152:u64 = const() {"value":7378714103832911904}
   _ = buffer.store.u64.le(out,index1152,payload1152)
-  displacement1160:u64 = const() {"value":1160}
-  target1160:u64 = int.add.wrap(base,displacement1160)
-  index1160:usize = int.cast(target1160) {"mode":"wrap"}
+  index1160:usize = int.add.wrap(index1152,stride)
   payload1160:u64 = const() {"value":2480476694715986533}
   _ = buffer.store.u64.le(out,index1160,payload1160)
-  displacement1168:u64 = const() {"value":1168}
-  target1168:u64 = int.add.wrap(base,displacement1168)
-  index1168:usize = int.cast(target1168) {"mode":"wrap"}
+  index1168:usize = int.add.wrap(index1160,stride)
   payload1168:u64 = const() {"value":7071249687275113004}
   _ = buffer.store.u64.le(out,index1168,payload1168)
-  displacement1176:u64 = const() {"value":1176}
-  target1176:u64 = int.add.wrap(base,displacement1176)
-  index1176:usize = int.cast(target1176) {"mode":"wrap"}
+  index1176:usize = int.add.wrap(index1168,stride)
   payload1176:u64 = const() {"value":7594808890469279349}
   _ = buffer.store.u64.le(out,index1176,payload1176)
-  displacement1184:u64 = const() {"value":1184}
-  target1184:u64 = int.add.wrap(base,displacement1184)
-  index1184:usize = int.cast(target1184) {"mode":"wrap"}
+  index1184:usize = int.add.wrap(index1176,stride)
   payload1184:u64 = const() {"value":7306930285241658476}
   _ = buffer.store.u64.le(out,index1184,payload1184)
-  displacement1192:u64 = const() {"value":1192}
-  target1192:u64 = int.add.wrap(base,displacement1192)
-  index1192:usize = int.cast(target1192) {"mode":"wrap"}
+  index1192:usize = int.add.wrap(index1184,stride)
   payload1192:u64 = const() {"value":2459000718892870690}
   _ = buffer.store.u64.le(out,index1192,payload1192)
-  displacement1200:u64 = const() {"value":1200}
-  target1200:u64 = int.add.wrap(base,displacement1200)
-  index1200:usize = int.cast(target1200) {"mode":"wrap"}
+  index1200:usize = int.add.wrap(index1192,stride)
   payload1200:u64 = const() {"value":7795293784860161378}
   _ = buffer.store.u64.le(out,index1200,payload1200)
-  displacement1208:u64 = const() {"value":1208}
-  target1208:u64 = int.add.wrap(base,displacement1208)
-  index1208:usize = int.cast(target1208) {"mode":"wrap"}
+  index1208:usize = int.add.wrap(index1200,stride)
   payload1208:u64 = const() {"value":2314885436530650725}
   _ = buffer.store.u64.le(out,index1208,payload1208)
-  displacement1216:u64 = const() {"value":1216}
-  target1216:u64 = int.add.wrap(base,displacement1216)
-  index1216:usize = int.cast(target1216) {"mode":"wrap"}
+  index1216:usize = int.add.wrap(index1208,stride)
   payload1216:u64 = const() {"value":8243107283213623840}
   _ = buffer.store.u64.le(out,index1216,payload1216)
-  displacement1224:u64 = const() {"value":1224}
-  target1224:u64 = int.add.wrap(base,displacement1224)
-  index1224:usize = int.cast(target1224) {"mode":"wrap"}
+  index1224:usize = int.add.wrap(index1216,stride)
   payload1224:u64 = const() {"value":732998653881314350}
   _ = buffer.store.u64.le(out,index1224,payload1224)
-  displacement1232:u64 = const() {"value":1232}
-  target1232:u64 = int.add.wrap(base,displacement1232)
-  index1232:usize = int.cast(target1232) {"mode":"wrap"}
+  index1232:usize = int.add.wrap(index1224,stride)
   payload1232:u64 = const() {"value":7382915062851182624}
   _ = buffer.store.u64.le(out,index1232,payload1232)
-  displacement1240:u64 = const() {"value":1240}
-  target1240:u64 = int.add.wrap(base,displacement1240)
-  index1240:usize = int.cast(target1240) {"mode":"wrap"}
+  index1240:usize = int.add.wrap(index1232,stride)
   payload1240:u64 = const() {"value":7233184986960127334}
   _ = buffer.store.u64.le(out,index1240,payload1240)
-  displacement1248:u64 = const() {"value":1248}
-  target1248:u64 = int.add.wrap(base,displacement1248)
-  index1248:usize = int.cast(target1248) {"mode":"wrap"}
+  index1248:usize = int.add.wrap(index1240,stride)
   payload1248:u64 = const() {"value":2478495120521327918}
   _ = buffer.store.u64.le(out,index1248,payload1248)
-  displacement1256:u64 = const() {"value":1256}
-  target1256:u64 = int.add.wrap(base,displacement1256)
-  index1256:usize = int.cast(target1256) {"mode":"wrap"}
+  index1256:usize = int.add.wrap(index1248,stride)
   payload1256:u64 = const() {"value":7071249687275113004}
   _ = buffer.store.u64.le(out,index1256,payload1256)
-  displacement1264:u64 = const() {"value":1264}
-  target1264:u64 = int.add.wrap(base,displacement1264)
-  index1264:usize = int.cast(target1264) {"mode":"wrap"}
+  index1264:usize = int.add.wrap(index1256,stride)
   payload1264:u64 = const() {"value":8028843304557110901}
   _ = buffer.store.u64.le(out,index1264,payload1264)
-  displacement1272:u64 = const() {"value":1272}
-  target1272:u64 = int.add.wrap(base,displacement1272)
-  index1272:usize = int.cast(target1272) {"mode":"wrap"}
+  index1272:usize = int.add.wrap(index1264,stride)
   payload1272:u64 = const() {"value":7795225413523760225}
   _ = buffer.store.u64.le(out,index1272,payload1272)
-  displacement1280:u64 = const() {"value":1280}
-  target1280:u64 = int.add.wrap(base,displacement1280)
-  index1280:usize = int.cast(target1280) {"mode":"wrap"}
+  index1280:usize = int.add.wrap(index1272,stride)
   payload1280:u64 = const() {"value":2314885530450141797}
   _ = buffer.store.u64.le(out,index1280,payload1280)
-  displacement1288:u64 = const() {"value":1288}
-  target1288:u64 = int.add.wrap(base,displacement1288)
-  index1288:usize = int.cast(target1288) {"mode":"wrap"}
+  index1288:usize = int.add.wrap(index1280,stride)
   payload1288:u64 = const() {"value":3346848963569738274}
   _ = buffer.store.u64.le(out,index1288,payload1288)
-  displacement1296:u64 = const() {"value":1296}
-  target1296:u64 = int.add.wrap(base,displacement1296)
-  index1296:usize = int.cast(target1296) {"mode":"wrap"}
+  index1296:usize = int.add.wrap(index1288,stride)
   payload1296:u64 = const() {"value":8388367032562118509}
   _ = buffer.store.u64.le(out,index1296,payload1296)
-  displacement1304:u64 = const() {"value":1304}
-  target1304:u64 = int.add.wrap(base,displacement1304)
-  index1304:usize = int.cast(target1304) {"mode":"wrap"}
+  index1304:usize = int.add.wrap(index1296,stride)
   payload1304:u64 = const() {"value":2314861393140935016}
   _ = buffer.store.u64.le(out,index1304,payload1304)
-  displacement1312:u64 = const() {"value":1312}
-  target1312:u64 = int.add.wrap(base,displacement1312)
-  index1312:usize = int.cast(target1312) {"mode":"wrap"}
+  index1312:usize = int.add.wrap(index1304,stride)
   payload1312:u64 = const() {"value":7306640099798818848}
   _ = buffer.store.u64.le(out,index1312,payload1312)
-  displacement1320:u64 = const() {"value":1320}
-  target1320:u64 = int.add.wrap(base,displacement1320)
-  index1320:usize = int.cast(target1320) {"mode":"wrap"}
+  index1320:usize = int.add.wrap(index1312,stride)
   payload1320:u64 = const() {"value":732998735552720498}
   _ = buffer.store.u64.le(out,index1320,payload1320)
-  displacement1328:u64 = const() {"value":1328}
-  target1328:u64 = int.add.wrap(base,displacement1328)
-  index1328:usize = int.cast(target1328) {"mode":"wrap"}
+  index1328:usize = int.add.wrap(index1320,stride)
   payload1328:u64 = const() {"value":7382915062851182624}
   _ = buffer.store.u64.le(out,index1328,payload1328)
-  displacement1336:u64 = const() {"value":1336}
-  target1336:u64 = int.add.wrap(base,displacement1336)
-  index1336:usize = int.cast(target1336) {"mode":"wrap"}
+  index1336:usize = int.add.wrap(index1328,stride)
   payload1336:u64 = const() {"value":8245937480787977574}
   _ = buffer.store.u64.le(out,index1336,payload1336)
-  displacement1344:u64 = const() {"value":1344}
-  target1344:u64 = int.add.wrap(base,displacement1344)
-  index1344:usize = int.cast(target1344) {"mode":"wrap"}
+  index1344:usize = int.add.wrap(index1336,stride)
   payload1344:u64 = const() {"value":2314885530450141797}
   _ = buffer.store.u64.le(out,index1344,payload1344)
-  displacement1352:u64 = const() {"value":1352}
-  target1352:u64 = int.add.wrap(base,displacement1352)
-  index1352:usize = int.cast(target1352) {"mode":"wrap"}
+  index1352:usize = int.add.wrap(index1344,stride)
   payload1352:u64 = const() {"value":3346848963569738274}
   _ = buffer.store.u64.le(out,index1352,payload1352)
-  displacement1360:u64 = const() {"value":1360}
-  target1360:u64 = int.add.wrap(base,displacement1360)
-  index1360:usize = int.cast(target1360) {"mode":"wrap"}
+  index1360:usize = int.add.wrap(index1352,stride)
   payload1360:u64 = const() {"value":3924093663569736819}
   _ = buffer.store.u64.le(out,index1360,payload1360)
-  displacement1368:u64 = const() {"value":1368}
-  target1368:u64 = int.add.wrap(base,displacement1368)
-  index1368:usize = int.cast(target1368) {"mode":"wrap"}
+  index1368:usize = int.add.wrap(index1360,stride)
   payload1368:u64 = const() {"value":2308706285222243892}
   _ = buffer.store.u64.le(out,index1368,payload1368)
-  displacement1376:u64 = const() {"value":1376}
-  target1376:u64 = int.add.wrap(base,displacement1376)
-  index1376:usize = int.cast(target1376) {"mode":"wrap"}
+  index1376:usize = int.add.wrap(index1368,stride)
   payload1376:u64 = const() {"value":7378714103832911904}
   _ = buffer.store.u64.le(out,index1376,payload1376)
-  displacement1384:u64 = const() {"value":1384}
-  target1384:u64 = int.add.wrap(base,displacement1384)
-  index1384:usize = int.cast(target1384) {"mode":"wrap"}
+  index1384:usize = int.add.wrap(index1376,stride)
   payload1384:u64 = const() {"value":7310027691115049573}
   _ = buffer.store.u64.le(out,index1384,payload1384)
-  displacement1392:u64 = const() {"value":1392}
-  target1392:u64 = int.add.wrap(base,displacement1392)
-  index1392:usize = int.cast(target1392) {"mode":"wrap"}
+  index1392:usize = int.add.wrap(index1384,stride)
   payload1392:u64 = const() {"value":2478506115637605678}
   _ = buffer.store.u64.le(out,index1392,payload1392)
-  displacement1400:u64 = const() {"value":1400}
-  target1400:u64 = int.add.wrap(base,displacement1400)
-  index1400:usize = int.cast(target1400) {"mode":"wrap"}
+  index1400:usize = int.add.wrap(index1392,stride)
   payload1400:u64 = const() {"value":7071249687275113004}
   _ = buffer.store.u64.le(out,index1400,payload1400)
-  displacement1408:u64 = const() {"value":1408}
-  target1408:u64 = int.add.wrap(base,displacement1408)
-  index1408:usize = int.cast(target1408) {"mode":"wrap"}
+  index1408:usize = int.add.wrap(index1400,stride)
   payload1408:u64 = const() {"value":8607274381697508981}
   _ = buffer.store.u64.le(out,index1408,payload1408)
-  displacement1416:u64 = const() {"value":1416}
-  target1416:u64 = int.add.wrap(base,displacement1416)
-  index1416:usize = int.cast(target1416) {"mode":"wrap"}
+  index1416:usize = int.add.wrap(index1408,stride)
   payload1416:u64 = const() {"value":2314885436530651233}
   _ = buffer.store.u64.le(out,index1416,payload1416)
-  displacement1424:u64 = const() {"value":1424}
-  target1424:u64 = int.add.wrap(base,displacement1424)
-  index1424:usize = int.cast(target1424) {"mode":"wrap"}
+  index1424:usize = int.add.wrap(index1416,stride)
   payload1424:u64 = const() {"value":8243107283213623840}
   _ = buffer.store.u64.le(out,index1424,payload1424)
-  displacement1432:u64 = const() {"value":1432}
-  target1432:u64 = int.add.wrap(base,displacement1432)
-  index1432:usize = int.cast(target1432) {"mode":"wrap"}
+  index1432:usize = int.add.wrap(index1424,stride)
   payload1432:u64 = const() {"value":8603404019499693102}
   _ = buffer.store.u64.le(out,index1432,payload1432)
-  displacement1440:u64 = const() {"value":1440}
-  target1440:u64 = int.add.wrap(base,displacement1440)
-  index1440:usize = int.cast(target1440) {"mode":"wrap"}
+  index1440:usize = int.add.wrap(index1432,stride)
   payload1440:u64 = const() {"value":2459000718892870690}
   _ = buffer.store.u64.le(out,index1440,payload1440)
-  displacement1448:u64 = const() {"value":1448}
-  target1448:u64 = int.add.wrap(base,displacement1448)
-  index1448:usize = int.cast(target1448) {"mode":"wrap"}
+  index1448:usize = int.add.wrap(index1440,stride)
   payload1448:u64 = const() {"value":2308706285340352867}
   _ = buffer.store.u64.le(out,index1448,payload1448)
-  displacement1456:u64 = const() {"value":1456}
-  target1456:u64 = int.add.wrap(base,displacement1456)
-  index1456:usize = int.cast(target1456) {"mode":"wrap"}
+  index1456:usize = int.add.wrap(index1448,stride)
   payload1456:u64 = const() {"value":7593465221706948640}
   _ = buffer.store.u64.le(out,index1456,payload1456)
-  displacement1464:u64 = const() {"value":1464}
-  target1464:u64 = int.add.wrap(base,displacement1464)
-  index1464:usize = int.cast(target1464) {"mode":"wrap"}
+  index1464:usize = int.add.wrap(index1456,stride)
   payload1464:u64 = const() {"value":2484144695692045934}
   _ = buffer.store.u64.le(out,index1464,payload1464)
-  displacement1472:u64 = const() {"value":1472}
-  target1472:u64 = int.add.wrap(base,displacement1472)
-  index1472:usize = int.cast(target1472) {"mode":"wrap"}
+  index1472:usize = int.add.wrap(index1464,stride)
   payload1472:u64 = const() {"value":7143307281313040940}
   _ = buffer.store.u64.le(out,index1472,payload1472)
-  displacement1480:u64 = const() {"value":1480}
-  target1480:u64 = int.add.wrap(base,displacement1480)
-  index1480:usize = int.cast(target1480) {"mode":"wrap"}
+  index1480:usize = int.add.wrap(index1472,stride)
   payload1480:u64 = const() {"value":7018130142956970344}
   _ = buffer.store.u64.le(out,index1480,payload1480)
-  displacement1488:u64 = const() {"value":1488}
-  target1488:u64 = int.add.wrap(base,displacement1488)
-  index1488:usize = int.cast(target1488) {"mode":"wrap"}
+  index1488:usize = int.add.wrap(index1480,stride)
   payload1488:u64 = const() {"value":732998722936201060}
   _ = buffer.store.u64.le(out,index1488,payload1488)
-  displacement1496:u64 = const() {"value":1496}
-  target1496:u64 = int.add.wrap(base,displacement1496)
-  index1496:usize = int.cast(target1496) {"mode":"wrap"}
+  index1496:usize = int.add.wrap(index1488,stride)
   payload1496:u64 = const() {"value":7018969017475932192}
   _ = buffer.store.u64.le(out,index1496,payload1496)
-  displacement1504:u64 = const() {"value":1504}
-  target1504:u64 = int.add.wrap(base,displacement1504)
-  index1504:usize = int.cast(target1504) {"mode":"wrap"}
+  index1504:usize = int.add.wrap(index1496,stride)
   payload1504:u64 = const() {"value":6873726019441684073}
   _ = buffer.store.u64.le(out,index1504,payload1504)
-  displacement1512:u64 = const() {"value":1512}
-  target1512:u64 = int.add.wrap(base,displacement1512)
-  index1512:usize = int.cast(target1512) {"mode":"wrap"}
+  index1512:usize = int.add.wrap(index1504,stride)
   payload1512:u64 = const() {"value":2308706285205415282}
   _ = buffer.store.u64.le(out,index1512,payload1512)
-  displacement1520:u64 = const() {"value":1520}
-  target1520:u64 = int.add.wrap(base,displacement1520)
-  index1520:usize = int.cast(target1520) {"mode":"wrap"}
+  index1520:usize = int.add.wrap(index1512,stride)
   payload1520:u64 = const() {"value":7593465221706948640}
   _ = buffer.store.u64.le(out,index1520,payload1520)
-  displacement1528:u64 = const() {"value":1528}
-  target1528:u64 = int.add.wrap(base,displacement1528)
-  index1528:usize = int.cast(target1528) {"mode":"wrap"}
+  index1528:usize = int.add.wrap(index1520,stride)
   payload1528:u64 = const() {"value":8101242765341961838}
   _ = buffer.store.u64.le(out,index1528,payload1528)
   result:u64 = const() {"value":0}
@@ -4134,374 +3759,230 @@ block b0(out:mutbuf,scratch:mutbuf,base:u64)
 end
 fn f29(out:mutbuf,scratch:mutbuf,base:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(out:mutbuf,scratch:mutbuf,base:u64)
-  displacement1536:u64 = const() {"value":1536}
-  target1536:u64 = int.add.wrap(base,displacement1536)
-  index1536:usize = int.cast(target1536) {"mode":"wrap"}
+  base_index:usize = int.cast(base) {"mode":"wrap"}
+  stride:usize = const() {"value":8}
+  displacement:usize = const() {"value":1536}
+  index1536:usize = int.add.wrap(base_index,displacement)
   payload1536:u64 = const() {"value":2314885436530653556}
   _ = buffer.store.u64.le(out,index1536,payload1536)
-  displacement1544:u64 = const() {"value":1544}
-  target1544:u64 = int.add.wrap(base,displacement1544)
-  index1544:usize = int.cast(target1544) {"mode":"wrap"}
+  index1544:usize = int.add.wrap(index1536,stride)
   payload1544:u64 = const() {"value":3345727440266928672}
   _ = buffer.store.u64.le(out,index1544,payload1544)
-  displacement1552:u64 = const() {"value":1552}
-  target1552:u64 = int.add.wrap(base,displacement1552)
-  index1552:usize = int.cast(target1552) {"mode":"wrap"}
+  index1552:usize = int.add.wrap(index1544,stride)
   payload1552:u64 = const() {"value":2314861393141067632}
   _ = buffer.store.u64.le(out,index1552,payload1552)
-  displacement1560:u64 = const() {"value":1560}
-  target1560:u64 = int.add.wrap(base,displacement1560)
-  index1560:usize = int.cast(target1560) {"mode":"wrap"}
+  index1560:usize = int.add.wrap(index1552,stride)
   payload1560:u64 = const() {"value":7955997317694365728}
   _ = buffer.store.u64.le(out,index1560,payload1560)
-  displacement1568:u64 = const() {"value":1568}
-  target1568:u64 = int.add.wrap(base,displacement1568)
-  index1568:usize = int.cast(target1568) {"mode":"wrap"}
+  index1568:usize = int.add.wrap(index1560,stride)
   payload1568:u64 = const() {"value":8319679441998607406}
   _ = buffer.store.u64.le(out,index1568,payload1568)
-  displacement1576:u64 = const() {"value":1576}
-  target1576:u64 = int.add.wrap(base,displacement1576)
-  index1576:usize = int.cast(target1576) {"mode":"wrap"}
+  index1576:usize = int.add.wrap(index1568,stride)
   payload1576:u64 = const() {"value":2314885530450141800}
   _ = buffer.store.u64.le(out,index1576,payload1576)
-  displacement1584:u64 = const() {"value":1584}
-  target1584:u64 = int.add.wrap(base,displacement1584)
-  index1584:usize = int.cast(target1584) {"mode":"wrap"}
+  index1584:usize = int.add.wrap(index1576,stride)
   payload1584:u64 = const() {"value":7310012280675984162}
   _ = buffer.store.u64.le(out,index1584,payload1584)
-  displacement1592:u64 = const() {"value":1592}
-  target1592:u64 = int.add.wrap(base,displacement1592)
-  index1592:usize = int.cast(target1592) {"mode":"wrap"}
+  index1592:usize = int.add.wrap(index1584,stride)
   payload1592:u64 = const() {"value":2314861393141130542}
   _ = buffer.store.u64.le(out,index1592,payload1592)
-  displacement1600:u64 = const() {"value":1600}
-  target1600:u64 = int.add.wrap(base,displacement1600)
-  index1600:usize = int.cast(target1600) {"mode":"wrap"}
+  index1600:usize = int.add.wrap(index1592,stride)
   payload1600:u64 = const() {"value":7021232144242581536}
   _ = buffer.store.u64.le(out,index1600,payload1600)
-  displacement1608:u64 = const() {"value":1608}
-  target1608:u64 = int.add.wrap(base,displacement1608)
-  index1608:usize = int.cast(target1608) {"mode":"wrap"}
+  index1608:usize = int.add.wrap(index1600,stride)
   payload1608:u64 = const() {"value":732998658272683378}
   _ = buffer.store.u64.le(out,index1608,payload1608)
-  displacement1616:u64 = const() {"value":1616}
-  target1616:u64 = int.add.wrap(base,displacement1616)
-  index1616:usize = int.cast(target1616) {"mode":"wrap"}
+  index1616:usize = int.add.wrap(index1608,stride)
   payload1616:u64 = const() {"value":7885630470768042016}
   _ = buffer.store.u64.le(out,index1616,payload1616)
-  displacement1624:u64 = const() {"value":1624}
-  target1624:u64 = int.add.wrap(base,displacement1624)
-  index1624:usize = int.cast(target1624) {"mode":"wrap"}
+  index1624:usize = int.add.wrap(index1616,stride)
   payload1624:u64 = const() {"value":2482722743556137328}
   _ = buffer.store.u64.le(out,index1624,payload1624)
-  displacement1632:u64 = const() {"value":1632}
-  target1632:u64 = int.add.wrap(base,displacement1632)
-  index1632:usize = int.cast(target1632) {"mode":"wrap"}
+  index1632:usize = int.add.wrap(index1624,stride)
   payload1632:u64 = const() {"value":7143307281313040940}
   _ = buffer.store.u64.le(out,index1632,payload1632)
-  displacement1640:u64 = const() {"value":1640}
-  target1640:u64 = int.add.wrap(base,displacement1640)
-  index1640:usize = int.cast(target1640) {"mode":"wrap"}
+  index1640:usize = int.add.wrap(index1632,stride)
   payload1640:u64 = const() {"value":7795279546960342383}
   _ = buffer.store.u64.le(out,index1640,payload1640)
-  displacement1648:u64 = const() {"value":1648}
-  target1648:u64 = int.add.wrap(base,displacement1648)
-  index1648:usize = int.cast(target1648) {"mode":"wrap"}
+  index1648:usize = int.add.wrap(index1640,stride)
   payload1648:u64 = const() {"value":2314885530450141797}
   _ = buffer.store.u64.le(out,index1648,payload1648)
-  displacement1656:u64 = const() {"value":1656}
-  target1656:u64 = int.add.wrap(base,displacement1656)
-  index1656:usize = int.cast(target1656) {"mode":"wrap"}
+  index1656:usize = int.add.wrap(index1648,stride)
   payload1656:u64 = const() {"value":7310012280675984162}
   _ = buffer.store.u64.le(out,index1656,payload1656)
-  displacement1664:u64 = const() {"value":1664}
-  target1664:u64 = int.add.wrap(base,displacement1664)
-  index1664:usize = int.cast(target1664) {"mode":"wrap"}
+  index1664:usize = int.add.wrap(index1656,stride)
   payload1664:u64 = const() {"value":2314861393141328942}
   _ = buffer.store.u64.le(out,index1664,payload1664)
-  displacement1672:u64 = const() {"value":1672}
-  target1672:u64 = int.add.wrap(base,displacement1672)
-  index1672:usize = int.cast(target1672) {"mode":"wrap"}
+  index1672:usize = int.add.wrap(index1664,stride)
   payload1672:u64 = const() {"value":7021232144242581536}
   _ = buffer.store.u64.le(out,index1672,payload1672)
-  displacement1680:u64 = const() {"value":1680}
-  target1680:u64 = int.add.wrap(base,displacement1680)
-  index1680:usize = int.cast(target1680) {"mode":"wrap"}
+  index1680:usize = int.add.wrap(index1672,stride)
   payload1680:u64 = const() {"value":732998658390123890}
   _ = buffer.store.u64.le(out,index1680,payload1680)
-  displacement1688:u64 = const() {"value":1688}
-  target1688:u64 = int.add.wrap(base,displacement1688)
-  index1688:usize = int.cast(target1688) {"mode":"wrap"}
+  index1688:usize = int.add.wrap(index1680,stride)
   payload1688:u64 = const() {"value":7957688064805969952}
   _ = buffer.store.u64.le(out,index1688,payload1688)
-  displacement1696:u64 = const() {"value":1696}
-  target1696:u64 = int.add.wrap(base,displacement1696)
-  index1696:usize = int.cast(target1696) {"mode":"wrap"}
+  index1696:usize = int.add.wrap(index1688,stride)
   payload1696:u64 = const() {"value":2314885436530652275}
   _ = buffer.store.u64.le(out,index1696,payload1696)
-  displacement1704:u64 = const() {"value":1704}
-  target1704:u64 = int.add.wrap(base,displacement1704)
-  index1704:usize = int.cast(target1704) {"mode":"wrap"}
+  index1704:usize = int.add.wrap(index1696,stride)
   payload1704:u64 = const() {"value":7233113554137195040}
   _ = buffer.store.u64.le(out,index1704,payload1704)
-  displacement1712:u64 = const() {"value":1712}
-  target1712:u64 = int.add.wrap(base,displacement1712)
-  index1712:usize = int.cast(target1712) {"mode":"wrap"}
+  index1712:usize = int.add.wrap(index1704,stride)
   payload1712:u64 = const() {"value":7308044107532938852}
   _ = buffer.store.u64.le(out,index1712,payload1712)
-  displacement1720:u64 = const() {"value":1720}
-  target1720:u64 = int.add.wrap(base,displacement1720)
-  index1720:usize = int.cast(target1720) {"mode":"wrap"}
+  index1720:usize = int.add.wrap(index1712,stride)
   payload1720:u64 = const() {"value":2314885530450141796}
   _ = buffer.store.u64.le(out,index1720,payload1720)
-  displacement1728:u64 = const() {"value":1728}
-  target1728:u64 = int.add.wrap(base,displacement1728)
-  index1728:usize = int.cast(target1728) {"mode":"wrap"}
+  index1728:usize = int.add.wrap(index1720,stride)
   payload1728:u64 = const() {"value":7234013753613642018}
   _ = buffer.store.u64.le(out,index1728,payload1728)
-  displacement1736:u64 = const() {"value":1736}
-  target1736:u64 = int.add.wrap(base,displacement1736)
-  index1736:usize = int.cast(target1736) {"mode":"wrap"}
+  index1736:usize = int.add.wrap(index1728,stride)
   payload1736:u64 = const() {"value":732998705421121326}
   _ = buffer.store.u64.le(out,index1736,payload1736)
-  displacement1744:u64 = const() {"value":1744}
-  target1744:u64 = int.add.wrap(base,displacement1744)
-  index1744:usize = int.cast(target1744) {"mode":"wrap"}
+  index1744:usize = int.add.wrap(index1736,stride)
   payload1744:u64 = const() {"value":8389758751126593568}
   _ = buffer.store.u64.le(out,index1744,payload1744)
-  displacement1752:u64 = const() {"value":1752}
-  target1752:u64 = int.add.wrap(base,displacement1752)
-  index1752:usize = int.cast(target1752) {"mode":"wrap"}
+  index1752:usize = int.add.wrap(index1744,stride)
   payload1752:u64 = const() {"value":732998722901861166}
   _ = buffer.store.u64.le(out,index1752,payload1752)
-  displacement1760:u64 = const() {"value":1760}
-  target1760:u64 = int.add.wrap(base,displacement1760)
-  index1760:usize = int.cast(target1760) {"mode":"wrap"}
+  index1760:usize = int.add.wrap(index1752,stride)
   payload1760:u64 = const() {"value":8389758751126593568}
   _ = buffer.store.u64.le(out,index1760,payload1760)
-  displacement1768:u64 = const() {"value":1768}
-  target1768:u64 = int.add.wrap(base,displacement1768)
-  index1768:usize = int.cast(target1768) {"mode":"wrap"}
+  index1768:usize = int.add.wrap(index1760,stride)
   payload1768:u64 = const() {"value":7307199446614893614}
   _ = buffer.store.u64.le(out,index1768,payload1768)
-  displacement1776:u64 = const() {"value":1776}
-  target1776:u64 = int.add.wrap(base,displacement1776)
-  index1776:usize = int.cast(target1776) {"mode":"wrap"}
+  index1776:usize = int.add.wrap(index1768,stride)
   payload1776:u64 = const() {"value":2308706285205678947}
   _ = buffer.store.u64.le(out,index1776,payload1776)
-  displacement1784:u64 = const() {"value":1784}
-  target1784:u64 = int.add.wrap(base,displacement1784)
-  index1784:usize = int.cast(target1784) {"mode":"wrap"}
+  index1784:usize = int.add.wrap(index1776,stride)
   payload1784:u64 = const() {"value":3347421820866273312}
   _ = buffer.store.u64.le(out,index1784,payload1784)
-  displacement1792:u64 = const() {"value":1792}
-  target1792:u64 = int.add.wrap(base,displacement1792)
-  index1792:usize = int.cast(target1792) {"mode":"wrap"}
+  index1792:usize = int.add.wrap(index1784,stride)
   payload1792:u64 = const() {"value":7162245557592552813}
   _ = buffer.store.u64.le(out,index1792,payload1792)
-  displacement1800:u64 = const() {"value":1800}
-  target1800:u64 = int.add.wrap(base,displacement1800)
-  index1800:usize = int.cast(target1800) {"mode":"wrap"}
+  index1800:usize = int.add.wrap(index1792,stride)
   payload1800:u64 = const() {"value":2314861393140278635}
   _ = buffer.store.u64.le(out,index1800,payload1800)
-  displacement1808:u64 = const() {"value":1808}
-  target1808:u64 = int.add.wrap(base,displacement1808)
-  index1808:usize = int.cast(target1808) {"mode":"wrap"}
+  index1808:usize = int.add.wrap(index1800,stride)
   payload1808:u64 = const() {"value":7867353616621903904}
   _ = buffer.store.u64.le(out,index1808,payload1808)
-  displacement1816:u64 = const() {"value":1816}
-  target1816:u64 = int.add.wrap(base,displacement1816)
-  index1816:usize = int.cast(target1816) {"mode":"wrap"}
+  index1816:usize = int.add.wrap(index1808,stride)
   payload1816:u64 = const() {"value":2481590538934840437}
   _ = buffer.store.u64.le(out,index1816,payload1816)
-  displacement1824:u64 = const() {"value":1824}
-  target1824:u64 = int.add.wrap(base,displacement1824)
-  index1824:usize = int.cast(target1824) {"mode":"wrap"}
+  index1824:usize = int.add.wrap(index1816,stride)
   payload1824:u64 = const() {"value":7575652845540608556}
   _ = buffer.store.u64.le(out,index1824,payload1824)
-  displacement1832:u64 = const() {"value":1832}
-  target1832:u64 = int.add.wrap(base,displacement1832)
-  index1832:usize = int.cast(target1832) {"mode":"wrap"}
+  index1832:usize = int.add.wrap(index1824,stride)
   payload1832:u64 = const() {"value":7146763344021451886}
   _ = buffer.store.u64.le(out,index1832,payload1832)
-  displacement1840:u64 = const() {"value":1840}
-  target1840:u64 = int.add.wrap(base,displacement1840)
-  index1840:usize = int.cast(target1840) {"mode":"wrap"}
+  index1840:usize = int.add.wrap(index1832,stride)
   payload1840:u64 = const() {"value":3180214673633142120}
   _ = buffer.store.u64.le(out,index1840,payload1840)
-  displacement1848:u64 = const() {"value":1848}
-  target1848:u64 = int.add.wrap(base,displacement1848)
-  index1848:usize = int.cast(target1848) {"mode":"wrap"}
+  index1848:usize = int.add.wrap(index1840,stride)
   payload1848:u64 = const() {"value":7955927738099965962}
   _ = buffer.store.u64.le(out,index1848,payload1848)
-  displacement1856:u64 = const() {"value":1856}
-  target1856:u64 = int.add.wrap(base,displacement1856)
-  index1856:usize = int.cast(target1856) {"mode":"wrap"}
+  index1856:usize = int.add.wrap(index1848,stride)
   payload1856:u64 = const() {"value":7521906850027155060}
   _ = buffer.store.u64.le(out,index1856,payload1856)
-  displacement1864:u64 = const() {"value":1864}
-  target1864:u64 = int.add.wrap(base,displacement1864)
-  index1864:usize = int.cast(target1864) {"mode":"wrap"}
+  index1864:usize = int.add.wrap(index1856,stride)
   payload1864:u64 = const() {"value":732998653948158821}
   _ = buffer.store.u64.le(out,index1864,payload1864)
-  displacement1872:u64 = const() {"value":1872}
-  target1872:u64 = int.add.wrap(base,displacement1872)
-  index1872:usize = int.cast(target1872) {"mode":"wrap"}
+  index1872:usize = int.add.wrap(index1864,stride)
   payload1872:u64 = const() {"value":8389758751126593568}
   _ = buffer.store.u64.le(out,index1872,payload1872)
-  displacement1880:u64 = const() {"value":1880}
-  target1880:u64 = int.add.wrap(base,displacement1880)
-  index1880:usize = int.cast(target1880) {"mode":"wrap"}
+  index1880:usize = int.add.wrap(index1872,stride)
   payload1880:u64 = const() {"value":7307199446447059758}
   _ = buffer.store.u64.le(out,index1880,payload1880)
-  displacement1888:u64 = const() {"value":1888}
-  target1888:u64 = int.add.wrap(base,displacement1888)
-  index1888:usize = int.cast(target1888) {"mode":"wrap"}
+  index1888:usize = int.add.wrap(index1880,stride)
   payload1888:u64 = const() {"value":2308706285205678947}
   _ = buffer.store.u64.le(out,index1888,payload1888)
-  displacement1896:u64 = const() {"value":1896}
-  target1896:u64 = int.add.wrap(base,displacement1896)
-  index1896:usize = int.cast(target1896) {"mode":"wrap"}
+  index1896:usize = int.add.wrap(index1888,stride)
   payload1896:u64 = const() {"value":3347421820866273312}
   _ = buffer.store.u64.le(out,index1896,payload1896)
-  displacement1904:u64 = const() {"value":1904}
-  target1904:u64 = int.add.wrap(base,displacement1904)
-  index1904:usize = int.cast(target1904) {"mode":"wrap"}
+  index1904:usize = int.add.wrap(index1896,stride)
   payload1904:u64 = const() {"value":7162245557592942707}
   _ = buffer.store.u64.le(out,index1904,payload1904)
-  displacement1912:u64 = const() {"value":1912}
-  target1912:u64 = int.add.wrap(base,displacement1912)
-  index1912:usize = int.cast(target1912) {"mode":"wrap"}
+  index1912:usize = int.add.wrap(index1904,stride)
   payload1912:u64 = const() {"value":2314861393140278635}
   _ = buffer.store.u64.le(out,index1912,payload1912)
-  displacement1920:u64 = const() {"value":1920}
-  target1920:u64 = int.add.wrap(base,displacement1920)
-  index1920:usize = int.cast(target1920) {"mode":"wrap"}
+  index1920:usize = int.add.wrap(index1912,stride)
   payload1920:u64 = const() {"value":8299699180849471520}
   _ = buffer.store.u64.le(out,index1920,payload1920)
-  displacement1928:u64 = const() {"value":1928}
-  target1928:u64 = int.add.wrap(base,displacement1928)
-  index1928:usize = int.cast(target1928) {"mode":"wrap"}
+  index1928:usize = int.add.wrap(index1920,stride)
   payload1928:u64 = const() {"value":7738140083767632501}
   _ = buffer.store.u64.le(out,index1928,payload1928)
-  displacement1936:u64 = const() {"value":1936}
-  target1936:u64 = int.add.wrap(base,displacement1936)
-  index1936:usize = int.cast(target1936) {"mode":"wrap"}
+  index1936:usize = int.add.wrap(index1928,stride)
   payload1936:u64 = const() {"value":2314885436530648165}
   _ = buffer.store.u64.le(out,index1936,payload1936)
-  displacement1944:u64 = const() {"value":1944}
-  target1944:u64 = int.add.wrap(base,displacement1944)
-  index1944:usize = int.cast(target1944) {"mode":"wrap"}
+  index1944:usize = int.add.wrap(index1936,stride)
   payload1944:u64 = const() {"value":8463159202362761760}
   _ = buffer.store.u64.le(out,index1944,payload1944)
-  displacement1952:u64 = const() {"value":1952}
-  target1952:u64 = int.add.wrap(base,displacement1952)
-  index1952:usize = int.cast(target1952) {"mode":"wrap"}
+  index1952:usize = int.add.wrap(index1944,stride)
   payload1952:u64 = const() {"value":3180227850711543394}
   _ = buffer.store.u64.le(out,index1952,payload1952)
-  displacement1960:u64 = const() {"value":1960}
-  target1960:u64 = int.add.wrap(base,displacement1960)
-  index1960:usize = int.cast(target1960) {"mode":"wrap"}
+  index1960:usize = int.add.wrap(index1952,stride)
   payload1960:u64 = const() {"value":8028829757068025866}
   _ = buffer.store.u64.le(out,index1960,payload1960)
-  displacement1968:u64 = const() {"value":1968}
-  target1968:u64 = int.add.wrap(base,displacement1968)
-  index1968:usize = int.cast(target1968) {"mode":"wrap"}
+  index1968:usize = int.add.wrap(index1960,stride)
   payload1968:u64 = const() {"value":3180214712183713377}
   _ = buffer.store.u64.le(out,index1968,payload1968)
-  displacement1976:u64 = const() {"value":1976}
-  target1976:u64 = int.add.wrap(base,displacement1976)
-  index1976:usize = int.cast(target1976) {"mode":"wrap"}
+  index1976:usize = int.add.wrap(index1968,stride)
   payload1976:u64 = const() {"value":8606134934301581322}
   _ = buffer.store.u64.le(out,index1976,payload1976)
-  displacement1984:u64 = const() {"value":1984}
-  target1984:u64 = int.add.wrap(base,displacement1984)
-  index1984:usize = int.cast(target1984) {"mode":"wrap"}
+  index1984:usize = int.add.wrap(index1976,stride)
   payload1984:u64 = const() {"value":8101820029264356718}
   _ = buffer.store.u64.le(out,index1984,payload1984)
-  displacement1992:u64 = const() {"value":1992}
-  target1992:u64 = int.add.wrap(base,displacement1992)
-  index1992:usize = int.cast(target1992) {"mode":"wrap"}
+  index1992:usize = int.add.wrap(index1984,stride)
   payload1992:u64 = const() {"value":2459000718892870690}
   _ = buffer.store.u64.le(out,index1992,payload1992)
-  displacement2000:u64 = const() {"value":2000}
-  target2000:u64 = int.add.wrap(base,displacement2000)
-  index2000:usize = int.cast(target2000) {"mode":"wrap"}
+  index2000:usize = int.add.wrap(index1992,stride)
   payload2000:u64 = const() {"value":8029124779534350191}
   _ = buffer.store.u64.le(out,index2000,payload2000)
-  displacement2008:u64 = const() {"value":2008}
-  target2008:u64 = int.add.wrap(base,displacement2008)
-  index2008:usize = int.cast(target2008) {"mode":"wrap"}
+  index2008:usize = int.add.wrap(index2000,stride)
   payload2008:u64 = const() {"value":2314885436530648438}
   _ = buffer.store.u64.le(out,index2008,payload2008)
-  displacement2016:u64 = const() {"value":2016}
-  target2016:u64 = int.add.wrap(base,displacement2016)
-  index2016:usize = int.cast(target2016) {"mode":"wrap"}
+  index2016:usize = int.add.wrap(index2008,stride)
   payload2016:u64 = const() {"value":8386658447326913056}
   _ = buffer.store.u64.le(out,index2016,payload2016)
-  displacement2024:u64 = const() {"value":2024}
-  target2024:u64 = int.add.wrap(base,displacement2024)
-  index2024:usize = int.cast(target2024) {"mode":"wrap"}
+  index2024:usize = int.add.wrap(index2016,stride)
   payload2024:u64 = const() {"value":2308706537463351842}
   _ = buffer.store.u64.le(out,index2024,payload2024)
-  displacement2032:u64 = const() {"value":2032}
-  target2032:u64 = int.add.wrap(base,displacement2032)
-  index2032:usize = int.cast(target2032) {"mode":"wrap"}
+  index2032:usize = int.add.wrap(index2024,stride)
   payload2032:u64 = const() {"value":8387223622006350368}
   _ = buffer.store.u64.le(out,index2032,payload2032)
-  displacement2040:u64 = const() {"value":2040}
-  target2040:u64 = int.add.wrap(base,displacement2040)
-  index2040:usize = int.cast(target2040) {"mode":"wrap"}
+  index2040:usize = int.add.wrap(index2032,stride)
   payload2040:u64 = const() {"value":6860733170965297698}
   _ = buffer.store.u64.le(out,index2040,payload2040)
-  displacement2048:u64 = const() {"value":2048}
-  target2048:u64 = int.add.wrap(base,displacement2048)
-  index2048:usize = int.cast(target2048) {"mode":"wrap"}
+  index2048:usize = int.add.wrap(index2040,stride)
   payload2048:u64 = const() {"value":8029473307804644406}
   _ = buffer.store.u64.le(out,index2048,payload2048)
-  displacement2056:u64 = const() {"value":2056}
-  target2056:u64 = int.add.wrap(base,displacement2056)
-  index2056:usize = int.cast(target2056) {"mode":"wrap"}
+  index2056:usize = int.add.wrap(index2048,stride)
   payload2056:u64 = const() {"value":8679965255892037239}
   _ = buffer.store.u64.le(out,index2056,payload2056)
-  displacement2064:u64 = const() {"value":2064}
-  target2064:u64 = int.add.wrap(base,displacement2064)
-  index2064:usize = int.cast(target2064) {"mode":"wrap"}
+  index2064:usize = int.add.wrap(index2056,stride)
   payload2064:u64 = const() {"value":2308706285491480365}
   _ = buffer.store.u64.le(out,index2064,payload2064)
-  displacement2072:u64 = const() {"value":2072}
-  target2072:u64 = int.add.wrap(base,displacement2072)
-  index2072:usize = int.cast(target2072) {"mode":"wrap"}
+  index2072:usize = int.add.wrap(index2064,stride)
   payload2072:u64 = const() {"value":7521975028505911840}
   _ = buffer.store.u64.le(out,index2072,payload2072)
-  displacement2080:u64 = const() {"value":2080}
-  target2080:u64 = int.add.wrap(base,displacement2080)
-  index2080:usize = int.cast(target2080) {"mode":"wrap"}
+  index2080:usize = int.add.wrap(index2072,stride)
   payload2080:u64 = const() {"value":8461736183933593953}
   _ = buffer.store.u64.le(out,index2080,payload2080)
-  displacement2088:u64 = const() {"value":2088}
-  target2088:u64 = int.add.wrap(base,displacement2088)
-  index2088:usize = int.cast(target2088) {"mode":"wrap"}
+  index2088:usize = int.add.wrap(index2080,stride)
   payload2088:u8 = const() {"value":108}
   _ = buffer.store(out,index2088,payload2088)
-  displacement2089:u64 = const() {"value":2089}
-  target2089:u64 = int.add.wrap(base,displacement2089)
-  index2089:usize = int.cast(target2089) {"mode":"wrap"}
+  unit:usize = const() {"value":1}
+  index2089:usize = int.add.wrap(index2088,unit)
   payload2089:u8 = const() {"value":108}
   _ = buffer.store(out,index2089,payload2089)
-  displacement2090:u64 = const() {"value":2090}
-  target2090:u64 = int.add.wrap(base,displacement2090)
-  index2090:usize = int.cast(target2090) {"mode":"wrap"}
+  index2090:usize = int.add.wrap(index2089,unit)
   payload2090:u8 = const() {"value":10}
   _ = buffer.store(out,index2090,payload2090)
-  displacement2091:u64 = const() {"value":2091}
-  target2091:u64 = int.add.wrap(base,displacement2091)
-  index2091:usize = int.cast(target2091) {"mode":"wrap"}
+  index2091:usize = int.add.wrap(index2090,unit)
   payload2091:u8 = const() {"value":125}
   _ = buffer.store(out,index2091,payload2091)
-  displacement2092:u64 = const() {"value":2092}
-  target2092:u64 = int.add.wrap(base,displacement2092)
-  index2092:usize = int.cast(target2092) {"mode":"wrap"}
+  index2092:usize = int.add.wrap(index2091,unit)
   payload2092:u8 = const() {"value":10}
   _ = buffer.store(out,index2092,payload2092)
   result:u64 = const() {"value":0}
@@ -4997,6 +4478,8 @@ block b72(v629:readbuf,v630:mutbuf,v631:mutbuf,v632:u64)
   v635:bool = compare.eq(v632,v634)
   branch v635 b73(v629,v630,v631) b74(v629,v630,v631,v632)
 block b73(v636:readbuf,v637:mutbuf,v638:mutbuf)
+  restore_mode:u64 = const() {"value":4}
+  restored_registers:u64 = call(v637,v638,restore_mode) {"function":"save_registers"}
   v644:u64 = const() {"value":31}
   v645:u64 = const() {"value":0}
   v646:u64 = call(v637,v638,v644,v645,v645,v645,v645,v645,v645) {"function":"f51"}
@@ -5632,7 +5115,10 @@ block b5(v68:readbuf,v69:mutbuf,v70:mutbuf,v71:u64)
   v125:u64 = call(v70,v71) {"function":"f89"}
   v126:u64 = const() {"value":80}
   v127:u64 = int.add.wrap(v125,v126)
-  v128:u64 = call(v70,v127) {"function":"f103"}
+  old_frame:u64 = call(v70,v127) {"function":"f103"}
+  frame_ordinal_slot:u64 = const() {"value":67092552}
+  frame_ordinal:u64 = call(v70,frame_ordinal_slot) {"function":"f103"}
+  v128:u64 = call(v68,v70,v71,frame_ordinal,old_frame) {"function":"plan_register_function"}
   v129:u64 = const() {"value":0}
   v130:bool = compare.eq(v128,v129)
   v131:u64 = const() {"value":65536}
@@ -5681,6 +5167,7 @@ block b10(v134:readbuf,v135:mutbuf,v136:mutbuf)
 block b11(v141:readbuf,v142:mutbuf,v143:mutbuf,v144:u64,v147:u64)
   v154:u64 = call(v142,v143,v147) {"function":"f34"}
   v155:u64 = const() {"value":5}
+  saved_registers:u64 = call(v142,v143,v155) {"function":"save_registers"}
   v156:u64 = const() {"value":6}
   v157:u64 = const() {"value":18446744073709551608}
   v158:u64 = const() {"value":0}
@@ -7365,34 +6852,17 @@ block b0(v0:mutbuf,v1:u64)
   v5:u64 = call(v0,v4) {"function":"f103"}
   ret(v5)
 end
-fn f62(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64) -> (u64) effects(read,write,trap) entry(b0)
-block b0(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64)
-  v5:u64 = const() {"value":4}
-  v6:u64 = const() {"value":5}
-  v7:u64 = call(v1,v2) {"function":"f89"}
-  v8:u64 = const() {"value":32}
-  v9:u64 = int.add.wrap(v7,v8)
-  v10:u64 = call(v1,v9) {"function":"f103"}
-  v11:u64 = const() {"value":8}
-  v12:u64 = int.mul.wrap(v4,v11)
-  v13:u64 = int.add.wrap(v10,v12)
-  v14:u64 = const() {"value":0}
-  v15:u64 = call(v0,v1,v5,v3,v6,v13,v14,v14,v14) {"function":"f51"}
-  ret(v14)
+fn f62(o:mutbuf,w:mutbuf,value:u64,register:u64,index:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(o:mutbuf,w:mutbuf,value:u64,register:u64,index:u64)
+  operation:u64 = const() {"value":4}
+  next:u64 = call(o,w,operation,value,register,index) {"function":"value_transfer"}
+  ret(next)
 end
-fn f63(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64) -> (u64) effects(read,write,trap) entry(b0)
-block b0(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64)
-  v5:u64 = const() {"value":5}
-  v6:u64 = call(v1,v2) {"function":"f89"}
-  v7:u64 = const() {"value":32}
-  v8:u64 = int.add.wrap(v6,v7)
-  v9:u64 = call(v1,v8) {"function":"f103"}
-  v10:u64 = const() {"value":8}
-  v11:u64 = int.mul.wrap(v4,v10)
-  v12:u64 = int.add.wrap(v9,v11)
-  v13:u64 = const() {"value":0}
-  v14:u64 = call(v0,v1,v5,v3,v5,v12,v13,v13,v13) {"function":"f51"}
-  ret(v13)
+fn f63(o:mutbuf,w:mutbuf,value:u64,register:u64,index:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(o:mutbuf,w:mutbuf,value:u64,register:u64,index:u64)
+  operation:u64 = const() {"value":5}
+  next:u64 = call(o,w,operation,value,register,index) {"function":"value_transfer"}
+  ret(next)
 end
 fn f64(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64)
@@ -10194,7 +9664,10 @@ block machine(s_at_machine:readbuf,w_at_machine:mutbuf,n_at_machine:u64,value_at
   branch reviewed header(s_at_machine,w_at_machine,n_at_machine,base_size,no_select) select_tag(s_at_machine,w_at_machine,n_at_machine,value_at_machine)
 block select_tag(s_at_select_tag:readbuf,w_at_select_tag:mutbuf,n_at_select_tag:u64,value_at_select_tag:u64)
   v3:u64 = const() {"value":3688536383275747656}
-  reviewed_v3:bool = compare.eq(value_at_select_tag,v3)
+  v4:u64 = const() {"value":3760593977313675592}
+  old_select:bool = compare.eq(value_at_select_tag,v3)
+  register_select:bool = compare.eq(value_at_select_tag,v4)
+  reviewed_v3:bool = bool.or(old_select,register_select)
   branch reviewed_v3 select_header(s_at_select_tag,w_at_select_tag,n_at_select_tag) refuse()
 block select_header(s_at_select:readbuf,w_at_select:mutbuf,n_at_select:u64)
   select_at:u64 = const() {"value":41943096}
@@ -10247,7 +9720,17 @@ block header(s_at_header:readbuf,w_at_header:mutbuf,n_at_header:u64,header_size:
   extent_ok:bool = bool.and(not_short,not_long)
   layout_ok:bool = bool.and(count_ok,extent_ok)
   admitted:bool = bool.and(encodable,layout_ok)
-  branch admitted bind(w_at_header,n_at_header,align,choices,header_size,select_mode) refuse()
+  branch admitted register_tail(s_at_header,w_at_header,n_at_header,align,choices,header_size,select_mode,bytes) refuse()
+block register_tail(tail_source:readbuf,tail_state:mutbuf,tail_count:u64,tail_alignment:u64,tail_encoding:u64,tail_header:u64,tail_select:u64,tail_bytes:u64)
+  tail_base:u64 = const() {"value":41943040}
+  tail_at:u64 = int.add.wrap(tail_base,tail_bytes)
+  tail_tag:u64 = call(tail_source,tail_base) {"function":"f102"}
+  tail_known:u64 = const() {"value":3760593977313675592}
+  tail_selected:bool = compare.eq(tail_tag,tail_known)
+  branch tail_selected verify_tail(tail_source,tail_state,tail_count,tail_alignment,tail_encoding,tail_header,tail_select,tail_at) bind(tail_state,tail_count,tail_alignment,tail_encoding,tail_header,tail_select)
+block verify_tail(vt_source:readbuf,vt_state:mutbuf,vt_count:u64,vt_alignment:u64,vt_encoding:u64,vt_header:u64,vt_select:u64,vt_at:u64)
+  tail_ok:bool = call(vt_source,vt_state,vt_at) {"function":"bind_register_tail"}
+  branch tail_ok bind(vt_state,vt_count,vt_alignment,vt_encoding,vt_header,vt_select) refuse()
 block bind(w_at_bind:mutbuf,n_at_bind:u64,alignment:u64,encoding:u64,size_at_bind:u64,select_at_bind:u64)
   source_base:u64 = const() {"value":41943040}
   function_order_at:u64 = int.add.wrap(source_base,size_at_bind)
@@ -10695,4 +10178,500 @@ block store_finish(eo:mutbuf,ew:mutbuf)
   base_reg:u64 = const() {"value":0}
   memory_write:u64 = call(eo,ew,op_store,value_reg,base_reg,base_reg,base_reg,base_reg,base_reg) {"function":"f51"}
   ret(base_reg)
+end
+fn bind_register_tail(v0:readbuf,v1:mutbuf,v2:u64) -> (bool) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:u64)
+  v3:usize = buffer.len(v0)
+  v4:u64 = int.cast(v3) {"mode":"wrap"}
+  v5:bool = compare.gt(v2,v4)
+  v6:u64 = int.sub.wrap(v4,v2)
+  v7:u64 = const() {"value":96}
+  v8:bool = compare.lt(v6,v7)
+  v9:bool = bool.or(v5,v8)
+  branch v9 b1(v0,v1) b2(v0,v1,v2,v4)
+block b1(v10:readbuf,v11:mutbuf)
+  v18:bool = const() {"value":false}
+  ret(v18)
+block b2(v14:readbuf,v15:mutbuf,v16:u64,v17:u64)
+  v19:u64 = call(v14,v16) {"function":"f102"}
+  v20:u64 = const() {"value":3544411269798906184}
+  v21:bool = compare.ne(v19,v20)
+  branch v21 b3(v14,v15) b4(v14,v15,v16,v17)
+block b3(v22:readbuf,v23:mutbuf)
+  v30:bool = const() {"value":false}
+  ret(v30)
+block b4(v26:readbuf,v27:mutbuf,v28:u64,v29:u64)
+  v31:u64 = const() {"value":8}
+  v32:u64 = int.add.wrap(v28,v31)
+  v33:u64 = call(v26,v32) {"function":"f102"}
+  v34:u64 = const() {"value":3}
+  v35:bool = compare.ne(v33,v34)
+  v36:u64 = const() {"value":4}
+  v37:bool = compare.ne(v33,v36)
+  v38:bool = bool.and(v35,v37)
+  branch v38 b5(v26,v27) b6(v26,v27,v28,v29,v33)
+block b5(v39:readbuf,v40:mutbuf)
+  v49:bool = const() {"value":false}
+  ret(v49)
+block b6(v44:readbuf,v45:mutbuf,v46:u64,v47:u64,v48:u64)
+  v50:u64 = const() {"value":24}
+  v51:u64 = int.add.wrap(v46,v50)
+  v52:u64 = call(v44,v51) {"function":"f102"}
+  v53:u64 = const() {"value":96}
+  v54:bool = compare.lt(v52,v53)
+  v55:u64 = int.sub.wrap(v47,v46)
+  v56:bool = compare.gt(v52,v55)
+  v57:bool = bool.or(v54,v56)
+  branch v57 b7(v44,v45) b8(v44,v45,v46,v48,v52)
+block b7(v58:readbuf,v59:mutbuf)
+  v70:bool = const() {"value":false}
+  ret(v70)
+block b8(v64:readbuf,v65:mutbuf,v66:u64,v68:u64,v69:u64)
+  v71:u64 = const() {"value":16}
+  v72:u64 = int.add.wrap(v66,v71)
+  v73:u64 = call(v64,v72) {"function":"f102"}
+  v74:u64 = const() {"value":1024}
+  v75:bool = compare.gt(v73,v74)
+  branch v75 b9(v64,v65) b10(v64,v65,v66,v68,v69,v73)
+block b9(v76:readbuf,v77:mutbuf)
+  v90:bool = const() {"value":false}
+  ret(v90)
+block b10(v83:readbuf,v84:mutbuf,v85:u64,v87:u64,v88:u64,v89:u64)
+  v91:u64 = int.add.wrap(v85,v88)
+  v92:u64 = const() {"value":96}
+  v93:u64 = int.add.wrap(v85,v92)
+  v94:u64 = const() {"value":0}
+  jump b11(v83,v84,v85,v87,v89,v91,v93,v94,v94)
+block b11(v95:readbuf,v96:mutbuf,v97:u64,v99:u64,v101:u64,v102:u64,v103:u64,v104:u64,v105:u64)
+  v106:bool = compare.lt(v104,v101)
+  branch v106 b12(v95,v96,v97,v99,v101,v102,v103,v104,v105) b13(v95,v96,v97,v102,v103)
+block b12(v107:readbuf,v108:mutbuf,v109:u64,v111:u64,v113:u64,v114:u64,v115:u64,v116:u64,v117:u64)
+  v129:u64 = int.sub.wrap(v114,v115)
+  v130:u64 = const() {"value":32}
+  v131:bool = compare.lt(v129,v130)
+  branch v131 b14(v107,v108) b15(v107,v108,v109,v111,v113,v114,v115,v116,v117)
+block b13(v118:readbuf,v119:mutbuf,v120:u64,v125:u64,v126:u64)
+  v291:bool = compare.ne(v126,v125)
+  branch v291 b22(v118,v119) b23(v118,v119,v120,v125)
+block b14(v132:readbuf,v133:mutbuf)
+  v154:bool = const() {"value":false}
+  ret(v154)
+block b15(v143:readbuf,v144:mutbuf,v145:u64,v147:u64,v149:u64,v150:u64,v151:u64,v152:u64,v153:u64)
+  v155:u64 = call(v143,v151) {"function":"f102"}
+  v156:u64 = const() {"value":8}
+  v157:u64 = int.add.wrap(v151,v156)
+  v158:u64 = call(v143,v157) {"function":"f102"}
+  v159:u64 = const() {"value":16}
+  v160:u64 = int.add.wrap(v151,v159)
+  v161:u64 = call(v143,v160) {"function":"f102"}
+  v162:u64 = const() {"value":24}
+  v163:u64 = int.add.wrap(v151,v162)
+  v164:u64 = call(v143,v163) {"function":"f102"}
+  v165:bool = compare.lt(v155,v153)
+  v166:u64 = const() {"value":1024}
+  v167:bool = compare.ge(v155,v166)
+  v168:bool = bool.or(v165,v167)
+  v169:u64 = const() {"value":31}
+  v170:bool = compare.gt(v161,v169)
+  v171:bool = bool.or(v168,v170)
+  v172:u64 = const() {"value":96}
+  v173:u64 = bit.and(v164,v172)
+  v174:bool = compare.ne(v173,v164)
+  v175:bool = bool.or(v171,v174)
+  branch v175 b16(v143,v144) b17(v143,v144,v145,v147,v149,v150,v151,v152,v155,v158,v164)
+block b16(v176:readbuf,v177:mutbuf)
+  v206:bool = const() {"value":false}
+  ret(v206)
+block b17(v191:readbuf,v192:mutbuf,v193:u64,v195:u64,v197:u64,v198:u64,v199:u64,v200:u64,v202:u64,v203:u64,v205:u64)
+  v207:u64 = const() {"value":3}
+  v208:bool = compare.eq(v195,v207)
+  v209:u64 = const() {"value":0}
+  v210:bool = compare.ne(v205,v209)
+  v211:bool = bool.and(v208,v210)
+  branch v211 b18(v191,v192) b19(v191,v192,v193,v195,v197,v198,v199,v200,v202,v203)
+block b18(v212:readbuf,v213:mutbuf)
+  v242:bool = const() {"value":false}
+  ret(v242)
+block b19(v227:readbuf,v228:mutbuf,v229:u64,v231:u64,v233:u64,v234:u64,v235:u64,v236:u64,v238:u64,v239:u64)
+  v243:u64 = const() {"value":262144}
+  v244:bool = compare.gt(v239,v243)
+  v245:u64 = const() {"value":40}
+  v246:u64 = int.mul.wrap(v239,v245)
+  v247:u64 = int.sub.wrap(v234,v235)
+  v248:u64 = const() {"value":32}
+  v249:u64 = int.sub.wrap(v247,v248)
+  v250:bool = compare.gt(v246,v249)
+  v251:bool = bool.or(v244,v250)
+  branch v251 b20(v227,v228) b21(v227,v228,v229,v231,v233,v234,v235,v236,v238,v239)
+block b20(v252:readbuf,v253:mutbuf)
+  v282:bool = const() {"value":false}
+  ret(v282)
+block b21(v267:readbuf,v268:mutbuf,v269:u64,v271:u64,v273:u64,v274:u64,v275:u64,v276:u64,v278:u64,v279:u64)
+  v283:u64 = const() {"value":1}
+  v284:u64 = int.add.wrap(v278,v283)
+  v285:u64 = const() {"value":32}
+  v286:u64 = int.add.wrap(v275,v285)
+  v287:u64 = const() {"value":40}
+  v288:u64 = int.mul.wrap(v287,v279)
+  v289:u64 = int.add.wrap(v286,v288)
+  v290:u64 = int.add.wrap(v276,v283)
+  jump b11(v267,v268,v269,v271,v273,v274,v289,v290,v284)
+block b22(v292:readbuf,v293:mutbuf)
+  v314:bool = const() {"value":false}
+  ret(v314)
+block b23(v303:readbuf,v304:mutbuf,v305:u64,v310:u64)
+  v315:u64 = const() {"value":67092800}
+  v316:u64 = const() {"value":96}
+  v317:u64 = int.add.wrap(v305,v316)
+  v318:u64 = call(v304,v315,v317) {"function":"f104"}
+  v319:u64 = const() {"value":67092808}
+  v320:u64 = call(v304,v319,v310) {"function":"f104"}
+  v321:bool = const() {"value":true}
+  ret(v321)
+end
+fn plan_register_function(v0:readbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64) -> (u64) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64)
+  v5:u64 = const() {"value":67092816}
+  v6:u64 = const() {"value":0}
+  v7:u64 = call(v1,v5,v6) {"function":"f104"}
+  v8:u64 = const() {"value":67092800}
+  v9:u64 = call(v1,v8) {"function":"f103"}
+  v10:u64 = const() {"value":67092808}
+  v11:u64 = call(v1,v10) {"function":"f103"}
+  jump b1(v0,v1,v2,v3,v4,v9,v11)
+block b1(v12:readbuf,v13:mutbuf,v14:u64,v15:u64,v16:u64,v17:u64,v18:u64)
+  v19:bool = compare.lt(v17,v18)
+  branch v19 b2(v12,v13,v14,v15,v16,v17,v18) b3(v12,v13,v16)
+block b2(v20:readbuf,v21:mutbuf,v22:u64,v23:u64,v24:u64,v25:u64,v26:u64)
+  v34:u64 = const() {"value":8}
+  v35:u64 = int.add.wrap(v25,v34)
+  v36:u64 = call(v20,v35) {"function":"f102"}
+  v37:u64 = call(v20,v25) {"function":"f102"}
+  v38:bool = compare.eq(v37,v23)
+  branch v38 b4(v20,v21,v22,v25,v36) b5(v20,v21,v22,v23,v24,v25,v26,v36,v37)
+block b3(v27:readbuf,v28:mutbuf,v31:u64)
+  ret(v31)
+block b4(v39:readbuf,v40:mutbuf,v41:u64,v44:u64,v46:u64)
+  v57:u64 = call(v39,v40,v41,v44,v46) {"function":"bind_register_function"}
+  ret(v57)
+block b5(v48:readbuf,v49:mutbuf,v50:u64,v51:u64,v52:u64,v53:u64,v54:u64,v55:u64,v56:u64)
+  v58:bool = compare.gt(v56,v51)
+  branch v58 b6(v48,v49,v52) b7(v48,v49,v50,v51,v52,v53,v54,v55)
+block b6(v59:readbuf,v60:mutbuf,v63:u64)
+  ret(v63)
+block b7(v68:readbuf,v69:mutbuf,v70:u64,v71:u64,v72:u64,v73:u64,v74:u64,v75:u64)
+  v77:u64 = const() {"value":32}
+  v78:u64 = int.add.wrap(v73,v77)
+  v79:u64 = const() {"value":40}
+  v80:u64 = int.mul.wrap(v79,v75)
+  v81:u64 = int.add.wrap(v78,v80)
+  jump b1(v68,v69,v70,v71,v72,v81,v74)
+end
+fn bind_register_function(v0:readbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64) -> (u64) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64)
+  v5:u64 = const() {"value":32}
+  v6:u64 = int.add.wrap(v3,v5)
+  v7:u64 = const() {"value":40}
+  v8:u64 = int.mul.wrap(v4,v7)
+  v9:u64 = int.add.wrap(v6,v8)
+  v10:u64 = const() {"value":67092832}
+  v11:u64 = call(v1,v10,v6) {"function":"f104"}
+  v12:u64 = const() {"value":67092840}
+  v13:u64 = call(v1,v12,v9) {"function":"f104"}
+  v14:u64 = const() {"value":67092848}
+  v15:u64 = const() {"value":0}
+  v16:u64 = call(v1,v14,v15) {"function":"f104"}
+  v17:u64 = const() {"value":67092856}
+  v18:u64 = call(v1,v17,v15) {"function":"f104"}
+  v19:u64 = const() {"value":512}
+  v20:u64 = call(v0,v2,v19) {"function":"f96"}
+  v21:u64 = call(v0,v20) {"function":"f95"}
+  jump b1(v0,v1,v2,v3,v9,v21,v15)
+block b1(v22:readbuf,v23:mutbuf,v24:u64,v25:u64,v27:u64,v28:u64,v29:u64)
+  v30:u64 = const() {"value":18446744073709551615}
+  v31:bool = compare.ne(v28,v30)
+  branch v31 b2(v22,v23,v24,v25,v27,v28,v29) b3(v22,v23,v24,v25,v27)
+block b2(v32:readbuf,v33:mutbuf,v34:u64,v35:u64,v37:u64,v38:u64,v39:u64)
+  v48:u64 = const() {"value":32}
+  v49:u64 = call(v32,v38,v48) {"function":"f96"}
+  v50:bool = call(v32,v33,v49,v39) {"function":"bind_register_values"}
+  v51:bool = const() {"value":false}
+  v52:bool = compare.eq(v50,v51)
+  branch v52 b4(v32,v33) b5(v32,v33,v34,v35,v37,v38,v39)
+block b3(v40:readbuf,v41:mutbuf,v42:u64,v43:u64,v45:u64)
+  v130:u64 = const() {"value":67092856}
+  v131:u64 = call(v41,v130) {"function":"f103"}
+  v132:u64 = const() {"value":16}
+  v133:u64 = int.add.wrap(v43,v132)
+  v134:u64 = call(v40,v133) {"function":"f102"}
+  v135:u64 = const() {"value":24}
+  v136:u64 = int.add.wrap(v43,v135)
+  v137:u64 = call(v40,v136) {"function":"f102"}
+  v138:u64 = const() {"value":67092832}
+  v139:u64 = call(v41,v138) {"function":"f103"}
+  v140:bool = compare.ne(v139,v45)
+  branch v140 b12(v40,v41,v42,v134,v140) b11(v40,v41,v42,v131,v134,v137)
+block b4(v53:readbuf,v54:mutbuf)
+  v69:u64 = const() {"value":0}
+  ret(v69)
+block b5(v61:readbuf,v62:mutbuf,v63:u64,v64:u64,v66:u64,v67:u64,v68:u64)
+  v70:u64 = const() {"value":4096}
+  v71:u64 = call(v61,v67,v70) {"function":"f96"}
+  v72:u64 = call(v61,v71) {"function":"f95"}
+  jump b6(v61,v62,v63,v64,v66,v67,v68,v72)
+block b6(v73:readbuf,v74:mutbuf,v75:u64,v76:u64,v78:u64,v79:u64,v80:u64,v81:u64)
+  v82:u64 = const() {"value":18446744073709551615}
+  v83:bool = compare.ne(v81,v82)
+  branch v83 b7(v73,v74,v75,v76,v78,v79,v80,v81) b8(v73,v74,v75,v76,v78,v79,v80)
+block b7(v84:readbuf,v85:mutbuf,v86:u64,v87:u64,v89:u64,v90:u64,v91:u64,v92:u64)
+  v102:u64 = const() {"value":65536}
+  v103:u64 = call(v84,v92,v102) {"function":"f96"}
+  v104:bool = call(v84,v85,v103,v91) {"function":"bind_register_values"}
+  v105:bool = const() {"value":false}
+  v106:bool = compare.eq(v104,v105)
+  branch v106 b9(v84,v85) b10(v84,v85,v86,v87,v89,v90,v91,v92)
+block b8(v93:readbuf,v94:mutbuf,v95:u64,v96:u64,v98:u64,v99:u64,v100:u64)
+  v127:u64 = call(v93,v99) {"function":"f101"}
+  v128:u64 = const() {"value":1}
+  v129:u64 = int.add.wrap(v100,v128)
+  jump b1(v93,v94,v95,v96,v98,v127,v129)
+block b9(v107:readbuf,v108:mutbuf)
+  v125:u64 = const() {"value":0}
+  ret(v125)
+block b10(v116:readbuf,v117:mutbuf,v118:u64,v119:u64,v121:u64,v122:u64,v123:u64,v124:u64)
+  v126:u64 = call(v116,v124) {"function":"f101"}
+  jump b6(v116,v117,v118,v119,v121,v122,v123,v126)
+block b11(v141:readbuf,v142:mutbuf,v143:u64,v149:u64,v150:u64,v151:u64)
+  v165:u64 = bit.or(v150,v151)
+  v166:bool = compare.ne(v149,v165)
+  jump b12(v141,v142,v143,v150,v166)
+block b12(v153:readbuf,v154:mutbuf,v155:u64,v162:u64,v164:bool)
+  branch v164 b13(v153,v154) b14(v153,v154,v155,v162)
+block b13(v167:readbuf,v168:mutbuf)
+  v189:u64 = const() {"value":0}
+  ret(v189)
+block b14(v178:readbuf,v179:mutbuf,v180:u64,v187:u64)
+  v190:u64 = call(v179,v180) {"function":"f89"}
+  v191:u64 = const() {"value":16}
+  v192:u64 = int.add.wrap(v190,v191)
+  v193:u64 = call(v179,v192) {"function":"f103"}
+  v194:u64 = const() {"value":67092816}
+  v195:u64 = call(v179,v194,v187) {"function":"f104"}
+  v196:u64 = const() {"value":67092824}
+  v197:u64 = call(v179,v196,v193) {"function":"f104"}
+  v198:u64 = const() {"value":0}
+  jump b15(v178,v179,v187,v193,v198)
+block b15(v199:readbuf,v200:mutbuf,v208:u64,v211:u64,v212:u64)
+  v213:u64 = const() {"value":5}
+  v214:bool = compare.lt(v212,v213)
+  branch v214 b16(v199,v200,v208,v211,v212) b17(v199,v200,v211)
+block b16(v215:readbuf,v216:mutbuf,v224:u64,v227:u64,v228:u64)
+  v243:u64 = const() {"value":1}
+  v244:u64 = int.shl.checked(v243,v228)
+  v245:u64 = bit.and(v224,v244)
+  v246:u64 = const() {"value":0}
+  v247:bool = compare.ne(v245,v246)
+  v248:u64 = const() {"value":8}
+  v249:u64 = int.add.wrap(v227,v248)
+  v250:u64 = select(v247,v249,v227)
+  v251:u64 = int.add.wrap(v228,v243)
+  jump b15(v215,v216,v224,v250,v251)
+block b17(v229:readbuf,v230:mutbuf,v241:u64)
+  v252:u64 = const() {"value":15}
+  v253:u64 = int.add.wrap(v241,v252)
+  v254:u64 = const() {"value":18446744073709551600}
+  v255:u64 = bit.and(v253,v254)
+  ret(v255)
+end
+fn bind_register_values(v0:readbuf,v1:mutbuf,v2:u64,v3:u64) -> (bool) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:u64,v3:u64)
+  v4:u64 = call(v0,v2) {"function":"f95"}
+  v5:u64 = const() {"value":67092832}
+  v6:u64 = call(v1,v5) {"function":"f103"}
+  v7:u64 = const() {"value":67092840}
+  v8:u64 = call(v1,v7) {"function":"f103"}
+  v9:u64 = const() {"value":67092848}
+  v10:u64 = call(v1,v9) {"function":"f103"}
+  jump b1(v0,v1,v3,v4,v6,v8,v10)
+block b1(v11:readbuf,v12:mutbuf,v14:u64,v15:u64,v16:u64,v17:u64,v18:u64)
+  v19:u64 = const() {"value":18446744073709551615}
+  v20:bool = compare.ne(v15,v19)
+  branch v20 b2(v11,v12,v14,v15,v16,v17,v18) b3(v11,v12,v16,v18)
+block b2(v21:readbuf,v22:mutbuf,v24:u64,v25:u64,v26:u64,v27:u64,v28:u64)
+  v37:bool = compare.lt(v26,v27)
+  branch v37 b4(v21,v22,v24,v25,v26,v27,v28) b21(v21,v22,v24,v25,v26,v27,v28)
+block b3(v29:readbuf,v30:mutbuf,v34:u64,v36:u64)
+  v267:u64 = const() {"value":67092832}
+  v268:u64 = call(v30,v267,v34) {"function":"f104"}
+  v269:u64 = const() {"value":67092848}
+  v270:u64 = call(v30,v269,v36) {"function":"f104"}
+  v271:bool = const() {"value":true}
+  ret(v271)
+block b4(v38:readbuf,v39:mutbuf,v41:u64,v42:u64,v43:u64,v44:u64,v45:u64)
+  v54:u64 = call(v38,v43) {"function":"f102"}
+  v55:bool = compare.lt(v54,v45)
+  branch v55 b6(v38,v39) b7(v38,v39,v41,v42,v43,v44,v45,v54)
+block b6(v56:readbuf,v57:mutbuf)
+  v74:bool = const() {"value":false}
+  ret(v74)
+block b7(v65:readbuf,v66:mutbuf,v68:u64,v69:u64,v70:u64,v71:u64,v72:u64,v73:u64)
+  v75:bool = compare.eq(v73,v72)
+  branch v75 b8(v65,v66,v68,v69,v70,v71,v72) b21(v65,v66,v68,v69,v70,v71,v72)
+block b8(v76:readbuf,v77:mutbuf,v79:u64,v80:u64,v81:u64,v82:u64,v83:u64)
+  v94:u64 = const() {"value":8}
+  v95:u64 = int.add.wrap(v81,v94)
+  v96:u64 = call(v76,v95) {"function":"f102"}
+  v97:u64 = call(v77,v80) {"function":"f89"}
+  v98:u64 = const() {"value":0}
+  v99:bool = compare.eq(v96,v98)
+  branch v99 b11(v76,v77,v79,v80,v81,v82,v83,v96,v97,v99) b10(v76,v77,v79,v80,v81,v82,v83,v96,v97)
+block b10(v100:readbuf,v101:mutbuf,v103:u64,v104:u64,v105:u64,v106:u64,v107:u64,v109:u64,v110:u64)
+  v124:u64 = const() {"value":7}
+  v125:bool = compare.gt(v109,v124)
+  jump b11(v100,v101,v103,v104,v105,v106,v107,v109,v110,v125)
+block b11(v112:readbuf,v113:mutbuf,v115:u64,v116:u64,v117:u64,v118:u64,v119:u64,v121:u64,v122:u64,v123:bool)
+  branch v123 b13(v112,v113,v115,v116,v117,v118,v119,v121,v122,v123) b12(v112,v113,v115,v116,v117,v118,v119,v121,v122)
+block b12(v126:readbuf,v127:mutbuf,v129:u64,v130:u64,v131:u64,v132:u64,v133:u64,v135:u64,v136:u64)
+  v150:u64 = const() {"value":16}
+  v151:u64 = int.add.wrap(v131,v150)
+  v152:u64 = call(v126,v151) {"function":"f102"}
+  v153:bool = compare.ne(v152,v129)
+  jump b13(v126,v127,v129,v130,v131,v132,v133,v135,v136,v153)
+block b13(v138:readbuf,v139:mutbuf,v141:u64,v142:u64,v143:u64,v144:u64,v145:u64,v147:u64,v148:u64,v149:bool)
+  branch v149 b14(v138,v139) b15(v138,v139,v141,v142,v143,v144,v145,v147,v148)
+block b14(v154:readbuf,v155:mutbuf)
+  v176:bool = const() {"value":false}
+  ret(v176)
+block b15(v165:readbuf,v166:mutbuf,v168:u64,v169:u64,v170:u64,v171:u64,v172:u64,v174:u64,v175:u64)
+  v177:u64 = call(v166,v175) {"function":"f103"}
+  v178:u64 = const() {"value":3}
+  v179:bool = compare.ne(v177,v178)
+  branch v179 b17(v165,v166,v168,v169,v170,v171,v172,v174,v175,v179) b16(v165,v166,v168,v169,v170,v171,v172,v174,v175)
+block b16(v180:readbuf,v181:mutbuf,v183:u64,v184:u64,v185:u64,v186:u64,v187:u64,v189:u64,v190:u64)
+  v204:u64 = const() {"value":24}
+  v205:u64 = int.add.wrap(v190,v204)
+  v206:u64 = call(v181,v205) {"function":"f103"}
+  v207:u64 = const() {"value":1}
+  v208:bool = compare.ne(v206,v207)
+  jump b17(v180,v181,v183,v184,v185,v186,v187,v189,v190,v208)
+block b17(v192:readbuf,v193:mutbuf,v195:u64,v196:u64,v197:u64,v198:u64,v199:u64,v201:u64,v202:u64,v203:bool)
+  branch v203 b18(v192,v193) b19(v192,v193,v195,v196,v197,v198,v199,v201,v202)
+block b18(v209:readbuf,v210:mutbuf)
+  v231:bool = const() {"value":false}
+  ret(v231)
+block b19(v220:readbuf,v221:mutbuf,v223:u64,v224:u64,v225:u64,v226:u64,v227:u64,v229:u64,v230:u64)
+  v232:u64 = const() {"value":32}
+  v233:u64 = int.add.wrap(v230,v232)
+  v234:u64 = const() {"value":128}
+  v235:u64 = call(v229) {"function":"register_number"}
+  v236:u64 = int.add.wrap(v234,v235)
+  v237:u64 = call(v221,v233,v236) {"function":"f104"}
+  v238:u64 = const() {"value":67092856}
+  v239:u64 = call(v221,v238) {"function":"f103"}
+  v240:u64 = const() {"value":1}
+  v241:u64 = int.sub.wrap(v229,v240)
+  v242:u64 = int.shl.checked(v240,v241)
+  v243:u64 = bit.or(v239,v242)
+  v244:u64 = call(v221,v238,v243) {"function":"f104"}
+  v245:u64 = const() {"value":40}
+  v246:u64 = int.add.wrap(v225,v245)
+  jump b21(v220,v221,v223,v224,v246,v226,v227)
+block b21(v256:readbuf,v257:mutbuf,v259:u64,v260:u64,v261:u64,v262:u64,v263:u64)
+  v264:u64 = const() {"value":1}
+  v265:u64 = int.add.wrap(v263,v264)
+  v266:u64 = call(v256,v260) {"function":"f101"}
+  jump b1(v256,v257,v259,v266,v261,v262,v265)
+end
+fn register_number(v0:u64) -> (u64) effects(read,write,trap) entry(b0)
+block b0(v0:u64)
+  v1:u64 = const() {"value":1}
+  v2:bool = compare.eq(v0,v1)
+  branch v2 b1() b2(v0)
+block b1()
+  v5:u64 = const() {"value":3}
+  ret(v5)
+block b2(v4:u64)
+  v6:u64 = const() {"value":5}
+  v7:bool = compare.le(v4,v6)
+  v8:u64 = const() {"value":10}
+  v9:u64 = int.add.wrap(v4,v8)
+  v10:u64 = const() {"value":2}
+  v11:u64 = int.add.wrap(v4,v10)
+  v12:u64 = select(v7,v9,v11)
+  ret(v12)
+end
+fn save_registers(v0:mutbuf,v1:mutbuf,v2:u64) -> (u64) effects(read,write,trap) entry(b0)
+block b0(v0:mutbuf,v1:mutbuf,v2:u64)
+  v3:u64 = const() {"value":67092816}
+  v4:u64 = call(v1,v3) {"function":"f103"}
+  v5:u64 = const() {"value":67092824}
+  v6:u64 = call(v1,v5) {"function":"f103"}
+  v7:u64 = const() {"value":0}
+  jump b1(v0,v1,v2,v4,v6,v7)
+block b1(v8:mutbuf,v9:mutbuf,v10:u64,v11:u64,v12:u64,v13:u64)
+  v14:u64 = const() {"value":5}
+  v15:bool = compare.lt(v13,v14)
+  branch v15 b2(v8,v9,v10,v11,v12,v13) b3(v8,v9)
+block b2(v16:mutbuf,v17:mutbuf,v18:u64,v19:u64,v20:u64,v21:u64)
+  v28:u64 = const() {"value":1}
+  v29:u64 = int.shl.checked(v28,v21)
+  v30:u64 = bit.and(v19,v29)
+  v31:u64 = const() {"value":0}
+  v32:bool = compare.ne(v30,v31)
+  branch v32 b4(v16,v17,v18,v19,v20,v21) b6(v16,v17,v18,v19,v20,v21)
+block b3(v22:mutbuf,v23:mutbuf)
+  v62:u64 = const() {"value":0}
+  ret(v62)
+block b4(v33:mutbuf,v34:mutbuf,v35:u64,v36:u64,v37:u64,v38:u64)
+  v45:u64 = const() {"value":8}
+  v46:u64 = int.add.wrap(v37,v45)
+  v47:u64 = const() {"value":1}
+  v48:u64 = int.add.wrap(v38,v47)
+  v49:u64 = call(v48) {"function":"register_number"}
+  v50:u64 = const() {"value":5}
+  v51:u64 = const() {"value":0}
+  v52:u64 = int.sub.wrap(v51,v46)
+  v53:u64 = call(v33,v34,v35,v49,v50,v52,v51,v51,v51) {"function":"f51"}
+  jump b6(v33,v34,v35,v36,v46,v38)
+block b6(v54:mutbuf,v55:mutbuf,v56:u64,v57:u64,v58:u64,v59:u64)
+  v60:u64 = const() {"value":1}
+  v61:u64 = int.add.wrap(v59,v60)
+  jump b1(v54,v55,v56,v57,v58,v61)
+end
+fn value_transfer(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64,v5:u64) -> (u64) effects(read,write,trap) entry(b0)
+block b0(v0:mutbuf,v1:mutbuf,v2:u64,v3:u64,v4:u64,v5:u64)
+  v6:u64 = call(v1,v3) {"function":"f89"}
+  v7:u64 = const() {"value":32}
+  v8:u64 = int.add.wrap(v6,v7)
+  v9:u64 = call(v1,v8) {"function":"f103"}
+  v10:u64 = const() {"value":128}
+  v11:bool = compare.ge(v9,v10)
+  v12:u64 = const() {"value":144}
+  v13:bool = compare.lt(v9,v12)
+  v14:bool = bool.and(v11,v13)
+  branch v14 b1(v0,v1,v2,v4,v9) b2(v0,v1,v2,v4,v5,v9)
+block b1(v15:mutbuf,v16:mutbuf,v17:u64,v19:u64,v21:u64)
+  v29:u64 = const() {"value":128}
+  v30:u64 = int.sub.wrap(v21,v29)
+  v31:u64 = const() {"value":4}
+  v32:bool = compare.eq(v17,v31)
+  branch v32 b3(v15,v16,v19,v30) b4(v15,v16,v19,v30)
+block b2(v22:mutbuf,v23:mutbuf,v24:u64,v26:u64,v27:u64,v28:u64)
+  v55:u64 = const() {"value":5}
+  v56:u64 = const() {"value":8}
+  v57:u64 = int.mul.wrap(v56,v27)
+  v58:u64 = int.add.wrap(v28,v57)
+  v59:u64 = const() {"value":0}
+  v60:u64 = call(v22,v23,v24,v26,v55,v58,v59,v59,v59) {"function":"f51"}
+  ret(v60)
+block b3(v33:mutbuf,v34:mutbuf,v37:u64,v40:u64)
+  v49:u64 = const() {"value":2}
+  v50:u64 = const() {"value":0}
+  v51:u64 = call(v33,v34,v49,v37,v40,v50,v50,v50,v50) {"function":"f51"}
+  ret(v51)
+block b4(v41:mutbuf,v42:mutbuf,v45:u64,v48:u64)
+  v52:u64 = const() {"value":2}
+  v53:u64 = const() {"value":0}
+  v54:u64 = call(v41,v42,v52,v48,v45,v53,v53,v53,v53) {"function":"f51"}
+  ret(v54)
 end
