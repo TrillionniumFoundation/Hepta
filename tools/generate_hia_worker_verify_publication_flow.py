@@ -6,8 +6,9 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_exec_release import POLICY_SOURCE as RELEASE_POLICY
 from tools.generate_hia_worker_adopt_proof import reachable_policy
+from tools.generate_hia_worker_candidate_flow import replace_function
 from tools.generate_hia_worker_context_flow import flow_source, function
-from tools.generate_hia_worker_emit_measurement import splice_list
+from tools.generate_hia_worker_emit_measurement import measurement_source, splice_list
 from tools.generate_hia_worker_emit_publication import PUBLICATION
 from tools.generate_hia_worker_emit_record import RECORD
 from tools.generate_hia_worker_verify_flow import recipe as front_recipe
@@ -19,6 +20,8 @@ def verify_publication_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) != EMIT_WORK_BYTES or length(o) != 2048:
         return BAD
     state = get(w, 0)
+    if state == VERIFY_ENCODE_MEASURE_START:
+        return emit_measure_products(o, w)
     if state == VERIFY_FINDINGS_START:
         if (get(w, VERIFY_CLAIM_COUNT) < 1 or get(w, VERIFY_CLAIM_COUNT) > 4
                 or get(w, VERIFY_CLAIM_INDEX) != get(w, VERIFY_CLAIM_COUNT)):
@@ -47,6 +50,8 @@ def verify_publication_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return observe_store(s, o, w, state)
     if state >= EMIT_PUB_QUERY and state <= EMIT_PUB_COMPARE:
         return emit_publication_state(s, o, w, state)
+    if state >= EMIT_MEASURE_LITERALS and state <= EMIT_MEASURE_REPORT:
+        return emit_measurement_state(s, o, w, state)
     return verify_publication_reply(s, o, w, state)
 '''
 
@@ -61,6 +66,8 @@ def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
         hold(w, VERIFY_OBSERVER_PIN, fd, at - 65, 66)
         put(o, HEADER, 32123)
         return action(o, w, VERIFY_EMPTY_METADATA, MAKE, 0, 0, 0, 2)
+    if resume >= EMIT_MEASURE_CORE_HASH and resume <= EMIT_MEASURE_LINK_HASH:
+        return emit_measurement_hash(s, o, w, at, resume)
     return emit_publication_hash(s, o, w, at, resume)
 
 def verify_observation_header(o:mutbuf, w:mutbuf) -> u64:
@@ -266,8 +273,22 @@ def recipe():
     check_packet = splice_list('verify_check_packet', 'VERIFY_CHECK_BOUND',
                                ('VERIFY_FINDING_DOC', 'EMIT_ARTIFACT_REFS', 'EMIT_ARTIFACT_REFS + 24'),
                                role='VERIFY_DOCUMENTS_ROLE')
+    measurements = measurement_source()
+    state = function(measurements, 'emit_measurement_state').split('    if state == EMIT_MEASURE_LIST:', 1)[0]
+    state = state.replace('        return emit_measurement_list(o, w)',
+                          '        put(w, 0, VERIFY_ENCODE_MEASURE_DONE)\n'
+                          '        return VERIFY_NEEDS_TERMINAL') + '    return BAD\n'
+    measurements = replace_function(measurements, 'emit_measurement_state', state)
+    hashes = function(measurements, 'emit_measurement_hash').replace(
+        '        if get(w, INSPECTION_EXPORTS + 16) == 2:\n'
+        '            return emit_scalar_implementation(o, w)\n', '').replace(
+        '    if state == EMIT_MEASURE_SCALAR_HASH:\n'
+        '        hold(w, EMIT_IMPL_QUOTED, fd, at - 65, 66)\n'
+        '        return emit_render_facts(o, w)\n', '')
+    measurements = replace_function(measurements, 'emit_measurement_hash', hashes)
+    measurements = replace_function(measurements, 'emit_wide_make', '')
     entry, functions = reachable_policy('\n'.join((
-        ENTRY, DOCUMENTS, STORE, bound, control, publication, document_packet, check_packet,
+        ENTRY, DOCUMENTS, STORE, bound, control, publication, document_packet, check_packet, measurements,
         *(function(RELEASE_POLICY, name) for name in ('decimal', 'divide10')),
         function(RECORD, 'emit_render_arguments'),
     )), 'verify_publication_flow')

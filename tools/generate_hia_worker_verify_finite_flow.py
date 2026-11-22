@@ -35,6 +35,8 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return verify_plan_check(o, w)
     if state == VERIFY_ENCODE_START:
         return verify_encoding_start(o, w)
+    if state == VERIFY_ENCODE_MEASURE_DONE:
+        return verify_encoding_report(o, w)
     if (length(s) < 64 or input_word(s, 0) != OBSERVATION
             or input_word(s, 8) != get(w, 8) or input_word(s, 16) != get(w, 16)):
         return BAD
@@ -53,6 +55,8 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if state == EMIT_SCALAR_REPORT_READY and status == 0 and valid_fd(input_word(s, 32)) == False:
             return BAD
         return emit_scalar_state(s, o, w, state)
+    if (state == EMIT_OBJECT_PRODUCED or state == EMIT_IMAGE_PRODUCED) and status == EMIT_EXPIRED:
+        return emit_product_observed(s, o, w, state)
     if status != 0:
         if (status == EMIT_EXPIRED and get(w, 16) == RUN and length(s) == 64
                 and state >= EMIT_COMPLETE_PLAN and state <= EMIT_COMPLETE_RENDERED):
@@ -64,8 +68,10 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return emit_proof_typed_artifact(s, o, w)
     if state == RETAINED_BYTES and get(w, RETAINED_PURPOSE) >= READ_EMIT_CUSTODY_BUILD:
         return emit_proof_custody_reopened(s, o, w, get(w, RETAINED_PURPOSE))
-    if state >= VERIFY_ENCODE_SCHEDULE and state <= VERIFY_ENCODE_PERMIT:
+    if state >= VERIFY_ENCODE_SCHEDULE and state <= VERIFY_ENCODE_PLAN_INPUT:
         return verify_encoding_plan(s, o, w, state)
+    if state == EMIT_OBJECT_PRODUCED or state == EMIT_IMAGE_PRODUCED:
+        return emit_product_observed(s, o, w, state)
     if state >= VERIFY_ENCODE_OBJECT_MATCH and state <= VERIFY_ENCODE_EVIDENCE:
         return verify_encoding_observation(s, o, w, state)
     if state == EMIT_RETAINED_REPORT_BOUND:
@@ -74,7 +80,7 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         body_span(s, w, EMIT_RETAINED_REPORT)
         return verify_encoding_compare(o, w)
     if state >= EMIT_CUSTODY_PROJECTED and state <= EMIT_CUSTODY_VERIFIED:
-        return emit_proof_custody_state(s, o, w, state)
+        return verify_native_custody_state(s, o, w, state)
     if state == RETAINED_BYTES or (state >= VERIFY_PLAN_CANONICAL and state <= VERIFY_PLAN_REGISTERS):
         return verify_plan_observation(s, o, w, state)
     if state == VERIFY_PLAN_WITNESS:
@@ -187,6 +193,30 @@ def emit_proof_open_claims(o:mutbuf, w:mutbuf) -> u64:
     put(w, 0, VERIFY_NATIVE_BOUND)
     return VERIFY_FINITE_READY
 
+def verify_native_custody_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if plan_ok(s):
+        size = input_word(s, 40)
+        kind = input_word(s, 72)
+        code = input_word(s, 80)
+        if state == EMIT_CUSTODY_PROJECTED and size == 24 and kind == EMIT_CUSTODY_PROJECTION:
+            return verify_native_refused(w, choose(code == 1, 8, choose(code == 2, 12, 0)))
+        if state == EMIT_CUSTODY_CANDIDATE and size == 24 and kind == EMIT_COMPARE_RESULT and code == 0:
+            return verify_native_refused(w, 9)
+        if state == EMIT_CUSTODY_VERIFIED and size == 24 and kind == EMIT_CUSTODY_PACKET:
+            if code < 1 or code > 5:
+                return BAD
+            if code == 1:
+                return verify_native_refused(w, 8)
+            return verify_native_refused(w, choose(code == 5, 11, 8 + code))
+    return emit_proof_custody_state(s, o, w, state)
+
+def verify_native_refused(w:mutbuf, code:u64) -> u64:
+    if code < 8 or code > 12:
+        return BAD
+    put(w, VERIFY_NATIVE_ERROR, code)
+    put(w, 0, VERIFY_NATIVE_REFUSED)
+    return VERIFY_FINITE_READY
+
 def emit_custody_inputs(o:mutbuf, w:mutbuf) -> u64:
     move_fragment(w, VERIFY_CANDIDATE_INPUT_QUOTED, EMIT_CUSTODY_INPUT_SHA)
     producer = choose(get(w, INSPECTION_EXPORTS + 16) > 2, EMIT_BORROWED_EXE, EMIT_SCALAR_EXE)
@@ -197,16 +227,31 @@ def emit_custody_inputs(o:mutbuf, w:mutbuf) -> u64:
 ENCODING = r'''
 def verify_encoding_start(o:mutbuf, w:mutbuf) -> u64:
     kind = get(w, EMIT_OUTPUT_KIND)
-    if kind < 1 or kind > 2 or get(w, INSPECTION_EXPORTS + 16) != 2:
+    if kind < 1 or kind > 2 or get(w, INSPECTION_EXPORTS + 16) < 2:
         return BAD
     move_fragment(w, VERIFY_ENCODE_STRUCTURED, INSPECTION_STRUCTURED)
     put(w, EMIT_PROFILE_LEVEL, get(w, VERIFY_ENCODE_PROFILE))
     put(w, VERIFY_ENCODE_AT, 0)
+    put(w, EMIT_LAYOUT_FORMAT, 0)
     planned = get(w, EMIT_CUSTODY_PLAN_REF + 16) != 0
     put(w, EMIT_CODEGEN_KIND, choose(planned, 2, 1))
     if planned:
         return verify_encoding_schedule(o, w)
-    return emit_scalar_product(o, w, 12, get(w, EMIT_ABSOLUTE_DEADLINE))
+    return verify_encoding_product(o, w, 12)
+
+def verify_encoding_product(o:mutbuf, w:mutbuf, stage:u64) -> u64:
+    deadline = get(w, EMIT_ABSOLUTE_DEADLINE)
+    if deadline == 0:
+        return BAD
+    if get(w, INSPECTION_EXPORTS + 16) == 2:
+        return emit_scalar_product(o, w, stage, deadline)
+    put(w, EMIT_SCALAR_STAGE, stage)
+    if stage == 12:
+        return emit_borrowed_object(o, w, deadline)
+    use_span(w, o, EMIT_OBJECT, 0)
+    count = action(o, w, EMIT_IMAGE_PRODUCED, RUN, EMIT_LINK_ROLE, 0, 1, 0)
+    put(o, 144, deadline)
+    return count
 
 def verify_encoding_plan(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     size = input_word(s, 40)
@@ -215,25 +260,33 @@ def verify_encoding_plan(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         if version == 0:
             return BAD
         put(w, EMIT_LAYOUT_FORMAT, version)
-        if version == 4:
-            return verify_encoding_registers(o, w)
         fragment(o, 0, input_word(s, 32), 8, size - 8)
         return action(o, w, VERIFY_ENCODE_LAYOUT, MAKE, 0, 0, 1, 0)
     if state == VERIFY_ENCODE_LAYOUT:
         if size < 40:
             return BAD
         sample_span(s, w, EMIT_LAYOUT)
+        if get(w, EMIT_LAYOUT_FORMAT) == 4:
+            return verify_encoding_registers(o, w)
         return verify_encoding_permit(o, w, EMIT_LAYOUT, EMIT_PLAN_STANDARD)
     if state == VERIFY_ENCODE_REGISTERS:
         version = input_word(s, 80)
         if (plan_ok(s) == False or size < 104 or input_word(s, 72) != EMIT_REPLAY_REGISTER_TAG
                 or (version != 3 and version != 4) or input_word(s, 96) != size - 8):
             return BAD
+        if get(w, INSPECTION_EXPORTS + 16) > 2:
+            use_span(w, o, EMIT_CUSTODY_CANONICAL_PLAN, 0)
+            return action(o, w, VERIFY_ENCODE_PLAN_INPUT, MAKE, 0, 0, 1, 0)
         return verify_encoding_permit(o, w, EMIT_CUSTODY_CANONICAL_PLAN, EMIT_PLAN_REGISTER)
+    if state == VERIFY_ENCODE_PLAN_INPUT:
+        if size != get(w, EMIT_CUSTODY_CANONICAL_PLAN + 16):
+            return BAD
+        sample_span(s, w, EMIT_REGISTER_JSON)
+        return verify_encoding_product(o, w, 12)
     if size < 168 or size != get(w, VERIFY_ENCODE_PERMIT_SIZE):
         return BAD
     sample_span(s, w, EMIT_LAYOUT_PERMIT)
-    return emit_scalar_product(o, w, 12, get(w, EMIT_ABSOLUTE_DEADLINE))
+    return verify_encoding_product(o, w, 12)
 
 def verify_encoding_permit(o:mutbuf, w:mutbuf, source:u64, tag:u64) -> u64:
     # The plan came from the authenticated build record and the HIA layout
@@ -257,7 +310,7 @@ def verify_encoding_hash(s:readbuf, o:mutbuf, w:mutbuf, at:u64, state:u64) -> u6
     fd = input_word(s, 32)
     if state == EMIT_IMAGE_HASHED:
         hold(w, EMIT_IMAGE_QUOTED, fd, at - 65, 66)
-        return verify_encoding_report(o, w)
+        return verify_encoding_products(o, w)
     hold(w, EMIT_OBJECT_QUOTED, fd, at - 65, 66)
     put(o, HEADER, EMIT_COMPARE_REQUEST)
     put(o, HEADER + 8, 66)
@@ -266,12 +319,20 @@ def verify_encoding_hash(s:readbuf, o:mutbuf, w:mutbuf, at:u64, state:u64) -> u6
     use_span(w, o, EMIT_CUSTODY_OBJECT_SHA, 1)
     return action(o, w, VERIFY_ENCODE_OBJECT_MATCH, RUN, EMIT_NATIVE_ARTIFACT_ROLE, 0, 2, 24)
 
+def verify_encoding_products(o:mutbuf, w:mutbuf) -> u64:
+    if get(w, INSPECTION_EXPORTS + 16) == 2:
+        return verify_encoding_report(o, w)
+    move_fragment(w, EMIT_CUSTODY_CANONICAL_PLAN, EMIT_CANONICAL_PLAN)
+    move_fragment(w, EMIT_CUSTODY_CANONICAL_SHA, EMIT_CANONICAL_PLAN_SHA)
+    put(w, 0, VERIFY_ENCODE_MEASURE_START)
+    return VERIFY_FINITE_READY
+
 def verify_encoding_report(o:mutbuf, w:mutbuf) -> u64:
     # The ref denotes this particular rebuild's bytes only after matching
     # the measured object. The normalizer checks both fresh report hashes.
     store(o, HEADER, 91)
     store(o, 384, 44)
-    store(o, 385, 48)
+    store(o, 385, choose(get(w, INSPECTION_EXPORTS + 16) == 2, 48, 49))
     store(o, 386, 44)
     store(o, 392, 93)
     vector_span(w, o, EMIT_CUSTODY_OBJECT_REF, HEADER + 1)
@@ -287,9 +348,9 @@ def verify_encoding_observation(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64
         if emit_custody_compare_reply(s) == False or input_word(s, 80) != 1:
             return BAD
         if get(w, EMIT_OUTPUT_KIND) == 2:
-            return emit_scalar_product(o, w, 13, get(w, EMIT_ABSOLUTE_DEADLINE))
+            return verify_encoding_product(o, w, 13)
         move_fragment(w, EMIT_OBJECT_QUOTED, EMIT_IMAGE_QUOTED)
-        return verify_encoding_report(o, w)
+        return verify_encoding_products(o, w)
     if state == VERIFY_ENCODE_IMAGE_MATCH:
         if emit_custody_compare_reply(s) == False:
             return BAD
@@ -508,12 +569,13 @@ def plan_constants(constants):
 
 
 def custody_constants(constants):
-    constants.update(VERIFY_NATIVE_STORE=1380, VERIFY_NATIVE_BOUND=1381, VERIFY_CANDIDATE_INPUT_QUOTED=11480)
+    constants.update(VERIFY_NATIVE_STORE=1380, VERIFY_NATIVE_BOUND=1381, VERIFY_NATIVE_REFUSED=1394,
+                     VERIFY_CANDIDATE_INPUT_QUOTED=11480, VERIFY_NATIVE_ERROR=11552)
 
 
 def encoding_constants(constants):
     states = ('START', 'OBJECT_MATCH', 'IMAGE_MATCH', 'EVIDENCE', 'EXPIRED',
-              'SCHEDULE', 'LAYOUT', 'REGISTERS', 'PERMIT')
+              'SCHEDULE', 'LAYOUT', 'REGISTERS', 'PERMIT', 'PLAN_INPUT', 'MEASURE_START', 'MEASURE_DONE')
     constants.update({f'VERIFY_ENCODE_{name}': 1382 + i for i, name in enumerate(states)})
     constants.update(VERIFY_ENCODE_STRUCTURED=11504, VERIFY_ENCODE_PROFILE=11528,
                      VERIFY_ENCODE_AT=11536, VERIFY_ENCODE_PERMIT_SIZE=11544)
@@ -584,6 +646,7 @@ def finite_recipe():
     return reachable_policy('\n'.join((
         ENTRY, FRESH, NATIVE_CUSTODY, ENCODING, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
         SCALAR, function(PRODUCTION, 'emit_product_observed'),
+        function(PRODUCTION, 'emit_borrowed_object'),
         splice_list('verify_encoding_schedule', 'VERIFY_ENCODE_SCHEDULE', encoding_plan, role='EMIT_LAYOUT_ROLE'),
         splice_list('verify_encoding_registers', 'VERIFY_ENCODE_REGISTERS', encoding_plan,
                     role='EMIT_REPLAY_WITNESS_ROLE'),

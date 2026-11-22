@@ -12,9 +12,19 @@ from tools.generate_hia_worker_request import replace_once
 
 TOOL = 'hia_verify'
 ROOT = Path('examples/hia_bootstrap')
-ERRORS = (*[item for item in CONTEXT_ERRORS if item[:2] in ((7, 1), (7, 2), (8, 1), (8, 2), (8, 3))],
+ERRORS = (*[item for item in CONTEXT_ERRORS if item[:2] != (8, 5)],
           (8, 5, 'E_HIA_MACHINE_PLAN', 'the retained machine plan is invalid for the admitted Core',
-           'correct_input', 'verification'))
+           'correct_input', 'verification'),
+          (8, 8, 'E_HIA_RECEIPT_BINDING', 'build receipt belongs to a different native subject',
+           'correct_input', 'admission'),
+          (8, 9, 'E_HIA_SUBJECT', 'native build receipt belongs to a different candidate',
+           'correct_input', 'verification'),
+          (8, 10, 'E_HIA_RECEIPT_BINDING', 'build record differs from retained native metadata',
+           'correct_input', 'admission'),
+          (8, 11, 'E_HIA_RECEIPT_BINDING', 'build record differs from actual artifact bytes',
+           'correct_input', 'admission'),
+          (8, 12, 'E_HIA_RECEIPT_BINDING', 'retained object differs from its exact build binding',
+           'correct_input', 'admission'))
 
 
 def verify_journal(raw):
