@@ -45,7 +45,10 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         # from the verified Core when there is no object-build report.
         if n < 10 or n > 65930 or byte(s, 8) != 91 or byte(s, n - 1) != 93:
             return 4294967293
-        return expected_exports(s, o, 9, n - 1)
+        extent = expected_exports(s, o, 9, n - 1)
+        if extent == EXPECTED_WORK_BYTES:
+            sort_export_names(o)
+        return extent
     proven = magic == VERIFIED_INPUT_MAGIC
     if proven:
         if n < 132:
@@ -185,6 +188,38 @@ def expected_exports(s:readbuf, o:mutbuf, start:u64, end:u64) -> u64:
     word_store(o, 0, SYMBOL_MODE_MAGIC)
     word_store(o, SYMBOL_WORK_BYTES, count)
     return EXPECTED_WORK_BYTES
+
+def sort_export_names(o:mutbuf) -> u64:
+    # The inventory expects strictly ordered names. Move entire fixed-size
+    # records without dropping or merging any entry: duplicates still refuse.
+    first = SYMBOL_WORK_BYTES + 8
+    end = first + 520 * word_load(o, SYMBOL_WORK_BYTES)
+    at = first + 520
+    while at < end:
+        current = at
+        while current > first and name_before(o, current, current - 520):
+            index = 0
+            previous = current - 520
+            while index < 520:
+                value = word_load(o, previous + index)
+                word_store(o, previous + index, word_load(o, current + index))
+                word_store(o, current + index, value)
+                index = index + 8
+            current = previous
+        at = at + 520
+    return 0
+
+def name_before(o:mutbuf, left:u64, right:u64) -> bool:
+    first = word_load(o, left)
+    second = word_load(o, right)
+    index = 0
+    while index < first and index < second:
+        a = byte(o, left + 8 + index)
+        b = byte(o, right + 8 + index)
+        if a != b:
+            return a < b
+        index = index + 1
+    return first < second
 
 def skip_space(s:readbuf, at:u64, end:u64) -> u64:
     while at < end:
