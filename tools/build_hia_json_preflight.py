@@ -151,6 +151,7 @@ CANDIDATES = {
     'worker-verify-request': ('worker_verify_request', 'worker-verify-request'),
     'worker-verify-evidence': ('worker_verify_evidence', 'worker-verify-evidence'),
     'worker-verify-finding': ('worker_verify_finding', 'worker-verify-finding'),
+    'worker-verify-machine-finding': ('worker_verify_machine_finding', 'worker-verify-machine-finding'),
     'worker-verify-documents': ('worker_verify_documents', 'worker-verify-documents'),
     'worker-verify-receipt': ('worker_verify_receipt', 'worker-verify-receipt'),
     'worker-verify-replay': ('worker_verify_replay', 'worker-verify-replay'),

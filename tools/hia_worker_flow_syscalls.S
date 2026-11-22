@@ -119,7 +119,7 @@
 .equ ROLE_COUNT, 73
 .else
 .ifdef WORKER_VERIFY
-.equ ROLE_COUNT, 76
+.equ ROLE_COUNT, 77
 .else
 .equ ROLE_COUNT, 70
 .endif

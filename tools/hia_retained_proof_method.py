@@ -8,6 +8,12 @@ NATIVE_CORE_CHECKER = 'hia-nominal-constructor'
 NATIVE_VERIFY_PROFILE = 'hia.agent.verify.observed-core.v1'
 NATIVE_VERIFY_EVIDENCE = 'hia-agent-worker-verify-evidence'
 
+MACHINE_METHOD = 'checked_supplied_machine_bytes'
+MACHINE_UNSUPPORTED = 'supplied_machine_outside_profile'
+MACHINE_EXPIRED = 'supplied_machine_deadline'
+MACHINE_UNKNOWN = 'supplied_machine_incomplete'
+NATIVE_SUPPLIED_MACHINE_METHODS = (MACHINE_METHOD, MACHINE_UNSUPPORTED, MACHINE_EXPIRED, MACHINE_UNKNOWN)
+
 EXTRA_KEYS = (
     'core_sha256', 'base_sha256', 'candidate_sha256', 'all_inputs', 'checked',
     'required', 'complete', 'all_inputs_in_declared_widths', 'transcript_sha256',

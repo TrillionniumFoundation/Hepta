@@ -13,7 +13,7 @@ from tools.generate_hia_worker_emit_measurement import MEASUREMENT, splice_list
 from tools.generate_hia_worker_emit_proof import PLAN
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
 from tools.generate_hia_worker_verify_finite_flow import (
-    custody_constants, encoding_constants, finite_constants, plan_constants,
+    custody_constants, encoding_constants, finite_constants, machine_constants, plan_constants,
 )
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_flow.hepta')
@@ -251,6 +251,8 @@ def verify_checks(o:mutbuf, w:mutbuf) -> u64:
     if claim == 3 and get(w, VERIFY_SUBJECT_KIND) == 3:
         put(w, 0, VERIFY_PLAN_CHECK)
         return VERIFY_NEEDS_FINITE
+    if claim == 3 and get(w, VERIFY_SUBJECT_KIND) == 4:
+        return verify_machine_schedule(o, w)
     if claim == 4 and get(w, VERIFY_SUBJECT_KIND) == 4:
         if get(w, VERIFY_REPLAYING) != 0:
             return clock_sample(o, w, VERIFY_REPLAY_CLOCK, 0)
@@ -264,8 +266,27 @@ def verify_direct_evidence(o:mutbuf, w:mutbuf, mode:u64) -> u64:
     put(w, VERIFY_DIRECT_MODE, mode)
     return action(o, w, VERIFY_CHECK_RESULT, RUN, VERIFY_FINITE_EVIDENCE_ROLE, 0, 0, 16)
 
+def verify_machine_schedule(o:mutbuf, w:mutbuf) -> u64:
+    if get(w, EMIT_OUTPUT_KIND) != 2 or get(w, INSPECTION_EXPORTS + 16) != 2:
+        return verify_machine_begin(w, 16)
+    if get(w, VERIFY_REPLAYING) != 0:
+        mode = get(w, VERIFY_REPLAY_MACHINE_MODE)
+        if mode != 0:
+            return verify_machine_begin(w, mode)
+        return clock_sample(o, w, VERIFY_REPLAY_CLOCK, 0)
+    put(w, EMIT_STAGE, 11)
+    return emit_wall_start(o, w)
+
+def verify_machine_begin(w:mutbuf, mode:u64) -> u64:
+    put(w, VERIFY_MACHINE_MODE, mode)
+    put(w, 0, VERIFY_MACHINE_START)
+    return VERIFY_NEEDS_FINITE
+
 def verify_behavior(o:mutbuf, w:mutbuf) -> u64:
-    if get(w, VERIFY_CLAIM_ORDINALS + 8 * get(w, VERIFY_CLAIM_INDEX)) == 4:
+    claim = get(w, VERIFY_CLAIM_ORDINALS + 8 * get(w, VERIFY_CLAIM_INDEX))
+    if claim == 3 and get(w, VERIFY_SUBJECT_KIND) == 4:
+        return verify_machine_begin(w, 0)
+    if claim == 4:
         put(w, 0, VERIFY_ENCODE_START)
         return VERIFY_NEEDS_FINITE
     if get(w, VERIFY_FINITE_BASE_SHA + 16) != 64 or get(w, VERIFY_FINITE_CANDIDATE_SHA + 16) != 64:
@@ -349,7 +370,10 @@ def verify_replay_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         if plan_ok(s) == False or input_word(s, 40) != 64 or length(s) != 128:
             return BAD
         count = input_word(s, 80)
-        if input_word(s, 72) != VERIFY_REPLAY_TAG or count < 1 or count > 4 or input_word(s, 120) > 1:
+        frozen = input_word(s, 120)
+        machine = frozen >> 8
+        if (input_word(s, 72) != VERIFY_REPLAY_TAG or count < 1 or count > 4
+                or (frozen & 255) > 1 or (machine != 0 and machine != 17 and machine != 18)):
             return BAD
         start = input_word(s, 88)
         bytes = input_word(s, 96)
@@ -358,13 +382,16 @@ def verify_replay_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         if start < prefix or start > prefix + cache or bytes < 2 or bytes > prefix + cache - start:
             return BAD
         hold(w, VERIFY_REPLAY_EXPECTED, get(w, VERIFY_REPLAY_PACKET), start, bytes)
-        put(w, VERIFY_REPLAY_FROZEN_LIMIT, input_word(s, 120))
+        put(w, VERIFY_REPLAY_FROZEN_LIMIT, frozen & 255)
+        put(w, VERIFY_REPLAY_MACHINE_MODE, machine)
         return authorize_business(o, w)
     if state == VERIFY_REPLAY_CLOCK:
         now = input_word(s, 64)
-        if length(s) != 72 or input_word(s, 40) != 8 or now > MAX_CLOCK - VERIFY_FINITE_CAP:
+        claim = get(w, VERIFY_CLAIM_ORDINALS + 8 * get(w, VERIFY_CLAIM_INDEX))
+        cap = choose(claim == 3, 60000000000, VERIFY_FINITE_CAP)
+        if length(s) != 72 or input_word(s, 40) != 8 or now > MAX_CLOCK - cap:
             return BAD
-        put(w, EMIT_ABSOLUTE_DEADLINE, now + VERIFY_FINITE_CAP)
+        put(w, EMIT_ABSOLUTE_DEADLINE, now + cap)
         return verify_behavior(o, w)
     if state == VERIFY_REPLAY_COMPARED:
         if plan_ok(s) == False or input_word(s, 40) != 24 or input_word(s, 72) != EMIT_COMPARE_RESULT or input_word(s, 80) != 1:
@@ -392,6 +419,7 @@ def constants_for_verify(constants):
     plan_constants(constants)
     custody_constants(constants)
     encoding_constants(constants)
+    machine_constants(constants)
     states = ('BASE_NULL', 'SUBJECT_FRAME', 'SUBJECT_INDEX', 'SUBJECT_OFFSETS', 'SCOPE_READY',
               'CANDIDATE_HASH', 'CANDIDATE_INPUT_HASH', 'ORIGINAL_HASH', 'OUTCOME')
     spans = ('VALIDATION', 'BASE', 'SUBJECT', 'CONTEXT_ID', 'CANDIDATE_SHA', 'CANDIDATE',
@@ -414,7 +442,7 @@ def constants_for_verify(constants):
                      VERIFY_NEEDS_TERMINAL=0xffffffe1,
                      VERIFY_REQUEST_ROLE=70, VERIFY_NEEDS_FINDINGS=0xffffffe5,
                      VERIFY_NEEDS_FINITE=0xffffffe2,
-                     ROLE_COUNT=76, ENTRY_BYTES=64 + 312 + 76 * 40,
+                     ROLE_COUNT=77, ENTRY_BYTES=64 + 312 + 77 * 40,
                      EMIT_WORK_BYTES=12288, SCHEMA_TOOL=7)
     constants.update({name: int.from_bytes(tag, 'little') for name, tag in {
         'VERIFY_REQUEST_TAG': b'HIAVRQ01', 'VERIFY_INDEX': b'HIAVRI01',
@@ -441,6 +469,8 @@ def recipe():
         '        return verify_encoding_timeout(o, w)\n'
         '    if state == VERIFY_ENCODE_MEASURE_START:\n        return VERIFY_NEEDS_FINDINGS\n'
         '    if state == VERIFY_ENCODE_MEASURE_DONE:\n        return VERIFY_NEEDS_FINITE\n'
+        '    if state == VERIFY_MACHINE_PUBLISH or state == VERIFY_MACHINE_FACT:\n'
+        '        return VERIFY_NEEDS_FINDINGS\n'
         '    if state == VERIFY_PLAN_INVALID:\n        if get(w, VERIFY_REPLAYING) != 0:\n            return BAD\n'
         '        return emit_admission_error(o, w, 8, 5)\n'
         '    if state == VERIFY_RESULT_READY:\n'
@@ -482,7 +512,10 @@ def recipe():
         '        if input_word(s, 80) != 0:\n            return emit_admission_error(o, w, 8, choose(launch, 4, 3))',
         '        if input_word(s, 80) != 0:\n'
         '            if launch:\n'
-        '                if get(w, VERIFY_CLAIM_ORDINALS + 8 * get(w, VERIFY_CLAIM_INDEX)) == 4:\n'
+        '                claim = get(w, VERIFY_CLAIM_ORDINALS + 8 * get(w, VERIFY_CLAIM_INDEX))\n'
+        '                if claim == 3 and get(w, VERIFY_SUBJECT_KIND) == 4:\n'
+        '                    return verify_machine_begin(w, 17)\n'
+        '                if claim == 4:\n'
         '                    return emit_admission_error(o, w, 8, 4)\n'
         '                return verify_direct_evidence(o, w, 9)\n'
         '            if get(w, VERIFY_REPLAYING) != 0:\n'
@@ -515,6 +548,8 @@ def recipe():
         '    object = entry + DESCRIPTOR_BYTES * INSPECTION_EMIT_ROLE',
         '    nominal = entry + DESCRIPTOR_BYTES * NOMINAL_ROLE\n'
         '    observer = entry + DESCRIPTOR_BYTES * VERIFY_FINITE_EVIDENCE_ROLE\n'
+        '    prover = entry + DESCRIPTOR_BYTES * EMIT_MACHINE_PROVER_ROLE\n'
+        '    hold(w, VERIFY_MACHINE_IMAGE, input_word(s, prover), 0, input_word(s, prover + 24))\n'
         '    hold(w, VERIFY_NOMINAL_IMAGE, input_word(s, nominal), 0, input_word(s, nominal + 24))\n'
         '    hold(w, VERIFY_OBSERVER_IMAGE, input_word(s, observer), 0, input_word(s, observer + 24))\n'
         '    object = entry + DESCRIPTOR_BYTES * INSPECTION_EMIT_ROLE',

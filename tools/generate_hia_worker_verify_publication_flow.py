@@ -22,6 +22,11 @@ def verify_publication_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     state = get(w, 0)
     if state == VERIFY_ENCODE_MEASURE_START:
         return emit_measure_products(o, w)
+    if state == VERIFY_MACHINE_PUBLISH:
+        put(o, HEADER, 32123)
+        return action(o, w, VERIFY_MACHINE_EMPTY, MAKE, 0, 0, 0, 2)
+    if state == VERIFY_MACHINE_FACT:
+        return verify_machine_facts(o, w)
     if state == VERIFY_FINDINGS_START:
         if (get(w, VERIFY_CLAIM_COUNT) < 1 or get(w, VERIFY_CLAIM_COUNT) > 4
                 or get(w, VERIFY_CLAIM_INDEX) != get(w, VERIFY_CLAIM_COUNT)):
@@ -66,6 +71,9 @@ def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
         hold(w, VERIFY_OBSERVER_PIN, fd, at - 65, 66)
         put(o, HEADER, 32123)
         return action(o, w, VERIFY_EMPTY_METADATA, MAKE, 0, 0, 0, 2)
+    if resume == VERIFY_HASH_MACHINE:
+        hold(w, VERIFY_MACHINE_PIN, fd, at - 65, 66)
+        return verify_observation_header(o, w)
     if resume >= EMIT_MEASURE_CORE_HASH and resume <= EMIT_MEASURE_LINK_HASH:
         return emit_measurement_hash(s, o, w, at, resume)
     return emit_publication_hash(s, o, w, at, resume)
@@ -85,13 +93,19 @@ def verify_finding_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     slot = VERIFY_EVIDENCE_SPANS + index * 24
     status = input_word(s, 72)
     mode = input_word(s, 80)
-    if (length(s) != 96 or input_word(s, 64) != VERIFY_FINITE_REPORT or mode < 1 or mode > 12
+    if (length(s) != 96 or input_word(s, 64) != VERIFY_FINITE_REPORT or mode < 1 or mode > 18
             or status < 1 or status > 4 or input_word(s, 88) != get(w, slot + 16) - 32):
         return BAD
     claim = get(w, VERIFY_CLAIM_ORDINALS + 8 * index)
-    expected_claim = choose(mode >= 11, 4, choose(mode == 7, 1, choose(mode == 8 or mode == 10, 3, 2)))
+    expected_claim = choose(mode == 11 or mode == 12, 4,
+                            choose(mode == 7, 1, choose(mode == 8 or mode >= 10, 3, 2)))
     if claim != expected_claim:
         return BAD
+    pin = choose(mode == 7, VERIFY_NOMINAL_PIN, VERIFY_OBSERVER_PIN)
+    if mode >= 13 and mode <= 15:
+        if get(w, VERIFY_MACHINE_PIN + 16) == 0:
+            return inspection_hash(o, w, VERIFY_HASH_MACHINE, VERIFY_MACHINE_IMAGE)
+        pin = VERIFY_MACHINE_PIN
     hold(w, VERIFY_FACTS, get(w, slot), get(w, slot + 8) + 32, get(w, slot + 16) - 32)
     store(o, HEADER, 91)
     at = decimal(o, HEADER + 1, mode)
@@ -109,9 +123,10 @@ def verify_finding_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     vector_part(o, at + 120, INLINE_FRAGMENT, 384, 1)
     vector_span(w, o, EMIT_PROOF_TRUST_SELECTION, at + 144)
     vector_part(o, at + 168, INLINE_FRAGMENT, 384, 1)
-    vector_span(w, o, choose(mode == 7, VERIFY_NOMINAL_PIN, VERIFY_OBSERVER_PIN), at + 192)
+    vector_span(w, o, pin, at + 192)
     vector_part(o, at + 216, INLINE_FRAGMENT, 392, 1)
-    return wide_inspection(o, w, VERIFY_FINDING_BOUND, VERIFY_FINDING_ROLE, 0, 10, at - HEADER)
+    role = choose(mode < 13, VERIFY_FINDING_ROLE, VERIFY_MACHINE_FINDING_ROLE)
+    return wide_inspection(o, w, VERIFY_FINDING_BOUND, role, 0, 10, at - HEADER)
 
 def verify_publication_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     size = input_word(s, 40)
@@ -121,6 +136,21 @@ def verify_publication_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             return BAD
         sample_span(s, w, EMIT_EMPTY_METADATA)
         return verify_observation_header(o, w)
+    if state == VERIFY_MACHINE_EMPTY:
+        if size != 2 or length(s) != 66 or byte(s, 64) != 123 or byte(s, 65) != 125:
+            return BAD
+        sample_span(s, w, EMIT_EMPTY_METADATA)
+        return emit_publish(o, w, VERIFY_CERTIFICATE_KIND, VERIFY_MACHINE_RAW, EMIT_EMPTY_METADATA)
+    if state == VERIFY_MACHINE_EVIDENCE:
+        mode = get(w, VERIFY_MACHINE_MODE)
+        status = choose(mode <= 14, mode - 12, choose(mode < 17, 4, 3))
+        if (plan_ok(s) == False or size < 42 or size > VERIFY_PLAN_EVIDENCE_LIMIT
+                or input_word(s, 72) != VERIFY_FINITE_REPORT or input_word(s, 80) != status
+                or input_word(s, 88) != mode or input_word(s, 96) != size - 40):
+            return BAD
+        body_span(s, w, VERIFY_FINITE_RESULT)
+        put(w, 0, VERIFY_FINITE_DELIVERED)
+        return VERIFY_NEEDS_TERMINAL
     if state == VERIFY_EVIDENCE_HEADER:
         return verify_finding_packet(s, o, w)
     if state == VERIFY_FINDING_BOUND:
@@ -178,6 +208,26 @@ def verify_list_checks(o:mutbuf, w:mutbuf) -> u64:
         index = index + 1
     return emit_wide_make(o, w, VERIFY_CHECKS_BOUND, count * 2, 1)
 
+def verify_machine_facts(o:mutbuf, w:mutbuf) -> u64:
+    mode = get(w, VERIFY_MACHINE_MODE)
+    if (mode < 13 or mode > 18 or get(w, VERIFY_CANDIDATE_SHA + 16) != 66
+            or get(w, EMIT_CUSTODY_OBJECT_SHA + 16) != 66 or get(w, EMIT_CUSTODY_NATIVE_SHA + 16) != 66):
+        return BAD
+    proved = mode <= 14
+    certificate = EMIT_ARTIFACT_REFS + 72
+    if proved and get(w, certificate + 16) != 176:
+        return BAD
+    put(o, HEADER, VERIFY_FINITE_REQUEST)
+    put(o, HEADER + 8, mode)
+    put(o, HEADER + 16, choose(proved, get(w, VERIFY_MACHINE_PROFILE), 0))
+    put(o, HEADER + 24, choose(proved, get(w, VERIFY_MACHINE_ROWS), 0))
+    vector_span(w, o, VERIFY_CANDIDATE_SHA, HEADER + 32)
+    vector_span(w, o, EMIT_CUSTODY_OBJECT_SHA, HEADER + 56)
+    vector_span(w, o, EMIT_CUSTODY_NATIVE_SHA, HEADER + 80)
+    if proved:
+        vector_span(w, o, certificate, HEADER + 104)
+    return wide_inspection(o, w, VERIFY_MACHINE_EVIDENCE, VERIFY_FINITE_EVIDENCE_ROLE, 0, choose(proved, 4, 3), 32)
+
 def verify_receipt_packet(o:mutbuf, w:mutbuf) -> u64:
     put(w, EMIT_RENDER_FIELDS, VERIFY_ORIGINAL_SHA)
     put(w, EMIT_RENDER_FIELDS + 8, VERIFY_BASE)
@@ -205,6 +255,8 @@ def emit_publication_complete(o:mutbuf, w:mutbuf) -> u64:
         return verify_check_packet(o, w)
     if kind == 18:
         return verify_result_packet(o, w)
+    if kind == VERIFY_CERTIFICATE_KIND:
+        return verify_machine_facts(o, w)
     return BAD
 '''
 
@@ -232,7 +284,17 @@ def recipe():
              'EVIDENCE_DOC', 'CHECK_LIST', 'RECEIPT_DOC')
     constants.update({f'VERIFY_{name}': 11064 + 24 * index for index, name in enumerate(spans)})
     constants.update(VERIFY_PUBLISH_INDEX=11280, VERIFY_CHECKS=11288, VERIFY_FINDING_ROLE=72,
-                     VERIFY_DOCUMENTS_ROLE=73, VERIFY_RECEIPT_ROLE=74)
+                     VERIFY_DOCUMENTS_ROLE=73, VERIFY_RECEIPT_ROLE=74, VERIFY_MACHINE_FINDING_ROLE=76)
+    # Verify can publish a certificate before checking the remaining claims.
+    # Its immutable publication state must not overwrite live ELF custody.
+    bank = 11560
+    for name in ('BYTES', 'METADATA', 'KEY', 'RECEIPT', 'READBACK'):
+        constants[f'EMIT_PUB_{name}'] = bank
+        bank += 24
+    constants.update(EMIT_ARTIFACT_REFS=bank, EMIT_PUB_OFFSET=bank + 96, EMIT_PUB_KIND=bank + 104,
+                     EMIT_PUB_INSERTED=bank + 112, EMIT_PUB_CONTENT_HASH=bank + 120,
+                     EMIT_PUB_METADATA_HASH=bank + 184, EMIT_PUB_KEY_HASH=bank + 248,
+                     EMIT_PUB_PUBLISHED_HASH=bank + 312, VERIFY_CERTIFICATE_KIND=19, VERIFY_HASH_MACHINE=1410)
     constants.update({f'VERIFY_{name}': int.from_bytes(tag, 'little') for name, tag in {
         'FINDING_TAG': b'HIAVFN01', 'FILES_TAG': b'HIAVDF01', 'CHECK_TAG': b'HIAVDC01', 'RECEIPT_REQUEST': b'HIAVRC01',
     }.items()})
@@ -249,7 +311,7 @@ def recipe():
                             'def inspection_hash_bound',
                         ))
     publication = PUBLICATION[:PUBLICATION.index('\ndef emit_publication_complete(')]
-    publication = publication.replace('kind < 12 or kind > 14', 'kind < 16 or kind > 18')
+    publication = publication.replace('kind < 12 or kind > 14', 'kind < 16 or kind > VERIFY_CERTIFICATE_KIND')
     publication = publication.replace(
         '        if get(w, EMIT_PUB_INSERTED) != 0:',
         '        if get(w, VERIFY_REPLAYING) != 0 or get(w, EMIT_PUB_INSERTED) != 0:',

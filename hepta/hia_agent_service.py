@@ -686,12 +686,13 @@ class HIAAgentService:
             "artifact_profiles": [self.profiles["artifact"]], "resources": resources, "next_cursor": None}
 
     def _reference_describe(self, args):
+        from .hia_agent_discovery_native import DEFAULT_AGENT_LANGUAGE_SCHEMA
         from .hia_opcodes import opcode_catalog
         if "cursor" in args:
             reject("E_HIA_CURSOR", "discovery has no further page for this bounded manifest")
         if "backend_profile" in args and args["backend_profile"] != self.profiles["backend"]["id"]:
             reject("E_HIA_PROFILE", "requested backend profile is unavailable")
-        language_schema = args.get("language_schema", "hepta.hia.program.v8")
+        language_schema = args.get("language_schema", DEFAULT_AGENT_LANGUAGE_SCHEMA)
         language = opcode_catalog(language_schema)
         profile, language_ref = self.store.profile(language_schema, language)
         section = args["section"]

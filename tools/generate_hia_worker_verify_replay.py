@@ -10,6 +10,7 @@ from tools.generate_hia_mcp_request import WIRE_HELPERS
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_emit_verification import POLICY as VERIFICATION, key_table, literal_match
 from tools.generate_hia_worker_inspection_effect import function
+from tools.hia_retained_proof_method import MACHINE_EXPIRED, MACHINE_UNKNOWN
 from tools.generate_hia_worker_verify_request import CLAIMS, POLICY as REQUEST, enumerated
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_replay.hepta')
@@ -67,16 +68,24 @@ def index_terminal(s:readbuf, o:mutbuf, w:mutbuf, request:u64, args:u64, termina
     checks = lookup(w, result, K_checks)
     check = list_first(w, checks)
     expired = False
+    machine = 0
     index = 0
     while index < count:
-        if claim_id(w, lookup(w, check, K_claim)) == 2:
+        claim = claim_id(w, lookup(w, check, K_claim))
+        if claim == 2 or claim == 3:
             checker = lookup(w, check, K_checker)
             if is_object(w, checker) == False:
                 return BAD
-            expired = is_wall_exhausted(w, lookup(w, checker, K_method))
+            method = lookup(w, checker, K_method)
+            if claim == 2:
+                expired = is_wall_exhausted(w, method)
+            elif is_machine_expired(w, method):
+                machine = 17
+            elif is_machine_incomplete(w, method):
+                machine = 18
         check = next(w, check)
         index = index + 1
-    put(o, 48, choose(expired, 1, 0))
+    put(o, 48, (machine << 8) | choose(expired, 1, 0))
     return 56
 
 def index_receipt(s:readbuf, o:mutbuf, w:mutbuf, installation:u64, args:u64, result:u64, receipt:u64, scope:u64) -> u64:
@@ -181,7 +190,8 @@ def program():
                  RECEIPT=int.from_bytes(b'HIAVRP02', 'little'), NONE=(1 << 64) - 1, BAD=4294967293)
     literals = {'is_contract': 'hepta.hia.agent-native.v1', 'is_check': 'hepta.hia.agent.proof-result.v1',
                 'is_receipt': 'hepta.hia.agent.verification.v1', 'is_completed': 'completed',
-                'is_wall_exhausted': 'context_budget_exhausted'}
+                'is_wall_exhausted': 'context_budget_exhausted',
+                'is_machine_expired': MACHINE_EXPIRED, 'is_machine_incomplete': MACHINE_UNKNOWN}
     policy = '\n'.join((POLICY, key_table(KEYS), *(literal_match(k, v) for k, v in literals.items()),
                          enumerated('claim', CLAIMS),
                          *(function(REQUEST, name) for name in ('typed_ref', 'text')),

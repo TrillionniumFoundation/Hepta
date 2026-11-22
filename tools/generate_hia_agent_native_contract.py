@@ -14,6 +14,8 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, ValidationError
 
+from tools.hia_retained_proof_method import NATIVE_SUPPLIED_MACHINE_METHODS
+
 
 ROOT = Path(__file__).resolve().parents[1] / 'docs'
 DIALECT = 'https://json-schema.org/draft/2020-12/schema'
@@ -234,6 +236,7 @@ PROOF_CHECKER = {'oneOf': [
     obj({**PROOF_CHECKER_FIELDS,
          'python': obj({'implementation': text(64), 'version': text(64)})}),
     obj({**PROOF_CHECKER_FIELDS,
+         'method': enum(*PROOF_CHECKER_FIELDS['method']['enum'], *NATIVE_SUPPLIED_MACHINE_METHODS),
          'native': obj({'profile': text(128), 'image_sha256': SHA})}),
 ]}
 VERIFICATION = obj({
@@ -538,6 +541,14 @@ native_checker = native_response['result']['checks'][0]['checker']
 python_identity = native_checker.pop('python')
 native_checker['native'] = {'profile': 'hepta.hia.agent.native-proof-checker.v1', 'image_sha256': 'e' * 64}
 validate_case('hia_verify', 'outputSchema', native_response, True, 'verify.native_checker_scope')
+for method in NATIVE_SUPPLIED_MACHINE_METHODS:
+    native = copy.deepcopy(native_response)
+    native['result']['checks'][0]['checker']['method'] = method
+    validate_case('hia_verify', 'outputSchema', native, True, 'verify.native_method.' + method)
+    hosted = copy.deepcopy(scoped_response)
+    hosted['result']['checks'][0]['checker']['method'] = method
+    validate_case('hia_verify', 'outputSchema', hosted, False, 'verify.reject_hosted_method.' + method)
+
 bad = copy.deepcopy(native_response)
 bad['result']['checks'][0]['checker']['python'] = python_identity
 validate_case('hia_verify', 'outputSchema', bad, False, 'verify.reject_mixed_checker_provenance')
