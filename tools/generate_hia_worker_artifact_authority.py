@@ -74,10 +74,7 @@ def contextual_profile_query(s:readbuf, o:mutbuf) -> u64:
     query_header(o, 0, 2, 144 + width)
     query_field(o, 32, 80, width)
     query_field(o, 56, 80 + width, 64)
-    if kind == 1:
-        compiler_name(o, 80)
-    else:
-        target_name(o, 80)
+    write_profile_name(o, 80, kind)
     return copy_input(s, o, 16, 80 + width, 64)
 
 # Pinned profile identities are generated from the installation, not from the
@@ -102,12 +99,14 @@ def contextual_profile_admission(s:readbuf, o:mutbuf) -> u64:
     return contextual_profile_query(s, o)
 
 def context_profile_width(role:u64) -> u64:
-    return choose(role == 1, 15, choose(role == 2, 13, 0))
+    if role == 3:
+        return 0
+    return profile_width(role)
 
 def profile_lookup_binding(s:readbuf, o:mutbuf, kind:u64, pin:u64, size:u64) -> u64:
     if size == 0:
         return 4294967289
-    width = choose(kind == 3, 15, context_profile_width(kind))
+    width = profile_width(kind)
     row = pin + 64
     if size != 344 + width or row_header(s, row, 2, 3) == False:
         return 4294967293
@@ -126,13 +125,6 @@ def profile_lookup_binding(s:readbuf, o:mutbuf, kind:u64, pin:u64, size:u64) -> 
     query_header(o, 192, 1, 90)
     query_field(o, 224, 56, 34)
     return copy_input(s, o, start + 7, 248, 34)
-
-def selected_profile(s:readbuf, at:u64, kind:u64) -> bool:
-    if kind == 1:
-        return compiler_profile(s, at)
-    if kind == 2:
-        return target_profile(s, at)
-    return artifact_profile(s, at)
 
 def retained_query(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 192 or input_word(s, 8) > 4 or artifact_reference(s, 16) == False:
@@ -304,14 +296,13 @@ def source_program():
         ('artifact_digest', b'","sha256":"'),
         ('artifact_uri', b'","uri":"hia://artifacts/'),
         ('context_text', b'context'), ('program_text', b'core'),
-        ('compiler_profile', b'hia-compiler-v1'), ('target_profile', b'hia-target-v1'),
-        ('artifact_profile', b'hia-artifact-v1'),
+        *((name + '_profile', b'hia-' + name.encode('ascii') + b'-v1') for name in PROFILE_PORTS),
     ):
         program += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n'
         program += '    return ' + ' and '.join(
             f'byte(s, at + {offset}) == {byte}' for offset, byte in enumerate(raw)) + '\n'
     for name, raw in (
-        ('compiler_name', b'hia-compiler-v1'), ('target_name', b'hia-target-v1'),
+        *((name + '_name', b'hia-' + name.encode('ascii') + b'-v1') for name in PROFILE_PORTS),
         ('result_open', b'{"artifact":'), ('result_size', b',"byte_length":"'),
         ('result_end', b'","content_admitted_as_program":false,"execution_authority_granted":false}'),
     ):
@@ -319,7 +310,27 @@ def source_program():
         for offset, byte in enumerate(raw):
             program += f'    store(o, at + {offset}, {byte})\n'
         program += f'    return at + {len(raw)}\n'
-    return program
+    return program + profile_ports()
+
+
+PROFILE_PORTS = ('compiler', 'target', 'artifact', 'backend', 'lowering', 'plan', 'validation')
+
+
+def profile_ports():
+    functions = (
+        ('profile_width(role:u64) -> u64', 'role', lambda name: str(len('hia-' + name + '-v1')), '0'),
+        ('selected_profile(s:readbuf, at:u64, kind:u64) -> bool', 'kind',
+         lambda name: name + '_profile(s, at)', 'False'),
+        ('write_profile_name(o:mutbuf, at:u64, kind:u64) -> u64', 'kind',
+         lambda name: name + '_name(o, at)', '0'),
+    )
+    source = []
+    for declaration, selector, result, default in functions:
+        source.append(f'\ndef {declaration}:')
+        for ordinal, name in enumerate(PROFILE_PORTS, 1):
+            source.extend((f'    if {selector} == {ordinal}:', f'        return {result(name)}'))
+        source.append(f'    return {default}')
+    return '\n'.join(source) + '\n'
 
 
 if __name__ == '__main__':
