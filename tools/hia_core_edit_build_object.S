@@ -69,6 +69,8 @@ _start:
  call allocate
  mov rbp,rax
  mov QWORD PTR [rbp+REPORT_CAPACITY],262144
+ cmp QWORD PTR [rsp],1
+ je inspect_shared_args
  cmp QWORD PTR [rsp],2
  jb usage
  mov rsi,[rsp+8]
@@ -1007,6 +1009,74 @@ publication_complete:
  xor edi,edi
  jmp exit
 
+inspect_shared_args:
+ mov rsi,[rsp+8]
+ lea rdi,[rip+inspect_shared_mode]
+ mov ecx,25
+ cld
+ repe cmpsb
+ jne usage
+ # Sealed stdin: u64 expected-export request length, HIASEN01 request,
+ # then the actual linked bytes. The two HIA readers own all ABI decisions.
+ xor edi,edi
+ mov esi,1034
+ mov eax,72
+ syscall
+ test rax,rax
+ js invalid
+ and eax,15
+ cmp eax,15
+ jne invalid
+ xor edi,edi
+ lea rsi,[rbp+PLAN_STAT]
+ mov eax,5
+ syscall
+ test rax,rax
+ jne io_failure
+ mov rsi,[rbp+PLAN_STAT+48]
+ cmp rsi,82
+ jb invalid
+ cmp rsi,ART_N+65938
+ ja capacity
+ xor edi,edi
+ mov edx,1
+ mov r10d,2
+ xor r8d,r8d
+ xor r9d,r9d
+ mov eax,9
+ syscall
+ cmp rax,-4095
+ jae io_failure
+ mov rcx,[rax]
+ cmp rcx,10
+ jb invalid
+ cmp rcx,65930
+ ja invalid
+ sub rsi,8
+ sub rsi,rcx
+ jc invalid
+ cmp rsi,64
+ jb invalid
+ cmp rsi,ART_N
+ ja capacity
+ lea rdx,[rax+8]
+ movabs rax,0x31304e4553414948  # HIASEN01
+ cmp [rdx],rax
+ jne invalid
+ mov [rbp+SHARED_FRAME],rdx
+ mov [rbp+SHARED_FRAME_EXTENT],rcx
+ add rdx,rcx
+ mov [rbp+SHARED_ARTIFACT],rdx
+ mov [rbp+SHARED_EXTENT],rsi
+ call observe_shared_inventory
+ mov [rbp+REPORT_SCRATCH],r12
+ lea rsi,[rbp+REPORT_SCRATCH]
+ mov edx,8
+ call write_owned
+ xor edi,edi
+ jmp exit
+inspect_shared_mode: .asciz "hia-inspect-owned-shared"
+
 link_shared_artifact:
  # Keep the direct object immutable; do not publish until the independent
  # inventory confirms that the linked ELF exposes exactly its admitted exports.
@@ -1089,53 +1159,7 @@ shared_linked:
  mov rdi,[rbp+SHARED_FRAME]
  mov esi,SHARED_FRAME_BYTES
  call protect_readonly
- mov esi,SHARED_EXPORT_WORK_BYTES
- call allocate
- mov [rbp+SHARED_EXPORT_WORK],rax
- mov rdi,[rbp+SHARED_FRAME]
- mov rsi,[rbp+SHARED_FRAME_EXTENT]
- mov rdx,rax
- mov ecx,SHARED_EXPORT_WORK_BYTES
- lea r8,[rbp+REPORT_SCRATCH]
- mov r9d,96
- call build_shared_report_start
- cmp rax,SHARED_EXPORT_WORK_BYTES
- jne native_status
- mov esi,SHARED_SYMBOL_BYTES
- call allocate
- mov [rbp+SHARED_SYMBOLS],rax
- mov rdi,[rbp+SHARED_ARTIFACT]
- mov rsi,[rbp+SHARED_EXTENT]
- mov rdx,rax
- mov ecx,SHARED_SYMBOL_BYTES
- mov r8,[rbp+SHARED_EXPORT_WORK]
- mov r9d,SHARED_EXPORT_WORK_BYTES
- call build_shared_inventory_start
- cmp rax,SHARED_SYMBOL_HEAD
- jb io_failure
- cmp rax,SHARED_SYMBOL_BYTES
- ja native_status
- mov [rbp+SHARED_SYMBOL_EXTENT],rax
- mov rdi,[rbp+SHARED_EXPORT_WORK]
- mov esi,SHARED_EXPORT_WORK_BYTES
- call release
- mov rdi,[rbp+SHARED_SYMBOLS]
- mov esi,SHARED_SYMBOL_BYTES
- call protect_readonly
- mov rdi,[rbp+SHARED_ARTIFACT]
- mov rsi,[rbp+SHARED_EXTENT]
- lea rdx,[rbp+REPORT_SCRATCH]
- xor ecx,ecx
- mov r8,[rbp+SHARED_SYMBOLS]
- mov r9,[rbp+SHARED_SYMBOL_EXTENT]
- call build_shared_report_start
- dec rax
- cmp rax,2047
- ja invalid
- mov r12,rax
- mov rdi,[rbp+SHARED_SYMBOLS]
- mov esi,SHARED_SYMBOL_BYTES
- call release
+ call observe_shared_inventory
  mov rdi,[rbp+SHARED_FRAME]
  mov esi,SHARED_FRAME_BYTES
  call protect_writable
@@ -1195,6 +1219,58 @@ shared_report_ready:
  mov [rbp+48],rax
  mov rax,[rbp+SHARED_EXTENT]
  mov [rbp+56],rax
+ add rsp,8
+ ret
+
+observe_shared_inventory:
+ sub rsp,8
+ mov esi,SHARED_EXPORT_WORK_BYTES
+ call allocate
+ mov [rbp+SHARED_EXPORT_WORK],rax
+ mov rdi,[rbp+SHARED_FRAME]
+ mov rsi,[rbp+SHARED_FRAME_EXTENT]
+ mov rdx,rax
+ mov ecx,SHARED_EXPORT_WORK_BYTES
+ lea r8,[rbp+REPORT_SCRATCH]
+ mov r9d,96
+ call build_shared_report_start
+ cmp rax,SHARED_EXPORT_WORK_BYTES
+ jne native_status
+ mov esi,SHARED_SYMBOL_BYTES
+ call allocate
+ mov [rbp+SHARED_SYMBOLS],rax
+ mov rdi,[rbp+SHARED_ARTIFACT]
+ mov rsi,[rbp+SHARED_EXTENT]
+ mov rdx,rax
+ mov ecx,SHARED_SYMBOL_BYTES
+ mov r8,[rbp+SHARED_EXPORT_WORK]
+ mov r9d,SHARED_EXPORT_WORK_BYTES
+ call build_shared_inventory_start
+ cmp rax,SHARED_SYMBOL_HEAD
+ jb io_failure
+ cmp rax,SHARED_SYMBOL_BYTES
+ ja native_status
+ mov [rbp+SHARED_SYMBOL_EXTENT],rax
+ mov rdi,[rbp+SHARED_EXPORT_WORK]
+ mov esi,SHARED_EXPORT_WORK_BYTES
+ call release
+ mov rdi,[rbp+SHARED_SYMBOLS]
+ mov esi,SHARED_SYMBOL_BYTES
+ call protect_readonly
+ mov rdi,[rbp+SHARED_ARTIFACT]
+ mov rsi,[rbp+SHARED_EXTENT]
+ lea rdx,[rbp+REPORT_SCRATCH]
+ xor ecx,ecx
+ mov r8,[rbp+SHARED_SYMBOLS]
+ mov r9,[rbp+SHARED_SYMBOL_EXTENT]
+ call build_shared_report_start
+ dec rax
+ cmp rax,2047
+ ja invalid
+ mov r12,rax
+ mov rdi,[rbp+SHARED_SYMBOLS]
+ mov esi,SHARED_SYMBOL_BYTES
+ call release
  add rsp,8
  ret
 
