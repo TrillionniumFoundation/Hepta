@@ -1,6 +1,7 @@
 """Author HIA's native Store command and response protocol."""
 from pathlib import Path
 
+from hepta.hia_agent_discovery_native import PROFILE_NAMES
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_discovery_artifact import DOCUMENT_KINDS, candidate_context_source, kind_match_source
@@ -230,7 +231,7 @@ def valid_reservation_ack(s:readbuf, size:u64) -> bool:
 
 # Query ordinal 12 projects the one retained profile document reference.
 def valid_worker_profile_lookup(s:readbuf, size:u64) -> bool:
-    if size < 157 or size > 159 or read_word(s, 48) != QUERY_PARAMETERS:
+    if size < 155 or size > 161 or read_word(s, 48) != QUERY_PARAMETERS:
         return False
     if read_word(s, 56) != 1 or read_word(s, 64) != 2 or read_word(s, 72) != size:
         return False
@@ -1086,9 +1087,16 @@ def source_program():
     import re
 
     profiles = []
-    for kind in ('artifact', 'compiler', 'target'):
+    for kind in PROFILE_NAMES:
         name = ('hia-' + kind + '-v1').encode()
-        predicate = ' and '.join(f'byte(s, at + {i}) == {byte}' for i, byte in enumerate(name))
+        parts = []
+        for offset in range(0, len(name), 8):
+            chunk = name[offset:offset + 8]
+            observed = f'read_word(s, at + {offset})'
+            if len(chunk) < 8:
+                observed = f'({observed} & {(1 << (8 * len(chunk))) - 1})'
+            parts.append(f'{observed} == {int.from_bytes(chunk, "little")}')
+        predicate = ' and '.join(parts)
         profiles.append(f'    if length == {len(name)} and {predicate}:\n        return True')
     profile_gate = '\ndef worker_profile_id(s:readbuf, at:u64, length:u64) -> bool:\n'
     profile_gate += '\n'.join(profiles) + '\n    return False\n'
