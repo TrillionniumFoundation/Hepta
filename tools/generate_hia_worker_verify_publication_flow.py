@@ -217,13 +217,13 @@ def closed_store(o:mutbuf, w:mutbuf) -> u64:
 def recipe():
     constants, _, controls = front_recipe()
     states = ('HASH_NOMINAL', 'HASH_OBSERVER', 'EMPTY_METADATA', 'EVIDENCE_HEADER', 'FINDING_BOUND',
-              'DOCUMENTS_BOUND', 'CHECK_BOUND', 'CHECKS_BOUND', 'RECEIPT_BOUND', 'RESULT_BOUND', 'RESULT_READY')
+              'DOCUMENTS_BOUND', 'CHECK_BOUND', 'CHECKS_BOUND', 'RECEIPT_BOUND', 'RESULT_BOUND')
     constants.update({f'VERIFY_{name}': 1361 + index for index, name in enumerate(states)})
     spans = ('NOMINAL_PIN', 'OBSERVER_PIN', 'FACTS', 'FINDING_DOC', 'ASSUMPTIONS_DOC',
-             'EVIDENCE_DOC', 'CHECK_LIST', 'RECEIPT_DOC', 'RESULT')
+             'EVIDENCE_DOC', 'CHECK_LIST', 'RECEIPT_DOC')
     constants.update({f'VERIFY_{name}': 11064 + 24 * index for index, name in enumerate(spans)})
     constants.update(VERIFY_PUBLISH_INDEX=11280, VERIFY_CHECKS=11288, VERIFY_FINDING_ROLE=74,
-                     VERIFY_DOCUMENTS_ROLE=75, VERIFY_RECEIPT_ROLE=76, VERIFY_NEEDS_TERMINAL=0xffffffe1)
+                     VERIFY_DOCUMENTS_ROLE=75, VERIFY_RECEIPT_ROLE=76)
     constants.update({f'VERIFY_{name}': int.from_bytes(tag, 'little') for name, tag in {
         'FINDING_TAG': b'HIAVFN01', 'FILES_TAG': b'HIAVDF01', 'CHECK_TAG': b'HIAVDC01', 'RECEIPT_REQUEST': b'HIAVRC01',
     }.items()})

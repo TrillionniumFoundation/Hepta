@@ -50,6 +50,8 @@ WIRE = {
     'CANDIDATE_TOOL_TAIL': b'idate',
     'INSPECTION_TOOL_HEAD': b'hia_insp',
     'INSPECTION_TOOL_TAIL': b'ect',
+    'VERIFY_TOOL_HEAD': b'hia_veri',
+    'VERIFY_TOOL_TAIL': b'fy',
     'EMIT_TOOL': b'hia_emit',
     'ADOPT_TOOL_HEAD': b'hia_adop',
     'ROLLBACK_TOOL_HEAD': b'hia_roll',
@@ -618,6 +620,8 @@ def valid_request_reserve(s:readbuf, size:u64) -> bool:
         width = 11
     elif tool == ROLLBACK_TOOL_HEAD and read_word(s, 368) & 4294967295 == ROLLBACK_TOOL_TAIL:
         width = 12
+    elif tool == VERIFY_TOOL_HEAD and read_word(s, 368) & 65535 == VERIFY_TOOL_TAIL:
+        width = 10
     elif tool == EMIT_TOOL:
         width = 8
     elif tool == ADOPT_TOOL_HEAD and byte(s, 368) == 116:

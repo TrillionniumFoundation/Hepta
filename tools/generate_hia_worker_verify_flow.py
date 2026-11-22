@@ -305,7 +305,9 @@ def constants_for_verify(constants):
                      VERIFY_SUBJECT_KIND=10888, VERIFY_OUTCOME_BYTES=10896,
                      VERIFY_CLAIM_INDEX=10904, VERIFY_DIRECT_MODE=10912, VERIFY_EVIDENCE_SPANS=10920,
                      VERIFY_HASH_PAIR=1340, VERIFY_HASH_COMPARE=1341, VERIFY_CHECK_RESULT=1342,
-                     VERIFY_FINDINGS_START=1360, VERIFY_NOMINAL_IMAGE=11016, VERIFY_OBSERVER_IMAGE=11040,
+                     VERIFY_FINDINGS_START=1360, VERIFY_RESULT_READY=1371, VERIFY_RESULT=11256,
+                     VERIFY_NOMINAL_IMAGE=11016, VERIFY_OBSERVER_IMAGE=11040,
+                     VERIFY_NEEDS_TERMINAL=0xffffffe1,
                      VERIFY_REQUEST_ROLE=72, VERIFY_NEEDS_FINDINGS=0xffffffe5,
                      VERIFY_NEEDS_SUBJECT_CUSTODY=0xffffffe4, VERIFY_NEEDS_REPLAY=0xffffffe3,
                      VERIFY_NEEDS_FINITE=0xffffffe2,
@@ -324,7 +326,9 @@ def recipe():
     driver = driver.replace(
         '    if state == 0:\n        return artifact_entry(s, o, w)',
         '    if state == 0:\n        return artifact_entry(s, o, w)\n'
-        '    if state == VERIFY_FINITE_DELIVERED:\n        return verify_observed(o, w)',
+        '    if state == VERIFY_FINITE_DELIVERED:\n        return verify_observed(o, w)\n'
+        '    if state == VERIFY_RESULT_READY:\n'
+        '        return verify_outcome(o, w, 1, VERIFY_RESULT)',
     )
     driver = driver.replace(
         '    if state >= INSPECTION_SENT and state <= INSPECTION_PEER_CLOSED:\n'
@@ -381,15 +385,17 @@ def recipe():
         '    hold(w, VERIFY_OBSERVER_IMAGE, input_word(s, observer), 0, input_word(s, observer + 24))\n'
         '    object = entry + DESCRIPTOR_BYTES * INSPECTION_EMIT_ROLE',
     )
+    controls = controls.replace('return next == 19', 'return (next == 19 or next == 21) and status == 0')
     controls = controls.replace('    if next == 19:\n        return send_report(o, w, True)',
-                                '    if next == 19:\n        return VERIFY_NEEDS_REPLAY')
+                                '    if next == 21:\n        return VERIFY_NEEDS_REPLAY\n'
+                                '    if next == 19:\n        return send_report(o, w, True)')
     scope = splice_list('verify_scope_values', 'VERIFY_SCOPE_READY',
                         ('VERIFY_ARGUMENTS', 'INSPECTION_PROFILE_2', 'VERIFY_CANDIDATE_SHA', 'VERIFY_ORIGINAL_SHA'),
                         role='VERIFY_REQUEST_ROLE')
     support = '\n'.join(function(VIEW_DRIVER, name) for name in ('inspection_hash', 'inspection_hash_result'))
     outcome = '\n'.join(function(OUTCOME, name) for name in ('adopt_outcome', 'adopt_outcome_state'))
     outcome = outcome.replace('adopt_outcome', 'verify_outcome').replace('ADOPT_CONTEXT_ID', 'VERIFY_CONTEXT_ID')
-    outcome = outcome.replace('ADOPT_OUTCOME', 'VERIFY_OUTCOME')
+    outcome = outcome.replace('ADOPT_OUTCOME', 'VERIFY_OUTCOME').replace('extent > 8192', 'extent > 1048576')
     outcome = outcome.replace(
         '    if state == ADOPT_ERROR_BODY:\n'
         '        sample_span(s, w, EMIT_PUBLIC_ERROR)\n'

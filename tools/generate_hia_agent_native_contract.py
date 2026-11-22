@@ -218,7 +218,7 @@ SCOPED_SUBJECT = {'oneOf': [
     for branch in VERIFY_SUBJECT['oneOf']
 ]}
 PROOF_ITEM = obj({'id': text(128), 'statement': text(2048)})
-PROOF_CHECKER = obj({
+PROOF_CHECKER_FIELDS = {
     'name': text(256),
     'method': enum('core_admission', 'canonical_core_identity', 'finite_domain',
                    'compositional_scalar_effect', 'context_budget_exhausted',
@@ -226,11 +226,16 @@ PROOF_CHECKER = obj({
                    'complete_native_rederivation', 'independent_safe_core_machine_validation'),
     'installation': INSTALLATION,
     'native_selection_sha256': SHA,
-    'python': obj({'implementation': text(64), 'version': text(64)}),
     'auxiliary_checker_sha256': nullable(SHA),
     'solver': nullable(obj({'name': text(64), 'version': text(64),
                             'binding_sha256': SHA, 'library_sha256': SHA})),
-})
+}
+PROOF_CHECKER = {'oneOf': [
+    obj({**PROOF_CHECKER_FIELDS,
+         'python': obj({'implementation': text(64), 'version': text(64)})}),
+    obj({**PROOF_CHECKER_FIELDS,
+         'native': obj({'profile': text(128), 'image_sha256': SHA})}),
+]}
 VERIFICATION = obj({
     'schema': {'const': 'hepta.hia.agent.proof-result.v1'},
     'claim': enum('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check'),
@@ -528,6 +533,17 @@ scoped_response = {'contract_version': 'hepta.hia.agent-native.v1', 'request_id'
                    'status': 'completed', 'result': {'candidate': ref, 'subject': {'kind': 'core'},
                    'verification_receipt': ref, 'checks': [scoped_check], 'adopted': False}}
 validate_case('hia_verify', 'outputSchema', scoped_response, True, 'verify.complete_proof_scope')
+native_response = copy.deepcopy(scoped_response)
+native_checker = native_response['result']['checks'][0]['checker']
+python_identity = native_checker.pop('python')
+native_checker['native'] = {'profile': 'hepta.hia.agent.native-proof-checker.v1', 'image_sha256': 'e' * 64}
+validate_case('hia_verify', 'outputSchema', native_response, True, 'verify.native_checker_scope')
+bad = copy.deepcopy(native_response)
+bad['result']['checks'][0]['checker']['python'] = python_identity
+validate_case('hia_verify', 'outputSchema', bad, False, 'verify.reject_mixed_checker_provenance')
+bad = copy.deepcopy(native_response)
+del bad['result']['checks'][0]['checker']['native']['image_sha256']
+validate_case('hia_verify', 'outputSchema', bad, False, 'verify.native_checker_requires_image_identity')
 for key in ('schema', 'subject', 'property', 'profile', 'assumptions', 'checker', 'unproved_obligations'):
     bad = copy.deepcopy(scoped_response)
     del bad['result']['checks'][0][key]
