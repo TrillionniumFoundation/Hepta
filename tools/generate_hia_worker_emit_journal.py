@@ -22,6 +22,10 @@ ERRORS = (
     (8, 4, 'E_HIA_BUDGET', 'frozen context deadline expired before emission', 'correct_input', 'codegen'),
     (8, 5, 'E_HIA_PLAN_RECEIPT', 'plan lacks an exact subject-bound qualified layout receipt',
      'correct_input', 'codegen'),
+    (8, 6, 'E_HIA_REJECTED', 'E_HIA_PROGRAM_LIMIT: native build deadline is exhausted',
+     'correct_input', 'admission'),
+    (8, 7, 'E_HIA_REJECTED', 'E_HIA_PROGRAM_LIMIT: linkage deadline must be in (0,3600] seconds',
+     'correct_input', 'admission'),
 )
 
 
