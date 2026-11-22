@@ -7,7 +7,7 @@ from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
 from tools.generate_hia_nominal_json import SOURCE as NOMINAL_JSON
 from tools.generate_hia_worker_context_request import NONE, POLICY as CONTEXT_POLICY, literal, literal_match
-from tools.generate_hia_worker_inspection_effect import function
+from tools.generate_hia_worker_inspection_effect import POLICY as INSPECTION_EFFECT, function
 
 SOURCE = Path('examples/hia_bootstrap/worker_inspection_request.hepta')
 FIELDS = ('catalog_sha256', 'context', 'program', 'view', 'selector', 'cursor',
@@ -15,6 +15,8 @@ FIELDS = ('catalog_sha256', 'context', 'program', 'view', 'selector', 'cursor',
 VIEWS = ('summary', 'function', 'block', 'dependencies', 'lowering')
 TAG = int.from_bytes(b'HIAINR01', 'little')
 QUERY = int.from_bytes(b'HIAINQ01', 'little')
+FRAME = int.from_bytes(b'HIAICF01', 'little')
+VIEW_BYTES = 9472
 
 POLICY = r'''
 # Input [installed catalog digest, schema-admitted public arguments].
@@ -26,6 +28,8 @@ def inspect_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967293
     if length(s) >= 8 and input_word(s, 0) == QUERY:
         return query_selector(s, o)
+    if length(s) >= 16 and input_word(s, 0) == FRAME:
+        return inspection_frame(s, o)
     put(o, 48, 4096)
     put(o, 56, 32)
     if widen(decode_json(s, w, o)) >= 4294967292:
@@ -151,6 +155,88 @@ def input_word(s:readbuf, at:u64) -> u64:
     return value
 '''
 
+FRAME_POLICY = r'''
+# The carrier supplies a closed mode and the untouched selector or facts
+# span. Validate the complete input before producing the exact legacy packet.
+def inspection_frame(s:readbuf, o:mutbuf) -> u64:
+    mode = input_word(s, 8)
+    end = length(s)
+    if mode >= 2 and mode <= 4:
+        return selector_frame(s, o, mode)
+    if mode == 1 and end == 16:
+        return zero_frame(o)
+    if mode == 6 and end == 16:
+        zero_frame(o)
+        put(o, 9464, NOMINAL_PROBE)
+        return VIEW_BYTES
+    if mode == 7 and end == 88:
+        version = input_word(s, 16)
+        if version < 1 or version > 4 or frame_digest(s) == False:
+            return BAD_BUDGET
+        zero_frame(o)
+        put(o, 0, NOMINAL_SUMMARY)
+        put(o, 8, version)
+        copy_bytes(s, o, 24, 16, 64)
+        return VIEW_BYTES
+    if mode == 8 and end == 16:
+        zero_frame(o)
+        put(o, 9464, LOWERING_VIEW)
+        return VIEW_BYTES
+    if mode == 9 and end >= 56 and end <= 8240:
+        count = input_word(s, 40)
+        if input_word(s, 16) != ELF_FACTS or count > 1024 or 48 + 8 * count != end:
+            return BAD_BUDGET
+        zero_frame(o)
+        copy_bytes(s, o, 16, 0, end - 16)
+        return VIEW_BYTES
+    return BAD_BUDGET
+
+def zero_frame(o:mutbuf) -> u64:
+    at = 0
+    while at < VIEW_BYTES:
+        put(o, at, 0)
+        at = at + 8
+    return VIEW_BYTES
+
+def frame_digest(s:readbuf) -> bool:
+    at = 24
+    while at < 88:
+        value = byte(s, at)
+        if (value < 48 or value > 57) and (value < 97 or value > 102):
+            return False
+        at = at + 1
+    return True
+
+def selector_frame(s:readbuf, o:mutbuf, mode:u64) -> u64:
+    dependency = mode == 4
+    total = choose(dependency, 3, 2)
+    record = choose(dependency, 7904, 8416)
+    target = record + 24
+    if valid_selectors(s, 16, total, dependency) == False:
+        return BAD_BUDGET
+    zero_frame(o)
+    if dependency == False:
+        put(o, record, mode - 1)
+        record = record + 8
+    put(o, 9464, choose(dependency, DEPENDENCY_VIEW, CORE_VIEW))
+    at = 16
+    index = 0
+    while index < total:
+        width = input_word(s, at)
+        put(o, record + 8 * index, width)
+        copy_bytes(s, o, at + 8, target + 512 * index, width)
+        at = at + 8 + width
+        index = index + 1
+    return VIEW_BYTES
+
+def copy_bytes(s:readbuf, o:mutbuf, at:u64, target:u64, width:u64) -> u64:
+    i = 0
+    while i < width:
+        store(o, target + i, byte(s, at + i))
+        i = i + 1
+    return i
+'''
+
 
 def program():
     choices = ['def view_id(w:mutbuf, node:u64) -> u64:']
@@ -169,8 +255,15 @@ def program():
         literal('query_function', ',"fields":["op","args","attrs"],"function":'),
         literal('query_output', ',"output":'),
     )
-    policy = POLICY.replace('TAG', str(TAG)).replace('QUERY', str(QUERY)).replace('NONE', NONE)
-    return '\n'.join((policy,
+    policy = (POLICY.replace('TAG', str(TAG)).replace('QUERY', str(QUERY))
+              .replace('FRAME', str(FRAME)).replace('NONE', NONE))
+    packet_tags = {'NOMINAL_PROBE': b'HIAOSC01', 'NOMINAL_SUMMARY': b'HIAONC01',
+                   'LOWERING_VIEW': b'HIAVLOW1', 'ELF_FACTS': b'HIAILF01',
+                   'DEPENDENCY_VIEW': b'HIAVDEP1', 'CORE_VIEW': b'HIAVIEW1'}
+    framing = FRAME_POLICY.replace('VIEW_BYTES', str(VIEW_BYTES))
+    for name, raw in packet_tags.items():
+        framing = framing.replace(name, str(int.from_bytes(raw, 'little')))
+    return '\n'.join((policy, framing, function(INSPECTION_EFFECT, 'valid_selectors'),
                       (span + decoded + fragments).replace('NONE', NONE),
                       '\n'.join(choices), *(literal_match(f'matches_{view}', view) for view in VIEWS),
                       WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', NONE),

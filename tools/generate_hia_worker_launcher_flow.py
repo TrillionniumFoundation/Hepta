@@ -7,7 +7,7 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_read_capsule import ROLES as READ_ROLES
 from tools.generate_hia_readonly_worker_capsule import (
     ARTIFACT_OWNER, ARTIFACT_ROLES, BOOTSTRAP_OWNER, BOOTSTRAP_ROLES,
-    CANDIDATE_ROLES, CONTEXT_OWNER, CONTEXT_ROLES, DESCRIBE_OWNER, DESCRIBE_ROLES,
+    CANDIDATE_OWNER, CANDIDATE_ROLES, CONTEXT_OWNER, CONTEXT_ROLES, DESCRIBE_OWNER, DESCRIBE_ROLES,
     INSPECTION_OWNER, INSPECTION_ROLES, NATIVE_ROLES, ROLLBACK_OWNER, ROLLBACK_ROLES,
     POLICY as CAPSULE_POLICY,
 )
@@ -23,7 +23,7 @@ ROUTES = (
     (ARTIFACT_OWNER, '--worker-artifact', ARTIFACT_ROLES),
     (CONTEXT_OWNER, '--worker-context', CONTEXT_ROLES),
     (INSPECTION_OWNER, '--worker-inspection', INSPECTION_ROLES),
-    (INSPECTION_OWNER, '--worker-candidate', CANDIDATE_ROLES),
+    (CANDIDATE_OWNER, '--worker-candidate', CANDIDATE_ROLES),
     (ROLLBACK_OWNER, '--worker-rollback', ROLLBACK_ROLES),
 )
 

@@ -76,6 +76,7 @@ INSPECTION_ROLES = (
     'hia-prepare-edit-query', 'hia-emit-object', 'hia-agent-inspection-lowering-elf',
     'hia-agent-inspection-lowering-frames',
 )
+CANDIDATE_OWNER = 'hia-agent-candidate-worker-carrier'
 CANDIDATE_ROLES = (
     *(name.replace("inspection-", "candidate-") if name.startswith("hia-agent-inspection-") else name
       for name in INSPECTION_ROLES[:31]),
@@ -92,7 +93,7 @@ ROLLBACK_ROLES = (
 )
 NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
                                   *CONTEXT_ROLES, CONTEXT_OWNER,
-                                  *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES,
+                                  *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES, CANDIDATE_OWNER,
                                   *ROLLBACK_ROLES, ROLLBACK_OWNER)))
 CAPSULE_MAX = 4 << 20
 HEADER_BYTES = 56

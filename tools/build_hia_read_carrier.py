@@ -81,7 +81,7 @@ CARRIERS = {
         (('platform_io_and_custody', 0, 3572), ('sealed_children_and_store', 3572, 6564),
          ('receipt_and_artifact_transfer', 6564, 9590), ('context_effect_delivery', 9590, 27928)),
         compressed=True),
-    'inspection-worker': CarrierImage(
+    'candidate-worker': CarrierImage(
         'examples/hia_bootstrap/agent_inspection_worker_carrier_packer.hepta', b'HIAIWK01',
         'c716eb86454b4093e98d4e922543646535eb6043b7a8113b6950a49bc8f51d3b', 51568,
         (('program_descriptor_effect_relay', 0, 51568),), compressed=True,
@@ -98,6 +98,11 @@ CARRIERS = {
          ('worker_journal_relay', 3333, 4217), ('describe_effect_relay', 4217, 9513),
          ('isolated_worker_main', 9513, 11258))),
 }
+
+SOURCE_WORKER_KINDS = frozenset((
+    'describe-worker', 'artifact-worker', 'context-worker', 'inspection-worker', 'input',
+    'discovery', 'discovery-bootstrap',
+))
 
 
 def author(platform_code, *, kind='read'):
@@ -189,8 +194,7 @@ def build(output, compiler, cold_report, *, kind='read'):
     if kind == 'read':
         from tools.build_hia_worker_read_release import build as build_read_flow
         return build_read_flow(output, compiler, cold_report)
-    if kind in ('describe-worker', 'artifact-worker', 'context-worker', 'input', 'discovery',
-                'discovery-bootstrap'):
+    if kind in SOURCE_WORKER_KINDS:
         from tools.build_hia_worker_flow import build as build_worker_flow
         return build_worker_flow(output, compiler, cold_report,
                                  kind=kind.removesuffix('-worker'))
@@ -267,6 +271,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + name, type=Path, required=True)
-    parser.add_argument('--kind', choices=CARRIERS, default='read')
+    parser.add_argument('--kind', choices=sorted(CARRIERS.keys() | SOURCE_WORKER_KINDS), default='read')
     args = parser.parse_args()
     print(build(args.output, args.compiler, args.cold_report, kind=args.kind))

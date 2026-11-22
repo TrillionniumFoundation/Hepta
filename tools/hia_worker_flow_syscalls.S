@@ -16,7 +16,12 @@
 .equ NUMBERS, 105280
 .equ ARGV_LIMIT, 48
 .else
+.ifdef WORKER_INSPECTION
+/* Forty descriptor roles occupy [32768, 33088). */
+.equ ARGV, 33088
+.else
 .equ ARGV, 33024
+.endif
 .equ CARRIED, 33200
 .equ NUMBERS, 33408
 .equ ARGV_LIMIT, 12
@@ -56,7 +61,11 @@
 .equ EXTRA_ARGS, 4
 .else
 .ifdef WORKER_CONTEXT
+.ifdef WORKER_INSPECTION
+.equ ROLE_COUNT, 40
+.else
 .equ ROLE_COUNT, 31
+.endif
 .else
 .equ ROLE_COUNT, 23
 .endif
@@ -100,6 +109,9 @@
 .endif
 .endif
 .equ ROLE_RECORD_END, ROLE_OFFSET + 40 * ROLE_COUNT
+.if ROLES + 8 * (FIRST_ROLE + ROLE_COUNT) > ARGV
+.error "Worker descriptor roles overlap child arguments"
+.endif
 .ifdef WORKER_INPUT
 .equ ENTRY_SIZE, ROLE_RECORD_END + 64
 .else
@@ -671,9 +683,23 @@ worker_policy_hole: .long 0
  mov rcx, [rbp+COMMAND+168]
  test rcx, rcx
  jz .Lchild_name_ready
+ .ifdef WORKER_INSPECTION
+ cmp rcx, 2
+ je .Lquery_child_name
+ cmp rcx, 3
+ je .Lobject_child_name
+ .endif
  cmp rcx, 1
  jne .Lrefused
  lea rax, [rip+.Lnominal_child_name]
+ .ifdef WORKER_INSPECTION
+ jmp .Lchild_name_ready
+.Lquery_child_name:
+ lea rax, [rip+.Lquery_name]
+ jmp .Lchild_name_ready
+.Lobject_child_name:
+ lea rax, [rip+.Lobject_name]
+ .endif
 .Lchild_name_ready:
  .endif
  mov [rbp+ARGV], rax
@@ -1587,7 +1613,11 @@ worker_policy_hole: .long 0
 .ifdef WORKER_STORED_READ
 .ifdef WORKER_ARTIFACT
 .ifdef WORKER_CONTEXT
+.ifdef WORKER_INSPECTION
+.Lmode: .asciz "--worker-inspection"
+.else
 .Lmode: .asciz "--worker-context"
+.endif
 .Lcpu_online: .asciz "/sys/devices/system/cpu/online"
 .else
 .Lmode: .asciz "--worker-artifact"
@@ -1608,6 +1638,10 @@ worker_policy_hole: .long 0
 .Lchild_name: .asciz "hia-worker-effect"
 .ifdef WORKER_CONTEXT
 .Lnominal_child_name: .asciz "hia-admit-agent-json"
+.ifdef WORKER_INSPECTION
+.Lquery_name: .asciz "hia-prepare-agent-edit-query"
+.Lobject_name: .asciz "hia-emit-object"
+.endif
 .endif
 .ifdef WORKER_LAUNCHER
 .Ldiagnostic: .ascii "native HIA Worker launcher refused\n"
@@ -1619,7 +1653,11 @@ worker_policy_hole: .long 0
 .Ldiagnostic: .ascii "native HIA Discovery startup transport refused\n"
 .else
 .ifdef WORKER_CONTEXT
+.ifdef WORKER_INSPECTION
+.Ldiagnostic: .ascii "native HIA Inspection Worker transport refused\n"
+.else
 .Ldiagnostic: .ascii "native HIA Context Worker transport refused\n"
+.endif
 .else
 .Ldiagnostic: .ascii "native HIA Artifact Worker transport refused\n"
 .endif

@@ -30,6 +30,8 @@ DISCOVERY_PACKER = 'examples/hia_bootstrap/worker_discovery_flow_packer.hepta'
 DISCOVERY_POLICY = 'examples/hia_bootstrap/worker_discovery_flow.hepta'
 CONTEXT_PACKER = 'examples/hia_bootstrap/worker_context_flow_packer.hepta'
 CONTEXT_POLICY = 'examples/hia_bootstrap/worker_context_flow.hepta'
+INSPECTION_PACKER = 'examples/hia_bootstrap/worker_inspection_flow_packer.hepta'
+INSPECTION_POLICY = 'examples/hia_bootstrap/worker_inspection_flow.hepta'
 BOOTSTRAP_PACKER = 'examples/hia_bootstrap/worker_bootstrap_flow_packer.hepta'
 BOOTSTRAP_POLICY = 'examples/hia_bootstrap/worker_bootstrap_flow.hepta'
 LAUNCHER = 'tools/hia_worker_launcher_ports.S'
@@ -44,11 +46,12 @@ PROGRAMS = {
     'artifact': (ARTIFACT_POLICY, ARTIFACT_PACKER),
     'discovery': (DISCOVERY_POLICY, DISCOVERY_PACKER),
     'context': (CONTEXT_POLICY, CONTEXT_PACKER),
+    'inspection': (INSPECTION_POLICY, INSPECTION_PACKER),
     'discovery-bootstrap': (BOOTSTRAP_POLICY, BOOTSTRAP_PACKER),
     LAUNCHER_KIND: (LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
 PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
-              'discovery-bootstrap', LAUNCHER_KIND)
+              'inspection', 'discovery-bootstrap', LAUNCHER_KIND)
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -77,6 +80,8 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
                       b'.equ WORKER_INPUT, 1\n.equ WORKER_DISCOVERY, 1\n'),
         'context': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                     b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_CONTEXT, 1\n'),
+        'inspection': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
+                       b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_CONTEXT, 1\n.equ WORKER_INSPECTION, 1\n'),
         'discovery-bootstrap': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                                 b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_BOOTSTRAP, 1\n'),
         LAUNCHER_KIND: (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
@@ -113,7 +118,7 @@ def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
     header = elf_header()
     module = Path(packer_path).stem
     template = header + stub, tuple(len(header) + hole for hole in holes)
-    if kind in ('input', 'artifact', 'discovery', 'context', 'discovery-bootstrap', LAUNCHER_KIND):
+    if kind in ('input', 'artifact', 'discovery', 'context', 'inspection', 'discovery-bootstrap', LAUNCHER_KIND):
         packer = partitioned_packer(module, *template, extra_image=kind == LAUNCHER_KIND)
     else:
         packer = document(magic=MAGIC, module=module, image_template=template)
