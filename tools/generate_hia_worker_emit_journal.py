@@ -20,6 +20,8 @@ ERRORS = (
     (8, 2, 'E_HIA_CONTEXT_STALE', 'context binds a different installed implementation', 'correct_input', 'context'),
     (8, 3, 'E_HIA_BUDGET', 'context total wall budget has expired', 'correct_input', 'context'),
     (8, 4, 'E_HIA_BUDGET', 'frozen context deadline expired before emission', 'correct_input', 'codegen'),
+    (8, 5, 'E_HIA_PLAN_RECEIPT', 'plan lacks an exact subject-bound qualified layout receipt',
+     'correct_input', 'codegen'),
 )
 
 

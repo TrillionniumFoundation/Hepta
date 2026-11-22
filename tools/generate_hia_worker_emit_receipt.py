@@ -18,6 +18,7 @@ NATIVE_METADATA = ('{"candidate":{},"codegen":{},"context":{},"core_sha256":{},'
 BUILD_FACTS = ('{"artifact_bytes":{},"artifact_sha256":{},"core_sha256":{},'
                '"foreign_buffer_exports":{},"implementation_sha256":{},"input_sha256":{},'
                '"kind":{},"machine_plan_sha256":{},"object_sha256":{}}')
+PLAN_SUBJECT = ('{"backend_profile":{},"kind":"agent_machine_plan","plan":{},"plan_profile":{}}')
 TEMPLATES = (
     ('object_metadata', OBJECT_METADATA),
     ('native_metadata', NATIVE_METADATA),
@@ -25,6 +26,7 @@ TEMPLATES = (
     ('object_result', BUILD_RESULT.replace('"linker_used":{}', '"linker_used":false')),
     ('shared_result', BUILD_RESULT.replace('"linker_used":{}', '"linker_used":true')),
     ('physical_facts', BUILD_FACTS),
+    ('plan_subject', PLAN_SUBJECT),
 )
 
 POLICY = r'''
