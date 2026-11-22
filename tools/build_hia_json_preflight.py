@@ -129,6 +129,7 @@ CANDIDATES = {
     'worker-finite-domain': ('worker_finite_domain', 'worker-finite-domain'),
     'worker-finite-batch': ('worker_finite_batch', 'worker-finite-batch'),
     'worker-finite-transcript': ('worker_finite_transcript', 'worker-finite-transcript'),
+    'worker-compositional-skeleton': ('worker_compositional_skeleton', 'worker-compositional-skeleton'),
     'emit-build-observation': ('worker_emit_build_observation', 'emit-build-observation'),
     'emit-effect': ('worker_emit_effect', 'emit-effect'),
     'worker-profile-bindings': ('worker_profile_bindings', 'worker-profile-bindings'),
