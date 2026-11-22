@@ -546,6 +546,9 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                               output / 'agent-journal' / 'manifest.json', kind='journal'),
             output / 'agent-journal' / 'hia-agent-journal')
         journal.chmod(0o500)
+        packaged_journal = release / journal.name
+        if packaged_journal.is_file() and packaged_journal.read_bytes() != journal.read_bytes():
+            raise ValueError('Store release Journal differs from the cold-built catalog-bound Journal')
         store_unique = _copy_runtime_file(
             build_agent_stdio(scratch / 'store-unique', compiler, cold_report,
                               output / 'agent-store-transport' / 'manifest.json', kind='store-unique'),
