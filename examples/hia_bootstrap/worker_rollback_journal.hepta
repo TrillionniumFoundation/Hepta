@@ -397,7 +397,7 @@ block b34(v346:readbuf,v347:u64,v348:u64,v349:u64,v350:u64,v351:u64)
   v424:bool = bool.or(v421,v423)
   branch v424 b43(v346,v347,v348,v349,v350,v351) b44(v346)
 block b35(v354:readbuf,v356:u64,v358:u64,v359:u64)
-  v368:u64 = const() {"value":1}
+  v368:u64 = const() {"value":8}
   v369:bool = compare.eq(v358,v368)
   jump b36(v354,v356,v359,v369)
 block b36(v361:readbuf,v363:u64,v366:u64,v367:bool)
@@ -433,29 +433,31 @@ block b43(v425:readbuf,v426:u64,v427:u64,v428:u64,v429:u64,v430:u64)
   v444:bool = bool.or(v441,v443)
   v445:u64 = const() {"value":1}
   v446:bool = compare.eq(v429,v445)
-  v447:bool = bool.and(v444,v446)
-  v448:u64 = const() {"value":0}
-  v449:bool = compare.eq(v430,v448)
-  v450:bool = bool.and(v447,v449)
-  v451:u64 = const() {"value":11}
-  v452:bool = compare.eq(v429,v451)
-  v453:bool = compare.ne(v430,v448)
-  v454:bool = bool.and(v452,v453)
-  v455:bool = bool.or(v450,v454)
-  v456:u64 = const() {"value":14}
-  v457:bool = compare.eq(v426,v456)
-  v458:bool = compare.eq(v427,v448)
-  v459:bool = bool.and(v457,v458)
-  v460:u64 = const() {"value":8}
-  v461:bool = compare.eq(v426,v460)
-  v462:bool = compare.ne(v427,v448)
-  v463:bool = bool.and(v461,v462)
-  v464:bool = bool.or(v459,v463)
-  v465:bool = bool.and(v455,v464)
-  ret(v465)
+  v447:u64 = const() {"value":8}
+  v448:bool = compare.eq(v429,v447)
+  v449:bool = bool.or(v446,v448)
+  v450:bool = bool.and(v444,v449)
+  v451:u64 = const() {"value":0}
+  v452:bool = compare.eq(v430,v451)
+  v453:bool = bool.and(v450,v452)
+  v454:u64 = const() {"value":11}
+  v455:bool = compare.eq(v429,v454)
+  v456:bool = compare.ne(v430,v451)
+  v457:bool = bool.and(v455,v456)
+  v458:bool = bool.or(v453,v457)
+  v459:u64 = const() {"value":14}
+  v460:bool = compare.eq(v426,v459)
+  v461:bool = compare.eq(v427,v451)
+  v462:bool = bool.and(v460,v461)
+  v463:bool = compare.eq(v426,v447)
+  v464:bool = compare.ne(v427,v451)
+  v465:bool = bool.and(v463,v464)
+  v466:bool = bool.or(v462,v465)
+  v467:bool = bool.and(v458,v466)
+  ret(v467)
 block b44(v431:readbuf)
-  v466:bool = const() {"value":false}
-  ret(v466)
+  v468:bool = const() {"value":false}
+  ret(v468)
 end
 fn f3(v0:readbuf,v1:u64) -> (bool) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:u64)
@@ -476,7 +478,7 @@ block b3(v16:readbuf,v17:u64)
   v22:u64 = const() {"value":32}
   v23:u64 = int.add.wrap(v17,v22)
   v24:u64 = call(v16,v23) {"function":"f30"}
-  v25:u64 = const() {"value":0}
+  v25:u64 = const() {"value":1}
   v26:bool = compare.ne(v24,v25)
   jump b4(v16,v17,v26)
 block b4(v19:readbuf,v20:u64,v21:bool)
@@ -1125,7 +1127,7 @@ block b50(v497:readbuf,v498:u64,v499:u64,v500:u64,v503:u64)
   v506:bool = compare.eq(v498,v505)
   branch v506 b51(v497,v499,v500,v503) b52(v497,v499,v503,v506)
 block b51(v507:readbuf,v509:u64,v510:u64,v513:u64)
-  v523:u64 = const() {"value":1}
+  v523:u64 = const() {"value":8}
   v524:bool = compare.eq(v510,v523)
   jump b52(v507,v509,v513,v524)
 block b52(v515:readbuf,v517:u64,v521:u64,v522:bool)

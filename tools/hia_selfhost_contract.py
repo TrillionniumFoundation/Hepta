@@ -322,6 +322,7 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_discovery_effect.py',
     'examples/hia_bootstrap/discovery_artifact.hepta',
     'tools/generate_hia_discovery_artifact.py',
+    'tools/hia_emit_metadata_layout.py',
     'examples/hia_bootstrap/worker_describe_request.hepta',
     'examples/hia_bootstrap/worker_artifact_request.hepta',
     'examples/hia_bootstrap/worker_journal_records.hepta',
