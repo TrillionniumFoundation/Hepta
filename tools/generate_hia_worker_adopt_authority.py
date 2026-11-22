@@ -43,6 +43,8 @@ def adopt_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return adopt_store_frame(s, o)
         if tag == SLOT_RECEIPT:
             return render_adoption(s, o)
+        if tag == ADOPT_INDEX_REQUEST:
+            return adopt_request_index(s, o)
     put(o, 48, 65536)
     put(o, 56, 48)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
@@ -51,6 +53,8 @@ def adopt_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     count = get(w, 96)
     if count == 4:
         return bind_evaluation(s, o, w, first)
+    if count == 3:
+        return project_journal_catalog(s, o, w, first)
     if count == 2:
         if get(w, first) == 4:
             return request_projection(s, o, w, first, next(w, first))
@@ -58,6 +62,20 @@ def adopt_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if count == 1:
         return admit_benefit(o, w, first)
     return INVALID
+
+def project_journal_catalog(s:readbuf, o:mutbuf, w:mutbuf, pinned:u64) -> u64:
+    args = next(w, pinned)
+    if digest_text(w, pinned, False) == False or is_object(w, args) == False or get(w, next(w, args)) != 0:
+        return INVALID
+    catalog = lookup(w, args, K_catalog_sha256)
+    if digest_text(w, catalog, True) == False:
+        return INVALID
+    at = copy_value(s, w, o, catalog, 24)
+    end = copy_value(s, w, o, pinned, at)
+    put(o, 0, at - 24)
+    put(o, 8, end - at)
+    put(o, 16, 0)
+    return end
 
 def request_projection(s:readbuf, o:mutbuf, w:mutbuf, pinned:u64, args:u64) -> u64:
     if is_object(w, args) == False or get(w, args + 32) != 8:
@@ -108,6 +126,35 @@ def request_projection(s:readbuf, o:mutbuf, w:mutbuf, pinned:u64, args:u64) -> u
         entry = next(w, entry)
         index = index + 1
     return at
+
+# The projection, not the public request, supplies the descriptor ranges.
+# Return offsets into the sealed projection without moving fragment bytes.
+def adopt_request_index(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 24 or input_word(s, 8) != ADOPT_REQUEST:
+        return INVALID
+    receipts = input_word(s, 16)
+    if receipts < 1 or receipts > 16:
+        return INVALID
+    count = 8 + receipts
+    at = 24
+    index = 0
+    while index < count:
+        if at > length(s) or length(s) - at < 10:
+            return INVALID
+        width = input_word(s, at)
+        value = at + 8
+        if width < 2 or width > length(s) - value:
+            return INVALID
+        put(o, 24 + 16 * index, value - 8)
+        put(o, 32 + 16 * index, width)
+        at = value + width
+        index = index + 1
+    if at != length(s):
+        return INVALID
+    put(o, 0, ADOPT_INDEX_RESULT)
+    put(o, 8, receipts)
+    put(o, 16, count)
+    return 24 + 16 * count
 
 def bind_evaluation(s:readbuf, o:mutbuf, w:mutbuf, installed:u64) -> u64:
     context = next(w, installed)
@@ -290,6 +337,7 @@ def source_program():
         'SLOT_EXPECTED': b'HIAADU01', 'SLOT_EXPECTED_VALUES': b'HIAADU02',
         'SLOT_WRITE': b'HIAADW01', 'INSERT_TAG': b'HIAINS01',
         'SLOT_RECEIPT': b'HIAADP01', 'ADOPT_REQUEST': b'HIAADQ01',
+        'ADOPT_INDEX_REQUEST': b'HIAADI01', 'ADOPT_INDEX_RESULT': b'HIAADI02',
     }.items()})
     source = '\n'.join((
         POLICY,
