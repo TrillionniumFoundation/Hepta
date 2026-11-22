@@ -65,7 +65,11 @@
 .ifdef WORKER_CANDIDATE
 .equ ROLE_COUNT, 38
 .else
+.ifdef WORKER_ROLLBACK
+.equ ROLE_COUNT, 35
+.else
 .equ ROLE_COUNT, 40
+.endif
 .endif
 .else
 .equ ROLE_COUNT, 31
@@ -1635,7 +1639,11 @@ worker_policy_hole: .long 0
 .ifdef WORKER_CANDIDATE
 .Lmode: .asciz "--worker-candidate"
 .else
+.ifdef WORKER_ROLLBACK
+.Lmode: .asciz "--worker-rollback"
+.else
 .Lmode: .asciz "--worker-inspection"
+.endif
 .endif
 .else
 .Lmode: .asciz "--worker-context"
@@ -1686,7 +1694,11 @@ worker_policy_hole: .long 0
 .ifdef WORKER_CANDIDATE
 .Ldiagnostic: .ascii "native HIA Candidate Worker transport refused\n"
 .else
+.ifdef WORKER_ROLLBACK
+.Ldiagnostic: .ascii "native HIA Rollback Worker transport refused\n"
+.else
 .Ldiagnostic: .ascii "native HIA Inspection Worker transport refused\n"
+.endif
 .endif
 .else
 .Ldiagnostic: .ascii "native HIA Context Worker transport refused\n"

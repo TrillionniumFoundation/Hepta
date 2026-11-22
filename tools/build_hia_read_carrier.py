@@ -100,7 +100,7 @@ CARRIERS = {
 }
 
 SOURCE_WORKER_KINDS = frozenset((
-    'describe-worker', 'artifact-worker', 'context-worker', 'inspection-worker', 'candidate-worker', 'input',
+    'describe-worker', 'artifact-worker', 'context-worker', 'inspection-worker', 'candidate-worker', 'rollback-worker', 'input',
     'discovery', 'discovery-bootstrap',
 ))
 
