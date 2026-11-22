@@ -20,7 +20,7 @@ from tools.generate_hia_worker_artifact_authority import source_program as autho
 from tools.generate_hia_worker_build_custody import POLICY as CUSTODY
 from tools.generate_hia_worker_finite_reference import INVALID, NONE, enum_reader, key_reader
 from tools.generate_hia_worker_inspection_effect import function
-from tools.hia_retained_proof_method import MACHINE_VERDICT
+from tools.hia_retained_proof_method import MACHINE_METHOD, MACHINE_VERDICT
 
 SOURCE = Path('examples/hia_bootstrap/worker_machine_replay.hepta')
 MACHINE_ANCHOR = int.from_bytes(b'HIAMAP01', 'little')
@@ -30,6 +30,10 @@ FRESH_REQUEST = int.from_bytes(b'HIAMFR01', 'little')
 FRESH_OBSERVATION = int.from_bytes(b'HIAMFO01', 'little')
 FRESH_HEADER = 8 + 3 * 64
 FRESH_REPLY_HEAD = 64
+NATIVE_ANCHOR = int.from_bytes(b'HIAMNB01', 'little')
+NATIVE_FINISH = int.from_bytes(b'HIAMNF01', 'little')
+NATIVE_ANCHOR_HEAD = 32 + 3 * 32
+NATIVE_ANCHOR_BYTES = NATIVE_ANCHOR_HEAD + 176
 FIELDS = (
     'method', 'profile', 'service_profile', 'outcome', 'deadline_met', 'counterexample', 'artifact_binding',
     'validation', 'candidate_core_sha256', 'input_sha256', 'native_artifact', 'build_receipt', 'object_artifact',
@@ -39,6 +43,8 @@ FIELDS = (
     'source_identity', 'solver', 'ok', 'complete', 'status', 'obligations', 'queries',
     'name', 'expected', 'result', 'query_file', 'query_sha256', 'sha256', 'artifact',
 )
+NATIVE_FIELDS = ('certificate', 'final_sha256', 'obligations_observed', 'proof_binding', 'claim', 'kind',
+                 'checker', 'native', 'image_sha256')
 ANCHOR_HEAD = 416
 ANCHOR_BYTES = ANCHOR_HEAD + len(ARTIFACT_OBLIGATIONS) * 176
 
@@ -53,6 +59,8 @@ def machine_replay(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return proved_machine(s, o)
     if tag == FRESH:
         return fresh_machine(s, o)
+    if tag == NATIVE_FINISH:
+        return compare_native_certificate(s, o)
     return retained_evidence(s, o, w)
 
 # Physical Store descriptors are attached by the relay, not by the receipt.
@@ -82,7 +90,11 @@ def retained_evidence(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return BAD
     put(o, 48, 262144)
     put(o, 56, 128)
-    if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5 or get(w, 96) != 4:
+    if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
+        return BAD
+    if get(w, 96) == 6:
+        return native_certificate_anchor(s, o, w)
+    if get(w, 96) != 4:
         return BAD
     evidence = child(w, 64)
     if kind(w, evidence) != 6 or proof_method(w, lookup(w, evidence, K_method)) == NONE:
@@ -134,6 +146,82 @@ def retained_evidence(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         store(o, 160 + index, value)
         index = index + 1
     return ANCHOR_BYTES
+
+# Only the evidence comes from the saved checker; the remaining values
+# come from independently reopened build custody and the installed prover.
+def native_certificate_anchor(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    evidence = child(w, 64)
+    if kind(w, evidence) != 6 or get(w, evidence + 32) != 8 or native_method(w, lookup(w, evidence, K_method)) == NONE:
+        return BAD
+    binding = lookup(w, evidence, K_proof_binding)
+    if proved_label(w, lookup(w, binding, K_status)) == NONE or lowering_claim(w, lookup(w, binding, K_claim)) == NONE:
+        return BAD
+    subject = lookup(w, binding, K_subject)
+    native = next(w, evidence)
+    build = next(w, native)
+    obj = next(w, build)
+    core = next(w, obj)
+    image = next(w, core)
+    native_checker = lookup(w, lookup(w, binding, K_checker), K_native)
+    if field_is(s, w, native_checker, K_image_sha256, image) == False:
+        return BAD
+    if native_subject(w, lookup(w, subject, K_kind)) == NONE:
+        return BAD
+    if (field_is(s, w, subject, K_native_artifact, native) == False
+            or field_is(s, w, subject, K_build_receipt, build) == False
+            or field_is(s, w, subject, K_candidate_core_sha256, core) == False):
+        return BAD
+    obj_sha = lookup(w, obj, K_sha256)
+    native_sha = lookup(w, native, K_sha256)
+    if (field_is(s, w, evidence, K_core_sha256, core) == False
+            or field_is(s, w, evidence, K_object_sha256, obj_sha) == False
+            or field_is(s, w, evidence, K_final_sha256, native_sha) == False):
+        return BAD
+    profile = decimal(s, w, lookup(w, evidence, K_profile))
+    if profile < 1 or profile > 6 or decimal(s, w, lookup(w, evidence, K_obligations_observed)) != 5:
+        return BAD
+    certificate = lookup(w, evidence, K_certificate)
+    if kind(w, certificate) != 6 or get(w, certificate + 64) != 176:
+        return BAD
+    reference = get(w, certificate + 56)
+    if artifact_reference(s, reference) == False:
+        return BAD
+    if (write_digest(o, w, core, 32) == False or write_digest(o, w, obj_sha, 64) == False
+            or write_digest(o, w, native_sha, 96) == False):
+        return BAD
+    put(o, 0, NATIVE_ANCHOR)
+    put(o, 8, 0)
+    put(o, 16, profile)
+    put(o, 24, 5)
+    copy_reference(s, o, reference, NATIVE_ANCHOR_HEAD)
+    return NATIVE_ANCHOR_BYTES
+
+# Both raw spans are mandatory: a durable read of the retained certificate
+# and a new reply from the installed prover for these exact custody bytes.
+# The caller must not hand the same descriptor to both input positions.
+def compare_native_certificate(s:readbuf, o:mutbuf) -> u64:
+    anchor = 16
+    kept = anchor + NATIVE_ANCHOR_BYTES
+    if length(s) < kept + 2 * PROVER_HEAD:
+        return BAD
+    size = input_word(s, 8)
+    if size < PROVER_HEAD or size > PROVER_MAX or length(s) != kept + 2 * size:
+        return BAD
+    if input_word(s, anchor) != NATIVE_ANCHOR or input_word(s, anchor + 8) != 0:
+        return BAD
+    current = kept + size
+    if input_word(s, current) != PROVER_REPLY or input_word(s, current + 8) != 1:
+        return BAD
+    if input_word(s, current + 16) != input_word(s, anchor + 16) or input_word(s, current + 40) != 5:
+        return BAD
+    if input_word(s, anchor + 24) != 5 or same_bytes(s, anchor + 32, current + 80, 96) == False:
+        return BAD
+    if same_bytes(s, kept, current, size) == False or observe_prover(s, o, current) != FRESH_REPLY_HEAD + 5 * 24:
+        return BAD
+    put(o, 0, COMPLETE)
+    put(o, 8, 0)
+    put(o, 16, 1)
+    return 24
 
 def bind_validation(s:readbuf, w:mutbuf, evidence:u64, binding:u64, checked:u64, entry:u64) -> bool:
     if kind(w, checked) != 6 or validation_schema(w, lookup(w, checked, K_schema)) == NONE:
@@ -302,6 +390,9 @@ def fresh_machine(s:readbuf, o:mutbuf) -> u64:
         return BAD
     if fresh_digests(s, at + 80) == False:
         return BAD
+    return observe_prover(s, o, at)
+
+def observe_prover(s:readbuf, o:mutbuf, at:u64) -> u64:
     magic = input_word(s, at)
     if magic == PROVER_FAILURE:
         return fresh_failure(s, o, at)
@@ -433,11 +524,13 @@ def program():
         LOADER_SECTION_REFUSAL=LOADER_SECTION_REFUSAL,
         FRESH=FRESH_REQUEST, FRESH_OBSERVATION=FRESH_OBSERVATION, FRESH_HEADER=FRESH_HEADER,
         FRESH_REPLY_HEAD=FRESH_REPLY_HEAD, OBLIGATION_HEAD=OBLIGATION_HEAD,
+        NATIVE_ANCHOR=NATIVE_ANCHOR, NATIVE_FINISH=NATIVE_FINISH,
+        NATIVE_ANCHOR_HEAD=NATIVE_ANCHOR_HEAD, NATIVE_ANCHOR_BYTES=NATIVE_ANCHOR_BYTES,
         ANCHOR=MACHINE_ANCHOR, ANCHOR_BYTES=ANCHOR_BYTES, ANCHOR_HEAD=ANCHOR_HEAD,
         PROVER_REPLY=RECEIPT_MAGIC, PROVER_HEAD=RECEIPT_HEAD, PROVER_MAX=OUTPUT_LIMIT,
         OBLIGATION=OBLIGATION_REPLY, COMPLETE=MACHINE_VERDICT, FILE_MAX=FILE_LIMIT, SAT=SAT, UNSAT=UNSAT,
     )
-    constants.update({f'K_{name}': index for index, name in enumerate(FIELDS, 1)})
+    constants.update({f'K_{name}': index for index, name in enumerate((*FIELDS, *NATIVE_FIELDS), 1)})
     policies = (POLICY, function(CUSTODY, 'copy_reference'))
     source = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda found: str(constants[found[0]]), '\n'.join(policies))
@@ -447,6 +540,8 @@ def program():
         ('service_profile', ((SAFE_CORE_SERVICE_PROFILE, 1),)), ('proved_label', (('proved', 1),)),
         ('validation_schema', ((SCHEMA, 1),)), ('checked_label', (('smt_validated', 1),)),
         ('supplied_mode', (('independent_supplied_bytes', 1),)), ('shared_kind', (('shared', 1),)),
+        ('native_method', ((MACHINE_METHOD, 1),)), ('lowering_claim', (('lowering_refinement', 1),)),
+        ('native_subject', (('native_artifact', 1),)),
         ('result_label', (('sat', SAT), ('unsat', UNSAT))), ('obligation_label', ((name, n) for n, name in enumerate(names))),
         ('obligation_file', ((f'{n:02d}-{name}.smt2', n) for n, name in enumerate(names))),
     )
@@ -466,10 +561,17 @@ def next(w:mutbuf, node:u64) -> u64:
         return NONE
     return 64 + index * 72
 '''.replace('NONE', str(NONE))
-    return '\n'.join((source, helpers, key_reader(FIELDS), *enums,
+    retained_keys = key_reader(FIELDS).replace('    return 0', '    return native_key_id(w, at, size)')
+    native_keys = key_reader(NATIVE_FIELDS).replace('def key_id', 'def native_key_id')
+    for index in reversed(range(1, len(NATIVE_FIELDS) + 1)):
+        native_keys = native_keys.replace(f'        return {index}\n', f'        return {len(FIELDS) + index}\n')
+    return '\n'.join((source, helpers, retained_keys, native_keys, *enums,
                       WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(NONE)).replace(
                           '    children =', f'    if kind(w, parent) != 6:\n        return {NONE}\n    children =', 1),
-                      function(authority(), 'input_word'), json_decoder(wire_spans=True)))
+                      *(function(authority(), name) for name in (
+                          'input_word', 'artifact_reference', 'artifact_start',
+                          'artifact_digest', 'artifact_uri', 'valid_hex')),
+                      json_decoder(wire_spans=True)))
 
 
 if __name__ == '__main__':

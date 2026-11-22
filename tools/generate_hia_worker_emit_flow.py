@@ -672,9 +672,11 @@ def product_store_dispatch(source):
             '    object = entry + DESCRIPTOR_BYTES * INSPECTION_EMIT_ROLE\n'
             '    link = entry + DESCRIPTOR_BYTES * EMIT_LINK_ROLE\n'
             '    scalar = entry + DESCRIPTOR_BYTES * EMIT_SCALAR_EXE_ROLE\n'
+            '    machine = entry + DESCRIPTOR_BYTES * EMIT_MACHINE_PROVER_ROLE\n'
             '    hold(w, EMIT_BORROWED_EXE, input_word(s, object), 0, input_word(s, object + 24))\n'
             '    hold(w, EMIT_LINK_EXE, input_word(s, link), 0, input_word(s, link + 24))\n'
             '    hold(w, EMIT_SCALAR_EXE, input_word(s, scalar), 0, input_word(s, scalar + 24))\n'
+            '    hold(w, EMIT_MACHINE_IMAGE, input_word(s, machine), 0, input_word(s, machine + 24))\n'
         )
         return source.replace(
             '    i = 0\n    while i < ROLE_COUNT:', capture + '    i = 0\n    while i < ROLE_COUNT:',

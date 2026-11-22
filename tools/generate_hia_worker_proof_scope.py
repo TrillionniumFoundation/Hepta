@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_proof_contract import _CHECKERS, _PROPERTIES, PROOF_SCHEMA
+from hepta.hia_proof_contract import _CHECKERS, _PROPERTIES, PROOF_SCHEMA, SAFE_CORE_METHOD
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
@@ -11,7 +11,8 @@ from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_inspection_effect import function
 
 from tools.hia_retained_proof_method import (
-    EXTRA_KEYS, NATIVE_CORE_CHECKER, NATIVE_VERIFY_EVIDENCE, NATIVE_VERIFY_PROFILE, POLICY as METHODS_POLICY,
+    EXTRA_KEYS, MACHINE_METHOD, NATIVE_CORE_CHECKER, NATIVE_VERIFY_EVIDENCE, NATIVE_VERIFY_PROFILE,
+    POLICY as METHODS_POLICY,
 )
 
 SOURCE = Path('examples/hia_bootstrap/worker_proof_scope.hepta')
@@ -28,6 +29,7 @@ KEYS = (*CHECK_FIELDS, *SCOPE_FIELDS, *SUBJECT_FIELDS, 'proof_binding', 'install
         'name', 'method', 'python', 'native_selection_sha256', 'solver', 'auxiliary_checker_sha256',
         'native', 'image_sha256', *EXTRA_KEYS)
 METHODS = tuple(_CHECKERS)
+CONSUMER_METHODS = (*METHODS, MACHINE_METHOD)
 NATIVE_REPLAY_METHODS = ('core_admission', 'canonical_core_identity', 'finite_domain',
                          'context_budget_exhausted', 'canonical_lowering_unsupported',
                          'checked_explicit_machine_choices')
@@ -238,19 +240,23 @@ def installed_native_checker(s:readbuf, w:mutbuf, checker:u64, property_node:u64
     aux = lookup(w, checker, K_auxiliary_checker_sha256)
     if solver == NONE or get(w, solver) != 0 or aux == NONE or get(w, aux) != 0:
         return 0
+    name = lookup(w, checker, K_name)
+    image = lookup(w, native, K_image_sha256)
+    statement = lookup(w, property_node, K_statement)
+    if method == M_checked_supplied_machine_bytes:
+        # Effect 5 must measure the installed prover and match this digest.
+        return choose(digest_text(w, image, False) and native_machine_name(w, name)
+                      and native_machine_statement(w, statement), method, 0)
     pins = next(w, runtime)
     if list_node(w, pins) == False or get(w, pins + 32) != 2:
         return 0
     first = 64 + get(w, pins + 24) * 72
     core = method == M_core_admission
     expected = choose(core, first, next(w, first))
-    image = lookup(w, native, K_image_sha256)
     if digest_text(w, image, False) == False or same(s, w, image, expected) == False:
         return 0
-    name = lookup(w, checker, K_name)
     if (core and native_core_name(w, name) == False) or (core == False and native_observe_name(w, name) == False):
         return 0
-    statement = lookup(w, property_node, K_statement)
     return choose(native_statement(w, statement, method), method, 0)
 
 def object(w:mutbuf, node:u64) -> bool:
@@ -343,33 +349,54 @@ def key_id(w:mutbuf, at:u64, extent:u64) -> u64:
                       comparison_table('evidence_key', remaining)))
 
 
+NATIVE_MACHINE_EFFECT = r'''
+def native_machine_effect(s:readbuf, w:mutbuf, scope:u64, evidence:u64) -> u64:
+    if subject_id(w, lookup(w, scope, K_kind)) != 4:
+        return BAD_METHOD
+    if method_id(w, lookup(w, evidence, K_method)) != M_checked_supplied_machine_bytes:
+        return BAD_METHOD
+    core = lookup(w, scope, K_candidate_core_sha256)
+    return choose(same(s, w, core, lookup(w, evidence, K_core_sha256)), 5, BAD_METHOD)
+'''
+
+
 def program():
     constants = {f'K_{name}': ordinal for ordinal, name in enumerate(KEYS, 1)}
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      RESULT=int.from_bytes(b'HIAPSC01', 'little'))
-    constants.update((f'M_{name}', index) for index, name in enumerate(METHODS, 1))
+    constants.update((f'M_{name}', index) for index, name in enumerate(CONSUMER_METHODS, 1))
     constants.update(BAD_METHOD=255)
     methods = METHODS_POLICY.replace(
         'method:u64, claim:u64, status:u64) -> u64:',
         'method:u64, claim:u64, status:u64, native:bool) -> u64:', 1)
     methods = methods.replace(
+        '    if method == M_core_admission:',
+        '    if method == M_checked_supplied_machine_bytes:\n'
+        '        if native == False or claim != 3 or status != 1:\n'
+        '            return BAD_METHOD\n'
+        '        return native_machine_effect(s, w, scope, evidence)\n'
+        '    if method == M_core_admission:', 1)
+    methods = methods.replace(
         '        if claim != 1 or status != 1 or admission_checker(w, lookup(w, evidence, K_checker)) == False:',
         '        name = lookup(w, evidence, K_checker)\n'
         '        trusted = choose(native, native_core_name(w, name), admission_checker(w, name))\n'
         '        if claim != 1 or status != 1 or trusted == False:', 1)
+    policy = (POLICY + methods + NATIVE_MACHINE_EFFECT).replace(
+        'native_machine_statement', f'statement_{METHODS.index(SAFE_CORE_METHOD) + 1}')
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
-                    lambda m: str(constants[m[0]]), POLICY + methods)
+                    lambda m: str(constants[m[0]]), policy)
     return '\n'.join((
         policy,
         *(function(CONTEXT, name).replace('NONE', str(constants['NONE'])) for name in ('equal_span', 'digest_text')),
         WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(constants['NONE'])),
-        split_key_table(KEYS[:36], KEYS[36:]), selector('method', METHODS),
+        split_key_table(KEYS[:36], KEYS[36:]), selector('method', CONSUMER_METHODS),
         selector('subject', KINDS), selector('status', STATUSES), selector('claim', CLAIMS),
         method_statements(), native_statements(), wire_text('result_schema', PROOF_SCHEMA),
         wire_text('assumptions_schema', 'hepta.hia.agent.proof-assumptions.v1'),
         wire_text('admission_checker', _CHECKERS['core_admission']),
         wire_text('native_core_name', NATIVE_CORE_CHECKER),
         wire_text('native_observe_name', NATIVE_VERIFY_EVIDENCE),
+        wire_text('native_machine_name', 'hia-safe-core-prove'),
         wire_text('native_profile', NATIVE_VERIFY_PROFILE),
         wire_text('optimization_schema', 'hepta.hia.optimization-verification.v1'),
         wire_text('optimization_proved', 'verified'),

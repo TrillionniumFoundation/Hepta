@@ -11,10 +11,11 @@ from tools.generate_hia_exec_release import POLICY_SOURCE as RELEASE_POLICY
 SOURCE = 'examples/hia_bootstrap/worker_artifact_authority.hepta'
 
 # These are read roles, not immutable publication kind ordinals.
-ADOPT_READ_KINDS = (
+TYPED_READ_KINDS = (
     (12, 'evaluation_receipt', b'evaluation-receipt'),
     (13, 'measurements', b'measurements'),
     (14, 'cost_ledger', b'cost-ledger'),
+    (15, 'machine_certificate', b'machine-validation-certificate'),
 )
 
 POLICY = r'''
@@ -315,10 +316,10 @@ def source_program():
     program = re.sub(r'\b(' + '|'.join(tags) + r')\b',
                      lambda match: str(int.from_bytes(tags[match.group()], 'little')), POLICY)
     program = program.replace('CONTEXT_METADATA_FIELDS', str(METADATA_FIELDS))
-    program = program.replace('RETAINED_KIND_LIMIT', str(ADOPT_READ_KINDS[-1][0]))
+    program = program.replace('RETAINED_KIND_LIMIT', str(TYPED_READ_KINDS[-1][0]))
     program = program.replace('RETAINED_ADOPT_DISPATCH', '\n'.join(
         f'    if kind == {kind}:\n        return size == {len(raw)} and {name}_text(s, at)'
-        for kind, name, raw in ADOPT_READ_KINDS
+        for kind, name, raw in TYPED_READ_KINDS
     ))
     shared = document_effect()
     for name in ('copy_input', 'valid_hex', 'input_word', 'state_put', 'profile_text', 'input_text'):
@@ -339,7 +340,7 @@ def source_program():
         ('verification_assumptions_text', b'verification-assumptions'),
         ('verification_evidence_text', b'verification-evidence'),
         ('machine_query_text', b'machine-validation-query'),
-        *((name + '_text', raw) for _, name, raw in ADOPT_READ_KINDS),
+        *((name + '_text', raw) for _, name, raw in TYPED_READ_KINDS),
         *((name + '_profile', b'hia-' + name.encode('ascii') + b'-v1') for name in PROFILE_PORTS),
     ):
         program += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n'

@@ -11,8 +11,10 @@ from tools.generate_hia_worker_artifact_authority import source_program as autho
 from tools.generate_hia_worker_build_custody import POLICY as BUILD_CUSTODY
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_inspection_effect import function
-from tools.generate_hia_worker_proof_scope import METHODS
-from tools.hia_retained_proof_method import COMPOSITION_VERDICT, FINITE_COMPLETION, FINITE_OBSERVATION, MACHINE_VERDICT
+from tools.generate_hia_worker_proof_scope import CONSUMER_METHODS, METHODS
+from tools.hia_retained_proof_method import (
+    COMPOSITION_VERDICT, FINITE_COMPLETION, FINITE_OBSERVATION, MACHINE_METHOD, MACHINE_VERDICT,
+)
 
 SOURCE = Path('examples/hia_bootstrap/worker_emit_verification.hepta')
 NAMES = ('installation', 'context', 'candidate', 'validation_profile', 'candidate_core_sha256',
@@ -131,7 +133,7 @@ def receipt_subject(s:readbuf, w:mutbuf, o:mutbuf, receipt:u64, profiles:u64) ->
 # An authorized scope result must agree with the typed physical receipt's
 # projected claim. Its result names an effect; it does not discharge it.
 # Effect 1 is already checked locally; 2 is exact layout rederivation;
-# 3 reopens native build custody; 4–7 are the independent proof checkers.
+# 3 reopens native build custody; 4–8 are the independent proof checkers.
 def scope_effect(s:readbuf, o:mutbuf) -> u64:
     kind = input_word(s, 8)
     claim = input_word(s, 16)
@@ -144,13 +146,15 @@ def scope_effect(s:readbuf, o:mutbuf) -> u64:
         return refusal(o, 4)
     operation = 1
     if effect != 0:
-        if effect > 4:
+        if effect > 5:
             return refusal(o, 4)
         if effect == 1 and (method != COMPOSITION_METHOD or claim != 2 or status != 1):
             return refusal(o, 4)
         if effect == 2 and (kind != 4 or method != MACHINE_METHOD or claim != 3 or status != 1):
             return refusal(o, 4)
-        if effect >= 3 and (method != FINITE_METHOD or claim != 2 or status != 5 - effect):
+        if (effect == 3 or effect == 4) and (method != FINITE_METHOD or claim != 2 or status != 5 - effect):
+            return refusal(o, 4)
+        if effect == 5 and (kind != 4 or method != NATIVE_MACHINE_METHOD or claim != 3 or status != 1):
             return refusal(o, 4)
         operation = effect + 3
     elif method == LAYOUT_METHOD:
@@ -190,13 +194,13 @@ def scope_complete(s:readbuf, o:mutbuf) -> u64:
             return refusal(o, 4)
         if operation == 4 and (tag != COMPOSITION_VERDICT or outcome != 1):
             return refusal(o, 4)
-        if operation == 5 and (tag != MACHINE_VERDICT or outcome != 1):
+        if (operation == 5 or operation == 8) and (tag != MACHINE_VERDICT or outcome != 1):
             return refusal(o, 4)
         if operation == 6 and (tag != FINITE_OBSERVATION or outcome != 2):
             return refusal(o, 4)
         if operation == 7 and (tag != FINITE_COMPLETION or outcome != 1):
             return refusal(o, 4)
-        if operation < 1 or operation > 7:
+        if operation < 1 or operation > 8:
             return refusal(o, 4)
         at = at + 48
     if planned == 1:
@@ -555,12 +559,13 @@ def program():
                      FINITE_COMPLETION=FINITE_COMPLETION,
                      MACHINE_CHECK_COUNT=len(MACHINE_CHECKS),
                      SELECT_CHECK_COUNT=len(MACHINE_CHECKS) + len(SELECT_CHECKS),
-                     METHOD_COUNT=len(METHODS),
+                     METHOD_COUNT=len(CONSUMER_METHODS),
                      LAYOUT_METHOD=METHODS.index('checked_explicit_machine_choices') + 1,
                      ENCODING_METHOD=METHODS.index('complete_native_rederivation') + 1,
                      FINITE_METHOD=METHODS.index('finite_domain') + 1,
                      COMPOSITION_METHOD=METHODS.index('compositional_scalar_effect') + 1,
                      MACHINE_METHOD=METHODS.index('independent_safe_core_machine_validation') + 1,
+                     NATIVE_MACHINE_METHOD=CONSUMER_METHODS.index(MACHINE_METHOD) + 1,
                      INVALID=4294967293)
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda match: str(constants[match[0]]), POLICY)

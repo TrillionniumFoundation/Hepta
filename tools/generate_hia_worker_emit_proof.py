@@ -134,6 +134,9 @@ def emit_hash_capture(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
         return emit_custody_hash(s, o, w, at, state)
     if state == EMIT_COMPLETE_HASH:
         return emit_complete_transcript_hash(s, o, w, at)
+    if state == EMIT_MACHINE_IMAGE_HASH:
+        hold(w, EMIT_MACHINE_PIN, fd, at - 65, 66)
+        return emit_machine_native_evidence(o, w)
     return emit_retained_proof_hash(s, o, w, at, state)
 '''
 
@@ -298,6 +301,12 @@ def emit_proof_files_reopened(s:readbuf, o:mutbuf, w:mutbuf, purpose:u64) -> u64
         return action(o, w, EMIT_PROOF_SUBJECT_CANONICAL, RUN, EMIT_CANONICAL_ROLE, 0, 1, 8)
     if purpose == READ_EMIT_MACHINE_QUERY:
         return emit_machine_query_reopened(s, o, w)
+    if purpose == READ_EMIT_MACHINE_CERTIFICATE:
+        size = input_word(s, 40)
+        if size < EMIT_MACHINE_PROVER_HEAD or size > EMIT_MACHINE_PROVER_MAX:
+            return BAD
+        sample_span(s, w, EMIT_MACHINE_CERTIFICATE)
+        return clock_sample(o, w, EMIT_MACHINE_CLOCK, 1)
     return emit_proof_custody_reopened(s, o, w, purpose)
 
 def emit_proof_file_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
@@ -337,7 +346,7 @@ def emit_proof_file_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == EMIT_PROOF_EFFECT_BOUND:
         operation = input_word(s, 88)
         if (plan_ok(s) == False or size != 32 or input_word(s, 72) != EMIT_SCOPE_EFFECT
-                or input_word(s, 80) != 0 or operation < 1 or operation > 7):
+                or input_word(s, 80) != 0 or operation < 1 or operation > 8):
             return BAD
         verdict = EMIT_PROOF_VERDICTS + 48 * get(w, EMIT_PROOF_INDEX)
         copy_span(s, w, 72, verdict, 24)
@@ -347,8 +356,8 @@ def emit_proof_file_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             return emit_replay_layout(o, w)
         if operation == 3:
             return emit_custody_effect(o, w)
-        if operation == 5:
-            return emit_machine_proof(o, w)
+        if operation == 5 or operation == 8:
+            return emit_machine_proof(o, w, operation == 8)
         if operation == 6:
             return emit_finite_counterexample(o, w)
         if operation == 7:
@@ -484,7 +493,8 @@ def emit_proof_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return emit_finite_replay_state(s, o, w, state)
     if state >= EMIT_COMPLETE_EXPECTATION and state <= EMIT_COMPLETE_CHECKED:
         return emit_complete_state(s, o, w, state)
-    if state >= EMIT_MACHINE_ANCHORED and state <= EMIT_MACHINE_CHECKED:
+    if (state >= EMIT_MACHINE_ANCHORED and state <= EMIT_MACHINE_CHECKED
+            or state == EMIT_MACHINE_NATIVE_ANCHORED):
         return emit_machine_proof_state(s, o, w, state)
     if state >= COMP_MONOTONIC and state <= COMP_CHECKED:
         return composition_state(s, o, w, state)

@@ -104,7 +104,7 @@ def verify_finding_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     pin = choose(mode == 7, VERIFY_NOMINAL_PIN, VERIFY_OBSERVER_PIN)
     if mode >= 13 and mode <= 15:
         if get(w, VERIFY_MACHINE_PIN + 16) == 0:
-            return inspection_hash(o, w, VERIFY_HASH_MACHINE, VERIFY_MACHINE_IMAGE)
+            return inspection_hash(o, w, VERIFY_HASH_MACHINE, EMIT_MACHINE_IMAGE)
         pin = VERIFY_MACHINE_PIN
     hold(w, VERIFY_FACTS, get(w, slot), get(w, slot + 8) + 32, get(w, slot + 16) - 32)
     store(o, HEADER, 91)

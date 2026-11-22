@@ -548,8 +548,6 @@ def recipe():
         '    object = entry + DESCRIPTOR_BYTES * INSPECTION_EMIT_ROLE',
         '    nominal = entry + DESCRIPTOR_BYTES * NOMINAL_ROLE\n'
         '    observer = entry + DESCRIPTOR_BYTES * VERIFY_FINITE_EVIDENCE_ROLE\n'
-        '    prover = entry + DESCRIPTOR_BYTES * EMIT_MACHINE_PROVER_ROLE\n'
-        '    hold(w, VERIFY_MACHINE_IMAGE, input_word(s, prover), 0, input_word(s, prover + 24))\n'
         '    hold(w, VERIFY_NOMINAL_IMAGE, input_word(s, nominal), 0, input_word(s, nominal + 24))\n'
         '    hold(w, VERIFY_OBSERVER_IMAGE, input_word(s, observer), 0, input_word(s, observer + 24))\n'
         '    object = entry + DESCRIPTOR_BYTES * INSPECTION_EMIT_ROLE',
