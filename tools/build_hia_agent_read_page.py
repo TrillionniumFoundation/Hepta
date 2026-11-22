@@ -63,6 +63,8 @@ VARIANTS = {
                                    'hepta.hia.worker-compositional-barrier-native.v1'),
     'worker-machine-replay': ('worker_machine_replay',
                                    'hepta.hia.worker-machine-replay-native.v1'),
+    'worker-describe-reactor': ('worker_describe_reactor',
+                                   'hepta.hia.worker-describe-reactor-native.v1'),
     'emit-build-observation': ('worker_emit_build_observation', 'hepta.hia.emit-build-observation-native.v1'),
     'emit-effect': ('worker_emit_effect', 'hepta.hia.emit-effect-native.v1'),
     'worker-profile-bindings': ('worker_profile_bindings', 'hepta.hia.worker-profile-bindings-native.v1'),
