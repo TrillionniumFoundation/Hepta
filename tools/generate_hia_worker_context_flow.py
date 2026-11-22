@@ -37,6 +37,8 @@ def context_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return BAD
     if operation == READ and (input_word(s, 32) != get(w, 80) or offset != get(w, 88) or captured != get(w, 96)):
         return BAD
+    if state == INSTALL_REFERENCE or state == INSTALL_PROFILES:
+        return observe_installation(s, o, w, state)
     if state <= STARTED:
         return configure_context(s, o, w, state)
     if state <= ARGUMENT_PLAN:
@@ -67,17 +69,6 @@ def context_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return context_results(s, o, w, state)
 
 def configure_context(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
-    if state == CONFIG_HEADER:
-        if length(s) != 192:
-            return BAD
-        i = 0
-        while i < 128:
-            v = byte(s, 64 + i)
-            if is_hex(v) == False:
-                return BAD
-            store(w, PROFILE_PIN + i, v)
-            i = i + 1
-        return clock_sample(o, w, STARTED, 0)
     if state != STARTED or length(s) != 72 or input_word(s, 40) != 8:
         return BAD
     put(w, START_TIME, input_word(s, 64))
@@ -86,6 +77,29 @@ def configure_context(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     copy_private(w, o, TRUST, HEADER + 16, 64)
     whole_slot(w, o, ORIGINAL, 0)
     return action(o, w, REQUEST_ADMITTED, RUN, ADMIT_ROLE, 0, 1, 80)
+
+def observe_installation(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if plan_ok(s) == False:
+        return BAD
+    if state == INSTALL_REFERENCE:
+        if input_word(s, 40) != 184:
+            return BAD
+        body_span(s, w, CONTEXT_REFERENCE_QUERY)
+        return artifact_lookup(o, w)
+    if input_word(s, 40) != 136:
+        return BAD
+    return read_span(o, w, INSTALL_PROFILE_PINS, input_word(s, 32), 8, 128)
+
+def install_profile_pins(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    i = 0
+    while i < 128:
+        v = byte(s, 64 + i)
+        if is_hex(v) == False:
+            return BAD
+        store(w, PROFILE_PIN + i, v)
+        i = i + 1
+    put(w, INSTALL_PENDING, 0)
+    return clock_sample(o, w, STARTED, 0)
 
 def authorize_business(o:mutbuf, w:mutbuf) -> u64:
     if slot_bytes(w, ARGUMENT_FD) < 10:
@@ -348,6 +362,8 @@ def retained_flow(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         return close_store(o, w, CLOSE_CONTEXT_PROFILE)
     if state == RETAINED_QUERY_BOUND:
         if reply_word(s, RETAINED_REFUSAL):
+            if get(w, INSTALL_PENDING) == 1:
+                return BAD
             return context_error(o, w, 7, 1)
         if plan_ok(s) == False or input_word(s, 40) != 98:
             return BAD
@@ -373,6 +389,8 @@ def retained_flow(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         store(o, 480, 0)
         return artifact_command(o, w, RETAINED_BYTES, STORE_GET, STORE_GET_END, 0)
     if state == RETAINED_BYTES:
+        if get(w, INSTALL_PENDING) == 1:
+            return bind_installation_profiles(s, o, w)
         port = get(w, CONTEXT_CLAIM + 16)
         if port == 2 or port == 3:
             return control_event(o, w, 2, 0)
@@ -383,6 +401,20 @@ def retained_flow(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             fragment(o, 0, input_word(s, 32), 0, input_word(s, 40))
             return action(o, w, BASE_ADMISSION, RUN, NOMINAL_ROLE, 0, 1, 0)
     return BAD
+
+def bind_installation_profiles(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    size = input_word(s, 40)
+    if size < 2 or size > 16315:
+        return BAD
+    store(o, HEADER, 91)
+    store(o, HEADER + 1, 34)
+    copy_private(w, o, TRUST, HEADER + 2, 64)
+    store(o, HEADER + 66, 34)
+    store(o, HEADER + 67, 44)
+    fragment(o, 0, input_word(s, 32), 0, size)
+    store(o, 496, 93)
+    fragment(o, 1, INLINE_FRAGMENT, 496, 1)
+    return action(o, w, INSTALL_PROFILES, RUN, PLAN_ROLE, 0, 2, 68)
 
 def context_store_opened(o:mutbuf, w:mutbuf, purpose:u64) -> u64:
     query = slot_fd(w, QUERY_FD)
@@ -403,6 +435,8 @@ def context_store_closed(o:mutbuf, w:mutbuf, purpose:u64) -> u64:
     if purpose == CLOSE_CONTEXT_ARTIFACT:
         return read_span(o, w, RETAINED_DIGEST, slot_fd(w, PROFILE_FD), 8, 72)
     if purpose == CLOSE_CONTEXT_ARTIFACT_REFUSED:
+        if get(w, INSTALL_PENDING) == 1:
+            return BAD
         return context_error(o, w, 7, 1)
     if purpose == CLOSE_CONTEXT_CREATE:
         return create_reference(o, w)
@@ -639,6 +673,8 @@ def publish_manifest(o:mutbuf, w:mutbuf) -> u64:
 
 RESULT_POLICY = r'''
 def context_results(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if state == INSTALL_PROFILE_PINS:
+        return install_profile_pins(s, o, w)
     if state == PAYLOAD_CHECKED:
         if reply_word(s, 0) == False:
             return BAD
@@ -769,7 +805,8 @@ def program():
         'UTC_SAMPLED', 'UTC_FORMED', 'PLATFORM_SAMPLED', 'PLATFORM_QUOTED', 'CPU_SAMPLED',
         'CPU_FORMED', 'CATALOG_QUOTED', 'MANIFEST_FORMED', 'MANIFEST_PUBLISHED',
         'PAYLOAD_CHECKED', 'CONTEXT_NONCE', 'CONTEXT_CREATED', 'CONTEXT_BATCH', 'CREATE_MARKER',
-        'CREATE_REFERENCE', 'CONTEXT_RENDERED',
+        'CREATE_REFERENCE', 'CONTEXT_RENDERED', 'INSTALL_REFERENCE', 'INSTALL_PROFILES',
+        'INSTALL_PROFILE_PINS',
     )
     constants.update({name: n for n, name in enumerate(states, constants['REPORT_PUBLISHED'] + 1)})
     purposes = (
@@ -785,7 +822,8 @@ def program():
              'CONTEXT_REFERENCE_QUERY')
     constants.update({name: 2592 + 24 * n for n, name in enumerate(spans)})
     fields = ('CTX_FIELD_AT', 'CTX_FIELD', 'CTX_EVENT', 'CTX_VISITS', 'CTX_FAILED', 'CTX_ANSWER',
-              'CTX_PROFILE_ROLE', 'CTX_SYSTEM_SIZE', 'CTX_MACHINE_SIZE', 'CTX_TIME', 'CTX_ROW_BYTES')
+              'CTX_PROFILE_ROLE', 'CTX_SYSTEM_SIZE', 'CTX_MACHINE_SIZE', 'CTX_TIME', 'CTX_ROW_BYTES',
+              'INSTALL_PENDING')
     constants.update({name: 3328 + 8 * n for n, name in enumerate(fields)})
     constants.update(ROLE_COUNT=31, ENTRY_BYTES=64 + 312 + 31 * 40, BATCH_FD=18,
                      SCHEMA_TOOL=4,
@@ -796,6 +834,7 @@ def program():
                      PROFILE_REFERENCE_REFUSED=4294967286, RETAINED_REFUSAL=4294967288)
     words = {
         'CONTEXT_PLAN_TAG': b'HIACTP01', 'CONTROL_EVENT_TAG': b'HCTXREQ1',
+        'INSTALL_MANIFEST_REF': b'HIARFM01',
         'CONTROL_REPLY_TAG': b'HCTXRSP1', 'CONTEXT_EFFECT_TAG': b'HIACTE01',
         'CONTEXT_DECISION': b'HIACTE02', 'PROFILE_BY_REFERENCE': b'HIARFP03',
         'CONTEXT_PROFILE_OBSERVED': b'HIARFP02', 'RETAINED_QUERY': b'HIARFG03',
@@ -810,7 +849,12 @@ def program():
     constants.update({name: int.from_bytes(value, 'little') for name, value in words.items()})
     entry = entry_program()
     controls = (
-        function(ARTIFACT, 'artifact_entry').replace('0, 88)', '0, 128)'),
+        function(ARTIFACT, 'artifact_entry').replace(
+            '    return read_span(o, w, CONFIG_HEADER, slot_fd(w, METADATA_FD), 0, 88)',
+            '    put(w, INSTALL_PENDING, 1)\n'
+            '    put(o, HEADER, INSTALL_MANIFEST_REF)\n'
+            '    whole_slot(w, o, METADATA_FD, 0)\n'
+            '    return action(o, w, INSTALL_REFERENCE, RUN, PROFILE_ROLE, 0, 1, 8)'),
         *(function(ARTIFACT, name) for name in (
             'clock_sample', 'project_request', 'project_artifact', 'schema_receipt', 'plan_ok',
             'json_pair', 'send_journal', 'observe_journal', 'bind_journal', 'artifact_edge',
@@ -823,7 +867,7 @@ def program():
             '    put(o, 136, 0)\n'
             '    put(o, 168, choose(op == RUN and role == NOMINAL_ROLE, 1, 0))\n'
             '    put(o, 152,'),
-        function(ENTRY_POLICY, 'admit_entry').replace('metadata < 224 or metadata > 32768', 'metadata != 128'),
+        function(ENTRY_POLICY, 'admit_entry'),
         *(function(ENTRY_POLICY, name) for name in ('trusted_descriptors', 'dossier_identity')),
         *(function(DESCRIBE, name) for name in (
             'argv', 'fragment', 'keep', 'observe_slot', 'slot_fd', 'slot_bytes', 'whole_slot',
