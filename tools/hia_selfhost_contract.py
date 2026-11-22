@@ -374,6 +374,8 @@ MCP_WIRE_SDIST_FILES = (
     'examples/hia_bootstrap/worker_finite_transcript.hepta',
     'tools/generate_hia_worker_compositional_skeleton.py',
     'examples/hia_bootstrap/worker_compositional_skeleton.hepta',
+    'tools/generate_hia_worker_compositional_replay.py',
+    'examples/hia_bootstrap/worker_compositional_replay.hepta',
     'examples/hia_bootstrap/worker_register_schedule.hepta',
     'tools/generate_hia_worker_emit_build.py',
     'examples/hia_bootstrap/worker_emit_build_observation.hepta',

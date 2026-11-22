@@ -12,7 +12,7 @@ from tools.generate_hia_worker_build_custody import POLICY as BUILD_CUSTODY
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_inspection_effect import function
 from tools.generate_hia_worker_proof_scope import METHODS
-from tools.hia_retained_proof_method import FINITE_COMPLETION, FINITE_OBSERVATION
+from tools.hia_retained_proof_method import COMPOSITION_VERDICT, FINITE_COMPLETION, FINITE_OBSERVATION
 
 SOURCE = Path('examples/hia_bootstrap/worker_emit_verification.hepta')
 NAMES = ('installation', 'context', 'candidate', 'validation_profile', 'candidate_core_sha256',
@@ -146,6 +146,8 @@ def scope_effect(s:readbuf, o:mutbuf) -> u64:
     if effect != 0:
         if effect > 4:
             return refusal(o, 4)
+        if effect == 1 and (method != COMPOSITION_METHOD or claim != 2 or status != 1):
+            return refusal(o, 4)
         if effect >= 3 and (method != FINITE_METHOD or claim != 2 or status != 5 - effect):
             return refusal(o, 4)
         operation = effect + 3
@@ -184,11 +186,13 @@ def scope_complete(s:readbuf, o:mutbuf) -> u64:
             return refusal(o, 4)
         if operation == 3 and (tag != BUILD_EFFECT or outcome < 1 or outcome > 2):
             return refusal(o, 4)
+        if operation == 4 and (tag != COMPOSITION_VERDICT or outcome != 1):
+            return refusal(o, 4)
         if operation == 6 and (tag != FINITE_OBSERVATION or outcome != 2):
             return refusal(o, 4)
         if operation == 7 and (tag != FINITE_COMPLETION or outcome != 1):
             return refusal(o, 4)
-        if operation < 1 or operation == 4 or operation == 5 or operation > 7:
+        if operation < 1 or operation == 5 or operation > 7:
             return refusal(o, 4)
         at = at + 48
     if planned == 1:
@@ -541,6 +545,7 @@ def program():
                      SCOPE_COMPLETE=int.from_bytes(b'HIAEVA01', 'little'),
                      PLAN_COMPLETE=int.from_bytes(b'HIAPVR01', 'little'),
                      BUILD_EFFECT=int.from_bytes(b'HIABCO01', 'little'),
+                     COMPOSITION_VERDICT=COMPOSITION_VERDICT,
                      FINITE_OBSERVATION=FINITE_OBSERVATION,
                      FINITE_COMPLETION=FINITE_COMPLETION,
                      MACHINE_CHECK_COUNT=len(MACHINE_CHECKS),
@@ -549,6 +554,7 @@ def program():
                      LAYOUT_METHOD=METHODS.index('checked_explicit_machine_choices') + 1,
                      ENCODING_METHOD=METHODS.index('complete_native_rederivation') + 1,
                      FINITE_METHOD=METHODS.index('finite_domain') + 1,
+                     COMPOSITION_METHOD=METHODS.index('compositional_scalar_effect') + 1,
                      INVALID=4294967293)
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda match: str(constants[match[0]]), POLICY)

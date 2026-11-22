@@ -57,6 +57,8 @@ VARIANTS = {
     'worker-finite-transcript': ('worker_finite_transcript', 'hepta.hia.worker-finite-transcript-native.v1'),
     'worker-compositional-skeleton': ('worker_compositional_skeleton',
                                      'hepta.hia.worker-compositional-skeleton-native.v1'),
+    'worker-compositional-replay': ('worker_compositional_replay',
+                                   'hepta.hia.worker-compositional-replay-native.v1'),
     'emit-build-observation': ('worker_emit_build_observation', 'hepta.hia.emit-build-observation-native.v1'),
     'emit-effect': ('worker_emit_effect', 'hepta.hia.emit-effect-native.v1'),
     'worker-profile-bindings': ('worker_profile_bindings', 'hepta.hia.worker-profile-bindings-native.v1'),
