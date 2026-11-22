@@ -12,7 +12,9 @@ from tools.generate_hia_worker_request import replace_once
 
 TOOL = 'hia_verify'
 ROOT = Path('examples/hia_bootstrap')
-ERRORS = tuple(item for item in CONTEXT_ERRORS if item[:2] in ((7, 1), (7, 2), (8, 1), (8, 2), (8, 3)))
+ERRORS = (*[item for item in CONTEXT_ERRORS if item[:2] in ((7, 1), (7, 2), (8, 1), (8, 2), (8, 3))],
+          (8, 5, 'E_HIA_MACHINE_PLAN', 'the retained machine plan is invalid for the admitted Core',
+           'correct_input', 'verification'))
 
 
 def verify_journal(raw):

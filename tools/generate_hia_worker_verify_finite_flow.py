@@ -45,6 +45,8 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return BAD
     if (operation == RUN or operation == MAKE) and valid_fd(input_word(s, 32)) == False:
         return BAD
+    if state == RETAINED_BYTES or (state >= VERIFY_PLAN_CANONICAL and state <= VERIFY_PLAN_REGISTERS):
+        return verify_plan_observation(s, o, w, state)
     if state == INSPECTION_HASH_RETURNED:
         if size < 88 or size > 105:
             return BAD
@@ -54,6 +56,41 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if state >= EMIT_COMPLETE_INPUT and state <= EMIT_COMPLETE_SUMMARIES:
         return emit_complete_state(s, o, w, state)
     return verify_finite_observation(s, o, w, state)
+'''
+
+SUBJECT_PLAN = r'''
+def verify_plan_observation(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    size = input_word(s, 40)
+    if state == RETAINED_BYTES:
+        if get(w, RETAINED_PURPOSE) != READ_EMIT_PLAN or size < 2:
+            return BAD
+        sample_span(s, w, EMIT_RAW_PLAN)
+        put(o, HEADER, get(w, 24))
+        use_span(w, o, EMIT_RAW_PLAN, 0)
+        return action(o, w, VERIFY_PLAN_CANONICAL, RUN, EMIT_CANONICAL_ROLE, 0, 1, 8)
+    if state == VERIFY_PLAN_CANONICAL:
+        if plan_ok(s) == False or size < 10:
+            return verify_plan_result(w, VERIFY_PLAN_INVALID)
+        body_span(s, w, EMIT_CANONICAL_PLAN)
+        return verify_plan_schedule(o, w)
+    if state == VERIFY_PLAN_SCHEDULE:
+        version = emit_schedule_version(s)
+        if version == 0:
+            return verify_plan_result(w, VERIFY_PLAN_INVALID)
+        if version == 4:
+            return verify_plan_registers(o, w)
+        return verify_plan_result(w, VERIFY_PLAN_ADMITTED)
+    if state == VERIFY_PLAN_REGISTERS:
+        version = input_word(s, 80)
+        if (plan_ok(s) == False or size < 104 or input_word(s, 72) != EMIT_REPLAY_REGISTER_TAG
+                or (version != 3 and version != 4) or input_word(s, 96) != size - 8):
+            return verify_plan_result(w, VERIFY_PLAN_INVALID)
+        return verify_plan_result(w, VERIFY_PLAN_ADMITTED)
+    return BAD
+
+def verify_plan_result(w:mutbuf, next:u64) -> u64:
+    put(w, 0, next)
+    return VERIFY_FINITE_READY
 '''
 
 FRESH = r'''
@@ -212,6 +249,11 @@ def finite_constants(constants):
                      VERIFY_FINITE_REQUEST=int.from_bytes(b'HIAVEV01', 'little'),
                      VERIFY_FINITE_REPORT=int.from_bytes(b'HIAVER01', 'little'))
 
+def plan_constants(constants):
+    states = ('CANONICAL', 'SCHEDULE', 'REGISTERS', 'ADMITTED', 'INVALID')
+    constants.update({f'VERIFY_PLAN_{name}': 1330 + i for i, name in enumerate(states)})
+    constants['VERIFY_CANDIDATE_SHA'] = 10608
+
 
 def finite_recipe():
     _, parts = proof_recipe(function(ADMISSION, 'emit_admission_error'),
@@ -247,7 +289,13 @@ def finite_recipe():
         source = function(policy, name).replace('    put(o, 184, 1)',
                                                  '    put(o, 144, get(w, VERIFY_FINITE_END))\n    put(o, 184, 1)')
         policy = replace_function(policy, name, source)
-    return reachable_policy('\n'.join((ENTRY, FRESH, policy, function(ENTRY_POLICY, 'valid_fd'))),
+    plan_inputs = ('INSPECTION_CORE', 'VERIFY_CANDIDATE_SHA', 'EMIT_CANONICAL_PLAN')
+    return reachable_policy('\n'.join((
+        ENTRY, FRESH, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
+        splice_list('verify_plan_schedule', 'VERIFY_PLAN_SCHEDULE', plan_inputs, role='EMIT_LAYOUT_ROLE'),
+        splice_list('verify_plan_registers', 'VERIFY_PLAN_REGISTERS', plan_inputs,
+                    role='EMIT_REPLAY_WITNESS_ROLE'),
+    )),
                             'verify_finite_flow')
 
 
@@ -255,6 +303,7 @@ def program():
     constants, _, _ = native_recipe()
     constants.update(EMIT_WORK_BYTES=12288)
     finite_constants(constants)
+    plan_constants(constants)
     entry, controls = finite_recipe()
     return flow_source(entry, controls, constants)
 

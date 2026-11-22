@@ -10,8 +10,9 @@ from tools.generate_hia_worker_context_flow import flow_source, function
 from tools.generate_hia_worker_adopt_flow import OUTCOME
 from tools.generate_hia_worker_emit_flow import DISPATCH, REACTOR, REQUEST, native_recipe
 from tools.generate_hia_worker_emit_measurement import MEASUREMENT, splice_list
+from tools.generate_hia_worker_emit_proof import PLAN
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
-from tools.generate_hia_worker_verify_finite_flow import finite_constants
+from tools.generate_hia_worker_verify_finite_flow import finite_constants, plan_constants
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_flow.hepta')
 
@@ -102,7 +103,8 @@ def verify_after_profile(o:mutbuf, w:mutbuf) -> u64:
         return emit_open_profile(o, w, choose(kind == 2, 3, 4), VERIFY_SUBJECT_REFS + 24)
     if stage == VERIFY_STAGE_SUBJECT_PROFILE:
         if kind == 3:
-            return VERIFY_NEEDS_SUBJECT_CUSTODY
+            move_fragment(w, VERIFY_SUBJECT_REFS + 48, INSPECTION_REFERENCE)
+            return emit_proof_read(o, w, READ_EMIT_PLAN, 0)
         return verify_scope_input(o, w)
     return BAD
 
@@ -368,6 +370,7 @@ def verify_complete(o:mutbuf, w:mutbuf) -> u64:
 
 def constants_for_verify(constants):
     finite_constants(constants)
+    plan_constants(constants)
     states = ('BASE_NULL', 'SUBJECT_FRAME', 'SUBJECT_INDEX', 'SUBJECT_OFFSETS', 'SCOPE_READY',
               'CANDIDATE_HASH', 'CANDIDATE_INPUT_HASH', 'ORIGINAL_HASH', 'OUTCOME')
     spans = ('VALIDATION', 'BASE', 'SUBJECT', 'CONTEXT_ID', 'CANDIDATE_SHA', 'CANDIDATE',
@@ -407,6 +410,9 @@ def recipe():
         '    if state == 0:\n        return artifact_entry(s, o, w)',
         '    if state == 0:\n        return artifact_entry(s, o, w)\n'
         '    if state == VERIFY_FINITE_DELIVERED:\n        return verify_observed(o, w)\n'
+        '    if state == VERIFY_PLAN_ADMITTED:\n        return verify_scope_input(o, w)\n'
+        '    if state == VERIFY_PLAN_INVALID:\n        if get(w, VERIFY_REPLAYING) != 0:\n            return BAD\n'
+        '        return emit_admission_error(o, w, 8, 5)\n'
         '    if state == VERIFY_RESULT_READY:\n'
         '        return verify_complete(o, w)',
     )
@@ -458,6 +464,14 @@ def recipe():
     controls = controls.replace('return inspection_feedback(o, w, get(w, EMIT_STAGE), 1, EMIT_PUBLIC_ERROR)',
                                 'return verify_outcome(o, w, 2, EMIT_PUBLIC_ERROR)')
     controls = controls.replace(
+        '    if reason >= READ_EMIT_PLAN:\n'
+        '        return EMIT_DEFER_PROOF\n',
+        '    if reason == READ_EMIT_PLAN:\n'
+        '        return VERIFY_NEEDS_FINITE\n'
+        '    if reason > READ_EMIT_PLAN:\n'
+        '        return BAD\n',
+    )
+    controls = controls.replace(
         '    if reason == READ_EMIT_PROFILE and (get(w, EMIT_STAGE) == 6 or get(w, EMIT_STAGE) == 9):\n'
         '        return emit_proof_profile_finished(o, w)\n', '',
     )
@@ -490,9 +504,10 @@ def recipe():
         '        sample_span(s, w, EMIT_PUBLIC_ERROR)\n'
         '        return verify_outcome(o, w, 2, EMIT_PUBLIC_ERROR)\n', '')
     trust = function(DISPATCH, 'emit_trust_spans')
+    read_plan = function(PLAN, 'emit_proof_read')
     wide_make = function(MEASUREMENT, 'emit_wide_make')
     policy = '\n'.join((driver, controls, INGRESS, CUSTODY, SUBJECT, SUBJECT_INDEX, CHECKS, REPLAY,
-                        scope, support, outcome, trust, wide_make))
+                        scope, support, outcome, trust, wide_make, read_plan))
     entry, parts = reachable_policy(policy, 'verify_flow')
     return constants, entry, parts
 
