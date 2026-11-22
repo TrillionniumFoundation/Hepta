@@ -62,7 +62,11 @@
 .else
 .ifdef WORKER_CONTEXT
 .ifdef WORKER_INSPECTION
+.ifdef WORKER_CANDIDATE
+.equ ROLE_COUNT, 38
+.else
 .equ ROLE_COUNT, 40
+.endif
 .else
 .equ ROLE_COUNT, 31
 .endif
@@ -688,6 +692,12 @@ worker_policy_hole: .long 0
  je .Lquery_child_name
  cmp rcx, 3
  je .Lobject_child_name
+ .ifdef WORKER_CANDIDATE
+ cmp rcx, 4
+ je .Lverify_core_name
+ cmp rcx, 5
+ je .Lverify_assembly_name
+ .endif
  .endif
  cmp rcx, 1
  jne .Lrefused
@@ -699,6 +709,14 @@ worker_policy_hole: .long 0
  jmp .Lchild_name_ready
 .Lobject_child_name:
  lea rax, [rip+.Lobject_name]
+ .ifdef WORKER_CANDIDATE
+ jmp .Lchild_name_ready
+.Lverify_core_name:
+ lea rax, [rip+.Lverify_core]
+ jmp .Lchild_name_ready
+.Lverify_assembly_name:
+ lea rax, [rip+.Lverify_assembly]
+ .endif
  .endif
 .Lchild_name_ready:
  .endif
@@ -1614,7 +1632,11 @@ worker_policy_hole: .long 0
 .ifdef WORKER_ARTIFACT
 .ifdef WORKER_CONTEXT
 .ifdef WORKER_INSPECTION
+.ifdef WORKER_CANDIDATE
+.Lmode: .asciz "--worker-candidate"
+.else
 .Lmode: .asciz "--worker-inspection"
+.endif
 .else
 .Lmode: .asciz "--worker-context"
 .endif
@@ -1639,8 +1661,15 @@ worker_policy_hole: .long 0
 .ifdef WORKER_CONTEXT
 .Lnominal_child_name: .asciz "hia-admit-agent-json"
 .ifdef WORKER_INSPECTION
+.ifdef WORKER_CANDIDATE
+.Lquery_name: .asciz "hia-import-assembly"
+.Lobject_name: .asciz "hia-patch-result"
+.Lverify_core: .asciz "hia-verify-core-json"
+.Lverify_assembly: .asciz "hia-check-assembly-accepted"
+.else
 .Lquery_name: .asciz "hia-prepare-agent-edit-query"
 .Lobject_name: .asciz "hia-emit-object"
+.endif
 .endif
 .endif
 .ifdef WORKER_LAUNCHER
@@ -1654,7 +1683,11 @@ worker_policy_hole: .long 0
 .else
 .ifdef WORKER_CONTEXT
 .ifdef WORKER_INSPECTION
+.ifdef WORKER_CANDIDATE
+.Ldiagnostic: .ascii "native HIA Candidate Worker transport refused\n"
+.else
 .Ldiagnostic: .ascii "native HIA Inspection Worker transport refused\n"
+.endif
 .else
 .Ldiagnostic: .ascii "native HIA Context Worker transport refused\n"
 .endif

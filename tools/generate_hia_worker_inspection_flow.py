@@ -809,7 +809,7 @@ def store_controls():
     )
 
 
-def program():
+def recipe():
     constants = policy_constants()
     roles = ('CONTEXT_BIND_ROLE', 'NOMINAL_ROLE')
     constants.update({name: index for name, index in zip(roles, (25, 30))})
@@ -926,6 +926,11 @@ def program():
         function(MANIFEST_POLICY, 'vector_part'), function(RETAINED_POLICY, 'artifact_command'),
         function(RELEASE_WRITER, 'get'),
     )
+    return constants, controls
+
+
+def program():
+    constants, controls = recipe()
     return flow_source(DRIVER, (EFFECT_DRIVER, VIEW_DRIVER, DOCUMENT_DRIVER, RETAINED_DRIVER, STORE_DRIVER, *controls),
                        constants)
 
