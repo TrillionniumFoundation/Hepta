@@ -85,6 +85,13 @@ NOMINAL_BUILD_SOURCES = {
     key: NOMINAL_COMPONENTS[key]
     for key in (*NOMINAL_BUILD_IMAGES, 'owner', 'render', 'nominal-json', 'linker')
 }
+REGISTER_RELAY = 'tools/hia_core_edit_register_relay.inc'
+REGISTER_RELAY_INCLUDE = b'.include "hia_core_edit_register_relay.inc"\n'
+REGISTER_IMAGES = {
+    BOOTSTRAP + 'sha256.hepta': 'register_hash',
+    BOOTSTRAP + 'worker_register_schedule.hepta': 'register_schedule',
+    BOOTSTRAP + 'worker_register_layout.hepta': 'register_layout',
+}
 OBJECT_BUILD_IMAGES = {
     CORE_ADMISSION: 'build_core',
     EDIT + 'publication_frontend.hepta': 'build_frontend',
@@ -95,6 +102,7 @@ OBJECT_BUILD_IMAGES = {
     BOOTSTRAP + 'safe_core_elf_inventory.hepta': 'build_shared_inventory',
     BOOTSTRAP + 'sha256_stream.hepta': 'build_shared_hash',
     CLI + 'shared_build_report.hepta': 'build_shared_report',
+    **{path: 'build_' + label for path, label in REGISTER_IMAGES.items()},
 }
 EDIT_QUERY_IMAGES = {
     BOOTSTRAP + 'core_patch.hepta': 'edit_base_extract',
@@ -252,9 +260,7 @@ PROGRAMS = {
         (CLI + 'build_backend.hepta', ('byte_address',)),
         (BOOTSTRAP + 'borrowed_export_wire.hepta', ('borrowed_export',)),
         (BOOTSTRAP + 'borrowed_wrapper.hepta', ('borrowed_wrapper',)),
-        (BOOTSTRAP + 'sha256.hepta', ('register_hash',)),
-        (BOOTSTRAP + 'worker_register_schedule.hepta', ('register_schedule',)),
-        (BOOTSTRAP + 'worker_register_layout.hepta', ('register_layout',)),
+        *((path, (label,)) for path, label in REGISTER_IMAGES.items()),
     )),
     'build_object': ('hia-build-object', tuple((path, ()) for path in OBJECT_BUILD_IMAGES)),
     'publish_program': ('hia-publish-program', (
@@ -305,6 +311,10 @@ NOMINAL_ADAPTER_ROLES[_BUILD_ADAPTER] = (NOMINAL_BUILD_GROUP, NOMINAL_ADAPTER_RO
 
 def digest(raw):
     return sha256(raw).hexdigest()
+
+
+def expand_register_relay(source, relay):
+    return source.replace(REGISTER_RELAY_INCLUDE, relay)
 
 
 class ReleaseCompressor:
@@ -507,7 +517,8 @@ def build(output, compiler, cold_report, *, release_only=False):
     source_files = {PACKER, *adapter_groups, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER,
                     RELEASE_DEFLATE, EMBED_SOURCE,
                     *assembly_images, *SELFHOST_CORE_SOURCES, *adapters.values(),
-                    NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE, *NOMINAL_BUILD_SOURCES.values(),
+                    NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE,
+                    REGISTER_RELAY, *NOMINAL_BUILD_SOURCES.values(),
                     *(path for _name, roles in programs.values() for path, _calls in roles
                       if path not in (DISPATCH_ARCHIVE, ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION,
                                       SELFHOST_CORE_ARCHIVE))}
@@ -543,7 +554,8 @@ def build(output, compiler, cold_report, *, release_only=False):
     embedder = NativeHiaJsonImage(images[EMBED_SOURCE], receipts[EMBED_SOURCE]['produced_sha256'])
     templates = {path: NativeHiaJsonImage(images[path], receipts[path]['produced_sha256'])
                  for path in adapter_groups}
-    nominal_objects = {name: load_static_object(templates[group], role, sources[name])
+    nominal_objects = {name: load_static_object(templates[group], role,
+                         expand_register_relay(sources[name], sources[REGISTER_RELAY]))
                        for name, (group, role) in NOMINAL_ADAPTER_ROLES.items()}
     launcher = load_static_adapter(templates, EXEC_LAUNCHER, sources[EXEC_LAUNCHER])
     supplied_proof = build_supplied_proof(output / 'supplied-proof', compiler, cold_report)
@@ -569,7 +581,8 @@ def build(output, compiler, cold_report, *, release_only=False):
                                              compressor, prover=prover)
             products[name] = (binary, {**details, **packed})
             continue
-        stub, holes, adapter_hash = load_static_adapter(templates, adapter, sources[adapter])
+        stub, holes, adapter_hash = load_static_adapter(templates, adapter,
+            expand_register_relay(sources[adapter], sources[REGISTER_RELAY]))
         binary, details = pack(packer, stub, holes, [images[path] for path, _calls in roles])
         details = {'elf': details, 'adapter_object_sha256': adapter_hash}
         if kind == 'selfhost_component':

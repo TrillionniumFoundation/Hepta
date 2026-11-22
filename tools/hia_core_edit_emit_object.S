@@ -31,15 +31,6 @@
 .equ layout_fd,304
 .equ layout_stat,320
 .equ register_selection,1024
-.equ register_input,1032
-.equ register_input_extent,1040
-.equ register_output,1048
-.equ register_workspace,1056
-.equ register_schedule_extent,1064
-.equ register_digest,1088
-.equ register_hash_work,1120
-.equ REGISTER_OUTPUT_N,16777216
-.equ REGISTER_WORK_N,134217728
 _start:
  xor r15d,r15d
  xor ebx,ebx
@@ -150,6 +141,8 @@ core_hole: .long 0
  jnz native_status
  cmp QWORD PTR [rbp+register_selection],0
  je protect_core_input
+ mov rsi,[rbp+layout_extent]
+ xor edx,edx
  call realize_register_plan
 protect_core_input:
  mov rdi,r12
@@ -686,116 +679,7 @@ layout_captured:
 register_input_captured:
  ret
 
-# The only public input is a sealed Plan, not caller-supplied coordinates.
-# Bind both HIA projections to the re-admitted immutable Core and its digest.
-realize_register_plan:
- sub rsp,8
- mov rdi,r12
- mov rsi,[rbp+88]
- lea rdx,[rbp+register_digest]
- mov ecx,32
- lea r8,[rbp+register_hash_work]
- mov r9d,1088
- .byte 0xe8
-register_hash_hole: .long 0
- cmp rax,32
- jne invalid
- mov rsi,[rbp+88]
- add rsi,[rbp+layout_extent]
- add rsi,70
- mov [rbp+register_input_extent],rsi
- call allocate
- mov [rbp+register_input],rax
- mov rdi,rax
- mov al,91
- stosb
- mov rsi,r12
- mov rcx,[rbp+88]
- rep movsb
- mov ax,0x222c
- stosw
- xor r10d,r10d
-register_hex:
- movzx eax,BYTE PTR [rbp+r10+register_digest]
- mov edx,eax
- shr eax,4
- and edx,15
- lea r11,[rip+hex_digits]
- mov al,[r11+rax]
- stosb
- mov al,[r11+rdx]
- stosb
- inc r10
- cmp r10,32
- jb register_hex
- mov ax,0x2c22
- stosw
- lea rsi,[r12+SOURCE_N]
- mov rcx,[rbp+layout_extent]
- rep movsb
- mov al,93
- stosb
- sub rdi,[rbp+register_input]
- cmp rdi,[rbp+register_input_extent]
- jne invalid
- mov rdi,[rbp+register_input]
- mov rsi,[rbp+register_input_extent]
- mov edx,1
- call protect
- mov esi,REGISTER_OUTPUT_N
- call allocate
- mov [rbp+register_output],rax
- mov esi,REGISTER_WORK_N
- call allocate
- mov [rbp+register_workspace],rax
- mov rdi,[rbp+register_input]
- mov rsi,[rbp+register_input_extent]
- mov rdx,[rbp+register_output]
- mov ecx,REGISTER_OUTPUT_N
- mov r8,rax
- mov r9d,REGISTER_WORK_N
- .byte 0xe8
-register_schedule_hole: .long 0
- cmp rax,80
- jb invalid
- cmp rax,LAYOUT_N
- ja native_status
- mov [rbp+register_schedule_extent],rax
- mov rcx,rax
- lea rdi,[r12+SOURCE_N]
- mov rsi,[rbp+register_output]
- rep movsb
- mov rdi,[rbp+register_input]
- mov rsi,[rbp+register_input_extent]
- mov rdx,[rbp+register_output]
- mov ecx,REGISTER_OUTPUT_N
- mov r8,[rbp+register_workspace]
- mov r9d,REGISTER_WORK_N
- .byte 0xe8
-register_layout_hole: .long 0
- cmp rax,96
- jb invalid
- cmp rax,LAYOUT_N
- ja native_status
- mov rcx,rax
- add rax,[rbp+register_schedule_extent]
- cmp rax,LAYOUT_N
- ja capacity
- lea rdi,[r12+SOURCE_N]
- add rdi,[rbp+register_schedule_extent]
- mov rsi,[rbp+register_output]
- rep movsb
- mov rdi,[rbp+register_input]
- mov rsi,[rbp+register_input_extent]
- call release
- mov rdi,[rbp+register_output]
- mov esi,REGISTER_OUTPUT_N
- call release
- mov rdi,[rbp+register_workspace]
- mov esi,REGISTER_WORK_N
- call release
- add rsp,8
- ret
+.include "hia_core_edit_register_relay.inc"
 
 # The pinned HIA binder returns the span of the *same* Core and a bounded
 # per-ordinal wrapper request. This port moves only checked spans.
@@ -1061,5 +945,3 @@ layout_argument:
  .asciz "--planned-layout"
 register_argument:
  .asciz "--planned-registers"
-hex_digits:
- .ascii "0123456789abcdef"

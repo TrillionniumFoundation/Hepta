@@ -9,12 +9,16 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.build_hia_agent_batch_commit import assemble_adapter
 from tools.build_hia_core_edit import (
     ADAPTER_RECORD, NOMINAL_ADAPTER, NOMINAL_ADAPTER_ROLES, NOMINAL_TEMPLATE_GROUPS,
-    ROOT, STATIC_ADAPTER_ROLES, STATIC_ADAPTERS,
-    STATIC_RELOCATIONS,
+    REGISTER_RELAY, ROOT, STATIC_ADAPTER_ROLES, STATIC_ADAPTERS, STATIC_RELOCATIONS,
+    expand_register_relay,
 )
 from tools.generate_hia_relocatable_templates import render_objects
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_elf_linker import SOURCE as LINK_SOURCE
+
+
+def read_adapter_source(name):
+    return expand_register_relay((ROOT / name).read_bytes(), (ROOT / REGISTER_RELAY).read_bytes())
 
 
 def render(group):
@@ -32,7 +36,7 @@ def render(group):
             relocations = STATIC_RELOCATIONS[name]
             folder = Path(temporary) / str(role)
             folder.mkdir()
-            source = (ROOT / name).read_bytes()
+            source = read_adapter_source(name)
             stub, symbols, identity = assemble_adapter(folder, name, source)
             offsets = [symbols[call + '_hole'] for call, _target in relocations]
             record = ADAPTER_RECORD.pack(sha256(source).digest(), sha256(stub).digest(),
@@ -53,7 +57,7 @@ def render(group):
 def render_nominal(group):
     roles = ((name, role, b'.set HIA_NOMINAL_BUILD,1\n' if name == NOMINAL_ADAPTER else b'')
              for name, (path, role) in NOMINAL_ADAPTER_ROLES.items() if path == group)
-    return render_objects(group, roles)
+    return render_objects(group, roles, read_source=read_adapter_source)
 
 
 if __name__ == '__main__':

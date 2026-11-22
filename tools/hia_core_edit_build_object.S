@@ -38,7 +38,7 @@
 .equ HASH_STATE_BYTES,1184
 .equ HASH_STATE,2048
 .equ REPORT_SCRATCH,3328
-.equ IMAGE_LIMIT,7<<20
+.equ IMAGE_LIMIT,8<<20
 .equ PROVER_FD,3440
 .equ PROOF_INPUT,3448
 .equ PROOF_OUTPUT,3456
@@ -56,7 +56,8 @@
 .equ PLAN_STAT,3680
 .equ PLAN_EXTENT,3824
 .equ PLAN_REPORT_CAPACITY,3832
-.equ PLAN_BYTES,8388608
+.equ LAYOUT_N,8388608
+.equ PLAN_BYTES,LAYOUT_N
 .equ PLAN_HEADER,80
 .equ PLAN_NORMALIZED_HEADER,144
 .equ PLAN_PREFIX_BYTES,3840
@@ -334,6 +335,16 @@ check_core:
  je lower_nominal
 core_verified:
  call require_native_zero
+ movabs rax,0x3330515645414948    # HIAEVQ03
+ cmp [rbp+PLAN_PREFIX],rax
+ jne protect_core_arena
+ lea rdx,[rbp+PLAN_PREFIX+80]
+ mov rsi,[rbp+PLAN_EXTENT]
+ call realize_register_plan
+ lea rdi,[r12+SOURCE_N]
+ mov esi,PLAN_BYTES
+ call protect_readonly
+protect_core_arena:
  mov rdi,r12
  mov esi,SOURCE_N
  call protect_readonly
@@ -1339,7 +1350,7 @@ capture_build_plan:
  syscall
  test rax,rax
  jne io_failure
- cmp QWORD PTR [rbp+PLAN_STAT+48],PLAN_HEADER+40
+ cmp QWORD PTR [rbp+PLAN_STAT+48],PLAN_HEADER+2
  jb invalid
  lea rdi,[rbp+PLAN_PREFIX]
  mov esi,PLAN_HEADER
@@ -1350,9 +1361,17 @@ capture_build_plan:
  je basic_build_plan
  movabs rax,0x3230515645414948    # HIAEVQ02
  cmp rax,[rbp+PLAN_PREFIX]
+ je normalized_build_plan
+ movabs rax,0x3330515645414948    # HIAEVQ03, followed by exact canonical Plan JSON
+ cmp rax,[rbp+PLAN_PREFIX]
  jne invalid
+ cmp QWORD PTR [rbp+PLAN_STAT+48],PLAN_NORMALIZED_HEADER+2
+ jb invalid
+ jmp extended_build_plan
+normalized_build_plan:
  cmp QWORD PTR [rbp+PLAN_STAT+48],PLAN_NORMALIZED_HEADER+40
  jb invalid
+extended_build_plan:
  lea rdi,[rbp+PLAN_PREFIX+PLAN_HEADER]
  mov esi,PLAN_NORMALIZED_HEADER-PLAN_HEADER
  mov edx,PLAN_HEADER
@@ -1360,6 +1379,8 @@ capture_build_plan:
  mov edx,PLAN_NORMALIZED_HEADER
  jmp plan_header_loaded
 basic_build_plan:
+ cmp QWORD PTR [rbp+PLAN_STAT+48],PLAN_HEADER+40
+ jb invalid
  mov edx,PLAN_HEADER
 plan_header_loaded:
  cmp QWORD PTR [rbp+PLAN_PREFIX+8],0
@@ -1373,12 +1394,20 @@ plan_header_loaded:
  lea rdi,[r12+SOURCE_N]
  mov rsi,rax
  call read_build_plan_bytes
+ movabs rax,0x3330515645414948
+ cmp [rbp+PLAN_PREFIX],rax
+ je build_plan_captured
  lea rdi,[r12+SOURCE_N]
  mov rax,[rbp+PLAN_EXTENT]
  cmp [rdi+16],rax
  jne invalid
  mov esi,PLAN_BYTES
  jmp protect_readonly
+build_plan_captured:
+ ret
+
+.set HIA_NOMINAL_REGISTERS,1
+.include "hia_core_edit_register_relay.inc"
 
 read_build_plan_bytes:
  mov r10,rdx
@@ -1802,12 +1831,12 @@ copy_digest:
  mov QWORD PTR [rbp+NOMINAL_PRESENT],1
  # Retry independent Core admission in fresh, disjoint memory.
  mov rdi,r12
- mov esi,SOURCE_N
+ mov rsi,[rbp+SOURCE_EXTENT]
  call release
  mov rdi,r13
  mov esi,CORE_N
  call release
- mov esi,SOURCE_N
+ mov rsi,[rbp+SOURCE_EXTENT]
  call allocate
  mov r12,rax
  mov [rbp],rax
@@ -1817,6 +1846,10 @@ copy_digest:
  mov [rbp+88],rcx
  cld
  rep movsb
+ cmp QWORD PTR [rbp+PLAN_FD],0
+ je allocate_lowered_core
+ call capture_build_plan
+allocate_lowered_core:
  mov esi,CORE_N
  call allocate
  mov r13,rax

@@ -293,6 +293,7 @@ CORE_EDIT_SDIST_FILES = (
     'tools/hia_core_edit_catalog.S',
     'tools/hia_core_edit_dispatch.S',
     'tools/hia_core_edit_emit_object.S',
+    'tools/hia_core_edit_register_relay.inc',
     'tools/hia_core_edit_import_assembly.S',
     'tools/hia_core_edit_inspect_core_json.S',
     'tools/hia_core_edit_normalize_core.S',

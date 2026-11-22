@@ -21,6 +21,7 @@ EXPORT_MAGIC = b'HIASEX01'
 EXPORT_NAMES_MAGIC = b'HIASEN01'
 PLAN_QUALIFIED_MAGIC = b'HIAEVQ01'
 PLAN_NORMALIZED_MAGIC = b'HIAEVQ02'
+PLAN_REGISTER_MAGIC = b'HIAEVQ03'
 SYMBOL_MAGIC = b'HIAELFA2'
 ELF_MAGIC = b'\x7fELF\x02\x01\x01\x00'
 SYMBOL_WORK = 16 + 65536 * 24
@@ -38,7 +39,7 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if n < 8:
         return 4294967293
     magic = word_load(s, 0)
-    if magic == PLAN_QUALIFIED_INPUT_MAGIC or magic == PLAN_NORMALIZED_INPUT_MAGIC:
+    if magic == PLAN_QUALIFIED_INPUT_MAGIC or magic == PLAN_NORMALIZED_INPUT_MAGIC or magic == PLAN_REGISTER_INPUT_MAGIC:
         return planned_report(s, o, choose(magic == PLAN_QUALIFIED_INPUT_MAGIC, 80, 144))
     if magic == ELF_INPUT_MAGIC:
         return linked_import_mask(s, w)
@@ -431,6 +432,7 @@ def source_program():
               .replace('PROOF_INPUT_MAGIC', str(int.from_bytes(PROOF_MAGIC, 'little')))
               .replace('PLAN_QUALIFIED_INPUT_MAGIC', str(int.from_bytes(PLAN_QUALIFIED_MAGIC, 'little')))
               .replace('PLAN_NORMALIZED_INPUT_MAGIC', str(int.from_bytes(PLAN_NORMALIZED_MAGIC, 'little')))
+              .replace('PLAN_REGISTER_INPUT_MAGIC', str(int.from_bytes(PLAN_REGISTER_MAGIC, 'little')))
               .replace('EXPORT_INPUT_MAGIC', str(int.from_bytes(EXPORT_MAGIC, 'little')))
               .replace('EXPORT_NAMES_INPUT_MAGIC', str(int.from_bytes(EXPORT_NAMES_MAGIC, 'little')))
               .replace('ELF_INPUT_MAGIC', str(int.from_bytes(ELF_MAGIC, 'little')))

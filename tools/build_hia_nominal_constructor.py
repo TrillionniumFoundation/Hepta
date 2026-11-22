@@ -11,6 +11,7 @@ from tools.build_hia_nominal_json import admit_compile_receipt
 from tools.build_hia_sqlite_pager import (
     EMBED_SOURCE, ROOT, build_embedder, digest, embed, link, load_static_object, verify_executable, write_new,
 )
+from tools.generate_hia_elf_linker import OUTPUT_LIMIT
 from tools.qualify_hia_selfhost import compile_stage
 
 
@@ -26,9 +27,8 @@ TRANSPORT_TEMPLATES = {
 TRANSPORT_ROLES = (ADAPTER, PUBLICATION_ADAPTER, ASSEMBLY_ADAPTER)
 NOMINAL_IMAGE_LABELS = {'owner': 'core_nominal_owner', 'render': 'core_nominal_render',
                         'nominal-json': 'core_nominal_codec'}
-# Keep the private implementation ELF below the static linker's 8 MiB output bound.
-# The packed launcher inflates it in independent 512 KiB blocks.
-ORDINARY_CLI_IMAGE_CAPACITY = 7 << 20
+# The packed launcher inflates the private static ELF in 512 KiB blocks.
+ORDINARY_CLI_IMAGE_CAPACITY = OUTPUT_LIMIT
 COMPONENTS = {
     'nominal-json': 'examples/hia_bootstrap/nominal_json.hepta',
     'owner': 'examples/hia_bootstrap/composite_constructor_owner.hepta',
