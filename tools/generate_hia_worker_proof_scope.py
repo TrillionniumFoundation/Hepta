@@ -282,8 +282,7 @@ def method_statements():
                           for ordinal, item in enumerate(METHODS, 1))
 
 
-def proof_key_source():
-    primary = KEYS[:-len(EXTRA_KEYS)]
+def split_key_table(primary, remaining):
     source = """
 def key_id(w:mutbuf, at:u64, extent:u64) -> u64:
     field = scope_key(w, at, extent)
@@ -296,7 +295,7 @@ def key_id(w:mutbuf, at:u64, extent:u64) -> u64:
 """
     return '\n'.join((source.replace('KEY_OFFSET', str(len(primary))),
                       comparison_table('scope_key', primary),
-                      comparison_table('evidence_key', EXTRA_KEYS)))
+                      comparison_table('evidence_key', remaining)))
 
 
 def program():
@@ -311,7 +310,7 @@ def program():
         policy,
         *(function(CONTEXT, name).replace('NONE', str(constants['NONE'])) for name in ('equal_span', 'digest_text')),
         WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(constants['NONE'])),
-        proof_key_source(), selector('method', METHODS),
+        split_key_table(KEYS[:-len(EXTRA_KEYS)], EXTRA_KEYS), selector('method', METHODS),
         selector('subject', KINDS), selector('status', STATUSES), selector('claim', CLAIMS),
         method_statements(), wire_text('result_schema', PROOF_SCHEMA),
         wire_text('assumptions_schema', 'hepta.hia.agent.proof-assumptions.v1'),

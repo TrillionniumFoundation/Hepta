@@ -52,6 +52,7 @@ VARIANTS = {
     'emit-effect': ('worker_emit_effect', 'hepta.hia.emit-effect-native.v1'),
     'worker-profile-bindings': ('worker_profile_bindings', 'hepta.hia.worker-profile-bindings-native.v1'),
     'worker-proof-scope': ('worker_proof_scope', 'hepta.hia.worker-proof-scope-native.v1'),
+    'retained-build': ('worker_retained_build', 'hepta.hia.retained-build-native.v1'),
     'rollback-journal': ('worker_rollback_journal', 'hepta.hia.rollback-journal-native.v1'),
     'rollback-journal-observation': ('worker_rollback_journal_observation', 'hepta.hia.rollback-journal-observation-native.v1'),
     'rollback-journal-records': ('worker_rollback_journal_records', 'hepta.hia.rollback-journal-records-native.v1'),
