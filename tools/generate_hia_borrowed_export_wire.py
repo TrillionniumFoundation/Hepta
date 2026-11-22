@@ -11,6 +11,7 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_exec_release import POLICY_SOURCE as RELEASE
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
+from tools.generate_hia_shared_build_report import EXPORT_NAMES_MAGIC
 from tools.generate_hia_worker_context_request import NONE, POLICY as CONTEXT, literal, literal_match
 from tools.generate_hia_worker_inspection_effect import function
 
@@ -59,7 +60,7 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if get(w, mode) != 3 or get(w, mode + 32) != 1:
             return INVALID
         binding = byte(s, get(w, mode + 24)) - 48
-        if binding < 1 or binding > 3:
+        if binding < 1 or binding > 4:
             return INVALID
     if get(w, manifest) != 5 or get(w, manifest + 32) > 128:
         return BAD_TUPLE
@@ -79,8 +80,8 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(o, 24, extent)
         at = 32
     if count == 0:
-        if binding == 3:
-            return signature_document(s, w, o, core, 0)
+        if binding >= 3:
+            return signature_document(s, w, o, core, 0, binding)
         return 16
     if level != 48 or lookup(w, core, 6) != NONE:
         return NOMINAL_CONFLICT
@@ -116,8 +117,8 @@ def borrowed_exports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return BAD_ENTRY
         index = index + 1
         child = get(w, pair + 16)
-    if binding == 3:
-        return signature_document(s, w, o, core, count)
+    if binding >= 3:
+        return signature_document(s, w, o, core, count, binding)
     if binding != 0:
         return wrapper_requests(w, o, fns, count, at)
     index = 0
@@ -265,7 +266,7 @@ def type_id(w:mutbuf, node:u64) -> u64:
 SIGNATURES = r'''
 # Render signatures from the same admitted Core and the normalized export
 # rows. The transport never reconstructs function names, types or extents.
-def signature_document(s:readbuf, w:mutbuf, o:mutbuf, core:u64, borrowed:u64) -> u64:
+def signature_document(s:readbuf, w:mutbuf, o:mutbuf, core:u64, borrowed:u64, mode:u64) -> u64:
     functions = lookup(w, core, 1)
     declared = lookup(w, core, 6)
     if functions == NONE or get(w, functions) != 5 or get(w, functions + 32) > FN_LIMIT:
@@ -287,6 +288,8 @@ def signature_document(s:readbuf, w:mutbuf, o:mutbuf, core:u64, borrowed:u64) ->
             count = count + 1
         ordinal = ordinal + 1
         child = get(w, fn + 16)
+    if mode == 4:
+        return render_export_names(s, w, o, count)
     return render_signatures(s, w, o, count)
 
 def borrowed_amount(o:mutbuf, count:u64, ordinal:u64) -> u64:
@@ -348,6 +351,27 @@ def render_signatures(s:readbuf, w:mutbuf, o:mutbuf, count:u64) -> u64:
     store(o, at, 125)
     return at + 1
 
+# This separate input to the ELF inventory contains the independently
+# admitted public names, including scalar entries alongside a borrowed ABI.
+def render_export_names(s:readbuf, w:mutbuf, o:mutbuf, count:u64) -> u64:
+    if count > 128:
+        return BAD_FRAME
+    put(o, 0, EXPORT_NAMES)
+    store(o, 8, 91)
+    at = 9
+    index = 0
+    while index < count:
+        name = get(o, SIGNATURE_AT + index * 24)
+        if at >= SIGNATURE_AT - 2 or get(w, name + 64) > SIGNATURE_AT - at - 2:
+            return BAD_FRAME
+        if index != 0:
+            store(o, at, 44)
+            at = at + 1
+        at = copy_value(s, w, o, name, at)
+        index = index + 1
+    store(o, at, 93)
+    return at + 1
+
 def signature_member(s:readbuf, w:mutbuf, o:mutbuf, name:u64, fn:u64, amount:u64, at:u64) -> u64:
     if get(w, name + 64) > SIGNATURE_AT - 128 - at:
         return SIGNATURE_AT
@@ -395,6 +419,7 @@ def source_program():
     constants = {
         'TAG': TAG, 'BOUND': int.from_bytes(b'HIABEX02', 'little'),
         'BOUND_CORE': int.from_bytes(b'HIABEX03', 'little'), 'WRAPPER': WRAPPER_REQUEST,
+        'EXPORT_NAMES': int.from_bytes(EXPORT_NAMES_MAGIC, 'little'),
         'RESERVED_HEAD': int.from_bytes(b'__hia_', 'little'),
         'FN_LIMIT': MAX_FUNCTIONS, 'LOAN_LIMIT': MAX_RANGES, 'EXTENT_LIMIT': MAX_EXTENT,
         'MAX_PACKET': CORE_WITH_EXPORTS_BYTES, 'MAX_NODES': CORE_WITH_EXPORTS_NODES, 'ARENA_MIN': ARENA_BYTES,
