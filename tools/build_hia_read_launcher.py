@@ -13,6 +13,7 @@ import sys
 
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_agent_contract import installation_manifest
+from hepta.hia_agent_discovery_native import installed_agent_discovery
 from hepta.hia_agent_journal_native import _catalog_bytes
 from hepta.hia_agent_store import _agent_resource_path, wire
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
@@ -253,11 +254,10 @@ def bind_readonly_release(target, release, expected_launcher, profile_pin, *, ar
     artifact = b''
     manifest_magic, names = READONLY_MANIFEST, READONLY_ROLES
     if kind == 'native':
-        from hepta.hia_agent_service import _profile_documents
-
-        document = _profile_documents(json.loads(observed), catalog_pin.decode('ascii'),
-                                      len(roots), roots_pin.decode('ascii'))['artifact']
-        digest = sha256(wire(document)).hexdigest()
+        discovery = installed_agent_discovery(str(release / 'agent-discovery-manifest.json'))
+        document = discovery.profile_bodies(json.loads(observed), catalog_pin.decode('ascii'),
+                                            len(roots), roots_pin.decode('ascii'))['artifact']
+        digest = sha256(document).hexdigest()
         profile = wire({'id': 'hia-artifact-v1', 'sha256': digest})
         artifact = struct.pack('<8s64s2Q', ARTIFACT_CONFIG, digest.encode('ascii'), len(profile), len(roots))
         artifact += profile
