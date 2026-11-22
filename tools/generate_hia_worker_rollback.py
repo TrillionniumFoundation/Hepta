@@ -25,7 +25,7 @@ TAGS = {'REQUEST': b'HIARLQ01', 'DECISION': b'HIARLD01',
         'ANSWER': b'HIARLA01', 'RECEIPT': b'HIARLR01', 'STORE_QUERY': b'HIARLS01',
         'STORE_OBSERVE': b'HIARLO01', 'STORE_ROW': b'HIARLB01', 'COUNT': b'HIASTLC1',
         'QUERY': b'HIAQPA01', 'UPDATE': b'HIAUPB01', 'GENERATION': b'HIARLF01',
-        'PUBLIC_ERROR': b'HIARLE01', 'DOCUMENT_OBSERVE': b'HIARLP01',
+        'PUBLIC_ERROR': b'HIARLE01', 'FORMAT_COUNT': b'HIARLN01', 'DOCUMENT_OBSERVE': b'HIARLP01',
         'DOCUMENT_RESULT': b'HIARLP02', 'OUTCOME_REQUEST': b'HIARLT01', 'OUTCOME': b'HIAIND01'}
 SNAPSHOT = ('{"active_artifact":{},"context":{},"current":{},"in_flight_leases":{},'
             '"snapshot_is_adoption_authority":false,"target_slot":{}}')
@@ -46,6 +46,8 @@ def rollback_worker(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return slot_observation(s, o)
         if tag == GENERATION:
             return generation_json(s, o)
+        if tag == FORMAT_COUNT and length(s) == 16:
+            return decimal(o, 0, input_word(s, 8))
         if tag == PUBLIC_ERROR:
             return rollback_error(s, o)
         if tag == DOCUMENT_OBSERVE:
@@ -269,31 +271,30 @@ def slot_cell(o:mutbuf, at:u64, offset:u64, size:u64) -> u64:
     put(o, at + 16, size)
     return at + 24
 
-# [tag, raw row extent, correlated request id, store epoch, role, slot
-# extent] plus the exact slot bytes (role 1 only), row and 48-byte settlement.
+# Correlate the Store settlement and the exact queried primary-key fields.
 def slot_observation(s:readbuf, o:mutbuf) -> u64:
-    if length(s) < 96 or length(s) > 800:
+    if length(s) < 104 or length(s) > 808:
         return INVALID
     extent = input_word(s, 8)
     kind = input_word(s, 32)
     slot = input_word(s, 40)
+    generation = input_word(s, 48)
     if kind < 1 or kind > 3 or extent > 512 or slot > 192:
         return INVALID
-    if length(s) != 96 + slot + extent:
+    row = 56 + slot
+    if length(s) != row + extent + 48 or unique_summary(s, row + extent, extent) == False:
         return INVALID
-    if unique_summary(s, 48 + slot + extent, extent) == False:
-        return INVALID
-    if kind == 1:
-        if slot_name(s, 48, slot) == False:
+    if kind == 3:
+        if slot != 0 or generation != 0 or extent != 16 or input_word(s, row) != COUNT:
             return INVALID
-        return projected_slot(s, o, 48 + slot, extent, slot)
-    if slot != 0:
+        return copy_input(s, o, row, 0, 16)
+    if slot_name(s, 56, slot) == False:
         return INVALID
     if kind == 2:
-        return projected_version(s, o, 48, extent)
-    if extent != 16 or input_word(s, 48) != COUNT:
+        return projected_version(s, o, row, extent, slot, generation)
+    if generation != 0:
         return INVALID
-    return copy_input(s, o, 48, 0, 16)
+    return projected_slot(s, o, row, extent, slot)
 
 def projected_slot(s:readbuf, o:mutbuf, row:u64, extent:u64, slot:u64) -> u64:
     put(o, 0, STORE_ROW)
@@ -302,7 +303,7 @@ def projected_slot(s:readbuf, o:mutbuf, row:u64, extent:u64, slot:u64) -> u64:
         return 16
     if extent < 254 + slot or row_header(s, row, 7, 5) == False:
         return INVALID
-    if row_text(s, row + 32, 152, slot) == False or matches(s, row + 152, 48, slot) == False:
+    if row_text(s, row + 32, 152, slot) == False or matches(s, row + 152, 56, slot) == False:
         return INVALID
     context = 152 + slot
     if row_text(s, row + 56, context, 36) == False or context_id(s, row + context) == False:
@@ -325,20 +326,27 @@ def projected_slot(s:readbuf, o:mutbuf, row:u64, extent:u64, slot:u64) -> u64:
     copy_input(s, o, row + context, 32, 36)
     return copy_input(s, o, row + start + gen + epoch, 68, 64)
 
-def projected_version(s:readbuf, o:mutbuf, row:u64, extent:u64) -> u64:
+def projected_version(s:readbuf, o:mutbuf, row:u64, extent:u64, slot:u64, generation:u64) -> u64:
     put(o, 0, STORE_ROW)
     put(o, 8, choose(extent == 0, 0, 1))
     if extent == 0:
         return 16
-    if extent != 280 or row_header(s, row, 8, 3) == False:
+    if extent < 281 + slot or row_header(s, row, 8, 3) == False:
         return INVALID
-    if input_word(s, row + 32) != 0 or input_word(s, row + 40) != 104 or input_word(s, row + 48) != 0:
+    width = input_word(s, row + 72)
+    start = 104 + slot
+    artifact = start + width
+    if width < 1 or width > 20 or extent != artifact + 176:
         return INVALID
-    if input_word(s, row + 56) != 0 or input_word(s, row + 64) != 104 or input_word(s, row + 72) != 0:
+    if row_text(s, row + 32, 104, slot) == False or matches(s, row + 104, 56, slot) == False:
         return INVALID
-    if row_text(s, row + 80, 104, 176) == False or artifact_reference(s, row + 104) == False:
+    if row_text(s, row + 56, start, width) == False or canonical_timestamp(s, row + start, width) == False:
         return INVALID
-    return copy_input(s, o, row + 104, 16, 176)
+    if number(s, row + start, width) != generation:
+        return INVALID
+    if row_text(s, row + 80, artifact, 176) == False or artifact_reference(s, row + artifact) == False:
+        return INVALID
+    return copy_input(s, o, row + artifact, 16, 176)
 
 def generation_json(s:readbuf, o:mutbuf) -> u64:
     if length(s) != 24:
@@ -450,6 +458,11 @@ def errors():
         8: ('E_HIA_GENERATION_EXHAUSTED', 'u64 epoch space is exhausted', 'adoption'),
         9: ('E_HIA_RECEIPT_BINDING', 'native artifact belongs to a different context or implementation', 'admission'),
         10: ('E_HIA_RECEIPT_BINDING', "native artifact's admitted Core identity differs", 'admission'),
+        11: ('E_HIA_ARTIFACT_IDENTITY', 'artifact reference was not issued in this runtime namespace', 'admission'),
+        12: ('E_HIA_ARTIFACT_AUTHORITY', 'input bytes cannot impersonate a retained native', 'admission'),
+        13: ('E_HIA_CONTEXT_IDENTITY', 'context is not a retained server record', 'context'),
+        14: ('E_HIA_CONTEXT_STALE', 'context binds a different installed implementation', 'context'),
+        16: ('E_HIA_ARTIFACT_AUTHORITY', 'input bytes cannot impersonate a retained context', 'admission'),
     }
     dispatch = ['def static_error(o:mutbuf, code:u64) -> u64:']
     code = []

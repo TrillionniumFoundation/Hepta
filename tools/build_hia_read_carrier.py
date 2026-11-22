@@ -86,6 +86,11 @@ CARRIERS = {
         'c716eb86454b4093e98d4e922543646535eb6043b7a8113b6950a49bc8f51d3b', 51568,
         (('program_descriptor_effect_relay', 0, 51568),), compressed=True,
         tail_source='examples/hia_bootstrap/agent_inspection_worker_carrier_tail.hepta'),
+    'rollback-worker': CarrierImage(
+        'examples/hia_bootstrap/agent_rollback_worker_carrier_packer.hepta', b'HIARWK01',
+        'ed914722a513b18ce9b47efa5353aafe0ca9db3f8e7fe7cba194bf38ee90f270', 48848,
+        (('conditional_store_descriptor_relay', 0, 48848),), compressed=True,
+        tail_source='examples/hia_bootstrap/agent_rollback_worker_carrier_tail.hepta'),
     'describe-worker': CarrierImage(
         'examples/hia_bootstrap/agent_describe_worker_carrier_packer.hepta', b'HIADWK01',
         'd3b3b68645a247e27e7081e475e38e0333186bd0983199bbe2a123fa3454fec1', 11258,

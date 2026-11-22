@@ -1,4 +1,4 @@
-"""Author the native authority for the installed read-only Worker routes."""
+"""Author native authority for the installed Worker routes."""
 from pathlib import Path
 import re
 
@@ -83,9 +83,17 @@ CANDIDATE_ROLES = (
     'hia-import-assembly', 'hia-patch-result', 'hia-agent-candidate-json-ingress',
     'hia-agent-candidate-admission-diagnostic',
 )
+ROLLBACK_OWNER = 'hia-agent-rollback-worker-carrier'
+ROLLBACK_ROLES = (
+    *(name.replace('inspection-', 'rollback-') if name.startswith('hia-agent-inspection-') else name
+      for name in INSPECTION_ROLES[:31]),
+    'hia-agent-worker-rollback', 'hia-agent-native-artifact-metadata',
+    'hia-agent-context-request', 'hia-agent-borrowed-export-wire',
+)
 NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
                                   *CONTEXT_ROLES, CONTEXT_OWNER,
-                                  *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES)))
+                                  *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES,
+                                  *ROLLBACK_ROLES, ROLLBACK_OWNER)))
 CAPSULE_MAX = 4 << 20
 HEADER_BYTES = 56
 ROW_BYTES = 48
@@ -216,7 +224,8 @@ def routing(*, artifact=False):
     schema = b',"schema":"hia-agent-worker-request-v1","tool":"'
     methods = ((1, b'hia_read'), (2, b'hia_describe'))
     if artifact:
-        methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'), (6, b'hia_candidate'))
+        methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'),
+                    (6, b'hia_candidate'), (7, b'hia_rollback'))
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'
