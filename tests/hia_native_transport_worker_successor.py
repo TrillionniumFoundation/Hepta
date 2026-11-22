@@ -1108,7 +1108,7 @@ def _admit_terminal_sources_before_ordinary_callers(original_value, *, original_
 
 
 COMPONENT_FIXTURE = 'tests/fixtures/delivery_component_successor.json'
-COMPONENT_FIXTURE_SHA256 = '2ba3ca7c9e2f51226be812c9ffc716fc7081671412cd035e1e40852b113aadd3'
+COMPONENT_FIXTURE_SHA256 = 'd59c755c5ca07827c869a6988b6cbd29460a505d3d5258d7b8e0e5e6cb11463f'
 COMPONENT_PATHS = (
     'examples/hia_bootstrap/agent_journal.hepta',
     'tests/test_hia_agent_native_proof_contract.py',
