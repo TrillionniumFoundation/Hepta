@@ -50,6 +50,12 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return BAD
     if (operation == RUN or operation == MAKE) and valid_fd(input_word(s, 32)) == False:
         return BAD
+    if state == RETAINED_DIGEST:
+        return emit_proof_typed_artifact(s, o, w)
+    if state == RETAINED_BYTES and get(w, RETAINED_PURPOSE) >= READ_EMIT_CUSTODY_BUILD:
+        return emit_proof_custody_reopened(s, o, w, get(w, RETAINED_PURPOSE))
+    if state >= EMIT_CUSTODY_PROJECTED and state <= EMIT_CUSTODY_VERIFIED:
+        return emit_proof_custody_state(s, o, w, state)
     if state == RETAINED_BYTES or (state >= VERIFY_PLAN_CANONICAL and state <= VERIFY_PLAN_REGISTERS):
         return verify_plan_observation(s, o, w, state)
     if state == VERIFY_PLAN_WITNESS:
@@ -148,6 +154,26 @@ def verify_plan_evidence_observed(s:readbuf, w:mutbuf) -> u64:
     body_span(s, w, VERIFY_FINITE_RESULT)
     return verify_finite_deliver(w)
 '''
+
+NATIVE_CUSTODY = r'''
+# The front section owns the Store transaction. Return there only after a
+# typed request (purpose, kind, sealed reference) has been fully selected.
+def emit_proof_read(o:mutbuf, w:mutbuf, purpose:u64, kind:u64) -> u64:
+    put(w, RETAINED_PURPOSE, purpose)
+    put(w, RETAINED_KIND, kind)
+    put(w, 0, VERIFY_NATIVE_STORE)
+    return VERIFY_FINITE_READY
+
+def emit_proof_open_claims(o:mutbuf, w:mutbuf) -> u64:
+    put(w, 0, VERIFY_NATIVE_BOUND)
+    return VERIFY_FINITE_READY
+
+def emit_custody_inputs(o:mutbuf, w:mutbuf) -> u64:
+    move_fragment(w, VERIFY_CANDIDATE_INPUT_QUOTED, EMIT_CUSTODY_INPUT_SHA)
+    producer = choose(get(w, INSPECTION_EXPORTS + 16) > 2, EMIT_BORROWED_EXE, EMIT_SCALAR_EXE)
+    return inspection_hash(o, w, EMIT_CUSTODY_PRODUCER_HASH, producer)
+'''
+
 
 FRESH = r'''
 def verify_finite_start(o:mutbuf, w:mutbuf) -> u64:
@@ -278,6 +304,8 @@ def verify_finite_row(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 
 def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
     resume = get(w, INSPECTION_HASH_RESUME)
+    if resume >= EMIT_CUSTODY_RAW_HASH and resume <= EMIT_CUSTODY_OBJECT_HASH:
+        return emit_custody_hash(s, o, w, at, resume)
     if resume == EMIT_REPLAY_OBJECT_HASH:
         return emit_replay_object_hash(s, o, w, at)
     if resume != EMIT_COMPLETE_HASH:
@@ -318,6 +346,10 @@ def plan_constants(constants):
                      VERIFY_DERIVE_SUFFIX=int.from_bytes(b'"]', 'little'))
 
 
+def custody_constants(constants):
+    constants.update(VERIFY_NATIVE_STORE=1380, VERIFY_NATIVE_BOUND=1381, VERIFY_CANDIDATE_INPUT_QUOTED=11480)
+
+
 def finite_recipe():
     _, parts = proof_recipe(function(ADMISSION, 'emit_admission_error'),
                             function(PROFILES, 'emit_open_profile'))
@@ -343,6 +375,12 @@ def finite_recipe():
     checked = state.index('    if state == EMIT_COMPLETE_CHECKED:')
     state = state[:checked] + '    return BAD\n'
     policy = replace_function(policy, 'emit_complete_state', state)
+    custody = function(policy, 'emit_proof_custody_state')
+    custody = custody[:custody.index('    if state == EMIT_CUSTODY_EFFECT:')] + '    return BAD\n'
+    policy = replace_function(policy, 'emit_proof_custody_state', custody)
+    policy = replace_function(policy, 'emit_proof_read', '')
+    policy = replace_function(policy, 'emit_proof_open_claims', '')
+    policy = replace_function(policy, 'emit_custody_inputs', '')
     policy = replace_function(policy, 'emit_complete_next', '')
     policy = replace_function(policy, 'emit_complete_input',
                               splice_list('emit_complete_input', 'EMIT_COMPLETE_INPUT',
@@ -368,7 +406,7 @@ def finite_recipe():
     evidence = ('VERIFY_CANDIDATE_SHA', 'EMIT_CANONICAL_PLAN', 'EMIT_REPLAY_BASE_HASH',
                 'EMIT_REPLAY_PLAN_HASH', 'EMIT_REPLAY_BASE_FRAMES', 'EMIT_REPLAY_PLAN_FRAMES')
     return reachable_policy('\n'.join((
-        ENTRY, FRESH, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
+        ENTRY, FRESH, NATIVE_CUSTODY, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
         splice_list('verify_plan_schedule', 'VERIFY_PLAN_SCHEDULE', plan_inputs, role='EMIT_LAYOUT_ROLE'),
         splice_list('verify_plan_registers', 'VERIFY_PLAN_REGISTERS', plan_inputs,
                     role='EMIT_REPLAY_WITNESS_ROLE'),
@@ -385,6 +423,7 @@ def program():
     constants.update(EMIT_WORK_BYTES=12288)
     finite_constants(constants)
     plan_constants(constants)
+    custody_constants(constants)
     entry, controls = finite_recipe()
     return flow_source(entry, controls, constants)
 

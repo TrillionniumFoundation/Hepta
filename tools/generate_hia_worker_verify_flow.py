@@ -12,7 +12,7 @@ from tools.generate_hia_worker_emit_flow import DISPATCH, REACTOR, REQUEST, nati
 from tools.generate_hia_worker_emit_measurement import MEASUREMENT, splice_list
 from tools.generate_hia_worker_emit_proof import PLAN
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
-from tools.generate_hia_worker_verify_finite_flow import finite_constants, plan_constants
+from tools.generate_hia_worker_verify_finite_flow import custody_constants, finite_constants, plan_constants
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_flow.hepta')
 
@@ -98,7 +98,10 @@ def verify_after_profile(o:mutbuf, w:mutbuf) -> u64:
     kind = get(w, VERIFY_SUBJECT_KIND)
     if stage == VERIFY_STAGE_BACKEND:
         if kind == 4:
-            return VERIFY_NEEDS_SUBJECT_CUSTODY
+            move_fragment(w, VERIFY_CANDIDATE_SHA, EMIT_PROOF_CANDIDATE_SHA)
+            move_fragment(w, VERIFY_SUBJECT_REFS + 24, EMIT_CUSTODY_NATIVE_REF)
+            move_fragment(w, VERIFY_SUBJECT_REFS + 48, INSPECTION_REFERENCE)
+            return emit_proof_read(o, w, READ_EMIT_CUSTODY_BUILD, 5)
         put(w, EMIT_STAGE, VERIFY_STAGE_SUBJECT_PROFILE)
         return emit_open_profile(o, w, choose(kind == 2, 3, 4), VERIFY_SUBJECT_REFS + 24)
     if stage == VERIFY_STAGE_SUBJECT_PROFILE:
@@ -131,6 +134,7 @@ def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
         return inspection_hash(o, w, VERIFY_CANDIDATE_INPUT_HASH, core_source)
     if state == VERIFY_CANDIDATE_INPUT_HASH:
         hold(w, VERIFY_CANDIDATE_INPUT_SHA, fd, at - 64, 64)
+        hold(w, VERIFY_CANDIDATE_INPUT_QUOTED, fd, at - 65, 66)
         base = VERIFY_BASE
         if get(w, base + 16) == 4:
             return read_span(o, w, VERIFY_BASE_NULL, get(w, base), get(w, base + 8), 4)
@@ -374,6 +378,7 @@ def verify_complete(o:mutbuf, w:mutbuf) -> u64:
 def constants_for_verify(constants):
     finite_constants(constants)
     plan_constants(constants)
+    custody_constants(constants)
     states = ('BASE_NULL', 'SUBJECT_FRAME', 'SUBJECT_INDEX', 'SUBJECT_OFFSETS', 'SCOPE_READY',
               'CANDIDATE_HASH', 'CANDIDATE_INPUT_HASH', 'ORIGINAL_HASH', 'OUTCOME')
     spans = ('VALIDATION', 'BASE', 'SUBJECT', 'CONTEXT_ID', 'CANDIDATE_SHA', 'CANDIDATE',
@@ -395,7 +400,6 @@ def constants_for_verify(constants):
                      VERIFY_NOMINAL_IMAGE=11016, VERIFY_OBSERVER_IMAGE=11040,
                      VERIFY_NEEDS_TERMINAL=0xffffffe1,
                      VERIFY_REQUEST_ROLE=70, VERIFY_NEEDS_FINDINGS=0xffffffe5,
-                     VERIFY_NEEDS_SUBJECT_CUSTODY=0xffffffe4,
                      VERIFY_NEEDS_FINITE=0xffffffe2,
                      ROLE_COUNT=76, ENTRY_BYTES=64 + 312 + 76 * 40,
                      EMIT_WORK_BYTES=12288, SCHEMA_TOOL=7)
@@ -413,7 +417,9 @@ def recipe():
         '    if state == 0:\n        return artifact_entry(s, o, w)',
         '    if state == 0:\n        return artifact_entry(s, o, w)\n'
         '    if state == VERIFY_FINITE_DELIVERED:\n        return verify_observed(o, w)\n'
-        '    if state == VERIFY_PLAN_ADMITTED:\n        return verify_scope_input(o, w)\n'
+        '    if state == VERIFY_PLAN_ADMITTED or state == VERIFY_NATIVE_BOUND:\n        return verify_scope_input(o, w)\n'
+        '    if state == VERIFY_NATIVE_STORE:\n'
+        '        return emit_proof_read(o, w, get(w, RETAINED_PURPOSE), get(w, RETAINED_KIND))\n'
         '    if state == VERIFY_PLAN_INVALID:\n        if get(w, VERIFY_REPLAYING) != 0:\n            return BAD\n'
         '        return emit_admission_error(o, w, 8, 5)\n'
         '    if state == VERIFY_RESULT_READY:\n'
@@ -469,10 +475,14 @@ def recipe():
     controls = controls.replace(
         '    if reason >= READ_EMIT_PLAN:\n'
         '        return EMIT_DEFER_PROOF\n',
-        '    if reason == READ_EMIT_PLAN:\n'
-        '        return VERIFY_NEEDS_FINITE\n'
-        '    if reason > READ_EMIT_PLAN:\n'
-        '        return BAD\n',
+        '    if reason >= READ_EMIT_PLAN:\n'
+        '        return VERIFY_NEEDS_FINITE\n',
+    )
+    controls = controls.replace(
+        '        if get(w, RETAINED_KIND) >= 5:\n'
+        '            return EMIT_DEFER_PROOF\n',
+        '        if get(w, RETAINED_KIND) >= 5:\n'
+        '            return VERIFY_NEEDS_FINITE\n',
     )
     controls = controls.replace(
         '    if reason == READ_EMIT_PROFILE and (get(w, EMIT_STAGE) == 6 or get(w, EMIT_STAGE) == 9):\n'
