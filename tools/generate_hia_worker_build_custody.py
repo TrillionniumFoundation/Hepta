@@ -86,6 +86,8 @@ def bind_products(s:readbuf, w:mutbuf, o:mutbuf, install:u64, packed:u64, record
         return answer(o, 3)
     if field_matches(s, w, built, K_foreign_buffer_exports, exports) == False or field_matches(s, w, built, K_artifact_sha256, image) == False:
         return answer(o, 3)
+    if field_matches(s, w, lookup(w, record, K_native_artifact), K_sha256, image) == False:
+        return answer(o, 3)
     if field_matches(s, w, built, K_artifact_bytes, extent) == False:
         return answer(o, 3)
     kind = lookup(w, record, K_output_kind)
