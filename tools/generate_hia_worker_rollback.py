@@ -47,7 +47,8 @@ def rollback_worker(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if tag == GENERATION:
             return generation_json(s, o)
         if tag == FORMAT_COUNT and length(s) == 16:
-            return decimal(o, 0, input_word(s, 8))
+            put(o, 0, FORMAT_COUNT)
+            return decimal(o, 8, input_word(s, 8))
         if tag == PUBLIC_ERROR:
             return rollback_error(s, o)
         if tag == DOCUMENT_OBSERVE:
