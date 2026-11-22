@@ -443,7 +443,8 @@ numeric_event:
  cmp QWORD PTR [rbp+24],0
  je io_failure
  lea rdi,[rbx+8]
- push 64
+ # Forward the complete HIAX6403 packet, including HIA's encoding policy.
+ push 72
  pop rsi
  lea rdx,[rbp+512]
  push 80
