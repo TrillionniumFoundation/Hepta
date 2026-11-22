@@ -7,6 +7,7 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_exec_release import POLICY_SOURCE as release_policy
 from tools.generate_hia_worker_context_effect import POLICY as context_effect
 from tools.generate_hia_worker_adopt_proof import reachable_policy
+from tools.generate_hia_worker_adopt_slot import slot_sections, slot_store_control
 from tools.generate_hia_worker_context_flow import flow_source, function
 from tools.generate_hia_worker_emit_custody_replay import CUSTODY, custody_replay_source
 from tools.generate_hia_worker_emit_flow import native_recipe
@@ -35,6 +36,15 @@ def adopt_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if state == ADOPT_CUSTODY_SLOT:
         put(w, ADOPT_CUSTODY_ACTIVE, 1)
         return adopt_image(o, w, 1, ADOPT_CLAIM_FIELDS + 24)
+    if state == ADOPT_SLOT_CONDITIONAL:
+        return adopt_open_slot(o, w)
+    if state == ADOPT_SLOT_RENDER_ERROR:
+        at = adopt_error_body(o, get(w, ADOPT_CUSTODY_ERROR))
+        if at == HEADER:
+            return BAD
+        return action(o, w, ADOPT_ERROR_BODY, MAKE, 0, 0, 0, at - HEADER)
+    if state >= ADOPT_SLOT_OPENED and state <= RB_RESULT_JSON:
+        return adopt_slot_state(s, o, w, state)
     if state >= ADOPT_CLAIM_FRAME and state <= ADOPT_CLAIM_BUILD_BOUND:
         return adopt_claim_build(s, o, w, state)
     if state == ADOPT_NATIVE_CORE_READY:
@@ -105,6 +115,9 @@ def adopt_native_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             return adopt_custody_error(w, 6)
         return adopt_custody_error(w, choose(state == ADOPT_NATIVE_BUILD_CORE_MATCH, 5, 7))
     if state == ADOPT_NATIVE_INSTALL_MATCH:
+        if get(w, ADOPT_IMAGE_PHASE) == 3:
+            put(w, 0, ADOPT_LIVE_CONTEXT)
+            return ADOPT_DEFER_FRONT
         return rollback_compare(o, w, ADOPT_NATIVE_CONTEXT_MATCH, RB_NATIVE_FIELDS + 24, EMIT_FIELDS + 24)
     if state == ADOPT_NATIVE_CONTEXT_MATCH:
         if get(w, ADOPT_IMAGE_PHASE) == 0:
@@ -127,6 +140,8 @@ def adopt_native_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             return adopt_image(o, w, 2, ADOPT_EVAL_FIELDS + 96)
         if phase == 2:
             return rollback_compare(o, w, ADOPT_ABI_MATCH, ADOPT_CANDIDATE_SIGNATURE, ADOPT_NATIVE_SIGNATURES)
+        if phase == 3:
+            return inspection_hash(o, w, ADOPT_LIVE_HASH, ADOPT_NATIVE_IMAGE)
         if phase != 0:
             return BAD
         if get(w, EMIT_CUSTODY_PLAN_REF + 16) != 0:
@@ -145,6 +160,7 @@ def adopt_image(o:mutbuf, w:mutbuf, phase:u64, reference:u64) -> u64:
     if get(w, reference + 16) != 176:
         return BAD
     put(w, ADOPT_IMAGE_PHASE, phase)
+    put(w, ADOPT_CUSTODY_ACTIVE, 1)
     move_fragment(w, reference, INSPECTION_REFERENCE)
     return emit_proof_read(o, w, READ_ADOPT_NATIVE, 7)
 
@@ -164,6 +180,7 @@ def adopt_slot_admission(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         return BAD
     put(w, ADOPT_EXPECT_GENERATION, status)
     put(w, ADOPT_EXPECT_EPOCH, input_word(s, 88))
+    put(w, ADOPT_CUSTODY_ACTIVE, 0)
     put(w, 0, ADOPT_SLOT_CONDITIONAL)
     return ADOPT_DEFER_FRONT
 
@@ -194,6 +211,25 @@ def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
     if resume == ADOPT_CANDIDATE_ABI_HASH:
         hold(w, ADOPT_CANDIDATE_ABI, input_word(s, 32), at - 64, 64)
         return adopt_expected_request(o, w)
+    if resume == ADOPT_LIVE_HASH:
+        put(w, ADOPT_CUSTODY_ACTIVE, 0)
+        hold(w, ADOPT_LIVE_SHA, input_word(s, 32), at - 64, 64)
+        baseline = ADOPT_EVAL_FIELDS + 96
+        if get(w, baseline + 16) != 176:
+            return BAD
+        hold(w, RB_FIELDS, get(w, baseline), get(w, baseline + 8) + ARTIFACT_SHA_OFFSET, 64)
+        return rollback_compare(o, w, ADOPT_LIVE_BASELINE, ADOPT_LIVE_SHA, RB_FIELDS)
+    if resume == RB_DOCUMENT_HASH:
+        copy_span(s, w, at, RB_DOC_HASH, 64)
+        return rollback_doc_lookup(o, w)
+    if resume == RB_DOC_STORED:
+        i = 0
+        while i < 64:
+            if byte(s, at + i) != byte(w, RB_DOC_HASH + i):
+                return BAD
+            i = i + 1
+        put(o, 144, 32)
+        return action(o, w, RB_DOC_NONCE, RANDOM, 0, 0, 0, 0)
     return emit_custody_hash(s, o, w, at, resume)
 
 def adopt_build_verified(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -313,6 +349,8 @@ def custody_constants(constants):
 
 
 def custody_sections(constants, front_controls):
+    from tools.generate_hia_worker_adopt_flow import outcome_errors
+
     custody = CUSTODY.replace(
         'purpose == READ_EMIT_CUSTODY_NATIVE or purpose == READ_EMIT_CUSTODY_OBJECT:',
         'purpose == READ_EMIT_CUSTODY_NATIVE or purpose == READ_EMIT_CUSTODY_OBJECT or purpose == READ_ADOPT_NATIVE:',
@@ -345,7 +383,9 @@ def custody_sections(constants, front_controls):
         function(RECORD, 'emit_signature').replace('emit_signature(', 'adopt_native_signature(')
             .replace('EMIT_SIGNATURE_BOUND', 'ADOPT_NATIVE_SIGNED'),
     )
-    policy = '\n'.join((POLICY, custody, *reused, *compatible, *front_controls))
+    controls = (slot_store_control(control) if control.startswith('\ndef store_transaction(') else control
+                for control in front_controls)
+    policy = '\n'.join((POLICY, custody, slot_sections(), outcome_errors(), *reused, *compatible, *controls))
     return reachable_policy(policy, 'adopt_custody')
 
 

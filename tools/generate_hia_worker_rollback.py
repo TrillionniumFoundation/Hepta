@@ -381,7 +381,7 @@ def observe_document(s:readbuf, o:mutbuf) -> u64:
         return INVALID
     extent = input_word(s, 8)
     kind = input_word(s, 32)
-    if kind != 10 and kind != 11:
+    if kind != 10 and kind != 11 and kind != 15:
         return INVALID
     if length(s) != 216 + extent or unique_summary(s, 168 + extent, extent) == False:
         return INVALID

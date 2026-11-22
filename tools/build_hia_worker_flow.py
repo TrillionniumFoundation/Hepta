@@ -10,8 +10,8 @@ from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_native_filter import elf_header, read_adapter_binding, verify_adapter
 from tools.generate_hia_readonly_worker_capsule import NATIVE_SOURCE
 from tools.generate_hia_worker_flow_packer import (
-    EMIT_KIND, EMIT_PACK_LIMIT, EMIT_PRODUCT, EMIT_PROOF, FLOW, LAUNCHER, LAUNCHER_KIND, LAUNCHER_PACKER,
-    MAGIC, PEERS, PEER_KINDS, PORTS, PROGRAMS,
+    EMIT_PACK_LIMIT, FLOW, LAUNCHER, LAUNCHER_KIND, LAUNCHER_PACKER,
+    MAGIC, PEERS, PEER_KINDS, PORTS, PROGRAMS, SECTIONS,
     adapter_source,
 )
 from tools.qualify_hia_selfhost import compile_stage, invoke
@@ -25,7 +25,7 @@ AUTHOR = 'tools/generate_hia_worker_flow_packer.py'
 def _adapter_binding(sources, kind, packer_source):
     adapter = adapter_source(sources[FLOW], sources[PORTS], kind=kind,
                              peers=sources.get(PEERS, b''), launcher=sources.get(LAUNCHER, b''))
-    calls = {LAUNCHER_KIND: 2, EMIT_KIND: 3}.get(kind, 1)
+    calls = 3 if kind in SECTIONS else 2 if kind == LAUNCHER_KIND else 1
     return read_adapter_binding(sources[packer_source], adapter, calls=calls)
 
 
@@ -54,8 +54,7 @@ def build(output, compiler, cold_report, *, kind='describe'):
         names += (PEERS,)
     if kind == LAUNCHER_KIND:
         names += (LAUNCHER, NATIVE_SOURCE)
-    if kind == EMIT_KIND:
-        names += (EMIT_PRODUCT, EMIT_PROOF)
+    names += SECTIONS.get(kind, ())
     sources = {name: (ROOT / name).read_bytes() for name in names}
     source_pins = {name: sha256(raw).hexdigest() for name, raw in sources.items()}
     if any(admitted.get(name) != wanted for name, wanted in source_pins.items()):
@@ -67,9 +66,9 @@ def build(output, compiler, cold_report, *, kind='describe'):
     compiled = [(policy, policy_receipt), (packer, packer_receipt)]
     if kind == LAUNCHER_KIND:
         compiled.append(compile_stage(output, 'native-capsule-authority', compiler, sources[NATIVE_SOURCE]))
-    if kind == EMIT_KIND:
+    if kind in SECTIONS:
         compiled.extend(compile_stage(output, Path(path).stem, compiler, sources[path])
-                        for path in (EMIT_PRODUCT, EMIT_PROOF))
+                        for path in SECTIONS[kind])
     images = {path: path.read_bytes() for path, _ in compiled}
     if any(sha256(images[path]).hexdigest() != receipt['produced_sha256'] for path, receipt in compiled):
         raise ValueError('Worker descriptor image was changed after native compilation')
@@ -83,7 +82,7 @@ def build(output, compiler, cold_report, *, kind='describe'):
         entries += (len(code),)
         code += authority_bytes
         authority_metadata['authority_compilation'] = receipt
-    elif kind == EMIT_KIND:
+    elif kind in SECTIONS:
         (product, product_receipt), (proof, proof_receipt) = compiled[-2:]
         product_bytes, proof_bytes = images[product], images[proof]
         frame = struct.pack('<4Q', MAGIC, len(code), len(product_bytes), len(proof_bytes))
@@ -93,9 +92,9 @@ def build(output, compiler, cold_report, *, kind='describe'):
         authority_metadata.update(product_compilation=product_receipt, proof_compilation=proof_receipt)
     else:
         frame = struct.pack('<2Q', MAGIC, len(code)) + code
-    capacity = EMIT_PACK_LIMIT if kind == EMIT_KIND else 1 << 20
+    capacity = EMIT_PACK_LIMIT if kind in SECTIONS else 1 << 20
     pack_receipt, packed = invoke(output, 'native-' + kind + '-pack', packer, frame,
-                                  capacity=capacity, worker_section_pack=kind == EMIT_KIND)
+                                  capacity=capacity, worker_section_pack=kind in SECTIONS)
     executable = _check_pack_output(pack_receipt, packed, artifact=packer_bytes,
                                     source=frame, capacity=capacity)
     verify_adapter(executable, code, binding, entries=entries)

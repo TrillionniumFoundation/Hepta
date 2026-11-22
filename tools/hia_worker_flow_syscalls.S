@@ -8,8 +8,14 @@
 .equ WORK, 0
 .ifdef WORKER_EMIT
 .global worker_emit_product_hole, worker_emit_proof_hole
+.ifdef WORKER_ADOPT
+.equ WORK_BYTES, 12288
+.equ EMIT_DEFER_PRODUCT, 0xffffffed
+.equ ADOPT_DEFER_FRONT, 0xffffffee
+.else
 .equ WORK_BYTES, 9216
 .equ EMIT_DEFER_PRODUCT, 0xffffffe8
+.endif
 .equ EMIT_DEFER_PROOF, 0xffffffe9
 .equ EMIT_PARENT, 41472
 .equ EMIT_DIRECTORY, EMIT_PARENT + 8
@@ -97,7 +103,11 @@
 .equ ROLE_COUNT, 35
 .else
 .ifdef WORKER_EMIT
+.ifdef WORKER_ADOPT
+.equ ROLE_COUNT, 73
+.else
 .equ ROLE_COUNT, 70
+.endif
 .else
 .equ ROLE_COUNT, 40
 .endif
@@ -471,6 +481,10 @@ _start:
  lea r8, [rbp+WORK]
  mov r9d, WORK_BYTES
 .endm
+ .ifdef WORKER_ADOPT
+ mov r14d, 8
+.Ladopt_policy:
+ .endif
  worker_policy_arguments
  .byte 0xe8
 worker_policy_hole: .long 0
@@ -484,11 +498,23 @@ worker_policy_hole: .long 0
  worker_policy_arguments
  .byte 0xe8
 worker_emit_product_hole: .long 0
+ .ifdef WORKER_ADOPT
+ cmp eax, ADOPT_DEFER_FRONT
+ je .Ladopt_return_front
+ .endif
  jmp .Lworker_policy_answer
 .Lemit_proof_policy:
  worker_policy_arguments
  .byte 0xe8
 worker_emit_proof_hole: .long 0
+ .ifdef WORKER_ADOPT
+ cmp eax, ADOPT_DEFER_FRONT
+ jne .Lworker_policy_answer
+.Ladopt_return_front:
+ dec r14d
+ jz .Lrefused
+ jmp .Ladopt_policy
+ .endif
 .Lworker_policy_answer:
  .endif
  cmp eax, HEADER
@@ -2398,7 +2424,11 @@ worker_emit_proof_hole: .long 0
 .Lmode: .asciz "--worker-rollback"
 .else
 .ifdef WORKER_EMIT
+.ifdef WORKER_ADOPT
+.Lmode: .asciz "--worker-adopt"
+.else
 .Lmode: .asciz "--worker-emit"
+.endif
 .else
 .Lmode: .asciz "--worker-inspection"
 .endif
@@ -2463,7 +2493,11 @@ worker_emit_proof_hole: .long 0
 .Ldiagnostic: .ascii "native HIA Rollback Worker transport refused\n"
 .else
 .ifdef WORKER_EMIT
+.ifdef WORKER_ADOPT
+.Ldiagnostic: .ascii "native HIA Adopt Worker transport refused\n"
+.else
 .Ldiagnostic: .ascii "native HIA Emit Worker transport refused\n"
+.endif
 .else
 .Ldiagnostic: .ascii "native HIA Inspection Worker transport refused\n"
 .endif

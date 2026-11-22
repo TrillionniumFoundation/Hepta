@@ -6,6 +6,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_read_capsule import ROLES as READ_ROLES
 from tools.generate_hia_readonly_worker_capsule import (
+    ADOPT_OWNER, ADOPT_ROLES,
     ARTIFACT_OWNER, ARTIFACT_ROLES, BOOTSTRAP_OWNER, BOOTSTRAP_ROLES,
     CANDIDATE_OWNER, CANDIDATE_ROLES, CONTEXT_OWNER, CONTEXT_ROLES, DESCRIBE_OWNER, DESCRIBE_ROLES,
     EMIT_OWNER, EMIT_ROLES, INSPECTION_OWNER, INSPECTION_ROLES, NATIVE_ROLES, PROOF_TRUST_BYTES,
@@ -27,6 +28,7 @@ ROUTES = (
     (CANDIDATE_OWNER, '--worker-candidate', CANDIDATE_ROLES),
     (ROLLBACK_OWNER, '--worker-rollback', ROLLBACK_ROLES),
     (EMIT_OWNER, '--worker-emit', EMIT_ROLES),
+    (ADOPT_OWNER, '--worker-adopt', ADOPT_ROLES),
 )
 
 POLICY = r'''
@@ -249,7 +251,11 @@ def launch_bootstrap(o:mutbuf, w:mutbuf) -> u64:
 def launch_worker(o:mutbuf, w:mutbuf, route:u64) -> u64:
     mode = route_mode(o, route)
     owner = route_owner(route)
-    if mode == 0 or owner >= ROLE_COUNT or (route == EMIT_ROUTE and length(o) < 1024 + 16 * EMIT_ARG_COUNT):
+    if mode == 0 or owner >= ROLE_COUNT:
+        return BAD
+    if route == EMIT_ROUTE and length(o) < 1024 + 16 * EMIT_ARG_COUNT:
+        return BAD
+    if route == ADOPT_ROUTE and length(o) < 1024 + 16 * ADOPT_ARG_COUNT:
         return BAD
     argv(o, 0, LITERAL_ARG, 448)
     argv(o, 1, INPUT_ARG, 1)
@@ -260,10 +266,9 @@ def launch_worker(o:mutbuf, w:mutbuf, route:u64) -> u64:
         metadata = choose(route == 3, get(w, PART_TABLE + 72), get(w, DISCOVERY_META))
         argv(o, count, FD_ARG, metadata)
         count = count + 1
+    if route == EMIT_ROUTE or route == ADOPT_ROUTE:
+        argv(o, count + PROOF_ROLE, FD_ARG, get(w, PART_TABLE + 96))
     count = append_roles(o, w, route, count)
-    if route == EMIT_ROUTE:
-        argv(o, count, FD_ARG, get(w, PART_TABLE + 96))
-        count = count + 1
     child_name(o, owner)
     fragment(o, 0, get(w, REQUEST_FD), 0, get(w, REQUEST_BYTES))
     return issue(o, w, WORKER_DONE, RUN, role_fd(w, owner), count, 1, 0)
@@ -311,9 +316,11 @@ def route_tables():
             owner += f'    if route == {route}:\n        return {index[name]}\n'
         roles += f'    if route == {route}:\n        return append_roles_{route}(o, w, count)\n'
         children += f'\ndef append_roles_{route}(o:mutbuf, w:mutbuf, count:u64) -> u64:\n'
+        proof_route = name in (EMIT_OWNER, ADOPT_OWNER)
         for ordinal, role in enumerate(inventory):
-            children += f'    argv(o, count + {ordinal}, 4, role_fd(w, {index[role]}))\n'
-        children += f'    return count + {len(inventory)}\n'
+            position = ordinal + int(proof_route and ordinal >= len(EMIT_ROLES))
+            children += f'    argv(o, count + {position}, 4, role_fd(w, {index[role]}))\n'
+        children += f'    return count + {len(inventory) + int(proof_route)}\n'
     return (names + mode + '    return 0\n' + owner + f'    return {len(NATIVE_ROLES)}\n'
             + roles + '    return 0\n' + children)
 
@@ -337,7 +344,8 @@ def program():
                      SNAPSHOT=19, AUTHORIZE=20, CAPTURE_INPUT=21, DEFAULT_CHILD_LEASE=120_000_000_000,
                      REQUEST_LEASE=60_000_000_000,
                      INPUT_ARG=1, LITERAL_ARG=2, FD_ARG=4, BOOTSTRAP_ROUTE=len(ROUTES) + 1,
-                     NATIVE_ROUTE_COUNT=len(ROUTES), EMIT_ROUTE=len(ROUTES), EMIT_ARG_COUNT=6 + len(EMIT_ROLES),
+                     NATIVE_ROUTE_COUNT=len(ROUTES), EMIT_ROUTE=8, ADOPT_ROUTE=9, PROOF_ROLE=len(EMIT_ROLES),
+                     EMIT_ARG_COUNT=6 + len(EMIT_ROLES), ADOPT_ARG_COUNT=6 + len(ADOPT_ROLES),
                      PROOF_TRUST_BYTES=PROOF_TRUST_BYTES,
                      BOOTSTRAP=NATIVE_ROLES.index(BOOTSTRAP_OWNER), ADMIT=NATIVE_ROLES.index('hia-worker-admit'))
     tables = route_tables()

@@ -6,6 +6,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_worker_adopt_custody import custody_constants
+from tools.generate_hia_worker_adopt_slot import slot_constants, slot_store_control
 from tools.generate_hia_worker_adopt_proof import WORKSPACE_BYTES, adopt_proof_constants, reachable_policy
 from tools.generate_hia_worker_candidate_flow import replace_function
 from tools.generate_hia_worker_context_flow import flow_source, function
@@ -84,7 +85,17 @@ def adopt_continue(o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == ADOPT_EVAL_BINDING_REFUSED:
         return adopt_error(o, w, 1)
     if state == ADOPT_CUSTODY_REFUSED:
+        if get(w, ADOPT_SLOT_ACTIVE) != 0:
+            return close_store(o, w, ADOPT_SLOT_FAILED)
         return adopt_error(o, w, get(w, ADOPT_CUSTODY_ERROR))
+    if state == ADOPT_SLOT_ERROR_READY:
+        return adopt_outcome(o, w, 2, EMIT_PUBLIC_ERROR)
+    if state == ADOPT_SLOT_RESULT_READY:
+        return adopt_outcome(o, w, 1, EMIT_PUBLIC_ERROR)
+    if state == ADOPT_LIVE_CONTEXT:
+        put(w, EMIT_STAGE, 13)
+        move_fragment(w, RB_NATIVE_FIELDS + 24, INSPECTION_ACTUAL)
+        return inspection_context(o, w)
     if state == ADOPT_EVAL_READY:
         move_fragment(w, ADOPT_EVAL_FIELDS, ADOPT_CLAIM_FIELDS + 48)
         put(w, 0, ADOPT_CUSTODY_START)
@@ -155,6 +166,10 @@ def adopt_after_context(o:mutbuf, w:mutbuf) -> u64:
         return EMIT_DEFER_PROOF
     if stage == 6 and get(w, EMIT_PROOF_PROFILE_PHASE) == 1:
         return emit_open_profile(o, w, 1, EMIT_PROFILES + 48)
+    if stage == 13:
+        move_fragment(w, RB_NATIVE_FIELDS + 48, INSPECTION_ACTUAL)
+        put(w, EMIT_STAGE, 12)
+        return inspection_program(o, w)
     return BAD
 
 def adopt_after_budget(o:mutbuf, w:mutbuf) -> u64:
@@ -164,10 +179,9 @@ def adopt_after_budget(o:mutbuf, w:mutbuf) -> u64:
 
 OUTCOME = r'''
 def adopt_error(o:mutbuf, w:mutbuf, status:u64) -> u64:
-    at = adopt_error_body(o, status)
-    if at == HEADER:
-        return BAD
-    return action(o, w, ADOPT_ERROR_BODY, MAKE, 0, 0, 0, at - HEADER)
+    put(w, ADOPT_CUSTODY_ERROR, status)
+    put(w, 0, ADOPT_SLOT_RENDER_ERROR)
+    return ADOPT_DEFER_CUSTODY
 
 def adopt_outcome(o:mutbuf, w:mutbuf, status:u64, payload:u64) -> u64:
     extent = get(w, payload + 16)
@@ -220,13 +234,16 @@ def outcome_errors():
         ('E_HIA_ABI', 'candidate and baseline are not ABI compatible'),
         ('E_HIA_RANGE', 'generation must be a canonical u64 decimal string'),
         ('E_HIA_RANGE', 'epoch must be a canonical u64 decimal string'),
+        ('E_HIA_ABI', 'candidate changes the live slot ABI'),
+        ('E_HIA_BASELINE', 'evaluation baseline is not the currently active image'),
+        ('E_HIA_GENERATION_EXHAUSTED', 'u64 generation or epoch space is exhausted'),
     )
     dispatch = ['\ndef adopt_error_body(o:mutbuf, status:u64) -> u64:']
     bodies = []
     for index, (code, message) in enumerate(cases, 1):
         name = f'adopt_error_{index}'
         phase = 'admission'
-        if index <= 3 or index == 14:
+        if index <= 3 or index == 14 or index >= 17:
             phase = 'adoption'
         elif 10 <= index <= 13:
             phase = 'verification'
@@ -240,7 +257,7 @@ def outcome_errors():
 def recipe():
     constants, driver, controls = native_recipe()
     adopt_proof_constants(constants)
-    roles = constants['ADOPT_AUTHORITY_ROLE'] + 1
+    roles = constants['ADOPT_AUTHORITY_ROLE'] + 2
     constants.update(ROLE_COUNT=roles, ENTRY_BYTES=64 + 312 + roles * 40, SCHEMA_TOOL=10,
                      EMIT_WORK_BYTES=WORKSPACE_BYTES, ADOPT_INTAKE_FIELDS=9944, ADOPT_OBJECTIVE_REF=10064,
                      ADOPT_CONTEXT_ID=10088, ADOPT_OUTCOME_BYTES=10112, ADOPT_DEFER_CUSTODY=0xffffffed)
@@ -255,12 +272,14 @@ def recipe():
         ('ADOPT_INDEX_RESULT', b'HIAADI02'),
     )})
     custody_constants(constants)
+    slot_constants(constants)
     driver = driver.replace('def emit_flow(', 'def adopt_flow(')
     driver = driver.replace('    if length(s) < 64 or input_word(s, 0) != OBSERVATION',
         '    if (state == ADOPT_PROFILES_REQUIRED or state == ADOPT_EVAL_READY or state == ADOPT_EVAL_BINDING_REFUSED\n'
         '            or state == ADOPT_PREPARED or state == ADOPT_CLAIMS_READY or state == ADOPT_CLAIMS_ACCEPTED\n'
         '            or state == ADOPT_MEASURES_READY or state == ADOPT_NATIVE_OPEN_CORE\n'
-        '            or state == ADOPT_BUILD_READY or state == ADOPT_CUSTODY_REFUSED):\n'
+        '            or state == ADOPT_BUILD_READY or state == ADOPT_CUSTODY_REFUSED\n'
+        '            or state == ADOPT_SLOT_ERROR_READY or state == ADOPT_SLOT_RESULT_READY or state == ADOPT_LIVE_CONTEXT):\n'
         '        return adopt_continue(o, w, state)\n'
         '    if length(s) < 64 or input_word(s, 0) != OBSERVATION',
     ).replace(
@@ -278,6 +297,8 @@ def recipe():
         '    if state == ADOPT_ERROR_BODY or state == ADOPT_OUTCOME:\n'
         '        return adopt_outcome_state(s, o, w, state)\n'
         '    if state >= ADOPT_CUSTODY_START and state <= ADOPT_CUSTODY_SLOT:\n'
+        '        return ADOPT_DEFER_CUSTODY\n'
+        '    if state == ADOPT_SLOT_CONDITIONAL or (state >= ADOPT_SLOT_OPENED and state <= RB_RESULT_JSON):\n'
         '        return ADOPT_DEFER_CUSTODY\n'
         '    if state == ADOPT_EVAL_START or state == ADOPT_MEASURES_START or state == ADOPT_PROOF_START:\n'
         '        return EMIT_DEFER_PROOF\n'
@@ -305,7 +326,10 @@ def recipe():
                 '    return adopt_after_context(o, w)',
             ).replace('return inspection_feedback(o, w, 3, 0, 0)', 'return adopt_after_budget(o, w)'
             ).replace('return inspection_feedback(o, w, get(w, EMIT_STAGE), 1, EMIT_PUBLIC_ERROR)',
-                       'return adopt_outcome(o, w, 2, EMIT_PUBLIC_ERROR)'
+                       'if get(w, ADOPT_SLOT_ACTIVE) != 0:\n'
+                       '            put(w, ADOPT_CUSTODY_ERROR, 7)\n'
+                       '            return close_store(o, w, ADOPT_SLOT_FAILED)\n'
+                       '        return adopt_outcome(o, w, 2, EMIT_PUBLIC_ERROR)'
             ).replace('return inspection_feedback(o, w, 5, 0, 0)',
                        'put(w, 0, ADOPT_NATIVE_CORE_READY)\n        return ADOPT_DEFER_CUSTODY'
             ).replace('return inspection_feedback(o, w, 11, 0, EMIT_WALL_PERMIT)', 'return BAD')
@@ -329,10 +353,10 @@ def recipe():
                 '        if get(w, RETAINED_KIND) >= 5:\n'
                 '            return choose(get(w, ADOPT_CUSTODY_ACTIVE) != 0, ADOPT_DEFER_CUSTODY, EMIT_DEFER_PROOF)',
             )
-        selected.append(control)
+        selected.append(slot_store_control(control))
     driver = replace_function(driver, 'inspection_journal_plan',
         function(driver, 'inspection_journal_plan').replace('INSPECTION_REQUEST_ROLE', 'ADOPT_AUTHORITY_ROLE'))
-    source = '\n'.join((driver, *selected, INTAKE, EVIDENCE, OUTCOME, outcome_errors(),
+    source = '\n'.join((driver, *selected, INTAKE, EVIDENCE, OUTCOME,
                         function(DISPATCH, 'emit_trust_spans'), function(DISPATCH, 'emit_proof_profile_finished')))
     entry, parts = reachable_policy(source, 'adopt_flow')
     return constants, entry, parts

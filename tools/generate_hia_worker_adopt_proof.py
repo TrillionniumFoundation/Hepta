@@ -11,7 +11,7 @@ from tools.generate_hia_worker_emit_measurement import splice_list
 from tools.generate_hia_worker_emit_proof import proof_recipe
 
 SOURCE = Path('examples/hia_bootstrap/worker_adopt_proof.hepta')
-WORKSPACE_BYTES = 10752
+WORKSPACE_BYTES = 12288
 
 ADOPT_PROOF = r'''
 def adopt_proof_start(o:mutbuf, w:mutbuf) -> u64:
@@ -271,7 +271,7 @@ def reachable_policy(policy, entry):
 
 def program():
     constants, _front, _transport = native_recipe()
-    constants.update(ROLE_COUNT=constants['ROLE_COUNT'] + 2, EMIT_WORK_BYTES=WORKSPACE_BYTES)
+    constants.update(ROLE_COUNT=constants['ROLE_COUNT'] + 3, EMIT_WORK_BYTES=WORKSPACE_BYTES)
     entry, controls = adopt_proof_recipe(constants)
     return flow_source(entry, controls, constants)
 

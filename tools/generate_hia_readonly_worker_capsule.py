@@ -112,10 +112,19 @@ EMIT_ROLES = (
 PROOF_TRUST_MAGIC = b'HIAPTK01'
 PROOF_TRUST_BYTES = 224
 PROOF_TRUST_RUNTIME_MAX = 128
+ADOPT_OWNER = 'hia-agent-adopt-worker-carrier'
+ADOPT_ROLES = (
+    *(name.replace('emit-', 'adopt-') if name in (
+        'hia-agent-emit-journal', 'hia-agent-emit-journal-records', 'hia-agent-emit-journal-observation',
+        'hia-agent-emit-diagnostic',
+    ) else name for name in EMIT_ROLES),
+    'hia-agent-worker-adopt-claims', 'hia-agent-worker-adopt-authority', 'hia-agent-worker-rollback',
+)
 NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
                                   *CONTEXT_ROLES, CONTEXT_OWNER,
                                   *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES, CANDIDATE_OWNER,
-                                  *ROLLBACK_ROLES, ROLLBACK_OWNER, *EMIT_ROLES, EMIT_OWNER)))
+                                  *ROLLBACK_ROLES, ROLLBACK_OWNER, *EMIT_ROLES, EMIT_OWNER,
+                                  *ADOPT_ROLES, ADOPT_OWNER)))
 CAPSULE_MAX = 4 << 20
 HEADER_BYTES = 56
 ROW_BYTES = 48
@@ -247,7 +256,7 @@ def routing(*, artifact=False):
     methods = ((1, b'hia_read'), (2, b'hia_describe'))
     if artifact:
         methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'),
-                    (6, b'hia_candidate'), (7, b'hia_rollback'), (8, b'hia_emit'))
+                    (6, b'hia_candidate'), (7, b'hia_rollback'), (8, b'hia_emit'), (9, b'hia_adopt'))
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'

@@ -90,7 +90,7 @@ def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 80 + nonce:
         return 4294967293
     supplied = length(s) - 80 - nonce
-    if kind >= 12:
+    if kind >= 12 and kind <= 14:
         if supplied > @META_LIMIT@ or length(o) < supplied + 640:
             return 4294967293
         if emit_metadata(s, 80, supplied, kind) == False:
@@ -128,7 +128,7 @@ def discovery_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 
 def artifact_record(s:readbuf, o:mutbuf, w:mutbuf, kind:u64, supplied:u64) -> u64:
     name = document_kind_width(kind)
-    meta_size = choose(kind >= 12, supplied, choose(kind == 8, 133, 2))
+    meta_size = choose(kind >= 12 and kind <= 14, supplied, choose(kind == 8, 133, 2))
     typed = 394 + name + meta_size
     put(o, 0, RESULT)
     put(o, 8, typed)
@@ -167,7 +167,7 @@ def artifact_record(s:readbuf, o:mutbuf, w:mutbuf, kind:u64, supplied:u64) -> u6
     return json_close(o, at)
 
 def metadata(s:readbuf, o:mutbuf, at:u64, kind:u64, supplied:u64) -> u64:
-    if kind >= 12:
+    if kind >= 12 and kind <= 14:
         return copy_input(s, o, 80, at, supplied)
     if supplied == 0:
         return empty_metadata(o, at)
