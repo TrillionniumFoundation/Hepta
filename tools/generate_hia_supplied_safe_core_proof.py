@@ -2,8 +2,10 @@
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_safe_core_elf_inventory_native import REFUSAL_IDS
 from tools.generate_hia_core_proof_wire import SUBJECT_HEADER, SUBJECT_MAGIC
 from tools.generate_hia_safe_core_binder import (
+    DIAGNOSTIC_REPLY as BIND_DIAGNOSTIC_REPLY, DIAGNOSTIC_REQUEST as BIND_DIAGNOSTIC_REQUEST,
     FRAME_MAGIC as BIND_MAGIC, OUTPUT_LIMIT as BIND_CAP, REPLY_MAGIC as BIND_REPLY,
     document as transport_document,
 )
@@ -18,7 +20,14 @@ from hepta.hia_cnf_native import CIRCUIT_REQUEST, PROJECTION_INPUT_LIMIT, PROJEC
 
 SOURCE_PATH = 'examples/hia_bootstrap/supplied_safe_core_proof.hepta'
 REQUEST_MAGIC = int.from_bytes(b'HIAPRF01', 'little')
+TYPED_REQUEST_MAGIC = int.from_bytes(b'HIAPRF02', 'little')
 RECEIPT_MAGIC = int.from_bytes(b'HIAPRR01', 'little')
+FAILURE_MAGIC = int.from_bytes(b'HIAPRX01', 'little')
+LOADER_SECTION_REFUSAL = REFUSAL_IDS['loader_section_unreviewed']
+DEADLINE = 3
+OUTSIDE_PROFILE = 4
+INCOMPLETE = 5
+TYPED_REQUEST_SLOT = 256
 REQUEST_HEAD = 48
 RECEIPT_HEAD = 464
 FILE_LIMIT = 8 << 20
@@ -46,14 +55,22 @@ def prove(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = get(w, 0)
     if phase == 0:
         return admit(s, w)
-    if now(w) >= get(w, 128) or get(w, 72) != 0:
-        return 0
+    if now(w) >= get(w, 128):
+        return failure(o, w, phase, DEADLINE, 0)
+    if get(w, 72) != 0:
+        return failure(o, w, phase, INCOMPLETE, 0)
+    result = proof_step(o, w, phase)
+    if result != 0:
+        return result
+    return failure(o, w, phase, INCOMPLETE, 0)
+
+def proof_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase <= 3:
         return digest_inputs(o, w, phase)
     if phase == 4:
         return bind_subject(o, w)
     if phase == 5:
-        return digest_text(w)
+        return digest_text(o, w)
     if phase == 6:
         return observe_machine(o, w)
     if phase == 7:
@@ -65,7 +82,10 @@ def prove(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return 0
 
 def admit(s:readbuf, w:mutbuf) -> u64:
-    if length(s) < REQUEST_HEAD or uint(s, 0, 8) != REQUEST_MAGIC:
+    if length(s) < REQUEST_HEAD:
+        return 0
+    magic = uint(s, 0, 8)
+    if magic != REQUEST_MAGIC and magic != TYPED_REQUEST_MAGIC:
         return 0
     profile = uint(s, 8, 8)
     budget = uint(s, 16, 8)
@@ -83,6 +103,7 @@ def admit(s:readbuf, w:mutbuf) -> u64:
     put(w, 144, obj)
     put(w, 152, final)
     put(w, 160, profile)
+    put(w, TYPED_REQUEST_SLOT, choose(magic == TYPED_REQUEST_MAGIC, 1, 0))
     return dispatch(w, 1, 6, REQUEST_HEAD, core, DIGEST, 32, DIGEST_WORK, 1088)
 
 def digest_inputs(o:mutbuf, w:mutbuf, phase:u64) -> u64:
@@ -125,7 +146,7 @@ def bind_subject(o:mutbuf, w:mutbuf) -> u64:
     copy_output(o, w, SUBJECT + 64, 208, NAME_LIMIT)
     obj = get(w, 144)
     final = get(w, 152)
-    put(w, HEADER, BIND_MAGIC)
+    put(w, HEADER, choose(get(w, TYPED_REQUEST_SLOT) == 1, BIND_DIAGNOSTIC_REQUEST, BIND_MAGIC))
     put(w, HEADER + 8, obj)
     put(w, HEADER + 16, final)
     put(w, HEADER + 24, name)
@@ -133,8 +154,13 @@ def bind_subject(o:mutbuf, w:mutbuf) -> u64:
     return dispatch(w, 5, 2, WORK_OFFSET + HEADER, 288, BINDING, BIND_CAP,
                     REQUEST_HEAD + get(w, 136), obj + final)
 
-def digest_text(w:mutbuf) -> u64:
+def digest_text(o:mutbuf, w:mutbuf) -> u64:
     size = get(w, 64)
+    if size == 40 and get(w, BINDING) == BIND_DIAGNOSTIC_REPLY:
+        if (get(w, BINDING + 8) == 2 and get(w, BINDING + 16) == LOADER_SECTION_REFUSAL
+                and get(w, BINDING + 24) == 0 and get(w, BINDING + 32) == 0):
+            return failure(o, w, 5, OUTSIDE_PROFILE, LOADER_SECTION_REFUSAL)
+        return 0
     if size < 80 + 56 or size > BIND_CAP or get(w, BINDING) != BIND_REPLY:
         return 0
     span = get(w, BINDING + 24)
@@ -233,6 +259,26 @@ def finish(o:mutbuf, w:mutbuf, role:u64, exact:bool) -> u64:
     put(o, 56, get(w, 248))
     put(o, 72, 0)
     return get(w, 224)
+
+def failure(o:mutbuf, w:mutbuf, phase:u64, status:u64, reason:u64) -> u64:
+    # A typed result is admissible only after hashing all three inputs.
+    # Keep those digests in the same offsets as a complete proof. No
+    # partly computed entry, linked-text hash or obligation escapes.
+    if get(w, TYPED_REQUEST_SLOT) != 1 or phase < 4:
+        return 0
+    put(o, 0, FAILURE_MAGIC)
+    put(o, 8, status)
+    put(o, 16, phase)
+    put(o, 24, reason)
+    at = 32
+    while at < 80:
+        put(o, at, 0)
+        at = at + 8
+    at = 176
+    while at < RECEIPT_HEAD:
+        put(o, at, 0)
+        at = at + 8
+    return RECEIPT_HEAD
 
 def dispatch(w:mutbuf, phase:u64, role:u64, source:u64, size:u64,
              output:u64, capacity:u64, extra:u64, extent:u64) -> u64:

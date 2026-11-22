@@ -11,8 +11,10 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS
 from tools.generate_hia_safe_core_obligation import RESPONSE_MAGIC as OBLIGATION_REPLY
+from tools.generate_hia_safe_core_obligation import RESPONSE_HEAD as OBLIGATION_HEAD
 from tools.generate_hia_supplied_safe_core_proof import (
-    FILE_LIMIT, OUTPUT_LIMIT, RECEIPT_HEAD, RECEIPT_MAGIC, REQUEST_MAGIC,
+    DEADLINE, FAILURE_MAGIC, FILE_LIMIT, INCOMPLETE, LOADER_SECTION_REFUSAL, OUTSIDE_PROFILE,
+    OUTPUT_LIMIT, RECEIPT_HEAD, RECEIPT_MAGIC, REQUEST_MAGIC, TYPED_REQUEST_MAGIC,
 )
 from tools.generate_hia_worker_artifact_authority import source_program as authority
 from tools.generate_hia_worker_build_custody import POLICY as CUSTODY
@@ -23,6 +25,11 @@ from tools.hia_retained_proof_method import MACHINE_VERDICT
 SOURCE = Path('examples/hia_bootstrap/worker_machine_replay.hepta')
 MACHINE_ANCHOR = int.from_bytes(b'HIAMAP01', 'little')
 PHASES = ('HIAMRQ01', 'HIAMRV01')
+TYPED_REQUEST = int.from_bytes(b'HIAMRQ02', 'little')
+FRESH_REQUEST = int.from_bytes(b'HIAMFR01', 'little')
+FRESH_OBSERVATION = int.from_bytes(b'HIAMFO01', 'little')
+FRESH_HEADER = 8 + 3 * 64
+FRESH_REPLY_HEAD = 64
 FIELDS = (
     'method', 'profile', 'service_profile', 'outcome', 'deadline_met', 'counterexample', 'artifact_binding',
     'validation', 'candidate_core_sha256', 'input_sha256', 'native_artifact', 'build_receipt', 'object_artifact',
@@ -40,14 +47,16 @@ def machine_replay(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 8 or length(o) < ANCHOR_BYTES:
         return BAD
     tag = input_word(s, 0)
-    if tag == REQUEST:
-        return request_header(s, o)
+    if tag == REQUEST or tag == TYPED_REQUEST:
+        return request_header(s, o, tag == TYPED_REQUEST)
     if tag == FINISH:
         return proved_machine(s, o)
+    if tag == FRESH:
+        return fresh_machine(s, o)
     return retained_evidence(s, o, w)
 
 # Physical Store descriptors are attached by the relay, not by the receipt.
-def request_header(s:readbuf, o:mutbuf) -> u64:
+def request_header(s:readbuf, o:mutbuf, typed:bool) -> u64:
     if length(s) != 40:
         return BAD
     budget = input_word(s, 8)
@@ -58,7 +67,7 @@ def request_header(s:readbuf, o:mutbuf) -> u64:
         return BAD
     if obj < 64 or obj > FILE_MAX or final < 64 or final > FILE_MAX:
         return BAD
-    put(o, 0, PROVER_REQUEST)
+    put(o, 0, choose(typed, PROVER_TYPED_REQUEST, PROVER_REQUEST))
     put(o, 8, 0)
     put(o, 16, budget)
     put(o, 24, core)
@@ -284,6 +293,127 @@ def proved_machine(s:readbuf, o:mutbuf) -> u64:
     put(o, 16, 1)
     return 24
 
+# The caller supplies exact retained Core/object/final SHA-256 text and the
+# freshly captured, sealed reply from the installed supplied-byte prover.
+# This is proof custody, not a second solver or a decoding authorization.
+def fresh_machine(s:readbuf, o:mutbuf) -> u64:
+    at = FRESH_HEADER
+    if length(s) < at + PROVER_HEAD or length(s) - at > PROVER_MAX:
+        return BAD
+    if fresh_digests(s, at + 80) == False:
+        return BAD
+    magic = input_word(s, at)
+    if magic == PROVER_FAILURE:
+        return fresh_failure(s, o, at)
+    if magic != PROVER_REPLY:
+        return BAD
+    verdict = input_word(s, at + 8)
+    profile = input_word(s, at + 16)
+    count = input_word(s, at + 40)
+    if (profile == 0 or profile > 6 or input_word(s, at + 24) > 6
+            or input_word(s, at + 32) == 0 or input_word(s, at + 32) > 1024):
+        return BAD
+    if (verdict == 1 and count != 5) or (verdict == 2 and (count < 4 or count > 5)) or verdict < 1 or verdict > 2:
+        return BAD
+    name_size = input_word(s, at + 64)
+    if name_size == 0 or name_size > 256 or input_word(s, at + 72) != 0:
+        return BAD
+    text_offset = input_word(s, at + 48)
+    text_size = input_word(s, at + 56)
+    if text_size == 0 or text_size > 65536 or text_offset > FILE_MAX or text_size > FILE_MAX - text_offset:
+        return BAD
+    cursor = at + PROVER_HEAD
+    index = 0
+    while index < count:
+        if length(s) - cursor < 8 + OBLIGATION_HEAD:
+            return BAD
+        size = input_word(s, cursor)
+        if size < OBLIGATION_HEAD + 40 or size > length(s) - cursor - 8:
+            return BAD
+        row = cursor + 8
+        if fresh_obligation(s, row, size, index, verdict == 2 and index + 1 == count) == False:
+            return BAD
+        cursor = row + size
+        index = index + 1
+    if cursor != length(s):
+        return BAD
+    put(o, 0, FRESH_OBSERVATION)
+    put(o, 8, verdict)
+    put(o, 16, profile)
+    put(o, 24, count)
+    put(o, 32, text_offset)
+    put(o, 40, text_size)
+    put(o, 48, name_size)
+    put(o, 56, 0)
+    cursor = at + PROVER_HEAD
+    index = 0
+    while index < count:
+        size = input_word(s, cursor)
+        row = cursor + 8
+        output = FRESH_REPLY_HEAD + 24 * index
+        put(o, output, input_word(s, row + 16))
+        put(o, output + 8, row - at)
+        put(o, output + 16, size)
+        cursor = row + size
+        index = index + 1
+    return FRESH_REPLY_HEAD + 24 * count
+
+def fresh_failure(s:readbuf, o:mutbuf, at:u64) -> u64:
+    if length(s) != at + PROVER_HEAD:
+        return BAD
+    status = input_word(s, at + 8)
+    phase = input_word(s, at + 16)
+    reason = input_word(s, at + 24)
+    if phase < 4 or phase > 9:
+        return BAD
+    if status == OUTSIDE_PROFILE:
+        if phase != 5 or reason != LOADER_SECTION_REFUSAL:
+            return BAD
+    elif (status != DEADLINE and status != INCOMPLETE) or reason != 0:
+        return BAD
+    offset = 32
+    while offset < PROVER_HEAD:
+        if offset == 80:
+            offset = 176
+        if input_word(s, at + offset) != 0:
+            return BAD
+        offset = offset + 8
+    put(o, 0, FRESH_OBSERVATION)
+    put(o, 8, status)
+    put(o, 16, phase)
+    put(o, 24, 0)
+    put(o, 32, reason)
+    put(o, 40, 0)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    return FRESH_REPLY_HEAD
+
+def fresh_digests(s:readbuf, digest:u64) -> bool:
+    i = 0
+    while i < 96:
+        high = hex_digit(byte(s, 8 + 2 * i))
+        low = hex_digit(byte(s, 9 + 2 * i))
+        if high > 15 or low > 15 or byte(s, digest + i) != ((high << 4) | low):
+            return False
+        i = i + 1
+    return True
+
+def fresh_obligation(s:readbuf, row:u64, size:u64, index:u64, refutes:bool) -> bool:
+    if input_word(s, row) != OBLIGATION or input_word(s, row + 8) != index:
+        return False
+    expected = choose(index == 0 or refutes, SAT, UNSAT)
+    if input_word(s, row + 16) != expected:
+        return False
+    formula = input_word(s, row + 48)
+    witness = input_word(s, row + 56)
+    table = input_word(s, row + 64)
+    payload = size - OBLIGATION_HEAD
+    if formula < 40 or formula > payload or witness > payload - formula or table != payload - formula - witness:
+        return False
+    if (expected == SAT and (witness == 0 or table != 0)) or (expected == UNSAT and witness != 0):
+        return False
+    return True
+
 def same_bytes(s:readbuf, a:u64, b:u64, size:u64) -> bool:
     index = 0
     while index < size:
@@ -298,6 +428,11 @@ def program():
     constants = dict(
         BAD=INVALID, NONE=NONE, REQUEST=int.from_bytes(PHASES[0].encode(), 'little'),
         FINISH=int.from_bytes(PHASES[1].encode(), 'little'), PROVER_REQUEST=REQUEST_MAGIC,
+        TYPED_REQUEST=TYPED_REQUEST, PROVER_TYPED_REQUEST=TYPED_REQUEST_MAGIC, PROVER_FAILURE=FAILURE_MAGIC,
+        DEADLINE=DEADLINE, OUTSIDE_PROFILE=OUTSIDE_PROFILE, INCOMPLETE=INCOMPLETE,
+        LOADER_SECTION_REFUSAL=LOADER_SECTION_REFUSAL,
+        FRESH=FRESH_REQUEST, FRESH_OBSERVATION=FRESH_OBSERVATION, FRESH_HEADER=FRESH_HEADER,
+        FRESH_REPLY_HEAD=FRESH_REPLY_HEAD, OBLIGATION_HEAD=OBLIGATION_HEAD,
         ANCHOR=MACHINE_ANCHOR, ANCHOR_BYTES=ANCHOR_BYTES, ANCHOR_HEAD=ANCHOR_HEAD,
         PROVER_REPLY=RECEIPT_MAGIC, PROVER_HEAD=RECEIPT_HEAD, PROVER_MAX=OUTPUT_LIMIT,
         OBLIGATION=OBLIGATION_REPLY, COMPLETE=MACHINE_VERDICT, FILE_MAX=FILE_LIMIT, SAT=SAT, UNSAT=UNSAT,
