@@ -3,6 +3,7 @@
 .global _start
 .equ CORE_N,67108864
 .equ SOURCE_N,41943040
+.equ LAYOUT_N,8388608
 .equ RAW_N,8388608
 .equ EVT_N,34880
 .equ EVT_MAP,36864
@@ -24,15 +25,51 @@
 .equ borrow_call,232
 .equ borrow_width,240
 .equ borrow_end,248
+.equ source_extent,280
+.equ layout_extent,288
+.equ layout_progress,296
+.equ layout_fd,304
+.equ layout_stat,320
 _start:
+ xor r15d,r15d
+ xor ebx,ebx
  cmp QWORD PTR [rsp],1
+ je initialize
+ cmp QWORD PTR [rsp],3
  jne usage
+ mov rsi,[rsp+16]
+ lea rdi,[rip+layout_argument]
+ mov ecx,17
+ cld
+ repe cmpsb
+ jne usage
+ mov rsi,[rsp+24]
+layout_digit:
+ movzx eax,BYTE PTR [rsi]
+ test eax,eax
+ jz layout_argument_ready
+ sub eax,48
+ cmp eax,9
+ ja usage
+ imul rbx,rbx,10
+ add rbx,rax
+ cmp rbx,2147483647
+ ja usage
+ inc rsi
+ jmp layout_digit
+layout_argument_ready:
+ cmp rbx,3
+ jb usage
+ mov r15d,LAYOUT_N
+initialize:
  .byte 0x4c,0x8d,0x35
 byte_address_hole: .long 0
  mov esi,4096
  call allocate
  mov rbp,rax
- mov esi,SOURCE_N
+ mov [rbp+layout_fd],rbx
+ lea rsi,[r15+SOURCE_N]
+ mov [rbp+source_extent],rsi
  call allocate
  mov r12,rax
  mov [rbp],rax
@@ -43,6 +80,9 @@ byte_address_hole: .long 0
  mov esi,EVT_MAP
  call allocate
  mov [rbp+16],rax
+ test r15,r15
+ jz read_input
+ call capture_layout
 read_input:
  xor edi,edi
  mov rax,[rbp+88]
@@ -134,7 +174,7 @@ exports_hole: .long 0
  mov QWORD PTR [rbp+776],1
 codegen_loop:
  mov rdi,r12
- mov esi,SOURCE_N
+ mov rsi,[rbp+source_extent]
  mov rdx,[rbp+16]
  mov ecx,EVT_N
  mov r8,r13
@@ -356,7 +396,7 @@ expectations_hole: .long 0
  mov edx,1
  call protect
  mov rdi,r12
- mov esi,SOURCE_N
+ mov rsi,[rbp+source_extent]
  call release
  mov rdi,r13
  mov esi,CORE_N
@@ -565,6 +605,50 @@ exit:
  mov eax,60
  syscall
  ud2
+
+# This is a dedicated, already authorized bounded plan descriptor. The HIA
+# emitter validates the row geometry and resolves its original Core ordinals.
+capture_layout:
+ mov rdi,[rbp+layout_fd]
+ mov esi,1034
+ mov eax,72
+ syscall
+ cmp rax,15
+ jne invalid
+ mov rdi,[rbp+layout_fd]
+ lea rsi,[rbp+layout_stat]
+ mov eax,5
+ syscall
+ test rax,rax
+ jne io_failure
+ mov rax,[rbp+layout_stat+48]
+ cmp rax,40
+ jb invalid
+ cmp rax,LAYOUT_N
+ ja capacity
+ mov [rbp+layout_extent],rax
+read_layout:
+ mov r10,[rbp+layout_progress]
+ mov rdx,[rbp+layout_extent]
+ sub rdx,r10
+ jz layout_captured
+ lea rsi,[r12+r10+SOURCE_N]
+ mov rdi,[rbp+layout_fd]
+ mov eax,17
+ syscall
+ cmp rax,-4
+ je read_layout
+ test rax,rax
+ jle io_failure
+ add [rbp+layout_progress],rax
+ jmp read_layout
+layout_captured:
+ lea rdi,[r12+SOURCE_N]
+ cmp [rdi+16],r10
+ jne invalid
+ mov esi,LAYOUT_N
+ mov edx,1
+ jmp protect
 
 # The pinned HIA binder returns the span of the *same* Core and a bounded
 # per-ordinal wrapper request. This port moves only checked spans.
@@ -805,3 +889,5 @@ append_borrowed_empty:
  ret
 borrowed_function_prefix:
  .ascii "__hia_native_fn_"
+layout_argument:
+ .asciz "--planned-layout"
