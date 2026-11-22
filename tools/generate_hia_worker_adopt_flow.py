@@ -5,7 +5,8 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_worker_adopt_proof import adopt_proof_constants, reachable_policy
+from tools.generate_hia_worker_adopt_custody import custody_constants
+from tools.generate_hia_worker_adopt_proof import WORKSPACE_BYTES, adopt_proof_constants, reachable_policy
 from tools.generate_hia_worker_candidate_flow import replace_function
 from tools.generate_hia_worker_context_flow import flow_source, function
 from tools.generate_hia_worker_emit_flow import ADMISSION, DISPATCH, REACTOR, REQUEST, native_recipe
@@ -81,6 +82,8 @@ def adopt_continue(o:mutbuf, w:mutbuf, state:u64) -> u64:
         return adopt_context(o, w)
     if state == ADOPT_EVAL_BINDING_REFUSED:
         return adopt_error(o, w, 1)
+    if state == ADOPT_CUSTODY_REFUSED:
+        return adopt_error(o, w, get(w, ADOPT_CUSTODY_ERROR))
     if state == ADOPT_EVAL_READY:
         move_fragment(w, ADOPT_EVAL_FIELDS, ADOPT_CLAIM_FIELDS + 48)
         put(w, 0, ADOPT_CUSTODY_START)
@@ -88,6 +91,13 @@ def adopt_continue(o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == ADOPT_PREPARED:
         put(w, 0, ADOPT_PROOF_START)
         return EMIT_DEFER_PROOF
+    if state == ADOPT_NATIVE_OPEN_CORE:
+        put(w, EMIT_STAGE, 12)
+        return inspection_program(o, w)
+    if state == ADOPT_BUILD_READY:
+        move_fragment(w, ADOPT_OBJECTIVE_REF, INSPECTION_REFERENCE)
+        put(w, RETAINED_PURPOSE, READ_ADOPT_OBJECTIVE)
+        return inspection_retained_query(o, w, 0)
     if state == ADOPT_CLAIMS_READY:
         put(w, 0, ADOPT_CUSTODY_CLAIMS)
         return ADOPT_DEFER_CUSTODY
@@ -109,6 +119,12 @@ def adopt_continue(o:mutbuf, w:mutbuf, state:u64) -> u64:
     return BAD
 
 def adopt_evidence_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if state == ADOPT_NO_PLAN:
+        if (length(s) != 68 or input_word(s, 40) != 4 or byte(s, 64) != 110
+                or byte(s, 65) != 117 or byte(s, 66) != 108 or byte(s, 67) != 108):
+            return BAD
+        sample_span(s, w, ADOPT_CLAIM_FIELDS + 72)
+        return adopt_continue(o, w, ADOPT_BUILD_READY)
     if state == ADOPT_EVALUATION_VERDICT or state == ADOPT_BENEFIT_VERDICT:
         if plan_ok(s) == False or input_word(s, 40) != 24 or input_word(s, 72) != ADOPT_EVAL_TAG:
             return BAD
@@ -147,9 +163,9 @@ def adopt_after_budget(o:mutbuf, w:mutbuf) -> u64:
 
 OUTCOME = r'''
 def adopt_error(o:mutbuf, w:mutbuf, status:u64) -> u64:
-    if status < 1 or status > 3:
-        return BAD
     at = adopt_error_body(o, status)
+    if at == HEADER:
+        return BAD
     return action(o, w, ADOPT_ERROR_BODY, MAKE, 0, 0, 0, at - HEADER)
 
 def adopt_outcome(o:mutbuf, w:mutbuf, status:u64, payload:u64) -> u64:
@@ -193,12 +209,18 @@ def outcome_errors():
         ('E_HIA_EVALUATION_REQUIRED', 'evaluation did not meet the frozen correctness/performance acceptance'),
         ('E_HIA_COST_INCOMPLETE', 'full model/discovery/adoption/future-use cost is not established by this prefix; '
                                  'net-benefit requirement cannot pass'),
+        ('E_HIA_RECEIPT_BINDING', 'build receipt belongs to a different native subject'),
+        ('E_HIA_RECEIPT_BINDING', 'build record differs from retained native metadata'),
+        ('E_HIA_RECEIPT_BINDING', 'native artifact belongs to a different context or implementation'),
+        ('E_HIA_RECEIPT_BINDING', "native artifact's admitted Core identity differs"),
+        ('E_HIA_RECEIPT_BINDING', 'build record differs from actual artifact bytes'),
+        ('E_HIA_RECEIPT_BINDING', 'retained object differs from its exact build binding'),
     )
     dispatch = ['\ndef adopt_error_body(o:mutbuf, status:u64) -> u64:']
     bodies = []
     for index, (code, message) in enumerate(cases, 1):
         name = f'adopt_error_{index}'
-        body = json.dumps(dict(code=code, message=message, phase='adoption', details_artifact=None,
+        body = json.dumps(dict(code=code, message=message, phase='adoption' if index <= 3 else 'admission', details_artifact=None,
                                retry_action='correct_input'), sort_keys=True, separators=(',', ':'))
         dispatch.extend((f'    if status == {index}:', f'        return {name}(o, HEADER)'))
         bodies.append(literal(name, body))
@@ -210,7 +232,7 @@ def recipe():
     adopt_proof_constants(constants)
     roles = constants['ADOPT_AUTHORITY_ROLE'] + 1
     constants.update(ROLE_COUNT=roles, ENTRY_BYTES=64 + 312 + roles * 40, SCHEMA_TOOL=10,
-                     EMIT_WORK_BYTES=10240, ADOPT_INTAKE_FIELDS=9944, ADOPT_OBJECTIVE_REF=10064,
+                     EMIT_WORK_BYTES=WORKSPACE_BYTES, ADOPT_INTAKE_FIELDS=9944, ADOPT_OBJECTIVE_REF=10064,
                      ADOPT_CONTEXT_ID=10088, ADOPT_OUTCOME_BYTES=10112, ADOPT_DEFER_CUSTODY=0xffffffed)
     states = (
         'ADOPT_CUSTODY_START', 'ADOPT_PREPARED', 'ADOPT_CUSTODY_CLAIMS', 'ADOPT_CLAIMS_ACCEPTED',
@@ -222,11 +244,13 @@ def recipe():
         ('ADOPT_REQUEST', b'HIAADQ01'), ('ADOPT_INDEX_REQUEST', b'HIAADI01'),
         ('ADOPT_INDEX_RESULT', b'HIAADI02'),
     )})
+    custody_constants(constants)
     driver = driver.replace('def emit_flow(', 'def adopt_flow(')
     driver = driver.replace('    if length(s) < 64 or input_word(s, 0) != OBSERVATION',
         '    if (state == ADOPT_PROFILES_REQUIRED or state == ADOPT_EVAL_READY or state == ADOPT_EVAL_BINDING_REFUSED\n'
         '            or state == ADOPT_PREPARED or state == ADOPT_CLAIMS_READY or state == ADOPT_CLAIMS_ACCEPTED\n'
-        '            or state == ADOPT_MEASURES_READY):\n'
+        '            or state == ADOPT_MEASURES_READY or state == ADOPT_NATIVE_OPEN_CORE\n'
+        '            or state == ADOPT_BUILD_READY or state == ADOPT_CUSTODY_REFUSED):\n'
         '        return adopt_continue(o, w, state)\n'
         '    if length(s) < 64 or input_word(s, 0) != OBSERVATION',
     ).replace(
@@ -239,7 +263,7 @@ def recipe():
         '        return adopt_intake(s, o, w, state)',
     ).replace(
         '    return emit_dispatch(w, state)',
-        '    if state == ADOPT_EVALUATION_VERDICT or state == ADOPT_BENEFIT_VERDICT:\n'
+        '    if state == ADOPT_EVALUATION_VERDICT or state == ADOPT_BENEFIT_VERDICT or state == ADOPT_NO_PLAN:\n'
         '        return adopt_evidence_state(s, o, w, state)\n'
         '    if state == ADOPT_ERROR_BODY or state == ADOPT_OUTCOME:\n'
         '        return adopt_outcome_state(s, o, w, state)\n'
@@ -249,6 +273,10 @@ def recipe():
         '        return EMIT_DEFER_PROOF\n'
         '    if (state >= ADOPT_CLAIMS_PREFIX_READY and state <= ADOPT_CLAIMS_BOUND) or (state >= ADOPT_EVAL_PACKET_READY and state <= ADOPT_EVAL_BOUND):\n'
         '        return EMIT_DEFER_PROOF\n'
+        '    if ((state >= ADOPT_NATIVE_METADATA and state <= ADOPT_NATIVE_SIGNATURE_MATCH) or\n'
+        '            (get(w, ADOPT_CUSTODY_ACTIVE) != 0 and (state == INSPECTION_HASH_RETURNED or state == INSPECTION_HASH_FRAME or\n'
+        '             (state >= EMIT_CUSTODY_PROJECTED and state <= EMIT_CUSTODY_VERIFIED)))):\n'
+        '        return ADOPT_DEFER_CUSTODY\n'
         '    if state == INSPECTION_HASH_RETURNED or state == INSPECTION_HASH_FRAME or (state >= EMIT_PROOF_BEGIN and state < EMIT_PROOF_LIMIT):\n'
         '        return EMIT_DEFER_PROOF\n'
         '    return BAD',
@@ -266,7 +294,8 @@ def recipe():
             ).replace('return inspection_feedback(o, w, 3, 0, 0)', 'return adopt_after_budget(o, w)'
             ).replace('return inspection_feedback(o, w, get(w, EMIT_STAGE), 1, EMIT_PUBLIC_ERROR)',
                        'return adopt_outcome(o, w, 2, EMIT_PUBLIC_ERROR)'
-            ).replace('return inspection_feedback(o, w, 5, 0, 0)', 'return BAD'
+            ).replace('return inspection_feedback(o, w, 5, 0, 0)',
+                       'put(w, 0, ADOPT_NATIVE_CORE_READY)\n        return ADOPT_DEFER_CUSTODY'
             ).replace('return inspection_feedback(o, w, 11, 0, EMIT_WALL_PERMIT)', 'return BAD')
         if '\ndef bind_inspection_field(' in control:
             control = control.replace(
@@ -276,6 +305,17 @@ def recipe():
             ).replace(
                 'return inspection_feedback(o, w, get(w, EMIT_STAGE), 0, 0)',
                 'return BAD',
+            ).replace(
+                '    if reason >= READ_EMIT_PLAN:\n        return EMIT_DEFER_PROOF',
+                '    if reason == READ_ADOPT_OBJECTIVE:\n'
+                '        sample_span(s, w, ADOPT_CLAIM_FIELDS)\n'
+                '        return adopt_continue(o, w, ADOPT_PREPARED)\n'
+                '    if reason >= READ_EMIT_PLAN:\n'
+                '        return choose(get(w, ADOPT_CUSTODY_ACTIVE) != 0, ADOPT_DEFER_CUSTODY, EMIT_DEFER_PROOF)',
+            ).replace(
+                '        if get(w, RETAINED_KIND) >= 5:\n            return EMIT_DEFER_PROOF',
+                '        if get(w, RETAINED_KIND) >= 5:\n'
+                '            return choose(get(w, ADOPT_CUSTODY_ACTIVE) != 0, ADOPT_DEFER_CUSTODY, EMIT_DEFER_PROOF)',
             )
         selected.append(control)
     driver = replace_function(driver, 'inspection_journal_plan',
