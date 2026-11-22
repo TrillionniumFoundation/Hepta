@@ -338,7 +338,7 @@ def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64, obs
         if is_object(w, check) == False:
             return INVALID
         claim = lookup(w, check, K_claim)
-        if lowering_claim(w, claim) and proved_status(w, lookup(w, check, K_status)):
+        if claim_lowering_refinement(w, claim) and proved_status(w, lookup(w, check, K_status)):
             put(o, 0, choose(canonical == NONE, QUALIFIED, NORMALIZED))
             put(o, 8, 0)
             copy_digest(s, o, get(w, plan + 56) + 53, 16)
@@ -398,7 +398,6 @@ def key_table():
                 cell = encoded[offset:offset + 8]
                 terms.append(f'(match_word(w, at + {offset}, {len(cell)}) ^ {int.from_bytes(cell, "little")})')
             lines.extend((f'        if ({" | ".join(terms)}) == 0:', f'            return {ordinal}'))
-        lines.append('        return 0')
     lines.append('    return 0')
     return '\n'.join(lines)
 
@@ -431,7 +430,7 @@ def program():
         policy, function(CONTEXT, 'equal_span'),
         function(CONTEXT, 'digest_text').replace('NONE', str(constants['NONE'])),
         WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(constants['NONE'])),
-        key_table(), literal_match('lowering_claim', 'lowering_refinement'),
+        key_table(),
         literal_match('proved_status', 'proved'), '\n'.join(claims),
         *(literal_match('claim_' + claim, claim) for claim in CLAIMS),
         literal_match('layout_schema', LAYOUT_V1),
