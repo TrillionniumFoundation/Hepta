@@ -13,7 +13,6 @@ from tools.generate_hia_worker_emit_measurement import splice_list
 from tools.generate_hia_worker_emit_layout_replay import REPLAY as LAYOUT_REPLAY
 from tools.generate_hia_worker_emit_product import PRODUCTION
 from tools.generate_hia_worker_emit_proof import proof_recipe
-from tools.generate_hia_worker_emit_record import RECORD
 from tools.generate_hia_worker_emit_scalar import SCALAR
 from tools.generate_hia_worker_finite_domain import INELIGIBLE
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
@@ -65,6 +64,8 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return emit_proof_typed_artifact(s, o, w)
     if state == RETAINED_BYTES and get(w, RETAINED_PURPOSE) >= READ_EMIT_CUSTODY_BUILD:
         return emit_proof_custody_reopened(s, o, w, get(w, RETAINED_PURPOSE))
+    if state >= VERIFY_ENCODE_SCHEDULE and state <= VERIFY_ENCODE_PERMIT:
+        return verify_encoding_plan(s, o, w, state)
     if state >= VERIFY_ENCODE_OBJECT_MATCH and state <= VERIFY_ENCODE_EVIDENCE:
         return verify_encoding_observation(s, o, w, state)
     if state == EMIT_RETAINED_REPORT_BOUND:
@@ -196,14 +197,57 @@ def emit_custody_inputs(o:mutbuf, w:mutbuf) -> u64:
 ENCODING = r'''
 def verify_encoding_start(o:mutbuf, w:mutbuf) -> u64:
     kind = get(w, EMIT_OUTPUT_KIND)
-    if (kind < 1 or kind > 2 or get(w, EMIT_CUSTODY_PLAN_REF + 16) != 0
-            or get(w, INSPECTION_EXPORTS + 16) != 2):
+    if kind < 1 or kind > 2 or get(w, INSPECTION_EXPORTS + 16) != 2:
         return BAD
     move_fragment(w, VERIFY_ENCODE_STRUCTURED, INSPECTION_STRUCTURED)
     put(w, EMIT_PROFILE_LEVEL, get(w, VERIFY_ENCODE_PROFILE))
-    put(w, EMIT_CODEGEN_KIND, 1)
     put(w, VERIFY_ENCODE_AT, 0)
+    planned = get(w, EMIT_CUSTODY_PLAN_REF + 16) != 0
+    put(w, EMIT_CODEGEN_KIND, choose(planned, 2, 1))
+    if planned:
+        return verify_encoding_schedule(o, w)
     return emit_scalar_product(o, w, 12, get(w, EMIT_ABSOLUTE_DEADLINE))
+
+def verify_encoding_plan(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    size = input_word(s, 40)
+    if state == VERIFY_ENCODE_SCHEDULE:
+        version = emit_schedule_version(s)
+        if version == 0:
+            return BAD
+        put(w, EMIT_LAYOUT_FORMAT, version)
+        if version == 4:
+            return verify_encoding_registers(o, w)
+        fragment(o, 0, input_word(s, 32), 8, size - 8)
+        return action(o, w, VERIFY_ENCODE_LAYOUT, MAKE, 0, 0, 1, 0)
+    if state == VERIFY_ENCODE_LAYOUT:
+        if size < 40:
+            return BAD
+        sample_span(s, w, EMIT_LAYOUT)
+        return verify_encoding_permit(o, w, EMIT_LAYOUT, EMIT_PLAN_STANDARD)
+    if state == VERIFY_ENCODE_REGISTERS:
+        version = input_word(s, 80)
+        if (plan_ok(s) == False or size < 104 or input_word(s, 72) != EMIT_REPLAY_REGISTER_TAG
+                or (version != 3 and version != 4) or input_word(s, 96) != size - 8):
+            return BAD
+        return verify_encoding_permit(o, w, EMIT_CUSTODY_CANONICAL_PLAN, EMIT_PLAN_REGISTER)
+    if size < 168 or size != get(w, VERIFY_ENCODE_PERMIT_SIZE):
+        return BAD
+    sample_span(s, w, EMIT_LAYOUT_PERMIT)
+    return emit_scalar_product(o, w, 12, get(w, EMIT_ABSOLUTE_DEADLINE))
+
+def verify_encoding_permit(o:mutbuf, w:mutbuf, source:u64, tag:u64) -> u64:
+    # The plan came from the authenticated build record and the HIA layout
+    # checker bound it to the actual candidate. This packet is consumed by
+    # the private compiler invocation, not an execution authorization.
+    if get(w, EMIT_CUSTODY_RAW_SHA + 16) != 66 or get(w, EMIT_CUSTODY_CANONICAL_SHA + 16) != 66:
+        return BAD
+    put(w, VERIFY_ENCODE_PERMIT_SIZE, 144 + get(w, source + 16))
+    put(o, HEADER, tag)
+    put(o, HEADER + 8, 0)
+    fragment(o, 0, get(w, EMIT_CUSTODY_RAW_SHA), get(w, EMIT_CUSTODY_RAW_SHA + 8) + 1, 64)
+    fragment(o, 1, get(w, EMIT_CUSTODY_CANONICAL_SHA), get(w, EMIT_CUSTODY_CANONICAL_SHA + 8) + 1, 64)
+    use_span(w, o, source, 2)
+    return action(o, w, VERIFY_ENCODE_PERMIT, MAKE, 0, 0, 3, 16)
 
 def emit_admission_error(o:mutbuf, w:mutbuf, scope:u64, reason:u64) -> u64:
     put(w, 0, VERIFY_ENCODE_EXPIRED)
@@ -224,9 +268,19 @@ def verify_encoding_hash(s:readbuf, o:mutbuf, w:mutbuf, at:u64, state:u64) -> u6
 
 def verify_encoding_report(o:mutbuf, w:mutbuf) -> u64:
     # The ref denotes this particular rebuild's bytes only after matching
-    # the measured object. The normalizer also checks the fresh report SHA.
-    move_fragment(w, EMIT_CUSTODY_OBJECT_REF, EMIT_ARTIFACT_REFS)
-    return emit_retained_report(o, w)
+    # the measured object. The normalizer checks both fresh report hashes.
+    store(o, HEADER, 91)
+    store(o, 384, 44)
+    store(o, 385, 48)
+    store(o, 386, 44)
+    store(o, 392, 93)
+    vector_span(w, o, EMIT_CUSTODY_OBJECT_REF, HEADER + 1)
+    vector_part(o, HEADER + 25, INLINE_FRAGMENT, 384, 1)
+    vector_span(w, o, EMIT_PRODUCT_REPORT, HEADER + 49)
+    vector_part(o, HEADER + 73, INLINE_FRAGMENT, 384, 3)
+    vector_span(w, o, EMIT_IMAGE_QUOTED, HEADER + 97)
+    vector_part(o, HEADER + 121, INLINE_FRAGMENT, 392, 1)
+    return wide_inspection(o, w, EMIT_RETAINED_REPORT_BOUND, EMIT_RETAINED_REPORT_ROLE, 0, 6, 1)
 
 def verify_encoding_observation(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == VERIFY_ENCODE_OBJECT_MATCH:
@@ -458,9 +512,11 @@ def custody_constants(constants):
 
 
 def encoding_constants(constants):
-    states = ('START', 'OBJECT_MATCH', 'IMAGE_MATCH', 'EVIDENCE', 'EXPIRED')
+    states = ('START', 'OBJECT_MATCH', 'IMAGE_MATCH', 'EVIDENCE', 'EXPIRED',
+              'SCHEDULE', 'LAYOUT', 'REGISTERS', 'PERMIT')
     constants.update({f'VERIFY_ENCODE_{name}': 1382 + i for i, name in enumerate(states)})
-    constants.update(VERIFY_ENCODE_STRUCTURED=11504, VERIFY_ENCODE_PROFILE=11528, VERIFY_ENCODE_AT=11536)
+    constants.update(VERIFY_ENCODE_STRUCTURED=11504, VERIFY_ENCODE_PROFILE=11528,
+                     VERIFY_ENCODE_AT=11536, VERIFY_ENCODE_PERMIT_SIZE=11544)
 
 
 def finite_recipe():
@@ -524,9 +580,13 @@ def finite_recipe():
     policy = replace_function(policy, 'emit_replay_layout_state', replay)
     evidence = ('VERIFY_CANDIDATE_SHA', 'EMIT_CANONICAL_PLAN', 'EMIT_REPLAY_BASE_HASH',
                 'EMIT_REPLAY_PLAN_HASH', 'EMIT_REPLAY_BASE_FRAMES', 'EMIT_REPLAY_PLAN_FRAMES')
+    encoding_plan = ('INSPECTION_CORE', 'VERIFY_CANDIDATE_SHA', 'EMIT_CUSTODY_CANONICAL_PLAN')
     return reachable_policy('\n'.join((
         ENTRY, FRESH, NATIVE_CUSTODY, ENCODING, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
-        SCALAR, function(PRODUCTION, 'emit_product_observed'), function(RECORD, 'emit_retained_report'),
+        SCALAR, function(PRODUCTION, 'emit_product_observed'),
+        splice_list('verify_encoding_schedule', 'VERIFY_ENCODE_SCHEDULE', encoding_plan, role='EMIT_LAYOUT_ROLE'),
+        splice_list('verify_encoding_registers', 'VERIFY_ENCODE_REGISTERS', encoding_plan,
+                    role='EMIT_REPLAY_WITNESS_ROLE'),
         splice_list('verify_plan_schedule', 'VERIFY_PLAN_SCHEDULE', plan_inputs, role='EMIT_LAYOUT_ROLE'),
         splice_list('verify_plan_registers', 'VERIFY_PLAN_REGISTERS', plan_inputs,
                     role='EMIT_REPLAY_WITNESS_ROLE'),

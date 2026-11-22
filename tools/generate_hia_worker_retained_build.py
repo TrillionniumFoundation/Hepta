@@ -32,6 +32,7 @@ KEYS = (*FIELDS, *FORBIDDEN, 'direct_machine_code', 'standalone_core_reverified'
 POLICY = r'''
 # Accept a process report, or the explicit in-memory HIA report protocol
 # [reference, report, 1], after independent object/final-image custody.
+# Verify additionally supplies [reference, report, mode, measured ELF SHA].
 def retained_build(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 176 or length(s) > 1048576 or length(w) < 65536 or length(o) < 2048:
         return INVALID
@@ -40,17 +41,26 @@ def retained_build(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
         return INVALID
     arity = get(w, 96)
-    if arity != 2 and arity != 3:
+    if arity < 2 or arity > 4:
         return INVALID
     retained = 64 + get(w, 88) * 72
     report = 64 + get(w, retained + 16) * 72
     if get(w, retained) != 6 or get(w, retained + 64) != 176 or get(w, report) != 6:
         return INVALID
-    memory = arity == 3
-    if memory:
+    memory = False
+    if arity >= 3:
         mode = 64 + get(w, report + 16) * 72
-        if get(w, mode) != 3 or get(w, mode + 32) != 1 or byte(s, get(w, mode + 24)) != 49:
+        if get(w, mode) != 3 or get(w, mode + 32) != 1:
             return INVALID
+        memory = byte(s, get(w, mode + 24)) == 49
+        if memory == False and (arity == 3 or byte(s, get(w, mode + 24)) != 48):
+            return INVALID
+        if arity == 4:
+            measured = 64 + get(w, mode + 16) * 72
+            digest = lookup(w, report, K_artifact_sha256)
+            if (digest_text(w, digest, False) == False or digest_text(w, measured, False) == False
+                    or equal_span(s, w, measured, digest) == False):
+                return INVALID
     if artifact_reference(s, get(w, retained + 56)) == False or validate_report(s, w, retained, report, memory) == False:
         return INVALID
     store(o, 0, 123)
