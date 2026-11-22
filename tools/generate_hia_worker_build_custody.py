@@ -158,7 +158,17 @@ def exact_reference(s:readbuf, w:mutbuf, node:u64) -> bool:
 
 def field_matches(s:readbuf, w:mutbuf, node:u64, key:u64, value:u64) -> bool:
     found = lookup(w, node, key)
-    return value != NONE and found != NONE and equal_span(s, w, found, value)
+    if value == NONE or found == NONE or get(w, found) != get(w, value):
+        return False
+    kind = get(w, found)
+    if kind < 3:
+        return True
+    if kind == 3:
+        size = get(w, found + 32)
+        if size != get(w, value + 32):
+            return False
+        return matches(s, get(w, found + 24), get(w, value + 24), size)
+    return equal_span(s, w, found, value)
 
 def next(w:mutbuf, node:u64) -> u64:
     return 64 + get(w, node + 16) * 72
@@ -186,7 +196,7 @@ def program():
         *(function(CONTEXT, name).replace('NONE', str(tags['NONE']))
           for name in ('digest_text', 'equal_span')),
         *(function(custody, name) for name in ('artifact_reference', 'artifact_start', 'artifact_digest',
-                                               'artifact_uri', 'valid_hex')),
+                                               'artifact_uri', 'valid_hex', 'matches')),
         json_decoder(wire_spans=True),
     ))
 
