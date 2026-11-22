@@ -127,7 +127,7 @@ def profile_lookup_binding(s:readbuf, o:mutbuf, kind:u64, pin:u64, size:u64) -> 
     return copy_input(s, o, start + 7, 248, 34)
 
 def retained_query(s:readbuf, o:mutbuf) -> u64:
-    if length(s) != 192 or input_word(s, 8) > 4 or artifact_reference(s, 16) == False:
+    if length(s) != 192 or input_word(s, 8) > 7 or artifact_reference(s, 16) == False:
         return 4294967293
     return retained_parameters(s, o)
 
@@ -167,7 +167,7 @@ def artifact_observation(s:readbuf, o:mutbuf) -> u64:
     return retain_binding(s, o, 32, size, 2, PROFILE_READ)
 
 def retained_observation(s:readbuf, o:mutbuf) -> u64:
-    if length(s) < 264 or input_word(s, 32) > 4:
+    if length(s) < 264 or input_word(s, 32) > 7:
         return 4294967293
     size = input_word(s, 8)
     if size != length(s) - 264 or unique_summary(s, 216 + size, size) == False:
@@ -200,8 +200,15 @@ def retain_binding(s:readbuf, o:mutbuf, ref:u64, size:u64, kind:u64, outcome:u64
         return 4294967287
     if matches(s, row + 176, ref + 7, 34) == False or matches(s, row + 210, ref + 53, 64) == False or matches(s, row + 274, ref + 126, 48) == False:
         return 4294967288
-    put(o, 0, outcome)
-    return copy_input(s, o, ref + 53, 8, 64)
+    if kind < 5:
+        put(o, 0, outcome)
+        return copy_input(s, o, ref + 53, 8, 64)
+    # Offsets refer to the original sealed Store row, not to a new lookup.
+    put(o, 0, BUILD_READ)
+    copy_input(s, o, ref + 53, 8, 64)
+    put(o, 72, 322 + width)
+    put(o, 80, metadata)
+    return 88
 
 def requested_kind(s:readbuf, at:u64, size:u64, kind:u64) -> bool:
     if kind == 0:
@@ -212,7 +219,13 @@ def requested_kind(s:readbuf, at:u64, size:u64, kind:u64) -> bool:
         return size == 7 and profile_text(s, at)
     if kind == 3:
         return size == 7 and context_text(s, at)
-    return size == 4 and program_text(s, at)
+    if kind == 4:
+        return size == 4 and program_text(s, at)
+    if kind == 5:
+        return size == 13 and build_receipt_text(s, at)
+    if kind == 6:
+        return size == 12 and build_object_text(s, at)
+    return size == 6 and native_text(s, at)
 
 def unique_summary(s:readbuf, at:u64, size:u64) -> bool:
     if input_word(s, at) != 5 or input_word(s, at + 8) != size or input_word(s, at + 24) != 0:
@@ -274,6 +287,7 @@ def source_program():
         'PROFILE_REF': b'HIARPO01', 'PROFILE_READ': b'HIARPO02',
         'RETAINED_QUERY': b'HIARFG01', 'RETAINED_OBSERVE': b'HIARFG02',
         'RETAINED_READ': b'HIARFO02', 'CONTEXT_PROFILE_QUERY': b'HIARFP01',
+        'BUILD_READ': b'HIABRD01',
         'CONTEXT_PROFILE_OBSERVE': b'HIARFP02', 'CONTEXT_PROFILE_ADMIT': b'HIARFP03',
         'CONTEXT_RETAINED_QUERY': b'HIARFG03',
         'CONTEXT_MANIFEST_REF': b'HIARFM01', 'CONTEXT_METADATA': b'HIADMT01',
@@ -296,6 +310,8 @@ def source_program():
         ('artifact_digest', b'","sha256":"'),
         ('artifact_uri', b'","uri":"hia://artifacts/'),
         ('context_text', b'context'), ('program_text', b'core'),
+        ('build_receipt_text', b'build-receipt'), ('build_object_text', b'build-object'),
+        ('native_text', b'native'),
         *((name + '_profile', b'hia-' + name.encode('ascii') + b'-v1') for name in PROFILE_PORTS),
     ):
         program += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n'

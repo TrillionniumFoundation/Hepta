@@ -26,38 +26,72 @@ POLICY = r'''
 # [verified Core digest, checked input digest, candidate ABI, Context exports,
 #  exact object digest, exact image digest, image length, object_bytes == image_bytes]].
 # No field in a retained receipt supplies an installation binding or physical fact.
+# For downstream readers, the six-field form binds the subject before issuing
+# the two exact retained references. It is not a physical custody receipt.
+# [installation, active Context, active backend, active target, native ref, build receipt]
 def build_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 32 or length(s) > 8388608 or length(o) < 64 or length(w) < 65536:
         return INVALID
     put(o, 48, 262144)
     put(o, 56, 128)
-    if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5 or get(w, 96) != 10:
+    if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
+        return INVALID
+    fields = get(w, 96)
+    if fields != 6 and fields != 10:
         return INVALID
     install = 64 + get(w, 88) * 72
-    packed = next(w, install)
-    context = next(w, packed)
+    packed = NONE
+    context = next(w, install)
+    if fields == 10:
+        packed = context
+        context = next(w, packed)
     backend = next(w, context)
     target = next(w, backend)
     native = next(w, target)
     record = next(w, native)
-    metadata = next(w, record)
-    object_info = next(w, metadata)
-    facts = next(w, object_info)
     if get(w, install) != 6 or get(w, context) != 6 or get(w, backend) != 6 or get(w, target) != 6:
         return INVALID
     if get(w, record) != 6 or build_schema(w, lookup(w, record, K_schema)) == False:
         return INVALID
-    if get(w, metadata) != 6 or get(w, object_info) != 6 or get(w, facts) != 5 or get(w, facts + 32) != 8:
-        return INVALID
     if exact_reference(s, w, native) == False:
         return INVALID
-    if field_matches(s, w, record, K_installation, install) == False or field_matches(s, w, record, K_context, context) == False:
-        return answer(o, 1)
-    if field_matches(s, w, record, K_native_artifact, native) == False or field_matches(s, w, record, K_backend_profile, backend) == False or field_matches(s, w, record, K_target_profile, target) == False:
+    same_subject = field_matches(s, w, record, K_installation, install) and field_matches(s, w, record, K_context, context) and field_matches(s, w, record, K_native_artifact, native) and field_matches(s, w, record, K_backend_profile, backend) and field_matches(s, w, record, K_target_profile, target)
+    if fields == 6:
+        return build_references(s, w, o, record, same_subject)
+    metadata = next(w, record)
+    object_info = next(w, metadata)
+    facts = next(w, object_info)
+    if get(w, metadata) != 6 or get(w, object_info) != 6 or get(w, facts) != 5 or get(w, facts + 32) != 8:
+        return INVALID
+    if same_subject == False:
         return answer(o, 1)
     if matches_metadata(s, w, record, metadata) == False:
         return answer(o, 2)
     return bind_products(s, w, o, install, packed, record, object_info, facts)
+
+def build_references(s:readbuf, w:mutbuf, o:mutbuf, record:u64, same_subject:bool) -> u64:
+    if length(o) < 368:
+        return INVALID
+    put(o, 0, LOOKUP)
+    if same_subject == False:
+        put(o, 8, 1)
+        return 16
+    candidate = lookup(w, record, K_candidate)
+    object_ref = lookup(w, record, K_object_artifact)
+    if exact_reference(s, w, candidate) == False or exact_reference(s, w, object_ref) == False:
+        put(o, 8, 2)
+        return 16
+    put(o, 8, 0)
+    copy_reference(s, o, get(w, candidate + 56), 16)
+    copy_reference(s, o, get(w, object_ref + 56), 192)
+    return 368
+
+def copy_reference(s:readbuf, o:mutbuf, at:u64, offset:u64) -> u64:
+    index = 0
+    while index < 176:
+        store(o, offset + index, byte(s, at + index))
+        index = index + 1
+    return 0
 
 def bind_products(s:readbuf, w:mutbuf, o:mutbuf, install:u64, packed:u64, record:u64, object_info:u64, facts:u64) -> u64:
     core = 64 + get(w, facts + 24) * 72
@@ -183,7 +217,7 @@ def answer(o:mutbuf, status:u64) -> u64:
 def program():
     tags = {f'K_{name}': ordinal for ordinal, name in enumerate(KEYS, 1)}
     tags.update(META_COUNT=len(METADATA), INVALID=4294967293, NONE=(1 << 64) - 1,
-                RESPONSE=int.from_bytes(b'HIABCO01', 'little'))
+                RESPONSE=int.from_bytes(b'HIABCO01', 'little'), LOOKUP=int.from_bytes(b'HIABCP01', 'little'))
     custody = authority()
     return '\n'.join((
         re.sub(r'\b(' + '|'.join(tags) + r')\b', lambda match: str(tags[match[0]]), POLICY),
