@@ -22,8 +22,10 @@ POLICY = r'''
 def emit_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 2 or length(s) > 32768 or length(o) < 32768 or length(w) < 65536:
         return INVALID
-    if length(s) >= 8 and input_word(s, 0) == WINDOW:
-        return emit_window(s, o)
+    if length(s) >= 8:
+        tag = input_word(s, 0)
+        if tag == WINDOW or tag == LAUNCH_WINDOW:
+            return emit_window(s, o, tag == LAUNCH_WINDOW)
     put(o, 48, 4096)
     put(o, 56, 32)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
@@ -115,19 +117,20 @@ def object_node(w:mutbuf, node:u64) -> bool:
 # Exact native Context lookup observation plus a live clock sample.
 # Admission rejects strictly after the deadline; launch additionally requires
 # a whole millisecond. Report only the bounded duration usable by the child.
-def emit_window(s:readbuf, o:mutbuf) -> u64:
-    row = 153
+def emit_window(s:readbuf, o:mutbuf, launch:bool) -> u64:
+    context_at = choose(launch, 40, 32)
+    row = context_at + 121
     created_at = row + 208
     if length(s) <= created_at or length(s) > created_at + 20:
         return INVALID
     stage = input_word(s, 8)
     total = input_word(s, 16)
     now = input_word(s, 24)
-    if stage < 1 or stage > 2 or total == 0 or total > 86400000:
+    if stage < 1 or stage > 2 or (launch and stage != 2) or total == 0 or total > 86400000:
         return INVALID
-    if valid_context_id(s, 39) == False or input_word(s, row) != CONTEXT_ROW or input_word(s, row + 8) != 0:
+    if valid_context_id(s, context_at + 7) == False or input_word(s, row) != CONTEXT_ROW or input_word(s, row + 8) != 0:
         return INVALID
-    if match_context_digest(s, row + 85) == False:
+    if match_context_digest(s, context_at + 55, row + 85) == False:
         return INVALID
     count = input_word(s, row + 24)
     if count != length(s) - created_at or (count > 1 and byte(s, created_at) == 48):
@@ -142,12 +145,15 @@ def emit_window(s:readbuf, o:mutbuf) -> u64:
             return INVALID
         created = created * 10 + (digit - 48)
         index = index + 1
-    return remaining_window(o, stage, total * 1000000, created, now)
+    extent = remaining_window(o, stage, total * 1000000, created, now)
+    if launch == False:
+        return extent
+    return launch_permit(o, input_word(s, 32))
 
-def match_context_digest(s:readbuf, digest:u64) -> bool:
+def match_context_digest(s:readbuf, context_digest:u64, digest:u64) -> bool:
     index = 0
     while index < 64:
-        ch = byte(s, 87 + index)
+        ch = byte(s, context_digest + index)
         if (ch < 48 or ch > 57) and (ch < 97 or ch > 102):
             return False
         if ch != byte(s, digest + index):
@@ -183,6 +189,15 @@ def whole_milliseconds(nanos:u64) -> u64:
         lower = choose(before_deadline, middle, lower)
         upper = choose(before_deadline, upper, middle)
     return lower
+
+def launch_permit(o:mutbuf, sampled:u64) -> u64:
+    duration = get(o, 16) * 1000000
+    if sampled == 0 or sampled > 18446744073709551615 - duration:
+        return INVALID
+    put(o, 0, LAUNCH_PERMIT)
+    put(o, 24, sampled)
+    put(o, 32, sampled + duration)
+    return 40
 '''
 
 
@@ -192,6 +207,8 @@ def program():
                      INVALID=4294967293, CATALOG_MISMATCH=4294967286,
                      WINDOW=int.from_bytes(b'HIAEMW01', 'little'),
                      WINDOW_RESULT=int.from_bytes(b'HIAEMW02', 'little'),
+                     LAUNCH_WINDOW=int.from_bytes(b'HIAEMW03', 'little'),
+                     LAUNCH_PERMIT=int.from_bytes(b'HIAEMW04', 'little'),
                      CONTEXT_ROW=int.from_bytes(b'HIACTO02', 'little'))
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda match: str(constants[match[0]]), POLICY)

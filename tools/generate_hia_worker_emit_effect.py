@@ -64,6 +64,8 @@ def emit_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if observed_digest(s, w, 56, 320) == False or valid_hex(s, 120, 64) == False:
             return INVALID
         return action(o, w, WINDOW, 0, 0, 48)
+    if stage == WINDOW:
+        return begin_build(s, o, w, size)
     if stage >= OBJECT:
         return after_build(s, o, w, stage, size)
     if size != 0:
@@ -119,8 +121,22 @@ def next_verification(o:mutbuf, w:mutbuf) -> u64:
     state_put(w, 40, index + 1)
     return action(o, w, VERIFICATION, index, 0, 48)
 
+def begin_build(s:readbuf, o:mutbuf, w:mutbuf, size:u64) -> u64:
+    if size != 40 or input_word(s, 40) != LAUNCH_PERMIT or input_word(s, 48) != 0:
+        return INVALID
+    millis = input_word(s, 56)
+    sampled = input_word(s, 64)
+    deadline = input_word(s, 72)
+    if millis == 0 or millis > 3600000 or sampled == 0 or deadline <= sampled or deadline - sampled != millis * 1000000:
+        return INVALID
+    state_put(w, 64, sampled)
+    state_put(w, 72, deadline)
+    return action(o, w, OBJECT, deadline, 0, 48)
+
 def after_build(s:readbuf, o:mutbuf, w:mutbuf, stage:u64, size:u64) -> u64:
-    if stage == OBJECT or stage == LINK or stage == BUILD_RECORD:
+    if stage == OBJECT:
+        return observe_object(s, o, w, size)
+    if stage == LINK or stage == BUILD_RECORD:
         return observe_digest(s, o, w, stage, size)
     if stage == BUILD_OBSERVATION:
         if size != 16 or input_word(s, 40) != VERIFIED or input_word(s, 48) != 0:
@@ -142,16 +158,27 @@ def after_build(s:readbuf, o:mutbuf, w:mutbuf, stage:u64, size:u64) -> u64:
         return terminal(s, o, w, 1, size)
     return INVALID
 
+def observe_object(s:readbuf, o:mutbuf, w:mutbuf, size:u64) -> u64:
+    if size != 80 or input_word(s, 40) != OBJECT_OBSERVATION or valid_hex(s, 56, 64) == False:
+        return INVALID
+    now = input_word(s, 48)
+    if now < state_word(w, 64):
+        return INVALID
+    copy_input(s, w, 56, 128, 64)
+    if state_word(w, 16) == 2:
+        deadline = state_word(w, 72)
+        if now < deadline and deadline - now > 60000000000:
+            deadline = now + 60000000000
+        return action(o, w, LINK, deadline, 0, 48)
+    copy_input(s, w, 56, 192, 64)
+    return action(o, w, BUILD_OBSERVATION, 1, 0, 48)
+
 def observe_digest(s:readbuf, o:mutbuf, w:mutbuf, stage:u64, size:u64) -> u64:
     if size != 64 or valid_hex(s, 40, 64) == False:
         return INVALID
     if stage == BUILD_RECORD:
         copy_input(s, w, 40, 256, 64)
         return publication_action(o, w, BUILD_RECEIPT, 256)
-    if stage == OBJECT:
-        copy_input(s, w, 40, 128, 64)
-        if state_word(w, 16) == 2:
-            return action(o, w, LINK, 0, 0, 48)
     copy_input(s, w, 40, 192, 64)
     return action(o, w, BUILD_OBSERVATION, state_word(w, 16), 0, 48)
 
@@ -213,7 +240,8 @@ def program():
     tags = {'EVENT': b'HIAFDE01', 'REQUEST': b'HIAERQ01', 'ACTION': b'HIAEMA01',
             'DOCUMENT': b'HIADOC01', 'OUTCOME': b'HIAIND01', 'VERIFIED': b'HIABOR01',
             'CONTEXT_PREFIX': b'ctx-', 'VERIFIED_RECEIPT': b'HIAEVR01',
-            'VERIFIED_PLAN': b'HIAPVR01', 'QUALIFIED_PLAN': b'HIAEVQ02'}
+            'VERIFIED_PLAN': b'HIAPVR01', 'QUALIFIED_PLAN': b'HIAEVQ02',
+            'LAUNCH_PERMIT': b'HIAEMW04', 'OBJECT_OBSERVATION': b'HIAEMO01'}
     words.update((tag, int.from_bytes(raw, 'little')) for tag, raw in tags.items())
     words['INVALID'] = 4294967295
     policy = re.sub(r'\b('+'|'.join(words)+r')\b', lambda m: str(words[m[0]]), POLICY)
