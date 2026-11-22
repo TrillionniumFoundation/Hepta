@@ -13,7 +13,7 @@ ROOT = Path('examples/hia_bootstrap')
 
 if __name__ == '__main__':
     sources = {
-        'worker_rollback_journal': context_bound_flow(TOOL, 11, 1, b'HIAIND01'),
+        'worker_rollback_journal': context_bound_flow(TOOL, 11, 1, b'HIAIND01', inline_transaction=True),
         'worker_rollback_journal_observation': observation(TOOL),
         'worker_rollback_journal_records': records(TOOL),
     }

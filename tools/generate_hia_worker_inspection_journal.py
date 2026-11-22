@@ -56,7 +56,7 @@ INSPECTION_RESPONSE_MATCH = r"""
             return 0
 """
 
-def context_bound_flow(tool, ordinal, context_plan, outcome):
+def context_bound_flow(tool, ordinal, context_plan, outcome, *, inline_transaction=False):
     program = flow(tool, ordinal)
     start = program.index('def artifact_cost(')
     before, cost = program[:start], program[start:]
@@ -67,6 +67,19 @@ def context_bound_flow(tool, ordinal, context_plan, outcome):
         'phase == 4) and input_word(s, state + 320) == 0':
             f'phase == 4) and input_word(s, state + 320) == {context_plan}',
     }
+    if inline_transaction:
+        # Slot writes use the shared Journal's inline authorization. The
+        # Worker commits the exact terminal in the transaction that changes
+        # the slot; the later cost closeout must not write a second terminal.
+        route.update({
+            'input_word(s, at + 32) != 0': 'input_word(s, at + 32) != 1',
+            'return phase == 10 and action == 1 and reason == 0':
+                'return phase == 10 and action == 8 and reason == 0',
+            'if stage == 5 and action == 1 and phase == 10':
+                'if stage == 5 and action == 8 and phase == 10',
+            'and action == 1 and reason == 0) or (action == 11 and reason != 0)':
+                'and (action == 1 or action == 8) and reason == 0) or (action == 11 and reason != 0)',
+        })
     for old, new in route.items():
         assert before.count(old) == 1, old
         before = before.replace(old, new)
