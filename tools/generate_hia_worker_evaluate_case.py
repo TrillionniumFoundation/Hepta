@@ -17,7 +17,7 @@ from tools.generate_hia_worker_inspection_effect import function
 
 SOURCE = Path('examples/hia_bootstrap/worker_evaluate_case.hepta')
 FIELDS = ('params', 'returns', 'abi', 'max_buffer_bytes', 'function', 'arguments', 'expected',
-          'bytes_hex', 'byte_length', 'fill_byte')
+          'bytes_hex', 'byte_length', 'fill_byte', 'cases', 'warmup_iterations', 'repetitions')
 TYPES = (*ABI_SCALAR_IDS, 'readbuf', 'mutbuf')
 
 POLICY = r'''
@@ -33,7 +33,7 @@ def evaluate_case(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return bind_runner(s, o)
     if magic == SNAPSHOT_BINDING:
         return materialize_snapshot(s, o)
-    put(o, 48, 32768)
+    put(o, 48, choose(length(w) >= 25165824, 262144, 32768))
     put(o, 56, 24)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5 or get(w, 96) != 2:
         return INVALID
@@ -41,6 +41,12 @@ def evaluate_case(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     case = next(w, signatures)
     if is_object(w, signatures) == False or is_object(w, case) == False:
         return INVALID
+    cases = lookup(w, case, K_cases)
+    if cases != NONE:
+        return plan_workload(s, o, w, signatures, case, cases)
+    return plan_named_case(s, o, w, signatures, case)
+
+def plan_named_case(s:readbuf, o:mutbuf, w:mutbuf, signatures:u64, case:u64) -> u64:
     name = lookup(w, case, K_function)
     if name == NONE or get(w, name) != 4:
         return INVALID
@@ -48,6 +54,64 @@ def evaluate_case(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if signature == NONE:
         return refusal(o, 1)
     return plan_case(s, o, w, signature, case, name)
+
+# Input is [retained signatures, schema-admitted workload]. A single decode
+# keeps all offsets in the admitted packet, and validates in workload order.
+# The first 6208 output bytes are temporary single-case scratch. Successful
+# workload rows are compacted only after all cases pass the same ABI policy.
+def plan_workload(s:readbuf, o:mutbuf, w:mutbuf, signatures:u64, workload:u64, cases:u64) -> u64:
+    if get(w, cases) != 5:
+        return INVALID
+    count = get(w, cases + 32)
+    warmup = uint(s, w, lookup(w, workload, K_warmup_iterations), 100)
+    repetitions = uint(s, w, lookup(w, workload, K_repetitions), 10000)
+    if count < 1 or count > 512 or length(o) < 6208 + 64 * count or warmup == NONE or repetitions == NONE or repetitions == 0:
+        return INVALID
+    case = first(w, cases)
+    index = 0
+    total = 0
+    while index < count:
+        if is_object(w, case) == False:
+            return INVALID
+        result = plan_named_case(s, o, w, signatures, case)
+        if result == INVALID:
+            return INVALID
+        if result == 16:
+            reason = get(o, 8)
+            return workload_rejection(o, reason, index)
+        size = get(o, 32)
+        total = total + size
+        if total > 33554432:
+            return workload_rejection(o, 9, index)
+        at = 6208 + index * 64
+        span(w, o, case, at)
+        put(o, at + 16, get(o, 48))
+        put(o, at + 24, get(o, 56))
+        put(o, at + 32, get(o, 64))
+        put(o, at + 40, get(o, 72))
+        put(o, at + 48, size)
+        put(o, at + 56, get(o, 40))
+        case = next(w, case)
+        index = index + 1
+    if case != NONE:
+        return INVALID
+    row = 0
+    while row < count * 64:
+        put(o, 48 + row, get(o, 6208 + row))
+        row = row + 8
+    put(o, 0, WORKLOAD_PLAN)
+    put(o, 8, 0)
+    put(o, 16, count)
+    put(o, 24, total)
+    put(o, 32, warmup)
+    put(o, 40, repetitions)
+    return 48 + 64 * count
+
+def workload_rejection(o:mutbuf, reason:u64, index:u64) -> u64:
+    put(o, 0, WORKLOAD_PLAN)
+    put(o, 8, reason)
+    put(o, 16, index)
+    return 24
 
 def find_signature(w:mutbuf, signatures:u64, name:u64) -> u64:
     width = get(w, name + 32)
@@ -375,6 +439,7 @@ def source_program():
     constants = {f'K_{name}': index for index, name in enumerate(FIELDS, 1)}
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      PLAN=int.from_bytes(b'HIAEVC01', 'little'),
+                     WORKLOAD_PLAN=int.from_bytes(b'HIAEVW01', 'little'),
                      RUNNER_BINDING=int.from_bytes(b'HIAEVR01', 'little'),
                      RUNNER_REQUEST=int.from_bytes(b'HIADRX02', 'little'),
                      SNAPSHOT_BINDING=int.from_bytes(b'HIAEVB01', 'little'),
