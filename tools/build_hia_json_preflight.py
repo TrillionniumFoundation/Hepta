@@ -121,6 +121,7 @@ CANDIDATES = {
     'worker-rollback': ('worker_rollback', 'worker-rollback'),
     'emit-request': ('worker_emit_request', 'emit-request'),
     'emit-receipt': ('worker_emit_receipt', 'emit-receipt'),
+    'emit-verification': ('worker_emit_verification', 'emit-verification'),
     'rollback-journal': ('worker_rollback_journal', 'rollback-journal'),
     'rollback-journal-observation': ('worker_rollback_journal_observation', 'rollback-journal-observation'),
     'rollback-journal-records': ('worker_rollback_journal_records', 'rollback-journal-records'),

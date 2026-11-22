@@ -47,6 +47,7 @@ VARIANTS = {
     'worker-rollback': ('worker_rollback', 'hepta.hia.worker-rollback-native.v1'),
     'emit-request': ('worker_emit_request', 'hepta.hia.emit-request-native.v1'),
     'emit-receipt': ('worker_emit_receipt', 'hepta.hia.emit-receipt-native.v1'),
+    'emit-verification': ('worker_emit_verification', 'hepta.hia.emit-verification-native.v1'),
     'rollback-journal': ('worker_rollback_journal', 'hepta.hia.rollback-journal-native.v1'),
     'rollback-journal-observation': ('worker_rollback_journal_observation', 'hepta.hia.rollback-journal-observation-native.v1'),
     'rollback-journal-records': ('worker_rollback_journal_records', 'hepta.hia.rollback-journal-records-native.v1'),
