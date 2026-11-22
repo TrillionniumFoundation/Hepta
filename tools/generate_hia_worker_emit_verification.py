@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2, preservation_checks
+from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2, MACHINE_V3, preservation_checks
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS
@@ -21,9 +21,14 @@ NAMES = ('installation', 'context', 'candidate', 'validation_profile', 'candidat
          'canonical_frame_bytes', 'planned_frame_bytes', 'same_slots', 'same_frame_sizes',
          'implicit_optimizer_used', 'choice_checks', 'choice', 'checked', 'rule', 'proof_binding',
          'kind', 'backend_profile', 'plan_profile', 'sha256', 'lowering_profile',
-         'native_artifact', 'build_receipt')
+         'native_artifact', 'build_receipt', 'value_registers', 'witness', 'functions')
 CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
 MACHINE_CHECKS = preservation_checks({'schema': MACHINE_V2})
+SELECT_CHECKS = (
+    ('value_registers', 'noninterfering scalar lifetimes; staged edge copies; all used callee-saved registers saved/restored'),
+    ('scalar_select', 'explicit branch or register-only CMOV; all operands already defined scalars; MOV loads preserve TEST flags'),
+)
+LIFETIME_RULE = 'closed-block inclusive lifetimes; all edge sources staged before target writes'
 
 POLICY = r'''
 # Identity input: canonical [installation, context, candidate or null,
@@ -215,7 +220,7 @@ def verification_files(s:readbuf, w:mutbuf, o:mutbuf, receipt:u64) -> u64:
 
 # [verified Core digest, physically retained plan, plan digest, actual canonical and
 #  planned object digests, independently extracted frame maps, proof evidence].
-# This rechecks the v1/v2 conditional machine choices, never general refinement.
+# This rechecks conditional machine choices, never general refinement.
 def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
     plan = next(w, core)
     plan_digest = next(w, plan)
@@ -231,8 +236,11 @@ def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
     if is_object(w, plan) == False or is_object(w, canonical_frames) == False or is_object(w, planned_frames) == False or is_object(w, evidence) == False:
         return INVALID
     schema = lookup(w, plan, K_schema)
-    v2 = machine_schema(w, schema)
-    if (v2 == False and layout_schema(w, schema) == False) or layout_method(w, lookup(w, evidence, K_method)) == False:
+    v3 = select_schema(w, schema)
+    machine = v3 or machine_schema(w, schema)
+    if (machine == False and layout_schema(w, schema) == False) or layout_method(w, lookup(w, evidence, K_method)) == False:
+        return refusal(o, 4)
+    if v3 and empty_object(w, lookup(w, plan, K_value_registers)) == False:
         return refusal(o, 4)
     if matches_field(s, w, plan, K_core_sha256, core) == False or matches_field(s, w, evidence, K_core_sha256, core) == False:
         return refusal(o, 4)
@@ -249,21 +257,35 @@ def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
     if tag_is(w, lookup(w, evidence, K_implicit_optimizer_used), 1) == False or proof_names_plan(s, w, evidence, plan_digest) == False:
         return refusal(o, 4)
     checks = lookup(w, evidence, K_choice_checks)
-    count = choose(v2, MACHINE_CHECK_COUNT, 1)
+    count = choose(v3, SELECT_CHECK_COUNT, choose(machine, MACHINE_CHECK_COUNT, 1))
     if checks == NONE or get(w, checks) != 5 or get(w, checks + 32) != count:
         return refusal(o, 4)
     choice = 64 + get(w, checks + 24) * 72
     index = 0
     while index < count:
-        if is_object(w, choice) == False or get(w, choice + 32) != 3:
-            return refusal(o, 4)
-        if machine_choice(w, lookup(w, choice, K_choice), lookup(w, choice, K_rule), index) == False:
-            return refusal(o, 4)
-        if tag_is(w, lookup(w, choice, K_checked), 2) == False:
+        if checked_choice(w, choice, index) == False:
             return refusal(o, 4)
         choice = next(w, choice)
         index = index + 1
     return refusal(o, 0)
+
+def checked_choice(w:mutbuf, record:u64, index:u64) -> bool:
+    if is_object(w, record) == False or tag_is(w, lookup(w, record, K_checked), 2) == False:
+        return False
+    witness_expected = index == MACHINE_CHECK_COUNT
+    if get(w, record + 32) != choose(witness_expected, 4, 3):
+        return False
+    if machine_choice(w, lookup(w, record, K_choice), lookup(w, record, K_rule), index) == False:
+        return False
+    if witness_expected:
+        witness = lookup(w, record, K_witness)
+        if is_object(w, witness) == False or get(w, witness + 32) != 2:
+            return False
+        return lifetime_rule(w, lookup(w, witness, K_rule)) and empty_object(w, lookup(w, witness, K_functions))
+    return True
+
+def empty_object(w:mutbuf, node:u64) -> bool:
+    return is_object(w, node) and get(w, node + 32) == 0
 
 def tag_is(w:mutbuf, node:u64, tag:u64) -> bool:
     return node != NONE and get(w, node) == tag
@@ -438,6 +460,7 @@ def program():
                      PLAN_COMPLETE=int.from_bytes(b'HIAPVR01', 'little'),
                      BUILD_EFFECT=int.from_bytes(b'HIABCO01', 'little'),
                      MACHINE_CHECK_COUNT=len(MACHINE_CHECKS),
+                     SELECT_CHECK_COUNT=len(MACHINE_CHECKS) + len(SELECT_CHECKS),
                      METHOD_COUNT=len(METHODS),
                      LAYOUT_METHOD=METHODS.index('checked_explicit_machine_choices') + 1,
                      ENCODING_METHOD=METHODS.index('complete_native_rederivation') + 1,
@@ -451,12 +474,12 @@ def program():
     claims.append('    return 0')
     machine = ['def machine_choice(w:mutbuf, choice:u64, rule:u64, index:u64) -> bool:']
     rules = []
-    for index, row in enumerate(MACHINE_CHECKS):
-        choice = row['choice']
+    table = tuple((row['choice'], row['rule']) for row in MACHINE_CHECKS) + SELECT_CHECKS
+    for index, (choice, rule) in enumerate(table):
         machine.extend((f'    if index == {index}:',
                         f'        return {choice}_choice(w, choice) and {choice}_rule(w, rule)'))
         rules.extend((literal_match(choice + '_choice', choice),
-                      literal_match(choice + '_rule', row['rule'])))
+                      literal_match(choice + '_rule', rule)))
     machine.append('    return False')
     return '\n'.join((
         policy, function(CONTEXT, 'equal_span'),
@@ -467,6 +490,8 @@ def program():
         *(literal_match('claim_' + claim, claim) for claim in CLAIMS),
         literal_match('layout_schema', LAYOUT_V1),
         literal_match('machine_schema', MACHINE_V2),
+        literal_match('select_schema', MACHINE_V3),
+        literal_match('lifetime_rule', LIFETIME_RULE),
         literal_match('plan_subject_kind', 'agent_machine_plan'),
         literal_match('core_subject_kind', 'core'),
         literal_match('canonical_subject_kind', 'canonical_lowering'),

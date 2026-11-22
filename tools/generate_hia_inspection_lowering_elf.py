@@ -26,9 +26,10 @@ LITERALS = {
     'SUB_IMM8': b'\x48\x83\xec',
     'PLAN_GATE': b'HIAILP02',
     'PLAN_LAYOUT': b'HIABLP02',
+    'SELECT_LAYOUT': b'HIABLP03',
 }
 POLICY = r'''
-# Inspect the exact HIA ELF ET_REL, optionally framed by a projected v2 plan.
+# Inspect the exact HIA ELF ET_REL with an optional projected machine layout.
 # Output is text offset, extent and frame sizes in the admitted Core's order.
 # This projects evidence from the sealed bytes; it never executes object code.
 def lowering_elf(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -39,14 +40,20 @@ def lowering_elf(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     alignment = 1
     encoding = 8
     plan_count = 0
+    permutation = 0
     if input_word(s, 0) == PLAN_GATE:
         extent = input_word(s, 8)
         if n < 608 or extent < 80 or extent > 8388608 or extent > n - 528:
             return INVALID
-        if input_word(s, 16) != PLAN_LAYOUT or input_word(s, 32) != extent:
+        tag = input_word(s, 16)
+        select_layout = tag == SELECT_LAYOUT
+        if (tag != PLAN_LAYOUT and select_layout == False) or input_word(s, 32) != extent:
             return INVALID
+        header = choose(select_layout, 64, 56)
         plan_count = input_word(s, 24)
-        if plan_count == 0 or plan_count > FN_LIMIT or 56 + plan_count * 24 > extent:
+        if plan_count == 0 or plan_count > FN_LIMIT or header + plan_count * 24 > extent:
+            return INVALID
+        if select_layout and input_word(s, 72) > 1:
             return INVALID
         alignment = input_word(s, 40)
         if alignment != 1 and alignment != 16 and alignment != 32 and alignment != 64:
@@ -57,6 +64,7 @@ def lowering_elf(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if scratch > 1 or narrow_move > 1 or narrow_alu > 1:
             return INVALID
         encoding = scratch | (narrow_alu << 1)
+        permutation = 16 + header
         base = 16 + extent
         n = n - base
     if n > ELF_LIMIT:
@@ -107,9 +115,10 @@ def lowering_elf(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if base != 0 and plan_count != rows:
         return INVALID
     return frame_inventory(s, o, w, base, alignment, encoding, text_bytes,
-                           sym_start + base, name_start + base, name_start + base + name_size, rows)
+                           sym_start + base, name_start + base, name_start + base + name_size,
+                           rows, permutation)
 
-def frame_inventory(s:readbuf, o:mutbuf, w:mutbuf, base:u64, alignment:u64, encoding:u64, text_bytes:u64, symbols:u64, names:u64, names_end:u64, rows:u64) -> u64:
+def frame_inventory(s:readbuf, o:mutbuf, w:mutbuf, base:u64, alignment:u64, encoding:u64, text_bytes:u64, symbols:u64, names:u64, names_end:u64, rows:u64, permutation:u64) -> u64:
     text_base = base + 64
     index = 0
     while index < rows:
@@ -125,8 +134,8 @@ def frame_inventory(s:readbuf, o:mutbuf, w:mutbuf, base:u64, alignment:u64, enco
     cursor = 0
     while index < rows:
         original = index
-        if base != 0:
-            original = input_word(s, 72 + index * 8)
+        if permutation != 0:
+            original = input_word(s, permutation + index * 8)
         if original >= rows:
             return INVALID
         offset = state_word(w, original * 16)
