@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 import unittest
 
-from hepta.hia_machine_x64 import Code, MachineEncodingError
+from hepta.hia_machine_x64 import Code, PrivilegedCode, MachineEncodingError
 
 
 REGISTERS = (
@@ -27,16 +27,24 @@ class PrivilegedEncodingTests(unittest.TestCase):
         for invalid in ("eax", "cr3", "xmm0", "rip", None, True, 1, []):
             for method in ("read_cr3", "write_cr3", "invlpg"):
                 with self.subTest(method=method, invalid=repr(invalid)):
-                    code = Code()
+                    code = PrivilegedCode()
                     with self.assertRaises(MachineEncodingError):
                         getattr(code, method)(invalid)
                     self.assertEqual(code.finalize(), (b"", []))
         for invalid in (True, None, "0", 1 << 31, -(1 << 31) - 1, 1.5):
             with self.subTest(disp=repr(invalid)):
-                code = Code()
+                code = PrivilegedCode()
                 with self.assertRaises(MachineEncodingError):
                     code.invlpg("rax", invalid)
                 self.assertEqual(code.finalize(), (b"", []))
+
+    def test_default_code_remains_unprivileged_and_subclass_is_explicit(self):
+        reference = Code()
+        self.assertIs(type(reference), Code)
+        for name in ("read_cr3", "write_cr3", "invlpg", "iretq"):
+            self.assertFalse(hasattr(reference, name))
+            self.assertTrue(hasattr(PrivilegedCode(), name))
+        self.assertIs(type(PrivilegedCode()), PrivilegedCode)
 
     def test_staged_encoder_does_not_grant_core_privilege_effect(self):
         # No effect inference, HIA Core IR operation, selfhost emission or
@@ -49,7 +57,7 @@ class PrivilegedEncodingTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which("as") and shutil.which("objcopy") and
                          shutil.which("objdump"), "independent GNU binutils required")
     def test_every_register_and_boundary_displacement_matches_gnu_as(self):
-        code = Code()
+        code = PrivilegedCode()
         source = [".text", ".globl privileged_oracle", "privileged_oracle:"]
         for reg in REGISTERS:
             code.read_cr3(reg)
@@ -85,7 +93,7 @@ class PrivilegedEncodingTests(unittest.TestCase):
             self.assertNotIn("(bad)", disassembly)
 
     def test_scratch_register_renaming_is_respected(self):
-        code = Code(scratch_registers={"r10": "r11", "r11": "r10"})
+        code = PrivilegedCode(scratch_registers={"r10": "r11", "r11": "r10"})
         code.read_cr3("r10")
         code.write_cr3("r11")
         code.invlpg("r10")

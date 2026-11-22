@@ -349,6 +349,19 @@ class Code:
     def leave(self): self.emit(b"\xc9")
     def ud2(self): self.emit(b"\x0f\x0b")
 
+    def finalize(self):
+        if len(self.data) > MAX_CODE_BYTES:
+            raise MachineEncodingError("x86-64 image exceeds code byte limit")
+        result = bytearray(self.data)
+        for offset, target in self.fixups:
+            if target not in self.labels:
+                raise MachineEncodingError("unresolved machine label: " + target)
+            result[offset:offset + 4] = _s32(self.labels[target] - (offset + 4))
+        return bytes(result), [dict(row) for row in self.relocations]
+
+
+class PrivilegedCode(Code):
+    """Unpromoted privilege-encoding surface; ordinary Code stays fixture-identical."""
     # Privileged x86-64 *encoding only*. No HIA Core operation or verifier
     # currently authorizes a caller to reach these instructions. Do not execute
     # them in a host process; eventual use requires a separately verified
@@ -382,13 +395,3 @@ class Code:
     def iretq(self):
         # Long-mode 64-bit interrupt return, not a normal function return.
         self.emit(b"\x48\xcf")
-
-    def finalize(self):
-        if len(self.data) > MAX_CODE_BYTES:
-            raise MachineEncodingError("x86-64 image exceeds code byte limit")
-        result = bytearray(self.data)
-        for offset, target in self.fixups:
-            if target not in self.labels:
-                raise MachineEncodingError("unresolved machine label: " + target)
-            result[offset:offset + 4] = _s32(self.labels[target] - (offset + 4))
-        return bytes(result), [dict(row) for row in self.relocations]

@@ -1,8 +1,10 @@
 # Isolated x86-64 privileged instruction encoder stage
 
-This draft stage extends the **existing** `hepta.hia_machine_x64.Code` native
-instruction encoder, rather than creating a foreign runtime, interpreter, or
-an alternative HIA language. It adds four explicit typed entrypoints:
+This draft stage extends the **existing** native x86 encoder through an
+explicit `hepta.hia_machine_x64.PrivilegedCode(Code)` subclass without changing
+the frozen `Code` AST, native-selected owner, or the existing reference
+emission contract. It does not create a foreign runtime or alternative HIA
+language. The isolated subclass adds four typed entrypoints:
 `read_cr3(GPR64)`, `write_cr3(GPR64)`, `invlpg(GPR64, disp32)`, and
 `iretq()`. These emit x86-64 instruction encoding without assembler/LLVM in
 the production emitter. No instruction payload is embedded in HIA source.
