@@ -64,9 +64,22 @@ def value_matches(s:readbuf, w:mutbuf, left:u64, right:u64) -> bool:
     kind = get(w, left)
     if kind != get(w, right):
         return False
-    if kind == 0:
+    if kind < 3:
         return True
+    if kind == 3 or kind == 7:
+        width = get(w, left + 32)
+        if width != get(w, right + 32):
+            return False
+        return same_input_bytes(s, get(w, left + 24), get(w, right + 24), width)
     return equal_span(s, w, left, right)
+
+def same_input_bytes(s:readbuf, a:u64, b:u64, count:u64) -> bool:
+    index = 0
+    while index < count:
+        if byte(s, a + index) != byte(s, b + index):
+            return False
+        index = index + 1
+    return True
 
 def response(o:mutbuf, code:u64) -> u64:
     put(o, 0, RESULT)

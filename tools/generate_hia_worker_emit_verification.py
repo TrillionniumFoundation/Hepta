@@ -26,12 +26,12 @@ def emit_verification(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
         return INVALID
     count = get(w, 96)
+    if count != 2 and count != 5:
+        return INVALID
     first = 64 + get(w, 88) * 72
     second = next(w, first)
     if count == 2:
         return qualified_plan(w, o, s, first, second)
-    if count != 5:
-        return INVALID
     candidate = next(w, second)
     profile = next(w, candidate)
     receipt = next(w, profile)
