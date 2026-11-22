@@ -119,6 +119,7 @@ CANDIDATES = {
     'inspection-request': ('worker_inspection_request', 'inspection-request'),
     'candidate-request': ('worker_candidate_request', 'candidate-request'),
     'worker-rollback': ('worker_rollback', 'worker-rollback'),
+    'emit-request': ('worker_emit_request', 'emit-request'),
     'rollback-journal': ('worker_rollback_journal', 'rollback-journal'),
     'rollback-journal-observation': ('worker_rollback_journal_observation', 'rollback-journal-observation'),
     'rollback-journal-records': ('worker_rollback_journal_records', 'rollback-journal-records'),

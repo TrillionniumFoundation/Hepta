@@ -351,6 +351,8 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_worker_native_artifact.py',
     'examples/hia_bootstrap/worker_native_artifact.hepta',
     'examples/hia_bootstrap/worker_rollback.hepta',
+    'tools/generate_hia_worker_emit_request.py',
+    'examples/hia_bootstrap/worker_emit_request.hepta',
     'tools/generate_hia_worker_candidate_effect.py',
     'tools/generate_hia_candidate_json_ingress.py',
     'tools/generate_hia_candidate_admission_diagnostic.py',
