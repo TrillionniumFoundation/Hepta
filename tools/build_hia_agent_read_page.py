@@ -52,6 +52,7 @@ VARIANTS = {
     'worker-register-layout': ('worker_register_layout', 'hepta.hia.worker-register-layout-native.v1'),
     'worker-finite-reference': ('worker_finite_reference', 'hepta.hia.worker-finite-reference-native.v1'),
     'worker-finite-observation': ('worker_finite_observation', 'hepta.hia.worker-finite-observation-native.v1'),
+    'worker-finite-domain': ('worker_finite_domain', 'hepta.hia.worker-finite-domain-native.v1'),
     'emit-build-observation': ('worker_emit_build_observation', 'hepta.hia.emit-build-observation-native.v1'),
     'emit-effect': ('worker_emit_effect', 'hepta.hia.emit-effect-native.v1'),
     'worker-profile-bindings': ('worker_profile_bindings', 'hepta.hia.worker-profile-bindings-native.v1'),

@@ -126,6 +126,7 @@ CANDIDATES = {
     'worker-register-layout': ('worker_register_layout', 'worker-register-layout'),
     'worker-finite-reference': ('worker_finite_reference', 'worker-finite-reference'),
     'worker-finite-observation': ('worker_finite_observation', 'worker-finite-observation'),
+    'worker-finite-domain': ('worker_finite_domain', 'worker-finite-domain'),
     'emit-build-observation': ('worker_emit_build_observation', 'emit-build-observation'),
     'emit-effect': ('worker_emit_effect', 'emit-effect'),
     'worker-profile-bindings': ('worker_profile_bindings', 'worker-profile-bindings'),
