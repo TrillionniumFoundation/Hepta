@@ -51,6 +51,14 @@
 .equ PROOF_LIMIT,2097152
 .equ VERIFIED_LINK_LIMIT,90112
 .equ VERIFIED_OBJECT_LIMIT,73728
+.equ PLAN_FD,3520
+.equ SOURCE_EXTENT,3528
+.equ PLAN_PREFIX,3536
+.equ PLAN_STAT,3616
+.equ PLAN_EXTENT,3760
+.equ PLAN_REPORT_CAPACITY,3768
+.equ PLAN_BYTES,8388608
+.equ PLAN_HEADER,80
 _start:
  # The static linker calls this entry. The adapter itself never returns.
  add rsp,8
@@ -72,7 +80,7 @@ _start:
  cmp rax,1
  ja usage
  mov rsi,[rsp+rax*8+24]
- call read_proof_descriptor
+ call read_pinned_descriptor
  mov [rbp+PROVER_FD],rax
  dec QWORD PTR [rsp]
  mov QWORD PTR [rbp+SHARED_MODE],2
@@ -86,6 +94,23 @@ ordinary_build_mode:
  jne build_args
  mov QWORD PTR [rbp+SHARED_MODE],1
 build_args:
+ cmp QWORD PTR [rsp],4
+ jne build_paths
+ cmp QWORD PTR [rbp+SHARED_MODE],2
+ je usage
+ mov rsi,[rsp+16]
+ lea rdi,[rip+plan_build_mode]
+ mov ecx,17
+ cld
+ repe cmpsb
+ jne usage
+ mov rsi,[rsp+24]
+ call read_pinned_descriptor
+ mov [rbp+PLAN_FD],rax
+ mov rax,[rsp+32]
+ mov [rsp+16],rax
+ mov QWORD PTR [rsp],2
+build_paths:
  mov rax,[rsp]
  sub rax,2
  cmp rax,1
@@ -240,9 +265,18 @@ source_admitted:
  call c_length
  mov [r15+64],rax
  mov esi,SOURCE_N
+ cmp QWORD PTR [rbp+PLAN_FD],0
+ je allocate_source
+ add esi,PLAN_BYTES
+allocate_source:
+ mov [rbp+SOURCE_EXTENT],rsi
  call allocate
  mov r12,rax
  mov [rbp],rax
+ cmp QWORD PTR [rbp+PLAN_FD],0
+ je allocate_core
+ call capture_build_plan
+allocate_core:
  mov esi,CORE_N
  call allocate
  mov r13,rax
@@ -311,6 +345,7 @@ core_verified:
  mov QWORD PTR [rbp+776],1
 codegen_loop:
  call frontend_arguments
+ mov rsi,[rbp+SOURCE_EXTENT]
  call build_codegen_start
  mov [rbp+1136],rax
  call require_native_zero
@@ -547,7 +582,7 @@ codegen_complete:
  cmp QWORD PTR [rbp+SHARED_MODE],2
  je release_core_work
  mov rdi,r12
- mov esi,SOURCE_N
+ mov rsi,[rbp+SOURCE_EXTENT]
  call release
 release_core_work:
  mov rdi,r13
@@ -838,8 +873,12 @@ hashes_complete:
  mov esi,32768
  call release
  cmp QWORD PTR [rbp+SHARED_MODE],0
- je publish_artifact
+ je attach_plan_identity
  call link_shared_artifact
+attach_plan_identity:
+ cmp QWORD PTR [rbp+PLAN_FD],0
+ je publish_artifact
+ call bind_plan_report
 publish_artifact:
  # Native HIA owns filesystem state and all exact-byte/identity decisions.
  mov esi,1048576
@@ -1205,7 +1244,118 @@ shared_hash_transition:
  mov r9d,HASH_STATE_BYTES
  jmp build_shared_hash_start
 
-read_proof_descriptor:
+# Move only the bounded sealed plan authorization and layout. HIA validates
+# layout ordinals in the emitter and binds the authorization to its report.
+capture_build_plan:
+ mov rdi,[rbp+PLAN_FD]
+ mov esi,1034
+ mov eax,72
+ syscall
+ cmp rax,15
+ jne invalid
+ mov rdi,[rbp+PLAN_FD]
+ lea rsi,[rbp+PLAN_STAT]
+ mov eax,5
+ syscall
+ test rax,rax
+ jne io_failure
+ mov rax,[rbp+PLAN_STAT+48]
+ cmp rax,PLAN_HEADER+40
+ jb invalid
+ sub rax,PLAN_HEADER
+ cmp rax,PLAN_BYTES
+ ja capacity
+ mov [rbp+PLAN_EXTENT],rax
+ lea rdi,[rbp+PLAN_PREFIX]
+ mov esi,PLAN_HEADER
+ xor edx,edx
+ call read_build_plan_bytes
+ movabs rax,0x3130515645414948    # HIAEVQ01
+ cmp rax,[rbp+PLAN_PREFIX]
+ jne invalid
+ cmp QWORD PTR [rbp+PLAN_PREFIX+8],0
+ jne invalid
+ lea rdi,[r12+SOURCE_N]
+ mov rsi,[rbp+PLAN_EXTENT]
+ mov edx,PLAN_HEADER
+ call read_build_plan_bytes
+ lea rdi,[r12+SOURCE_N]
+ mov rax,[rbp+PLAN_EXTENT]
+ cmp [rdi+16],rax
+ jne invalid
+ mov esi,PLAN_BYTES
+ jmp protect_readonly
+
+read_build_plan_bytes:
+ mov r10,rdx
+ mov rdx,rsi
+ mov rsi,rdi
+ mov rdi,[rbp+PLAN_FD]
+read_build_plan_part:
+ mov eax,17
+ syscall
+ cmp rax,-4
+ je read_build_plan_part
+ test rax,rax
+ jle io_failure
+ add rsi,rax
+ add r10,rax
+ sub rdx,rax
+ jnz read_build_plan_part
+ ret
+
+bind_plan_report:
+ sub rsp,8
+ mov rsi,[r15+32]
+ add rsi,PLAN_HEADER
+ mov [rbp+PLAN_EXTENT],rsi
+ call allocate
+ mov rbx,rax
+ mov rdi,rax
+ lea rsi,[rbp+PLAN_PREFIX]
+ mov ecx,PLAN_HEADER/8
+ cld
+ rep movsq
+ mov rsi,[r15+24]
+ mov rcx,[r15+32]
+ rep movsb
+ mov rdi,rbx
+ mov rsi,[rbp+PLAN_EXTENT]
+ call protect_readonly
+ mov rsi,[rbp+REPORT_CAPACITY]
+ add rsi,4096
+ mov [rbp+PLAN_REPORT_CAPACITY],rsi
+ call allocate
+ mov rdx,rax
+ mov [rbp+PLAN_PREFIX],rax
+ mov rdi,rbx
+ mov rsi,[rbp+PLAN_EXTENT]
+ mov rcx,[rbp+PLAN_REPORT_CAPACITY]
+ lea r8,[rbp+REPORT_SCRATCH]
+ mov r9d,96
+ call build_shared_report_start
+ test rax,rax
+ jz io_failure
+ cmp rax,[rbp+PLAN_REPORT_CAPACITY]
+ ja native_status
+ mov [r15+32],rax
+ mov rdi,[rbp+PLAN_PREFIX]
+ mov rsi,[rbp+PLAN_REPORT_CAPACITY]
+ call protect_readonly
+ mov rdi,[r15+24]
+ mov rsi,[rbp+REPORT_CAPACITY]
+ call release
+ mov rdi,rbx
+ mov rsi,[rbp+PLAN_EXTENT]
+ call release
+ mov rax,[rbp+PLAN_PREFIX]
+ mov [r15+24],rax
+ mov rax,[rbp+PLAN_REPORT_CAPACITY]
+ mov [rbp+REPORT_CAPACITY],rax
+ add rsp,8
+ ret
+
+read_pinned_descriptor:
  # The launcher passes the descriptor as eight lowercase hexadecimal digits.
  xor eax,eax
  push 8
@@ -1501,6 +1651,7 @@ proof_bytes_ready:
 prover_name: .asciz "hia-safe-core-prove"
 proof_empty: .byte 0
 verified_build_mode: .asciz "hia-build-verified"
+plan_build_mode: .asciz "--planned-layout"
 
 write_owned:
  mov r12,rsi
