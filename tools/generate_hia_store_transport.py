@@ -554,10 +554,10 @@ def valid_hex(s:readbuf, at:u64, count:u64) -> bool:
 # Narrow immutable Agent artifact insert. Typed uncooked metadata is
 # allowed only for the fixed Emit roles or an exact retained Core Context.
 def valid_discovery_insert(s:readbuf, size:u64) -> bool:
-    if size < 400 or size > @META_LIMIT@ + 415 or write_binding(s, INSERT_PARAMETERS, 9, 6) == False:
+    if size < 400 or size > @META_LIMIT@ + 394 + @DOCUMENT_KIND_LIMIT@ or write_binding(s, INSERT_PARAMETERS, 9, 6) == False:
         return False
     kind = read_word(s, 176)
-    if kind < 4 or kind > 21:
+    if kind < 4 or kind > @DOCUMENT_KIND_LIMIT@:
         return False
     meta_size = read_word(s, 200)
     if meta_size > @META_LIMIT@ or size != 394 + kind + meta_size:
@@ -1230,7 +1230,8 @@ def source_program():
     kinds += '    return False\n'
     return re.sub(r'\b(' + '|'.join(WIRE) + r')\b',
         lambda name: str(int.from_bytes(WIRE[name.group()], 'little')),
-        POLICY.replace('@META_LIMIT@', str(METADATA_LIMIT)) + profile_gate + kinds
+        POLICY.replace('@META_LIMIT@', str(METADATA_LIMIT)).replace(
+            '@DOCUMENT_KIND_LIMIT@', str(max(map(len, DOCUMENT_KINDS)))) + profile_gate + kinds
         + kind_match_source() + candidate_context_source() + emit_metadata_source())
 
 

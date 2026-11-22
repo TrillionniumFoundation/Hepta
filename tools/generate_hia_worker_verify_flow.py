@@ -215,6 +215,7 @@ CHECKS = r'''
 def verify_checks(o:mutbuf, w:mutbuf) -> u64:
     index = get(w, VERIFY_CLAIM_INDEX)
     if index == get(w, VERIFY_CLAIM_COUNT):
+        put(w, 0, VERIFY_FINDINGS_START)
         return VERIFY_NEEDS_FINDINGS
     if index > get(w, VERIFY_CLAIM_COUNT):
         return BAD
@@ -304,10 +305,11 @@ def constants_for_verify(constants):
                      VERIFY_SUBJECT_KIND=10888, VERIFY_OUTCOME_BYTES=10896,
                      VERIFY_CLAIM_INDEX=10904, VERIFY_DIRECT_MODE=10912, VERIFY_EVIDENCE_SPANS=10920,
                      VERIFY_HASH_PAIR=1340, VERIFY_HASH_COMPARE=1341, VERIFY_CHECK_RESULT=1342,
+                     VERIFY_FINDINGS_START=1360, VERIFY_NOMINAL_IMAGE=11016, VERIFY_OBSERVER_IMAGE=11040,
                      VERIFY_REQUEST_ROLE=72, VERIFY_NEEDS_FINDINGS=0xffffffe5,
                      VERIFY_NEEDS_SUBJECT_CUSTODY=0xffffffe4, VERIFY_NEEDS_REPLAY=0xffffffe3,
                      VERIFY_NEEDS_FINITE=0xffffffe2,
-                     ROLE_COUNT=74, ENTRY_BYTES=64 + 312 + 74 * 40,
+                     ROLE_COUNT=78, ENTRY_BYTES=64 + 312 + 78 * 40,
                      EMIT_WORK_BYTES=12288, SCHEMA_TOOL=7)
     constants.update({name: int.from_bytes(tag, 'little') for name, tag in {
         'VERIFY_REQUEST_TAG': b'HIAVRQ01', 'VERIFY_INDEX': b'HIAVRI01',
@@ -325,8 +327,6 @@ def recipe():
         '    if state == VERIFY_FINITE_DELIVERED:\n        return verify_observed(o, w)',
     )
     driver = driver.replace(
-        '    if state == EMIT_TRUST_HEADER:\n        return emit_trust_spans(s, o, w)\n', '',
-    ).replace(
         '    if state >= INSPECTION_SENT and state <= INSPECTION_PEER_CLOSED:\n'
         '        return emit_peer_observation(s, o, w, state)\n', '',
     ).replace(
@@ -373,10 +373,14 @@ def recipe():
         '    if reason == READ_EMIT_PROFILE and (get(w, EMIT_STAGE) == 6 or get(w, EMIT_STAGE) == 9):\n'
         '        return emit_proof_profile_finished(o, w)\n', '',
     )
-    controls = controls.replace('return read_span(o, w, EMIT_TRUST_HEADER, get(w, ROLE_BASE + 8 * EMIT_TRUST_ROLE), 0, 16)',
-                                'return clock_sample(o, w, INSPECTION_CLOCK, 0)')
-    controls = controls.replace('magic = choose(index == EMIT_TRUST_ROLE, EMIT_TRUST_FILE_MAGIC, ELF_MAGIC)', 'magic = ELF_MAGIC')
-    controls = controls.replace(' or (index == EMIT_TRUST_ROLE and extent != EMIT_TRUST_BYTES)', '')
+    controls = controls.replace(
+        '    object = entry + DESCRIPTOR_BYTES * INSPECTION_EMIT_ROLE',
+        '    nominal = entry + DESCRIPTOR_BYTES * NOMINAL_ROLE\n'
+        '    observer = entry + DESCRIPTOR_BYTES * VERIFY_FINITE_EVIDENCE_ROLE\n'
+        '    hold(w, VERIFY_NOMINAL_IMAGE, input_word(s, nominal), 0, input_word(s, nominal + 24))\n'
+        '    hold(w, VERIFY_OBSERVER_IMAGE, input_word(s, observer), 0, input_word(s, observer + 24))\n'
+        '    object = entry + DESCRIPTOR_BYTES * INSPECTION_EMIT_ROLE',
+    )
     controls = controls.replace('    if next == 19:\n        return send_report(o, w, True)',
                                 '    if next == 19:\n        return VERIFY_NEEDS_REPLAY')
     scope = splice_list('verify_scope_values', 'VERIFY_SCOPE_READY',
@@ -390,7 +394,8 @@ def recipe():
         '    if state == ADOPT_ERROR_BODY:\n'
         '        sample_span(s, w, EMIT_PUBLIC_ERROR)\n'
         '        return verify_outcome(o, w, 2, EMIT_PUBLIC_ERROR)\n', '')
-    policy = '\n'.join((driver, controls, INGRESS, CUSTODY, SUBJECT, SUBJECT_INDEX, CHECKS, scope, support, outcome))
+    trust = function(DISPATCH, 'emit_trust_spans')
+    policy = '\n'.join((driver, controls, INGRESS, CUSTODY, SUBJECT, SUBJECT_INDEX, CHECKS, scope, support, outcome, trust))
     entry, parts = reachable_policy(policy, 'verify_flow')
     return constants, entry, parts
 
