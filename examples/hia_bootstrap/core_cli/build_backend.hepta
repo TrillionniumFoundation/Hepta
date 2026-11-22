@@ -5286,7 +5286,14 @@ block b108(v939:readbuf,v940:mutbuf,v941:mutbuf)
 block b109(v943:readbuf,v944:mutbuf,v945:mutbuf,v946:u64)
   v1031:u64 = const() {"value":7}
   v1032:bool = compare.eq(v946,v1031)
-  branch v1032 b122(v943,v944,v945) b123(v943,v944,v945)
+  branch v1032 b122(v943,v944,v945) choose_padding(v943,v944,v945,v946)
+block choose_padding(pad_request:readbuf,pad_code:mutbuf,pad_state:mutbuf,pad_operation:u64)
+  alignment_opcode:u64 = const() {"value":8}
+  is_padding:bool = compare.eq(pad_operation,alignment_opcode)
+  branch is_padding align_text(pad_request,pad_code,pad_state) b123(pad_request,pad_code,pad_state)
+block align_text(align_request:readbuf,align_code:mutbuf,align_state:mutbuf)
+  align_status:u32 = call(align_request,align_code,align_state) {"function":"f99"}
+  ret(align_status)
 block b110(v951:readbuf,v952:mutbuf,v953:mutbuf)
   v961:u64 = const() {"value":16}
   v962:u64 = call(v951,v961) {"function":"f53"}
@@ -5413,6 +5420,69 @@ block b145(v1178:readbuf,v1179:mutbuf,v1180:mutbuf)
   v1183:u64 = const() {"value":0}
   v1184:u32 = int.cast(v1183) {"mode":"wrap"}
   ret(v1184)
+end
+fn f99(request:readbuf,output:mutbuf,workspace:mutbuf) -> (u32) effects(read,write,trap) entry(entry)
+block entry(request:readbuf,output:mutbuf,workspace:mutbuf)
+  bytes:usize = buffer.len(request)
+  expected:usize = const() {"value":64}
+  exact:bool = compare.eq(bytes,expected)
+  branch exact fields(request,output,workspace) refuse()
+block fields(input_fields:readbuf,out_fields:mutbuf,w_fields:mutbuf)
+  argument:u64 = const() {"value":16}
+  reserved_a:u64 = const() {"value":24}
+  reserved_b:u64 = const() {"value":32}
+  reserved_c:u64 = const() {"value":40}
+  alignment:u64 = call(input_fields,argument) {"function":"f53"}
+  first:u64 = call(input_fields,reserved_a) {"function":"f53"}
+  second:u64 = call(input_fields,reserved_b) {"function":"f53"}
+  third:u64 = call(input_fields,reserved_c) {"function":"f53"}
+  initial:u64 = bit.or(first,second)
+  reserved:u64 = bit.or(initial,third)
+  zero:u64 = const() {"value":0}
+  clean:bool = compare.eq(reserved,zero)
+  small:u64 = const() {"value":16}
+  medium:u64 = const() {"value":32}
+  large:u64 = const() {"value":64}
+  a:bool = compare.eq(alignment,small)
+  b:bool = compare.eq(alignment,medium)
+  c:bool = compare.eq(alignment,large)
+  ab:bool = bool.or(a,b)
+  reviewed:bool = bool.or(ab,c)
+  allowed:bool = bool.and(clean,reviewed)
+  branch allowed bound(out_fields,w_fields,alignment) refuse()
+block bound(out_bound:mutbuf,w_bound:mutbuf,boundary:u64)
+  size_at:u64 = const() {"value":24}
+  max_at:u64 = const() {"value":16}
+  one:u64 = const() {"value":1}
+  zero_bound:u64 = const() {"value":0}
+  size:u64 = call(w_bound,size_at) {"function":"f54"}
+  capacity:u64 = call(w_bound,max_at) {"function":"f54"}
+  mask:u64 = int.sub.wrap(boundary,one)
+  negative:u64 = int.sub.wrap(zero_bound,size)
+  count:u64 = bit.and(negative,mask)
+  end:u64 = int.add.wrap(size,count)
+  fits:bool = compare.le(end,capacity)
+  branch fits fill(out_bound,w_bound,boundary,size,count,end) exhausted()
+block fill(out_fill:mutbuf,w_fill:mutbuf,boundary_fill:u64,start:u64,length:u64,end_fill:u64)
+  header:u64 = const() {"value":64}
+  at:u64 = int.add.wrap(start,header)
+  position:usize = int.cast(at) {"mode":"wrap"}
+  extent:usize = int.cast(length) {"mode":"wrap"}
+  nop:u8 = const() {"value":144}
+  _ = buffer.fill_range(out_fill,position,extent,nop)
+  size_slot:u64 = const() {"value":24}
+  align_slot:u64 = const() {"value":152}
+  size_saved:u64 = call(w_fill,size_slot,end_fill) {"function":"f55"}
+  align_saved:u64 = call(w_fill,align_slot,boundary_fill) {"function":"f55"}
+  synced:u64 = call(out_fill,w_fill) {"function":"f45"}
+  result:u32 = const() {"value":0}
+  ret(result)
+block refuse()
+  invalid:u32 = const() {"value":4294967293}
+  ret(invalid)
+block exhausted()
+  limit:u32 = const() {"value":4294967294}
+  ret(limit)
 end
 fn f43(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)

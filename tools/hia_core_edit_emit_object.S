@@ -236,6 +236,8 @@ next_event:
  cmp rax,6
  je invoke_state
  cmp rax,7
+ je invoke_state
+ cmp rax,8
  jne io_failure
  jmp invoke_state
 named_event:

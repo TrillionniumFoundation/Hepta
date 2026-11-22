@@ -5873,8 +5873,7 @@ block b2(v13:readbuf,v14:mutbuf,v15:mutbuf,v16:u64)
   v44:u64 = const() {"value":128}
   v45:u64 = int.add.wrap(v29,v44)
   v46:u64 = const() {"value":48}
-  v47:u64 = int.add.wrap(v29,v46)
-  v48:u64 = call(v15,v47) {"function":"f103"}
+  v48:u64 = call(v14,v15) {"function":"layout_align"}
   v49:u64 = call(v15,v45,v48) {"function":"f104"}
   v50:u64 = const() {"value":512}
   v51:u64 = call(v13,v16,v50) {"function":"f96"}
@@ -6586,7 +6585,8 @@ block b2(v13:readbuf,v14:mutbuf,v15:mutbuf,v16:u64)
   v26:u64 = call(v15,v25) {"function":"f103"}
   v27:u64 = const() {"value":0}
   v28:bool = compare.eq(v26,v27)
-  branch v28 b3(v13,v14,v15,v16) b4(v13,v14,v15,v16)
+  wrapper_offset:u64 = call(v14,v15) {"function":"layout_align"}
+  branch v28 b3(v13,v14,v15,v16) b4(v13,v14,v15,v16,wrapper_offset)
 block b3(v29:readbuf,v30:mutbuf,v31:mutbuf,v32:u64)
   v37:u64 = const() {"value":67092480}
   v38:u64 = const() {"value":88}
@@ -6595,7 +6595,7 @@ block b3(v29:readbuf,v30:mutbuf,v31:mutbuf,v32:u64)
   v41:u64 = call(v31,v39,v40) {"function":"f104"}
   v42:u64 = const() {"value":0}
   ret(v42)
-block b4(v33:readbuf,v34:mutbuf,v35:mutbuf,v36:u64)
+block b4(v33:readbuf,v34:mutbuf,v35:mutbuf,v36:u64,aligned_offset:u64)
   v43:u64 = const() {"value":67092480}
   v44:u64 = const() {"value":16}
   v45:u64 = int.add.wrap(v43,v44)
@@ -6609,10 +6609,7 @@ block b4(v33:readbuf,v34:mutbuf,v35:mutbuf,v36:u64)
   v53:u64 = call(v35,v48,v52) {"function":"f104"}
   v54:u64 = const() {"value":128}
   v55:u64 = int.add.wrap(v43,v54)
-  v56:u64 = const() {"value":48}
-  v57:u64 = int.add.wrap(v43,v56)
-  v58:u64 = call(v35,v57) {"function":"f103"}
-  v59:u64 = call(v35,v55,v58) {"function":"f104"}
+  v59:u64 = call(v35,v55,aligned_offset) {"function":"f104"}
   v107:u64 = const() {"value":104}
   v108:u64 = int.add.wrap(v49,v107)
   v109:u64 = call(v35,v108) {"function":"f103"}
@@ -10435,12 +10432,20 @@ block header(s_at_header:readbuf,w_at_header:mutbuf,n_at_header:u64)
   move:u64 = call(s_at_header,move_at) {"function":"f102"}
   alu:u64 = call(s_at_header,alu_at) {"function":"f102"}
   zero:u64 = const() {"value":0}
-  one:u64 = const() {"value":1}
   a:u64 = bit.or(scratch,move)
   options:u64 = bit.or(a,alu)
   wide:bool = compare.eq(options,zero)
-  unit:bool = compare.eq(align,one)
-  encodable:bool = bool.and(wide,unit)
+  alignment_mask:u64 = const() {"value":113}
+  unavailable:u64 = bit.and(align,alignment_mask)
+  known:bool = compare.eq(align,unavailable)
+  one:u64 = const() {"value":1}
+  previous:u64 = int.sub.wrap(align,one)
+  multiple:u64 = bit.and(align,previous)
+  power:bool = compare.eq(multiple,zero)
+  nonzero:bool = compare.ne(align,zero)
+  single:bool = bool.and(power,nonzero)
+  valid_alignment:bool = bool.and(known,single)
+  encodable:bool = bool.and(wide,valid_alignment)
   count_ok:bool = compare.eq(actual_count,n_at_header)
   max:u64 = const() {"value":8388608}
   header_size:u64 = const() {"value":56}
@@ -10452,14 +10457,16 @@ block header(s_at_header:readbuf,w_at_header:mutbuf,n_at_header:u64)
   extent_ok:bool = bool.and(not_short,not_long)
   layout_ok:bool = bool.and(count_ok,extent_ok)
   admitted:bool = bool.and(encodable,layout_ok)
-  branch admitted bind(w_at_header,n_at_header) refuse()
-block bind(w_at_bind:mutbuf,n_at_bind:u64)
+  branch admitted bind(w_at_header,n_at_header,align) refuse()
+block bind(w_at_bind:mutbuf,n_at_bind:u64,alignment:u64)
   function_order_at:u64 = const() {"value":41943096}
   word:u64 = const() {"value":8}
   per_function:u64 = int.mul.wrap(n_at_bind,word)
   rows_at:u64 = int.add.wrap(function_order_at,per_function)
   head_slot:u64 = const() {"value":67092752}
   slot_saved_0:u64 = call(w_at_bind,head_slot,rows_at) {"function":"f104"}
+  align_slot:u64 = const() {"value":67092768}
+  align_saved:u64 = call(w_at_bind,align_slot,alignment) {"function":"f104"}
   jump accept()
 block accept()
   yes:bool = const() {"value":true}
@@ -10570,6 +10577,36 @@ block done(head_at_done:u64)
 block refuse()
   zero_at_refuse:u64 = const() {"value":0}
   ret(zero_at_refuse)
+end
+fn layout_align(events:mutbuf,state:mutbuf) -> (u64) effects(read,write,trap) entry(entry)
+block entry(events:mutbuf,state:mutbuf)
+  align_slot:u64 = const() {"value":67092768}
+  size_slot:u64 = const() {"value":67092528}
+  current:u64 = call(state,size_slot) {"function":"f103"}
+  alignment:u64 = call(state,align_slot) {"function":"f103"}
+  one:u64 = const() {"value":1}
+  pad:bool = compare.gt(alignment,one)
+  branch pad event(events,state,current,alignment) done(current)
+block event(out:mutbuf,w:mutbuf,size:u64,boundary:u64)
+  kind:u64 = const() {"value":2}
+  tag:u64 = const() {"value":3616483217365879112}
+  opcode:u64 = const() {"value":8}
+  slot:u64 = call(out,w,kind,tag,opcode) {"function":"f50"}
+  zero:u64 = const() {"value":0}
+  issued:bool = compare.ne(slot,zero)
+  branch issued emit(out,size,boundary,slot) done(size)
+block emit(target:mutbuf,old:u64,interval:u64,record:u64)
+  payload:u64 = const() {"value":24}
+  position:u64 = int.add.wrap(record,payload)
+  recorded:u64 = call(target,position,interval) {"function":"f104"}
+  one_emit:u64 = const() {"value":1}
+  mask:u64 = int.sub.wrap(interval,one_emit)
+  rounded:u64 = int.add.wrap(old,mask)
+  aligned_mask:u64 = bit.not(mask)
+  aligned:u64 = bit.and(rounded,aligned_mask)
+  jump done(aligned)
+block done(offset:u64)
+  ret(offset)
 end
 fn layout_first_block(source:readbuf,state:mutbuf,blocks:u64) -> (u64) effects(read,write,trap) entry(entry)
 block entry(source:readbuf,state:mutbuf,blocks:u64)
