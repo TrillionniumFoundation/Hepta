@@ -14,11 +14,11 @@ from tools.generate_hia_worker_proof_scope import (
     CLAIMS, KINDS, METHODS, KEYS as SCOPE_KEYS, POLICY as SCOPE, STATUSES, selector, split_key_table, wire_text,
 )
 from tools.hia_retained_proof_method import (
-    EXTRA_KEYS, NATIVE_CORE_CHECKER, NATIVE_VERIFY_EVIDENCE, NATIVE_VERIFY_PROFILE, POLICY as PROOF_METHODS,
+    NATIVE_CORE_CHECKER, NATIVE_VERIFY_EVIDENCE, NATIVE_VERIFY_PROFILE, POLICY as PROOF_METHODS,
 )
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_scope.hepta')
-KEYS = (*SCOPE_KEYS[:-len(EXTRA_KEYS)], 'native', 'image_sha256', *EXTRA_KEYS)
+KEYS = SCOPE_KEYS
 NATIVE_METHODS = ('core_admission', 'canonical_core_identity', 'finite_domain', 'context_budget_exhausted',
                   'canonical_lowering_unsupported')
 
@@ -109,7 +109,14 @@ def source_program():
     constants.update({f'M_{name}': index for index, name in enumerate(METHODS, 1)})
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      RESULT=int.from_bytes(b'HIAPSC01', 'little'), BAD_METHOD=255)
-    source = SCOPE.replace(function(SCOPE, 'installed_checker'), '') + NATIVE_CHECKER
+    source = SCOPE.replace(function(SCOPE, 'installed_checker'), '').replace(
+        function(SCOPE, 'installed_native_checker'), '')
+    source = source.replace(
+        '    checker = lookup(w, check, K_checker)\n'
+        '    effect = method_effect(s, w, check, evidence, method, claim, status, lookup(w, checker, K_native) != NONE)',
+        '    effect = method_effect(s, w, check, evidence, method, claim, status)',
+    ).replace('get(w, 96) != 9 and get(w, 96) != 10', 'get(w, 96) != 9')
+    source += NATIVE_CHECKER
     source += '\n'.join(function(PROOF_METHODS, name) for name in (
         'finite_evidence', 'count4096', 'behavior_digests', 'trust_if',
         'true_field', 'false_field',

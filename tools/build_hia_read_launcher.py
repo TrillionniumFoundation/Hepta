@@ -30,8 +30,8 @@ from tools.generate_hia_read_capsule import (
 )
 from tools.generate_hia_readonly_worker_capsule import (
     ARTIFACT_CONFIG, BOOTSTRAP_MAGIC, CAPSULE_MAX, MANIFEST_MAGIC as READONLY_MANIFEST,
-    NATIVE_MANIFEST, NATIVE_ROLES, NATIVE_SOURCE, PROOF_TRUST_BYTES, PROOF_TRUST_MAGIC,
-    PROOF_TRUST_RUNTIME_MAX, RESOURCES_MAGIC,
+    NATIVE_MANIFEST, NATIVE_ROLES, NATIVE_SOURCE, PROOF_TRUST_CHECKERS, PROOF_TRUST_MAGIC,
+    PROOF_TRUST_NATIVE_BYTES, PROOF_TRUST_NATIVE_OFFSET, PROOF_TRUST_RUNTIME_MAX, RESOURCES_MAGIC,
     ROLES as READONLY_ROLES, SOURCE as READONLY_AUTHORITY,
 )
 from tools.generate_hia_worker_flow_packer import LAUNCHER_KIND
@@ -260,8 +260,10 @@ def bind_readonly_release(target, release, expected_launcher, profile_pin, *, ar
                           for name, file in resources)
 
     artifact = b''
-    manifest_magic, names = READONLY_MANIFEST, READONLY_ROLES
-    if kind == 'native':
+    native = kind == 'native'
+    manifest_magic, names = (NATIVE_MANIFEST, NATIVE_ROLES) if native else (READONLY_MANIFEST, READONLY_ROLES)
+    roles = {name: _read(release / name, MAX_ROLE_BYTES) for name in names}
+    if native:
         # The old verifier issued these exact checker identities. Pin them
         # in the authenticated capsule before processing any request.
         selection = wire(sha256(wire({
@@ -272,7 +274,10 @@ def bind_readonly_release(target, release, expected_launcher, profile_pin, *, ar
         if len(selection) != 66 or not 2 <= len(runtime) <= PROOF_TRUST_RUNTIME_MAX:
             raise ValueError('legacy verifier identity differs from the capsule proof trust format')
         trust = struct.pack('<8sQ', PROOF_TRUST_MAGIC, len(runtime)) + selection + runtime
-        dossier += trust.ljust(PROOF_TRUST_BYTES, b'\0')
+        checker_pins = wire([sha256(roles[name].raw).hexdigest() for name in PROOF_TRUST_CHECKERS])
+        if len(checker_pins) != PROOF_TRUST_NATIVE_BYTES:
+            raise ValueError('native verifier identity differs from the capsule proof trust format')
+        dossier += trust.ljust(PROOF_TRUST_NATIVE_OFFSET, b'\0') + checker_pins
         discovery = installed_agent_discovery(str(release / 'agent-discovery-manifest.json'))
         document = discovery.profile_bodies(json.loads(observed), catalog_pin.decode('ascii'),
                                             len(roots), roots_pin.decode('ascii'))['artifact']
@@ -285,16 +290,14 @@ def bind_readonly_release(target, release, expected_launcher, profile_pin, *, ar
             if len(raw) > 4095:
                 raise ValueError('configured root exceeds native Worker path bound')
             artifact += struct.pack('<Q', len(raw)) + raw
-        manifest_magic, names = NATIVE_MANIFEST, NATIVE_ROLES
-    roles = [_read(release / name, MAX_ROLE_BYTES) for name in names]
     rows = b''.join(struct.pack('<2Q32s', ordinal, len(role.raw), verify(role.raw, 2, ordinal))
-                    for ordinal, role in enumerate(roles, 1))
+                    for ordinal, role in enumerate(roles.values(), 1))
     manifest = struct.pack('<8s6Q', manifest_magic, 1, len(roles), len(dossier), len(config),
                            len(documents), len(artifact)) + rows + dossier + config + documents + artifact
     if len(manifest) > CAPSULE_MAX:
         raise ValueError('read-only Worker capsule exceeds its admitted size')
     capsule_pin = verify(manifest, 1, 0).hex()
-    for file in (*roles, *(file for _, file in resources)):
+    for file in (*roles.values(), *(file for _, file in resources)):
         if _read(file.path, MAX_ROLE_BYTES) != file:
             raise ValueError('installed read-only capability changed before capsule publication')
     with target.open('xb') as stream:

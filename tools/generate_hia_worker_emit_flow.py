@@ -5,7 +5,8 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_readonly_worker_capsule import (
-    EMIT_ROLES, PROOF_TRUST_BYTES, PROOF_TRUST_MAGIC, PROOF_TRUST_RUNTIME_MAX,
+    EMIT_ROLES, PROOF_TRUST_BYTES, PROOF_TRUST_MAGIC, PROOF_TRUST_NATIVE_BYTES, PROOF_TRUST_NATIVE_OFFSET,
+    PROOF_TRUST_RUNTIME_MAX,
 )
 from tools.generate_hia_worker_context_flow import flow_source, function
 from tools.generate_hia_worker_artifact_authority import PROFILE_PORTS
@@ -504,7 +505,8 @@ def admission_recipe():
                      EMIT_TRUST_ROLE=len(EMIT_ROLES), EMIT_TRUST_HEADER=492,
                      EMIT_TRUST_MAGIC=int.from_bytes(PROOF_TRUST_MAGIC, 'little'),
                      EMIT_TRUST_FILE_MAGIC=int.from_bytes(PROOF_TRUST_MAGIC[:4], 'little'),
-                     EMIT_TRUST_BYTES=PROOF_TRUST_BYTES, EMIT_TRUST_RUNTIME_MAX=PROOF_TRUST_RUNTIME_MAX)
+                     EMIT_TRUST_BYTES=PROOF_TRUST_BYTES, EMIT_TRUST_RUNTIME_MAX=PROOF_TRUST_RUNTIME_MAX,
+                     EMIT_TRUST_NATIVE_OFFSET=PROOF_TRUST_NATIVE_OFFSET, EMIT_TRUST_NATIVE_BYTES=PROOF_TRUST_NATIVE_BYTES)
     driver = worker.DRIVER.replace('def inspection_flow(', 'def emit_flow(')
     driver = driver.replace('length(w) != 4096', 'length(w) != EMIT_WORK_BYTES')
     driver = driver.replace(

@@ -54,15 +54,17 @@ block b9(v62:readbuf,v63:mutbuf,v64:mutbuf)
   v73:bool = compare.ne(v71,v72)
   jump b10(v62,v63,v64,v73)
 block b10(v66:readbuf,v67:mutbuf,v68:mutbuf,v69:bool)
-  branch v69 b12(v66,v67,v68,v69) b11(v66,v67,v68)
+  branch v69 b11(v66,v67,v68) b12(v66,v67,v68)
 block b11(v74:readbuf,v75:mutbuf,v76:mutbuf)
+  v80:u64 = const() {"value":4294967293}
+  v81:u32 = int.cast(v80) {"mode":"wrap"}
+  ret(v81)
+block b12(v77:readbuf,v78:mutbuf,v79:mutbuf)
   v82:u64 = const() {"value":96}
-  v83:u64 = call(v76,v82) {"function":"f79"}
+  v83:u64 = call(v79,v82) {"function":"f79"}
   v84:u64 = const() {"value":9}
   v85:bool = compare.ne(v83,v84)
-  jump b12(v74,v75,v76,v85)
-block b12(v78:readbuf,v79:mutbuf,v80:mutbuf,v81:bool)
-  branch v81 b13(v78,v79,v80) b14(v78,v79,v80)
+  branch v85 b13(v77,v78,v79) b14(v77,v78,v79)
 block b13(v86:readbuf,v87:mutbuf,v88:mutbuf)
   v92:u64 = const() {"value":4294967293}
   v93:u32 = int.cast(v92) {"mode":"wrap"}

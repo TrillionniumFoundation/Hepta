@@ -287,6 +287,9 @@ def splice_list(name, state, fields, *, prefix=b'[', suffix=b']', role=None):
             parts.append('vector_part(o, {at}, INLINE_FRAGMENT, 384, 1)')
         if slot == 'EQUALITY':
             parts.append('vector_part(o, {at}, INLINE_FRAGMENT, 392, choose(get(w, EMIT_OUTPUT_KIND) == 1, 4, 5))')
+        elif isinstance(slot, tuple):
+            descriptor, offset, size = slot
+            parts.append(f'vector_part(o, {{at}}, get(w, {descriptor}), {offset}, {size})')
         else:
             parts.append(f'vector_span(w, o, {slot}, {{at}})')
     if suffix:

@@ -109,8 +109,11 @@ EMIT_ROLES = (
     'hia-agent-worker-machine-replay', 'hia-safe-core-prove', 'hia-agent-worker-compositional-skeleton',
     'hia-agent-worker-compositional-replay', 'hia-agent-worker-compositional-barrier', 'hia-proof-cnf',
 )
-PROOF_TRUST_MAGIC = b'HIAPTK01'
-PROOF_TRUST_BYTES = 224
+PROOF_TRUST_MAGIC = b'HIAPTK02'
+PROOF_TRUST_NATIVE_OFFSET = 224
+PROOF_TRUST_NATIVE_BYTES = 135
+PROOF_TRUST_BYTES = PROOF_TRUST_NATIVE_OFFSET + PROOF_TRUST_NATIVE_BYTES
+PROOF_TRUST_CHECKERS = ('hia-nominal-constructor', 'hia-agent-worker-verify-evidence')
 PROOF_TRUST_RUNTIME_MAX = 128
 ADOPT_OWNER = 'hia-agent-adopt-worker-carrier'
 ADOPT_ROLES = (
@@ -133,7 +136,7 @@ NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
                                   *CONTEXT_ROLES, CONTEXT_OWNER,
                                   *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES, CANDIDATE_OWNER,
                                   *ROLLBACK_ROLES, ROLLBACK_OWNER, *EMIT_ROLES, EMIT_OWNER,
-                                  *ADOPT_ROLES, ADOPT_OWNER)))
+                                  *ADOPT_ROLES, ADOPT_OWNER, *PROOF_TRUST_CHECKERS)))
 CAPSULE_MAX = 4 << 20
 HEADER_BYTES = 56
 ROW_BYTES = 48
@@ -347,8 +350,26 @@ def proof_trust(s:readbuf, at:u64) -> bool:
     if byte(s, at + 82) != 123 or byte(s, at + 81 + count) != 125:
         return False
     index = 82 + count
-    while index < PROOF_TRUST_BYTES:
+    while index < PROOF_TRUST_NATIVE_OFFSET:
         if byte(s, at + index) != 0:
+            return False
+        index = index + 1
+    native = at + PROOF_TRUST_NATIVE_OFFSET
+    if byte(s, native) != 91 or byte(s, native + 1) != 34 or byte(s, native + 66) != 34:
+        return False
+    if byte(s, native + 67) != 44 or byte(s, native + 68) != 34 or byte(s, native + 133) != 34 or byte(s, native + 134) != 93:
+        return False
+    return checker_digest(s, native + 2, CORE_CHECKER_ROW) and checker_digest(s, native + 69, OBSERVER_CHECKER_ROW)
+
+def checker_digest(s:readbuf, text:u64, digest:u64) -> bool:
+    index = 0
+    while index < 32:
+        value = byte(s, digest + index)
+        high = value >> 4
+        low = value & 15
+        if byte(s, text + 2 * index) != choose(high < 10, high + 48, high + 87):
+            return False
+        if byte(s, text + 2 * index + 1) != choose(low < 10, low + 48, low + 87):
             return False
         index = index + 1
     return True
@@ -387,6 +408,11 @@ def source_program(*, artifact=False):
                      CAPSULE_MAX=CAPSULE_MAX, HEADER_BYTES=HEADER_BYTES, ROW_BYTES=ROW_BYTES,
                      DOSSIER_HEADER=DOSSIER_HEADER, DOSSIER_OFFSET=HEADER_BYTES + len(roles) * ROW_BYTES,
                      ROLE_COUNT=len(roles), ROLE_LIMIT=MAX_ROLE_BYTES)
+    if artifact:
+        core, observer = PROOF_TRUST_CHECKERS
+        constants.update(PROOF_TRUST_NATIVE_OFFSET=PROOF_TRUST_NATIVE_OFFSET,
+                         CORE_CHECKER_ROW=HEADER_BYTES + ROW_BYTES * roles.index(core) + 16,
+                         OBSERVER_CHECKER_ROW=HEADER_BYTES + ROW_BYTES * roles.index(observer) + 16)
     source = native_policy() if artifact else POLICY
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
