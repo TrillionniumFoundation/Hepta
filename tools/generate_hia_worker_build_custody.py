@@ -71,7 +71,10 @@ def build_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return answer(o, 1)
     if matches_metadata(s, w, record, metadata) == False:
         return answer(o, 2)
-    return bind_products(s, w, o, install, packed, record, object_info, facts)
+    result = bind_products(s, w, o, install, packed, record, object_info, facts)
+    if result == 24 and observed_plan(s, w, record, facts) == False:
+        return answer(o, 5)
+    return result
 
 def build_references(s:readbuf, w:mutbuf, o:mutbuf, record:u64, same_subject:bool) -> u64:
     if length(o) < 368:
@@ -146,8 +149,6 @@ def bind_products(s:readbuf, w:mutbuf, o:mutbuf, install:u64, packed:u64, record
         return answer(o, 4)
     if object_binding(s, w, install, record, built, object_info, core, obj) == False:
         return answer(o, 4)
-    if observed_plan(s, w, record, built, facts, equal) == False:
-        return answer(o, 5)
     put(o, 16, producer)
     answer(o, 0)
     return 24
@@ -168,16 +169,20 @@ def retained_plan(s:readbuf, w:mutbuf, record:u64) -> u64:
     ref = lookup(w, codegen, K_plan)
     return choose(exact_reference(s, w, ref), ref, NONE)
 
-def observed_plan(s:readbuf, w:mutbuf, record:u64, built:u64, facts:u64, equal:u64) -> bool:
+def observed_plan(s:readbuf, w:mutbuf, record:u64, facts:u64) -> bool:
     ref = retained_plan(s, w, record)
-    digest = lookup(w, built, K_machine_plan_sha256)
+    digest = lookup(w, lookup(w, record, K_native_build), K_machine_plan_sha256)
     if ref == NONE or digest == NONE:
         return False
     if ref == 0:
         return get(w, facts + 32) == 8 and get(w, digest) == 0
     if get(w, facts + 32) != 11:
         return False
-    physical = next(w, equal)
+    physical = 64 + get(w, facts + 24) * 72
+    count = 0
+    while count < 8:
+        physical = next(w, physical)
+        count = count + 1
     raw = next(w, physical)
     normalized = next(w, raw)
     if get(w, physical) != 6 or digest_text(w, raw, False) == False or digest_text(w, normalized, False) == False:
