@@ -7,6 +7,7 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_worker_adopt_proof import reachable_policy
 from tools.generate_hia_worker_candidate_flow import replace_function
 from tools.generate_hia_worker_context_flow import flow_source, function
+from tools.generate_hia_worker_describe_reactor import POLICY as ENTRY_POLICY
 from tools.generate_hia_worker_emit_flow import ADMISSION, PROFILES, native_recipe
 from tools.generate_hia_worker_emit_measurement import splice_list
 from tools.generate_hia_worker_emit_proof import proof_recipe
@@ -28,14 +29,24 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if (length(s) < 64 or input_word(s, 0) != OBSERVATION
             or input_word(s, 8) != get(w, 8) or input_word(s, 16) != get(w, 16)):
         return BAD
+    size = input_word(s, 40)
+    start = input_word(s, 48)
+    capture = input_word(s, 56)
+    if size > 67112960 or start > size or capture > size - start or capture != length(s) - 64:
+        return BAD
+    operation = get(w, 16)
+    if operation == READ and (input_word(s, 32) != get(w, 80) or start != get(w, 88) or capture != get(w, 96)):
+        return BAD
     status = input_word(s, 24)
     if status != 0:
         if (status == EMIT_EXPIRED and get(w, 16) == RUN and length(s) == 64
                 and state >= EMIT_COMPLETE_PLAN and state <= EMIT_COMPLETE_RENDERED):
             return verify_finite_partial(o, w)
         return BAD
+    if ((operation == RUN or operation == MAKE) and
+            (start != 0 or valid_fd(input_word(s, 32)) == False)):
+        return BAD
     if state == INSPECTION_HASH_RETURNED:
-        size = input_word(s, 40)
         if size < 88 or size > 105:
             return BAD
         return read_span(o, w, INSPECTION_HASH_FRAME, input_word(s, 32), 0, size)
@@ -89,7 +100,7 @@ def verify_finite_observation(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             return BAD
         return verify_finite_cleanup(o, w)
     if state == VERIFY_FINITE_CLEAN and length(s) == 64 and size == 0:
-        return VERIFY_FINITE_READY
+        return verify_finite_deliver(w)
     return BAD
 
 def verify_finite_clock(o:mutbuf, w:mutbuf, state:u64, now:u64) -> u64:
@@ -141,8 +152,12 @@ def verify_finite_unknown(o:mutbuf, w:mutbuf, mode:u64) -> u64:
 
 def verify_finite_cleanup(o:mutbuf, w:mutbuf) -> u64:
     if get(w, VERIFY_FINITE_TEMPORARIES) == 0:
-        return VERIFY_FINITE_READY
+        return verify_finite_deliver(w)
     return action(o, w, VERIFY_FINITE_CLEAN, EMIT_RELEASE_TEMPORARIES, 0, 0, 0, 0)
+
+def verify_finite_deliver(w:mutbuf) -> u64:
+    put(w, 0, VERIFY_FINITE_DELIVERED)
+    return VERIFY_FINITE_READY
 
 def verify_finite_row(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     difference = input_word(s, 96)
@@ -186,7 +201,7 @@ def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
 
 def finite_constants(constants):
     states = ('START', 'INITIAL_CLOCK', 'CASE_CLOCK', 'EVIDENCE', 'DISCARD_TRANSCRIPT',
-              'DISCARD_SUMMARY', 'CLEAN')
+              'DISCARD_SUMMARY', 'CLEAN', 'DELIVERED')
     spans = ('BASE_SHA', 'CANDIDATE_SHA', 'RESULT')
     scalars = ('CONTEXT_END', 'END', 'LAST_CLOCK', 'TEMPORARIES', 'MODE')
     constants.update({f'VERIFY_FINITE_{name}': 1290 + i for i, name in enumerate(states)})
@@ -233,7 +248,8 @@ def finite_recipe():
         source = function(policy, name).replace('    put(o, 184, 1)',
                                                  '    put(o, 144, get(w, VERIFY_FINITE_END))\n    put(o, 184, 1)')
         policy = replace_function(policy, name, source)
-    return reachable_policy('\n'.join((ENTRY, FRESH, policy)), 'verify_finite_flow')
+    return reachable_policy('\n'.join((ENTRY, FRESH, policy, function(ENTRY_POLICY, 'valid_fd'))),
+                            'verify_finite_flow')
 
 
 def program():

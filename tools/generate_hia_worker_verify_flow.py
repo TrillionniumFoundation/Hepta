@@ -179,7 +179,7 @@ def verify_subject_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
                 or input_word(s, 80) != size - 24):
             return BAD
         hold(w, VERIFY_SCOPE, input_word(s, 32), 24, size - 24)
-        return VERIFY_NEEDS_CHECKS
+        return verify_checks(o, w)
     return BAD
 
 def verify_scope_input(o:mutbuf, w:mutbuf) -> u64:
@@ -211,6 +211,84 @@ def verify_subject_offsets(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     return emit_open_profile(o, w, 1, VERIFY_SUBJECT_REFS)
 '''
 
+CHECKS = r'''
+def verify_checks(o:mutbuf, w:mutbuf) -> u64:
+    index = get(w, VERIFY_CLAIM_INDEX)
+    if index == get(w, VERIFY_CLAIM_COUNT):
+        return VERIFY_NEEDS_FINDINGS
+    if index > get(w, VERIFY_CLAIM_COUNT):
+        return BAD
+    claim = get(w, VERIFY_CLAIM_ORDINALS + 8 * index)
+    if claim == 1:
+        put(o, HEADER, VERIFY_FINITE_REQUEST)
+        put(o, HEADER + 8, 7)
+        put(o, 496, get(w, INSPECTION_CORE + 16))
+        use_span(w, o, VERIFY_FINITE_CANDIDATE_SHA, 0)
+        use_span(w, o, VERIFY_CANDIDATE_INPUT_SHA, 1)
+        fragment(o, 2, INLINE_FRAGMENT, 496, 8)
+        put(w, VERIFY_DIRECT_MODE, 7)
+        return action(o, w, VERIFY_CHECK_RESULT, RUN, VERIFY_FINITE_EVIDENCE_ROLE, 0, 3, 16)
+    if claim == 2:
+        put(w, EMIT_STAGE, 11)
+        return emit_wall_start(o, w)
+    if claim == 3 and get(w, VERIFY_SUBJECT_KIND) == 2:
+        return verify_direct_evidence(o, w, 8)
+    return BAD
+
+def verify_direct_evidence(o:mutbuf, w:mutbuf, mode:u64) -> u64:
+    put(o, HEADER, VERIFY_FINITE_REQUEST)
+    put(o, HEADER + 8, mode)
+    put(w, VERIFY_DIRECT_MODE, mode)
+    return action(o, w, VERIFY_CHECK_RESULT, RUN, VERIFY_FINITE_EVIDENCE_ROLE, 0, 0, 16)
+
+def verify_behavior(o:mutbuf, w:mutbuf) -> u64:
+    if get(w, VERIFY_FINITE_BASE_SHA + 16) != 64 or get(w, VERIFY_FINITE_CANDIDATE_SHA + 16) != 64:
+        return BAD
+    put(w, VERIFY_FINITE_CONTEXT_END, get(w, EMIT_ABSOLUTE_DEADLINE))
+    use_span(w, o, VERIFY_FINITE_BASE_SHA, 0)
+    use_span(w, o, VERIFY_FINITE_CANDIDATE_SHA, 1)
+    return action(o, w, VERIFY_HASH_PAIR, MAKE, 0, 0, 2, 0)
+
+def verify_check_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    size = input_word(s, 40)
+    if state == VERIFY_HASH_PAIR:
+        if size != 128:
+            return BAD
+        return read_span(o, w, VERIFY_HASH_COMPARE, input_word(s, 32), 0, size)
+    if state == VERIFY_HASH_COMPARE:
+        index = 0
+        while index < 64:
+            if byte(s, 64 + index) != byte(s, 128 + index):
+                put(w, 0, VERIFY_FINITE_START)
+                return VERIFY_NEEDS_FINITE
+            index = index + 1
+        put(o, HEADER, VERIFY_FINITE_REQUEST)
+        put(o, HEADER + 8, 1)
+        fragment(o, 0, input_word(s, 32), 0, 128)
+        put(w, VERIFY_DIRECT_MODE, 1)
+        return action(o, w, VERIFY_CHECK_RESULT, RUN, VERIFY_FINITE_EVIDENCE_ROLE, 0, 1, 16)
+    if state == VERIFY_CHECK_RESULT:
+        if plan_ok(s) == False or size < 42 or size > 4096:
+            return BAD
+        mode = get(w, VERIFY_DIRECT_MODE)
+        status = choose(mode == 9, 3, choose(mode == 8, 4, 1))
+        if (input_word(s, 72) != VERIFY_FINITE_REPORT or input_word(s, 80) != status
+                or input_word(s, 88) != mode or input_word(s, 96) != size - 40):
+            return BAD
+        body_span(s, w, VERIFY_FINITE_RESULT)
+        return verify_observed(o, w)
+    return BAD
+
+def verify_observed(o:mutbuf, w:mutbuf) -> u64:
+    index = get(w, VERIFY_CLAIM_INDEX)
+    if index >= get(w, VERIFY_CLAIM_COUNT) or get(w, VERIFY_FINITE_RESULT + 16) < 34:
+        return BAD
+    move_fragment(w, VERIFY_FINITE_RESULT, VERIFY_EVIDENCE_SPANS + 24 * index)
+    put(w, VERIFY_CLAIM_INDEX, index + 1)
+    return verify_checks(o, w)
+
+'''
+
 
 def constants_for_verify(constants):
     finite_constants(constants)
@@ -224,8 +302,11 @@ def constants_for_verify(constants):
     constants.update({f'VERIFY_STAGE_{name}': 20 + index for index, name in enumerate(stages)})
     constants.update(VERIFY_SUBJECT_REFS=10776, VERIFY_CLAIM_ORDINALS=10848, VERIFY_CLAIM_COUNT=10880,
                      VERIFY_SUBJECT_KIND=10888, VERIFY_OUTCOME_BYTES=10896,
-                     VERIFY_REQUEST_ROLE=72, VERIFY_NEEDS_CHECKS=0xffffffe5,
+                     VERIFY_CLAIM_INDEX=10904, VERIFY_DIRECT_MODE=10912, VERIFY_EVIDENCE_SPANS=10920,
+                     VERIFY_HASH_PAIR=1340, VERIFY_HASH_COMPARE=1341, VERIFY_CHECK_RESULT=1342,
+                     VERIFY_REQUEST_ROLE=72, VERIFY_NEEDS_FINDINGS=0xffffffe5,
                      VERIFY_NEEDS_SUBJECT_CUSTODY=0xffffffe4, VERIFY_NEEDS_REPLAY=0xffffffe3,
+                     VERIFY_NEEDS_FINITE=0xffffffe2,
                      ROLE_COUNT=74, ENTRY_BYTES=64 + 312 + 74 * 40,
                      EMIT_WORK_BYTES=12288, SCHEMA_TOOL=7)
     constants.update({name: int.from_bytes(tag, 'little') for name, tag in {
@@ -238,6 +319,11 @@ def recipe():
     constants, driver, controls = native_recipe()
     constants_for_verify(constants)
     driver = driver.replace('def emit_flow(', 'def verify_flow(')
+    driver = driver.replace(
+        '    if state == 0:\n        return artifact_entry(s, o, w)',
+        '    if state == 0:\n        return artifact_entry(s, o, w)\n'
+        '    if state == VERIFY_FINITE_DELIVERED:\n        return verify_observed(o, w)',
+    )
     driver = driver.replace(
         '    if state == EMIT_TRUST_HEADER:\n        return emit_trust_spans(s, o, w)\n', '',
     ).replace(
@@ -260,6 +346,8 @@ def recipe():
         '        return verify_subject_reply(s, o, w, state)\n'
         '    if state == VERIFY_OUTCOME:\n'
         '        return verify_outcome_state(s, o, w, state)\n'
+        '    if state >= VERIFY_HASH_PAIR and state <= VERIFY_CHECK_RESULT:\n'
+        '        return verify_check_reply(s, o, w, state)\n'
         '    return BAD',
     )
     journal_plan = function(driver, 'inspection_journal_plan').replace('INSPECTION_REQUEST_ROLE', 'VERIFY_REQUEST_ROLE')
@@ -267,7 +355,14 @@ def recipe():
     controls = '\n'.join(part for part in controls if part not in (REQUEST, REACTOR, DISPATCH))
     controls = replace_function(controls, 'inspection_feedback', '')
     controls = controls.replace('return inspection_feedback(o, w, 3, 0, 0)', 'return verify_validation(o, w)')
-    controls = controls.replace('return inspection_feedback(o, w, 11, 0, EMIT_WALL_PERMIT)', 'return BAD')
+    controls = controls.replace('return inspection_feedback(o, w, 11, 0, EMIT_WALL_PERMIT)', 'return verify_behavior(o, w)')
+    controls = controls.replace(
+        '        if input_word(s, 80) != 0:\n            return emit_admission_error(o, w, 8, choose(launch, 4, 3))',
+        '        if input_word(s, 80) != 0:\n'
+        '            if launch:\n'
+        '                return verify_direct_evidence(o, w, 9)\n'
+        '            return emit_admission_error(o, w, 8, 3)',
+    )
     controls = controls.replace('return inspection_feedback(o, w, 5, 0, 0)', 'return verify_core_admitted(o, w)')
     controls = controls.replace('    if stage == 2:\n        return inspection_feedback(o, w, 2, 0, EMIT_FIELDS + 24)',
                                 '    if stage == VERIFY_STAGE_CONTEXT:\n        return verify_context(o, w)')
@@ -295,10 +390,8 @@ def recipe():
         '    if state == ADOPT_ERROR_BODY:\n'
         '        sample_span(s, w, EMIT_PUBLIC_ERROR)\n'
         '        return verify_outcome(o, w, 2, EMIT_PUBLIC_ERROR)\n', '')
-    entry, parts = reachable_policy('\n'.join((
-        driver, controls, INGRESS, CUSTODY, SUBJECT, SUBJECT_INDEX, scope, support, outcome,
-    )),
-                                    'verify_flow')
+    policy = '\n'.join((driver, controls, INGRESS, CUSTODY, SUBJECT, SUBJECT_INDEX, CHECKS, scope, support, outcome))
+    entry, parts = reachable_policy(policy, 'verify_flow')
     return constants, entry, parts
 
 
