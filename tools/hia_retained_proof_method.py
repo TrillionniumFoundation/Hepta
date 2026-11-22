@@ -1,6 +1,7 @@
 """Author preliminary native proof obligations, not solver or machine verdicts."""
 
 FINITE_OBSERVATION = int.from_bytes(b'HIAFIR01', 'little')
+FINITE_COMPLETION = int.from_bytes(b'HIAFIN01', 'little')
 
 EXTRA_KEYS = (
     'core_sha256', 'base_sha256', 'candidate_sha256', 'all_inputs', 'checked',
@@ -59,10 +60,10 @@ def finite_evidence(s:readbuf, w:mutbuf, evidence:u64, status:u64, base:u64, cor
     if required == 0 or required > 4096 or checked > required:
         return BAD_METHOD
     if status == 1:
-        return trust_if(checked == required and true_field(w, evidence, K_complete)
-                        and true_field(w, evidence, K_all_inputs_in_declared_widths)
-                        and behavior_digests(s, w, evidence, base, core)
-                        and digest_text(w, lookup(w, evidence, K_transcript_sha256), False))
+        if checked == required and true_field(w, evidence, K_complete) and true_field(w, evidence, K_all_inputs_in_declared_widths):
+            if behavior_digests(s, w, evidence, base, core) and digest_text(w, lookup(w, evidence, K_transcript_sha256), False):
+                return 4
+        return BAD_METHOD
     counterexample = lookup(w, evidence, K_counterexample)
     if status == 2 and object(w, counterexample):
         return 3

@@ -17,7 +17,7 @@ from tools.generate_hia_mcp_request import WIRE_HELPERS
 from tools.generate_hia_worker_artifact_authority import source_program as authority
 from tools.generate_hia_worker_emit_verification import literal_match
 from tools.generate_hia_worker_inspection_effect import function
-from tools.hia_retained_proof_method import FINITE_OBSERVATION
+from tools.hia_retained_proof_method import FINITE_COMPLETION, FINITE_OBSERVATION
 
 SOURCE = Path('examples/hia_bootstrap/worker_finite_reference.hepta')
 OBSERVATION_SOURCE = SOURCE.with_name('worker_finite_observation.hepta')
@@ -27,7 +27,8 @@ KEYS = ('functions', 'exports', 'function', 'arguments', 'name', 'blocks', 'para
 OBSERVATION_KEYS = ('functions', 'exports', 'function', 'arguments', 'name', 'params',
                     'returns', 'effects', 'type', 'values', 'schema', 'method', 'checked',
                     'required', 'complete', 'counterexample', 'before', 'after', 'status',
-                    'first_trap', 'resources', 'proof_binding', *sorted(EXECUTION_RESOURCE_FIELDS),
+                    'first_trap', 'resources', 'proof_binding', 'all_inputs_in_declared_widths',
+                    'transcript_sha256', *sorted(EXECUTION_RESOURCE_FIELDS),
                     *sorted(EXECUTION_CHAIN_FIELDS))
 NONE = (1 << 64) - 1
 INVALID = 0xfffffffd
@@ -37,6 +38,8 @@ MAX_OPERATIONS = 4096
 MAX_VALUES = 8192
 PROJECTION = int.from_bytes(b'HIAFRP01', 'little')
 JOIN = int.from_bytes(b'HIAFRJ01', 'little')
+COMPLETE_PROJECTION = int.from_bytes(b'HIAFIP01', 'little')
+COMPLETE_JOIN = int.from_bytes(b'HIAVFC02', 'little')
 
 POLICY = r'''
 # [verified immutable Core, retained {function, arguments}].
@@ -509,11 +512,92 @@ def observation_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return BAD
     if input_word(s, 0) == JOIN:
         return confirm_observations(s, o)
+    if input_word(s, 0) == COMPLETE_JOIN:
+        return confirm_complete(s, o)
     put(o, 48, 262144)
     put(o, 56, 128)
-    if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5 or get(w, 96) != 3:
+    if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
         return BAD
-    return evidence_projection(s, o, w, child(w, 64))
+    if get(w, 96) == 3:
+        return evidence_projection(s, o, w, child(w, 64))
+    if get(w, 96) == 1:
+        return complete_expectation(s, o, w, child(w, 64))
+    return BAD
+
+def complete_expectation(s:readbuf, o:mutbuf, w:mutbuf, evidence:u64) -> u64:
+    if object(w, evidence) == False:
+        return BAD
+    fields = get(w, evidence + 32)
+    if fields != 8 and (fields != 9 or object(w, lookup(w, evidence, K_proof_binding)) == False):
+        return BAD
+    if finite_name(w, lookup(w, evidence, K_method)) == False or kind(w, lookup(w, evidence, K_complete)) != 2:
+        return BAD
+    if kind(w, lookup(w, evidence, K_all_inputs_in_declared_widths)) != 2:
+        return BAD
+    if capture_value(s, w, 0, lookup(w, evidence, K_checked), U64_TYPE) == False:
+        return BAD
+    checked = get(w, 48)
+    if checked == 0 or checked > 4096 or capture_value(s, w, 0, lookup(w, evidence, K_required), U64_TYPE) == False:
+        return BAD
+    if checked != get(w, 48):
+        return BAD
+    digest = lookup(w, evidence, K_transcript_sha256)
+    if kind(w, digest) != 4 or get(w, digest + 32) != 64:
+        return BAD
+    at = get(w, digest + 24)
+    index = 0
+    while index < 64:
+        ch = byte(w, at + index)
+        if (ch < 48 or ch > 57) and (ch < 97 or ch > 102):
+            return BAD
+        store(o, 24 + index, ch)
+        index = index + 1
+    put(o, 0, COMPLETE_PROJECTION)
+    put(o, 8, 0)
+    put(o, 16, checked)
+    return 88
+
+# [tag, exact plan extent, number of summaries, projected expectation,
+#  independently computed transcript SHA-256, HIA plan, HIA summary rows].
+def confirm_complete(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 328 or input_word(s, 24) != COMPLETE_PROJECTION or input_word(s, 32) != 0:
+        return BAD
+    count = input_word(s, 16)
+    plan_size = input_word(s, 8)
+    if count < 1 or count > 1024 or plan_size != 32 + 56 * count or length(s) != 176 + plan_size + 64 * count:
+        return BAD
+    if input_word(s, 176) != DOMAIN_PLAN or input_word(s, 184) > 3 or input_word(s, 192) != count:
+        return BAD
+    required = input_word(s, 40)
+    if required < 1 or required > 4096 or input_word(s, 200) != required:
+        return BAD
+    summary = 176 + plan_size
+    if exact_coverage(s, summary, count, required) == False:
+        return BAD
+    index = 0
+    while index < 64:
+        if byte(s, 48 + index) != byte(s, 112 + index):
+            return BAD
+        index = index + 1
+    put(o, 0, COMPLETE_OBSERVED)
+    put(o, 8, 0)
+    put(o, 16, 1)
+    return 24
+
+def exact_coverage(s:readbuf, at:u64, count:u64, total:u64) -> bool:
+    index = 0
+    checked = 0
+    while index < count:
+        expected = input_word(s, 232 + 56 * index)
+        if expected == 0 or expected > total - checked or complete_row(s, at, expected) == False:
+            return False
+        checked = checked + expected
+        index = index + 1
+        at = at + 64
+    return checked == total
+
+def complete_row(s:readbuf, at:u64, expected:u64) -> bool:
+    return input_word(s, at) == TRANSCRIPT_ROW and input_word(s, at + 8) == 0 and input_word(s, at + 16) == expected and input_word(s, at + 24) == expected and input_word(s, at + 32) == NONE and input_word(s, at + 56) != 0
 
 # [independently admitted base Core, candidate Core, physical evidence].
 # The result is a read span and two expected observations, not proof that the
@@ -707,6 +791,10 @@ def program(*, observation=False):
                   VALUE_BASE=64 + 24 * MAX_BLOCKS, MAP_BYTES=64 + 24 * (MAX_BLOCKS + MAX_VALUES),
                   CONST=CONSTANT, RET=RETURN, T_TRAP=TRAP, T_JUMP=JUMP, T_BRANCH=BRANCH,
                   PROJECTION=PROJECTION, JOIN=JOIN, OBSERVED=FINITE_OBSERVATION, PROGRAM_REPLY=PROGRAM_RESULT,
+                  COMPLETE_PROJECTION=COMPLETE_PROJECTION, COMPLETE_JOIN=COMPLETE_JOIN,
+                  COMPLETE_OBSERVED=FINITE_COMPLETION,
+                  DOMAIN_PLAN=int.from_bytes(b'HIAVFD01', 'little'),
+                  TRANSCRIPT_ROW=int.from_bytes(b'HIAVFJ01', 'little'),
                   TYPE_COUNT=len(TYPES), TRAP_COUNT=len(TRAPS), U64_TYPE=TYPES.index('u64'),
                   DIV_ZERO=TRAPS.index('division_by_zero'), OVERFLOW=TRAPS.index('overflow'))
     keys = OBSERVATION_KEYS if observation else KEYS

@@ -16,6 +16,7 @@ from tools.generate_hia_worker_inspection_effect import function
 SOURCE = Path('examples/hia_bootstrap/worker_finite_transcript.hepta')
 REQUEST = int.from_bytes(b'HIAVFT01', 'little')
 RESPONSE = int.from_bytes(b'HIAVFJ01', 'little')
+SELECT = int.from_bytes(b'HIAVFS01', 'little')
 
 POLICY = r'''
 # [request, ledger flags, result type, name bytes, two batch sizes,
@@ -23,6 +24,8 @@ POLICY = r'''
 # Output is exact successive canonical transcript JSON records, without a
 # delimiter; stop only at the first semantic difference, not a tick change.
 def finite_transcript(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 67 and input_word(s, 0) == SELECT_TAG:
+        return select_case(s, o)
     if length(s) < 147 or length(w) < 64 or input_word(s, 0) != REQUEST_TAG:
         return BAD
     name = input_word(s, 24)
@@ -56,6 +59,22 @@ def finite_transcript(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, 32, start + 40)
     put(w, 40, start + left_size + 40)
     return render_transcript(s, o, w, total)
+
+def select_case(s:readbuf, o:mutbuf) -> u64:
+    name = input_word(s, 24)
+    count = input_word(s, 16)
+    ordinal = input_word(s, 8)
+    if length(o) < 256 or name < 3 or name > 130 or length(s) != 64 + name:
+        return BAD
+    if count > 12 or input_word(s, 32) != 0 or input_word(s, 40) != 0 or input_word(s, 56) >> 32 != 0:
+        return BAD
+    if public_name(s, name) == False or ordinal >= domain_count(s, 48, count):
+        return BAD
+    at = standalone_prefix(o, 0)
+    at = arguments(s, o, at, count, ordinal)
+    at = function_prefix(o, at)
+    at = append_name(s, o, at, name)
+    return append(o, at, 125, 1)
 
 def batch_header(s:readbuf, at:u64, size:u64, total:u64, count:u64, typ:u64) -> bool:
     return size == 40 + total * 40 and input_word(s, at) == BATCH_TAG and input_word(s, at + 8) == 0 and input_word(s, at + 16) == total and input_word(s, at + 24) == count and input_word(s, at + 32) == choose(typ == NONE, 0, 1)
@@ -233,7 +252,7 @@ def writer(name, text):
 
 
 def program():
-    values = dict(BAD=INVALID, NONE=NONE, REQUEST_TAG=REQUEST, RESPONSE_TAG=RESPONSE,
+    values = dict(BAD=INVALID, NONE=NONE, REQUEST_TAG=REQUEST, RESPONSE_TAG=RESPONSE, SELECT_TAG=SELECT,
                   BATCH_TAG=BATCH_RESPONSE, PROGRAM_REPLY=PROGRAM_RESULT,
                   TYPE_COUNT=len(TYPES), TRAP_COUNT=len(TRAPS),
                   BOOL_TYPE=TYPES.index('bool'), UNIT_TYPE=TYPES.index('unit'),
@@ -242,7 +261,8 @@ def program():
     policy = re.sub(r'\b(' + '|'.join(values) + r')\b', lambda match: str(values[match[0]]), policy)
     literals = {
         'after_prefix': '{"after":', 'before_prefix': ',"before":',
-        'case_prefix': ',"case":{"arguments":[', 'function_prefix': '],"function":',
+        'case_prefix': ',"case":{"arguments":[', 'standalone_prefix': '{"arguments":[',
+        'function_prefix': '],"function":',
         'observation_prefix': '{"first_trap":', 'resource_prefix': ',"resources":',
         'returned_prefix': ',"status":"returned","values":[', 'returned_tail': ']}',
         'trapped_tail': ',"status":"trapped","values":null}',

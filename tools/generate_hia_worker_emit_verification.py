@@ -12,7 +12,7 @@ from tools.generate_hia_worker_build_custody import POLICY as BUILD_CUSTODY
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_inspection_effect import function
 from tools.generate_hia_worker_proof_scope import METHODS
-from tools.hia_retained_proof_method import FINITE_OBSERVATION
+from tools.hia_retained_proof_method import FINITE_COMPLETION, FINITE_OBSERVATION
 
 SOURCE = Path('examples/hia_bootstrap/worker_emit_verification.hepta')
 NAMES = ('installation', 'context', 'candidate', 'validation_profile', 'candidate_core_sha256',
@@ -131,7 +131,7 @@ def receipt_subject(s:readbuf, w:mutbuf, o:mutbuf, receipt:u64, profiles:u64) ->
 # An authorized scope result must agree with the typed physical receipt's
 # projected claim. Its result names an effect; it does not discharge it.
 # Effect 1 is already checked locally; 2 is exact layout rederivation;
-# 3 reopens native build custody; 4–6 are the independent proof checkers.
+# 3 reopens native build custody; 4–7 are the independent proof checkers.
 def scope_effect(s:readbuf, o:mutbuf) -> u64:
     kind = input_word(s, 8)
     claim = input_word(s, 16)
@@ -144,9 +144,9 @@ def scope_effect(s:readbuf, o:mutbuf) -> u64:
         return refusal(o, 4)
     operation = 1
     if effect != 0:
-        if effect > 3:
+        if effect > 4:
             return refusal(o, 4)
-        if effect == 3 and (method != FINITE_METHOD or claim != 2 or status != 2):
+        if effect >= 3 and (method != FINITE_METHOD or claim != 2 or status != 5 - effect):
             return refusal(o, 4)
         operation = effect + 3
     elif method == LAYOUT_METHOD:
@@ -186,7 +186,9 @@ def scope_complete(s:readbuf, o:mutbuf) -> u64:
             return refusal(o, 4)
         if operation == 6 and (tag != FINITE_OBSERVATION or outcome != 2):
             return refusal(o, 4)
-        if operation < 1 or operation == 4 or operation == 5 or operation > 6:
+        if operation == 7 and (tag != FINITE_COMPLETION or outcome != 1):
+            return refusal(o, 4)
+        if operation < 1 or operation == 4 or operation == 5 or operation > 7:
             return refusal(o, 4)
         at = at + 48
     if planned == 1:
@@ -540,6 +542,7 @@ def program():
                      PLAN_COMPLETE=int.from_bytes(b'HIAPVR01', 'little'),
                      BUILD_EFFECT=int.from_bytes(b'HIABCO01', 'little'),
                      FINITE_OBSERVATION=FINITE_OBSERVATION,
+                     FINITE_COMPLETION=FINITE_COMPLETION,
                      MACHINE_CHECK_COUNT=len(MACHINE_CHECKS),
                      SELECT_CHECK_COUNT=len(MACHINE_CHECKS) + len(SELECT_CHECKS),
                      METHOD_COUNT=len(METHODS),
