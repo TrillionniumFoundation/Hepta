@@ -7,13 +7,13 @@ from hepta.hia_agent_describe_answer_native import (
     BASE_FIELDS, MAGIC as ANSWER_MAGIC, REFERENCE_COUNT, SOURCE_NAME as ANSWER_SOURCE,
 )
 from hepta.hia_agent_discovery_native import (
-    DISCOVERY_RESOURCE_NAMES, MACRO_PROFILE_ROLE, PROFILE_NAMES, WORKSPACE_BYTES,
+    DEFAULT_AGENT_LANGUAGE_SCHEMA, DISCOVERY_RESOURCE_NAMES, MACRO_PROFILE_ROLE, PROFILE_NAMES, WORKSPACE_BYTES,
 )
 from hepta.hia_agent_macro_discovery import macro_policy_guidance
 from hepta.hia_agent_service import HIAAgentService, _manifest_document, _profile_documents
 from hepta.hia_agent_store import wire
 from hepta.hia_opcodes import opcode_catalog
-from hepta.hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES, schema_registry
+from hepta.hia_schema import PRIMITIVE_PROFILES, schema_registry
 from tools.generate_hia_agent_stdio import catalog_source, document, pack_catalog_recipes, writes
 from tools.generate_hia_core_json_cli import source_program as core_cli_source
 
@@ -334,7 +334,7 @@ def source_program():
               .replace('PROFILE_MAGIC', str(PROFILE_MAGIC)).replace('PROFILE_COUNT', str(profile_count))
               .replace('RESOURCE_MAGIC', str(RESOURCE_MAGIC)).replace('RESOURCE_COUNT', str(resource_count))
               .replace('PROFILE_HEADER', str(4 + 12 * recipe_count))
-              .replace('DEFAULT_VERSION', str(tuple(PRIMITIVE_PROFILES).index(LATEST_CORE_SCHEMA) + 1)))
+              .replace('DEFAULT_VERSION', str(tuple(PRIMITIVE_PROFILES).index(DEFAULT_AGENT_LANGUAGE_SCHEMA) + 1)))
     catalog = (catalog_source(recipes=recipe_count)
         .replace('def catalog(s:readbuf, o:mutbuf, version:u64) -> u32:',
                  'def catalog(s:mutbuf, o:mutbuf, version:u64) -> u64:')

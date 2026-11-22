@@ -14,6 +14,7 @@ SELECTOR = 'HEPTA_HIA_AGENT_DISCOVERY_MANIFEST'
 REQUEST = struct.Struct('<8s5Q')
 RESPONSE = struct.Struct('<4Q')
 VERSIONS = tuple(PRIMITIVE_PROFILES)
+DEFAULT_AGENT_LANGUAGE_SCHEMA = "hepta.hia.program.v8"
 PROFILE_NAMES = ('compiler', 'target', 'backend', 'artifact', 'validation', 'lowering', 'plan')
 MACRO_PROFILE_ROLE = len(PROFILE_NAMES) + 2
 DISCOVERY_RESOURCE_NAMES = ('workload_schema', 'objective_schema', 'cost_policy_schema', 'plan_schema',
