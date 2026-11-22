@@ -14,6 +14,7 @@ import ctypes
 from .hia_agent_identity_native import DECLARED_OBSERVATION, NATIVE_OBSERVATION, REFERENCE_OBSERVATION
 from .hia_agent_store import _native_agent_identity, uses_native_store
 from .hia_native_delivery import DeliveryRecord, request_rejections
+from contextlib import ExitStack
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -22,6 +23,7 @@ import operator
 import os
 from pathlib import Path
 import struct
+import subprocess
 import threading
 
 from .hia_evaluation_protocol import PORT, PORTS, OUTCOMES
@@ -43,6 +45,53 @@ _CUSTODY_PID = os.getpid()
 
 class EvaluationUnknown(RuntimeError):
     """An evaluation observation is unconfirmed; no retry or implicit refund."""
+
+
+_WORKLOAD_REFUSALS = {
+    1: ('E_HIA_ABI', 'workload names an unavailable public entry'),
+    2: ('E_HIA_ARGUMENTS', 'call arguments do not have the exact declared scalar types'),
+    3: ('E_HIA_ABI', 'borrowed entry is absent from the frozen invocation profile'),
+    4: ('E_HIA_ARGUMENTS', 'borrowed arguments require a byte snapshot'),
+    5: ('E_HIA_ARGUMENTS', 'buffer bytes must be bounded canonical lowercase hex'),
+    6: ('E_HIA_ARGUMENTS', 'buffer fill requires exact bounded integer length and byte'),
+    7: ('E_HIA_ARGUMENTS', 'buffer snapshot has missing or unknown fields'),
+    8: ('E_HIA_BUFFER_EXTENT', 'snapshot exceeds the frozen wrapper extent'),
+    9: ('E_HIA_BUFFER_BUDGET', 'frozen workload exceeds 32 MiB of external byte snapshots'),
+    10: ('E_HIA_ARGUMENTS', 'call does not match the frozen public ABI'),
+}
+
+
+def _admit_native_workload(executable, signatures, raw, workload):
+    """Send exact retained bytes to the installed HIA planner, not a Python validator."""
+    from .hia_agent_store import reject, wire
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    with ExitStack() as custody:
+        planner = custody.enter_context(sealed_reference_bytes(executable))
+        source = custody.enter_context(sealed_reference_bytes(b'[', wire(signatures), b',', raw, b']'))
+        try:
+            result = subprocess.run(['/proc/self/fd/' + str(planner)], stdin=source, pass_fds=(planner,),
+                                    env={'PATH': ''}, capture_output=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise EvaluationUnknown('installed HIA workload planner could not be observed') from error
+    reply = result.stdout
+    if result.returncode or result.stderr or len(reply) < 32:
+        raise EvaluationUnknown('installed HIA workload planner did not return an admitted packet')
+    size, magic, status, count = struct.unpack_from('<Q8s2Q', reply)
+    if size != len(reply) - 8 or magic != b'HIAEVW01':
+        raise EvaluationUnknown('installed HIA workload planner packet identity differs')
+    cases = len(workload['cases'])
+    if status:
+        refusal = _WORKLOAD_REFUSALS.get(status)
+        if refusal is None or size != 24 or count >= cases:
+            raise EvaluationUnknown('installed HIA workload refusal differs from its issued case')
+        reject(*refusal)
+    if count != cases or size != 48 + 64 * count:
+        raise EvaluationUnknown('installed HIA workload planner omitted an issued case')
+    total, warmup, repetitions = struct.unpack_from('<3Q', reply, 32)
+    if (total > 32 * 1024 * 1024 or warmup != workload['warmup_iterations']
+            or repetitions != workload['repetitions']):
+        raise EvaluationUnknown('installed HIA workload planner scope differs from the admitted workload')
 
 
 def _after_fork_child():
@@ -344,13 +393,23 @@ class EvaluationFrame:
         elif name == 'validate_workload':
             if d['native_store']:
                 from .hia_agent_payload_schema_native import WORKLOAD_ROLE
+                from .hia_native_helpers import pinned_evaluate_case_executable
 
-                s._validate_payload(d['workload'], d.pop('workload_wire'), api['WORKLOAD_SCHEMA'],
+                workload_wire = d.pop('workload_wire')
+                s._validate_payload(d['workload'], workload_wire, api['WORKLOAD_SCHEMA'],
                                     'workload', WORKLOAD_ROLE)
+                d['workload_planner'] = pinned_evaluate_case_executable()
+                if d['workload_planner'] is not None:
+                    d['workload_wire'] = workload_wire
             else:
                 api['validate'](d['workload'], api['WORKLOAD_SCHEMA'], 'workload')
         elif name == 'validate_cases':
-            self.validate_cases(d['baseline_meta']['signatures'], d['workload']['cases'])
+            signatures = d['baseline_meta']['signatures']
+            planner = d.pop('workload_planner', None)
+            if planner is None:
+                self.validate_cases(signatures, d['workload']['cases'])
+            else:
+                _admit_native_workload(planner, signatures, d.pop('workload_wire'), d['workload'])
         elif name == 'exports_init':
             d['export_iterator'] = iter(d['context'].get('foreign_buffer_exports', []))
             d['export_values'] = []

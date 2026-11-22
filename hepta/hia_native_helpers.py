@@ -422,6 +422,11 @@ def pinned_direct_call_protocol():
     return getattr(_ACTIVE, 'native_direct_call_protocol', 1)
 
 
+def pinned_evaluate_case_executable():
+    _check_scope_owner()
+    return getattr(_ACTIVE, 'native_evaluate_case_executable', None)
+
+
 def pinned_agent_store_unique_executable(selection):
     _check_scope_owner()
     executable = getattr(_ACTIVE, 'native_agent_store_unique_executable', None)

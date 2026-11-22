@@ -24,7 +24,9 @@ REFERENCE_OWNER_SCHEMA = 'hepta.hia.native-helpers.v18'
 STORE_UNIQUE_SCHEMA = 'hepta.hia.native-helpers.v19'
 WORKER_DATA_SCHEMA = 'hepta.hia.native-helpers.v20'
 WORKER_COST_SCHEMA = 'hepta.hia.native-helpers.v21'
-WORKER_DATA_SCHEMAS = (WORKER_DATA_SCHEMA, WORKER_COST_SCHEMA)
+WORKER_EVALUATE_SCHEMA = 'hepta.hia.native-helpers.v22'
+WORKER_COST_SCHEMAS = (WORKER_COST_SCHEMA, WORKER_EVALUATE_SCHEMA)
+WORKER_DATA_SCHEMAS = (WORKER_DATA_SCHEMA, *WORKER_COST_SCHEMAS)
 STORE_UNIQUE_SCHEMAS = (STORE_UNIQUE_SCHEMA, *WORKER_DATA_SCHEMAS)
 JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA, REFERENCE_OWNER_SCHEMA, *STORE_UNIQUE_SCHEMAS)
 STARTUP_SCHEMAS = (STARTUP_SCHEMA, *JOURNAL_SCHEMAS)
@@ -52,6 +54,8 @@ def profile_images(schema):
         result['terminal_sha256'] = ('hia-worker-terminal', authority.MAX_IMAGE_BYTES)
     if schema in WORKER_DATA_SCHEMAS:
         result['worker_data_sha256'] = ('hia-worker-data', authority.MAX_IMAGE_BYTES)
+    if schema == WORKER_EVALUATE_SCHEMA:
+        result['evaluate_case_sha256'] = ('hia-agent-worker-evaluate-case', authority.MAX_IMAGE_BYTES)
     if schema in STARTUP_SCHEMAS:
         result['initializer_sha256'] = ('hia-agent-store-init', authority.MAX_IMAGE_BYTES)
     return result
@@ -72,7 +76,7 @@ class NativeWorkerStoreBinding:
             reference_fields.update({'journal_path', 'journal_sha256'})
         if schema in STORE_UNIQUE_SCHEMAS:
             reference_fields.update({'store_unique_path', 'store_unique_sha256'})
-        if schema == WORKER_COST_SCHEMA:
+        if schema in WORKER_COST_SCHEMAS:
             reference_fields.update({'journal_cost_path', 'journal_cost_sha256'})
         if (set(record) != {'schema', 'target', 'abi', 'base_bundle', 'base_bundle_sha256',
                             'release_path', *images, *reference_fields}
@@ -95,6 +99,10 @@ class NativeWorkerStoreBinding:
             captures[field] = captured
         initializer = captures.get('initializer_sha256')
         self.native_store_initializer = initializer.raw if initializer is not None else None
+        evaluate = captures.get('evaluate_case_sha256')
+        self.native_evaluate_case_executable = evaluate.raw if evaluate is not None else None
+        if evaluate is not None and not evaluate.raw.startswith(b'\x7fELF'):
+            raise ValueError('standalone Evaluate planner must be a pinned ELF executable')
         self.native_edit_query = None
         if 'edit_query_sha256' in captures:
             from .hia_agent_edit_query_native import NativeAgentEditQuery
@@ -204,7 +212,7 @@ class NativeWorkerStoreBinding:
                 raise ValueError('standalone journal omits its exact pinned HIA image')
             self.snapshots.append((journal, MAX_IMAGE_BYTES))
             self.native_agent_journal_executable = journal.raw
-            if schema == WORKER_COST_SCHEMA:
+            if schema in WORKER_COST_SCHEMAS:
                 pin = record['journal_cost_sha256']
                 selected = authority._path(record['journal_cost_path'], snapshot.path.parent)
                 cost = capture_release_image(selected.parent, selected.name, MAX_IMAGE_BYTES, pin)

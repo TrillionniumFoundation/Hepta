@@ -19,6 +19,9 @@ SOURCE = Path('examples/hia_bootstrap/worker_evaluate_case.hepta')
 FIELDS = ('params', 'returns', 'abi', 'max_buffer_bytes', 'function', 'arguments', 'expected',
           'bytes_hex', 'byte_length', 'fill_byte', 'cases', 'warmup_iterations', 'repetitions')
 TYPES = (*ABI_SCALAR_IDS, 'readbuf', 'mutbuf')
+# The admitted workload and its separately bounded ABI are carried together.
+INPUT_BYTES = (16 << 20) + 3
+CASE_BYTES = 80 + 128 * 48
 
 POLICY = r'''
 # Input is [retained signatures, one admitted case]. The extent and spans below
@@ -26,7 +29,7 @@ POLICY = r'''
 # Refusals distinguish absent entry, argument shape/type, ABI, and snapshot
 # descriptor/extent. No output marked ready is emitted on a refusal.
 def evaluate_case(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 8 or length(s) > 8388608 or length(o) < 6208 or length(w) < 4096:
+    if length(s) < 8 or length(s) > INPUT_BYTES or length(o) < CASE_BYTES or length(w) < 4096:
         return INVALID
     magic = read_word(s, 0)
     if magic == RUNNER_BINDING:
@@ -57,7 +60,7 @@ def plan_named_case(s:readbuf, o:mutbuf, w:mutbuf, signatures:u64, case:u64) -> 
 
 # Input is [retained signatures, schema-admitted workload]. A single decode
 # keeps all offsets in the admitted packet, and validates in workload order.
-# The first 6208 output bytes are temporary single-case scratch. Successful
+# The first CASE_BYTES output bytes are temporary single-case scratch. Successful
 # workload rows are compacted only after all cases pass the same ABI policy.
 def plan_workload(s:readbuf, o:mutbuf, w:mutbuf, signatures:u64, workload:u64, cases:u64) -> u64:
     if get(w, cases) != 5:
@@ -65,7 +68,7 @@ def plan_workload(s:readbuf, o:mutbuf, w:mutbuf, signatures:u64, workload:u64, c
     count = get(w, cases + 32)
     warmup = uint(s, w, lookup(w, workload, K_warmup_iterations), 100)
     repetitions = uint(s, w, lookup(w, workload, K_repetitions), 10000)
-    if count < 1 or count > 512 or length(o) < 6208 + 64 * count or warmup == NONE or repetitions == NONE or repetitions == 0:
+    if count < 1 or count > 512 or length(o) < CASE_BYTES + 64 * count or warmup == NONE or repetitions == NONE or repetitions == 0:
         return INVALID
     case = first(w, cases)
     index = 0
@@ -83,7 +86,7 @@ def plan_workload(s:readbuf, o:mutbuf, w:mutbuf, signatures:u64, workload:u64, c
         total = total + size
         if total > 33554432:
             return workload_rejection(o, 9, index)
-        at = 6208 + index * 64
+        at = CASE_BYTES + index * 64
         span(w, o, case, at)
         put(o, at + 16, get(o, 48))
         put(o, at + 24, get(o, 56))
@@ -97,7 +100,7 @@ def plan_workload(s:readbuf, o:mutbuf, w:mutbuf, signatures:u64, workload:u64, c
         return INVALID
     row = 0
     while row < count * 64:
-        put(o, 48 + row, get(o, 6208 + row))
+        put(o, 48 + row, get(o, CASE_BYTES + row))
         row = row + 8
     put(o, 0, WORKLOAD_PLAN)
     put(o, 8, 0)
@@ -140,7 +143,7 @@ def plan_case(s:readbuf, o:mutbuf, w:mutbuf, signature:u64, case:u64, name:u64) 
     if count > 128 or get(w, returns + 32) > 1:
         return INVALID
     if args == NONE or get(w, args) != 5 or get(w, args + 32) != count:
-        return refusal(o, 2)
+        return refusal(o, 10)
     abi = lookup(w, signature, K_abi)
     extent = NONE
     result = type_role(w, first(w, returns))
@@ -439,7 +442,7 @@ def source_program():
     constants = {f'K_{name}': index for index, name in enumerate(FIELDS, 1)}
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      PLAN=int.from_bytes(b'HIAEVC01', 'little'),
-                     WORKLOAD_PLAN=int.from_bytes(b'HIAEVW01', 'little'),
+                     WORKLOAD_PLAN=int.from_bytes(b'HIAEVW01', 'little'), INPUT_BYTES=INPUT_BYTES, CASE_BYTES=CASE_BYTES,
                      RUNNER_BINDING=int.from_bytes(b'HIAEVR01', 'little'),
                      RUNNER_REQUEST=int.from_bytes(b'HIADRX02', 'little'),
                      SNAPSHOT_BINDING=int.from_bytes(b'HIAEVB01', 'little'),
@@ -456,8 +459,13 @@ def source_program():
         WIRE_HELPERS.split('\ndef signed_id', 1)[0], key_table(FIELDS),
         comparison_table('abi_role', TYPES), comparison_table('borrowed_profile', (PROFILE,)),
     ))
-    return re.sub(r'\b(' + '|'.join(constants) + r')\b',
-                  lambda match: str(constants[match[0]]), policy) + '\n' + json_decoder(wire_spans=True)
+    decoder = json_decoder(wire_spans=True)
+    guard = 'length(s) > 8388608'
+    if decoder.count(guard) != 2:
+        raise ValueError('Evaluate decoder input bounds changed')
+    return (re.sub(r'\b(' + '|'.join(constants) + r')\b',
+                   lambda match: str(constants[match[0]]), policy)
+            + '\n' + decoder.replace(guard, f'length(s) > {INPUT_BYTES}'))
 
 
 if __name__ == '__main__':

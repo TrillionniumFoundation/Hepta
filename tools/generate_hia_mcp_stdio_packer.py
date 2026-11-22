@@ -56,6 +56,7 @@ NATIVE_ARTIFACT_MODE = 41
 BLOCK_LAYOUT_MODE = 42
 OBJECT_INVENTORY_MODE = 43
 REGISTER_LAYOUT_MODE = 44
+EVALUATE_CASE_MODE = 45
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
               READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
@@ -63,7 +64,7 @@ PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE, ARTIFACT_DIAGNOSTIC_MODE,
               CONTEXT_WORKLOAD_MODE, INSPECTION_MODE, WORKER_CANONICAL_MODE, LOWERING_ELF_MODE, LOWERING_FRAMES_MODE,
               BORROWED_EXPORT_MODE, CANDIDATE_JSON_MODE, NATIVE_ARTIFACT_MODE, BLOCK_LAYOUT_MODE,
-              OBJECT_INVENTORY_MODE, REGISTER_LAYOUT_MODE)
+              OBJECT_INVENTORY_MODE, REGISTER_LAYOUT_MODE, EVALUATE_CASE_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -125,7 +126,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'verify-journal-observation': JOURNAL_RECORD_MODE,
          'verify-journal-records': JOURNAL_RECORD_MODE,
          'worker-evaluate-request': ARTIFACT_REQUEST_MODE,
-         'worker-evaluate-case': CONTEXT_WORKLOAD_MODE,
+         'worker-evaluate-case': EVALUATE_CASE_MODE,
          'worker-verify-request': ARTIFACT_REQUEST_MODE,
          'worker-verify-evidence': ARTIFACT_REQUEST_MODE,
          'worker-verify-finding': ARTIFACT_REQUEST_MODE,
@@ -203,7 +204,7 @@ def template(mode):
     page = mode == PAGE_MODE
     schema = mode == SCHEMA_MODE
     diagnostic = mode in (ARTIFACT_DIAGNOSTIC_MODE, NATIVE_ARTIFACT_MODE)
-    context_workload = mode == CONTEXT_WORKLOAD_MODE
+    context_workload = mode in (CONTEXT_WORKLOAD_MODE, EVALUATE_CASE_MODE)
     inspection = mode in (INSPECTION_MODE, LOWERING_FRAMES_MODE)
     lowering_elf = mode in (LOWERING_ELF_MODE, OBJECT_INVENTORY_MODE)
     borrowed_export = mode == BORROWED_EXPORT_MODE
@@ -244,6 +245,11 @@ def template(mode):
     if context_workload:
         # The decoder also uses this mapping for its original duplicate-key table.
         scratch, workspace = 4 << 20, ARENA_BYTES + 8192
+    if mode == EVALUATE_CASE_MODE:
+        from tools.generate_hia_worker_evaluate_case import INPUT_BYTES as EVALUATE_INPUT_BYTES
+
+        maximum = EVALUATE_INPUT_BYTES
+        workspace += maximum - INPUT_MAX
     if inspection:
         scratch, workspace = 16 << 20, INSPECTION_ARENA_BYTES
         minimum, maximum = INSPECTION_HEADER + 1, INSPECTION_HEADER + INSPECTION_MAX
