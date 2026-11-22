@@ -284,7 +284,8 @@ def close_input(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
 def discovery_policy():
     # Discovery and Artifact input use the same scoped descriptor protocol.
     # Discovery sends the two numeric operands and can retain a profile view.
-    policy = POLICY.replace('extent > 8388608', 'extent > 1048576', 1)
+    # Candidate Core publication additionally carries the sealed Context wire.
+    policy = POLICY.replace('extent > 8388608', 'extent > 67108864', 1)
     start = policy.index('    expected = input_word(s, 32)')
     end = policy.index('    argv(o, 0, INPUT_ARG, 1)', start)
     policy = policy[:start] + '''    if trusted_descriptors(s, 0, 0) == False:
@@ -292,11 +293,22 @@ def discovery_policy():
     put(w, 120, extent)
     put(w, 152, input_word(s, 32))
     put(w, 160, input_word(s, 40))
+    context = input_word(s, 48)
+    if get(w, 152) == 8:
+        if valid_fd(context) == False or input_word(s, 56) != 121:
+            return BAD
+        put(w, 192, context)
+    elif context != 0:
+        return BAD
 ''' + policy[end:]
     start = policy.index('    put(o, HEADER + 40, 3)')
     end = policy.index('\ndef dispatch_input(', start)
     policy = policy[:start] + '''    put(o, HEADER + 40, get(w, 152))
     put(o, HEADER + 48, get(w, 160))
+    context = get(w, 192)
+    if context != 0:
+        fragment(o, 0, context, 0, 121)
+        return input_observation(o, w, 1, get(w, 120), 137, 16, 1)
     return input_observation(o, w, 1, get(w, 120), 16, 16, 0)
 
 ''' + policy[end:]
@@ -317,6 +329,7 @@ def discovery_policy():
         put(w, 176, bytes - view)
         put(w, 184, view)
     return store_input(o, w, choose(profile, 19, 20), durable)''')
+    policy = policy.replace('bytes < 48 or bytes > 512:', 'bytes < 48 or bytes > 1024:')
     start = policy.index('    status = get(w, 136)\n')
     end = policy.index('    return BAD', start)
     return policy[:start] + '''    if state == STORE_FINISHED:

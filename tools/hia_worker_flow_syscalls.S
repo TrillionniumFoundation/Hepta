@@ -137,6 +137,8 @@ _start:
  .else
  .ifdef WORKER_DISCOVERY
  cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS + 2
+ je .Ldiscovery_arity
+ cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS + 3
  .else
  .ifdef WORKER_INPUT
  cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS + 1
@@ -146,6 +148,9 @@ _start:
  .endif
  .endif
  jne .Lrefused
+ .ifdef WORKER_DISCOVERY
+.Ldiscovery_arity:
+ .endif
  .ifdef HAS_PATH_ENTRY
  mov rax, [r15+16]
  cmp BYTE PTR [rax], 47
@@ -274,6 +279,21 @@ _start:
  mov rsi, [r15+88]
  call .Lparse_unsigned_word
  mov [rbp+OBS+40], rax
+ cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS + 3
+ jne .Ldiscovery_metadata_ready
+ mov rsi, [r15+96]
+ call .Lparse_fd
+ mov [rbp+OBS+48], rax
+ mov edi, eax
+ lea rsi, [rbp+FD_INFO]
+ call hia_worker_fd_observe
+ test rax, rax
+ js .Lrefused
+ cmp QWORD PTR [rbp+FD_INFO+8], 15
+ jne .Lrefused
+ mov rax, [rbp+FD_INFO+24]
+ mov [rbp+OBS+56], rax
+.Ldiscovery_metadata_ready:
  .else
  .ifdef WORKER_INPUT
  mov rsi, [r15+80]
