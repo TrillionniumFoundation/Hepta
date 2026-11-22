@@ -19,11 +19,14 @@ COST_PACKER = 'examples/hia_bootstrap/worker_cost_flow_packer.hepta'
 COST_POLICY = 'examples/hia_bootstrap/worker_cost_flow.hepta'
 READ_STORE_PACKER = 'examples/hia_bootstrap/worker_read_store_flow_packer.hepta'
 READ_STORE_POLICY = 'examples/hia_bootstrap/worker_read_store_flow.hepta'
+READ_EXTERNAL_PACKER = 'examples/hia_bootstrap/worker_read_external_flow_packer.hepta'
+READ_EXTERNAL_POLICY = 'examples/hia_bootstrap/worker_read_external_flow.hepta'
 PROGRAMS = {
     'describe': (POLICY, PACKER), 'read': (READ_POLICY, READ_PACKER),
     'cost': (COST_POLICY, COST_PACKER), 'read-store': (READ_STORE_POLICY, READ_STORE_PACKER),
+    'read-external': (READ_EXTERNAL_POLICY, READ_EXTERNAL_PACKER),
 }
-PEER_KINDS = ('cost', 'read-store')
+PEER_KINDS = ('cost', 'read-store', 'read-external')
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -41,6 +44,8 @@ def adapter_source(flow, ports, *, kind='describe', peers=b''):
     variant = {
         'describe': b'', 'read': b'.equ WORKER_READ, 1\n', 'cost': b'.equ WORKER_COST, 1\n',
         'read-store': b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n',
+        'read-external': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
+                          b'.equ WORKER_EXTERNAL_READ, 1\n'),
     }[kind]
     return variant + flow + b'\n' + ports
 

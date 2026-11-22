@@ -11,6 +11,7 @@ from tools.generate_hia_worker_describe_reactor import POLICY as ENTRY_POLICY, p
 from tools.generate_hia_worker_inspection_effect import function
 
 SOURCE = Path('examples/hia_bootstrap/worker_read_store_flow.hepta')
+EXTERNAL_SOURCE = Path('examples/hia_bootstrap/worker_read_external_flow.hepta')
 
 POLICY = r'''
 def read_store_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -52,21 +53,41 @@ def read_store_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return close_read(s, o, w, state)
 
 def admit_read(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    if length(s) != 384 or input_word(s, 0) != ENTRY:
+    if length(s) != ENTRY_HEAD + ROLE_COUNT * DESCRIPTOR_BYTES or input_word(s, 0) != ENTRY:
         return BAD
     size = input_word(s, 8)
-    path = input_word(s, 16)
-    if size < 128 or size > 8192 or path < 2 or path >= 4083 or input_word(s, 24) == 47:
-        return BAD
-    if trusted_descriptors(s, 0, 0) == False:
+    if size < 128 or size > 8192:
         return BAD
     keep(w, ORIGINAL, 0, size)
+    if OWNED_STORE == 0:
+        return use_external_store(s, o, w)
+    path = input_word(s, 16)
+    if path < 2 or path >= 4083 or input_word(s, 24) == 47 or trusted_descriptors(s, 0, 0) == False:
+        return BAD
     argv(o, 0, INPUT_ARG, 2)
     put(o, 160, STORE_ARG)
     argv(o, 1, LITERAL_ARG, 160)
     argv(o, 2, INPUT_ARG, 3)
     put(o, 176, STORE_PEER)
     return action(o, w, STORE_STARTED, START_PEER, STORE_ROLE, 3, 0, 0)
+
+def use_external_store(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    reply = input_word(s, 48)
+    command = input_word(s, 56)
+    if valid_fd(reply) == False or valid_fd(command) == False or reply == command:
+        return BAD
+    if trusted_descriptors(s, reply, command) == False:
+        return BAD
+    put(w, 32, reply)
+    put(w, 40, command)
+    put(w, 48, input_word(s, 40))
+    put(w, 56, input_word(s, 32))
+    put(w, 64, 1)
+    return start_effect(o, w)
+
+def start_effect(o:mutbuf, w:mutbuf) -> u64:
+    put(o, 176, EFFECT_PEER)
+    return action(o, w, EFFECT_STARTED, START_PEER, EFFECT_ROLE, 0, 0, 0)
 
 def open_read(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == STORE_STARTED:
@@ -89,8 +110,7 @@ def open_read(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             return BAD
         put(w, 48, input_word(s, 72))
         put(w, 64, 2)
-        put(o, 176, EFFECT_PEER)
-        return action(o, w, EFFECT_STARTED, START_PEER, EFFECT_ROLE, 0, 0, 0)
+        return start_effect(o, w)
     if length(s) != 80 or input_word(s, 40) != 16:
         return BAD
     whole_slot(w, o, ORIGINAL, 0)
@@ -167,7 +187,10 @@ def artifact_capture(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     put(o, 400, ARTIFACT_ROOT)
     put(o, 408, ARTIFACT_ROOT_END)
     argv(o, 0, LITERAL_ARG, 384)
-    argv(o, 1, JOINED_ARG, 400)
+    if OWNED_STORE == 1:
+        argv(o, 1, JOINED_ARG, 400)
+    else:
+        argv(o, 1, INPUT_ARG, 1)
     argv(o, 2, LITERAL_ARG, 416)
     return action(o, w, CAPTURE_OBSERVED, RUN, CAPTURE_ROLE, 3, 0, 0)
 
@@ -262,10 +285,10 @@ def terminal_plan(o:mutbuf, w:mutbuf, role:u64, offset:u64, extent:u64, code:u64
 def close_read(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if length(s) != 64 or input_word(s, 32) != 0 or input_word(s, 40) != 0:
         return BAD
-    if state == EFFECT_FINISHED:
+    if state == EFFECT_FINISHED and OWNED_STORE == 1:
         put(o, 176, STORE_PEER)
         return action(o, w, STORE_FINISHED, FINISH_PEER, 0, 0, 0, 0)
-    if state == STORE_FINISHED:
+    if state == STORE_FINISHED or (state == EFFECT_FINISHED and OWNED_STORE == 0):
         put(o, HEADER, EFFECT_RESULT)
         put(o, HEADER + 8, get(w, 120))
         put(o, HEADER + 16, get(w, 56))
@@ -306,7 +329,7 @@ def read_span(o:mutbuf, w:mutbuf, state:u64, fd:u64, at:u64, bytes:u64) -> u64:
 '''
 
 
-def program():
+def program(*, external=False):
     constants = {name: int.from_bytes(value, 'little') for name, value in {
         'ENTRY': b'HIADRI01', 'OBSERVATION': b'HIADFO01', 'COMMAND': b'HIADFC01',
         'STORE_ARG': b'store', 'UNIQUE': b'HIASTUP1', 'EFFECT_EVENT': b'HIAFDE01',
@@ -315,7 +338,8 @@ def program():
         'ARTIFACT_ROOT': b'/artifac', 'ARTIFACT_ROOT_END': b'ts', 'DATA_VALIDATE': b'HIAWDV01',
     }.items()}
     constants.update(BAD=0xfffffffd, HEADER=512, ARGUMENTS=192, ELF_MAGIC=0x464c457f,
-                     DEFAULT_CHILD_LEASE=10_000_000_000, ROLE_COUNT=8,
+                     DEFAULT_CHILD_LEASE=10_000_000_000, ROLE_COUNT=6 if external else 8,
+                     OWNED_STORE=0 if external else 1,
                      ENTRY_HEAD=64, DOSSIER_HEAD=0, DESCRIPTOR_BYTES=40, SLOT_BASE=256,
                      RUN=1, READ=2, PUBLISH=3, FINISHED=5, START_PEER=6, RECEIVE_PEER=7,
                      FINISH_PEER=8, SEND_PEER=9, INPUT_ARG=1, LITERAL_ARG=2, FD_ARG=4, JOINED_ARG=5,
@@ -340,4 +364,5 @@ def program():
 
 
 if __name__ == '__main__':
-    SOURCE.write_text(render_assembly(document(program(), SOURCE.stem)), encoding='utf-8')
+    for path, external in ((SOURCE, False), (EXTERNAL_SOURCE, True)):
+        path.write_text(render_assembly(document(program(external=external), path.stem)), encoding='utf-8')

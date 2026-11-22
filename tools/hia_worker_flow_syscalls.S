@@ -26,19 +26,29 @@
 .equ CLOCK, 34312
 .equ MAP_BYTES, 81920
 .ifdef WORKER_COST
-.equ EXTRA_ARGS, 4
 .equ ROLE_OFFSET, 64
 .equ PEER, 34400
 .ifdef WORKER_STORED_READ
+.ifdef WORKER_EXTERNAL_READ
+.equ ROLE_COUNT, 6
+.equ EXTRA_ARGS, 6
+.equ FIRST_ROLE, 2
+.else
 .equ ROLE_COUNT, 8
+.equ EXTRA_ARGS, 4
+.equ FIRST_ROLE, 0
+.endif
 .equ PEER_COUNT, 2
 .equ JOINED, 36864
 .else
+.equ EXTRA_ARGS, 4
+.equ FIRST_ROLE, 0
 .equ ROLE_COUNT, 3
 .equ PEER_COUNT, 1
 .endif
 .else
 .equ ROLE_OFFSET, 376
+.equ FIRST_ROLE, 0
 .ifdef WORKER_READ
 .equ ROLE_COUNT, 19
 .equ EXTRA_ARGS, 5
@@ -56,6 +66,11 @@ _start:
  mov r15, rsp
  cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS
  jne .Lrefused
+ .ifdef WORKER_EXTERNAL_READ
+ mov rax, [r15+16]
+ cmp BYTE PTR [rax], 47
+ jne .Lrefused
+ .else
  mov rsi, [r15+16]
  lea rdi, [rip+.Lmode]
 .Lmode_next:
@@ -74,6 +89,7 @@ _start:
  mov rax, [r15+32]
  cmp BYTE PTR [rax], 47
  jne .Lrefused
+ .endif
  xor edi, edi
  mov esi, MAP_BYTES
  mov edx, 3
@@ -114,6 +130,32 @@ _start:
  syscall
  test rax, rax
  js .Lrefused
+ .ifdef WORKER_EXTERNAL_READ
+ mov rsi, [r15+24]
+ call .Lparse_unsigned_word
+ mov [rbp+OBS+32], rax
+ mov rsi, [r15+32]
+ call .Lparse_unsigned_word
+ mov [rbp+OBS+40], rax
+ mov rsi, [r15+40]
+ call .Lparse_fd
+ mov [rbp+OBS+48], rax
+ mov edi, eax
+ mov esi, 1
+ mov eax, 72
+ syscall
+ test rax, rax
+ js .Lrefused
+ mov rsi, [r15+48]
+ call .Lparse_fd
+ mov [rbp+OBS+56], rax
+ mov edi, eax
+ mov esi, 1
+ mov eax, 72
+ syscall
+ test rax, rax
+ js .Lrefused
+ .else
  mov rsi, [r15+24]
  xor eax, eax
 .Lstate_length:
@@ -127,6 +169,7 @@ _start:
  mov [rbp+OBS+16], rax
  movzx eax, BYTE PTR [rsi+rax-1]
  mov [rbp+OBS+24], rax
+ .endif
  .endif
  lea rdi, [rip+.Lentry_magic]
  mov rax, [rdi]
@@ -189,7 +232,7 @@ _start:
  jae .Lentry_ready
  mov rsi, [r15+r12*8+8*(EXTRA_ARGS+1)]
  call .Lparse_fd
- mov [rbp+ROLES+r12*8], rax
+ mov [rbp+ROLES+r12*8+8*FIRST_ROLE], rax
  mov edi, eax
  mov rsi, r13
  call hia_worker_fd_observe
@@ -280,7 +323,7 @@ worker_policy_hole: .long 0
 
 .Lrun:
  mov rax, [rbp+COMMAND+24]
- cmp rax, ROLE_COUNT
+ cmp rax, ROLE_COUNT + FIRST_ROLE
  jae .Lrefused
  mov rax, [rbp+ROLES+rax*8]
  mov [rbp+PROCESS], rax
@@ -367,10 +410,15 @@ worker_policy_hole: .long 0
  inc QWORD PTR [rbp+PROCESS+48]
  jmp .Larg_number
 .Larg_original:
+ .ifdef WORKER_EXTERNAL_READ
+ cmp rdx, 1
+ jne .Lrefused
+ .else
  cmp rdx, 2
  jb .Lrefused
  cmp rdx, 3
  ja .Lrefused
+ .endif
  mov rax, [r15+rdx*8+8]
  jmp .Larg_store
 .Larg_literal:
@@ -700,6 +748,30 @@ worker_policy_hole: .long 0
  jnz .Lrefused
  jmp .Lnext
 
+.ifdef WORKER_EXTERNAL_READ
+.Lparse_unsigned_word:
+ cmp BYTE PTR [rsi], 0
+ je .Lrefused
+ xor eax, eax
+ mov r9d, 10
+.Lunsigned_digit:
+ movzx ecx, BYTE PTR [rsi]
+ test cl, cl
+ jz .Lunsigned_ready
+ sub ecx, 48
+ cmp ecx, 9
+ ja .Lrefused
+ mul r9
+ test rdx, rdx
+ jnz .Lrefused
+ add rax, rcx
+ jc .Lrefused
+ inc rsi
+ jmp .Lunsigned_digit
+.Lunsigned_ready:
+ ret
+.endif
+
 .Lparse_fd:
  xor eax, eax
  xor ecx, ecx
@@ -710,12 +782,11 @@ worker_policy_hole: .long 0
  sub edx, 48
  cmp edx, 9
  ja .Lrefused
- cmp ecx, 10
- jae .Lrefused
  imul rax, rax, 10
  add rax, rdx
+ cmp rax, 2147483647
+ ja .Lrefused
  inc rsi
- inc ecx
  jmp .Lparse_digit
 .Lparsed_fd:
  cmp rax, 3
