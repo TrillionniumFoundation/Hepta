@@ -52,13 +52,15 @@ BORROWED_EXPORT_MODE = 39
 CANDIDATE_JSON_MODE = 40
 NATIVE_ARTIFACT_MODE = 41
 BLOCK_LAYOUT_MODE = 42
+OBJECT_INVENTORY_MODE = 43
 PACK_MODES = (*range(CONNECTION_MODE + 1), READ_REQUEST_MODE, STORE_UNIQUE_MODE,
               WORKER_DATA_MODE, WORKER_RESPONSE_MODE, WORKER_JOURNAL_MODE, JOURNAL_COST_MODE,
               READ_REACTOR_MODE, STORE_READY_MODE, JOURNAL_READ_WORKFLOW_MODE, WORKER_ARGUMENTS_MODE,
               DESCRIBE_REQUEST_MODE, DISCOVERY_MODE, DESCRIBE_ANSWER_MODE, DISCOVERY_ARTIFACT_MODE,
               ARTIFACT_REQUEST_MODE, JOURNAL_RECORD_MODE, ARTIFACT_DIAGNOSTIC_MODE,
               CONTEXT_WORKLOAD_MODE, INSPECTION_MODE, WORKER_CANONICAL_MODE, LOWERING_ELF_MODE, LOWERING_FRAMES_MODE,
-              BORROWED_EXPORT_MODE, CANDIDATE_JSON_MODE, NATIVE_ARTIFACT_MODE, BLOCK_LAYOUT_MODE)
+              BORROWED_EXPORT_MODE, CANDIDATE_JSON_MODE, NATIVE_ARTIFACT_MODE, BLOCK_LAYOUT_MODE,
+              OBJECT_INVENTORY_MODE)
 WORKER_DATA_HEADER = 16
 WORKER_RESPONSE_HEADER = 224
 SCHEMA_HEADER = 72  # little-endian tool ordinal and 64 ASCII catalog digest bytes
@@ -135,7 +137,7 @@ MODES = {'mcp-request': 0, 'mcp-reply': 1, 'mcp-terminal': 1, 'mcp-catalog': 1,
          'borrowed-export-wire': BORROWED_EXPORT_MODE,
          'borrowed-wrapper': ARTIFACT_REQUEST_MODE,
          'inspection-lowering-elf': LOWERING_ELF_MODE,
-         'worker-object-imports': LOWERING_ELF_MODE,
+         'worker-object-inventory': OBJECT_INVENTORY_MODE,
          'inspection-lowering-frames': LOWERING_FRAMES_MODE,
          'worker-canonical': WORKER_CANONICAL_MODE,
          'artifact-authority': DISCOVERY_MODE,
@@ -170,7 +172,7 @@ def template(mode):
     diagnostic = mode in (ARTIFACT_DIAGNOSTIC_MODE, NATIVE_ARTIFACT_MODE)
     context_workload = mode == CONTEXT_WORKLOAD_MODE
     inspection = mode in (INSPECTION_MODE, LOWERING_FRAMES_MODE)
-    lowering_elf = mode == LOWERING_ELF_MODE
+    lowering_elf = mode in (LOWERING_ELF_MODE, OBJECT_INVENTORY_MODE)
     borrowed_export = mode == BORROWED_EXPORT_MODE
     block_layout = mode == BLOCK_LAYOUT_MODE
     candidate_json = mode == CANDIDATE_JSON_MODE
@@ -222,6 +224,8 @@ def template(mode):
         scratch, workspace, minimum = 4 << 20, 8192, 1
     if lowering_elf:
         scratch, workspace, minimum, maximum = 32 + 8 * 1024, 16 * 1024, 512, 64 << 20
+        if mode == OBJECT_INVENTORY_MODE:
+            scratch = 32 * 1024
     if read_request:
         scratch, workspace, maximum = 8192, 32768, 16384
     if describe_request:
