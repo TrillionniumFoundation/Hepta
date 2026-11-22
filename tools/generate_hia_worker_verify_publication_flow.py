@@ -78,11 +78,12 @@ def verify_finding_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     slot = VERIFY_EVIDENCE_SPANS + index * 24
     status = input_word(s, 72)
     mode = input_word(s, 80)
-    if (length(s) != 96 or input_word(s, 64) != VERIFY_FINITE_REPORT or mode < 1 or mode > 10
+    if (length(s) != 96 or input_word(s, 64) != VERIFY_FINITE_REPORT or mode < 1 or mode > 12
             or status < 1 or status > 4 or input_word(s, 88) != get(w, slot + 16) - 32):
         return BAD
     claim = get(w, VERIFY_CLAIM_ORDINALS + 8 * index)
-    if claim != choose(mode == 7, 1, choose(mode == 8 or mode == 10, 3, 2)):
+    expected_claim = choose(mode >= 11, 4, choose(mode == 7, 1, choose(mode == 8 or mode == 10, 3, 2)))
+    if claim != expected_claim:
         return BAD
     hold(w, VERIFY_FACTS, get(w, slot), get(w, slot + 8) + 32, get(w, slot + 16) - 32)
     store(o, HEADER, 91)

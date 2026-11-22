@@ -35,6 +35,8 @@ POLICY = r'''
 # 7: Core admission facts from the immutable, verified Core program.
 # 8: canonical lowering has no independent refinement proof.
 # 9: frozen Context deadline elapsed before evaluating behavior.
+# 11/12: independently hashed retained and rebuilt ELF, exact byte result,
+#        and the freshly validated, normalized rebuild report.
 def verify_evidence(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) >= 128 and byte(s, 0) == 91:
         if input_word(s, 0) == LAYOUT_PREFIX:
@@ -53,6 +55,8 @@ def verify_evidence(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return finish(o, unsupported(o, 32), 4, mode)
     if mode == 9 and length(s) == 16:
         return finish(o, expired(o, 32), 3, mode)
+    if mode == 11 or mode == 12:
+        return encoding_evidence(s, o, mode)
     if mode < 3 or mode > 5:
         return BAD
     return unknown(s, o, mode)
@@ -258,6 +262,25 @@ def layout_evidence(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     store(o, at, 125)
     return finish(o, at + 1, 1, 10)
 
+def encoding_evidence(s:readbuf, o:mutbuf, mode:u64) -> u64:
+    size = length(s)
+    if size <= 150 or size > PLAN_EVIDENCE_LIMIT - 256 or length(o) < size + 256:
+        return BAD
+    if (byte(s, 16) != 34 or byte(s, 81) != 34 or byte(s, 82) != 34 or byte(s, 147) != 34
+            or byte(s, 148) != 123 or byte(s, size - 1) != 125
+            or qualified_hash(s, 17) == False or qualified_hash(s, 83) == False):
+        return BAD
+    at = encoding_begin(o, 32)
+    at = copy_input(s, o, 16, at, 66)
+    at = encoding_bytes(o, at)
+    at = equality(o, at, mode == 11)
+    at = encoding_build(o, at)
+    at = copy_input(s, o, 148, at, size - 148)
+    at = encoding_digest(o, at)
+    at = copy_input(s, o, 82, at, 66)
+    store(o, at, 125)
+    return finish(o, at + 1, mode - 10, mode)
+
 def equality(o:mutbuf, at:u64, value:bool) -> u64:
     if value:
         put(o, at, TRUE_WORD)
@@ -336,6 +359,10 @@ def source_program():
         'layout_planned_digest': ',"planned_object_sha256":',
         'layout_frame_equality': ',"same_frame_sizes":',
         'layout_slot_equality': ',"same_slots":',
+        'encoding_begin': '{"actual_sha256":',
+        'encoding_bytes': ',"bytes_equal":',
+        'encoding_build': ',"method":"complete_native_rederivation","native_build":',
+        'encoding_digest': ',"no_llvm_or_external_assembler":true,"object_identity_equal":true,"rederived_sha256":',
     }
     source = '\n'.join((POLICY, function(EVIDENCE, 'complete_row'),
                         *(function(authority(), name) for name in ('input_word', 'copy_input')),

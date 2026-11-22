@@ -17,6 +17,8 @@ from tools.hia_retained_proof_method import (
 )
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_finding.hepta')
+ENCODING_DOMAIN = ('Exact actual artifact equals reverified Core/plan reemission and linkage by the same installed '
+                   'implementation, with checked closed symbol/ABI inventory; no independent semantic refinement claim')
 OUTCOMES = (
     ('behavior_equivalence', 'proved', 'canonical_core_identity',
      'Reflexivity for the exact admitted canonical Core bytes, including resources and traps'),
@@ -38,6 +40,8 @@ OUTCOMES = (
      'Verification cannot exceed the frozen context deadline'),
     ('lowering_refinement', 'proved', 'checked_explicit_machine_choices',
      'Checked explicit machine choices preserve canonical CFG, scalar value lifetimes and path effects, conditional on canonical lowering/encoder correctness'),
+    ('encoding_check', 'proved', 'complete_native_rederivation', ENCODING_DOMAIN),
+    ('encoding_check', 'refuted', 'complete_native_rederivation', ENCODING_DOMAIN),
 )
 STATUS_IDS = {'proved': 1, 'refuted': 2, 'unknown': 3, 'unsupported': 4}
 FIELDS = ('candidate_core_sha256', 'base_core_sha256', 'kind', 'id', 'sha256',
@@ -61,6 +65,19 @@ LAYOUT_ASSUMPTIONS = (
 LAYOUT_OBLIGATION = (
     'canonical_lowering_correctness',
     'The canonical lowering and encoder assumptions are not discharged by checking explicit machine choices.',
+)
+ENCODING_ASSUMPTION = (
+    'same_implementation_rederivation',
+    'The retained Core/plan is rechecked and emitted with the same identified lowering, encoder and linkage '
+    'implementation; matching bytes can preserve a common implementation defect.',
+)
+ENCODING_OBLIGATION = (
+    'independent_encoding_semantics',
+    'Reemission equality is not an independent decoder/ISA semantics check or a verified backend.',
+)
+REFUTED_OBLIGATION = (
+    'requested_property',
+    'The requested property is not established; this result is refuted and cannot satisfy a required proof.',
 )
 COMMON_OBLIGATIONS = (
     ('checker_soundness', 'No machine-checked soundness proof of the HIA checker or its models is supplied.'),
@@ -87,7 +104,7 @@ def verify_finding(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     mode_node = 64 + get(w, 88) * 72
     status_node = next(w, mode_node)
     status = budget_integer(s, w, status_node, 1, 4)
-    mode = budget_integer(s, w, mode_node, 1, 10)
+    mode = budget_integer(s, w, mode_node, 1, 12)
     if mode == NONE or status != observed_status(mode):
         return BAD
     scope = next(w, status_node)
@@ -99,7 +116,9 @@ def verify_finding(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return BAD
     if digest_text(w, selection, False) == False or digest_text(w, image, False) == False:
         return BAD
-    at = finding_begin(o, 16, mode)
+    at = finding_common(o, 16)
+    at = finding_assumptions(o, at, mode)
+    at = finding_checker_begin(o, at)
     at = copy_value(s, w, o, installation, at)
     at = checker_method(o, at, mode)
     at = copy_value(s, w, o, image, at)
@@ -109,7 +128,8 @@ def verify_finding(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     at = copy_value(s, w, o, profile, at)
     at = finding_property(o, at, mode)
     at = copy_value(s, w, o, scope, at)
-    at = finding_remaining(o, finding_obligations(o, at), choose(mode == 10, 5, status))
+    obligations = choose(mode >= 11, mode - 5, choose(mode == 10, 5, status))
+    at = finding_remaining(o, finding_obligations(o, at), obligations)
     at = copy_value(s, w, o, profile, at)
     store(o, at, 125)
     put(o, 0, FINDING)
@@ -125,6 +145,8 @@ def scope_valid(s:readbuf, w:mutbuf, scope:u64, mode:u64) -> bool:
         return canonical_subject(w, lookup(w, scope, K_kind))
     if mode == 10:
         return plan_subject(w, lookup(w, scope, K_kind))
+    if mode >= 11:
+        return native_subject(w, lookup(w, scope, K_kind))
     base = lookup(w, scope, K_base_core_sha256)
     if digest_text(w, base, False) == False:
         return False
@@ -182,18 +204,19 @@ def branching_renderer(name, values, argument='mode'):
 
 def source_program():
     statuses = ['def observed_status(mode:u64) -> u64:']
-    begin, methods, names, domains, properties = {}, {}, {}, {}, {}
+    additions, methods, names, domains, properties = {}, {}, {}, {}, {}
     for mode, (claim, status, method, domain) in enumerate(OUTCOMES, 1):
         statuses.extend((f'    if mode == {mode}:', f'        return {STATUS_IDS[status]}'))
-        assumptions = [COMMON_ASSUMPTION]
+        assumptions = []
         if claim == 'behavior_equivalence':
             assumptions.append(BEHAVIOR_ASSUMPTION)
         if method == 'finite_domain':
             assumptions.append(FINITE_ASSUMPTION)
         if method == 'checked_explicit_machine_choices':
             assumptions.extend(LAYOUT_ASSUMPTIONS)
-        begin[mode] = ('{"assumptions":' + proof_items(assumptions) +
-                       ',"checker":{"auxiliary_checker_sha256":null,"installation":')
+        if method == 'complete_native_rederivation':
+            assumptions.append(ENCODING_ASSUMPTION)
+        additions[mode] = ',' + proof_items(assumptions)[1:-1] if assumptions else ''
         methods[mode] = ',"method":' + json_wire(method) + ',"name":' + json_wire(
             NATIVE_CORE_CHECKER if method == 'core_admission' else EVIDENCE_ROLE) + ',"native":{"image_sha256":'
         names[mode] = ',"profile":' + json_wire(CHECKER_PROFILE) + '},"native_selection_sha256":'
@@ -208,14 +231,21 @@ def source_program():
             item = ('requested_property', f'The requested property is not established; this result is {status} and cannot satisfy a required proof.')
             obligations[ident] = ',' + proof_items((item,))[1:] + ',"validator":'
     obligations[5] = ',' + proof_items((LAYOUT_OBLIGATION,))[1:] + ',"validator":'
+    obligations[6] = ',' + proof_items((ENCODING_OBLIGATION,))[1:] + ',"validator":'
+    obligations[7] = ',' + proof_items((ENCODING_OBLIGATION, REFUTED_OBLIGATION))[1:] + ',"validator":'
     constants = {f'K_{key}': index for index, key in enumerate(FIELDS, 1)}
     constants.update(FINDING=int.from_bytes(b'HIAVFN01', 'little'), NONE=(1 << 64) - 1, BAD=4294967293)
     source = '\n'.join((POLICY, '\n'.join(statuses), key_table(FIELDS),
                         literal_match('canonical_subject', 'canonical_lowering'),
                         literal_match('plan_subject', 'agent_machine_plan'),
+                        literal_match('native_subject', 'native_artifact'),
                         *(branching_renderer(name, values) for name, values in (
-                            ('finding_begin', begin), ('checker_method', methods), ('checker_native', names),
+                            ('finding_assumptions', additions), ('checker_method', methods), ('checker_native', names),
                             ('finding_domain', domains), ('finding_property', properties))),
+                        literal('finding_common', ('{"assumptions":' + proof_items((COMMON_ASSUMPTION,))[:-1]).encode('ascii')
+                               ).replace('state_put(', 'put('),
+                        literal('finding_checker_begin', b'],"checker":{"auxiliary_checker_sha256":null,"installation":'
+                               ).replace('state_put(', 'put('),
                         literal('finding_obligations',
                                 (',"unproved_obligations":' + proof_items(COMMON_OBLIGATIONS)[:-1]).encode('ascii')
                                ).replace('state_put(', 'put('),

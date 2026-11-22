@@ -12,7 +12,9 @@ from tools.generate_hia_worker_emit_flow import DISPATCH, REACTOR, REQUEST, nati
 from tools.generate_hia_worker_emit_measurement import MEASUREMENT, splice_list
 from tools.generate_hia_worker_emit_proof import PLAN
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
-from tools.generate_hia_worker_verify_finite_flow import custody_constants, finite_constants, plan_constants
+from tools.generate_hia_worker_verify_finite_flow import (
+    custody_constants, encoding_constants, finite_constants, plan_constants,
+)
 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_flow.hepta')
 
@@ -135,6 +137,8 @@ def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
     if state == VERIFY_CANDIDATE_INPUT_HASH:
         hold(w, VERIFY_CANDIDATE_INPUT_SHA, fd, at - 64, 64)
         hold(w, VERIFY_CANDIDATE_INPUT_QUOTED, fd, at - 65, 66)
+        move_fragment(w, INSPECTION_STRUCTURED, VERIFY_ENCODE_STRUCTURED)
+        put(w, VERIFY_ENCODE_PROFILE, get(w, EMIT_PROFILE_LEVEL))
         base = VERIFY_BASE
         if get(w, base + 16) == 4:
             return read_span(o, w, VERIFY_BASE_NULL, get(w, base), get(w, base + 8), 4)
@@ -247,6 +251,11 @@ def verify_checks(o:mutbuf, w:mutbuf) -> u64:
     if claim == 3 and get(w, VERIFY_SUBJECT_KIND) == 3:
         put(w, 0, VERIFY_PLAN_CHECK)
         return VERIFY_NEEDS_FINITE
+    if claim == 4 and get(w, VERIFY_SUBJECT_KIND) == 4:
+        if get(w, VERIFY_REPLAYING) != 0:
+            return clock_sample(o, w, VERIFY_REPLAY_CLOCK, 0)
+        put(w, EMIT_STAGE, 11)
+        return emit_wall_start(o, w)
     return BAD
 
 def verify_direct_evidence(o:mutbuf, w:mutbuf, mode:u64) -> u64:
@@ -256,6 +265,9 @@ def verify_direct_evidence(o:mutbuf, w:mutbuf, mode:u64) -> u64:
     return action(o, w, VERIFY_CHECK_RESULT, RUN, VERIFY_FINITE_EVIDENCE_ROLE, 0, 0, 16)
 
 def verify_behavior(o:mutbuf, w:mutbuf) -> u64:
+    if get(w, VERIFY_CLAIM_ORDINALS + 8 * get(w, VERIFY_CLAIM_INDEX)) == 4:
+        put(w, 0, VERIFY_ENCODE_START)
+        return VERIFY_NEEDS_FINITE
     if get(w, VERIFY_FINITE_BASE_SHA + 16) != 64 or get(w, VERIFY_FINITE_CANDIDATE_SHA + 16) != 64:
         return BAD
     put(w, VERIFY_FINITE_CONTEXT_END, get(w, EMIT_ABSOLUTE_DEADLINE))
@@ -379,6 +391,7 @@ def constants_for_verify(constants):
     finite_constants(constants)
     plan_constants(constants)
     custody_constants(constants)
+    encoding_constants(constants)
     states = ('BASE_NULL', 'SUBJECT_FRAME', 'SUBJECT_INDEX', 'SUBJECT_OFFSETS', 'SCOPE_READY',
               'CANDIDATE_HASH', 'CANDIDATE_INPUT_HASH', 'ORIGINAL_HASH', 'OUTCOME')
     spans = ('VALIDATION', 'BASE', 'SUBJECT', 'CONTEXT_ID', 'CANDIDATE_SHA', 'CANDIDATE',
@@ -420,6 +433,8 @@ def recipe():
         '    if state == VERIFY_PLAN_ADMITTED or state == VERIFY_NATIVE_BOUND:\n        return verify_scope_input(o, w)\n'
         '    if state == VERIFY_NATIVE_STORE:\n'
         '        return emit_proof_read(o, w, get(w, RETAINED_PURPOSE), get(w, RETAINED_KIND))\n'
+        '    if state == VERIFY_ENCODE_EXPIRED:\n'
+        '        return verify_encoding_timeout(o, w)\n'
         '    if state == VERIFY_PLAN_INVALID:\n        if get(w, VERIFY_REPLAYING) != 0:\n            return BAD\n'
         '        return emit_admission_error(o, w, 8, 5)\n'
         '    if state == VERIFY_RESULT_READY:\n'
@@ -461,6 +476,8 @@ def recipe():
         '        if input_word(s, 80) != 0:\n            return emit_admission_error(o, w, 8, choose(launch, 4, 3))',
         '        if input_word(s, 80) != 0:\n'
         '            if launch:\n'
+        '                if get(w, VERIFY_CLAIM_ORDINALS + 8 * get(w, VERIFY_CLAIM_INDEX)) == 4:\n'
+        '                    return verify_encoding_timeout(o, w)\n'
         '                return verify_direct_evidence(o, w, 9)\n'
         '            if get(w, VERIFY_REPLAYING) != 0:\n'
         '                return verify_validation(o, w)\n'
@@ -519,7 +536,13 @@ def recipe():
     trust = function(DISPATCH, 'emit_trust_spans')
     read_plan = function(PLAN, 'emit_proof_read')
     wide_make = function(MEASUREMENT, 'emit_wide_make')
-    policy = '\n'.join((driver, controls, INGRESS, CUSTODY, SUBJECT, SUBJECT_INDEX, CHECKS, REPLAY,
+    encoding_timeout = r'''
+def verify_encoding_timeout(o:mutbuf, w:mutbuf) -> u64:
+    if get(w, VERIFY_REPLAYING) != 0:
+        return BAD
+    return emit_admission_error(o, w, 8, choose(get(w, EMIT_SCALAR_STAGE) == 13, 6, 7))
+'''
+    policy = '\n'.join((driver, controls, INGRESS, CUSTODY, SUBJECT, SUBJECT_INDEX, CHECKS, REPLAY, encoding_timeout,
                         scope, support, outcome, trust, wide_make, read_plan))
     entry, parts = reachable_policy(policy, 'verify_flow')
     return constants, entry, parts

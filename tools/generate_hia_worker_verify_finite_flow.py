@@ -11,7 +11,10 @@ from tools.generate_hia_worker_describe_reactor import POLICY as ENTRY_POLICY
 from tools.generate_hia_worker_emit_flow import ADMISSION, PROFILES, native_recipe
 from tools.generate_hia_worker_emit_measurement import splice_list
 from tools.generate_hia_worker_emit_layout_replay import REPLAY as LAYOUT_REPLAY
+from tools.generate_hia_worker_emit_product import PRODUCTION
 from tools.generate_hia_worker_emit_proof import proof_recipe
+from tools.generate_hia_worker_emit_record import RECORD
+from tools.generate_hia_worker_emit_scalar import SCALAR
 from tools.generate_hia_worker_finite_domain import INELIGIBLE
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
 from tools.generate_hia_worker_register_layout import WITNESS_TAG
@@ -31,6 +34,8 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return verify_finite_start(o, w)
     if state == VERIFY_PLAN_CHECK:
         return verify_plan_check(o, w)
+    if state == VERIFY_ENCODE_START:
+        return verify_encoding_start(o, w)
     if (length(s) < 64 or input_word(s, 0) != OBSERVATION
             or input_word(s, 8) != get(w, 8) or input_word(s, 16) != get(w, 16)):
         return BAD
@@ -43,6 +48,12 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if operation == READ and (input_word(s, 32) != get(w, 80) or start != get(w, 88) or capture != get(w, 96)):
         return BAD
     status = input_word(s, 24)
+    if state >= EMIT_SCALAR_NONCE and state <= EMIT_SCALAR_SNAPSHOT:
+        if status != 0 and (state != EMIT_SCALAR_REPORT_READY or status != EMIT_EXPIRED):
+            return BAD
+        if state == EMIT_SCALAR_REPORT_READY and status == 0 and valid_fd(input_word(s, 32)) == False:
+            return BAD
+        return emit_scalar_state(s, o, w, state)
     if status != 0:
         if (status == EMIT_EXPIRED and get(w, 16) == RUN and length(s) == 64
                 and state >= EMIT_COMPLETE_PLAN and state <= EMIT_COMPLETE_RENDERED):
@@ -54,6 +65,13 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return emit_proof_typed_artifact(s, o, w)
     if state == RETAINED_BYTES and get(w, RETAINED_PURPOSE) >= READ_EMIT_CUSTODY_BUILD:
         return emit_proof_custody_reopened(s, o, w, get(w, RETAINED_PURPOSE))
+    if state >= VERIFY_ENCODE_OBJECT_MATCH and state <= VERIFY_ENCODE_EVIDENCE:
+        return verify_encoding_observation(s, o, w, state)
+    if state == EMIT_RETAINED_REPORT_BOUND:
+        if plan_ok(s) == False or size < 10 or size >= VERIFY_PLAN_EVIDENCE_LIMIT - 256:
+            return BAD
+        body_span(s, w, EMIT_RETAINED_REPORT)
+        return verify_encoding_compare(o, w)
     if state >= EMIT_CUSTODY_PROJECTED and state <= EMIT_CUSTODY_VERIFIED:
         return emit_proof_custody_state(s, o, w, state)
     if state == RETAINED_BYTES or (state >= VERIFY_PLAN_CANONICAL and state <= VERIFY_PLAN_REGISTERS):
@@ -172,6 +190,93 @@ def emit_custody_inputs(o:mutbuf, w:mutbuf) -> u64:
     move_fragment(w, VERIFY_CANDIDATE_INPUT_QUOTED, EMIT_CUSTODY_INPUT_SHA)
     producer = choose(get(w, INSPECTION_EXPORTS + 16) > 2, EMIT_BORROWED_EXE, EMIT_SCALAR_EXE)
     return inspection_hash(o, w, EMIT_CUSTODY_PRODUCER_HASH, producer)
+'''
+
+
+ENCODING = r'''
+def verify_encoding_start(o:mutbuf, w:mutbuf) -> u64:
+    kind = get(w, EMIT_OUTPUT_KIND)
+    if (kind < 1 or kind > 2 or get(w, EMIT_CUSTODY_PLAN_REF + 16) != 0
+            or get(w, INSPECTION_EXPORTS + 16) != 2):
+        return BAD
+    move_fragment(w, VERIFY_ENCODE_STRUCTURED, INSPECTION_STRUCTURED)
+    put(w, EMIT_PROFILE_LEVEL, get(w, VERIFY_ENCODE_PROFILE))
+    put(w, EMIT_CODEGEN_KIND, 1)
+    put(w, VERIFY_ENCODE_AT, 0)
+    return emit_scalar_product(o, w, 12, get(w, EMIT_ABSOLUTE_DEADLINE))
+
+def emit_admission_error(o:mutbuf, w:mutbuf, scope:u64, reason:u64) -> u64:
+    put(w, 0, VERIFY_ENCODE_EXPIRED)
+    return VERIFY_FINITE_READY
+
+def verify_encoding_hash(s:readbuf, o:mutbuf, w:mutbuf, at:u64, state:u64) -> u64:
+    fd = input_word(s, 32)
+    if state == EMIT_IMAGE_HASHED:
+        hold(w, EMIT_IMAGE_QUOTED, fd, at - 65, 66)
+        return verify_encoding_report(o, w)
+    hold(w, EMIT_OBJECT_QUOTED, fd, at - 65, 66)
+    put(o, HEADER, EMIT_COMPARE_REQUEST)
+    put(o, HEADER + 8, 66)
+    put(o, HEADER + 16, 66)
+    use_span(w, o, EMIT_OBJECT_QUOTED, 0)
+    use_span(w, o, EMIT_CUSTODY_OBJECT_SHA, 1)
+    return action(o, w, VERIFY_ENCODE_OBJECT_MATCH, RUN, EMIT_NATIVE_ARTIFACT_ROLE, 0, 2, 24)
+
+def verify_encoding_report(o:mutbuf, w:mutbuf) -> u64:
+    # The ref denotes this particular rebuild's bytes only after matching
+    # the measured object. The normalizer also checks the fresh report SHA.
+    move_fragment(w, EMIT_CUSTODY_OBJECT_REF, EMIT_ARTIFACT_REFS)
+    return emit_retained_report(o, w)
+
+def verify_encoding_observation(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if state == VERIFY_ENCODE_OBJECT_MATCH:
+        if emit_custody_compare_reply(s) == False or input_word(s, 80) != 1:
+            return BAD
+        if get(w, EMIT_OUTPUT_KIND) == 2:
+            return emit_scalar_product(o, w, 13, get(w, EMIT_ABSOLUTE_DEADLINE))
+        move_fragment(w, EMIT_OBJECT_QUOTED, EMIT_IMAGE_QUOTED)
+        return verify_encoding_report(o, w)
+    if state == VERIFY_ENCODE_IMAGE_MATCH:
+        if emit_custody_compare_reply(s) == False:
+            return BAD
+        if input_word(s, 80) == 0:
+            return verify_encoding_evidence(o, w, False)
+        return verify_encoding_compare(o, w)
+    size = input_word(s, 40)
+    mode = get(w, VERIFY_FINITE_MODE)
+    if (plan_ok(s) == False or size < 42 or size > VERIFY_PLAN_EVIDENCE_LIMIT
+            or input_word(s, 72) != VERIFY_FINITE_REPORT or input_word(s, 88) != mode
+            or input_word(s, 80) != mode - 10 or input_word(s, 96) != size - 40):
+        return BAD
+    body_span(s, w, VERIFY_FINITE_RESULT)
+    return verify_finite_deliver(w)
+
+def verify_encoding_compare(o:mutbuf, w:mutbuf) -> u64:
+    at = get(w, VERIFY_ENCODE_AT)
+    size = get(w, EMIT_IMAGE + 16)
+    if size != get(w, EMIT_CUSTODY_NATIVE + 16):
+        return verify_encoding_evidence(o, w, False)
+    if at == size:
+        return verify_encoding_evidence(o, w, True)
+    if at > size:
+        return BAD
+    count = choose(size - at > 1048576, 1048576, size - at)
+    put(w, VERIFY_ENCODE_AT, at + count)
+    put(o, HEADER, EMIT_COMPARE_REQUEST)
+    put(o, HEADER + 8, count)
+    put(o, HEADER + 16, count)
+    fragment(o, 0, get(w, EMIT_CUSTODY_NATIVE), get(w, EMIT_CUSTODY_NATIVE + 8) + at, count)
+    fragment(o, 1, get(w, EMIT_IMAGE), get(w, EMIT_IMAGE + 8) + at, count)
+    return action(o, w, VERIFY_ENCODE_IMAGE_MATCH, RUN, EMIT_NATIVE_ARTIFACT_ROLE, 0, 2, 24)
+
+def verify_encoding_evidence(o:mutbuf, w:mutbuf, equal:bool) -> u64:
+    put(w, VERIFY_FINITE_MODE, choose(equal, 11, 12))
+    put(o, HEADER, VERIFY_FINITE_REQUEST)
+    put(o, HEADER + 8, get(w, VERIFY_FINITE_MODE))
+    use_span(w, o, EMIT_CUSTODY_NATIVE_SHA, 0)
+    use_span(w, o, EMIT_IMAGE_QUOTED, 1)
+    use_span(w, o, EMIT_RETAINED_REPORT, 2)
+    return action(o, w, VERIFY_ENCODE_EVIDENCE, RUN, VERIFY_FINITE_EVIDENCE_ROLE, 0, 3, 16)
 '''
 
 
@@ -308,6 +413,8 @@ def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
         return emit_custody_hash(s, o, w, at, resume)
     if resume == EMIT_REPLAY_OBJECT_HASH:
         return emit_replay_object_hash(s, o, w, at)
+    if resume == EMIT_OBJECT_HASHED or resume == EMIT_IMAGE_HASHED:
+        return verify_encoding_hash(s, o, w, at, resume)
     if resume != EMIT_COMPLETE_HASH:
         return BAD
     put(w, VERIFY_FINITE_MODE, 2)
@@ -350,6 +457,12 @@ def custody_constants(constants):
     constants.update(VERIFY_NATIVE_STORE=1380, VERIFY_NATIVE_BOUND=1381, VERIFY_CANDIDATE_INPUT_QUOTED=11480)
 
 
+def encoding_constants(constants):
+    states = ('START', 'OBJECT_MATCH', 'IMAGE_MATCH', 'EVIDENCE', 'EXPIRED')
+    constants.update({f'VERIFY_ENCODE_{name}': 1382 + i for i, name in enumerate(states)})
+    constants.update(VERIFY_ENCODE_STRUCTURED=11504, VERIFY_ENCODE_PROFILE=11528, VERIFY_ENCODE_AT=11536)
+
+
 def finite_recipe():
     _, parts = proof_recipe(function(ADMISSION, 'emit_admission_error'),
                             function(PROFILES, 'emit_open_profile'))
@@ -381,6 +494,12 @@ def finite_recipe():
     policy = replace_function(policy, 'emit_proof_read', '')
     policy = replace_function(policy, 'emit_proof_open_claims', '')
     policy = replace_function(policy, 'emit_custody_inputs', '')
+    reopen = function(policy, 'emit_proof_custody_reopened').replace(
+        '            sample_span(s, w, EMIT_CUSTODY_NATIVE)',
+        '            put(w, EMIT_OUTPUT_KIND, choose(kind == EMIT_ELF_OBJECT, 1, 2))\n'
+        '            sample_span(s, w, EMIT_CUSTODY_NATIVE)')
+    policy = replace_function(policy, 'emit_proof_custody_reopened', reopen)
+    policy = replace_function(policy, 'emit_admission_error', '')
     policy = replace_function(policy, 'emit_complete_next', '')
     policy = replace_function(policy, 'emit_complete_input',
                               splice_list('emit_complete_input', 'EMIT_COMPLETE_INPUT',
@@ -406,7 +525,8 @@ def finite_recipe():
     evidence = ('VERIFY_CANDIDATE_SHA', 'EMIT_CANONICAL_PLAN', 'EMIT_REPLAY_BASE_HASH',
                 'EMIT_REPLAY_PLAN_HASH', 'EMIT_REPLAY_BASE_FRAMES', 'EMIT_REPLAY_PLAN_FRAMES')
     return reachable_policy('\n'.join((
-        ENTRY, FRESH, NATIVE_CUSTODY, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
+        ENTRY, FRESH, NATIVE_CUSTODY, ENCODING, policy, function(ENTRY_POLICY, 'valid_fd'), SUBJECT_PLAN,
+        SCALAR, function(PRODUCTION, 'emit_product_observed'), function(RECORD, 'emit_retained_report'),
         splice_list('verify_plan_schedule', 'VERIFY_PLAN_SCHEDULE', plan_inputs, role='EMIT_LAYOUT_ROLE'),
         splice_list('verify_plan_registers', 'VERIFY_PLAN_REGISTERS', plan_inputs,
                     role='EMIT_REPLAY_WITNESS_ROLE'),
@@ -424,6 +544,7 @@ def program():
     finite_constants(constants)
     plan_constants(constants)
     custody_constants(constants)
+    encoding_constants(constants)
     entry, controls = finite_recipe()
     return flow_source(entry, controls, constants)
 
