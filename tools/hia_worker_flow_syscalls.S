@@ -29,6 +29,11 @@
 .equ ROLE_OFFSET, 64
 .equ PEER, 34400
 .ifdef WORKER_STORED_READ
+.ifdef WORKER_INPUT
+.equ ROLE_COUNT, 6
+.equ EXTRA_ARGS, 3
+.equ FIRST_ROLE, 0
+.else
 .ifdef WORKER_EXTERNAL_READ
 .equ ROLE_COUNT, 6
 .equ EXTRA_ARGS, 6
@@ -37,6 +42,7 @@
 .equ ROLE_COUNT, 8
 .equ EXTRA_ARGS, 4
 .equ FIRST_ROLE, 0
+.endif
 .endif
 .equ PEER_COUNT, 2
 .equ JOINED, 36864
@@ -57,15 +63,32 @@
 .equ EXTRA_ARGS, 6
 .endif
 .endif
-.equ ENTRY_SIZE, ROLE_OFFSET + 40 * ROLE_COUNT
+.equ ROLE_RECORD_END, ROLE_OFFSET + 40 * ROLE_COUNT
+.ifdef WORKER_INPUT
+.equ ENTRY_SIZE, ROLE_RECORD_END + 64
+.else
+.equ ENTRY_SIZE, ROLE_RECORD_END
+.endif
 .equ HEADER, 512
 
 _start:
  cld
  xor ebp, ebp
  mov r15, rsp
+ .ifdef WORKER_INPUT
+ cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS + 1
+ .else
  cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS
+ .endif
  jne .Lrefused
+ .ifdef WORKER_INPUT
+ mov rax, [r15+16]
+ cmp BYTE PTR [rax], 47
+ jne .Lrefused
+ mov rax, [r15+24]
+ cmp BYTE PTR [rax], 47
+ jne .Lrefused
+ .else
  .ifdef WORKER_EXTERNAL_READ
  mov rax, [r15+16]
  cmp BYTE PTR [rax], 47
@@ -89,6 +112,7 @@ _start:
  mov rax, [r15+32]
  cmp BYTE PTR [rax], 47
  jne .Lrefused
+ .endif
  .endif
  xor edi, edi
  mov esi, MAP_BYTES
@@ -156,7 +180,11 @@ _start:
  test rax, rax
  js .Lrefused
  .else
+ .ifdef WORKER_INPUT
+ mov rsi, [r15+16]
+ .else
  mov rsi, [r15+24]
+ .endif
  xor eax, eax
 .Lstate_length:
  cmp BYTE PTR [rsi+rax], 0
@@ -170,6 +198,22 @@ _start:
  movzx eax, BYTE PTR [rsi+rax-1]
  mov [rbp+OBS+24], rax
  .endif
+ .endif
+ .ifdef WORKER_INPUT
+ mov rsi, [r15+80]
+ lea rdi, [rbp+OBS+ROLE_RECORD_END]
+ xor eax, eax
+.Lexpected_copy:
+ mov dl, BYTE PTR [rsi+rax]
+ test dl, dl
+ jz .Lexpected_done
+ cmp rax, 64
+ jae .Lrefused
+ mov BYTE PTR [rdi+rax], dl
+ inc rax
+ jmp .Lexpected_copy
+.Lexpected_done:
+ mov [rbp+OBS+32], rax
  .endif
  lea rdi, [rip+.Lentry_magic]
  mov rax, [rdi]
@@ -306,6 +350,10 @@ worker_policy_hole: .long 0
  .ifdef WORKER_STORED_READ
  cmp rax, 9
  je .Lstage
+ .ifdef WORKER_INPUT
+ cmp rax, 10
+ je .Lrandom
+ .endif
  .endif
  .endif
  cmp rax, 5
@@ -319,6 +367,11 @@ worker_policy_hole: .long 0
  .endif
  .endif
  xor edi, edi
+ .ifdef WORKER_INPUT
+ mov rdi, [rbp+COMMAND+144]
+ cmp rdi, 255
+ ja .Lrefused
+ .endif
  jmp .Lexit
 
 .Lrun:
@@ -414,10 +467,17 @@ worker_policy_hole: .long 0
  cmp rdx, 1
  jne .Lrefused
  .else
+ .ifdef WORKER_INPUT
+ cmp rdx, 1
+ jb .Lrefused
+ cmp rdx, 2
+ ja .Lrefused
+ .else
  cmp rdx, 2
  jb .Lrefused
  cmp rdx, 3
  ja .Lrefused
+ .endif
  .endif
  mov rax, [r15+rdx*8+8]
  jmp .Larg_store
@@ -449,7 +509,11 @@ worker_policy_hole: .long 0
  cmp rdx, 512
  jae .Lrefused
  lea rdi, [rbp+JOINED]
+ .ifdef WORKER_INPUT
+ mov rsi, [r15+16]
+ .else
  mov rsi, [r15+24]
+ .endif
 .Ljoin_path:
  lodsb
  test al, al
@@ -726,6 +790,33 @@ worker_policy_hole: .long 0
  mov QWORD PTR [rbp+OBS_SIZE], 72
  jmp .Lnext
 
+.ifdef WORKER_INPUT
+.Lrandom:
+ mov r12, [rbp+COMMAND+144]
+ test r12, r12
+ jz .Lrefused
+ cmp r12, 128
+ ja .Lrefused
+ lea rdi, [rbp+OBS+64]
+ mov rsi, r12
+ xor edx, edx
+.Lrandom_more:
+ mov eax, 318
+ syscall
+ cmp rax, -4
+ je .Lrandom_more
+ test rax, rax
+ jle .Lrefused
+ add rdi, rax
+ sub rsi, rax
+ jnz .Lrandom_more
+ mov [rbp+OBS+40], r12
+ mov [rbp+OBS+56], r12
+ add r12, 64
+ mov [rbp+OBS_SIZE], r12
+ jmp .Lnext
+.endif
+
 .Lpublish:
  cmp QWORD PTR [rbp+COMMAND+40], 1
  jne .Lrefused
@@ -876,7 +967,11 @@ worker_policy_hole: .long 0
 .Lchild_name: .asciz "hia-worker-effect"
 .ifdef WORKER_COST
 .ifdef WORKER_STORED_READ
+.ifdef WORKER_INPUT
+.Ldiagnostic: .ascii "native HIA input materialization transport refused\n"
+.else
 .Ldiagnostic: .ascii "native HIA Read Store transport refused\n"
+.endif
 .else
 .Ldiagnostic: .ascii "native HIA Worker cost transport refused\n"
 .endif

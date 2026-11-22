@@ -48,7 +48,8 @@ def build(output, compiler, cold_report, *, kind='describe'):
             or cold_report.read_bytes() != report_bytes
             or policy.read_bytes() != policy_bytes or packer.read_bytes() != packer_bytes):
         raise ValueError('Worker descriptor flow source or build image changed before publication')
-    target = output / ('hia-agent-' + kind + '-worker-carrier')
+    filename = 'hia-agent-input-carrier' if kind == 'input' else f'hia-agent-{kind}-worker-carrier'
+    target = output / filename
     with target.open('xb') as stream:
         stream.write(executable)
     target.chmod(0o500)

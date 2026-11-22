@@ -6,7 +6,8 @@ from tempfile import TemporaryDirectory
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.build_hia_agent_batch_commit import adapter_layout
-from tools.generate_hia_native_filter import bind_adapter, document, elf_header
+from tools.generate_hia_artifact_publication import document as author_policy
+from tools.generate_hia_native_filter import bind_adapter, document, elf_header, source_program
 
 FLOW = 'tools/hia_worker_flow_syscalls.S'
 PORTS = 'tools/hia_worker_descriptor_ports.S'
@@ -21,12 +22,15 @@ READ_STORE_PACKER = 'examples/hia_bootstrap/worker_read_store_flow_packer.hepta'
 READ_STORE_POLICY = 'examples/hia_bootstrap/worker_read_store_flow.hepta'
 READ_EXTERNAL_PACKER = 'examples/hia_bootstrap/worker_read_external_flow_packer.hepta'
 READ_EXTERNAL_POLICY = 'examples/hia_bootstrap/worker_read_external_flow.hepta'
+INPUT_PACKER = 'examples/hia_bootstrap/worker_input_flow_packer.hepta'
+INPUT_POLICY = 'examples/hia_bootstrap/worker_input_flow.hepta'
 PROGRAMS = {
     'describe': (POLICY, PACKER), 'read': (READ_POLICY, READ_PACKER),
     'cost': (COST_POLICY, COST_PACKER), 'read-store': (READ_STORE_POLICY, READ_STORE_PACKER),
     'read-external': (READ_EXTERNAL_POLICY, READ_EXTERNAL_PACKER),
+    'input': (INPUT_POLICY, INPUT_PACKER),
 }
-PEER_KINDS = ('cost', 'read-store', 'read-external')
+PEER_KINDS = ('cost', 'read-store', 'read-external', 'input')
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -46,8 +50,26 @@ def adapter_source(flow, ports, *, kind='describe', peers=b''):
         'read-store': b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n',
         'read-external': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                           b'.equ WORKER_EXTERNAL_READ, 1\n'),
+        'input': b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n.equ WORKER_INPUT, 1\n',
     }[kind]
     return variant + flow + b'\n' + ports
+
+
+def partitioned_packer(module, prefix, hole):
+    # Keep the constant adapter writes within the cold compiler's ordinary
+    # block budget. The bytes and relocation are still emitted solely by HIA.
+    source = source_program(magic=MAGIC, image_template=(prefix, (hole,)))
+    start = source.index('    write(o, 0,')
+    end = source.index('    write(o, 96, size, 8)', start)
+    writes = source[start:end].splitlines(keepends=True)
+    calls = []
+    bodies = []
+    for index, first in enumerate(range(0, len(writes), 96)):
+        name = f'emit_adapter_{index}'
+        calls.append(f'    {name}(o)\n')
+        bodies.extend((f'\ndef {name}(o:mutbuf) -> u64:\n',
+                       ''.join(writes[first:first + 96]), '    return 0\n'))
+    return author_policy(source[:start] + ''.join(calls) + source[end:] + ''.join(bodies), module)
 
 
 def source_packer(flow, ports, packer_path, *, kind, peers):
@@ -57,8 +79,12 @@ def source_packer(flow, ports, packer_path, *, kind, peers):
                                             {'policy': 'worker_policy_hole'})
     hole = locations['policy']
     header = elf_header()
-    packer = document(magic=MAGIC, module=Path(packer_path).stem,
-                      image_template=(header + stub, (len(header) + hole,)))
+    module = Path(packer_path).stem
+    if kind == 'input':
+        packer = partitioned_packer(module, header + stub, len(header) + hole)
+    else:
+        packer = document(magic=MAGIC, module=module,
+                          image_template=(header + stub, (len(header) + hole,)))
     return bind_adapter(packer, source, stub, (hole,))
 
 
