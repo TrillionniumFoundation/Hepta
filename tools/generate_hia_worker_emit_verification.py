@@ -11,6 +11,7 @@ from tools.generate_hia_worker_artifact_authority import source_program as autho
 from tools.generate_hia_worker_build_custody import POLICY as BUILD_CUSTODY
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal_match
 from tools.generate_hia_worker_inspection_effect import function
+from tools.generate_hia_worker_proof_scope import METHODS
 
 SOURCE = Path('examples/hia_bootstrap/worker_emit_verification.hepta')
 NAMES = ('installation', 'context', 'candidate', 'validation_profile', 'candidate_core_sha256',
@@ -19,7 +20,8 @@ NAMES = ('installation', 'context', 'candidate', 'validation_profile', 'candidat
          'core_sha256', 'canonical_object_sha256', 'planned_object_sha256',
          'canonical_frame_bytes', 'planned_frame_bytes', 'same_slots', 'same_frame_sizes',
          'implicit_optimizer_used', 'choice_checks', 'choice', 'checked', 'rule', 'proof_binding',
-         'kind', 'backend_profile', 'plan_profile', 'sha256')
+         'kind', 'backend_profile', 'plan_profile', 'sha256', 'lowering_profile',
+         'native_artifact', 'build_receipt')
 CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
 LAYOUT_RULE = 'exact block permutations; every terminator transfers explicitly'
 
@@ -31,12 +33,14 @@ POLICY = r'''
 def emit_verification(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 5 or length(s) > 8388608 or length(o) < 256 or length(w) < 65536:
         return INVALID
+    if length(s) == 72 and input_word(s, 0) == SCOPE_INPUT:
+        return scope_effect(s, o)
     put(o, 48, 262144)
     put(o, 56, 128)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
         return INVALID
     count = get(w, 96)
-    if count != 1 and count != 2 and count != 3 and count != 4 and count != 5 and count != 8:
+    if count != 1 and count != 2 and count != 3 and count != 4 and count != 5 and count != 6 and count != 8:
         return INVALID
     first = 64 + get(w, 88) * 72
     if count == 1:
@@ -60,7 +64,82 @@ def emit_verification(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return INVALID
     if (get(w, candidate) != 0 and is_object(w, candidate) == False) or is_object(w, profile) == False:
         return INVALID
-    return bind_receipt(s, w, o, first, second, candidate, profile, receipt)
+    result = bind_receipt(s, w, o, first, second, candidate, profile, receipt)
+    if count == 5 or result != 112:
+        return result
+    return receipt_subject(s, w, o, receipt, next(w, receipt))
+
+# [installation, Context, candidate or null, validation, receipt,
+#  [installed backend, canonical lowering, machine plan]]. These are
+#  subject read capabilities, not a finding about any retained proof.
+def receipt_subject(s:readbuf, w:mutbuf, o:mutbuf, receipt:u64, profiles:u64) -> u64:
+    if get(w, profiles) != 5 or get(w, profiles + 32) != 3:
+        return INVALID
+    backend = 64 + get(w, profiles + 24) * 72
+    lowering = next(w, backend)
+    plan_profile = next(w, lowering)
+    subject = lookup(w, receipt, K_subject)
+    if is_object(w, subject) == False:
+        return refusal(o, 3)
+    kind = lookup(w, subject, K_kind)
+    fields = get(w, subject + 32)
+    if fields == 1 and core_subject_kind(w, kind):
+        put(o, 112, 1)
+        return 120
+    if matches_field(s, w, subject, K_backend_profile, backend) == False:
+        return refusal(o, 3)
+    if fields == 3 and canonical_subject_kind(w, kind) and matches_field(s, w, subject, K_lowering_profile, lowering):
+        put(o, 112, 2)
+        return 120
+    if fields == 4 and plan_subject_kind(w, kind) and matches_field(s, w, subject, K_plan_profile, plan_profile):
+        plan = lookup(w, subject, K_plan)
+        if length(o) < 296 or exact_reference(s, w, plan) == False:
+            return refusal(o, 3)
+        put(o, 112, 3)
+        copy_reference(s, o, get(w, plan + 56), 120)
+        return 296
+    if fields == 4 and native_subject_kind(w, kind):
+        artifact = lookup(w, subject, K_native_artifact)
+        build = lookup(w, subject, K_build_receipt)
+        if length(o) < 472 or exact_reference(s, w, artifact) == False or exact_reference(s, w, build) == False:
+            return refusal(o, 3)
+        put(o, 112, 4)
+        copy_reference(s, o, get(w, artifact + 56), 120)
+        copy_reference(s, o, get(w, build + 56), 296)
+        return 472
+    return refusal(o, 3)
+
+# An authorized scope result must agree with the typed physical receipt's
+# projected claim. Its result names an effect; it does not discharge it.
+# Effect 1 is already checked locally; 2 is exact layout rederivation;
+# 3 reopens native build custody; 4–6 are the independent proof checkers.
+def scope_effect(s:readbuf, o:mutbuf) -> u64:
+    kind = input_word(s, 8)
+    claim = input_word(s, 16)
+    if kind < 1 or kind > 4 or input_word(s, 24) != SCOPE_RESULT or input_word(s, 32) != 0:
+        return refusal(o, 4)
+    method = input_word(s, 40)
+    status = input_word(s, 56)
+    effect = input_word(s, 64)
+    if method < 1 or method > METHOD_COUNT or claim != input_word(s, 48) or claim < 1 or claim > 4 or status < 1 or status > 4:
+        return refusal(o, 4)
+    operation = 1
+    if effect != 0:
+        if effect > 3:
+            return refusal(o, 4)
+        operation = effect + 3
+    elif method == LAYOUT_METHOD:
+        if kind != 3 or claim != 3 or status != 1:
+            return refusal(o, 4)
+        operation = 2
+    elif method == ENCODING_METHOD:
+        if kind != 4 or claim != 4:
+            return refusal(o, 4)
+        operation = 3
+    put(o, 0, SCOPE_EFFECT)
+    put(o, 8, 0)
+    put(o, 16, operation)
+    return 24
 
 # Read-only plan issued after the caller has bound a real receipt to its
 # Context, candidate and validation profile. Zero, missing or repeated
@@ -277,6 +356,12 @@ def program():
                      SUBJECT=int.from_bytes(b'HIAEVS01', 'little'),
                      QUALIFIED=int.from_bytes(b'HIAEVQ01', 'little'),
                      NORMALIZED=int.from_bytes(b'HIAEVQ02', 'little'),
+                     SCOPE_INPUT=int.from_bytes(b'HIAEVT01', 'little'),
+                     SCOPE_RESULT=int.from_bytes(b'HIAPSC01', 'little'),
+                     SCOPE_EFFECT=int.from_bytes(b'HIAEVH01', 'little'),
+                     METHOD_COUNT=len(METHODS),
+                     LAYOUT_METHOD=METHODS.index('checked_explicit_machine_choices') + 1,
+                     ENCODING_METHOD=METHODS.index('complete_native_rederivation') + 1,
                      INVALID=4294967293)
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda match: str(constants[match[0]]), POLICY)
@@ -294,13 +379,16 @@ def program():
         *(literal_match('claim_' + claim, claim) for claim in CLAIMS),
         literal_match('layout_schema', LAYOUT_V1),
         literal_match('plan_subject_kind', 'agent_machine_plan'),
+        literal_match('core_subject_kind', 'core'),
+        literal_match('canonical_subject_kind', 'canonical_lowering'),
+        literal_match('native_subject_kind', 'native_artifact'),
         literal_match('layout_method', 'checked_explicit_machine_choices'),
         literal_match('block_layout_choice', 'block_layout'),
         literal_match('block_layout_rule', LAYOUT_RULE),
         function(BUILD_CUSTODY, 'exact_reference').replace('NONE', str(constants['NONE'])),
         function(BUILD_CUSTODY, 'copy_reference'),
         *(function(readers, name) for name in ('artifact_reference', 'artifact_start', 'artifact_digest',
-                                              'artifact_uri', 'valid_hex')),
+                                              'artifact_uri', 'valid_hex', 'input_word')),
         json_decoder(wire_spans=True),
     ))
 
