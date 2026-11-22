@@ -43,9 +43,27 @@ def emit_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if stage == CONTEXT:
         return after_context(s, o, w, size)
     if stage == VERIFICATION:
-        if size != 0:
+        if size != 16 or input_word(s, 40) != VERIFIED_RECEIPT or input_word(s, 48) != 0:
             return INVALID
         return next_verification(o, w)
+    if stage == PLAN:
+        if size != 64 or valid_hex(s, 40, 64) == False:
+            return INVALID
+        copy_input(s, w, 40, 320, 64)
+        return action(o, w, PLAN_VERIFICATION, 0, 0, 48)
+    if stage == PLAN_VERIFICATION:
+        if size != 16 or input_word(s, 40) != VERIFIED_PLAN:
+            return INVALID
+        count = input_word(s, 48)
+        if count < 1 or count > 4:
+            return INVALID
+        return action(o, w, PLAN_BINDING, 0, 0, 48)
+    if stage == PLAN_BINDING:
+        if size != 80 or input_word(s, 40) != QUALIFIED_PLAN or input_word(s, 48) != 0:
+            return INVALID
+        if observed_digest(s, w, 56, 320) == False:
+            return INVALID
+        return action(o, w, WINDOW, 0, 0, 48)
     if stage >= OBJECT:
         return after_build(s, o, w, stage, size)
     if size != 0:
@@ -146,9 +164,12 @@ def retained(s:readbuf, w:mutbuf, size:u64, digest:u64) -> bool:
         return False
     if artifact_reference(s, 64) == False:
         return False
+    return observed_digest(s, w, 117, digest)
+
+def observed_digest(s:readbuf, w:mutbuf, start:u64, digest:u64) -> bool:
     index = 0
     while index < 64:
-        if byte(s, 117 + index) != byte(w, digest + index):
+        if byte(s, start + index) != byte(w, digest + index):
             return False
         index = index + 1
     return True
@@ -191,7 +212,8 @@ def program():
     words = {name: ordinal for ordinal, name in enumerate(STAGES, 2)}
     tags = {'EVENT': b'HIAFDE01', 'REQUEST': b'HIAERQ01', 'ACTION': b'HIAEMA01',
             'DOCUMENT': b'HIADOC01', 'OUTCOME': b'HIAIND01', 'VERIFIED': b'HIABOR01',
-            'CONTEXT_PREFIX': b'ctx-'}
+            'CONTEXT_PREFIX': b'ctx-', 'VERIFIED_RECEIPT': b'HIAEVR01',
+            'VERIFIED_PLAN': b'HIAPVR01', 'QUALIFIED_PLAN': b'HIAEVQ01'}
     words.update((tag, int.from_bytes(raw, 'little')) for tag, raw in tags.items())
     words['INVALID'] = 4294967295
     policy = re.sub(r'\b('+'|'.join(words)+r')\b', lambda m: str(words[m[0]]), POLICY)

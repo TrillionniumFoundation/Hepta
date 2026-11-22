@@ -199,6 +199,11 @@ def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64) -> 
         return INVALID
     if matches_field(s, w, receipt, K_subject, expected) == False:
         return refusal(o, 3)
+    if get(w, expected + 32) != 4 or plan_subject_kind(w, lookup(w, expected, K_kind)) == False:
+        return refusal(o, 3)
+    plan = lookup(w, expected, K_plan)
+    if exact_reference(s, w, plan) == False:
+        return refusal(o, 3)
     checks = lookup(w, receipt, K_checks)
     if checks == NONE or get(w, checks) != 5:
         return INVALID
@@ -210,7 +215,14 @@ def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64) -> 
             return INVALID
         claim = lookup(w, check, K_claim)
         if lowering_claim(w, claim) and proved_status(w, lookup(w, check, K_status)):
-            return refusal(o, 0)
+            put(o, 0, QUALIFIED)
+            put(o, 8, 0)
+            source = get(w, plan + 56) + 53
+            index = 0
+            while index < 64:
+                store(o, 16 + index, byte(s, source + index))
+                index = index + 1
+            return 80
         check = next(w, check)
         at = at + 1
     return refusal(o, 3)
@@ -247,6 +259,7 @@ def program():
     constants.update(RESULT=int.from_bytes(b'HIAEVR01', 'little'),
                      FILES=int.from_bytes(b'HIAEVP01', 'little'), NONE=(1 << 64) - 1,
                      SUBJECT=int.from_bytes(b'HIAEVS01', 'little'),
+                     QUALIFIED=int.from_bytes(b'HIAEVQ01', 'little'),
                      INVALID=4294967293)
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda match: str(constants[match[0]]), POLICY)
