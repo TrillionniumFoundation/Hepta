@@ -148,6 +148,8 @@ CANDIDATES = {
     'verify-journal': ('worker_verify_journal', 'verify-journal'),
     'verify-journal-observation': ('worker_verify_journal_observation', 'verify-journal-observation'),
     'verify-journal-records': ('worker_verify_journal_records', 'verify-journal-records'),
+    'worker-evaluate-request': ('worker_evaluate_request', 'worker-evaluate-request'),
+    'worker-evaluate-case': ('worker_evaluate_case', 'worker-evaluate-case'),
     'worker-verify-request': ('worker_verify_request', 'worker-verify-request'),
     'worker-verify-evidence': ('worker_verify_evidence', 'worker-verify-evidence'),
     'worker-verify-finding': ('worker_verify_finding', 'worker-verify-finding'),
