@@ -123,6 +123,7 @@ CANDIDATES = {
     'emit-receipt': ('worker_emit_receipt', 'emit-receipt'),
     'emit-verification': ('worker_emit_verification', 'emit-verification'),
     'emit-build-observation': ('worker_emit_build_observation', 'emit-build-observation'),
+    'emit-effect': ('worker_emit_effect', 'emit-effect'),
     'worker-profile-bindings': ('worker_profile_bindings', 'worker-profile-bindings'),
     'rollback-journal': ('worker_rollback_journal', 'rollback-journal'),
     'rollback-journal-observation': ('worker_rollback_journal_observation', 'rollback-journal-observation'),
