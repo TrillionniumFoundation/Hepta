@@ -56,8 +56,8 @@ INSPECTION_RESPONSE_MATCH = r"""
             return 0
 """
 
-def context_bound_flow(tool, ordinal, context_plan, outcome, *, inline_transaction=False):
-    program = flow(tool, ordinal)
+def context_bound_flow(tool, ordinal, context_plan, outcome, *, inline_transaction=False, extra_errors=()):
+    program = flow(tool, ordinal, extra_errors)
     start = program.index('def artifact_cost(')
     before, cost = program[:start], program[start:]
     # Bind the exact retained Context plan selected by the native Journal.

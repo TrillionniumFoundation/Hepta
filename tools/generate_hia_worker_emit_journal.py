@@ -11,12 +11,23 @@ from tools.generate_hia_worker_journal_records import source_program as records
 
 TOOL = 'hia_emit'
 ROOT = Path('examples/hia_bootstrap')
+ERRORS = (
+    (7, 1, 'E_HIA_ARTIFACT_IDENTITY', 'artifact reference was not issued in this runtime namespace',
+     'correct_input', 'admission'),
+    (7, 2, 'E_HIA_ARTIFACT_AUTHORITY', 'input bytes cannot impersonate a retained context',
+     'correct_input', 'admission'),
+    (8, 1, 'E_HIA_CONTEXT_IDENTITY', 'context is not a retained server record', 'correct_input', 'context'),
+    (8, 2, 'E_HIA_CONTEXT_STALE', 'context binds a different installed implementation', 'correct_input', 'context'),
+    (8, 3, 'E_HIA_BUDGET', 'context total wall budget has expired', 'correct_input', 'context'),
+    (8, 4, 'E_HIA_BUDGET', 'frozen context deadline expired before emission', 'correct_input', 'codegen'),
+)
 
 
 def sources():
     raw = TOOL.encode('ascii')
     return {
-        'worker_emit_journal': document(context_bound_flow(raw, TOOLS.index(TOOL) + 1, 2, b'HIAIND01'),
+        'worker_emit_journal': document(context_bound_flow(raw, TOOLS.index(TOOL) + 1, 2, b'HIAIND01',
+                                                           extra_errors=ERRORS),
                                         'worker_emit_journal'),
         'worker_emit_journal_observation': document(observation(raw), 'worker_emit_journal_observation'),
         'worker_emit_journal_records': document(records(raw), 'worker_emit_journal_records'),
