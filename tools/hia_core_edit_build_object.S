@@ -54,11 +54,13 @@
 .equ PLAN_FD,3520
 .equ SOURCE_EXTENT,3528
 .equ PLAN_PREFIX,3536
-.equ PLAN_STAT,3616
-.equ PLAN_EXTENT,3760
-.equ PLAN_REPORT_CAPACITY,3768
+.equ PLAN_STAT,3680
+.equ PLAN_EXTENT,3824
+.equ PLAN_REPORT_CAPACITY,3832
 .equ PLAN_BYTES,8388608
 .equ PLAN_HEADER,80
+.equ PLAN_NORMALIZED_HEADER,144
+.equ PLAN_PREFIX_BYTES,3840
 _start:
  # The static linker calls this entry. The adapter itself never returns.
  add rsp,8
@@ -1259,25 +1261,39 @@ capture_build_plan:
  syscall
  test rax,rax
  jne io_failure
- mov rax,[rbp+PLAN_STAT+48]
- cmp rax,PLAN_HEADER+40
+ cmp QWORD PTR [rbp+PLAN_STAT+48],PLAN_HEADER+40
  jb invalid
- sub rax,PLAN_HEADER
- cmp rax,PLAN_BYTES
- ja capacity
- mov [rbp+PLAN_EXTENT],rax
  lea rdi,[rbp+PLAN_PREFIX]
  mov esi,PLAN_HEADER
  xor edx,edx
  call read_build_plan_bytes
  movabs rax,0x3130515645414948    # HIAEVQ01
  cmp rax,[rbp+PLAN_PREFIX]
+ je basic_build_plan
+ movabs rax,0x3230515645414948    # HIAEVQ02
+ cmp rax,[rbp+PLAN_PREFIX]
  jne invalid
+ cmp QWORD PTR [rbp+PLAN_STAT+48],PLAN_NORMALIZED_HEADER+40
+ jb invalid
+ lea rdi,[rbp+PLAN_PREFIX+PLAN_HEADER]
+ mov esi,PLAN_NORMALIZED_HEADER-PLAN_HEADER
+ mov edx,PLAN_HEADER
+ call read_build_plan_bytes
+ mov edx,PLAN_NORMALIZED_HEADER
+ jmp plan_header_loaded
+basic_build_plan:
+ mov edx,PLAN_HEADER
+plan_header_loaded:
  cmp QWORD PTR [rbp+PLAN_PREFIX+8],0
  jne invalid
+ mov [rbp+PLAN_PREFIX_BYTES],rdx
+ mov rax,[rbp+PLAN_STAT+48]
+ sub rax,rdx
+ cmp rax,PLAN_BYTES
+ ja capacity
+ mov [rbp+PLAN_EXTENT],rax
  lea rdi,[r12+SOURCE_N]
- mov rsi,[rbp+PLAN_EXTENT]
- mov edx,PLAN_HEADER
+ mov rsi,rax
  call read_build_plan_bytes
  lea rdi,[r12+SOURCE_N]
  mov rax,[rbp+PLAN_EXTENT]
@@ -1307,15 +1323,15 @@ read_build_plan_part:
 bind_plan_report:
  sub rsp,8
  mov rsi,[r15+32]
- add rsi,PLAN_HEADER
+ add rsi,[rbp+PLAN_PREFIX_BYTES]
  mov [rbp+PLAN_EXTENT],rsi
  call allocate
  mov rbx,rax
  mov rdi,rax
  lea rsi,[rbp+PLAN_PREFIX]
- mov ecx,PLAN_HEADER/8
+ mov rcx,[rbp+PLAN_PREFIX_BYTES]
  cld
- rep movsq
+ rep movsb
  mov rsi,[r15+24]
  mov rcx,[r15+32]
  rep movsb

@@ -36,7 +36,7 @@ def emit_verification(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
         return INVALID
     count = get(w, 96)
-    if count != 1 and count != 2 and count != 3 and count != 5 and count != 8:
+    if count != 1 and count != 2 and count != 3 and count != 4 and count != 5 and count != 8:
         return INVALID
     first = 64 + get(w, 88) * 72
     if count == 1:
@@ -44,8 +44,13 @@ def emit_verification(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if count == 8:
         return layout_evidence(s, w, o, first)
     second = next(w, first)
-    if count == 2:
-        return qualified_plan(w, o, s, first, second)
+    if count == 2 or count == 4:
+        observed = NONE
+        canonical = NONE
+        if count == 4:
+            observed = next(w, second)
+            canonical = next(w, observed)
+        return qualified_plan(w, o, s, first, second, observed, canonical)
     if count == 3:
         return layout_subject(s, w, o, first, second, next(w, second))
     candidate = next(w, second)
@@ -194,7 +199,7 @@ def bind_receipt(s:readbuf, w:mutbuf, o:mutbuf, installation:u64, context:u64, c
 
 # Only called after the retained proof chain has been fully rechecked. A proved
 # lowering claim names the exact backend, plan profile and plan reference.
-def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64) -> u64:
+def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64, observed:u64, canonical:u64) -> u64:
     if is_object(w, expected) == False or is_object(w, receipt) == False:
         return INVALID
     if matches_field(s, w, receipt, K_subject, expected) == False:
@@ -204,6 +209,11 @@ def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64) -> 
     plan = lookup(w, expected, K_plan)
     if exact_reference(s, w, plan) == False:
         return refusal(o, 3)
+    if observed != NONE:
+        if digest_text(w, observed, False) == False or digest_text(w, canonical, False) == False:
+            return INVALID
+        if matches_field(s, w, plan, K_sha256, observed) == False:
+            return refusal(o, 3)
     checks = lookup(w, receipt, K_checks)
     if checks == NONE or get(w, checks) != 5:
         return INVALID
@@ -215,17 +225,23 @@ def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64) -> 
             return INVALID
         claim = lookup(w, check, K_claim)
         if lowering_claim(w, claim) and proved_status(w, lookup(w, check, K_status)):
-            put(o, 0, QUALIFIED)
+            put(o, 0, choose(canonical == NONE, QUALIFIED, NORMALIZED))
             put(o, 8, 0)
-            source = get(w, plan + 56) + 53
-            index = 0
-            while index < 64:
-                store(o, 16 + index, byte(s, source + index))
-                index = index + 1
-            return 80
+            copy_digest(s, o, get(w, plan + 56) + 53, 16)
+            if canonical == NONE:
+                return 80
+            copy_digest(s, o, get(w, canonical + 56) + 1, 80)
+            return 144
         check = next(w, check)
         at = at + 1
     return refusal(o, 3)
+
+def copy_digest(s:readbuf, o:mutbuf, start:u64, dest:u64) -> u64:
+    index = 0
+    while index < 64:
+        store(o, dest + index, byte(s, start + index))
+        index = index + 1
+    return 0
 
 def next(w:mutbuf, node:u64) -> u64:
     return 64 + get(w, node + 16) * 72
@@ -260,6 +276,7 @@ def program():
                      FILES=int.from_bytes(b'HIAEVP01', 'little'), NONE=(1 << 64) - 1,
                      SUBJECT=int.from_bytes(b'HIAEVS01', 'little'),
                      QUALIFIED=int.from_bytes(b'HIAEVQ01', 'little'),
+                     NORMALIZED=int.from_bytes(b'HIAEVQ02', 'little'),
                      INVALID=4294967293)
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda match: str(constants[match[0]]), POLICY)

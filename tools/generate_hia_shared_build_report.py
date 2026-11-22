@@ -20,6 +20,7 @@ PROOF_MAGIC = b'HIAPRR01'
 EXPORT_MAGIC = b'HIASEX01'
 EXPORT_NAMES_MAGIC = b'HIASEN01'
 PLAN_QUALIFIED_MAGIC = b'HIAEVQ01'
+PLAN_NORMALIZED_MAGIC = b'HIAEVQ02'
 SYMBOL_MAGIC = b'HIAELFA2'
 ELF_MAGIC = b'\x7fELF\x02\x01\x01\x00'
 SYMBOL_WORK = 16 + 65536 * 24
@@ -37,8 +38,8 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if n < 8:
         return 4294967293
     magic = word_load(s, 0)
-    if magic == PLAN_QUALIFIED_INPUT_MAGIC:
-        return planned_report(s, o)
+    if magic == PLAN_QUALIFIED_INPUT_MAGIC or magic == PLAN_NORMALIZED_INPUT_MAGIC:
+        return planned_report(s, o, choose(magic == PLAN_QUALIFIED_INPUT_MAGIC, 80, 144))
     if magic == ELF_INPUT_MAGIC:
         return linked_import_mask(s, w)
     if magic == PROOF_INPUT_MAGIC:
@@ -145,21 +146,21 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 
 # The plan authorization is independent of the emitted object and belongs
 # to the same sealed descriptor the build adapter used for block selection.
-def planned_report(s:readbuf, o:mutbuf) -> u64:
+def planned_report(s:readbuf, o:mutbuf, prefix:u64) -> u64:
     n = length(s)
-    if n < 84 or n > 1048656 or word_load(s, 8) != 0:
+    if n < prefix + 4 or n - prefix > 1048576 or word_load(s, 8) != 0:
         return 4294967293
-    if byte(s, 80) != 123 or byte(s, 81) != 10 or byte(s, n - 2) != 125 or byte(s, n - 1) != 10:
+    if byte(s, prefix) != 123 or byte(s, prefix + 1) != 10 or byte(s, n - 2) != 125 or byte(s, n - 1) != 10:
         return 4294967293
     digit_at = 16
-    while digit_at < 80:
+    while digit_at < prefix:
         digit = byte(s, digit_at)
         if (digit < 48 or digit > 57) and (digit < 97 or digit > 102):
             return 4294967293
         digit_at = digit_at + 1
-    if length(o) < n - 18:
+    if length(o) < n - prefix + 62:
         return 4294967294
-    at = 82
+    at = prefix + 2
     location = 0
     while at < n - 2:
         end = member_end(s, at, n)
@@ -172,9 +173,9 @@ def planned_report(s:readbuf, o:mutbuf) -> u64:
         at = end
     if location == 0:
         return 4294967293
-    cursor = copy(s, o, 80, location, 0)
+    cursor = copy(s, o, prefix, location, 0)
     store(o, cursor, 34)
-    cursor = copy(s, o, 16, 80, cursor + 1)
+    cursor = copy(s, o, prefix - 64, prefix, cursor + 1)
     store(o, cursor, 34)
     return copy(s, o, location + 4, n, cursor + 1)
 
@@ -429,6 +430,7 @@ def source_program():
               .replace('VERIFIED_INPUT_MAGIC', str(int.from_bytes(VERIFIED_MAGIC, 'little')))
               .replace('PROOF_INPUT_MAGIC', str(int.from_bytes(PROOF_MAGIC, 'little')))
               .replace('PLAN_QUALIFIED_INPUT_MAGIC', str(int.from_bytes(PLAN_QUALIFIED_MAGIC, 'little')))
+              .replace('PLAN_NORMALIZED_INPUT_MAGIC', str(int.from_bytes(PLAN_NORMALIZED_MAGIC, 'little')))
               .replace('EXPORT_INPUT_MAGIC', str(int.from_bytes(EXPORT_MAGIC, 'little')))
               .replace('EXPORT_NAMES_INPUT_MAGIC', str(int.from_bytes(EXPORT_NAMES_MAGIC, 'little')))
               .replace('ELF_INPUT_MAGIC', str(int.from_bytes(ELF_MAGIC, 'little')))

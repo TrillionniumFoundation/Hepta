@@ -59,9 +59,9 @@ def emit_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return INVALID
         return action(o, w, PLAN_BINDING, 0, 0, 48)
     if stage == PLAN_BINDING:
-        if size != 80 or input_word(s, 40) != QUALIFIED_PLAN or input_word(s, 48) != 0:
+        if size != 144 or input_word(s, 40) != QUALIFIED_PLAN or input_word(s, 48) != 0:
             return INVALID
-        if observed_digest(s, w, 56, 320) == False:
+        if observed_digest(s, w, 56, 320) == False or valid_hex(s, 120, 64) == False:
             return INVALID
         return action(o, w, WINDOW, 0, 0, 48)
     if stage >= OBJECT:
@@ -213,7 +213,7 @@ def program():
     tags = {'EVENT': b'HIAFDE01', 'REQUEST': b'HIAERQ01', 'ACTION': b'HIAEMA01',
             'DOCUMENT': b'HIADOC01', 'OUTCOME': b'HIAIND01', 'VERIFIED': b'HIABOR01',
             'CONTEXT_PREFIX': b'ctx-', 'VERIFIED_RECEIPT': b'HIAEVR01',
-            'VERIFIED_PLAN': b'HIAPVR01', 'QUALIFIED_PLAN': b'HIAEVQ01'}
+            'VERIFIED_PLAN': b'HIAPVR01', 'QUALIFIED_PLAN': b'HIAEVQ02'}
     words.update((tag, int.from_bytes(raw, 'little')) for tag, raw in tags.items())
     words['INVALID'] = 4294967295
     policy = re.sub(r'\b('+'|'.join(words)+r')\b', lambda m: str(words[m[0]]), POLICY)
