@@ -17,7 +17,13 @@ READ_PACKER = 'examples/hia_bootstrap/worker_read_flow_packer.hepta'
 READ_POLICY = 'examples/hia_bootstrap/worker_read_flow.hepta'
 COST_PACKER = 'examples/hia_bootstrap/worker_cost_flow_packer.hepta'
 COST_POLICY = 'examples/hia_bootstrap/worker_cost_flow.hepta'
-PROGRAMS = {'describe': (POLICY, PACKER), 'read': (READ_POLICY, READ_PACKER), 'cost': (COST_POLICY, COST_PACKER)}
+READ_STORE_PACKER = 'examples/hia_bootstrap/worker_read_store_flow_packer.hepta'
+READ_STORE_POLICY = 'examples/hia_bootstrap/worker_read_store_flow.hepta'
+PROGRAMS = {
+    'describe': (POLICY, PACKER), 'read': (READ_POLICY, READ_PACKER),
+    'cost': (COST_POLICY, COST_PACKER), 'read-store': (READ_STORE_POLICY, READ_STORE_PACKER),
+}
+PEER_KINDS = ('cost', 'read-store')
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -32,7 +38,10 @@ def adapter_source(flow, ports, *, kind='describe', peers=b''):
     ports = re.sub(br'(?m)^\.section \.note\.GNU-stack[^\n]*$', b'.text', ports)
     ports = re.sub(br'^(hia_worker_[a-z_]+):$', br'\1:\n.L\1:', ports, flags=re.MULTILINE)
     ports = ports.replace(b'.section .rodata', b'.text')
-    variant = {'describe': b'', 'read': b'.equ WORKER_READ, 1\n', 'cost': b'.equ WORKER_COST, 1\n'}[kind]
+    variant = {
+        'describe': b'', 'read': b'.equ WORKER_READ, 1\n', 'cost': b'.equ WORKER_COST, 1\n',
+        'read-store': b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n',
+    }[kind]
     return variant + flow + b'\n' + ports
 
 
@@ -51,6 +60,6 @@ def source_packer(flow, ports, packer_path, *, kind, peers):
 if __name__ == '__main__':
     sources = Path(FLOW).read_bytes(), Path(PORTS).read_bytes()
     for kind, (_, path) in PROGRAMS.items():
-        peers = Path(PEERS).read_bytes() if kind == 'cost' else b''
+        peers = Path(PEERS).read_bytes() if kind in PEER_KINDS else b''
         packer = source_packer(*sources, path, kind=kind, peers=peers)
         Path(path).write_text(render_assembly(packer), encoding='utf-8')
