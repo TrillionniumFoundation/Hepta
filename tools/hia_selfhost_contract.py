@@ -365,6 +365,7 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_worker_profile_bindings.py',
     'examples/hia_bootstrap/worker_profile_bindings.hepta',
     'tools/generate_hia_worker_proof_scope.py',
+    'tools/hia_retained_proof_method.py',
     'examples/hia_bootstrap/worker_proof_scope.hepta',
     'tools/generate_hia_worker_candidate_effect.py',
     'tools/generate_hia_candidate_json_ingress.py',

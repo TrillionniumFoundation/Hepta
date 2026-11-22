@@ -7,8 +7,10 @@ from hepta.hia_proof_contract import _CHECKERS, _PROPERTIES, PROOF_SCHEMA
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
-from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal_match
+from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_inspection_effect import function
+
+from tools.hia_retained_proof_method import EXTRA_KEYS, POLICY as METHODS_POLICY
 
 SOURCE = Path('examples/hia_bootstrap/worker_proof_scope.hepta')
 SCOPE_FIELDS = ('candidate', 'candidate_core_sha256', 'base_program', 'base_core_sha256', 'context')
@@ -21,7 +23,7 @@ KINDS = ('core', 'canonical_lowering', 'agent_machine_plan', 'native_artifact')
 KEYS = (*CHECK_FIELDS, *SCOPE_FIELDS, *SUBJECT_FIELDS, 'proof_binding', 'installation',
         'validation_profile', 'target_profile', 'checks', 'assumptions_artifact', 'evidence_artifact',
         'assumptions_proved_here', 'universal_core_to_machine_refinement_proved', 'id', 'statement',
-        'name', 'method', 'python', 'native_selection_sha256', 'solver', 'auxiliary_checker_sha256')
+        'name', 'method', 'python', 'native_selection_sha256', 'solver', 'auxiliary_checker_sha256', *EXTRA_KEYS)
 METHODS = tuple(_CHECKERS)
 CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
 STATUSES = ('proved', 'refuted', 'unknown', 'unsupported')
@@ -152,7 +154,12 @@ def retained_files(s:readbuf, w:mutbuf, o:mutbuf, check:u64, assumptions_ref:u64
     method = installed_checker(s, w, receipt, check, selection, runtime)
     if method == 0:
         return refused(o, 5)
-    return scoped(o, method, claim_id(w, lookup(w, check, K_claim)), status_id(w, lookup(w, check, K_status)))
+    claim = claim_id(w, lookup(w, check, K_claim))
+    status = status_id(w, lookup(w, check, K_status))
+    effect = method_effect(s, w, check, evidence, method, claim, status)
+    if effect == BAD_METHOD:
+        return refused(o, 6)
+    return scoped(o, method, claim, status, effect)
 
 def assumptions_scope(w:mutbuf, s:readbuf, check:u64, assumptions:u64) -> bool:
     if get(w, assumptions + 32) != 8 or assumptions_schema(w, lookup(w, assumptions, K_schema)) == False:
@@ -228,12 +235,13 @@ def false_field(w:mutbuf, record:u64, field:u64) -> bool:
     node = lookup(w, record, field)
     return node != NONE and get(w, node) == 1
 
-def scoped(o:mutbuf, method:u64, claim:u64, status:u64) -> u64:
+def scoped(o:mutbuf, method:u64, claim:u64, status:u64, effect:u64) -> u64:
     refused(o, 0)
     put(o, 16, method)
     put(o, 24, claim)
     put(o, 32, status)
-    return 40
+    put(o, 40, effect)
+    return 48
 
 def refused(o:mutbuf, reason:u64) -> u64:
     put(o, 0, RESULT)
@@ -274,20 +282,45 @@ def method_statements():
                           for ordinal, item in enumerate(METHODS, 1))
 
 
+def proof_key_source():
+    primary = KEYS[:-len(EXTRA_KEYS)]
+    source = """
+def key_id(w:mutbuf, at:u64, extent:u64) -> u64:
+    field = scope_key(w, at, extent)
+    if field != 0:
+        return field
+    field = evidence_key(w, at, extent)
+    if field == 0:
+        return 0
+    return field + KEY_OFFSET
+"""
+    return '\n'.join((source.replace('KEY_OFFSET', str(len(primary))),
+                      comparison_table('scope_key', primary),
+                      comparison_table('evidence_key', EXTRA_KEYS)))
+
+
 def program():
     constants = {f'K_{name}': ordinal for ordinal, name in enumerate(KEYS, 1)}
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      RESULT=int.from_bytes(b'HIAPSC01', 'little'))
+    constants.update((f'M_{name}', index) for index, name in enumerate(METHODS, 1))
+    constants.update(BAD_METHOD=255)
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
-                    lambda m: str(constants[m[0]]), POLICY)
+                    lambda m: str(constants[m[0]]), POLICY + METHODS_POLICY)
     return '\n'.join((
         policy,
         *(function(CONTEXT, name).replace('NONE', str(constants['NONE'])) for name in ('equal_span', 'digest_text')),
         WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(constants['NONE'])),
-        comparison_table('key_id', KEYS), selector('method', METHODS),
+        proof_key_source(), selector('method', METHODS),
         selector('subject', KINDS), selector('status', STATUSES), selector('claim', CLAIMS),
-        method_statements(), literal_match('result_schema', PROOF_SCHEMA),
-        literal_match('assumptions_schema', 'hepta.hia.agent.proof-assumptions.v1'),
+        method_statements(), wire_text('result_schema', PROOF_SCHEMA),
+        wire_text('assumptions_schema', 'hepta.hia.agent.proof-assumptions.v1'),
+        wire_text('admission_checker', _CHECKERS['core_admission']),
+        wire_text('optimization_schema', 'hepta.hia.optimization-verification.v1'),
+        wire_text('optimization_proved', 'verified'),
+        wire_text('optimization_refuted', 'rejected'),
+        wire_text('optimization_unknown', 'unknown'),
+        wire_text('optimization_timeout', 'timeout'),
         json_decoder(wire_spans=True),
     ))
 
