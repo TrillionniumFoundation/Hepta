@@ -6,7 +6,7 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_machine_plan import LAYOUT_V1
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
-from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
+from tools.generate_hia_mcp_request import WIRE_HELPERS
 from tools.generate_hia_worker_artifact_authority import source_program as authority
 from tools.generate_hia_worker_build_custody import POLICY as BUILD_CUSTODY
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal_match
@@ -33,8 +33,12 @@ POLICY = r'''
 def emit_verification(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 5 or length(s) > 8388608 or length(o) < 256 or length(w) < 65536:
         return INVALID
-    if length(s) == 72 and input_word(s, 0) == SCOPE_INPUT:
-        return scope_effect(s, o)
+    if length(s) >= 24:
+        mode = input_word(s, 0)
+        if mode == SCOPE_INPUT and length(s) == 72:
+            return scope_effect(s, o)
+        if mode == SCOPE_COMPLETE:
+            return scope_complete(s, o)
     put(o, 48, 262144)
     put(o, 56, 128)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
@@ -140,6 +144,37 @@ def scope_effect(s:readbuf, o:mutbuf) -> u64:
     put(o, 8, 0)
     put(o, 16, operation)
     return 24
+
+# Complete only after each selected HIA effect actually returned its
+# expected typed disposition. A scope signal alone is not an effect.
+def scope_complete(s:readbuf, o:mutbuf) -> u64:
+    planned = input_word(s, 8)
+    count = input_word(s, 16)
+    if planned > 1 or count < 1 or count > 4 or length(s) != 24 + 48 * count:
+        return INVALID
+    at = 24
+    while at < length(s):
+        if input_word(s, at) != SCOPE_EFFECT or input_word(s, at + 8) != 0:
+            return refusal(o, 4)
+        operation = input_word(s, at + 16)
+        tag = input_word(s, at + 24)
+        if input_word(s, at + 32) != 0:
+            return refusal(o, 4)
+        outcome = input_word(s, at + 40)
+        if operation == 1 and (tag != 0 or outcome != 0):
+            return refusal(o, 4)
+        if operation == 2 and (tag != RESULT or outcome != 0):
+            return refusal(o, 4)
+        if operation == 3 and (tag != BUILD_EFFECT or outcome < 1 or outcome > 2):
+            return refusal(o, 4)
+        if operation < 1 or operation > 3:
+            return refusal(o, 4)
+        at = at + 48
+    if planned == 1:
+        put(o, 0, PLAN_COMPLETE)
+        put(o, 8, count)
+        return 16
+    return refusal(o, 0)
 
 # Read-only plan issued after the caller has bound a real receipt to its
 # Context, candidate and validation profile. Zero, missing or repeated
@@ -349,6 +384,25 @@ def refusal(o:mutbuf, reason:u64) -> u64:
 '''
 
 
+def key_table():
+    groups = {}
+    for ordinal, name in enumerate(NAMES, 1):
+        encoded = name.encode('ascii')
+        groups.setdefault(len(encoded), []).append((ordinal, encoded))
+    lines = ['def key_id(w:mutbuf, at:u64, extent:u64) -> u64:']
+    for width, fields in sorted(groups.items()):
+        lines.append(f'    if extent == {width}:')
+        for ordinal, encoded in fields:
+            terms = []
+            for offset in range(0, width, 8):
+                cell = encoded[offset:offset + 8]
+                terms.append(f'(match_word(w, at + {offset}, {len(cell)}) ^ {int.from_bytes(cell, "little")})')
+            lines.extend((f'        if ({" | ".join(terms)}) == 0:', f'            return {ordinal}'))
+        lines.append('        return 0')
+    lines.append('    return 0')
+    return '\n'.join(lines)
+
+
 def program():
     constants = {f'K_{name}': index for index, name in enumerate(NAMES, 1)}
     constants.update(RESULT=int.from_bytes(b'HIAEVR01', 'little'),
@@ -359,6 +413,9 @@ def program():
                      SCOPE_INPUT=int.from_bytes(b'HIAEVT01', 'little'),
                      SCOPE_RESULT=int.from_bytes(b'HIAPSC01', 'little'),
                      SCOPE_EFFECT=int.from_bytes(b'HIAEVH01', 'little'),
+                     SCOPE_COMPLETE=int.from_bytes(b'HIAEVA01', 'little'),
+                     PLAN_COMPLETE=int.from_bytes(b'HIAPVR01', 'little'),
+                     BUILD_EFFECT=int.from_bytes(b'HIABCO01', 'little'),
                      METHOD_COUNT=len(METHODS),
                      LAYOUT_METHOD=METHODS.index('checked_explicit_machine_choices') + 1,
                      ENCODING_METHOD=METHODS.index('complete_native_rederivation') + 1,
@@ -374,7 +431,7 @@ def program():
         policy, function(CONTEXT, 'equal_span'),
         function(CONTEXT, 'digest_text').replace('NONE', str(constants['NONE'])),
         WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(constants['NONE'])),
-        comparison_table('key_id', NAMES), literal_match('lowering_claim', 'lowering_refinement'),
+        key_table(), literal_match('lowering_claim', 'lowering_refinement'),
         literal_match('proved_status', 'proved'), '\n'.join(claims),
         *(literal_match('claim_' + claim, claim) for claim in CLAIMS),
         literal_match('layout_schema', LAYOUT_V1),
