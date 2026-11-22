@@ -1,5 +1,7 @@
 """Author preliminary native proof obligations, not solver or machine verdicts."""
 
+FINITE_OBSERVATION = int.from_bytes(b'HIAFIR01', 'little')
+
 EXTRA_KEYS = (
     'core_sha256', 'base_sha256', 'candidate_sha256', 'all_inputs', 'checked',
     'required', 'complete', 'all_inputs_in_declared_widths', 'transcript_sha256',
