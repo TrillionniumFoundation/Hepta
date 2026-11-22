@@ -10,7 +10,7 @@ from tools.generate_hia_readonly_worker_capsule import (
     ARTIFACT_OWNER, ARTIFACT_ROLES, BOOTSTRAP_OWNER, BOOTSTRAP_ROLES,
     CANDIDATE_OWNER, CANDIDATE_ROLES, CONTEXT_OWNER, CONTEXT_ROLES, DESCRIBE_OWNER, DESCRIBE_ROLES,
     EMIT_OWNER, EMIT_ROLES, INSPECTION_OWNER, INSPECTION_ROLES, NATIVE_ROLES, PROOF_TRUST_BYTES,
-    ROLLBACK_OWNER, ROLLBACK_ROLES,
+    ROLLBACK_OWNER, ROLLBACK_ROLES, VERIFY_OWNER, VERIFY_ROLES,
     POLICY as CAPSULE_POLICY,
 )
 from tools.generate_hia_worker_describe_flow import POLICY as DESCRIBE, flow_source
@@ -29,6 +29,7 @@ ROUTES = (
     (ROLLBACK_OWNER, '--worker-rollback', ROLLBACK_ROLES),
     (EMIT_OWNER, '--worker-emit', EMIT_ROLES),
     (ADOPT_OWNER, '--worker-adopt', ADOPT_ROLES),
+    (VERIFY_OWNER, '--worker-verify', VERIFY_ROLES),
 )
 
 POLICY = r'''
@@ -257,6 +258,8 @@ def launch_worker(o:mutbuf, w:mutbuf, route:u64) -> u64:
         return BAD
     if route == ADOPT_ROUTE and length(o) < 1024 + 16 * ADOPT_ARG_COUNT:
         return BAD
+    if route == VERIFY_ROUTE and length(o) < 1024 + 16 * VERIFY_ARG_COUNT:
+        return BAD
     argv(o, 0, LITERAL_ARG, 448)
     argv(o, 1, INPUT_ARG, 1)
     argv(o, 2, INPUT_ARG, 2)
@@ -266,7 +269,7 @@ def launch_worker(o:mutbuf, w:mutbuf, route:u64) -> u64:
         metadata = choose(route == 3, get(w, PART_TABLE + 72), get(w, DISCOVERY_META))
         argv(o, count, FD_ARG, metadata)
         count = count + 1
-    if route == EMIT_ROUTE or route == ADOPT_ROUTE:
+    if route == EMIT_ROUTE or route == ADOPT_ROUTE or route == VERIFY_ROUTE:
         argv(o, count + PROOF_ROLE, FD_ARG, get(w, PART_TABLE + 96))
     count = append_roles(o, w, route, count)
     child_name(o, owner)
@@ -316,7 +319,7 @@ def route_tables():
             owner += f'    if route == {route}:\n        return {index[name]}\n'
         roles += f'    if route == {route}:\n        return append_roles_{route}(o, w, count)\n'
         children += f'\ndef append_roles_{route}(o:mutbuf, w:mutbuf, count:u64) -> u64:\n'
-        proof_route = name in (EMIT_OWNER, ADOPT_OWNER)
+        proof_route = name in (EMIT_OWNER, ADOPT_OWNER, VERIFY_OWNER)
         for ordinal, role in enumerate(inventory):
             position = ordinal + int(proof_route and ordinal >= len(EMIT_ROLES))
             children += f'    argv(o, count + {position}, 4, role_fd(w, {index[role]}))\n'
@@ -344,7 +347,8 @@ def program():
                      SNAPSHOT=19, AUTHORIZE=20, CAPTURE_INPUT=21, DEFAULT_CHILD_LEASE=120_000_000_000,
                      REQUEST_LEASE=60_000_000_000,
                      INPUT_ARG=1, LITERAL_ARG=2, FD_ARG=4, BOOTSTRAP_ROUTE=len(ROUTES) + 1,
-                     NATIVE_ROUTE_COUNT=len(ROUTES), EMIT_ROUTE=8, ADOPT_ROUTE=9, PROOF_ROLE=len(EMIT_ROLES),
+                     NATIVE_ROUTE_COUNT=len(ROUTES), EMIT_ROUTE=8, ADOPT_ROUTE=9, VERIFY_ROUTE=10,
+                     PROOF_ROLE=len(EMIT_ROLES), VERIFY_ARG_COUNT=6 + len(VERIFY_ROLES),
                      EMIT_ARG_COUNT=6 + len(EMIT_ROLES), ADOPT_ARG_COUNT=6 + len(ADOPT_ROLES),
                      PROOF_TRUST_BYTES=PROOF_TRUST_BYTES,
                      BOOTSTRAP=NATIVE_ROLES.index(BOOTSTRAP_OWNER), ADMIT=NATIVE_ROLES.index('hia-worker-admit'))

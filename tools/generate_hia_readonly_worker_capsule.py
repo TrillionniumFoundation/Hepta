@@ -136,7 +136,8 @@ NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
                                   *CONTEXT_ROLES, CONTEXT_OWNER,
                                   *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES, CANDIDATE_OWNER,
                                   *ROLLBACK_ROLES, ROLLBACK_OWNER, *EMIT_ROLES, EMIT_OWNER,
-                                  *ADOPT_ROLES, ADOPT_OWNER, *PROOF_TRUST_CHECKERS)))
+                                  *ADOPT_ROLES, ADOPT_OWNER, *PROOF_TRUST_CHECKERS,
+                                  *VERIFY_ROLES, VERIFY_OWNER)))
 CAPSULE_MAX = 4 << 20
 HEADER_BYTES = 56
 ROW_BYTES = 48
@@ -268,17 +269,34 @@ def routing(*, artifact=False):
     methods = ((1, b'hia_read'), (2, b'hia_describe'))
     if artifact:
         methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'),
-                    (6, b'hia_candidate'), (7, b'hia_rollback'), (8, b'hia_emit'), (9, b'hia_adopt'))
+                    (6, b'hia_candidate'), (7, b'hia_rollback'), (8, b'hia_emit'), (9, b'hia_adopt'),
+                    (10, b'hia_verify'))
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'
         source += f'        return {result}\n'
     source += '    return 0\n'
-    for result, method in methods:
-        suffix = schema + method + b'"}'
-        source += f'\ndef match_{result}(s:readbuf, at:u64) -> bool:\n    return '
-        source += ' and '.join(f'byte(s, at + {i}) == {value}' for i, value in enumerate(suffix))
-        source += '\n'
+    if artifact:
+        # Check the same canonical suffix without duplicating its fixed prefix
+        # in every native route. The cold compiler bounds the authority IR.
+        def matches(raw, start=0):
+            words, tail = divmod(len(raw), 8)
+            full = [f'capsule_word(s, at + {start + 8 * i}) == {int.from_bytes(raw[8 * i:8 * i + 8], "little")}'
+                    for i in range(words)]
+            rest = [f'byte(s, at + {start + 8 * words + i}) == {value}'
+                    for i, value in enumerate(raw[len(raw) - tail:])]
+            return ' and '.join(full + rest)
+
+        source += '\ndef route_prefix(s:readbuf, at:u64) -> bool:\n    return ' + matches(schema) + '\n'
+        for result, method in methods:
+            source += f'\ndef match_{result}(s:readbuf, at:u64) -> bool:\n    return '
+            source += 'route_prefix(s, at) and ' + matches(method + b'"}', len(schema)) + '\n'
+    else:
+        for result, method in methods:
+            suffix = schema + method + b'"}'
+            source += f'\ndef match_{result}(s:readbuf, at:u64) -> bool:\n    return '
+            source += ' and '.join(f'byte(s, at + {i}) == {value}' for i, value in enumerate(suffix))
+            source += '\n'
     return source
 
 
