@@ -32,6 +32,9 @@ def adopt_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if size < 25 or size > 89:
             return BAD
         return read_span(o, w, ADOPT_CLAIM_FRAME, get(w, ADOPT_CLAIM_SCHEDULE), get(w, ADOPT_CLAIM_SCHEDULE + 8), size)
+    if state == ADOPT_CUSTODY_SLOT:
+        put(w, ADOPT_CUSTODY_ACTIVE, 1)
+        return adopt_image(o, w, 1, ADOPT_CLAIM_FIELDS + 24)
     if state >= ADOPT_CLAIM_FRAME and state <= ADOPT_CLAIM_BUILD_BOUND:
         return adopt_claim_build(s, o, w, state)
     if state == ADOPT_NATIVE_CORE_READY:
@@ -51,6 +54,8 @@ def adopt_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return inspection_hash_result(s, o, w)
     if state >= ADOPT_NATIVE_METADATA and state <= ADOPT_NATIVE_SIGNATURE_MATCH:
         return adopt_native_state(s, o, w, state)
+    if state == ADOPT_ABI_MATCH or state == ADOPT_EXPECTED_BOUND:
+        return adopt_slot_admission(s, o, w, state)
     if state >= EMIT_CUSTODY_PROJECTED and state <= EMIT_CUSTODY_VERIFIED:
         return emit_proof_custody_state(s, o, w, state)
     return BAD
@@ -102,12 +107,11 @@ def adopt_native_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == ADOPT_NATIVE_INSTALL_MATCH:
         return rollback_compare(o, w, ADOPT_NATIVE_CONTEXT_MATCH, RB_NATIVE_FIELDS + 24, EMIT_FIELDS + 24)
     if state == ADOPT_NATIVE_CONTEXT_MATCH:
-        return rollback_compare(o, w, ADOPT_NATIVE_BUILD_CORE_MATCH, RB_NATIVE_FIELDS + 48, ADOPT_BUILD_CORE)
+        if get(w, ADOPT_IMAGE_PHASE) == 0:
+            return rollback_compare(o, w, ADOPT_NATIVE_BUILD_CORE_MATCH, RB_NATIVE_FIELDS + 48, ADOPT_BUILD_CORE)
+        return adopt_open_native_core(w)
     if state == ADOPT_NATIVE_BUILD_CORE_MATCH:
-        move_fragment(w, RB_NATIVE_FIELDS + 48, EMIT_FIELDS + 48)
-        move_fragment(w, EMIT_FIELDS + 48, INSPECTION_ACTUAL)
-        put(w, 0, ADOPT_NATIVE_OPEN_CORE)
-        return ADOPT_DEFER_FRONT
+        return adopt_open_native_core(w)
     if state == ADOPT_NATIVE_CORE_MATCH:
         if get(w, RB_NATIVE_FIELDS + 112) != 0:
             return rollback_compare(o, w, ADOPT_NATIVE_EXPORT_MATCH, RB_NATIVE_FIELDS + 96, INSPECTION_EXPORTS)
@@ -117,11 +121,69 @@ def adopt_native_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == ADOPT_NATIVE_EXPORT_MATCH:
         return adopt_native_signature(o, w)
     if state == ADOPT_NATIVE_SIGNATURE_MATCH:
+        phase = get(w, ADOPT_IMAGE_PHASE)
+        if phase == 1:
+            move_fragment(w, ADOPT_NATIVE_SIGNATURES, ADOPT_CANDIDATE_SIGNATURE)
+            return adopt_image(o, w, 2, ADOPT_EVAL_FIELDS + 96)
+        if phase == 2:
+            return rollback_compare(o, w, ADOPT_ABI_MATCH, ADOPT_CANDIDATE_SIGNATURE, ADOPT_NATIVE_SIGNATURES)
+        if phase != 0:
+            return BAD
         if get(w, EMIT_CUSTODY_PLAN_REF + 16) != 0:
             move_fragment(w, EMIT_CUSTODY_PLAN_REF, INSPECTION_REFERENCE)
             return emit_proof_read(o, w, READ_EMIT_CUSTODY_PLAN, 0)
         return emit_custody_inputs(o, w)
     return BAD
+
+def adopt_open_native_core(w:mutbuf) -> u64:
+    move_fragment(w, RB_NATIVE_FIELDS + 48, EMIT_FIELDS + 48)
+    move_fragment(w, EMIT_FIELDS + 48, INSPECTION_ACTUAL)
+    put(w, 0, ADOPT_NATIVE_OPEN_CORE)
+    return ADOPT_DEFER_FRONT
+
+def adopt_image(o:mutbuf, w:mutbuf, phase:u64, reference:u64) -> u64:
+    if get(w, reference + 16) != 176:
+        return BAD
+    put(w, ADOPT_IMAGE_PHASE, phase)
+    move_fragment(w, reference, INSPECTION_REFERENCE)
+    return emit_proof_read(o, w, READ_ADOPT_NATIVE, 7)
+
+def adopt_slot_admission(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if state == ADOPT_ABI_MATCH:
+        if rollback_binding(s) == False:
+            return BAD
+        if input_word(s, 80) == 0:
+            return adopt_custody_error(w, 14)
+        return inspection_hash(o, w, ADOPT_CANDIDATE_ABI_HASH, ADOPT_CANDIDATE_SIGNATURE)
+    if plan_ok(s) == False:
+        return BAD
+    status = input_word(s, 80)
+    if input_word(s, 72) == ADOPT_EVAL_TAG and input_word(s, 40) == 24 and (status == 8 or status == 9):
+        return adopt_custody_error(w, status + 7)
+    if input_word(s, 72) != ADOPT_EXPECTED_VALUES or input_word(s, 40) != 32:
+        return BAD
+    put(w, ADOPT_EXPECT_GENERATION, status)
+    put(w, ADOPT_EXPECT_EPOCH, input_word(s, 88))
+    put(w, 0, ADOPT_SLOT_CONDITIONAL)
+    return ADOPT_DEFER_FRONT
+
+def adopt_expected_request(o:mutbuf, w:mutbuf) -> u64:
+    generation = ADOPT_INTAKE_FIELDS + 24
+    epoch = ADOPT_INTAKE_FIELDS + 48
+    gen_bytes = get(w, generation + 16)
+    epoch_bytes = get(w, epoch + 16)
+    # Bounds are already established by the schema and the projection; do
+    # not let malformed extent metadata become an unbounded decimal read.
+    if gen_bytes < 3 or gen_bytes > 22:
+        return adopt_custody_error(w, 15)
+    if epoch_bytes < 3 or epoch_bytes > 22:
+        return adopt_custody_error(w, 16)
+    put(o, HEADER, ADOPT_EXPECTED_REQUEST)
+    put(o, HEADER + 8, gen_bytes - 2)
+    put(o, HEADER + 16, epoch_bytes - 2)
+    fragment(o, 0, get(w, generation), get(w, generation + 8) + 1, gen_bytes - 2)
+    fragment(o, 1, get(w, epoch), get(w, epoch + 8) + 1, epoch_bytes - 2)
+    return action(o, w, ADOPT_EXPECTED_BOUND, RUN, ADOPT_AUTHORITY_ROLE, 0, 2, 24)
 
 def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
     resume = get(w, INSPECTION_HASH_RESUME)
@@ -129,6 +191,9 @@ def inspection_hash_bound(s:readbuf, o:mutbuf, w:mutbuf, at:u64) -> u64:
         hold(w, EMIT_PROOF_CANDIDATE_SHA, input_word(s, 32), at - 65, 66)
         hold(w, ADOPT_NATIVE_CORE_DIGEST, input_word(s, 32), at - 64, 64)
         return rollback_compare(o, w, ADOPT_NATIVE_CORE_MATCH, ADOPT_NATIVE_CORE_DIGEST, RB_NATIVE_FIELDS + 72)
+    if resume == ADOPT_CANDIDATE_ABI_HASH:
+        hold(w, ADOPT_CANDIDATE_ABI, input_word(s, 32), at - 64, 64)
+        return adopt_expected_request(o, w)
     return emit_custody_hash(s, o, w, at, resume)
 
 def adopt_build_verified(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -225,6 +290,7 @@ def custody_constants(constants):
         'ADOPT_NATIVE_OPEN_CORE', 'ADOPT_NATIVE_CORE_READY', 'ADOPT_NATIVE_CORE_HASH',
         'ADOPT_BUILD_READY', 'ADOPT_NO_PLAN', 'ADOPT_CUSTODY_REFUSED',
         'ADOPT_CLAIM_FRAME', 'ADOPT_CLAIM_BUILD_PACKET', 'ADOPT_CLAIM_BUILD_BOUND',
+        'ADOPT_ABI_MATCH', 'ADOPT_CANDIDATE_ABI_HASH', 'ADOPT_EXPECTED_BOUND', 'ADOPT_SLOT_CONDITIONAL',
     )
     constants.update({name: 1170 + i for i, name in enumerate(names)})
     constants.update(
@@ -239,6 +305,10 @@ def custody_constants(constants):
         ADOPT_RECHECK_MISSING=10144, ADOPT_RECHECK_TOTAL=10152, ADOPT_RECHECK_CURSOR=10160,
         ADOPT_PROOF_BUILD=int.from_bytes(b'HIAADBR1', 'little'),
         ADOPT_PROOF_BUILD_SUFFIX=int.from_bytes(b',null]', 'little'),
+        ADOPT_IMAGE_PHASE=10168, ADOPT_EXPECT_GENERATION=10176, ADOPT_EXPECT_EPOCH=10184,
+        ADOPT_CANDIDATE_SIGNATURE=10592, ADOPT_CANDIDATE_ABI=10616,
+        ADOPT_EXPECTED_REQUEST=int.from_bytes(b'HIAADU01', 'little'),
+        ADOPT_EXPECTED_VALUES=int.from_bytes(b'HIAADU02', 'little'),
     )
 
 

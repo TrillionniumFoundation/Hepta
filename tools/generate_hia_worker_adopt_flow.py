@@ -217,12 +217,19 @@ def outcome_errors():
         ('E_HIA_RECEIPT_BINDING', 'build record differs from actual artifact bytes'),
         ('E_HIA_RECEIPT_BINDING', 'retained object differs from its exact build binding'),
         *(('E_HIA_CLAIM_REQUIRED', 'missing exact proved acceptance claim: ' + claim) for claim in CLAIMS),
+        ('E_HIA_ABI', 'candidate and baseline are not ABI compatible'),
+        ('E_HIA_RANGE', 'generation must be a canonical u64 decimal string'),
+        ('E_HIA_RANGE', 'epoch must be a canonical u64 decimal string'),
     )
     dispatch = ['\ndef adopt_error_body(o:mutbuf, status:u64) -> u64:']
     bodies = []
     for index, (code, message) in enumerate(cases, 1):
         name = f'adopt_error_{index}'
-        phase = 'adoption' if index <= 3 else ('admission' if index <= 9 else 'verification')
+        phase = 'admission'
+        if index <= 3 or index == 14:
+            phase = 'adoption'
+        elif 10 <= index <= 13:
+            phase = 'verification'
         body = json.dumps(dict(code=code, message=message, phase=phase, details_artifact=None,
                                retry_action='correct_input'), sort_keys=True, separators=(',', ':'))
         dispatch.extend((f'    if status == {index}:', f'        return {name}(o, HEADER)'))
@@ -278,6 +285,7 @@ def recipe():
         '        return EMIT_DEFER_PROOF\n'
         '    if ((state >= ADOPT_NATIVE_METADATA and state <= ADOPT_NATIVE_SIGNATURE_MATCH) or\n'
         '            (state >= ADOPT_CLAIM_FRAME and state <= ADOPT_CLAIM_BUILD_BOUND) or\n'
+        '            state == ADOPT_ABI_MATCH or state == ADOPT_EXPECTED_BOUND or\n'
         '            (get(w, ADOPT_CUSTODY_ACTIVE) != 0 and (state == INSPECTION_HASH_RETURNED or state == INSPECTION_HASH_FRAME or\n'
         '             (state >= EMIT_CUSTODY_PROJECTED and state <= EMIT_CUSTODY_VERIFIED)))):\n'
         '        return ADOPT_DEFER_CUSTODY\n'
