@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_cnf_native import GRAPH_PROJECTION_REQUEST, PROJECTION_INPUT_LIMIT
 from hepta.hia_optimization import PURE
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
@@ -18,6 +19,7 @@ SOURCE = Path('examples/hia_bootstrap/worker_compositional_skeleton.hepta')
 STAMP = int.from_bytes(b'HIACSS01', 'little')
 PAIR = int.from_bytes(b'HIACSP01', 'little')
 DECISION = int.from_bytes(b'HIACSD01', 'little')
+JOIN_GRAPHS = int.from_bytes(b'HIACSG01', 'little')
 KEYS = ('functions', 'blocks', 'ops', 'op')
 
 POLICY = r'''
@@ -31,6 +33,8 @@ def skeleton(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return BAD
     if input_word(s, 0) == PAIR:
         return compare_skeletons(s, o)
+    if input_word(s, 0) == JOIN_GRAPHS:
+        return join_graphs(s, o)
     if length(s) > INPUT_MAX or length(o) < 32 + length(s) or length(w) < 65536:
         return BAD
     put(o, 48, 262144)
@@ -148,11 +152,50 @@ def same_body(s:readbuf, left:u64, right:u64, size:u64) -> bool:
             return False
         index = index + 1
     return True
+
+# Compose the two independently projected scalar programs, never the two
+# copies of one producer's program. Only the actual Boolean solver decides.
+def join_graphs(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 200:
+        return BAD
+    left = input_word(s, 8)
+    right = input_word(s, 16)
+    if left < 88 or right < 88 or left > length(s) - 24 or right != length(s) - 24 - left:
+        return BAD
+    other = 24 + left
+    arity = input_word(s, 40)
+    if arity > 6 or arity != input_word(s, other + 16):
+        return BAD
+    header = 40 + 8 * arity
+    first = graph_extent(s, 24, left, header)
+    second = graph_extent(s, other, right, header)
+    if first == 0 or second == 0 or same_body(s, 24, other, header) == False:
+        return BAD
+    size = header + first + second
+    if size > length(o) or size > GRAPH_LIMIT:
+        return BAD
+    at = copy_span(s, o, 24, 24 + header + first, 0)
+    return copy_span(s, o, other + header, other + header + second, at)
+
+def graph_extent(s:readbuf, at:u64, total:u64, header:u64) -> u64:
+    if header > total or total - header < 48:
+        return 0
+    if input_word(s, at) != GRAPH_REQUEST or input_word(s, at + 8) != 2 or input_word(s, at + 24) != 1:
+        return 0
+    first = at + header
+    size = input_word(s, first)
+    if size < 24 or size > GRAPH_LIMIT or 2 * size != total - header:
+        return 0
+    if same_body(s, first, first + size, size) == False:
+        return 0
+    return size
 '''
 
 
 def program():
-    values = dict(BAD=INVALID, INPUT_MAX=MAX_INPUT, NONE=NONE, PAIR=PAIR, STAMP=STAMP, DECISION=DECISION)
+    values = dict(BAD=INVALID, INPUT_MAX=MAX_INPUT, NONE=NONE, PAIR=PAIR, STAMP=STAMP, DECISION=DECISION,
+                  JOIN_GRAPHS=JOIN_GRAPHS, GRAPH_REQUEST=GRAPH_PROJECTION_REQUEST,
+                  GRAPH_LIMIT=PROJECTION_INPUT_LIMIT)
     values.update({f'K_{name}': index for index, name in enumerate(KEYS, 1)})
     declarations = (POLICY, *(function(REFERENCE, name) for name in ('kind', 'child', 'next')))
     policy = re.sub(r'\b(' + '|'.join(values) + r')\b', lambda match: str(values[match[0]]),
