@@ -349,6 +349,40 @@ class Code:
     def leave(self): self.emit(b"\xc9")
     def ud2(self): self.emit(b"\x0f\x0b")
 
+    # Privileged x86-64 *encoding only*. No HIA Core operation or verifier
+    # currently authorizes a caller to reach these instructions. Do not execute
+    # them in a host process; eventual use requires a separately verified
+    # kernel target/effect profile and isolated hardware qualification.
+    def read_cr3(self, destination):
+        r = self._reg(destination)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x20" +
+                  bytes([0xd8 | (r & 7)]))
+
+    def write_cr3(self, source):
+        r = self._reg(source)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x22" +
+                  bytes([0xd8 | (r & 7)]))
+
+    def invlpg(self, base, disp=0):
+        r = self._reg(base)
+        _s32(disp)  # Reject bool, non-integer and out-of-range displacement.
+        # ModRM /7 is memory-only. rbp/r13 require a displacement even at 0;
+        # rsp/r12 require the SIB byte. Use the shortest admitted encoding.
+        if disp == 0 and (r & 7) != 5:
+            mod, displacement = 0, b""
+        elif -128 <= disp <= 127:
+            mod, displacement = 1, struct.pack("<b", disp)
+        else:
+            mod, displacement = 2, _s32(disp)
+        modrm = (mod << 6) | 0x38 | (r & 7)
+        sib = b"\x24" if (r & 7) == 4 else b""
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x01" +
+                  bytes([modrm]) + sib + displacement)
+
+    def iretq(self):
+        # Long-mode 64-bit interrupt return, not a normal function return.
+        self.emit(b"\x48\xcf")
+
     def finalize(self):
         if len(self.data) > MAX_CODE_BYTES:
             raise MachineEncodingError("x86-64 image exceeds code byte limit")
