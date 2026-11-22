@@ -49,6 +49,7 @@ WIRE = {
     'CANDIDATE_TOOL_TAIL': b'idate',
     'INSPECTION_TOOL_HEAD': b'hia_insp',
     'INSPECTION_TOOL_TAIL': b'ect',
+    'EMIT_TOOL': b'hia_emit',
     'ROLLBACK_TOOL_HEAD': b'hia_roll',
     'ROLLBACK_TOOL_TAIL': b'back',
     'SLOT_LEASE_COUNT': b'HIASTLC1',
@@ -560,7 +561,7 @@ def emit_kind_size(role:u64) -> u64:
 # Reserve binds the original request and compatibility tool identity, not
 # a setter for arbitrary request-state rows.
 def valid_request_reserve(s:readbuf, size:u64) -> bool:
-    if size < 331 or size > 352 or read_word(s, 48) != INSERT_PARAMETERS:
+    if size < 328 or size > 352 or read_word(s, 48) != INSERT_PARAMETERS:
         return False
     if read_word(s, 56) != 1 or read_word(s, 64) != 6 or read_word(s, 72) != 0 or read_word(s, 80) != 6:
         return False
@@ -578,6 +579,8 @@ def valid_request_reserve(s:readbuf, size:u64) -> bool:
         width = 11
     elif tool == ROLLBACK_TOOL_HEAD and read_word(s, 368) & 4294967295 == ROLLBACK_TOOL_TAIL:
         width = 12
+    elif tool == EMIT_TOOL:
+        width = 8
     if width == 0 or size <= 319 + width or size > 339 + width:
         return False
     if valid_cell(s, 136, 3, 312, width) == False or valid_cell(s, 160, 3, 312 + width, 7) == False:
