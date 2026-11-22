@@ -56,6 +56,7 @@ class Author:
         self.literals = {}
         self.keys = {}
         self.values = {}
+        self.indexed_array = False
 
     def keyed(self, text):
         return self.keys.setdefault(text, len(self.keys) + 1)
@@ -73,6 +74,11 @@ class Author:
         return f'{name}(o, {at})'
 
     def prefix(self, label, message):
+        if '[?]' in label:
+            before, after = label.split('[?]')
+            opened = self.emit(before + '[', 'diagnostic_open(o, 0)')
+            indexed = f'diagnostic_item_index(o, {opened})'
+            return self.emit(']' + after + ': ' + message, indexed)
         if self.common_literals:
             return self.emit(message, self.emit(label + ': ', 'diagnostic_open(o, 0)'))
         return self.emit(label + ': ' + message, 'diagnostic_open(o, 0)')
@@ -116,6 +122,7 @@ class Author:
                 'object': {'properties', 'required', 'additionalProperties'},
                 'string': {'minLength', 'maxLength', 'pattern', 'enum'},
                 'integer': {'minimum', 'maximum'}, 'boolean': set(), 'null': set(),
+                'array': {'minItems', 'maxItems', 'items'},
                 None: {'const', 'enum'},
             }
             if typ not in fields or set(schema) - fields[typ] - {'type', 'description', '$schema'}:
@@ -125,6 +132,25 @@ class Author:
                 if schema.get('additionalProperties') is not False:
                     raise ValueError('artifact schema must be a closed object')
                 self.object_rules(lines, schema, label)
+            elif typ == 'array':
+                if '[?]' in label or schema.get('maxItems', 100) > 99 or 'items' not in schema:
+                    raise ValueError('unsupported indexed diagnostic array shape')
+                self.indexed_array = True
+                fail('get(w, node) != 5', 'expected array')
+                low, high = schema.get('minItems', 0), schema['maxItems']
+                if low == 0:
+                    fail(f'get(w, node + 32) > {high}', 'array length is outside limits')
+                else:
+                    fail(f'get(w, node + 32) < {low} or get(w, node + 32) > {high}',
+                         'array length is outside limits')
+                item = self.add(schema['items'], label + '[?]')
+                lines.extend(('    index = 0', '    child = get(w, node + 24)',
+                              f'    while child != {END}:',
+                              '        store(o, length(o) - 1, index)',
+                              '        record = 64 + child * 56',
+                              f'        problem = {item}(s, o, w, record)',
+                              '        if problem != 0:', '            return problem',
+                              '        index = index + 1', '        child = get(w, record + 16)'))
             elif typ == 'string':
                 fail('get(w, node) != 4', 'expected string')
                 if 'minLength' in schema or 'maxLength' in schema:
@@ -188,8 +214,11 @@ class Author:
             branch = 'if' if index == 0 else 'elif'
             lines += [f'        {branch} key == {self.keyed(field)}:',
                       f'            problem = {child}(s, o, w, record)']
+        count = str(len(start))
+        if '[?]' in label:
+            count += ' + choose(byte(o, length(o) - 1) >= 10, 1, 0)'
         lines += ['        else:', f'            at = {self.prefix(label, "unknown field ")}',
-                  f'            return unexpected_field(w, o, record, at, {len(start)})',
+                  f'            return unexpected_field(w, o, record, at, {count})',
                   '        if problem != 0:', '            return problem',
                   '        child = get(w, record + 16)']
 
@@ -205,6 +234,13 @@ class Author:
             lines.append(f'{indent}store(o, at + {offset}, {raw[offset]})')
         return lines + [f'{indent}return at + {len(raw)}']
 
+    def literal_table(self, name, items):
+        lines = [f'def {name}(o:mutbuf, at:u64, tag:u64) -> u64:']
+        for index, text in items:
+            lines.append(f'    if tag == {index}:')
+            lines.extend(self.write_body(text, '        '))
+        return '\n'.join((*lines, '    return at'))
+
     def source(self, schema, *, label='arguments'):
         main = self.add(schema, label)
         writer = {
@@ -218,11 +254,18 @@ class Author:
             lines = [f'def {name}(o:mutbuf, at:u64) -> u64:']
             pieces.append('\n'.join(lines + self.write_body(text, '    ')))
         if self.common_literals:
-            lines = ['def literal_table(o:mutbuf, at:u64, tag:u64) -> u64:']
-            for index, text in enumerate(self.literals):
-                lines.append(f'    if tag == {index}:')
-                lines.extend(self.write_body(text, '        '))
-            pieces.append('\n'.join(lines + ['    return at']))
+            literal_items = tuple(enumerate(self.literals))
+            if self.indexed_array:
+                entry = ['def literal_table(o:mutbuf, at:u64, tag:u64) -> u64:']
+                for start in range(0, len(literal_items), 24):
+                    block = literal_items[start:start+24]
+                    name = f'literal_part_{start}'
+                    entry.extend((f'    if tag < {start+len(block)}:',
+                                  f'        return {name}(o, at, tag)'))
+                    pieces.append(self.literal_table(name, block))
+                pieces.append('\n'.join((*entry, '    return at')))
+            else:
+                pieces.append(self.literal_table('literal_table', literal_items))
         helpers = HELPERS[:HELPERS.index('\ndef integer_between(')]
         number = HELPERS[HELPERS.index('\ndef integer_between('):]
         numeric_type = PAYLOAD_HELPERS[PAYLOAD_HELPERS.index('\ndef unrestricted_integer('):PAYLOAD_HELPERS.index('\ndef unit_number(')]
@@ -233,6 +276,16 @@ class Author:
         quoting += PAGE_POLICY[PAGE_POLICY.index('\ndef emit_escaped('):PAGE_POLICY.index('\ndef retain_cursor(')].replace('s:readbuf', 's:mutbuf')
         quote_hex = PAGE_POLICY[PAGE_POLICY.index('\ndef hex_digit('):].split('\ndef ', 2)[1]
         quoting += '\ndef ' + quote_hex
+        if self.indexed_array:
+            pieces.append('''
+def diagnostic_item_index(o:mutbuf, at:u64) -> u64:
+    index = byte(o, length(o) - 1)
+    if index >= 10:
+        store(o, at, index // 10 + 48)
+        at = at + 1
+    store(o, at, index % 10 + 48)
+    return at + 1
+''')
         return '\n'.join((PROLOGUE.replace('MAIN', main).replace('TERMINAL', str(END)),
                           *self.rules, *pieces,
                           table('key_kind', [(value, name) for name, value in self.keys.items()]),
