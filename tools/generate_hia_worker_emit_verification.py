@@ -3,13 +3,13 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_machine_plan import LAYOUT_V1
+from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2, preservation_checks
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS
 from tools.generate_hia_worker_artifact_authority import source_program as authority
 from tools.generate_hia_worker_build_custody import POLICY as BUILD_CUSTODY
-from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal_match
+from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_inspection_effect import function
 from tools.generate_hia_worker_proof_scope import METHODS
 
@@ -23,7 +23,7 @@ NAMES = ('installation', 'context', 'candidate', 'validation_profile', 'candidat
          'kind', 'backend_profile', 'plan_profile', 'sha256', 'lowering_profile',
          'native_artifact', 'build_receipt')
 CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
-LAYOUT_RULE = 'exact block permutations; every terminator transfers explicitly'
+MACHINE_CHECKS = preservation_checks({'schema': MACHINE_V2})
 
 POLICY = r'''
 # Identity input: canonical [installation, context, candidate or null,
@@ -215,7 +215,7 @@ def verification_files(s:readbuf, w:mutbuf, o:mutbuf, receipt:u64) -> u64:
 
 # [verified Core digest, physically retained plan, plan digest, actual canonical and
 #  planned object digests, independently extracted frame maps, proof evidence].
-# This rechecks the v1 conditional block-layout claim, never general refinement.
+# This rechecks the v1/v2 conditional machine choices, never general refinement.
 def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
     plan = next(w, core)
     plan_digest = next(w, plan)
@@ -230,7 +230,9 @@ def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
         return INVALID
     if is_object(w, plan) == False or is_object(w, canonical_frames) == False or is_object(w, planned_frames) == False or is_object(w, evidence) == False:
         return INVALID
-    if layout_schema(w, lookup(w, plan, K_schema)) == False or layout_method(w, lookup(w, evidence, K_method)) == False:
+    schema = lookup(w, plan, K_schema)
+    v2 = machine_schema(w, schema)
+    if (v2 == False and layout_schema(w, schema) == False) or layout_method(w, lookup(w, evidence, K_method)) == False:
         return refusal(o, 4)
     if matches_field(s, w, plan, K_core_sha256, core) == False or matches_field(s, w, evidence, K_core_sha256, core) == False:
         return refusal(o, 4)
@@ -247,14 +249,21 @@ def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
     if tag_is(w, lookup(w, evidence, K_implicit_optimizer_used), 1) == False or proof_names_plan(s, w, evidence, plan_digest) == False:
         return refusal(o, 4)
     checks = lookup(w, evidence, K_choice_checks)
-    if checks == NONE or get(w, checks) != 5 or get(w, checks + 32) != 1:
+    count = choose(v2, MACHINE_CHECK_COUNT, 1)
+    if checks == NONE or get(w, checks) != 5 or get(w, checks + 32) != count:
         return refusal(o, 4)
     choice = 64 + get(w, checks + 24) * 72
-    if is_object(w, choice) == False or get(w, choice + 32) != 3:
-        return refusal(o, 4)
-    if block_layout_choice(w, lookup(w, choice, K_choice)) == False or block_layout_rule(w, lookup(w, choice, K_rule)) == False:
-        return refusal(o, 4)
-    return refusal(o, choose(tag_is(w, lookup(w, choice, K_checked), 2), 0, 4))
+    index = 0
+    while index < count:
+        if is_object(w, choice) == False or get(w, choice + 32) != 3:
+            return refusal(o, 4)
+        if machine_choice(w, lookup(w, choice, K_choice), lookup(w, choice, K_rule), index) == False:
+            return refusal(o, 4)
+        if tag_is(w, lookup(w, choice, K_checked), 2) == False:
+            return refusal(o, 4)
+        choice = next(w, choice)
+        index = index + 1
+    return refusal(o, 0)
 
 def tag_is(w:mutbuf, node:u64, tag:u64) -> bool:
     return node != NONE and get(w, node) == tag
@@ -402,6 +411,19 @@ def key_table():
     return '\n'.join(lines)
 
 
+def literal_match(name, value):
+    raw = value.encode('ascii')
+    words = []
+    for offset in range(0, len(raw), 8):
+        word = raw[offset:offset + 8]
+        words.append(f'(match_word(w, at + {offset}, {len(word)}) ^ {int.from_bytes(word, "little")})')
+    return (f'def {name}(w:mutbuf, node:u64) -> bool:\n'
+            f'    if node == {(1 << 64) - 1} or get(w, node) != 4 or get(w, node + 32) != {len(raw)}:\n'
+            '        return False\n'
+            '    at = get(w, node + 24)\n'
+            f'    return ({" | ".join(words)}) == 0')
+
+
 def program():
     constants = {f'K_{name}': index for index, name in enumerate(NAMES, 1)}
     constants.update(RESULT=int.from_bytes(b'HIAEVR01', 'little'),
@@ -415,6 +437,7 @@ def program():
                      SCOPE_COMPLETE=int.from_bytes(b'HIAEVA01', 'little'),
                      PLAN_COMPLETE=int.from_bytes(b'HIAPVR01', 'little'),
                      BUILD_EFFECT=int.from_bytes(b'HIABCO01', 'little'),
+                     MACHINE_CHECK_COUNT=len(MACHINE_CHECKS),
                      METHOD_COUNT=len(METHODS),
                      LAYOUT_METHOD=METHODS.index('checked_explicit_machine_choices') + 1,
                      ENCODING_METHOD=METHODS.index('complete_native_rederivation') + 1,
@@ -426,6 +449,15 @@ def program():
     for index, claim in enumerate(CLAIMS, 1):
         claims.extend((f'    if claim_{claim}(w, node):', f'        return {index}'))
     claims.append('    return 0')
+    machine = ['def machine_choice(w:mutbuf, choice:u64, rule:u64, index:u64) -> bool:']
+    rules = []
+    for index, row in enumerate(MACHINE_CHECKS):
+        choice = row['choice']
+        machine.extend((f'    if index == {index}:',
+                        f'        return {choice}_choice(w, choice) and {choice}_rule(w, rule)'))
+        rules.extend((literal_match(choice + '_choice', choice),
+                      literal_match(choice + '_rule', row['rule'])))
+    machine.append('    return False')
     return '\n'.join((
         policy, function(CONTEXT, 'equal_span'),
         function(CONTEXT, 'digest_text').replace('NONE', str(constants['NONE'])),
@@ -434,13 +466,13 @@ def program():
         literal_match('proved_status', 'proved'), '\n'.join(claims),
         *(literal_match('claim_' + claim, claim) for claim in CLAIMS),
         literal_match('layout_schema', LAYOUT_V1),
+        literal_match('machine_schema', MACHINE_V2),
         literal_match('plan_subject_kind', 'agent_machine_plan'),
         literal_match('core_subject_kind', 'core'),
         literal_match('canonical_subject_kind', 'canonical_lowering'),
         literal_match('native_subject_kind', 'native_artifact'),
         literal_match('layout_method', 'checked_explicit_machine_choices'),
-        literal_match('block_layout_choice', 'block_layout'),
-        literal_match('block_layout_rule', LAYOUT_RULE),
+        '\n'.join(machine), *rules,
         function(BUILD_CUSTODY, 'exact_reference').replace('NONE', str(constants['NONE'])),
         function(BUILD_CUSTODY, 'copy_reference'),
         *(function(readers, name) for name in ('artifact_reference', 'artifact_start', 'artifact_digest',

@@ -4,7 +4,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_program_native import IMPORTS
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_inspection_lowering_elf import LIMITS, source_program as lowering
+from tools.generate_hia_inspection_lowering_elf import LITERALS, LIMITS, source_program as lowering
 
 SOURCE = Path('examples/hia_bootstrap/worker_object_inventory.hepta')
 
@@ -13,12 +13,13 @@ POLICY = r'''
 def object_imports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) < 32768 or lowering_elf(s, o, w) > LOWERING_OUTPUT:
         return INVALID
-    sections = input_word(s, 40)
+    base = choose(input_word(s, 0) == PLANNED_OBJECT, 16 + input_word(s, 8), 0)
+    sections = base + input_word(s, base + 40)
     symbols = sections + 192
     strings = sections + 256
-    start = input_word(s, symbols + 24)
+    start = base + input_word(s, symbols + 24)
     end = start + input_word(s, symbols + 32)
-    names = input_word(s, strings + 24)
+    names = base + input_word(s, strings + 24)
     names_end = names + input_word(s, strings + 32)
     row = start + small(s, symbols + 44, 4) * 24
     imported = 0
@@ -38,13 +39,11 @@ def object_imports(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         elif section != 1 or symbol != 18:
             return INVALID
         row = row + 24
-    return write_inventory(s, o, start + small(s, symbols + 44, 4) * 24, end, imported)
-
-def write_inventory(s:readbuf, o:mutbuf, row:u64, end:u64, imports:u64) -> u64:
-    sections = input_word(s, 40)
     text_bytes = input_word(s, sections + 96)
-    names = input_word(s, sections + 280)
-    names_end = names + input_word(s, sections + 288)
+    first = start + small(s, symbols + 44, 4) * 24
+    return write_inventory(s, o, first, end, imported, text_bytes, names, names_end)
+
+def write_inventory(s:readbuf, o:mutbuf, row:u64, end:u64, imports:u64, text_bytes:u64, names:u64, names_end:u64) -> u64:
     at = defined_prefix(o, 0)
     count = 0
     previous = 0
@@ -106,6 +105,7 @@ def write_name(s:readbuf, o:mutbuf, name:u64, size:u64, at:u64) -> u64:
 
 def program():
     head = POLICY.replace('LOWERING_OUTPUT', str(LIMITS['OUT_BYTES'])).replace('INVALID', '4294967293')
+    head = head.replace('PLANNED_OBJECT', str(int.from_bytes(LITERALS['PLAN_GATE'], 'little')))
     imports = tuple(sorted(IMPORTS))
     dispatch = ['def allowed_import(s:readbuf, at:u64, end:u64) -> u64:']
     render = ['def write_imports(o:mutbuf, at:u64, flags:u64) -> u64:', '    first = at']
