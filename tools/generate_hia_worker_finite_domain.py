@@ -20,11 +20,14 @@ from tools.generate_hia_worker_inspection_effect import function
 
 SOURCE = Path('examples/hia_bootstrap/worker_finite_domain.hepta')
 MAGIC = int.from_bytes(b'HIAVFD01', 'little')
+INELIGIBLE = int.from_bytes(b'HIAVFI01', 'little')
 KEYS = ('functions', 'exports', 'name', 'blocks', 'params', 'returns', 'effects',
         'entry', 'id', 'ops', 'term', 'op', 'args', 'target', 'then', 'else', 'type', 'schema')
 
 POLICY = r'''
 # [independently admitted base Core, independently admitted candidate Core].
+# A third, literal true asks for a typed ineligibility outcome on fresh
+# verification. Historical retained-proof requests still fail closed.
 # Header: tag, base/candidate ledger bits, public functions, argument tuples.
 # Each 56-byte row is [base name span, arity, tuples, result type, 12 kinds].
 # A plan is not an equivalence verdict: it authorizes exact enumeration order.
@@ -34,7 +37,8 @@ def domain_plan(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 48, 262144)
     put(o, 56, 128)
     used = widen(decode_json(s, w, o))
-    if used >= 4294967292 or get(w, 64) != 5 or get(w, 96) != 2:
+    count = get(w, 96)
+    if used >= 4294967292 or get(w, 64) != 5 or (count != 2 and count != 3):
         return BAD
     arena = (used + 7) & 18446744073709551608
     if length(w) - arena < MAP_BYTES:
@@ -43,11 +47,19 @@ def domain_plan(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     candidate = next(w, base)
     if object(w, base) == False or object(w, candidate) == False:
         return BAD
+    fresh = count == 3
+    if fresh and kind(w, next(w, candidate)) != 2:
+        return BAD
     before = chain_ledger(w, lookup(w, base, K_schema))
     after = chain_ledger(w, lookup(w, candidate, K_schema))
     if before > 1 or after > 1:
         return BAD
-    return plan_functions(o, w, arena, base, candidate, before | (after << 1))
+    planned = plan_functions(o, w, arena, base, candidate, before | (after << 1))
+    if planned == BAD and fresh:
+        put(o, 0, INELIGIBLE)
+        put(o, 8, 0)
+        return 16
+    return planned
 
 def plan_functions(o:mutbuf, w:mutbuf, a:u64, base:u64, candidate:u64, ledgers:u64) -> u64:
     left = lookup(w, base, K_functions)
@@ -208,7 +220,7 @@ def domain_kind(typ:u64) -> u64:
 def program():
     shared = ('published', 'index_blocks', 'graph_is_acyclic', 'terminal_ready', 'target_ready',
               'def_type', 'block_row', 'named', 'object', 'kind', 'child', 'next', 'eq_text')
-    values = dict(BAD=INVALID, NONE=NONE, NOT_PUBLIC=NONE - 1, PLAN=MAGIC,
+    values = dict(BAD=INVALID, NONE=NONE, NOT_PUBLIC=NONE - 1, PLAN=MAGIC, INELIGIBLE=INELIGIBLE,
                   INPUT_MAX=MAX_INPUT, FN_MAX=MAX_FUNCTIONS, BLOCK_MAX=MAX_BLOCKS,
                   OP_MAX=MAX_OPERATIONS, MAP_BYTES=64 + 24 * MAX_BLOCKS,
                   RET=RETURN, T_TRAP=TRAP, T_JUMP=JUMP, T_BRANCH=BRANCH,
