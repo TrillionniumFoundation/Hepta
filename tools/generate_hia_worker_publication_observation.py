@@ -1,10 +1,12 @@
-"""Check the real Store row before reusing an immutable Emit publication."""
+"""Check the real Store row before reusing an immutable Worker publication."""
 from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_discovery_artifact import kind_match_source, kind_width_source
+from tools.generate_hia_discovery_artifact import (
+    VERIFY_FIRST_KIND, VERIFY_LAST_KIND, kind_match_source, kind_width_source,
+)
 from tools.generate_hia_discovery_effect import source_program as discovery_policy
 from tools.generate_hia_sha256 import source_program as sha256_policy
 from tools.generate_hia_worker_inspection_effect import function
@@ -22,7 +24,10 @@ def publication_observation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return INVALID
     kind = input_word(s, 8)
     extent = input_word(s, 208)
-    if kind < 12 or kind > 14 or extent < 2 or extent > 8388608:
+    if kind >= VERIFY_FIRST and kind <= VERIFY_LAST:
+        if extent != 2:
+            return INVALID
+    elif kind < 12 or kind > 14 or extent < 2 or extent > 8388608:
         return INVALID
     row = length(s) - HEADER - 48
     trailer = HEADER + row
@@ -35,7 +40,7 @@ def publication_observation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         state_put(o, 0, MISSING)
         state_put(o, 8, 0)
         return 16
-    if found != 1 or valid_emit_row(s, kind, extent, row) == False:
+    if found != 1 or valid_document_row(s, kind, extent, row) == False:
         return INVALID
     start = HEADER + 322 + document_kind_width(kind)
     if metadata_digest(s, start, extent, o, w) == False:
@@ -51,7 +56,7 @@ def publication_observation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     at = copy_input(s, o, HEADER + 274, at, 48)
     return ref_end(o, at)
 
-def valid_emit_row(s:readbuf, kind:u64, extent:u64, size:u64) -> bool:
+def valid_document_row(s:readbuf, kind:u64, extent:u64, size:u64) -> bool:
     name = document_kind_width(kind)
     if size != 386 + name + extent or input_word(s, HEADER) != ROW:
         return False
@@ -111,7 +116,8 @@ def sha256_range():
 
 
 def program():
-    constants = {'HEADER': 216, 'INVALID': 4294967293}
+    constants = {'HEADER': 216, 'INVALID': 4294967293,
+                 'VERIFY_FIRST': VERIFY_FIRST_KIND, 'VERIFY_LAST': VERIFY_LAST_KIND}
     for name, value in (('EXPECTED', b'HIAEPO01'), ('ROW', b'HIAROW01'),
                         ('DOCUMENT', b'HIADOC01'), ('MISSING', b'HIAEPB01')):
         constants[name] = int.from_bytes(value, 'little')

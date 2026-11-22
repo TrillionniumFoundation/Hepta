@@ -10,10 +10,13 @@ from tools.generate_hia_sha256 import source_program as sha256_program
 from tools.hia_emit_metadata_layout import EMIT_DOCUMENT_KINDS, METADATA_LIMIT, emit_metadata_source
 
 SOURCE = 'examples/hia_bootstrap/discovery_artifact.hepta'
+VERIFY_DOCUMENT_KINDS = (b'verification-assumptions', b'verification-evidence', b'verification-receipt')
 DOCUMENT_KINDS = (b'profile', b'discovery', b'input', b'context',
                   b'inspection', b'edit-query', b'lowering-object',
                   b'core', b'candidate-diagnostics', b'rollback-receipt', b'slot-snapshot',
-                  *EMIT_DOCUMENT_KINDS, b'adoption-receipt')
+                  *EMIT_DOCUMENT_KINDS, b'adoption-receipt', *VERIFY_DOCUMENT_KINDS)
+VERIFY_FIRST_KIND = len(DOCUMENT_KINDS) - len(VERIFY_DOCUMENT_KINDS) + 1
+VERIFY_LAST_KIND = len(DOCUMENT_KINDS)
 
 CANDIDATE_CONTEXT = '''
 def candidate_context(s:readbuf, at:u64) -> bool:
