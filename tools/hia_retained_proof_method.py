@@ -4,6 +4,10 @@ FINITE_OBSERVATION = int.from_bytes(b'HIAFIR01', 'little')
 FINITE_COMPLETION = int.from_bytes(b'HIAFIN01', 'little')
 COMPOSITION_VERDICT = int.from_bytes(b'HIACOU01', 'little')
 
+NATIVE_CORE_CHECKER = 'hia-nominal-constructor'
+NATIVE_VERIFY_PROFILE = 'hia.agent.verify.observed-core.v1'
+NATIVE_VERIFY_EVIDENCE = 'hia-agent-worker-verify-evidence'
+
 EXTRA_KEYS = (
     'core_sha256', 'base_sha256', 'candidate_sha256', 'all_inputs', 'checked',
     'required', 'complete', 'all_inputs_in_declared_widths', 'transcript_sha256',

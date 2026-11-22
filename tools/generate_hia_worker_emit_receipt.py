@@ -46,16 +46,16 @@ def emit_receipt(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 '''
 
 
-def program():
+def program(templates=TEMPLATES, *, tag=b'HIAERR01', entry='emit_receipt'):
     lines = ['def render_emit(s:readbuf, o:mutbuf, kind:u64, mode:u64) -> u64:']
-    for ordinal, (name, _) in enumerate(TEMPLATES, 1):
+    for ordinal, (name, _) in enumerate(templates, 1):
         lines.extend((f'    if kind == {ordinal}:', f'        return {name}(s, o, mode)'))
     lines.append('    return 4294967293')
     identity = identity_source()
     return '\n'.join((
-        POLICY.replace('RECEIPT', str(int.from_bytes(b'HIAERR01', 'little'))),
+        POLICY.replace('RECEIPT', str(int.from_bytes(tag, 'little'))).replace('def emit_receipt(', f'def {entry}('),
         '\n'.join(lines),
-        *(receipt_template(name, template) for name, template in TEMPLATES),
+        *(receipt_template(name, template) for name, template in templates),
         function(INSPECTION, 'input_word'),
         *(function(identity, name).replace('read_word(', 'input_word(')
           for name in ('receipt_fragment_size', 'receipt_literal', 'receipt_fragment')),
