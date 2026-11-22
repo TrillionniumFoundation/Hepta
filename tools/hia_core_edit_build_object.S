@@ -47,7 +47,6 @@
 .equ PROOF_REPORT,3480
 .equ PROOF_SIZE,3488
 .equ SHARED_LINK_ID,3496
-.equ PROOF_REQUEST,3504
 .equ PROOF_LIMIT,2097152
 .equ VERIFIED_LINK_LIMIT,90112
 .equ VERIFIED_OBJECT_LIMIT,73728
@@ -61,6 +60,8 @@
 .equ PLAN_HEADER,80
 .equ PLAN_NORMALIZED_HEADER,144
 .equ PLAN_PREFIX_BYTES,3840
+# A 48-byte proof request must not overwrite the live optional plan state.
+.equ PROOF_REQUEST,3856
 _start:
  # The static linker calls this entry. The adapter itself never returns.
  add rsp,8
