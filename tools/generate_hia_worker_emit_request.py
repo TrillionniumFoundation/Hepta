@@ -6,8 +6,10 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
+from tools.generate_hia_worker_candidate_request import POLICY as CANDIDATE
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal_match
 from tools.generate_hia_worker_inspection_effect import function
+from tools.generate_hia_worker_inspection_request import POLICY as INSPECTION
 
 SOURCE = Path('examples/hia_bootstrap/worker_emit_request.hepta')
 FIELDS = ('catalog_sha256', 'backend_profile', 'context', 'candidate', 'verification_receipts',
@@ -20,6 +22,8 @@ POLICY = r'''
 def emit_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 2 or length(s) > 32768 or length(o) < 32768 or length(w) < 65536:
         return INVALID
+    if length(s) >= 8 and input_word(s, 0) == WINDOW:
+        return emit_window(s, o)
     put(o, 48, 4096)
     put(o, 56, 32)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
@@ -107,13 +111,88 @@ def emit_codegen(s:readbuf, o:mutbuf, w:mutbuf, codegen:u64, at:u64) -> u64:
 
 def object_node(w:mutbuf, node:u64) -> bool:
     return node != NONE and get(w, node) == 6
+
+# Exact native Context lookup observation plus a live clock sample.
+# Admission rejects strictly after the deadline; launch additionally requires
+# a whole millisecond. Report only the bounded duration usable by the child.
+def emit_window(s:readbuf, o:mutbuf) -> u64:
+    row = 153
+    created_at = row + 208
+    if length(s) <= created_at or length(s) > created_at + 20:
+        return INVALID
+    stage = input_word(s, 8)
+    total = input_word(s, 16)
+    now = input_word(s, 24)
+    if stage < 1 or stage > 2 or total == 0 or total > 86400000:
+        return INVALID
+    if valid_context_id(s, 39) == False or input_word(s, row) != CONTEXT_ROW or input_word(s, row + 8) != 0:
+        return INVALID
+    if match_context_digest(s, row + 85) == False:
+        return INVALID
+    count = input_word(s, row + 24)
+    if count != length(s) - created_at or (count > 1 and byte(s, created_at) == 48):
+        return INVALID
+    created = 0
+    index = created_at
+    while index < length(s):
+        digit = byte(s, index)
+        if digit < 48 or digit > 57:
+            return INVALID
+        if created > 1844674407370955161 or (created == 1844674407370955161 and digit > 53):
+            return INVALID
+        created = created * 10 + (digit - 48)
+        index = index + 1
+    return remaining_window(o, stage, total * 1000000, created, now)
+
+def match_context_digest(s:readbuf, digest:u64) -> bool:
+    index = 0
+    while index < 64:
+        ch = byte(s, 87 + index)
+        if (ch < 48 or ch > 57) and (ch < 97 or ch > 102):
+            return False
+        if ch != byte(s, digest + index):
+            return False
+        index = index + 1
+    return True
+
+def remaining_window(o:mutbuf, stage:u64, total:u64, created:u64, now:u64) -> u64:
+    maximum = 3600000000000
+    remaining = 0
+    expired = False
+    if created > now:
+        future = created - now
+        remaining = choose(total < maximum, total, maximum) + choose(future < maximum, future, maximum)
+    else:
+        spent = now - created
+        expired = spent > total
+        if expired == False:
+            remaining = total - spent
+    millis = whole_milliseconds(remaining)
+    refused = expired or (stage == 2 and millis == 0)
+    put(o, 0, WINDOW_RESULT)
+    put(o, 8, choose(refused, 1, 0))
+    put(o, 16, millis)
+    return 24
+
+def whole_milliseconds(nanos:u64) -> u64:
+    lower = 0
+    upper = 3600001
+    while lower + 1 < upper:
+        middle = (lower + upper) >> 1
+        before_deadline = middle * 1000000 <= nanos
+        lower = choose(before_deadline, middle, lower)
+        upper = choose(before_deadline, upper, middle)
+    return lower
 '''
 
 
 def program():
     constants = {f'K_{name}': index for index, name in enumerate(FIELDS, 1)}
     constants.update(REQUEST=int.from_bytes(b'HIAERQ01', 'little'), NONE=(1 << 64) - 1,
-                     INVALID=4294967293, CATALOG_MISMATCH=4294967286)
+                     INVALID=4294967293, CATALOG_MISMATCH=4294967286,
+                     WINDOW=int.from_bytes(b'HIAEMW01', 'little'),
+                     WINDOW_RESULT=int.from_bytes(b'HIAEMW02', 'little'),
+                     CONTEXT_ROW=int.from_bytes(b'HIACTO02', 'little'))
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda match: str(constants[match[0]]), POLICY)
     choices = {f'{name}_kind': name for name in ('object', 'shared', 'canonical')}
@@ -123,6 +202,8 @@ def program():
         *(function(CONTEXT, name).replace('NONE', str(constants['NONE']))
           for name in ('equal_span', 'digest_text', 'fragment', 'copy_value')),
         WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(constants['NONE'])),
+        function(CANDIDATE, 'valid_context_id').replace('CONTEXT_PREFIX', str(int.from_bytes(b'ctx-', 'little'))),
+        function(INSPECTION, 'input_word'),
         comparison_table('key_id', FIELDS),
         *(literal_match(name, value) for name, value in choices.items()),
         json_decoder(wire_spans=True),
