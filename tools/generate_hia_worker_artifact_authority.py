@@ -127,7 +127,7 @@ def profile_lookup_binding(s:readbuf, o:mutbuf, kind:u64, pin:u64, size:u64) -> 
     return copy_input(s, o, start + 7, 248, 34)
 
 def retained_query(s:readbuf, o:mutbuf) -> u64:
-    if length(s) != 192 or input_word(s, 8) > 10 or artifact_reference(s, 16) == False:
+    if length(s) != 192 or input_word(s, 8) > 11 or artifact_reference(s, 16) == False:
         return 4294967293
     return retained_parameters(s, o)
 
@@ -167,7 +167,7 @@ def artifact_observation(s:readbuf, o:mutbuf) -> u64:
     return retain_binding(s, o, 32, size, 2, PROFILE_READ)
 
 def retained_observation(s:readbuf, o:mutbuf) -> u64:
-    if length(s) < 264 or input_word(s, 32) > 10:
+    if length(s) < 264 or input_word(s, 32) > 11:
         return 4294967293
     size = input_word(s, 8)
     if size != length(s) - 264 or unique_summary(s, 216 + size, size) == False:
@@ -231,7 +231,9 @@ def requested_kind(s:readbuf, at:u64, size:u64, kind:u64) -> bool:
         return size == 20 and verification_receipt_text(s, at)
     if kind == 9:
         return size == 24 and verification_assumptions_text(s, at)
-    return size == 21 and verification_evidence_text(s, at)
+    if kind == 10:
+        return size == 21 and verification_evidence_text(s, at)
+    return kind == 11 and size == 24 and machine_query_text(s, at)
 
 def unique_summary(s:readbuf, at:u64, size:u64) -> bool:
     if input_word(s, at) != 5 or input_word(s, at + 8) != size or input_word(s, at + 24) != 0:
@@ -321,6 +323,7 @@ def source_program():
         ('verification_receipt_text', b'verification-receipt'),
         ('verification_assumptions_text', b'verification-assumptions'),
         ('verification_evidence_text', b'verification-evidence'),
+        ('machine_query_text', b'machine-validation-query'),
         *((name + '_profile', b'hia-' + name.encode('ascii') + b'-v1') for name in PROFILE_PORTS),
     ):
         program += f'\ndef {name}(s:readbuf, at:u64) -> bool:\n'

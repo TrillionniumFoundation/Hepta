@@ -11,6 +11,8 @@ EXTRA_KEYS = (
     'sha256', 'outcome',
 )
 
+MACHINE_VERDICT = int.from_bytes(b'HIAMOU01', 'little')
+
 POLICY = r'''
 # Result is a required independent evidence effect or zero for a local
 # check. The enclosing Worker must still verify stored Core/subject custody.

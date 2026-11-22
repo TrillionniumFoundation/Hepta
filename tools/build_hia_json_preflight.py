@@ -132,6 +132,7 @@ CANDIDATES = {
     'worker-compositional-skeleton': ('worker_compositional_skeleton', 'worker-compositional-skeleton'),
     'worker-compositional-replay': ('worker_compositional_replay', 'worker-compositional-replay'),
     'worker-compositional-barrier': ('worker_compositional_barrier', 'worker-compositional-barrier'),
+    'worker-machine-replay': ('worker_machine_replay', 'worker-machine-replay'),
     'emit-build-observation': ('worker_emit_build_observation', 'emit-build-observation'),
     'emit-effect': ('worker_emit_effect', 'emit-effect'),
     'worker-profile-bindings': ('worker_profile_bindings', 'worker-profile-bindings'),
