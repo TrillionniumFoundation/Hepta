@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import unittest
 from unittest.mock import patch
@@ -107,11 +108,15 @@ class HIAPreflightTests(unittest.TestCase):
 
     def test_plain_unicode_keys_need_no_second_decoder(self):
         wire = '{"plain":0,"Ω":{"𐐷":true},"quote\\"key":null,"\\u0065scape":false}'
-        with patch('hepta.hia_json_preflight.json.loads',
-                   wraps=json.loads) as loads:
+        escaped_keys = ['"quote\\"key"', '"\\u0065scape"']
+        with patch('hepta.hia_json_preflight.json.loads', wraps=json.loads) as loads:
+            _preflight_hia_json_reference(wire, max_nodes=262144, max_depth=64)
+            self.assertEqual([call.args[0] for call in loads.call_args_list], escaped_keys)
+            loads.reset_mock()
             self.admit(wire)
-        self.assertEqual([call.args[0] for call in loads.call_args_list],
-                         ['"quote\\"key"', '"\\u0065scape"'])
+        # The native scanner decodes both escapes without consulting Python.
+        expected = [] if os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST') else escaped_keys
+        self.assertEqual([call.args[0] for call in loads.call_args_list], expected)
 
     def test_plain_and_escaped_keys_share_duplicate_identity_and_order(self):
         spellings = (

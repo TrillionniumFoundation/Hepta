@@ -388,7 +388,7 @@ class ScalarReferenceNativeTests(unittest.TestCase):
         header_size = len(elf_header())
         changed = bytearray(binary)
         changed[header_size + private_call] ^= 1
-        with self.assertRaisesRegex(ValueError, 'call relocation'):
+        with self.assertRaisesRegex(ValueError, 'admitted application relocation'):
             verify_adapter(changed, binary[header_size + adapter_size:], binding,
                            entries=(0, report['private_entry_offset']))
         digest = sha256(binary).hexdigest()

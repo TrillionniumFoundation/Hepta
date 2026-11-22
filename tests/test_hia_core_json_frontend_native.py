@@ -359,9 +359,12 @@ class CoreJsonFrontendHiaNativeTests(unittest.TestCase):
             with self.subTest(module=module), self.assertRaises(ValueError):self.native.render(wire(value))
         for raw in (b'{"module":0,"module":1}', wire(small_program())+b'null', b'"\\ud800"'):
             with self.assertRaises(ValueError):self.native.render(raw)
-        for schema in ('hepta.hia.program.v1','hepta.hia.program.v7','hepta.hia.program.v10'):
+        for schema in ('hepta.hia.program.v1', 'hepta.hia.program.v10'):
             value=small_program();value['schema']=schema
             with self.assertRaises(ValueError):self.native.render(wire(value))
+        value = small_program()
+        value['schema'] = 'hepta.hia.program.v7'
+        self.assertEqual(self.native.render(wire(value)), render_assembly(value).encode())
         for field,value in (('exports',[]),('exports',['main']),('unknown',None)):
             program=small_program();program[field]=value
             with self.assertRaises(ValueError):self.native.render(wire(program))

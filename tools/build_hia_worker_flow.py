@@ -9,7 +9,7 @@ from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_native_filter import read_adapter_binding, verify_adapter
 from tools.generate_hia_worker_flow_packer import (
-    FLOW, MAGIC, PACKER, POLICY, PORTS, READ_PACKER, READ_POLICY, adapter_source,
+    FLOW, MAGIC, PEERS, PORTS, PROGRAMS, adapter_source,
 )
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -20,14 +20,17 @@ AUTHOR = 'tools/generate_hia_worker_flow_packer.py'
 
 
 def build(output, compiler, cold_report, *, kind='describe'):
-    policy_source, packer_source = {'describe': (POLICY, PACKER), 'read': (READ_POLICY, READ_PACKER)}[kind]
+    policy_source, packer_source = PROGRAMS[kind]
     compiler_bytes, report_bytes = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_bytes, report_bytes)
-    sources = {name: (ROOT / name).read_bytes() for name in (FLOW, PORTS, packer_source, policy_source, DRIVER, AUTHOR)}
+    names = (FLOW, PORTS, packer_source, policy_source, DRIVER, AUTHOR)
+    if kind == 'cost':
+        names += (PEERS,)
+    sources = {name: (ROOT / name).read_bytes() for name in names}
     source_pins = {name: sha256(raw).hexdigest() for name, raw in sources.items()}
     if any(admitted.get(name) != wanted for name, wanted in source_pins.items()):
         raise ValueError('Worker descriptor flow differs from its exact cold-admitted source')
-    adapter = adapter_source(sources[FLOW], sources[PORTS], read=kind == 'read')
+    adapter = adapter_source(sources[FLOW], sources[PORTS], kind=kind, peers=sources.get(PEERS, b''))
     binding = read_adapter_binding(sources[packer_source], adapter, calls=1)
     output.mkdir(mode=0o700)
     policy, policy_receipt = compile_stage(output, kind + '-policy', compiler, sources[policy_source])

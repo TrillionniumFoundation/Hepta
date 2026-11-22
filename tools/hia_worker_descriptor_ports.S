@@ -7,6 +7,7 @@
 .text
 .global hia_worker_fd_observe, hia_worker_memfd, hia_worker_seal
 .global hia_worker_fragment_copy, hia_worker_now, hia_worker_run
+.global hia_worker_spawn, hia_worker_wait
 .protected hia_worker_now
 
 /* fd, five-word observation: fd, seals, file type, size, first word.
@@ -192,25 +193,101 @@ hia_worker_now:
  */
 hia_worker_run:
  push rbx
+ mov rbx, rdi
+ call hia_worker_now
+ test rax, rax
+ js .Llaunch_done
+ cmp rax, [rbx+56]
+ jae .Llaunch_expired
+ mov rdi, rbx
+ call hia_worker_spawn
+ test rax, rax
+ js .Llaunch_done
+ mov edi, eax
+ mov rsi, [rbx+56]
+ call hia_worker_wait
+ jmp .Llaunch_done
+.Llaunch_expired:
+ mov rax, -110
+.Llaunch_done:
+ pop rbx
+ ret
+
+/* Checked launch through the original inherited executable FD. */
+hia_worker_spawn:
+ cmp QWORD PTR [rdi+48], 32
+ ja .Llaunch_bad
+ mov r8, rdi
+ mov eax, 57
+ syscall
+ test rax, rax
+ jnz .Lspawn_parent
+ mov rbx, r8
+
+ xor r12d, r12d
+.Lrun_stdio:
+ mov edi, DWORD PTR [rbx+8+r12*8]
+ mov esi, r12d
+ mov eax, 33
+ syscall
+ test rax, rax
+ js .Lrun_child_fail
+ inc r12d
+ cmp r12d, 3
+ jb .Lrun_stdio
+ mov edi, 3
+ mov esi, -1
+ mov edx, 4                    /* CLOSE_RANGE_CLOEXEC */
+ mov eax, 436
+ syscall
+ test rax, rax
+ js .Lrun_child_fail
+ xor r12d, r12d
+ mov r13, [rbx+40]
+.Lrun_carry:
+ cmp r12, [rbx+48]
+ jae .Lrun_exec
+ mov edi, [r13+r12*4]
+ mov esi, 2
+ xor edx, edx
+ mov eax, 72
+ syscall
+ test rax, rax
+ js .Lrun_child_fail
+ inc r12d
+ jmp .Lrun_carry
+.Lrun_exec:
+ mov edi, DWORD PTR [rbx]
+ lea rsi, [rip+.Lempty]
+ mov rdx, [rbx+32]
+ lea r10, [rip+.Lnoenv]
+ mov r8d, 4096                  /* AT_EMPTY_PATH, the inherited sealed ELF */
+ mov eax, 322
+ syscall
+.Lrun_child_fail:
+ mov edi, 127
+ mov eax, 60
+ syscall
+ ud2
+
+.Lspawn_parent:
+ ret
+.Llaunch_bad:
+ mov rax, -22
+ ret
+
+/* Wait only for an owned direct child, using the supplied absolute deadline. */
+hia_worker_wait:
+ push rbx
  push r12
  push r13
  push r14
  push r15
  sub rsp, 32
- mov rbx, rdi
- cmp QWORD PTR [rbx+48], 32
- ja .Lrun_argument
- call hia_worker_now
- test rax, rax
- js .Lrun_done
- cmp rax, [rbx+56]
- jae .Lrun_no_child_timeout
- mov eax, 57
- syscall
- test rax, rax
- js .Lrun_done
- jz .Lrun_child
- mov r12d, eax
+ mov r12d, edi
+ mov ebx, edi
+ mov rax, rbx
+ mov rbx, rsi
  mov edi, eax
  xor esi, esi
  mov eax, 434
@@ -224,7 +301,7 @@ hia_worker_run:
  call hia_worker_now
  test rax, rax
  js .Lrun_watched_error
- mov rcx, [rbx+56]
+ mov rcx, rbx
  sub rcx, rax
  jbe .Lrun_watched_timeout
  mov rax, rcx
@@ -254,7 +331,7 @@ hia_worker_run:
  call hia_worker_now
  test rax, rax
  js .Lrun_watched_error
- cmp rax, [rbx+56]
+ cmp rax, rbx
  jae .Lrun_watched_timeout
  xor r15d, r15d
  jmp .Lrun_close_watch
@@ -316,11 +393,6 @@ hia_worker_run:
 .Lrun_error:
  mov rax, r15
  jmp .Lrun_done
-.Lrun_no_child_timeout:
- mov rax, -110
- jmp .Lrun_done
-.Lrun_argument:
- mov rax, -22
 .Lrun_done:
  add rsp, 32
  pop r15
@@ -329,53 +401,6 @@ hia_worker_run:
  pop r12
  pop rbx
  ret
-
-.Lrun_child:
- xor r12d, r12d
-.Lrun_stdio:
- mov edi, DWORD PTR [rbx+8+r12*8]
- mov esi, r12d
- mov eax, 33
- syscall
- test rax, rax
- js .Lrun_child_fail
- inc r12d
- cmp r12d, 3
- jb .Lrun_stdio
- mov edi, 3
- mov esi, -1
- mov edx, 4                    /* CLOSE_RANGE_CLOEXEC */
- mov eax, 436
- syscall
- test rax, rax
- js .Lrun_child_fail
- xor r12d, r12d
- mov r13, [rbx+40]
-.Lrun_carry:
- cmp r12, [rbx+48]
- jae .Lrun_exec
- mov edi, [r13+r12*4]
- mov esi, 2
- xor edx, edx
- mov eax, 72
- syscall
- test rax, rax
- js .Lrun_child_fail
- inc r12d
- jmp .Lrun_carry
-.Lrun_exec:
- mov edi, DWORD PTR [rbx]
- lea rsi, [rip+.Lempty]
- mov rdx, [rbx+32]
- lea r10, [rip+.Lnoenv]
- mov r8d, 4096                  /* AT_EMPTY_PATH, the inherited sealed ELF */
- mov eax, 322
- syscall
-.Lrun_child_fail:
- mov edi, 127
- mov eax, 60
- syscall
- ud2
 
 .section .rodata
 .Lmemfd_name: .asciz "hia-worker-private"

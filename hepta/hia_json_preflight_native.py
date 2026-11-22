@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import platform
 import struct
+import sys
 import threading
 
 MAX_BYTES = 8 << 20
@@ -261,12 +262,15 @@ def _installed_json_image(manifest_path: str, source: Path, schema: str, factory
     hide drift of the source it claims to implement. Loaded code stays pinned;
     changing its disk file does not replace an already immutable mapping.
     """
-    from .hia_native_helpers import pinned_image
-    selected = pinned_image(manifest_path, source, schema, factory)
-    if selected is not None:
-        for observe in _INPUT_IMAGE_OBSERVERS.get():
-            observe(manifest_path, source, schema, factory, selected)
-        return selected
+    # A pinned scope can only exist after the Worker helper module is loaded.
+    # Do not import its full orchestration stack for a standalone image lookup.
+    if __package__ + '.hia_native_helpers' in sys.modules:
+        from .hia_native_helpers import pinned_image
+        selected = pinned_image(manifest_path, source, schema, factory)
+        if selected is not None:
+            for observe in _INPUT_IMAGE_OBSERVERS.get():
+                observe(manifest_path, source, schema, factory, selected)
+            return selected
     path = Path(manifest_path).resolve(strict=True)
     with path.open('rb', buffering=8192) as handle:
         raw = handle.read(16385)
