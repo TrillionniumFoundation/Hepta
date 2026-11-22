@@ -25,14 +25,20 @@
 .equ FD_INFO, 34272
 .equ CLOCK, 34312
 .equ MAP_BYTES, 65536
+.ifdef WORKER_READ
+.equ ROLE_COUNT, 19
+.equ EXTRA_ARGS, 5
+.else
 .equ ROLE_COUNT, 22
-.equ ENTRY_SIZE, 1256
+.equ EXTRA_ARGS, 6
+.endif
+.equ ENTRY_SIZE, 376 + 40 * ROLE_COUNT
 .equ HEADER, 512
 
 _start:
  cld
  mov r15, rsp
- cmp QWORD PTR [r15], 28
+ cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS
  jne .Lrefused
  mov rsi, [r15+16]
  lea rdi, [rip+.Lmode]
@@ -96,6 +102,7 @@ _start:
  mov edx, 312
  xor r10d, r10d
  call .Lread_exact
+ .ifndef WORKER_READ
  mov rsi, [r15+48]
  call .Lparse_fd
  mov [rbp+OBS+40], rax
@@ -108,12 +115,13 @@ _start:
  mov [rbp+OBS+56], rax
  mov rax, [rbp+FD_INFO+24]
  mov [rbp+OBS+24], rax
+ .endif
  xor r12d, r12d
  lea r13, [rbp+OBS+376]
 .Lentry_roles:
  cmp r12, ROLE_COUNT
  jae .Lentry_ready
- mov rsi, [r15+r12*8+56]
+ mov rsi, [r15+r12*8+8*(EXTRA_ARGS+1)]
  call .Lparse_fd
  mov [rbp+ROLES+r12*8], rax
  mov edi, eax
@@ -484,8 +492,16 @@ worker_policy_hole: .long 0
 .Lentry_magic: .ascii "HIADRI01"
 .Lcommand_magic: .ascii "HIADFC01"
 .Lobservation_magic: .ascii "HIADFO01"
+.ifdef WORKER_READ
+.Lmode: .asciz "--worker-read"
+.else
 .Lmode: .asciz "--worker-describe"
+.endif
 .Lchild_name: .asciz "hia-worker-effect"
+.ifdef WORKER_READ
+.Ldiagnostic: .ascii "native HIA Read Worker transport refused\n"
+.else
 .Ldiagnostic: .ascii "native HIA Describe Worker transport refused\n"
+.endif
 .Ldiagnostic_end:
 .section .note.GNU-stack,"",@progbits

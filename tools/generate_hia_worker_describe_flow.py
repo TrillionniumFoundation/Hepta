@@ -132,7 +132,7 @@ def open_flow(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == AFTER_ARGUMENT:
         if prefixed(s) == False:
             return BAD
-        put(o, HEADER, 1)
+        put(o, HEADER, SCHEMA_ROLE)
         copy_private(w, o, TRUST, HEADER + 8, 64)
         fragment(o, 0, input_word(s, 32), 8, input_word(s, 40) - 8)
         return issue(o, w, AFTER_CHECK_ARGUMENT, RUN, 3, 0, 1, 72)
@@ -206,7 +206,7 @@ def close_flow(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         observe_slot(s, w, RENDERED_FD)
         if get(w, 96) != 1:
             return next_journal(o, w, 8)
-        put(o, HEADER, 1)
+        put(o, HEADER, SCHEMA_ROLE)
         copy_private(w, o, TRUST, HEADER + 8, 64)
         after_prefix(w, o, RENDERED_FD, 0)
         return issue(o, w, AFTER_CHECK_OUTPUT, RUN, 16, 0, 1, 72)
@@ -285,14 +285,8 @@ def next_journal(o:mutbuf, w:mutbuf, stage:u64) -> u64:
         after_prefix(w, o, CALL_FD, 0)
         n = 1
     elif stage == 11:
-        put(o, bytes, 4)
-        put(o, bytes + 8, 66)
-        put(o, bytes + 16, 0)
-        put(o, bytes + 24, NULL_PREFIX)
-        copy_private(w, o, TRUST, bytes + 29, 64)
-        store(o, bytes + 93, 34)
-        payload = 94
-        inline = 94
+        inline = journal_binding(o, w, bytes)
+        payload = inline
     elif stage == 12:
         catalog = get(w, 40)
         current = get(w, 48)
@@ -311,6 +305,15 @@ def next_journal(o:mutbuf, w:mutbuf, stage:u64) -> u64:
         n = 1
     put(o, HEADER + 32, payload)
     return issue(o, w, AFTER_JOURNAL_REQUEST, RUN, 4, 0, n, bytes - HEADER + inline)
+
+def journal_binding(o:mutbuf, w:mutbuf, at:u64) -> u64:
+    put(o, at, 4)
+    put(o, at + 8, 66)
+    put(o, at + 16, 0)
+    put(o, at + 24, NULL_PREFIX)
+    copy_private(w, o, TRUST, at + 29, 64)
+    store(o, at + 93, 34)
+    return 94
 
 def continue_journal(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == AFTER_JOURNAL_REQUEST:
@@ -376,13 +379,16 @@ def journal_action(o:mutbuf, w:mutbuf) -> u64:
         whole_slot(w, o, ADMITTED_FD, 0)
         return issue(o, w, AFTER_ARGUMENT, RUN, 2, 0, 1, 16)
     if next == 16:
-        after_prefix(w, o, PLAN_FD, 0)
-        return issue(o, w, AFTER_QUERY, RUN, 11, 0, 1, 0)
+        return launch_effect(o, w)
     if next == 18:
         if get(w, 136) != get(w, 96):
             return BAD
         return issue(o, w, AFTER_COST_CLOCK, CLOCK, 0, 0, 0, 0)
     return next_journal(o, w, next)
+
+def launch_effect(o:mutbuf, w:mutbuf) -> u64:
+    after_prefix(w, o, PLAN_FD, 0)
+    return issue(o, w, AFTER_QUERY, RUN, 11, 0, 1, 0)
 
 def compose_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     bytes = get(w, 120)
@@ -394,7 +400,7 @@ def compose_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     put(o, HEADER + 16, bytes)
     copy_span(s, o, 64, HEADER + 32, bytes)
     if get(w, 96) == 1:
-        after_prefix(w, o, EFFECT_FD, 0)
+        fragment(o, 0, slot_fd(w, EFFECT_FD), EFFECT_PREFIX, slot_bytes(w, EFFECT_FD) - EFFECT_PREFIX)
     else:
         whole_slot(w, o, EFFECT_FD, 0)
     return issue(o, w, AFTER_RESPONSE, RUN, 15, 0, 1, 224)
@@ -488,11 +494,17 @@ def zero_range(o:mutbuf, at:u64, count:u64) -> u64:
 '''
 
 
-def program():
+def flow_source(policy, controls, constants):
+    source = '\n'.join((policy, *controls))
+    return re.sub(r'\b(' + '|'.join(constants) + r')\b',
+                  lambda matched: str(constants[matched[0]]), source)
+
+
+def program(*, policy=POLICY, control_overrides=None, variants=None):
     constants = {name: int.from_bytes(tag, 'little') for name, tag in WORDS.items()}
     constants.update(STEPS)
     constants.update(SLOTS)
-    constants.update(BAD=0xfffffffd, HEADER=512, TRUST=512, SLOT_BASE=1024, JOURNAL_STATE=1536,
+    constants.update(BAD=0xfffffffd, SCHEMA_ROLE=1, EFFECT_PREFIX=8, HEADER=512, TRUST=512, SLOT_BASE=1024, JOURNAL_STATE=1536,
                      ROLE_BASE=2048, ARGUMENTS=192, ROLE_COUNT=22, ENTRY_HEAD=64,
                      INPUT_ARG=1, LITERAL_ARG=2, DECIMAL_ARG=3, FD_ARG=4,
                      OWN_COST_PREFIX=int.from_bytes(b'--own-co', 'little'),
@@ -501,12 +513,13 @@ def program():
                      DOSSIER_HEAD=312, ENTRY=int.from_bytes(b'HIADRI01', 'little'),
                      JOURNAL_REPLY=int.from_bytes(b'HIAJWO01', 'little'),
                      NULL_PREFIX=int.from_bytes(b'null"', 'little'))
-    source = re.sub(r'\b(' + '|'.join(constants) + r')\b',
-                    lambda matched: str(constants[matched[0]]), POLICY)
+    constants.update(variants or {})
     controls = reactor()
     functions = ('admit_entry', 'stage_edge', 'valid_fd', 'dossier_identity', 'is_hex',
                  'trusted_descriptors', 'copy_span', 'input_word', 'put', 'write')
-    return '\n'.join((source, *(function(controls, name) for name in functions), function(RELEASE_WRITER, 'get')))
+    overrides = control_overrides or {}
+    selected = (overrides[name] if name in overrides else function(controls, name) for name in functions)
+    return flow_source(policy, (*selected, function(RELEASE_WRITER, 'get')), constants)
 
 
 if __name__ == '__main__':
