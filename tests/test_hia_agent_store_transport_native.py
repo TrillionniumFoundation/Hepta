@@ -1,4 +1,6 @@
 """Verify typed Store wire bytes against independent host protocol fixtures."""
+import ctypes
+import json
 import os
 import struct
 import unittest
@@ -129,3 +131,25 @@ class StoreTransportTests(unittest.TestCase):
         self.assertIsNone(self.codec.parameters(1, b'badmagic', (), 128))
         self.assertIsNone(self.codec.parameters(1, None, ((1, b'not eight'),), 128))
         self.assertIsNone(self.codec.parameters(1, None, ((5, b''),), 128))
+
+    def test_large_artifact_insert_carries_sealed_input_instead_of_copying_to_state(self):
+        metadata = json.dumps({
+            "candidate": {}, "codegen": {}, "context": {}, "core_sha256": "a" * 64,
+            "foreign_buffer_exports": [], "installation": {},
+            "machine_plan": {"block_order": {"entry": [f"block_{index}" for index in range(240)]}},
+            "object_artifact": {}, "object_sha256": "b" * 64, "output_kind": "object",
+            "signatures": {},
+        }, separators=(",", ":"), sort_keys=True)
+        values = ("a-" + "1" * 32, "2" * 64, "hia://artifacts/" + "3" * 32,
+                  "native", metadata, "4" * 64)
+        parameters = _parameters(values, 9, b"HIAINS01")
+        state = ctypes.create_string_buffer(2304)
+        frame = struct.pack("<8s5Q", b"HIASTUP1", 1, 20, 2, 5, len(parameters)) + parameters
+        output = ctypes.create_string_buffer(8160)
+        self.assertGreater(len(parameters), len(state) - 192)
+        count = self.codec._entry(frame, len(frame), output, len(output), state, len(state))
+        self.assertEqual(count, 80)
+        self.assertEqual(struct.unpack("<4Q", output.raw[:32]), (7, len(parameters), 48, 0))
+        self.assertEqual(struct.unpack("<8s5Q", output.raw[32:80]),
+                         (b"HIATCM01", 1, 2, 27, 1, len(parameters)))
+        self.assertEqual(state.raw[192:], bytes(len(state) - 192))
