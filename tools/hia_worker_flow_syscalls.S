@@ -24,11 +24,25 @@
 .equ SAMPLE, 34240
 .equ FD_INFO, 34272
 .equ CLOCK, 34312
+.ifdef WORKER_ARTIFACT
+.equ MAP_BYTES, 327680
+.equ ARG_SPAN, 81920
+.equ ARG_SPAN_SIZE, 20480
+.equ ROLE_OFFSET, 376
+.else
 .equ MAP_BYTES, 81920
+.endif
 .ifdef WORKER_COST
+.ifndef WORKER_ARTIFACT
 .equ ROLE_OFFSET, 64
+.endif
 .equ PEER, 34400
 .ifdef WORKER_STORED_READ
+.ifdef WORKER_ARTIFACT
+.equ ROLE_COUNT, 23
+.equ EXTRA_ARGS, 6
+.equ FIRST_ROLE, 0
+.else
 .ifdef WORKER_INPUT
 .equ ROLE_COUNT, 6
 .equ EXTRA_ARGS, 3
@@ -42,6 +56,7 @@
 .equ ROLE_COUNT, 8
 .equ EXTRA_ARGS, 4
 .equ FIRST_ROLE, 0
+.endif
 .endif
 .endif
 .equ PEER_COUNT, 2
@@ -236,7 +251,14 @@ _start:
  jne .Lrefused
  cmp QWORD PTR [rbp+FD_INFO+24], 0
  jne .Lrefused
+ .ifdef WORKER_ARTIFACT
+ .equ HAS_ENTRY_DOSSIER, 1
+ .else
  .ifndef WORKER_COST
+ .equ HAS_ENTRY_DOSSIER, 1
+ .endif
+ .endif
+ .ifdef HAS_ENTRY_DOSSIER
  mov rsi, [r15+40]
  call .Lparse_fd
  mov [rbp+OBS+32], rax
@@ -395,6 +417,25 @@ worker_policy_hole: .long 0
 .Lfragments:
  cmp r12, [rbp+COMMAND+40]
  jae .Lseal_input
+ .ifdef WORKER_ARTIFACT
+ cmp QWORD PTR [r13], -1
+ jne .Lfile_fragment
+ mov rsi, [r13+8]
+ cmp rsi, 384
+ jb .Lrefused
+ cmp rsi, HEADER
+ ja .Lrefused
+ mov eax, HEADER
+ sub rax, rsi
+ mov rdx, [r13+16]
+ cmp rdx, rax
+ ja .Lrefused
+ lea rsi, [rbp+COMMAND+rsi]
+ mov edi, DWORD PTR [rbp+STAGED]
+ call .Lwrite_exact
+ jmp .Lfragment_done
+.Lfile_fragment:
+ .endif
  mov edi, DWORD PTR [r13]
  mov rsi, [r13+8]
  mov rdx, [r13+16]
@@ -404,6 +445,9 @@ worker_policy_hole: .long 0
  call hia_worker_fragment_copy
  test rax, rax
  jnz .Lrefused
+ .ifdef WORKER_ARTIFACT
+.Lfragment_done:
+ .endif
  inc r12
  add r13, 24
  jmp .Lfragments
@@ -451,6 +495,10 @@ worker_policy_hole: .long 0
  .ifdef WORKER_STORED_READ
  cmp rax, 5
  je .Larg_join
+ .endif
+ .ifdef WORKER_ARTIFACT
+ cmp rax, 6
+ je .Larg_span
  .endif
  cmp rax, 4
  jne .Lrefused
@@ -515,12 +563,24 @@ worker_policy_hole: .long 0
  mov rsi, [r15+24]
  .endif
 .Ljoin_path:
+ .ifdef WORKER_ARTIFACT
+ lea rax, [rbp+JOINED+4083]
+ cmp rdi, rax
+ jae .Lrefused
+ .endif
  lodsb
  test al, al
  jz .Ljoin_suffix
  stosb
  jmp .Ljoin_path
 .Ljoin_suffix:
+ .ifdef WORKER_ARTIFACT
+ lea rax, [rbp+JOINED+2]
+ cmp rdi, rax
+ jb .Lrefused
+ cmp BYTE PTR [rdi-1], 47
+ je .Lrefused
+ .endif
  lea rsi, [rbp+COMMAND+rdx]
  lea rcx, [rbp+JOINED+4096]
  lea r8, [rbp+COMMAND+512]
@@ -534,6 +594,49 @@ worker_policy_hole: .long 0
  test al, al
  jnz .Ljoin_copy
  lea rax, [rbp+JOINED]
+ jmp .Larg_store
+.endif
+.ifdef WORKER_ARTIFACT
+.Larg_span:
+ /* The HIA commands provide a bounded fd/offset/extent tuple. */
+ cmp rdx, 384
+ jb .Lrefused
+ cmp rdx, HEADER-24
+ ja .Lrefused
+ lea r14, [rbp+COMMAND+rdx]
+ mov rdi, [r14]
+ cmp rdi, 2147483647
+ ja .Lrefused
+ lea rsi, [rbp+FD_INFO]
+ call hia_worker_fd_observe
+ test rax, rax
+ js .Lrefused
+ cmp QWORD PTR [rbp+FD_INFO+8], 15
+ jne .Lrefused
+ mov rax, [rbp+FD_INFO+24]
+ mov r10, [r14+8]
+ cmp r10, rax
+ ja .Lrefused
+ sub rax, r10
+ mov rdx, [r14+16]
+ cmp rdx, 16384
+ ja .Lrefused
+ cmp rdx, rax
+ ja .Lrefused
+ imul rbx, r12, ARG_SPAN_SIZE
+ lea rbx, [rbp+ARG_SPAN+rbx]
+ mov rsi, rbx
+ mov edi, DWORD PTR [r14]
+ call .Lread_exact
+ mov rcx, [r14+16]
+ mov BYTE PTR [rbx+rcx], 0
+ jrcxz .Larg_span_ready
+ mov rdi, rbx
+ xor eax, eax
+ repne scasb
+ je .Lrefused
+.Larg_span_ready:
+ mov rax, rbx
  jmp .Larg_store
 .endif
 .Larg_number:
@@ -581,6 +684,15 @@ worker_policy_hole: .long 0
  mov edi, DWORD PTR [rbp+PROCESS+24]
  mov eax, 3
  syscall
+ .ifdef WORKER_ARTIFACT
+ mov edi, DWORD PTR [rbp+PROCESS+16]
+ lea rsi, [rbp+FD_INFO]
+ call hia_worker_fd_observe
+ test rax, rax
+ js .Lrefused
+ mov rax, [rbp+FD_INFO+8]
+ mov [rbp+OBS+48], rax
+ .endif
  mov edi, DWORD PTR [rbp+PROCESS+16]
  call hia_worker_seal
  test rax, rax
@@ -781,9 +893,35 @@ worker_policy_hole: .long 0
  jmp .Lnext
 
 .Lclock:
+ .ifdef WORKER_ARTIFACT
+ cmp QWORD PTR [rbp+COMMAND+144], 0
+ je .Lclock_monotonic
+ cmp QWORD PTR [rbp+COMMAND+144], 1
+ jne .Lrefused
+ xor edi, edi
+ lea rsi, [rbp+CLOCK]
+ mov eax, 228
+ syscall
+ test rax, rax
+ js .Lrefused
+ mov rax, [rbp+CLOCK]
+ test rax, rax
+ js .Lrefused
+ mov ecx, 1000000000
+ mul rcx
+ test rdx, rdx
+ jnz .Lrefused
+ add rax, [rbp+CLOCK+8]
+ jc .Lrefused
+ jmp .Lclock_sample
+.Lclock_monotonic:
+ .endif
  call hia_worker_now
  test rax, rax
  js .Lrefused
+ .ifdef WORKER_ARTIFACT
+.Lclock_sample:
+ .endif
  mov [rbp+OBS+64], rax
  mov QWORD PTR [rbp+OBS+40], 8
  mov QWORD PTR [rbp+OBS+56], 8
@@ -953,7 +1091,11 @@ worker_policy_hole: .long 0
 .Lobservation_magic: .ascii "HIADFO01"
 .ifdef WORKER_COST
 .ifdef WORKER_STORED_READ
+.ifdef WORKER_ARTIFACT
+.Lmode: .asciz "--worker-artifact"
+.else
 .Lmode: .asciz "--own-store"
+.endif
 .else
 .Lmode: .asciz "--own-cost"
 .endif
@@ -967,10 +1109,14 @@ worker_policy_hole: .long 0
 .Lchild_name: .asciz "hia-worker-effect"
 .ifdef WORKER_COST
 .ifdef WORKER_STORED_READ
+.ifdef WORKER_ARTIFACT
+.Ldiagnostic: .ascii "native HIA Artifact Worker transport refused\n"
+.else
 .ifdef WORKER_INPUT
 .Ldiagnostic: .ascii "native HIA input materialization transport refused\n"
 .else
 .Ldiagnostic: .ascii "native HIA Read Store transport refused\n"
+.endif
 .endif
 .else
 .Ldiagnostic: .ascii "native HIA Worker cost transport refused\n"
