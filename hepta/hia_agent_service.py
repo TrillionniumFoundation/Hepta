@@ -26,7 +26,7 @@ from .hia_native_delivery import (DeliveryRecord, NativeDeliveryUnknown,
 from .hia_agent_contract import (VERSION, ROOT, COST_POLICY_SCHEMA, OBJECTIVE_SCHEMA,
     PLAN_SCHEMA, WORKLOAD_SCHEMA, catalog, installation_manifest, validate)
 from .hia_agent_store import (AgentRejected, AgentStore, digest, keys, record_authority,
-    reject, uint64, wire, decode_data, _agent_resource_path)
+    reject, uint64, wire, decode_data, capture_path, _agent_resource_path)
 from .hia_program import verify_program
 from .hia_program_tools import decode_json
 from .hia_sha256_native import payload_sha256
@@ -711,6 +711,20 @@ class HIAAgentService:
         return profile, resources
 
     def _hia_artifact(self, args):
+        self._profile(args["artifact_profile"], "artifact")
+        source = args["source"]
+        if source["kind"] == "utf8":
+            data = source["text"].encode("utf-8")
+        else:
+            data = capture_path(source["path"], self.artifact_roots, int(source["max_bytes"]))
+            expected = source["expected_sha256"]
+            if expected is not None and expected != sha256(data).hexdigest():
+                reject("E_HIA_ARTIFACT_CHANGED", "captured bytes differ from the expected digest")
+        ref = self.store.put(data, "input")
+        return {"artifact": ref, "byte_length": str(len(data)), "content_admitted_as_program": False,
+                "execution_authority_granted": False}
+
+    def _hia_artifact_with_selected_components(self, args):
         from .hia_agent_store import _native_agent_identity
 
         self._profile(args["artifact_profile"], "artifact")
@@ -737,6 +751,53 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
+        ref = args["artifact"]
+        data, _ = self.store.get(ref)
+        offset = 0
+        if "cursor" in args:
+            row = self.store.db.execute("SELECT * FROM cursors WHERE id=?", (args["cursor"],)).fetchone()
+            if row is None or row["artifact_id"] != ref["id"] or row["sha256"] != ref["sha256"]:
+                reject("E_HIA_CURSOR", "cursor is not bound to this exact artifact")
+            offset = row["offset"]
+        limit = int(args.get("max_bytes", 65536))
+        chunk = data[offset:offset + limit]
+        encoding = "utf8"
+        try:
+            # Decode the complete artifact once to decide binary vs UTF-8, then
+            # only trim a page boundary. Never silently discard invalid bytes.
+            data.decode("utf-8")
+            while True:
+                try:
+                    content = chunk.decode("utf-8")
+                    break
+                except UnicodeDecodeError:
+                    chunk = chunk[:-1]
+        except UnicodeDecodeError:
+            encoding, content = "base64", base64.b64encode(chunk).decode("ascii")
+        # MCP JSON escaping can expand control characters sixfold. Bound the
+        # serialized page independently from the raw-byte content budget.
+        # The runtime exposes both structuredContent and a text JSON rendering.
+        # The latter escapes quotes/backslashes a second time. Budget both
+        # representations, not merely the first escaped content string.
+        while len(wire(content)) + len(wire(wire(content).decode("utf-8"))) > 230000:
+            chunk = chunk[:max(1, len(chunk) // 2)]
+            if encoding == "base64":
+                content = base64.b64encode(chunk).decode("ascii")
+            else:
+                while True:
+                    try:
+                        content = chunk.decode("utf-8")
+                        break
+                    except UnicodeDecodeError:
+                        chunk = chunk[:-1]
+        next_cursor = None
+        if offset + len(chunk) < len(data):
+            next_cursor = "page-" + digest({"artifact": ref, "offset": offset + len(chunk)})
+            self.store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+                (next_cursor, ref["id"], ref["sha256"], offset + len(chunk)))
+        return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}
+
+    def _hia_read_with_selected_components(self, args):
         from functools import partial
         from .hia_agent_store import _native_agent_identity, uses_native_store
         from .hia_agent_read_page_native import SELECTOR, capture_retained_page, installed_agent_read_page
@@ -1697,9 +1758,41 @@ class HIAAgentService:
             from .hia_cost_ledger_native import installed_cost_ledger, CostLedgerFrame
             return CostLedgerFrame(installed_cost_ledger(selected), self, context,
                                    evaluation_wall_ns, native_wall_ns).finish()
-        return self._cost_ledger_reference(context, evaluation_wall_ns, native_wall_ns)
+        from .hia_agent_store import uses_native_store
+        if 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ or uses_native_store(self.store):
+            return self._cost_ledger_with_selected_components(context, evaluation_wall_ns, native_wall_ns)
+        return wire(self._cost_ledger_reference(context, evaluation_wall_ns, native_wall_ns))
 
     def _cost_ledger_reference(self, context, evaluation_wall_ns, native_wall_ns):
+        rows = self.store.db.execute("SELECT * FROM costs WHERE context_id=? OR context_id IS NULL ORDER BY sequence LIMIT 10001",
+                                     (context["ref"]["id"],)).fetchall()
+        truncated = len(rows) > 10000
+        rows = rows[:10000]
+        entries = [{"sequence": row["sequence"], "tool": row["tool"], "request_id": row["request_id"],
+                    "context_id": row["context_id"], "wall_ns": row["wall_ns"], "status": row["status"],
+                    "details": decode_data(row["details"])} for row in rows]
+        policy, _ = self.store.get_json(context["budget"]["cost_policy"])
+        external = dict(policy["external_costs"])
+        # A caller may record measured zero; an incomplete model ledger cannot
+        # convert a placeholder zero into an observed zero-cost model call.
+        if not policy["external_costs_complete"]:
+            external = {name: None for name in external}
+        attributed = sum(int(row["wall_ns"]) for row in rows if row["context_id"] == context["ref"]["id"])
+        unscoped = sum(int(row["wall_ns"]) for row in rows if row["context_id"] is None)
+        return {"schema": "hepta.hia.agent.cost-ledger.v1", "context": context["ref"],
+            "entries": entries, "entries_truncated": truncated,
+            "context_tool_wall_ns_before_evaluation": str(attributed),
+            "unattributed_discovery_artifact_read_wall_ns": str(unscoped),
+            "evaluation_wall_ns_through_report": str(evaluation_wall_ns),
+            "native_child_wall_ns": str(native_wall_ns),
+            "external_costs": external, "external_cost_source": "caller-supplied report, independently unmeasured",
+            "external_costs_complete": policy["external_costs_complete"],
+            "adoption_wall_ns": None, "future_execution_count": policy["expected_invocations"],
+            "failed_attempts_retained": True, "full_search_cost_complete": False,
+            "net_optimization_benefit_proved": False,
+            "scope": "observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown"}
+
+    def _cost_ledger_with_selected_components(self, context, evaluation_wall_ns, native_wall_ns):
         from .hia_agent_store import _native_agent_identity
 
         rows = self.store.context_costs(context["ref"]["id"])
@@ -2323,6 +2416,9 @@ def _service_artifact_dispatch(self, args):
     if selected is not None:
         from .hia_service_artifact_native import installed_service_artifact, ServiceArtifactFrame
         return ServiceArtifactFrame(installed_service_artifact(selected), self, args).finish()
+    from .hia_agent_store import uses_native_store
+    if 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ or uses_native_store(self.store):
+        return self._hia_artifact_with_selected_components(args)
     return _NATIVE_SERVICE_ARTIFACT_REFERENCE(self, args)
 
 
@@ -2339,6 +2435,12 @@ HIAAgentService._hia_read_reference = _SERVICE_READ_REFERENCE
 def _selected_hia_read(self, arguments):
     selector = os.environ.get('HEPTA_HIA_SERVICE_READ_MANIFEST')
     if selector is None:
+        from .hia_agent_store import uses_native_store
+        from .hia_native_helpers import pinned_agent_read_page_executable
+        if ('HEPTA_HIA_AGENT_READ_PAGE_MANIFEST' in os.environ
+                or 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ
+                or uses_native_store(self.store) or pinned_agent_read_page_executable() is not None):
+            return self._hia_read_with_selected_components(arguments)
         return _SERVICE_READ_REFERENCE(self, arguments)
     from .hia_service_read_native import ServiceReadFrame, installed_service_read
     return ServiceReadFrame(installed_service_read(selector), self, arguments).finish()

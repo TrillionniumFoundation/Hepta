@@ -173,7 +173,7 @@ class _CapturedAdmission:
         self._admit_deadline_diagnostics()
         self._admit_machine_receipt()
         self._admit_reviewed_components()
-        self._admit_store_admin_helpers()
+        self._admit_shared_admin_helpers()
 
     def _capture(self, name):
         if name not in self._captured:
@@ -328,11 +328,12 @@ class _CapturedAdmission:
             self._allowed[name] = self._adjustment(name, original, _pin(raw), fixture,
                 delivery.COMPONENT_FIXTURE_SHA256, 'retained native component caller')
 
-    def _admit_store_admin_helpers(self):
+    def _admit_shared_admin_helpers(self):
         from tests.hia_store_delivery_successor import reverse_exact
 
         name = 'tests/test_hia_worker_native_helpers.py'
-        if CALLER_AUTHORITIES[self._authority]['kind'] != 'store' or name not in self._records:
+        kind = CALLER_AUTHORITIES[self._authority]['kind']
+        if kind not in ('store', 'emission') or name not in self._records:
             return
         expected = self._records[name]
         raw = self._capture(name)
@@ -349,6 +350,9 @@ class _CapturedAdmission:
                 or value['path'] != name or value['original_commit'] != '73f16346'):
             raise ValueError('Store administrator-helper caller provenance scope differs')
         record = value['record']
+        if kind == 'emission' and _pin(raw) != {'bytes': record['new_bytes'], 'sha256': record['new_sha256']}:
+            # The emission/read inventories also admit their original count-only evolution.
+            return
         original = {'bytes': record['old_bytes'], 'sha256': expected}
         reverse_exact(raw, record, original)
         self._allowed[name] = self._adjustment(name, original, _pin(raw), fixture, digest,
