@@ -1,9 +1,9 @@
-"""Bind explicit v1/v2 machine choices to the original checked Core."""
+"""Bind checked Core to explicit layout, encoding, and scalar-select choices."""
 from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2
+from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2, MACHINE_V3
 from hepta.hia_program import MAX_BLOCKS, MAX_FUNCTIONS
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
@@ -14,9 +14,10 @@ from tools.generate_hia_worker_inspection_effect import function
 SOURCE = Path('examples/hia_bootstrap/worker_block_layout.hepta')
 KEYS = ('schema', 'core_sha256', 'block_order', 'functions', 'name', 'blocks', 'id',
         'function_order', 'function_alignment', 'scratch_registers', 'r10', 'r11',
-        'instruction_selection', 'move_immediate', 'alu_immediate')
+        'instruction_selection', 'move_immediate', 'alu_immediate', 'scalar_select', 'value_registers')
 PACKET = b'HIABLP01'
 MACHINE_PACKET = b'HIABLP02'
+SELECT_PACKET = b'HIABLP03'
 MAX_NODES = 524288 + 2
 INPUT_BYTES = (16 << 20) + 80
 PREFLIGHT_BYTES = 8 << (2 * MAX_NODES - 1).bit_length()
@@ -25,8 +26,9 @@ WORKSPACE_BYTES = 64 + 72 * MAX_NODES + INPUT_BYTES
 POLICY = r'''
 # Input: [verified Core, independently observed Core SHA-256, plan].
 # Output layout coordinates never mutate the original function or slot order.
-# V2 adds a fixed encoding header, then the declared function permutation;
-# per-function block rows still use original Core ordinals in both versions.
+# V2 adds an encoding header and a function permutation; the spill-only V3
+# header also selects the scalar SELECT implementation. Block rows stay in
+# original Core ordinal order.
 def block_layout(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 8 or length(s) > INPUT_MAX or length(o) < PREFLIGHT or length(w) < WORKSPACE:
         return INVALID
@@ -40,10 +42,12 @@ def block_layout(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if get(w, core) != 6 or get(w, plan) != 6:
         return INVALID
     schema = lookup(w, plan, K_schema)
-    advanced = machine_schema(w, schema)
+    select_version = select_schema(w, schema)
+    advanced = select_version or machine_schema(w, schema)
     if advanced == False and layout_schema(w, schema) == False:
         return INVALID
-    if get(w, plan + 32) != choose(advanced, 7, 3) or digest_text(w, digest, False) == False:
+    fields = choose(select_version, 8, choose(advanced, 7, 3))
+    if get(w, plan + 32) != fields or digest_text(w, digest, False) == False:
         return INVALID
     pinned = lookup(w, plan, K_core_sha256)
     if pinned == NONE or equal_span(s, w, digest, pinned) == False:
@@ -58,24 +62,26 @@ def block_layout(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if count == 0 or count > FN_MAX:
         return INVALID
     if advanced:
-        return machine_layout(s, w, o, plan, functions, orders, count)
-    return emit_layout(w, o, functions, orders, count, 24)
+        return machine_layout(s, w, o, plan, functions, orders, count, select_version)
+    return emit_layout(w, o, functions, orders, count, 24, TAG)
 
-def machine_layout(s:readbuf, w:mutbuf, o:mutbuf, plan:u64, functions:u64, orders:u64, count:u64) -> u64:
-    if machine_options(s, w, o, plan) == False:
+def machine_layout(s:readbuf, w:mutbuf, o:mutbuf, plan:u64, functions:u64, orders:u64, count:u64, select_version:bool) -> u64:
+    if machine_options(s, w, o, plan, select_version) == False:
         return INVALID
     order = lookup(w, plan, K_function_order)
-    cursor = function_ordinals(w, o, functions, order, count)
+    cursor = function_ordinals(w, o, functions, order, count, choose(select_version, 64, 56))
     if cursor == INVALID:
         return INVALID
-    return emit_layout(w, o, functions, orders, count, cursor)
+    return emit_layout(w, o, functions, orders, count, cursor, choose(select_version, SELECT_TAG, MACHINE_TAG))
 
-def machine_options(s:readbuf, w:mutbuf, o:mutbuf, plan:u64) -> bool:
+def machine_options(s:readbuf, w:mutbuf, o:mutbuf, plan:u64, select_version:bool) -> bool:
     registers = lookup(w, plan, K_scratch_registers)
     choices = lookup(w, plan, K_instruction_selection)
     if registers == NONE or get(w, registers) != 6 or get(w, registers + 32) != 2:
         return False
-    if choices == NONE or get(w, choices) != 6 or get(w, choices + 32) != 2:
+    if choices == NONE or get(w, choices) != 6 or get(w, choices + 32) != choose(select_version, 3, 2):
+        return False
+    if select_version and scalar_select(w, o, plan, choices) == False:
         return False
     first = lookup(w, registers, K_r10)
     second = lookup(w, registers, K_r11)
@@ -97,6 +103,17 @@ def machine_options(s:readbuf, w:mutbuf, o:mutbuf, plan:u64) -> bool:
     put(o, 48, choose(small_alu, 1, 0))
     return True
 
+def scalar_select(w:mutbuf, o:mutbuf, plan:u64, choices:u64) -> bool:
+    assigned = lookup(w, plan, K_value_registers)
+    if assigned == NONE or get(w, assigned) != 6 or get(w, assigned + 32) != 0:
+        return False
+    field = lookup(w, choices, K_scalar_select)
+    cmov = select_cmov(w, field)
+    if cmov == False and select_branch(w, field) == False:
+        return False
+    put(o, 56, choose(cmov, 1, 0))
+    return True
+
 def function_alignment(s:readbuf, w:mutbuf, field:u64) -> u64:
     if field == NONE or get(w, field) != 3:
         return 0
@@ -113,10 +130,9 @@ def function_alignment(s:readbuf, w:mutbuf, field:u64) -> u64:
             return 64
     return 0
 
-def function_ordinals(w:mutbuf, o:mutbuf, functions:u64, order:u64, count:u64) -> u64:
+def function_ordinals(w:mutbuf, o:mutbuf, functions:u64, order:u64, count:u64, cursor:u64) -> u64:
     if order == NONE or get(w, order) != 5 or get(w, order + 32) != count:
         return INVALID
-    cursor = 56
     seen = length(o) - BLOCK_MAX
     index = 0
     while index < count:
@@ -136,7 +152,7 @@ def function_ordinals(w:mutbuf, o:mutbuf, functions:u64, order:u64, count:u64) -
         index = get(w, name + 16)
     return cursor
 
-def emit_layout(w:mutbuf, o:mutbuf, functions:u64, orders:u64, count:u64, start:u64) -> u64:
+def emit_layout(w:mutbuf, o:mutbuf, functions:u64, orders:u64, count:u64, start:u64, tag:u64) -> u64:
     cursor = start
     remaining = get(w, orders + 32)
     index = get(w, functions + 24)
@@ -170,7 +186,7 @@ def emit_layout(w:mutbuf, o:mutbuf, functions:u64, orders:u64, count:u64, start:
         index = get(w, fn + 16)
     if remaining != 0:
         return INVALID
-    put(o, 0, choose(start == 24, TAG, MACHINE_TAG))
+    put(o, 0, tag)
     put(o, 8, count)
     put(o, 16, cursor)
     return cursor
@@ -242,6 +258,7 @@ def program():
     constants = {f'K_{name}': index for index,name in enumerate(KEYS, 1)}
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      TAG=int.from_bytes(PACKET, 'little'), MACHINE_TAG=int.from_bytes(MACHINE_PACKET, 'little'),
+                     SELECT_TAG=int.from_bytes(SELECT_PACKET, 'little'),
                      NODES=MAX_NODES, INPUT_MAX=INPUT_BYTES,
                      PREFLIGHT=PREFLIGHT_BYTES, WORKSPACE=WORKSPACE_BYTES,
                      FN_MAX=MAX_FUNCTIONS, BLOCK_MAX=MAX_BLOCKS)
@@ -254,7 +271,8 @@ def program():
         policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(constants['NONE'])),
         comparison_table('key_id', KEYS), literal_match('layout_schema', LAYOUT_V1),
         *(literal_match(name, value) for name, value in (
-            ('machine_schema', MACHINE_V2), ('register_10', 'r10'), ('register_11', 'r11'),
+            ('machine_schema', MACHINE_V2), ('select_schema', MACHINE_V3),
+            ('select_cmov', 'cmov_scalar'), ('select_branch', 'branch'), ('register_10', 'r10'), ('register_11', 'r11'),
             ('narrow_move', 'mov32_if_exact'), ('wide_move', 'movabs'),
             ('narrow_alu', 'imm8_if_exact'), ('wide_alu', 'imm32'),
         )),
