@@ -27,6 +27,7 @@ LITERALS = {
     'PLAN_GATE': b'HIAILP02',
     'PLAN_LAYOUT': b'HIABLP02',
     'SELECT_LAYOUT': b'HIABLP03',
+    'REGISTER_LAYOUT': b'HIABLP04',
 }
 POLICY = r'''
 # Inspect the exact HIA ELF ET_REL with an optional projected machine layout.
@@ -46,7 +47,7 @@ def lowering_elf(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if n < 608 or extent < 80 or extent > 8388608 or extent > n - 528:
             return INVALID
         tag = input_word(s, 16)
-        select_layout = tag == SELECT_LAYOUT
+        select_layout = tag == SELECT_LAYOUT or tag == REGISTER_LAYOUT
         if (tag != PLAN_LAYOUT and select_layout == False) or input_word(s, 32) != extent:
             return INVALID
         header = choose(select_layout, 64, 56)

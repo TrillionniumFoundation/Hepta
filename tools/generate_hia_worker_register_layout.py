@@ -7,13 +7,17 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
-from tools.generate_hia_machine_plan import source_program as machine_plan
+from tools.generate_hia_machine_plan import packed, source_program as machine_plan
 from tools.generate_hia_worker_block_layout import INPUT_BYTES, MAX_NODES, PREFLIGHT_BYTES
 
 SOURCE = Path('examples/hia_bootstrap/worker_register_layout.hepta')
 WORKSPACE_BYTES = 128 << 20
 INVALID = 0xfffffffd
 NONE = (1 << 64) - 1
+WITNESS_RULE_TEXT = b'closed-block inclusive lifetimes; all edge sources staged before target writes'
+WITNESS_KEYS = ('rule', 'functions', 'callee_saved_registers', 'intervals',
+                'caller_clobbered_leaf_registers', 'leaf_opcode_inventory',
+                'block', 'value', 'type', 'register', 'first', 'last')
 
 POLICY = r'''
 def register_layout(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -22,13 +26,138 @@ def register_layout(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 48, NODES)
     put(o, 56, 128)
     arena = widen(decode_json(s, w, o))
-    if arena >= 4294967292 or get(w, 64) != 5 or get(w, 96) != 3:
+    count = get(w, 96)
+    if arena >= 4294967292 or get(w, 64) != 5 or (count != 3 and count != 4):
         return INVALID
     packet = align8(arena)
     end = typed_tree(s, w, packet)
     if end == INVALID:
         return INVALID
-    return bound_register_packet(o, w, packet, align8(end))
+    extent = bound_register_packet(o, w, packet, align8(end))
+    if extent == INVALID or extent >= 2147483648 or count == 3:
+        return extent
+    if check_witness(w, o, welement(w, packet, 3)) == 0:
+        return INVALID
+    return extent
+
+# Compare the original evidence's closed-block witness with fresh typed
+# Core calculations. This is not a claim about physical ELF bytes.
+def check_witness(w:mutbuf, o:mutbuf, witness:u64) -> u64:
+    if wtag(w, witness) != 6 or wtotal(w, witness) != 2:
+        return 0
+    if witness_rule(w, witness_field(w, witness, 1)) == 0:
+        return 0
+    observed = witness_field(w, witness, 2)
+    mappings = field(w, get(w, 80), 8)
+    if wtag(w, observed) != 6 or wtotal(w, observed) != wtotal(w, mappings):
+        return 0
+    functions = get(w, 112)
+    fn = functions + 24
+    index = 0
+    while index < wtotal(w, functions):
+        name = field(w, fn, 13)
+        expected = find_mapping(w, mappings, name)
+        if expected != NONE:
+            actual = find_mapping(w, observed, name)
+            if actual == NONE or actual == INVALID or bind_assignment(w, o, fn, expected) != 0:
+                return 0
+            if witness_function(w, actual) == 0:
+                return 0
+        fn = wend(w, fn)
+        index = index + 1
+    return 1
+
+def witness_function(w:mutbuf, node:u64) -> u64:
+    leaf_version = get(w, 128) != 0
+    if wtag(w, node) != 6 or wtotal(w, node) != choose(leaf_version, 4, 2):
+        return 0
+    callee = witness_field(w, node, 3)
+    if witness_inventory(w, callee, get(w, 224), False) == 0:
+        return 0
+    if leaf_version:
+        leaf = get(w, 288)
+        if witness_inventory(w, witness_field(w, node, 5), leaf, False) == 0:
+            return 0
+        opcodes = choose(leaf == 0, 0, get(w, 232))
+        if witness_inventory(w, witness_field(w, node, 6), opcodes, True) == 0:
+            return 0
+    intervals = witness_field(w, node, 4)
+    count = get(w, 208)
+    if wtag(w, intervals) != 5 or wtotal(w, intervals) != count:
+        return 0
+    sort_rows(w, 0)
+    rows = get(w, 264)
+    at = intervals + 24
+    index = 0
+    while index < count:
+        if witness_interval(w, at, get(w, rows + index * 8)) == 0:
+            return 0
+        at = wend(w, at)
+        index = index + 1
+    return 1
+
+def witness_inventory(w:mutbuf, node:u64, expected:u64, opcodes:bool) -> u64:
+    if wtag(w, node) != 5:
+        return 0
+    at = node + 24
+    index = 0
+    former = 0
+    while index < wtotal(w, node):
+        current = register_id(w, at)
+        if opcodes:
+            current = leaf_op_id(w, at)
+        if current <= former:
+            return 0
+        bit = 1 << (current - 1)
+        if expected & bit == 0:
+            return 0
+        expected = expected ^ bit
+        former = current
+        at = wend(w, at)
+        index = index + 1
+    return choose(expected == 0, 1, 0)
+
+def witness_interval(w:mutbuf, node:u64, row:u64) -> u64:
+    if wtag(w, node) != 6 or wtotal(w, node) != 6:
+        return 0
+    if same(w, witness_field(w, node, 7), get(w, row + 16)) == 0:
+        return 0
+    if same(w, witness_field(w, node, 8), get(w, row)) == 0:
+        return 0
+    if same(w, witness_field(w, node, 9), get(w, row + 8)) == 0:
+        return 0
+    if register_id(w, witness_field(w, node, 10)) != get(w, row + 48):
+        return 0
+    if witness_position(w, witness_field(w, node, 11), get(w, row + 32)) == 0:
+        return 0
+    return witness_position(w, witness_field(w, node, 12), get(w, row + 40))
+
+def witness_position(w:mutbuf, node:u64, expected:u64) -> u64:
+    if wtag(w, node) != 2:
+        return 0
+    count = wsize(w, node)
+    if count < 1 or count > 5:
+        return 0
+    value = 0
+    index = 0
+    while index < count:
+        digit = byte(w, node + 16 + index)
+        if digit < 48 or digit > 57:
+            return 0
+        value = value * 10 + digit - 48
+        index = index + 1
+    return choose(value == expected, 1, 0)
+
+def witness_field(w:mutbuf, node:u64, key:u64) -> u64:
+    at = node + 24
+    index = 0
+    while index < wtotal(w, node):
+        value = wend(w, at)
+        if witness_key(w, at) == key:
+            return value
+        at = wend(w, value)
+        index = index + 1
+    return NONE
 
 # Walk the already decoded tree without a separate stack. Open container
 # output offsets replace their no-longer-used original source spans.
@@ -130,6 +259,24 @@ def typed_number(s:readbuf, w:mutbuf, at:u64, size:u64, cursor:u64) -> u64:
 '''
 
 
+def witness_literals():
+    source = ['def witness_key(w:mutbuf, node:u64) -> u64:']
+    for index, key in enumerate(WITNESS_KEYS, 1):
+        source.extend((f'    if literal(w, node, 4, {packed(key)}) != 0:', f'        return {index}'))
+    rule = WITNESS_RULE_TEXT
+    source.extend(('    return 0', '', 'def witness_rule(w:mutbuf, node:u64) -> u64:',
+                   f'    if wtag(w, node) != 4 or wsize(w, node) != {len(rule)}:',
+                   '        return 0'))
+    for offset in range(0, len(rule), 8):
+        part = rule[offset:offset + 8]
+        observed = f'get(w, node + {16 + offset})'
+        if len(part) < 8:
+            observed = f'({observed} & {(1 << (8 * len(part))) - 1})'
+        source.extend((f'    if {observed} != {int.from_bytes(part, "little")}:', '        return 0'))
+    source.append('    return 1')
+    return '\n'.join(source)
+
+
 def program():
     constants = dict(INPUT_MAX=INPUT_BYTES, NODES=MAX_NODES, PREFLIGHT=PREFLIGHT_BYTES,
                      WORKSPACE=WORKSPACE_BYTES, INVALID=INVALID, NONE=NONE)
@@ -145,7 +292,7 @@ def program():
     if raw_decoder.count(guard) != 2:
         raise ValueError('JSON decoder admission sites differ')
     raw_decoder = raw_decoder.replace(guard, guard.replace('8388608', str(INPUT_BYTES)))
-    reader = Constants().visit(ast.parse(POLICY))
+    reader = Constants().visit(ast.parse(POLICY + witness_literals()))
     machinery = ast.parse(machine_plan()).body
     decoder = ast.parse(raw_decoder).body
     nodes = {node.name: node for node in (*decoder, *machinery, *reader.body)}

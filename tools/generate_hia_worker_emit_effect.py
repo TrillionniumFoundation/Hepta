@@ -59,7 +59,10 @@ def emit_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return INVALID
         return action(o, w, PLAN_BINDING, 0, 0, 48)
     if stage == PLAN_BINDING:
-        if size != 144 or input_word(s, 40) != QUALIFIED_PLAN or input_word(s, 48) != 0:
+        if size != 144 or input_word(s, 48) != 0:
+            return INVALID
+        permit = input_word(s, 40)
+        if permit != QUALIFIED_PLAN and permit != QUALIFIED_REGISTER_PLAN:
             return INVALID
         if observed_digest(s, w, 56, 320) == False or valid_hex(s, 120, 64) == False:
             return INVALID
@@ -241,6 +244,7 @@ def program():
             'DOCUMENT': b'HIADOC01', 'OUTCOME': b'HIAIND01', 'VERIFIED': b'HIABOR01',
             'CONTEXT_PREFIX': b'ctx-', 'VERIFIED_RECEIPT': b'HIAEVR01',
             'VERIFIED_PLAN': b'HIAPVR01', 'QUALIFIED_PLAN': b'HIAEVQ02',
+            'QUALIFIED_REGISTER_PLAN': b'HIAEVQ03',
             'LAUNCH_PERMIT': b'HIAEMW04', 'OBJECT_OBSERVATION': b'HIAEMO01'}
     words.update((tag, int.from_bytes(raw, 'little')) for tag, raw in tags.items())
     words['INVALID'] = 4294967295

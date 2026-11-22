@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 
 from hepta.hia_agent_assembly import render_assembly
-from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2, MACHINE_V3, preservation_checks
+from hepta.hia_machine_plan import LAYOUT_V1, MACHINE_V2, MACHINE_V3, MACHINE_V4, preservation_checks
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS
@@ -21,7 +21,7 @@ NAMES = ('installation', 'context', 'candidate', 'validation_profile', 'candidat
          'canonical_frame_bytes', 'planned_frame_bytes', 'same_slots', 'same_frame_sizes',
          'implicit_optimizer_used', 'choice_checks', 'choice', 'checked', 'rule', 'proof_binding',
          'kind', 'backend_profile', 'plan_profile', 'sha256', 'lowering_profile',
-         'native_artifact', 'build_receipt', 'value_registers', 'witness', 'functions')
+         'native_artifact', 'build_receipt', 'value_registers', 'witness', 'functions', 'trap_rule')
 CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
 MACHINE_CHECKS = preservation_checks({'schema': MACHINE_V2})
 SELECT_CHECKS = (
@@ -29,6 +29,9 @@ SELECT_CHECKS = (
     ('scalar_select', 'explicit branch or register-only CMOV; all operands already defined scalars; MOV loads preserve TEST flags'),
 )
 LIFETIME_RULE = 'closed-block inclusive lifetimes; all edge sources staged before target writes'
+LEAF_CHECK = ('caller_clobbered_leaf_values',
+              'r8/r9 only; exact leaf opcode inventory; no returning call; no implicit r8/r9 scratch; scalar values; inclusive lifetimes; staged entry/edge copies')
+LEAF_TRAP_RULE = 'all trap paths call abort then UD2 and have no returning continuation'
 
 POLICY = r'''
 # Identity input: canonical [installation, context, candidate or null,
@@ -49,21 +52,27 @@ def emit_verification(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
         return INVALID
     count = get(w, 96)
-    if count != 1 and count != 2 and count != 3 and count != 4 and count != 5 and count != 6 and count != 8:
+    if count != 1 and count != 2 and count != 3 and count != 4 and count != 5 and count != 6 and count != 8 and count != 9:
         return INVALID
     first = 64 + get(w, 88) * 72
     if count == 1:
+        if lookup(w, first, K_choice_checks) != NONE:
+            return project_layout_witness(w, o, first)
         return verification_files(s, w, o, first)
-    if count == 8:
-        return layout_evidence(s, w, o, first)
+    if count == 8 or count == 9:
+        return layout_evidence(s, w, o, first, count == 9)
     second = next(w, first)
-    if count == 2 or count == 4:
+    explicit_plan = count == 5 and is_object(w, first) and plan_subject_kind(w, lookup(w, first, K_kind))
+    if count == 2 or count == 4 or explicit_plan:
         observed = NONE
         canonical = NONE
-        if count == 4:
+        active_plan = NONE
+        if count != 2:
             observed = next(w, second)
             canonical = next(w, observed)
-        return qualified_plan(w, o, s, first, second, observed, canonical)
+            if explicit_plan:
+                active_plan = next(w, canonical)
+        return qualified_plan(w, o, s, first, second, observed, canonical, active_plan)
     if count == 3:
         return layout_subject(s, w, o, first, second, next(w, second))
     candidate = next(w, second)
@@ -218,10 +227,31 @@ def verification_files(s:readbuf, w:mutbuf, o:mutbuf, receipt:u64) -> u64:
     put(o, 8, count)
     return cursor
 
+# Project a physical retained witness without decoding it in the platform relay.
+# The typed lifetime owner must independently check the returned immutable span.
+def project_layout_witness(w:mutbuf, o:mutbuf, evidence:u64) -> u64:
+    checks = lookup(w, evidence, K_choice_checks)
+    if get(w, checks) != 5 or get(w, checks + 32) < SELECT_CHECK_COUNT:
+        return INVALID
+    row = 64 + get(w, checks + 24) * 72
+    index = 0
+    while index < MACHINE_CHECK_COUNT:
+        row = next(w, row)
+        index = index + 1
+    witness = lookup(w, row, K_witness)
+    if is_object(w, witness) == False:
+        return INVALID
+    put(o, 0, WITNESS_SPAN)
+    put(o, 8, 0)
+    span(w, o, witness, 16)
+    return 32
+
 # [verified Core digest, physically retained plan, plan digest, actual canonical and
 #  planned object digests, independently extracted frame maps, proof evidence].
-# This rechecks conditional machine choices, never general refinement.
-def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
+# The optional ninth frame is the exact immutable witness document already
+# checked against Core by the pinned register lifetime owner. It must still
+# match the particular evidence row below. This never claims general refinement.
+def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64, registers_checked:bool) -> u64:
     plan = next(w, core)
     plan_digest = next(w, plan)
     canonical = next(w, plan_digest)
@@ -235,13 +265,6 @@ def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
         return INVALID
     if is_object(w, plan) == False or is_object(w, canonical_frames) == False or is_object(w, planned_frames) == False or is_object(w, evidence) == False:
         return INVALID
-    schema = lookup(w, plan, K_schema)
-    v3 = select_schema(w, schema)
-    machine = v3 or machine_schema(w, schema)
-    if (machine == False and layout_schema(w, schema) == False) or layout_method(w, lookup(w, evidence, K_method)) == False:
-        return refusal(o, 4)
-    if v3 and empty_object(w, lookup(w, plan, K_value_registers)) == False:
-        return refusal(o, 4)
     if matches_field(s, w, plan, K_core_sha256, core) == False or matches_field(s, w, evidence, K_core_sha256, core) == False:
         return refusal(o, 4)
     if matches_field(s, w, evidence, K_plan, plan) == False or get(w, evidence + 32) != 12:
@@ -250,30 +273,55 @@ def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
         return refusal(o, 4)
     if matches_field(s, w, evidence, K_canonical_frame_bytes, canonical_frames) == False or matches_field(s, w, evidence, K_planned_frame_bytes, planned_frames) == False:
         return refusal(o, 4)
-    if equal_span(s, w, canonical_frames, planned_frames) == False:
+    if proof_names_plan(s, w, evidence, plan_digest) == False:
         return refusal(o, 4)
-    if tag_is(w, lookup(w, evidence, K_same_slots), 2) == False or tag_is(w, lookup(w, evidence, K_same_frame_sizes), 2) == False:
+    return layout_choices(s, w, o, plan, evidence, registers_checked,
+                          equal_span(s, w, canonical_frames, planned_frames))
+
+def layout_choices(s:readbuf, w:mutbuf, o:mutbuf, plan:u64, evidence:u64, registers_checked:bool, same_frames:bool) -> u64:
+    schema = lookup(w, plan, K_schema)
+    leaf = leaf_schema(w, schema)
+    select = leaf or select_schema(w, schema)
+    machine = select or machine_schema(w, schema)
+    if (machine == False and layout_schema(w, schema) == False) or layout_method(w, lookup(w, evidence, K_method)) == False:
         return refusal(o, 4)
-    if tag_is(w, lookup(w, evidence, K_implicit_optimizer_used), 1) == False or proof_names_plan(s, w, evidence, plan_digest) == False:
+    witnessed = NONE
+    if registers_checked:
+        witnessed = next(w, evidence)
+        if select == False or is_object(w, witnessed) == False:
+            return refusal(o, 4)
+    elif leaf or (select and empty_object(w, lookup(w, plan, K_value_registers)) == False):
+        return refusal(o, 4)
+    same_slots = True
+    if registers_checked:
+        same_slots = spill_only(w, lookup(w, plan, K_value_registers))
+    elif same_frames == False:
+        return refusal(o, 4)
+    if tag_is(w, lookup(w, evidence, K_same_slots), choose(same_slots, 2, 1)) == False:
+        return refusal(o, 4)
+    if tag_is(w, lookup(w, evidence, K_same_frame_sizes), choose(same_frames, 2, 1)) == False:
+        return refusal(o, 4)
+    if tag_is(w, lookup(w, evidence, K_implicit_optimizer_used), 1) == False:
         return refusal(o, 4)
     checks = lookup(w, evidence, K_choice_checks)
-    count = choose(v3, SELECT_CHECK_COUNT, choose(machine, MACHINE_CHECK_COUNT, 1))
+    count = choose(select, SELECT_CHECK_COUNT + choose(leaf, 1, 0), choose(machine, MACHINE_CHECK_COUNT, 1))
     if checks == NONE or get(w, checks) != 5 or get(w, checks + 32) != count:
         return refusal(o, 4)
     choice = 64 + get(w, checks + 24) * 72
     index = 0
     while index < count:
-        if checked_choice(w, choice, index) == False:
+        if checked_choice(s, w, choice, index, witnessed) == False:
             return refusal(o, 4)
         choice = next(w, choice)
         index = index + 1
     return refusal(o, 0)
 
-def checked_choice(w:mutbuf, record:u64, index:u64) -> bool:
+def checked_choice(s:readbuf, w:mutbuf, record:u64, index:u64, witnessed:u64) -> bool:
     if is_object(w, record) == False or tag_is(w, lookup(w, record, K_checked), 2) == False:
         return False
     witness_expected = index == MACHINE_CHECK_COUNT
-    if get(w, record + 32) != choose(witness_expected, 4, 3):
+    leaf = index == SELECT_CHECK_COUNT
+    if get(w, record + 32) != choose(witness_expected or leaf, 4, 3):
         return False
     if machine_choice(w, lookup(w, record, K_choice), lookup(w, record, K_rule), index) == False:
         return False
@@ -281,7 +329,22 @@ def checked_choice(w:mutbuf, record:u64, index:u64) -> bool:
         witness = lookup(w, record, K_witness)
         if is_object(w, witness) == False or get(w, witness + 32) != 2:
             return False
+        if witnessed != NONE:
+            return equal_span(s, w, witness, witnessed)
         return lifetime_rule(w, lookup(w, witness, K_rule)) and empty_object(w, lookup(w, witness, K_functions))
+    if leaf:
+        return leaf_trap_rule(w, lookup(w, record, K_trap_rule))
+    return True
+
+def spill_only(w:mutbuf, mappings:u64) -> bool:
+    if is_object(w, mappings) == False:
+        return False
+    child = get(w, mappings + 24)
+    while child != NONE:
+        value = 64 + child * 72
+        if empty_object(w, value) == False:
+            return False
+        child = get(w, value + 16)
     return True
 
 def empty_object(w:mutbuf, node:u64) -> bool:
@@ -344,7 +407,7 @@ def bind_receipt(s:readbuf, w:mutbuf, o:mutbuf, installation:u64, context:u64, c
 
 # Only called after the retained proof chain has been fully rechecked. A proved
 # lowering claim names the exact backend, plan profile and plan reference.
-def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64, observed:u64, canonical:u64) -> u64:
+def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64, observed:u64, canonical:u64, active_plan:u64) -> u64:
     if is_object(w, expected) == False or is_object(w, receipt) == False:
         return INVALID
     if matches_field(s, w, receipt, K_subject, expected) == False:
@@ -359,6 +422,16 @@ def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64, obs
             return INVALID
         if matches_field(s, w, plan, K_sha256, observed) == False:
             return refusal(o, 3)
+    tag = choose(canonical == NONE, QUALIFIED, NORMALIZED)
+    if active_plan != NONE:
+        if is_object(w, active_plan) == False:
+            return INVALID
+        schema = lookup(w, active_plan, K_schema)
+        mappings = lookup(w, active_plan, K_value_registers)
+        if leaf_schema(w, schema) or (select_schema(w, schema) and empty_object(w, mappings) == False):
+            if is_object(w, mappings) == False:
+                return INVALID
+            tag = REGISTER_QUALIFIED
     checks = lookup(w, receipt, K_checks)
     if checks == NONE or get(w, checks) != 5:
         return INVALID
@@ -370,7 +443,7 @@ def qualified_plan(w:mutbuf, o:mutbuf, s:readbuf, expected:u64, receipt:u64, obs
             return INVALID
         claim = lookup(w, check, K_claim)
         if claim_lowering_refinement(w, claim) and proved_status(w, lookup(w, check, K_status)):
-            put(o, 0, choose(canonical == NONE, QUALIFIED, NORMALIZED))
+            put(o, 0, tag)
             put(o, 8, 0)
             copy_digest(s, o, get(w, plan + 56) + 53, 16)
             if canonical == NONE:
@@ -453,6 +526,8 @@ def program():
                      SUBJECT=int.from_bytes(b'HIAEVS01', 'little'),
                      QUALIFIED=int.from_bytes(b'HIAEVQ01', 'little'),
                      NORMALIZED=int.from_bytes(b'HIAEVQ02', 'little'),
+                     REGISTER_QUALIFIED=int.from_bytes(b'HIAEVQ03', 'little'),
+                     WITNESS_SPAN=int.from_bytes(b'HIAEVW01', 'little'),
                      SCOPE_INPUT=int.from_bytes(b'HIAEVT01', 'little'),
                      SCOPE_RESULT=int.from_bytes(b'HIAPSC01', 'little'),
                      SCOPE_EFFECT=int.from_bytes(b'HIAEVH01', 'little'),
@@ -474,7 +549,7 @@ def program():
     claims.append('    return 0')
     machine = ['def machine_choice(w:mutbuf, choice:u64, rule:u64, index:u64) -> bool:']
     rules = []
-    table = tuple((row['choice'], row['rule']) for row in MACHINE_CHECKS) + SELECT_CHECKS
+    table = tuple((row['choice'], row['rule']) for row in MACHINE_CHECKS) + SELECT_CHECKS + (LEAF_CHECK,)
     for index, (choice, rule) in enumerate(table):
         machine.extend((f'    if index == {index}:',
                         f'        return {choice}_choice(w, choice) and {choice}_rule(w, rule)'))
@@ -491,6 +566,8 @@ def program():
         literal_match('layout_schema', LAYOUT_V1),
         literal_match('machine_schema', MACHINE_V2),
         literal_match('select_schema', MACHINE_V3),
+        literal_match('leaf_schema', MACHINE_V4),
+        literal_match('leaf_trap_rule', LEAF_TRAP_RULE),
         literal_match('lifetime_rule', LIFETIME_RULE),
         literal_match('plan_subject_kind', 'agent_machine_plan'),
         literal_match('core_subject_kind', 'core'),

@@ -261,6 +261,7 @@ def program(*, with_registers=False):
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      TAG=int.from_bytes(PACKET, 'little'), MACHINE_TAG=int.from_bytes(MACHINE_PACKET, 'little'),
                      SELECT_TAG=int.from_bytes(REGISTER_PACKET if with_registers else SELECT_PACKET, 'little'),
+                     REGISTER_LAYOUT_TAG=int.from_bytes(REGISTER_PACKET, 'little'),
                      NODES=MAX_NODES, INPUT_MAX=INPUT_BYTES,
                      PREFLIGHT=PREFLIGHT_BYTES, WORKSPACE=WORKSPACE_BYTES,
                      FN_MAX=MAX_FUNCTIONS, BLOCK_MAX=MAX_BLOCKS)
@@ -269,16 +270,24 @@ def program(*, with_registers=False):
     assert decoder.count(original_guard) == 2
     decoder = decoder.replace(original_guard, original_guard.replace('8388608', str(INPUT_BYTES)))
     policy = POLICY
+    # Registered schedules carry numeric choices only. The emitter must
+    # independently derive the lifetime packet from the same immutable Plan.
+    policy = policy.replace('select_version = select_schema(w, schema)',
+                            'select_version = select_schema(w, schema) or leaf_schema(w, schema)')
+    policy = policy.replace('get(w, assigned) != 6 or get(w, assigned + 32) != 0',
+                            'get(w, assigned) != 6')
     if with_registers:
-        # This schedule is admitted only alongside the independent HIA
-        # lifetime projection of the very same input. It emits numeric choices.
-        policy = policy.replace('select_version = select_schema(w, schema)',
-                                'select_version = select_schema(w, schema) or leaf_schema(w, schema)')
         policy = policy.replace('    advanced = select_version or machine_schema(w, schema)',
                                 '    if select_version == False:\n        return INVALID\n'
                                 '    advanced = True')
-        policy = policy.replace('get(w, assigned) != 6 or get(w, assigned + 32) != 0',
-                                'get(w, assigned) != 6')
+    else:
+        policy = policy.replace('    return emit_layout(w, o, functions, orders, count, cursor, choose(select_version, SELECT_TAG, MACHINE_TAG))', """
+    tag = choose(select_version, SELECT_TAG, MACHINE_TAG)
+    if select_version:
+        assigned = lookup(w, plan, K_value_registers)
+        if leaf_schema(w, lookup(w, plan, K_schema)) or get(w, assigned + 32) != 0:
+            tag = REGISTER_LAYOUT_TAG
+    return emit_layout(w, o, functions, orders, count, cursor, tag)""".lstrip('\n'))
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b', lambda m: str(constants[m[0]]), policy)
     return '\n'.join((
         policy, WIRE_HELPERS.split('\ndef signed_id', 1)[0].replace('NONE', str(constants['NONE'])),
@@ -291,7 +300,7 @@ def program(*, with_registers=False):
         )),
         *(function(CONTEXT, name).replace('NONE', str(constants['NONE']))
           for name in ('digest_text', 'equal_span')),
-        literal_match('leaf_schema', MACHINE_V4) if with_registers else '',
+        literal_match('leaf_schema', MACHINE_V4),
         decoder,
     ))
 

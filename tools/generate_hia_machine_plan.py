@@ -340,10 +340,6 @@ def machine_plan(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if stage != 9 or validate(s, w) == 0 or tag(s, 0) != 5 or total(s, 0) != 2:
             return ABI
         return exact_assignment(s, o, w)
-    if command == 33:
-        if stage != 0 or validate(s, w) == 0 or tag(s, 0) != 5 or total(s, 0) != 3:
-            return ABI
-        return register_packet(s, o, w)
     return ABI
 
 def exact_assignment(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -413,12 +409,6 @@ def bind_assignment(w:mutbuf, o:mutbuf, fn:u64, mapping:u64) -> u64:
 
 # This internal packet is consumed only after Core admission and independent
 # hashing. Ordinals are in immutable Core order, not the selected block order.
-def register_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    if length(o) < 96 or length(s) > length(w) - 8192:
-        return ABI
-    copy_in(s, w, 8192)
-    return bound_register_packet(o, w, 8192, align8(8192 + length(s)))
-
 def bound_register_packet(o:mutbuf, w:mutbuf, packet:u64, workspace:u64) -> u64:
     core = welement(w, packet, 0)
     digest = welement(w, packet, 1)
@@ -1104,7 +1094,10 @@ def source_program():
 
 
 def document():
-    nodes = ast.parse(source_program()).body
+    # The standalone JSON role calls these shared projection routines.
+    # Do not include dead transport code in the hosted-call compatibility image.
+    worker_only = {'bound_register_packet', 'hex_digest', 'find_mapping', 'register_function'}
+    nodes = [node for node in ast.parse(source_program()).body if node.name not in worker_only]
     names = {n.name: 'f' + str(i) for i, n in enumerate(nodes)}
     signatures = {n.name: ([a.annotation.id for a in n.args.args], n.returns.id) for n in nodes}
     total = total_scalar_functions(nodes)
