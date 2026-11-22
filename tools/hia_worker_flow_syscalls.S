@@ -6,15 +6,42 @@
 .text
 .global _start, worker_policy_hole
 .equ WORK, 0
-.equ COMMAND, 4096
-.equ OBS, 8192
+.ifdef WORKER_EMIT
+.global worker_emit_product_hole, worker_emit_proof_hole
+.equ WORK_BYTES, 9216
+.equ EMIT_DEFER_PRODUCT, 0xffffffe8
+.equ EMIT_DEFER_PROOF, 0xffffffe9
+.equ EMIT_PARENT, 41472
+.equ EMIT_DIRECTORY, EMIT_PARENT + 8
+.equ EMIT_NAME, EMIT_PARENT + 16
+.equ EMIT_FILE, EMIT_NAME + 48
+.equ EMIT_PATH, EMIT_FILE + 16
+.equ EMIT_BEFORE, EMIT_PATH + 4096
+.equ EMIT_AFTER, EMIT_BEFORE + 144
+.equ EMIT_DIR_STAT, EMIT_AFTER + 144
+.equ EMIT_STREAMS, 48000
+.equ EMIT_TEMP_COUNT, EMIT_STREAMS + 16
+.equ EMIT_TEMP_FDS, EMIT_TEMP_COUNT + 8
+.equ EMIT_STREAM_LIMIT, 8388608
+.else
+.equ WORK_BYTES, 4096
+.endif
+.equ COMMAND, WORK_BYTES
+.equ OBS, COMMAND + 4096
 .equ SCRATCH, 65536
 .equ ROLES, 32768
 .ifdef WORKER_LAUNCHER
 .equ ARGV, 104448
-.equ CARRIED, 105024
-.equ NUMBERS, 105280
-.equ ARGV_LIMIT, 48
+.equ CARRIED, 105216
+.equ NUMBERS, 105600
+.equ ARGV_LIMIT, 80
+.equ COMMAND_LIMIT, 4096
+.else
+.ifdef WORKER_EMIT
+.equ ARGV, 35584
+.equ CARRIED, 35840
+.equ NUMBERS, 36096
+.equ ARGV_LIMIT, 12
 .else
 .ifdef WORKER_INSPECTION
 /* Forty descriptor roles occupy [32768, 33088). */
@@ -25,6 +52,7 @@
 .equ CARRIED, 33200
 .equ NUMBERS, 33408
 .equ ARGV_LIMIT, 12
+.endif
 .endif
 .equ PROCESS, 34000
 .equ OBS_SIZE, 34064
@@ -68,7 +96,11 @@
 .ifdef WORKER_ROLLBACK
 .equ ROLE_COUNT, 35
 .else
+.ifdef WORKER_EMIT
+.equ ROLE_COUNT, 70
+.else
 .equ ROLE_COUNT, 40
+.endif
 .endif
 .endif
 .else
@@ -126,6 +158,9 @@
 .equ ENTRY_SIZE, ROLE_RECORD_END
 .endif
 .equ HEADER, 512
+.ifndef WORKER_LAUNCHER
+.equ COMMAND_LIMIT, 2048
+.endif
 .ifdef WORKER_INPUT
 .equ HAS_RANDOM_PORT, 1
 .endif
@@ -428,17 +463,37 @@ _start:
  mov QWORD PTR [rbp+OBS_SIZE], ENTRY_SIZE
 
 .Lnext:
+.macro worker_policy_arguments
  lea rdi, [rbp+OBS]
  mov rsi, [rbp+OBS_SIZE]
  lea rdx, [rbp+COMMAND]
- mov ecx, 2048
+ mov ecx, COMMAND_LIMIT
  lea r8, [rbp+WORK]
- mov r9d, 4096
+ mov r9d, WORK_BYTES
+.endm
+ worker_policy_arguments
  .byte 0xe8
 worker_policy_hole: .long 0
+ .ifdef WORKER_EMIT
+ cmp eax, EMIT_DEFER_PRODUCT
+ je .Lemit_product_policy
+ cmp eax, EMIT_DEFER_PROOF
+ je .Lemit_proof_policy
+ jmp .Lworker_policy_answer
+.Lemit_product_policy:
+ worker_policy_arguments
+ .byte 0xe8
+worker_emit_product_hole: .long 0
+ jmp .Lworker_policy_answer
+.Lemit_proof_policy:
+ worker_policy_arguments
+ .byte 0xe8
+worker_emit_proof_hole: .long 0
+.Lworker_policy_answer:
+ .endif
  cmp eax, HEADER
  jb .Lrefused
- cmp eax, 2048
+ cmp eax, COMMAND_LIMIT
  ja .Lrefused
  mov [rbp+OUTPUT_END], rax
  mov rax, [rip+.Lcommand_magic]
@@ -487,7 +542,14 @@ worker_policy_hole: .long 0
  cmp QWORD PTR [rbp+COMMAND+136], 1
  jne .Lrefused
  cmp QWORD PTR [rbp+COMMAND+16], 1
+ .ifdef WORKER_EMIT
+ je .Lemit_wide_allowed
+ cmp QWORD PTR [rbp+COMMAND+16], 11
+ .endif
  jne .Lrefused
+ .ifdef WORKER_EMIT
+.Lemit_wide_allowed:
+ .endif
  mov rax, [rbp+COMMAND+40]
  cmp rax, 32
  ja .Lrefused
@@ -551,6 +613,20 @@ worker_policy_hole: .long 0
  cmp rax, 13
  je .Lcpu
  .endif
+ .ifdef WORKER_EMIT
+ cmp rax, 22
+ je .Lemit_prepare
+ cmp rax, 23
+ je .Lemit_snapshot
+ cmp rax, 24
+ je .Lemit_discard
+ cmp rax, 25
+ je .Lemit_append
+ cmp rax, 26
+ je .Lemit_seal_stream
+ cmp rax, 27
+ je .Lemit_release_temporaries
+ .endif
  .ifdef WORKER_BOOTSTRAP
  cmp rax, 14
  je .Lboot_bind
@@ -606,6 +682,9 @@ worker_policy_hole: .long 0
  call hia_worker_memfd
  test rax, rax
  js .Lrefused
+ .ifdef WORKER_EMIT
+.Lstage_write:
+ .endif
  mov [rbp+STAGED], rax
  mov [rbp+PROCESS+8], rax
  mov edi, eax
@@ -658,6 +737,10 @@ worker_policy_hole: .long 0
  add r13, 24
  jmp .Lfragments
 .Lseal_input:
+ .ifdef WORKER_EMIT
+ cmp QWORD PTR [rbp+CURRENT], 25
+ je .Lemit_appended
+ .endif
  mov edi, DWORD PTR [rbp+STAGED]
  call hia_worker_seal
  test rax, rax
@@ -696,6 +779,14 @@ worker_policy_hole: .long 0
  je .Lquery_child_name
  cmp rcx, 3
  je .Lobject_child_name
+ .ifdef WORKER_EMIT
+ cmp rcx, 6
+ je .Lemit_shared_inventory_name
+ cmp rcx, 7
+ je .Lemit_build_object_name
+ cmp rcx, 8
+ je .Lemit_build_shared_name
+ .endif
  .ifdef WORKER_CANDIDATE
  cmp rcx, 4
  je .Lverify_core_name
@@ -713,6 +804,17 @@ worker_policy_hole: .long 0
  jmp .Lchild_name_ready
 .Lobject_child_name:
  lea rax, [rip+.Lobject_name]
+ .ifdef WORKER_EMIT
+ jmp .Lchild_name_ready
+.Lemit_shared_inventory_name:
+ lea rax, [rip+.Lemit_shared_inventory]
+ jmp .Lchild_name_ready
+.Lemit_build_object_name:
+ lea rax, [rip+.Lemit_build_object]
+ jmp .Lchild_name_ready
+.Lemit_build_shared_name:
+ lea rax, [rip+.Lemit_build_shared]
+ .endif
  .ifdef WORKER_CANDIDATE
  jmp .Lchild_name_ready
 .Lverify_core_name:
@@ -758,6 +860,12 @@ worker_policy_hole: .long 0
  .ifdef WORKER_ARTIFACT
  cmp rax, 6
  je .Larg_span
+ .endif
+ .ifdef WORKER_EMIT
+ cmp rax, 7
+ je .Lemit_arg_product
+ cmp rax, 8
+ je .Lemit_arg_hex_fd
  .endif
  cmp rax, 4
  jne .Lrefused
@@ -914,6 +1022,39 @@ worker_policy_hole: .long 0
  test rax, rax
  jnz .Ldecimal
  mov rax, rsi
+.ifdef WORKER_EMIT
+ jmp .Larg_store
+.Lemit_arg_product:
+ cmp QWORD PTR [rbp+EMIT_DIRECTORY], 3
+ jb .Lrefused
+ cmp rdx, 0
+ jne .Lrefused
+ lea rax, [rbp+EMIT_PATH]
+ jmp .Larg_store
+.Lemit_arg_hex_fd:
+ cmp rdx, 3
+ jb .Lrefused
+ cmp rdx, 2147483647
+ ja .Lrefused
+ mov rcx, [rbp+PROCESS+48]
+ mov DWORD PTR [rbp+CARRIED+rcx*4], edx
+ inc QWORD PTR [rbp+PROCESS+48]
+ imul rcx, r12, 24
+ lea rsi, [rbp+NUMBERS+rcx+8]
+ mov BYTE PTR [rsi], 0
+ lea rdi, [rip+.Lemit_hex]
+ mov ecx, 8
+.Lemit_fd_digit:
+ mov eax, edx
+ and eax, 15
+ dec rsi
+ mov al, [rdi+rax]
+ mov [rsi], al
+ shr edx, 4
+ dec ecx
+ jnz .Lemit_fd_digit
+ mov rax, rsi
+.endif
 .Larg_store:
  mov [rbp+ARGV+r12*8+8], rax
  inc r12
@@ -921,15 +1062,56 @@ worker_policy_hole: .long 0
  jmp .Larguments
 .Lexec:
  mov QWORD PTR [rbp+ARGV+r12*8+8], 0
+ .ifdef WORKER_EMIT
+ /* HIA may bind RUN to the unchanged wall-window deadline. Other
+  * actions retain the existing relative platform transport lease. */
+ cmp QWORD PTR [rbp+CURRENT], 1
+ jne .Lrun_relative
+ mov rax, [rbp+COMMAND+144]
+ test rax, rax
+ jnz .Lrun_bound_ready
+.Lrun_relative:
+ .endif
  call .Ldeadline
+ .ifdef WORKER_EMIT
+.Lrun_bound_ready:
+ .endif
  mov [rbp+PROCESS+56], rax
  .ifdef WORKER_COST
  cmp QWORD PTR [rbp+CURRENT], 6
  je .Lstart_peer
  .endif
+ .ifdef WORKER_EMIT
+ /* The scalar compiler writes a private product. Do not let the
+  * launcher's ambient umask make it writable by another identity. */
+ mov r14d, -1
+ mov rcx, [rbp+COMMAND+168]
+ sub rcx, 7
+ cmp rcx, 1
+ ja .Lemit_run_ready
+ mov edi, 63
+ mov eax, 95                    /* umask(077) */
+ syscall
+ mov r14d, eax
+.Lemit_run_ready:
+ .endif
  lea rdi, [rbp+PROCESS]
  call hia_worker_run
  mov [rbp+OBS+24], rax
+ .ifdef WORKER_EMIT
+ test r14d, r14d
+ js .Lemit_run_restored
+ mov edi, r14d
+ mov eax, 95
+ syscall
+ mov rax, [rbp+OBS+24]
+.Lemit_run_restored:
+ cmp rax, -110
+ jne .Lrun_complete
+ cmp QWORD PTR [rbp+COMMAND+144], 0
+ jne .Lemit_expired
+.Lrun_complete:
+ .endif
  mov edi, DWORD PTR [rbp+STAGED]
  mov eax, 3
  syscall
@@ -959,6 +1141,21 @@ worker_policy_hole: .long 0
  .ifdef HAS_MAKE_PORT
 .Lobserve_output:
  .endif
+ .ifdef WORKER_EMIT
+ cmp QWORD PTR [rbp+CURRENT], 1
+ jne .Lemit_observe_ordinary
+ cmp QWORD PTR [rbp+COMMAND+184], 0
+ je .Lemit_observe_ordinary
+ cmp QWORD PTR [rbp+COMMAND+184], 1
+ jne .Lrefused
+ mov rcx, [rbp+EMIT_TEMP_COUNT]
+ cmp rcx, 16
+ jae .Lrefused
+ mov rax, [rbp+PROCESS+16]
+ mov [rbp+EMIT_TEMP_FDS+rcx*8], rax
+ inc QWORD PTR [rbp+EMIT_TEMP_COUNT]
+.Lemit_observe_ordinary:
+ .endif
  mov edi, DWORD PTR [rbp+PROCESS+16]
  lea rsi, [rbp+FD_INFO]
  call hia_worker_fd_observe
@@ -980,6 +1177,558 @@ worker_policy_hole: .long 0
  add rax, 64
  mov [rbp+OBS_SIZE], rax
  jmp .Lnext
+
+ .ifdef WORKER_EMIT
+.Lemit_append:
+ mov r12, [rbp+COMMAND+144]
+ cmp r12, 1
+ ja .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+176], EMIT_STREAM_LIMIT
+ ja .Lrefused
+ mov rax, [rbp+EMIT_STREAMS+r12*8]
+ test rax, rax
+ jnz .Lemit_stream_open
+ call hia_worker_memfd
+ cmp rax, 3
+ jl .Lrefused
+ mov [rbp+EMIT_STREAMS+r12*8], rax
+.Lemit_stream_open:
+ mov edi, eax
+ xor esi, esi
+ mov edx, 1
+ mov eax, 8
+ syscall
+ test rax, rax
+ js .Lrefused
+ mov rdx, [rbp+COMMAND+176]
+ sub rdx, rax
+ jc .Lrefused
+ sub rdx, [rbp+COMMAND+48]
+ jc .Lrefused
+ xor ecx, ecx
+ lea rsi, [rbp+COMMAND+64]
+.Lemit_stream_extent:
+ cmp rcx, [rbp+COMMAND+40]
+ jae .Lemit_stream_exact
+ sub rdx, [rsi+16]
+ jc .Lrefused
+ add rsi, 24
+ inc rcx
+ jmp .Lemit_stream_extent
+.Lemit_stream_exact:
+ test rdx, rdx
+ jnz .Lrefused
+ mov rax, [rbp+EMIT_STREAMS+r12*8]
+ jmp .Lstage_write
+
+.Lemit_appended:
+ mov edi, DWORD PTR [rbp+STAGED]
+ xor esi, esi
+ mov edx, 1
+ mov eax, 8
+ syscall
+ test rax, rax
+ js .Lrefused
+ cmp rax, EMIT_STREAM_LIMIT
+ ja .Lrefused
+ cmp rax, [rbp+COMMAND+176]
+ jne .Lrefused
+ mov [rbp+OBS+40], rax
+ jmp .Lnext
+
+.Lemit_seal_stream:
+ cmp QWORD PTR [rbp+COMMAND+40], 0
+ jne .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+48], 0
+ jne .Lrefused
+ mov r12, [rbp+COMMAND+144]
+ cmp r12, 1
+ ja .Lrefused
+ mov rax, [rbp+EMIT_STREAMS+r12*8]
+ cmp rax, 3
+ jb .Lrefused
+ mov [rbp+PROCESS+16], rax
+ mov edi, eax
+ lea rsi, [rbp+FD_INFO]
+ call hia_worker_fd_observe
+ test rax, rax
+ js .Lrefused
+ mov rax, [rbp+FD_INFO+24]
+ cmp rax, [rbp+COMMAND+176]
+ jne .Lrefused
+ mov edi, DWORD PTR [rbp+PROCESS+16]
+ call hia_worker_seal
+ test rax, rax
+ jnz .Lrefused
+ mov QWORD PTR [rbp+EMIT_STREAMS+r12*8], 0
+ jmp .Lobserve_output
+
+.Lemit_release_temporaries:
+ cmp QWORD PTR [rbp+COMMAND+40], 0
+ jne .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+48], 0
+ jne .Lrefused
+ mov r12, [rbp+EMIT_TEMP_COUNT]
+ cmp r12, 16
+ ja .Lrefused
+.Lemit_release_one:
+ test r12, r12
+ jz .Lemit_released
+ dec r12
+ mov edi, DWORD PTR [rbp+EMIT_TEMP_FDS+r12*8]
+ mov eax, 3
+ syscall
+ test rax, rax
+ jnz .Lrefused
+ jmp .Lemit_release_one
+.Lemit_released:
+ mov QWORD PTR [rbp+EMIT_TEMP_COUNT], 0
+ jmp .Lnext
+
+.Lemit_expired:
+ /* The status is an observation, never authority to use partial bytes. */
+ mov edi, DWORD PTR [rbp+STAGED]
+ mov eax, 3
+ syscall
+ mov edi, DWORD PTR [rbp+PROCESS+16]
+ mov eax, 3
+ syscall
+ mov edi, DWORD PTR [rbp+PROCESS+24]
+ mov eax, 3
+ syscall
+ mov QWORD PTR [rbp+OBS+32], 0
+ mov QWORD PTR [rbp+OBS+40], 0
+ mov QWORD PTR [rbp+OBS+48], 0
+ mov QWORD PTR [rbp+OBS+56], 0
+ mov QWORD PTR [rbp+OBS_SIZE], 64
+ jmp .Lnext
+
+/* The HIA request provides one unique leaf and a fixed output filename.
+ * Retain the ordinary parent and child directories until the sealed snapshot
+ * is complete. All pathname and cleanup operations stay relative to them. */
+.Lemit_prepare:
+ cmp QWORD PTR [rbp+EMIT_PARENT], 0
+ jne .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+48], 51
+ jne .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+40], 0
+ jne .Lrefused
+ lea rsi, [rbp+COMMAND+HEADER]
+ cmp DWORD PTR [rsi], 0x696d652e
+ jne .Lrefused
+ cmp WORD PTR [rsi+4], 0x2d74
+ jne .Lrefused
+ cmp BYTE PTR [rsi+38], 0
+ jne .Lrefused
+ lea rdi, [rsi+6]
+ lea rcx, [rsi+38]
+.Lemit_name_digit:
+ mov al, [rdi]
+ sub al, 48
+ cmp al, 9
+ jbe .Lemit_name_digit_ok
+ sub al, 49
+ cmp al, 5
+ ja .Lrefused
+.Lemit_name_digit_ok:
+ inc rdi
+ cmp rdi, rcx
+ jb .Lemit_name_digit
+ /* Validate the common stem and the two exact closed suffixes. */
+ cmp DWORD PTR [rsi+39], 0x676f7270
+ jne .Lrefused
+ cmp DWORD PTR [rsi+43], 0x2e6d6172
+ jne .Lrefused
+ mov eax, DWORD PTR [rsi+47]
+ cmp eax, 0x0000006f
+ je .Lemit_copy_names
+ cmp eax, 0x00006f73
+ jne .Lrefused
+.Lemit_copy_names:
+ cld
+ lea rdi, [rbp+EMIT_NAME]
+ mov ecx, 39
+ rep movsb
+ lea rdi, [rbp+EMIT_FILE]
+ mov ecx, 12
+ rep movsb
+ mov rsi, [r15+24]
+ lea rdi, [rbp+EMIT_PATH]
+ lea rcx, [rdi+4044]
+ cmp BYTE PTR [rsi], 47
+ jne .Lrefused
+.Lemit_root_copy:
+ cmp rdi, rcx
+ jae .Lrefused
+ lodsb
+ test al, al
+ jz .Lemit_leaf_path
+ stosb
+ jmp .Lemit_root_copy
+.Lemit_leaf_path:
+ cmp BYTE PTR [rdi-1], 47
+ je .Lrefused
+ mov al, 47
+ stosb
+ lea rsi, [rbp+EMIT_NAME]
+ mov ecx, 38
+ rep movsb
+ mov al, 47
+ stosb
+ lea rsi, [rbp+EMIT_FILE]
+ mov ecx, 12
+ rep movsb
+ mov edi, -100
+ mov rsi, [r15+24]
+ mov edx, 720896               /* O_RDONLY | DIRECTORY | NOFOLLOW | CLOEXEC */
+ xor r10d, r10d
+ mov eax, 257
+ syscall
+ cmp rax, 3
+ jl .Lrefused
+ mov r12d, eax
+ mov edi, eax
+ lea rsi, [rbp+EMIT_NAME]
+ mov edx, 448                  /* 0700 */
+ mov eax, 258
+ syscall
+ test rax, rax
+ js .Lrefused
+ mov [rbp+EMIT_PARENT], r12
+ mov edi, r12d
+ lea rsi, [rbp+EMIT_NAME]
+ mov edx, 720896
+ xor r10d, r10d
+ mov eax, 257
+ syscall
+ cmp rax, 3
+ jl .Lrefused
+ mov [rbp+EMIT_DIRECTORY], rax
+ mov edi, eax
+ lea rsi, [rbp+EMIT_DIR_STAT]
+ mov eax, 5
+ syscall
+ test rax, rax
+ js .Lrefused
+ mov eax, 107
+ syscall
+ cmp eax, DWORD PTR [rbp+EMIT_DIR_STAT+28]
+ jne .Lrefused
+ mov eax, DWORD PTR [rbp+EMIT_DIR_STAT+24]
+ and eax, 65535
+ cmp eax, 16832                 /* directory 0700 */
+ jne .Lrefused
+ jmp .Lnext
+
+.Lemit_snapshot:
+ cmp QWORD PTR [rbp+COMMAND+40], 0
+ jne .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+48], 0
+ jne .Lrefused
+ cmp QWORD PTR [rbp+EMIT_DIRECTORY], 3
+ jb .Lrefused
+ mov edi, DWORD PTR [rbp+EMIT_DIRECTORY]
+ lea rsi, [rbp+EMIT_FILE]
+ mov edx, 657408                /* CLOEXEC | NOFOLLOW | NONBLOCK */
+ xor r10d, r10d
+ mov eax, 257
+ syscall
+ cmp rax, 3
+ jl .Lrefused
+ mov r14d, eax
+ mov edi, eax
+ lea rsi, [rbp+EMIT_BEFORE]
+ mov eax, 5
+ syscall
+ test rax, rax
+ js .Lrefused
+ mov eax, DWORD PTR [rbp+EMIT_BEFORE+24]
+ test eax, 18
+ jnz .Lrefused
+ and eax, 61440
+ cmp eax, 32768
+ jne .Lrefused
+ cmp QWORD PTR [rbp+EMIT_BEFORE+16], 1
+ jne .Lrefused
+ mov eax, 107
+ syscall
+ cmp eax, DWORD PTR [rbp+EMIT_BEFORE+28]
+ jne .Lrefused
+ mov rax, [rbp+EMIT_BEFORE+48]
+ cmp rax, 64
+ jb .Lrefused
+ cmp rax, 67108864
+ ja .Lrefused
+ call hia_worker_memfd
+ test rax, rax
+ js .Lrefused
+ mov [rbp+PROCESS+16], rax
+ mov ecx, eax
+ mov edi, r14d
+ xor esi, esi
+ mov rdx, [rbp+EMIT_BEFORE+48]
+ lea r8, [rbp+SCRATCH]
+ mov r9d, 16384
+ call hia_worker_fragment_copy
+ test rax, rax
+ jnz .Lrefused
+ mov edi, r14d
+ lea rsi, [rbp+EMIT_AFTER]
+ mov eax, 5
+ syscall
+ test rax, rax
+ js .Lrefused
+ call .Lemit_same_stat
+ mov edi, DWORD PTR [rbp+EMIT_DIRECTORY]
+ lea rsi, [rbp+EMIT_FILE]
+ lea rdx, [rbp+EMIT_AFTER]
+ mov r10d, 256                  /* AT_SYMLINK_NOFOLLOW */
+ mov eax, 262
+ syscall
+ test rax, rax
+ js .Lrefused
+ call .Lemit_same_stat
+ mov edi, r14d
+ mov eax, 3
+ syscall
+ call .Lemit_cleanup
+ test rax, rax
+ js .Lrefused
+ mov edi, DWORD PTR [rbp+PROCESS+16]
+ call hia_worker_seal
+ test rax, rax
+ jnz .Lrefused
+ mov QWORD PTR [rbp+OBS+48], 15
+ jmp .Lobserve_output
+
+.Lemit_same_stat:
+ lea rsi, [rbp+EMIT_BEFORE]
+ lea rdi, [rbp+EMIT_AFTER]
+ mov ecx, 4
+ repe cmpsq
+ jne .Lrefused
+ mov rax, [rsi+16]
+ cmp rax, [rdi+16]
+ jne .Lrefused
+ add rsi, 56
+ add rdi, 56
+ mov ecx, 4
+ repe cmpsq
+ jne .Lrefused
+ ret
+
+.Lemit_discard:
+ cmp QWORD PTR [rbp+COMMAND+40], 0
+ jne .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+48], 0
+ jne .Lrefused
+ cmp QWORD PTR [rbp+EMIT_PARENT], 3
+ jb .Lrefused
+ call .Lemit_cleanup
+ test rax, rax
+ js .Lrefused
+ jmp .Lnext
+
+.Lemit_cleanup:
+ mov r8, [rbp+EMIT_DIRECTORY]
+ cmp r8, 3
+ jb .Lemit_remove_directory
+ mov edi, r8d
+ lea rsi, [rbp+EMIT_FILE]
+ xor edx, edx
+ mov eax, 263
+ syscall
+ test rax, rax
+ jz .Lemit_close_directory
+ cmp rax, -2
+ jne .Lemit_cleanup_result
+.Lemit_close_directory:
+ call .Lemit_cleanup_stage
+ test rax, rax
+ js .Lemit_cleanup_result
+ mov edi, DWORD PTR [rbp+EMIT_DIRECTORY]
+ mov eax, 3
+ syscall
+ mov QWORD PTR [rbp+EMIT_DIRECTORY], 0
+.Lemit_remove_directory:
+ mov r8, [rbp+EMIT_PARENT]
+ cmp r8, 3
+ jb .Lemit_cleanup_empty
+ mov rax, [rbp+EMIT_DIR_STAT+8]
+ test rax, rax
+ je .Lemit_unlink_directory
+ mov edi, r8d
+ lea rsi, [rbp+EMIT_NAME]
+ lea rdx, [rbp+EMIT_AFTER]
+ mov r10d, 256
+ mov eax, 262
+ syscall
+ test rax, rax
+ js .Lemit_cleanup_result
+ mov rax, [rbp+EMIT_DIR_STAT]
+ cmp rax, [rbp+EMIT_AFTER]
+ jne .Lemit_cleanup_stale
+ mov rax, [rbp+EMIT_DIR_STAT+8]
+ cmp rax, [rbp+EMIT_AFTER+8]
+ jne .Lemit_cleanup_stale
+.Lemit_unlink_directory:
+ mov edi, r8d
+ lea rsi, [rbp+EMIT_NAME]
+ mov edx, 512
+ mov eax, 263
+ syscall
+ test rax, rax
+ js .Lemit_cleanup_result
+ mov edi, r8d
+ mov eax, 3
+ syscall
+ mov QWORD PTR [rbp+EMIT_PARENT], 0
+ mov QWORD PTR [rbp+EMIT_DIR_STAT+8], 0
+.Lemit_cleanup_empty:
+ xor eax, eax
+.Lemit_cleanup_result:
+ ret
+.Lemit_cleanup_stale:
+ mov rax, -116
+ ret
+
+/* The already-ended scalar publisher can leave one private staging
+ * directory. Walk only its retained 0700 parent, never a user directory. */
+.Lemit_cleanup_stage:
+ push rbx
+ push r12
+ push r13
+ mov edi, DWORD PTR [rbp+EMIT_DIRECTORY]
+ xor esi, esi
+ xor edx, edx
+ mov eax, 8
+ syscall
+ test rax, rax
+ js .Lemit_stage_return
+.Lemit_stage_read:
+ mov edi, DWORD PTR [rbp+EMIT_DIRECTORY]
+ lea rsi, [rbp+SCRATCH]
+ mov edx, 4096
+ mov eax, 217
+ syscall
+ cmp rax, -4
+ je .Lemit_stage_read
+ test rax, rax
+ jle .Lemit_stage_return
+ lea r12, [rbp+SCRATCH]
+ lea r13, [r12+rax]
+ xor ebx, ebx
+.Lemit_stage_entry:
+ cmp r12, r13
+ je .Lemit_stage_found
+ mov rax, r13
+ sub rax, r12
+ cmp rax, 24
+ jb .Lemit_stage_invalid
+ movzx ecx, WORD PTR [r12+16]
+ cmp rcx, 24
+ jb .Lemit_stage_invalid
+ cmp rcx, rax
+ ja .Lemit_stage_invalid
+ lea rsi, [r12+19]
+ add r12, rcx
+ cmp WORD PTR [rsi], 46
+ je .Lemit_stage_entry
+ cmp WORD PTR [rsi], 11822
+ jne .Lemit_stage_name
+ cmp BYTE PTR [rsi+2], 0
+ je .Lemit_stage_entry
+.Lemit_stage_name:
+ test rbx, rbx
+ jnz .Lemit_stage_invalid
+ cmp ecx, 40
+ jb .Lemit_stage_invalid
+ cmp BYTE PTR [rsi-1], 4         /* DT_DIR */
+ jne .Lemit_stage_invalid
+ movabs rax, 0x7269642d6169682e  /* .hia-dir */
+ cmp QWORD PTR [rsi], rax
+ jne .Lemit_stage_invalid
+ cmp DWORD PTR [rsi+8], 0x2d746365
+ jne .Lemit_stage_invalid
+ cmp BYTE PTR [rsi+20], 0
+ jne .Lemit_stage_invalid
+ xor ecx, ecx
+.Lemit_stage_digit:
+ mov al, [rsi+rcx+12]
+ sub al, 48
+ cmp al, 9
+ jbe .Lemit_stage_next
+ sub al, 49
+ cmp al, 5
+ ja .Lemit_stage_invalid
+.Lemit_stage_next:
+ inc ecx
+ cmp ecx, 8
+ jb .Lemit_stage_digit
+ mov rbx, rsi
+ jmp .Lemit_stage_entry
+.Lemit_stage_found:
+ xor eax, eax
+ test rbx, rbx
+ jz .Lemit_stage_return
+ mov edi, DWORD PTR [rbp+EMIT_DIRECTORY]
+ mov rsi, rbx
+ mov edx, 720896
+ xor r10d, r10d
+ mov eax, 257
+ syscall
+ test rax, rax
+ js .Lemit_stage_return
+ mov r12d, eax
+ mov edi, eax
+ lea rsi, [rbp+EMIT_BEFORE]
+ mov eax, 5
+ syscall
+ test rax, rax
+ js .Lemit_stage_close
+ mov rax, [rbx-19]
+ cmp rax, [rbp+EMIT_BEFORE+8]
+ jne .Lemit_stage_close_invalid
+ cmp WORD PTR [rbp+EMIT_BEFORE+24], 16832
+ jne .Lemit_stage_close_invalid
+ mov eax, 107
+ syscall
+ cmp eax, DWORD PTR [rbp+EMIT_BEFORE+28]
+ jne .Lemit_stage_close_invalid
+ mov edi, r12d
+ lea rsi, [rbp+EMIT_FILE]
+ xor edx, edx
+ mov eax, 263
+ syscall
+ cmp rax, -2
+ jne .Lemit_stage_close
+ xor eax, eax
+.Lemit_stage_close:
+ mov r13, rax
+ mov edi, r12d
+ mov eax, 3
+ syscall
+ mov rax, r13
+ test rax, rax
+ js .Lemit_stage_return
+ mov edi, DWORD PTR [rbp+EMIT_DIRECTORY]
+ mov rsi, rbx
+ mov edx, 512
+ mov eax, 263
+ syscall
+ jmp .Lemit_stage_return
+.Lemit_stage_close_invalid:
+ mov rax, -116
+ jmp .Lemit_stage_close
+.Lemit_stage_invalid:
+ mov rax, -116
+.Lemit_stage_return:
+ pop r13
+ pop r12
+ pop rbx
+ ret
+
+ .endif
 
 .Ldeadline:
  call hia_worker_now
@@ -1597,6 +2346,12 @@ worker_policy_hole: .long 0
  ret
 
 .Lrefused:
+ .ifdef WORKER_EMIT
+ test rbp, rbp
+ jz .Lemit_no_scratch
+ call .Lemit_cleanup
+.Lemit_no_scratch:
+ .endif
  .ifdef WORKER_COST
  test rbp, rbp
  jz .Ldiagnose
@@ -1642,7 +2397,11 @@ worker_policy_hole: .long 0
 .ifdef WORKER_ROLLBACK
 .Lmode: .asciz "--worker-rollback"
 .else
+.ifdef WORKER_EMIT
+.Lmode: .asciz "--worker-emit"
+.else
 .Lmode: .asciz "--worker-inspection"
+.endif
 .endif
 .endif
 .else
@@ -1677,6 +2436,12 @@ worker_policy_hole: .long 0
 .else
 .Lquery_name: .asciz "hia-prepare-agent-edit-query"
 .Lobject_name: .asciz "hia-emit-object"
+.ifdef WORKER_EMIT
+.Lemit_shared_inventory: .asciz "hia-inspect-owned-shared"
+.Lemit_build_object: .asciz "hia-build-object"
+.Lemit_build_shared: .asciz "hia-build-shared"
+.Lemit_hex: .ascii "0123456789abcdef"
+.endif
 .endif
 .endif
 .endif
@@ -1697,7 +2462,11 @@ worker_policy_hole: .long 0
 .ifdef WORKER_ROLLBACK
 .Ldiagnostic: .ascii "native HIA Rollback Worker transport refused\n"
 .else
+.ifdef WORKER_EMIT
+.Ldiagnostic: .ascii "native HIA Emit Worker transport refused\n"
+.else
 .Ldiagnostic: .ascii "native HIA Inspection Worker transport refused\n"
+.endif
 .endif
 .endif
 .else

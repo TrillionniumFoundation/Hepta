@@ -8,7 +8,8 @@ from tools.generate_hia_read_capsule import ROLES as READ_ROLES
 from tools.generate_hia_readonly_worker_capsule import (
     ARTIFACT_OWNER, ARTIFACT_ROLES, BOOTSTRAP_OWNER, BOOTSTRAP_ROLES,
     CANDIDATE_OWNER, CANDIDATE_ROLES, CONTEXT_OWNER, CONTEXT_ROLES, DESCRIBE_OWNER, DESCRIBE_ROLES,
-    INSPECTION_OWNER, INSPECTION_ROLES, NATIVE_ROLES, ROLLBACK_OWNER, ROLLBACK_ROLES,
+    EMIT_OWNER, EMIT_ROLES, INSPECTION_OWNER, INSPECTION_ROLES, NATIVE_ROLES, PROOF_TRUST_BYTES,
+    ROLLBACK_OWNER, ROLLBACK_ROLES,
     POLICY as CAPSULE_POLICY,
 )
 from tools.generate_hia_worker_describe_flow import POLICY as DESCRIBE, flow_source
@@ -25,11 +26,12 @@ ROUTES = (
     (INSPECTION_OWNER, '--worker-inspection', INSPECTION_ROLES),
     (CANDIDATE_OWNER, '--worker-candidate', CANDIDATE_ROLES),
     (ROLLBACK_OWNER, '--worker-rollback', ROLLBACK_ROLES),
+    (EMIT_OWNER, '--worker-emit', EMIT_ROLES),
 )
 
 POLICY = r'''
 def launcher(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(o) != 2048 or length(w) != 4096:
+    if length(o) < 2048 or length(w) != 4096:
         return BAD
     state = get(w, 0)
     if state == 0:
@@ -100,8 +102,13 @@ def bind_capsule(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             extent = capsule_word(s, 64 + i * 8)
             if extent == 0 or extent > get(w, CAPSULE_BYTES) - start:
                 return BAD
+            if i == 0:
+                if extent <= PROOF_TRUST_BYTES + 312:
+                    return BAD
+                put(w, PART_TABLE + 104, start + extent - PROOF_TRUST_BYTES)
+                put(w, PART_TABLE + 112, PROOF_TRUST_BYTES)
             put(w, PART_TABLE + i * 24 + 8, start)
-            put(w, PART_TABLE + i * 24 + 16, extent)
+            put(w, PART_TABLE + i * 24 + 16, extent - choose(i == 0, PROOF_TRUST_BYTES, 0))
             start = start + extent
             i = i + 1
         if start != get(w, CAPSULE_BYTES):
@@ -163,7 +170,7 @@ def auth_result(s:readbuf) -> u64:
 
 def next_part(o:mutbuf, w:mutbuf) -> u64:
     index = get(w, PART_INDEX)
-    if index == 4:
+    if index == 5:
         put(o, 152, REQUEST_LEASE)
         return issue(o, w, INPUT_CAPTURED, CAPTURE_INPUT, 0, 0, 0, 0)
     row = PART_TABLE + 24 * index
@@ -205,7 +212,7 @@ def dispatch(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         return ask_authority(o, w, ROUTE_BOUND, 3, 0, fd, size)
     if state == ROUTE_BOUND:
         route = auth_result(s)
-        if route < 1 or route > 7:
+        if route < 1 or route > NATIVE_ROUTE_COUNT:
             return BAD
         put(w, ROUTE, route)
         return launch_bootstrap(o, w)
@@ -242,7 +249,7 @@ def launch_bootstrap(o:mutbuf, w:mutbuf) -> u64:
 def launch_worker(o:mutbuf, w:mutbuf, route:u64) -> u64:
     mode = route_mode(o, route)
     owner = route_owner(route)
-    if mode == 0 or owner >= ROLE_COUNT:
+    if mode == 0 or owner >= ROLE_COUNT or (route == EMIT_ROUTE and length(o) < 1024 + 16 * EMIT_ARG_COUNT):
         return BAD
     argv(o, 0, LITERAL_ARG, 448)
     argv(o, 1, INPUT_ARG, 1)
@@ -254,6 +261,9 @@ def launch_worker(o:mutbuf, w:mutbuf, route:u64) -> u64:
         argv(o, count, FD_ARG, metadata)
         count = count + 1
     count = append_roles(o, w, route, count)
+    if route == EMIT_ROUTE:
+        argv(o, count, FD_ARG, get(w, PART_TABLE + 96))
+        count = count + 1
     child_name(o, owner)
     fragment(o, 0, get(w, REQUEST_FD), 0, get(w, REQUEST_BYTES))
     return issue(o, w, WORKER_DONE, RUN, role_fd(w, owner), count, 1, 0)
@@ -327,6 +337,8 @@ def program():
                      SNAPSHOT=19, AUTHORIZE=20, CAPTURE_INPUT=21, DEFAULT_CHILD_LEASE=120_000_000_000,
                      REQUEST_LEASE=60_000_000_000,
                      INPUT_ARG=1, LITERAL_ARG=2, FD_ARG=4, BOOTSTRAP_ROUTE=len(ROUTES) + 1,
+                     NATIVE_ROUTE_COUNT=len(ROUTES), EMIT_ROUTE=len(ROUTES), EMIT_ARG_COUNT=6 + len(EMIT_ROLES),
+                     PROOF_TRUST_BYTES=PROOF_TRUST_BYTES,
                      BOOTSTRAP=NATIVE_ROLES.index(BOOTSTRAP_OWNER), ADMIT=NATIVE_ROLES.index('hia-worker-admit'))
     tables = route_tables()
     issue = function(DESCRIBE, 'issue').replace('seq > 160', 'seq > 512').replace(

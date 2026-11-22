@@ -42,6 +42,12 @@ LAUNCHER = 'tools/hia_worker_launcher_ports.S'
 LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_launcher_flow.hepta'
 LAUNCHER_PACKER = 'examples/hia_bootstrap/worker_launcher_flow_packer.hepta'
 LAUNCHER_KIND = 'native-launcher'
+EMIT_KIND = 'emit'
+EMIT_PACK_LIMIT = 2 << 20
+EMIT_POLICY = 'examples/hia_bootstrap/worker_emit_flow.hepta'
+EMIT_PRODUCT = 'examples/hia_bootstrap/worker_emit_product_flow.hepta'
+EMIT_PROOF = 'examples/hia_bootstrap/worker_emit_proof_flow.hepta'
+EMIT_PACKER = 'examples/hia_bootstrap/worker_emit_flow_packer.hepta'
 PROGRAMS = {
     'describe': (POLICY, PACKER), 'read': (READ_POLICY, READ_PACKER),
     'cost': (COST_POLICY, COST_PACKER), 'read-store': (READ_STORE_POLICY, READ_STORE_PACKER),
@@ -53,11 +59,12 @@ PROGRAMS = {
     'inspection': (INSPECTION_POLICY, INSPECTION_PACKER),
     'candidate': (CANDIDATE_POLICY, CANDIDATE_PACKER),
     'rollback': (ROLLBACK_POLICY, ROLLBACK_PACKER),
+    EMIT_KIND: (EMIT_POLICY, EMIT_PACKER),
     'discovery-bootstrap': (BOOTSTRAP_POLICY, BOOTSTRAP_PACKER),
     LAUNCHER_KIND: (LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
 PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
-              'inspection', 'candidate', 'rollback', 'discovery-bootstrap', LAUNCHER_KIND)
+              'inspection', 'candidate', 'rollback', EMIT_KIND, 'discovery-bootstrap', LAUNCHER_KIND)
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -92,6 +99,9 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
                       b'.equ WORKER_CONTEXT, 1\n.equ WORKER_INSPECTION, 1\n.equ WORKER_CANDIDATE, 1\n'),
         'rollback': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n.equ WORKER_ARTIFACT, 1\n'
                      b'.equ WORKER_CONTEXT, 1\n.equ WORKER_INSPECTION, 1\n.equ WORKER_ROLLBACK, 1\n'),
+        EMIT_KIND: (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
+                    b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_CONTEXT, 1\n'
+                    b'.equ WORKER_INSPECTION, 1\n.equ WORKER_EMIT, 1\n'),
         'discovery-bootstrap': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                                 b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_BOOTSTRAP, 1\n'),
         LAUNCHER_KIND: (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
@@ -100,10 +110,12 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
     return variant + flow + b'\n' + ports
 
 
-def partitioned_packer(module, prefix, holes, *, extra_image=False):
+def partitioned_packer(module, prefix, holes, *, extra_image=False, separate_sections=False):
     # Keep the constant adapter writes within the cold compiler's ordinary
     # block budget. The bytes and relocation are still emitted solely by HIA.
-    source = source_program(magic=MAGIC, image_template=(prefix, holes), formatter=extra_image)
+    source = source_program(magic=MAGIC, image_template=(prefix, holes), formatter=extra_image,
+                            separate_sections=separate_sections,
+                            pack_limit=EMIT_PACK_LIMIT if separate_sections else 1 << 20)
     start = source.index('    write(o, 0,')
     end = source.index('    write(o, 96, size, 8)', start)
     writes = source[start:end].splitlines(keepends=True)
@@ -122,15 +134,18 @@ def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
     symbols = {'policy': 'worker_policy_hole'}
     if kind == LAUNCHER_KIND:
         symbols['authority'] = 'worker_authority_hole'
+    if kind == EMIT_KIND:
+        symbols.update(product='worker_emit_product_hole', proof='worker_emit_proof_hole')
     with TemporaryDirectory(prefix='hia-worker-flow-adapter-') as temporary:
         stub, locations, _ = adapter_layout(Path(temporary), 'worker_flow.S', source, symbols)
     holes = tuple(locations[name] for name in symbols)
     header = elf_header()
     module = Path(packer_path).stem
     template = header + stub, tuple(len(header) + hole for hole in holes)
-    if kind in ('input', 'artifact', 'discovery', 'context', 'inspection', 'candidate', 'rollback',
+    if kind in ('input', 'artifact', 'discovery', 'context', 'inspection', 'candidate', 'rollback', EMIT_KIND,
                 'discovery-bootstrap', LAUNCHER_KIND):
-        packer = partitioned_packer(module, *template, extra_image=kind == LAUNCHER_KIND)
+        packer = partitioned_packer(module, *template, extra_image=kind == LAUNCHER_KIND,
+                                    separate_sections=kind == EMIT_KIND)
     else:
         packer = document(magic=MAGIC, module=module, image_template=template)
     return bind_adapter(packer, source, stub, holes)

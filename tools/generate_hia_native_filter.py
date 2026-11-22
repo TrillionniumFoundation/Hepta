@@ -305,22 +305,39 @@ def reference_cli_document():
 
 def source_program(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
                    magic=MAGIC, formatter=False, object_files=False, worker_request=False,
-                   image_template=None, private_entry=False):
+                   image_template=None, private_entry=False, separate_sections=False, pack_limit=1 << 20):
     prefix,calls=image_template or template(wire_bytes=wire_bytes, output_bytes=output_bytes,
                           workspace_bytes=workspace_bytes,
                           formatter=formatter,object_files=object_files,worker_request=worker_request)
     if private_entry and (formatter or len(calls) != 2):
         raise ValueError('private entry packing needs a single image with two calls')
-    header = 24 if formatter or private_entry else 16
+    if separate_sections and (not image_template or len(calls) < 2 or formatter or private_entry):
+        raise ValueError('section packing needs a separate image for each admitted call')
+    header = 8 + 8 * len(calls) if separate_sections else 24 if formatter or private_entry else 16
     minimum = header + len(calls)
     text=f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < {minimum} or length(s) > 1048576:
+    if length(s) < {minimum} or length(s) > {pack_limit}:
         return 4294967295
     if uint(s, 0, 8) != {magic}:
         return 4294967295
     image = uint(s, 8, 8)
 '''
-    if formatter:
+    section_starts = []
+    if separate_sections:
+        text += f'    payload = length(s) - {header}\n'
+        text += '    if image == 0 or image >= payload:\n        return 4294967295\n'
+        section_start = 'image'
+        for index in range(1, len(calls)):
+            section_starts.append(section_start)
+            extent = f'section_{index}'
+            text += f'    {extent} = uint(s, {8 + 8 * index}, 8)\n'
+            if index == len(calls) - 1:
+                text += f'    if {extent} != payload - ({section_start}):\n'
+            else:
+                text += f'    if {extent} == 0 or {extent} >= payload - ({section_start}):\n'
+            text += '        return 4294967295\n'
+            section_start += f' + {extent}'
+    elif formatter:
         text += '''    format_image = uint(s, 16, 8)
     if image == 0 or image >= length(s) - 24 or format_image != length(s) - 24 - image:
         return 4294967295
@@ -334,9 +351,9 @@ def source_program(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspac
         text += '''    if image != length(s) - 16:
         return 4294967295
 '''
-    payload = 'length(s) - 24' if formatter else 'image'
+    payload = 'payload' if separate_sections else 'length(s) - 24' if formatter else 'image'
     text += f'''    size = {len(prefix)} + ({payload})
-    if size > 1048576 or length(o) < size:
+    if size > {pack_limit} or length(o) < size:
         return 4294967294
 '''
     for at in range(0,len(prefix),8):
@@ -345,7 +362,10 @@ def source_program(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspac
     write(o, 104, size, 8)
     write(o, {calls[0]}, {len(prefix)-calls[0]-4}, 4)
 '''
-    if formatter:
+    if separate_sections:
+        for at, section_start in zip(calls[1:], section_starts, strict=True):
+            text += f'    write(o, {at}, {len(prefix)-at-4} + {section_start}, 4)\n'
+    elif formatter:
         text+=f'    write(o, {calls[1]}, {len(prefix)-calls[1]-4} + image, 4)\n'
     elif private_entry:
         text+=f'    write(o, {calls[1]}, {len(prefix)-calls[1]-4} + entry, 4)\n'

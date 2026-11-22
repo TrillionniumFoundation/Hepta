@@ -26,6 +26,10 @@ def emit_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         tag = input_word(s, 0)
         if tag == WINDOW or tag == LAUNCH_WINDOW:
             return emit_window(s, o, tag == LAUNCH_WINDOW)
+        if tag == INDEX_REQUEST:
+            return index_request(s, o)
+        if tag == FRAME_REQUEST:
+            return frame_control(s, o)
     put(o, 48, 4096)
     put(o, 56, 32)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
@@ -53,6 +57,61 @@ def emit_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if equal_span(s, w, pinned, catalog) == False:
         return CATALOG_MISMATCH
     return emit_arguments(s, o, w, arguments)
+
+# Keep the original projection used by the differential oracle. The new
+# driver asks HIA for a compact descriptor index over that exact held source,
+# instead of walking field lengths outside the HIA policy.
+def index_request(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 40 or input_word(s, 8) != REQUEST:
+        return INVALID
+    mode = input_word(s, 16)
+    codegen = input_word(s, 24)
+    receipts = input_word(s, 32)
+    if (mode != 1 and mode != 2) or (codegen != 1 and codegen != 2) or receipts > 16:
+        return INVALID
+    count = 5 + receipts + choose(codegen == 1, 1, 3)
+    at = 40
+    i = 0
+    while i < count:
+        if at > length(s) or length(s) - at < 10:
+            return INVALID
+        bytes = input_word(s, at)
+        value = at + 8
+        if bytes < 2 or bytes > length(s) - value:
+            return INVALID
+        head = choose(i == 3, 91, 123)
+        tail = choose(i == 3, 93, 125)
+        if byte(s, value) != head or byte(s, value + bytes - 1) != tail:
+            return INVALID
+        # Offsets are relative to the projection, excluding the command tag.
+        put(o, 40 + 16 * i, at)
+        put(o, 48 + 16 * i, bytes)
+        at = value + bytes
+        i = i + 1
+    if at != length(s):
+        return INVALID
+    put(o, 0, INDEX_RESULT)
+    put(o, 8, mode)
+    put(o, 16, codegen)
+    put(o, 24, receipts)
+    put(o, 32, count)
+    return 40 + 16 * count
+
+def frame_control(s:readbuf, o:mutbuf) -> u64:
+    size = length(s)
+    if size < 48 or size > 8232 or input_word(s, 8) != ELF_FACTS:
+        return INVALID
+    count = input_word(s, 32)
+    if count > 1024 or size != 40 + 8 * count:
+        return INVALID
+    at = 0
+    while at < size - 8:
+        put(o, at, input_word(s, at + 8))
+        at = at + 8
+    while at < 9472:
+        put(o, at, 0)
+        at = at + 8
+    return 9472
 
 def emit_arguments(s:readbuf, o:mutbuf, w:mutbuf, args:u64) -> u64:
     backend = lookup(w, args, K_backend_profile)
@@ -205,6 +264,10 @@ def program():
     constants = {f'K_{name}': index for index, name in enumerate(FIELDS, 1)}
     constants.update(REQUEST=int.from_bytes(b'HIAERQ01', 'little'), NONE=(1 << 64) - 1,
                      INVALID=4294967293, CATALOG_MISMATCH=4294967286,
+                     INDEX_REQUEST=int.from_bytes(b'HIAERIX1', 'little'),
+                     INDEX_RESULT=int.from_bytes(b'HIAERIX2', 'little'),
+                     FRAME_REQUEST=int.from_bytes(b'HIAERP01', 'little'),
+                     ELF_FACTS=int.from_bytes(b'HIAILF01', 'little'),
                      WINDOW=int.from_bytes(b'HIAEMW01', 'little'),
                      WINDOW_RESULT=int.from_bytes(b'HIAEMW02', 'little'),
                      LAUNCH_WINDOW=int.from_bytes(b'HIAEMW03', 'little'),

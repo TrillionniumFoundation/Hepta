@@ -19,6 +19,7 @@ import sys
 import time
 
 MAX_BYTES = 1 << 20
+PACK_BYTES = 2 << 20
 
 
 def main():
@@ -41,9 +42,13 @@ def main():
     source = Path(request["source"]).read_bytes()
     assert sha256(image).hexdigest() == request["image_sha256"]
     assert sha256(source).hexdigest() == request["source_sha256"]
-    assert 0 < len(image) <= 4 * MAX_BYTES and len(source) <= MAX_BYTES
+    pack_transport = request.get("transport") == "worker-section-pack-v1"
+    if pack_transport:
+        assert request["format"] == "flat-x86-64" and source[:8] == b"HIADPK01"
+    extent = PACK_BYTES if pack_transport else MAX_BYTES
+    assert 0 < len(image) <= 4 * MAX_BYTES and len(source) <= extent
     capacity, workspace_size = request["capacity"], request["workspace_size"]
-    assert type(capacity) is int and 0 <= capacity <= MAX_BYTES
+    assert type(capacity) is int and 0 <= capacity <= extent
     assert type(workspace_size) is int and 0 <= workspace_size <= MAX_BYTES
     signature = [ctypes.c_void_p, ctypes.c_uint64] * 3
     if request["format"] in {"seed-shared", "linked-selfhost"}:

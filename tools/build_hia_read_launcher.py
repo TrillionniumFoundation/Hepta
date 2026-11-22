@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 import os
+import platform
 from pathlib import Path
 import struct
 import sys
@@ -29,7 +30,8 @@ from tools.generate_hia_read_capsule import (
 )
 from tools.generate_hia_readonly_worker_capsule import (
     ARTIFACT_CONFIG, BOOTSTRAP_MAGIC, CAPSULE_MAX, MANIFEST_MAGIC as READONLY_MANIFEST,
-    NATIVE_MANIFEST, NATIVE_ROLES, NATIVE_SOURCE, RESOURCES_MAGIC,
+    NATIVE_MANIFEST, NATIVE_ROLES, NATIVE_SOURCE, PROOF_TRUST_BYTES, PROOF_TRUST_MAGIC,
+    PROOF_TRUST_RUNTIME_MAX, RESOURCES_MAGIC,
     ROLES as READONLY_ROLES, SOURCE as READONLY_AUTHORITY,
 )
 from tools.generate_hia_worker_flow_packer import LAUNCHER_KIND
@@ -260,6 +262,17 @@ def bind_readonly_release(target, release, expected_launcher, profile_pin, *, ar
     artifact = b''
     manifest_magic, names = READONLY_MANIFEST, READONLY_ROLES
     if kind == 'native':
+        # The old verifier issued these exact checker identities. Pin them
+        # in the authenticated capsule before processing any request.
+        selection = wire(sha256(wire({
+            'native_helpers_sha256': profile_pin,
+            'schema': 'hepta.hia.agent.proof-native-selection.v1',
+        })).hexdigest())
+        runtime = wire({'implementation': platform.python_implementation(), 'version': platform.python_version()})
+        if len(selection) != 66 or not 2 <= len(runtime) <= PROOF_TRUST_RUNTIME_MAX:
+            raise ValueError('legacy verifier identity differs from the capsule proof trust format')
+        trust = struct.pack('<8sQ', PROOF_TRUST_MAGIC, len(runtime)) + selection + runtime
+        dossier += trust.ljust(PROOF_TRUST_BYTES, b'\0')
         discovery = installed_agent_discovery(str(release / 'agent-discovery-manifest.json'))
         document = discovery.profile_bodies(json.loads(observed), catalog_pin.decode('ascii'),
                                             len(roots), roots_pin.decode('ascii'))['artifact']

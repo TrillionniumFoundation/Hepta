@@ -91,10 +91,31 @@ ROLLBACK_ROLES = (
     'hia-agent-worker-rollback', 'hia-agent-native-artifact-metadata',
     'hia-agent-context-request', 'hia-agent-borrowed-export-wire',
 )
+EMIT_OWNER = 'hia-agent-emit-worker-carrier'
+EMIT_ROLES = (
+    *(name.replace('inspection-', 'emit-') if name.startswith('hia-agent-inspection-') else name
+      for name in INSPECTION_ROLES[:31]),
+    'hia-agent-emit-request', 'hia-agent-native-artifact-metadata', 'hia-agent-context-request',
+    'hia-agent-emit-effect', 'hia-agent-emit-receipt', 'hia-agent-emit-build-observation',
+    'hia-agent-worker-profile-bindings', 'hia-agent-candidate-request', 'hia-build-object',
+    'hia-agent-borrowed-export-wire', 'hia-agent-retained-build', 'hia-agent-publication-observation',
+    'hia-agent-worker-build-custody', 'hia-agent-emit-verification', 'hia-agent-worker-proof-scope',
+    'hia-agent-worker-block-layout', 'hia-emit-object', 'hia-agent-inspection-lowering-elf',
+    'hia-agent-inspection-lowering-frames', 'hia-agent-worker-canonical', 'hia-agent-worker-object-inventory',
+    'hia-elf-link-direct-shared', 'hia-build-object', 'hia-agent-worker-borrowed-build-report',
+    'hia-worker-scalar-implementation', 'hia-agent-worker-register-layout',
+    'hia-agent-worker-finite-observation', 'hia-agent-worker-finite-reference', 'hia-reference-wire',
+    'hia-agent-worker-finite-domain', 'hia-agent-worker-finite-batch', 'hia-agent-worker-finite-transcript',
+    'hia-agent-worker-machine-replay', 'hia-safe-core-prove', 'hia-agent-worker-compositional-skeleton',
+    'hia-agent-worker-compositional-replay', 'hia-agent-worker-compositional-barrier', 'hia-proof-cnf',
+)
+PROOF_TRUST_MAGIC = b'HIAPTK01'
+PROOF_TRUST_BYTES = 224
+PROOF_TRUST_RUNTIME_MAX = 128
 NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
                                   *CONTEXT_ROLES, CONTEXT_OWNER,
                                   *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES, CANDIDATE_OWNER,
-                                  *ROLLBACK_ROLES, ROLLBACK_OWNER)))
+                                  *ROLLBACK_ROLES, ROLLBACK_OWNER, *EMIT_ROLES, EMIT_OWNER)))
 CAPSULE_MAX = 4 << 20
 HEADER_BYTES = 56
 ROW_BYTES = 48
@@ -226,7 +247,7 @@ def routing(*, artifact=False):
     methods = ((1, b'hia_read'), (2, b'hia_describe'))
     if artifact:
         methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'),
-                    (6, b'hia_candidate'), (7, b'hia_rollback'))
+                    (6, b'hia_candidate'), (7, b'hia_rollback'), (8, b'hia_emit'))
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'
@@ -292,6 +313,29 @@ def root_count(s:readbuf, at:u64, digits:u64) -> u64:
 '''
 
 
+PROOF_TRUST_POLICY = r"""
+def proof_trust(s:readbuf, at:u64) -> bool:
+    if capsule_word(s, at) != PROOF_TRUST_MAGIC or at + PROOF_TRUST_BYTES > length(s):
+        return False
+    count = capsule_word(s, at + 8)
+    if count < 2 or count > PROOF_TRUST_RUNTIME_MAX or byte(s, at + 16) != 34 or byte(s, at + 81) != 34:
+        return False
+    index = 17
+    while index < 81:
+        value = byte(s, at + index)
+        if (value < 48 or value > 57) and (value < 97 or value > 102):
+            return False
+        index = index + 1
+    if byte(s, at + 82) != 123 or byte(s, at + 81 + count) != 125:
+        return False
+    index = 82 + count
+    while index < PROOF_TRUST_BYTES:
+        if byte(s, at + index) != 0:
+            return False
+        index = index + 1
+    return True
+"""
+
 def native_policy():
     inventory = POLICY.replace(' or capsule_word(s, 48) != 0', '')
     inventory = inventory.replace(
@@ -306,17 +350,23 @@ def native_policy():
     profile = profile.replace('PROFILE_BYTES', str(len(prefix) + 66))
     profile += '\ndef profile_prefix(s:readbuf, at:u64) -> bool:\n    return '
     profile += ' and '.join(f'byte(s, at + {index}) == {value}' for index, value in enumerate(prefix))
-    return inventory + profile + '\n'
+    inventory = inventory.replace(
+        '    remaining = dossier - DOSSIER_HEADER',
+        '    if dossier <= DOSSIER_HEADER + PROOF_TRUST_BYTES or proof_trust(s, config_at - PROOF_TRUST_BYTES) == False:\n'
+        '        return False\n'
+        '    remaining = dossier - DOSSIER_HEADER - PROOF_TRUST_BYTES')
+    return inventory + profile + PROOF_TRUST_POLICY
 
 
 def source_program(*, artifact=False):
     tags = {'MANIFEST': NATIVE_MANIFEST if artifact else MANIFEST_MAGIC, 'DOSSIER': DOSSIER_MAGIC,
             'BOOTSTRAP': BOOTSTRAP_MAGIC, 'RESOURCES': RESOURCES_MAGIC}
     if artifact:
-        tags['ARTIFACT'] = ARTIFACT_CONFIG
+        tags.update(ARTIFACT=ARTIFACT_CONFIG, PROOF_TRUST_MAGIC=PROOF_TRUST_MAGIC)
     constants = {name: int.from_bytes(raw, 'little') for name, raw in tags.items()}
     roles = NATIVE_ROLES if artifact else ROLES
-    constants.update(CAPSULE_MAX=CAPSULE_MAX, HEADER_BYTES=HEADER_BYTES, ROW_BYTES=ROW_BYTES,
+    constants.update(PROOF_TRUST_BYTES=PROOF_TRUST_BYTES, PROOF_TRUST_RUNTIME_MAX=PROOF_TRUST_RUNTIME_MAX,
+                     CAPSULE_MAX=CAPSULE_MAX, HEADER_BYTES=HEADER_BYTES, ROW_BYTES=ROW_BYTES,
                      DOSSIER_HEADER=DOSSIER_HEADER, DOSSIER_OFFSET=HEADER_BYTES + len(roles) * ROW_BYTES,
                      ROLE_COUNT=len(roles), ROLE_LIMIT=MAX_ROLE_BYTES)
     source = native_policy() if artifact else POLICY

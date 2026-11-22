@@ -61,7 +61,7 @@ def _check_pack_output(receipt, output, *, artifact, source, capacity=1 << 20):
     """
     if (type(receipt) is not dict or type(output) is not bytes
             or type(artifact) is not bytes or type(source) is not bytes
-            or type(capacity) is not int or not 0 < capacity <= 1 << 20):
+            or type(capacity) is not int or not 0 < capacity <= 2 << 20):
         raise ValueError('native pack output transport differs')
     size = receipt.get('core_u32')
     if (type(size) is not int or not 0 < size <= len(output) <= capacity

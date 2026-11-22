@@ -216,7 +216,7 @@ hia_worker_run:
 /* Checked launch through the original inherited executable FD. */
 hia_worker_spawn:
  .ifdef WORKER_LAUNCHER
- cmp QWORD PTR [rdi+48], 48
+ cmp QWORD PTR [rdi+48], ARGV_LIMIT
  .else
  cmp QWORD PTR [rdi+48], 32
  .endif

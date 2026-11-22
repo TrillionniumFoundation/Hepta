@@ -564,6 +564,7 @@ def build(output, compiler, cold_report, *, release_only=False):
     if digest(prover_bytes) != proof_receipt['executable_sha256']:
         raise ValueError('public Core build verifier differs from the native proof build')
     products = {}
+    scalar_implementation = None
     for kind, (name, roles) in programs.items():
         if kind == 'dispatch':
             continue
@@ -579,6 +580,10 @@ def build(output, compiler, cold_report, *, release_only=False):
                 prover=prover)
             binary, packed = pack_executable(packer, launcher, images[ARGUMENT_PAYLOAD], executable,
                                              compressor, prover=prover)
+            if kind == 'build_object':
+                if digest(executable) != packed['implementation_sha256']:
+                    raise ValueError('Worker scalar implementation differs from the packaged compiler')
+                scalar_implementation = (executable, {**details, 'sha256': packed['implementation_sha256']})
             products[name] = (binary, {**details, **packed})
             continue
         stub, holes, adapter_hash = load_static_adapter(templates, adapter,
@@ -617,6 +622,9 @@ def build(output, compiler, cold_report, *, release_only=False):
                    or Path(receipt['produced_image']).read_bytes() != images[path]
                    for path, receipt in receipts.items())):
         raise ValueError('native Core edit build inputs changed before publication')
+    if scalar_implementation is None:
+        raise ValueError('Worker scalar implementation was not built')
+    products['hia-worker-scalar-implementation'] = scalar_implementation
     for name, (binary, _details) in products.items():
         executable = output / name
         with executable.open('xb') as stream:

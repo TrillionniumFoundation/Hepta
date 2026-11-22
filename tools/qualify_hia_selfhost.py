@@ -145,14 +145,16 @@ def build_seed(directory, source=None):
 
 def invoke(directory, label, image, source, *, image_format="flat-x86-64",
            capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
-           output_initial=None, observe_trap_writes=False, compiler_function_offsets=()):
+           output_initial=None, observe_trap_writes=False, compiler_function_offsets=(),
+           worker_section_pack=False):
     """Copy private inputs and run one pinned artifact under fixed limits."""
     if NATIVE_LINKED_OBSERVER is not None and image_format == 'linked-selfhost' and not compiler_function_offsets:
         from tools.hia_selfhost_linked_observer import invoke as observe_linked_native
         return observe_linked_native(directory, label, NATIVE_LINKED_OBSERVER, image, source,
             capacity=capacity, workspace_size=workspace_size, workspace_fill=workspace_fill,
             output_initial=output_initial, observe_trap_writes=observe_trap_writes)
-    if NATIVE_OBSERVER is not None and image_format == 'flat-x86-64' and not compiler_function_offsets:
+    if (NATIVE_OBSERVER is not None and image_format == 'flat-x86-64'
+            and not compiler_function_offsets and not worker_section_pack):
         from tools.hia_selfhost_native_observer import invoke as observe_native
         return observe_native(directory,label,NATIVE_OBSERVER,image,source,capacity=capacity,
             workspace_size=workspace_size,workspace_fill=workspace_fill,
@@ -167,6 +169,8 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
                "source_sha256": digest(source), "capacity": capacity,
                "workspace_size": workspace_size, "workspace_fill": workspace_fill,
                "output": str(output_path.resolve())}
+    if worker_section_pack:
+        request["transport"] = "worker-section-pack-v1"
     if output_initial is not None:
         if not isinstance(output_initial, bytes) or len(output_initial) != capacity:
             raise ValueError("output preimage must match the capacity")
