@@ -49,6 +49,7 @@ VARIANTS = {
     'emit-receipt': ('worker_emit_receipt', 'hepta.hia.emit-receipt-native.v1'),
     'emit-verification': ('worker_emit_verification', 'hepta.hia.emit-verification-native.v1'),
     'worker-adopt-authority': ('worker_adopt_authority', 'hepta.hia.worker-adopt-authority-native.v1'),
+    'worker-adopt-claims': ('worker_adopt_claims', 'hepta.hia.worker-adopt-claims-native.v1'),
     'worker-block-layout': ('worker_block_layout', 'hepta.hia.worker-block-layout-native.v1'),
     'worker-register-layout': ('worker_register_layout', 'hepta.hia.worker-register-layout-native.v1'),
     'worker-finite-reference': ('worker_finite_reference', 'hepta.hia.worker-finite-reference-native.v1'),
