@@ -319,6 +319,25 @@ def discovery_policy():
         fragment(o, 0, fd, 48, 192)
         return action(o, w, PLANNER_RETURNED, RUN, PLANNER_ROLE, 0, 1, 0)
 ''' + policy[end:]
+    # The reactor already bound the Candidate's sealed Context wire. Keep
+    # that entire action body on both the lookup and issuance paths, with
+    # the two freshly sampled nonces following (not replacing) the wire.
+    policy = policy.replace('        if payload != 80:',
+                            '        if payload != choose(get(w, 152) == 8, 201, 80):')
+    policy = policy.replace('fragment(o, 0, fd, 48, 80)', 'fragment(o, 0, fd, 48, payload)')
+    policy = policy.replace('        put(w, 128, fd)\n        put(o, 144, 32)',
+                            '        put(w, 128, fd)\n        put(w, 200, payload)\n        put(o, 144, 32)')
+    policy = policy.replace('        return read_span(o, w, INSERT_BODY, get(w, 128), 48, 80)',
+                            '        return read_span(o, w, INSERT_BODY, get(w, 128), 48, get(w, 200))')
+    policy = policy.replace('    if state == INSERT_BODY:\n        copy_span(s, o, 64, HEADER, 80)',
+                            '    if state == INSERT_BODY:\n'
+                            '        payload = get(w, 200)\n'
+                            '        if bytes != payload + 48 or length(s) != payload + 64:\n'
+                            '            return BAD\n'
+                            '        copy_span(s, o, 64, HEADER, payload)')
+    policy = policy.replace('store(o, HEADER + 80 + i, byte(w, SCRATCH + i))',
+                            'store(o, HEADER + payload + i, byte(w, SCRATCH + i))')
+    policy = policy.replace('RUN, PLANNER_ROLE, 0, 0, 112)', 'RUN, PLANNER_ROLE, 0, 0, payload + 32)')
     policy = policy.replace('    if length(s) < 96 or input_word(s, 72) != TYPED:',
                             '''    profile = get(w, 112) == 6
     if length(s) < 96 or input_word(s, 72) != choose(profile, TYPED_PROFILE, TYPED):''')
