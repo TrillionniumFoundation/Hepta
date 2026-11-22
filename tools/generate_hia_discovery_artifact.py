@@ -236,25 +236,6 @@ def nonce_hex(s:readbuf, o:mutbuf, source:u64, at:u64) -> u64:
         index = index + 1
     return at + 32
 
-def kind_text(o:mutbuf, at:u64, kind:u64) -> u64:
-    if kind == 1:
-        return profile_name(o, at)
-    if kind == 2:
-        return discovery_name(o, at)
-    if kind == 3:
-        return input_name(o, at)
-    if kind == 4:
-        return context_name(o, at)
-    if kind == 5:
-        return inspection_name(o, at)
-    if kind == 6:
-        return edit_query_name(o, at)
-    if kind == 7:
-        return lowering_object_name(o, at)
-    if kind == 8:
-        return core_name(o, at)
-    return candidate_diagnostics_name(o, at)
-
 def copy_input(s:readbuf, o:mutbuf, source:u64, at:u64, extent:u64) -> u64:
     index = 0
     while index < extent:
@@ -277,12 +258,8 @@ def widen(value:u32) -> u64:
 LITERALS = {
     'key_open': b'{"kind":"', 'key_metadata': b'","metadata":', 'key_sha': b',"sha256":"',
     'json_close': b'"}', 'artifact_id': b'a-', 'artifact_uri': b'hia://artifacts/',
-    'input_name': b'input', 'context_name': b'context', 'empty_metadata': b'{}', 'ref_open': b'{"id":"', 'ref_sha': b'","sha256":"',
-    'ref_uri': b'","uri":"', 'profile_name': b'profile', 'discovery_name': b'discovery',
-    'schema_version': b'hepta.hia.program.v',
-    'inspection_name': b'inspection', 'edit_query_name': b'edit-query',
-    'lowering_object_name': b'lowering-object',
-    'core_name': b'core', 'candidate_diagnostics_name': b'candidate-diagnostics',
+    'empty_metadata': b'{}', 'ref_open': b'{"id":"', 'ref_sha': b'","sha256":"',
+    'ref_uri': b'","uri":"', 'schema_version': b'hepta.hia.program.v',
     'metadata_context': b'{"context":',
 }
 
@@ -307,7 +284,13 @@ def source_program():
     for ordinal, raw in enumerate(qualified.values(), 10):
         source += f'    if version == {ordinal}:\n        return {len(raw)}\n'
     source += '    return 0\n'
-    names = {name: raw for name, raw in LITERALS.items()}
+    names = dict(LITERALS)
+    source += '\ndef kind_text(o:mutbuf, at:u64, kind:u64) -> u64:\n'
+    for ordinal, name in enumerate(DOCUMENT_KINDS, 1):
+        label = name.decode('ascii').replace('-', '_') + '_name'
+        names[label] = name
+        source += f'    if kind == {ordinal}:\n        return {label}(o, at)\n'
+    source += '    return at\n'
     names.update((f'installed_{name}', raw) for name, raw in qualified.items())
     for name, raw in names.items():
         source += f'\ndef {name}(o:mutbuf, at:u64) -> u64:\n'
