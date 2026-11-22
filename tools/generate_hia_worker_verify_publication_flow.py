@@ -6,7 +6,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_worker_adopt_proof import reachable_policy
 from tools.generate_hia_worker_context_flow import flow_source, function
-from tools.generate_hia_worker_emit_measurement import MEASUREMENT, splice_list
+from tools.generate_hia_worker_emit_measurement import splice_list
 from tools.generate_hia_worker_emit_publication import PUBLICATION
 from tools.generate_hia_worker_emit_record import RECORD
 from tools.generate_hia_worker_verify_flow import recipe as front_recipe
@@ -27,15 +27,14 @@ def verify_publication_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             or input_word(s, 16) != get(w, 16) or input_word(s, 24) != 0):
         return BAD
     operation = get(w, 16)
-    start = input_word(s, 48)
+    start = choose(operation == RUN or operation == MAKE, 0, input_word(s, 48))
     size = input_word(s, 40)
     capture = input_word(s, 56)
     if size > 67112960 or start > size or capture > size - start or capture != length(s) - 64:
         return BAD
     if operation == READ and (input_word(s, 32) != get(w, 80) or start != get(w, 88) or capture != get(w, 96)):
         return BAD
-    if ((operation == RUN or operation == MAKE) and
-            (start != 0 or valid_fd(input_word(s, 32)) == False)):
+    if (operation == RUN or operation == MAKE) and valid_fd(input_word(s, 32)) == False:
         return BAD
     if state == INSPECTION_HASH_RETURNED:
         if size < 88 or size > 105:
@@ -222,8 +221,8 @@ def recipe():
     spans = ('NOMINAL_PIN', 'OBSERVER_PIN', 'FACTS', 'FINDING_DOC', 'ASSUMPTIONS_DOC',
              'EVIDENCE_DOC', 'CHECK_LIST', 'RECEIPT_DOC')
     constants.update({f'VERIFY_{name}': 11064 + 24 * index for index, name in enumerate(spans)})
-    constants.update(VERIFY_PUBLISH_INDEX=11280, VERIFY_CHECKS=11288, VERIFY_FINDING_ROLE=74,
-                     VERIFY_DOCUMENTS_ROLE=75, VERIFY_RECEIPT_ROLE=76)
+    constants.update(VERIFY_PUBLISH_INDEX=11280, VERIFY_CHECKS=11288, VERIFY_FINDING_ROLE=72,
+                     VERIFY_DOCUMENTS_ROLE=73, VERIFY_RECEIPT_ROLE=74)
     constants.update({f'VERIFY_{name}': int.from_bytes(tag, 'little') for name, tag in {
         'FINDING_TAG': b'HIAVFN01', 'FILES_TAG': b'HIAVDF01', 'CHECK_TAG': b'HIAVDC01', 'RECEIPT_REQUEST': b'HIAVRC01',
     }.items()})
@@ -241,6 +240,10 @@ def recipe():
                         ))
     publication = PUBLICATION[:PUBLICATION.index('\ndef emit_publication_complete(')]
     publication = publication.replace('kind < 12 or kind > 14', 'kind < 16 or kind > 18')
+    publication = publication.replace(
+        '        if get(w, EMIT_PUB_INSERTED) != 0:',
+        '        if get(w, VERIFY_REPLAYING) != 0 or get(w, EMIT_PUB_INSERTED) != 0:',
+    )
     publication = publication.replace(
         '        if emit_authorized_digest(w, EMIT_PUBLIC_AUTHORITY) == False:\n            return BAD\n', '')
     publication = publication.replace(
@@ -262,7 +265,7 @@ def recipe():
                                role='VERIFY_DOCUMENTS_ROLE')
     entry, functions = reachable_policy('\n'.join((
         ENTRY, DOCUMENTS, STORE, bound, control, publication, document_packet, check_packet,
-        function(MEASUREMENT, 'emit_wide_make'), function(RECORD, 'emit_render_arguments'),
+        function(RECORD, 'emit_render_arguments'),
     )), 'verify_publication_flow')
     return constants, entry, functions
 

@@ -53,7 +53,16 @@ ADOPT_POLICY = 'examples/hia_bootstrap/worker_adopt_flow.hepta'
 ADOPT_PRODUCT = 'examples/hia_bootstrap/worker_adopt_custody.hepta'
 ADOPT_PROOF = 'examples/hia_bootstrap/worker_adopt_proof.hepta'
 ADOPT_PACKER = 'examples/hia_bootstrap/worker_adopt_flow_packer.hepta'
-SECTIONS = {EMIT_KIND: (EMIT_PRODUCT, EMIT_PROOF), ADOPT_KIND: (ADOPT_PRODUCT, ADOPT_PROOF)}
+VERIFY_KIND = 'verify'
+VERIFY_POLICY = 'examples/hia_bootstrap/worker_verify_flow.hepta'
+VERIFY_PRODUCT = 'examples/hia_bootstrap/worker_verify_publication_flow.hepta'
+VERIFY_PROOF = 'examples/hia_bootstrap/worker_verify_finite_flow.hepta'
+VERIFY_PACKER = 'examples/hia_bootstrap/worker_verify_flow_packer.hepta'
+SECTIONS = {
+    EMIT_KIND: (EMIT_PRODUCT, EMIT_PROOF),
+    ADOPT_KIND: (ADOPT_PRODUCT, ADOPT_PROOF),
+    VERIFY_KIND: (VERIFY_PRODUCT, VERIFY_PROOF),
+}
 PROGRAMS = {
     'describe': (POLICY, PACKER), 'read': (READ_POLICY, READ_PACKER),
     'cost': (COST_POLICY, COST_PACKER), 'read-store': (READ_STORE_POLICY, READ_STORE_PACKER),
@@ -67,6 +76,7 @@ PROGRAMS = {
     'rollback': (ROLLBACK_POLICY, ROLLBACK_PACKER),
     EMIT_KIND: (EMIT_POLICY, EMIT_PACKER),
     ADOPT_KIND: (ADOPT_POLICY, ADOPT_PACKER),
+    VERIFY_KIND: (VERIFY_POLICY, VERIFY_PACKER),
     'discovery-bootstrap': (BOOTSTRAP_POLICY, BOOTSTRAP_PACKER),
     LAUNCHER_KIND: (LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
@@ -112,6 +122,9 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
         ADOPT_KIND: (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                      b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_CONTEXT, 1\n'
                      b'.equ WORKER_INSPECTION, 1\n.equ WORKER_EMIT, 1\n.equ WORKER_ADOPT, 1\n'),
+        VERIFY_KIND: (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
+                      b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_CONTEXT, 1\n'
+                      b'.equ WORKER_INSPECTION, 1\n.equ WORKER_EMIT, 1\n.equ WORKER_VERIFY, 1\n'),
         'discovery-bootstrap': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                                 b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_BOOTSTRAP, 1\n'),
         LAUNCHER_KIND: (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'

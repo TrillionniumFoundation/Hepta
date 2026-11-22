@@ -29,12 +29,12 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if (length(s) < 64 or input_word(s, 0) != OBSERVATION
             or input_word(s, 8) != get(w, 8) or input_word(s, 16) != get(w, 16)):
         return BAD
+    operation = get(w, 16)
     size = input_word(s, 40)
-    start = input_word(s, 48)
+    start = choose(operation == RUN or operation == MAKE, 0, input_word(s, 48))
     capture = input_word(s, 56)
     if size > 67112960 or start > size or capture > size - start or capture != length(s) - 64:
         return BAD
-    operation = get(w, 16)
     if operation == READ and (input_word(s, 32) != get(w, 80) or start != get(w, 88) or capture != get(w, 96)):
         return BAD
     status = input_word(s, 24)
@@ -43,8 +43,7 @@ def verify_finite_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 and state >= EMIT_COMPLETE_PLAN and state <= EMIT_COMPLETE_RENDERED):
             return verify_finite_partial(o, w)
         return BAD
-    if ((operation == RUN or operation == MAKE) and
-            (start != 0 or valid_fd(input_word(s, 32)) == False)):
+    if (operation == RUN or operation == MAKE) and valid_fd(input_word(s, 32)) == False:
         return BAD
     if state == INSPECTION_HASH_RETURNED:
         if size < 88 or size > 105:
@@ -207,7 +206,7 @@ def finite_constants(constants):
     constants.update({f'VERIFY_FINITE_{name}': 1290 + i for i, name in enumerate(states)})
     constants.update({f'VERIFY_FINITE_{name}': 10368 + 24 * i for i, name in enumerate(spans)})
     constants.update({f'VERIFY_FINITE_{name}': 10440 + 8 * i for i, name in enumerate(scalars)})
-    constants.update(VERIFY_FINITE_EVIDENCE_ROLE=73, VERIFY_FINITE_READY=0xffffffe7,
+    constants.update(VERIFY_FINITE_EVIDENCE_ROLE=71, VERIFY_FINITE_READY=0xffffffe7,
                      VERIFY_FINITE_INELIGIBLE=0xffffffe6, VERIFY_FINITE_INELIGIBLE_TAG=INELIGIBLE,
                      VERIFY_FINITE_CAP=10_000_000_000,
                      VERIFY_FINITE_REQUEST=int.from_bytes(b'HIAVEV01', 'little'),

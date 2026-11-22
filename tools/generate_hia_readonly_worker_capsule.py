@@ -120,6 +120,15 @@ ADOPT_ROLES = (
     ) else name for name in EMIT_ROLES),
     'hia-agent-worker-adopt-claims', 'hia-agent-worker-adopt-authority', 'hia-agent-worker-rollback',
 )
+VERIFY_OWNER = 'hia-agent-verify-worker-carrier'
+VERIFY_ROLES = (
+    *(name.replace('emit-journal', 'verify-journal') if name.startswith('hia-agent-emit-journal')
+      else 'hia-agent-mcp-proof-schema' if name == 'hia-agent-mcp-response-schema'
+      else name for name in EMIT_ROLES),
+    'hia-agent-worker-verify-request', 'hia-agent-worker-verify-evidence',
+    'hia-agent-worker-verify-finding', 'hia-agent-worker-verify-documents',
+    'hia-agent-worker-verify-receipt', 'hia-agent-worker-verify-replay',
+)
 NATIVE_ROLES = tuple(dict.fromkeys((*ROLES, *ARTIFACT_ROLES, ARTIFACT_OWNER,
                                   *CONTEXT_ROLES, CONTEXT_OWNER,
                                   *INSPECTION_ROLES, INSPECTION_OWNER, *CANDIDATE_ROLES, CANDIDATE_OWNER,

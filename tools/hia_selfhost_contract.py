@@ -475,6 +475,7 @@ MCP_WIRE_SDIST_FILES = (
     'examples/hia_bootstrap/worker_verify_evidence.hepta',
     'examples/hia_bootstrap/worker_verify_finite_flow.hepta',
     'examples/hia_bootstrap/worker_verify_flow.hepta',
+    'examples/hia_bootstrap/worker_verify_flow_packer.hepta',
     'examples/hia_bootstrap/worker_verify_publication_flow.hepta',
     'examples/hia_bootstrap/worker_verify_replay.hepta',
     'examples/hia_bootstrap/worker_verify_journal.hepta',

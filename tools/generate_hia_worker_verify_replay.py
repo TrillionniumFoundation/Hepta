@@ -15,9 +15,9 @@ from tools.generate_hia_worker_verify_request import CLAIMS, POLICY as REQUEST, 
 SOURCE = Path('examples/hia_bootstrap/worker_verify_replay.hepta')
 KEYS = (
     'adopted', 'assumptions_artifact', 'base_core_sha256', 'base_program', 'candidate',
-    'candidate_core_sha256', 'checks', 'claim', 'claims', 'context', 'contract_version',
+    'candidate_core_sha256', 'checker', 'checks', 'claim', 'claims', 'context', 'contract_version',
     'evidence_artifact', 'execution_authority_granted', 'global_safety_proved', 'id',
-    'installation', 'request_id', 'result', 'schema', 'sha256', 'status', 'subject',
+    'installation', 'method', 'request_id', 'result', 'schema', 'sha256', 'status', 'subject',
     'uri', 'validation_profile', 'verification_receipt',
 )
 
@@ -64,7 +64,20 @@ def index_terminal(s:readbuf, o:mutbuf, w:mutbuf, request:u64, args:u64, termina
     put(o, 8, count)
     store_span(w, o, result, 16)
     store_span(w, o, lookup(w, result, K_verification_receipt), 32)
-    return 48
+    checks = lookup(w, result, K_checks)
+    check = list_first(w, checks)
+    expired = False
+    index = 0
+    while index < count:
+        if claim_id(w, lookup(w, check, K_claim)) == 2:
+            checker = lookup(w, check, K_checker)
+            if is_object(w, checker) == False:
+                return BAD
+            expired = is_wall_exhausted(w, lookup(w, checker, K_method))
+        check = next(w, check)
+        index = index + 1
+    put(o, 48, choose(expired, 1, 0))
+    return 56
 
 def index_receipt(s:readbuf, o:mutbuf, w:mutbuf, installation:u64, args:u64, result:u64, receipt:u64, scope:u64) -> u64:
     count = result_shape(s, w, args, result)
@@ -164,10 +177,11 @@ def request_id(w:mutbuf, node:u64) -> bool:
 
 def program():
     names = {f'K_{name}': i for i, name in enumerate(KEYS, 1)}
-    names.update(TERMINAL=int.from_bytes(b'HIAVRP01', 'little'),
+    names.update(TERMINAL=int.from_bytes(b'HIAVRP03', 'little'),
                  RECEIPT=int.from_bytes(b'HIAVRP02', 'little'), NONE=(1 << 64) - 1, BAD=4294967293)
     literals = {'is_contract': 'hepta.hia.agent-native.v1', 'is_check': 'hepta.hia.agent.proof-result.v1',
-                'is_receipt': 'hepta.hia.agent.verification.v1', 'is_completed': 'completed'}
+                'is_receipt': 'hepta.hia.agent.verification.v1', 'is_completed': 'completed',
+                'is_wall_exhausted': 'context_budget_exhausted'}
     policy = '\n'.join((POLICY, key_table(KEYS), *(literal_match(k, v) for k, v in literals.items()),
                          enumerated('claim', CLAIMS),
                          *(function(REQUEST, name) for name in ('typed_ref', 'text')),

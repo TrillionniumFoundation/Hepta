@@ -9,7 +9,7 @@ from tools.generate_hia_worker_candidate_flow import replace_function
 from tools.generate_hia_worker_context_flow import flow_source, function
 from tools.generate_hia_worker_adopt_flow import OUTCOME
 from tools.generate_hia_worker_emit_flow import DISPATCH, REACTOR, REQUEST, native_recipe
-from tools.generate_hia_worker_emit_measurement import splice_list
+from tools.generate_hia_worker_emit_measurement import MEASUREMENT, splice_list
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
 from tools.generate_hia_worker_verify_finite_flow import finite_constants
 
@@ -230,6 +230,10 @@ def verify_checks(o:mutbuf, w:mutbuf) -> u64:
         put(w, VERIFY_DIRECT_MODE, 7)
         return action(o, w, VERIFY_CHECK_RESULT, RUN, VERIFY_FINITE_EVIDENCE_ROLE, 0, 3, 16)
     if claim == 2:
+        if get(w, VERIFY_REPLAYING) != 0:
+            if get(w, VERIFY_REPLAY_FROZEN_LIMIT) != 0:
+                return verify_direct_evidence(o, w, 9)
+            return clock_sample(o, w, VERIFY_REPLAY_CLOCK, 0)
         put(w, EMIT_STAGE, 11)
         return emit_wall_start(o, w)
     if claim == 3 and get(w, VERIFY_SUBJECT_KIND) == 2:
@@ -291,6 +295,77 @@ def verify_observed(o:mutbuf, w:mutbuf) -> u64:
 '''
 
 
+REPLAY = r'''
+def verify_cached(o:mutbuf, w:mutbuf) -> u64:
+    put(w, VERIFY_REPLAYING, 1)
+    return project_artifact(o, w, VERIFY_REPLAY_ARGUMENTS, ARGUMENT, ARGUMENT_ROLE)
+
+def verify_replay_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if state == VERIFY_REPLAY_ARGUMENTS:
+        if prefixed(s) == False or get(w, CACHED_BYTES) < 2:
+            return BAD
+        observe_slot(s, w, ARGUMENT_FD)
+        store(o, HEADER, 91)
+        store(o, HEADER + 1, 34)
+        copy_private(w, o, JOURNAL_STATE + 192, HEADER + 2, 66)
+        store(o, HEADER + 68, 34)
+        store(o, HEADER + 69, 44)
+        store(o, 400, 44)
+        store(o, 401, 93)
+        vector_part(o, HEADER + 70, slot_fd(w, ARGUMENT_FD), 8, slot_bytes(w, ARGUMENT_FD) - 8)
+        vector_part(o, HEADER + 94, INLINE_FRAGMENT, 400, 1)
+        vector_part(o, HEADER + 118, slot_fd(w, LOOKUP_FD), get(w, CACHED_AT), get(w, CACHED_BYTES))
+        vector_part(o, HEADER + 142, INLINE_FRAGMENT, 401, 1)
+        return emit_wide_make(o, w, VERIFY_REPLAY_PACKET_READY, 4, 70)
+    if state == VERIFY_REPLAY_PACKET_READY:
+        size = input_word(s, 40)
+        if size != 72 + slot_bytes(w, ARGUMENT_FD) - 8 + get(w, CACHED_BYTES):
+            return BAD
+        sample_span(s, w, VERIFY_REPLAY_PACKET)
+        use_span(w, o, VERIFY_REPLAY_PACKET, 0)
+        return action(o, w, VERIFY_REPLAY_INDEXED, RUN, VERIFY_REPLAY_ROLE, 0, 1, 0)
+    if state == VERIFY_REPLAY_INDEXED:
+        if plan_ok(s) == False or input_word(s, 40) != 64 or length(s) != 128:
+            return BAD
+        count = input_word(s, 80)
+        if input_word(s, 72) != VERIFY_REPLAY_TAG or count < 1 or count > 4 or input_word(s, 120) > 1:
+            return BAD
+        start = input_word(s, 88)
+        bytes = input_word(s, 96)
+        cache = get(w, CACHED_BYTES)
+        prefix = get(w, VERIFY_REPLAY_PACKET + 16) - cache - 1
+        if start < prefix or start > prefix + cache or bytes < 2 or bytes > prefix + cache - start:
+            return BAD
+        hold(w, VERIFY_REPLAY_EXPECTED, get(w, VERIFY_REPLAY_PACKET), start, bytes)
+        put(w, VERIFY_REPLAY_FROZEN_LIMIT, input_word(s, 120))
+        return authorize_business(o, w)
+    if state == VERIFY_REPLAY_CLOCK:
+        now = input_word(s, 64)
+        if length(s) != 72 or input_word(s, 40) != 8 or now > MAX_CLOCK - VERIFY_FINITE_CAP:
+            return BAD
+        put(w, EMIT_ABSOLUTE_DEADLINE, now + VERIFY_FINITE_CAP)
+        return verify_behavior(o, w)
+    if state == VERIFY_REPLAY_COMPARED:
+        if plan_ok(s) == False or input_word(s, 40) != 24 or input_word(s, 72) != EMIT_COMPARE_RESULT or input_word(s, 80) != 1:
+            return BAD
+        return send_report(o, w, True)
+    return BAD
+
+def verify_complete(o:mutbuf, w:mutbuf) -> u64:
+    if get(w, VERIFY_REPLAYING) == 0:
+        return verify_outcome(o, w, 1, VERIFY_RESULT)
+    size = get(w, VERIFY_RESULT + 16)
+    if size < 2 or size > 1048576 or size != get(w, VERIFY_REPLAY_EXPECTED + 16):
+        return BAD
+    put(o, HEADER, EMIT_COMPARE_REQUEST)
+    put(o, HEADER + 8, size)
+    put(o, HEADER + 16, size)
+    use_span(w, o, VERIFY_REPLAY_EXPECTED, 0)
+    use_span(w, o, VERIFY_RESULT, 1)
+    return action(o, w, VERIFY_REPLAY_COMPARED, RUN, EMIT_NATIVE_ARTIFACT_ROLE, 0, 2, 24)
+'''
+
+
 def constants_for_verify(constants):
     finite_constants(constants)
     states = ('BASE_NULL', 'SUBJECT_FRAME', 'SUBJECT_INDEX', 'SUBJECT_OFFSETS', 'SCOPE_READY',
@@ -301,6 +376,11 @@ def constants_for_verify(constants):
     constants.update({f'VERIFY_{name}': 1300 + index for index, name in enumerate(states)})
     constants.update({f'VERIFY_{name}': 10512 + 24 * index for index, name in enumerate(spans)})
     constants.update({f'VERIFY_STAGE_{name}': 20 + index for index, name in enumerate(stages)})
+    constants.update(VERIFY_REPLAY_ARGUMENTS=1310, VERIFY_REPLAY_PACKET_READY=1311, VERIFY_REPLAY_INDEXED=1312,
+                     VERIFY_REPLAY_COMPARED=1313, VERIFY_REPLAY_CLOCK=1314,
+                     VERIFY_REPLAY_PACKET=11384, VERIFY_REPLAY_EXPECTED=11408,
+                     VERIFY_REPLAYING=11432, VERIFY_REPLAY_FROZEN_LIMIT=11440, VERIFY_REPLAY_ROLE=75,
+                     MAX_CLOCK=(1 << 64) - 1, VERIFY_REPLAY_TAG=int.from_bytes(b'HIAVRP03', 'little'))
     constants.update(VERIFY_SUBJECT_REFS=10776, VERIFY_CLAIM_ORDINALS=10848, VERIFY_CLAIM_COUNT=10880,
                      VERIFY_SUBJECT_KIND=10888, VERIFY_OUTCOME_BYTES=10896,
                      VERIFY_CLAIM_INDEX=10904, VERIFY_DIRECT_MODE=10912, VERIFY_EVIDENCE_SPANS=10920,
@@ -308,10 +388,10 @@ def constants_for_verify(constants):
                      VERIFY_FINDINGS_START=1360, VERIFY_RESULT_READY=1371, VERIFY_RESULT=11256,
                      VERIFY_NOMINAL_IMAGE=11016, VERIFY_OBSERVER_IMAGE=11040,
                      VERIFY_NEEDS_TERMINAL=0xffffffe1,
-                     VERIFY_REQUEST_ROLE=72, VERIFY_NEEDS_FINDINGS=0xffffffe5,
-                     VERIFY_NEEDS_SUBJECT_CUSTODY=0xffffffe4, VERIFY_NEEDS_REPLAY=0xffffffe3,
+                     VERIFY_REQUEST_ROLE=70, VERIFY_NEEDS_FINDINGS=0xffffffe5,
+                     VERIFY_NEEDS_SUBJECT_CUSTODY=0xffffffe4,
                      VERIFY_NEEDS_FINITE=0xffffffe2,
-                     ROLE_COUNT=78, ENTRY_BYTES=64 + 312 + 78 * 40,
+                     ROLE_COUNT=76, ENTRY_BYTES=64 + 312 + 76 * 40,
                      EMIT_WORK_BYTES=12288, SCHEMA_TOOL=7)
     constants.update({name: int.from_bytes(tag, 'little') for name, tag in {
         'VERIFY_REQUEST_TAG': b'HIAVRQ01', 'VERIFY_INDEX': b'HIAVRI01',
@@ -328,7 +408,7 @@ def recipe():
         '    if state == 0:\n        return artifact_entry(s, o, w)\n'
         '    if state == VERIFY_FINITE_DELIVERED:\n        return verify_observed(o, w)\n'
         '    if state == VERIFY_RESULT_READY:\n'
-        '        return verify_outcome(o, w, 1, VERIFY_RESULT)',
+        '        return verify_complete(o, w)',
     )
     driver = driver.replace(
         '    if state >= INSPECTION_SENT and state <= INSPECTION_PEER_CLOSED:\n'
@@ -350,6 +430,8 @@ def recipe():
         '        return verify_subject_reply(s, o, w, state)\n'
         '    if state == VERIFY_OUTCOME:\n'
         '        return verify_outcome_state(s, o, w, state)\n'
+        '    if state >= VERIFY_REPLAY_ARGUMENTS and state <= VERIFY_REPLAY_CLOCK:\n'
+        '        return verify_replay_reply(s, o, w, state)\n'
         '    if state >= VERIFY_HASH_PAIR and state <= VERIFY_CHECK_RESULT:\n'
         '        return verify_check_reply(s, o, w, state)\n'
         '    return BAD',
@@ -365,6 +447,8 @@ def recipe():
         '        if input_word(s, 80) != 0:\n'
         '            if launch:\n'
         '                return verify_direct_evidence(o, w, 9)\n'
+        '            if get(w, VERIFY_REPLAYING) != 0:\n'
+        '                return verify_validation(o, w)\n'
         '            return emit_admission_error(o, w, 8, 3)',
     )
     controls = controls.replace('return inspection_feedback(o, w, 5, 0, 0)', 'return verify_core_admitted(o, w)')
@@ -387,8 +471,13 @@ def recipe():
     )
     controls = controls.replace('return next == 19', 'return (next == 19 or next == 21) and status == 0')
     controls = controls.replace('    if next == 19:\n        return send_report(o, w, True)',
-                                '    if next == 21:\n        return VERIFY_NEEDS_REPLAY\n'
+                                '    if next == 21:\n        return verify_cached(o, w)\n'
                                 '    if next == 19:\n        return send_report(o, w, True)')
+    controls = controls.replace(
+        '    put(w, EFFECT_STATUS, status)\n    put(w, EFFECT_AT, at)',
+        '    if get(w, VERIFY_REPLAYING) != 0:\n        return BAD\n'
+        '    put(w, EFFECT_STATUS, status)\n    put(w, EFFECT_AT, at)',
+    )
     scope = splice_list('verify_scope_values', 'VERIFY_SCOPE_READY',
                         ('VERIFY_ARGUMENTS', 'INSPECTION_PROFILE_2', 'VERIFY_CANDIDATE_SHA', 'VERIFY_ORIGINAL_SHA'),
                         role='VERIFY_REQUEST_ROLE')
@@ -401,7 +490,9 @@ def recipe():
         '        sample_span(s, w, EMIT_PUBLIC_ERROR)\n'
         '        return verify_outcome(o, w, 2, EMIT_PUBLIC_ERROR)\n', '')
     trust = function(DISPATCH, 'emit_trust_spans')
-    policy = '\n'.join((driver, controls, INGRESS, CUSTODY, SUBJECT, SUBJECT_INDEX, CHECKS, scope, support, outcome, trust))
+    wide_make = function(MEASUREMENT, 'emit_wide_make')
+    policy = '\n'.join((driver, controls, INGRESS, CUSTODY, SUBJECT, SUBJECT_INDEX, CHECKS, REPLAY,
+                        scope, support, outcome, trust, wide_make))
     entry, parts = reachable_policy(policy, 'verify_flow')
     return constants, entry, parts
 

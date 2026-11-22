@@ -13,8 +13,17 @@
 .equ EMIT_DEFER_PRODUCT, 0xffffffed
 .equ ADOPT_DEFER_FRONT, 0xffffffee
 .else
+.ifdef WORKER_VERIFY
+.equ WORK_BYTES, 12288
+.equ VERIFY_SECTION, EMIT_TEMP_FDS + 128
+.equ VERIFY_NEEDS_PUBLICATION, 0xffffffe5
+.equ VERIFY_NEEDS_FINITE, 0xffffffe2
+.equ VERIFY_FINITE_READY, 0xffffffe7
+.equ VERIFY_NEEDS_TERMINAL, 0xffffffe1
+.else
 .equ WORK_BYTES, 9216
 .equ EMIT_DEFER_PRODUCT, 0xffffffe8
+.endif
 .endif
 .equ EMIT_DEFER_PROOF, 0xffffffe9
 .equ EMIT_PARENT, 41472
@@ -106,7 +115,11 @@
 .ifdef WORKER_ADOPT
 .equ ROLE_COUNT, 73
 .else
+.ifdef WORKER_VERIFY
+.equ ROLE_COUNT, 76
+.else
 .equ ROLE_COUNT, 70
+.endif
 .endif
 .else
 .equ ROLE_COUNT, 40
@@ -481,6 +494,47 @@ _start:
  lea r8, [rbp+WORK]
  mov r9d, WORK_BYTES
 .endm
+ .ifdef WORKER_VERIFY
+ mov r14d, 8
+.Lverify_policy:
+ mov r12, [rbp+VERIFY_SECTION]
+ worker_policy_arguments
+ cmp r12, 1
+ je .Lverify_publication
+ cmp r12, 2
+ je .Lverify_finite
+ .byte 0xe8
+worker_policy_hole: .long 0
+ cmp eax, VERIFY_NEEDS_PUBLICATION
+ je .Lverify_to_publication
+ cmp eax, VERIFY_NEEDS_FINITE
+ je .Lverify_to_finite
+ jmp .Lworker_policy_answer
+.Lverify_publication:
+ .byte 0xe8
+worker_emit_product_hole: .long 0
+ cmp eax, VERIFY_NEEDS_TERMINAL
+ je .Lverify_to_front
+ jmp .Lworker_policy_answer
+.Lverify_finite:
+ .byte 0xe8
+worker_emit_proof_hole: .long 0
+ cmp eax, VERIFY_FINITE_READY
+ jne .Lworker_policy_answer
+.Lverify_to_front:
+ mov QWORD PTR [rbp+VERIFY_SECTION], 0
+ jmp .Lverify_retry
+.Lverify_to_publication:
+ mov QWORD PTR [rbp+VERIFY_SECTION], 1
+ jmp .Lverify_retry
+.Lverify_to_finite:
+ mov QWORD PTR [rbp+VERIFY_SECTION], 2
+.Lverify_retry:
+ dec r14d
+ jz .Lrefused
+ jmp .Lverify_policy
+.Lworker_policy_answer:
+ .else
  .ifdef WORKER_ADOPT
  mov r14d, 8
 .Ladopt_policy:
@@ -516,6 +570,7 @@ worker_emit_proof_hole: .long 0
  jmp .Ladopt_policy
  .endif
 .Lworker_policy_answer:
+ .endif
  .endif
  cmp eax, HEADER
  jb .Lrefused
@@ -2427,7 +2482,11 @@ worker_emit_proof_hole: .long 0
 .ifdef WORKER_ADOPT
 .Lmode: .asciz "--worker-adopt"
 .else
+.ifdef WORKER_VERIFY
+.Lmode: .asciz "--worker-verify"
+.else
 .Lmode: .asciz "--worker-emit"
+.endif
 .endif
 .else
 .Lmode: .asciz "--worker-inspection"
@@ -2496,7 +2555,11 @@ worker_emit_proof_hole: .long 0
 .ifdef WORKER_ADOPT
 .Ldiagnostic: .ascii "native HIA Adopt Worker transport refused\n"
 .else
+.ifdef WORKER_VERIFY
+.Ldiagnostic: .ascii "native HIA Verify Worker transport refused\n"
+.else
 .Ldiagnostic: .ascii "native HIA Emit Worker transport refused\n"
+.endif
 .endif
 .else
 .Ldiagnostic: .ascii "native HIA Inspection Worker transport refused\n"
