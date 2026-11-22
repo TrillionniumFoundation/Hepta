@@ -10,9 +10,17 @@
 .equ OBS, 8192
 .equ SCRATCH, 65536
 .equ ROLES, 32768
+.ifdef WORKER_LAUNCHER
+.equ ARGV, 104448
+.equ CARRIED, 105024
+.equ NUMBERS, 105280
+.equ ARGV_LIMIT, 48
+.else
 .equ ARGV, 33024
 .equ CARRIED, 33200
 .equ NUMBERS, 33408
+.equ ARGV_LIMIT, 12
+.endif
 .equ PROCESS, 34000
 .equ OBS_SIZE, 34064
 .equ SEQUENCE, 34072
@@ -115,11 +123,18 @@
 .equ BOOT_STAT, 35000
 .equ BOOT_NAMED_STAT, 35144
 .endif
+.ifdef WORKER_LAUNCHER
+.equ HAS_PATH_ENTRY, 1
+.equ HAS_MAKE_PORT, 1
+.endif
 
 _start:
  cld
  xor ebp, ebp
  mov r15, rsp
+ .ifdef WORKER_LAUNCHER
+ cmp QWORD PTR [r15], 5
+ .else
  .ifdef WORKER_DISCOVERY
  cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS + 2
  .else
@@ -127,6 +142,7 @@ _start:
  cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS + 1
  .else
  cmp QWORD PTR [r15], ROLE_COUNT + EXTRA_ARGS
+ .endif
  .endif
  .endif
  jne .Lrefused
@@ -203,6 +219,9 @@ _start:
  syscall
  test rax, rax
  js .Lrefused
+ .ifdef WORKER_LAUNCHER
+ jmp .Llauncher_entry
+ .endif
  .ifdef WORKER_EXTERNAL_READ
  mov rsi, [r15+24]
  call .Lparse_unsigned_word
@@ -398,10 +417,30 @@ worker_policy_hole: .long 0
  ja .Lrefused
  cmp QWORD PTR [rbp+COMMAND+56], HEADER
  jne .Lrefused
+ .ifdef WORKER_LAUNCHER
+ mov rax, [rbp+COMMAND+32]
+ test rax, rax
+ jnz .Llauncher_arg_extent
+ .endif
  mov rax, [rbp+OUTPUT_END]
  sub rax, HEADER
  cmp QWORD PTR [rbp+COMMAND+48], rax
  jne .Lrefused
+ .ifdef WORKER_LAUNCHER
+ jmp .Llauncher_extent_ready
+.Llauncher_arg_extent:
+ cmp QWORD PTR [rbp+COMMAND+16], 1
+ jne .Lrefused
+ cmp rax, ARGV_LIMIT
+ ja .Lrefused
+ shl rax, 4
+ add rax, 1024
+ cmp rax, [rbp+OUTPUT_END]
+ jne .Lrefused
+ cmp QWORD PTR [rbp+COMMAND+48], 512
+ ja .Lrefused
+.Llauncher_extent_ready:
+ .endif
  .ifdef WORKER_CONTEXT
  jmp .Lcommand_extent_ready
 .Lwide_command:
@@ -482,6 +521,16 @@ worker_policy_hole: .long 0
  cmp rax, 17
  je .Lboot_check
  .endif
+ .ifdef WORKER_LAUNCHER
+ cmp rax, 18
+ je .Llauncher_open_release
+ cmp rax, 19
+ je .Llauncher_snapshot
+ cmp rax, 20
+ je .Llauncher_authorize
+ cmp rax, 21
+ je .Llauncher_read_request
+ .endif
  cmp rax, 5
  jne .Lrefused
  .ifdef WORKER_COST
@@ -502,9 +551,16 @@ worker_policy_hole: .long 0
 
 .Lrun:
  mov rax, [rbp+COMMAND+24]
+ .ifdef WORKER_LAUNCHER
+ cmp rax, 3
+ jb .Lrefused
+ cmp rax, 2147483647
+ ja .Lrefused
+ .else
  cmp rax, ROLE_COUNT + FIRST_ROLE
  jae .Lrefused
  mov rax, [rbp+ROLES+rax*8]
+ .endif
  mov [rbp+PROCESS], rax
 .Lstage:
  call hia_worker_memfd
@@ -583,6 +639,14 @@ worker_policy_hole: .long 0
  js .Lrefused
  mov [rbp+PROCESS+24], rax
  lea rax, [rip+.Lchild_name]
+ .ifdef WORKER_LAUNCHER
+ cmp QWORD PTR [rbp+COMMAND+168], 384
+ jne .Lrefused
+ lea rax, [rbp+COMMAND+384]
+ lea rdi, [rbp+COMMAND+448]
+ mov rsi, rax
+ call .Llauncher_find_nul
+ .endif
  .ifdef WORKER_CONTEXT
  mov rcx, [rbp+COMMAND+168]
  test rcx, rcx
@@ -594,7 +658,7 @@ worker_policy_hole: .long 0
  .endif
  mov [rbp+ARGV], rax
  mov rax, [rbp+COMMAND+32]
- cmp rax, 12
+ cmp rax, ARGV_LIMIT
  ja .Lrefused
  mov [rbp+LOCAL_ARGS], rax
  lea rax, [rbp+ARGV]
@@ -603,7 +667,11 @@ worker_policy_hole: .long 0
  mov [rbp+PROCESS+40], rax
  mov QWORD PTR [rbp+PROCESS+48], 0
  xor r12d, r12d
+ .ifdef WORKER_LAUNCHER
+ lea r13, [rbp+COMMAND+1024]
+ .else
  lea r13, [rbp+COMMAND+192]
+ .endif
 .Larguments:
  cmp r12, [rbp+LOCAL_ARGS]
  jae .Lexec
@@ -1366,10 +1434,12 @@ worker_policy_hole: .long 0
  cmp r12, [rbp+COMMAND+40]
  jb .Lpublish_fragment
  .endif
+ .ifndef WORKER_LAUNCHER
  mov edi, 1
  call hia_worker_seal
  test rax, rax
  jnz .Lrefused
+ .endif
  jmp .Lnext
 
 .ifdef WORKER_EXTERNAL_READ
@@ -1462,6 +1532,9 @@ worker_policy_hole: .long 0
  .ifdef WORKER_COST
  test rbp, rbp
  jz .Ldiagnose
+ .ifdef WORKER_LAUNCHER
+ call .Llauncher_restore_input
+ .endif
  lea r12, [rbp+PEER]
  mov r13d, PEER_COUNT
 .Labort_peer:
@@ -1516,6 +1589,9 @@ worker_policy_hole: .long 0
 .ifdef WORKER_CONTEXT
 .Lnominal_child_name: .asciz "hia-admit-agent-json"
 .endif
+.ifdef WORKER_LAUNCHER
+.Ldiagnostic: .ascii "native HIA Worker launcher refused\n"
+.else
 .ifdef WORKER_COST
 .ifdef WORKER_STORED_READ
 .ifdef WORKER_ARTIFACT
@@ -1547,6 +1623,7 @@ worker_policy_hole: .long 0
 .Ldiagnostic: .ascii "native HIA Read Worker transport refused\n"
 .else
 .Ldiagnostic: .ascii "native HIA Describe Worker transport refused\n"
+.endif
 .endif
 .endif
 .Ldiagnostic_end:

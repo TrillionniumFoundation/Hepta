@@ -19,6 +19,7 @@ from hepta.hia_agent_store import _agent_resource_path, wire
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from hepta.hia_native_helpers import _read
 from tools.build_hia_json_preflight import ROOT, admit_cold_build, current_sources
+from tools.build_hia_worker_flow import build as build_worker_flow, launcher_authority
 from tools.generate_hia_agent_stdio import document, writes
 from tools.generate_hia_core_json_cli import source_program
 from tools.generate_hia_mcp_stdio_packer import elf_prefix
@@ -31,6 +32,7 @@ from tools.generate_hia_readonly_worker_capsule import (
     NATIVE_MANIFEST, NATIVE_ROLES, NATIVE_SOURCE, RESOURCES_MAGIC,
     ROLES as READONLY_ROLES, SOURCE as READONLY_AUTHORITY,
 )
+from tools.generate_hia_worker_flow_packer import LAUNCHER_KIND
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -123,6 +125,8 @@ def author(platform_code, *, kind='read'):
 
 
 def build(output, compiler, cold_report, *, kind='read'):
+    if kind == 'native':
+        return build_worker_flow(output, compiler, cold_report, kind=LAUNCHER_KIND)
     launcher = LAUNCHERS[kind]
     pins = {path: path.read_bytes() for path in (compiler, cold_report, ROOT / launcher.source, ROOT / launcher.authority)}
     admitted = admit_cold_build(pins[compiler], pins[cold_report])
@@ -196,12 +200,14 @@ def bind_release(target, release, expected_launcher, profile_pin):
 
 
 def _installed_authority(release, expected_launcher, profile_pin, kind):
-    profile = LAUNCHERS[kind]
     launcher = release / ('hia-agent-' + kind + '-launcher')
     expected = expected_launcher.read_bytes()
-    if _read(launcher, HEADER_SIZE + profile.size + IMAGE_LIMIT).raw != expected:
+    if _read(launcher, len(expected)).raw != expected:
         raise ValueError('installed Worker launcher differs from its cold build')
-    raw_authority = expected[HEADER_SIZE + profile.size:]
+    if kind == 'native':
+        raw_authority = launcher_authority(expected)
+    else:
+        raw_authority = expected[HEADER_SIZE + LAUNCHERS[kind].size:]
     authority = NativeHiaJsonImage(raw_authority, sha256(raw_authority).hexdigest())
     identities = installation_manifest()
     catalog = _catalog_bytes()

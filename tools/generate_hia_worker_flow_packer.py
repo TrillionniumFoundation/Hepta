@@ -32,6 +32,10 @@ CONTEXT_PACKER = 'examples/hia_bootstrap/worker_context_flow_packer.hepta'
 CONTEXT_POLICY = 'examples/hia_bootstrap/worker_context_flow.hepta'
 BOOTSTRAP_PACKER = 'examples/hia_bootstrap/worker_bootstrap_flow_packer.hepta'
 BOOTSTRAP_POLICY = 'examples/hia_bootstrap/worker_bootstrap_flow.hepta'
+LAUNCHER = 'tools/hia_worker_launcher_ports.S'
+LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_launcher_flow.hepta'
+LAUNCHER_PACKER = 'examples/hia_bootstrap/worker_launcher_flow_packer.hepta'
+LAUNCHER_KIND = 'native-launcher'
 PROGRAMS = {
     'describe': (POLICY, PACKER), 'read': (READ_POLICY, READ_PACKER),
     'cost': (COST_POLICY, COST_PACKER), 'read-store': (READ_STORE_POLICY, READ_STORE_PACKER),
@@ -41,16 +45,19 @@ PROGRAMS = {
     'discovery': (DISCOVERY_POLICY, DISCOVERY_PACKER),
     'context': (CONTEXT_POLICY, CONTEXT_PACKER),
     'discovery-bootstrap': (BOOTSTRAP_POLICY, BOOTSTRAP_PACKER),
+    LAUNCHER_KIND: (LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
 PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
-              'discovery-bootstrap')
+              'discovery-bootstrap', LAUNCHER_KIND)
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
-def adapter_source(flow, ports, *, kind='describe', peers=b''):
+def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
     # Local references let the existing flat-template builder prove that
     # every syscall adapter relocation is already resolved. The sole HIA
     # application call deliberately remains a zero rel32 hole.
+    if launcher:
+        flow += b'\n' + launcher
     flow = flow.replace(b'call hia_worker_', b'call .Lhia_worker_')
     if peers:
         ports += b'\n.text\n' + peers
@@ -72,14 +79,16 @@ def adapter_source(flow, ports, *, kind='describe', peers=b''):
                     b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_CONTEXT, 1\n'),
         'discovery-bootstrap': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                                 b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_BOOTSTRAP, 1\n'),
+        LAUNCHER_KIND: (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
+                        b'.equ WORKER_ARTIFACT, 1\n.equ WORKER_LAUNCHER, 1\n'),
     }[kind]
     return variant + flow + b'\n' + ports
 
 
-def partitioned_packer(module, prefix, hole):
+def partitioned_packer(module, prefix, holes, *, extra_image=False):
     # Keep the constant adapter writes within the cold compiler's ordinary
     # block budget. The bytes and relocation are still emitted solely by HIA.
-    source = source_program(magic=MAGIC, image_template=(prefix, (hole,)))
+    source = source_program(magic=MAGIC, image_template=(prefix, holes), formatter=extra_image)
     start = source.index('    write(o, 0,')
     end = source.index('    write(o, 96, size, 8)', start)
     writes = source[start:end].splitlines(keepends=True)
@@ -93,25 +102,28 @@ def partitioned_packer(module, prefix, hole):
     return author_policy(source[:start] + ''.join(calls) + source[end:] + ''.join(bodies), module)
 
 
-def source_packer(flow, ports, packer_path, *, kind, peers):
-    source = adapter_source(flow, ports, kind=kind, peers=peers)
+def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
+    source = adapter_source(flow, ports, kind=kind, peers=peers, launcher=launcher)
+    symbols = {'policy': 'worker_policy_hole'}
+    if kind == LAUNCHER_KIND:
+        symbols['authority'] = 'worker_authority_hole'
     with TemporaryDirectory(prefix='hia-worker-flow-adapter-') as temporary:
-        stub, locations, _ = adapter_layout(Path(temporary), 'worker_flow.S', source,
-                                            {'policy': 'worker_policy_hole'})
-    hole = locations['policy']
+        stub, locations, _ = adapter_layout(Path(temporary), 'worker_flow.S', source, symbols)
+    holes = tuple(locations[name] for name in symbols)
     header = elf_header()
     module = Path(packer_path).stem
-    if kind in ('input', 'artifact', 'discovery', 'context', 'discovery-bootstrap'):
-        packer = partitioned_packer(module, header + stub, len(header) + hole)
+    template = header + stub, tuple(len(header) + hole for hole in holes)
+    if kind in ('input', 'artifact', 'discovery', 'context', 'discovery-bootstrap', LAUNCHER_KIND):
+        packer = partitioned_packer(module, *template, extra_image=kind == LAUNCHER_KIND)
     else:
-        packer = document(magic=MAGIC, module=module,
-                          image_template=(header + stub, (len(header) + hole,)))
-    return bind_adapter(packer, source, stub, (hole,))
+        packer = document(magic=MAGIC, module=module, image_template=template)
+    return bind_adapter(packer, source, stub, holes)
 
 
 if __name__ == '__main__':
     sources = Path(FLOW).read_bytes(), Path(PORTS).read_bytes()
     for kind, (_, path) in PROGRAMS.items():
         peers = Path(PEERS).read_bytes() if kind in PEER_KINDS else b''
-        packer = source_packer(*sources, path, kind=kind, peers=peers)
+        launcher = Path(LAUNCHER).read_bytes() if kind == LAUNCHER_KIND else b''
+        packer = source_packer(*sources, path, kind=kind, peers=peers, launcher=launcher)
         Path(path).write_text(render_assembly(packer), encoding='utf-8')

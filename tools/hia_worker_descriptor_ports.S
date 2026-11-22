@@ -215,7 +215,11 @@ hia_worker_run:
 
 /* Checked launch through the original inherited executable FD. */
 hia_worker_spawn:
+ .ifdef WORKER_LAUNCHER
+ cmp QWORD PTR [rdi+48], 48
+ .else
  cmp QWORD PTR [rdi+48], 32
+ .endif
  ja .Llaunch_bad
  mov r8, rdi
  mov eax, 57
