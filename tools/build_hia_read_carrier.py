@@ -189,10 +189,10 @@ def build(output, compiler, cold_report, *, kind='read'):
     if kind == 'read':
         from tools.build_hia_worker_read_release import build as build_read_flow
         return build_read_flow(output, compiler, cold_report)
-    if kind in ('describe-worker', 'input'):
+    if kind in ('describe-worker', 'artifact-worker', 'input'):
         from tools.build_hia_worker_flow import build as build_worker_flow
         return build_worker_flow(output, compiler, cold_report,
-                                 kind='describe' if kind == 'describe-worker' else kind)
+                                 kind=kind.removesuffix('-worker'))
     carrier = CARRIERS[kind]
     source_path = ROOT / carrier.source
     report, seed, source = cold_report.read_bytes(), compiler.read_bytes(), source_path.read_bytes()
