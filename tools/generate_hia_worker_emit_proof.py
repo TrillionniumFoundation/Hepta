@@ -422,7 +422,7 @@ def emit_proof_finished(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if input_word(s, 72) != EMIT_SCOPE_RESULT or input_word(s, 80) != 0:
             return BAD
         body_span(s, w, EMIT_PROOF_TERMINAL)
-        return inspection_feedback(o, w, 6, 0, EMIT_PROOF_TERMINAL)
+        return FINISH_RETAINED_PROOF
     if input_word(s, 72) != EMIT_SCOPE_PLAN_COMPLETE or input_word(s, 80) != get(w, EMIT_PROOF_COUNT):
         return BAD
     body_span(s, w, EMIT_PROOF_TERMINAL)
@@ -538,7 +538,8 @@ def proof_constants():
     }
 
 
-def proof_recipe(shared_error, open_profile):
+def proof_recipe(shared_error, open_profile, *,
+                 finish_retained='inspection_feedback(o, w, 6, 0, EMIT_PROOF_TERMINAL)'):
     _, controls = worker.recipe()
     names = ('get', 'put', 'input_word', 'write', 'action', 'issue', 'fragment', 'hold', 'body_span',
              'sample_span', 'use_span', 'read_span', 'copy_span', 'copy_private', 'is_hex', 'plan_ok',
@@ -575,7 +576,8 @@ def proof_recipe(shared_error, open_profile):
         shared_error,
         open_profile,
     )
-    return ENTRY, (PLAN, RETAINED, FILES, layout, profiles, binding, scope, approve,
+    files = FILES.replace('FINISH_RETAINED_PROOF', finish_retained)
+    return ENTRY, (PLAN, RETAINED, files, layout, profiles, binding, scope, approve,
                    *layout_replay_source(), *custody_replay_source(function(RECORD, 'emit_signature')),
                    *finite_replay_source(), *complete_replay_source(), *machine_replay_source(), COMPOSITION,
                    *producer_controls(used), *support)

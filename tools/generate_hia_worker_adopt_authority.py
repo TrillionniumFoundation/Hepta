@@ -37,6 +37,8 @@ def adopt_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         tag = input_word(s, 0)
         if tag == SLOT_PLAN:
             return adopt_sequence(s, o)
+        if tag == SLOT_EXPECTED:
+            return expected_current(s, o)
         if tag == SLOT_WRITE:
             return adopt_store_frame(s, o)
         if tag == SLOT_RECEIPT:
@@ -162,6 +164,24 @@ def admit_benefit(o:mutbuf, w:mutbuf, objective:u64) -> u64:
         return INVALID
     return refusal(o, 3)
 
+# Schema admission bounds the decimal tokens but does not prove u64 range.
+# Like the reference operation, check generation before checking epoch.
+def expected_current(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 26 or length(s) > 64:
+        return INVALID
+    generation = input_word(s, 8)
+    epoch = input_word(s, 16)
+    if generation == 0 or generation > 20 or epoch == 0 or epoch > 20 or length(s) != 24 + generation + epoch:
+        return INVALID
+    if canonical_timestamp(s, 24, generation) == False:
+        return refusal(o, 8)
+    if canonical_timestamp(s, 24 + generation, epoch) == False:
+        return refusal(o, 9)
+    put(o, 0, SLOT_EXPECTED_VALUES)
+    put(o, 8, number(s, 24, generation))
+    put(o, 16, number(s, 24 + generation, epoch))
+    return 24
+
 # This scope is after the context, proof, workload and exact ABI comparisons.
 # These Store facts must belong to the same exclusive transaction as the write.
 def adopt_sequence(s:readbuf, o:mutbuf) -> u64:
@@ -267,6 +287,7 @@ def source_program():
                      INVALID=4294967293, CATALOG_MISMATCH=4294967286, FALSE_NODE=1, TRUE_NODE=2)
     constants.update({name: int.from_bytes(tag, 'little') for name, tag in {
         'SLOT_PLAN': b'HIAADS01', 'SLOT_ADVANCE': b'HIAADA01',
+        'SLOT_EXPECTED': b'HIAADU01', 'SLOT_EXPECTED_VALUES': b'HIAADU02',
         'SLOT_WRITE': b'HIAADW01', 'INSERT_TAG': b'HIAINS01',
         'SLOT_RECEIPT': b'HIAADP01', 'ADOPT_REQUEST': b'HIAADQ01',
     }.items()})
@@ -275,9 +296,11 @@ def source_program():
         *(function(VERIFICATION, name) for name in ('next', 'is_object', 'matches_field', 'span', 'refusal')),
         *(function(CONTEXT, name) for name in ('equal_span', 'digest_text', 'copy_value', 'fragment')),
         function(ROLLBACK, 'allowed_text'),
+        function(ROLLBACK, 'number'),
         function(BUILD_CUSTODY, 'exact_reference'),
         function(STORE_TRANSPORT, 'slot_name'),
         function(STORE_TRANSPORT, 'context_id'),
+        function(STORE_TRANSPORT, 'canonical_timestamp'),
         function(SLOT_POLICY, 'slot_cell'),
         function(RELEASE, 'decimal'),
         function(RELEASE, 'divide10'),
