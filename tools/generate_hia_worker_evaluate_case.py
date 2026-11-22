@@ -3,16 +3,17 @@
 from pathlib import Path
 import re
 
+from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_agent_buffers import PROFILE
 from hepta.hia_agent_identity_native import ABI_SCALAR_IDS
 from tools.generate_hia_agent_identity import source_program as identity
+from tools.generate_hia_agent_snapshot_json import ADAPTER as SNAPSHOT
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
 from tools.generate_hia_worker_context_workload import POLICY as WORKLOAD
 from tools.generate_hia_worker_emit_verification import POLICY as VERIFICATION, key_table
 from tools.generate_hia_worker_inspection_effect import function
-from hepta.hia_agent_assembly import render_assembly
 
 SOURCE = Path('examples/hia_bootstrap/worker_evaluate_case.hepta')
 FIELDS = ('params', 'returns', 'abi', 'max_buffer_bytes', 'function', 'arguments', 'expected',
@@ -27,6 +28,11 @@ POLICY = r'''
 def evaluate_case(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 8 or length(s) > 8388608 or length(o) < 6208 or length(w) < 4096:
         return INVALID
+    magic = read_word(s, 0)
+    if magic == RUNNER_BINDING:
+        return bind_runner(s, o)
+    if magic == SNAPSHOT_BINDING:
+        return materialize_snapshot(s, o)
     put(o, 48, 32768)
     put(o, 56, 24)
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5 or get(w, 96) != 2:
@@ -181,6 +187,170 @@ def scalar_plan(s:readbuf, o:mutbuf, w:mutbuf, node:u64, at:u64, role:u64) -> u6
     put(o, at + 40, 0)
     return 1
 
+# Owned effects hand the formatter PID/limits, opened artifact and loan
+# descriptors, and the already admitted case plan and original sealed JSON.
+# The runner still authenticates the PID and fstat/seals and isolates the call.
+def bind_runner(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 169:
+        return INVALID
+    parent = read_word(s, 8)
+    memory = read_word(s, 16)
+    cpu = read_word(s, 24)
+    artifact = read_word(s, 32)
+    artifact_size = read_word(s, 40)
+    warmup = read_word(s, 48)
+    runs = read_word(s, 56)
+    descriptors = read_word(s, 64)
+    if parent == 0 or parent > 2147483647 or memory < 67108864 or memory > 4294967296:
+        return INVALID
+    if cpu == 0 or cpu > 86400 or valid_descriptor(artifact) == False or artifact_size == 0 or artifact_size > 67108864:
+        return INVALID
+    if warmup > 100 or runs == 0 or runs > 10000 or descriptors > 8:
+        return INVALID
+    plan = 80 + 8 * descriptors
+    plan_size = read_word(s, 72)
+    if plan > length(s) or plan_size < 80 or plan_size >= length(s) - plan:
+        return INVALID
+    if read_word(s, plan) != PLAN or read_word(s, plan + 8) != 0 or read_word(s, plan + 40) != descriptors:
+        return INVALID
+    count = read_word(s, plan + 16)
+    role = read_word(s, plan + 24)
+    if count > 128 or plan_size != 80 + 48 * count or (role > UNIT and role != 256):
+        return INVALID
+    if (role == 256) != (descriptors != 0):
+        return INVALID
+    limit = length(s) - plan - plan_size
+    name_at = read_word(s, plan + 48)
+    name_size = read_word(s, plan + 56)
+    if name_at >= limit or name_size < 3 or name_size > 514 or name_size > limit - name_at:
+        return INVALID
+    name = plan + plan_size + name_at
+    if byte(s, name) != 34 or byte(s, name + name_size - 1) != 34:
+        return INVALID
+    descriptor = 0
+    while descriptor < descriptors:
+        fd = read_word(s, 80 + 8 * descriptor)
+        if valid_descriptor(fd) == False or fd == artifact:
+            return INVALID
+        n = 0
+        while n < descriptor:
+            if fd == read_word(s, 80 + 8 * n):
+                return INVALID
+            n = n + 1
+        descriptor = descriptor + 1
+    put(o, 0, RUNNER_REQUEST)
+    at = 8
+    while at <= 40:
+        put(o, at, read_word(s, at))
+        at = at + 8
+    put(o, 48, count + descriptors)
+    put(o, 56, descriptors)
+    put(o, 64, name_size - 2)
+    put(o, 72, warmup)
+    put(o, 80, runs)
+    expected = read_word(s, plan + 64)
+    expected_size = read_word(s, plan + 72)
+    if expected > limit or expected_size > limit - expected:
+        return INVALID
+    put(o, 88, choose(expected_size != 0, 1, 0))
+    put(o, 96, direct_return_mask(role))
+    if bind_argument_words(s, o, plan, count, descriptors) == False:
+        return INVALID
+    name_out = 104 + 8 * (count + descriptors) + 32 * descriptors
+    index = 1
+    while index < name_size - 1:
+        point = byte(s, name + index)
+        if point < 33 or point >= 127 or point == 92 or point == 34:
+            return INVALID
+        store(o, name_out + index - 1, point)
+        index = index + 1
+    return name_out + name_size - 2
+
+def bind_argument_words(s:readbuf, o:mutbuf, plan:u64, count:u64, descriptors:u64) -> bool:
+    word = 0
+    loan = 0
+    index = 0
+    slots = 104 + 8 * (count + descriptors)
+    total = 0
+    while index < count:
+        row = plan + 80 + 48 * index
+        role = read_word(s, row)
+        value = read_word(s, row + 8)
+        if role == 0:
+            put(o, 104 + 8 * word, value)
+            word = word + 1
+        else:
+            if role > 2 or loan >= descriptors or value > 1048576:
+                return False
+            put(o, 104 + 8 * word, 0)
+            put(o, 112 + 8 * word, value)
+            slot = slots + 32 * loan
+            put(o, slot, word)
+            put(o, slot + 8, read_word(s, 80 + 8 * loan))
+            put(o, slot + 16, value)
+            put(o, slot + 24, choose(role == 1, 1, 0))
+            word = word + 2
+            loan = loan + 1
+            total = total + value
+        index = index + 1
+    return loan == descriptors and total == read_word(s, plan + 32)
+
+# Return snapshot bytes, not an open fd. The owner creates a distinct
+# backing file per loan and checks its final physical extent independently.
+def materialize_snapshot(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 105 or read_word(s, 24) != PLAN or read_word(s, 32) != 0:
+        return INVALID
+    index = read_word(s, 8)
+    plan_size = read_word(s, 16)
+    count = read_word(s, 40)
+    if count > 128 or index >= count or plan_size != 80 + 48 * count or plan_size >= length(s) - 24:
+        return INVALID
+    row = 104 + index * 48
+    role = read_word(s, row)
+    size = read_word(s, row + 8)
+    kind = read_word(s, row + 16)
+    fill = read_word(s, row + 24)
+    offset = read_word(s, row + 32)
+    width = read_word(s, row + 40)
+    if role < 1 or role > 2 or size > 1048576 or (kind != 1 and kind != 2):
+        return INVALID
+    physical = choose(size == 0, 1, size)
+    if length(o) < 32 + physical:
+        return INVALID
+    if kind == 1:
+        start = 24 + plan_size
+        usable = length(s) - start
+        if fill != 0 or offset < 1 or offset >= usable or width != 2 * size or width >= usable - offset:
+            return INVALID
+        start = start + offset
+        if byte(s, start - 1) != 34 or byte(s, start + width) != 34:
+            return INVALID
+        at = 0
+        while at < size:
+            high = snapshot_nibble(byte(s, start + 2 * at))
+            low = snapshot_nibble(byte(s, start + 2 * at + 1))
+            if high > 15 or low > 15:
+                return INVALID
+            store(o, 32 + at, (high << 4) | low)
+            at = at + 1
+    else:
+        if fill > 255 or offset != 0 or width != 0:
+            return INVALID
+        at = 0
+        while at < size:
+            store(o, 32 + at, fill)
+            at = at + 1
+    if size == 0:
+        store(o, 32, 0)
+    put(o, 0, SNAPSHOT_BYTES)
+    put(o, 8, index)
+    put(o, 16, role)
+    put(o, 24, size)
+    return 32 + physical
+
+def valid_descriptor(fd:u64) -> bool:
+    return fd >= 3 and fd <= 2147483647
+
 def next(w:mutbuf, node:u64) -> u64:
     index = get(w, node + 16)
     return choose(index == NONE, NONE, 64 + index * 72)
@@ -205,15 +375,19 @@ def source_program():
     constants = {f'K_{name}': index for index, name in enumerate(FIELDS, 1)}
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      PLAN=int.from_bytes(b'HIAEVC01', 'little'),
+                     RUNNER_BINDING=int.from_bytes(b'HIAEVR01', 'little'),
+                     RUNNER_REQUEST=int.from_bytes(b'HIADRX02', 'little'),
+                     SNAPSHOT_BINDING=int.from_bytes(b'HIAEVB01', 'little'),
+                     SNAPSHOT_BYTES=int.from_bytes(b'HIAEVS01', 'little'),
                      UNIT=ABI_SCALAR_IDS['unit'], U32=ABI_SCALAR_IDS['u32'],
                      READBUF=len(TYPES) - 1, MUTBUF=len(TYPES))
     snapshot = function(WORKLOAD, 'snapshot')
     snapshot = re.sub(r'lookup\(w, row, ([789])\)',
                       lambda match: 'lookup(w, row, K_' + FIELDS[int(match[1])] + ')', snapshot)
     policy = '\n'.join((
-        POLICY, snapshot, function(WORKLOAD, 'uint'),
+        POLICY, snapshot, function(WORKLOAD, 'uint'), function(SNAPSHOT, 'snapshot_nibble'),
         *(function(VERIFICATION, name) for name in ('is_object', 'span')),
-        *(function(identity(), name) for name in ('abi_scalar_valid', 'scalar_abi_type')),
+        *(function(identity(), name) for name in ('abi_scalar_valid', 'scalar_abi_type', 'direct_return_mask', 'read_word')),
         WIRE_HELPERS.split('\ndef signed_id', 1)[0], key_table(FIELDS),
         comparison_table('abi_role', TYPES), comparison_table('borrowed_profile', (PROFILE,)),
     ))
