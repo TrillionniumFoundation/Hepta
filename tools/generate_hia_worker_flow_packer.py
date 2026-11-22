@@ -1,0 +1,43 @@
+"""Author the HIA ELF packer for the source-visible Worker syscall adapter."""
+
+from pathlib import Path
+import re
+from tempfile import TemporaryDirectory
+
+from hepta.hia_agent_assembly import render_assembly
+from tools.build_hia_agent_batch_commit import adapter_layout
+from tools.generate_hia_native_filter import bind_adapter, document, elf_header
+
+FLOW = 'tools/hia_worker_flow_syscalls.S'
+PORTS = 'tools/hia_worker_descriptor_ports.S'
+PACKER = 'examples/hia_bootstrap/worker_describe_flow_packer.hepta'
+POLICY = 'examples/hia_bootstrap/worker_describe_flow.hepta'
+MAGIC = int.from_bytes(b'HIADPK01', 'little')
+
+
+def adapter_source(flow, ports):
+    # Local references let the existing flat-template builder prove that
+    # every syscall adapter relocation is already resolved. The sole HIA
+    # application call deliberately remains a zero rel32 hole.
+    flow = flow.replace(b'call hia_worker_', b'call .Lhia_worker_')
+    ports = ports.replace(b'call hia_worker_', b'call .Lhia_worker_')
+    ports = re.sub(br'^(hia_worker_[a-z_]+):$', br'\1:\n.L\1:', ports, flags=re.MULTILINE)
+    ports = ports.replace(b'.section .rodata', b'.text')
+    return flow + b'\n' + ports
+
+
+def source_packer(flow, ports):
+    source = adapter_source(flow, ports)
+    with TemporaryDirectory(prefix='hia-worker-flow-adapter-') as temporary:
+        stub, locations, _ = adapter_layout(Path(temporary), 'worker_flow.S', source,
+                                            {'policy': 'worker_policy_hole'})
+    hole = locations['policy']
+    header = elf_header()
+    packer = document(magic=MAGIC, module=Path(PACKER).stem,
+                      image_template=(header + stub, (len(header) + hole,)))
+    return bind_adapter(packer, source, stub, (hole,))
+
+
+if __name__ == '__main__':
+    sources = Path(FLOW).read_bytes(), Path(PORTS).read_bytes()
+    Path(PACKER).write_text(render_assembly(source_packer(*sources)), encoding='utf-8')

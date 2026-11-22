@@ -186,6 +186,9 @@ def compressed_carrier(payload, carrier, *, tail_size=0, component=False):
 
 def build(output, compiler, cold_report, *, kind='read'):
     """Use the cold compiler to pack the exact admitted native carrier ELF."""
+    if kind == 'describe-worker':
+        from tools.build_hia_worker_flow import build as build_describe_flow
+        return build_describe_flow(output, compiler, cold_report)
     carrier = CARRIERS[kind]
     source_path = ROOT / carrier.source
     report, seed, source = cold_report.read_bytes(), compiler.read_bytes(), source_path.read_bytes()
