@@ -176,8 +176,7 @@ def adopt_evaluation_reply(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
 '''
 
 
-def adopt_proof_recipe(constants):
-    """Share the verified proof chain; change only the successful continuation."""
+def adopt_proof_constants(constants):
     constants.update(
         ADOPT_PROOF_START=1100, ADOPT_CLAIMS_PREFIX_READY=1101, ADOPT_CLAIMS_OBSERVED=1102,
         ADOPT_CLAIMS_BOUND=1103, ADOPT_CLAIMS_READY=1104, ADOPT_PROFILES_REQUIRED=1105,
@@ -193,6 +192,11 @@ def adopt_proof_recipe(constants):
         ADOPT_EVAL_FIELDS=9824, ADOPT_AUTHORITY_ROLE=constants['EMIT_TRUST_ROLE'] + 2,
         ADOPT_EVAL_TAG=int.from_bytes(b'HIAADR01', 'little'),
     )
+
+
+def adopt_proof_recipe(constants):
+    """Share the verified proof chain; change only the successful continuation."""
+    adopt_proof_constants(constants)
     entry, controls = proof_recipe(
         function(ADMISSION, 'emit_admission_error'), function(PROFILES, 'emit_open_profile'),
         finish_retained='adopt_proof_accepted(o, w)',
@@ -243,9 +247,16 @@ def adopt_proof_recipe(constants):
     policy = policy[:start] + '    return BAD\n' + policy[stop:]
     # Keep only functions reachable from the Adopt entry. This also avoids
     # putting uncallable Emit production and consumer roles in the carrier.
-    functions = {node.name: node for node in ast.parse(policy).body}
+    return reachable_policy(policy, 'adopt_proof_flow')
+
+
+def reachable_policy(policy, entry):
+    nodes = ast.parse(policy).body
+    functions = {node.name: node for node in nodes}
+    if len(functions) != len(nodes):
+        raise ValueError('duplicate function in native Worker continuation')
     live = set()
-    pending = ['adopt_proof_flow']
+    pending = [entry]
     while pending:
         name = pending.pop()
         if name not in live:
@@ -253,8 +264,8 @@ def adopt_proof_recipe(constants):
             pending.extend(node.func.id for node in ast.walk(functions[name])
                            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
                            and node.func.id in functions)
-    return function(policy, 'adopt_proof_flow'), tuple(
-        function(policy, name) for name in functions if name in live and name != 'adopt_proof_flow')
+    return function(policy, entry), tuple(
+        function(policy, name) for name in functions if name in live and name != entry)
 
 
 def program():
