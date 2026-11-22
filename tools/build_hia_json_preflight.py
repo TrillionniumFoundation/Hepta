@@ -153,6 +153,7 @@ CANDIDATES = {
     'candidate-journal-observation': ('worker_candidate_journal_observation', 'candidate-journal-observation'),
     'candidate-journal-records': ('worker_candidate_journal_records', 'candidate-journal-records'),
     'candidate-diagnostic': ('worker_candidate_diagnostic', 'candidate-diagnostic'),
+    'worker-object-imports': ('worker_object_imports', 'worker-object-imports'),
     'inspection-lowering-elf': ('inspection_lowering_elf', 'inspection-lowering-elf'),
     'inspection-lowering-frames': ('inspection_lowering_frames', 'inspection-lowering-frames'),
     'context-workload': ('worker_context_workload', 'context-workload'),
