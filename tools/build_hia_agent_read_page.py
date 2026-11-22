@@ -81,6 +81,7 @@ VARIANTS = {
     'candidate-journal-records': ('worker_candidate_journal_records', 'hepta.hia.candidate-journal-records-native.v1'),
     'candidate-diagnostic': ('worker_candidate_diagnostic', 'hepta.hia.candidate-diagnostic-native.v1'),
     'worker-object-inventory': ('worker_object_inventory', 'hepta.hia.worker-object-inventory-native.v1'),
+    'worker-borrowed-build-report': ('worker_borrowed_build_report', 'hepta.hia.worker-borrowed-build-report-native.v1'),
     'inspection-lowering-elf': ('inspection_lowering_elf', 'hepta.hia.inspection-lowering-elf-native.v1'),
     'inspection-lowering-frames': ('inspection_lowering_frames', 'hepta.hia.inspection-lowering-frames-native.v1'),
     'context-workload': ('worker_context_workload', 'hepta.hia.context-workload-native.v1'),

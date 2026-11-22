@@ -395,6 +395,8 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_inspection_lowering_elf.py',
     'examples/hia_bootstrap/worker_object_inventory.hepta',
     'tools/generate_hia_worker_object_inventory.py',
+    'examples/hia_bootstrap/worker_borrowed_build_report.hepta',
+    'tools/generate_hia_worker_borrowed_build_report.py',
     'examples/hia_bootstrap/inspection_lowering_frames.hepta',
     'tools/generate_hia_inspection_lowering_frames.py',
     'examples/hia_bootstrap/borrowed_export_wire.hepta',

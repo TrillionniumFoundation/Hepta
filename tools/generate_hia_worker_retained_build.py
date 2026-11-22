@@ -26,23 +26,32 @@ FORBIDDEN = ('assembler_used', 'external_linker_used', 'c_codegen_used', 'llvm_c
              'native_execution_qualified', 'whole_language_soundness_proved', 'fallback_used')
 EXTRA = ('commands', 'machine_proof', 'object_artifact', 'output')
 FIELDS = tuple(sorted((*REPORT_FIELDS, *EXTRA)))
-KEYS = (*FIELDS, *FORBIDDEN, 'direct_machine_code', 'standalone_core_reverified', 'sha256')
+KEYS = (*FIELDS, *FORBIDDEN, 'direct_machine_code', 'standalone_core_reverified', 'sha256',
+        'self_hosted', 'foreign_buffer_entrypoints_exposed')
 
 POLICY = r'''
-# Only accepts a process report after the independent object/final-image
-# custody check. The exact Store reference is a separate sealed observation.
+# Accept a process report, or the explicit in-memory HIA report protocol
+# [reference, report, 1], after independent object/final-image custody.
 def retained_build(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 176 or length(s) > 1048576 or length(w) < 65536 or length(o) < 2048:
         return INVALID
     put(o, 48, 32768)
     put(o, 56, 64)
-    if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5 or get(w, 96) != 2:
+    if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
+        return INVALID
+    arity = get(w, 96)
+    if arity != 2 and arity != 3:
         return INVALID
     retained = 64 + get(w, 88) * 72
     report = 64 + get(w, retained + 16) * 72
     if get(w, retained) != 6 or get(w, retained + 64) != 176 or get(w, report) != 6:
         return INVALID
-    if artifact_reference(s, get(w, retained + 56)) == False or validate_report(s, w, retained, report) == False:
+    memory = arity == 3
+    if memory:
+        mode = 64 + get(w, report + 16) * 72
+        if get(w, mode) != 3 or get(w, mode + 32) != 1 or byte(s, get(w, mode + 24)) != 49:
+            return INVALID
+    if artifact_reference(s, get(w, retained + 56)) == False or validate_report(s, w, retained, report, memory) == False:
         return INVALID
     store(o, 0, 123)
     cursor = 1
@@ -75,10 +84,10 @@ def retained_build(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     store(o, cursor, 125)
     return cursor + 1
 
-def validate_report(s:readbuf, w:mutbuf, retained:u64, report:u64) -> bool:
+def validate_report(s:readbuf, w:mutbuf, retained:u64, report:u64, memory:bool) -> bool:
     count = get(w, report + 32)
     proof = lookup(w, report, K_machine_proof)
-    if count != REPORT_COUNT + choose(proof == NONE, 1, 2):
+    if count != REPORT_COUNT + choose(proof == NONE, 0, 1) + choose(memory, 0, 1):
         return False
     if proof != NONE and get(w, proof) != 6:
         return False
@@ -87,17 +96,29 @@ def validate_report(s:readbuf, w:mutbuf, retained:u64, report:u64) -> bool:
     path = lookup(w, report, K_output)
     digest = lookup(w, report, K_object_sha256)
     observed = lookup(w, retained, K_sha256)
-    if path == NONE or get(w, path) != 4 or digest_text(w, digest, False) == False:
+    if memory:
+        if path != NONE or memory_claims(w, lookup(w, report, K_claims)) == False:
+            return False
+    elif path == NONE or get(w, path) != 4:
+        return False
+    if digest_text(w, digest, False) == False:
         return False
     if observed == NONE or equal_span(s, w, observed, digest) == False:
         return False
     field = 1
     while field <= FIELD_COUNT:
-        optional = field == K_commands or field == K_object_artifact or field == K_machine_proof
+        optional = field == K_commands or field == K_object_artifact or field == K_machine_proof or (memory and field == K_output)
         if optional == False and lookup(w, report, field) == NONE:
             return False
         field = field + 1
     return claims(w, report)
+
+def memory_claims(w:mutbuf, claims:u64) -> bool:
+    if claims == NONE or get(w, claims) != 6:
+        return False
+    native = lookup(w, claims, K_self_hosted)
+    borrowed = lookup(w, claims, K_foreign_buffer_entrypoints_exposed)
+    return native != NONE and borrowed != NONE and get(w, native) == 2 and get(w, borrowed) == 2
 
 def claims(w:mutbuf, report:u64) -> bool:
     observed = lookup(w, report, K_claims)
