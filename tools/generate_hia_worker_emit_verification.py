@@ -18,7 +18,8 @@ NAMES = ('installation', 'context', 'candidate', 'validation_profile', 'candidat
          'assumptions_artifact', 'evidence_artifact', 'schema', 'method', 'plan',
          'core_sha256', 'canonical_object_sha256', 'planned_object_sha256',
          'canonical_frame_bytes', 'planned_frame_bytes', 'same_slots', 'same_frame_sizes',
-         'implicit_optimizer_used', 'choice_checks', 'choice', 'checked', 'rule', 'proof_binding')
+         'implicit_optimizer_used', 'choice_checks', 'choice', 'checked', 'rule', 'proof_binding',
+         'kind', 'backend_profile', 'plan_profile', 'sha256')
 CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
 LAYOUT_RULE = 'exact block permutations; every terminator transfers explicitly'
 
@@ -35,16 +36,18 @@ def emit_verification(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
         return INVALID
     count = get(w, 96)
-    if count != 1 and count != 2 and count != 5 and count != 7:
+    if count != 1 and count != 2 and count != 3 and count != 5 and count != 8:
         return INVALID
     first = 64 + get(w, 88) * 72
     if count == 1:
         return verification_files(s, w, o, first)
-    if count == 7:
+    if count == 8:
         return layout_evidence(s, w, o, first)
     second = next(w, first)
     if count == 2:
         return qualified_plan(w, o, s, first, second)
+    if count == 3:
+        return layout_subject(s, w, o, first, second, next(w, second))
     candidate = next(w, second)
     profile = next(w, candidate)
     receipt = next(w, profile)
@@ -91,17 +94,20 @@ def verification_files(s:readbuf, w:mutbuf, o:mutbuf, receipt:u64) -> u64:
     put(o, 8, count)
     return cursor
 
-# [verified Core digest, physically retained plan, actual canonical and
+# [verified Core digest, physically retained plan, plan digest, actual canonical and
 #  planned object digests, independently extracted frame maps, proof evidence].
 # This rechecks the v1 conditional block-layout claim, never general refinement.
 def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
     plan = next(w, core)
-    canonical = next(w, plan)
+    plan_digest = next(w, plan)
+    canonical = next(w, plan_digest)
     planned = next(w, canonical)
     canonical_frames = next(w, planned)
     planned_frames = next(w, canonical_frames)
     evidence = next(w, planned_frames)
-    if digest_text(w, core, False) == False or digest_text(w, canonical, False) == False or digest_text(w, planned, False) == False:
+    if digest_text(w, core, False) == False or digest_text(w, plan_digest, False) == False:
+        return INVALID
+    if digest_text(w, canonical, False) == False or digest_text(w, planned, False) == False:
         return INVALID
     if is_object(w, plan) == False or is_object(w, canonical_frames) == False or is_object(w, planned_frames) == False or is_object(w, evidence) == False:
         return INVALID
@@ -119,7 +125,7 @@ def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
         return refusal(o, 4)
     if tag_is(w, lookup(w, evidence, K_same_slots), 2) == False or tag_is(w, lookup(w, evidence, K_same_frame_sizes), 2) == False:
         return refusal(o, 4)
-    if tag_is(w, lookup(w, evidence, K_implicit_optimizer_used), 1) == False or is_object(w, lookup(w, evidence, K_proof_binding)) == False:
+    if tag_is(w, lookup(w, evidence, K_implicit_optimizer_used), 1) == False or proof_names_plan(s, w, evidence, plan_digest) == False:
         return refusal(o, 4)
     checks = lookup(w, evidence, K_choice_checks)
     if checks == NONE or get(w, checks) != 5 or get(w, checks + 32) != 1:
@@ -133,6 +139,36 @@ def layout_evidence(s:readbuf, w:mutbuf, o:mutbuf, core:u64) -> u64:
 
 def tag_is(w:mutbuf, node:u64, tag:u64) -> bool:
     return node != NONE and get(w, node) == tag
+
+def proof_names_plan(s:readbuf, w:mutbuf, evidence:u64, digest:u64) -> bool:
+    proof = lookup(w, evidence, K_proof_binding)
+    if is_object(w, proof) == False:
+        return False
+    subject = lookup(w, proof, K_subject)
+    if is_object(w, subject) == False:
+        return False
+    ref = lookup(w, subject, K_plan)
+    return exact_reference(s, w, ref) and matches_field(s, w, ref, K_sha256, digest)
+
+# Subject lookup is independent of the proof verdict. The two profiles are
+# the currently authorized discovery references, never taken from a receipt.
+def layout_subject(s:readbuf, w:mutbuf, o:mutbuf, backend:u64, profile:u64, receipt:u64) -> u64:
+    if is_object(w, backend) == False or is_object(w, profile) == False or is_object(w, receipt) == False:
+        return INVALID
+    subject = lookup(w, receipt, K_subject)
+    if is_object(w, subject) == False or get(w, subject + 32) != 4:
+        return refusal(o, 3)
+    if plan_subject_kind(w, lookup(w, subject, K_kind)) == False:
+        return refusal(o, 3)
+    if matches_field(s, w, subject, K_backend_profile, backend) == False or matches_field(s, w, subject, K_plan_profile, profile) == False:
+        return refusal(o, 3)
+    ref = lookup(w, subject, K_plan)
+    if exact_reference(s, w, ref) == False:
+        return refusal(o, 3)
+    put(o, 0, SUBJECT)
+    put(o, 8, 0)
+    copy_reference(s, o, get(w, ref + 56), 16)
+    return 192
 
 def bind_receipt(s:readbuf, w:mutbuf, o:mutbuf, installation:u64, context:u64, candidate:u64, profile:u64, receipt:u64) -> u64:
     observed = lookup(w, receipt, K_candidate)
@@ -210,6 +246,7 @@ def program():
     constants = {f'K_{name}': index for index, name in enumerate(NAMES, 1)}
     constants.update(RESULT=int.from_bytes(b'HIAEVR01', 'little'),
                      FILES=int.from_bytes(b'HIAEVP01', 'little'), NONE=(1 << 64) - 1,
+                     SUBJECT=int.from_bytes(b'HIAEVS01', 'little'),
                      INVALID=4294967293)
     policy = re.sub(r'\b(' + '|'.join(constants) + r')\b',
                     lambda match: str(constants[match[0]]), POLICY)
@@ -226,6 +263,7 @@ def program():
         literal_match('proved_status', 'proved'), '\n'.join(claims),
         *(literal_match('claim_' + claim, claim) for claim in CLAIMS),
         literal_match('layout_schema', LAYOUT_V1),
+        literal_match('plan_subject_kind', 'agent_machine_plan'),
         literal_match('layout_method', 'checked_explicit_machine_choices'),
         literal_match('block_layout_choice', 'block_layout'),
         literal_match('block_layout_rule', LAYOUT_RULE),
