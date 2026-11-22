@@ -193,7 +193,7 @@ def program():
             'DOCUMENT': b'HIADOC01', 'OUTCOME': b'HIAIND01', 'VERIFIED': b'HIABOR01',
             'CONTEXT_PREFIX': b'ctx-'}
     words.update((tag, int.from_bytes(raw, 'little')) for tag, raw in tags.items())
-    words['INVALID'] = 4294967293
+    words['INVALID'] = 4294967295
     policy = re.sub(r'\b('+'|'.join(words)+r')\b', lambda m: str(words[m[0]]), POLICY)
     existing = discovery_policy()
     authority = authority_policy()
