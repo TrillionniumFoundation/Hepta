@@ -54,9 +54,9 @@ def kind_width_source():
 def kind_match_source():
     source = '\ndef document_kind_matches(s:readbuf, at:u64, kind:u64) -> bool:\n'
     for index, name in enumerate(DOCUMENT_KINDS, 1):
-        fields = ('kind_word(s, at + %d, %d) == %d' % (at, len(chunk), int.from_bytes(chunk, 'little'))
+        fields = (f'(kind_word(s, at + {at}, {len(chunk)}) ^ {int.from_bytes(chunk, "little")})'
                   for at in range(0, len(name), 8) if (chunk := name[at:at + 8]))
-        source += f'    if kind == {index}:\n        return ' + ' and '.join(fields) + '\n'
+        source += f'    if kind == {index}:\n        return (' + ' | '.join(fields) + ') == 0\n'
     return source + '''    return False
 
 def kind_word(s:readbuf, at:u64, width:u64) -> u64:

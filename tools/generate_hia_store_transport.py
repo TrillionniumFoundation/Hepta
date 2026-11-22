@@ -1090,9 +1090,10 @@ def source_program():
     profile_gate = '\ndef worker_profile_id(s:readbuf, at:u64, length:u64) -> bool:\n'
     profile_gate += '\n'.join(profiles) + '\n    return False\n'
     kinds = '\ndef document_kind_allowed(s:readbuf, at:u64, length:u64) -> bool:\n'
-    for index, raw in enumerate(DOCUMENT_KINDS, 1):
-        kinds += (f'    if length == {len(raw)} and document_kind_matches(s, at, {index}):\n'
-                  '        return True\n')
+    for width in sorted({len(name) for name in DOCUMENT_KINDS}):
+        matches = (f'document_kind_matches(s, at, {index})'
+                   for index, name in enumerate(DOCUMENT_KINDS, 1) if len(name) == width)
+        kinds += f'    if length == {width}:\n        return ' + ' or '.join(matches) + '\n'
     kinds += '    return False\n'
     return re.sub(r'\b(' + '|'.join(WIRE) + r')\b',
         lambda name: str(int.from_bytes(WIRE[name.group()], 'little')),
