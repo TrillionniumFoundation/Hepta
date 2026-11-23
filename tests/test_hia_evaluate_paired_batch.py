@@ -108,6 +108,84 @@ class PairedMeasurementTests(unittest.TestCase):
         rows = list(struct.iter_unpack('<8Q',raw[80:]))
         return header, rows
 
+    def archived(self, inputs):
+        inputs = list(inputs)
+        inputs[5] = b'HIAEPL03'+inputs[5][8:]
+        code, data, errors = run_pair(self.pair,inputs)
+        self.assertEqual((code,errors),(0,b''))
+        magic,pair_size,event_size,count = struct.unpack_from('<8s3Q',data)
+        self.assertEqual(magic,b'HIAEMT01')
+        self.assertEqual(len(data),32+pair_size+event_size)
+        pair = data[32:32+pair_size]
+        header = struct.unpack_from('<8s9Q',pair)
+        self.assertEqual((header[0],pair_size),(b'HIAEPM01',80+64*header[3]))
+        samples = list(struct.iter_unpack('<8Q',pair[80:]))
+        pos = 32+pair_size
+        events = []
+        for _ in range(count):
+            row = struct.unpack_from('<8s11Q',data,pos)
+            self.assertEqual(row[0],b'HIAEEV01')
+            pos += 96
+            raw_size = row[9]+row[10] if row[1] == 2 else row[7] if row[1] == 3 else 0
+            events.append((row,data[pos:pos+raw_size]))
+            pos += raw_size
+        self.assertEqual(pos,len(data))
+        return header,samples,events
+
+    def test_archive_keeps_actual_exit_clocks_streams_and_loan_bytes(self):
+        from tests.test_hia_agent_buffer_lifecycle import trap_program
+        params = [('arg','mutbuf')]
+        def writer(value):
+            return m(f('write_input',params,['u32'],['write','trap'],[b('entry',params,[
+                c('at','usize',0),c('value','u8',value),i('buffer.store',['arg','at','value']),
+                c('ok','u32',0)],ret('ok'))]))
+        cases = [{'function':'write_input','arguments':[{'bytes_hex':'0401'}]},
+                 {'function':'write_input','arguments':[{'byte_length':0,'fill_byte':7}]}]
+        inputs = self.fixture(writer(41),cases,exports=(('write_input',16),),double=True)
+        # Make the selected ELF disagree without substituting a new reference.
+        inputs[2] = self.linker.link(emit_program_machine(verify_program(writer(42)),
+                              foreign_buffer_exports=(('write_input',16),)).object_bytes)
+        before = time.monotonic_ns()
+        h,samples,events = self.archived(inputs)
+        after = time.monotonic_ns()
+        self.assertEqual((h[1],h[8:10]),(1,(0,1)))
+        self.assertEqual([event[0][1] for event in events],[1,2,3,4]*4)
+        for n, (sample,expected) in enumerate(zip(samples,[bytes([41,1]),b'',bytes([42,1]),b''],strict=True)):
+            begin,(owner,payload),(loan,snapshot),end = events[4*n:4*n+4]
+            self.assertEqual([event[0][2:4] for event in events[4*n:4*n+4]],[sample[:2]]*4)
+            clocks = (before,begin[0][4],owner[4],owner[5],loan[4],end[0][4],after)
+            self.assertEqual(clocks,tuple(sorted(clocks)))
+            self.assertEqual(owner[6],int.from_bytes(b'HIADRT01','little'))
+            self.assertEqual(owner[7:9],(sample[3],0))
+            self.assertEqual(owner[10],0)
+            self.assertEqual(loan[5:8],(0,2,len(expected)))
+            self.assertEqual(snapshot,expected)
+            actual = b'' if sample[3] else struct.pack('<8s3Q',b'HIADRR02',*sample[4:7])
+            self.assertEqual((owner[9],payload),(len(actual),actual))
+        inputs = self.fixture(trap_program(),[{'function':'write_then_trap','arguments':[{'bytes_hex':'0807'}]}],
+                              exports=(('write_then_trap',16),),double=True)
+        h,samples,events = self.archived(inputs)
+        self.assertEqual((h[1], [r[3] for r in samples]),(0,[2**64-6]*2))
+        self.assertEqual([body for event,body in events if event[1]==3],[bytes([91,7])]*2)
+
+    def test_archive_distinguishes_reaped_timeout_from_unstarted_reference(self):
+        params = [('x','u64')]
+        baseline = m(f('id',params,['u64'],[],[b('entry',params,[],ret('x'))]))
+        loop = m(f('id',params,['u64'],[],[b('entry',params,[],jump('spin')),b('spin',[],[],jump('spin'))]))
+        inputs = self.fixture(baseline,[{'function':'id','arguments':[4]}],double=True)
+        inputs[2] = self.linker.link(emit_program_machine(verify_program(loop)).object_bytes)
+        deadline = time.monotonic_ns()+300_000_000
+        inputs[5] = struct.pack('<8sQQ',b'HIAEPL03',64<<20,deadline)
+        h,samples,events = self.archived(inputs)
+        self.assertEqual((h[1],h[8:10],len(samples)),(2,(0,1),1))
+        self.assertEqual([e[0][1] for e in events],[1,2,4,1,2,4])
+        owner,payload = events[4]
+        self.assertEqual((owner[8],payload),(1,b''))
+        self.assertGreaterEqual(owner[5],deadline)
+        inputs[5] = struct.pack('<8sQQ',b'HIAEPL03',64<<20,1)
+        h,samples,events = self.archived(inputs)
+        self.assertEqual((h[1],samples,events),(2,[],[]))
+
     def test_distinct_real_arms_and_measurements(self):
         params=[('x','i64')]
         def doc(value):

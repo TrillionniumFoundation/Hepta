@@ -3,7 +3,17 @@
 Sealed fds 3 through 8 contain [ABI, workload], the two artifact ELFs, the
 direct-call supervisor, the baseline reference batch, and the limits packet.
 HIAEPL02 also requires the candidate reference batch on fd 9 and the two
-canonical Core files on fds 10 and 11. HIAEPL01 accepts one agreed reference.
+canonical Core files on fds 10 and 11. HIAEPL03 requests the same checks and
+a physical observation archive. HIAEPL01 accepts one agreed reference.
+
+HIAEMT01 contains four little-endian words (magic, pair length, event bytes,
+event count), the ordinary HIAEPM01, then consecutive physical HIAEEV01
+events. Each event has twelve words: magic, type, case, arm, monotonic time,
+and seven type-specific fields. Types are begin (phase, warmups, repetitions,
+loan count), owner (reaped time, raw HIADRT01 magic, code, stopped, stdout
+length, stderr length), loan (argument, loan kind, logical length), and end.
+The owner is followed by its exact stdout and stderr. Each loan is followed
+by the exact logical bytes in the parent-owned backing file after reaping.
 
 The HIAEPM01 header is ten little-endian u64 words (magic, status, case count,
 sample count, per-arm measured nanoseconds, per-arm measured calls, case and
@@ -80,6 +90,11 @@ STATE_FIELDS = {
     'BASE_CHAINS': 336,
     'OTHER_CHAINS': 344,
     'DEFERRED_STATUS': 352,
+    'RUN_STARTED': 360,
+    'RUN_REAPED': 368,
+    'EVENT_SIZE': 376,
+    'EVENT_COUNT': 384,
+    'AFTER_CASE': 392,
 }
 
 # File descriptors 3..8 carry [ABI, workload], baseline, candidate, native
@@ -90,7 +105,7 @@ POLICY = '''
 def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     state = get(w, STATE)
     if state == 0:
-        if length(s) != 24 or (read_word(s,0) != CONTROL and read_word(s,0) != BOTH_CONTROL):
+        if length(s) != 24 or (read_word(s,0) != CONTROL and read_word(s,0) != BOTH_CONTROL and read_word(s,0) != ARCHIVE_CONTROL):
             return 0
         m = read_word(s, 8)
         d = read_word(s, 16)
@@ -100,8 +115,8 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         put(w, MEMORY_LIMIT, m)
         put(w, DEADLINE, d)
-        if read_word(s,0) == BOTH_CONTROL:
-            put(w,DOUBLE_REFERENCE,1)
+        if read_word(s,0) != CONTROL:
+            put(w,DOUBLE_REFERENCE,choose(read_word(s,0) == ARCHIVE_CONTROL,2,1))
             put(w,STATE,8)
             return 8
         put(w, STATE, 1)
@@ -124,7 +139,17 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if state == 4:
         return prepare_files(s, o, w)
     if state == 5:
+        if get(w,DOUBLE_REFERENCE) == 2:
+            return archive_owner(o,w)
         return observe(s, o, w)
+    if state == 13:
+        return observe(s,o,w)
+    if state == 14:
+        if get(w,AFTER_CASE) != 0:
+            return finish(o,w,get(w,AFTER_CASE))
+        put(w,CASE_INDEX,get(w,CASE_INDEX)+1)
+        put(w,STATE,3)
+        return measure_next(s,o,w)
     if state == 6:
         return read_files(o, w)
     if state == 7:
@@ -446,6 +471,15 @@ def prepare_case(s:readbuf, o:mutbuf, w:mutbuf, index:u64) -> u64:
     put(w, ARGUMENT_INDEX, 0)
     put(w, LOAN_INDEX, 0)
     put(w, STATE, 4)
+    if get(w,DOUBLE_REFERENCE) == 2:
+        if event_header(o,w,1,get(w,CLOCK),0) == False:
+            return 0
+        traps = get(w,TRAP_PHASE)
+        put(o,40,traps)
+        put(o,48,choose(traps == 0,get(w,WARMUPS),0))
+        put(o,56,choose(traps == 0,get(w,REPETITIONS),1))
+        put(o,64,get(w,P+40))
+        return 10
     return prepare_files(s, o, w)
 
 def prepare_files(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -488,7 +522,7 @@ def runner_packet(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     deadline = get(w, DEADLINE)
     now = get(w, CLOCK)
     if now >= deadline:
-        return finish(o, w, 2)
+        return terminal_case(o,w,2)
     remaining = deadline - now - 1
     if remaining >= 86400000000000:
         return 0
@@ -568,9 +602,9 @@ def observe(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if code == MAX-255 and (stopped != 1 or actual != 0 or get(w,STDERR_BYTES) != 0):
         return 0
     if get(w,STDERR_BYTES) > 65536 or actual > 2097152:
-        return finish(o,w,4)
+        return terminal_case(o,w,4)
     if stopped != 0 or code == MAX-23:
-        return finish(o,w,2)
+        return terminal_case(o,w,2)
     arm = get(w,ARM)
     index = get(w,CASE_INDEX)
     row = ROWS + 96*index
@@ -583,14 +617,14 @@ def observe(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     put(w,SAMPLE_COUNT,get(w,SAMPLE_COUNT)+1)
     if code == MAX-5:
         if actual != 0:
-            return finish(o,w,4)
+            return terminal_case(o,w,4)
         if expected == 0:
-            return finish(o,w,1)
+            return terminal_case(o,w,1)
     else:
         if code != 0:
-            return finish(o,w,3)
+            return terminal_case(o,w,3)
         if actual != 32 or get(w,CALL_MAGIC) != RECEIPT or get(w,VARIATION) > 1:
-            return finish(o,w,4)
+            return terminal_case(o,w,4)
         value = get(w,CALL_VALUE)
         duration = get(w,CALL_NS)
         put(w,sample+32,value)
@@ -631,6 +665,11 @@ def read_files(o:mutbuf, w:mutbuf) -> u64:
             put(w,IO_BYTES,get(w,row+8))
             put(w,STATE,7)
             return 5
+    if get(w,DOUBLE_REFERENCE) == 2:
+        if event_header(o,w,4,get(w,CLOCK),0) == False:
+            return 0
+        put(w,STATE,14)
+        return 10
     put(w,CASE_INDEX,get(w,CASE_INDEX)+1)
     put(w,STATE,3)
     return 1
@@ -638,16 +677,67 @@ def read_files(o:mutbuf, w:mutbuf) -> u64:
 def compare_file(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     at = get(w,EXPECTED_SNAPSHOT)
     size = get(w,IO_BYTES)
-    if at > length(s) or size > length(s)-at:
+    if get(w,AFTER_CASE) == 0:
+        if at > length(s) or size > length(s)-at:
+            return 0
+        i = 0
+        while i < size:
+            if byte(w,LOAN+i) != byte(s,at+i):
+                mismatch(w)
+            i = i + 1
+        sample = SAMPLES + 64*(get(w,SAMPLE_COUNT)-1)
+        put(w,sample+56,get(w,sample+56)+size)
+        put(w,EXPECTED_SNAPSHOT,at+size)
+    put(w,STATE,6)
+    if get(w,DOUBLE_REFERENCE) == 2:
+        if event_header(o,w,3,get(w,CLOCK),size) == False:
+            return 0
+        arg = get(w,ARGUMENT_INDEX)-1
+        put(o,40,arg)
+        put(o,48,get(w,P+80+48*arg))
+        put(o,56,size)
+        return 12
+    return read_files(o,w)
+
+def event_header(o:mutbuf,w:mutbuf,kind:u64,clock:u64,extra:u64) -> bool:
+    size = get(w,EVENT_SIZE)+96+extra
+    if size > 268435456 or clock == 0:
+        return False
+    put(w,EVENT_SIZE,size)
+    put(w,EVENT_COUNT,get(w,EVENT_COUNT)+1)
+    put(o,0,EVENT)
+    put(o,8,kind)
+    put(o,16,get(w,CASE_INDEX))
+    put(o,24,get(w,ARM))
+    put(o,32,clock)
+    i = 40
+    while i < 96:
+        put(o,i,0)
+        i = i+8
+    return True
+
+def archive_owner(o:mutbuf,w:mutbuf) -> u64:
+    out_size = get(w,STDOUT_BYTES)
+    err_size = get(w,STDERR_BYTES)
+    if out_size > 2097152 or err_size > 65536 or get(w,RUN_REAPED) < get(w,RUN_STARTED) or get(w,OWNER_MAGIC) != TERMINAL:
         return 0
-    i = 0
-    while i < size:
-        if byte(w,LOAN+i) != byte(s,at+i):
-            mismatch(w)
-        i = i + 1
-    sample = SAMPLES + 64*(get(w,SAMPLE_COUNT)-1)
-    put(w,sample+56,get(w,sample+56)+size)
-    put(w,EXPECTED_SNAPSHOT,at+size)
+    if event_header(o,w,2,get(w,RUN_STARTED),out_size+err_size) == False:
+        return 0
+    put(o,40,get(w,RUN_REAPED))
+    put(o,48,get(w,OWNER_MAGIC))
+    put(o,56,get(w,OWNER_CODE))
+    put(o,64,get(w,OWNER_STOPPED))
+    put(o,72,out_size)
+    put(o,80,err_size)
+    put(w,STATE,13)
+    return 11
+
+def terminal_case(o:mutbuf,w:mutbuf,status:u64) -> u64:
+    if get(w,DOUBLE_REFERENCE) != 2:
+        return finish(o,w,status)
+    put(w,AFTER_CASE,status)
+    put(w,ARGUMENT_INDEX,0)
+    put(w,LOAN_INDEX,0)
     put(w,STATE,6)
     return read_files(o,w)
 
@@ -679,6 +769,12 @@ def finish(o:mutbuf, w:mutbuf, status:u64) -> u64:
         put(o,80+i,get(w,SAMPLES+i))
         i = i + 8
     put(w,IO_BYTES,80+extent)
+    if get(w,DOUBLE_REFERENCE) == 2:
+        put(o,700000,ARCHIVE)
+        put(o,700008,80+extent)
+        put(o,700016,get(w,EVENT_SIZE))
+        put(o,700024,get(w,EVENT_COUNT))
+        return 13
     return 6
 '''
 
@@ -700,7 +796,7 @@ def snapshot_hash():
 
 
 def program():
-    magic = dict(CONTROL=b'HIAEPL01', BOTH_CONTROL=b'HIAEPL02', WORKLOAD=b'HIAEVW01', BATCH=b'HIAEBT01', REFERENCE=b'HIASPR01',
+    magic = dict(CONTROL=b'HIAEPL01', BOTH_CONTROL=b'HIAEPL02', ARCHIVE_CONTROL=b'HIAEPL03', ARCHIVE=b'HIAEMT01', EVENT=b'HIAEEV01', WORKLOAD=b'HIAEVW01', BATCH=b'HIAEBT01', REFERENCE=b'HIASPR01',
                  PLAN=b'HIAEVC01', SUPERVISE=b'HIADRS01', RUN=b'HIADRX02', TERMINAL=b'HIADRT01',
                  RECEIPT=b'HIADRR02', PAIR=b'HIAEPM01')
     values = {name: int.from_bytes(value, 'little') for name, value in magic.items()}

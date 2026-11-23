@@ -25,10 +25,11 @@
 .equ SECOND_REF,336
 .equ BASE_CORE,352
 .equ OTHER_CORE,368
+.equ EVENT_FD,384
 _start:
     cmp QWORD PTR [rsp],1
     jne refuse
-    sub rsp,384
+    sub rsp,400
     mov rbp,rsp
     mov QWORD PTR [rbp+SECOND_REF],0
     lea rdi,[rbp+FRAME]
@@ -102,6 +103,7 @@ check_seals:
     mov [rbp+OUTFD],rax
     call scratch
     mov [rbp+ERRFD],rax
+    mov QWORD PTR [rbp+EVENT_FD],-1
     mov r14d,16
 private_file:
     call scratch
@@ -184,6 +186,14 @@ pair_call_hole: .long 0
     je base_core
     cmp eax,9
     je other_core
+    cmp eax,10
+    je event_only
+    cmp eax,11
+    je event_owner
+    cmp eax,12
+    je event_loan
+    cmp eax,13
+    je publish_archive
     cmp eax,6
     jne refuse
     mov edi,1
@@ -192,6 +202,87 @@ pair_call_hole: .long 0
     cmp rdx,OUT
     ja refuse
     call write_all
+    xor edi,edi
+    jmp exit
+event_file:
+    cmp QWORD PTR [rbp+EVENT_FD],-1
+    jne event_ready
+    call scratch
+    mov [rbp+EVENT_FD],rax
+event_ready:
+    mov edi,[rbp+EVENT_FD]
+    ret
+event_header:
+    call event_file
+    mov rsi,[rbp+OUTPUT]
+    mov edx,96
+    jmp write_all
+event_only:
+    call event_header
+    jmp json
+event_owner:
+    call event_header
+    mov esi,[rbp+OUTFD]
+    mov rdx,[r15+280]
+    call file_append
+    mov esi,[rbp+ERRFD]
+    mov rdx,[r15+320]
+    call file_append
+    jmp reference
+event_loan:
+    call event_header
+    mov rdx,[r15+112]
+    cmp rdx,OUT
+    ja refuse
+    test rdx,rdx
+    jz reference
+    mov edi,[rbp+EVENT_FD]
+    lea rsi,[r15+1048576]
+    call write_all
+    jmp reference
+file_append:
+    mov edi,[rbp+EVENT_FD]
+copy_file:
+    test rdx,rdx
+    jz copied
+    mov r12,rdx
+    mov QWORD PTR [rbp+WHEN],0
+copy_more:
+    lea rdx,[rbp+WHEN]
+    mov r10,r12
+    mov eax,40
+    syscall
+    cmp rax,-4
+    je copy_more
+    test rax,rax
+    jle refuse
+    sub r12,rax
+    jnz copy_more
+copied:
+    ret
+publish_archive:
+    call event_file
+    call extent
+    cmp rax,[r15+376]
+    jne refuse
+    cmp rax,268435456
+    ja refuse
+    mov rdx,[r15+112]
+    cmp rdx,700000
+    ja refuse
+    mov edi,1
+    mov rsi,[rbp+OUTPUT]
+    add rsi,700000
+    mov edx,32
+    call write_all
+    mov edi,1
+    mov rsi,[rbp+OUTPUT]
+    mov rdx,[r15+112]
+    call write_all
+    mov edi,1
+    mov esi,[rbp+EVENT_FD]
+    mov rdx,[r15+376]
+    call copy_file
     xor edi,edi
     jmp exit
 loan_fd:
@@ -241,6 +332,8 @@ supervise:
     call write_all
     mov edi,[rbp+INFD]
     call rewind
+    call clock_now
+    mov [r15+360],rax
     mov eax,57
     syscall
     test rax,rax
@@ -260,6 +353,8 @@ wait_owner:
     jne refuse
     cmp DWORD PTR [rbp+STATUS],0
     jne refuse
+    call clock_now
+    mov [r15+368],rax
     mov edi,24
     call extent
     cmp rax,24
