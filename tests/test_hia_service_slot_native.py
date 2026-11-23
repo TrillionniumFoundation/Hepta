@@ -29,7 +29,9 @@ class ServiceSlotSourceTests(unittest.TestCase):
         from hepta.hia_agent_assembly import assemble_program, render_assembly
         from tools import generate_hia_service_slot as generator
         oracle.original_sources()
-        raw = (ROOT / 'hepta/hia_agent_service.py').read_bytes()
+        from tests.hia_store_delivery_successor import retained_bootstrap_service
+        service_source = (ROOT / 'hepta/hia_agent_service.py').read_bytes()
+        raw = retained_bootstrap_service(service_source)
         module, lines = ast.parse(raw), raw.splitlines(keepends=True)
         service = next(n for n in module.body if isinstance(n, ast.ClassDef) and n.name == 'HIAAgentService')
         for name, fixed in (('_hia_rollback', 'rollback'), ('_hia_adopt', 'adopt')):
