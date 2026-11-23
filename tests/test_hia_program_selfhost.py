@@ -420,8 +420,9 @@ raise SystemExit(hia_main(json.loads(sys.argv[2])))
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)
         wheels, installed = self.root / "wheels", self.root / "installed"
+        from tests.hia_distribution_fixture import ordinary_wheel
         steps = [
-            [sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", "--wheel-dir", str(wheels), str(package)],
+            [sys.executable, "-m", "pip", "wheel", '--no-index', "--no-deps", "--no-build-isolation", "--wheel-dir", str(wheels), str(ordinary_wheel(package, python=sys.executable))],
         ]
         for command in steps:
             result = subprocess.run(command, cwd=self.root, capture_output=True, text=True, timeout=60)

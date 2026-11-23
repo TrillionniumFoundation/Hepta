@@ -691,8 +691,9 @@ class CompositeTypesNativeTests(unittest.TestCase):
             destination = source / name; destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, destination)
         wheels = self.folder / 'wheels'
-        result = subprocess.run([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',
-            '--wheel-dir', str(wheels), str(source)], cwd=source, capture_output=True, timeout=120,
+        from tests.hia_distribution_fixture import ordinary_wheel
+        result = subprocess.run([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation',
+            '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=sys.executable))], cwd=source, capture_output=True, timeout=120,
             env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         wheel, = wheels.glob('*.whl')

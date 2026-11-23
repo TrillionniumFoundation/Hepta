@@ -18,6 +18,7 @@ import sys
 from types import CodeType, FunctionType, MappingProxyType
 import weakref
 
+from .hia_reference_runtime_sources import TYPED_RESOURCE_SHA256, word_runtime_source
 from . import hia_program_runtime as original
 from . import hia_vm_integer_divrem_protocol as wire
 from .hia_native_admission_io import regular_bytes, source_resource_path
@@ -56,6 +57,9 @@ def _retained_runtime_source(raw):
     digest = sha256(raw).hexdigest()
     if digest == RUNTIME_SHA256:
         return raw
+    if digest == TYPED_RESOURCE_SHA256:
+        raw = word_runtime_source(raw)
+        digest = sha256(raw).hexdigest()
     if digest != V9_RUNTIME_SHA256:
         raise ValueError("native integer runtime exceeds the pinned original/v9 sources")
     incoming, previous, branch = (_V9_IMPORT.encode(), _ORIGINAL_IMPORT.encode(),
@@ -69,7 +73,7 @@ def _retained_runtime_source(raw):
 
 
 def _word_order_state(raw):
-    if sha256(raw).hexdigest() != V9_RUNTIME_SHA256:
+    if sha256(raw).hexdigest() not in (V9_RUNTIME_SHA256, TYPED_RESOURCE_SHA256):
         return ()
     expected = (
         ("WORD_LOADS", (("buffer.load.u64.le", "little"), ("buffer.load.u64.be", "big"))),
@@ -208,6 +212,25 @@ def _cell(value):
     return (lambda: value).__closure__[0]
 
 
+def _select_integer_dispatch(operation, execute, selected_tests):
+    # The explicit standalone integer factory owns its selected operations even
+    # when the resource interpreter also has a general native image installed.
+    # Leave the general per-operation route available for other opcodes.
+    native_guard = ast.parse("self.scalar_reference is not None and scalar_op in NATIVE_SCALAR_OPCODES "
+                             "and (typ in WIDTHS or typ == 'bool')", mode="eval").body
+    matches = [node for node in ast.walk(operation) if isinstance(node, ast.If)
+               and ast.dump(node.test) == ast.dump(native_guard)]
+    dispatch = [node for node in ast.walk(execute) if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute) and node.func.attr == "execute"
+                and isinstance(node.func.value, ast.Name) and node.func.value.id == "machine"]
+    if len(matches) != 1 or len(dispatch) != 1:
+        raise ValueError("resource interpreter integer dispatch differs")
+    conditions = [ast.parse(source, mode="eval").body for source in selected_tests]
+    selected = conditions[0] if len(conditions) == 1 else ast.BoolOp(ast.Or(), conditions)
+    matches[0].test.values.append(ast.UnaryOp(ast.Not(), selected))
+    dispatch[0].func.attr = "invoke"
+
+
 def _derive(raw, factory, *, integer_arithmetic=False, integer_scalar=False):
     """Compile definitions only; no original module/class body is executed."""
     if type(integer_arithmetic) is not bool:
@@ -325,6 +348,13 @@ def _derive(raw, factory, *, integer_arithmetic=False, integer_scalar=False):
     if ast.dump(execute, include_attributes=False) != ast.dump(publics[0], include_attributes=False):
         raise ValueError("original public body changed")
     constructors[0].func.id = "_hia_factory"
+    if sha256(raw).hexdigest() == TYPED_RESOURCE_SHA256:
+        tests = [_DIV_TEST]
+        if integer_arithmetic:
+            tests.append(_ARITHMETIC_TEST)
+        if integer_scalar:
+            tests.extend(source for source, _body in _SCALAR_REPLACEMENTS)
+        _select_integer_dispatch(operation, execute, tests)
     # The enclosing function creates closure code only. Its body is never run.
     outer = ast.parse("def _bind(_hia_evaluate, _hia_guard, _hia_factory):\n    pass\n").body[0]
     container = ast.parse("class _Machine:\n    pass\n").body[0]
@@ -379,14 +409,18 @@ class _Factory:
         if type(self.builtins) is not dict:
             raise ValueError("original interpreter builtin namespace differs")
         self.builtin_items = tuple(self.builtins.items())
-        self.imported_functions = tuple((name, getattr(original, name), path) for name, path in (
+        dependencies = (
             ("verify_program", "hepta/hia_program.py"),
             ("integer_range", "hepta/hia_program.py"),
             ("scalar_value_valid", "hepta/hia_program.py"),
             ("fill_bytes", "hepta/hia_bounded_memory.py"),
             ("move_bytes", "hepta/hia_bounded_memory.py"),
             ("supports_feature", "hepta/hia_schema.py"),
-            ("validate_execution_observation", "hepta/hia_opcodes.py")))
+            ("validate_execution_observation", "hepta/hia_opcodes.py"))
+        if sha256(raw).hexdigest() == TYPED_RESOURCE_SHA256:
+            dependencies += (("selected_scalar_reference", "hepta/hia_scalar_reference_native.py"),
+                             ("installed_execution_ledger", "hepta/hia_execution_ledger_native.py"))
+        self.imported_functions = tuple((name, getattr(original, name), path) for name, path in dependencies)
         self.base_stamps = tuple(_stamp(fn) for _, fn in self.base_methods + self.global_functions)
         self.imported_stamps = tuple(_stamp(fn) for _, fn, _ in self.imported_functions)
         compiled = compile(raw, original.__file__, "exec", dont_inherit=True, optimize=sys.flags.optimize)

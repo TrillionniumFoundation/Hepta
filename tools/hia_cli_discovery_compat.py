@@ -24,6 +24,8 @@ WORD_FIXTURE_SHA256 = '278d8b2ae36291a849f195fa6a5627a0e5482d23d91135786eb93fd93
 
 DEFAULT_SUCCESSOR = ROOT / 'tests/fixtures/hia_cli_discovery_default_successor.json'
 DEFAULT_SUCCESSOR_SHA256 = 'e033a6674560cbdf044082e06f1f85163f425d5afd3ad51c21fdb580015ff39f'
+WHEEL_TEST_SUCCESSOR = ROOT / 'tests/fixtures/hia_cli_native_wheel_test_successor.json'
+WHEEL_TEST_SUCCESSOR_SHA256 = '9d191fc37aca4f661bc50814ac61248655b6914efa6693daae8e9ca8c6b8d550'
 
 
 def fixture():
@@ -162,6 +164,18 @@ def before_default_cli(name, current):
     row = fixture['files'].get(name)
     if row is None:
         return current
+    if name == 'tests/test_hia_cli_native.py' and sha256(current.encode()).hexdigest() != row['current_sha256']:
+        record = WHEEL_TEST_SUCCESSOR.read_bytes()
+        if sha256(record).hexdigest() != WHEEL_TEST_SUCCESSOR_SHA256:
+            raise ValueError('wheel CLI successor fixture changed')
+        wheel = json.loads(record)
+        if wheel['name'] != name or wheel['previous_sha256'] != row['current_sha256']:
+            raise ValueError('wheel CLI predecessor identity differs')
+        current = _undo_cli_delta(name, current, wheel)
+    return _undo_cli_delta(name, current, row)
+
+
+def _undo_cli_delta(name, current, row):
     if sha256(current.encode()).hexdigest() != row['current_sha256']:
         raise ValueError('source differs from the pinned default CLI successor: ' + name)
     lines = current.splitlines(keepends=True)

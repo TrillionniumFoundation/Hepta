@@ -53,7 +53,9 @@ class SlotWorkerTerminalSourceTests(unittest.TestCase):
         self.assertEqual(len(authority.originals), 8)
         for name, original in authority.originals.items():
             current = (ROOT / name).read_bytes()
-            self.assertEqual(reader.original_source(current, authority.value['source_successors'][name]), original)
+            from tests.hia_installed_distribution_history import predecessor
+            prior = predecessor(name, current, reader.original_source)
+            self.assertEqual(reader.original_source(prior, authority.value['source_successors'][name]), original)
         path = 'tests/test_hia_slot_operations_native.py'
         original = methods(authority.originals[path], 'SlotOperationsNativeTests')
         current = methods((ROOT / path).read_bytes(), 'SlotOperationsNativeTests')

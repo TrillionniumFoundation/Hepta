@@ -57,8 +57,9 @@ def run(args):
         for name in (*RESOURCES,*SDIST_SUPPORT_FILES,'setup.py','pyproject.toml','MANIFEST.in'):
             target=staging/name;target.parent.mkdir(parents=True,exist_ok=True)
             shutil.copyfile(ROOT/name,target)
+        from tests.hia_distribution_fixture import ordinary_wheel
         command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index',
-                         '--wheel-dir',args.output/'wheels',staging])
+                         '--wheel-dir',args.output/'wheels',ordinary_wheel(staging)])
         wheel,=(args.output/'wheels').glob('*.whl')
         installed=args.output/'installed'
         command('install',['-m','pip','install','--no-deps','--no-index','--no-compile',

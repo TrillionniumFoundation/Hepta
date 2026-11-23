@@ -833,8 +833,9 @@ with native_helpers_scope(bundle,pin):
             self.assertEqual(result.returncode, expected_code, result.stdout + result.stderr)
             return result
 
+        from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel
         run('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                      '--wheel-dir', self.case / 'wheels', staging])
+                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])
         wheel, = (self.case / 'wheels').glob('*.whl')
         installed = self.case / 'installed'
         run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
@@ -848,7 +849,7 @@ with native_helpers_scope(bundle,pin):
                     self.assertEqual(digest, 'sha256=' + base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode())
                     self.assertEqual(size, str(len(raw)))
                 if name != record_name:
-                    self.assertEqual((installed / name).read_bytes(), raw, name)
+                    self.assertEqual(installed_wheel_path(installed, name).read_bytes(), raw, name)
                     files[name] = sha256(raw).hexdigest()
         resource = installed / 'hepta/_data/examples/hia_bootstrap/store_transaction.hepta'
         self.assertEqual(resource.read_bytes(), native.SOURCE.read_bytes())
@@ -856,7 +857,7 @@ with native_helpers_scope(bundle,pin):
         for name in ('hepta/hia_agent_store.py', 'hepta/hia_native_delivery.py',
                      'hepta/hia_store_transaction_native.py', 'hepta/hia_store_transaction_protocol.py',
                      str(resource.relative_to(installed))):
-            raw = (installed / name).read_bytes()
+            raw = installed_wheel_path(installed, name).read_bytes()
             digest = 'sha256=' + base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode()
             self.assertEqual(installed_record[name], [digest, str(len(raw))])
         path = self.case / 'bundle.json'
@@ -972,7 +973,9 @@ raise SystemExit(status)
         case, request = prepare()
         try:
             before = state(case, request)
-            lost = worker('lost-commit', case, request, 'lost_commit', 1)
+            from tests.hia_slot_worker_terminal import worker_profile
+            lost_ack_exit = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())['lost_ack_exit']
+            lost = worker('lost-commit', case, request, 'lost_commit', lost_ack_exit)
             counts = read_counts(lost)
             after = state(case, request)
             self.assertEqual(lost.stdout, b'')

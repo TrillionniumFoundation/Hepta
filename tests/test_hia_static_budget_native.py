@@ -324,7 +324,8 @@ class StaticBudgetNativeTests(unittest.TestCase):
                 env=environment, capture_output=True, text=True, timeout=60)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             return result
-        wheels = directory / 'wheels'; run(['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, source])
+        from tests.hia_distribution_fixture import ordinary_wheel
+        wheels = directory / 'wheels'; run(['-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, ordinary_wheel(source)])
         wheel, = wheels.glob('*.whl'); installed = directory / 'installed'
         run(['-m', 'pip', 'install', '--no-deps', '--no-index', '--target', installed, wheel])
         data = directory / 'input.json'; data.write_text(json.dumps(multiple_return_loan()))

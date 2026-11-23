@@ -249,7 +249,12 @@ WORKER_REQUEST_SDIST_FILES = (
     'examples/hia_bootstrap/installed_worker_entry.hepta',
     'examples/hia_bootstrap/installed_worker_entry_packer.hepta',
     'tools/build_hia_native_store_release.py',
+    'examples/hia_bootstrap/source_release_member_plan.hepta',
+    'examples/hia_bootstrap/release_member_sources.tsv',
     'tests/test_hia_native_store_release.py',
+    'tests/hia_distribution_fixture.py',
+    'tests/hia_installed_distribution_history.py',
+    'tests/fixtures/hia_installed_distribution_sources.json',
 )
 EXECUTION_LEDGER_SDIST_FILES = ('tools/generate_hia_execution_ledger.py',)
 SAFE_CORE_PROOF_SDIST_FILES = (
@@ -287,6 +292,7 @@ SAFE_CORE_PROOF_SDIST_FILES = (
     'tools/hia_supplied_safe_core_proof_syscalls.S',
 )
 CORE_EDIT_SDIST_FILES = (
+    'tests/fixtures/hia_cli_native_wheel_test_successor.json',
     *SAFE_CORE_PROOF_SDIST_FILES,
     'tools/build_hia_core_edit.py',
     'tools/build_hia_core_static.py',
@@ -1404,8 +1410,6 @@ SOURCE_FILES = (
     'tools/build_hia_source_build.py',
     'examples/hia_bootstrap/source_build_policy.hepta',
     'examples/hia_bootstrap/source_filter_member.hepta',
-    'examples/hia_bootstrap/source_release_member_plan.hepta',
-    'examples/hia_bootstrap/release_member_sources.tsv',
     'examples/hia_bootstrap/source_helper_manifest.hepta',
     'examples/hia_bootstrap/source_compiler_manifest.hepta',
     'examples/hia_bootstrap/source_agent_stdio.hepta',

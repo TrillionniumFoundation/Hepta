@@ -533,7 +533,8 @@ os._exit(0)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             return result
         wheels=folder/'wheels'
-        run(['-m','pip','wheel','--no-deps','--no-build-isolation','--wheel-dir',wheels,source])
+        from tests.hia_distribution_fixture import ordinary_wheel
+        run(['-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation','--wheel-dir',wheels,ordinary_wheel(source)])
         wheel,=wheels.glob('*.whl');installed=folder/'installed'
         run(['-m','pip','install','--no-deps','--no-index','--target',installed,wheel])
         child=folder/'context.json';child.write_bytes(self.manifest.read_bytes())

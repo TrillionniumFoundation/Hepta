@@ -625,8 +625,9 @@ print(json.dumps({'descriptor': 0, 'before': before, 'after': observed}, sort_ke
             shutil.copyfile(ROOT / name, target)
         packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
         wheels, installed = case / 'wheels', case / 'installed'
+        from tests.hia_distribution_fixture import ordinary_wheel
         built = subprocess.run([packaging, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-index',
-            '--no-build-isolation', '--wheel-dir', str(wheels), str(source)],
+            '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging))],
             cwd=case, capture_output=True, timeout=120)
         (case / 'wheel-build.log').write_bytes(built.stdout + built.stderr)
         self.assertEqual(built.returncode, 0, built.stdout + built.stderr)

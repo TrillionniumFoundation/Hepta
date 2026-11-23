@@ -470,8 +470,9 @@ class CliDiscoveryJsonNativeTests(unittest.TestCase):
             self.assertEqual(completed.returncode, 0, completed.stderr.decode(errors='replace'))
             return completed
         packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
+        from tests.hia_distribution_fixture import ordinary_wheel
         command([packaging, '-B', '-m', 'pip', 'wheel', '--no-cache-dir', '--no-deps', '--no-index',
-                 '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')
+                 '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging))], 'wheel-build')
         wheel, = wheels.glob('*.whl')
         with zipfile.ZipFile(wheel) as archive:
             self.assertEqual(archive.read('hepta/_data/' + runtime.SOURCE_NAME), runtime.SOURCE.read_bytes())

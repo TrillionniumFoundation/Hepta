@@ -446,8 +446,9 @@ class MachineInstructionsNativeTests(unittest.TestCase):
             (case / 'processes.json').write_text(json.dumps(records, sort_keys=True, indent=2) + '\n')
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             return result
+        from tests.hia_distribution_fixture import ordinary_wheel
         command([packaging_python, '-B', '-m', 'pip', 'wheel', '--no-cache-dir', '--no-deps',
-                 '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')
+                 '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging_python))], 'wheel-build')
         wheel, = wheels.glob('*.whl')
         command([packaging_python, '-B', '-m', 'pip', 'install', '--no-cache-dir', '--no-deps',
                  '--no-index', '--target', str(installed), str(wheel)], 'wheel-install')

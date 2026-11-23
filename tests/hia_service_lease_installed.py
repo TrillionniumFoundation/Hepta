@@ -156,8 +156,9 @@ def run(args):
                 or result['owned_cleanup']['signals']):
             raise AssertionError(('installed owned command failed', label, result))
         return (args.output / label / 'stdout.log').read_bytes()
+    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel
     command('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                     '--wheel-dir', args.output / 'wheels', staging])
+                     '--wheel-dir', args.output / 'wheels', ordinary_wheel(staging)])
     wheel, = (args.output / 'wheels').glob('*.whl')
     installed = args.output / 'installed'
     command('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
@@ -172,7 +173,7 @@ def run(args):
                 if digest != actual or size != str(len(raw)):
                     raise AssertionError('wheel RECORD differs')
             if name != record:
-                if (installed / name).read_bytes() != raw:
+                if installed_wheel_path(installed, name).read_bytes() != raw:
                     raise AssertionError('installed bytes differ: ' + name)
                 installed_pins[name] = sha256(raw).hexdigest()
     source = installed / 'hepta/_data/examples/hia_bootstrap/service_lease.hepta'
@@ -254,7 +255,7 @@ def run(args):
             '--native-helpers-manifest', bundle, '--expected-native-helpers-sha256', bundle_sha], expected=2)
     finally:
         source.write_bytes(raw)
-    if any(sha256((installed / name).read_bytes()).hexdigest() != digest
+    if any(sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest() != digest
            for name, digest in installed_pins.items()):
         raise AssertionError('installed files did not return to exact RECORD identities')
     write_json(args.output / 'commands.json', command_records)

@@ -18,6 +18,7 @@ from unittest.mock import patch
 
 from tests import hia_journal_installed_preparation as subject
 from tests.hia_store_delivery_successor import reverse_exact
+from tests.hia_installed_distribution_history import predecessor
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICIES = ('setup.py', 'hepta/hia_agent_contract.py', 'hepta/hia_executable_capture.py')
@@ -51,6 +52,22 @@ def pin(raw):
     return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
 
 
+def setup_predecessor(raw, expected):
+    """Recover the exact package policy for the original 196-resource controls."""
+    if pin(raw) == expected:
+        return raw
+    if sha256(raw).hexdigest() != '90b0d5f089c0180a51f6df4e1706d7236cab458f5f69d8948cf8aeb4b0f5b559':
+        raise ValueError('the installed Journal setup source changed')
+    start = raw.index(b'class ColdSourceDistribution(sdist):')
+    registration = raw.index(b'setup(cmdclass=', start)
+    previous = (raw[:start] + raw[registration:]).replace(
+        b'from setuptools.command.sdist import sdist\nimport json\n', b'', 1).replace(
+        b", 'sdist':ColdSourceDistribution", b'', 1)
+    if pin(previous) != expected:
+        raise ValueError('the complete previous Journal package policy differs')
+    return previous
+
+
 def store(root, name, raw):
     path = root / name
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -60,8 +77,12 @@ def store(root, name, raw):
 class JournalInstalledPreparationSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.sources = {name: (ROOT / name).read_bytes() for name in INPUTS}
+        cls.live_sources = {name: (ROOT / name).read_bytes() for name in INPUTS}
+        cls.sources = dict(cls.live_sources)
         cls.authority = json.loads(cls.sources[subject.FIXTURE])
+        cls.sources[subject.PATH] = predecessor(subject.PATH, cls.sources[subject.PATH])
+        cls.sources['setup.py'] = setup_predecessor(
+            cls.sources['setup.py'], cls.authority['policy_sources']['setup.py'])
         reviewed = cls.sources[POLICY_SUCCESSOR]
         if sha256(reviewed).hexdigest() != POLICY_SUCCESSOR_SHA256:
             raise AssertionError('Journal package policy successor evidence differs')
@@ -95,7 +116,7 @@ class JournalInstalledPreparationSourceTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if cls.sources != {name: (ROOT / name).read_bytes() for name in INPUTS}:
+        if cls.live_sources != {name: (ROOT / name).read_bytes() for name in INPUTS}:
             raise AssertionError('Journal preparation Source inputs changed during controls')
 
     def setUp(self):

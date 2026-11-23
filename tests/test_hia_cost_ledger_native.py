@@ -366,7 +366,8 @@ class CostLedgerNativeTests(unittest.TestCase):
                 input=body,capture_output=True,timeout=60)
             self.assertEqual(result.returncode,0,result.stdout.decode(errors='replace')+result.stderr.decode(errors='replace'))
             return result
-        run(['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',self.case/'wheels',staging])
+        from tests.hia_distribution_fixture import ordinary_wheel
+        run(['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',self.case/'wheels',ordinary_wheel(staging)])
         wheel,= (self.case/'wheels').glob('*.whl'); installed=self.case/'installed'
         run(['-m','pip','install','--no-deps','--no-index','--no-compile','--target',installed,wheel])
         bundle=self.case/'bundle.json'

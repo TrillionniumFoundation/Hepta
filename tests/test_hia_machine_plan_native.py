@@ -336,8 +336,9 @@ class MachinePlanNativeTests(unittest.TestCase):
             shutil.copyfile(root / name, target)
         packaging_python = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
         wheels, installed = case / 'wheels', case / 'installed'
+        from tests.hia_distribution_fixture import ordinary_wheel
         commands = [[packaging_python, '-B', '-m', 'pip', 'wheel', '--no-cache-dir', '--no-deps',
-                     '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(source)]]
+                     '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging_python))]]
         records = []
 
         def command(arguments, label, *, env=None):

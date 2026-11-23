@@ -1,0 +1,1508 @@
+{
+  "files": {
+    "tests/hia_artifact_delivery_installed.py": {
+      "current": {
+        "bytes": 38432,
+        "sha256": "a839f6cda3eee110329edabdc0605f042ed99ee3f6f273587c355bbc9b5c1bad"
+      },
+      "original": {
+        "bytes": 38120,
+        "sha256": "ef93922026876698d447a9e67e243b0f42b9f585ee6e33406a9b84a7de7c61b5"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import derived_python_pin, installed_wheel_path, ordinary_wheel\n",
+          "before": "",
+          "offset": 15619
+        },
+        {
+          "after": "                     '--wheel-dir', root / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                     '--wheel-dir', root / 'wheels', staging])\n",
+          "offset": 15714
+        },
+        {
+          "after": "                assert installed_wheel_path(installed, name).read_bytes() == data\n",
+          "before": "                assert (installed / name).read_bytes() == data\n",
+          "offset": 16786
+        },
+        {
+          "after": "            if name == 'hepta/hia_default_native_pin.py':\n                assert sha256(archive.read(name)).hexdigest() == derived_python_pin(archive)\n            else:\n                assert archive.read(name) == source.read_bytes()\n",
+          "before": "            assert archive.read(name) == source.read_bytes()\n",
+          "offset": 17063
+        }
+      ]
+    },
+    "tests/hia_budget_resource_retirement_installed.py": {
+      "current": {
+        "bytes": 15043,
+        "sha256": "b64945f0062f8683f2250b287dd65dd901e5c30bdd510c9fcd30834c3e685c7e"
+      },
+      "original": {
+        "bytes": 14961,
+        "sha256": "87ed57384f67a1765f5a65705a698b475370e19b83497ed4a463cde28244577c"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 10315
+        },
+        {
+          "after": "                         '--wheel-dir',args.output/'wheels',ordinary_wheel(staging)])\n",
+          "before": "                         '--wheel-dir',args.output/'wheels',staging])\n",
+          "offset": 10408
+        }
+      ]
+    },
+    "tests/hia_native_delivery_cases.py": {
+      "current": {
+        "bytes": 44241,
+        "sha256": "9d0c97ef655e16bd75c88d41c5852cbca254be44851f49e11f03a817890d6790"
+      },
+      "original": {
+        "bytes": 44163,
+        "sha256": "5b43de23c40d7b1867d52a0a652d18712818691430c96c0872fe9f25824bfd63"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 34925
+        },
+        {
+          "after": "                  '--wheel-dir', root / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                  '--wheel-dir', root / 'wheels', staging])\n",
+          "offset": 35016
+        }
+      ]
+    },
+    "tests/hia_service_bootstrap_installed.py": {
+      "current": {
+        "bytes": 24810,
+        "sha256": "dc0a1a13883d287f3e1bc24cd8e339fe6704504eb6ab019bb342eb476f1f7093"
+      },
+      "original": {
+        "bytes": 24362,
+        "sha256": "81b8f5bf52d35d05ea732f8133e3e3dcb4063b86a2d2ccff1f6961c06ba684d6"
+      },
+      "splices": [
+        {
+          "after": "import argparse,base64,csv,io,json,os,shutil,sqlite3,sys,zipfile\n",
+          "before": "import argparse,base64,configparser,csv,io,json,os,shutil,sqlite3,sys,zipfile\n",
+          "offset": 118
+        },
+        {
+          "after": "    from tests.hia_distribution_fixture import installed_wheel_path\n",
+          "before": "",
+          "offset": 5029
+        },
+        {
+          "after": "                if installed_wheel_path(installed, name).read_bytes()!=raw:raise ValueError(\"installed wheel bytes differ: \"+name)\n",
+          "before": "                if (installed/name).read_bytes()!=raw:raise ValueError(\"installed wheel bytes differ: \"+name)\n",
+          "offset": 6127
+        },
+        {
+          "after": "        relocated = {}\n        for name, value in old.items():\n            physical = installed_wheel_path(installed, name)\n            key = '../../bin/' + physical.name if physical.parent == installed / 'bin' else name\n            if key in relocated:\n                raise ValueError(\"two wheel members have the same installed RECORD path\")\n            relocated[key] = value\n        if any(now.get(name)!=value for name,value in relocated.items()):\n",
+          "before": "        if any(now.get(name)!=value for name,value in old.items()):\n",
+          "offset": 6568
+        },
+        {
+          "after": "        additions={directory+\"/INSTALLER\",directory+\"/REQUESTED\",directory+\"/direct_url.json\"}\n        if set(now)-set(relocated)!=additions:raise ValueError(\"undeclared pip metadata delta\")\n",
+          "before": "        additions={\"../../bin/hia\",directory+\"/INSTALLER\",directory+\"/REQUESTED\",directory+\"/direct_url.json\"}\n        if set(now)-set(old)!=additions:raise ValueError(\"undeclared pip metadata delta\")\n",
+          "offset": 6764
+        },
+        {
+          "after": "            target=installed/name\n",
+          "before": "            target=installed/\"bin/hia\" if name==\"../../bin/hia\" else installed/name\n",
+          "offset": 7021
+        },
+        {
+          "after": "        launcher, = (name for name in names if name.endswith('.data/scripts/hia'))\n        physical = installed_wheel_path(installed, launcher)\n        if (not archive.read(launcher).startswith(b'\\x7fELF') or not os.access(physical, os.X_OK)\n                or physical.read_bytes() != archive.read(launcher)):\n            raise ValueError(\"installed public command differs from the wheel's native executable\")\n",
+          "before": "        config=configparser.ConfigParser()\n        config.read_string(archive.read(directory+\"/entry_points.txt\").decode())\n        module,function=map(str.strip,config[\"console_scripts\"][\"hia\"].split(\":\"))\n        script=(installed/\"bin/hia\").read_text()\n        if \"from \"+module+\" import \"+function not in script or \"sys.exit(\"+function+\"())\" not in script:\n            raise ValueError(\"actual console entry differs from wheel entry_points\")\n",
+          "offset": 8001
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 18448
+        },
+        {
+          "after": "                         \"--wheel-dir\",args.output/\"wheels\",ordinary_wheel(staging)])\n",
+          "before": "                         \"--wheel-dir\",args.output/\"wheels\",staging])\n",
+          "offset": 18541
+        }
+      ]
+    },
+    "tests/hia_service_discovery_installed.py": {
+      "current": {
+        "bytes": 10987,
+        "sha256": "3a47b17fd5ce628c5374306cf5e4b65d4f87ebff6d98d13260331046b158fa5f"
+      },
+      "original": {
+        "bytes": 10845,
+        "sha256": "c65fc58256f085289345521aee791fc3216dda54e0be72d6314699e26e61e9a7"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',ordinary_wheel(staging)])\n",
+          "before": "    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',staging])\n",
+          "offset": 3682
+        },
+        {
+          "after": "                if installed_wheel_path(installed, name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)\n",
+          "before": "                if (installed/name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)\n",
+          "offset": 4553
+        },
+        {
+          "after": "        if sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)\n",
+          "before": "        if sha256((installed/name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)\n",
+          "offset": 9948
+        }
+      ]
+    },
+    "tests/hia_service_inspection_installed.py": {
+      "current": {
+        "bytes": 22877,
+        "sha256": "840507d026f9db7c348d6f788b2b2a11c3cec7b66aab36a7e5886e67b6644876"
+      },
+      "original": {
+        "bytes": 22720,
+        "sha256": "b3f35cec862bd1bbc5db548310f84cd26e6460251e8e67c28054d2885fced3be"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n",
+          "before": "",
+          "offset": 8109
+        },
+        {
+          "after": "                      '--wheel-dir', args.output / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                      '--wheel-dir', args.output / 'wheels', staging])\n",
+          "offset": 8204
+        },
+        {
+          "after": "                assert installed_wheel_path(installed, name).read_bytes() == raw, name\n",
+          "before": "                assert (installed / name).read_bytes() == raw, name\n",
+          "offset": 9023
+        },
+        {
+          "after": "        raw = installed_wheel_path(installed, name).read_bytes()\n",
+          "before": "        raw = (installed / name).read_bytes()\n",
+          "offset": 9644
+        },
+        {
+          "after": "        assert sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest() == digest\n",
+          "before": "        assert sha256((installed / name).read_bytes()).hexdigest() == digest\n",
+          "offset": 20507
+        }
+      ]
+    },
+    "tests/hia_service_lease_installed.py": {
+      "current": {
+        "bytes": 15424,
+        "sha256": "38160a2502278c3bef63b5111a099233a2d8b36152a15511c77d7404f973cee4"
+      },
+      "original": {
+        "bytes": 15286,
+        "sha256": "84bdedc49774d357fd36cce8f42830c9b90fc4eb06b0032128761551fa5a2f30"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n",
+          "before": "",
+          "offset": 7851
+        },
+        {
+          "after": "                     '--wheel-dir', args.output / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                     '--wheel-dir', args.output / 'wheels', staging])\n",
+          "offset": 7946
+        },
+        {
+          "after": "                if installed_wheel_path(installed, name).read_bytes() != raw:\n",
+          "before": "                if (installed / name).read_bytes() != raw:\n",
+          "offset": 8831
+        },
+        {
+          "after": "    if any(sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest() != digest\n",
+          "before": "    if any(sha256((installed / name).read_bytes()).hexdigest() != digest\n",
+          "offset": 14235
+        }
+      ]
+    },
+    "tests/hia_service_read_installed.py": {
+      "current": {
+        "bytes": 18432,
+        "sha256": "0e32e1afd414dcba87bf20f8052675c522929fecc071d8b8fc613738e2504b69"
+      },
+      "original": {
+        "bytes": 18275,
+        "sha256": "2b667323658f64fd56aa43685f685b8ed95f30ecbc9c809b42f9aba2f1311dc3"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n",
+          "before": "",
+          "offset": 6215
+        },
+        {
+          "after": "                      '--wheel-dir', args.output / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                      '--wheel-dir', args.output / 'wheels', staging])\n",
+          "offset": 6310
+        },
+        {
+          "after": "                assert installed_wheel_path(installed, name).read_bytes() == raw, name\n",
+          "before": "                assert (installed / name).read_bytes() == raw, name\n",
+          "offset": 7129
+        },
+        {
+          "after": "        raw = installed_wheel_path(installed, name).read_bytes()\n",
+          "before": "        raw = (installed / name).read_bytes()\n",
+          "offset": 7732
+        },
+        {
+          "after": "        assert sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest() == digest\n",
+          "before": "        assert sha256((installed / name).read_bytes()).hexdigest() == digest\n",
+          "offset": 16295
+        }
+      ]
+    },
+    "tests/hia_service_slot_installed.py": {
+      "current": {
+        "bytes": 18830,
+        "sha256": "18f30937767fc097929c90b4fbbc834fdea5c918fbb83f2acaa5ba777d85f18b"
+      },
+      "original": {
+        "bytes": 18673,
+        "sha256": "603354f301bee7b288a7888e31a7f1ed06802b8607546c56c1b0592680da7142"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n",
+          "before": "",
+          "offset": 6387
+        },
+        {
+          "after": "                      '--wheel-dir', args.output / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                      '--wheel-dir', args.output / 'wheels', staging])\n",
+          "offset": 6482
+        },
+        {
+          "after": "                assert installed_wheel_path(installed, name).read_bytes() == raw, name\n",
+          "before": "                assert (installed / name).read_bytes() == raw, name\n",
+          "offset": 7301
+        },
+        {
+          "after": "        raw = installed_wheel_path(installed, name).read_bytes()\n",
+          "before": "        raw = (installed / name).read_bytes()\n",
+          "offset": 7904
+        },
+        {
+          "after": "        assert sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest() == expected\n",
+          "before": "        assert sha256((installed / name).read_bytes()).hexdigest() == expected\n",
+          "offset": 16909
+        }
+      ]
+    },
+    "tests/hia_service_verification_installed.py": {
+      "current": {
+        "bytes": 12217,
+        "sha256": "3b2f50f9605d0da0a74029337bcf86ed64daa8df7b7d77712f33ec1b8359d1a9"
+      },
+      "original": {
+        "bytes": 12075,
+        "sha256": "0f95cc59fe2a66bcc2fbcfa8dc253266e763bbc8ca7c873d5bdf956fd04bdda6"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',ordinary_wheel(staging)])\n",
+          "before": "    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',staging])\n",
+          "offset": 4422
+        },
+        {
+          "after": "                if installed_wheel_path(installed, name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)\n",
+          "before": "                if (installed/name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)\n",
+          "offset": 5293
+        },
+        {
+          "after": "        if sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)\n",
+          "before": "        if sha256((installed/name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)\n",
+          "offset": 11201
+        }
+      ]
+    },
+    "tests/hia_store_file_capture_installed.py": {
+      "current": {
+        "bytes": 9893,
+        "sha256": "3d12efb876d6dc0c51889353319b763a52c61356dd4a99af639b8a143bead959"
+      },
+      "original": {
+        "bytes": 9751,
+        "sha256": "72b25b08e909dd854a1a855e4f01d05939c7ab7b135a058ad68435ef48ddbdb7"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',ordinary_wheel(staging)])\n",
+          "before": "    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',staging])\n",
+          "offset": 3348
+        },
+        {
+          "after": "                if installed_wheel_path(installed, name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)\n",
+          "before": "                if (installed/name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)\n",
+          "offset": 4219
+        },
+        {
+          "after": "        if sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)\n",
+          "before": "        if sha256((installed/name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)\n",
+          "offset": 8875
+        }
+      ]
+    },
+    "tests/hia_store_native_delivery_cases.py": {
+      "current": {
+        "bytes": 55254,
+        "sha256": "abdca169165252120ddfd13eb3b7fdeb406a0e2531d36bc2381b3870a7c2126b"
+      },
+      "original": {
+        "bytes": 55176,
+        "sha256": "02811942ea28ea1021912237d8d20edc7b47bbeacd2cd83084eaad9f448fe4ab"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 41669
+        },
+        {
+          "after": "                  '--wheel-dir', root / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                  '--wheel-dir', root / 'wheels', staging])\n",
+          "offset": 41760
+        }
+      ]
+    },
+    "tests/hia_worker_unknown_installed.py": {
+      "current": {
+        "bytes": 20054,
+        "sha256": "654c002b930bc6976f3f5df076ccf97484f471fbc45530a0df4bce0edf44c2bc"
+      },
+      "original": {
+        "bytes": 19912,
+        "sha256": "a54eb9cb57ac1dafec5080ba1c82a6feecd36a65b32ceed50028be7b1b437ed2"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',ordinary_wheel(staging)])\n",
+          "before": "    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',staging])\n",
+          "offset": 9142
+        },
+        {
+          "after": "                if installed_wheel_path(installed, name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)\n",
+          "before": "                if (installed/name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)\n",
+          "offset": 10013
+        },
+        {
+          "after": "        if sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)\n",
+          "before": "        if sha256((installed/name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)\n",
+          "offset": 18501
+        }
+      ]
+    },
+    "tests/test_hia_agent_candidate_native.py": {
+      "current": {
+        "bytes": 25607,
+        "sha256": "7be3f4e3a8244f79535a9cbc9033bb114913f6ed14f9d973f1789d51c141fcf6"
+      },
+      "original": {
+        "bytes": 25502,
+        "sha256": "76f456083a10291a87ab862c4185ac360b0076f446f2d1149ea6af6c1702da0c"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 8580
+        },
+        {
+          "after": "            '--no-build-isolation','--wheel-dir',str(wheels),str(ordinary_wheel(source, python=sys.executable))],cwd=source,\n",
+          "before": "            '--no-build-isolation','--wheel-dir',str(wheels),str(source)],cwd=source,\n",
+          "offset": 8677
+        }
+      ]
+    },
+    "tests/test_hia_agent_installed_resources.py": {
+      "current": {
+        "bytes": 68087,
+        "sha256": "b6bac1d9289443233334462508557935855a8420f5b1139c5ee9baa7ed97f455"
+      },
+      "original": {
+        "bytes": 65955,
+        "sha256": "3613f86e7ecb0f0c323e407273ce327a598f1b6e2d494ed96d5b70d3f3b6ec3f"
+      },
+      "splices": [
+        {
+          "after": "    'tools/build_hia_default_release.py', 'tools/hia_wheel_backend.py',\n",
+          "before": "",
+          "offset": 1448
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 28616
+        },
+        {
+          "after": "        build('wheel',['-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation','--wheel-dir',cls.folder/'wheels',archive])\n",
+          "before": "        build('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--wheel-dir',cls.folder/'wheels',archive])\n",
+          "offset": 29001
+        },
+        {
+          "after": "        from hepta.hia_default_native import CORE_ELF_OWNERS, CORE_PROOF_OWNERS, CORE_WIRE_OWNER\n\n        full = 'native/default/full_cost/'\n        cli = 'native/default/cli/'\n        native = {full + name for name in ('bundle.json', 'proof-bundle.json', 'manifest.json',\n                                             'full-cost.image.bin', 'hia-safe-core-bind', 'provenance.json',\n                                             'cold-report.json', 'component-build.json')}\n        native.add(cli + 'manifest.json')\n        for _, role in (*CORE_ELF_OWNERS, *CORE_PROOF_OWNERS, CORE_WIRE_OWNER):\n            native.update((full + role + '/manifest.json', full + role + '/' + role + '.image.bin'))\n        for role, image in [('control', 'cli-control'), ('format', 'cli-format'), ('discovery', 'cli-discovery-json')]:\n            native.update((cli + role + '/manifest.json', cli + role + '/' + image + '.image.bin'))\n",
+          "before": "",
+          "offset": 61349
+        },
+        {
+          "after": "            from tests.hia_distribution_fixture import derived_python_pin\n            derived_python_pin(z)\n            provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))\n            if 'derived_pin_resource' in provenance:\n                self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')\n                native.add(full + 'pin.json')\n",
+          "before": "",
+          "offset": 61396
+        },
+        {
+          "after": "            self.assertEqual(bundled,native|set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES)|set(VM_INTEGER_ARITHMETIC_RESOURCES)|set(VM_INTEGER_SCALAR_RESOURCES))\n",
+          "before": "            self.assertEqual(bundled,set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES)|set(VM_INTEGER_ARITHMETIC_RESOURCES)|set(VM_INTEGER_SCALAR_RESOURCES))\n",
+          "offset": 61560
+        },
+        {
+          "after": "            for name in native:\n                raw = z.read('hepta/_data/' + name)\n                self.assertEqual((self.installed / 'hepta/_data' / name).read_bytes(), raw)\n                if name.endswith('/manifest.json'):\n                    recorded = json.loads(raw)\n                    if 'image_path' in recorded:\n                        member = str(Path(name).parent / recorded['image_path'])\n                        self.assertIn(member, native)\n                        self.assertEqual(sha256(z.read('hepta/_data/' + member)).hexdigest(),\n                                         recorded['image_sha256'])\n",
+          "before": "",
+          "offset": 62104
+        }
+      ]
+    },
+    "tests/test_hia_agent_journal_native.py": {
+      "current": {
+        "bytes": 48904,
+        "sha256": "97dec702780d755cc5c2ffa59e5a798c98dc48a17735f9b8983bfdb610d2f263"
+      },
+      "original": {
+        "bytes": 48798,
+        "sha256": "7d5cebde72523ade809346a30916a48611e18a157230b4f2f6129c0d16b8715c"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_installed_journal_distribution import prepare_resources, verify_staged_resources\n",
+          "before": "        from tests.hia_journal_installed_preparation import prepare_resources, verify_staged_resources\n",
+          "offset": 45294
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 45887
+        },
+        {
+          "after": "            '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=sys.executable))], cwd=source,\n",
+          "before": "            '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], cwd=source,\n",
+          "offset": 45990
+        }
+      ]
+    },
+    "tests/test_hia_bounded_memory_native.py": {
+      "current": {
+        "bytes": 32945,
+        "sha256": "435f5f134af54d54ea6167ed161d83c9a557b426f12152a9f9ea5aa8c382b7b1"
+      },
+      "original": {
+        "bytes": 32810,
+        "sha256": "bf55e4ae0a9d79c6bf7b1a426eab6e2bac59ef46cf2134f0b9307c8061ae08fd"
+      },
+      "splices": [
+        {
+          "after": "                    stdout=output, stderr=subprocess.STDOUT, timeout=1800 if label == 'wheel' else 60)\n",
+          "before": "                    stdout=output, stderr=subprocess.STDOUT, timeout=60)\n",
+          "offset": 29672
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 29838
+        }
+      ]
+    },
+    "tests/test_hia_byte_wrapper_native.py": {
+      "current": {
+        "bytes": 21269,
+        "sha256": "451e9ee80e50cf277ebb95b59107e9162c022b4a88e967e53ca641c27e2e6384"
+      },
+      "original": {
+        "bytes": 20939,
+        "sha256": "f541aa2c4a834bf7d3a85c9d333bd3545283db9dff7bdc4b6dad5051e1906d63"
+      },
+      "splices": [
+        {
+          "after": "        import zipfile\n        from tests.hia_distribution_fixture import derived_python_pin, ordinary_wheel\n        packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n        distribution = ordinary_wheel(source, python=packaging)\n        with zipfile.ZipFile(distribution) as archive:\n            expected['python']['hepta/hia_default_native_pin.py'] = derived_python_pin(archive)\n",
+          "before": "",
+          "offset": 15777
+        },
+        {
+          "after": "",
+          "before": "        packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n",
+          "offset": 15842
+        },
+        {
+          "after": "             '--no-build-isolation', '--wheel-dir', str(wheels), str(distribution)], 'wheel-build')\n",
+          "before": "             '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
+          "offset": 16837
+        }
+      ]
+    },
+    "tests/test_hia_candidate_budget_native.py": {
+      "current": {
+        "bytes": 47590,
+        "sha256": "2a5e6deed4fa86630b659084320c95fbb06a4283d00bbb54764b1e0d4d66a24c"
+      },
+      "original": {
+        "bytes": 47483,
+        "sha256": "5839ff7b22f97ed807fbd0ed236188e667fc61276ea1f73c14d4b6042bb590aa"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 43341
+        },
+        {
+          "after": "            cwd=case, capture_output=True, timeout=1800)\n",
+          "before": "            cwd=case, capture_output=True, timeout=90)\n",
+          "offset": 44150
+        }
+      ]
+    },
+    "tests/test_hia_cli_discovery_json.py": {
+      "current": {
+        "bytes": 34292,
+        "sha256": "d07c6c76d45f9210e96aee1e810dd12afce20d6924c591408b02980b02b50e4b"
+      },
+      "original": {
+        "bytes": 34192,
+        "sha256": "e97ed2d3883c45f5f41ffa1705e7d44619e60026748e0921cd0fbc076e37a3c6"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 29959
+        },
+        {
+          "after": "                 '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging))], 'wheel-build')\n",
+          "before": "                 '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
+          "offset": 30060
+        }
+      ]
+    },
+    "tests/test_hia_composite_constructor_integration.py": {
+      "current": {
+        "bytes": 11327,
+        "sha256": "59bb02e68892ccabeb16acf2f0e0e04612f8fefac05db0168b120a98cfe15ce9"
+      },
+      "original": {
+        "bytes": 11204,
+        "sha256": "8eb4ac7c8c0191637cb6e16b768461bd96d2b4a387865f8a7c57b1b0766cafb3"
+      },
+      "splices": [
+        {
+          "after": "            from tests.hia_distribution_fixture import ordinary_wheel\n            command = [sys.executable,'-B','-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation',\n                       '--wheel-dir',str(wheels),str(ordinary_wheel(source, python=sys.executable))]\n",
+          "before": "            command = [sys.executable,'-B','-m','pip','wheel','--no-deps','--no-build-isolation',\n                       '--wheel-dir',str(wheels),str(source)]\n",
+          "offset": 5769
+        }
+      ]
+    },
+    "tests/test_hia_composite_functions_native.py": {
+      "current": {
+        "bytes": 30368,
+        "sha256": "da6b31067f529bcf56bc6d579530ea60dfe9bf3d6499325cd7991f11b8d7536c"
+      },
+      "original": {
+        "bytes": 30240,
+        "sha256": "0201ca2d71697dce4a5b38aac5efbd2eacc41a36c8472708ff92ddc042bb5ccf"
+      },
+      "splices": [
+        {
+          "after": "            from tests.hia_distribution_fixture import stage_cold_sources\n            stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 24829
+        },
+        {
+          "after": "            for command in ([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation',\n",
+          "before": "            for command in ([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',\n",
+          "offset": 25454
+        },
+        {
+          "after": "                run = subprocess.run(command, cwd=folder, capture_output=True, timeout=1800,\n",
+          "before": "                run = subprocess.run(command, cwd=folder, capture_output=True, timeout=120,\n",
+          "offset": 25638
+        }
+      ]
+    },
+    "tests/test_hia_composite_outer_integration.py": {
+      "current": {
+        "bytes": 15417,
+        "sha256": "eefba7776cb279bb164d026a811138339c38724c5b103369ee8439286e757e35"
+      },
+      "original": {
+        "bytes": 15289,
+        "sha256": "b79b3a0b17480cb610f69d4ee31f5f1a70f092d80d7417b3cbbd681de735430a"
+      },
+      "splices": [
+        {
+          "after": "            from tests.hia_distribution_fixture import stage_cold_sources\n            stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 6807
+        },
+        {
+          "after": "            command = [sys.executable,'-B','-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation',\n",
+          "before": "            command = [sys.executable,'-B','-m','pip','wheel','--no-deps','--no-build-isolation',\n",
+          "offset": 7923
+        },
+        {
+          "after": "            result = subprocess.run(command,cwd=folder,capture_output=True,timeout=1800)\n",
+          "before": "            result = subprocess.run(command,cwd=folder,capture_output=True,timeout=120)\n",
+          "offset": 8084
+        }
+      ]
+    },
+    "tests/test_hia_composite_types_native.py": {
+      "current": {
+        "bytes": 45928,
+        "sha256": "c6970414fe9d681aeedd2beb04a41419eba87c40c6bd989aa19899586d2fe912"
+      },
+      "original": {
+        "bytes": 45809,
+        "sha256": "3caa11792e515157b370e43c5d29ff3be1128ee4045aaa181d350a0f6c62c74c"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        result = subprocess.run([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation',\n            '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=sys.executable))], cwd=source, capture_output=True, timeout=120,\n",
+          "before": "        result = subprocess.run([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',\n            '--wheel-dir', str(wheels), str(source)], cwd=source, capture_output=True, timeout=120,\n",
+          "offset": 41966
+        }
+      ]
+    },
+    "tests/test_hia_core_emitter_native.py": {
+      "current": {
+        "bytes": 24804,
+        "sha256": "ac187c414b69ce35abe6b245b6963de48681d08ff517563f4110082b6afabafe"
+      },
+      "original": {
+        "bytes": 24474,
+        "sha256": "1228b102ac3d4508c3a2641563e0763be73e4b11dfa0f92883f775fc22e713de"
+      },
+      "splices": [
+        {
+          "after": "        import zipfile\n        from tests.hia_distribution_fixture import derived_python_pin, ordinary_wheel\n        packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n        distribution = ordinary_wheel(source, python=packaging)\n        with zipfile.ZipFile(distribution) as archive:\n            expected['python']['hepta/hia_default_native_pin.py'] = derived_python_pin(archive)\n",
+          "before": "",
+          "offset": 19339
+        },
+        {
+          "after": "",
+          "before": "        packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n",
+          "offset": 19404
+        },
+        {
+          "after": "             '--no-build-isolation', '--wheel-dir', str(wheels), str(distribution)], 'wheel-build')\n",
+          "before": "             '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
+          "offset": 20399
+        }
+      ]
+    },
+    "tests/test_hia_core_lowering_native.py": {
+      "current": {
+        "bytes": 34419,
+        "sha256": "ac443a879d099b28f3df0234833894926a382eca9d86e7164b4e6dce14f11f62"
+      },
+      "original": {
+        "bytes": 34089,
+        "sha256": "4d168af1c58e0aeeda0bee341109d42c52fa182231ae7773c9f5cc68cd02fc29"
+      },
+      "splices": [
+        {
+          "after": "        import zipfile\n        from tests.hia_distribution_fixture import derived_python_pin, ordinary_wheel\n        packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n        distribution = ordinary_wheel(source, python=packaging)\n        with zipfile.ZipFile(distribution) as archive:\n            expected['python']['hepta/hia_default_native_pin.py'] = derived_python_pin(archive)\n",
+          "before": "",
+          "offset": 28658
+        },
+        {
+          "after": "",
+          "before": "        packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n",
+          "offset": 28723
+        },
+        {
+          "after": "             '--no-build-isolation', '--wheel-dir', str(wheels), str(distribution)], 'wheel-build')\n",
+          "before": "             '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
+          "offset": 29718
+        }
+      ]
+    },
+    "tests/test_hia_core_patch_native.py": {
+      "current": {
+        "bytes": 26242,
+        "sha256": "47b175805f4dd31a2b814b6196f279abdaf1380a5ba8a8af51458890f3776790"
+      },
+      "original": {
+        "bytes": 26123,
+        "sha256": "66fc2e5c130f7a10cd5d259b8ffa6707705c92649b0266e52e5ed14b985820c5"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        result = subprocess.run([sys.executable,'-B','-m','pip','wheel', '--no-index','--no-deps',\n            '--no-build-isolation','--wheel-dir',str(wheels),str(ordinary_wheel(source, python=sys.executable))],\n",
+          "before": "        result = subprocess.run([sys.executable,'-B','-m','pip','wheel','--no-deps',\n            '--no-build-isolation','--wheel-dir',str(wheels),str(source)],\n",
+          "offset": 23010
+        }
+      ]
+    },
+    "tests/test_hia_cost_ledger_native.py": {
+      "current": {
+        "bytes": 26206,
+        "sha256": "0acde16af9e90455567aeb10264666f121eed3c95f271e902074c6e9f4a4454e"
+      },
+      "original": {
+        "bytes": 26124,
+        "sha256": "759e40720bff5887eb77d63d99d59e409c1b702ade875b4839dba38274cea39e"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        run(['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',self.case/'wheels',ordinary_wheel(staging)])\n",
+          "before": "        run(['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',self.case/'wheels',staging])\n",
+          "offset": 21464
+        }
+      ]
+    },
+    "tests/test_hia_emission_native.py": {
+      "current": {
+        "bytes": 59167,
+        "sha256": "d9fa91660529f031bd07553e20ae256c4877aa41c7eabef2fbdcf554bbe5a195"
+      },
+      "original": {
+        "bytes": 58895,
+        "sha256": "f61896c5cae1805fe8f926cb01e6cf4b877297a40fa3d504f3ea907a9fd3e64f"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 34002
+        },
+        {
+          "after": "                      '--wheel-dir', self.directory / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                      '--wheel-dir', self.directory / 'wheels', staging])\n",
+          "offset": 34097
+        },
+        {
+          "after": "        from tests.hia_slot_worker_terminal import worker_profile\n        lost_ack_exit = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())['lost_ack_exit']\n        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', lost_ack_exit),\n",
+          "before": "        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', 1),\n",
+          "offset": 42172
+        }
+      ]
+    },
+    "tests/test_hia_evaluation_native.py": {
+      "current": {
+        "bytes": 50171,
+        "sha256": "732379cfe3bcb3d41688669d83d6b610ca63e4954d56b9c2398b5e0f5291fe6b"
+      },
+      "original": {
+        "bytes": 50089,
+        "sha256": "b93ed81c5c1b2f98429981b16fe0ff893775d6352cb8df17688c29c93645caa8"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 21619
+        },
+        {
+          "after": "                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                      '--wheel-dir', self.case / 'wheels', staging])\n",
+          "offset": 21714
+        }
+      ]
+    },
+    "tests/test_hia_execution_budget_native.py": {
+      "current": {
+        "bytes": 56631,
+        "sha256": "31becb0bf5001aa4b1cb6565a0bee2d68ecbd7248c951b1c485401eda2cf8b23"
+      },
+      "original": {
+        "bytes": 56525,
+        "sha256": "7e75e2eec37affe6173d08fd4e5d85dadd58a44fef224518bde38ac5acbecb71"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 53085
+        },
+        {
+          "after": "            capture_output=True, timeout=1800)\n",
+          "before": "            capture_output=True, timeout=120)\n",
+          "offset": 53896
+        }
+      ]
+    },
+    "tests/test_hia_execution_observation_native.py": {
+      "current": {
+        "bytes": 23017,
+        "sha256": "7595bda181f97b5e4b4b7c020c2b008017cbe3f7b3d239609f55b8498d87c3d0"
+      },
+      "original": {
+        "bytes": 22667,
+        "sha256": "647f1a0dc6917a5253a4bb8c9e56ee4ef80fe49539951d02e3d85172c28f44c9"
+      },
+      "splices": [
+        {
+          "after": "            import zipfile\n            from tests.hia_distribution_fixture import derived_python_pin, ordinary_wheel\n            packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n            distribution = ordinary_wheel(source, python=packaging)\n            with zipfile.ZipFile(distribution) as archive:\n                expected['python']['hepta/hia_default_native_pin.py'] = derived_python_pin(archive)\n",
+          "before": "",
+          "offset": 17601
+        },
+        {
+          "after": "",
+          "before": "            packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n",
+          "offset": 17670
+        },
+        {
+          "after": "                 '--no-build-isolation', '--wheel-dir', str(wheels), str(distribution)], 'wheel-build')\n",
+          "before": "                 '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
+          "offset": 18721
+        }
+      ]
+    },
+    "tests/test_hia_full_cost_native.py": {
+      "current": {
+        "bytes": 27432,
+        "sha256": "56556dd16d89e257275b5f566f2fbf5ef1fa53aed6aa950b58ed6720c89701ab"
+      },
+      "original": {
+        "bytes": 27336,
+        "sha256": "affd040985b85c58358c8dbbca0d45c1c3f1f4a5ce0f6b6b9f76760b0b474ea3"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        run(['-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, ordinary_wheel(source)])\n",
+          "before": "        run(['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, source])\n",
+          "offset": 16405
+        }
+      ]
+    },
+    "tests/test_hia_generation_retention_native.py": {
+      "current": {
+        "bytes": 51641,
+        "sha256": "1bc79ee476609f0db1c650ec354cf837c22b59eccbdff19a89b8dbb210893a0d"
+      },
+      "original": {
+        "bytes": 51506,
+        "sha256": "3a190f15cbe632c02b026c476469d8626d396ad92b25d98c9a38d47a3c80c5ad"
+      },
+      "splices": [
+        {
+          "after": "                                        stdout=output, stderr=subprocess.STDOUT, timeout=1800 if label == 'wheel' else 60)\n",
+          "before": "                                        stdout=output, stderr=subprocess.STDOUT, timeout=60)\n",
+          "offset": 36055
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 36240
+        }
+      ]
+    },
+    "tests/test_hia_machine_encoding_native.py": {
+      "current": {
+        "bytes": 21230,
+        "sha256": "5fa7593ead9f145c6f4716055db0f6a83671cb7a245205952008a122ffec6417"
+      },
+      "original": {
+        "bytes": 21123,
+        "sha256": "e7b2cdba4f19d9ab5471a9ab19bec1f907bc272d8fc3fcc54224b8dd548efdcf"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 17678
+        },
+        {
+          "after": "            '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging_python))], 'wheel-build')\n",
+          "before": "            '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
+          "offset": 17772
+        }
+      ]
+    },
+    "tests/test_hia_machine_instructions_native.py": {
+      "current": {
+        "bytes": 28084,
+        "sha256": "72ccbff4d27a34c850e1d20aaef1b9511177405f9af5343c8954ad0fc4170fa8"
+      },
+      "original": {
+        "bytes": 27977,
+        "sha256": "fa060050e50027de1953d9a272fe30037e624b097cfa93fdee2824577017c118"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 24557
+        },
+        {
+          "after": "                 '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging_python))], 'wheel-build')\n",
+          "before": "                 '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
+          "offset": 24651
+        }
+      ]
+    },
+    "tests/test_hia_machine_object_native.py": {
+      "current": {
+        "bytes": 24191,
+        "sha256": "cb630e81964962a5512f92d072fccb64d8d43fa504880cbf2f6ad616e9ebec2a"
+      },
+      "original": {
+        "bytes": 23841,
+        "sha256": "6e90a2ab39e1586221f338aa24382a5d7928007f2ed2633456dec6abbaabd73e"
+      },
+      "splices": [
+        {
+          "after": "            import zipfile\n            from tests.hia_distribution_fixture import derived_python_pin, ordinary_wheel\n            packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n            distribution = ordinary_wheel(source, python=packaging)\n            with zipfile.ZipFile(distribution) as archive:\n                expected['python']['hepta/hia_default_native_pin.py'] = derived_python_pin(archive)\n",
+          "before": "",
+          "offset": 18599
+        },
+        {
+          "after": "",
+          "before": "            packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)\n",
+          "offset": 18668
+        },
+        {
+          "after": "                 '--no-build-isolation', '--wheel-dir', str(wheels), str(distribution)], 'wheel-build')\n",
+          "before": "                 '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
+          "offset": 19719
+        }
+      ]
+    },
+    "tests/test_hia_machine_plan_native.py": {
+      "current": {
+        "bytes": 22510,
+        "sha256": "d799a1200f0c132b1afa82995e49a90bbad600f7dca14a010affe387affef02e"
+      },
+      "original": {
+        "bytes": 22403,
+        "sha256": "e9965ec32828f60e8b28d63f356465ab76dd1b30bf682f0b0e4e90d0451710b4"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 18043
+        },
+        {
+          "after": "                     '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging_python))]]\n",
+          "before": "                     '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(source)]]\n",
+          "offset": 18141
+        }
+      ]
+    },
+    "tests/test_hia_machine_state_native.py": {
+      "current": {
+        "bytes": 32787,
+        "sha256": "40e470bd016457e83cc14017b06847c2742359be887bd2d7af9cf67189cfeb83"
+      },
+      "original": {
+        "bytes": 32680,
+        "sha256": "44543d97437514eddeb0e83c560dd2cdfa2f765d217c14c8ac61f0c534826902"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 29688
+        },
+        {
+          "after": "                 '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging_python))], 'wheel-build')\n",
+          "before": "                 '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
+          "offset": 29782
+        }
+      ]
+    },
+    "tests/test_hia_native_build_admission_native.py": {
+      "current": {
+        "bytes": 48018,
+        "sha256": "c46859c1a1e7d1a06a8a1c03d6da12adcd6785b24e5657cd3e727dddace8b342"
+      },
+      "original": {
+        "bytes": 47746,
+        "sha256": "5bb126c14712e790f5714559a5f4c8bfbdef1bb23d5b46940413caf01f1644ea"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 24390
+        },
+        {
+          "after": "                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                      '--wheel-dir', self.case / 'wheels', staging])\n",
+          "offset": 24485
+        },
+        {
+          "after": "        from tests.hia_slot_worker_terminal import worker_profile\n        lost_ack_exit = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())['lost_ack_exit']\n        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', lost_ack_exit),\n",
+          "before": "        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', 1),\n",
+          "offset": 32677
+        }
+      ]
+    },
+    "tests/test_hia_native_mapping_native.py": {
+      "current": {
+        "bytes": 37570,
+        "sha256": "1f3508a5012c61c03d04a3f4c8361f51b61a2fb8efdc778a91b154424d230eb4"
+      },
+      "original": {
+        "bytes": 37435,
+        "sha256": "5574e8b3b067df5d5df9576d3ead7da5692dd71eaf451c86bc310075df48ac7a"
+      },
+      "splices": [
+        {
+          "after": "                                        stdout=output, stderr=subprocess.STDOUT, timeout=1800 if label == 'wheel' else 60)\n",
+          "before": "                                        stdout=output, stderr=subprocess.STDOUT, timeout=60)\n",
+          "offset": 30001
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 30186
+        }
+      ]
+    },
+    "tests/test_hia_program_selfhost.py": {
+      "current": {
+        "bytes": 25098,
+        "sha256": "811c1eda2cefb046817564268b99c4196504da289d9f0d1519e6e3439eb801a0"
+      },
+      "original": {
+        "bytes": 24979,
+        "sha256": "e2c879300e4ff568241b7310fa1192356efadbf3e77337efd672137a12609375"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 23515
+        },
+        {
+          "after": "            [sys.executable, \"-m\", \"pip\", \"wheel\", '--no-index', \"--no-deps\", \"--no-build-isolation\", \"--wheel-dir\", str(wheels), str(ordinary_wheel(package, python=sys.executable))],\n",
+          "before": "            [sys.executable, \"-m\", \"pip\", \"wheel\", \"--no-deps\", \"--no-build-isolation\", \"--wheel-dir\", str(wheels), str(package)],\n",
+          "offset": 23533
+        }
+      ]
+    },
+    "tests/test_hia_publication_measurement_native.py": {
+      "current": {
+        "bytes": 29736,
+        "sha256": "9a5eb9315ea8c689e1f1d53c974825fcb52f93c13368daedee2cdfc9afa1e607"
+      },
+      "original": {
+        "bytes": 29601,
+        "sha256": "474e1a6198ec944fbca9fe355103fd2311f61c7ec1e08c9695e8a7f15f7448e7"
+      },
+      "splices": [
+        {
+          "after": "                                        stdout=output, stderr=subprocess.STDOUT, timeout=1800 if label == 'wheel' else 60)\n",
+          "before": "                                        stdout=output, stderr=subprocess.STDOUT, timeout=60)\n",
+          "offset": 22898
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 23083
+        }
+      ]
+    },
+    "tests/test_hia_retirement_state_native.py": {
+      "current": {
+        "bytes": 71607,
+        "sha256": "81b8c66434fdac85252eeac8a67ce23446abaf3b62b3f5efe6ae4f6843197754"
+      },
+      "original": {
+        "bytes": 71507,
+        "sha256": "9e3fe0541aa04473dbff8b6bc3e29e2820c6bb143ed95c3b3e6f89b05f9617c7"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 34122
+        },
+        {
+          "after": "            '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging))],\n",
+          "before": "            '--no-build-isolation', '--wheel-dir', str(wheels), str(source)],\n",
+          "offset": 34220
+        }
+      ]
+    },
+    "tests/test_hia_scalar_profile_native.py": {
+      "current": {
+        "bytes": 38421,
+        "sha256": "e0eb80a4c03ef8613f4b7f7c3c66f8f60049c06c534551b7f0905d54fcb09a73"
+      },
+      "original": {
+        "bytes": 38286,
+        "sha256": "583d3b34f4cf10beaf85e850e24967af8b810f09697265c0d0ad285b3eb15677"
+      },
+      "splices": [
+        {
+          "after": "                                        stdout=output, stderr=subprocess.STDOUT, timeout=1800 if label == 'wheel' else 60)\n",
+          "before": "                                        stdout=output, stderr=subprocess.STDOUT, timeout=60)\n",
+          "offset": 31320
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 31506
+        }
+      ]
+    },
+    "tests/test_hia_service_artifact_native.py": {
+      "current": {
+        "bytes": 45803,
+        "sha256": "fbd93c9f55f7feac7db4d20e9bf4000ec4f1a2d1d9890a196fa27629ce71fa29"
+      },
+      "original": {
+        "bytes": 45581,
+        "sha256": "6256cb22b961c0591f60fef6506e8e61338bc11ec45fdbfc9843ef8b2619be8e"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n",
+          "before": "",
+          "offset": 31818
+        },
+        {
+          "after": "                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                      '--wheel-dir', self.case / 'wheels', staging])\n",
+          "offset": 31913
+        },
+        {
+          "after": "                    files[name] = sha256(raw).hexdigest()\n                    name = installed_wheel_path(installed, name).relative_to(installed).as_posix()\n",
+          "before": "",
+          "offset": 32930
+        },
+        {
+          "after": "",
+          "before": "                    files[name] = sha256(raw).hexdigest()\n",
+          "offset": 33011
+        },
+        {
+          "after": "            raw = installed_wheel_path(installed, name).read_bytes()\n",
+          "before": "            raw = (installed / name).read_bytes()\n",
+          "offset": 33629
+        }
+      ]
+    },
+    "tests/test_hia_service_context_native.py": {
+      "current": {
+        "bytes": 35403,
+        "sha256": "94bba1ba99cfeb29baa9eb34072514803af288a11d964f950c46bea431e92c1b"
+      },
+      "original": {
+        "bytes": 35307,
+        "sha256": "db7651b17a26b2606cb4c8c556b222a89f9d42b1e21b9bc97380b6f1dfdb3f9c"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        run(['-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation','--wheel-dir',wheels,ordinary_wheel(source)])\n",
+          "before": "        run(['-m','pip','wheel','--no-deps','--no-build-isolation','--wheel-dir',wheels,source])\n",
+          "offset": 29318
+        }
+      ]
+    },
+    "tests/test_hia_slot_ledger_native_integration.py": {
+      "current": {
+        "bytes": 85213,
+        "sha256": "e6aacdb28c34890f897b09d088ede33cd1360a9e8cf09ba44e48fecd1187ffd1"
+      },
+      "original": {
+        "bytes": 85106,
+        "sha256": "02081467ee8eff2589f1b284f6259a349526b4a87d643072f12c9b24a725de7d"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 77586
+        },
+        {
+          "after": "            \"--no-build-isolation\", \"--wheel-dir\", str(self.root / \"wheels\"), str(archive)], timeout=1800)\n",
+          "before": "            \"--no-build-isolation\", \"--wheel-dir\", str(self.root / \"wheels\"), str(archive)], timeout=90)\n",
+          "offset": 78154
+        }
+      ]
+    },
+    "tests/test_hia_slot_operations_native.py": {
+      "current": {
+        "bytes": 25340,
+        "sha256": "366e255c6bb0631c395e83d1657390c69f211600cd666815ef3435865bbdf01b"
+      },
+      "original": {
+        "bytes": 25198,
+        "sha256": "ee119140d957fa9b2f1736265680e35c143e089cce49e7c657c70a6d77b23da2"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n",
+          "before": "",
+          "offset": 15754
+        },
+        {
+          "after": "            '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "            '--wheel-dir', self.case / 'wheels', staging])\n",
+          "offset": 15849
+        },
+        {
+          "after": "                    self.assertEqual(installed_wheel_path(installed, name).read_bytes(), raw, name)\n",
+          "before": "                    self.assertEqual((installed / name).read_bytes(), raw, name)\n",
+          "offset": 16846
+        },
+        {
+          "after": "            raw = installed_wheel_path(installed, name).read_bytes()\n",
+          "before": "            raw = (installed / name).read_bytes()\n",
+          "offset": 17567
+        }
+      ]
+    },
+    "tests/test_hia_static_budget_native.py": {
+      "current": {
+        "bytes": 22113,
+        "sha256": "476ee2cefe21fa64ec7999c3200975fc76624c756915066f421808c812936adc"
+      },
+      "original": {
+        "bytes": 22017,
+        "sha256": "dda38190ee5334322157782f9863bb388b71c100e13b3367408d4004f52db262"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        wheels = directory / 'wheels'; run(['-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, ordinary_wheel(source)])\n",
+          "before": "        wheels = directory / 'wheels'; run(['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, source])\n",
+          "offset": 20027
+        }
+      ]
+    },
+    "tests/test_hia_store_artifact_profile_native.py": {
+      "current": {
+        "bytes": 56430,
+        "sha256": "a311c8e029c3219440efc0751a86854d6205955ad2de1c3ce297ffb6d0f22d7a"
+      },
+      "original": {
+        "bytes": 55824,
+        "sha256": "8957b0b33f23f1160bc16f10b46f98d3025cef891be66dd9a0fa40117b843a87"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 42521
+        },
+        {
+          "after": "                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                      '--wheel-dir', self.case / 'wheels', staging])\n",
+          "offset": 42616
+        },
+        {
+          "after": "            describe = worker('describe-language', case, envelope(case, 'hia_describe', {'section': 'language'}))\n            self.assertEqual(json.loads(describe.stdout)['response']['status'], 'completed')\n            describe_counts = read_counts(describe)\n            combined_modes = (set(first_counts['startup']['modes']) | set(first_counts['request']['modes'])\n                              | set(resource_counts['request']['modes']) | set(describe_counts['request']['modes']))\n",
+          "before": "            combined_modes = set(first_counts['startup']['modes']) | set(first_counts['request']['modes']) | set(resource_counts['request']['modes'])\n",
+          "offset": 50741
+        },
+        {
+          "after": "        from tests.hia_slot_worker_terminal import worker_profile\n        lost_ack_exit = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())['lost_ack_exit']\n        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', lost_ack_exit),\n",
+          "before": "        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', 1),\n",
+          "offset": 51674
+        }
+      ]
+    },
+    "tests/test_hia_store_lifecycle_native.py": {
+      "current": {
+        "bytes": 36984,
+        "sha256": "e25dcbcd5cc4babec23e3289a61baed5ab9696498938890072ecc528db4e1a77"
+      },
+      "original": {
+        "bytes": 36888,
+        "sha256": "fa3421d87409e47b079ce3ac84f3e29bef8fb4f60d6933eeb19e666293d9328b"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        run(['-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, ordinary_wheel(source)])\n",
+          "before": "        run(['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, source])\n",
+          "offset": 32831
+        }
+      ]
+    },
+    "tests/test_hia_store_transaction_native.py": {
+      "current": {
+        "bytes": 56332,
+        "sha256": "d87b86b3216a9df09e46eb44d1ab263f8b83401da3938c0a984a165a4f964ad9"
+      },
+      "original": {
+        "bytes": 55992,
+        "sha256": "b6ec4cb2955d899eab31065671016776bc6241b18ae92f3e98aa27d4fde625bc"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel\n",
+          "before": "",
+          "offset": 45492
+        },
+        {
+          "after": "                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])\n",
+          "before": "                      '--wheel-dir', self.case / 'wheels', staging])\n",
+          "offset": 45587
+        },
+        {
+          "after": "                    self.assertEqual(installed_wheel_path(installed, name).read_bytes(), raw, name)\n",
+          "before": "                    self.assertEqual((installed / name).read_bytes(), raw, name)\n",
+          "offset": 46462
+        },
+        {
+          "after": "            raw = installed_wheel_path(installed, name).read_bytes()\n",
+          "before": "            raw = (installed / name).read_bytes()\n",
+          "offset": 47134
+        },
+        {
+          "after": "            from tests.hia_slot_worker_terminal import worker_profile\n            lost_ack_exit = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())['lost_ack_exit']\n            lost = worker('lost-commit', case, request, 'lost_commit', lost_ack_exit)\n",
+          "before": "            lost = worker('lost-commit', case, request, 'lost_commit', 1)\n",
+          "offset": 53707
+        }
+      ]
+    },
+    "tests/test_hia_task_helpers_native.py": {
+      "current": {
+        "bytes": 31073,
+        "sha256": "ca20d5f0925b624d00d5b315154d3046426587ba85eb59c5240092e079429896"
+      },
+      "original": {
+        "bytes": 30954,
+        "sha256": "11e7d6f023e672e8bceb8efafdab5ab9d1b8de6adcf4a8f094e0c4f3c8e8e24f"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        built = subprocess.run([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation',\n            '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=sys.executable))], cwd=source, capture_output=True, timeout=120,\n",
+          "before": "        built = subprocess.run([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',\n            '--wheel-dir', str(wheels), str(source)], cwd=source, capture_output=True, timeout=120,\n",
+          "offset": 27256
+        }
+      ]
+    },
+    "tests/test_hia_vm_integer_arithmetic_native.py": {
+      "current": {
+        "bytes": 20240,
+        "sha256": "5ee2adee064c3a67d078ea7c98fda59c23ef24a1c2c7aabe443f67812d689f19"
+      },
+      "original": {
+        "bytes": 20117,
+        "sha256": "4cf69ec8f6730cd96f294618f961a91d4eb28697aeb2b4b7a9dd845deb1e1ac4"
+      },
+      "splices": [
+        {
+          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.TYPED_RESOURCE_SHA256)\n",
+          "before": "        self.assertEqual(sha256(raw).hexdigest(), selected.V9_RUNTIME_SHA256)\n",
+          "offset": 2722
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        self.owned(\"installed-wheel\", [sys.executable, \"-m\", \"pip\", \"wheel\", '--no-index', \"--no-deps\",\n            \"--no-build-isolation\", \"--wheel-dir\", str(wheel_dir), str(ordinary_wheel(ROOT, python=sys.executable))], 180)\n",
+          "before": "        self.owned(\"installed-wheel\", [sys.executable, \"-m\", \"pip\", \"wheel\", \"--no-deps\",\n            \"--no-build-isolation\", \"--wheel-dir\", str(wheel_dir), str(ROOT)], 180)\n",
+          "offset": 18471
+        }
+      ]
+    },
+    "tests/test_hia_vm_integer_divrem_native.py": {
+      "current": {
+        "bytes": 20527,
+        "sha256": "456f273895eb25395722cafd95541f41143cbc805fa569bdbce683b84749e2e0"
+      },
+      "original": {
+        "bytes": 20177,
+        "sha256": "db8a67d7d04ed160ad780043c7011556e7e103e393beee291d6a6b235a8234fb"
+      },
+      "splices": [
+        {
+          "after": "        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.TYPED_RESOURCE_SHA256)\n        previous = selected.word_runtime_source(actual_runtime)\n        self.assertEqual(sha256(previous).hexdigest(), selected.V9_RUNTIME_SHA256)\n        self.assertEqual(selected._retained_runtime_source(previous), retained)\n",
+          "before": "        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.V9_RUNTIME_SHA256)\n",
+          "offset": 2090
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        self.owned(\"installed-wheel\", [sys.executable, \"-m\", \"pip\", \"wheel\", '--no-index', \"--no-deps\",\n            \"--no-build-isolation\", \"--wheel-dir\", str(wheel_dir), str(ordinary_wheel(ROOT, python=sys.executable))], 180)\n",
+          "before": "        self.owned(\"installed-wheel\", [sys.executable, \"-m\", \"pip\", \"wheel\", \"--no-deps\",\n            \"--no-build-isolation\", \"--wheel-dir\", str(wheel_dir), str(ROOT)], 180)\n",
+          "offset": 18533
+        }
+      ]
+    },
+    "tests/test_hia_vm_integer_scalar_native.py": {
+      "current": {
+        "bytes": 23115,
+        "sha256": "a62f84ccb815e909f7b12424c8297aa943d1694d7dd835fd566435b73f826c6d"
+      },
+      "original": {
+        "bytes": 22992,
+        "sha256": "d01cc8232a7fc5802e5aadefcf46d34fd5f238185ff8a247a05182cd91f9d865"
+      },
+      "splices": [
+        {
+          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.TYPED_RESOURCE_SHA256)\n",
+          "before": "        self.assertEqual(sha256(raw).hexdigest(), selected.V9_RUNTIME_SHA256)\n",
+          "offset": 2985
+        },
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        self.owned(\"installed-wheel\", [sys.executable, \"-m\", \"pip\", \"wheel\", '--no-index', \"--no-deps\",\n            \"--no-build-isolation\", \"--wheel-dir\", str(wheel_dir), str(ordinary_wheel(ROOT, python=sys.executable))], 180)\n",
+          "before": "        self.owned(\"installed-wheel\", [sys.executable, \"-m\", \"pip\", \"wheel\", \"--no-deps\",\n            \"--no-build-isolation\", \"--wheel-dir\", str(wheel_dir), str(ROOT)], 180)\n",
+          "offset": 21346
+        }
+      ]
+    },
+    "tests/test_hia_worker_request_native.py": {
+      "current": {
+        "bytes": 17247,
+        "sha256": "7809eea35b246f35ca50c7a5787ed1e2812687ae49029df61c84cc1922b05663"
+      },
+      "original": {
+        "bytes": 17140,
+        "sha256": "2c758a04b58f57307a40aaa92c48feb0938a01906ac2336d21c528a29b53464c"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n",
+          "before": "",
+          "offset": 15162
+        },
+        {
+          "after": "                         '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging_python))],):\n",
+          "before": "                         '--no-build-isolation', '--wheel-dir', str(wheels), str(source)],):\n",
+          "offset": 15260
+        }
+      ]
+    },
+    "tools/qualify_hia_slot_mechanical_installed.py": {
+      "current": {
+        "bytes": 10703,
+        "sha256": "c65a8b898dad982b460fd4c4d4858e6871ff841a87b17db44b86e3b0fbbdca25"
+      },
+      "original": {
+        "bytes": 10340,
+        "sha256": "089728081ccf7fc39f4d79e865e016e2ceb83cb42e0c8f3937ab56d44b64a644"
+      },
+      "splices": [
+        {
+          "after": "    def run(label, command, seconds=60, *, cwd=ROOT):\n        result = run_owned(command, cwd=cwd, directory=args.evidence / label,\n",
+          "before": "    def run(label, command, seconds=60):\n        result = run_owned(command, cwd=ROOT, directory=args.evidence / label,\n",
+          "offset": 1590
+        },
+        {
+          "after": "        'original_scope_replaced': False, 'new_version': 5,\n               'wheel_profile': 'explicit-slot-mechanical-cpython-extension', 'source_identity': source_identity}\n",
+          "before": "        'original_scope_replaced': False, 'new_version': 5, 'source_identity': source_identity}\n",
+          "offset": 3011
+        },
+        {
+          "after": "        # This fixture exercises the separately selected CPython mechanical extension.\n        # Build the same Python import-library component used by the release builder.\n        wheels = args.evidence / 'wheels'\n        wheels.mkdir()\n        run('wheel', [sys.executable, '-B', '-c',\n                      'from setuptools.build_meta import build_wheel; import sys; print(build_wheel(sys.argv[1]))',\n                      str(wheels.resolve())], cwd=staging)\n",
+          "before": "        run('wheel', [sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps',\n            '--no-build-isolation', '--no-index', '--wheel-dir', str(args.evidence / 'wheels'), str(staging)])\n",
+          "offset": 3191
+        }
+      ]
+    }
+  },
+  "schema": "hepta.hia.installed-distribution-source-successor.v1"
+}

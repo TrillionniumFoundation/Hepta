@@ -742,7 +742,7 @@ print('REFUSED_WITH_INPUT_AND_OUTPUT_CANARIES_INTACT')
         source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
         resources = (tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES) + BACKEND_BUILD_FILES + EMITTER_BUILD_FILES + BYTE_WRAPPER_BUILD_FILES + MACHINE_OBJECT_BUILD_FILES + EXECUTION_OBSERVATION_BUILD_FILES + CONTINUATION_BUILD_FILES
-        from tests.hia_journal_installed_preparation import prepare_resources, verify_staged_resources
+        from tests.hia_installed_journal_distribution import prepare_resources, verify_staged_resources
         resources, preparation = prepare_resources(ROOT, resources)
         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             destination = source / name
@@ -751,8 +751,9 @@ print('REFUSED_WITH_INPUT_AND_OUTPUT_CANARIES_INTACT')
         verify_staged_resources(ROOT, source, preparation,
                                 self.case / 'installed-resource-preparation-v2.json')
         wheels = self.case / 'wheels'
+        from tests.hia_distribution_fixture import ordinary_wheel
         build = subprocess.run([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-index',
-            '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], cwd=source,
+            '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=sys.executable))], cwd=source,
             capture_output=True, timeout=120, env={**os.environ, 'PIP_DISABLE_PIP_VERSION_CHECK': '1'})
         self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
         wheel, = wheels.glob('*.whl')

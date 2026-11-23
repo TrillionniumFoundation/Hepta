@@ -150,8 +150,9 @@ class AgentCandidateNativeTests(unittest.TestCase):
             destination = source/name;destination.parent.mkdir(parents=True,exist_ok=True)
             shutil.copyfile(root/name,destination)
         wheels = self.case/'wheels'
+        from tests.hia_distribution_fixture import ordinary_wheel
         build = subprocess.run([sys.executable,'-B','-m','pip','wheel','--no-deps','--no-index',
-            '--no-build-isolation','--wheel-dir',str(wheels),str(source)],cwd=source,
+            '--no-build-isolation','--wheel-dir',str(wheels),str(ordinary_wheel(source, python=sys.executable))],cwd=source,
             capture_output=True,timeout=120,env={**os.environ,'PIP_DISABLE_PIP_VERSION_CHECK':'1'})
         self.assertEqual(build.returncode,0,build.stdout+build.stderr)
         wheel, = wheels.glob('*.whl');installed = self.case/'installed'

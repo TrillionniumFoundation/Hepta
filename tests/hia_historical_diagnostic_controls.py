@@ -19,6 +19,9 @@ def historical_caller_dependencies(root, sources, expected):
     """Recover only the reviewed Machine and Proof fixture versions as data."""
     from tests.hia_store_delivery_successor import reverse_exact
 
+    from tests.hia_installed_distribution_history import predecessor
+    for name, raw in sources.items():
+        sources[name] = predecessor(name, raw)
     machine = delivery.MACHINE_RECEIPT_CALLER
     if machine in expected and diagnostics.pin(sources[machine])['sha256'] != expected[machine]:
         authority = (root / delivery.MACHINE_RECEIPT_FIXTURE).read_bytes()

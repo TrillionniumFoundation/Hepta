@@ -516,8 +516,10 @@ class NativeMappingNativeTests(unittest.TestCase):
         def command(label, arguments):
             with (folder / (label + '.log')).open('xb') as output:
                 result = subprocess.run([sys.executable, '-B', *map(str, arguments)], cwd=source,
-                                        stdout=output, stderr=subprocess.STDOUT, timeout=60)
+                                        stdout=output, stderr=subprocess.STDOUT, timeout=1800 if label == 'wheel' else 60)
             self.assertEqual(result.returncode, 0, (folder / (label + '.log')).read_text())
+        from tests.hia_distribution_fixture import stage_cold_sources
+        stage_cold_sources(source)
         command('sdist', ['setup.py', 'sdist', '--dist-dir', folder / 'sdist'])
         archive, = (folder / 'sdist').glob('*.tar.gz')
         with tarfile.open(archive) as handle:

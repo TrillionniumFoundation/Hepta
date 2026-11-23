@@ -1,6 +1,6 @@
 """Real installed wheel, worker identity and all five bootstrap public methods."""
 from __future__ import annotations
-import argparse,base64,configparser,csv,io,json,os,shutil,sqlite3,sys,zipfile
+import argparse,base64,csv,io,json,os,shutil,sqlite3,sys,zipfile
 from hashlib import sha256
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -94,6 +94,7 @@ print(json.dumps(report,sort_keys=True,separators=(',',':')))
 """
 
 def wheel_records(wheel,installed):
+    from tests.hia_distribution_fixture import installed_wheel_path
     installed=Path(installed);files={}
     with zipfile.ZipFile(wheel) as archive:
         names=archive.namelist()
@@ -112,21 +113,28 @@ def wheel_records(wheel,installed):
                 if digest!=value or size!=str(len(raw)):raise ValueError("wheel RECORD member bytes differ")
             elif name!=record_name or size:raise ValueError("only RECORD has an empty self digest")
             if name!=record_name:
-                if (installed/name).read_bytes()!=raw:raise ValueError("installed wheel bytes differ: "+name)
+                if installed_wheel_path(installed, name).read_bytes()!=raw:raise ValueError("installed wheel bytes differ: "+name)
                 files[name]=support.bytes_pin(raw)
         installed_raw=(installed/record_name).read_bytes()
         now={}
         for row in csv.reader(io.StringIO(installed_raw.decode())):
             if len(row)!=3 or row[0] in now:raise ValueError("installed RECORD duplicates a path")
             now[row[0]]=tuple(row[1:])
-        if any(now.get(name)!=value for name,value in old.items()):
+        relocated = {}
+        for name, value in old.items():
+            physical = installed_wheel_path(installed, name)
+            key = '../../bin/' + physical.name if physical.parent == installed / 'bin' else name
+            if key in relocated:
+                raise ValueError("two wheel members have the same installed RECORD path")
+            relocated[key] = value
+        if any(now.get(name)!=value for name,value in relocated.items()):
             raise ValueError("pip changed a preexisting RECORD path/hash/size")
         directory=str(Path(record_name).parent)
-        additions={"../../bin/hia",directory+"/INSTALLER",directory+"/REQUESTED",directory+"/direct_url.json"}
-        if set(now)-set(old)!=additions:raise ValueError("undeclared pip metadata delta")
+        additions={directory+"/INSTALLER",directory+"/REQUESTED",directory+"/direct_url.json"}
+        if set(now)-set(relocated)!=additions:raise ValueError("undeclared pip metadata delta")
         extra={}
         for name in sorted(additions):
-            target=installed/"bin/hia" if name=="../../bin/hia" else installed/name
+            target=installed/name
             raw=target.read_bytes();digest,size=now[name]
             actual="sha256="+base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b"=").decode()
             if digest!=actual or size!=str(len(raw)):raise ValueError("actual installed metadata differs")
@@ -137,12 +145,11 @@ def wheel_records(wheel,installed):
         if (direct["url"]!=Path(wheel).resolve().as_uri()
                 or direct["archive_info"]["hashes"]!={"sha256":support.file_pin(wheel)["sha256"]}):
             raise ValueError("direct_url does not bind the actual wheel")
-        config=configparser.ConfigParser()
-        config.read_string(archive.read(directory+"/entry_points.txt").decode())
-        module,function=map(str.strip,config["console_scripts"]["hia"].split(":"))
-        script=(installed/"bin/hia").read_text()
-        if "from "+module+" import "+function not in script or "sys.exit("+function+"())" not in script:
-            raise ValueError("actual console entry differs from wheel entry_points")
+        launcher, = (name for name in names if name.endswith('.data/scripts/hia'))
+        physical = installed_wheel_path(installed, launcher)
+        if (not archive.read(launcher).startswith(b'\x7fELF') or not os.access(physical, os.X_OK)
+                or physical.read_bytes() != archive.read(launcher)):
+            raise ValueError("installed public command differs from the wheel's native executable")
     return {"wheel":support.file_pin(wheel),"wheel_record":support.bytes_pin(raw_record),
         "installed_record":{"path":record_name,**support.bytes_pin(installed_raw)},
         "common_rows":len(old),"installed_rows":len(now),"installed_additions":extra,
@@ -295,8 +302,9 @@ def run(args):
         for name in (*RESOURCES,*SDIST_SUPPORT_FILES,"setup.py","pyproject.toml","MANIFEST.in"):
             target=staging/name;target.parent.mkdir(parents=True,exist_ok=True)
             shutil.copyfile(ROOT/name,target)
+        from tests.hia_distribution_fixture import ordinary_wheel
         command("wheel",["-m","pip","wheel","--no-deps","--no-build-isolation","--no-index",
-                         "--wheel-dir",args.output/"wheels",staging])
+                         "--wheel-dir",args.output/"wheels",ordinary_wheel(staging)])
         wheel,=(args.output/"wheels").glob("*.whl")
         installed=args.output/"installed"
         command("install",["-m","pip","install","--no-deps","--no-index","--no-compile",

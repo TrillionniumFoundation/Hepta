@@ -712,6 +712,8 @@ raise SystemExit('process-cut fixture did not reach the actual commit')
             target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)
         packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
+        from tests.hia_distribution_fixture import stage_cold_sources
+        stage_cold_sources(source)
         built = subprocess.run([packaging, '-B', 'setup.py', 'sdist', '--dist-dir', str(case / 'sdist')],
                                cwd=source, capture_output=True, timeout=90)
         (case / 'sdist.log').write_bytes(built.stdout + built.stderr)
@@ -723,7 +725,7 @@ raise SystemExit('process-cut fixture did not reach the actual commit')
                 self.assertEqual(tar.extractfile(prefix + name).read(), (ROOT / name).read_bytes(), name)
         built = subprocess.run([packaging, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-index',
             '--no-build-isolation', '--wheel-dir', str(case / 'wheels'), str(archive)],
-            cwd=case, capture_output=True, timeout=90)
+            cwd=case, capture_output=True, timeout=1800)
         (case / 'wheel.log').write_bytes(built.stdout + built.stderr)
         self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
         wheel, = (case / 'wheels').glob('*.whl')

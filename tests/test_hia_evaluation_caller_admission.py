@@ -43,7 +43,8 @@ class EvaluationCallerAdmissionSourceTests(unittest.TestCase):
         names = (*cls.records, qualifier.FIXTURE_NAME, HELPER, diagnostics.FIXTURE)
         cls.actual_raws = {name: (ROOT / name).read_bytes()
                            for name in (*names, HISTORICAL, DIAGNOSTIC_FIXTURE, SQLITE_BOUNDARY_FIXTURE)}
-        cls.raws = {name: cls.actual_raws[name] for name in names}
+        from tests.hia_installed_distribution_history import predecessor
+        cls.raws = {name: predecessor(name, cls.actual_raws[name]) for name in names}
         historical = cls.actual_raws[HISTORICAL]
         if sha256(historical).hexdigest() != HISTORICAL_SHA256:
             raise AssertionError('historical evaluation caller authority differs')

@@ -278,8 +278,9 @@ class SlotOperationsNativeTests(ComponentFixture, unittest.TestCase):
             self.assertEqual(result['owned_cleanup']['signals'], [], result)
             return result, regular_bytes(self.case / label / 'stdout.log'), regular_bytes(self.case / label / 'stderr.log')
 
+        from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel
         run('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-            '--wheel-dir', self.case / 'wheels', staging])
+            '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])
         wheel, = (self.case / 'wheels').glob('*.whl')
         installed = self.case / 'installed'
         run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
@@ -295,7 +296,7 @@ class SlotOperationsNativeTests(ComponentFixture, unittest.TestCase):
                     self.assertEqual(digest, 'sha256=' + base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode())
                     self.assertEqual(size, str(len(raw)))
                 if name != record_name:
-                    self.assertEqual((installed / name).read_bytes(), raw, name)
+                    self.assertEqual(installed_wheel_path(installed, name).read_bytes(), raw, name)
                     checked[name] = sha(raw)
         resource = installed / 'hepta/_data/examples/hia_bootstrap/slot_operations.hepta'
         self.assertEqual(resource.read_bytes(), native.SOURCE.read_bytes())
@@ -304,7 +305,7 @@ class SlotOperationsNativeTests(ComponentFixture, unittest.TestCase):
         for name in ('hepta/hia_slot_operations_native.py', 'hepta/hia_slot_operations_selection.py',
                      'hepta/hia_slot_operation_series.py', 'hepta/hia_slot_operations_protocol.py',
                      'hepta/hia_slot_ledger_native.py', str(resource.relative_to(installed))):
-            raw = (installed / name).read_bytes()
+            raw = installed_wheel_path(installed, name).read_bytes()
             self.assertEqual(installed_record[name], [
                 'sha256=' + base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode(), str(len(raw))])
         bundle = self.case / 'bundle.json'

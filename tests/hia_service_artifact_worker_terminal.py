@@ -99,11 +99,13 @@ class SourceAuthority:
                 or self.value['legacy_lost_ack_exit'] != 1
                 or self.value['current_lost_ack_exit'] != 2):
             raise ValueError('Service artifact terminal version contract differs')
+        from tests.hia_installed_distribution_history import predecessor
+
         self.originals = {}
         for name, spec in self.value['source_successors'].items():
             if Path(name).is_absolute() or '..' in Path(name).parts:
                 raise ValueError('unsafe terminal source path')
-            self.originals[name] = inverse(self.read(name), spec)
+            self.originals[name] = inverse(predecessor(name, self.read(name), inverse), spec)
         if pin(self.read(ORIGINAL_WORKER)) != WORKERS[1]:
             raise ValueError('complete original worker authority changed')
         self.profile = worker_profile(self.read('hepta/hia_agent_worker.py'))

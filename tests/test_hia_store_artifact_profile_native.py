@@ -709,8 +709,9 @@ class StoreArtifactProfileNativeTests(unittest.TestCase):
                     result.stdout.decode(errors='replace') + result.stderr.decode(errors='replace'))
             return result
 
+        from tests.hia_distribution_fixture import ordinary_wheel
         run('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                      '--wheel-dir', self.case / 'wheels', staging])
+                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])
         wheel, = (self.case / 'wheels').glob('*.whl')
         installed = self.case / 'installed'
         run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
@@ -850,7 +851,11 @@ raise SystemExit(status)
             self.assertEqual(resource_report['response']['status'], 'completed', resource_report)
             self.assertEqual(resource_report['response']['result']['content'], payload.decode())
             self.assertGreater(resource_counts['request']['modes']['6'], 0)
-            combined_modes = set(first_counts['startup']['modes']) | set(first_counts['request']['modes']) | set(resource_counts['request']['modes'])
+            describe = worker('describe-language', case, envelope(case, 'hia_describe', {'section': 'language'}))
+            self.assertEqual(json.loads(describe.stdout)['response']['status'], 'completed')
+            describe_counts = read_counts(describe)
+            combined_modes = (set(first_counts['startup']['modes']) | set(first_counts['request']['modes'])
+                              | set(resource_counts['request']['modes']) | set(describe_counts['request']['modes']))
             self.assertTrue({str(mode) for mode in range(1, 9)} <= combined_modes)
             observations['first'] = {'worker_exit_code': first.returncode, 'report': first_report,
                 'counts': first_counts, 'before': original_state, 'after': before}
@@ -863,7 +868,9 @@ raise SystemExit(status)
         finally:
             case.tearDown()
 
-        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', 1),
+        from tests.hia_slot_worker_terminal import worker_profile
+        lost_ack_exit = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())['lost_ack_exit']
+        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', lost_ack_exit),
                                        ('process_loss', 'exit_after_insert', 73)):
             case, request = prepare()
             try:

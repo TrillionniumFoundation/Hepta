@@ -455,7 +455,9 @@ class ArithmeticPreparedRuntimeSourceTests(unittest.TestCase):
 
     def test_exact_runtime_source_successor_and_populated_cache_refuse_unlisted_bytes(self):
         raw = Path(runtime.__file__).read_bytes()
-        self.assertEqual(sha256(raw).hexdigest(),
+        self.assertEqual(sha256(raw).hexdigest(), arithmetic_module.TYPED_RESOURCE_SHA256)
+        previous = arithmetic_module.word_runtime_source(raw)
+        self.assertEqual(sha256(previous).hexdigest(),
                          'db118314608168799a0d2c1210cec04ba38981a329e8da6cf4debcd07b267aa0')
         retained = arithmetic_module._retained_runtime_source(raw)
         self.assertEqual(sha256(retained).hexdigest(), _RUNTIME_SHA256)

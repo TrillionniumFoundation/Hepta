@@ -655,8 +655,9 @@ def _installed(root, manifests):
         if expected is not None:
             assert result.returncode == expected, result.stdout + result.stderr
         return result
+    from tests.hia_distribution_fixture import ordinary_wheel
     run('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                  '--wheel-dir', root / 'wheels', staging])
+                  '--wheel-dir', root / 'wheels', ordinary_wheel(staging)])
     wheel, = (root / 'wheels').glob('*.whl')
     installed = root / 'installed'
     run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',

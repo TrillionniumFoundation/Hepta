@@ -396,8 +396,9 @@ class CorePatchNativeTests(unittest.TestCase):
         for name in ('setup.py', 'pyproject.toml', 'MANIFEST.in'):
             shutil.copyfile(root / name, source / name)
         wheels = self.folder/'wheels'
-        result = subprocess.run([sys.executable,'-B','-m','pip','wheel','--no-deps',
-            '--no-build-isolation','--wheel-dir',str(wheels),str(source)],
+        from tests.hia_distribution_fixture import ordinary_wheel
+        result = subprocess.run([sys.executable,'-B','-m','pip','wheel', '--no-index','--no-deps',
+            '--no-build-isolation','--wheel-dir',str(wheels),str(ordinary_wheel(source, python=sys.executable))],
             cwd=source,capture_output=True,timeout=120,
             env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'})
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)

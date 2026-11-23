@@ -100,8 +100,9 @@ class NativeConstructorIntegrationTests(unittest.TestCase):
                 shutil.copyfile(ROOT/name,target)
             wheels, installed = folder/'wheels', folder/'installed'
             rows = []
-            command = [sys.executable,'-B','-m','pip','wheel','--no-deps','--no-build-isolation',
-                       '--wheel-dir',str(wheels),str(source)]
+            from tests.hia_distribution_fixture import ordinary_wheel
+            command = [sys.executable,'-B','-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation',
+                       '--wheel-dir',str(wheels),str(ordinary_wheel(source, python=sys.executable))]
             result = subprocess.run(command,cwd=folder,capture_output=True,timeout=120)
             rows.append({'label':'wheel-build','returncode':result.returncode,
                          'stdout':result.stdout.decode(),'stderr':result.stderr.decode()})

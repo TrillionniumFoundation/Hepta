@@ -79,12 +79,14 @@ def admit_source_authority(captured, root):
             and type(value['legacy_lost_ack_exit']) is int and value['legacy_lost_ack_exit'] == 1
             and type(value['current_lost_ack_exit']) is int and value['current_lost_ack_exit'] == 2,
             'explicit terminal version contract differs')
+    from tests.hia_installed_distribution_history import predecessor
+
     originals, current = {}, {}
     for name, specification in value['source_successors'].items():
         path = PurePosixPath(name)
         require(not path.is_absolute() and '..' not in path.parts, 'unsafe terminal source path')
         data = captured.raw(root / name)
-        originals[name] = digest(original_source(data, specification))
+        originals[name] = digest(original_source(predecessor(name, data, original_source), specification))
         current[name] = digest(data)
     equal(digest(captured.raw(root / 'tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt')),
           WORKERS[1])

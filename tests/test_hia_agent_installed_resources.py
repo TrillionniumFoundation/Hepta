@@ -16,6 +16,7 @@ RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_
 # The two declared native package files also belong in the actual wheel;
 # all other support paths remain absent from its package root.
 SDIST_SUPPORT_FILES=(
+    'tools/build_hia_default_release.py', 'tools/hia_wheel_backend.py',
     'examples/hia_bootstrap/source_filter_member.hepta',
     'examples/hia_bootstrap/source_helper_manifest.hepta',
     'examples/hia_bootstrap/source_compiler_manifest.hepta',
@@ -515,13 +516,15 @@ class AgentInstalledResourceTests(unittest.TestCase):
                     env={**os.environ,'PYTHONDONTWRITEBYTECODE':'1'},stdout=out,stderr=subprocess.STDOUT)
             if result.returncode:raise AssertionError(name+': '+(cls.folder/(name+'.log')).read_text())
         # Exercise both source-distribution and wheel packaging, outside ROOT.
+        from tests.hia_distribution_fixture import stage_cold_sources
+        stage_cold_sources(source)
         build('sdist',['setup.py','sdist','--dist-dir',cls.folder/'sdist'])
         archive,=(cls.folder/'sdist').glob('*.tar.gz')
         with tarfile.open(archive) as tar:
             paths=tar.getnames();prefix=paths[0].split('/')[0]+'/'
             for name in (*RESOURCES,*SDIST_SUPPORT_FILES):
                 assert tar.extractfile(prefix+name).read()==(ROOT/name).read_bytes()
-        build('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--wheel-dir',cls.folder/'wheels',archive])
+        build('wheel',['-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation','--wheel-dir',cls.folder/'wheels',archive])
         wheel,=(cls.folder/'wheels').glob('*.whl');cls.wheel=wheel;cls.installed=cls.folder/'installed'
         build('install',['-m','pip','install','--no-deps','--no-index','--target',cls.installed,wheel])
         cls.native=cls.folder/'native';cls.native.mkdir()
@@ -1025,13 +1028,41 @@ assert not blocked.intersection(sys.modules)
         finally:held.rename(source)
 
     def test_wheel_resources_are_exact_and_worker_identity_matches_source(self):
+        from hepta.hia_default_native import CORE_ELF_OWNERS, CORE_PROOF_OWNERS, CORE_WIRE_OWNER
+
+        full = 'native/default/full_cost/'
+        cli = 'native/default/cli/'
+        native = {full + name for name in ('bundle.json', 'proof-bundle.json', 'manifest.json',
+                                             'full-cost.image.bin', 'hia-safe-core-bind', 'provenance.json',
+                                             'cold-report.json', 'component-build.json')}
+        native.add(cli + 'manifest.json')
+        for _, role in (*CORE_ELF_OWNERS, *CORE_PROOF_OWNERS, CORE_WIRE_OWNER):
+            native.update((full + role + '/manifest.json', full + role + '/' + role + '.image.bin'))
+        for role, image in [('control', 'cli-control'), ('format', 'cli-format'), ('discovery', 'cli-discovery-json')]:
+            native.update((cli + role + '/manifest.json', cli + role + '/' + image + '.image.bin'))
         with zipfile.ZipFile(self.wheel) as z:
+            from tests.hia_distribution_fixture import derived_python_pin
+            derived_python_pin(z)
+            provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))
+            if 'derived_pin_resource' in provenance:
+                self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')
+                native.add(full + 'pin.json')
             bundled={name.removeprefix('hepta/_data/') for name in z.namelist()
                      if name.startswith('hepta/_data/') and not name.endswith('/')}
-            self.assertEqual(bundled,set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES)|set(VM_INTEGER_ARITHMETIC_RESOURCES)|set(VM_INTEGER_SCALAR_RESOURCES))
+            self.assertEqual(bundled,native|set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES)|set(VM_INTEGER_ARITHMETIC_RESOURCES)|set(VM_INTEGER_SCALAR_RESOURCES))
             for name in (*RESOURCES,*EXECUTABLE_CAPTURE_RESOURCES,*VM_INTEGER_DIVREM_RESOURCES,*VM_INTEGER_ARITHMETIC_RESOURCES,*VM_INTEGER_SCALAR_RESOURCES):
                 self.assertEqual(z.read('hepta/_data/'+name),(ROOT/name).read_bytes())
                 self.assertEqual((self.installed/'hepta/_data'/name).read_bytes(),(ROOT/name).read_bytes())
+            for name in native:
+                raw = z.read('hepta/_data/' + name)
+                self.assertEqual((self.installed / 'hepta/_data' / name).read_bytes(), raw)
+                if name.endswith('/manifest.json'):
+                    recorded = json.loads(raw)
+                    if 'image_path' in recorded:
+                        member = str(Path(name).parent / recorded['image_path'])
+                        self.assertIn(member, native)
+                        self.assertEqual(sha256(z.read('hepta/_data/' + member)).hexdigest(),
+                                         recorded['image_sha256'])
             for name in SDIST_SUPPORT_FILES:
                 if name in WHEEL_PACKAGE_FILES:
                     self.assertEqual(z.read(name),(ROOT/name).read_bytes())

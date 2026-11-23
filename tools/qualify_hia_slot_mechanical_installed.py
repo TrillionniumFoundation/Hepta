@@ -39,8 +39,8 @@ def main():
     environment = clean_environment()
     environment['PYTHONDONTWRITEBYTECODE'] = '1'
     commands = []
-    def run(label, command, seconds=60):
-        result = run_owned(command, cwd=ROOT, directory=args.evidence / label,
+    def run(label, command, seconds=60, *, cwd=ROOT):
+        result = run_owned(command, cwd=cwd, directory=args.evidence / label,
                            timeout_seconds=seconds, environment=environment)
         commands.append({'label': label, 'result': result})
         if not successful_exit(result):
@@ -62,12 +62,18 @@ def main():
     started = {'schema': 'hepta.slot.mechanical.installed-driver.v2',
         'terminal_source_authority': authority.summary(),
         'product_freeze': pin(args.product_freeze), 'source_before': before,
-        'original_scope_replaced': False, 'new_version': 5, 'source_identity': source_identity}
+        'original_scope_replaced': False, 'new_version': 5,
+               'wheel_profile': 'explicit-slot-mechanical-cpython-extension', 'source_identity': source_identity}
     write_json(args.evidence / 'started.json', started)
     failure = None
     try:
-        run('wheel', [sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps',
-            '--no-build-isolation', '--no-index', '--wheel-dir', str(args.evidence / 'wheels'), str(staging)])
+        # This fixture exercises the separately selected CPython mechanical extension.
+        # Build the same Python import-library component used by the release builder.
+        wheels = args.evidence / 'wheels'
+        wheels.mkdir()
+        run('wheel', [sys.executable, '-B', '-c',
+                      'from setuptools.build_meta import build_wheel; import sys; print(build_wheel(sys.argv[1]))',
+                      str(wheels.resolve())], cwd=staging)
         wheel, = (args.evidence / 'wheels').glob('*.whl')
         installed = args.evidence / 'installed'
         run('install', [sys.executable, '-B', '-m', 'pip', 'install', '--no-deps', '--no-index',

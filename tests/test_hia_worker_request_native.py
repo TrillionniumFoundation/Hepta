@@ -268,8 +268,9 @@ class WorkerRequestNativeTests(unittest.TestCase):
             shutil.copyfile(ROOT / name, destination)
         packaging_python = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
         wheels, installed = self.case / 'wheels', self.case / 'installed'
+        from tests.hia_distribution_fixture import ordinary_wheel
         for command in ([packaging_python, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-index',
-                         '--no-build-isolation', '--wheel-dir', str(wheels), str(source)],):
+                         '--no-build-isolation', '--wheel-dir', str(wheels), str(ordinary_wheel(source, python=packaging_python))],):
             result = subprocess.run(command, cwd=self.case, capture_output=True, timeout=120)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         wheel, = wheels.glob('*.whl')

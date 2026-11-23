@@ -406,8 +406,9 @@ class EvaluationNativeTests(unittest.TestCase):
                                  result.stdout.decode(errors='replace') + result.stderr.decode(errors='replace'))
             return result
 
+        from tests.hia_distribution_fixture import ordinary_wheel
         run('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                      '--wheel-dir', self.case / 'wheels', staging])
+                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])
         wheel, = (self.case / 'wheels').glob('*.whl')
         installed = self.case / 'installed'
         run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',

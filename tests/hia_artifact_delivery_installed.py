@@ -299,8 +299,9 @@ def _run(root, manifests, cleanup):
         if expected_code is not None:
             assert result.returncode == expected_code, (label, result.stdout, result.stderr)
         return result
+    from tests.hia_distribution_fixture import derived_python_pin, installed_wheel_path, ordinary_wheel
     execute('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                     '--wheel-dir', root / 'wheels', staging])
+                     '--wheel-dir', root / 'wheels', ordinary_wheel(staging)])
     wheel, = (root / 'wheels').glob('*.whl')
     installed = root / 'installed'
     execute('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
@@ -320,11 +321,14 @@ def _run(root, manifests, cleanup):
             else:
                 assert digest == 'sha256=' + base64.urlsafe_b64encode(sha256(data).digest()).rstrip(b'=').decode()
                 assert int(extent) == len(data)
-                assert (installed / name).read_bytes() == data
+                assert installed_wheel_path(installed, name).read_bytes() == data
             wheel_records.append({'name': name, 'bytes': len(data), 'sha256': sha256(data).hexdigest()})
         for source in (ROOT / 'hepta').rglob('*.py'):
             name = source.relative_to(ROOT).as_posix()
-            assert archive.read(name) == source.read_bytes()
+            if name == 'hepta/hia_default_native_pin.py':
+                assert sha256(archive.read(name)).hexdigest() == derived_python_pin(archive)
+            else:
+                assert archive.read(name) == source.read_bytes()
     bundle = root / 'helpers-v1.json'
     selectors = {'store_artifact_profile': 'HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST',
                  'service_context': 'HEPTA_HIA_SERVICE_CONTEXT_MANIFEST',

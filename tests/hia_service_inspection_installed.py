@@ -77,8 +77,9 @@ def run(args):
     def command(label, arguments, *, body=None, expected_code=0):
         return run_child(args.output, label, arguments, timeout=60, body=body,
                          environment=environment, expected_code=expected_code)
+    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel
     command('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                      '--wheel-dir', args.output / 'wheels', staging])
+                      '--wheel-dir', args.output / 'wheels', ordinary_wheel(staging)])
     wheel, = (args.output / 'wheels').glob('*.whl')
     installed = args.output / 'installed'
     command('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
@@ -92,7 +93,7 @@ def run(args):
                 assert digest == 'sha256=' + base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode()
                 assert size == str(len(raw))
             if name != record_name:
-                assert (installed / name).read_bytes() == raw, name
+                assert installed_wheel_path(installed, name).read_bytes() == raw, name
                 files[name] = sha256(raw).hexdigest()
     source = installed / 'hepta/_data/examples/hia_bootstrap/service_inspection.hepta'
     assert source.read_bytes() == native.SOURCE.read_bytes()
@@ -100,7 +101,7 @@ def run(args):
     for name in ('hepta/hia_agent_service.py', 'hepta/hia_native_delivery.py',
                  'hepta/hia_service_inspection_native.py', 'hepta/hia_service_inspection_protocol.py',
                  str(source.relative_to(installed))):
-        raw = (installed / name).read_bytes()
+        raw = installed_wheel_path(installed, name).read_bytes()
         digest = 'sha256=' + base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode()
         assert installed_record[name] == [digest, str(len(raw))]
     path = args.output / 'bundle.json'
@@ -268,7 +269,7 @@ def run(args):
             baseline.tearDown()
     assert source.read_bytes() == native.SOURCE.read_bytes()
     for name, digest in files.items():
-        assert sha256((installed / name).read_bytes()).hexdigest() == digest
+        assert sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest() == digest
     assert len(commands) == 18 and len(set(commands)) == 18
     return {'schema': 'hepta.hia.service-inspection-installed-worker.v1', 'status': 'PASS',
         'wheel': str(wheel), 'wheel_sha256': sha256(wheel.read_bytes()).hexdigest(),

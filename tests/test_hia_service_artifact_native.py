@@ -531,8 +531,9 @@ class ServiceArtifactNativeTests(unittest.TestCase):
             return self.child(label, arguments, body=body, environment=environment,
                               expected_code=expected_code, timeout=60)
 
+        from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel
         run('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                      '--wheel-dir', self.case / 'wheels', staging])
+                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])
         wheel, = (self.case / 'wheels').glob('*.whl')
         installed = self.case / 'installed'
         run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
@@ -548,15 +549,16 @@ class ServiceArtifactNativeTests(unittest.TestCase):
                     self.assertEqual(digest, 'sha256=' + base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode())
                     self.assertEqual(size, str(len(raw)))
                 if name != record_name:
-                    self.assertEqual((installed / name).read_bytes(), raw, name)
                     files[name] = sha256(raw).hexdigest()
+                    name = installed_wheel_path(installed, name).relative_to(installed).as_posix()
+                    self.assertEqual((installed / name).read_bytes(), raw, name)
         resource = installed / 'hepta/_data/examples/hia_bootstrap/service_artifact.hepta'
         self.assertEqual(resource.read_bytes(), native.SOURCE.read_bytes())
         installed_record = {row[0]: row[1:] for row in csv.reader(io.StringIO((installed / record_name).read_text()))}
         for name in ('hepta/hia_agent_store.py', 'hepta/hia_agent_service.py', 'hepta/hia_native_delivery.py',
                      'hepta/hia_service_artifact_native.py', 'hepta/hia_service_artifact_protocol.py',
                      str(resource.relative_to(installed))):
-            raw = (installed / name).read_bytes()
+            raw = installed_wheel_path(installed, name).read_bytes()
             digest = 'sha256=' + base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode()
             self.assertEqual(installed_record[name], [digest, str(len(raw))])
         path = self.case / 'bundle.json'

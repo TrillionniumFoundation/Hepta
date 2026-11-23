@@ -1,0 +1,27 @@
+{
+  "name": "tests/test_hia_cli_native.py",
+  "current_sha256": "e6505160738a00e3effc7605bc52b244d5a60aed24ad9c7dcdcab297a29b29af",
+  "previous_sha256": "bc028104fb15c5a0a2cdf99f429876ab42af8c3f56b6eb2a598e4fc9c64d7e41",
+  "deltas": [
+    {
+      "first": 848,
+      "previous": "        shutil.copytree(ROOT / \"hepta\", source / \"hepta\", ignore=shutil.ignore_patterns(\"__pycache__\", \"*.pyc\"))\n        for name in (*resources, \"setup.py\", \"pyproject.toml\", \"MANIFEST.in\"):\n",
+      "current": "        contract = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'\n        contract_bytes = (ROOT / contract).read_bytes()\n        pinned = json.loads(contract_bytes)['source_identity']['files']\n        self.assertTrue(set(resources).issubset(pinned))\n        for name, identity in {**pinned, contract: sha256(contract_bytes).hexdigest()}.items():\n"
+    },
+    {
+      "first": 855,
+      "previous": "            shutil.copyfile(ROOT / name, target)\n",
+      "current": "            raw = (ROOT / name).read_bytes()\n            self.assertEqual(sha256(raw).hexdigest(), identity, name)\n            target.write_bytes(raw)\n"
+    },
+    {
+      "first": 874,
+      "previous": "            result = subprocess.run(arguments, cwd=case, env=env, capture_output=True, timeout=120)\n",
+      "current": "            result = subprocess.run(arguments, cwd=case, env=env, capture_output=True, timeout=1200 if label == \"wheel\" else 120)\n"
+    },
+    {
+      "first": 912,
+      "previous": "assert len(entries)==1 and entries[0].value==\"hepta.cli:hia_main\"\nentry=entries[0].load()\nassert entry is cli.hia_main\n",
+      "current": "assert not entries\nphysical_entry = installed / \"bin/hia\"\nassert physical_entry.read_bytes().startswith(b\"\\x7fELF\")\nfrom hepta.hia_program_selfhost import SOURCE_FILES\nfor relative in SOURCE_FILES:\n resource = physical_entry.parent / Path(relative).name\n assert resource.read_bytes() == (installed / \"hepta/_data\" / relative).read_bytes()\n assert resource.is_file() and not (resource.stat().st_mode & 0o111)\nimport subprocess\nphysical = subprocess.run([physical_entry, \"--version\"], cwd=installed, env={\"PATH\": \"\"}, capture_output=True)\nassert physical.returncode == 0 and physical.stdout == b\"hia 0.3.0\\n\" and not physical.stderr\ndef public_catalog():\n return subprocess.run([physical_entry, \"catalog\"], cwd=installed, env={\"PATH\": \"\"}, capture_output=True)\ncatalog=public_catalog()\nassert catalog.returncode==0 and catalog.stdout and not catalog.stderr\nmember=installed/\"bin/hia-catalog\"\noriginal=member.read_bytes()\nmode=member.stat().st_mode\ntry:\n member.write_bytes(original[:-1]+bytes([original[-1]^1]))\n changed=public_catalog()\n assert changed.returncode!=0 and not changed.stdout and not changed.stderr\n member.write_bytes(original)\n member.chmod(0o777)\n writable=public_catalog()\n assert writable.returncode!=0 and not writable.stdout and not writable.stderr\nfinally:\n member.write_bytes(original)\n member.chmod(mode)\nassert public_catalog().stdout==catalog.stdout\nentry=cli.hia_main\n"
+    }
+  ]
+}

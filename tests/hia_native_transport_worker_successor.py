@@ -152,6 +152,8 @@ def _reverse_sqlite_boundary(path, raw, fixed, predecessor, previous_fixture, pr
 def restore_evaluation_store(raw, fixture):
     from tests.hia_store_delivery_successor import reverse_exact
 
+    from tests.hia_installed_distribution_history import predecessor
+    raw = predecessor(EVALUATION, raw)
     if sha256(fixture).hexdigest() != EVALUATION_STORE_FIXTURE_SHA256:
         raise ValueError('evaluation typed Store test provenance changed')
     record = json.loads(fixture)
@@ -1101,7 +1103,9 @@ def _admit_journal_preparation_sources(original_value, original_kind, prior, fro
             if (ROOT / name).read_bytes() != raw:
                 raise ValueError('delivery literal Journal changed at terminal reread: ' + name)
         return prior
-    if _pin(source) != JOURNAL_PREPARATION_NEW:
+    from tests.hia_installed_distribution_history import journal_preparation_source, predecessor
+    previous_source = predecessor(JOURNAL_PREPARATION_PATH, source)
+    if _pin(previous_source) != JOURNAL_PREPARATION_NEW:
         raise ValueError('delivery Journal source is not the exact preparation successor')
     # The latest available complete source proof subsumes all earlier captures.
     # A new source exception cannot rely only on a prior top-level status string.
@@ -1132,17 +1136,19 @@ def _admit_journal_preparation_sources(original_value, original_kind, prior, fro
     from tests import hia_journal_installed_preparation as journal
     if Path(journal.__file__).read_bytes() != helper:
         raise ValueError('delivery imported a different Journal preparation helper')
-    proof = journal.admit_source(ROOT, JOURNAL_PREPARATION_PATH, source,
-                                 original['unchanged_files'][JOURNAL_PREPARATION_PATH])
+    proof = journal_preparation_source(ROOT, source, original['unchanged_files'][JOURNAL_PREPARATION_PATH])
     for name, expected in proof['captured_files'].items():
-        if _canonical(_pin(capture(name))) != _canonical(expected):
+        data = capture(name)
+        if name == JOURNAL_PREPARATION_PATH:
+            data = predecessor(name, data)
+        if _canonical(_pin(data)) != _canonical(expected):
             raise ValueError('delivery Journal capture changed after preparation admission: ' + name)
     adjustment = {
         'path': JOURNAL_PREPARATION_PATH,
         'original_bytes': JOURNAL_PREPARATION_OLD['bytes'],
         'original_sha256': JOURNAL_PREPARATION_OLD['sha256'],
-        'current_bytes': JOURNAL_PREPARATION_NEW['bytes'],
-        'current_sha256': JOURNAL_PREPARATION_NEW['sha256'],
+        'current_bytes': len(source),
+        'current_sha256': sha256(source).hexdigest(),
         'reversible_patch_fixture_sha256': JOURNAL_PREPARATION_FIXTURE_PIN['sha256'],
         'scope': 'versioned installed-resource preparation; all original 21 methods, assertions and deadlines retained',
         'exact_splice_count': 2, 'complete_original_inverse_verified': True,
@@ -1184,7 +1190,8 @@ def _admit_terminal_sources_before_ordinary_callers(original_value, *, original_
         prior = _admit_journal_preparation_sources(original_value, original_kind, prior, frozen)
     prior = _admit_component_successors(original_value, prior)
     prior = _admit_machine_receipt_caller(original_value, prior)
-    return _admit_build_inventory_control(original_value, prior)
+    prior = _admit_build_inventory_control(original_value, prior)
+    return delivery_sources(ROOT, original_value, prior)
 
 
 COMPONENT_FIXTURE = 'tests/fixtures/delivery_component_successor.json'
@@ -1224,10 +1231,11 @@ def _admit_component_successors(original, prior):
     for name in sorted(changed):
         old = prior_pins[name]
         record = value['files'][name].get(old['sha256'])
-        reverse_exact(captured[name], record, old)
+        from tests.hia_installed_distribution_history import predecessor
+        reverse_exact(predecessor(name, captured[name]), record, old)
         adjustments[name] = {
             'path': name, 'original_bytes': old['bytes'], 'original_sha256': old['sha256'],
-            'current_bytes': record['new_bytes'], 'current_sha256': record['new_sha256'],
+            'current_bytes': len(captured[name]), 'current_sha256': sha256(captured[name]).hexdigest(),
             'reversible_patch_fixture_sha256': COMPONENT_FIXTURE_SHA256,
             'scope': 'fixed integrated Journal, proof identity, ledger, Store or release custody successor',
         }
@@ -1487,14 +1495,40 @@ def _admit_build_inventory_control(inventory, prior):
         return prior
     frozen = (ROOT / EVALUATE_FIXTURE).read_bytes()
     record = evaluate_records(frozen)['build_inventory_test']
-    reverse_exact(raw, record, expected)
+    from tests.hia_installed_distribution_history import predecessor
+    reverse_exact(predecessor(name, raw), record, expected)
     if (ROOT / name).read_bytes() != raw or (ROOT / EVALUATE_FIXTURE).read_bytes() != frozen:
         raise ValueError('build caller inventory proof changed during admission')
     if name in prior['source_adjustments']:
         raise ValueError('build caller inventory successor overlapped an earlier review')
     adjustment = {'path': name, 'original_bytes': expected['bytes'],
                   'original_sha256': expected['sha256'],
-                  'current_bytes': record['new_bytes'], 'current_sha256': record['new_sha256'],
+                  'current_bytes': len(raw), 'current_sha256': sha256(raw).hexdigest(),
                   'reversible_patch_fixture_sha256': EVALUATE_FIXTURE_SHA256,
                   'scope': 'original caller order plus the exact independently reviewed address-space test'}
     return {**prior, 'source_adjustments': {**prior['source_adjustments'], name: adjustment}}
+
+
+def delivery_sources(root, inventory, prior):
+    """Bind newly installed-test sources to the original complete delivery inventory."""
+    from tests.hia_installed_distribution_history import FIXTURE, FIXTURE_SHA256, _records, predecessor
+
+    adjustments = dict(prior['source_adjustments'])
+    captured = {}
+    for name, old in inventory['unchanged_files'].items():
+        if name not in _records() or name in adjustments:
+            continue
+        data = (root / name).read_bytes()
+        previous = predecessor(name, data)
+        if previous == data or _pin(previous) != old:
+            continue
+        adjustments[name] = {
+            'path': name, 'original_sha256': old['sha256'], 'original_bytes': old['bytes'],
+            'current_sha256': sha256(data).hexdigest(), 'current_bytes': len(data),
+            'scope': 'normal offline installation with original component qualification',
+            'reversible_patch_fixture_sha256': FIXTURE_SHA256,
+        }
+        captured[name] = data
+    if any((root / name).read_bytes() != data for name, data in captured.items()):
+        raise ValueError('the installed caller source changed before finishing delivery admission')
+    return {**prior, 'source_adjustments': adjustments}

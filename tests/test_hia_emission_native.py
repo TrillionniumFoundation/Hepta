@@ -564,8 +564,9 @@ class EmissionNativeTests(unittest.TestCase):
                                  result.stdout.decode(errors='replace') + result.stderr.decode(errors='replace'))
             return result
 
+        from tests.hia_distribution_fixture import ordinary_wheel
         run('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                      '--wheel-dir', self.directory / 'wheels', staging])
+                      '--wheel-dir', self.directory / 'wheels', ordinary_wheel(staging)])
         wheel, = (self.directory / 'wheels').glob('*.whl')
         installed = self.directory / 'installed'
         run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
@@ -703,7 +704,9 @@ raise SystemExit(status)
         finally:
             case.tearDown()
 
-        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', 1),
+        from tests.hia_slot_worker_terminal import worker_profile
+        lost_ack_exit = worker_profile((installed / 'hepta/hia_agent_worker.py').read_bytes())['lost_ack_exit']
+        for label, mode, exit_code in (('native_ack', 'lost_ack_valueerror', lost_ack_exit),
                                        ('process_loss', 'exit_after_publication', 73)):
             case, envelope = prepare()
             try:

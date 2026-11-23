@@ -41,7 +41,10 @@ class VmIntegerDivRemSourceTests(unittest.TestCase):
         retained = selected._retained_runtime_source(actual_runtime)
         self.assertEqual(retained, captured["tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt"])
         self.assertEqual(sha256(retained).hexdigest(), RUNTIME_SHA256)
-        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.V9_RUNTIME_SHA256)
+        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.TYPED_RESOURCE_SHA256)
+        previous = selected.word_runtime_source(actual_runtime)
+        self.assertEqual(sha256(previous).hexdigest(), selected.V9_RUNTIME_SHA256)
+        self.assertEqual(selected._retained_runtime_source(previous), retained)
         self.assertEqual(selected._retained_runtime_source(retained), retained)
         for changed in (actual_runtime + b"\n", retained + b"\n",
                 actual_runtime.replace(b"8 > extent - index", b"7 > extent - index", 1),
@@ -318,8 +321,9 @@ class VmIntegerDivRemNativeTests(unittest.TestCase):
         frozen = {"installation_manifest": installation_manifest(), "rows": rows}
         input_path = output / "original-inputs.json"
         input_path.write_bytes(canonical(frozen))
-        self.owned("installed-wheel", [sys.executable, "-m", "pip", "wheel", "--no-deps",
-            "--no-build-isolation", "--wheel-dir", str(wheel_dir), str(ROOT)], 180)
+        from tests.hia_distribution_fixture import ordinary_wheel
+        self.owned("installed-wheel", [sys.executable, "-m", "pip", "wheel", '--no-index', "--no-deps",
+            "--no-build-isolation", "--wheel-dir", str(wheel_dir), str(ordinary_wheel(ROOT, python=sys.executable))], 180)
         wheels = list(wheel_dir.glob("*.whl"))
         self.assertEqual(len(wheels), 1)
         self.owned("installed-install", [sys.executable, "-m", "pip", "install", "--no-deps",

@@ -282,8 +282,13 @@ class ExecutionObservationNativeTests(unittest.TestCase):
                         'resources': {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in resources},
                         'document': None}
             request = case / 'expected.json'
-            request.write_text(json.dumps(expected, sort_keys=True))
+            import zipfile
+            from tests.hia_distribution_fixture import derived_python_pin, ordinary_wheel
             packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
+            distribution = ordinary_wheel(source, python=packaging)
+            with zipfile.ZipFile(distribution) as archive:
+                expected['python']['hepta/hia_default_native_pin.py'] = derived_python_pin(archive)
+            request.write_text(json.dumps(expected, sort_keys=True))
             wheels, installed = case / 'wheels', case / 'installed'
             processes = []
             def run(arguments, label, env=None):
@@ -297,7 +302,7 @@ class ExecutionObservationNativeTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 return result
             run([packaging, '-B', '-m', 'pip', 'wheel', '--no-cache-dir', '--no-deps', '--no-index',
-                 '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')
+                 '--no-build-isolation', '--wheel-dir', str(wheels), str(distribution)], 'wheel-build')
             wheel, = wheels.glob('*.whl')
             run([packaging, '-B', '-m', 'pip', 'install', '--no-cache-dir', '--no-deps', '--no-index',
                  '--target', str(installed), str(wheel)], 'wheel-install')

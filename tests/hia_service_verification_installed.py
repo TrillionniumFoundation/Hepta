@@ -75,7 +75,8 @@ def run(manifest,store_manifest,output):
     def command(label,arguments,*,body=None,expected=0):
         out,err,receipt=run_process(output,label,arguments,env=environment,body=body,expected=expected,timeout=60)
         commands.append(receipt);return out,err
-    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',staging])
+    from tests.hia_distribution_fixture import installed_wheel_path, ordinary_wheel
+    command('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',output/'wheels',ordinary_wheel(staging)])
     wheel,=(output/'wheels').glob('*.whl');installed=output/'installed'
     command('install',['-m','pip','install','--no-deps','--no-index','--no-compile','--target',installed,wheel])
     files={}
@@ -87,7 +88,7 @@ def run(manifest,store_manifest,output):
             if digest and (digest!='sha256='+base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode() or size!=str(len(raw))):
                 raise ValueError('wheel RECORD differs from member')
             if name!=record_name:
-                if (installed/name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)
+                if installed_wheel_path(installed, name).read_bytes()!=raw:raise ValueError('installed member differs: '+name)
                 files[name]=sha256(raw).hexdigest()
     source=installed/'hepta/_data/examples/hia_bootstrap/service_verification.hepta'
     if source.read_bytes()!=native.SOURCE.read_bytes():raise ValueError('installed source differs')
@@ -168,7 +169,7 @@ def run(manifest,store_manifest,output):
         finally:os.environ.clear();os.environ.update(saved_environment)
     assert Path(manifest).read_bytes()==original_manifest and Path(store_manifest).read_bytes()==store_manifest_raw
     for name,digest in files.items():
-        if sha256((installed/name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)
+        if sha256(installed_wheel_path(installed, name).read_bytes()).hexdigest()!=digest:raise ValueError('installed member not restored: '+name)
     report={'schema':'hepta.hia.service-verification-installed-worker.v1','wheel':str(wheel),
         'wheel_sha256':sha256(wheel.read_bytes()).hexdigest(),'installed':str(installed),
         'wheel_files_checked_against_installed':files,'wheel_RECORD_sha256':sha256(wheel_record).hexdigest(),

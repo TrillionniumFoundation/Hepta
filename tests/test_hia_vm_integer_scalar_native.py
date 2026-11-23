@@ -53,7 +53,7 @@ class VmIntegerScalarSourceTests(unittest.TestCase):
         retained = selected._retained_runtime_source(raw)
         self.assertEqual(retained, captured["tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt"])
         self.assertEqual(sha256(retained).hexdigest(), RUNTIME_SHA256)
-        self.assertEqual(sha256(raw).hexdigest(), selected.V9_RUNTIME_SHA256)
+        self.assertEqual(sha256(raw).hexdigest(), selected.TYPED_RESOURCE_SHA256)
         self.assertEqual(sha256(captured["tests/test_hia_program.py"]).hexdigest(), TEST_SHA256)
         tree = ast.parse(captured["hepta/hia_vm_integer_divrem_runtime.py"])
         declarations = {target.id: node.value for node in tree.body if isinstance(node, ast.Assign)
@@ -363,8 +363,9 @@ class VmIntegerScalarNativeTests(unittest.TestCase):
         frozen = {"installation_manifest": installation_manifest(), "rows": rows}
         input_path = output / "original-inputs.json"
         input_path.write_bytes(canonical(frozen))
-        self.owned("installed-wheel", [sys.executable, "-m", "pip", "wheel", "--no-deps",
-            "--no-build-isolation", "--wheel-dir", str(wheel_dir), str(ROOT)], 180)
+        from tests.hia_distribution_fixture import ordinary_wheel
+        self.owned("installed-wheel", [sys.executable, "-m", "pip", "wheel", '--no-index', "--no-deps",
+            "--no-build-isolation", "--wheel-dir", str(wheel_dir), str(ordinary_wheel(ROOT, python=sys.executable))], 180)
         wheels = list(wheel_dir.glob("*.whl"))
         self.assertEqual(len(wheels), 1)
         self.owned("installed-install", [sys.executable, "-m", "pip", "install", "--no-deps",
