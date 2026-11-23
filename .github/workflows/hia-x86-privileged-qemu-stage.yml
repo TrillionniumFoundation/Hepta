@@ -3,9 +3,14 @@ on:
   push:
     branches:
       - "automation/hia-x86-effect-qemu-*"
+      - "automation/hia-x86-atomic-revoke-*"
   pull_request:
     paths:
       - "tests/x86_privileged_qemu/**"
+      - "hepta/hia_machine_x64.py"
+      - "experiments/hia_x86_privileged_effect_lowering.py"
+      - "tests/test_hia_x86_atomic_cmpxchg.py"
+      - "tests/test_hia_x86_privileged_effect_lowering.py"
       - ".github/workflows/hia-x86-privileged-qemu-stage.yml"
 jobs:
   independent-qemu-hardware-oracle:
@@ -32,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_hia_machine_x64_privileged.py' -v
+          python -m unittest discover -s tests -p 'test_hia_x86_atomic_cmpxchg.py' -v
           python -m unittest discover -s tests -p 'test_hia_x86_privileged_effect_lowering.py' -v
       - name: Exercise PC and Q35 real exception/refusal paths
         run: |
