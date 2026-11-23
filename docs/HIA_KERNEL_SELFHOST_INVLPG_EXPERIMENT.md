@@ -27,3 +27,24 @@ A timeout, failure or missing artifact is not a pass. QEMU execution of the
 *selfhost-generated* object, authentic CPL0 authority, interrupt entry,
 CRx, IPI, atomics, and all Linux ABI and driver obligations remain open.
 No upstream main, HeptaKernel lock or acceptance ledger is changed.
+
+## CPL0 continuation
+
+The first exact candidate `495cc2c1037d555229731949c8c820c188c691e5`
+passed its dedicated native bootstrap and byte-oracle run
+[45288826211](https://github.com/TrillionniumFoundation/Hepta/actions/runs/45288826211).
+It authored 125 functions, 1,503 blocks and 8,242 operations; the generated
+compiler SHA-256 was 98671aa213f037e52f636cdadc5d65494fd43d4bda38e727c92eb00cb624db75.
+The subject ELF SHA-256 was 6920a8123ebe9ea8bf143fb60223376a766b4912252b5f1548c011be8cf7a7d9.
+The first run did not execute privileged instructions.
+
+The continuation takes the exact newly rebuilt ELF from the same workflow,
+not the earlier Python-authored backend's output. It independently requires
+no unresolved symbols and no ELF relocations, binds the entire original
+HIA text to both linked ELF64 and bootable ELF32, and executes the existing
+NON-HIA observer on PC and Q35. A same-width NOP replacement is independently
+relinked, and restoring the actual mapping is a distinct positive control.
+The observer re-derives the page-table slot after the call, rather than
+incorrectly assuming the SysV caller-saved r9 is preserved. Wrong-address
+observations remain diagnostics since INVLPG permits over-invalidation.
+No result from the earlier candidate is credited to this continuation.

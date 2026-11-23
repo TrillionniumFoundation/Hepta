@@ -102,6 +102,8 @@ long64:
 #ifdef HIA_TEST_RESTORE
     /* Independent bypass: restoration and another real INVLPG must make
      * the same address accessible, not report a generic #PF as success. */
+    /* SysV r9 is caller-saved; derive the actual slot again after f0. */
+    leaq pd0+16(%rip), %r9
     orq $1, (%r9)
     movq $0x400000, %rdi
     call f0
