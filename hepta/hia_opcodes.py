@@ -20,7 +20,7 @@ OWNERS = frozenset({"buffer", "chain"})
 BYTE_RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
 RESOURCES = BYTE_RESOURCES | OWNERS
 TYPES = SCALARS | RESOURCES
-EFFECTS = frozenset({"alloc", "read", "write", "trap", "atomic"})
+EFFECTS = frozenset({"alloc", "read", "write", "trap", "atomic", "privilege"})
 TRAP_CODES = frozenset({"user", "overflow", "division_by_zero", "bounds", "allocation"})
 EXECUTION_RESOURCE_FIELDS = frozenset({
     "allocations", "frees", "allocation_attempts", "owners_created", "owners_dropped",
@@ -195,6 +195,9 @@ def _table():
         # This operation has no authority to issue privileged instructions.
         OpcodeSpec("x86.fence.mfence", (), (), effects=("atomic",), since=9,
                    semantic_rule="x86_local_load_store_fence_no_device_or_intercpu_ack"),
+        # An effect declaration, not CPL0 authority or authentic CR3 provenance.
+        OpcodeSpec("x86.tlb.invlpg", ("u64",), (), effects=("privilege",), since=10,
+                   semantic_rule="x86_local_linear_address_tlb_invalidate_requires_cpl0"),
         OpcodeSpec("call", None, None, ("function",), guards=("callee_interface",), resource_transition="call", semantic_rule="checked_callee_and_parameter_loan_contract"),
     ]
     assert len({row.name for row in rows}) == len(rows)

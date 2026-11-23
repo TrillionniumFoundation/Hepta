@@ -858,8 +858,11 @@ def _reference_primitive_structure(data):
     functions, block_maps = {}, {}
     for fn in data["functions"]:
         # New effects must not silently widen historical Core v1-v8 grammar.
-        if data["schema"] != "hepta.hia.program.kernel-fence.v1" and "atomic" in fn["effects"]:
-            _reject("atomic effect requires the explicit kernel-fence schema", "E_HIA_EFFECT")
+        if data["schema"] not in {"hepta.hia.program.kernel-fence.v1",
+                                  "hepta.hia.program.kernel-tlb.v1"} and "atomic" in fn["effects"]:
+            _reject("atomic effect requires an explicit kernel effect schema", "E_HIA_EFFECT")
+        if data["schema"] != "hepta.hia.program.kernel-tlb.v1" and "privilege" in fn["effects"]:
+            _reject("privilege effect requires the explicit kernel-tlb schema", "E_HIA_EFFECT")
         blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
                                  parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
         if fn["name"] in functions:

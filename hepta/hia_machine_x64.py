@@ -349,6 +349,26 @@ class Code:
         """Architectural x86-64 MFENCE; does not imply remote CPU acknowledgement."""
         self.emit(b"\x0f\xae\xf0")
 
+    def invlpg(self, base, disp=0):
+        """Encode CPL0 INVLPG m8 using validated register/displacement operands.
+
+        Encoding does not authorize execution, authenticate a page table or
+        prove CPU privilege; those are separate HIA kernel obligations.
+        """
+        b = self._reg(base)
+        if type(disp) is not int or not -(1 << 31) <= disp < (1 << 31):
+            raise MachineEncodingError("INVLPG displacement must be signed 32-bit")
+        if disp == 0 and (b & 7) != 5:
+            mode, displacement = 0, b""
+        elif -128 <= disp <= 127:
+            mode, displacement = 1, struct.pack("<b", disp)
+        else:
+            mode, displacement = 2, _s32(disp)
+        modrm = (mode << 6) | (7 << 3) | (b & 7)
+        sib = b"\x24" if (b & 7) == 4 else b""
+        prefix = b"\x41" if b >= 8 else b""
+        self.emit(prefix + b"\x0f\x01" + bytes([modrm]) + sib + displacement)
+
     def ret(self): self.emit(b"\xc3")
     def leave(self): self.emit(b"\xc9")
     def ud2(self): self.emit(b"\x0f\x0b")
