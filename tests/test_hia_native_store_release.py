@@ -9,6 +9,16 @@ from unittest.mock import patch
 from tools import build_hia_native_store_release as release
 
 
+def recorded_recipes():
+    table = release.ROOT / 'examples/hia_bootstrap/release_member_sources.tsv'
+    header, *rows = table.read_text(encoding='ascii').splitlines()
+    if header != f'members\t{len(rows)}':
+        raise ValueError('incorrect release member count')
+    for row in rows:
+        name, packer, *inputs = row.split('\t')
+        yield name, packer, dict(inlet.split('=', 1) for inlet in inputs)
+
+
 class StoreReleaseBuildTests(unittest.TestCase):
     def test_admission_precedes_any_output_or_component_call(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -53,7 +63,7 @@ class StoreReleaseBuildTests(unittest.TestCase):
             self.assertIn(kind, release.FLOW_ROLES)
 
     def test_workspace_compiler_requires_all_four_source_images(self):
-        recipes = {name: (packer, inputs) for name, packer, inputs in release._source_release_recipes()}
+        recipes = {name: (packer, inputs) for name, packer, inputs in recorded_recipes()}
         packer, inputs = recipes['hia-workspace-compile']
         self.assertEqual(packer, 'core_workspace_pipeline_packer.hepta')
         self.assertEqual(list(inputs.values()),
@@ -61,7 +71,7 @@ class StoreReleaseBuildTests(unittest.TestCase):
                           'core_json_frontend.hepta', 'selfhost.hepta'])
 
     def test_native_directory_packer_is_the_first_source_member(self):
-        first = next(release._source_member_recipes())
+        first = next(recorded_recipes())
         self.assertEqual(first, release._source_directory_recipe())
         name, packer, sources = first
         self.assertEqual((name, packer), ('hia-directory-package-build', 'release_directory_packer.hepta'))

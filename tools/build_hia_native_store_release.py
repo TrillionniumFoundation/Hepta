@@ -12,7 +12,6 @@ import os
 import stat
 import struct
 from pathlib import Path
-import subprocess
 import tarfile
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
@@ -535,63 +534,6 @@ def _stage_agent_stdio(work, seed, catalog_program, compile_sources, call, compi
     publish(path, expected=sha256(executable).hexdigest())
 
 
-def _source_worker_recipes():
-    from tools.build_hia_read_launcher import LAUNCHERS as READ_PROGRAMS
-    from tools.generate_hia_readonly_worker_capsule import FULL_SOURCE, INTAKE_SOURCE, NATIVE_SOURCE, REPLAY_SOURCE
-    from tools.generate_hia_worker_flow_packer import PROGRAMS, SECTIONS
-
-    authorities = {'native': NATIVE_SOURCE, 'evaluate-intake': INTAKE_SOURCE,
-                   'evaluate-replay': REPLAY_SOURCE, 'evaluate-full': FULL_SOURCE}
-    for kind in FLOW_ROLES:
-        suffix = '' if kind in ('input', 'discovery', 'discovery-bootstrap') else '-worker'
-        name = f'hia-agent-{kind}{suffix}-carrier'
-        primary, packer = PROGRAMS[kind]
-        sources = {name + '.hepta': Path(primary).name}
-        for part in SECTIONS.get(kind, ()):
-            sources[Path(part).name] = Path(part).name
-        yield name, Path(packer).name, sources
-
-    for kind in LAUNCHERS:
-        name = f'hia-agent-{kind}-launcher'
-        if kind in authorities:
-            primary, packer = PROGRAMS[kind + '-launcher']
-            authority = Path(authorities[kind]).name
-            sources = {name + '.hepta': Path(primary).name, authority: authority}
-        else:
-            launcher = READ_PROGRAMS[kind]
-            packer = launcher.source
-            sources = {name + '.hepta': Path(launcher.authority).name}
-        yield name, Path(packer).name, sources
-
-
-def _source_tool_recipes():
-    from tools.build_hia_direct_call import ROLES
-    from tools.build_hia_elf_linker import LINKERS
-    from tools.build_hia_json_preflight import CANDIDATES
-    from tools.generate_hia_native_filter import REFERENCE_CLI_PACKER
-
-    for application, name in (('worker-prepare', 'hia-worker-prepare'), ('cnf', 'hia-proof-cnf')):
-        yield name, 'native_filter_packer.hepta', {name + '.hepta': CANDIDATES[application][0] + '.hepta'}
-    for application, packer, _magic, name, _inputs in LINKERS.values():
-        yield name, CANDIDATES[packer][0] + '.hepta', {name + '.hepta': CANDIDATES[application][0] + '.hepta'}
-    for role, (source, packer, _adapter, _magic, _label) in ROLES.items():
-        name = 'hia-' + role
-        yield name, Path(packer).name, {name + '.hepta': Path(source).name}
-    yield 'hia-reference-wire', Path(REFERENCE_CLI_PACKER).name, {'hia-reference-wire.hepta': 'scalar_reference.hepta'}
-
-
-def _source_transaction_recipes():
-    from tools.build_hia_agent_batch_commit import PARTS, VARIANTS
-
-    for name, _tag, packer, _adapter, roles in VARIANTS.values():
-        sources = {}
-        for index, label in enumerate(roles):
-            source = PARTS[label].removeprefix('examples/hia_bootstrap/')
-            alias = name + '.hepta' if index == 0 else Path(source).name
-            sources[alias] = source
-        yield name, packer.removeprefix('examples/hia_bootstrap/'), sources
-
-
 def _bind_transaction_program(work, kind, variant, source_map, images, program, admitted, compiler, report):
     from tools.build_hia_agent_batch_commit import verify_placement
     from tools.generate_hia_native_filter import read_adapter_binding
@@ -648,42 +590,6 @@ def _bind_artifact_publisher(work, program, admitted, compiler, report):
                                  program, inspection, sources, compiler, report)
 
 
-def _source_request_recipes():
-    stdio = 'mcp_stdio_packer.hepta'
-    for suffix in ('admit', 'terminal', 'data', 'response', 'journal-call'):
-        name = 'hia-worker-' + suffix
-        packer = 'worker_request_filter_packer.hepta' if suffix == 'admit' else stdio
-        yield name, packer, {name + '.hepta': 'worker_request.hepta'}
-    # Its entire body belongs to the stdio packer's fixed sealed-port mode.
-    yield 'hia-worker-port', stdio, {}
-
-
-def _source_release_recipes():
-    from tools.build_hia_core_admission_cli import MODES
-    from tools.build_hia_release_install import SOURCES as installer
-    from tools.build_hia_release_selection import SOURCES as selector
-
-    def recipe(name, packer, components):
-        main, *companions = (Path(source).name for source in components)
-        inputs = {name + '.hepta': main, **{source: source for source in companions}}
-        return name, Path(packer).name, inputs
-
-    from tools.build_hia_artifact_publication import SOURCES as publisher
-    yield recipe('hia-artifact', publisher[1], (publisher[0], publisher[2]))
-    yield recipe('hia-release', installer[1], (installer[0], installer[2]))
-    yield recipe('hia-core-json', 'core_json_cli_packer.hepta', ('core_json_frontend.hepta', 'selfhost.hepta'))
-    yield recipe('hia-workspace-compile', 'core_workspace_pipeline_packer.hepta',
-                 ('core_workspace_json.hepta', 'core_admission.hepta', 'core_json_frontend.hepta',
-                  'selfhost.hepta'))
-    yield recipe('hia-select', selector[3], selector[:3])
-    yield recipe('hia-patch-result', 'core_patch_result_cli_packer.hepta', ('core_patch.hepta', 'core_admission.hepta'))
-    for mode, name in (('suite', 'hia-core'), ('totality', 'hia-totality-core'), ('proof-wire', 'hia-core-proof-wire')):
-        _magic, packer, components = MODES[mode]
-        inputs = list(components)
-        inputs.insert(1 if mode == 'suite' else 0, 'core_admission.hepta')
-        yield recipe(name, packer, inputs)
-
-
 def _source_directory_recipe():
     from tools.build_hia_release_install import DIRECTORY_SOURCES
 
@@ -692,38 +598,32 @@ def _source_directory_recipe():
     return name, packer, {name + '.hepta': policy, hasher: hasher}
 
 
-def _source_member_recipes():
-    """Map published names to checked-in HIA inputs. Framing and modes belong to HIA."""
-    # The qualified source seed is sufficient to bootstrap the directory packer.
-    yield _source_directory_recipe()
-    for role in STDIO_ROLES:
-        name = 'hia-agent-' + role
-        sources = {name + '.hepta': AGENT_STDIO_ROLES[role][0] + '.hepta'}
-        if role == 'journal':
-            sources['agent_journal_transport.hepta'] = 'agent_journal_transport.hepta'
-            yield name, 'agent_journal_stdio_packer.hepta', sources
-        else:
-            yield name, 'mcp_stdio_packer.hepta', sources
-
-    for role in ('budget-observation', 'budget-store', 'cost-ledger', 'cost-ledger-flow',
-                 'measurements', 'native-report', 'paired-batch', 'publication', 'reference-batch',
-                 'reference-report', 'report-flow', 'run-plan', 'settlement'):
-        stem = 'evaluate_' + role.replace('-', '_')
-        sources = {stem + '.hepta': stem + '.hepta'}
-        if role in ('cost-ledger', 'run-plan'):
-            sources['worker_request.hepta'] = 'worker_request.hepta'
-        yield 'hia-evaluate-' + role, stem + '_packer.hepta', sources
-    for name, stem, packer in (
-            ('hia-evaluate-projector', 'evaluate_reference_wire', 'evaluate_reference_wire_filter_packer'),
-            ('hia-execution-budget-session', 'execution_budget', 'execution_budget_session_packer'),
-            ('hia-safe-core-loader', 'safe_core_elf_inventory', 'safe_core_loader_filter_packer')):
-        yield name, packer + '.hepta', {stem + '.hepta': stem + '.hepta'}
-
-    yield from _source_worker_recipes()
-    yield from _source_tool_recipes()
-    yield from _source_request_recipes()
-    yield from _source_transaction_recipes()
-    yield from _source_release_recipes()
+def _decode_member_plan(raw):
+    if len(raw) < 16 or raw[:8] != b'HIARLST1':
+        raise ValueError('invalid native release recipe header')
+    count = int.from_bytes(raw[8:16], 'little')
+    if not 1 <= count <= 256:
+        raise ValueError('invalid native release recipe count')
+    at = 16
+    members = []
+    for _ in range(count):
+        if at >= len(raw):
+            raise ValueError('truncated native release recipe')
+        width = raw[at]
+        at += 1
+        if width < 2 or width > 34 or width % 2:
+            raise ValueError('invalid native release recipe field count')
+        fields = []
+        for _ in range(width):
+            if at >= len(raw) or not 0 < raw[at] <= len(raw) - at - 1:
+                raise ValueError('truncated native release recipe field')
+            end = at + 1 + raw[at]
+            fields.append(raw[at + 1:end].decode('ascii'))
+            at = end
+        members.append((fields[0], fields[1], dict(zip(fields[2::2], fields[3::2], strict=True))))
+    if at != len(raw):
+        raise ValueError('trailing native release recipe bytes')
+    return members
 
 
 def _stage_source_members(work, stage, admitted, members, publish, *, compiler_bytes, report_bytes, core_inputs):
@@ -783,7 +683,26 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         compiled = call(seed, 'build', wire)
         return compiled, _compiled_sources(compiled, pinned), pinned
 
-    for name, packer, sources in _source_member_recipes():
+    def planned_members():
+        directory = _source_directory_recipe()
+        yield directory
+        # Its successor is built with the admitted seed and the new directory packer.
+        bundle, _, _ = compile_sources({
+            'source_build_policy.hepta': 'source_release_member_plan.hepta',
+            'selfhost.hepta': 'selfhost.hepta',
+            'source_build_packer.hepta': 'source_build_packer.hepta',
+        })
+        planner = call(seed, 'pack', bundle)
+        relative = 'examples/hia_bootstrap/release_member_sources.tsv'
+        source = (ROOT / relative).read_bytes()
+        if sha256(source).hexdigest() != admitted.get(relative):
+            raise ValueError('release recipe table differs from cold admission')
+        recipes = _decode_member_plan(call(planner, 'build', source))
+        if recipes[0] != directory:
+            raise ValueError('native release plan differs from its directory bootstrap')
+        yield from recipes[1:]
+
+    for name, packer, sources in planned_members():
         if pack_directory is None and name != 'hia-directory-package-build':
             raise ValueError('the first native release member must bootstrap its directory packer')
         if packer not in builders:

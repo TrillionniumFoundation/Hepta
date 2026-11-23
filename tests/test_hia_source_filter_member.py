@@ -24,6 +24,41 @@ MEMBERS = tuple('hia-evaluate-' + name for name in (
     'report-flow', 'run-plan', 'settlement')) + tuple(SPECIAL)
 
 
+WORKER_MEMBERS = (
+    'hia-agent-describe-worker-carrier', 'hia-agent-input-carrier',
+    'hia-agent-artifact-worker-carrier', 'hia-agent-discovery-carrier',
+    'hia-agent-context-worker-carrier', 'hia-agent-inspection-worker-carrier',
+    'hia-agent-candidate-worker-carrier', 'hia-agent-rollback-worker-carrier',
+    'hia-agent-emit-worker-carrier', 'hia-agent-adopt-worker-carrier',
+    'hia-agent-verify-worker-carrier', 'hia-agent-discovery-bootstrap-carrier',
+    'hia-agent-evaluate-replay-worker-carrier', 'hia-agent-evaluate-intake-worker-carrier',
+    'hia-agent-evaluate-claim-worker-carrier', 'hia-agent-evaluate-run-input-worker-carrier',
+    'hia-agent-evaluate-run-worker-carrier', 'hia-agent-evaluate-proof-worker-carrier',
+    'hia-agent-evaluate-document-worker-carrier',
+    'hia-agent-evaluate-closeout-worker-carrier', 'hia-agent-evaluate-unkeyed-worker-carrier',
+    'hia-agent-read-launcher', 'hia-agent-context-control-launcher',
+    'hia-agent-native-launcher', 'hia-agent-readonly-launcher',
+    'hia-agent-evaluate-replay-launcher', 'hia-agent-evaluate-intake-launcher',
+    'hia-agent-evaluate-full-launcher',
+)
+TOOL_MEMBERS = (
+    'hia-worker-prepare', 'hia-proof-cnf', 'hia-elf-link', 'hia-elf-link-shared',
+    'hia-elf-link-direct-shared', 'hia-direct-call', 'hia-job-receipt', 'hia-reference-wire',
+)
+REQUEST_MEMBERS = (
+    'hia-worker-admit', 'hia-worker-terminal', 'hia-worker-data', 'hia-worker-response',
+    'hia-worker-journal-call', 'hia-worker-port',
+)
+RELEASE_MEMBERS = (
+    'hia-directory-package-build', 'hia-artifact', 'hia-release', 'hia-core-json',
+    'hia-workspace-compile', 'hia-select', 'hia-patch-result', 'hia-core',
+    'hia-totality-core', 'hia-core-proof-wire',
+)
+TRANSACTION_MEMBERS = (
+    'hia-agent-batch-commit', 'hia-agent-sealed-commit', 'hia-agent-store-init',
+)
+
+
 class SourceFilterMemberTests(unittest.TestCase):
     def test_native_policy_is_valid_assembly(self):
         self.assertGreater(len(assemble_program(POLICY.read_bytes()).as_dict()['functions']), 3)
@@ -74,6 +109,45 @@ class InstalledSourceMemberTests(unittest.TestCase):
         builder.chmod(0o500)
         return builder
 
+    def release_planner(self):
+        kit = self.source_images(self.work / 'recipe-kit', {
+            'source_build_policy.hepta': self.sources / 'source_release_member_plan.hepta',
+            'selfhost.hepta': self.sources / 'selfhost.hepta',
+            'source_build_packer.hepta': self.sources / 'source_build_packer.hepta',
+        })
+        planner = self.work / 'release-plan'
+        planner.write_bytes(self.invoke([self.seed, 'pack'], kit))
+        planner.chmod(0o500)
+        return planner
+
+    def release_recipes(self, names):
+        from tools.build_hia_native_store_release import _decode_member_plan
+
+        table = (self.sources / 'release_member_sources.tsv').read_bytes()
+        wire = self.invoke([self.release_planner(), 'build'], table)
+        rows = {name: (name, packer, inputs) for name, packer, inputs in _decode_member_plan(wire)}
+        return [rows[name] for name in names]
+
+    def test_native_release_plan_preserves_role_and_input_order(self):
+        from tools.build_hia_native_store_release import _decode_member_plan
+
+        planner = self.release_planner()
+        table = (self.sources / 'release_member_sources.tsv').read_bytes()
+        wire = self.invoke([planner, 'build'], table)
+        # Frozen from the independently built 191-role release, including relocation input order.
+        self.assertEqual(sha256(wire).hexdigest(), '5d0dadcfb23371b82e7ff0c3aaa8d55b63a175b690216fe895825e33cd0e181b')
+        self.assertEqual(len(_decode_member_plan(wire)), 191)
+        lines = table.splitlines(keepends=True)
+        duplicate_alias = lines[1].rstrip(b'\n') + b'\t' + lines[1].split(b'\t')[2] + b'\n'
+        for label, changed in (
+                ('missing role', b''.join(lines[:-1])),
+                ('duplicate role', table.replace(lines[3], lines[2], 1)),
+                ('duplicate alias', table.replace(lines[1], duplicate_alias, 1)),
+                ('traversal', table.replace(b'=release_directory_policy.hepta', b'=../outside.hepta', 1)),
+                ('truncated row', table[:-1])):
+            with self.subTest(label=label):
+                self.invoke([planner, 'build'], changed, refused=True)
+
     def test_publication_descriptor_pins_public_and_private_entrypoints_for_migration(self):
         from hepta.hia_artifact_delivery_protocol import DESCRIPTOR_OFFSET, ENTRY_WORD_OFFSET, NOTE_OFFSET
         from tools import build_hia_native_store_release as release
@@ -102,7 +176,7 @@ class InstalledSourceMemberTests(unittest.TestCase):
         programs = {v[0]: (k, v) for k, v in VARIANTS.items()}
         compiler = self.invoke([self.seed, 'compile'], (self.sources / 'selfhost.hepta').read_bytes())
         report = b'captured cold report for the receipt-consumer test'
-        for name, packer, inputs in release._source_transaction_recipes():
+        for name, packer, inputs in self.release_recipes(TRANSACTION_MEMBERS):
             kind, variant = programs[name]
             with self.subTest(name=name):
                 builder = self.member_builder(self.work / kind, packer)
@@ -517,7 +591,7 @@ class InstalledSourceMemberTests(unittest.TestCase):
         artifact = (self.release / 'hia-artifact').read_bytes()
         folders = {'artifact': release._bind_artifact_publisher(self.work, artifact, admitted, compiler, report)}
         variants = {row[0]: (kind, row) for kind, row in VARIANTS.items()}
-        for name, _, inputs in release._source_transaction_recipes():
+        for name, _, inputs in self.release_recipes(TRANSACTION_MEMBERS):
             kind, variant = variants[name]
             if kind in ('batch', 'initialize'):
                 paths = [variant[2], variant[3], *('examples/hia_bootstrap/' + value for value in inputs.values())]
@@ -721,11 +795,10 @@ class InstalledSourceMemberTests(unittest.TestCase):
         self.invoke([journal, 'build'], wrong_codec, refused=True)
 
     def test_from_native_sources_against_every_worker_carrier_and_launcher(self):
-        from tools.build_hia_native_store_release import _source_worker_recipes
 
         builders = {}
         products = set()
-        for name, packer, sources in _source_worker_recipes():
+        for name, packer, sources in self.release_recipes(WORKER_MEMBERS):
             with self.subTest(member=name):
                 products.add(name)
                 if packer not in builders:
@@ -744,10 +817,9 @@ class InstalledSourceMemberTests(unittest.TestCase):
                          'hia-agent-context-control-launcher', 'hia-agent-evaluate-unkeyed-worker-carrier'} <= products)
 
     def test_source_to_installed_linkers_reference_executor_and_transport_tools(self):
-        from tools.build_hia_native_store_release import _source_tool_recipes
 
         builders = {}
-        for name, packer, sources in _source_tool_recipes():
+        for name, packer, sources in self.release_recipes(TOOL_MEMBERS):
             with self.subTest(name=name):
                 if packer not in builders:
                     builders[packer] = self.member_builder(self.work / packer, packer)
@@ -761,9 +833,8 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 self.invoke([builders[packer], 'build'], mismatch, refused=True)
 
     def test_build_core_and_release_tools_against_independent_installation(self):
-        from tools.build_hia_native_store_release import _source_directory_recipe, _source_release_recipes
 
-        for name, packer, sources in (_source_directory_recipe(), *_source_release_recipes()):
+        for name, packer, sources in self.release_recipes(RELEASE_MEMBERS):
             with self.subTest(name=name):
                 builder = self.member_builder(self.work / packer, packer)
                 inputs = {alias: self.sources / source for alias, source in sources.items()}
@@ -819,9 +890,8 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 self.invoke([author, 'build'], frame(changed), refused=True)
 
     def test_request_programs_from_their_native_source_and_packer(self):
-        from tools.build_hia_native_store_release import _source_request_recipes
         builders = {}
-        for name, packer, inputs in _source_request_recipes():
+        for name, packer, inputs in self.release_recipes(REQUEST_MEMBERS):
             with self.subTest(name=name):
                 if packer not in builders:
                     builders[packer] = self.member_builder(self.work / packer, packer)

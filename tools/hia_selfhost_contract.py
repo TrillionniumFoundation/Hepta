@@ -1403,6 +1403,8 @@ SOURCE_FILES = (
     'tools/build_hia_source_build.py',
     'examples/hia_bootstrap/source_build_policy.hepta',
     'examples/hia_bootstrap/source_filter_member.hepta',
+    'examples/hia_bootstrap/source_release_member_plan.hepta',
+    'examples/hia_bootstrap/release_member_sources.tsv',
     'examples/hia_bootstrap/source_helper_manifest.hepta',
     'examples/hia_bootstrap/source_compiler_manifest.hepta',
     'examples/hia_bootstrap/source_agent_stdio.hepta',
