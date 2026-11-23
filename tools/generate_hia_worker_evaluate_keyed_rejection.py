@@ -4,7 +4,7 @@ INGRESS = '''
 def refuse_business(o:mutbuf,w:mutbuf,reason:u64) -> u64:
     # Baseline and the original scalar tag have their existing identities.
     # The other workload planner codes are shifted by ten in this envelope.
-    if reason != 1 and reason != 2 and (reason < 11 or reason > 20 or reason == 12):
+    if reason != 1 and reason != 2 and (reason < 11 or reason > 21 or reason == 12):
         return close_store(o,w,CLOSE_REFUSED)
     put(w,BUSINESS_REASON,reason)
     return close_store(o,w,CLOSE_ERROR)
@@ -39,6 +39,15 @@ def claimed_rejection(o:mutbuf,w:mutbuf) -> u64:
 def rejection_progress(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     fd = input_word(s,32)
     size = input_word(s,40)
+    if state == EARLY_LIMIT:
+        if plan_ok(s) == False or size != 24 or input_word(s,72) != CONTEXT_WINDOW:
+            return close_store(o,w,CLOSE_REFUSED)
+        total = input_word(s,80)
+        if total < 1 or total > 86400000:
+            return close_store(o,w,CLOSE_REFUSED)
+        put(w,LIMIT_WALL,total)
+        put(w,CHECK_CONTEXT_WINDOW,1)
+        return read_span(o,w,CREATION_OBSERVED,get(w,CREATION),get(w,CREATION+8),get(w,CREATION+16))
     if state == CASE_OPERANDS:
         store(o,496,93)
         fragment(o,0,fd,0,size)
@@ -64,10 +73,24 @@ def ingress(driver, policy, controls, constants):
     constants.update(BUSINESS=int.from_bytes(b'HIAEQB01','little'),
                      REJECTION=int.from_bytes(b'HIAERJ01','little'), BUSINESS_REASON=3224,
                      BUSINESS_CONTEXT=3240,BASE_METADATA=3280,WORKLOAD_BODY=3312,CLOSE_ERROR=58,
-                     CASE_OPERANDS=104,CASE_CHECKED=105,ERROR_CLAIMED=106)
+                     CASE_OPERANDS=104,CASE_CHECKED=105,ERROR_CLAIMED=106,EARLY_LIMIT=107,
+                     CONTEXT_WINDOW=int.from_bytes(b'HIAEWD01','little'),CHECK_CONTEXT_WINDOW=3352)
     driver=driver.replace('    return intake(s, o, w, state)',
-                          '    if state >= CASE_OPERANDS and state <= ERROR_CLAIMED:\n'
+                          '    if state >= CASE_OPERANDS and state <= EARLY_LIMIT:\n'
                           '        return rejection_progress(s,o,w,state)\n    return intake(s, o, w, state)')
+    policy=policy.replace('    if state == DOCUMENT_BOUND:\n        observe_slot(s, w, BIND_PREFIX)',
+                          '    if state == DOCUMENT_BOUND:\n        observe_slot(s, w, BIND_PREFIX)\n'
+                          '        if get(w,SELECTOR) == 0:\n'
+                          '            store(o,496,93)\n            whole_slot(w,o,BIND_PREFIX,0)\n'
+                          '            fragment(o,1,INLINE_FRAGMENT,496,1)\n'
+                          '            return action(o,w,EARLY_LIMIT,RUN,BINDING_ROLE,0,2,0)')
+    policy=policy.replace('        deadline = get(w, UTC_DEADLINE)\n        if now >= deadline',
+                          '        deadline = get(w, UTC_DEADLINE)\n'
+                          '        if get(w,CHECK_CONTEXT_WINDOW) == 1:\n'
+                          '            put(w,CHECK_CONTEXT_WINDOW,0)\n'
+                          '            if now > deadline:\n                return refuse_business(o,w,21)\n'
+                          '            return retain_body(o,w,slot_fd(w,RAW_BODY),slot_bytes(w,RAW_BODY))\n'
+                          '        if now >= deadline')
     policy=policy.replace('        hold(w, ACTIVE_REFERENCE, fd, 16, 100)',
                           '        copy_span(s,w,80,BUSINESS_CONTEXT,36)\n        hold(w, ACTIVE_REFERENCE, fd, 16, 100)')
     policy=policy.replace('        if index < retained:\n            return append_binding',
@@ -94,6 +117,7 @@ def closeout_literals():
     from hepta.hia_evaluation_native import _WORKLOAD_REFUSALS
     from tools.generate_hia_evaluate_settlement import LITERALS
     reasons = [('baseline_error','E_HIA_BASELINE','evaluation baseline differs from the frozen Core snapshot','execution')]
+    reasons.append(('expired_context','E_HIA_BUDGET','context total wall budget has expired','context'))
     for code, (error, message) in sorted(_WORKLOAD_REFUSALS.items()):
         reasons.append((f'workload_error_{code}',error,message,'admission'))
     values = {'rejected_begin':LITERALS['envelope_begin']+LITERALS['envelope_error'],
@@ -110,6 +134,7 @@ def closeout_literals():
         lines.append(f'    return at+{len(data)}')
     lines.append('def error_document(o:mutbuf,at:u64,reason:u64) -> u64:')
     lines.extend(('    if reason == 1:', '        return baseline_error(o,at)'))
+    lines.extend(('    if reason == 21:', '        return expired_context(o,at)'))
     for code in sorted(_WORKLOAD_REFUSALS):
         tag = 2 if code == 2 else 10 + code
         lines.extend((f'    if reason == {tag}:', f'        return workload_error_{code}(o,at)'))

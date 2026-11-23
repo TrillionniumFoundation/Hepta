@@ -36,6 +36,8 @@ def bind_evaluate(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     fields = get(w, 96)
     if fields == 2:
         return check_workload(s,o,w)
+    if fields == 3:
+        return context_window(s,o,w)
     if fields < 7 or fields > 22:
         return INVALID
     install = 64 + 72 * get(w, 88)
@@ -87,6 +89,27 @@ def bind_evaluate(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         receipt = next(w, receipt)
         index = index + 1
     return runtime_inputs(s, o, w, ctx, base, candidate, build)
+
+def context_window(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
+    installed = first(w,64)
+    args = next(w,installed)
+    ctx = next(w,args)
+    if get(w,installed) != 6 or get(w,args) != 6 or get(w,ctx) != 6 or next(w,ctx) != NONE:
+        return INVALID
+    if context_schema(w,lookup(w,ctx,K_schema)) == False or field_matches(s,w,ctx,K_installation,installed) == False:
+        return INVALID
+    catalog = lookup(w,args,K_catalog_sha256)
+    if field_matches(s,w,ctx,K_catalog_sha256,catalog) == False or field_matches(s,w,installed,K_catalog_sha256,catalog) == False:
+        return INVALID
+    budget = lookup(w,ctx,K_budget)
+    if budget == NONE or get(w,budget) != 6:
+        return INVALID
+    total = budget_integer(s,w,lookup(w,budget,K_max_total_wall_ms),1,86400000)
+    if total == NONE:
+        return INVALID
+    put(o,0,CONTEXT_WINDOW)
+    put(o,8,total)
+    return 16
 
 def business_status(o:mutbuf, reason:u64) -> u64:
     put(o,0,BUSINESS)
@@ -196,7 +219,8 @@ def program():
     fields = tuple(dict.fromkeys((*FIELDS,*CASE_FIELDS)))
     names = {f'K_{name}': i for i,name in enumerate(fields,1)}
     names.update(INVALID=4294967293, NONE=(1 << 64)-1, META_COUNT=len(METADATA),
-                 RESULT=int.from_bytes(b'HIAEFB02','little'), BUSINESS=int.from_bytes(b'HIAEQB01','little'))
+                 RESULT=int.from_bytes(b'HIAEFB02','little'), BUSINESS=int.from_bytes(b'HIAEQB01','little'),
+                 CONTEXT_WINDOW=int.from_bytes(b'HIAEWD01','little'))
     art = artifact_authority()
     controls = (POLICY,
                 *(function(BUILD, name) for name in ('exact_reference','field_matches','matches_metadata','copy_reference')),

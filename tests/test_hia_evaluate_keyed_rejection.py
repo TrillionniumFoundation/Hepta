@@ -19,13 +19,28 @@ class TypedWorkloadTests(unittest.TestCase):
     def evaluate(self, arguments, *, signature=None, name="transform", argument_lists=False):
         metadata = {'signatures': {'transform': signature or {'params': ['u8'], 'returns': ['u8']}}}
         workload = {'cases': [{'function': name, 'arguments': arg if argument_lists else [arg]} for arg in arguments]}
-        source = _Owner(-1, bytearray(wire([metadata, workload])))
+        size, result = self.project([metadata, workload])
+        self.assertEqual(size, 16)
+        return struct.unpack('<8sQ', result)
+
+    def project(self, records):
+        source = _Owner(-1, bytearray(wire(records)))
         output = _Owner(-2, bytearray(1 << 20))
         work = _Owner(-3, bytearray(1 << 20))
         machine = _Machine(self.program, 10000000, 16 << 20, None, 128)
         size, = machine.invoke(self.entry, [_View(source, False), _View(output, True), _View(work, True)])
-        self.assertEqual(size, 16)
-        return struct.unpack('<8sQ', output.data[:size])
+        return size, output.data[:16]
+
+    def test_window_uses_the_retained_context_and_current_catalog(self):
+        digest = 'a' * 64
+        installed = {'catalog_sha256': digest}
+        args = {'catalog_sha256': digest}
+        ctx = {'schema': 'hepta.hia.agent.context.v1', 'installation': installed,
+               'catalog_sha256': digest, 'budget': {'max_total_wall_ms': 1234}}
+        size, result = self.project([installed, args, ctx])
+        self.assertEqual((size, struct.unpack('<8sQ', result)), (16, (b'HIAEWD01', 1234)))
+        for modified in (dict(ctx, catalog_sha256='b' * 64), dict(ctx, budget={'max_total_wall_ms': 0})):
+            self.assertEqual(self.project([installed, args, modified])[0], 4294967293)
 
     def test_integer_matches_the_retained_unsigned_byte(self):
         self.assertEqual(self.evaluate((0, 255)), (b'HIAEQB01', 0))
