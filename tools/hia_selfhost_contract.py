@@ -763,6 +763,7 @@ SOURCE_FILES = (
     'tests/fixtures/store_worker_cost_successor.json',
     'tests/fixtures/worker_journal_cost_successor.json',
     'tests/fixtures/store_retained_read_successor.json',
+    'tests/fixtures/store_evaluate_delivery_successor.json',
     'tests/fixtures/store_caller_worker_helpers_successor.json',
     'tests/hia_historical_diagnostic_controls.py',
     'tests/fixtures/caller_terminal_store_composition_v1.json',

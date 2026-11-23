@@ -23,6 +23,11 @@ STORE_PATH = 'hepta/hia_agent_store.py'
 RETAINED_READ = ROOT / 'tests/fixtures/store_retained_read_successor.json'
 RETAINED_READ_SHA256 = '55067c36abaae147d7eebf4932df4df99d8ebf0cb4e9a851c79ab4e4f1dbab9e'
 SERVICE_PATH = 'hepta/hia_agent_service.py'
+EVALUATION_PATH = 'hepta/hia_evaluation_native.py'
+QUALIFIER_PATH = 'tests/hia_caller_terminal_admission.py'
+EVALUATE_FIXTURE = 'tests/fixtures/store_evaluate_delivery_successor.json'
+EVALUATE_FIXTURE_SHA256 = 'bb3e18ddd0e82abf37a7f2c455395732ed9e3a51eced153e96766ab4d343bdc5'
+EVALUATION_PLANNER_SHA256 = 'd30d4f0796535ba524746a2e8a07f76fe253e9799745cf8458fedf526bce0a70'
 JOURNAL_COST = ROOT / 'tests/fixtures/worker_journal_cost_successor.json'
 JOURNAL_COST_SHA256 = '97f1c36e9f12af0ffe96b3c789603365e74a3df0b8b5b52fa2be9dca9b7c3cd1'
 COMPOSITION_EXTENSIONS = {
@@ -101,6 +106,18 @@ def reverse_exact(raw, record, original):
     return restored
 
 
+def evaluate_records(frozen):
+    if sha256(frozen).hexdigest() != EVALUATE_FIXTURE_SHA256:
+        raise ValueError('Store Evaluate source provenance changed')
+    value = json.loads(frozen)
+    if (set(value) != {'schema', 'files', 'service_followups'}
+            or type(value['service_followups']) is not list or len(value['service_followups']) != 3
+            or value['schema'] != 'hepta.hia.store-evaluate-delivery-successor.v1'
+            or set(value['files']) != {SERVICE_PATH, EVALUATION_PATH, QUALIFIER_PATH}):
+        raise ValueError('Store Evaluate source provenance scope differs')
+    return value
+
+
 def _adapter_definitions(raw):
     module, lines = ast.parse(raw), raw.splitlines(keepends=True)
     def pin(node):
@@ -153,24 +170,50 @@ def _restore_composition_successor(captured, approved, shared):
             or type(value['shared_dependencies']) is not dict
             or set(value['shared_dependencies']) != set(LATER_SHARED_PATHS)):
         raise ValueError('later Store composition changes its reviewed scope')
-    restored = dict(captured)
+    for name in LATER_SHARED_PATHS:
+        captured[name] = (ROOT / name).read_bytes()
+    source = dict(captured)
+    evaluate_fixture = None
+    evaluate_current = {}
+    if sha256(source[EVALUATION_PATH]).hexdigest() == EVALUATION_PLANNER_SHA256:
+        # The installed planner is reviewed together with the service providers.
+        # Invert both whole files before running their complete prior admissions.
+        evaluate_fixture = (ROOT / EVALUATE_FIXTURE).read_bytes()
+        reviewed = evaluate_records(evaluate_fixture)
+        for name in (SERVICE_PATH, EVALUATION_PATH):
+            record = reviewed['files'][name]
+            latest = record
+            if name == SERVICE_PATH:
+                # Each exact service stage adds one reviewed capability in order:
+                # Inspect selection, SQL cost-ledger support, then cursor paging.
+                stages = [record, *reviewed['service_followups']]
+                for prior, step in reversed(list(zip(stages, stages[1:]))):
+                    if sha256(source[name]).hexdigest() == step['new_sha256']:
+                        if latest is record:
+                            latest = step
+                        source[name] = reverse_exact(source[name], step, {
+                            'bytes': prior['new_bytes'], 'sha256': prior['new_sha256']})
+            source[name] = reverse_exact(source[name], record, {
+                'bytes': record['old_bytes'], 'sha256': record['old_sha256']})
+            evaluate_current[name] = latest
+    restored = dict(source)
     current = dict(approved)
     extensions = {}
     for name in changed:
         record = value['files'][name]
         previous = approved[name]
-        raw = captured[name]
+        raw = source[name]
         current[name] = record
         if name in COMPOSITION_EXTENSIONS and sha256(raw).hexdigest() != record['new_sha256']:
             raw, current[name], extensions[name] = _restore_extension(name, raw, record)
         restored[name] = reverse_exact(raw, record,
                                        {'sha256': previous['new_sha256'], 'bytes': previous['new_bytes']})
     for name in LATER_SHARED_PATHS:
-        captured[name] = (ROOT / name).read_bytes()
         record = value['shared_dependencies'][name]
-        reverse_exact(captured[name], record, shared[name])
+        reverse_exact(source[name], record, shared[name])
         current[name] = record
-    return restored, current, fixture, extensions
+    current.update(evaluate_current)
+    return restored, current, fixture, extensions, evaluate_fixture
 
 
 def _restore_extension(path, raw, predecessor):
@@ -236,11 +279,11 @@ def admit_composition(original_value):
     # There is no process-global cache: every admission binds all thirteen complete files.
     approved = current = value['files']
     predecessor = captured
-    later_fixture = None
+    later_fixture = evaluate_fixture = None
     extensions = {}
     if any((len(captured[path]), sha256(captured[path]).hexdigest()) !=
            (approved[path]['new_bytes'], approved[path]['new_sha256']) for path in PATHS):
-        predecessor, current, later_fixture, extensions = _restore_composition_successor(
+        predecessor, current, later_fixture, extensions, evaluate_fixture = _restore_composition_successor(
             captured, approved, inventory['shared_dependency_review'])
     restored = {path: reverse_exact(predecessor[path], approved[path], originals[path])
                 for path in PATHS}
@@ -248,6 +291,7 @@ def admit_composition(original_value):
         captured[ADAPTER_PATH], value.get('adapter_definition_successors'))
     if (FIXTURE.read_bytes() != frozen or ORIGINAL.read_bytes() != original_bytes
             or (later_fixture is not None and COMPOSITION_SUCCESSOR.read_bytes() != later_fixture)
+            or (evaluate_fixture is not None and (ROOT / EVALUATE_FIXTURE).read_bytes() != evaluate_fixture)
             or any(COMPOSITION_EXTENSIONS[path][0].read_bytes() != raw for path, raw in extensions.items())
             or any((ROOT / path).read_bytes() != raw for path, raw in captured.items())):
         raise ValueError('successor composition changed during admission')
@@ -260,6 +304,11 @@ def admit_composition(original_value):
             if path in extensions else fixture_sha256),
         'scope': 'exact reviewed D5, transaction owner, journal cleanup, service artifact, service read, weak SQL, context protocol, Bootstrap, Budget resource and worker unknown-terminal successor',
         'composition_sha256': composition} for path in PATHS}
+    if evaluate_fixture is not None:
+        service = adjustments[SERVICE_PATH]
+        service['preceding_patch_fixture_sha256'] = service['reversible_patch_fixture_sha256']
+        service['reversible_patch_fixture_sha256'] = EVALUATE_FIXTURE_SHA256
+        service['scope'] += ', installed Evaluate planning, Artifact and Emission providers and reviewed Inspect, Cost and Read dispatch'
     shared = dict(inventory['shared_dependency_review'])
     for path in SHARED_PATHS:
         # Return the fixed, independently reviewed literal pins only after

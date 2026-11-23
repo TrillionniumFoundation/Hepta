@@ -516,7 +516,15 @@ QUALIFIER_STORE_CURRENT = {'bytes': 22723, 'sha256': '85f92bf60694e2d7950ced55e3
 
 def _admit_qualifier_dependency(raw, capture):
     actual = _pin(raw)
-    if actual == QUALIFIER_STORE_CURRENT:
+    emission_successor = actual['sha256'] == '521ada376c448627744c18dffc6c2f391e08de2ff48b5579b62ca5f94c36b1c5'
+    if emission_successor:
+        from tests.hia_store_delivery_successor import (
+            EVALUATE_FIXTURE, EVALUATE_FIXTURE_SHA256, evaluate_records, reverse_exact,
+        )
+        record = evaluate_records(capture(EVALUATE_FIXTURE))['files'][QUALIFIER_DEPENDENCY_PATH]
+        raw = reverse_exact(raw, record, QUALIFIER_STORE_CURRENT)
+    store_successor = _pin(raw) == QUALIFIER_STORE_CURRENT
+    if store_successor:
         from tests.hia_store_delivery_successor import reverse_exact
 
         extension = capture(QUALIFIER_STORE_DEPENDENCY)
@@ -529,7 +537,7 @@ def _admit_qualifier_dependency(raw, capture):
                 or reviewed['prior_sha256'] != QUALIFIER_DEPENDENCY_CURRENT['sha256']):
             raise ValueError('qualifier exact Store dependency scope differs')
         raw = reverse_exact(raw, reviewed['record'], QUALIFIER_DEPENDENCY_CURRENT)
-    elif actual != QUALIFIER_DEPENDENCY_CURRENT:
+    elif _pin(raw) != QUALIFIER_DEPENDENCY_CURRENT:
         raise ValueError('qualifier runtime dependency is neither fixed original nor exact successor')
     frozen = capture(QUALIFIER_DEPENDENCY_FIXTURE)
     if _pin(frozen) != QUALIFIER_DEPENDENCY_FIXTURE_PIN:
@@ -559,7 +567,9 @@ def _admit_qualifier_dependency(raw, capture):
             'exact_splice_count': 6, 'complete_original_inverse_verified': True,
             'complete_current_forward_replay_verified': True,
             'original_qualifier_authority_unchanged': True, 'production_source_exception': False}
-    if actual == QUALIFIER_STORE_CURRENT:
+    if emission_successor:
+        proof['emission_shared_worker_source'] = {'path': EVALUATE_FIXTURE, 'sha256': EVALUATE_FIXTURE_SHA256}
+    if store_successor:
         proof['exact_store_successor'] = {'path': QUALIFIER_STORE_DEPENDENCY,
                                           **QUALIFIER_STORE_DEPENDENCY_PIN}
     return proof

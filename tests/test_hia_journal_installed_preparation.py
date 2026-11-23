@@ -29,6 +29,16 @@ PROOF_WIRE_POLICY_PREDECESSOR_SHA256 = '08c9b79f4ea7e186d92b5e4e905046a5c1d34df9
 READ_REQUEST_POLICY_SHA256 = '7fe7b92ef191befdfd53cdb93b4fd946bc5a4cb145171243f8c5cd181ad2fe1f'
 READ_REQUEST_RESOURCE = b"    'examples/hia_bootstrap/agent_read_request.hepta',\n"
 PROOF_WIRE_RESOURCE = b"    'examples/hia_bootstrap/core_proof_wire.hepta',\n"
+EVALUATE_POLICY_SHA256 = '087f7117daa5160f9cf4e5d36b09fba05cd9ead5d47273c18560ae8e9f8a43c5'
+INSPECT_POLICY_SHA256 = 'cd0cf95f6a36600b491595d4624c3e9ef61619a9ede9c5526566eea1814b0c6f'
+ADDED_PACKAGE_ROWS = (
+    (INSPECT_POLICY_SHA256, b"    'examples/hia_bootstrap/worker_inspection_request.hepta',\n",
+     EVALUATE_POLICY_SHA256),
+    (EVALUATE_POLICY_SHA256, b"    'examples/hia_bootstrap/evaluate_reference_wire.hepta',\n",
+     READ_REQUEST_POLICY_SHA256),
+    (READ_REQUEST_POLICY_SHA256, READ_REQUEST_RESOURCE, PROOF_WIRE_POLICY_SHA256),
+    (PROOF_WIRE_POLICY_SHA256, PROOF_WIRE_RESOURCE, PROOF_WIRE_POLICY_PREDECESSOR_SHA256),
+)
 STORE_TRANSPORT_RESOURCE = (
     b"    'examples/hia_bootstrap/agent_read_page.hepta',\n",
     b"    'examples/hia_bootstrap/agent_store_transport.hepta',\n",
@@ -57,16 +67,14 @@ class JournalInstalledPreparationSourceTests(unittest.TestCase):
             raise AssertionError('Journal package policy successor evidence differs')
         raw = cls.sources[CONTRACT_POLICY]
         expected = cls.authority['policy_sources'][CONTRACT_POLICY]
-        if sha256(raw).hexdigest() == READ_REQUEST_POLICY_SHA256:
-            predecessor = raw.replace(READ_REQUEST_RESOURCE, b'', 1)
-            if sha256(predecessor).hexdigest() != PROOF_WIRE_POLICY_SHA256:
-                raise AssertionError('exact retained read request package composition differs')
-            raw = predecessor
-        if sha256(raw).hexdigest() == PROOF_WIRE_POLICY_SHA256:
-            predecessor = raw.replace(PROOF_WIRE_RESOURCE, b'', 1)
-            if sha256(predecessor).hexdigest() != PROOF_WIRE_POLICY_PREDECESSOR_SHA256:
-                raise AssertionError('exact Core proof wire package composition differs')
-            raw = predecessor
+        for current_digest, added_row, predecessor_digest in ADDED_PACKAGE_ROWS:
+            if sha256(raw).hexdigest() != current_digest:
+                continue
+            if raw.count(added_row) != 1:
+                raise AssertionError('reviewed native package row differs')
+            raw = raw.replace(added_row, b'', 1)
+            if sha256(raw).hexdigest() != predecessor_digest:
+                raise AssertionError('reviewed native package predecessor differs')
         # The preparation controls test the frozen 196-resource package. The
         # current installed release is independently qualified at its normal
         # packaging entry point and must not become this test's historical pin.
