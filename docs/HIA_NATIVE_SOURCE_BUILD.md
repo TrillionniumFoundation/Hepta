@@ -1,5 +1,18 @@
 # Native HIA source-bundle builder
 
+`hia-source-build compile` reads one HIA assembly program on standard input and
+writes its flat machine image on success. To rebuild the compiler from an
+installed release, run the following command in the release directory.
+
+```sh
+./hia-source-build compile < selfhost.hepta > compiler.bin
+```
+
+The strict build checks these bytes against the cold-qualified compiler image.
+The single-source command accepts up to 1 MiB of assembly. Empty, oversized
+and rejected inputs produce no output. The raw image uses the selfhost calling
+convention. The `pack` command below produces the standalone Linux executable.
+
 `hia-source-build build` consumes an entire `HIAREL01` assembly source bundle on
 standard input, within the retained qualified selfhost compiler profile. The
 checked HIA policy admits every member before compiling any member,

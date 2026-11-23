@@ -302,6 +302,9 @@ def _build_captured(output: Path, compiler: Path, cold_report: Path):
     receipt, packed = invoke(output, 'bootstrap-pack', images['packer'][0], frame)
     executable_bytes = _check_pack_output(receipt, packed, artifact=packer, source=frame)
     inspection = inspect_executable(executable_bytes)
+    compiled = _run_captured(executable_bytes, 'compile', source_bytes[SOURCES[1]], output)
+    if compiled.returncode or compiled.stderr or compiled.stdout != compiler_bytes:
+        raise ValueError('installed raw-source compiler does not reproduce the qualified compiler image')
     wire = _source_bundle([source_bytes[name] for name in SOURCES[:3]])
     built = _run_captured(executable_bytes, 'build', wire, output)
     if built.returncode or built.stderr:
@@ -327,7 +330,7 @@ def _build_captured(output: Path, compiler: Path, cold_report: Path):
         'compile_receipts': receipts, 'pack_receipt': receipt,
         'executable_path': executable.name, 'executable_sha256': sha256(executable_bytes).hexdigest(),
         'executable': inspection, 'sourcekit_sha256': sha256(built.stdout).hexdigest(),
-        'native_self_repack_equal': True, 'memory_layout': LAYOUT,
+        'native_self_repack_equal': True, 'native_compiler_self_rebuild_equal': True, 'memory_layout': LAYOUT,
         'input_and_output_limit': 64 << 20, 'source_and_image_limit': 1 << 20,
         'runtime_python_or_libc_or_child_required': False,
         'runtime_source_compile_dispatch_owned_by_HIA': True,

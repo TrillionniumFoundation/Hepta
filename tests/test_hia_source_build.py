@@ -373,6 +373,16 @@ class SourceBuilderNativeTests(unittest.TestCase):
             receipt, _ = invoke(self.case, name, image, b'', capacity=0, workspace_size=0)
             self.assertEqual((receipt['status'], receipt['core_u32']), ('returned', value))
 
+    def test_compile_accepts_raw_assembly_and_rebuilds_the_qualified_compiler(self):
+        self.assertEqual(self.run_app(self.sources[1][2], 'compile'), self.compiler_image)
+        for source in (SMALL, SMALL.replace(b'"value":7', b'"value":19')):
+            expected = unpack(self.run_app(bundle([('sample.hepta', 0o400, source)])))
+            self.assertEqual(self.run_app(source, 'compile'), expected[b'sample.hepta.bin'])
+        self.run_app(b'', 'compile', code=16)
+        self.run_app(b'!' * (IMAGE_LIMIT + 1), 'compile', code=17)
+        self.run_app(SMALL + b'bad trailing input', 'compile', code=18)
+        self.run_app(self.input_bundle, 'compile', code=18)
+
     def test_complete_sourcekit_and_two_native_self_rebuilds(self):
         previous = self.original_app
         app = self.app

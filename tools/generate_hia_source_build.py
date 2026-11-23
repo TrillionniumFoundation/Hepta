@@ -77,6 +77,8 @@ def arguments(s:readbuf, w:mutbuf) -> u32:
         op = 1
     if n == 4 and uint(s, 16, 4) == PACK_WORD:
         op = 2
+    if n == 7 and uint(s, 16, 7) == COMPILE_WORD:
+        op = 3
     if op == 0:
         return bad(w, 16)
     put(w, 8, op)
@@ -84,6 +86,18 @@ def arguments(s:readbuf, w:mutbuf) -> u32:
     return 0
 
 def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if get(w, 8) == 3:
+        if length(s) == 0:
+            return bad(w, 16)
+        if length(s) > 1048576:
+            return bad(w, 17)
+        put(w, 24, 1)
+        put(w, 32, 0)
+        put(w, 40, length(s))
+        put(w, 4112, 0)
+        put(w, 4120, length(s))
+        put(w, 16, 2)
+        return 0
     if length(s) < 24 or length(s) > 67108864:
         return bad(w, 16)
     if uint(s, 0, 8) != BUNDLE_MAGIC or uint(s, 16, 8) != 0:
@@ -171,7 +185,7 @@ def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def select(s:readbuf, w:mutbuf) -> u32:
     op = get(w, 8)
     index = get(w, 32)
-    if op == 1:
+    if op == 1 or op == 3:
         if get(w, 16) != 2 or index > get(w, 24):
             return bad(w, 16)
         if index == get(w, 24):
@@ -201,6 +215,19 @@ def consume(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if size == 0 or size > 1048576:
         return bad(w, 18)
     index = get(w, 32)
+    if get(w, 8) == 3:
+        if index != 0 or get(w, 24) != 1:
+            return bad(w, 16)
+        if size > length(o):
+            return bad(w, 17)
+        i = 0
+        while i < size:
+            store(o, i, byte(w, 65536 + i))
+            i = i + 1
+        put(w, 48, size)
+        put(w, 16, 2)
+        put(w, 32, 1)
+        return 0
     if get(w, 8) == 2:
         if index >= 3 or get(w, 264 + (index + 3) * 16) != size:
             return bad(w, 19)
@@ -351,6 +378,7 @@ def policy_source():
     source = POLICY.replace('ROLE_FUNCTION', '\n'.join(roles))
     values = {'POLICY_WORK_BYTES': POLICY_WORK_BYTES, 'TEMPLATE_SIZE': len(template()[0]),
               'BUNDLE_MAGIC': BUNDLE_MAGIC, 'PACK_MAGIC': PACK_MAGIC,
+              'COMPILE_WORD': int.from_bytes(b'compile', 'little'),
               'BUILD_WORD': int.from_bytes(b'build', 'little'), 'PACK_WORD': int.from_bytes(b'pack', 'little'),
               'SUFFIX_WORD': int.from_bytes(b'.hepta', 'little'),
               'IMAGE_SUFFIX_WORD': int.from_bytes(b'.bin', 'little')}
