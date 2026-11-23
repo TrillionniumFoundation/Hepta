@@ -32,7 +32,7 @@ REQUEST = LeafRevoke(
 )
 EXPECTED = {"valid": (67, "P"), "stale_old": (69, "U"),
             "wrong_cr3": (69, "U"), "postcheck_race": (69, "U"),
-            "dishonest_noop": (255, "F")}
+            "cr4_pge": (69, "U"), "dishonest_noop": (255, "F")}
 # This exact ISA signature comes from the independent GNU-as byte oracle.
 # It is deliberately not looked up from the encoder under test.
 _LOCKED_CAS = bytes.fromhex("f0490fb19200100000")
@@ -72,12 +72,15 @@ def build(case: str, directory: Path) -> dict:
     directory.mkdir(parents=True)
     effect = effect_bytes(case)
     race = case == "postcheck_race"
+    cr4_pge = case == "cr4_pge"
     offset = exact_cas_offset(effect) if race else 0
     if race and effect != effect_bytes("valid"):
         raise AssertionError("postcheck race must execute byte-identical native stage")
     # Configuration is consumed ONLY by the non-HIA observer assembly.
     # No insertion or mutation of the staged native machine code is permitted.
-    race_config = f".set RACE_MODE, {int(race)}\n.set CAS_OFFSET, {offset}\n"
+    race_config = (f".set RACE_MODE, {int(race)}\n"
+                   f".set CAS_OFFSET, {offset}\n"
+                   f".set CR4_PGE_MODE, {int(cr4_pge)}\n")
     (directory / "race_config.inc").write_text(race_config)
     (directory / "effect.bin").write_bytes(effect)
     checked(["as", "--64", "-o", "boot.o", str(HERE / "boot.S")], directory)
@@ -113,7 +116,8 @@ def build(case: str, directory: Path) -> dict:
         raise AssertionError("QEMU multiboot final ELF32 identity mismatch")
     return {
         "case": case, "byte_identity": True, "effect_bytes": len(effect),
-        "postcheck_race": race, "cas_instruction_offset": offset if race else None,
+        "postcheck_race": race, "cr4_pge_injected": cr4_pge,
+        "cas_instruction_offset": offset if race else None,
         "race_bridge_config_sha256": sha256(race_config.encode()).hexdigest(),
         "effect_sha256": sha256(effect).hexdigest(),
         "elf64_sha256": sha256((directory / "guest.elf").read_bytes()).hexdigest(),
