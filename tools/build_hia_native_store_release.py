@@ -31,7 +31,7 @@ STDIO_ROLES = tuple(sorted(AGENT_STDIO_ROLES.keys() - {
 }))
 FLOW_ROLES = ('describe', 'input', 'artifact', 'discovery', 'context', 'inspection',
               'candidate', 'rollback', 'emit', 'adopt', 'verify', 'discovery-bootstrap',
-              'evaluate-replay', 'evaluate-intake', 'evaluate-claim')
+              'evaluate-replay', 'evaluate-intake', 'evaluate-claim', 'evaluate-proof')
 LAUNCHERS = ('read', 'context-control', 'native', 'readonly', 'evaluate-replay', 'evaluate-intake')
 RESOURCES = ('examples/hia_bootstrap/selfhost.hepta', 'examples/hia_bootstrap/source_build_packer.hepta',
              'examples/hia_bootstrap/source_build_policy.hepta', 'examples/hia_bootstrap/core_json_cli_packer.hepta',

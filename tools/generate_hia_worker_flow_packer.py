@@ -66,6 +66,10 @@ ADOPT_POLICY = 'examples/hia_bootstrap/worker_adopt_flow.hepta'
 ADOPT_PRODUCT = 'examples/hia_bootstrap/worker_adopt_custody.hepta'
 ADOPT_PROOF = 'examples/hia_bootstrap/worker_adopt_proof.hepta'
 ADOPT_PACKER = 'examples/hia_bootstrap/worker_adopt_flow_packer.hepta'
+PROOF_KIND = 'evaluate-proof'
+PROOF_POLICY = 'examples/hia_bootstrap/worker_evaluate_proof_flow.hepta'
+PROOF_CUSTODY = 'examples/hia_bootstrap/worker_evaluate_proof_custody.hepta'
+PROOF_PACKER = 'examples/hia_bootstrap/worker_evaluate_proof_flow_packer.hepta'
 VERIFY_KIND = 'verify'
 VERIFY_POLICY = 'examples/hia_bootstrap/worker_verify_flow.hepta'
 VERIFY_PRODUCT = 'examples/hia_bootstrap/worker_verify_publication_flow.hepta'
@@ -74,6 +78,7 @@ VERIFY_PACKER = 'examples/hia_bootstrap/worker_verify_flow_packer.hepta'
 SECTIONS = {
     EMIT_KIND: (EMIT_PRODUCT, EMIT_PROOF),
     ADOPT_KIND: (ADOPT_PRODUCT, ADOPT_PROOF),
+    PROOF_KIND: (PROOF_CUSTODY, ADOPT_PROOF),
     VERIFY_KIND: (VERIFY_PRODUCT, VERIFY_PROOF),
 }
 PROGRAMS = {
@@ -92,6 +97,7 @@ PROGRAMS = {
     'rollback': (ROLLBACK_POLICY, ROLLBACK_PACKER),
     EMIT_KIND: (EMIT_POLICY, EMIT_PACKER),
     ADOPT_KIND: (ADOPT_POLICY, ADOPT_PACKER),
+    PROOF_KIND: (PROOF_POLICY, PROOF_PACKER),
     VERIFY_KIND: (VERIFY_POLICY, VERIFY_PACKER),
     'discovery-bootstrap': (BOOTSTRAP_POLICY, BOOTSTRAP_PACKER),
     LAUNCHER_KIND: (LAUNCHER_POLICY, LAUNCHER_PACKER),
@@ -107,6 +113,15 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
     # Local references let the existing flat-template builder prove that
     # every syscall adapter relocation is already resolved. The sole HIA
     # application call deliberately remains a zero rel32 hole.
+    if kind == PROOF_KIND:
+        replacements = ((b'.equ ROLE_COUNT, 73', b'.equ ROLE_COUNT, 74'),
+                        (b'--worker-adopt', b'--worker-evaluate-proof'),
+                        (b'HIA Adopt Worker transport', b'HIA Evaluate proof Worker transport'))
+        for previous, new in replacements:
+            if flow.count(previous) != 1:
+                raise ValueError('unexpected Adopt descriptor transport layout')
+            flow = flow.replace(previous, new)
+        kind = ADOPT_KIND
     if kind == CLAIM_KIND:
         kind = INTAKE_KIND
     if kind in (REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
