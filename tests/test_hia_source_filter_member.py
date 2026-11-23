@@ -429,6 +429,49 @@ class InstalledSourceMemberTests(unittest.TestCase):
             self.assertNotEqual(run.returncode, 0)
             self.assertEqual((run.stdout, run.stderr), (b'', b''))
 
+    def test_core_link_binds_expanded_build_driver_and_relocatable_object(self):
+        import struct
+        from unittest.mock import patch
+        from tools import generate_hia_relocatable_templates as templates
+        from tools.build_hia_core_edit import NOMINAL_BUILD_GROUP, REGISTER_RELAY, expand_register_relay
+        from tools.generate_hia_core_edit_templates import render_nominal
+
+        driver = 'tools/hia_core_edit_build_object.S'
+        original = (ROOT / driver).read_bytes()
+        relay = (ROOT / REGISTER_RELAY).read_bytes()
+
+        def request(source, include):
+            return struct.pack('<8s3Q', b'HIACERL1', 0, len(source), len(include)) + source + include
+
+        def owner(name, template):
+            kit = self.source_images(self.work / (name + '-kit'), {
+                'source_build_policy.hepta': self.sources / 'source_core_edit_link.hepta',
+                'selfhost.hepta': self.sources / 'selfhost.hepta',
+                'source_build_packer.hepta': template,
+            })
+            binary = self.work / name
+            binary.write_bytes(self.invoke([self.seed, 'pack'], kit))
+            binary.chmod(0o500)
+            return binary
+
+        expected_dir = self.work / 'expected'
+        expected_dir.mkdir()
+        expected = templates.assemble(expected_dir, driver, expand_register_relay(original, relay))
+        checked = owner('checked-driver', ROOT / NOMINAL_BUILD_GROUP)
+        self.assertEqual(self.invoke([checked, 'build'], request(original, relay)), expected)
+        self.invoke([checked, 'build'], request(original + b'\n', relay), refused=True)
+        self.invoke([checked, 'build'], request(original, relay + b'\n'), refused=True)
+
+        # Keep the source and template record internally consistent, while changing the
+        # physical object. The independent linker's object pin must still reject it.
+        assemble = templates.assemble
+        def altered(directory, name, source):
+            return assemble(directory, name, source + b'\n.text\n.byte 0x90\n')
+        stale = self.work / 'stale-template.hepta'
+        with patch.object(templates, 'assemble', altered):
+            stale.write_text(render_nominal(NOMINAL_BUILD_GROUP))
+        self.invoke([owner('stale-driver', stale), 'build'], request(original, relay), refused=True)
+
     def test_fixed_core_source_rejects_unbound_adapter_and_recompiled_image(self):
         import struct
         from tools.build_hia_source_build import _compiled_sources
