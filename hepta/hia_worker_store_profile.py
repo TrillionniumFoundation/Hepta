@@ -25,7 +25,9 @@ STORE_UNIQUE_SCHEMA = 'hepta.hia.native-helpers.v19'
 WORKER_DATA_SCHEMA = 'hepta.hia.native-helpers.v20'
 WORKER_COST_SCHEMA = 'hepta.hia.native-helpers.v21'
 WORKER_EVALUATE_SCHEMA = 'hepta.hia.native-helpers.v22'
-WORKER_COST_SCHEMAS = (WORKER_COST_SCHEMA, WORKER_EVALUATE_SCHEMA)
+WORKER_EVALUATE_REQUEST_SCHEMA = 'hepta.hia.native-helpers.v23'
+WORKER_EVALUATE_SCHEMAS = (WORKER_EVALUATE_SCHEMA, WORKER_EVALUATE_REQUEST_SCHEMA)
+WORKER_COST_SCHEMAS = (WORKER_COST_SCHEMA, *WORKER_EVALUATE_SCHEMAS)
 WORKER_DATA_SCHEMAS = (WORKER_DATA_SCHEMA, *WORKER_COST_SCHEMAS)
 STORE_UNIQUE_SCHEMAS = (STORE_UNIQUE_SCHEMA, *WORKER_DATA_SCHEMAS)
 JOURNAL_SCHEMAS = (JOURNAL_SCHEMA, DIRECT_OWNER_SCHEMA, REFERENCE_OWNER_SCHEMA, *STORE_UNIQUE_SCHEMAS)
@@ -54,8 +56,10 @@ def profile_images(schema):
         result['terminal_sha256'] = ('hia-worker-terminal', authority.MAX_IMAGE_BYTES)
     if schema in WORKER_DATA_SCHEMAS:
         result['worker_data_sha256'] = ('hia-worker-data', authority.MAX_IMAGE_BYTES)
-    if schema == WORKER_EVALUATE_SCHEMA:
+    if schema in WORKER_EVALUATE_SCHEMAS:
         result['evaluate_case_sha256'] = ('hia-agent-worker-evaluate-case', authority.MAX_IMAGE_BYTES)
+    if schema == WORKER_EVALUATE_REQUEST_SCHEMA:
+        result['evaluate_request_sha256'] = ('hia-agent-worker-evaluate-request', authority.MAX_IMAGE_BYTES)
     if schema in STARTUP_SCHEMAS:
         result['initializer_sha256'] = ('hia-agent-store-init', authority.MAX_IMAGE_BYTES)
     return result
@@ -100,9 +104,13 @@ class NativeWorkerStoreBinding:
         initializer = captures.get('initializer_sha256')
         self.native_store_initializer = initializer.raw if initializer is not None else None
         evaluate = captures.get('evaluate_case_sha256')
+        request = captures.get('evaluate_request_sha256')
         self.native_evaluate_case_executable = evaluate.raw if evaluate is not None else None
-        if evaluate is not None and not evaluate.raw.startswith(b'\x7fELF'):
-            raise ValueError('standalone Evaluate planner must be a pinned ELF executable')
+        self.native_evaluate_request_executable = request.raw if request is not None else None
+        if any(role is not None and not role.raw.startswith(b'\x7fELF') for role in (evaluate, request)):
+            raise ValueError('standalone Evaluate roles must be pinned ELF executables')
+        if request is not None and self.native_evaluate_request_executable == self.native_evaluate_case_executable:
+            raise ValueError('standalone Evaluate request and case roles must be distinct')
         self.native_edit_query = None
         if 'edit_query_sha256' in captures:
             from .hia_agent_edit_query_native import NativeAgentEditQuery

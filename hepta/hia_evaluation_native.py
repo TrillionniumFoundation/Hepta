@@ -101,6 +101,31 @@ def _admit_native_workload(executable, signatures, raw, workload):
         raise EvaluationUnknown('installed HIA workload planner scope differs from the admitted workload')
 
 
+def _project_native_evaluate_request(executable, catalog, arguments):
+    from .hia_agent_store import decode_data, wire
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    source = wire([catalog, arguments])
+    with sealed_reference_bytes(executable) as planner:
+        reply = _run_native_evaluate_planner(planner, source)
+    if len(reply) < 128 or not reply.startswith(b'HIAEVQ01'):
+        raise EvaluationUnknown('installed HIA Evaluate request did not issue retained dependencies')
+    count, = struct.unpack_from('<Q', reply, 8)
+    if not 1 <= count <= 16 or len(reply) != 112 + 16 * count:
+        raise EvaluationUnknown('installed HIA Evaluate dependency count differs')
+
+    spans = []
+    for at, size in struct.iter_unpack('<2Q', reply[16:]):
+        if not 0 <= at < at + size <= len(source):
+            raise EvaluationUnknown('installed HIA Evaluate dependency is outside the admitted request')
+        spans.append(source[at:at + size])
+    if b'[' + b','.join(spans[6:]) + b']' != spans[5]:
+        raise EvaluationUnknown('installed HIA Evaluate receipt order differs')
+    keys = ('context', 'baseline_artifact', 'candidate_artifact', 'build_receipt',
+            'request_key', 'verification_receipts')
+    return {'catalog_sha256': catalog, **dict(zip(keys, map(decode_data, spans[:6]), strict=True))}
+
+
 def _after_fork_child():
     global _CUSTODY_LOCK, _CUSTODY_PID
     _CUSTODY_LOCK = threading.Lock()
@@ -372,6 +397,12 @@ class EvaluationFrame:
             d['started'] = api['time'].monotonic_ns()
             d['native_store'] = uses_native_store(s.store)
             d['identity'] = _native_agent_identity() if d['native_store'] else None
+            if d['native_store']:
+                from .hia_native_helpers import pinned_evaluate_request_executable
+
+                request = pinned_evaluate_request_executable()
+                if request is not None:
+                    d['args'] = _project_native_evaluate_request(request, s.catalog_sha256, args)
         elif name == 'context':
             d['context'] = s._context(args['context'])
         elif name == 'baseline':

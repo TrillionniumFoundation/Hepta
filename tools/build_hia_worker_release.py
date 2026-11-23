@@ -570,15 +570,16 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
         worker_data = (release / 'hia-worker-data').is_file()
         cost_role = release / 'hia-agent-journal-cost'
         journal_cost = cost_role if cost_role.is_file() else None
-        evaluate_role = release / 'hia-agent-worker-evaluate-case'
-        evaluate_case = evaluate_role.is_file()
-        if evaluate_case:
-            kind = 'worker-evaluate-case'
-            manifests = build_helper_batch(scratch / 'evaluate-case-image', compiler, cold_report,
-                                           candidates=(kind,))
-            expected = build_agent_stdio(scratch / kind, compiler, cold_report, manifests[kind], kind=kind)
-            if evaluate_role.read_bytes() != expected.read_bytes():
-                raise ValueError('Store release Evaluate planner differs from the cold-built HIA role')
+        evaluate_roles = {kind: release / ('hia-agent-' + kind)
+                          for kind in ('worker-evaluate-case', 'worker-evaluate-request')
+                          if (release / ('hia-agent-' + kind)).is_file()}
+        if evaluate_roles:
+            manifests = build_helper_batch(scratch / 'evaluate-images', compiler, cold_report,
+                                           candidates=tuple(evaluate_roles))
+            for kind, executable in evaluate_roles.items():
+                expected = build_agent_stdio(scratch / kind, compiler, cold_report, manifests[kind], kind=kind)
+                if executable.read_bytes() != expected.read_bytes():
+                    raise ValueError(f'Store release {kind} differs from the cold-built HIA role')
         profile = output / 'worker.json'
         pin = bind_worker_store(profile, scheduled, release, candidate_import=True, portable=True,
                                 reference_executable=reference, owned_reference_executable=owned_reference,
@@ -586,7 +587,8 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                                 read_page_executable=read_page, initialize_fresh=True,
                                 journal_executable=journal, store_unique_executable=store_unique,
                                 standalone_worker_data=worker_data, journal_cost_executable=journal_cost,
-                                standalone_evaluate_case=evaluate_case)
+                                standalone_evaluate_case='worker-evaluate-case' in evaluate_roles,
+                                standalone_evaluate_request='worker-evaluate-request' in evaluate_roles)
         profile.chmod(0o400)
         release_launchers = {}
         binders = {
