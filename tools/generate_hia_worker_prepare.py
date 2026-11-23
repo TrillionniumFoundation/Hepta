@@ -53,6 +53,7 @@ JOB_OWNER_INPUT = b'HIAJOQ01'
 JOB_OWNER_OUTPUT = b'HIAJOR01'
 JOB_OPERATION_INPUT = b'HIAJOP01'
 JOB_PENDING_INPUT = b'HIAJPN01'
+OWNER_RECORD_INPUT = b'HIAJBE01'
 OWNER_LOCK_INPUT = b'HIAJLK01'
 OWNER_LOCK_OUTPUT = b'HIAJLR01'
 
@@ -100,6 +101,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_operation(s, o)
     if magic == JOB_PENDING_INPUT:
         return job_pending(s, o)
+    if magic == OWNER_RECORD_INPUT:
+        return encode_owner_record(s, o)
     if magic == OWNER_LOCK_INPUT:
         return owner_lock_admission(s, o)
     if n < 112 or magic != INPUT_MAGIC:
@@ -1162,6 +1165,163 @@ LITERALS = {
 }
 
 
+OWNER_RECORD_SOURCE = '''
+def encode_owner_record(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 88:
+        return 4294967293
+    pid = word_load(s, 16)
+    uid = word_load(s, 24)
+    job = word_load(s, 32)
+    identity = word_load(s, 40)
+    invocation = word_load(s, 48)
+    if pid < 2 or pid > 2147483647 or uid > 4294967295 or job == 0 or job > 128:
+        return 4294967293
+    if identity < 38 or identity > 57:
+        return 4294967293
+    count = choose(invocation == 18446744073709551615, 0, invocation)
+    if count > 131072 or length(s) != 88 + job + identity + count * 4:
+        return 4294967293
+    if length(o) < 512 + count * 12:
+        return 4294967294
+    if operation_name(s, 56, job) == 0 or witness_nonce(s, 56 + job) == False:
+        return 4294967293
+    if owner_ticks_valid(s, 88 + job, identity) == False:
+        return 4294967293
+    at = owner_time(o, 0)
+    at = owner_unsigned(o, at, word_load(s, 8))
+    at = owner_invocation(o, at)
+    at = owner_optional_string(s, o, at, 88 + job + identity, invocation)
+    if at == 0:
+        return 4294967293
+    at = owner_job(o, at)
+    at = external(s, o, at, 56, job)
+    at = witness_receipt_nonce(o, at)
+    at = external(s, o, at, 56 + job, 32)
+    at = owner_identity(o, at)
+    at = external(s, o, at, 88 + job, identity)
+    at = owner_pid(o, at)
+    at = owner_unsigned(o, at, pid)
+    at = owner_uid(o, at)
+    at = owner_unsigned(o, at, uid)
+    return close(o, at)
+
+def owner_ticks_valid(s:readbuf, start:u64, size:u64) -> bool:
+    index = 0
+    while index < size:
+        value = byte(s, start + index)
+        if index == 36:
+            if value != 58:
+                return False
+        elif index > 36:
+            if value < 48 or value > 57:
+                return False
+        elif index == 8 or index == 13 or index == 18 or index == 23:
+            if value != 45:
+                return False
+        elif (value < 48 or value > 57) and (value < 97 or value > 102):
+            return False
+        index = index + 1
+    return True
+
+def owner_unsigned(o:mutbuf, at:u64, value:u64) -> u64:
+    digits = 1
+    scale = 1
+    while scale <= 1000000000000000000 and scale * 10 <= value:
+        scale = scale * 10
+        digits = digits + 1
+    while digits > 0:
+        scale = 1
+        index = 1
+        while index < digits:
+            scale = scale * 10
+            index = index + 1
+        digit = 0
+        while value >= scale:
+            value = value - scale
+            digit = digit + 1
+        store(o, at, 48 + digit)
+        at = at + 1
+        digits = digits - 1
+    return at
+
+def owner_optional_string(s:readbuf, o:mutbuf, at:u64, start:u64, count:u64) -> u64:
+    if count == 18446744073709551615:
+        return owner_null(o, at)
+    store(o, at, 34)
+    at = at + 1
+    index = 0
+    while index < count:
+        point = uint_owner_codepoint(s, start + 4 * index)
+        if point > 1114111:
+            return 0
+        at = owner_escape(o, at, point)
+        index = index + 1
+    store(o, at, 34)
+    return at + 1
+
+def uint_owner_codepoint(s:readbuf, at:u64) -> u64:
+    return byte(s, at) | (byte(s, at + 1) << 8) | (byte(s, at + 2) << 16) | (byte(s, at + 3) << 24)
+
+def owner_escape(o:mutbuf, at:u64, point:u64) -> u64:
+    if point == 34 or point == 92:
+        store(o, at, 92)
+        store(o, at + 1, point)
+        return at + 2
+    if point >= 32 and point < 127:
+        store(o, at, point)
+        return at + 1
+    if point == 8 or point == 9 or point == 10 or point == 12 or point == 13:
+        short = 98
+        if point == 9:
+            short = 116
+        elif point == 10:
+            short = 110
+        elif point == 12:
+            short = 102
+        elif point == 13:
+            short = 114
+        store(o, at, 92)
+        store(o, at + 1, short)
+        return at + 2
+    if point <= 65535:
+        return owner_unicode_escape(o, at, point)
+    value = point - 65536
+    at = owner_unicode_escape(o, at, 55296 + (value >> 10))
+    return owner_unicode_escape(o, at, 56320 + (value & 1023))
+
+def owner_unicode_escape(o:mutbuf, at:u64, point:u64) -> u64:
+    store(o, at, 92)
+    store(o, at + 1, 117)
+    store(o, at + 2, hex((point >> 12) & 15))
+    store(o, at + 3, hex((point >> 8) & 15))
+    store(o, at + 4, hex((point >> 4) & 15))
+    store(o, at + 5, hex(point & 15))
+    return at + 6
+'''
+
+OWNER_RECORD_LITERALS = {
+    'owner_time': '{"at_unix_ms": ',
+    'owner_invocation': ', "invocation_id": ',
+    'owner_job': ', "job_id": "',
+    'owner_identity': '", "supervisor_identity": {"kind": "proc_start_ticks", "value": "',
+    'owner_pid': '"}, "supervisor_pid": ',
+    'owner_uid': ', "supervisor_uid": ',
+    'owner_null': 'null',
+}
+
+
+def literal_functions(literals):
+    source = ''
+    for name, literal in literals.items():
+        source += f'\ndef {name}(o:mutbuf, at:u64) -> u64:\n'
+        raw = literal.encode('ascii')
+        for start in range(0, len(raw), 8):
+            part = raw[start:start + 8]
+            source += f'    at = append_word(o, at, {int.from_bytes(part, "little")}, {len(part)})\n'
+        source += '    return at\n'
+    return source
+
+
 def source_program():
     envelope_fields = ('arguments_member', 'catalog_member', 'profile_member',
                        'request_member', 'schema_and_tool', 'close')
@@ -1206,6 +1366,7 @@ def source_program():
               .replace('DESCRIPTION_TAIL', str(int.from_bytes(b'b ', 'little')))
               .replace('JOB_OPERATION_INPUT', str(int.from_bytes(JOB_OPERATION_INPUT, 'little')))
               .replace('JOB_PENDING_INPUT', str(int.from_bytes(JOB_PENDING_INPUT, 'little')))
+              .replace('OWNER_RECORD_INPUT', str(int.from_bytes(OWNER_RECORD_INPUT, 'little')))
               .replace('OWNER_LOCK_INPUT', str(int.from_bytes(OWNER_LOCK_INPUT, 'little')))
               .replace('NOT_FOUND_HEAD', str(int.from_bytes(b'not-foun', 'little')))
               .replace('ACTIVE_WORD', str(int.from_bytes(b'active', 'little')))
@@ -1230,13 +1391,7 @@ def source_program():
               .replace('INPUT_MAGIC', str(int.from_bytes(INPUT_MAGIC, 'little')))
               .replace('OUTPUT_MAGIC', str(int.from_bytes(OUTPUT_MAGIC, 'little')))
               .replace('MAX_FRAGMENTS', str(524288 - fixed_bytes)))
-    for name, literal in LITERALS.items():
-        source += f'\ndef {name}(o:mutbuf, at:u64) -> u64:\n'
-        raw = literal.encode('ascii')
-        for start in range(0, len(raw), 8):
-            part = raw[start:start + 8]
-            source += f'    at = append_word(o, at, {int.from_bytes(part, "little")}, {len(part)})\n'
-        source += '    return at\n'
+    source += literal_functions(LITERALS)
     # Append the new owner entry after existing functions to keep their assembly identifiers stable.
     owner_lock = """
 def owner_lock_admission(s:readbuf, o:mutbuf) -> u64:
@@ -1259,8 +1414,8 @@ def owner_lock_admission(s:readbuf, o:mutbuf) -> u64:
     word_store(o, 8, admitted)
     return 16
 """
-    return source + worker_hash_program() + owner_lock.replace(
-        'OWNER_LOCK_OUTPUT', str(int.from_bytes(OWNER_LOCK_OUTPUT, 'little')))
+    owner_lock = owner_lock.replace('OWNER_LOCK_OUTPUT', str(int.from_bytes(OWNER_LOCK_OUTPUT, 'little')))
+    return source + worker_hash_program() + owner_lock + OWNER_RECORD_SOURCE + literal_functions(OWNER_RECORD_LITERALS)
 
 
 def document():

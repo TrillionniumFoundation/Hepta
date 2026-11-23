@@ -334,6 +334,31 @@ def _job_writer_has_supervisor_identity(writer):
     return True
 
 
+def _worker_prepare_has_owner_record(prepare):
+    job = b'job-42'
+    nonce = b'0123456789abcdef' * 2
+    ticks = b'12345678-1234-4abc-9def-123456789abc:42'
+    observed = {'at_unix_ms': 123456789, 'job_id': job.decode(), 'launch_nonce': nonce.decode(),
+                'supervisor_identity': {'kind': 'proc_start_ticks', 'value': ticks.decode()},
+                'supervisor_pid': 42, 'supervisor_uid': 1000}
+    for index, invocation in enumerate((None, '', 'unit"\N{SNOWMAN}')):
+        count = (1 << 64) - 1 if invocation is None else len(invocation)
+        units = b'' if invocation is None else invocation.encode('utf-32le')
+        request = (struct.pack('<8s6Q', b'HIAJBE01', 123456789, 42, 1000, len(job), len(ticks), count)
+                   + job + nonce + ticks + units)
+        result = subprocess.run([prepare], input=request, env={'PATH': ''}, capture_output=True, timeout=5)
+        probe = result.returncode, result.stdout, result.stderr
+        if index == 0 and probe == (2, b'', b''):
+            return False
+        expected = dict(observed, invocation_id=invocation)
+        if probe != (0, json.dumps(expected, sort_keys=True).encode('ascii'), b''):
+            raise ValueError('installed HIA owner record changed durable bytes')
+    result = subprocess.run([prepare], input=request[:-1], env={'PATH': ''}, capture_output=True, timeout=5)
+    if (result.returncode, result.stdout, result.stderr) != (2, b'', b''):
+        raise ValueError('installed HIA owner record admitted an incomplete observation')
+    return True
+
+
 def _worker_prepare_has_owner_lock_admission(prepare):
     for index, (phase, mode, uid, links, existing, expected) in enumerate((
             (0, 0o100600, 1000, 1, 0, 1), (0, 0o100640, 1000, 1, 0, 0),
@@ -475,6 +500,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v19'
     if schema == 'hepta.hia.mcp.controller.v19' and _worker_prepare_has_owner_lock_admission(release / 'hia-worker-prepare'):
         schema = 'hepta.hia.mcp.controller.v20'
+    if schema == 'hepta.hia.mcp.controller.v20' and _worker_prepare_has_owner_record(release / 'hia-worker-prepare'):
+        schema = 'hepta.hia.mcp.controller.v21'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}
