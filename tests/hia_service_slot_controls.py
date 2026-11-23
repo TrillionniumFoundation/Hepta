@@ -151,9 +151,10 @@ def bundle(path, helpers):
     return digest(path)
 
 def vm_call(program, raw, output, state):
-    from hepta.hia_program_runtime import _Machine, _Owner, _View
+    from hepta.hia_program_runtime import _Owner, _View
+    from tests.hia_independent_vm import IndependentMachine
     owners = [_Owner(i + 1, bytearray(v)) for i, v in enumerate((raw, output, state))]
-    machine = _Machine(program, 2_000_000, 16 << 20, None, 128)
+    machine = IndependentMachine(program, 2_000_000, 16 << 20, None, 128)
     result = machine.invoke(machine.functions['f0'], [_View(v, i != 0) for i, v in enumerate(owners)])
     if bytes(owners[0].data) != raw: raise AssertionError('VM changed immutable request')
     return result[0], bytes(owners[1].data), bytes(owners[2].data)
