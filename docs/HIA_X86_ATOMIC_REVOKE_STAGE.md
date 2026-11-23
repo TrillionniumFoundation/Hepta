@@ -40,3 +40,22 @@ CPU/feature checking, stable ABI, and independent SMP/interleaving/fault
 oracles. It also requires shootdown and IOMMU coordination before page
 recycling. Full HeptaKernel 17-gate acceptance and the Linux syscall/driver
 obligations remain **HOLD**, even if all stage tests are green.
+
+## Deterministic post-precheck CAS interleaving (isolated test bridge)
+
+The PC/Q35 hardware oracle now includes a `postcheck_race` scenario. It
+executes **exactly the same staged machine-code bytes** as `valid`. A
+non-HIA, test-only #DB single-step observer sets TF and pauses at the original
+LOCK CMPXCHGQ instruction address (independently matched to the GNU-as opcode
+signature). Only after the live PTE was sampled and compared does the observer
+write a competing PTE value `0x400023`. It saves/restores RAX and RDX, records
+that the injection actually occurred, clears TF in the saved exception frame,
+and returns via IRETQ. The native locked CAS must fail, branch to its original
+UD2 instruction, and preserve the competing value. The independent #UD
+observer checks both the unchanged competing word and the injection marker.
+The original valid, stale-old, wrong-CR3 and dishonest RET-only cases remain.
+
+This is a **deterministic single-CPU interleaving**, not SMP or DMA testing.
+The #DB and #UD handlers, IDT setup, TF setup and mutation remain clearly
+non-HIA test scaffolding. Neither the ordinary HIA Core instruction inventory
+nor any kernel/full-acceptance gate is promoted by this evidence.

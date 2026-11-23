@@ -1,3 +1,4 @@
+.include "race_config.inc"
 /* Isolated Multiboot1 x86-64 hardware oracle for staged privileged bytes.
  * Test-only GNU assembly: NOT HIA Core or a production kernel bridge.
  * effect.bin must come from the checked-out upstream staged encoder.
@@ -62,10 +63,28 @@ long_mode:
     movl %eax, (14*16+8)(%rdi)
     movw $8, (14*16+2)(%rdi)
     movb $0x8e, (14*16+5)(%rdi)
+
+.if RACE_MODE
+    /* Test-only #DB single-step observer: the staged effect bytes are unchanged. */
+    leaq handle_db(%rip), %rax
+    movw %ax, (1*16)(%rdi)
+    shrq $16, %rax
+    movw %ax, (1*16+6)(%rdi)
+    shrq $16, %rax
+    movl %eax, (1*16+8)(%rdi)
+    movw $8, (1*16+2)(%rdi)
+    movb $0x8e, (1*16+5)(%rdi)
+.endif
     lidt idt_ptr(%rip)
     /* Warm this 4KiB translation before native PTE revoke + INVLPG. */
     movl $0x400000, %eax
     movq (%rax), %r9
+.if RACE_MODE
+    /* Arm TF before the real staged effect. #DB intervenes at the CAS RIP. */
+    pushfq
+    orq $0x100, (%rsp)
+    popfq
+.endif
     call effect_start
     movabs $pt, %rax
     movq (%rax), %rbx
@@ -98,19 +117,49 @@ handle_pf:
     jmp halt
 
 handle_ud:
-    /* Reject only from the emitted UD2 and with unmodified PTE. */
+    /* Reject only from the emitted UD2, preserving the actual PTE word. */
     movq (%rsp), %rax
     leaq effect_end-2(%rip), %rdx
     cmpq %rdx, %rax
     jne fail
     movabs $pt, %rax
+.if RACE_MODE
+    /* Must retain the competing writer's word rather than overwrite it. */
+    cmpq $0x400023, (%rax)
+    jne fail
+    cmpl $1, race_seen(%rip)
+    jne fail
+.else
     cmpq $0x400063, (%rax)
     jne fail
+.endif
     movb $0x55, %al
     outb %al, $0xe9
     movb $0x22, %al
     outb %al, $0xf4
     jmp halt
+
+.if RACE_MODE
+handle_db:
+    /* #DB has RIP, CS, RFLAGS (no error code). Preserve all CAS operands.
+     * The RIP proves pre-read/compare and replacement MOV already executed;
+     * the next instruction is the original LOCK CMPXCHGQ.
+     */
+    pushq %rdx
+    leaq effect_start+CAS_OFFSET(%rip), %rdx
+    cmpq %rdx, 8(%rsp)
+    popq %rdx
+    jne db_resume
+    pushq %rax
+    movabs $pt, %rax
+    movq $0x400023, (%rax)
+    popq %rax
+    movl $1, race_seen(%rip)
+    /* Resume at the CAS with TF cleared: ZF=0 must branch to original UD2. */
+    andq $-257, 16(%rsp)
+db_resume:
+    iretq
+.endif
 
 fail:
     movb $0x46, %al
@@ -146,6 +195,9 @@ idt_ptr:
 .align 16
 idt:
     .skip 4096
+.align 4
+race_seen:
+    .skip 4
 
 .section .paging,"aw",@nobits
 .align 4096
