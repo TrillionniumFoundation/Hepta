@@ -36,6 +36,11 @@ SIMD_DETAIL_RECEIPT = int.from_bytes(b'HIASIMR2', 'little')
 SIMD_DETAIL_SLOT = 512
 SIMD_DELTA_SLOT = 520
 SIMD_ORDINAL_SLOT = 528
+SIMD_GUARD_SLOT = 536
+SIMD_ADVANCE_SLOT = 544
+SIMD_OTHER_ADVANCE_SLOT = 552
+SIMD_DECREMENT_SLOT = 560
+SIMD_COUNT_SLOT = 568
 SIMD_SUBJECT = int.from_bytes(b'HIASIMC1', 'little')
 SIMD_RECEIPT = int.from_bytes(b'HIASIMR1', 'little')
 REQUEST_HEAD = 48
@@ -246,9 +251,64 @@ def start_simd_induction(w:mutbuf) -> u64:
     if delta >= 128:
         return 0
     put(w, SIMD_DELTA_SLOT, delta)
+    put(w, SIMD_COUNT_SLOT, 0)
     put(w, SIMD_ORDINAL_SLOT, 1)
     put(w, 224, RECEIPT_HEAD)
     return send_simd_induction(w)
+
+def simd_immediate(w:mutbuf, at:u64, end:u64, rex:u64, modrm:u64) -> u64:
+    if end - at < 4 or byte(w, at) != rex or byte(w, at + 2) != modrm:
+        return 0
+    op = byte(w, at + 1)
+    if op == 131:
+        imm = byte(w, at + 3)
+        if imm == 0 or imm >= 128:
+            return 0
+        return (imm << 8) | 4
+    if op != 129 or end - at < 7:
+        return 0
+    imm = get(w, at + 3) & 4294967295
+    if imm == 0 or imm > 256:
+        return 0
+    return (imm << 8) | 7
+
+def simd_interval_obligation(w:mutbuf, width:u64) -> u64:
+    # Locate the update after its independently validated unsigned branch.
+    # Extract the live pointer advances and remaining-count decrement from
+    # linked text, including the second pointer for each copy.
+    at = BINDING + 80
+    end = at + get(w, 248)
+    guard = 0
+    count = 0
+    while at < end:
+        cmp = simd_immediate(w, at, end, 73, 250)
+        step = cmp & 255
+        if cmp != 0 and end - at >= step + 6:
+            if byte(w, at + step) == 15 and byte(w, at + step + 1) == 130:
+                guard = cmp >> 8
+        if end - at >= 9 and (get(w, at) & 1099511627775) == 567201137997:
+            guard = 1
+        add = simd_immediate(w, at, end, 72, 199)
+        if guard == width and add != 0:
+            next = at + (add & 255)
+            other = add
+            if get(w, SIMD_KIND_SLOT) == 3:
+                other = simd_immediate(w, next, end, 72, 194)
+                if other == 0:
+                    return 0
+                next = next + (other & 255)
+            dec = simd_immediate(w, next, end, 73, 234)
+            if dec == 0 or count != 0:
+                return 0
+            put(w, SIMD_GUARD_SLOT, guard)
+            put(w, SIMD_ADVANCE_SLOT, add >> 8)
+            put(w, SIMD_OTHER_ADVANCE_SLOT, other >> 8)
+            put(w, SIMD_DECREMENT_SLOT, dec >> 8)
+            count = count + 1
+        at = at + 1
+    if count != 1:
+        return 0
+    return simd_interval_step(w, width)
 
 def send_simd_induction(w:mutbuf) -> u64:
     role = get(w, SIMD_ORDINAL_SLOT)
@@ -265,7 +325,13 @@ def send_simd_induction(w:mutbuf) -> u64:
         extent = simd_abort_stack(w, delta)
     elif role == 3 and get(w, SIMD_ISA_SLOT) == 1:
         extent = simd_scalar_tail_exit(w, delta)
+    elif role >= 4 and role <= 6:
+        vector = 8 << get(w, SIMD_ISA_SLOT)
+        width = choose(role == 4, 4 * vector, choose(role == 5, vector, choose(vector == 16, 1, 16)))
+        extent = simd_interval_obligation(w, width)
     else:
+        return 0
+    if extent == 0:
         return 0
     put(w, HEADER, OBLIGATION_MAGIC)
     put(w, HEADER + 8, 3)
@@ -298,13 +364,15 @@ def receive_simd_induction(o:mutbuf, w:mutbuf) -> u64:
         put(o, cursor + 8, size)
         copy_output(o, w, OBLIGATION, cursor + 16, size)
         put(w, 224, cursor + 16 + size)
+    put(w, SIMD_COUNT_SLOT, get(w, SIMD_COUNT_SLOT) + 1)
     if verdict != expected:
         if detail == 0:
             return 0
         return finish_simd_receipt(o, w, 2)
-    if role == choose(get(w, SIMD_ISA_SLOT) == 1, 3, 2):
+    last = choose(get(w, SIMD_ISA_SLOT) == 1, 6, choose(get(w, SIMD_KIND_SLOT) == 3, 5, 6))
+    if role == last:
         return finish_simd_receipt(o, w, 1)
-    put(w, SIMD_ORDINAL_SLOT, role + 1)
+    put(w, SIMD_ORDINAL_SLOT, choose(role == 2, choose(get(w, SIMD_ISA_SLOT) == 1, 3, 4), role + 1))
     return send_simd_induction(w)
 
 def finish_simd_receipt(o:mutbuf, w:mutbuf, status:u64) -> u64:
@@ -318,7 +386,7 @@ def finish_simd_receipt(o:mutbuf, w:mutbuf, status:u64) -> u64:
     put(o, 40, 4)
     put(o, 48, get(w, 240))
     put(o, 56, get(w, 248))
-    put(o, 72, choose(detail == 1, get(w, SIMD_ORDINAL_SLOT), 0))
+    put(o, 72, choose(detail == 1, get(w, SIMD_COUNT_SLOT), 0))
     return get(w, 224)
 
 def join_observations(w:mutbuf) -> u64:

@@ -78,6 +78,28 @@ def abort_stack():
     return g.function('simd_abort_stack', g.both(entry, bad))
 
 
+def interval_step():
+    g = WordCircuit()
+    remaining = g.node(1, 64)
+    guard = g.constant('get(w, SIMD_GUARD_SLOT)')
+    advance = g.constant('get(w, SIMD_ADVANCE_SLOT)')
+    other_advance = g.constant('get(w, SIMD_OTHER_ADVANCE_SLOT)')
+    decrement = g.constant('get(w, SIMD_DECREMENT_SLOT)')
+    last_access = g.constant('delta')
+    enters = g.node(15, 1, remaining, guard)
+    # The original natural-number invariant has count = index + remaining and
+    # base + count < 2^64. Subtracting base+index from both endpoints reduces
+    # every offset/size bound to distance <= remaining. The independent grammar
+    # validates each nonnegative access offset, so checking the furthest end
+    # covers all accesses in a four-vector block as well as one-vector and tail
+    # steps. Equal advances preserve the pointer/count relation. A positive
+    # decrement fitting remaining makes the natural variant strictly decrease.
+    bad = g.either(g.node(14, 1, advance, remaining), g.node(14, 1, decrement, remaining),
+                   g.node(7, 1, decrement, g.constant(0)), g.node(8, 1, advance, decrement),
+                   g.node(8, 1, other_advance, decrement), g.node(14, 1, last_access, remaining))
+    return g.function('simd_interval_step', g.both(enters, bad))
+
+
 def scalar_tail_exit():
     g = WordCircuit()
     count, index = g.node(1, 64), g.node(1, 64)
@@ -114,4 +136,4 @@ def simd_miter(w:mutbuf, nodes:u64, predicate:u64, false:u64) -> u64:
 
 def source():
     return '\n\n'.join((TRANSPORT.replace('CIRCUIT_MAGIC', str(CIRCUIT_REQUEST)),
-                        caller_contract(False), caller_contract(True), abort_stack(), scalar_tail_exit()))
+                        caller_contract(False), caller_contract(True), abort_stack(), scalar_tail_exit(), interval_step()))
