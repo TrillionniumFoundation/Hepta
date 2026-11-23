@@ -75,5 +75,37 @@ sys.stdin.readline()
             client.rpc("tools/list", {})
 
 
+    def test_duplicate_jsonrpc_fields_are_rejected_before_id_matching(self):
+        samples = (
+            b'{"jsonrpc":"2.0","id":1,"id":2,"result":{}}\n',
+            b'{"jsonrpc":"2.0","id":1,"result":{"status":"completed","status":"rejected"}}\n',
+        )
+        for sample in samples:
+            with self.subTest(sample=sample):
+                client = object.__new__(MCPStdio)
+                client.pending_bytes = sample
+                with self.assertRaises(QualificationFailure):
+                    client._read_message(time.monotonic() + 2)
+
+    def test_nonfinite_and_malformed_jsonrpc_fields_are_rejected(self):
+        samples = (
+            b'{"jsonrpc":"2.0","id":1,"result":{"score":NaN}}\n',
+            b'{"jsonrpc":"2.0","id":1,"result":{"score":Infinity}}\n',
+            b'{"jsonrpc":"2.0","id":1,"result":\xff}\n',
+        )
+        for sample in samples:
+            with self.subTest(sample=sample):
+                client = object.__new__(MCPStdio)
+                client.pending_bytes = sample
+                with self.assertRaises(QualificationFailure):
+                    client._read_message(time.monotonic() + 2)
+
+    def test_valid_jsonrpc_wire_is_unchanged(self):
+        client = object.__new__(MCPStdio)
+        client.pending_bytes = b'{"jsonrpc":"2.0","id":1,"result":{"text":"valid"}}\n'
+        self.assertEqual(client._read_message(time.monotonic() + 2),
+                         {"jsonrpc": "2.0", "id": 1, "result": {"text": "valid"}})
+
+
 if __name__ == "__main__":
     unittest.main()

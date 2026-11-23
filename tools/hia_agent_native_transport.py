@@ -21,6 +21,26 @@ class QualificationFailure(AssertionError):
     pass
 
 
+def strict_jsonrpc_message(line):
+    """Reject ambiguous or non-JSON server frames before trusting any RPC id."""
+    def unique_fields(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON-RPC field: " + key)
+            result[key] = value
+        return result
+
+    def reject_constant(value):
+        raise ValueError("nonfinite JSON-RPC value: " + value)
+
+    try:
+        return json.loads(line, object_pairs_hook=unique_fields,
+                          parse_constant=reject_constant)
+    except (ValueError, UnicodeError) as error:
+        raise QualificationFailure("invalid MCP JSON-RPC frame: " + str(error)) from error
+
+
 class MCPStdio:
     """An actual newline-delimited MCP client with bounded waits and readback.
 
@@ -57,7 +77,7 @@ class MCPStdio:
             if b"\n" in self.pending_bytes:
                 line, self.pending_bytes = self.pending_bytes.split(b"\n", 1)
                 if line.strip():
-                    return json.loads(line)
+                    return strict_jsonrpc_message(line)
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError("MCP response deadline expired; operation outcome is unknown")
