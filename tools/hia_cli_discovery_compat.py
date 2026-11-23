@@ -25,7 +25,7 @@ WORD_FIXTURE_SHA256 = '278d8b2ae36291a849f195fa6a5627a0e5482d23d91135786eb93fd93
 DEFAULT_SUCCESSOR = ROOT / 'tests/fixtures/hia_cli_discovery_default_successor.json'
 DEFAULT_SUCCESSOR_SHA256 = 'e033a6674560cbdf044082e06f1f85163f425d5afd3ad51c21fdb580015ff39f'
 PROFILE_3123_SUCCESSOR = ROOT / 'tests/fixtures/hia_cli_native_3123_successor.json'
-PROFILE_3123_SUCCESSOR_SHA256 = '75cf583340c19d352d6c2c8814cbecbde7d343d0ec2e1714f76033c354909afd'
+PROFILE_3123_SUCCESSOR_SHA256 = '754ee74a576b3ea7c2309ec9cf39a255bf5590373077c12606789fa09c7d4d6b'
 WHEEL_TEST_SUCCESSOR = ROOT / 'tests/fixtures/hia_cli_native_wheel_test_successor.json'
 WHEEL_TEST_SUCCESSOR_SHA256 = '9d191fc37aca4f661bc50814ac61248655b6914efa6693daae8e9ca8c6b8d550'
 
@@ -215,6 +215,16 @@ def original_cli_source(name, normalized_current):
     word = word_fixture()
     expected_word = word['current_source_sha256'].get(name)
     if expected_word is not None:
+        if name in ('examples/hia_bootstrap/cli_control.hepta', 'examples/hia_bootstrap/cli_format.hepta'):
+            if sha256(normalized_current.encode()).hexdigest() != expected_word:
+                raw = PROFILE_3123_SUCCESSOR.read_bytes()
+                if sha256(raw).hexdigest() != PROFILE_3123_SUCCESSOR_SHA256:
+                    raise ValueError('CPython 3.12.3 CLI successor fixture changed')
+                compressed = json.loads(raw)['generated_assets'][name]
+                row = json.loads(zlib.decompress(base64.b64decode(compressed, validate=True)))
+                if row['name'] != name or row['previous_sha256'] != expected_word:
+                    raise ValueError('CPython 3.12.3 CLI asset predecessor identity differs')
+                normalized_current = _undo_cli_delta(name, normalized_current, row)
         change = _WORD_MEMORY_SUCCESSOR_EDITS.get(name)
         if change is not None:
             new, old = change
