@@ -5,12 +5,16 @@ from tools.generate_hia_readonly_worker_capsule import (
 )
 from tools.generate_hia_worker_evaluate_document_flow import ROLES as DOCUMENT_ROLES
 
+from tools.generate_hia_worker_evaluate_unkeyed_flow import ROLES as UNKEYED_ACTORS
+
 RUN_INPUT = 'hia-agent-evaluate-run-input-worker-carrier'
 PROOF = 'hia-agent-evaluate-proof-worker-carrier'
 PLANNER = 'hia-evaluate-run-plan'
 RUNNER = 'hia-agent-evaluate-run-worker-carrier'
 REPORT = 'hia-evaluate-report-flow'
 LEDGER = 'hia-evaluate-cost-ledger-flow'
+UNKEYED = 'hia-agent-evaluate-unkeyed-worker-carrier'
+UNKEYED_ROLES = tuple(name for _, name in UNKEYED_ACTORS)
 CLOSEOUT = 'hia-agent-evaluate-closeout-worker-carrier'
 PAID_ROLES = ('hia-agent-store', 'hia-execution-budget-session', 'hia-evaluate-budget-observation',
               'hia-evaluate-budget-store', 'hia-evaluate-paired-batch', 'hia-direct-call')
@@ -30,7 +34,7 @@ def inventory():
     replay, _, replay_roles = evaluate_route()
     return tuple(dict.fromkeys((*NATIVE_ROLES, *public_route()[2], RUN_INPUT, *PROOF_ROLES, PROOF, PLANNER,
                                 *PAID_ROLES, RUNNER, *REPORT_ROLES, REPORT, *LEDGER_ROLES, LEDGER,
-                                *CLOSE_ROLES, CLOSEOUT, *replay_roles, replay)))
+                                *CLOSE_ROLES, CLOSEOUT, *replay_roles, replay, *UNKEYED_ROLES, UNKEYED)))
 
 
 def child_calls(roles):
@@ -41,6 +45,7 @@ def child_calls(roles):
         ('paid', RUNNER, '--worker-evaluate-run', PAID_ROLES, 'PAID_DONE', False),
         ('closeout', CLOSEOUT, '--worker-evaluate-closeout', CLOSE_ROLES, 'CLOSED', False),
         ('replay', *evaluate_route(), 'WORKER_DONE', False),
+        ('unkeyed', UNKEYED, '--worker-evaluate-unkeyed', UNKEYED_ROLES, 'WORKER_DONE', False),
     )
     text = []
     for label, executable, mode, children, state, trust in jobs:
@@ -50,7 +55,7 @@ def child_calls(roles):
             text.append(f'    put(o,{448+i},{int.from_bytes(raw[i:i+8], "little")})')
         text += ['    argv(o,0,LITERAL_ARG,448)', '    argv(o,1,INPUT_ARG,1)', '    argv(o,2,INPUT_ARG,2)',
                  '    argv(o,3,FD_ARG,get(w,PART_TABLE))',
-                 f'    argv(o,4,FD_ARG,get(w,{"PART_TABLE+24" if label == "replay" else "DISCOVERY_META"}))']
+                 f'    argv(o,4,FD_ARG,get(w,{"PART_TABLE+24" if label in ("replay", "unkeyed") else "DISCOVERY_META"}))']
         count = 5
         for i, role in enumerate(children):
             if trust and i == len(EMIT_ROLES):
@@ -92,6 +97,10 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
                 return BAD
             fragment(o,0,fd,0,size)
             return issue(o,w,PUBLISHED,PUBLISH,0,0,1,0)
+        if capsule_word(s,64) == UNKEYED_HANDOFF:
+            if length(s) < 88 or size < 26 or capsule_word(s,72) == 0 or capsule_word(s,80) != size - 24:
+                return BAD
+            return full_unkeyed(o,w,fd,size)
         if length(s) < 104 or capsule_word(s,64) != PREPARED or size < 40:
             return BAD
         begin = capsule_word(s,72)
@@ -221,7 +230,7 @@ def compose(source, roles):
 
 
 def bindings(roles):
-    labels = dict(PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
+    labels = dict(UNKEYED_HANDOFF=b'HIAENK01', PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
                   PAID=b'HIAEXO01', JOURNAL=b'HIAEJC01', ARCHIVE=b'HIAEMT01', BUDGET=b'HIAEBRS1',
                   CLOCK_WIRE=b'HIAEMC01', REPORT_FRAME=b'HIAEMF01', CLOSING=b'HIAEFC01')
     values = {k: int.from_bytes(v, 'little') for k, v in labels.items()}

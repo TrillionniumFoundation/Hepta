@@ -36,6 +36,17 @@ def run_input_recipe(driver, policy, controls, constants):
     entry = next(i for i, item in enumerate(controls) if item.lstrip().startswith('def artifact_entry('))
     controls[entry] = controls[entry].replace('return start_replay(o, w)',
                                               'return clock_sample(o, w, ENTRY_TICK, 0)')
+    driver = driver.replace('return next == 1 and status == 0',
+                            'return (next == 1 or next == 11) and status == 0')
+    constants['UNKEYED_HANDOFF'] = int.from_bytes(b'HIAENK01', 'little')
+    policy = policy.replace('    if stage == 0:\n        return open_store(o, w, OPEN_LOOKUP)', '''    if stage == 0:
+        if next == 11 and get(w, CLAIM_ACTIVE) == 0:
+            put(o, HEADER, UNKEYED_HANDOFF)
+            put(o, HEADER + 8, get(w, 64))
+            put(o, HEADER + 16, slot_bytes(w, ORIGINAL))
+            whole_slot(w, o, ORIGINAL, 0)
+            return action(o, w, INTAKE_PUBLISHED, PUBLISH, 0, 0, 1, 24)
+        return open_store(o, w, OPEN_LOOKUP)''')
     driver = driver.replace('    if state == REQUEST_ADMITTED:', '''    if state == RUN_INPUT_MADE:
         size = input_word(s,40)
         if size < 648 or input_word(s,64) != RUN_INPUT:
