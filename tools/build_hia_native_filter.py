@@ -20,9 +20,11 @@ PACKER = 'native-filter'
 
 def build_filter(output: Path, compiler: Path, cold_report: Path, *,
                  application: str, filename: str, schema: str,
-                 packer=PACKER, magic=MAGIC) -> Path:
+                 packer=PACKER, magic=MAGIC, adapter=None) -> Path:
     roles = application, packer
     sources = tuple(ROOT / 'examples/hia_bootstrap' / (CANDIDATES[role][0] + '.hepta') for role in roles)
+    if adapter is not None:
+        sources += (ROOT / adapter,)
     pins = {path: path.read_bytes() for path in (compiler, cold_report, *sources)}
     admitted = admit_cold_build(pins[compiler], pins[cold_report])
     if any(admitted.get(path.relative_to(ROOT).as_posix()) != sha256(pins[path]).hexdigest()
@@ -47,6 +49,11 @@ def build_filter(output: Path, compiler: Path, cold_report: Path, *,
     receipt, packed = invoke(output, 'native-pack', packer_image, frame)
     executable_bytes = _check_pack_output(receipt, packed, artifact=pins[packer_image], source=frame)
     inspection = inspect_executable(executable_bytes)
+    if adapter is not None:
+        from tools.generate_hia_native_filter import read_adapter_binding, verify_adapter
+
+        binding = read_adapter_binding(pins[sources[1]], pins[ROOT / adapter], calls=1)
+        verify_adapter(executable_bytes, application_bytes, binding, entries=(0,))
     if any(path.read_bytes() != before for path, before in pins.items()) or current_sources() != admitted:
         raise ValueError(f'{application} filter build input changed')
     executable = output / filename
@@ -71,14 +78,27 @@ def build_evaluate_projector(output, compiler, cold_report):
                         filename='hia-evaluate-projector', schema='hepta.hia.evaluate-projector-filter-build.v1')
 
 
+def build_evaluate_reference_batch(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_reference_batch import ADAPTER, PACK_MAGIC
+
+    return build_filter(output, compiler, cold_report, application='evaluate-reference-batch',
+                        packer='evaluate-reference-batch-packer', magic=PACK_MAGIC, adapter=ADAPTER,
+                        filename='hia-evaluate-reference-batch',
+                        schema='hepta.hia.evaluate-reference-batch-build.v1')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire'),
+    parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
+                                                  'evaluate-reference-batch'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + flag, type=Path, required=True)
     args = parser.parse_args()
     output, compiler, cold_report = args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()
+    if args.application == 'evaluate-reference-batch':
+        print(build_evaluate_reference_batch(output, compiler, cold_report))
+        return
     if args.application == 'evaluate-reference-wire':
         print(build_evaluate_projector(output, compiler, cold_report))
         return
