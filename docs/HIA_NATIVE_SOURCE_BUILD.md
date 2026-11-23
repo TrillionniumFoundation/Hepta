@@ -218,3 +218,14 @@ module and any required companion identities, recompiles all supplied sources,
 then frames and checks the resulting ELF. The installed-role tests compare
 each output against a separately built release and exercise changed images
 and missing companion inputs.
+
+## Linking and transport tools
+
+The release uses HIA source recipes for the static, direct shared and
+verified shared ELF linkers, Worker request preparation, the CNF solver,
+direct calls, job receipts and the scalar reference executor. Supply the
+application under the target filename plus `.hepta`. The HIA member policy
+checks that the name matches the source module and rebuilds the image before
+running its packer. Direct-call, job-receipt and scalar-reference builds also
+verify their original syscall adapter source, relocated call and full embedded
+image against the finished executable.

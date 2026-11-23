@@ -57,15 +57,11 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
         component('core_admission_cli', **{kind: True})
     for kind in ('installer', 'directory'):
         component('release_install', kind=kind)
-    for kind in ('static', 'verified-shared', 'direct-shared'):
-        component('elf_linker', kind=kind)
     for name in ('agent_artifact_capture', 'worker_read_release', 'core_patch_result_cli',
-                 'core_workspace_pipeline', 'source_build', 'worker_prepare', 'proof_cnf',
-                 'release_selection', 'supplied_safe_core_proof', 'scalar_reference_cli',
+                 'core_workspace_pipeline', 'source_build',
+                 'release_selection', 'supplied_safe_core_proof',
                  'owned_reference_cli', 'nominal_constructor'):
         component(name)
-    component('direct_call', role='job-receipt')
-    component('direct_call')
     component('agent_stdio', output_profile='elf')
 
     with TemporaryDirectory(prefix='standalone-', dir=work) as tmp:
@@ -146,6 +142,22 @@ def _source_worker_recipes():
         yield name, Path(packer).name, sources
 
 
+def _source_tool_recipes():
+    from tools.build_hia_direct_call import ROLES
+    from tools.build_hia_elf_linker import LINKERS
+    from tools.build_hia_json_preflight import CANDIDATES
+    from tools.generate_hia_native_filter import REFERENCE_CLI_PACKER
+
+    for application, name in (('worker-prepare', 'hia-worker-prepare'), ('cnf', 'hia-proof-cnf')):
+        yield name, 'native_filter_packer.hepta', {name + '.hepta': CANDIDATES[application][0] + '.hepta'}
+    for application, packer, _magic, name, _inputs in LINKERS.values():
+        yield name, CANDIDATES[packer][0] + '.hepta', {name + '.hepta': CANDIDATES[application][0] + '.hepta'}
+    for role, (source, packer, _adapter, _magic, _label) in ROLES.items():
+        name = 'hia-' + role
+        yield name, Path(packer).name, {name + '.hepta': Path(source).name}
+    yield 'hia-reference-wire', Path(REFERENCE_CLI_PACKER).name, {'hia-reference-wire.hepta': 'scalar_reference.hepta'}
+
+
 def _source_member_recipes():
     """Map published names to checked-in HIA inputs. Framing and modes belong to HIA."""
     for role in STDIO_ROLES:
@@ -172,6 +184,7 @@ def _source_member_recipes():
         yield name, packer + '.hepta', {stem + '.hepta': stem + '.hepta'}
 
     yield from _source_worker_recipes()
+    yield from _source_tool_recipes()
 
 
 def _stage_source_members(work, stage, admitted, members, publish):
@@ -185,6 +198,13 @@ def _stage_source_members(work, stage, admitted, members, publish):
     seed = captured('hia-source-build')
     pack_directory = captured('hia-directory-package-build')
     builders = {}
+
+    # These products bind their non-relocated syscall adapter and image entry
+    # separately as part of the original build contract.
+    from tools.build_hia_direct_call import ROLES as direct_roles
+    from tools.generate_hia_native_filter import REFERENCE_CLI_ADAPTER, read_adapter_binding, verify_adapter
+    adapter_files = {'hia-' + role: info[2] for role, info in direct_roles.items()}
+    adapter_files['hia-reference-wire'] = REFERENCE_CLI_ADAPTER
 
     def call(program, operation, wire):
         result = _run_captured(program, operation, wire, work)
@@ -210,15 +230,25 @@ def _stage_source_members(work, stage, admitted, members, publish):
                 raise ValueError('native source directory receipt differs from its bytes')
         compiled = call(seed, 'build', packed.stdout)
         # Authenticate the actual source copies read by both native programs.
-        _compiled_sources(compiled, pinned)
-        return compiled
+        return compiled, _compiled_sources(compiled, pinned)
 
     for name, packer, sources in _source_member_recipes():
         if packer not in builders:
-            kit = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
-                                   'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
+            kit, _ = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
+                                      'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
             builders[packer] = call(seed, 'pack', kit)
-        product = call(builders[packer], 'build', compile_sources(sources))
+        group, images = compile_sources(sources)
+        product = call(builders[packer], 'build', group)
+        if name in adapter_files:
+            adapter_file = adapter_files[name]
+            packer_file = 'examples/hia_bootstrap/' + packer
+            adapter_source = (ROOT / adapter_file).read_bytes()
+            packer_source = (ROOT / packer_file).read_bytes()
+            if (sha256(adapter_source).hexdigest() != admitted.get(adapter_file) or
+                    sha256(packer_source).hexdigest() != admitted.get(packer_file)):
+                raise ValueError('release tool adapter differs from the cold source: ' + name)
+            binding = read_adapter_binding(packer_source, adapter_source, calls=1)
+            verify_adapter(product, images[name + '.hepta'], binding, entries=(0,))
         if not product.startswith(b'\x7fELF'):
             raise ValueError('native source member returned an invalid release program: ' + name)
         with NamedTemporaryFile(dir=work, prefix='native-member-') as stream:

@@ -148,3 +148,20 @@ class InstalledSourceMemberTests(unittest.TestCase):
                     self.invoke([builder, 'build'], missing, refused=True)
         self.assertTrue({'hia-agent-verify-worker-carrier', 'hia-agent-evaluate-full-launcher',
                          'hia-agent-context-control-launcher', 'hia-agent-evaluate-unkeyed-worker-carrier'} <= products)
+
+    def test_source_to_installed_linkers_reference_executor_and_transport_tools(self):
+        from tools.build_hia_native_store_release import _source_tool_recipes
+
+        builders = {}
+        for name, packer, sources in _source_tool_recipes():
+            with self.subTest(name=name):
+                if packer not in builders:
+                    builders[packer] = self.member_builder(self.work / packer, packer)
+                inputs = {alias: self.sources / source for alias, source in sources.items()}
+                images = self.source_images(self.work / name, inputs)
+                self.assertEqual(self.invoke([builders[packer], 'build'], images), (self.release / name).read_bytes())
+                self.invoke([builders[packer], 'build'], images[:-1] + bytes([images[-1] ^ 1]), refused=True)
+                other = self.sources / ('cnf.hepta' if 'cnf.hepta' not in sources.values() else 'worker_prepare.hepta')
+                alias, = sources
+                mismatch = self.source_images(self.work / 'alias-mismatch', {alias: other})
+                self.invoke([builders[packer], 'build'], mismatch, refused=True)
