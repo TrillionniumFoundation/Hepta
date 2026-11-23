@@ -264,6 +264,32 @@ class _CapturedCells:
         return _CapturedCells({name: self.cells[name] for name in names})
 
 
+class _AcyclicInvocation:
+    """Keep the recursive edge and its four lexical cells without retaining its parent frame."""
+
+    __slots__ = ('image', 'namespace', 'global_builtins', 'import_capsules',
+                 'blocks', 'visiting', 'done', 'recursive')
+
+    def __init__(self, frame):
+        self.image = frame.image
+        self.namespace = frame.namespace
+        self.global_builtins = frame.global_builtins
+        self.import_capsules = frame.import_capsules
+        cells = frame._capture('blocks', 'visiting', 'done', 'acyclic').cells
+        self.blocks = cells['blocks']
+        self.visiting = cells['visiting']
+        self.done = cells['done']
+        self.recursive = cells['acyclic']
+
+    def acyclic(self, name):
+        cells = _CapturedCells({'blocks': self.blocks, 'visiting': self.visiting,
+                                'done': self.done, 'acyclic': self.recursive})
+        frame = ServiceVerificationFrame(self.image, ACYCLIC, {'name': name, 'cells': cells},
+            namespace=self.namespace, global_builtins=self.global_builtins, import_capsules=self.import_capsules)
+        del name, cells, self
+        return frame.finish()
+
+
 def _verification_generator(image, mode, iterator, cells, namespace, captured, imports):
     # Python supplies actual generator entry/send/throw/close/gi_running and
     # PEP479. Iteration, predicates, values and stopping are HIA-owned. The
@@ -384,14 +410,7 @@ class ServiceVerificationFrame:
             self.namespace, self.global_builtins, self.import_capsules)
 
     def _make_acyclic(self):
-        image, namespace, captured = self.image, self.namespace, self.global_builtins
-        imports, cells = self.import_capsules, self._capture('blocks', 'visiting', 'done', 'acyclic')
-        def acyclic(name):
-            frame = ServiceVerificationFrame(image, ACYCLIC, {'name': name, 'cells': cells},
-                namespace=namespace, global_builtins=captured, import_capsules=imports)
-            del name
-            return frame.finish()
-        return acyclic
+        return _AcyclicInvocation(self).acyclic
 
     def _make_finish(self, evidence):
         image, namespace, captured = self.image, self.namespace, self.global_builtins

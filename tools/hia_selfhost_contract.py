@@ -904,6 +904,7 @@ SOURCE_FILES = (
     'tests/fixtures/store_evaluate_delivery_successor.json',
     'tests/fixtures/store_caller_worker_helpers_successor.json',
     'tests/hia_historical_diagnostic_controls.py',
+    'tests/hia_independent_vm.py',
     'tests/fixtures/caller_terminal_store_composition_v1.json',
     'tests/fixtures/delivery_component_successor.json',
     'docs/HIA_ARTIFACT_DELIVERY.md',

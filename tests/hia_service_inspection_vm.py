@@ -8,6 +8,7 @@ import struct
 
 # Resolve the independent VM before the oracle installs isolated provider modules.
 from hepta import hia_program_runtime as _runtime
+from tests.hia_independent_vm import IndependentMachine
 
 CASES = (
     'inspect-summary-outer-0',
@@ -20,10 +21,10 @@ CASES = (
 
 
 def vm_call(program, request, output, retained):
-    _Machine, _Owner, _View = _runtime._Machine, _runtime._Owner, _runtime._View
+    _Owner, _View = _runtime._Owner, _runtime._View
     owners = [_Owner(index + 1, bytearray(value))
               for index, value in enumerate((request, output, retained))]
-    machine = _Machine(program, 2_000_000, 16 << 20, None, 128)
+    machine = IndependentMachine(program, 2_000_000, 16 << 20, None, 128)
     code = machine.invoke(machine.functions['f0'],
         [_View(owner, index != 0) for index, owner in enumerate(owners)])[0]
     if bytes(owners[0].data) != request:

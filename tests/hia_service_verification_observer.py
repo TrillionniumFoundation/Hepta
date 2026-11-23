@@ -2,9 +2,11 @@
 from __future__ import annotations
 import argparse
 import ctypes
+import gc
 from hashlib import sha256
 import json
 import platform
+import signal  # Build the standard enum classes before measuring a provider lifetime.
 from pathlib import Path
 import sys
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,11 +35,12 @@ class VMEntry:
         from hepta.hia_program_runtime_prepared import prepare_runtime_program
         self.program, self.calls = prepare_runtime_program(program), 0
     def __call__(self, source, size, output, capacity, state, extent):
-        from hepta.hia_program_runtime import _Machine, _Owner, _View
+        from hepta.hia_program_runtime import _Owner, _View
+        from tests.hia_independent_vm import IndependentMachine
         raw = ctypes.string_at(source, size)
         owners = [_Owner(i + 1, bytearray(x)) for i, x in enumerate((
             raw, ctypes.string_at(output, capacity), ctypes.string_at(state, extent)))]
-        machine = _Machine(self.program, 4_000_000, 16 << 20, None, 128)
+        machine = IndependentMachine(self.program, 4_000_000, 16 << 20, None, 128)
         code = machine.invoke(machine.functions['f0'],
                               [_View(owner, i != 0) for i, owner in enumerate(owners)])[0]
         if bytes(owners[0].data) != raw:
@@ -266,6 +269,9 @@ def run(lane, inputs_path, output, expected_path=None, manifest=None):
              (output / 'raw-tracebacks.jsonl').open('xb') as tracebacks, \
              (output / 'differences.jsonl').open('xb') as diffs:
             for case in cases:
+                # A retained-error observation counts garbage from this case only.
+                if case.get('explicit_gc'):
+                    gc.collect()
                 try:
                     observed, raw_tracebacks = oracle.observe_case(case, factory=oracle.original_factory if factory is None else factory)
                 finally:

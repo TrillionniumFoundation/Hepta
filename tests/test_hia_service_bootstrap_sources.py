@@ -17,9 +17,11 @@ class ServiceBootstrapStaticSourceTests(unittest.TestCase):
     def test_five_original_definitions_signatures_and_retained_prefix(self):
         raw=(ROOT/'hepta/hia_agent_service.py').read_bytes()
         frozen=json.loads((FIXTURE/'source-identity.json').read_bytes())
-        prefix=raw[:frozen['service']['bytes']]
+        from tests.hia_store_delivery_successor import retained_bootstrap_service
+        historical=retained_bootstrap_service(raw)
+        prefix=historical[:frozen['service']['bytes']]
         self.assertEqual(sha256(prefix).hexdigest(),frozen['service']['sha256'])
-        source=raw.decode();lines=source.splitlines(keepends=True)
+        source=historical.decode();lines=source.splitlines(keepends=True)
         cls=next(n for n in ast.parse(source).body if isinstance(n,ast.ClassDef) and n.name=='HIAAgentService')
         for expected in frozen['methods']:
             node=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name==expected['name'])
@@ -29,6 +31,7 @@ class ServiceBootstrapStaticSourceTests(unittest.TestCase):
             self.assertEqual(actual,original)
             self.assertEqual(sha256(original).hexdigest(),expected['sha256'])
             self.assertEqual(len(original),expected['bytes'])
+        source=raw.decode()
         for mode,name in enumerate(NAMES,1):
             self.assertIn('HIAAgentService.'+name+' = _service_bootstrap_dispatch_'+name,source)
         self.assertNotIn('gc.collect(',source[len(prefix.decode()):])
@@ -72,12 +75,24 @@ class ServiceBootstrapStaticSourceTests(unittest.TestCase):
         for name,count in (('ordinary',112),('journal',21),('context',15)):
             self.assertEqual(len(scopes[name]['ordered_ids']),count)
             self.assertEqual(scopes[name]['outer_seconds'],1800)
-            from tools.qualify_hia_service_bootstrap_callers import admit_original_scope
-            admitted,proof=admit_original_scope(ROOT,name)
+            from tests.hia_historical_diagnostic_controls import checked_bootstrap_scope
+            admitted,proof=checked_bootstrap_scope(ROOT,name,scopes)
             self.assertEqual(admitted,scopes[name])
             self.assertEqual(proof['original_files'],scopes[name]['files'])
             self.assertEqual(proof['original_ordered_ids'],scopes[name]['ordered_ids'])
             self.assertTrue(proof['terminal_reread_identical'])
             self.assertEqual(proof['production_source_exceptions'],[])
+            from tools.qualify_hia_service_bootstrap_callers import bind_scope_admission_to_source_capture
+            physical = {path: sha256((ROOT / path).read_bytes()).hexdigest() for path in proof['captured_files']}
+            bind_scope_admission_to_source_capture(proof, physical)
+
+    def test_historical_service_inverse_refuses_changed_physical_input(self):
+        from tests.hia_store_delivery_successor import retained_bootstrap_service
+        physical = (ROOT / 'hepta/hia_agent_service.py').read_bytes()
+        for offset in (0, len(physical) // 2, len(physical) - 1):
+            changed = bytearray(physical)
+            changed[offset] ^= 1
+            with self.subTest(offset=offset), self.assertRaises(ValueError):
+                retained_bootstrap_service(bytes(changed))
 if __name__=='__main__':
     unittest.main()
