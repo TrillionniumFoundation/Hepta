@@ -75,10 +75,10 @@ def child_calls(roles):
 
 
 STATES = ('INPUT_CLASSIFIED PROOF_DONE PLAN_DONE PAID_DONE CLAIM_MADE ARCHIVE_MADE RECEIPT_MADE '
-          'TIMING_MADE REPORT_DONE LEDGER_DONE CLOSE_LEADING CLOSE_INPUT CLOSED SCHEMA_DIAG SCHEMA_MADE EXPECT_HEAD EXPECT_TAIL EXPECT_READY').split()
+          'TIMING_MADE REPORT_DONE LEDGER_DONE CLOSE_LEADING CLOSE_INPUT CLOSED SCHEMA_DIAG SCHEMA_MADE EXPECT_HEAD EXPECT_TAIL EXPECT_READY BUILD_TICKET BUILD_HASHED BUILD_COMPARED').split()
 FIELDS = ('PREP_FD PREP_BYTES CLAIM_BYTES ADMITTED_BYTES CALL_BYTES ADMITTED_AT CALL_AT ENTRY_TIME '
           'PAID_FD ARCHIVE_BYTES RECEIPT_BYTES CLAIM_FD ARCHIVE_FD RECEIPT_FD REPORT_FD REPORT_BYTES '
-          'LEDGER_FD LEDGER_BYTES REFUSAL_FD REFUSAL_BYTES EXPECT_FD EXPECT_INDEX EXPECT_HEAD_FD PENDING_BUILD_REASON').split()
+          'LEDGER_FD LEDGER_BYTES REFUSAL_FD REFUSAL_BYTES EXPECT_FD EXPECT_INDEX EXPECT_HEAD_FD PENDING_BUILD_REASON ADMITTED_FD ADMITTED_LENGTH').split()
 
 POLICY = '''
 def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
@@ -89,6 +89,8 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     if state == INPUT_CLASSIFIED or state == PROOF_DONE or state == PAID_DONE or state == CLOSED:
         if capsule_word(s,48) != 15:
             return BAD
+    if state >= BUILD_TICKET and state <= BUILD_COMPARED:
+        return confirm_build_refusal(s,o,w,state)
     if state == INPUT_CLASSIFIED:
         if length(s) < 72:
             return BAD
@@ -148,7 +150,7 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
         if reason != 0:
             if size != 80 or capsule_word(s,64) != BUILD_REFUSAL or capsule_word(s,72) != reason:
                 return BAD
-            return full_closeout(o,w,get(w,REFUSAL_FD),get(w,REFUSAL_BYTES))
+            return read_span(o,w,BUILD_TICKET,fd,0,80)
         if size < 80 or capsule_word(s,64) != PROVED:
             return BAD
         put(o,HEADER,PLAN_QUERY)
@@ -274,11 +276,65 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     if state == CLOSED and byte(s,64) == 123:
         return full_replay(o,w,get(w,REQUEST_FD),get(w,REQUEST_BYTES))
     return BAD
+
+def confirm_build_refusal(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
+    fd = capsule_word(s,32)
+    size = capsule_word(s,40)
+    if state == BUILD_TICKET:
+        if length(s) != 144 or capsule_word(s,64) != BUILD_REFUSAL or capsule_word(s,72) != get(w,PENDING_BUILD_REASON):
+            return BAD
+        copy_span(s,w,80,BUILD_DIGEST,64)
+        put(o,448,STORE_HASH)
+        put(o,456,STORE_HASH_END)
+        put(o,472,45)
+        argv(o,0,LITERAL_ARG,448)
+        argv(o,1,INPUT_ARG,1)
+        argv(o,2,LITERAL_ARG,472)
+        fragment(o,0,get(w,ADMITTED_FD),0,get(w,ADMITTED_LENGTH))
+        child_name(o,HASH_ROLE)
+        return issue(o,w,BUILD_HASHED,RUN,role_fd(w,HASH_ROLE),3,1,0)
+    if state == BUILD_HASHED:
+        if size < 88 or size > 94:
+            return BAD
+        # The descriptor kernel seals ordinary hash stdout after the child exits.
+        return read_span(o,w,BUILD_COMPARED,fd,0,size)
+    if state != BUILD_COMPARED or verified_build_digest(s,w,size) == False:
+        return BAD
+    return full_closeout(o,w,get(w,REFUSAL_FD),get(w,REFUSAL_BYTES))
+
+def verified_build_digest(s:readbuf,w:mutbuf,size:u64) -> bool:
+    if length(s) != 64+size or size < 88 or size > 94:
+        return False
+    if capsule_word(s,64) != HASH_START or (capsule_word(s,72) & 16777215) != HASH_VALUE or capsule_word(s,139) != HASH_END:
+        return False
+    if byte(s,147) != 34 or byte(s,148) != 58 or byte(s,length(s)-2) != 125 or byte(s,length(s)-1) != 10:
+        return False
+    i = 0
+    while i < 64:
+        if byte(s,75+i) != byte(w,BUILD_DIGEST+i):
+            return False
+        i = i+1
+    at = 149
+    count = 0
+    if byte(s,at) == 48:
+        return False
+    while at < length(s)-2:
+        digit = byte(s,at)
+        if digit < 48 or digit > 57:
+            return False
+        count = 10*count+digit-48
+        at = at+1
+    return count == get(w,ADMITTED_LENGTH)
+
+
 '''
 
 
 def compose(source, roles):
     source = source.replace('bytes > MAX_REQUEST + 1 or offset', 'bytes > MAX_PRIVATE or offset')
+    source = source.replace('        return ask_authority(o, w, ROUTE_BOUND, 3, 0, fd, size)',
+                            '        put(w,ADMITTED_FD,fd)\n        put(w,ADMITTED_LENGTH,size)\n'
+                            '        return ask_authority(o, w, ROUTE_BOUND, 3, 0, fd, size)')
     source = source.replace('    return dispatch(s, o, w, state)',
                             '    if state >= INPUT_CLASSIFIED:\n        return full_next(s,o,w,state)\n'
                             '    return dispatch(s, o, w, state)')
@@ -294,13 +350,14 @@ def compose(source, roles):
 
 def bindings(roles):
     labels = dict(UNKEYED_HANDOFF=b'HIAENK01', KEYED_REFUSAL=b'HIAERJ01',EXPECTED_REFUSAL=b'HIAEXR01', SCHEMA_QUERY=b'HIAESQ01', KEYED_SCHEMA=b'HIAESR01',
-                  ERROR_START=b'{"code":', SCHEMA_START=b'"E_HIA_S', PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', BUILD_REFUSAL=b'HIAEFP01', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
+                  ERROR_START=b'{"code":', SCHEMA_START=b'"E_HIA_S', PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', BUILD_REFUSAL=b'HIAEFP01', STORE_HASH=b'store-ha', STORE_HASH_END=b'sh',
+                  HASH_START=b'{"sha256', HASH_VALUE=b'":"', HASH_END=b'","bytes', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
                   PAID=b'HIAEXO01', JOURNAL=b'HIAEJC01', ARCHIVE=b'HIAEMT01', BUDGET=b'HIAEBRS1',
                   CLOCK_WIRE=b'HIAEMC01', REPORT_FRAME=b'HIAEMF01', CLOSING=b'HIAEFC01')
     values = {k: int.from_bytes(v, 'little') for k, v in labels.items()}
     values.update({n: 32+i for i, n in enumerate(STATES)})
     values.update({n: 2400+8*i for i, n in enumerate(FIELDS)})
-    values.update(MAX_PRIVATE=64<<20, PLANNER_ROLE=roles.index(PLANNER), REPORT_ROLE=roles.index(REPORT),
+    values.update(BUILD_DIGEST=2856,HASH_ROLE=roles.index('hia-artifact'),MAX_PRIVATE=64<<20, PLANNER_ROLE=roles.index(PLANNER), REPORT_ROLE=roles.index(REPORT),
                   LEDGER_ROLE=roles.index(LEDGER), DIAGNOSTIC_ROLE=roles.index('hia-agent-evaluate-diagnostic'))
     return values
 

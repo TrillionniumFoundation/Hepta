@@ -92,3 +92,36 @@ class KeyedSchemaCloseoutTests(unittest.TestCase):
                 self.assertEqual(json.loads(output[512:count])['error'],
                                  {'code': code, 'details_artifact': None, 'message': message,
                                   'phase': 'execution', 'retry_action': 'correct_input'})
+
+class BuildRefusalDigestTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from tools.generate_hia_worker_evaluate_launcher import bindings, inventory
+        from tools.generate_hia_worker_launcher_flow import program as launcher_program
+        from tools.generate_hia_worker_flow_packer import FULL_LAUNCHER_POLICY
+        root = Path(__file__).resolve().parents[1]
+        cls.checked = assemble_program((root / FULL_LAUNCHER_POLICY).read_bytes())
+        nodes = ast.parse(launcher_program(evaluate_full=True)).body
+        index = next(i for i,node in enumerate(nodes) if node.name == 'verified_build_digest')
+        cls.verify = next(fn for fn in cls.checked.as_dict()['functions'] if fn['name'] == f'f{index}')
+        cls.fields = bindings(inventory())
+
+    def confirmed(self, digest, data):
+        work = bytearray(16384)
+        at = self.fields['BUILD_DIGEST']
+        work[at:at+64] = digest
+        struct.pack_into('<Q',work,self.fields['ADMITTED_LENGTH'],1234)
+        vm = _Machine(self.checked, 1000000, 1 << 20, None, 128)
+        result, = vm.invoke(self.verify, [_View(_Owner(-1,bytearray(64)+data),False),
+                                          _View(_Owner(-2,work),True),len(data)])
+        return result
+
+    def test_rejection_requires_hash_and_size_of_the_same_admitted_request(self):
+        digest = b'c' * 64
+        line = b'{"sha256":"' + digest + b'","bytes":1234}\n'
+        self.assertTrue(self.confirmed(digest,line))
+        for altered in (line.replace(b'c',b'd',1), line.replace(b'1234',b'1235'),
+                        line.replace(b'1234',b'01234'), line.replace(b'bytes',b'octet'),
+                        line[:-1], line+b' '):
+            with self.subTest(altered=altered):
+                self.assertFalse(self.confirmed(digest,altered))
