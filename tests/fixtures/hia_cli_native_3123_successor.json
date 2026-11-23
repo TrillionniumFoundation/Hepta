@@ -1,0 +1,27 @@
+{
+  "name": "hepta/hia_cli_native.py",
+  "current_sha256": "5343ade1cc156af32244b13e2170a47f08dd789791c75df65872b5b344d47563",
+  "previous_sha256": "d2fc5262e1475ea41fa492ed0d43934ed1ed054747fce23ef29c777949b55a2e",
+  "deltas": [
+    {
+      "first": 8,
+      "previous": "The presentation profiles are ordinary English CPython 3.12.14, 3.14.4 and 3.14.10,\n",
+      "current": "The presentation profiles are ordinary English CPython 3.12.3, 3.12.14, 3.14.4 and 3.14.10,\n"
+    },
+    {
+      "first": 34,
+      "previous": "RUNTIME_PROFILES = {(3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}\n",
+      "current": "RUNTIME_PROFILES = {(3, 12, 3): 3123, (3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}\n"
+    },
+    {
+      "first": 103,
+      "previous": "        raise RuntimeError(\"selected native CLI requires its pinned CPython 3.12.14, 3.14.4 or 3.14.10 profile\")\n",
+      "current": "        raise RuntimeError(\"selected native CLI requires its pinned CPython 3.12.3, 3.12.14, 3.14.4 or 3.14.10 profile\")\n"
+    },
+    {
+      "first": 231,
+      "previous": "",
+      "current": "        if native_cli_profile() == 3123 and SELECTOR not in os.environ:\n            argv = sys.argv[1:] if argv is None else list(argv)\n            if any(type(argument) is not str for argument in argv):\n                return cli._reference_hia_main(argv, package_discovery=True)\n"
+    }
+  ]
+}

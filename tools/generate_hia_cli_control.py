@@ -76,7 +76,7 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return control_refuse(w)
     argc = read64(s, 16)
     profile = read64(s, 24)
-    if profile != 312 and profile != 314 and profile != 31410:
+    if profile != 312 and profile != 3123 and profile != 314 and profile != 31410:
         return control_refuse(w)
     if argc > (length(s) - 192) >> 4:
         return control_refuse(w)
@@ -252,7 +252,7 @@ def token_find(s:readbuf, w:mutbuf, scope:u64, begin:u64, size:u64, prefix:bool)
 def negative_number(s:readbuf, w:mutbuf, begin:u64, size:u64) -> bool:
     if size < 2:
         return False
-    if get(w, 128) != 312:
+    if get(w, 128) != 312 and get(w, 128) != 3123:
         index = 1
         if read32(s, begin + index * 4) == 46:
             index = index + 1
@@ -348,7 +348,13 @@ def classify_scope(s:readbuf, w:mutbuf, scope:u64, start:u64) -> u64:
             put(w, ARG_BASE + index * ARG_STRIDE, 1)
         else:
             classify_one(s, w, scope, index)
-            if get(w, ARG_BASE + index * ARG_STRIDE) == 3:
+            record = ARG_BASE + index * ARG_STRIDE
+            if get(w, 128) == 3123 and get(w, record) == 2:
+                matches = get(w, record + 8)
+                if matches != 0 and (matches & (matches - 1)) != 0:
+                    refusal(w, 3, 0, read64(s, 192 + index * 16), read64(s, 200 + index * 16), matches)
+                    return 1
+            if get(w, record) == 3:
                 after_dash = True
         index = index + 1
     return 0
@@ -476,7 +482,8 @@ def consume_option(s:readbuf, w:mutbuf, scope:u64, index:u64) -> u64:
 def parse_child(s:readbuf, w:mutbuf, scope:u64, start:u64) -> u64:
     put(w, 24, scope)
     namespace_defaults(w, scope)
-    classify_scope(s, w, scope, start)
+    if classify_scope(s, w, scope, start) != 0:
+        return 0
     index = start
     input_seen = False
     while index < get(w, 88):
@@ -506,7 +513,8 @@ def parse_child(s:readbuf, w:mutbuf, scope:u64, start:u64) -> u64:
     return 0
 
 def parse_root(s:readbuf, w:mutbuf) -> u64:
-    classify_scope(s, w, 0, 0)
+    if classify_scope(s, w, 0, 0) != 0:
+        return 0
     index = 0
     while index < get(w, 88):
         kind = get(w, ARG_BASE + index * ARG_STRIDE)
@@ -519,6 +527,8 @@ def parse_root(s:readbuf, w:mutbuf) -> u64:
             if kind == 3:
                 selected = selected + 1
             if selected < get(w, 88) and get(w, ARG_BASE + selected * ARG_STRIDE) == 1:
+                if kind == 3 and get(w, 128) == 3123:
+                    selected = index
                 begin = read64(s, 192 + selected * 16)
                 size = read64(s, 200 + selected * 16)
                 action = action_value(s, w, begin, size)
@@ -642,7 +652,7 @@ def _decimal():
     path = Path(__file__).with_name("hia_cli_unicode_tables.json")
     tables = json.loads(path.read_text())
     pieces = ["def decimal(point:u64, profile:u64) -> u64:\n"
-              "    if profile == 312:\n        return decimal_312(point)\n"
+              "    if profile == 312 or profile == 3123:\n        return decimal_312(point)\n"
               "    return decimal_314(point)\n"]
     for profile in (312, 314):
         lines = [f"def decimal_{profile}(point:u64) -> u64:"]

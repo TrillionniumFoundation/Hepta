@@ -24,6 +24,8 @@ WORD_FIXTURE_SHA256 = '278d8b2ae36291a849f195fa6a5627a0e5482d23d91135786eb93fd93
 
 DEFAULT_SUCCESSOR = ROOT / 'tests/fixtures/hia_cli_discovery_default_successor.json'
 DEFAULT_SUCCESSOR_SHA256 = 'e033a6674560cbdf044082e06f1f85163f425d5afd3ad51c21fdb580015ff39f'
+PROFILE_3123_SUCCESSOR = ROOT / 'tests/fixtures/hia_cli_native_3123_successor.json'
+PROFILE_3123_SUCCESSOR_SHA256 = '75cf583340c19d352d6c2c8814cbecbde7d343d0ec2e1714f76033c354909afd'
 WHEEL_TEST_SUCCESSOR = ROOT / 'tests/fixtures/hia_cli_native_wheel_test_successor.json'
 WHEEL_TEST_SUCCESSOR_SHA256 = '9d191fc37aca4f661bc50814ac61248655b6914efa6693daae8e9ca8c6b8d550'
 
@@ -175,14 +177,19 @@ def before_default_cli(name, current):
             if current.count(active) != 1:
                 raise ValueError('invalid package discovery parser inverse')
             current = current.replace(active, original)
-    if name == 'tests/test_hia_cli_native.py' and sha256(current.encode()).hexdigest() != row['current_sha256']:
-        record = WHEEL_TEST_SUCCESSOR.read_bytes()
-        if sha256(record).hexdigest() != WHEEL_TEST_SUCCESSOR_SHA256:
-            raise ValueError('wheel CLI successor fixture changed')
-        wheel = json.loads(record)
-        if wheel['name'] != name or wheel['previous_sha256'] != row['current_sha256']:
-            raise ValueError('wheel CLI predecessor identity differs')
-        current = _undo_cli_delta(name, current, wheel)
+    additions = {
+        'hepta/hia_cli_native.py': (PROFILE_3123_SUCCESSOR, PROFILE_3123_SUCCESSOR_SHA256),
+        'tests/test_hia_cli_native.py': (WHEEL_TEST_SUCCESSOR, WHEEL_TEST_SUCCESSOR_SHA256),
+    }
+    if name in additions and sha256(current.encode()).hexdigest() != row['current_sha256']:
+        path, expected = additions[name]
+        record = path.read_bytes()
+        if sha256(record).hexdigest() != expected:
+            raise ValueError('CLI successor fixture changed: ' + name)
+        successor = json.loads(record)
+        if successor['name'] != name or successor['previous_sha256'] != row['current_sha256']:
+            raise ValueError('CLI predecessor identity differs: ' + name)
+        current = _undo_cli_delta(name, current, successor)
     return _undo_cli_delta(name, current, row)
 
 

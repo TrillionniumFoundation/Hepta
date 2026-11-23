@@ -314,6 +314,7 @@ SAFE_CORE_PROOF_SDIST_FILES = (
     'tools/hia_supplied_safe_core_proof_syscalls.S',
 )
 CORE_EDIT_SDIST_FILES = (
+    'tests/fixtures/hia_cli_native_3123_successor.json',
     'tests/fixtures/hia_cli_native_wheel_test_successor.json',
     *SAFE_CORE_PROOF_SDIST_FILES,
     'tools/build_hia_core_edit.py',
