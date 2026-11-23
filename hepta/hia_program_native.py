@@ -41,7 +41,7 @@ IMPORTS = frozenset({"abort", "calloc", "malloc", "free", "memset", "memcpy", "m
 # They may remain private Core function names, never external entrypoints.
 _LOADER_HOOKS = frozenset({"_init", "_fini", "__gmon_start__", "__cxa_finalize", "__dso_handle",
                           "_ITM_registerTMCloneTable", "_ITM_deregisterTMCloneTable"})
-CORE_SCHEMAS = frozenset(f"hepta.hia.program.v{v}" for v in range(1, 9))
+CORE_SCHEMAS = frozenset(f"hepta.hia.program.v{v}" for v in range(1, 9)) | frozenset({"hepta.hia.program.kernel-fence.v1"})
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
           "isize": 64, "usize": 64}
 BYTE_RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
@@ -56,7 +56,7 @@ SUPPORTED_OPCODES = frozenset({
     "buffer.new", "buffer.try_new", "buffer.len", "borrow.read", "borrow.mut",
     "loan.end", "owner.move", "owner.drop", "buffer.load", "buffer.store",
     "buffer.fill", "buffer.copy", "buffer.move_within", "buffer.swap",
-    "buffer.copy_range", "buffer.fill_range", "call",
+    "buffer.copy_range", "buffer.fill_range", "call", "x86.fence.mfence",
     "chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut",
 })
 _ARG_REGS = ("rdi", "rsi", "rdx", "rcx", "r8", "r9")
@@ -330,7 +330,11 @@ class _Function:
         op, args, attrs = ins["op"], ins["args"], ins["attrs"]
         out = [v["name"] for v in ins["out"]]
         typ = self.types[args[0]] if args else None
-        if op == "const":
+        if op == "x86.fence.mfence":
+            # The Core catalog enforces zero operands/results and the atomic effect.
+            # ISA instruction selection is owned by the native encoder, not by the source.
+            c.mfence()
+        elif op == "const":
             self.immediate(out[0], 0 if attrs["value"] is None else attrs["value"])
         elif op.startswith("int.") and op.split(".")[1] in {"add", "sub", "mul"}:
             action, mode = op.split(".")[1:]

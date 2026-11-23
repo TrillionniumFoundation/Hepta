@@ -20,7 +20,7 @@ OWNERS = frozenset({"buffer", "chain"})
 BYTE_RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
 RESOURCES = BYTE_RESOURCES | OWNERS
 TYPES = SCALARS | RESOURCES
-EFFECTS = frozenset({"alloc", "read", "write", "trap"})
+EFFECTS = frozenset({"alloc", "read", "write", "trap", "atomic"})
 TRAP_CODES = frozenset({"user", "overflow", "division_by_zero", "bounds", "allocation"})
 EXECUTION_RESOURCE_FIELDS = frozenset({
     "allocations", "frees", "allocation_attempts", "owners_created", "owners_dropped",
@@ -191,6 +191,10 @@ def _table():
         OpcodeSpec("buffer.swap", ("mutbuf", "usize", "usize"), (), effects=("read", "write", "trap"), traps=("bounds",), since=4, guards=("write:0",), semantic_rule="check_both_indices_before_swap"),
         OpcodeSpec("buffer.copy_range", ("mutbuf", "readbuf", "usize", "usize", "usize"), (), effects=("read", "write", "trap"), traps=("bounds",), since=5, guards=("write:0", "read:1", "distinct:0:1"), semantic_rule="checked_disjoint_offset_copy"),
         OpcodeSpec("buffer.fill_range", ("mutbuf", "usize", "usize", "u8"), (), effects=("write", "trap"), traps=("bounds",), since=6, guards=("write:0",), semantic_rule="check_complete_range_before_fill"),
+        # An explicitly selected kernel-fence profile; not admitted by v1-v8.
+        # This operation has no authority to issue privileged instructions.
+        OpcodeSpec("x86.fence.mfence", (), (), effects=("atomic",), since=9,
+                   semantic_rule="x86_local_load_store_fence_no_device_or_intercpu_ack"),
         OpcodeSpec("call", None, None, ("function",), guards=("callee_interface",), resource_transition="call", semantic_rule="checked_callee_and_parameter_loan_contract"),
     ]
     assert len({row.name for row in rows}) == len(rows)

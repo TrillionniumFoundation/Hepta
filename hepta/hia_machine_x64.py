@@ -345,6 +345,10 @@ class Code:
         r = self._reg(reg)
         self.emit((b"\x41" if r >= 8 else b"") + bytes([0x58 + (r & 7)]))
 
+    def mfence(self):
+        """Architectural x86-64 MFENCE; does not imply remote CPU acknowledgement."""
+        self.emit(b"\x0f\xae\xf0")
+
     def ret(self): self.emit(b"\xc3")
     def leave(self): self.emit(b"\xc9")
     def ud2(self): self.emit(b"\x0f\x0b")
