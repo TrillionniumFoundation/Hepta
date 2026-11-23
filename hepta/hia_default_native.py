@@ -20,6 +20,8 @@ LEDGER_BUNDLE_RESOURCE = '_data/native/default/full_cost/ledger-bundle.json'
 LEDGER_OWNER = ('HEPTA_HIA_EXECUTION_LEDGER_MANIFEST', 'execution-ledger')
 GRAPH_BUNDLE_RESOURCE = '_data/native/default/full_cost/reference-graph-bundle.json'
 GRAPH_OWNER = ('HEPTA_HIA_EVALUATE_REFERENCE_WIRE_MANIFEST', 'evaluate-reference-wire')
+ADMISSION_BUNDLE_RESOURCE = '_data/native/default/full_cost/core-admission-bundle.json'
+ADMISSION_OWNER = ('HEPTA_HIA_CORE_ADMISSION_MANIFEST', 'core-admission')
 OWNED_VM_RESOURCE = '_data/native/default/full_cost/hia-owned-reference-wire'
 PROOF_BUNDLE_RESOURCE = '_data/native/default/full_cost/proof-bundle.json'
 BINDER_RESOURCE = '_data/native/default/full_cost/hia-safe-core-bind'
@@ -59,7 +61,7 @@ def _verify_data_resources(directory, value):
 
     from .hia_native_helpers import _read
 
-    if len(value) not in ((10, 11, 12, 14) if value[4] == SCOPES[0] else (7,)):
+    if len(value) not in ((10, 11, 12, 14, 15) if value[4] == SCOPES[0] else (7,)):
         raise ValueError('incomplete native-default data pin')
     contract_name = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
     contract = _read(directory / '_data' / contract_name, 4 << 20)
@@ -77,8 +79,10 @@ def _verify_data_resources(directory, value):
         resources.append((INTEGER_BUNDLE_RESOURCE, value[10]))
     if len(value) >= 12:
         resources.append((LEDGER_BUNDLE_RESOURCE, value[11]))
-    if len(value) == 14:
+    if len(value) >= 14:
         resources.extend(((GRAPH_BUNDLE_RESOURCE, value[12]), (OWNED_VM_RESOURCE, value[13])))
+    if len(value) == 15:
+        resources.append((ADMISSION_BUNDLE_RESOURCE, value[14]))
     for path, expected in resources:
         raw = _read(directory / path, 16 << 20).raw
         if sha256(raw).hexdigest() != expected:
@@ -163,7 +167,7 @@ def _capture_package():
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
             raise ValueError('portable native-default pin bytes changed')
         return None
-    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12, 14)
+    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12, 14, 15)
             or any(type(item) is not str for item in value)
             or value[:3] != (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE)
             or value[4] not in SCOPES
@@ -254,20 +258,32 @@ def default_image(selector):
 
 def default_integer_image():
     """Select the scalar reference image for ordinary VM instructions outside worker scopes."""
-    return _default_vm_image(INTEGER_OWNER, INTEGER_BUNDLE_RESOURCE, 10)
+    return _default_package_image(INTEGER_OWNER, INTEGER_BUNDLE_RESOURCE, 10)
 
 
 def default_execution_ledger_image():
     """Select the cold VM's execution ledger outside explicitly owned scopes."""
-    return _default_vm_image(LEDGER_OWNER, LEDGER_BUNDLE_RESOURCE, 11)
+    return _default_package_image(LEDGER_OWNER, LEDGER_BUNDLE_RESOURCE, 11)
 
 
 def default_reference_graph():
     """Select the cold graph projector and its independently compiled resource VM."""
-    return _default_vm_image(GRAPH_OWNER, GRAPH_BUNDLE_RESOURCE, 12, owned_vm=True)
+    return _default_package_image(GRAPH_OWNER, GRAPH_BUNDLE_RESOURCE, 12, owned_vm=True)
 
 
-def _default_vm_image(owner, resource, pin_index, *, owned_vm=False):
+def default_core_admission():
+    """Bind the cold whole-program verifier when individual policies have no explicit owners."""
+    from .hia_capability_renaming_native import SELECTOR as renaming
+    from .hia_function_shape_native import SELECTOR as function_shape
+    from .hia_instruction_policy_native import SELECTOR as instruction
+    from .hia_program_shape_native import SELECTOR as program_shape
+
+    if any(selector in os.environ for selector in (renaming, function_shape, instruction, program_shape)):
+        return None
+    return _default_package_image(ADMISSION_OWNER, ADMISSION_BUNDLE_RESOURCE, 14)
+
+
+def _default_package_image(owner, resource, pin_index, *, owned_vm=False):
     from . import hia_native_helpers as helpers
 
     helpers._check_scope_owner()
@@ -282,7 +298,7 @@ def _default_vm_image(owner, resource, pin_index, *, owned_vm=False):
         return None
     binding = helpers.NativeHelpersBinding(str(directory / resource), value[pin_index])
     if set(binding.selections) != {selector} or len(binding.images) != 1:
-        raise ValueError('unexpected VM owner for ' + candidate + ' in the cold distribution')
+        raise ValueError('unexpected owner for ' + candidate + ' in the cold distribution')
     binding.snapshots.extend(pins)
     binding.check_files()
     image, = binding.images.values()

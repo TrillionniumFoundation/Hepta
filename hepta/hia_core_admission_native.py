@@ -1,9 +1,4 @@
-"""Explicit experimental whole primitive Core admission image.
-
-The HIA image checks declarations, instruction contracts, calls and complete
-resource-flow bodies. The explicit selector leaves the default unchanged and
-never falls back on refusal. Host decoding/custody/normalization are not replaced.
-"""
+"""HIA whole-program admission of primitive Core declarations, instructions and resource flow."""
 import ctypes
 from contextvars import ContextVar
 import os
@@ -101,12 +96,22 @@ def selected_core_structure(data, raw):
     namespace handling. JSON decoding, object custody and normalization remain
     explicit host dependencies. A selected error never falls back to old policy.
     """
-    if SELECTOR not in os.environ:
-        return None
-    path = os.environ[SELECTOR]
-    if not path:
-        raise ValueError('Core admission selector must not be empty')
-    installed_core_admission(path).admit(raw)
+    path = os.environ.get(SELECTOR)
+    if path is not None:
+        if not path:
+            raise ValueError('Core admission selector must not be empty')
+        installed_core_admission(path).admit(raw)
+    else:
+        from .hia_default_native import default_core_admission
+        image = default_core_admission()
+        if image is None:
+            return None
+        binding = image._default_package_binding
+        binding.check_files()
+        try:
+            image.admit(raw)
+        finally:
+            binding.check_files()
     # Materialization follows admission, not a second declaration/body check.
     functions = {fn['name']: fn for fn in data['functions']}
     blocks = {name: {block['id']: block for block in fn['blocks']}

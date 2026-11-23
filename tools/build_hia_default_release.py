@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_default_native import (BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
+from hepta.hia_default_native import (ADMISSION_BUNDLE_RESOURCE, ADMISSION_OWNER, BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
                                      CORE_WIRE_OWNER, INTEGER_BUNDLE_RESOURCE, INTEGER_OWNER,
                                      LEDGER_BUNDLE_RESOURCE, LEDGER_OWNER, GRAPH_BUNDLE_RESOURCE, GRAPH_OWNER, OWNED_VM_RESOURCE,
                                      PIN_RESOURCE, PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
@@ -268,13 +268,13 @@ def build(output, compiler, cold_report=None, *, development=False):
     proof_owners = (*CORE_PROOF_OWNERS, CORE_WIRE_OWNER)
     proof_selectors = {selector for selector, _ in proof_owners}
     if not development:
-        cold_owners = (*CORE_ELF_OWNERS, *proof_owners, INTEGER_OWNER, LEDGER_OWNER, GRAPH_OWNER)
+        cold_owners = (*CORE_ELF_OWNERS, *proof_owners, INTEGER_OWNER, LEDGER_OWNER, GRAPH_OWNER, ADMISSION_OWNER)
         native_manifests = build_batch(output / 'core-elf', compiler, cold_report,
                                        candidates=[candidate for _, candidate in cold_owners])
         owners.extend((selector, candidate + '/', native_manifests[candidate])
                       for selector, candidate in cold_owners)
     owner_members, manifests, proof_manifests, owner_inputs = {}, [], [], {}
-    vm_manifests = {owner[0]: [] for owner in (INTEGER_OWNER, LEDGER_OWNER, GRAPH_OWNER)}
+    vm_manifests = {owner[0]: [] for owner in (INTEGER_OWNER, LEDGER_OWNER, GRAPH_OWNER, ADMISSION_OWNER)}
     for selector, directory, path in owners:
         manifest_raw = path.read_bytes()
         manifest = json.loads(manifest_raw)
@@ -315,10 +315,9 @@ def build(output, compiler, cold_report=None, *, development=False):
         owner_members['hepta/' + BINDER_RESOURCE] = native_binder
         pin += (sha256(native_binder).hexdigest(),)
         for owner, resource in ((INTEGER_OWNER, INTEGER_BUNDLE_RESOURCE), (LEDGER_OWNER, LEDGER_BUNDLE_RESOURCE),
-                                (GRAPH_OWNER, GRAPH_BUNDLE_RESOURCE)):
+                                (GRAPH_OWNER, GRAPH_BUNDLE_RESOURCE), (ADMISSION_OWNER, ADMISSION_BUNDLE_RESOURCE)):
             vm_bundle = encoded({**bundle_header, 'helpers': vm_manifests[owner[0]]})
             owner_members['hepta/' + resource] = vm_bundle
-            pin += (sha256(vm_bundle).hexdigest(),)
         from tools.build_hia_core_static import cold_tools
         from tools.build_hia_native_store_release import source_owned_reference
         owned_dir = output / 'owned-reference'
@@ -326,7 +325,9 @@ def build(output, compiler, cold_report=None, *, development=False):
         native_tools = cold_tools(owned_dir, compiler, cold_report, sources)
         executable = source_owned_reference(*native_tools, compiler_bytes, sources)
         owner_members['hepta/' + OWNED_VM_RESOURCE] = executable
-        pin += (sha256(executable).hexdigest(),)
+        pin += tuple(sha256(owner_members['hepta/' + resource]).hexdigest() for resource in (
+            INTEGER_BUNDLE_RESOURCE, LEDGER_BUNDLE_RESOURCE, GRAPH_BUNDLE_RESOURCE,
+            OWNED_VM_RESOURCE, ADMISSION_BUNDLE_RESOURCE))
     pin_raw = render_pin_data(pin)
     staging = output / 'source'
     staging.mkdir(mode=0o700)

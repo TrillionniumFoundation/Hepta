@@ -78,6 +78,12 @@ def derived_python_pin(archive):
         if ledger_bundle not in archive.namelist():
             raise ValueError('the installed graph owners have no execution-ledger predecessor')
         values += (digest(graph_bundle), digest(owned))
+    from hepta.hia_default_native import ADMISSION_BUNDLE_RESOURCE
+    admission = 'hepta/' + ADMISSION_BUNDLE_RESOURCE
+    if admission in archive.namelist():
+        if graph_bundle not in archive.namelist() or owned not in archive.namelist():
+            raise ValueError('the installed Core admission bundle has no graph predecessors')
+        values += (digest(admission),)
     if provenance.get('derived_pin_resource') is not None:
         resource = PACKAGE_DIRECTORY + '/pin.json'
         data = (json.dumps(values, ensure_ascii=True, separators=(',', ':')) + '\n').encode('ascii')

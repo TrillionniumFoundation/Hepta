@@ -1053,6 +1053,9 @@ assert not blocked.intersection(sys.modules)
                 native.update((full + 'reference-graph-bundle.json', full + 'hia-owned-reference-wire',
                                full + 'evaluate-reference-wire/manifest.json',
                                full + 'evaluate-reference-wire/evaluate-reference-wire.image.bin'))
+            if 'hepta/_data/' + full + 'core-admission-bundle.json' in z.namelist():
+                native.update((full + 'core-admission-bundle.json', full + 'core-admission/manifest.json',
+                               full + 'core-admission/core-admission.image.bin'))
             provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))
             if 'derived_pin_resource' in provenance:
                 self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')
