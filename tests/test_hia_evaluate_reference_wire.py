@@ -245,6 +245,17 @@ class EvaluateReferenceWireTests(unittest.TestCase):
                 scalar_wire, "program_wire", side_effect=AssertionError("legacy called")):
             self.assertIsNotNone(_direct_reference_program(checked.canonical_bytes, cases, (), owned=True))
 
+    def test_child_return_from_mutable_origin_preserves_read_permission(self):
+        from tests.test_hia_returned_loans import document
+        params = [("source", "mutbuf")]
+        helper = f("read_child", params, ["readbuf"], [], [b("entry", params, [
+            i("borrow.read", ["source"], [("child", "readbuf")])], ret("child"))])
+        helper["return_loans"] = ["source"]
+        checked = verify_program(document(helper)).canonical_bytes
+        expected = program_wire(checked, "read_child", allow_resources=True)
+        self.assertIsNotNone(expected)
+        self.assertEqual(self.image.project(checked, "read_child", allow_resources=True), expected)
+
     def test_compact_and_fixed_profiles_match_under_runner_memory_budget(self):
         from tests.test_hia_returned_loans import swapped_mutable
         checked = verify_program(swapped_mutable())

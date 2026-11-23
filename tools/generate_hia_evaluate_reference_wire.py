@@ -351,7 +351,9 @@ def slot_run(o:mutbuf, w:mutbuf, a:u64, start:u64, count:u64) -> u64:
         i = i + 1
     return at
 
-def write_restorations(o:mutbuf, w:mutbuf, loan:u64, params:u64, site:u64) -> bool:
+def write_restorations(o:mutbuf, w:mutbuf, loan:u64, fn:u64, site:u64) -> bool:
+    params = lookup(w, fn, K_params)
+    returned = child(w, lookup(w, fn, K_returns))
     origins = get(w, loan + 24)
     count = get(w, origins + 32)
     origin = child(w, origins)
@@ -361,11 +363,11 @@ def write_restorations(o:mutbuf, w:mutbuf, loan:u64, params:u64, site:u64) -> bo
         if kind(w, origin) != 0:
             pos = parameter_index(w, params, origin)
             bind = binding_index(o, get(w, loan + 16), get(w, loan + 8), pos)
-            param = named(w, params, origin, K_name)
-            if pos == NONE or bind == NONE or param == NONE:
+            if pos == NONE or bind == NONE or returned == NONE:
                 return False
-            tag = ((count + bind + 1) << 1) | choose(def_type(w, param) == MUT_TYPE, 1, 0)
+            tag = ((count + bind + 1) << 1) | choose(type_code(w, returned) == MUT_TYPE, 1, 0)
         put(o, site + 32 + 8 * i, tag)
+        returned = next(w, returned)
         i = i + 1
         origin = next(w, origin)
     return True
@@ -393,7 +395,6 @@ def wire_terminal(o:mutbuf, w:mutbuf, a:u64, term:u64, pc:u64) -> bool:
     if origins == NONE or term_code(w, lookup(w, term, K_op)) != RET:
         return emit_terminal(o, w, a, term, pc)
     fn = get(w, a + 96 + 32 * index)
-    params = lookup(w, fn, K_params)
     count = get(w, origins + 32)
     saved = get(w, loan + 8)
     values = lookup(w, term, K_values)
@@ -410,7 +411,7 @@ def wire_terminal(o:mutbuf, w:mutbuf, a:u64, term:u64, pc:u64) -> bool:
     put(o, site + 8, 0)
     put(o, site + 16, count + saved)
     put(o, site + 24, count)
-    if write_restorations(o, w, loan, params, site) == False:
+    if write_restorations(o, w, loan, fn, site) == False:
         return False
     if write_return_inputs(o, w, a, loan, values, args) == False:
         return False
