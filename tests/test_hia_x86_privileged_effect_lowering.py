@@ -46,7 +46,7 @@ class GuardedLeafRevokeStage(unittest.TestCase):
             with self.subTest(physical_width=repr(wrong)):
                 with self.assertRaises(KernelEffectRejected):
                     lower_leaf_revoke(replace(OWNER, max_physical_address_bits=wrong), REQUEST)
-        for obj in (None, {}, [], OWNER):
+        for obj in (None, {}, [], object()):
             with self.assertRaises(KernelEffectRejected):
                 admit_leaf_revoke(obj, REQUEST)
 
@@ -79,18 +79,22 @@ class GuardedLeafRevokeStage(unittest.TestCase):
                          "GNU binutils required for independent ISA oracle")
     def test_original_direct_encoder_matches_gnu_assembler_full_sequence(self):
         req = REQUEST
+        # GNU as otherwise relaxes JNE to rel8; force the existing rel32
+        # branch width in the independent assembly reference.
         assembly = f""".text
 .global effect_oracle
 effect_oracle:
     mov %cr3, %rcx
     movabs {chr(36)}{req.active_cr3:#x}, %r8
     cmp %r8, %rcx
-    jne reject
+    .byte 0x0f, 0x85
+    .long reject - . - 4
     movabs {chr(36)}{req.pte_slot_phys - 4096:#x}, %rax
     mov 4096(%rax), %r9
     movabs {chr(36)}{req.expected_old_pte:#x}, %rdx
     cmp %rdx, %r9
-    jne reject
+    .byte 0x0f, 0x85
+    .long reject - . - 4
     movabs {chr(36)}{req.replacement_pte:#x}, %rdx
     mov %rdx, 4096(%rax)
     movabs {chr(36)}{req.virtual_page:#x}, %rax
