@@ -117,15 +117,20 @@ def _parameters(value, line):
     return result
 
 
+def _assembly_json(value, line, *, loans=False):
+    try:
+        preflight_hia_json(value, max_nodes=MAX_LIST_ITEMS + 1 if loans else MAX_ATTRIBUTE_NODES,
+                          max_depth=2 if loans else MAX_ATTRIBUTE_DEPTH)
+        return decode_json(value)
+    except (ValueError, OverflowError, HIAEditRejected) as exc:
+        message = "return_loans requires bounded strict JSON" if loans else "attributes require bounded strict JSON"
+        raise HIAAssemblyRejected(message, line=line) from exc
+
+
 def _attrs(value, line):
     if value is None:
         return {}
-    try:
-        preflight_hia_json(value, max_nodes=MAX_ATTRIBUTE_NODES,
-                          max_depth=MAX_ATTRIBUTE_DEPTH)
-        attrs = decode_json(value)
-    except (ValueError, OverflowError, HIAEditRejected) as exc:
-        raise HIAAssemblyRejected("attributes require bounded strict JSON", line=line) from exc
+    attrs = _assembly_json(value, line)
     if type(attrs) is not dict:
         _reject("attributes must be one JSON object", line=line)
     return attrs
@@ -171,11 +176,7 @@ def _parse_assembly_document(source: str | bytes) -> dict:
             if match[6] is not None:
                 if not supports_feature(document["schema"], "parameter_loan_returns"):
                     _reject("return_loans requires explicit Core v8 or later", line=number)
-                try:
-                    preflight_hia_json(match[6], max_nodes=MAX_LIST_ITEMS + 1, max_depth=2)
-                    origins = decode_json(match[6])
-                except (ValueError, OverflowError, HIAEditRejected) as exc:
-                    raise HIAAssemblyRejected("return_loans requires bounded strict JSON", line=number) from exc
+                origins = _assembly_json(match[6], number, loans=True)
                 if (type(origins) is not list or len(origins) > MAX_LIST_ITEMS
                         or any(x is not None and (type(x) is not str or re.fullmatch(_NAME, x) is None)
                                for x in origins)):
@@ -227,13 +228,87 @@ def _parse_assembly_document(source: str | bytes) -> dict:
     return document
 
 
+def _native_assembly_document(syntax, presenter, source):
+    import ctypes
+    import mmap
+    import struct
+
+    if type(source) not in (str, bytes):
+        _reject("source must be UTF-8 text or bytes")
+    if len(source) > MAX_SOURCE_BYTES:
+        _reject("source exceeds byte budget", limit=True)
+    try:
+        raw = source.encode('utf-8') if type(source) is str else source
+    except UnicodeError as error:
+        raise HIAAssemblyRejected("source is not valid UTF-8") from error
+
+    def present(state):
+        reply = ctypes.create_string_buffer(8192)
+        status = presenter._entry(raw, len(raw), reply, len(reply), state, len(state))
+        length, = struct.unpack_from('<Q', state, 80)
+        if status == 0 and length == 0:
+            return
+        if status != 1 or not 0 < length <= len(reply):
+            raise ValueError('invalid package assembly diagnostic response')
+        result = json.loads(reply.raw[:length])
+        if (result.get('schema') != 'hepta.hia.assembly-diagnostic.v1' or result.get('accepted') is not False
+                or any(result.get(name) is not False for name in
+                       ('deployment_authority', 'native_artifact_created', 'safety_certificate'))):
+            raise ValueError('invalid package assembly refusal')
+        diagnostic = result['diagnostic']
+        code, message, line = diagnostic['code'], diagnostic['message'], diagnostic['line']
+        if (diagnostic['phase'] != 'syntax' or code not in ('E_HIA_ASSEMBLY', 'E_HIA_ASSEMBLY_LIMIT')
+                or (line is not None and (type(line) is not int or not 1 <= line <= MAX_LINES))):
+            raise ValueError('invalid package assembly diagnostic fields')
+        prefix = code + ': ' + (f'line {line}: ' if line is not None else '')
+        if type(message) is not str or not message.startswith(prefix):
+            raise ValueError('invalid package assembly diagnostic message')
+        detail = message[len(prefix):]
+        # The Python API includes the underlying UTF-8 or JSON exception. HIA
+        # has already selected the exact source line and its diagnostic here.
+        if detail == "source is not valid UTF-8":
+            try:
+                raw.decode('utf-8')
+            except UnicodeError as error:
+                raise HIAAssemblyRejected(detail, code, line=line) from error
+        if line is not None and detail in ("attributes require bounded strict JSON",
+                                           "return_loans requires bounded strict JSON"):
+            text = raw.split(b'\n', line)[line - 1].decode('utf-8').removesuffix('\r').strip(' \t')
+            loans = detail.startswith('return_loans')
+            match = (_FUNCTION if loans else _INSTRUCTION).fullmatch(text)
+            if match is not None:
+                _assembly_json(match[6 if loans else 4], line, loans=loans)
+        raise HIAAssemblyRejected(detail, code, line=line)
+
+    state = ctypes.create_string_buffer(4096)
+    struct.pack_into('<Q', state, 88, 1274)  # Source preflight, before syntax.
+    present(state)
+    with mmap.mmap(-1, 16 << 20) as output:
+        arena = ctypes.create_string_buffer(131104)
+        struct.pack_into('<8s3Q', arena, 131072, b'HIASYN01', MAX_FUNCTIONS, MAX_BLOCKS, MAX_OPERATIONS)
+        extent = syntax._entry(raw, len(raw), ctypes.addressof(ctypes.c_char.from_buffer(output)), len(output),
+                               arena, len(arena))
+        if 0 < extent <= len(output):
+            return json.loads(output[:extent])
+        reason, line = struct.unpack_from('<2Q', arena, 256)
+    state = ctypes.create_string_buffer(4096)
+    struct.pack_into('<Q', state, 104, extent)
+    struct.pack_into('<Q', state, 120, len(raw))
+    struct.pack_into('<2Q', state, 144, reason, line)
+    present(state)
+    raise ValueError('package assembly parser refusal lacks its diagnostic')
+
+
 def assemble_program(source: str | bytes) -> VerifiedProgram:
     """Translate explicit assembly to Core and reverify the entire program.
 
     v6/v7/v8 are the text targets. Historical schemas require their existing
     explicit adapters, and nominal layouts require their existing elaborator.
     """
-    document = _parse_assembly_document(source)
+    from .hia_default_native import default_assembly_document
+    document = default_assembly_document(source)
+    if document is None:
+        document = _parse_assembly_document(source)
     try:
         return verify_program(document)
     except HIAProgramRejected as exc:

@@ -335,6 +335,64 @@ print(json.dumps(answer, sort_keys=True))
 '''
         self.assertEqual(json.loads(self.child(body).stdout), self.expected)
 
+    def test_installed_assembly_parser_and_public_checker_preserve_real_diagnostics(self):
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
+            self.skipTest('the parser and diagnostic reporter are linked into the cold public tool')
+        from tests.test_hia_agent_assembly import SOURCE
+        body = r'''
+import contextlib, io, subprocess
+from hashlib import sha256
+from hepta import cli, hia_agent_assembly as asm
+from hepta.hia_native_helpers import native_helpers_scope
+valid = sys.argv[3]
+attributes = valid.replace('{"mode":"wrap"}', '{"a":[' + ','.join('0' for _ in range(2050)) + ']}', 1)
+loan = ' return_loans(' + ('[' * 17 + '0' + ']' * 17) + ')'
+loans = valid.replace('v6', 'v8').replace('effects() entry(entry)', 'effects() entry(entry)' + loan)
+obsolete = valid.replace('effects() entry(entry)', 'effects() entry(entry) return_loans([null])')
+cases = [valid, valid.encode(), b'', b'no header', b'\xff', valid + 'end', attributes, loans, obsolete,
+         valid.replace('ret(answer)', 'ret(unknown)'), valid.replace('exports(total)', 'exports(twice)')]
+def outcome(source):
+    try:
+        return 'ok', asm.assemble_program(source).canonical_bytes
+    except asm.HIAAssemblyRejected as exc:
+        return 'error', exc.code, exc.line, exc.phase, str(exc), type(exc.__cause__).__name__, str(exc.__cause__)
+with patch.object(defaults, 'default_assembly_document', return_value=None):
+    expected = [outcome(source) for source in cases]
+    reports = [asm.diagnose_assembly(text) for text in (attributes, loans, obsolete)]
+observed = []
+run = asm._native_assembly_document
+def capture(syntax, presenter, source):
+    observed.append((syntax.image_sha256, presenter.image_sha256))
+    return run(syntax, presenter, source)
+resources = [installed / 'hepta' / path for path in (defaults.ASSEMBLY_SYNTAX_RESOURCE, defaults.ASSEMBLY_DIAGNOSTIC_RESOURCE)]
+pair = tuple(sha256(resource.read_bytes()).hexdigest() for resource in resources)
+with patch.object(asm, '_native_assembly_document', capture), patch.object(asm, '_parse_assembly_document', forbidden), patch.object(asm, '_source', forbidden):
+    assert [outcome(source) for source in cases] == expected
+    for field, bound, detail in (('MAX_FUNCTIONS', 0, 'function inventory'), ('MAX_BLOCKS', 0, 'block inventory'),
+                                 ('MAX_OPERATIONS', 1, 'operation inventory')):
+        with patch.object(asm, field, bound):
+            blocked = outcome(valid)
+            assert blocked[1] == 'E_HIA_ASSEMBLY_LIMIT' and detail in blocked[4]
+    from tempfile import TemporaryDirectory
+    with TemporaryDirectory() as temporary:
+        assembly = Path(temporary) / 'example.hia'
+        assembly.write_text(valid)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            assert cli.hia_main(['import-assembly', str(assembly)]) == 0
+        assert json.loads(output.getvalue())['module'] == 'sums'
+assert observed == [pair] * (len(cases) + 4)
+role = installed / 'bin' / 'hia-import-assembly'
+assert all(role.read_bytes().count(path.read_bytes()) == 1 for path in resources)
+for text, expected in zip((attributes, loans, obsolete), reports, strict=True):
+    result = subprocess.run(['hia-check-assembly-accepted'], executable=role, input=text.encode(), capture_output=True)
+    assert result.returncode == 1 and not result.stderr and json.loads(result.stdout) == expected
+with native_helpers_scope(), patch.object(asm, '_native_assembly_document', forbidden):
+    assert asm.assemble_program(valid).canonical_bytes
+print('PACKAGE_HIA_ASSEMBLY_SYNTAX')
+'''
+        self.assertEqual(self.child(body, SOURCE).stdout.strip(), 'PACKAGE_HIA_ASSEMBLY_SYNTAX')
+
     def test_installed_public_api_and_cli_share_the_authenticated_assembly_renderer(self):
         if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
             self.skipTest('the public renderer comes from the matching cold CLI link')
