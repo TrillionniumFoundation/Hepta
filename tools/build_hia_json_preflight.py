@@ -230,6 +230,8 @@ CANDIDATES = {
     'evaluate-budget-store-packer': ('evaluate_budget_store_packer', 'evaluate-budget-store-packer'),
     'evaluate-reference-report': ('evaluate_reference_report', 'evaluate-reference-report'),
     'evaluate-reference-report-packer': ('evaluate_reference_report_packer', 'evaluate-reference-report-packer'),
+    'evaluate-native-report': ('evaluate_native_report', 'evaluate-native-report'),
+    'evaluate-native-report-packer': ('evaluate_native_report_packer', 'evaluate-native-report-packer'),
     'evaluate-settlement': ('evaluate_settlement', 'evaluate-settlement'),
     'evaluate-settlement-packer': ('evaluate_settlement_packer', 'evaluate-settlement-packer'),
     'evaluate-paired-batch-packer': ('evaluate_paired_batch_packer', 'evaluate-paired-batch-packer'),

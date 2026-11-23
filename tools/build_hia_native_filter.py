@@ -122,6 +122,15 @@ def build_evaluate_reference_report(output: Path, compiler: Path, cold_report: P
                         schema='hepta.hia.evaluate-reference-report-build.v1')
 
 
+def build_evaluate_native_report(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_native_report import MAGIC as report_magic
+
+    return build_filter(output, compiler, cold_report, application='evaluate-native-report',
+                        packer='evaluate-native-report-packer', magic=report_magic,
+                        filename='hia-evaluate-native-report',
+                        schema='hepta.hia.evaluate-native-report-build.v1')
+
+
 def build_evaluate_settlement(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.generate_hia_evaluate_settlement import MAGIC as settlement_magic
 
@@ -134,7 +143,7 @@ def build_evaluate_settlement(output: Path, compiler: Path, cold_report: Path) -
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
-                                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-reference-report',
+                                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-native-report', 'evaluate-reference-report',
                                                   'execution-budget-session', 'evaluate-budget-store'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
@@ -146,6 +155,9 @@ def main():
         return
     if args.application == 'evaluate-reference-report':
         print(build_evaluate_reference_report(output, compiler, cold_report))
+        return
+    if args.application == 'evaluate-native-report':
+        print(build_evaluate_native_report(output, compiler, cold_report))
         return
     if args.application == 'evaluate-settlement':
         print(build_evaluate_settlement(output, compiler, cold_report))
