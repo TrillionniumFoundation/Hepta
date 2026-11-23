@@ -2018,6 +2018,15 @@ def mv_step(s:readbuf, o:mutbuf, w:mutbuf, row:u64, sp:u64) -> u64:
         return mv_borrowed_store(o, w, a, b, c)
     if op == OP_IMMEDIATE_ALU:
         return mv_immediate(o, w, a, b, c)
+    if op == OP_NEG:
+        # NEG sets the same arithmetic condition flags and returns the
+        # same low word as SUB from zero, including the signed-minimum case.
+        right = get(w, a * 8)
+        zero = mv_node(o, w, 2, 0, 0, 0)
+        if zero == 0:
+            return 0
+        put(w, a * 8, zero)
+        return mv_arithmetic(o, w, OP_SUB, a, right)
     if op == OP_SHL or op == OP_SHR or op == OP_SAR or op == OP_NOT:
         return mv_unary(o, w, op, a, b)
     if b >= 16:

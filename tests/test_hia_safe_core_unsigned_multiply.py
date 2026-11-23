@@ -274,6 +274,16 @@ class UnsignedProductObligationTests(unittest.TestCase):
             return response[32 + len(graph):]
 
         self.assertEqual(reduce(nodes, observations), bytes(32))
+        # The register allocator tests the high word with SHR/TEST. A different
+        # shift, signed shift, or sentinel no longer proves the same overflow.
+        shifted = [*nodes, (2, wide, 0, 0, narrow), (37, wide, 4, 19, 0), (8, 1, 20, 12, 0)]
+        self.assertEqual(reduce(shifted, ((8, 21),)), bytes(16))
+        for index, replacement in ((19, (2, wide, 0, 0, narrow - 1)),
+                                   (20, (38, wide, 4, 19, 0)), (21, (7, 1, 20, 12, 0)),
+                                   (21, (8, 1, 20, 5, 0))):
+            changed = shifted.copy()
+            changed[index] = replacement
+            self.assertIsNone(reduce(changed, ((8, 21),)))
         # Each change invalidates at least one equality at a concrete input.
         # A pair of observations must stay intact if either one remains open.
         for name, index, replacement in (

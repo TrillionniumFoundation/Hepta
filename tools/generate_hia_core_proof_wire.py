@@ -11,7 +11,7 @@ from hepta.hia_cnf_native import (
     CIRCUIT_NODES, CIRCUIT_REQUEST, GRAPH_PROJECTION_REQUEST, PROJECT_CHECKED_CAST, PROJECTION_INPUT_LIMIT,
     LEARNING_REQUEST, RESTART_REQUEST, SAT, SEARCH_PLAN_REQUEST, SPARSE_CLAUSES,
     SPARSE_ENTRIES, SPARSE_REPLY, SPARSE_REQUEST, SPARSE_VARIABLES, STEP_LIMIT, WORD_WITNESS_REQUEST,
-    WORD_PRODUCT_EXCEEDS, WORD_TABLE_INPUT_BITS, WORD_TABLE_REQUEST, WORD_TABLE_WORK_LIMIT,
+    WORD_PRODUCT_EXCEEDS, WORD_VARIABLE_SHR, WORD_TABLE_INPUT_BITS, WORD_TABLE_REQUEST, WORD_TABLE_WORK_LIMIT,
     _CORE_TRAP_TAGS, _GRAPH_OPERATIONS, _word_type,
 )
 from hepta.hia_core_proof_wire_native import (
@@ -888,20 +888,45 @@ def exact_unsigned_product(s:readbuf, a:u64, b:u64, bits:u64) -> bool:
     return left != 0 and right != 0 and left <= 64 and right <= 64 and bits <= 64 and left + right <= bits
 
 def exact_unsigned_product_comparison(s:readbuf, n:u64) -> bool:
-    row = 96 + n * 40
-    if obligation_word(s, row) != 14 or obligation_word(s, row + 8) != 1:
+    candidate = unsigned_compared_product(s, n)
+    if candidate == 0:
         return False
-    product = obligation_word(s, row + 16)
-    limit = obligation_word(s, row + 24)
-    if product >= n or limit >= n:
+    product = candidate - 1
+    if product_field(s, product, 0) != 32:
         return False
-    p = 96 + product * 40
-    width = obligation_word(s, p + 8)
-    if obligation_word(s, p) != 32 or product_field(s, limit, 0) != 2:
-        return False
-    a = obligation_word(s, p + 16)
-    b = obligation_word(s, p + 24)
-    return a < product and b < product and exact_unsigned_product(s, a, b, width)
+    a = product_field(s, product, 16)
+    b = product_field(s, product, 24)
+    bits = product_field(s, product, 8)
+    return a < product and b < product and exact_unsigned_product(s, a, b, bits)
+
+def unsigned_compared_product(s:readbuf, n:u64) -> u64:
+    if product_field(s, n, 8) != 1:
+        return 0
+    op = product_field(s, n, 0)
+    left = product_field(s, n, 16)
+    right = product_field(s, n, 24)
+    if left >= n or right >= n or product_field(s, right, 0) != 2:
+        return 0
+    if op == 14:
+        return left + 1
+    # A logical high-word shift followed by a zero test is the same
+    # unsigned comparison against the maximum representable low word.
+    if op != 8 or product_field(s, right, 32) != 0 or product_field(s, left, 0) != {WORD_VARIABLE_SHR}:
+        return 0
+    product = product_field(s, left, 16)
+    count = product_field(s, left, 24)
+    if product >= left or count >= left or product_field(s, count, 0) != 2:
+        return 0
+    if product_field(s, count, 32) >= product_field(s, product, 8):
+        return 0
+    return product + 1
+
+def unsigned_compared_limit(s:readbuf, n:u64) -> u64:
+    if product_field(s, n, 0) == 14:
+        return product_field(s, product_field(s, n, 24), 32)
+    shift = product_field(s, n, 16)
+    count = product_field(s, product_field(s, shift, 24), 32)
+    return (1 << count) - 1
 
 def unsigned_boolean(s:readbuf, n:u64) -> u64:
     row = 96 + n * 40
@@ -956,9 +981,8 @@ def same_unsigned_product_test(s:readbuf, predicate:u64, comparison:u64) -> bool
     bound = obligation_word(s, row + 32)
     if a >= predicate or b >= predicate or bound >= predicate or product_field(s, bound, 0) != 2:
         return False
-    product = product_field(s, comparison, 16)
-    limit = product_field(s, comparison, 24)
-    if product_field(s, bound, 32) != product_field(s, limit, 32):
+    product = unsigned_compared_product(s, comparison) - 1
+    if product_field(s, bound, 32) != unsigned_compared_limit(s, comparison):
         return False
     a = unsigned_base(s, a)
     b = unsigned_base(s, b)
@@ -1322,6 +1346,24 @@ WIDE_PRODUCT_NODES = (*WIDE_SUBTRACT_NODES[:11],
 WIDE_PRODUCT_ROOTS = (57, 49, 62, 48)
 
 
+# In a register leaf the sign extension of the low result is already
+# available. The signed full product and the two inclusive narrow bounds
+# match the checked Core trap; the low result is observable only on success.
+REGISTER_PRODUCT_NODES = (*WIDE_PRODUCT_NODES[:34],
+    (11, 64, 27, 12, 33), (11, 64, 25, 12, 34), (11, 1, 25, 2, 27),
+    (11, 64, 23, 12, 35), (11, 1, 23, 2, 36), (2, 8, 0, 0, 0),
+    (2, 'width', 0, 0, 0), (2, 'width', 0, 0, 'mask'),
+    (26, 1, 6, 0, 'high'), (26, 1, 9, 0, 'high'),
+    (10, 'width', 40, 6, 0), (11, 'width', 42, 44, 6),
+    (10, 'width', 40, 9, 0), (11, 'width', 43, 46, 9),
+    (2, 'width', 0, 0, 'sign'), (2, 'width', 0, 0, 'maximum'),
+    (5, 1, 42, 43, 0), (11, 'width', 50, 48, 49),
+    (35, 1, 45, 47, 51), (2, 8, 0, 0, 4), (11, 8, 52, 53, 39),
+    (6, 1, 52, 0, 0), (11, 'width', 52, 40, 32),
+    (31, 64, 56, 0, 0))
+REGISTER_PRODUCT_ROOTS = (52, 38, 57, 37)
+
+
 ARITHMETIC_TOKENS = {
     'width': 128, 'distance': 129, 'sign': 130, 'minimum': 131, 'maximum': 132,
     'mask': 133, 'high': 134, 1 << 63: 135, (1 << 63) - 1: 136,
@@ -1601,6 +1643,8 @@ def program(*, elf_only=False, solver_only=False, subject=False):
             reduced = checked_wide_subtract(s, o, steps)
             if reduced == 0:
                 reduced = checked_wide_product(s, o, steps)
+            if reduced == 0:
+                reduced = checked_register_product(s, o, steps)
             if reduced != 0:
                 return reduced
 """ + match_lease)
@@ -1610,6 +1654,8 @@ def program(*, elf_only=False, solver_only=False, subject=False):
         # equal zero roots avoids materializing an irrelevant multiplier.
         solver += checked_arithmetic_source('checked_wide_product', WIDE_PRODUCT_NODES,
                                             WIDE_PRODUCT_ROOTS, (3, 3, 12, 12))
+        solver += checked_arithmetic_source('checked_register_product', REGISTER_PRODUCT_NODES,
+                                            REGISTER_PRODUCT_ROOTS, (3, 3, 12, 12))
         solver += EXACT_SOLVER_ROWS
     entry += OBLIGATIONS + caller_contract_source() + solver + WITNESS_WIRE + RELOCATION_WIRE
     nodes = ast.parse(source_program(entry=entry) + UNSIGNED_PRODUCT_WIRE).body
