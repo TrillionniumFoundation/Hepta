@@ -44,6 +44,18 @@ class HIAAgentAssemblyTests(unittest.TestCase):
         self.assertEqual(render_assembly(program), SOURCE)
         self.assertEqual(assemble_program(SOURCE.encode()).canonical_bytes, program.canonical_bytes)
 
+    def test_package_syntax_document_still_requires_whole_core_admission(self):
+        from hepta import hia_agent_assembly as assembly
+        data = assembly._parse_assembly_document(SOURCE)
+        data["functions"][0]["blocks"][0]["term"]["values"] = ["unbound"]
+        with patch('hepta.hia_default_native.default_assembly_document', return_value=data) as syntax:
+            with self.assertRaises(HIAAssemblyRejected) as caught:
+                assemble_program(SOURCE)
+            syntax.assert_called_once_with(SOURCE)
+        self.assertEqual(caught.exception.phase, 'core_verification')
+        self.assertIsNone(caught.exception.line)
+        self.assertIsInstance(caught.exception.__cause__, HIAProgramRejected)
+
     def test_package_renderer_keeps_independent_roundtrip_and_profile_errors(self):
         checked = assemble_program(SOURCE)
         with patch('hepta.hia_default_native.default_assembly_text', return_value=SOURCE) as owner:

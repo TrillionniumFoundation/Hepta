@@ -2509,9 +2509,18 @@ block b7(v70:readbuf,v71:mutbuf,v72:mutbuf,v73:u64,v74:u64,v75:u64,v76:u64)
   v85:bool = compare.ne(v75,v84)
   branch v85 b9(v70,v71,v72) b13(v70,v71,v72,v73,v74,v76)
 block b8(v77:readbuf,v78:mutbuf,v79:mutbuf,v80:u64,v81:u64,v82:u64,v83:u64)
-  v102:u64 = const() {"value":4294967295}
-  v103:bool = compare.ne(v82,v102)
-  branch v103 b11(v77,v78,v79) b13(v77,v78,v79,v80,v81,v83)
+  syntax_refusal:u64 = const() {"value":4294967295}
+  syntax_status:bool = compare.eq(v82,syntax_refusal)
+  bounded_attributes:u64 = const() {"value":29}
+  attribute_reason:bool = compare.eq(v80,bounded_attributes)
+  loan_origins:u64 = const() {"value":15}
+  loan_reason:bool = compare.eq(v80,loan_origins)
+  bounded_json:bool = bool.or(attribute_reason,loan_reason)
+  node_or_depth_limit:u64 = const() {"value":4294967294}
+  limit_status:bool = compare.eq(v82,node_or_depth_limit)
+  json_limit:bool = bool.and(bounded_json,limit_status)
+  admitted_status:bool = bool.or(syntax_status,json_limit)
+  branch admitted_status b13(v77,v78,v79,v80,v81,v83) b11(v77,v78,v79)
 block b9(v86:readbuf,v87:mutbuf,v88:mutbuf)
   v100:u64 = const() {"value":4}
   v101:u32 = int.cast(v100) {"mode":"wrap"}
@@ -2814,10 +2823,10 @@ block b13(v93:mutbuf,v94:mutbuf,v95:u64)
   v101:u64 = const() {"value":8171062582634766703}
   v102:u64 = const() {"value":8675375937194453365}
   v103:u64 = call(v93,v94,v99,v100,v101,v102) {"function":"f2"}
-  v104:u64 = const() {"value":14}
+  v104:u64 = const() {"value":23}
   v105:u64 = const() {"value":4836993995784154224}
-  v106:u64 = const() {"value":62080000815727}
-  v107:u64 = const() {"value":0}
+  v106:u64 = const() {"value":8007462217465557615}
+  v107:u64 = const() {"value":32199697870102642}
   v108:u64 = call(v93,v94,v104,v105,v106,v107) {"function":"f2"}
   jump b15(v93,v94,v95)
 block b15(v109:mutbuf,v110:mutbuf,v111:u64)
