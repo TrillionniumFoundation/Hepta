@@ -157,6 +157,28 @@ class NativeReferenceBatchTests(unittest.TestCase):
             private.flush()
             self.assertEqual(self.invoke(checked,workload,program_fd=private.fileno()),(2,b'',b''))
 
+    def test_sealed_descriptor_arguments_and_effective_budgets(self):
+        checked = verify_program(resource_program())
+        case = {'function': 'owned', 'arguments': [3, 250]}
+        workload = {'schema': 'hepta.hia.agent.workload.v1', 'cases': [case]}
+        with ExitStack() as stack:
+            fds = [stack.enter_context(sealed_reference_bytes(data)) for data in
+                   (checked.canonical_bytes, json.dumps(workload).encode(),
+                    self.projector.read_bytes(), self.owned.read_bytes())]
+            expected = native_batch(self.batch, fds)
+            self.assertEqual((expected[0], expected[2]), (0, b''))
+            def call(descriptors, memory, nanoseconds):
+                args = [str(self.batch), *map(str, descriptors), str(memory), str(nanoseconds)]
+                proc = subprocess.run(args, pass_fds=tuple(fds), capture_output=True, timeout=3)
+                return proc.returncode, proc.stdout, proc.stderr
+            self.assertEqual(call(fds, 536870912, 1000000000), expected)
+            for descriptors, memory, duration in ((fds, 65536, 1000000000),
+                                                   (fds, 536870912, 0),
+                                                   (fds, 536870912, 86400000000001),
+                                                   ([999999, *fds[1:]], 536870912, 1000000000)):
+                with self.subTest(memory=memory, duration=duration, descriptors=descriptors):
+                    self.assertEqual(call(descriptors, memory, duration), (2, b'', b''))
+
     def test_reference_budget_stops_batch_in_order(self):
         params=[('x','u32')]
         fn=f('recur',params,['u32'],[],[b('entry',params,[

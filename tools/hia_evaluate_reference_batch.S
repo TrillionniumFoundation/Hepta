@@ -31,11 +31,121 @@
 .equ FRAME,344
 .equ COMPLETE,392
 
+/* The launcher may own these fds at arbitrary numbers. Duplicate all four
+ * before replacing any fixed slot, even if the input and output ranges overlap.
+ * Only this invocation mode consumes an admitted remaining time and memory cap.
+ */
+.equ JOB_MEMORY,400
+.equ JOB_CPU,408
+.equ JOB_TIMER,416
+.equ JOB_FDS,464
 _start:
-    cmp QWORD PTR [rsp],1
-    jne refuse
+    mov r15,rsp
     sub rsp,512
     mov rbp,rsp
+    mov QWORD PTR [rbp+JOB_MEMORY],0
+    cmp QWORD PTR [r15],1
+    je prepare_signals
+    cmp QWORD PTR [r15],7
+    jne refuse
+    mov rsi,[r15+48]
+    call unsigned_decimal
+    cmp rax,67108864
+    jb refuse
+    mov rdx,4294967296
+    cmp rax,rdx
+    ja refuse
+    mov [rbp+JOB_MEMORY],rax
+    mov rsi,[r15+56]
+    call unsigned_decimal
+    cmp rax,1000000
+    jb refuse
+    mov rdx,86400000000000
+    cmp rax,rdx
+    ja refuse
+    xor edx,edx
+    mov ecx,1000000000
+    div rcx
+    mov [rbp+JOB_TIMER+16],rax
+    test rdx,rdx
+    setnz cl
+    movzx ecx,cl
+    add rcx,rax
+    mov [rbp+JOB_CPU],rcx
+    mov rax,rdx
+    xor edx,edx
+    mov ecx,1000
+    div rcx
+    mov [rbp+JOB_TIMER+24],rax
+    mov QWORD PTR [rbp+JOB_TIMER],0
+    mov QWORD PTR [rbp+JOB_TIMER+8],0
+    xor r14d,r14d
+capture_fd:
+    mov rsi,[r15+16+8*r14]
+    call unsigned_decimal
+    cmp rax,3
+    jb refuse
+    cmp rax,2147483647
+    ja refuse
+    mov rdi,rax
+    mov esi,1030                  /* F_DUPFD_CLOEXEC */
+    mov edx,32
+    mov eax,72
+    syscall
+    test rax,rax
+    js refuse
+    mov [rbp+JOB_FDS+8*r14],rax
+    inc r14
+    cmp r14,4
+    jb capture_fd
+    xor r14d,r14d
+install_fd:
+    mov rdi,[rbp+JOB_FDS+8*r14]
+    lea rsi,[r14+3]
+    xor edx,edx
+    mov eax,292                   /* dup3 */
+    syscall
+    cmp rax,rsi
+    jne refuse
+    inc r14
+    cmp r14,4
+    jb install_fd
+    mov edi,7
+    mov esi,-1
+    xor edx,edx
+    mov eax,436                   /* close_range */
+    syscall
+    test rax,rax
+    jne refuse
+    xor eax,eax
+    lea rdi,[rbp+FRAME]
+    mov ecx,4
+    rep stosq
+    mov edi,14                    /* SIGALRM may have been inherited ignored */
+    lea rsi,[rbp+FRAME]
+    xor edx,edx
+    mov r10d,8
+    mov eax,13
+    syscall
+    test rax,rax
+    jne refuse
+    mov QWORD PTR [rbp+FRAME],8192
+    mov edi,1                     /* SIG_UNBLOCK */
+    lea rsi,[rbp+FRAME]
+    xor edx,edx
+    mov r10d,8
+    mov eax,14
+    syscall
+    test rax,rax
+    jne refuse
+    xor edi,edi                   /* ITIMER_REAL */
+    lea rsi,[rbp+JOB_TIMER]
+    xor edx,edx
+    mov eax,38
+    syscall
+    test rax,rax
+    jne refuse
+prepare_signals:
     /* A parent may have ignored SIGCHLD. Own normal waitable children. */
     xor eax,eax
     lea rdi,[rbp+FRAME]
@@ -429,6 +539,27 @@ child:
     syscall
     cmp rax,r13
     jne refuse
+    cmp QWORD PTR [rbp+JOB_MEMORY],0
+    je child_stdio
+    mov rax,[rbp+JOB_MEMORY]
+    mov [rbp+FRAME],rax
+    mov [rbp+FRAME+8],rax
+    mov edi,9                     /* RLIMIT_AS applies to each physical VM child. */
+    lea rsi,[rbp+FRAME]
+    mov eax,160
+    syscall
+    test rax,rax
+    jne refuse
+    mov rax,[rbp+JOB_CPU]
+    mov [rbp+FRAME],rax
+    mov [rbp+FRAME+8],rax
+    xor edi,edi                   /* RLIMIT_CPU */
+    lea rsi,[rbp+FRAME]
+    mov eax,160
+    syscall
+    test rax,rax
+    jne refuse
+child_stdio:
     mov edi,[rbp+IFD]
     xor esi,esi
     mov eax,33
@@ -463,6 +594,26 @@ hide_inputs:
     mov r8d,4096
     mov eax,322
     syscall
+unsigned_decimal:
+    xor eax,eax
+    cmp BYTE PTR [rsi],49
+    jb refuse
+decimal_digit:
+    movzx edx,BYTE PTR [rsi]
+    cmp edx,48
+    jb refuse
+    cmp edx,57
+    ja refuse
+    imul rax,rax,10
+    jo refuse
+    sub edx,48
+    add rax,rdx
+    jo refuse
+    inc rsi
+    cmp BYTE PTR [rsi],0
+    jne decimal_digit
+    ret
+
 refuse:
     mov edi,2
 exit:
