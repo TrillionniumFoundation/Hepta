@@ -121,6 +121,15 @@ def build_evaluate_budget_observation(output: Path, compiler: Path, cold_report:
 
 
 
+def build_evaluate_publication(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_publication import PACK_MAGIC
+
+    return build_filter(output, compiler, cold_report, application='evaluate-publication',
+                        packer='evaluate-publication-packer', magic=PACK_MAGIC,
+                        filename='hia-evaluate-publication', schema='hepta.hia.evaluate-publication-build.v1')
+
+
+
 def build_evaluate_cost_ledger(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.generate_hia_evaluate_cost_ledger import PACK_MAGIC
     return build_filter(output, compiler, cold_report, application='evaluate-cost-ledger',
@@ -186,7 +195,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
                                                   'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-report-flow', 'evaluate-measurements', 'evaluate-native-report', 'evaluate-reference-report',
-                                                  'execution-budget-session', 'evaluate-cost-ledger', 'evaluate-budget-store', 'evaluate-budget-observation'),
+                                                  'execution-budget-session', 'evaluate-cost-ledger', 'evaluate-budget-store', 'evaluate-budget-observation', 'evaluate-publication'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + flag, type=Path, required=True)
@@ -194,6 +203,9 @@ def main():
     output, compiler, cold_report = args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()
     if args.application == 'evaluate-budget-observation':
         print(build_evaluate_budget_observation(output, compiler, cold_report))
+        return
+    if args.application == 'evaluate-publication':
+        print(build_evaluate_publication(output, compiler, cold_report))
         return
     if args.application == 'evaluate-cost-ledger':
         print(build_evaluate_cost_ledger(output, compiler, cold_report))
