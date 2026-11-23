@@ -56,16 +56,12 @@ def bind_evaluate(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return INVALID
     if native_metadata(s, w, base, install, scope) == False or native_metadata(s, w, candidate, install, scope) == False:
         return INVALID
-    if field_matches(s, w, base, K_signatures, lookup(w, candidate, K_signatures)) == False:
-        return INVALID
     exports = lookup(w, ctx, K_foreign_buffer_exports)
     if field_matches(s, w, base, K_foreign_buffer_exports, exports) == False or field_matches(s, w, candidate, K_foreign_buffer_exports, exports) == False:
         return INVALID
     expected = lookup(w, ctx, K_baseline_core_sha256)
     if expected == NONE:
         return INVALID
-    if get(w,expected) != 0 and field_matches(s,w,base,K_core_sha256,expected) == False:
-        return business_status(o,1)
     if get(w, build) != 6 or build_schema(w, lookup(w, build, K_schema)) == False or matches_metadata(s, w, build, candidate) == False:
         return INVALID
     art = lookup(w, args, K_candidate_artifact)
@@ -76,6 +72,12 @@ def bind_evaluate(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return INVALID
     if field_matches(s, w, built, K_core_sha256, lookup(w, candidate, K_core_sha256)) == False or field_matches(s, w, built, K_object_sha256, lookup(w, build, K_object_sha256)) == False:
         return INVALID
+    if shared_kind(w,lookup(w,base,K_output_kind)) == False or shared_kind(w,lookup(w,candidate,K_output_kind)) == False:
+        return business_status(o,24)
+    if field_matches(s,w,base,K_signatures,lookup(w,candidate,K_signatures)) == False:
+        return business_status(o,25)
+    if get(w,expected) != 0 and field_matches(s,w,base,K_core_sha256,expected) == False:
+        return business_status(o,1)
     receipts = lookup(w, args, K_verification_receipts)
     if receipts == NONE or get(w, receipts) != 5 or get(w, receipts + 32) != fields - 6:
         return INVALID
@@ -162,7 +164,8 @@ def check_workload(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
 def native_metadata(s:readbuf, w:mutbuf, record:u64, install:u64, scope:u64) -> bool:
     if get(w, record) != 6 or field_matches(s, w, record, K_installation, install) == False or field_matches(s, w, record, K_context, scope) == False:
         return False
-    if shared_kind(w, lookup(w, record, K_output_kind)) == False or digest_text(w, lookup(w, record, K_core_sha256), False) == False:
+    kind = lookup(w,record,K_output_kind)
+    if (shared_kind(w,kind) == False and object_kind(w,kind) == False) or digest_text(w, lookup(w, record, K_core_sha256), False) == False:
         return False
     signatures = lookup(w, record, K_signatures)
     return exact_reference(s, w, lookup(w, record, K_candidate)) and signatures != NONE and get(w, signatures) == 6
@@ -233,7 +236,7 @@ def program():
                 *(function(CONTEXT, name) for name in ('equal_span','digest_text','budget_integer')),
                 *(function(art, name) for name in ('artifact_reference','artifact_start','artifact_digest','artifact_uri','valid_hex','matches')),
                 WIRE_HELPERS.split('\ndef signed_id',1)[0], split_key_table(fields[:16],fields[16:]),
-                literal_match('context_schema','hepta.hia.agent.context.v1'),literal_match('shared_kind','shared'),
+                literal_match('context_schema','hepta.hia.agent.context.v1'),literal_match('shared_kind','shared'),literal_match('object_kind','object'),
                 literal_match('build_schema','hepta.hia.agent.build.v1'))
     # The same case planner used at the public execution boundary supplies
     # the first typed case refusal. Its field numbers are private to its own

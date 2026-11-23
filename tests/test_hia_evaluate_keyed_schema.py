@@ -77,3 +77,18 @@ class KeyedSchemaCloseoutTests(unittest.TestCase):
                 self.assertEqual(body['error']['code'], 'E_HIA_WORKLOAD_EXPECTATION')
                 self.assertEqual(body['error']['message'],
                                  f'declared case expectation differs from baseline Core at index {index}')
+
+    def test_build_profile_and_abi_have_distinct_execution_errors(self):
+        for reason, code, message in (
+                (24, 'E_HIA_EXECUTION_PROFILE', 'evaluation requires retained direct shared images'),
+                (25, 'E_HIA_ABI', 'baseline and candidate frozen public ABI differ')):
+            with self.subTest(reason=reason):
+                frame = self.header()
+                frame[64:72] = b'HIAERJ01'
+                frame[120:156] = b'ctx-' + b'c' * 32
+                struct.pack_into('<Q', frame, 88, reason)
+                count, output = self.run_header(frame, diagnostic_size=0)
+                self.assertGreater(count, 512)
+                self.assertEqual(json.loads(output[512:count])['error'],
+                                 {'code': code, 'details_artifact': None, 'message': message,
+                                  'phase': 'execution', 'retry_action': 'correct_input'})

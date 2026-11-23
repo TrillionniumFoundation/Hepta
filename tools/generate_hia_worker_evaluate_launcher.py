@@ -78,7 +78,7 @@ STATES = ('INPUT_CLASSIFIED PROOF_DONE PLAN_DONE PAID_DONE CLAIM_MADE ARCHIVE_MA
           'TIMING_MADE REPORT_DONE LEDGER_DONE CLOSE_LEADING CLOSE_INPUT CLOSED SCHEMA_DIAG SCHEMA_MADE EXPECT_HEAD EXPECT_TAIL EXPECT_READY').split()
 FIELDS = ('PREP_FD PREP_BYTES CLAIM_BYTES ADMITTED_BYTES CALL_BYTES ADMITTED_AT CALL_AT ENTRY_TIME '
           'PAID_FD ARCHIVE_BYTES RECEIPT_BYTES CLAIM_FD ARCHIVE_FD RECEIPT_FD REPORT_FD REPORT_BYTES '
-          'LEDGER_FD LEDGER_BYTES REFUSAL_FD REFUSAL_BYTES EXPECT_FD EXPECT_INDEX EXPECT_HEAD_FD').split()
+          'LEDGER_FD LEDGER_BYTES REFUSAL_FD REFUSAL_BYTES EXPECT_FD EXPECT_INDEX EXPECT_HEAD_FD PENDING_BUILD_REASON').split()
 
 POLICY = '''
 def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
@@ -98,6 +98,9 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
             child_name(o,DIAGNOSTIC_ROLE)
             return issue(o,w,SCHEMA_DIAG,RUN,role_fd(w,DIAGNOSTIC_ROLE),0,1,0)
         if size == 676 and capsule_word(s,64) == KEYED_REFUSAL:
+            reason = capsule_word(s,88)
+            if reason == 24 or reason == 25:
+                put(w,PENDING_BUILD_REASON,reason)
             put(w,REFUSAL_BYTES,676)
             put(w,REFUSAL_FD,fd)
             return launch_bootstrap(o,w)
@@ -141,6 +144,11 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
         put(w,REFUSAL_FD,fd)
         return launch_bootstrap(o,w)
     if state == PROOF_DONE:
+        reason = get(w,PENDING_BUILD_REASON)
+        if reason != 0:
+            if size != 80 or capsule_word(s,64) != BUILD_REFUSAL or capsule_word(s,72) != reason:
+                return BAD
+            return full_closeout(o,w,get(w,REFUSAL_FD),get(w,REFUSAL_BYTES))
         if size < 80 or capsule_word(s,64) != PROVED:
             return BAD
         put(o,HEADER,PLAN_QUERY)
@@ -276,7 +284,7 @@ def compose(source, roles):
                             '    return dispatch(s, o, w, state)')
     source = source.replace('        return launch_worker(o, w, get(w, ROUTE))',
                             '        if get(w,ROUTE) == REPLAY_ROUTE:\n'
-                            '            if get(w,REFUSAL_FD) != 0:\n                return full_closeout(o,w,get(w,REFUSAL_FD),get(w,REFUSAL_BYTES))\n'
+                            '            if get(w,REFUSAL_FD) != 0 and get(w,PENDING_BUILD_REASON) == 0:\n                return full_closeout(o,w,get(w,REFUSAL_FD),get(w,REFUSAL_BYTES))\n'
                             '            return full_proof(o,w,get(w,REQUEST_FD),get(w,REQUEST_BYTES))\n'
                             '        return launch_worker(o, w, get(w, ROUTE))')
     source = source.replace('    return issue(o, w, WORKER_DONE, RUN,',
@@ -286,7 +294,7 @@ def compose(source, roles):
 
 def bindings(roles):
     labels = dict(UNKEYED_HANDOFF=b'HIAENK01', KEYED_REFUSAL=b'HIAERJ01',EXPECTED_REFUSAL=b'HIAEXR01', SCHEMA_QUERY=b'HIAESQ01', KEYED_SCHEMA=b'HIAESR01',
-                  ERROR_START=b'{"code":', SCHEMA_START=b'"E_HIA_S', PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
+                  ERROR_START=b'{"code":', SCHEMA_START=b'"E_HIA_S', PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', BUILD_REFUSAL=b'HIAEFP01', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
                   PAID=b'HIAEXO01', JOURNAL=b'HIAEJC01', ARCHIVE=b'HIAEMT01', BUDGET=b'HIAEBRS1',
                   CLOCK_WIRE=b'HIAEMC01', REPORT_FRAME=b'HIAEMF01', CLOSING=b'HIAEFC01')
     values = {k: int.from_bytes(v, 'little') for k, v in labels.items()}

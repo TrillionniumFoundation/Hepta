@@ -6,6 +6,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_worker_adopt_flow import recipe as adopt_recipe
 from tools.generate_hia_worker_adopt_custody import custody_sections
+from tools.generate_hia_worker_rollback_flow import NATIVE as ROLLBACK_NATIVE
 from tools.generate_hia_worker_adopt_proof import adopt_proof_recipe, reachable_policy
 from tools.generate_hia_worker_candidate_flow import replace_function
 from tools.generate_hia_worker_context_flow import flow_source, function
@@ -113,9 +114,7 @@ def adopt_continue(o:mutbuf, w:mutbuf, state:u64) -> u64:
         put(w, EMIT_STAGE, 12)
         return inspection_program(o, w)
     if state == ADOPT_BUILD_READY:
-        move_fragment(w, ADOPT_OBJECTIVE_REF, INSPECTION_REFERENCE)
-        put(w, RETAINED_PURPOSE, READ_ADOPT_OBJECTIVE)
-        return inspection_retained_query(o, w, 0)
+        return read_span(o,w,PROOF_BASE_TYPE,get(w,BASE_IMAGE),get(w,BASE_IMAGE+8),24)
     if state == ADOPT_CLAIMS_READY:
         put(w, 0, ADOPT_CUSTODY_CLAIMS)
         return ADOPT_DEFER_CUSTODY
@@ -129,6 +128,44 @@ def adopt_continue(o:mutbuf, w:mutbuf, state:u64) -> u64:
         use_span(w, o, ADOPT_CLAIM_SCHEDULE, 0)
         return action(o, w, PROOF_MADE, MAKE, 0, 0, 1, 80)
     return BAD
+
+def physical_kind(s:readbuf) -> u64:
+    if length(s) != 88 or input_word(s,64) != ELF64 or (input_word(s,80) >> 16 & 65535) != 62:
+        return 0
+    kind = input_word(s,80) & 65535
+    if kind != 1 and kind != 3:
+        return 0
+    return kind
+
+def compare_build_profiles(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
+    if state == PROOF_BASE_TYPE or state == PROOF_CAND_TYPE:
+        kind = physical_kind(s)
+        if kind == 0:
+            return BAD
+        if state == PROOF_BASE_TYPE:
+            put(w,BASE_TYPE,kind)
+            return read_span(o,w,PROOF_CAND_TYPE,get(w,CAND_IMAGE),get(w,CAND_IMAGE+8),24)
+        if kind == 1 or get(w,BASE_TYPE) == 1:
+            return build_refused(o,w,24)
+        return rollback_compare(o,w,PROOF_ABI,BASE_SIGNATURE,CAND_SIGNATURE)
+    if state == PROOF_ABI:
+        if rollback_binding(s) == False:
+            return BAD
+        if input_word(s,80) == 0:
+            return build_refused(o,w,25)
+        move_fragment(w, ADOPT_OBJECTIVE_REF, INSPECTION_REFERENCE)
+        put(w, RETAINED_PURPOSE, READ_ADOPT_OBJECTIVE)
+        return inspection_retained_query(o,w,0)
+    if state != PROOF_REFUSED or input_word(s,40) != 80 or input_word(s,64) != BUILD_REFUSAL:
+        return BAD
+    fragment(o,0,input_word(s,32),0,80)
+    return action(o,w,PROOF_PUBLISHED,PUBLISH,0,0,1,0)
+
+def build_refused(o:mutbuf,w:mutbuf,reason:u64) -> u64:
+    put(o,HEADER,BUILD_REFUSAL)
+    put(o,HEADER+8,reason)
+    copy_private(w,o,PROOF_REQUEST_SHA,HEADER+16,64)
+    return action(o,w,PROOF_REFUSED,MAKE,0,0,0,80)
 
 def proof_publish(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == PROOF_MADE:
@@ -150,7 +187,10 @@ def sources():
                      SCHEMA_TOOL=9, EVALUATE_REQUEST_ROLE=role, PROOF_REQUEST_SHA=11968,
                      EVALUATE_LAYOUT=int.from_bytes(b'HIAEVQ01', 'little'),
                      PROVED_TAG=int.from_bytes(b'HIAEDP01', 'little'))
-    states = ('PROOF_TOOL', 'PROOF_HASH', 'PROOF_DIGEST', 'PROOF_MADE', 'PROOF_PUBLISHED')
+    constants.update(BASE_IMAGE=12040,CAND_IMAGE=12064,BASE_SIGNATURE=12088,CAND_SIGNATURE=12112,BASE_TYPE=12136,
+                     ELF64=int.from_bytes(b'\x7fELF\x02\x01\x01\x00','little'),BUILD_REFUSAL=int.from_bytes(b'HIAEFP01','little'))
+    states = ('PROOF_TOOL', 'PROOF_HASH', 'PROOF_DIGEST', 'PROOF_MADE', 'PROOF_PUBLISHED',
+              'PROOF_BASE_TYPE', 'PROOF_CAND_TYPE', 'PROOF_ABI', 'PROOF_REFUSED')
     constants.update({name: i for i, name in enumerate(states, 1270)})
     tail = b',"tool":"hia_evaluate"}'
     constants['TOOL_BYTES'] = len(tail)
@@ -159,12 +199,13 @@ def sources():
     entry = entry.replace('def adopt_flow(', 'def evaluate_proof_flow(')
     entry = entry.replace('    if state == EMIT_TRUST_HEADER:', '''    if state >= PROOF_TOOL and state <= PROOF_DIGEST:
         return proof_request_digest(s, o, w, state)
+    if state >= PROOF_BASE_TYPE and state <= PROOF_REFUSED:
+        return compare_build_profiles(s,o,w,state)
     if state == PROOF_MADE or state == PROOF_PUBLISHED:
         return proof_publish(s, o, w, state)
     if state == EMIT_TRUST_HEADER:''')
-    # This entry has no Journal or slot continuation. A refusal closes the owner
-    # without publishing bytes. Only typed Store reads and authenticated replays
-    # are reachable from the admitted request.
+    # The proof owner performs typed Store reads and authenticated replays.
+    # It can return a physically verified build refusal to the Journal owner.
     a = entry.index('    if state <= JOURNAL_RECIPE:')
     b = entry.index('    if state >= INSPECTION_CONTEXT_REFERENCE', a)
     entry = entry[:a] + '''    if state >= PEER_STARTED and state <= PEER_CLOSED:
@@ -178,18 +219,26 @@ def sources():
         source = replace_function(source, name, old[:old.index('\n', 1)] + '\n    return BAD\n')
     source += '\n'.join((suffix, function(PROJECT, 'proof_request_digest'), function(PROJECT, 'proof_publish'),
                          function(VIEW_DRIVER, 'inspection_hash_result'), function(PROJECT, 'inspection_hash_bound')))
+    source += '\n'.join(function(PROJECT,name) for name in ('physical_kind','compare_build_profiles','build_refused'))
+    source += '\n'.join(function(ROLLBACK_NATIVE,name) for name in ('rollback_compare','rollback_binding'))
     front, controls = reachable_policy(source, 'evaluate_proof_flow')
     _, _, original_controls = native_recipe()
     entry, parts = custody_sections(constants, original_controls)
     source = '\n'.join((entry, *parts))
     # Phase 4 opens the baseline from the request, checks its installation,
     # context, actual Core hash, signatures and exports before preserving that
-    # digest. Phase 0 and every scheduled recheck use unchanged build custody.
+    # digest. Keep its image and computed ABI separate from the candidate.
+    # Phase 0 and every scheduled recheck use the original build custody.
     source = source.replace('return adopt_image(o, w, 1, ADOPT_CLAIM_FIELDS + 24)',
                             'return adopt_image(o, w, 4, ADOPT_EVAL_FIELDS + 96)')
     needle = '        if phase == 1:\n'
     assert source.count(needle) == 1
-    source = source.replace(needle, '''        if phase == 4:
+    source = source.replace(needle, '''        if phase == 0 and get(w,ADOPT_RECHECK_MODE) == 0:
+            move_fragment(w,ADOPT_NATIVE_SIGNATURES,CAND_SIGNATURE)
+            move_fragment(w,ADOPT_NATIVE_IMAGE,CAND_IMAGE)
+        if phase == 4:
+            move_fragment(w,ADOPT_NATIVE_SIGNATURES,BASE_SIGNATURE)
+            move_fragment(w,ADOPT_NATIVE_IMAGE,BASE_IMAGE)
             move_fragment(w, EMIT_PROOF_CANDIDATE_SHA, ADOPT_CLAIM_FIELDS + 48)
             put(w, ADOPT_IMAGE_PHASE, 0)
             move_fragment(w, ADOPT_CLAIM_FIELDS + 24, EMIT_CUSTODY_NATIVE_REF)

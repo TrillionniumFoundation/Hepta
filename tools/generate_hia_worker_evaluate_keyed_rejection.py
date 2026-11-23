@@ -4,7 +4,7 @@ INGRESS = '''
 def refuse_business(o:mutbuf,w:mutbuf,reason:u64) -> u64:
     # Baseline and the original scalar tag have their existing identities.
     # The other workload planner codes are shifted by ten in this envelope.
-    if reason != 1 and reason != 2 and (reason < 11 or reason > 23 or reason == 12):
+    if reason != 1 and reason != 2 and (reason < 11 or reason > 25 or reason == 12):
         return close_store(o,w,CLOSE_REFUSED)
     put(w,BUSINESS_REASON,reason)
     return close_store(o,w,CLOSE_ERROR)
@@ -119,8 +119,8 @@ def ingress(driver, policy, controls, constants):
     policy=policy.replace('            put(w, WORKLOAD_FD, fd)',
                           '            put(w, WORKLOAD_FD, fd)\n            return classify_workload(o,w,fd,size)')
     policy=policy.replace('    if state == RUNTIME_BOUND:', '    if state == RUNTIME_BOUND:\n'
-                          '        if plan_ok(s) and size == 24 and input_word(s,72) == BUSINESS and input_word(s,80) == 1:\n'
-                          '            return refuse_business(o,w,1)')
+                          '        if plan_ok(s) and size == 24 and input_word(s,72) == BUSINESS and (input_word(s,80) == 1 or input_word(s,80) == 24 or input_word(s,80) == 25):\n'
+                          '            return refuse_business(o,w,input_word(s,80))')
     policy=policy.replace('    if purpose == CLOSED_RESERVATION:', '    if purpose == CLOSE_ERROR:\n'
                           '        put(w,CLAIM_ACTIVE,1)\n        return send_journal(o,w,9)\n'
                           '    if purpose == CLOSED_RESERVATION:\n'
@@ -137,6 +137,8 @@ def closeout_literals():
     from tools.generate_hia_evaluate_settlement import LITERALS
     reasons = [('baseline_error','E_HIA_BASELINE','evaluation baseline differs from the frozen Core snapshot','execution')]
     reasons.append(('stale_context','E_HIA_CONTEXT_STALE','context binds a different installed implementation','context'))
+    reasons.extend((('profile_error','E_HIA_EXECUTION_PROFILE','evaluation requires retained direct shared images','execution'),
+                    ('abi_error','E_HIA_ABI','baseline and candidate frozen public ABI differ','execution')))
     reasons.append(('unknown_context','E_HIA_CONTEXT_IDENTITY','context is not a retained server record','context'))
     reasons.append(('expired_context','E_HIA_BUDGET','context total wall budget has expired','context'))
     for code, (error, message) in sorted(_WORKLOAD_REFUSALS.items()):
@@ -162,6 +164,8 @@ def closeout_literals():
                   '        if tens != 0:', '            store(o,p,48+tens-10*hundreds)', '            p = p+1',
                   '        store(o,p,48+index-10*tens)', '        return declared_suffix(o,p+1)'))
     lines.extend(('    if reason == 1:', '        return baseline_error(o,at)'))
+    lines.extend(('    if reason == 24:', '        return profile_error(o,at)',
+                  '    if reason == 25:', '        return abi_error(o,at)'))
     lines.extend(('    if reason == 23:', '        return stale_context(o,at)'))
     lines.extend(('    if reason == 22:', '        return unknown_context(o,at)'))
     lines.extend(('    if reason == 21:', '        return expired_context(o,at)'))
