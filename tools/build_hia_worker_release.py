@@ -546,6 +546,10 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             build_owned_reference_executable(scratch / 'owned-reference-cli', compiler, cold_report),
             output / 'reference' / 'hia-owned-reference-wire')
         owned_reference.chmod(0o500)
+        for executable in (reference, owned_reference):
+            packaged = release / executable.name
+            if packaged.is_file() and packaged.read_bytes() != executable.read_bytes():
+                raise ValueError(f'Store release {executable.name} differs from the cold-built reference executor')
         direct_call = _copy_runtime_file(
             build_direct_call(scratch / 'direct-call', compiler, cold_report),
             output / 'reference' / 'hia-direct-call')
