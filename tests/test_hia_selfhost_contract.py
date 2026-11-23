@@ -232,6 +232,50 @@ class SelfhostContractTests(unittest.TestCase):
             self.assertFalse((root / "missing").exists())
 
 
+    def test_cold_report_publication_refuses_a_competing_file_or_symlink(self):
+        # The output was absent at admission, but an unrelated writer claims
+        # the pathname while the separately owned cold run is in progress.
+        from unittest.mock import patch
+        from tools import replay_hia_selfhost_cold as replay
+
+        with tempfile.TemporaryDirectory(prefix="hia-cold-late-owner-") as temporary:
+            root = Path(temporary)
+            (root / "compiler.hepta").write_bytes(b"immutable source")
+            (root / "contract.json").write_text("{}")
+            contract = {
+                "profile": "test",
+                "source_identity": {"files": {
+                    "compiler.hepta": sha256(b"immutable source").hexdigest()
+                }}
+            }
+            for kind in ("file", "symlink"):
+                with self.subTest(kind=kind):
+                    directory = root / kind
+                    directory.mkdir()
+                    output = directory / "report.json"
+                    protected = directory / "independent.txt"
+                    protected.write_bytes(b"unrelated owner's bytes")
+
+                    def competing_run(*args, **kwargs):
+                        if kind == "file":
+                            output.write_bytes(b"competing writer's report")
+                        else:
+                            output.symlink_to(protected)
+                        return {"status": "FAILED", "cleanup": {"complete": True},
+                                "returncode": 1}
+
+                    with (patch.object(replay, "ROOT", root),
+                          patch.object(replay, "CONTRACT_PATH", "contract.json"),
+                          patch.object(replay, "validate_contract", return_value=contract),
+                          patch.object(replay, "run_owned", side_effect=competing_run)):
+                        with self.assertRaises(FileExistsError):
+                            replay.cold_replay(output)
+                    self.assertEqual(protected.read_bytes(), b"unrelated owner's bytes")
+                    if kind == "file":
+                        self.assertEqual(output.read_bytes(), b"competing writer's report")
+                    else:
+                        self.assertTrue(output.is_symlink())
+
     def test_flat_native_helper_registry_keeps_current_literals_without_recursive_eval(self):
         from unittest.mock import patch
         from tools.hia_selfhost_contract import _native_worker_helper_count

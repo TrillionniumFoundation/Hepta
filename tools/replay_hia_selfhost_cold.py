@@ -118,7 +118,11 @@ def cold_replay(output, *, native_transport=False):
         result["native_transport_selection"] = {
             "mode": "fresh-source-export-build-after-B3", "inherited_native_images": False,
             "whole_native": False}
-    output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    # The report is an externally visible result, not a scratch file. A rival
+    # process may have claimed the initially absent path while we ran the cold
+    # compiler; never overwrite its file or follow its newly created symlink.
+    with output.open("x", encoding="utf-8") as stream:
+        stream.write(json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result
 
 
