@@ -451,7 +451,7 @@ def reaped_reference(o:mutbuf, w:mutbuf, now:u64) -> u64:
 '''
 
 
-def program():
+def program(*, claim=False):
     constants, controls = recipe(ROLES)
     constants.update(SCHEMA_TOOL=9, MAKE=11, RECEIPT_COUNT=2304, SELECTOR=2312, ACTIVE_KIND=2320,
                      RECORD_SIZE=2328, SELECTORS=2368, ACTIVE_REFERENCE=2848, METADATA_SPAN=2872,
@@ -488,7 +488,11 @@ def program():
     controls.extend((function(ARTIFACT,'clock_sample'),function(ARTIFACT,'json_pair'),function(ARTIFACT,'schema_receipt'),
                      function(DESCRIBE,'reply_word'),function(CONTROL_POLICY,'hold'),function(CONTROL_POLICY,'use_span'),
                      function(RETAINED_POLICY,'artifact_command')))
-    return flow_source(driver + POLICY + RUNTIME_POLICY, controls, constants)
+    policy = POLICY + RUNTIME_POLICY
+    if claim:
+        from tools.generate_hia_worker_evaluate_claim_flow import reservation_recipe
+        driver, policy, controls = reservation_recipe(driver, policy, controls, constants)
+    return flow_source(driver + policy, controls, constants)
 
 
 if __name__ == '__main__':

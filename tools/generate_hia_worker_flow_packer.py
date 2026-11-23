@@ -42,6 +42,8 @@ LAUNCHER = 'tools/hia_worker_launcher_ports.S'
 LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_launcher_flow.hepta'
 LAUNCHER_PACKER = 'examples/hia_bootstrap/worker_launcher_flow_packer.hepta'
 LAUNCHER_KIND = 'native-launcher'
+CLAIM_KIND = 'evaluate-claim'
+CLAIM_POLICY = 'examples/hia_bootstrap/worker_evaluate_claim_flow.hepta'
 INTAKE_KIND = 'evaluate-intake'
 INTAKE_LAUNCHER_KIND = 'evaluate-intake-launcher'
 INTAKE_LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_evaluate_intake_launcher.hepta'
@@ -82,6 +84,7 @@ PROGRAMS = {
     'artifact': (ARTIFACT_POLICY, ARTIFACT_PACKER),
     REPLAY_KIND: (REPLAY_POLICY, REPLAY_PACKER),
     INTAKE_KIND: (INTAKE_POLICY, INTAKE_PACKER),
+    CLAIM_KIND: (CLAIM_POLICY, INTAKE_PACKER),
     'discovery': (DISCOVERY_POLICY, DISCOVERY_PACKER),
     'context': (CONTEXT_POLICY, CONTEXT_PACKER),
     'inspection': (INSPECTION_POLICY, INSPECTION_PACKER),
@@ -96,7 +99,7 @@ PROGRAMS = {
     INTAKE_LAUNCHER_KIND: (INTAKE_LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
 PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
-              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
+              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, CLAIM_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -104,6 +107,8 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
     # Local references let the existing flat-template builder prove that
     # every syscall adapter relocation is already resolved. The sole HIA
     # application call deliberately remains a zero rel32 hole.
+    if kind == CLAIM_KIND:
+        kind = INTAKE_KIND
     if kind in (REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
         kind = LAUNCHER_KIND
     if kind in (REPLAY_KIND, INTAKE_KIND):
@@ -213,7 +218,7 @@ def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
 if __name__ == '__main__':
     sources = Path(FLOW).read_bytes(), Path(PORTS).read_bytes()
     for kind, (_, path) in PROGRAMS.items():
-        if kind in (REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
+        if kind in (CLAIM_KIND, REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
             continue  # Both launchers use the same platform packer.
         peers = Path(PEERS).read_bytes() if kind in PEER_KINDS else b''
         launcher = Path(LAUNCHER).read_bytes() if kind == LAUNCHER_KIND else b''
