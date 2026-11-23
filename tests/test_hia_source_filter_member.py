@@ -424,6 +424,48 @@ class InstalledSourceMemberTests(unittest.TestCase):
         self.assertEqual(outputs, [('hia-nominal-constructor', expected)])
         self.assertEqual(path.read_bytes(), expected)
 
+    def test_core_nominal_tools_link_the_installed_implementations_and_real_prover(self):
+        import struct
+        import zlib
+        from tools import build_hia_core_edit as core
+        from tools.build_hia_core_edit_link import build_implementations
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+
+        def compile_sources(named):
+            paths = {alias: self.sources / source for alias, source in named.items()}
+            originals = {alias: path.read_bytes() for alias, path in paths.items()}
+            packet = self.source_images(self.work / 'core-link-sources', paths)
+            return packet, _compiled_sources(packet, originals), originals
+
+        def invoke(program, operation, wire):
+            result = _run_captured(program, operation, wire, self.work)
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            return result.stdout
+
+        admitted = {path: sha256((ROOT / path).read_bytes()).hexdigest()
+                    for path in (*core.NOMINAL_ADAPTER_ROLES, core.REGISTER_RELAY)}
+        prover = (self.release / 'hia-safe-core-prove').read_bytes()
+        tools = (self.seed.read_bytes(), compile_sources, invoke)
+        built = build_implementations(tools, admitted, prover=prover)
+        self.assertEqual(set(built), set(core.NOMINAL_CLI_IMAGES))
+        for kind, (actual, details) in built.items():
+            with self.subTest(kind=kind):
+                raw = (self.release / core.PROGRAMS[kind][0]).read_bytes()
+                at = raw.index(core.EXEC_ARCHIVE_MAGIC) + 8
+                extent, = struct.unpack_from('<Q', raw, at)
+                self.assertEqual(extent, len(actual))
+                pos = at + 8
+                original = bytearray()
+                while len(original) < extent:
+                    encoded, size = struct.unpack_from('<QQ', raw, pos)
+                    block = zlib.decompress(raw[pos + 16:pos + 16 + encoded], -15)
+                    self.assertEqual(len(block), size)
+                    original.extend(block)
+                    pos += 16 + encoded
+                self.assertEqual(actual, original)
+                self.assertEqual(details['link_receipt']['status'], extent)
+        self.assertEqual(built['build_object'][0], (self.release / 'hia-worker-scalar-implementation').read_bytes())
+
     def test_normal_sqlite_units_match_the_independent_installed_programs(self):
         from tools import build_hia_native_store_release as release
         from tools.build_hia_agent_batch_commit import VARIANTS

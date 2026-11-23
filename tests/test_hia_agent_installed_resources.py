@@ -27,6 +27,7 @@ SDIST_SUPPORT_FILES=(
     'examples/hia_bootstrap/source_core_pin.hepta',
     'examples/hia_bootstrap/source_core_codec.hepta',
     'examples/hia_bootstrap/core_edit/source_codec_packer.hepta',
+    'examples/hia_bootstrap/source_core_edit_link.hepta',
     'examples/hia_bootstrap/owned_reference_entry_wrapper.hepta',
     'examples/hia_bootstrap/owned_reference_entry_stub.hepta',
     'examples/hia_bootstrap/source_sqlite_unit.hepta',

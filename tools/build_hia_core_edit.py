@@ -6,17 +6,13 @@ import json
 from pathlib import Path
 import struct
 
-from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE
-from tools import build_hia_core_static as core_static
+from tools import build_hia_core_edit_link as core_link, build_hia_core_static as core_static
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_nominal_constructor import (
     ADAPTER as NOMINAL_ADAPTER, COMPONENTS as NOMINAL_COMPONENTS,
     NOMINAL_IMAGE_LABELS, ORDINARY_CLI_IMAGE_CAPACITY,
-    build as build_nominal_constructor,
 )
-from tools.build_hia_sqlite_pager import EMBED_SOURCE, embed, link, load_static_object, verify_executable
-from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -321,34 +317,6 @@ def check_placement(binary, stub, holes, images):
     return inspect_executable(binary)
 
 
-def link_nominal_cli(folder, adapter, images, roles, embedder, adapters, *, edit_envelope=False,
-                     edit_response=False, batch_capture=False, prover=None):
-    objects = [adapters[adapter], adapters[NOMINAL_ADAPTER]]
-    if edit_envelope:
-        objects.append(adapters[EDIT_ENVELOPE])
-    if edit_response:
-        objects.append(adapters[EDIT_RESPONSE])
-    if batch_capture:
-        objects.append(adapters[BATCH_CAPTURE])
-    payloads = {label: images[NOMINAL_BUILD_SOURCES[key]]
-                for key, label in {**NOMINAL_IMAGE_LABELS, **NOMINAL_BUILD_IMAGES}.items()}
-    payloads.update({label: images[path] for path, label in roles.items()})
-    if 'build_shared_linker' in payloads:
-        for role in ('build_shared_linker', 'build_verified_linker'):
-            payloads[role + '_identity'] = sha256(payloads[role]).digest()
-        payloads['build_prover_identity'] = struct.pack('<Q', len(prover)) + sha256(prover).digest()
-    objects.extend(embed(folder, label, label, raw, embedder) for label, raw in payloads.items())
-    reference = next(iter(roles))
-    binary, receipt = link(folder, images[NOMINAL_BUILD_SOURCES['linker']], images[reference], objects,
-                           wire_magic=b'HIALNK01', executable_limit=ORDINARY_CLI_IMAGE_CAPACITY)
-    for raw in payloads.values():
-        verify_executable(binary, raw)
-    writable_offset = struct.unpack_from('<Q', binary, 128)[0]
-    if any(memoryview(binary)[writable_offset:]):
-        raise ValueError('linked nominal CLI must have an initially zero writable segment')
-    return binary, {'link_receipt': receipt, 'adapter_object_sha256': digest(objects[0])}
-
-
 def build(output, compiler, cold_report, *, release_only=False, native_tools=None, constructor=None, prover_bytes=None):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
@@ -358,9 +326,8 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
                 if not release_only or key != 'emit_object'}
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
-    adapter_groups = NOMINAL_TEMPLATE_GROUPS
-    source_files = {PACKER, *STATIC_ADAPTERS, *adapter_groups, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER,
-                    RELEASE_DEFLATE, EMBED_SOURCE,
+    source_files = {PACKER, *STATIC_ADAPTERS, *NOMINAL_TEMPLATE_GROUPS, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER,
+                    RELEASE_DEFLATE, BOOTSTRAP + core_link.POLICY,
                     *assembly_images, *SELFHOST_CORE_SOURCES, *adapters.values(),
                     NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE,
                     REGISTER_RELAY, *NOMINAL_BUILD_SOURCES.values(),
@@ -373,61 +340,49 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
     output.mkdir(mode=0o700)
     if native_tools is None:
         native_tools = core_static.cold_tools(output, compiler, cold_report, admitted)
-    compressor = core_static.ReleaseCodec(native_tools)
-    products = core_static.build_products(native_tools, admitted, compressor=compressor, release_only=release_only)
-    # Shared image sources can still be needed by the compressed and nominal programs.
-    legacy_inputs = {*NOMINAL_BUILD_SOURCES.values(),
-                     *(path for kind, (_, roles) in programs.items() if kind not in core_static.KINDS
-                       for path, _ in roles),
-                     *(path for mapping in NOMINAL_CLI_IMAGES.values() for path in mapping)}
-    native_only = {path for kind in core_static.KINDS if kind in programs
-                   for path in core_static.source_paths(kind, programs[kind][1])} - legacy_inputs
-    images, receipts = {}, {}
-    for path, raw in sources.items():
-        if path.endswith('.json'):
-            images[path] = raw
-        if (not path.endswith('.hepta') or path in native_only or path in STATIC_ADAPTERS
-                or path in (PACKER, DISPATCH, SELFHOST_ENTRY, ARGUMENT_PARSER, ARGUMENT_FORMATTER, RELEASE_DEFLATE)):
-            continue
-        image, receipt = compile_stage(output, Path(path).stem, compiler, raw)
-        images[path] = image.read_bytes()
-        receipts[path] = receipt
-    embedder = NativeHiaJsonImage(images[EMBED_SOURCE], receipts[EMBED_SOURCE]['produced_sha256'])
-    templates = {path: NativeHiaJsonImage(images[path], receipts[path]['produced_sha256'])
-                 for path in adapter_groups}
-    nominal_objects = {name: load_static_object(templates[group], role,
-                         expand_register_relay(sources[name], sources[REGISTER_RELAY]))
-                       for name, (group, role) in NOMINAL_ADAPTER_ROLES.items()}
+    seed, compile_sources, call = native_tools
+    compiler_sha256 = digest(compiler_raw)
+    receipts = {}
+
+    def compile_with_receipts(named):
+        wire, images, originals = compile_sources(named)
+        for name, relative in named.items():
+            path = BOOTSTRAP + relative
+            source_sha256 = digest(originals[name])
+            if source_sha256 != admitted.get(path):
+                raise ValueError('Core compilation consumed a source outside cold admission: ' + path)
+            record = {'source_sha256': source_sha256, 'compiler_sha256': compiler_sha256,
+                      'produced_sha256': digest(images[name]), 'produced_bytes': len(images[name])}
+            if receipts.setdefault(path, record) != record:
+                raise ValueError('Core source produced inconsistent native images: ' + path)
+        return wire, images, originals
+
+    native_tools = seed, compile_with_receipts, call
     if prover_bytes is None:
         prover_bytes = core_static.source_prover(output / 'supplied-proof', native_tools, admitted)
     if type(prover_bytes) is not bytes or not 176 <= len(prover_bytes) <= ORDINARY_CLI_IMAGE_CAPACITY:
         raise ValueError('Core requires the captured Safe Core verifier')
-    scalar_implementation = None
-    for kind, (name, roles) in programs.items():
-        if kind == 'dispatch' or kind in core_static.KINDS:
-            continue
-        adapter = adapters[kind]
-        folder = output / kind
-        folder.mkdir(mode=0o700)
-        if kind in NOMINAL_CLI_IMAGES:
-            prover = prover_bytes if kind == 'build_object' else None
-            executable, details = link_nominal_cli(
-                folder, adapter, images, NOMINAL_CLI_IMAGES[kind], embedder, nominal_objects,
-                edit_envelope=kind in EDIT_ENVELOPE_ROLES,
-                edit_response=kind in ('apply', 'publish_edit'), batch_capture=kind in ('batch_apply', 'publish_batch'),
-                prover=prover)
-            binary, packed = core_static.pack_implementation(native_tools, admitted, compressor, executable, prover=prover)
-            if kind == 'build_object':
-                if digest(executable) != packed['implementation_sha256']:
-                    raise ValueError('Worker scalar implementation differs from the packaged compiler')
-                scalar_implementation = (executable, {**details, 'sha256': packed['implementation_sha256']})
-            products[name] = (binary, {**details, **packed})
-            continue
-        raise ValueError('Core program has no admitted source recipe: ' + kind)
     if constructor is None:
-        constructor = build_nominal_constructor(output / 'nominal-constructor', compiler, cold_report)
-    elif native_tools is None or constructor.name != 'hia-nominal-constructor':
-        raise ValueError('the bound nominal constructor requires the native release source tools')
+        constructor = core_static.source_constructor(output / 'nominal-constructor', native_tools, admitted)
+    if constructor.name != 'hia-nominal-constructor':
+        raise ValueError('unexpected nominal constructor supplied to the Core build')
+
+    compressor = core_static.ReleaseCodec(native_tools)
+    products = core_static.build_products(native_tools, admitted, compressor=compressor, release_only=release_only)
+    implementations = core_link.build_implementations(native_tools, admitted, prover=prover_bytes)
+    adapter_sha256 = {}
+    for kind, (implementation, details) in implementations.items():
+        name = programs[kind][0]
+        prover = prover_bytes if kind == 'build_object' else None
+        binary, packed = core_static.pack_implementation(native_tools, admitted, compressor, implementation, prover=prover)
+        if digest(implementation) != packed['implementation_sha256']:
+            raise ValueError('Core implementation differs from its packaged executable: ' + name)
+        products[name] = binary, {**details, **packed}
+        adapter_sha256.update(details['adapter_sha256'])
+        if kind == 'build_object':
+            if digest(prover_bytes) != packed['attached_prover_sha256']:
+                raise ValueError('Core build attached a different Safe Core verifier')
+            products['hia-worker-scalar-implementation'] = implementation, {**details, 'sha256': digest(implementation)}
     bound_roles = {name: products[name][0] for name in DISPATCH_ROLES if name != constructor.name}
     bound_roles[constructor.name] = constructor.read_bytes()
     pin_owner = core_static.policy_builder(native_tools, 'source_core_pin.hepta', 'source_build_packer.hepta')
@@ -445,14 +400,11 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
     if (current_sources() != admitted or compiler.read_bytes() != compiler_raw
             or cold_report.read_bytes() != report_raw
             or constructor.read_bytes() != bound_roles[constructor.name]
-            or any((ROOT / path).read_bytes() != raw for path, raw in sources.items())
-            or any(digest(images[path]) != receipt['produced_sha256']
-                   or Path(receipt['produced_image']).read_bytes() != images[path]
-                   for path, receipt in receipts.items())):
+            or any((ROOT / path).read_bytes() != raw for path, raw in sources.items())):
         raise ValueError('native Core edit build inputs changed before publication')
-    if scalar_implementation is None:
-        raise ValueError('Worker scalar implementation was not built')
-    products['hia-worker-scalar-implementation'] = scalar_implementation
+    expected = {name for name, _ in programs.values()} | {'hia-worker-scalar-implementation'}
+    if set(products) != expected:
+        raise ValueError('Core build did not produce exactly its declared executable set')
     for name, (binary, _details) in products.items():
         executable = output / name
         with executable.open('xb') as stream:
@@ -461,8 +413,8 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
     (output / 'build.json').write_text(json.dumps({
         'schema': 'hepta.hia.core-edit-build.v1',
         'compiler_sha256': digest(compiler_raw), 'cold_report_sha256': digest(report_raw),
+        'native_nominal_adapter_object_sha256': adapter_sha256,
         'supplied_proof_sha256': digest(prover_bytes),
-        'native_nominal_adapter_object_sha256': {name: digest(raw) for name, raw in nominal_objects.items()},
         'source_sha256': {path: digest(raw) for path, raw in sources.items()},
         'compile_receipts': receipts, 'executables': {name: details for name, (_, details) in products.items()},
     }, indent=2, sort_keys=True) + '\n')

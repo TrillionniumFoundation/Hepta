@@ -59,6 +59,22 @@ def source_prover(directory, tools, admitted):
     return prover
 
 
+def source_constructor(directory, tools, admitted):
+    """Use the release constructor's source and object pipeline for standalone builds."""
+    from tools.build_hia_core_edit_link import source_linker
+    from tools.build_hia_native_store_release import _sqlite_build_tools, _stage_nominal_constructor
+
+    seed, compile_sources, call = tools
+    directory.mkdir(mode=0o700)
+    sqlite_tools = _sqlite_build_tools(seed, source_linker(tools), compile_sources, call, admitted)
+
+    def capture(path, *, expected):
+        if path.name != 'hia-nominal-constructor' or sha256(path.read_bytes()).hexdigest() != expected:
+            raise ValueError('native Core constructor changed before capture')
+
+    return _stage_nominal_constructor(directory, compile_sources, capture, sqlite_tools)
+
+
 def policy_builder(tools, policy, leaf):
     seed, compile_sources, call = tools
     kit, _, _ = compile_sources({
