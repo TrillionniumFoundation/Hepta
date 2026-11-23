@@ -32,6 +32,7 @@ from tools.build_hia_agent_read_page import build as build_agent_stdio
 from tools.build_hia_json_preflight import build_batch as build_helper_batch
 from tools.build_hia_native_build_admission import build as build_build_admission
 from tools.build_hia_native_continuation import build as build_scheduler
+from tools.build_hia_native_filter import build_evaluate_projector
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
 from tools.build_hia_owned_reference_cli import build as build_owned_reference_executable
@@ -571,7 +572,9 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
         cost_role = release / 'hia-agent-journal-cost'
         journal_cost = cost_role if cost_role.is_file() else None
         evaluate_roles = {kind: release / ('hia-agent-' + kind)
-                          for kind in ('worker-evaluate-case', 'worker-evaluate-request')
+                          for kind in ('worker-evaluate-case', 'worker-evaluate-request',
+                                       'evaluate-journal', 'evaluate-journal-observation',
+                                       'evaluate-journal-records', 'evaluate-diagnostic')
                           if (release / ('hia-agent-' + kind)).is_file()}
         if evaluate_roles:
             manifests = build_helper_batch(scratch / 'evaluate-images', compiler, cold_report,
@@ -580,6 +583,11 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                 expected = build_agent_stdio(scratch / kind, compiler, cold_report, manifests[kind], kind=kind)
                 if executable.read_bytes() != expected.read_bytes():
                     raise ValueError(f'Store release {kind} differs from the cold-built HIA role')
+        projector = release / 'hia-evaluate-projector'
+        if projector.is_file():
+            expected = build_evaluate_projector(scratch / 'evaluate-projector', compiler, cold_report)
+            if projector.read_bytes() != expected.read_bytes():
+                raise ValueError('Store release Evaluate projector differs from the cold-built HIA role')
         profile = output / 'worker.json'
         pin = bind_worker_store(profile, scheduled, release, candidate_import=True, portable=True,
                                 reference_executable=reference, owned_reference_executable=owned_reference,
