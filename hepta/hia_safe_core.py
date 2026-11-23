@@ -1410,7 +1410,7 @@ def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeo
             verify_published(candidate, destination, data)
             require(report["source_identity"] == _source_identity()
                     and report["checker"]["source_identity"] == _checker_source_identity(),
-                    "checker changed during final publication")
+                    "checker changed before final publication")
             if linker_identity is not None:
                 require(verified_linker_matches(linker_identity), "verified HIA linker changed during publication")
         except BaseException:
