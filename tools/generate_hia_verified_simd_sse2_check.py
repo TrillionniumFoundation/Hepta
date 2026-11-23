@@ -348,6 +348,8 @@ def embedded_source(binding, scratch, result, source_factory=source_program, pre
     def number(n):
         return ast.Constant(n)
     def add(n, expr):
+        if isinstance(expr, ast.Constant) and type(expr.value) is int:
+            return number(n + expr.value)
         return ast.BinOp(number(n), ast.Add(), expr)
     def call(name, *args):
         return ast.Call(ref(name), list(args), [])
@@ -367,6 +369,21 @@ def embedded_source(binding, scratch, result, source_factory=source_program, pre
                 return call(name,ref('w'),add(base,args[1]),*args[2:])
             return call(name,*args)
         def visit_FunctionDef(self, node):
+            if node.name in ('grammar1', 'grammar2', 'grammar3'):
+                # These tables consist of consecutive 64-bit tokens. Group only
+                # complete literal runs and preserve every original tail store.
+                stores = node.body[:-1]
+                if all(isinstance(row, ast.Expr) and isinstance(row.value, ast.Call)
+                       and row.value.func.id == 'put' and len(row.value.args) == 3
+                       and isinstance(row.value.args[0], ast.Name) and row.value.args[0].id == 'w'
+                       and isinstance(row.value.args[1], ast.Constant) and row.value.args[1].value == 8 * i
+                       and isinstance(row.value.args[2], ast.Constant)
+                       for i, row in enumerate(stores)):
+                    used = len(stores) // 8 * 8
+                    groups = [ast.Expr(call('store_simd_grammar8', ref('w'), number(scratch + 8 * i),
+                                            *(row.value.args[2] for row in stores[i:i + 8])))
+                              for i in range(0, used, 8)]
+                    node.body = [*groups, *node.body[used:]]
             if node.name == 'validate':
                 node.returns.id = 'u64'
             node.name = prefix + node.name

@@ -150,6 +150,31 @@ class InstalledSourceMemberTests(unittest.TestCase):
             with self.subTest(refusal=i):
                 self.invoke([builder, 'build'], raw, refused=True)
 
+
+        from tools.build_hia_native_store_release import _native_member_batches
+        payloads = {'first': b'v', 'short': b'\x7fEL', 'empty': b''}
+        payloads.update((f'code{i}', b'\x7fELF') for i in range(129))
+        payloads.update((f'data{i}', b'd') for i in range(382))
+        data, code = _native_member_batches(payloads, lambda wire: self.invoke([builder, 'build'], wire))
+        data, code = list(data), list(code)
+        self.assertEqual([len(group) for group in data], [384, 1])
+        self.assertEqual([len(group) for group in code], [128, 1])
+        self.assertEqual([name for group in data for name in group],
+                         ['empty', 'first', 'short', *(f'data{i}' for i in range(382))])
+        self.assertEqual([name for group in code for name in group], [f'code{i}' for i in range(129)])
+        # The descriptor sizes exercise the real byte boundary without allocating
+        # a pair of 64 MiB payloads. Actual packets validate all member bytes.
+        head = struct.pack('<8sQ', b'HIABAT01', 2)
+        largest = struct.pack('<3Q', 1, (64 << 20) - 49, 0)
+        next_file = struct.pack('<3Q', 1, 2, 0)
+        reply = self.invoke([builder, 'build'], head + largest + next_file)
+        self.assertEqual(list(struct.iter_unpack('<3Q', reply[16:])), [(0, 0, 0o400), (1, 1, 0o400)])
+        for malformed in (head + largest, head + largest + next_file + b'x',
+                          head + largest + struct.pack('<3Q', 128, 2, 0),
+                          head + largest + struct.pack('<3Q', 1, 64 << 20, 0),
+                          head + largest + struct.pack('<3Q', 1, 4, 1 << 32)):
+            self.invoke([builder, 'build'], malformed, refused=True)
+
     def test_compiled_elf_stage_installs_the_verified_inode_and_preserves_collisions(self):
         from tools import build_hia_native_store_release as release
 

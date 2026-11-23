@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from hepta.hia_agent_assembly import render_assembly
 from tools.build_hia_agent_batch_commit import assemble_adapter
 from tools.build_hia_core_edit import (
-    ADAPTER_RECORD, NOMINAL_ADAPTER, NOMINAL_ADAPTER_ROLES, NOMINAL_TEMPLATE_GROUPS,
+    ADAPTER_RECORD, NOMINAL_ADAPTER, NOMINAL_ADAPTER_ROLES, NOMINAL_BUILD_GROUP, NOMINAL_TEMPLATE_GROUPS,
     REGISTER_RELAY, ROOT, STATIC_ADAPTER_ROLES, STATIC_ADAPTERS, STATIC_RELOCATIONS,
     expand_register_relay,
 )
@@ -57,7 +57,7 @@ def render(group):
 def render_nominal(group):
     roles = ((name, role, b'.set HIA_NOMINAL_BUILD,1\n' if name == NOMINAL_ADAPTER else b'')
              for name, (path, role) in NOMINAL_ADAPTER_ROLES.items() if path == group)
-    return render_objects(group, roles, read_source=read_adapter_source)
+    return render_objects(group, roles, read_source=read_adapter_source, zero_fill=group == NOMINAL_BUILD_GROUP)
 
 
 if __name__ == '__main__':

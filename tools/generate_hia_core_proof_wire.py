@@ -1485,6 +1485,9 @@ def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if recognized != 0:
             return recognized
         return REFUSED
+'''
+
+SUBJECT_CAPTURE = '''
     functions = field(w, 0, K_functions)
     fn = child(w, functions)
     name = field(w, fn, K_name)
@@ -1516,7 +1519,7 @@ def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             value = byte(w, offset + i)
         store(o, 64 + i, value)
         i = i + 1
-    return SUBJECT_HEADER + graph
+    return SUBJECT_RESULT
 
 def subject_export(w:mutbuf, at:u64, size:u64) -> u64:
     i = 0
@@ -1599,23 +1602,27 @@ def minimum_type_profile(typ:u64) -> u64:
 '''
 
 
-def subject_source():
+def subject_source(policy=SUBJECT_POLICY, result='SUBJECT_HEADER + graph', extra='', *, simd=True):
     from tools.generate_hia_verified_simd_core import matcher_source
 
-    source = SUBJECT_POLICY + '\ndef scalar_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n'
+    source = policy + SUBJECT_CAPTURE.replace('SUBJECT_RESULT', result) + extra + '\ndef scalar_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n'
     source += POLICY[POLICY.index('    if length(o) < 32768'):]
     operations = {name: _GRAPH_OPERATIONS['int.' + name.lower() + '.checked']
                   for name in ('DIV', 'REM', 'MUL', 'NEG', 'SHL', 'SHR')}
     constants = {'SUBJECT_MAGIC': SUBJECT_MAGIC, 'SUBJECT_HEADER': SUBJECT_HEADER, **operations}
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
-    return source + '\n' + match('effect', {'read': 1, 'write': 1, 'trap': 1}) + '\n' + matcher_source()
+    return source + '\n' + match('effect', {'read': 1, 'write': 1, 'trap': 1}) + ('\n' + matcher_source() if simd else '')
 
 
-def program(*, elf_only=False, solver_only=False, subject=False):
+def program(*, elf_only=False, solver_only=False, subject=False, subject_override=None):
     if sum((elf_only, solver_only, subject)) > 1:
         raise ValueError('choose one proof-wire specialization')
     entry = subject_source() if subject else ELF_POLICY if elf_only else SOLVER_POLICY if solver_only else POLICY
+    if subject_override is not None:
+        if not subject:
+            raise ValueError('a subject override requires the subject program')
+        entry = subject_override[1]
     constants = dict(REFUSED=REFUSED, REQUEST=GRAPH_PROJECTION_REQUEST,
                      OBLIGATION_REQUEST=OBLIGATION_REQUEST,
                      OBLIGATION_SOLVER_REQUEST=OBLIGATION_SOLVER_REQUEST,
@@ -1670,7 +1677,7 @@ def program(*, elf_only=False, solver_only=False, subject=False):
     modules = ((elf_only, 'core_elf_binding_wire'), (solver_only, 'core_obligation_wire'),
                (subject, 'core_proof_subject'))
     module = next((name for selected, name in modules if selected), 'core_proof_wire')
-    return document(source, module)
+    return document(source, subject_override[0] if subject_override else module)
 
 
 if __name__ == '__main__':
