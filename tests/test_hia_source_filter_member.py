@@ -140,6 +140,43 @@ class InstalledSourceMemberTests(unittest.TestCase):
                         packet = self.source_images(self.work / 'incomplete', partial)
                         self.invoke([builder, 'build'], packet, refused=True)
 
+    def test_fixed_core_source_rejects_unbound_adapter_and_recompiled_image(self):
+        import struct
+        from tools.build_hia_source_build import _compiled_sources
+
+        def owner(leaf):
+            kit = self.source_images(self.work / 'core-kit', {
+                'source_build_policy.hepta': SOURCES / 'source_core_application.hepta',
+                'selfhost.hepta': self.sources / 'selfhost.hepta',
+                'source_build_packer.hepta': self.sources / 'core_edit' / leaf,
+            })
+            program = self.work / leaf
+            program.write_bytes(self.invoke([self.seed, 'pack'], kit))
+            program.chmod(0o500)
+            return program
+
+        template = owner('adapter_templates_a.hepta')
+        application = owner('packer.hepta')
+        row = self.invoke([template, 'build'], struct.pack('<8sQ', b'HIACST01', 1))
+        name = 'cli_discovery_json.hepta'
+        source = (self.sources / name).read_bytes()
+        compiled = self.source_images(self.work / 'core-source', {name: self.sources / name})
+        image = _compiled_sources(compiled, {name: source})[name]
+        adapter = (ROOT / 'tools/hia_core_edit_catalog.S').read_bytes()
+
+        def request(ordinal=1, asm=adapter, record=row, module=source, supplied=image):
+            return (struct.pack('<8s5Q', b'HIACSA01', ordinal, len(asm), len(record), len(module), len(supplied))
+                    + asm + record + module + supplied)
+
+        binary = self.invoke([application, 'build'], request())
+        self.assertEqual(binary, (self.release / 'hia-catalog').read_bytes())
+        changed_record = row[:112] + bytes([row[112] ^ 1]) + row[113:]
+        changed_image = bytes([image[0] ^ 1]) + image[1:]
+        for wire in (request(ordinal=2), request(asm=adapter + b' '), request(record=changed_record),
+                     request(module=source.replace(b'cli_discovery_json', b'cli_discoverx_json', 1)),
+                     request(supplied=changed_image), request() + b'!'):
+            self.invoke([application, 'build'], wire, refused=True)
+
     def test_artifact_capture_from_admitted_native_adapters_and_source(self):
         import struct
         from tools.build_hia_sqlite_components import CAPTURE_ADAPTERS

@@ -49,12 +49,6 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
             result = _compile(Path(tmp), name, compiler, cold_report, *args, **options)
             publish(result)
 
-    with TemporaryDirectory(prefix='core-edit-', dir=work) as tmp:
-        output = _compile(Path(tmp), 'core_edit', compiler, cold_report)
-        for name, _ in CORE_EDIT_PROGRAMS.values():
-            publish(output / name)
-        publish(output / 'hia-worker-scalar-implementation')
-
     for name in ('source_build',
                  'supplied_safe_core_proof',
                  'nominal_constructor',):
@@ -575,7 +569,7 @@ def _source_member_recipes():
     yield from _source_release_recipes()
 
 
-def _stage_source_members(work, stage, admitted, members, publish, *, compiler_bytes, report_bytes):
+def _stage_source_members(work, stage, admitted, members, publish, *, compiler_bytes, report_bytes, core_inputs):
     """Compile and pack release members with the captured native seed and HIA policy."""
     def captured(role):
         data = (stage / role).read_bytes()
@@ -701,6 +695,12 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             path.write_bytes(manifest)
             publish(path)
 
+    with TemporaryDirectory(prefix='core-edit-', dir=work) as tmp:
+        output = _compile(Path(tmp), 'core_edit', *core_inputs, native_tools=(seed, compile_sources, call))
+        for name, _ in CORE_EDIT_PROGRAMS.values():
+            publish(output / name)
+        publish(output / 'hia-worker-scalar-implementation')
+
     _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, compile_sources, call, admitted, publish)
@@ -768,7 +768,8 @@ def build(output, compiler, cold_report):
             publish(ROOT / name, expected=admitted[name])
         _stage_component_outputs(work, compiler, cold_report, publish)
         _stage_source_members(work, stage, admitted, members, publish,
-                              compiler_bytes=compiler_bytes, report_bytes=report_bytes)
+                              compiler_bytes=compiler_bytes, report_bytes=report_bytes,
+                              core_inputs=(compiler, cold_report))
         package = _pack_and_verify(work, stage, members)
         if current_sources() != admitted or compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != report_bytes:
             raise ValueError('native Store cold inputs changed before publication')

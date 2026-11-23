@@ -279,6 +279,7 @@ SAFE_CORE_PROOF_SDIST_FILES = (
 CORE_EDIT_SDIST_FILES = (
     *SAFE_CORE_PROOF_SDIST_FILES,
     'tools/build_hia_core_edit.py',
+    'tools/build_hia_core_static.py',
     'tools/generate_hia_core_edit_packer.py',
     'tools/generate_hia_core_edit_templates.py',
     'tools/generate_hia_shared_build_report.py',
@@ -1398,6 +1399,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/source_owned_reference.hepta',
     'examples/hia_bootstrap/owned_reference_entry_wrapper.hepta',
     'examples/hia_bootstrap/owned_reference_entry_stub.hepta',
+    'examples/hia_bootstrap/source_core_application.hepta',
     'examples/hia_bootstrap/source_sqlite_unit.hepta',
     'tests/test_hia_source_filter_member.py',
     'examples/hia_bootstrap/source_build_packer.hepta',

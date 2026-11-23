@@ -10,6 +10,7 @@ import struct
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE
+from tools import build_hia_core_static as core_static
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_nominal_constructor import (
     ADAPTER as NOMINAL_ADAPTER, COMPONENTS as NOMINAL_COMPONENTS,
@@ -368,6 +369,10 @@ def pack(packer, stub, holes, images):
             or source.raw != frame + b'\0' or any(output.raw[size:])):
         raise ValueError('native Core edit packer refused or changed private bytes')
     binary = output.raw[:size]
+    return binary, check_placement(binary, stub, holes, images)
+
+
+def check_placement(binary, stub, holes, images):
     expected = bytearray(stub)
     for index, image in enumerate(images):
         expected.extend(bytes(-len(expected) % 8))
@@ -377,7 +382,7 @@ def pack(packer, stub, holes, images):
         expected.extend(image)
     if binary[ELF_HEADER_SIZE:] != expected:
         raise ValueError('native Core edit packer changed the admitted adapter or image placement')
-    return binary, inspect_executable(binary)
+    return inspect_executable(binary)
 
 
 def link_nominal_cli(folder, adapter, images, roles, embedder, adapters, *, edit_envelope=False,
@@ -504,7 +509,7 @@ def bind_dispatch_roles(template, executables):
     return b''.join(blocks)
 
 
-def build(output, compiler, cold_report, *, release_only=False):
+def build(output, compiler, cold_report, *, release_only=False, native_tools=None):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
     # The stdin-to-object development probe is not a public dispatcher role.
@@ -526,11 +531,20 @@ def build(output, compiler, cold_report, *, release_only=False):
     if any(admitted.get(path) != digest(raw) for path, raw in sources.items()):
         raise ValueError('native Core edit source differs from admitted cold source')
     output.mkdir(mode=0o700)
+    if native_tools is None:
+        native_tools = core_static.cold_tools(output, compiler, cold_report, admitted)
+    products = core_static.build_products(native_tools, admitted)
+    # Shared image sources can still be needed by the compressed and nominal programs.
+    legacy_inputs = {*assembly_images, *SELFHOST_CORE_SOURCES, *NOMINAL_BUILD_SOURCES.values(),
+                     *(path for kind, (_, roles) in programs.items() if kind not in core_static.KINDS
+                       for path, _ in roles),
+                     *(path for mapping in NOMINAL_CLI_IMAGES.values() for path in mapping)}
+    native_only = {path for kind in core_static.KINDS for path, _ in programs[kind][1]} - legacy_inputs
     images, receipts = {}, {}
     for path, raw in sources.items():
         if path.endswith('.json'):
             images[path] = raw
-        if not path.endswith('.hepta') or path in (DISPATCH, SELFHOST_ENTRY):
+        if not path.endswith('.hepta') or path in (DISPATCH, SELFHOST_ENTRY) or path in native_only:
             continue
         image, receipt = compile_stage(output, Path(path).stem, compiler, raw)
         images[path] = image.read_bytes()
@@ -563,10 +577,9 @@ def build(output, compiler, cold_report, *, release_only=False):
     proof_receipt = json.loads((supplied_proof.parent / 'build.json').read_bytes())
     if digest(prover_bytes) != proof_receipt['executable_sha256']:
         raise ValueError('public Core build verifier differs from the native proof build')
-    products = {}
     scalar_implementation = None
     for kind, (name, roles) in programs.items():
-        if kind == 'dispatch':
+        if kind == 'dispatch' or kind in core_static.KINDS:
             continue
         adapter = adapters[kind]
         folder = output / kind

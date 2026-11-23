@@ -22,6 +22,7 @@ SDIST_SUPPORT_FILES=(
     'examples/hia_bootstrap/source_agent_stdio.hepta',
     'examples/hia_bootstrap/source_read_carrier.hepta',
     'examples/hia_bootstrap/source_owned_reference.hepta',
+    'examples/hia_bootstrap/source_core_application.hepta',
     'examples/hia_bootstrap/owned_reference_entry_wrapper.hepta',
     'examples/hia_bootstrap/owned_reference_entry_stub.hepta',
     'examples/hia_bootstrap/source_sqlite_unit.hepta',
