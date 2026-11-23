@@ -26,7 +26,7 @@ from .hia_native_delivery import (DeliveryRecord, NativeDeliveryUnknown,
 from .hia_agent_contract import (VERSION, ROOT, COST_POLICY_SCHEMA, OBJECTIVE_SCHEMA,
     PLAN_SCHEMA, WORKLOAD_SCHEMA, catalog, installation_manifest, validate)
 from .hia_agent_store import (AgentRejected, AgentStore, digest, keys, record_authority,
-    reject, uint64, wire, decode_data, _agent_resource_path)
+    reject, uint64, wire, decode_data, capture_path, _agent_resource_path)
 from .hia_program import verify_program
 from .hia_program_tools import decode_json
 from .hia_sha256_native import payload_sha256
@@ -711,6 +711,20 @@ class HIAAgentService:
         return profile, resources
 
     def _hia_artifact(self, args):
+        self._profile(args["artifact_profile"], "artifact")
+        source = args["source"]
+        if source["kind"] == "utf8":
+            data = source["text"].encode("utf-8")
+        else:
+            data = capture_path(source["path"], self.artifact_roots, int(source["max_bytes"]))
+            expected = source["expected_sha256"]
+            if expected is not None and expected != sha256(data).hexdigest():
+                reject("E_HIA_ARTIFACT_CHANGED", "captured bytes differ from the expected digest")
+        ref = self.store.put(data, "input")
+        return {"artifact": ref, "byte_length": str(len(data)), "content_admitted_as_program": False,
+                "execution_authority_granted": False}
+
+    def _hia_artifact_with_selected_components(self, args):
         from .hia_agent_store import _native_agent_identity
 
         self._profile(args["artifact_profile"], "artifact")
@@ -731,8 +745,18 @@ class HIAAgentService:
             data = source["text"].encode("utf-8")
             ref, size = self.store.put(data, "input"), len(data)
         else:
-            ref, size = self.store.capture(source["path"], self.artifact_roots,
-                                           int(source["max_bytes"]), source["expected_sha256"])
+            store = self.store
+            try:
+                capture = store.capture
+            except AttributeError:
+                data = capture_path(source["path"], self.artifact_roots, int(source["max_bytes"]))
+                expected = source["expected_sha256"]
+                if expected is not None and expected != sha256(data).hexdigest():
+                    reject("E_HIA_ARTIFACT_CHANGED", "captured bytes differ from the expected digest")
+                ref, size = store.put(data, "input"), len(data)
+            else:
+                ref, size = capture(source["path"], self.artifact_roots,
+                                    int(source["max_bytes"]), source["expected_sha256"])
         return {"artifact": ref, "byte_length": str(size), "content_admitted_as_program": False,
                 "execution_authority_granted": False}
 
@@ -2323,7 +2347,7 @@ def _service_artifact_dispatch(self, args):
     if selected is not None:
         from .hia_service_artifact_native import installed_service_artifact, ServiceArtifactFrame
         return ServiceArtifactFrame(installed_service_artifact(selected), self, args).finish()
-    return _NATIVE_SERVICE_ARTIFACT_REFERENCE(self, args)
+    return HIAAgentService._hia_artifact_with_selected_components(self, args)
 
 
 HIAAgentService._hia_artifact = _service_artifact_dispatch
