@@ -451,7 +451,7 @@ def reaped_reference(o:mutbuf, w:mutbuf, now:u64) -> u64:
 '''
 
 
-def program(*, claim=False):
+def program(*, claim=False, run_input=False):
     constants, controls = recipe(ROLES)
     constants.update(SCHEMA_TOOL=9, MAKE=11, RECEIPT_COUNT=2304, SELECTOR=2312, ACTIVE_KIND=2320,
                      RECORD_SIZE=2328, SELECTORS=2368, ACTIVE_REFERENCE=2848, METADATA_SPAN=2872,
@@ -492,6 +492,11 @@ def program(*, claim=False):
     if claim:
         from tools.generate_hia_worker_evaluate_claim_flow import reservation_recipe
         driver, policy, controls = reservation_recipe(driver, policy, controls, constants)
+    if run_input:
+        if not claim:
+            raise ValueError('Evaluate execution inputs require a confirmed Journal reservation')
+        from tools.generate_hia_worker_evaluate_run_input_flow import run_input_recipe
+        driver, policy, controls = run_input_recipe(driver, policy, list(controls), constants)
     return flow_source(driver + policy, controls, constants)
 
 

@@ -43,6 +43,8 @@ LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_launcher_flow.hepta'
 LAUNCHER_PACKER = 'examples/hia_bootstrap/worker_launcher_flow_packer.hepta'
 LAUNCHER_KIND = 'native-launcher'
 DOCUMENT_KIND = 'evaluate-document'
+RUN_INPUT_KIND = 'evaluate-run-input'
+RUN_INPUT_POLICY = 'examples/hia_bootstrap/worker_evaluate_run_input_flow.hepta'
 CLAIM_KIND = 'evaluate-claim'
 CLAIM_POLICY = 'examples/hia_bootstrap/worker_evaluate_claim_flow.hepta'
 INTAKE_KIND = 'evaluate-intake'
@@ -94,6 +96,7 @@ PROGRAMS = {
     DOCUMENT_KIND: ('examples/hia_bootstrap/worker_evaluate_document_flow.hepta',
                     'examples/hia_bootstrap/worker_evaluate_document_flow_packer.hepta'),
     CLAIM_KIND: (CLAIM_POLICY, INTAKE_PACKER),
+    RUN_INPUT_KIND: (RUN_INPUT_POLICY, INTAKE_PACKER),
     'discovery': (DISCOVERY_POLICY, DISCOVERY_PACKER),
     'context': (CONTEXT_POLICY, CONTEXT_PACKER),
     'inspection': (INSPECTION_POLICY, INSPECTION_PACKER),
@@ -109,7 +112,7 @@ PROGRAMS = {
     INTAKE_LAUNCHER_KIND: (INTAKE_LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
 PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
-              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, CLAIM_KIND, DOCUMENT_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
+              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, CLAIM_KIND, RUN_INPUT_KIND, DOCUMENT_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -138,7 +141,7 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
                 raise ValueError('unexpected Adopt descriptor transport layout')
             flow = flow.replace(previous, new)
         kind = ADOPT_KIND
-    if kind == CLAIM_KIND:
+    if kind in (CLAIM_KIND, RUN_INPUT_KIND):
         kind = INTAKE_KIND
     if kind in (REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
         kind = LAUNCHER_KIND
@@ -249,7 +252,7 @@ def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
 if __name__ == '__main__':
     sources = Path(FLOW).read_bytes(), Path(PORTS).read_bytes()
     for kind, (_, path) in PROGRAMS.items():
-        if kind in (CLAIM_KIND, REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
+        if kind in (CLAIM_KIND, RUN_INPUT_KIND, REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
             continue  # Both launchers use the same platform packer.
         peers = Path(PEERS).read_bytes() if kind in PEER_KINDS else b''
         launcher = Path(LAUNCHER).read_bytes() if kind == LAUNCHER_KIND else b''
