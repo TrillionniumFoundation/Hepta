@@ -2,6 +2,7 @@
 from hashlib import sha256
 from pathlib import Path
 import struct
+import json
 import subprocess
 import tempfile
 import unittest
@@ -50,8 +51,11 @@ int main(int argc, char **argv) {
         self.profile = root/'worker.json'
         self.profile.write_bytes(b'{"test":"profile"}')
         self.profile.chmod(0o400)
-        self.capsule = root/'worker-capsule.bin'
-        self.capsule.write_bytes(b'configured-capsule')
+        self.capsule = root/'evaluate-full-worker-capsule.bin'
+        from tools.generate_hia_readonly_worker_capsule import ARTIFACT_CONFIG
+        path=bytes(root)
+        config=struct.pack('<8s64s2Q',ARTIFACT_CONFIG,b'a'*64,0,1)+struct.pack('<Q',len(path))+path
+        self.capsule.write_bytes(struct.pack('<8s6Q',b'HIANCP01',1,0,0,0,0,len(config))+config)
         self.capsule.chmod(0o400)
         self.pin = sha256(self.capsule.read_bytes()).hexdigest()
         self.identities = {key+'_sha256':sha256(key.encode()).hexdigest() for key in ('worker','backend','catalog')}
@@ -65,7 +69,7 @@ int main(int argc, char **argv) {
         # A synthetic echo peer exposes every forwarded argument. The installed
         # qualification separately exercises the 166-role sealed HIA launcher.
         config = configuration(self.profile, self.release, self.capsule, self.pin,
-                               self.sample_peer, self.identities, [root])
+                               self.sample_peer, self.identities, [root], root)
         image = self.policy+config+struct.pack('<Q',len(config))
         frame = struct.pack('<2Q', MAGIC, len(image))+image
         self.exe = compile_stage(root,'installed-worker',self.packer,frame,output_extension='.elf')[0]
@@ -85,6 +89,46 @@ int main(int argc, char **argv) {
                 self.assertEqual(self.run_worker([*prefix,'--installation-manifest',*options]),
                                  (0,wire(self.identities)+b'\n',b''))
         self.assertFalse(self.state.exists())
+
+    def test_copy_then_move_original_installation(self):
+        from shutil import copytree
+        with tempfile.TemporaryDirectory() as destination:
+            new_root=Path(destination)/'new installation'
+            copytree(self.exe.parent,new_root)
+            old=self.exe.parent
+            self.exe=new_root/self.exe.name
+            self.profile.rename(self.profile.with_suffix('.offline'))
+            args=self.argv.copy()
+            args[args.index('--native-helpers-manifest')+1]=str(new_root/'worker.json')
+            expected='\n'.join(map(str,(self.state,new_root/'release',new_root/'evaluate-full-worker-capsule.bin',self.pin,'preserved'))).encode()+b'\noriginal public stdin'
+            self.assertEqual(self.run_worker(args),(0,expected,b''))
+            self.assertEqual(self.run_worker(self.argv),(2,b'',b''))
+            self.assertEqual(self.run_worker(['--installation-manifest']),(0,wire(self.identities)+b'\n',b''))
+            self.assertTrue(old.is_dir())
+
+    def test_bind_existing_runtime_without_editing_host_policy_or_input(self):
+        from tools.bind_hia_installed_worker_provider import bind
+        root=self.exe.parent
+        (root/'evaluate-full-worker.json').write_text(json.dumps({'capsule':self.capsule.name,'capsule_sha256':self.pin}))
+        self.exe.rename(root/'hia-agent-worker')
+        existing={'worker_sha256':'a'*64,'backend_sha256':'b'*64,'catalog_sha256':'c'*64,
+                  'host':'operator','python_executable':'/usr/bin/python3','state_root':str(self.state),
+                  'working_directory':'/srv/hia','artifact_roots':[str(root)]}
+        old={'hosts':{'operator':{'remote_state_dir':'/private/operator','allowed_read_path_prefixes':['/srv']}},
+             'hia_worker':existing,'state_dir':'/private/controller'}
+        template=root/'original-config.json'
+        template.write_text(json.dumps(old))
+        dest=root/'new-config.json'
+        bind(root,template,dest)
+        new=json.loads(dest.read_bytes())
+        self.assertEqual(json.loads(template.read_bytes()),old)
+        self.assertEqual(new['hosts'],old['hosts'])
+        self.assertEqual(new['state_dir'],old['state_dir'])
+        self.assertEqual(new['hia_worker'],{**existing,**self.identities,'python_executable':str(root/'hia-agent-worker'),
+                         'native_helpers_manifest':str(self.profile)})
+        self.assertEqual(dest.stat().st_mode & 0o777,0o600)
+        with self.assertRaises(FileExistsError):
+            bind(root,template,dest)
 
     def test_each_identity_scope_and_profile_is_checked_before_input(self):
         for flag in ('--expected-worker-sha256','--expected-catalog-sha256','--expected-backend-sha256',

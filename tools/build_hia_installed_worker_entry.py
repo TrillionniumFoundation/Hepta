@@ -15,7 +15,7 @@ from tools.qualify_hia_selfhost import compile_stage, invoke
 
 PREFIX = ('-B', '-E', '-s', '-m', 'hepta.hia_agent_worker')
 LAUNCHER_LIMIT = 1 << 20
-ENTRY_LIMIT = 4 << 20
+ENTRY_LIMIT = 1 << 20
 
 def vector(words):
     words = tuple(map(os.fsencode, words))
@@ -23,23 +23,29 @@ def vector(words):
         raise ValueError('invalid installed Worker argument')
     return b''.join(word+b'\0' for word in words)
 
-def configuration(profile, release, capsule, capsule_pin, launcher, identities, roots):
+def configuration(profile, release, capsule, capsule_pin, launcher, identities, roots, install_root=None):
     profile_raw = _read(profile, 1 << 20).raw
     if sha256(profile_raw).hexdigest() != identities['native_helpers_sha256']:
         raise ValueError('installed Worker profile differs from its admitted identity')
     if sha256(_read(capsule, 2 << 20).raw).hexdigest() != capsule_pin:
         raise ValueError('installed Worker capsule differs from its admitted identity')
-    selectors = ('--native-helpers-manifest', profile, '--expected-native-helpers-sha256',
-                 identities['native_helpers_sha256'])
+    def installed_path(path):
+        return path if install_root is None else path.relative_to(install_root)
+    def bound_vector(before, after):
+        prefix = vector(before)
+        return struct.pack('<Q',len(prefix))+prefix+vector(after)
+    suffix = ('--expected-native-helpers-sha256', identities['native_helpers_sha256'])
     tail = []
     for key in ('worker', 'backend', 'catalog'):
         tail.extend(('--expected-'+key+'-sha256', identities[key+'_sha256']))
     for root in roots:
         tail.extend(('--artifact-root', Path(root).resolve(strict=True)))
-    tail.extend((*selectors, '--request-json-stdin'))
-    sections = (vector([profile]), profile_raw, vector([release]), vector([capsule, capsule_pin]),
-                launcher, wire(identities)+b'\n', vector(tail), vector(PREFIX), vector(['--state-root']),
-                vector(['--installation-manifest', *selectors]), vector(['--installation-manifest']))
+    tail.append('--native-helpers-manifest')
+    sections = (vector([installed_path(profile)]), profile_raw, vector([installed_path(release)]),
+                vector([installed_path(capsule), capsule_pin]), launcher, wire(identities)+b'\n',
+                bound_vector(tail, (*suffix,'--request-json-stdin')), vector(PREFIX), vector(['--state-root']),
+                bound_vector(('--installation-manifest','--native-helpers-manifest'),suffix),
+                vector(['--installation-manifest']))
     offsets = []
     position = 16 + 8*len(sections)
     chunks = []
@@ -64,7 +70,7 @@ def build(target, scratch, compiler, cold_report, *, profile, release, capsule, 
     launcher=_read(release/'hia-agent-evaluate-full-launcher',LAUNCHER_LIMIT).raw
     if launcher!=expected_launcher.read_bytes():
         raise ValueError('public Worker launcher differs from the cold build')
-    config=configuration(profile,release,capsule,capsule_pin,launcher,identities,artifact_roots)
+    config=configuration(profile,release,capsule,capsule_pin,launcher,identities,artifact_roots,target.parent)
     scratch.mkdir(mode=0o700)
     policy,policy_receipt=compile_stage(scratch,'entry',compiler,sources[SOURCE])
     packer,packer_receipt=compile_stage(scratch,'packer',compiler,sources[PACKER])
@@ -79,7 +85,7 @@ def build(target, scratch, compiler, cold_report, *, profile, release, capsule, 
     verify_adapter(executable,code,binding,entries=(0,))
     if current_sources()!=admitted or compiler.read_bytes()!=compiler_bytes or cold_report.read_bytes()!=report_bytes:
         raise ValueError('installed Worker cold authority changed during build')
-    if configuration(profile,release,capsule,capsule_pin,_read(release/'hia-agent-evaluate-full-launcher',LAUNCHER_LIMIT).raw,identities,artifact_roots)!=config:
+    if configuration(profile,release,capsule,capsule_pin,_read(release/'hia-agent-evaluate-full-launcher',LAUNCHER_LIMIT).raw,identities,artifact_roots,target.parent)!=config:
         raise ValueError('installed Worker authority changed before publication')
     with NamedTemporaryFile(dir=target.parent, prefix='.hia-worker-entry-') as out:
         out.write(executable)

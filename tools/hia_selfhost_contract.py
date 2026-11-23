@@ -240,6 +240,7 @@ WORKER_REQUEST_SDIST_FILES = (
     'tools/bind_hia_worker_store.py',
     'tools/build_hia_worker_release.py',
     'tools/build_hia_installed_worker_entry.py',
+    'tools/bind_hia_installed_worker_provider.py',
     'tests/test_hia_installed_worker_entry.py',
     'tools/generate_hia_installed_worker_entry.py',
     'tools/hia_installed_worker_entry.S',

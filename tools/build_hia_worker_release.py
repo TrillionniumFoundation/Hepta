@@ -747,7 +747,15 @@ def main():
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--package-sha256', required=True)
     parser.add_argument('--readonly-artifact-root', '--artifact-root', action='append', type=Path, default=[])
+    parser.add_argument('--runtime-config', type=Path,
+                        help='existing MCP runtime configuration to bind as runtime-config.json in the new installation')
     args = parser.parse_args()
+    if args.runtime_config is not None:
+        from tools.bind_hia_installed_worker_provider import read_runtime, artifact_roots
+        configured = artifact_roots(read_runtime(args.runtime_config))
+        if args.readonly_artifact_root and tuple(args.readonly_artifact_root)!=configured:
+            parser.error('requested artifact roots differ from the existing runtime configuration')
+        args.readonly_artifact_root = configured
     profile, pin = build(args.output, args.compiler, args.cold_report, args.package, args.package_sha256,
                          readonly_artifact_roots=args.readonly_artifact_root)
     result = {'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
@@ -756,6 +764,10 @@ def main():
     if executable.is_file():
         result.update(python_executable=str(executable),
                       native_worker_executable_sha256=sha256(executable.read_bytes()).hexdigest())
+    if args.runtime_config is not None:
+        from tools.bind_hia_installed_worker_provider import bind
+        config = bind(profile.parent,args.runtime_config,profile.parent/'runtime-config.json')
+        result['runtime_config'] = str(config)
     for kind in ('read', 'readonly', 'native', 'evaluate-replay', 'evaluate-intake', 'evaluate-full'):
         manifest = profile.parent / (kind + '-worker.json')
         if manifest.is_file():

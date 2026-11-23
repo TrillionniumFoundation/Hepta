@@ -12,7 +12,7 @@ _start:
     ja failed
     cmp rax,2
     jb failed
-    sub rsp,262736
+    sub rsp,300000
     and rsp,-16
     mov r15,rsp
     lea rdi,[rsp+512]
@@ -44,12 +44,51 @@ got_args:
     mov r14,[rbx-8]
     cmp r14,104
     jb failed
-    cmp r14,4194304
+    cmp r14,1048576
     ja failed
     sub rbx,8
     sub rbx,r14
+    /* Read the running file's own directory, never cwd or argv[0]. */
+    lea rdi,[rip+self_exe]
+    lea rsi,[r15+285000]
+    mov edx,4096
+    mov eax,89
+    syscall
+    cmp rax,0
+    jle failed
+    cmp rax,4096
+    jae failed
+    mov rcx,rax
+parent_component:
+    test rcx,rcx
+    jz failed
+    dec rcx
+    cmp byte ptr [r15+285000+rcx],47
+    jne parent_component
+    inc rcx
+    mov [r15+16],rcx
+    lea rdi,[r15+270000]
+    mov esi,16
+    call resolve_installed_path
+    lea rdi,[r15+274096]
+    mov esi,32
+    call resolve_installed_path
+    lea rdi,[r15+278192]
+    mov esi,40
+    call resolve_installed_path
     lea rdi,[r15+512]
-    mov rsi,[r15+32]
+    add rdi,[r15+32]
+    lea rsi,[r15+270000]
+copy_profile_argument:
+    lodsb
+    stosb
+    test al,al
+    jne copy_profile_argument
+    mov rax,[r15+32]
+    stosq
+    mov rsi,rdi
+    lea rdi,[r15+512]
+    sub rsi,rdi
     mov rdx,r15
     mov ecx,8
     mov r8,rbx
@@ -61,8 +100,7 @@ worker_entry_call_hole:
     jz failed
     mov r13d,eax
     /* Check the exact installed profile before observing a request. */
-    mov rsi,[rbx+16]
-    lea rsi,[rbx+rsi+8]
+    lea rsi,[r15+270000]
     mov edi,-100
     mov edx,0xa0800       /* O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK */
     mov eax,257
@@ -172,12 +210,12 @@ launch:
     mov rax,[r15]
     lea rax,[r15+rax+512]
     mov [r15+72],rax
-    mov rax,[rbx+32]
-    lea rax,[rbx+rax+8]
+    lea rax,[r15+274096]
     mov [r15+80],rax
+    lea rax,[r15+278192]
+    mov [r15+88],rax
     mov rax,[rbx+40]
     lea rax,[rbx+rax+8]
-    mov [r15+88],rax
     /* Capsule file and digest are adjacent NUL-terminated strings. */
 find_pin:
     cmp byte ptr [rax],0
@@ -198,6 +236,40 @@ failed:
 exit_now:
     mov eax,60
     syscall
+/* A relative record is inside the install root. The optional absolute form
+   is also accepted by the scope binder for independent, already-pinned paths. */
+resolve_installed_path:
+    mov rsi,[rbx+rsi]
+    lea rcx,[rsi+8]
+    cmp rcx,r14
+    ja failed
+    mov r8,[rbx+rsi]
+    add rcx,r8
+    cmp rcx,r14
+    ja failed
+    lea rdx,[rbx+rsi+8]
+    mov r10,rdi
+    cmp byte ptr [rdx],47
+    je path_suffix
+    lea rsi,[r15+285000]
+    mov rcx,[r15+16]
+    rep movsb
+path_suffix:
+    mov rsi,rdx
+copy_path:
+    test r8,r8
+    jz failed
+    dec r8
+    mov rcx,rdi
+    sub rcx,r10
+    cmp rcx,4095
+    ja failed
+    lodsb
+    stosb
+    test al,al
+    jne copy_path
+    ret
+
 write_all:
     test rdx,rdx
     jz written
@@ -213,4 +285,5 @@ write_all:
 written:
     ret
 child_label: .asciz "hia-agent-evaluate-full-launcher"
+self_exe: .asciz "/proc/self/exe"
 empty: .byte 0
