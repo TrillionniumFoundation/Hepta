@@ -64,10 +64,12 @@ class StoreReleaseBuildTests(unittest.TestCase):
             published = []
             with patch.object(release, '_run_captured', side_effect=AssertionError('premature execution')):
                 with self.assertRaisesRegex(ValueError, 'source differs from cold admission'):
-                    release._stage_source_members(work, work, {}, tools, published.append)
+                    release._stage_source_members(work, work, {}, tools, published.append,
+                                                  compiler_bytes=b'', report_bytes=b'')
                 (work / names[0]).write_bytes(b'changed')
                 with self.assertRaisesRegex(ValueError, 'tool differs from its staged identity'):
-                    release._stage_source_members(work, work, {}, tools, published.append)
+                    release._stage_source_members(work, work, {}, tools, published.append,
+                                                  compiler_bytes=b'', report_bytes=b'')
             self.assertEqual(published, [])
 
     def test_source_archive_rejects_symlinks_and_nonregular_cold_inputs(self):

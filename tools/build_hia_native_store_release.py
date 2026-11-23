@@ -64,9 +64,6 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
 
     with TemporaryDirectory(prefix='standalone-', dir=work) as tmp:
         directory = Path(tmp)
-        core = _compile(directory, 'core_json_cli', compiler, cold_report, output_profile='elf')
-        publish(core)
-        publish(core.parent / 'compiler-manifest.json')
         manifest = _compile(directory, 'nominal_json', compiler, cold_report, standalone=True)
         publish(manifest.parent / 'hia-nominal-packet')
         admit = _compile(directory, 'worker_request_cli', compiler, cold_report)
@@ -167,6 +164,7 @@ def _source_release_recipes():
         return name, Path(packer).name, inputs
 
     yield recipe('hia-release', installer[1], (installer[0], installer[2]))
+    yield recipe('hia-core-json', 'core_json_cli_packer.hepta', ('core_json_frontend.hepta', 'selfhost.hepta'))
     yield recipe('hia-select', selector[3], selector[:3])
     yield recipe('hia-patch-result', 'core_patch_result_cli_packer.hepta', ('core_patch.hepta', 'core_admission.hepta'))
     for mode, name in (('suite', 'hia-core'), ('totality', 'hia-totality-core'), ('proof-wire', 'hia-core-proof-wire')):
@@ -206,7 +204,7 @@ def _source_member_recipes():
     yield from _source_release_recipes()
 
 
-def _stage_source_members(work, stage, admitted, members, publish):
+def _stage_source_members(work, stage, admitted, members, publish, *, compiler_bytes, report_bytes):
     """Compile and pack release members with the captured native seed and HIA policy."""
     def captured(role):
         data = (stage / role).read_bytes()
@@ -217,6 +215,7 @@ def _stage_source_members(work, stage, admitted, members, publish):
     seed = captured('hia-source-build')
     pack_directory = captured('hia-directory-package-build')
     builders = {}
+    compiler_packer = None
 
     # These products bind their non-relocated syscall adapter and image entry
     # separately as part of the original build contract.
@@ -253,9 +252,11 @@ def _stage_source_members(work, stage, admitted, members, publish):
 
     for name, packer, sources in _source_member_recipes():
         if packer not in builders:
-            kit, _ = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
+            kit, kit_images = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
                                       'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
             builders[packer] = call(seed, 'pack', kit)
+            if packer == 'core_json_cli_packer.hepta':
+                compiler_packer = kit_images['source_build_packer.hepta']
         group, images = compile_sources(sources)
         product = call(builders[packer], 'build', group)
         if name in adapter_files:
@@ -274,6 +275,20 @@ def _stage_source_members(work, stage, admitted, members, publish):
             stream.write(product)
             stream.flush()
             publish(Path(stream.name), name, expected=sha256(product).hexdigest())
+        if name == 'hia-core-json':
+            from hepta.hia_program_selfhost import SOURCE_FILES, manifest_value
+
+            if images['selfhost.hepta'] != compiler_bytes:
+                raise ValueError('source-built selfhost differs from the admitted cold compiler')
+            manifest = manifest_value(stage / name,
+                compiler_sha256=sha256(compiler_bytes).hexdigest(),
+                frontend_sha256=sha256(images[name + '.hepta']).hexdigest(),
+                packer_sha256=sha256(compiler_packer).hexdigest(),
+                cold_report_sha256=sha256(report_bytes).hexdigest(),
+                source_sha256={path: admitted[path] for path in SOURCE_FILES})
+            path = work / 'compiler-manifest.json'
+            path.write_text(json.dumps(manifest, sort_keys=True, indent=2) + '\n')
+            publish(path)
 
 
 def _pack_and_verify(work, stage, members):
@@ -334,7 +349,8 @@ def build(output, compiler, cold_report):
         _stage_component_outputs(work, compiler, cold_report, publish)
         _stage_sqlite(work, compiler, cold_report, publish)
         _stage_helper_images(work, compiler, cold_report, publish)
-        _stage_source_members(work, stage, admitted, members, publish)
+        _stage_source_members(work, stage, admitted, members, publish,
+                              compiler_bytes=compiler_bytes, report_bytes=report_bytes)
         package = _pack_and_verify(work, stage, members)
         if current_sources() != admitted or compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != report_bytes:
             raise ValueError('native Store cold inputs changed before publication')
