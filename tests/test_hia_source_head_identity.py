@@ -69,7 +69,33 @@ class SourceHeadIdentityTests(unittest.TestCase):
             child.parent.rmdir()
             child.parent.symlink_to(external, target_is_directory=True)
             with self.assertRaisesRegex(ValueError, "source parent is a symlink"):
+                integrated._digest_file(child)
+            with self.assertRaisesRegex(ValueError, "source parent is a symlink"):
                 integrated._source_state()
+
+        # A parent may be replaced *after* the preflight is_symlink() check.
+        # The descriptor walk must bind the directory observed during opening,
+        # not just the bytes at a subsequently retargeted pathname.
+        with self.repository() as root, tempfile.TemporaryDirectory() as external:
+            child = root / "nested/child.txt"
+            (Path(external) / "child.txt").write_bytes(child.read_bytes())
+            original_is_symlink = Path.is_symlink
+            exchanged = False
+
+            def exchange_after_preflight(path):
+                nonlocal exchanged
+                if path == child.parent and not exchanged:
+                    exchanged = True
+                    child.unlink()
+                    child.parent.rmdir()
+                    child.parent.symlink_to(external, target_is_directory=True)
+                    return False
+                return original_is_symlink(path)
+
+            with patch.object(Path, "is_symlink", exchange_after_preflight):
+                with self.assertRaisesRegex(ValueError, "source parent is a symlink"):
+                    integrated._source_state()
+            self.assertTrue(exchanged)
 
     def set_hint(self, root, flag):
         self.git(root, "update-index", "--no-assume-unchanged", "--", "sample.py")
