@@ -75,7 +75,17 @@ long_mode:
     movw $8, (1*16+2)(%rdi)
     movb $0x8e, (1*16+5)(%rdi)
 .endif
-    lidt idt_ptr(%rip)
+    /* The new LIDT instruction comes from the isolated native-byte encoder.
+     * SIDT is an independent hardware observer, not the operation under test.
+     */
+    leaq idt_ptr(%rip), %r10
+    call descriptor_start
+    sidt idtr_readback(%rip)
+    cmpw $4095, idtr_readback(%rip)
+    jne fail
+    leaq idt(%rip), %rax
+    cmpq %rax, idtr_readback+2(%rip)
+    jne fail
     /* Warm this 4KiB translation before native PTE revoke + INVLPG. */
     movl $0x400000, %eax
     movq (%rax), %r9
@@ -183,6 +193,12 @@ effect_start:
 .incbin "effect.bin"
 effect_end:
 
+.align 16
+.global descriptor_start, descriptor_end
+descriptor_start:
+.incbin "descriptor.bin"
+descriptor_end:
+
 .section .rodata,"a",@progbits
 .align 8
 gdt:
@@ -204,6 +220,9 @@ idt:
 .align 4
 race_seen:
     .skip 4
+.align 8
+idtr_readback:
+    .skip 16
 
 .section .paging,"aw",@nobits
 .align 4096
