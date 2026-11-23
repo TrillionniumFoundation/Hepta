@@ -32,9 +32,9 @@ from tools.generate_hia_readonly_worker_capsule import (
     ARTIFACT_CONFIG, BOOTSTRAP_MAGIC, CAPSULE_MAX, MANIFEST_MAGIC as READONLY_MANIFEST,
     NATIVE_MANIFEST, NATIVE_ROLES, NATIVE_SOURCE, PROOF_TRUST_CHECKERS, PROOF_TRUST_MAGIC,
     PROOF_TRUST_NATIVE_BYTES, PROOF_TRUST_NATIVE_OFFSET, PROOF_TRUST_RUNTIME_MAX, RESOURCES_MAGIC,
-    ROLES as READONLY_ROLES, SOURCE as READONLY_AUTHORITY,
+    ROLES as READONLY_ROLES, SOURCE as READONLY_AUTHORITY, replay_inventory,
 )
-from tools.generate_hia_worker_flow_packer import LAUNCHER_KIND
+from tools.generate_hia_worker_flow_packer import LAUNCHER_KIND, REPLAY_KIND, REPLAY_LAUNCHER_KIND
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -127,8 +127,9 @@ def author(platform_code, *, kind='read'):
 
 
 def build(output, compiler, cold_report, *, kind='read'):
-    if kind == 'native':
-        return build_worker_flow(output, compiler, cold_report, kind=LAUNCHER_KIND)
+    if kind in ('native', REPLAY_KIND):
+        flow = REPLAY_LAUNCHER_KIND if kind == REPLAY_KIND else LAUNCHER_KIND
+        return build_worker_flow(output, compiler, cold_report, kind=flow)
     launcher = LAUNCHERS[kind]
     pins = {path: path.read_bytes() for path in (compiler, cold_report, ROOT / launcher.source, ROOT / launcher.authority)}
     admitted = admit_cold_build(pins[compiler], pins[cold_report])
@@ -206,7 +207,7 @@ def _installed_authority(release, expected_launcher, profile_pin, kind):
     expected = expected_launcher.read_bytes()
     if _read(launcher, len(expected)).raw != expected:
         raise ValueError('installed Worker launcher differs from its cold build')
-    if kind == 'native':
+    if kind in ('native', REPLAY_KIND):
         raw_authority = launcher_authority(expected)
     else:
         raw_authority = expected[HEADER_SIZE + LAUNCHERS[kind].size:]
@@ -239,7 +240,7 @@ def _installed_authority(release, expected_launcher, profile_pin, kind):
 
 def bind_readonly_release(target, release, expected_launcher, profile_pin, *, artifact_roots=(), kind='readonly'):
     """Bind installed startup, discovery and Worker role capabilities."""
-    if kind not in ('readonly', 'native'):
+    if kind not in ('readonly', 'native', REPLAY_KIND):
         raise ValueError('unknown Worker capability inventory')
     if len(artifact_roots) > 32:
         raise ValueError('read-only Worker exceeds the configured provider root limit')
@@ -260,8 +261,10 @@ def bind_readonly_release(target, release, expected_launcher, profile_pin, *, ar
                           for name, file in resources)
 
     artifact = b''
-    native = kind == 'native'
+    native = kind in ('native', REPLAY_KIND)
     manifest_magic, names = (NATIVE_MANIFEST, NATIVE_ROLES) if native else (READONLY_MANIFEST, READONLY_ROLES)
+    if kind == REPLAY_KIND:
+        names = replay_inventory()
     roles = {name: _read(release / name, MAX_ROLE_BYTES) for name in names}
     if native:
         # The old verifier issued these exact checker identities. Pin them
@@ -310,6 +313,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + name, required=True, type=Path)
-    parser.add_argument('--kind', choices=LAUNCHERS, default='read')
+    parser.add_argument('--kind', choices=(*LAUNCHERS, REPLAY_KIND), default='read')
     args = parser.parse_args()
     print(build(args.output, args.compiler, args.cold_report, kind=args.kind))

@@ -9,6 +9,8 @@ from tools.generate_hia_sha256 import source_program as sha256_program
 
 SOURCE = 'examples/hia_bootstrap/worker_readonly_capsule.hepta'
 NATIVE_SOURCE = 'examples/hia_bootstrap/worker_native_capsule.hepta'
+REPLAY_SOURCE = 'examples/hia_bootstrap/worker_evaluate_replay_capsule.hepta'
+REPLAY_OWNER = 'hia-agent-evaluate-replay-worker-carrier'
 NATIVE_MANIFEST = b'HIANCP01'
 ARTIFACT_CONFIG = b'HIARAC01'
 MANIFEST_MAGIC = b'HIADCP01'
@@ -262,7 +264,12 @@ def widen(value:u32) -> u64:
 '''
 
 
-def routing(*, artifact=False):
+def replay_inventory():
+    from tools.generate_hia_worker_evaluate_replay_flow import ROLES as replay_roles
+    return tuple(dict.fromkeys((*NATIVE_ROLES, *(name for _, name in replay_roles), REPLAY_OWNER)))
+
+
+def routing(*, artifact=False, evaluate_replay=False):
     # Only the response of the pinned admit process enters this mode. Its
     # canonical serialization guarantees sorted keys and an unescaped tool.
     source = '\ndef route(s:readbuf) -> u32:\n    if byte(s, 0) != 123:\n        return 0\n'
@@ -272,6 +279,8 @@ def routing(*, artifact=False):
         methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'),
                     (6, b'hia_candidate'), (7, b'hia_rollback'), (8, b'hia_emit'), (9, b'hia_adopt'),
                     (10, b'hia_verify'))
+    if evaluate_replay:
+        methods += ((11, b'hia_evaluate'),)
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'
@@ -416,13 +425,15 @@ def native_policy():
     return inventory + profile + PROOF_TRUST_POLICY
 
 
-def source_program(*, artifact=False):
+def source_program(*, artifact=False, evaluate_replay=False):
     tags = {'MANIFEST': NATIVE_MANIFEST if artifact else MANIFEST_MAGIC, 'DOSSIER': DOSSIER_MAGIC,
             'BOOTSTRAP': BOOTSTRAP_MAGIC, 'RESOURCES': RESOURCES_MAGIC}
     if artifact:
         tags.update(ARTIFACT=ARTIFACT_CONFIG, PROOF_TRUST_MAGIC=PROOF_TRUST_MAGIC)
     constants = {name: int.from_bytes(raw, 'little') for name, raw in tags.items()}
     roles = NATIVE_ROLES if artifact else ROLES
+    if evaluate_replay:
+        roles = replay_inventory()
     constants.update(PROOF_TRUST_BYTES=PROOF_TRUST_BYTES, PROOF_TRUST_RUNTIME_MAX=PROOF_TRUST_RUNTIME_MAX,
                      CAPSULE_MAX=CAPSULE_MAX, HEADER_BYTES=HEADER_BYTES, ROW_BYTES=ROW_BYTES,
                      DOSSIER_HEADER=DOSSIER_HEADER, DOSSIER_OFFSET=HEADER_BYTES + len(roles) * ROW_BYTES,
@@ -435,7 +446,7 @@ def source_program(*, artifact=False):
     source = native_policy() if artifact else POLICY
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
-    return source + routing(artifact=artifact) + '\n' + sha256_program()
+    return source + routing(artifact=artifact, evaluate_replay=evaluate_replay) + '\n' + sha256_program()
 
 
 if __name__ == '__main__':

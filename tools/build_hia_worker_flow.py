@@ -8,9 +8,9 @@ import struct
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_native_filter import elf_header, read_adapter_binding, verify_adapter
-from tools.generate_hia_readonly_worker_capsule import NATIVE_SOURCE
+from tools.generate_hia_readonly_worker_capsule import NATIVE_SOURCE, REPLAY_SOURCE
 from tools.generate_hia_worker_flow_packer import (
-    EMIT_PACK_LIMIT, FLOW, LAUNCHER, LAUNCHER_KIND, LAUNCHER_PACKER,
+    EMIT_PACK_LIMIT, FLOW, LAUNCHER, LAUNCHER_KIND, LAUNCHER_KINDS, LAUNCHER_PACKER, REPLAY_LAUNCHER_KIND,
     MAGIC, PEERS, PEER_KINDS, PORTS, PROGRAMS, SECTIONS,
     adapter_source,
 )
@@ -25,7 +25,7 @@ AUTHOR = 'tools/generate_hia_worker_flow_packer.py'
 def _adapter_binding(sources, kind, packer_source):
     adapter = adapter_source(sources[FLOW], sources[PORTS], kind=kind,
                              peers=sources.get(PEERS, b''), launcher=sources.get(LAUNCHER, b''))
-    calls = 3 if kind in SECTIONS else 2 if kind == LAUNCHER_KIND else 1
+    calls = 3 if kind in SECTIONS else 2 if kind in LAUNCHER_KINDS else 1
     return read_adapter_binding(sources[packer_source], adapter, calls=calls)
 
 
@@ -52,8 +52,9 @@ def build(output, compiler, cold_report, *, kind='describe'):
     names = (FLOW, PORTS, packer_source, policy_source, DRIVER, AUTHOR)
     if kind in PEER_KINDS:
         names += (PEERS,)
-    if kind == LAUNCHER_KIND:
-        names += (LAUNCHER, NATIVE_SOURCE)
+    if kind in LAUNCHER_KINDS:
+        authority_source = REPLAY_SOURCE if kind == REPLAY_LAUNCHER_KIND else NATIVE_SOURCE
+        names += (LAUNCHER, authority_source)
     names += SECTIONS.get(kind, ())
     sources = {name: (ROOT / name).read_bytes() for name in names}
     source_pins = {name: sha256(raw).hexdigest() for name, raw in sources.items()}
@@ -64,8 +65,8 @@ def build(output, compiler, cold_report, *, kind='describe'):
     policy, policy_receipt = compile_stage(output, kind + '-policy', compiler, sources[policy_source])
     packer, packer_receipt = compile_stage(output, kind + '-packer', compiler, sources[packer_source])
     compiled = [(policy, policy_receipt), (packer, packer_receipt)]
-    if kind == LAUNCHER_KIND:
-        compiled.append(compile_stage(output, 'native-capsule-authority', compiler, sources[NATIVE_SOURCE]))
+    if kind in LAUNCHER_KINDS:
+        compiled.append(compile_stage(output, 'native-capsule-authority', compiler, sources[authority_source]))
     if kind in SECTIONS:
         compiled.extend(compile_stage(output, Path(path).stem, compiler, sources[path])
                         for path in SECTIONS[kind])
@@ -75,7 +76,7 @@ def build(output, compiler, cold_report, *, kind='describe'):
     code, packer_bytes = images[policy], images[packer]
     entries = (0,)
     authority_metadata = {}
-    if kind == LAUNCHER_KIND:
+    if kind in LAUNCHER_KINDS:
         authority, receipt = compiled[-1]
         authority_bytes = images[authority]
         frame = struct.pack('<3Q', MAGIC, len(code), len(authority_bytes)) + code + authority_bytes
@@ -104,7 +105,7 @@ def build(output, compiler, cold_report, *, kind='describe'):
             or any(path.read_bytes() != raw for path, raw in images.items())):
         raise ValueError('Worker descriptor flow source or build image changed before publication')
     suffix = '' if kind in ('input', 'discovery', 'discovery-bootstrap') else '-worker'
-    filename = 'hia-agent-native-launcher' if kind == LAUNCHER_KIND else f'hia-agent-{kind}{suffix}-carrier'
+    filename = f'hia-agent-{kind}' if kind in LAUNCHER_KINDS else f'hia-agent-{kind}{suffix}-carrier'
     target = output / filename
     with target.open('xb') as stream:
         stream.write(executable)

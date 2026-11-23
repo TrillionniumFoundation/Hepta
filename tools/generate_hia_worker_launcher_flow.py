@@ -11,13 +11,15 @@ from tools.generate_hia_readonly_worker_capsule import (
     CANDIDATE_OWNER, CANDIDATE_ROLES, CONTEXT_OWNER, CONTEXT_ROLES, DESCRIBE_OWNER, DESCRIBE_ROLES,
     EMIT_OWNER, EMIT_ROLES, INSPECTION_OWNER, INSPECTION_ROLES, NATIVE_ROLES, PROOF_TRUST_BYTES,
     ROLLBACK_OWNER, ROLLBACK_ROLES, VERIFY_OWNER, VERIFY_ROLES,
-    POLICY as CAPSULE_POLICY,
+    POLICY as CAPSULE_POLICY, REPLAY_OWNER, replay_inventory,
 )
 from tools.generate_hia_worker_describe_flow import POLICY as DESCRIBE, flow_source
 from tools.generate_hia_worker_inspection_effect import function
 from tools.generate_hia_sha256 import source_program as sha256_program
 
 SOURCE = Path('examples/hia_bootstrap/worker_launcher_flow.hepta')
+
+REPLAY_SOURCE = Path('examples/hia_bootstrap/worker_evaluate_replay_launcher.hepta')
 
 ROUTES = (
     ('hia-agent-read-carrier', '--worker-read', READ_ROLES),
@@ -299,23 +301,23 @@ def emit_literal(raw, offset):
                    for cursor in range(0, len(data), 8)) + f'        return {len(data)}\n'
 
 
-def route_tables():
+def route_tables(inventory_names=NATIVE_ROLES, routes=ROUTES):
     # Keep the role index tied to the single existing capsule inventory.
-    index = dict(zip(NATIVE_ROLES, range(len(NATIVE_ROLES)), strict=True))
+    index = dict(zip(inventory_names, range(len(inventory_names)), strict=True))
     names = '\ndef role_name(o:mutbuf, offset:u64, role:u64) -> u64:\n'
-    for part in range(0, len(NATIVE_ROLES), 12):
+    for part in range(0, len(inventory_names), 12):
         names += f'    if role < {part + 12}:\n        return role_name_{part}(o, offset, role)\n'
     names += '    return 0\n'
-    for part in range(0, len(NATIVE_ROLES), 12):
+    for part in range(0, len(inventory_names), 12):
         names += f'\ndef role_name_{part}(o:mutbuf, offset:u64, role:u64) -> u64:\n'
-        for name in NATIVE_ROLES[part:part + 12]:
+        for name in inventory_names[part:part + 12]:
             names += f'    if role == {index[name]}:\n' + emit_literal(name.encode(), 'offset')
         names += '    return 0\n'
     mode = '\ndef route_mode(o:mutbuf, route:u64) -> u64:\n'
     owner = '\ndef route_owner(route:u64) -> u64:\n'
     roles = '\ndef append_roles(o:mutbuf, w:mutbuf, route:u64, count:u64) -> u64:\n'
     children = ''
-    for route, (name, option, inventory) in enumerate((*ROUTES, (BOOTSTRAP_OWNER, '', BOOTSTRAP_ROLES)), 1):
+    for route, (name, option, inventory) in enumerate((*routes, (BOOTSTRAP_OWNER, '', BOOTSTRAP_ROLES)), 1):
         if option:
             mode += f'    if route == {route}:\n' + emit_literal(option.encode(), 448)
             owner += f'    if route == {route}:\n        return {index[name]}\n'
@@ -326,11 +328,23 @@ def route_tables():
             position = ordinal + int(proof_route and ordinal >= len(EMIT_ROLES))
             children += f'    argv(o, count + {position}, 4, role_fd(w, {index[role]}))\n'
         children += f'    return count + {len(inventory) + int(proof_route)}\n'
-    return (names + mode + '    return 0\n' + owner + f'    return {len(NATIVE_ROLES)}\n'
+    return (names + mode + '    return 0\n' + owner + f'    return {len(inventory_names)}\n'
             + roles + '    return 0\n' + children)
 
 
-def program():
+def program(*, evaluate_replay=False):
+    roles, routes, policy = NATIVE_ROLES, ROUTES, POLICY
+    if evaluate_replay:
+        from tools.generate_hia_worker_evaluate_replay_flow import ROLES as replay_roles
+        roles = replay_inventory()
+        routes += ((REPLAY_OWNER, '--worker-evaluate-replay', tuple(name for _, name in replay_roles)),)
+        # Completed rows can be read without creating bootstrap records for a missing key.
+        policy = policy.replace('        return launch_bootstrap(o, w)',
+                                '        if route == REPLAY_ROUTE:\n            return launch_worker(o, w, route)\n'
+                                '        return launch_bootstrap(o, w)')
+        policy = policy.replace('        argv(o, count, FD_ARG, metadata)',
+                                '        if route == REPLAY_ROUTE:\n            metadata = get(w, PART_TABLE + 24)\n'
+                                '        argv(o, count, FD_ARG, metadata)')
     words = {'ENTRY': b'HIALEN02', 'OBSERVATION': b'HIADFO01', 'COMMAND': b'HIADFC01',
              'ADMISSION': b'HIAWRA01'}
     constants = {name: int.from_bytes(raw, 'little') for name, raw in words.items()}
@@ -342,19 +356,21 @@ def program():
               'PART_INDEX', 'DIGITS', 'REQUEST_FD', 'REQUEST_BYTES', 'ROUTE', 'DISCOVERY_META')
     constants.update({name: index for index, name in enumerate(states, 1)})
     constants.update({name: 96 + 8 * index for index, name in enumerate(fields)})
-    constants.update(BAD=0xfffffffd, ROLE_COUNT=len(NATIVE_ROLES),
-                     BODY_OFFSET=56 + 48 * len(NATIVE_ROLES), MAX_CAPSULE=4 << 20, MAX_REQUEST=8 << 20,
+    constants.update(BAD=0xfffffffd, ROLE_COUNT=len(roles),
+                     BODY_OFFSET=56 + 48 * len(roles), MAX_CAPSULE=4 << 20, MAX_REQUEST=8 << 20,
                      PIN=192, CATALOG=224, PART_TABLE=288, ROLE_TABLE=512, HEADER=512,
                      RUN=1, READ=2, PUBLISH=3, FINISHED=5, MAKE=11, OPEN_RELEASE=18,
                      SNAPSHOT=19, AUTHORIZE=20, CAPTURE_INPUT=21, DEFAULT_CHILD_LEASE=120_000_000_000,
                      REQUEST_LEASE=60_000_000_000,
-                     INPUT_ARG=1, LITERAL_ARG=2, FD_ARG=4, BOOTSTRAP_ROUTE=len(ROUTES) + 1,
-                     NATIVE_ROUTE_COUNT=len(ROUTES), EMIT_ROUTE=8, ADOPT_ROUTE=9, VERIFY_ROUTE=10,
+                     INPUT_ARG=1, LITERAL_ARG=2, FD_ARG=4, BOOTSTRAP_ROUTE=len(routes) + 1,
+                     NATIVE_ROUTE_COUNT=len(routes), EMIT_ROUTE=8, ADOPT_ROUTE=9, VERIFY_ROUTE=10,
                      PROOF_ROLE=len(EMIT_ROLES), VERIFY_ARG_COUNT=6 + len(VERIFY_ROLES),
                      EMIT_ARG_COUNT=6 + len(EMIT_ROLES), ADOPT_ARG_COUNT=6 + len(ADOPT_ROLES),
                      PROOF_TRUST_BYTES=PROOF_TRUST_BYTES,
-                     BOOTSTRAP=NATIVE_ROLES.index(BOOTSTRAP_OWNER), ADMIT=NATIVE_ROLES.index('hia-worker-admit'))
-    tables = route_tables()
+                     BOOTSTRAP=roles.index(BOOTSTRAP_OWNER), ADMIT=roles.index('hia-worker-admit'))
+    if evaluate_replay:
+        constants['REPLAY_ROUTE'] = len(routes)
+    tables = route_tables(roles, routes)
     issue = function(DESCRIBE, 'issue').replace('seq > 160', 'seq > 512').replace(
         '    put(o, 152, choose(op == RUN, DEFAULT_CHILD_LEASE, 0))',
         '    if op == RUN:\n        put(o, 152, choose(next == REQUEST_ADMITTED, 30000000000, DEFAULT_CHILD_LEASE))').replace(
@@ -371,7 +387,7 @@ def program():
     controls = (tables, issue, copy, copy_span, function(DESCRIBE, 'fragment'),
                 function(DESCRIBE, 'read_span'), function(CAPSULE_POLICY, 'capsule_word'),
                 function(memory, 'get'), function(memory, 'put'))
-    return flow_source(POLICY, controls, constants)
+    return flow_source(policy, controls, constants)
 
 
 if __name__ == '__main__':
