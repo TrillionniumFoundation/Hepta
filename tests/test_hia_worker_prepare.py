@@ -41,6 +41,24 @@ def reference(original, profile, normalized, tool, key):
             + base + b'","request_sha256":"' + request_pin + end + b'\n')
 
 
+def owner_frame(milliseconds, pid, uid, job, nonce, ticks, invocation):
+    job = job.encode('ascii')
+    nonce = nonce.encode('ascii')
+    ticks = ticks.encode('ascii')
+    units = b'' if invocation is None else invocation.encode('utf-32le', errors='surrogatepass')
+    count = (1 << 64) - 1 if invocation is None else len(units) // 4
+    return (struct.pack('<8s6Q', b'HIAJBE01', milliseconds, pid, uid, len(job), len(ticks), count)
+            + job + nonce + ticks + units)
+
+
+def owner_reference(milliseconds, pid, uid, job, nonce, ticks, invocation):
+    return json.dumps({
+        'at_unix_ms': milliseconds, 'invocation_id': invocation, 'job_id': job, 'launch_nonce': nonce,
+        'supervisor_identity': {'kind': 'proc_start_ticks', 'value': ticks},
+        'supervisor_pid': pid, 'supervisor_uid': uid,
+    }, sort_keys=True).encode('ascii')
+
+
 class WorkerPrepareSourceTests(unittest.TestCase):
     def test_checked_in_source_matches_authoring(self):
         root = Path(__file__).resolve().parents[1]
@@ -58,6 +76,38 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
         self.assertEqual((result.returncode, result.stderr), (0, b''))
         self.assertEqual(result.stdout, reference(*fragments))
         return result.stdout
+
+    def test_owner_record_matches_existing_immutable_bytes(self):
+        job, nonce = 'job-42', '0123456789abcdef' * 2
+        ticks = '12345678-1234-4abc-9def-123456789abc:123456'
+        for milliseconds, pid, uid, invocation in (
+                (0, 2, 0, None), (9, 10, 99, ''), (10, 100, 1000, nonce),
+                (1795448317457, 3240941, 1000, 'unit'),
+                ((1 << 64) - 1, (1 << 31) - 1, (1 << 32) - 1,
+                 '"\\\b\t\n\f\r\x00\x1f\x7f\xff\udcff\u4e2d\U0001f680')):
+            fields = milliseconds, pid, uid, job, nonce, ticks, invocation
+            result = self.invoke(owner_frame(*fields))
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            self.assertEqual(result.stdout, owner_reference(*fields))
+        fields = 0, 2, 0, job, nonce, ticks, 'ok'
+        valid = owner_frame(*fields)
+        for invalid in (valid[:-1], valid + b'x', valid[:-4] + struct.pack('<I', 0x110000),
+                        owner_frame(0, 1, 0, job, nonce, ticks, None),
+                        owner_frame(0, 2, 1 << 32, job, nonce, ticks, None),
+                        owner_frame(0, 2, 0, '', nonce, ticks, None),
+                        owner_frame(0, 2, 0, '"', nonce, ticks, None),
+                        owner_frame(0, 2, 0, job, 'g' * 32, ticks, None),
+                        owner_frame(0, 2, 0, job, nonce, ticks[:-1] + 'x', None)):
+            result = self.invoke(invalid)
+            self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+
+    def test_owner_record_preserves_large_linux_environment_values(self):
+        ticks = '12345678-1234-4abc-9def-123456789abc:1'
+        for invocation in ('x' * 131071, chr(0xdcff) * 131071, chr(0x10ffff) * 32767):
+            fields = 0, 2, 0, 'job', '0123456789abcdef' * 2, ticks, invocation
+            result = self.invoke(owner_frame(*fields))
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            self.assertEqual(result.stdout, owner_reference(*fields))
 
     def test_owner_lock_checks_before_and_after_exclusive_custody(self):
         import stat
