@@ -59,6 +59,33 @@ class WorkerPrepareExecutableTests(unittest.TestCase):
         self.assertEqual(result.stdout, reference(*fragments))
         return result.stdout
 
+    def test_owner_lock_checks_before_and_after_exclusive_custody(self):
+        import stat
+
+        def guard(phase=0, mode=stat.S_IFREG | 0o600, uid=1000, caller=1000, links=1, existing=0):
+            frame = struct.pack('<8s6Q', b'HIAJLK01', phase, mode, uid, caller, links, existing)
+            result = self.invoke(frame)
+            if result.returncode:
+                self.assertEqual((result.returncode, result.stdout, result.stderr), (2, b'', b''))
+                return None
+            magic, admitted = struct.unpack('<8sQ', result.stdout)
+            self.assertEqual((magic, result.stderr), (b'HIAJLR01', b''))
+            return admitted
+
+        for mode in (stat.S_IFREG | 0o600, stat.S_IFREG | 0o400, stat.S_IFREG | 0o700,
+                     stat.S_IFREG | 0o640, stat.S_IFDIR | 0o700, stat.S_IFLNK | 0o700):
+            for phase in (0, 1):
+                self.assertEqual(guard(phase=phase, mode=mode), stat.S_ISREG(mode) and mode & 0o077 == 0)
+        for links in (0, 2, 1 << 35):
+            self.assertEqual(guard(links=links), 0)
+        self.assertEqual(guard(caller=1001), 0)
+        self.assertEqual(guard(uid=0, caller=0), 1)
+        for mask in range(32):
+            self.assertEqual(guard(phase=1, existing=mask), int(mask == 0))
+        for invalid in ({'phase': 2}, {'mode': 1 << 16}, {'uid': 1 << 32},
+                        {'caller': 1 << 32}, {'existing': 1}, {'phase': 1, 'existing': 32}):
+            self.assertIsNone(guard(**invalid))
+
     def test_terminal_witness_pins_the_exact_immutable_receipt(self):
         nonce = b'0123456789abcdef' * 2
         raw = b'{ "exit_code":0, "output_durable":true }'

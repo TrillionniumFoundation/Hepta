@@ -71,3 +71,28 @@ Run the persistent-store isolation and lost-response regressions with:
 ```sh
 python3 -B -m unittest tests.test_hia_agent_native_campaign -v
 ```
+
+## Installed job owner lock admission
+
+The worker installer probes the packaged `hia-worker-prepare` executable before
+publishing a `hepta.hia.mcp.controller.v20` manifest. A controller that selects
+v20 sends two observations. The first uses `fstat` on the opened lifetime lock.
+The second rechecks that descriptor after the supervisor obtains the exclusive
+lock and inspects the job directory for prior ownership records.
+
+| Wire field | Encoding |
+| --- | --- |
+| Request | Eight ASCII bytes `HIAJLK01`, then six little-endian unsigned 64-bit integers |
+| Integers in order | Phase, raw file mode, file UID, caller effective UID, link count, existing-record bit mask |
+| Reply | Eight ASCII bytes `HIAJLR01`, then one little-endian unsigned 64-bit integer. One admits and zero refuses. |
+
+Both phases require a regular file owned by the caller, one link, and zero
+group or other permission bits. Phase zero takes a zero mask. In phase one,
+bits zero through four record the presence of `owner-intent.json`, `started.json`,
+`exit.json`, `exit.witness.json` and `exit.witness.json.tmp`, respectively.
+Any recorded name refuses a second owner, including a dangling link.
+
+The HIA executable decides admission. The supervisor opens and locks the
+descriptor, gathers the observations and acts on the decision. Qualification
+of the complete service also requires exercising its supervisor, transport,
+output handling, cancellation and original-child receipts.
