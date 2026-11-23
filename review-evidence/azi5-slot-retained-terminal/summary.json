@@ -1,0 +1,123 @@
+{
+  "automatic_gc_disabled_diagnostic": {
+    "derived7574-baseline": 0,
+    "derived7574-combined-terminal": 0,
+    "original248-baseline": 3,
+    "original248-combined-terminal": 3
+  },
+  "base_commit": "71e35d664afee951f3e7575f6d3ee54d13bc9012",
+  "candidate": "release acknowledged SQL preparation and allow acknowledged foreign activations to leave retained tracebacks",
+  "candidate_fallback_counts": {
+    "derived7574": {
+      "baseline_mismatches_first_and_repeat": [
+        13,
+        14
+      ],
+      "cases": 7574,
+      "mismatches_first_and_repeat": [
+        13,
+        14
+      ],
+      "native_repeat_differences": 1,
+      "stable_cleared_vs_first_baseline": 3,
+      "stable_new_vs_first_baseline": 3
+    },
+    "original248": {
+      "baseline_mismatches": 2,
+      "cases": 248,
+      "mismatches": 2
+    }
+  },
+  "candidate_outcome_mismatches": 0,
+  "case": "variant.retained-traceback-lookup-release.outer0",
+  "cold_checks": {
+    "passed": 11,
+    "status": "COLD_SELFHOST_REPLAY_PASS",
+    "total": 11
+  },
+  "debug_saveall_count": {
+    "baseline_fallback": 86,
+    "candidate_fallback": 66,
+    "original": 16,
+    "release_activation_only": 70,
+    "release_sql_attempt_only": 82
+  },
+  "explicit_mechanical_route_at_base": {
+    "cases": 7822,
+    "comparisons": {
+      "derived7574": {
+        "cases": 7574,
+        "different_leaves": 75,
+        "differing": 15
+      },
+      "original248": {
+        "cases": 248,
+        "different_leaves": 0,
+        "differing": 0
+      }
+    },
+    "readback_sha256": "ea5182c3f0c50f9dfee762d5ee5dfba43b765f184ebe4d395ef592e11170f277",
+    "retained_explicit_gc_original_and_native": {
+      "variant.retained-traceback-lookup-release.outer0": [
+        [
+          16
+        ],
+        [
+          16
+        ]
+      ],
+      "variant.retained-traceback-lookup-release.outer1": [
+        [
+          16
+        ],
+        [
+          16
+        ]
+      ]
+    },
+    "same_runtime_originals_generated_twice_before_candidates": true,
+    "status": "HOLD"
+  },
+  "fallback_qualification": "HOLD",
+  "focused_tests": {
+    "baseline_and_candidate_failure": "same_Frame_reentry control calls validate_u64 with integer 7; both raise AgentRejected before SQL",
+    "observed_error": "generation must be a canonical u64 decimal string",
+    "passed": 8,
+    "total": 9
+  },
+  "handler_fault": "db.lookup.execute",
+  "original_repeat_mismatches": {
+    "derived7574": 0,
+    "original248": 0
+  },
+  "platform": "CPython/GIL/Linux x86-64",
+  "python": "3.14.4",
+  "root_cycle": "event.error -> AttributeError.__traceback__ -> event frame",
+  "scope": "No default route selection, qualification thresholds, frozen observer or case inputs changed.",
+  "tracked_owned_objects": {
+    "baseline_fallback": {
+      "ForeignCall": 4,
+      "SlotOperationsFrame": 2,
+      "SqlAttempt": 1,
+      "Token": 6,
+      "frame": 14,
+      "traceback": 15
+    },
+    "candidate_fallback": {
+      "ForeignCall": 0,
+      "SlotOperationsFrame": 2,
+      "SqlAttempt": 0,
+      "Token": 0,
+      "frame": 14,
+      "traceback": 15
+    },
+    "original": {
+      "ForeignCall": 0,
+      "SlotOperationsFrame": 0,
+      "SqlAttempt": 0,
+      "Token": 0,
+      "frame": 4,
+      "traceback": 5
+    }
+  }
+}

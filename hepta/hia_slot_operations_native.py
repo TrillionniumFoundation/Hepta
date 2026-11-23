@@ -485,9 +485,10 @@ class SlotOperationsFrame:
         if self.receipt.phase != ISSUED:
             raise SlotOperationsUnknown('Slot effect is not newly issued')
         self.call(CLAIM)
-        activation = self._delivery.foreign(capture_resources=True, weak_registered_resources=True)
-        self._pending_foreign = activation
-        with activation:
+        # A traceback can retain this method past the ACK. Keep its activation
+        # in the pending slot so the ACK can release it.
+        self._pending_foreign = self._delivery.foreign(capture_resources=True, weak_registered_resources=True)
+        with self._pending_foreign:
             return self.effect(self.receipt.port)
 
     def _complete(self):
@@ -511,6 +512,9 @@ class SlotOperationsFrame:
         # Real selected work in a finalizer still has the ambient activation.
         self._delivery.check(SlotOperationsUnknown)
         self._delivery.confirmed(terminal=True)
+        # A failed receiver lookup can leave a prepared SQL attempt here.
+        # The terminal receipt has retired its series and resource obligations.
+        self._sql_attempt = None
 
     def _exception_continuation(self):
         while self.receipt.phase == ISSUED:
