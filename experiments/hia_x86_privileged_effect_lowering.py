@@ -3,7 +3,7 @@
 This is an isolated host-side *staging* adapter, not HIA Core verifier or
 selfhost_elf lowering. Claims in QuiescentOwner are untrusted caller inputs.
 The emitted machine code checks real CR3 and the live old PTE before the
-single aligned 64-bit write, then performs a local INVLPG. Run only in an
+single aligned LOCK CMPXCHGQ update, then performs a local INVLPG. Run only in an
 isolated CPL0 QEMU fixture, never in a host process.
 """
 from __future__ import annotations
@@ -122,13 +122,16 @@ def lower_leaf_revoke(owner: QuiescentOwner, request: LeafRevoke) -> bytes:
     # Direct Code.load/store intentionally use disp32. A +4096 base offset
     # preserves the PTE physical slot while retaining independent GNU-as
     # exact-byte disassembly (which would otherwise compress displacement 0).
-    code.mov_imm("rax", request.pte_slot_phys - 4096)
-    code.load("r9", "rax", 4096)
-    code.mov_imm("rdx", request.expected_old_pte)
-    code.cmp("r9", "rdx")
+    code.mov_imm("r10", request.pte_slot_phys - 4096)
+    code.load("r9", "r10", 4096)
+    code.mov_imm("rax", request.expected_old_pte)
+    code.cmp("r9", "rax")
     code.jcc("ne", "reject")
     code.mov_imm("rdx", request.replacement_pte)
-    code.store("rax", 4096, "rdx")
+    # Final exact-old check and PTE update are one locked 64-bit RMW.
+    # A competing write after the preliminary read must reject via ZF=0.
+    code.lock_cmpxchg64("r10", "rdx", 4096)
+    code.jcc("ne", "reject")
     code.mov_imm("rax", request.virtual_page)
     code.invlpg("rax")
     code.ret()
