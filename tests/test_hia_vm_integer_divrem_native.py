@@ -41,7 +41,7 @@ class VmIntegerDivRemSourceTests(unittest.TestCase):
         retained = selected._retained_runtime_source(actual_runtime)
         self.assertEqual(retained, captured["tests/fixtures/vm_integer_divrem_runtime_ce39.py.txt"])
         self.assertEqual(sha256(retained).hexdigest(), RUNTIME_SHA256)
-        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.TYPED_RESOURCE_SHA256)
+        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.PACKAGE_INTEGER_SHA256)
         previous = selected.word_runtime_source(actual_runtime)
         self.assertEqual(sha256(previous).hexdigest(), selected.V9_RUNTIME_SHA256)
         self.assertEqual(selected._retained_runtime_source(previous), retained)

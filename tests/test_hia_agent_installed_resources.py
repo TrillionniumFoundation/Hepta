@@ -1043,6 +1043,9 @@ assert not blocked.intersection(sys.modules)
         with zipfile.ZipFile(self.wheel) as z:
             from tests.hia_distribution_fixture import derived_python_pin
             derived_python_pin(z)
+            if 'hepta/_data/' + full + 'integer-bundle.json' in z.namelist():
+                native.update((full + 'integer-bundle.json', full + 'scalar-reference/manifest.json',
+                               full + 'scalar-reference/scalar-reference.image.bin'))
             provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))
             if 'derived_pin_resource' in provenance:
                 self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')
@@ -1071,6 +1074,56 @@ assert not blocked.intersection(sys.modules)
                     self.assertNotIn(name,z.namelist())
                     self.assertFalse((self.installed/name).exists())
         self.assertEqual(self.identity,installation_manifest())
+
+    def test_installed_default_vm_executes_integer_instructions_and_refuses_missing_image(self):
+        from tests.hia_vm_integer_scalar_cases import operation_arguments, operation_program
+        from hepta.hia_program import execute_program
+        from hepta.hia_vm_integer_divrem_protocol import DEFAULT_INTEGER_OPERATIONS
+
+        rows = []
+        for operation in sorted(DEFAULT_INTEGER_OPERATIONS):
+            program = operation_program(operation, 'i32')
+            entry = program['functions'][0]['name']
+            arguments = operation_arguments(operation, 17, 2)
+            rows.append([operation, program, entry, arguments, execute_program(program, entry, arguments)])
+        script = """import json, sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+from hepta.hia_program import execute_program
+from hepta.hia_scalar_reference_native import NativeScalarReference
+seen = []
+original = NativeScalarReference.operation
+def observed(image, operation, typ, values):
+    assert image._default_package_binding
+    seen.append(operation)
+    return original(image, operation, typ, values)
+NativeScalarReference.operation = observed
+for operation, program, entry, arguments, expected in json.load(sys.stdin):
+    assert execute_program(program, entry, arguments) == expected
+    assert seen == [operation], seen
+    seen.clear()
+"""
+        environment = {name: value for name, value in os.environ.items()
+                       if not name.startswith(('HEPTA_HIA_', 'PYTHON'))}
+        command = [sys.executable, '-I', '-B', '-c', script, str(self.installed)]
+        def probe():
+            return subprocess.run(command, input=json.dumps(rows).encode(), cwd=self.folder,
+                                  env=environment, capture_output=True, timeout=60)
+        good = probe()
+        self.assertEqual((good.returncode, good.stdout, good.stderr), (0, b'', b''))
+        directory = self.installed / 'hepta/_data/native/default/full_cost'
+        for member in ('integer-bundle.json', 'scalar-reference/manifest.json',
+                       'scalar-reference/scalar-reference.image.bin'):
+            path = directory / member
+            held = path.with_suffix('.held')
+            path.rename(held)
+            try:
+                with self.subTest(member=member):
+                    refused = probe()
+                    self.assertNotEqual(refused.returncode, 0)
+                    self.assertIn(b'FileNotFoundError', refused.stderr)
+            finally:
+                held.rename(path)
 
     def test_real_installed_native_worker_without_checkout_or_reference_predicates(self):
         state=self.folder/'valid';r=self.invoke(state,wire(self.request))

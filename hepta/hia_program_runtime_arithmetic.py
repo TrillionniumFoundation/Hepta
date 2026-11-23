@@ -15,7 +15,7 @@ from pathlib import Path
 import sys
 from types import CodeType, FunctionType, MappingProxyType
 
-from .hia_reference_runtime_sources import TYPED_RESOURCE_SHA256, word_runtime_source
+from .hia_reference_runtime_sources import PACKAGE_INTEGER_SHA256, TYPED_RESOURCE_SHA256, word_runtime_source
 from . import hia_program_runtime as _runtime
 from . import hia_program_runtime_prepared as _prepared
 
@@ -51,7 +51,7 @@ def _retained_runtime_source(raw):
     digest = sha256(raw).hexdigest()
     if digest == _RUNTIME_SHA256:
         return raw
-    if digest == TYPED_RESOURCE_SHA256:
+    if digest in (TYPED_RESOURCE_SHA256, PACKAGE_INTEGER_SHA256):
         raw = word_runtime_source(raw)
         digest = sha256(raw).hexdigest()
     if digest != _V9_RUNTIME_SHA256:
@@ -67,7 +67,7 @@ def _retained_runtime_source(raw):
 
 
 def _word_order_state(raw):
-    if sha256(raw).hexdigest() not in (_V9_RUNTIME_SHA256, TYPED_RESOURCE_SHA256):
+    if sha256(raw).hexdigest() not in (_V9_RUNTIME_SHA256, TYPED_RESOURCE_SHA256, PACKAGE_INTEGER_SHA256):
         return ()
     expected = (
         ("WORD_LOADS", (("buffer.load.u64.le", "little"), ("buffer.load.u64.be", "big"))),
@@ -107,7 +107,7 @@ def _derived_current(function, stamp):
     # creation-time receipt. Source/old-method pins alone do not bind this new
     # FunctionType's mutable code/default attributes.
     return (type(stamp) is tuple and len(stamp) == 7
-            and type(stamp[6]) is str and stamp[6] in (_RUNTIME_SHA256, _V9_RUNTIME_SHA256, TYPED_RESOURCE_SHA256)
+            and type(stamp[6]) is str and stamp[6] in (_RUNTIME_SHA256, _V9_RUNTIME_SHA256, TYPED_RESOURCE_SHA256, PACKAGE_INTEGER_SHA256)
             and stamp is _CACHE and function is stamp[0]
             and type(function) is FunctionType
             and function.__code__ is stamp[1]
@@ -357,7 +357,7 @@ class _PreparedMachine(_MACHINE):
             # Same ordered predicate as _derived_current, inlined only here.
             # Keep the actual target captured above through the final call.
             if (type(stamp) is tuple and len(stamp) == 7
-                    and type(stamp[6]) is str and stamp[6] in (_RUNTIME_SHA256, _V9_RUNTIME_SHA256, TYPED_RESOURCE_SHA256)
+                    and type(stamp[6]) is str and stamp[6] in (_RUNTIME_SHA256, _V9_RUNTIME_SHA256, TYPED_RESOURCE_SHA256, PACKAGE_INTEGER_SHA256)
                     and stamp is _CACHE and target is stamp[0]
                     and type(target) is FunctionType
                     and target.__code__ is stamp[1]

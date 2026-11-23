@@ -196,6 +196,7 @@ _SCALAR_OPERATIONS = {
     "int.neg.checked": 11,
     "bit.and": 12, "bit.or": 13, "bit.xor": 14, "bit.not": 15,
 }
+DEFAULT_INTEGER_OPERATIONS = frozenset(_SCALAR_OPERATIONS)
 SCALAR_SCHEMA = "hepta.hia.vm-integer-scalar-native.v1"
 SCALAR_IMAGE_NAME = "vm-integer-scalar.image.bin"
 SCALAR_SOURCE_NAME = "examples/hia_bootstrap/vm_integer_scalar.hepta"

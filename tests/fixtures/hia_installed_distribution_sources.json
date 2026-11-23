@@ -430,8 +430,8 @@
     },
     "tests/test_hia_agent_installed_resources.py": {
       "current": {
-        "bytes": 68087,
-        "sha256": "b6bac1d9289443233334462508557935855a8420f5b1139c5ee9baa7ed97f455"
+        "bytes": 70936,
+        "sha256": "0686e762574032ddf7cf56e1a8f1f7b51579d0cdc7f49386f2d4632cef0dc04e"
       },
       "original": {
         "bytes": 65955,
@@ -442,6 +442,11 @@
           "after": "    'tools/build_hia_default_release.py', 'tools/hia_wheel_backend.py',\n",
           "before": "",
           "offset": 1448
+        },
+        {
+          "after": "    'examples/hia_bootstrap/source_wheel_layout.hepta',\n",
+          "before": "",
+          "offset": 2139
         },
         {
           "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
@@ -459,7 +464,7 @@
           "offset": 61349
         },
         {
-          "after": "            from tests.hia_distribution_fixture import derived_python_pin\n            derived_python_pin(z)\n            provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))\n            if 'derived_pin_resource' in provenance:\n                self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')\n                native.add(full + 'pin.json')\n",
+          "after": "            from tests.hia_distribution_fixture import derived_python_pin\n            derived_python_pin(z)\n            if 'hepta/_data/' + full + 'integer-bundle.json' in z.namelist():\n                native.update((full + 'integer-bundle.json', full + 'scalar-reference/manifest.json',\n                               full + 'scalar-reference/scalar-reference.image.bin'))\n            provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))\n            if 'derived_pin_resource' in provenance:\n                self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')\n                native.add(full + 'pin.json')\n",
           "before": "",
           "offset": 61396
         },
@@ -472,6 +477,11 @@
           "after": "            for name in native:\n                raw = z.read('hepta/_data/' + name)\n                self.assertEqual((self.installed / 'hepta/_data' / name).read_bytes(), raw)\n                if name.endswith('/manifest.json'):\n                    recorded = json.loads(raw)\n                    if 'image_path' in recorded:\n                        member = str(Path(name).parent / recorded['image_path'])\n                        self.assertIn(member, native)\n                        self.assertEqual(sha256(z.read('hepta/_data/' + member)).hexdigest(),\n                                         recorded['image_sha256'])\n",
           "before": "",
           "offset": 62104
+        },
+        {
+          "after": "\n    def test_installed_default_vm_executes_integer_instructions_and_refuses_missing_image(self):\n        from tests.hia_vm_integer_scalar_cases import operation_arguments, operation_program\n        from hepta.hia_program import execute_program\n        from hepta.hia_vm_integer_divrem_protocol import DEFAULT_INTEGER_OPERATIONS\n\n        rows = []\n        for operation in sorted(DEFAULT_INTEGER_OPERATIONS):\n            program = operation_program(operation, 'i32')\n            entry = program['functions'][0]['name']\n            arguments = operation_arguments(operation, 17, 2)\n            rows.append([operation, program, entry, arguments, execute_program(program, entry, arguments)])\n        script = \"\"\"import json, sys\nfrom pathlib import Path\nsys.path.insert(0, sys.argv[1])\nfrom hepta.hia_program import execute_program\nfrom hepta.hia_scalar_reference_native import NativeScalarReference\nseen = []\noriginal = NativeScalarReference.operation\ndef observed(image, operation, typ, values):\n    assert image._default_package_binding\n    seen.append(operation)\n    return original(image, operation, typ, values)\nNativeScalarReference.operation = observed\nfor operation, program, entry, arguments, expected in json.load(sys.stdin):\n    assert execute_program(program, entry, arguments) == expected\n    assert seen == [operation], seen\n    seen.clear()\n\"\"\"\n        environment = {name: value for name, value in os.environ.items()\n                       if not name.startswith(('HEPTA_HIA_', 'PYTHON'))}\n        command = [sys.executable, '-I', '-B', '-c', script, str(self.installed)]\n        def probe():\n            return subprocess.run(command, input=json.dumps(rows).encode(), cwd=self.folder,\n                                  env=environment, capture_output=True, timeout=60)\n        good = probe()\n        self.assertEqual((good.returncode, good.stdout, good.stderr), (0, b'', b''))\n        directory = self.installed / 'hepta/_data/native/default/full_cost'\n        for member in ('integer-bundle.json', 'scalar-reference/manifest.json',\n                       'scalar-reference/scalar-reference.image.bin'):\n            path = directory / member\n            held = path.with_suffix('.held')\n            path.rename(held)\n            try:\n                with self.subTest(member=member):\n                    refused = probe()\n                    self.assertNotEqual(refused.returncode, 0)\n                    self.assertIn(b'FileNotFoundError', refused.stderr)\n            finally:\n                held.rename(path)\n",
+          "before": "",
+          "offset": 62582
         }
       ]
     },
@@ -1390,8 +1400,8 @@
     },
     "tests/test_hia_vm_integer_arithmetic_native.py": {
       "current": {
-        "bytes": 20240,
-        "sha256": "5ee2adee064c3a67d078ea7c98fda59c23ef24a1c2c7aabe443f67812d689f19"
+        "bytes": 20241,
+        "sha256": "1d36a6ec6527d76e99d80dfcbdd802ea734be9764947361216db1b8160e82ced"
       },
       "original": {
         "bytes": 20117,
@@ -1399,7 +1409,7 @@
       },
       "splices": [
         {
-          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.TYPED_RESOURCE_SHA256)\n",
+          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.PACKAGE_INTEGER_SHA256)\n",
           "before": "        self.assertEqual(sha256(raw).hexdigest(), selected.V9_RUNTIME_SHA256)\n",
           "offset": 2722
         },
@@ -1412,8 +1422,8 @@
     },
     "tests/test_hia_vm_integer_divrem_native.py": {
       "current": {
-        "bytes": 20527,
-        "sha256": "456f273895eb25395722cafd95541f41143cbc805fa569bdbce683b84749e2e0"
+        "bytes": 20528,
+        "sha256": "da43cb537b6a8ba4c40173aa5ae222b8ff7f4e90da9ebe32e3d8dff3e03e854f"
       },
       "original": {
         "bytes": 20177,
@@ -1421,7 +1431,7 @@
       },
       "splices": [
         {
-          "after": "        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.TYPED_RESOURCE_SHA256)\n        previous = selected.word_runtime_source(actual_runtime)\n        self.assertEqual(sha256(previous).hexdigest(), selected.V9_RUNTIME_SHA256)\n        self.assertEqual(selected._retained_runtime_source(previous), retained)\n",
+          "after": "        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.PACKAGE_INTEGER_SHA256)\n        previous = selected.word_runtime_source(actual_runtime)\n        self.assertEqual(sha256(previous).hexdigest(), selected.V9_RUNTIME_SHA256)\n        self.assertEqual(selected._retained_runtime_source(previous), retained)\n",
           "before": "        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.V9_RUNTIME_SHA256)\n",
           "offset": 2090
         },
@@ -1434,8 +1444,8 @@
     },
     "tests/test_hia_vm_integer_scalar_native.py": {
       "current": {
-        "bytes": 23115,
-        "sha256": "a62f84ccb815e909f7b12424c8297aa943d1694d7dd835fd566435b73f826c6d"
+        "bytes": 23116,
+        "sha256": "b525b035ada55ead0fda06a53b61f9a9ef5d6b476f2e97629abd480735c699a7"
       },
       "original": {
         "bytes": 22992,
@@ -1443,7 +1453,7 @@
       },
       "splices": [
         {
-          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.TYPED_RESOURCE_SHA256)\n",
+          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.PACKAGE_INTEGER_SHA256)\n",
           "before": "        self.assertEqual(sha256(raw).hexdigest(), selected.V9_RUNTIME_SHA256)\n",
           "offset": 2985
         },

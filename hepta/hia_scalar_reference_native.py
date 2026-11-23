@@ -149,6 +149,14 @@ class NativeScalarReference(NativeHiaJsonImage):
             raise self._arithmetic_error(error, typ)
         return self._value(typ, result)
 
+    def package_integer_operation(self, opcode, typ, arguments):
+        binding = self._default_package_binding
+        binding.check_files()
+        try:
+            return self.operation(opcode, typ, arguments)
+        finally:
+            binding.check_files()
+
     def byte_operation(self, name, destination, *, offset=0, source=None,
                        source_offset=0, count=0, value=0):
         from .hia_program_runtime import HIAProgramTrap

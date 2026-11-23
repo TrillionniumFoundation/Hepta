@@ -2,6 +2,7 @@
 from hashlib import sha256
 
 TYPED_RESOURCE_SHA256 = "b5dfeb949c9fc1ba2b6b54c7b1b74a3142ba9e7ecfa346ad502b68144d35b0e5"
+PACKAGE_INTEGER_SHA256 = "8295665a1f138f09f2613fdec8f9b20bb40541db5bdf426ffe640b273c61c2e9"
 WORD_RUNTIME_SHA256 = "db118314608168799a0d2c1210cec04ba38981a329e8da6cf4debcd07b267aa0"
 
 # Ranges use zero-based complete source lines. Each replacement is the earlier
@@ -129,6 +130,11 @@ _PREVIOUS_LINES = (
 
 def word_runtime_source(raw):
     """Recover the v9 image from its admitted typed-resource successor."""
+    if type(raw) is bytes and sha256(raw).hexdigest() == PACKAGE_INTEGER_SHA256:
+        lines = raw.splitlines(keepends=True)
+        for start, stop in ((274, 276), (265, 271), (17, 18)):
+            del lines[start:stop]
+        raw = b''.join(lines)
     if type(raw) is not bytes or sha256(raw).hexdigest() != TYPED_RESOURCE_SHA256:
         raise ValueError('the typed-resource interpreter source differs')
     lines = raw.splitlines(keepends=True)

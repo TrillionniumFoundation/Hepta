@@ -14,6 +14,8 @@ PIN_SCHEMA = 'hepta.hia.default-native-package.v1'
 TARGET = 'linux-x86_64-lp64'
 PIN_RESOURCE = '_data/native/default/full_cost/pin.json'
 BUNDLE_RESOURCE = '_data/native/default/full_cost/bundle.json'
+INTEGER_BUNDLE_RESOURCE = '_data/native/default/full_cost/integer-bundle.json'
+INTEGER_OWNER = ('HEPTA_HIA_SCALAR_REFERENCE_MANIFEST', 'scalar-reference')
 PROOF_BUNDLE_RESOURCE = '_data/native/default/full_cost/proof-bundle.json'
 BINDER_RESOURCE = '_data/native/default/full_cost/hia-safe-core-bind'
 CLI_BUNDLE_RESOURCE = '_data/native/default/cli/manifest.json'
@@ -52,7 +54,7 @@ def _verify_data_resources(directory, value):
 
     from .hia_native_helpers import _read
 
-    if len(value) != (10 if value[4] == SCOPES[0] else 7):
+    if len(value) not in ((10, 11) if value[4] == SCOPES[0] else (7,)):
         raise ValueError('incomplete native-default data pin')
     contract_name = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
     contract = _read(directory / '_data' / contract_name, 4 << 20)
@@ -66,6 +68,8 @@ def _verify_data_resources(directory, value):
         resources.extend(((Path(BUNDLE_RESOURCE).with_name('cold-report.json'), value[5]),
                           (PROOF_BUNDLE_RESOURCE, value[7]), (CLI_BUNDLE_RESOURCE, value[8]),
                           (BINDER_RESOURCE, value[9])))
+    if len(value) == 11:
+        resources.append((INTEGER_BUNDLE_RESOURCE, value[10]))
     for path, expected in resources:
         raw = _read(directory / path, 16 << 20).raw
         if sha256(raw).hexdigest() != expected:
@@ -150,7 +154,7 @@ def _capture_package():
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
             raise ValueError('portable native-default pin bytes changed')
         return None
-    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10)
+    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11)
             or any(type(item) is not str for item in value)
             or value[:3] != (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE)
             or value[4] not in SCOPES
@@ -234,6 +238,31 @@ def default_image(selector):
     selected_path = str(Path(binding.selections[selector]).resolve(strict=True))
     image, = (image for key, image in binding.images.items() if key[0] == selected_path)
     # Break the index back-edge; the selected image keeps the snapshots.
+    binding.images.clear()
+    image._default_package_binding = binding
+    return image
+
+
+def default_integer_image():
+    """Use the separate ordinary-VM image only outside a selected worker scope."""
+    from . import hia_native_helpers as helpers
+
+    helpers._check_scope_owner()
+    selector, _ = INTEGER_OWNER
+    if helpers._SCOPE_OWNER is not None or selector in os.environ:
+        return None
+    captured = _capture_package()
+    if captured is None:
+        return None
+    directory, value, pins = captured
+    if len(value) < 11:
+        return None
+    binding = helpers.NativeHelpersBinding(str(directory / INTEGER_BUNDLE_RESOURCE), value[10])
+    if set(binding.selections) != {selector} or len(binding.images) != 1:
+        raise ValueError('unexpected integer VM owner in the cold distribution')
+    binding.snapshots.extend(pins)
+    binding.check_files()
+    image, = binding.images.values()
     binding.images.clear()
     image._default_package_binding = binding
     return image

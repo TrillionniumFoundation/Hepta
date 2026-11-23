@@ -15,6 +15,7 @@ from weakref import proxy
 from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS,
                           integer_range, scalar_value_valid, verify_program)
 from .hia_bounded_memory import fill_bytes, move_bytes
+from .hia_vm_integer_divrem_protocol import DEFAULT_INTEGER_OPERATIONS
 from .hia_schema import supports_feature
 from .hia_execution_ledger_native import SELECTOR as LEDGER_SELECTOR, installed_execution_ledger
 from .hia_opcodes import ExecutionObservationRejected, WORD_LOADS, WORD_STORES, validate_execution_observation
@@ -262,9 +263,17 @@ class _Machine:
         typ = outputs[0]["type"] if outputs else None
         result = []
         scalar_op = "cast." + attrs["mode"] if op == "int.cast" else op
+        package_integer = None
+        if self.scalar_reference is None and op in DEFAULT_INTEGER_OPERATIONS and typ in WIDTHS:
+            if not hasattr(self, '_package_integer'):
+                from .hia_default_native import default_integer_image
+                self._package_integer = default_integer_image()
+            package_integer = self._package_integer
         if (self.scalar_reference is not None and scalar_op in NATIVE_SCALAR_OPCODES
                 and (typ in WIDTHS or typ == "bool")):
             result = [self.scalar_reference.operation(scalar_op, typ, args)]
+        elif package_integer is not None:
+            result = [package_integer.package_integer_operation(op, typ, args)]
         elif op == "const":
             result = [attrs["value"]]
         elif op in {f"int.{a}.{m}" for a in ("add", "sub", "mul") for m in ("checked", "wrap")}:
