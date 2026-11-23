@@ -351,11 +351,77 @@ def packer_source(*, in_process=False):
     return source+HELPERS
 
 
+GUARD_ADAPTER = 'tools/hia_continuation_guard_syscalls.S'
+GUARD_MAGIC = int.from_bytes(b'HIACTEX1', 'little')
+GUARD_SOURCE = '''def check(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(w) != 16:
+        return 1
+    mode = byte(w, 0)
+    i = 0
+    if mode == 1:
+        value = byte(w, 8)
+        while i < length(s):
+            if byte(s, i) != value:
+                return 1
+            i = i + 1
+        return 0
+    if mode != 2 or length(s) != length(o):
+        return 1
+    while i < length(s):
+        if byte(s, i) != byte(o, i):
+            return 1
+        i = i + 1
+    return 0
+'''
+
+
+def guarded_packer_document():
+    from tools.build_hia_agent_batch_commit import adapter_layout
+    from tools.generate_hia_native_filter import bind_adapter, elf_header
+
+    source = (ROOT / GUARD_ADAPTER).read_bytes()
+    with tempfile.TemporaryDirectory(prefix='hia-continuation-guard-') as folder:
+        adapter, holes, _ = adapter_layout(Path(folder), GUARD_ADAPTER, source,
+                                            {'pack': 'pack_call_hole', 'check': 'check_call_hole'})
+    header = elf_header()
+    prefix = header + adapter
+    kernel = f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < 26 or uint(s, 0, 8) != {GUARD_MAGIC}:
+        return 4294967295
+    check_size = uint(s, 8, 8)
+    app_size = uint(s, 16, 8)
+    if check_size == 0 or app_size == 0 or check_size > 1048576 or app_size > 1048576:
+        return 4294967295
+    if length(s) != 24 + check_size + app_size:
+        return 4294967295
+    size = {len(prefix)} + check_size + app_size
+    if size > length(o):
+        return 4294967294
+'''
+    for at in range(0, len(prefix), 8):
+        chunk = prefix[at:at+8]
+        kernel += f'    write(o, {at}, {int.from_bytes(chunk, "little")}, {len(chunk)})\n'
+    kernel += f'''    write(o, 96, size, 8)
+    write(o, 104, size, 8)
+    write(o, {len(header) + holes['pack']}, {len(adapter) - holes['pack'] - 4} + check_size, 4)
+    write(o, {len(header) + holes['check']}, {len(adapter) - holes['check'] - 4}, 4)
+    copy_bytes(s, o, 24, {len(prefix)}, check_size + app_size)
+    return size
+'''
+    return bind_adapter(document(kernel + HELPERS, 'continuation_guarded_packer'), source, adapter,
+                        (holes['pack'], holes['check']))
+
+
 def main():
-    for name,source in (('continuation_policy',policy_source()),('continuation_packer',packer_source()),('continuation_inprocess_packer',packer_source(in_process=True))):
+    for name,source in (('continuation_policy',policy_source()),('continuation_packer',packer_source()),
+                        ('continuation_inprocess_packer',packer_source(in_process=True)),
+                        ('continuation_guard_check', GUARD_SOURCE)):
         path=ROOT/'examples/hia_bootstrap'/(name+'.hepta')
         path.write_text(render_assembly(document(source,name)))
         print(path.name,path.stat().st_size)
+    guarded = ROOT / 'examples/hia_bootstrap/continuation_guarded_packer.hepta'
+    guarded.write_text(render_assembly(guarded_packer_document()))
+    print(guarded.name, guarded.stat().st_size)
 
 
 if __name__=='__main__':main()

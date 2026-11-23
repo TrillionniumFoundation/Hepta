@@ -23,6 +23,15 @@ bounded to 1 MiB. Aggregate pack input/output are bounded to 64 MiB; that does
 not enlarge the existing compiler or byte-observer 1 MiB profiles. A separate
 bounded pack invocation must transport a larger aggregate input.
 
+For each aggregate build, the cold compiler produces the continuation packer,
+a guard checker and their static executable packer from HIA source. The caller
+checks the emitted executable against the bound syscall adapter and both
+application images before running it. The Linux adapter protects the input,
+provides guard pages, and enforces process limits. The HIA checker compares the
+input to a read-only copy and checks the region boundaries and unused output
+before the executable writes its result. The complete padded output and the
+actual emitted extent are retained for independent comparison.
+
 The executable itself uses no files, child processes, dynamic loader, libc,
 runtime assembler or runtime Python. **Its external object peer still does.**
 Python object semantics, exceptions, imports, arbitrary callbacks, SQL and all

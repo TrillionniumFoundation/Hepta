@@ -1,16 +1,14 @@
 """Cold-admitted HIA scheduling plus complete execution-ledger image bundle.
 
-Object effects remain hosted. The new packer has its own aggregate transport;
-neither the compiler nor the existing byte-observer caps are changed.
+The worker uses an independently bounded static HIA executable for aggregate
+packing. Object effects are handled by the peer.
 """
 from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
-import os
 from pathlib import Path
 import struct
-import subprocess
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -60,6 +58,48 @@ def _checked_pack_result(receipt, output, *, image, source, capacity, transport)
     return executable
 
 
+def _link_guarded_packer(directory, transport, generated, binding, observer, packer):
+    from tools.build_hia_source_build import _check_pack_output
+    from tools.generate_hia_native_filter import verify_adapter
+    from tools.qualify_hia_selfhost import invoke
+
+    check = generated['continuation_guard_check'][1]
+    linker_path, linker_image = generated['continuation_guarded_packer']
+    application = generated[packer][1]
+    wire = struct.pack('<8sQQ', b'HIACTEX1', len(check), len(application)) + check + application
+    receipt, padded = invoke(directory, transport + '.link', linker_path, wire, flat_observer=observer)
+    runner = _check_pack_output(receipt, padded, artifact=linker_image, source=wire)
+    verify_adapter(runner, check + application, binding, entries=(len(check), 0))
+    return runner, receipt
+
+
+def _pack_aggregate(directory, transport, runner, image, source, capacity):
+    from tools.build_hia_source_build import _run_captured
+
+    if not 0 < len(source) <= 64 << 20 or not 0 < capacity <= 64 << 20:
+        raise ValueError('native continuation aggregate extent differs')
+    frame = struct.pack('<8sQQQ', b'HIACTGU1', len(source), capacity, 0) + source
+    run = _run_captured(runner, None, frame, directory, timeout=20)
+    with (directory / (transport + '.pack.stderr.log')).open('xb') as stream:
+        stream.write(run.stderr)
+    if run.returncode or run.stderr or len(run.stdout) != 24 + capacity:
+        raise ValueError('bounded HIA continuation packer refused; raw evidence retained')
+    tag, used, elapsed = struct.unpack_from('<8sQQ', run.stdout)
+    if tag != b'HIACTOK1' or not 0 < used <= capacity:
+        raise ValueError('native continuation aggregate return differs')
+    output = run.stdout[24:]
+    source_digest = sha256(source).hexdigest()
+    receipt = dict(status='returned', result_u64=used, abi_status=0, core_u32=used,
+        image_sha256=sha256(image).hexdigest(), source_sha256=source_digest,
+        input_sha256=source_digest, input_bytes=len(source), output_sha256=sha256(output).hexdigest(),
+        source_unchanged=True, buffer_redzones_unchanged=True, output_tail_unchanged=True,
+        input_pages_read_only=True, forbidden_compiler_modules_loaded=[], native_elapsed_ns=elapsed,
+        transport_profile='bounded-aggregate-packer-v1', runner_sha256=sha256(runner).hexdigest(),
+        limits=dict(input_bytes=64 << 20, output_bytes=64 << 20, image_bytes=1 << 20,
+                    workspace_bytes=1 << 20, cpu_seconds=10, address_bytes=512 << 20))
+    return receipt, output
+
+
 def pack_input(policy,pool,units,abi):
     modes=sorted(abi['modes'].values(),key=lambda x:x['number'])
     words=(int.from_bytes(b'HIACTPK1','little'),len(policy),len(units),abi['workspace_bytes'],
@@ -79,17 +119,24 @@ def build(output:Path,compiler:Path,cold_report:Path,*,in_process=False,kind='ex
     from tools.build_hia_json_preflight import admit_cold_build,current_sources
     build_policy=import_module('tools.build_hia_'+family).build
     from tools.qualify_hia_selfhost import compile_stage
+    from tools.replay_hia_selfhost_cold import cold_compiler_observer
+    from tools.generate_hia_native_filter import read_adapter_binding
     compiler_raw=compiler.read_bytes();cold_raw=cold_report.read_bytes()
     sources=admit_cold_build(compiler_raw,cold_raw)
+    observer=cold_compiler_observer(cold_raw)
     abi_raw=(ROOT/ABI_SOURCE).read_bytes();abi=checked_abi(abi_raw)
     names=(family+'_pool',*abi['units'])
     needed=(*CONTINUATION_BUILD_FILES,ABI_SOURCE,*(('examples/hia_bootstrap/'+name+'.hepta') for name in names),
-        'tools/build_hia_native_continuation.py','tools/hia_continuation_pack_child.py',
+        'tools/build_hia_native_continuation.py','tools/hia_continuation_guard_syscalls.S',
+        'examples/hia_bootstrap/continuation_guarded_packer.hepta',
+        'examples/hia_bootstrap/continuation_guard_check.hepta',
         'hepta/hia_native_continuation.py','hepta/hia_native_continuation_selection.py',
         'hepta/hia_native_continuation_inprocess.py','hepta/hia_native_helpers.py','hepta/hia_core_lowering_native.py')
     inputs={name:(ROOT/name).read_bytes() for name in needed}
     for name,raw in inputs.items():
         if sources.get(name)!=sha256(raw).hexdigest():raise ValueError('continuation source differs from admitted cold: '+name)
+    binding=read_adapter_binding(inputs['examples/hia_bootstrap/continuation_guarded_packer.hepta'],
+        inputs['tools/hia_continuation_guard_syscalls.S'],calls=2)
     output.mkdir(mode=0o700)
     policy_manifest=build_policy(output/'policy',compiler,cold_report)
     base_raw=policy_manifest.read_bytes();base=json.loads(base_raw);images=[];pins=[(policy_manifest,base_raw)]
@@ -99,9 +146,11 @@ def build(output:Path,compiler:Path,cold_report:Path,*,in_process=False,kind='ex
         if sha256(raw).hexdigest()!=row['image_sha256']:raise ValueError('continuation policy image changed')
         images.append(raw);pins.extend(((path,path.read_bytes()),(image,raw)))
     generated={};receipts=[]
-    for name in ('continuation_policy','continuation_packer','continuation_inprocess_packer'):
+    for name in ('continuation_policy','continuation_packer','continuation_inprocess_packer',
+                 'continuation_guard_check','continuation_guarded_packer'):
         folder=output/name;folder.mkdir(mode=0o700)
-        image,receipt=compile_stage(folder,name,compiler,inputs['examples/hia_bootstrap/'+name+'.hepta'])
+        image,receipt=compile_stage(folder,name,compiler,inputs['examples/hia_bootstrap/'+name+'.hepta'],
+                                    flat_observer=observer)
         generated[name]=(image,image.read_bytes());receipts.append(receipt)
     raw=pack_input(generated['continuation_policy'][1],images[0],images[1:],abi)
     source=output/'pack.input';source.write_bytes(raw)
@@ -113,12 +162,13 @@ def build(output:Path,compiler:Path,cold_report:Path,*,in_process=False,kind='ex
         packed=output/(transport+'.pack.output')
         request=dict(image=str(generated[packer][0]),image_sha256=sha256(generated[packer][1]).hexdigest(),source=str(source),source_sha256=sha256(raw).hexdigest(),capacity=64<<20,output=str(packed))
         request_path=output/(transport+'.pack.request.json');request_path.write_text(json.dumps(request,sort_keys=True)+'\n')
-        stdout_path=output/(transport+'.pack.stdout.log')
-        with stdout_path.open('xb') as stdout,(output/(transport+'.pack.stderr.log')).open('xb') as stderr:
-            result=subprocess.run([sys.executable,'-B','-E','-s',str(ROOT/'tools/hia_continuation_pack_child.py'),str(request_path)],env={'PATH':''},stdout=stdout,stderr=stderr,timeout=20)
-        if result.returncode:raise ValueError('bounded HIA continuation packer refused; raw evidence retained')
-        receipt=json.loads(stdout_path.read_bytes());all_output=packed.read_bytes()
+        runner, link_receipt = _link_guarded_packer(output, transport, generated, binding, observer, packer)
+        receipt, all_output = _pack_aggregate(output, transport, runner, generated[packer][1], raw, request['capacity'])
         executable=_checked_pack_result(receipt,all_output,image=generated[packer][1],source=raw,capacity=request['capacity'],transport=transport)
+        with packed.open('xb') as stream:
+            stream.write(all_output)
+        with (output/(transport+'.pack.stdout.log')).open('x') as stream:
+            stream.write(json.dumps(receipt,sort_keys=True)+'\n')
         if (compiler.read_bytes()!=compiler_raw or cold_report.read_bytes()!=cold_raw or current_sources()!=sources
                 or any((ROOT/name).read_bytes()!=value for name,value in inputs.items())
                 or any(path.read_bytes()!=value for path,value in (*pins,*generated.values()))
@@ -134,7 +184,7 @@ def build(output:Path,compiler:Path,cold_report:Path,*,in_process=False,kind='ex
                 ('hepta/hia_native_continuation.py','hepta/hia_native_continuation_selection.py','hepta/hia_native_continuation_inprocess.py','hepta/hia_native_helpers.py','hepta/hia_core_lowering_native.py')})
         path=output/('inprocess-manifest.json' if transport=='inprocess' else 'manifest.json')
         with path.open('xb') as f:f.write((json.dumps(manifest,sort_keys=True,indent=2)+'\n').encode())
-        manifests[transport]=path;pack_receipts.append(dict(transport=transport,receipt=receipt))
+        manifests[transport]=path;pack_receipts.append(dict(transport=transport,receipt=receipt,link_receipt=link_receipt))
     with (output/'build.json').open('xb') as f:f.write((json.dumps(dict(status='NATIVE_CONTINUATION_BUILT',source_manifest=sources,cold_report_sha256=sha256(cold_raw).hexdigest(),native_compile_receipts=receipts,native_pack_receipts=pack_receipts,whole_native_delivery_qualified=False),sort_keys=True,indent=2)+'\n').encode())
     return manifests['inprocess' if in_process else 'subprocess']
 

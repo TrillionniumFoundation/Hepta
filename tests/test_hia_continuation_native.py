@@ -117,6 +117,32 @@ class ContinuationSourceTests(unittest.TestCase):
             for factory in (NativeContinuation,InProcessContinuation):
                 with self.assertRaisesRegex(ValueError,'outside the pinned worker bundle'):factory(None,None,pool_bytes=64)
 
+    def test_guard_checker_matches_its_sources_and_independent_vm(self):
+        from hepta.hia_agent_assembly import assemble_program, render_assembly
+        from hepta.hia_program_runtime import _Machine, _Owner, _View
+        from tools.generate_hia_artifact_publication import document
+        from tools.generate_hia_continuation import GUARD_SOURCE, guarded_packer_document
+
+        sources = ROOT / 'examples/hia_bootstrap'
+        raw = (sources / 'continuation_guard_check.hepta').read_bytes()
+        self.assertEqual(raw, render_assembly(document(GUARD_SOURCE, 'continuation_guard_check')).encode())
+        self.assertEqual((sources / 'continuation_guarded_packer.hepta').read_bytes(),
+                         render_assembly(guarded_packer_document()).encode())
+        program = assemble_program(raw)
+        for mode, value, left, right, status in (
+            (1, 109, b'', b'', 0), (1, 109, b'mmm', b'', 0), (1, 109, b'mmn', b'', 1),
+            (1, 165, bytes([165])*24, b'', 0), (2, 0, b'abc', b'abc', 0),
+            (2, 0, b'abc', b'abb', 1), (2, 0, b'ab', b'abc', 1), (3, 0, b'', b'', 1),
+        ):
+            with self.subTest(mode=mode, value=value, left=left, right=right):
+                state = struct.pack('<2Q', mode, value)
+                owners = [_Owner(-1, bytearray(left)), _Owner(-2, bytearray(right)), _Owner(-3, bytearray(state))]
+                vm = _Machine(program, 4_000_000, 16 << 20, None, 128)
+                actual = vm.invoke(next(iter(vm.functions.values())),
+                    [_View(owners[0], False), _View(owners[1], True), _View(owners[2], True)])
+                self.assertEqual(actual, [status])
+                self.assertEqual([bytes(owner.data) for owner in owners], [left, right, state])
+
     def test_generator_and_independent_policy_VM(self):
         from tools.generate_hia_continuation import policy_source,packer_source
         from tools.generate_hia_artifact_publication import document

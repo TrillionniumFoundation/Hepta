@@ -141,7 +141,7 @@ def compile_source_batch(bootstrap, compiler, cold_report, sources):
     return _compiled_sources(run.stdout, sources)
 
 
-def _run_captured(executable, operation, wire, directory, *, pass_fds=(), stdin=None, stdout=subprocess.PIPE):
+def _run_captured(executable, operation, wire, directory, *, pass_fds=(), stdin=None, stdout=subprocess.PIPE, timeout=120):
     """Execute a sealed descriptor; a pathname swap cannot select other code."""
     fd = os.memfd_create('hia-source-build-bootstrap', os.MFD_ALLOW_SEALING)
     try:
@@ -161,7 +161,7 @@ def _run_captured(executable, operation, wire, directory, *, pass_fds=(), stdin=
             argv.append(operation)
         return subprocess.run(argv, input=wire, stdin=stdin,
                               stdout=stdout, stderr=subprocess.PIPE, env={'PATH': ''}, cwd=directory,
-                              timeout=120, pass_fds=(fd, *pass_fds))
+                              timeout=timeout, pass_fds=(fd, *pass_fds))
     finally:
         os.close(fd)
 
