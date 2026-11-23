@@ -115,24 +115,36 @@ def job(o:mutbuf,w:mutbuf,role:u64,target:u64,count:u64,save:u64) -> u64:
     return 2
 
 def claim(s:readbuf,o:mutbuf,w:mutbuf) -> bool:
-    if length(s) < 760 or read_word(s,0) != CLAIM or read_word(s,16) != 3 or read_word(s,40) != 512 or read_word(s,48) != 64 or read_word(s,56) != 8 or read_word(s,64) != JOURNAL:
+    base = 0
+    limit = length(s)
+    if limit >= 40 and read_word(s,0) == HALF:
+        base = 40
+        cl = read_word(s,16)
+        en = read_word(s,24)
+        cn = read_word(s,32)
+        if cl < 760 or cl > limit-base or en < 2 or en > limit-base-cl or cn < 2 or cn != limit-base-cl-en or read_word(s,8) != get(w,D+16):
+            return False
+        limit = base+cl
+    put(w,D+216,base)
+    put(w,D+224,limit-base)
+    if limit < 760 or read_word(s,base+0) != CLAIM or read_word(s,base+16) != 3 or read_word(s,base+40) != 512 or read_word(s,base+48) != 64 or read_word(s,base+56) != 8 or read_word(s,base+64) != JOURNAL:
         return False
-    if read_word(s,72) != 3 or read_word(s,576) != MUTATION or read_word(s,640) != COMMIT:
+    if read_word(s,base+72) != 3 or read_word(s,base+576) != MUTATION or read_word(s,base+640) != COMMIT:
         return False
-    h = 648
-    if read_word(s,8) != length(s)-h or read_word(s,h) != FRESH or byte(s,256) != 114 or byte(s,257) != 45:
+    h = base+648
+    if read_word(s,base+8) != limit-h or read_word(s,h) != FRESH or byte(s,base+256) != 114 or byte(s,base+257) != 45:
         return False
     i = 0
     while i < 64:
-        if byte(s,128+i) != byte(s,258+i):
+        if byte(s,base+128+i) != byte(s,base+258+i):
             return False
-        store(w,OWNER+i,byte(s,192+i))
+        store(w,OWNER+i,byte(s,base+192+i))
         i = i+1
     count = read_word(s,h+8)
     req = read_word(s,h+48)
     extent = read_word(s,h+56)
     at = h+112
-    if count < 9 or count > 1024 or req > length(s)-at or extent > length(s)-at-req:
+    if count < 9 or count > 1024 or req > limit-at or extent > limit-at-req:
         return False
     if parse(s,o,w,at,req,6) == False:
         return False
@@ -172,7 +184,7 @@ def claim(s:readbuf,o:mutbuf,w:mutbuf) -> bool:
         i = i+1
     left = read_word(s,h+64)
     right = read_word(s,h+72)
-    if at != end or left < 24 or left > length(s)-at or right < 24 or right != length(s)-at-left:
+    if at != end or left < 24 or left > limit-at or right < 24 or right != limit-at-left:
         return False
     put(w,BATCH,at)
     put(w,BATCH+8,left)
@@ -249,7 +261,7 @@ def reference_job(o:mutbuf,w:mutbuf,arm:u64) -> u64:
     fragment(o,3,3,get(w,WORK),get(w,WORK+8))
     fragment(o,4,0,1026,1)
     fragment(o,5,3,get(w,snap),get(w,snap+8))
-    fragment(o,6,3,728+16*arm,16)
+    fragment(o,6,3,get(w,D+216)+728+16*arm,16)
     whole(o,w,7,6)
     fragment(o,8,0,1032,24)
     return job(o,w,8,13+arm,9,0)
@@ -281,8 +293,8 @@ def settle_job(o:mutbuf,w:mutbuf,dest:u64,save:u64) -> u64:
     fragment(o,0,0,1024,80)
     fragment(o,1,5,128,36)
     fragment(o,2,5,get(w,D+192),64)
-    fragment(o,3,3,192,64)
-    fragment(o,4,3,256,66)
+    fragment(o,3,3,get(w,D+216)+192,64)
+    fragment(o,4,3,get(w,D+216)+256,66)
     if get(w,D+208) == 0:
         fragment(o,5,4,32,get(w,D+200))
         whole(o,w,6,5)
@@ -296,14 +308,15 @@ def settle_job(o:mutbuf,w:mutbuf,dest:u64,save:u64) -> u64:
 
 def measure_job(o:mutbuf,w:mutbuf) -> u64:
     put(o,1024,MEASURE_REQUEST)
-    put(o,1032,get(w,SIZES+24)-648)
+    start = choose(get(w,D+216) == 0,648,0)
+    put(o,1032,get(w,SIZES+24)-start)
     put(o,1040,get(w,SIZES+136))
     put(o,1048,get(w,SIZES+120))
     put(o,1056,get(w,SIZES+104))
     put(o,1064,get(w,SIZES+112))
     put(o,1072,get(w,SIZES+32))
     fragment(o,0,0,1024,56)
-    fragment(o,1,3,648,get(w,SIZES+24)-648)
+    fragment(o,1,3,start,get(w,SIZES+24)-start)
     whole(o,w,2,17)
     whole(o,w,3,15)
     whole(o,w,4,13)
@@ -313,12 +326,12 @@ def measure_job(o:mutbuf,w:mutbuf) -> u64:
 
 def finish(o:mutbuf,w:mutbuf) -> u64:
     put(o,1024,RESULT)
-    put(o,1032,get(w,SIZES+24))
+    put(o,1032,get(w,D+224))
     put(o,1040,get(w,SIZES+128))
     put(o,1048,get(w,SIZES+152))
     put(o,1056,get(w,SIZES+144))
     fragment(o,0,0,1024,40)
-    whole(o,w,1,3)
+    fragment(o,1,3,get(w,D+216),get(w,D+224))
     whole(o,w,2,16)
     whole(o,w,3,19)
     whole(o,w,4,18)
@@ -328,7 +341,7 @@ def finish(o:mutbuf,w:mutbuf) -> u64:
 
 def program():
     state = 34 << 20
-    values = {k:int.from_bytes(v,'little') for k,v in dict(CLOCK=b'HIAEMC01',CLAIM=b'HIAEJC01',
+    values = {k:int.from_bytes(v,'little') for k,v in dict(CLOCK=b'HIAEMC01',CLAIM=b'HIAEJC01',HALF=b'HIAEFH01',
         FRESH=b'HIAEFI04',MUTATION=b'HIAJMO01',COMMIT=b'HIASTCP1',PAID=b'HIAEBRS1',JOURNAL=b'HIAJRN02',ARCHIVE=b'HIAEMT01',PAIR=b'HIAEPM01',EXTENDED_PAIR=b'HIAEPM02',BEGIN=b'HIAEEV01',
         REFERENCE_REQUEST=b'HIAERJ02',NATIVE_REQUEST=b'HIAENJ01',SETTLE_REQUEST=b'HIAEST01',
         MEASURE_REQUEST=b'HIAEMJ01',DECISION=b'HIAESD01',NATIVE=b'HIAENR01',RESULT=b'HIAEMF01',

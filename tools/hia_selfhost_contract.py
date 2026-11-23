@@ -199,6 +199,7 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'examples/hia_bootstrap/evaluate_measurements.hepta',
     'examples/hia_bootstrap/evaluate_measurements_packer.hepta',
     'tools/generate_hia_evaluate_measurements.py',
+    'tools/generate_hia_evaluate_nominal.py',
     'tests/test_hia_evaluate_measurements.py',
     'examples/hia_bootstrap/evaluate_report_flow.hepta',
     'examples/hia_bootstrap/evaluate_cost_ledger_flow.hepta',

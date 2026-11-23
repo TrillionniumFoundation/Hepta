@@ -142,6 +142,20 @@ class SettledCostLedgerTests(unittest.TestCase):
                     self.assertEqual(self.invoke(b'HIAELQ01'+parts[0]),(0,wire(policy)+plan))
                     self.assertEqual(self.invoke(render(parts)),(0,expected))
 
+    def test_original_context_fields_can_be_reordered_and_escaped(self):
+        parts,policy,expected=case([(1,CTX_ID,'emit','a','24','ok','{}')],True)
+        fresh=parts[0]
+        req_n=struct.unpack_from('<Q',fresh,48)[0]
+        request=json.loads(fresh[112:112+req_n])
+        values=request['arguments']['context']
+        request['arguments']['context']={'sha256':values['sha256'],'id':values['id']}
+        pretty=json.dumps(request,indent=2).encode().replace(b'ctx-',b'ctx'+bytes((92,))+b'u002d')
+        pretty=pretty.replace(b'hia_evaluate',b'hia_'+bytes((92,))+b'u0065valuate')
+        adjusted=fresh[:48]+struct.pack('<Q',len(pretty))+fresh[56:112]+pretty+fresh[112+req_n:]
+        query=self.invoke(b'HIAELQ01'+adjusted)
+        self.assertEqual(query,self.invoke(b'HIAELQ01'+fresh))
+        self.assertEqual(self.invoke(render((adjusted,*parts[1:]))),(0,expected))
+
     def test_refusal_has_no_output(self):
         parts,policy,_ = case([(1,CTX_ID,'read','r','100','ok','{}')],False)
         fresh,decision,replies,body = parts

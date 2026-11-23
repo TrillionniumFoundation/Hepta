@@ -31,10 +31,9 @@ def ledger(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if fresh_context(s,o,w,8,length(s)-8) == False:
             return BAD
         ref = get(w,MEM+8)
-        ctx = get(w,MEM)
         copy_wire(s,o,ref,0,176)
-        p = select_command(s,o,176,1,8,ctx+7,36)
-        p = select_command(s,o,p,2,5,ref+7,34)
+        p = select_command(s,o,w,176,1,8,MEM+519,36)
+        p = select_command(s,o,w,p,2,5,ref+7,34)
         return command(o,p,3,3,0,0)
     if read_word(s,0) != RENDER:
         return BAD
@@ -77,25 +76,25 @@ def fresh_context(s:readbuf,o:mutbuf,w:mutbuf,at:u64,size:u64) -> bool:
     at = at+112
     if fields(s,o,w,at,req) == False:
         return False
-    if field_n(w,K_tool) != 14 or is_evaluate(s,field_at(w,K_tool)) == False:
+    tool = node_field(o,64,K_tool)
+    if tool == 18446744073709551615 or get(o,tool) != 4 or get(o,tool+32) != 12 or is_evaluate(o,get(o,tool+24)) == False:
         return False
     a = field_at(w,K_arguments)
     n = field_n(w,K_arguments)
     if n < 2 or fields(s,o,w,a,n) == False:
         return False
-    ctx = field_at(w,K_context)
-    if field_n(w,K_context) != 121 or (read_word(s,ctx+7) & 4294967295) != CTX or hexadecimal(s,ctx+11,32) == False or hexadecimal(s,ctx+55,64) == False:
+    if nominal(o,w,node_field(o,64,K_context),MEM+512,False) == False:
         return False
-    put(w,MEM,ctx)
     at = at+req
     if rows < 208 or read_word(s,at) != 0 or read_word(s,at+8) != 3 or checked_ref(s,at+32) == False:
         return False
     meta = read_word(s,at+16)
     n = read_word(s,at+24)
-    if meta > rows-208 or n > rows-208-meta or same(s,at+85,ctx+55,64) == False:
+    if meta > rows-208 or n > rows-208-meta or nominal_matches(s,w,at+85,MEM+567,64) == False:
         return False
+    digest = at+85
     at = at+208+meta
-    if widen(pair_hash_sha256(s,w,at,n)) != 32 or digest_matches(s,w,ctx+55) == False or fields(s,o,w,at,n) == False:
+    if widen(pair_hash_sha256(s,w,at,n)) != 32 or digest_matches(s,w,digest) == False or fields(s,o,w,at,n) == False:
         return False
     a = field_at(w,K_budget)
     n = field_n(w,K_budget)
@@ -160,7 +159,7 @@ def command(o:mutbuf,p:u64,ordinal:u64,kind:u64,target:u64,size:u64) -> u64:
     put(o,p+40,size)
     return p+48
 
-def select_command(s:readbuf,o:mutbuf,p:u64,ordinal:u64,target:u64,a:u64,n:u64) -> u64:
+def select_command(s:readbuf,o:mutbuf,w:mutbuf,p:u64,ordinal:u64,target:u64,a:u64,n:u64) -> u64:
     p = command(o,p,ordinal,27,target,56+n)
     put(o,p,PARAMS)
     put(o,p+8,1)
@@ -169,6 +168,8 @@ def select_command(s:readbuf,o:mutbuf,p:u64,ordinal:u64,target:u64,a:u64,n:u64) 
     put(o,p+32,3)
     put(o,p+40,56)
     put(o,p+48,n)
+    if target == 8:
+        return arena_copy(w,o,a,p+56,n)
     return copy_wire(s,o,a,p+56,n)
 
 def ack(s:readbuf,w:mutbuf,a:u64,end:u64,ordinal:u64,kind:u64) -> bool:
@@ -282,6 +283,16 @@ def cell_matches(s:readbuf,w:mutbuf,i:u64,at:u64,n:u64) -> bool:
         j = j+1
     return True
 
+def context_cell(w:mutbuf) -> bool:
+    if cell(w,1,0) != 3 or cell(w,1,2) != 36:
+        return False
+    i = 0
+    while i < 36:
+        if byte(w,ROW+cell(w,1,1)+i) != byte(w,MEM+519+i):
+            return False
+        i = i+1
+    return True
+
 def artifact(s:readbuf,w:mutbuf) -> bool:
     r = get(w,MEM+8)
     return cell_matches(s,w,0,r+7,34) and cell_matches(s,w,1,r+53,64) and cell_matches(s,w,2,r+126,48)
@@ -296,7 +307,7 @@ def cost_row_data(s:readbuf,w:mutbuf,i:u64) -> bool:
         return False
     put(w,MEM+112,seq)
     scoped = cell(w,1,0) != 0
-    if scoped and cell_matches(s,w,1,get(w,MEM)+7,36) == False:
+    if scoped and context_cell(w) == False:
         return False
     if scoped == False and cell(w,1,2) != 0:
         return False
@@ -502,7 +513,7 @@ def emit_ledger(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     put(o,16,get(w,MEM+40))
     put(o,24,get(w,MEM+16))
     store(o,32,91)
-    p = copy_wire(s,o,get(w,MEM),33,121)
+    p = arena_copy(w,o,MEM+512,33,121)
     store(o,p,44)
     p = emit_total(w,o,p+1,0)
     store(o,p,44)
@@ -564,13 +575,14 @@ def program():
     def expand(source):
         return re.sub(r'\b('+'|'.join(constants)+r')\b',lambda m:str(constants[m[0]]),source)
     from tools.generate_hia_worker_request import decimal_program
+    from tools.generate_hia_evaluate_nominal import source as nominal_source
     case = case_source()
     original = identity()
-    helpers = [function(POLICY+'\n'+MATCH+'\n'+ISSUE,k) for k in
-               ('same','hexadecimal','digits','checked_ref','copy_wire','local_copy','decimal','hexchar','digest_matches')]
-    token = b'"hia_evaluate"'
-    helpers += ['def is_evaluate(s:readbuf,a:u64) -> bool:\n    return ' +
-                ' and '.join(f'byte(s,a+{i}) == {v}' for i,v in enumerate(token))]
+    helpers = [function(POLICY+'\n'+MATCH+'\n'+ISSUE,k).replace('MAX','18446744073709551615') for k in
+               ('node_field','same','hexadecimal','digits','checked_ref','copy_wire','local_copy','decimal','hexchar','digest_matches')]
+    tool_left = int.from_bytes(b'hia_eval', 'little')
+    tool_right = int.from_bytes(b'uate', 'little')
+    helpers += [f'def is_evaluate(o:mutbuf,a:u64) -> bool:\n    return match_word(o,a,8) == {tool_left} and match_word(o,a+8,4) == {tool_right}']
     fixed = hia_literals()
     helpers += [function(fixed,k) for k in ('ref_prefix','ref_hash_prefix','ref_uri_prefix','literal_read')]
     helpers += [function(decimal_program(),'next_power')] if 'def next_power(' in decimal_program() else []
@@ -582,9 +594,19 @@ def program():
     template = ('cost_receipt','cost_receipt_pass','cost_rows','cost_row','receipt_literal',
                 'receipt_fragment','receipt_delimited_fragment','receipt_fragment_size')
     emit = '\n'.join(function(original,k) for k in template)
+    # This transport always supplies the entries-bearing original mode 41.
+    # Specialize the author's unused mode-40 branches before native emission.
+    import ast
+    class Entries(ast.NodeTransformer):
+        def visit_If(self, node):
+            self.generic_visit(node)
+            if ast.unparse(node.test) == 'entries == 1':
+                return node.body
+            return node
+    emit = ast.unparse(ast.fix_missing_locations(Entries().visit(ast.parse(emit))))
     emit = emit.replace('s: readbuf','s: mutbuf').replace('s:readbuf','s:mutbuf')
     emit = emit.replace('length(s)', 'get(s,MEM+200)').replace('read_word(s,','get(s,')
-    return '\n'.join((expand(BODY+'\n'+ROWS),*helpers,decode,snapshot_hash(),expand(emit)))
+    return '\n'.join((expand(BODY+'\n'+ROWS),*helpers,decode,nominal_source(context_only=True),snapshot_hash(),expand(emit)))
 
 def packer_document():
     from tools.generate_hia_native_filter import document as packer, template

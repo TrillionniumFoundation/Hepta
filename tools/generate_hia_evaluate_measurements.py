@@ -26,7 +26,7 @@ MAGIC=int.from_bytes(b'HIAEMP01','little')
 FIELDS=('arguments','baseline_artifact','candidate_artifact','context','objective','workload','metric','cases',
         'function','report','observations','artifact_sha256','completed_cases','planned_cases','status','complete',
         'wall_ns','stdout_sha256','baseline','candidate','normal','traps','total_native_ns',
-        'baseline_native','candidate_native','termination_confirmed','artifact_bytes','latency_ns')
+        'baseline_native','candidate_native','termination_confirmed','artifact_bytes','latency_ns','request_sha256','tool')
 POLICY=r'''
 def measurements(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s) < 512 or read_word(s,0) != REQUEST:
@@ -41,7 +41,7 @@ def measurements(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,SECTIONS+16*i+8,size)
         cursor = cursor+size
         i = i+1
-    if cursor != length(s) or checks(s,w) == False:
+    if cursor != length(s) or evidence(s,o,w) == False or checks(s,w) == False:
         return BAD
     if fresh(s,o,w) == False:
         return BAD
@@ -50,6 +50,57 @@ def measurements(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if native(s,o,w) == False:
         return BAD
     return issue(s,o,w)
+
+def evidence(s:readbuf,o:mutbuf,w:mutbuf) -> bool:
+    f = get(w,SECTIONS)
+    size = get(w,SECTIONS+8)
+    put(w,NREF+1024,0)
+    if size < 112:
+        return False
+    if read_word(s,f) == FRESH:
+        return True
+    if read_word(s,f) != HALF:
+        return False
+    cl = read_word(s,f+16)
+    en = read_word(s,f+24)
+    cn = read_word(s,f+32)
+    if cl < 760 or cl > size-40 or en < 2 or en > size-40-cl or cn < 2 or cn != size-40-cl-en:
+        return False
+    j = f+40
+    raw = j+648
+    if read_word(s,j) != CLAIM or read_word(s,j+8) != cl-648 or read_word(s,raw) != FRESH or read_word(s,f+8) == 0 or read_word(s,f+8)>read_word(s,raw+80):
+        return False
+    unsigned = j+cl
+    call = unsigned+en
+    req = read_word(s,raw+48)
+    if req > cl-760 or parse(s,o,w,raw+112,req,6) == False:
+        return False
+    if hash_field(s,o,w,node_field(o,64,K_request_sha256),unsigned,en) == False:
+        return False
+    if widen(pair_hash_sha256(s,w,call,cn)) != 32 or digest_matches(s,w,j+128) == False:
+        return False
+    if parse(s,o,w,unsigned,en,6) == False or get(o,96)!=5:
+        return False
+    if keep(o,w,NREF+1040,node_field(o,64,K_arguments)) == False or keep(o,w,NREF+1056,node_field(o,64,K_tool)) == False:
+        return False
+    if parse(s,o,w,call,cn,6) == False or get(o,96)!=2:
+        return False
+    args = node_field(o,64,K_arguments)
+    if keep(o,w,NREF+1072,args) == False or keep(o,w,NREF+1088,node_field(o,64,K_tool)) == False:
+        return False
+    if get(w,NREF+1048) != get(w,NREF+1080) or same(s,get(w,NREF+1040),get(w,NREF+1072),get(w,NREF+1048)) == False:
+        return False
+    if get(w,NREF+1064) != 14 or get(w,NREF+1096) != 14 or same(s,get(w,NREF+1056),get(w,NREF+1088),14) == False or evaluate_tool_literal(s,get(w,NREF+1056)) == False:
+        return False
+    if admitted_refs(o,w,args,NREF+500) == False:
+        return False
+    put(w,NREF+1024,1)
+    put(w,SECTIONS,raw)
+    put(w,SECTIONS+8,cl-648)
+    return True
+
+def admitted_refs(o:mutbuf,w:mutbuf,args:u64,base:u64) -> bool:
+    return args != MAX and nominal(o,w,node_field(o,args,K_baseline_artifact),base,True) and nominal(o,w,node_field(o,args,K_candidate_artifact),base+176,True) and nominal(o,w,node_field(o,args,K_context),base+352,False)
 
 def checks(s:readbuf,w:mutbuf) -> bool:
     fresh = get(w,SECTIONS)
@@ -89,10 +140,14 @@ def fresh(s:readbuf,o:mutbuf,w:mutbuf) -> bool:
     if parse(s,o,w,at,n,6) == False:
         return False
     args = node_field(o,64,K_arguments)
-    if args == MAX or keep(o,w,BASE,node_field(o,args,K_baseline_artifact)) == False or keep(o,w,OTHER,node_field(o,args,K_candidate_artifact)) == False or keep(o,w,CONTEXT,node_field(o,args,K_context)) == False:
+    if admitted_refs(o,w,args,NREF) == False:
         return False
-    if get(w,BASE+8) != 176 or get(w,OTHER+8) != 176 or get(w,CONTEXT+8) != 121:
-        return False
+    if get(w,NREF+1024) != 0:
+        i = 0
+        while i < 473:
+            if byte(w,NREF+i) != byte(w,NREF+500+i):
+                return False
+            i = i+1
     at = at+n
     stop = at+row_bytes
     i = 0
@@ -106,13 +161,22 @@ def fresh(s:readbuf,o:mutbuf,w:mutbuf) -> bool:
         if m > stop-at or n > stop-at-m:
             return False
         if i == 0:
+            if read_word(s,ref-24) != 3 or nominal_matches(s,w,ref+53,NREF+407,64) == False:
+                return False
             if parse(s,o,w,at+m,n,6) == False or keep(o,w,OBJECTIVE,node_field(o,64,K_objective)) == False or keep(o,w,WORK,node_field(o,64,K_workload)) == False:
                 return False
             if get(w,OBJECTIVE+8) != 176 or get(w,WORK+8) != 176:
                 return False
         elif i == 1 or i == 2:
-            if same(s,ref,get(w,BASE+16*(i-1)),176) == False:
+            if nominal_matches(s,w,ref,NREF+176*(i-1),176) == False:
                 return False
+            if parse(s,o,w,at,m,6) == False or nominal(o,w,node_field(o,64,K_context),NREF+1200,False) == False:
+                return False
+            j = 0
+            while j < 121:
+                if byte(w,NREF+1200+j) != byte(w,NREF+352+j):
+                    return False
+                j = j+1
             put(w,FACT+32+8*i,n)
         elif i == count-5 or i == count-4:
             put(w,CORE+16*(i-(count-5)),at)
@@ -382,8 +446,8 @@ def quoted_number(o:mutbuf,at:u64,n:u64) -> u64:
 
 def template():
     parts=MEASUREMENT_RECORD.split('{}')
-    expressions=('emit_span(s,o,w,at,BASE)','quoted_number(o,at,read_word(s,d+24))','emit_span(s,o,w,at,OTHER)',
-      'quoted_number(o,at,read_word(s,d+32))','emit_span(s,o,w,at,CONTEXT)','ratio_json(o,w,at,read_word(s,d+40))',
+    expressions=('arena_copy(w,o,NREF,at,176)','quoted_number(o,at,read_word(s,d+24))','arena_copy(w,o,NREF+176,at,176)',
+      'quoted_number(o,at,read_word(s,d+32))','arena_copy(w,o,NREF+352,at,121)','ratio_json(o,w,at,read_word(s,d+40))',
       'scope_json(o,w,at)','emit_span(s,o,w,at,METRIC)','emit_span(s,o,w,at,NATIVE_RUNS)','emit_span(s,o,w,at,OBJECTIVE)',
       'rows_json(s,o,w,at)','outcome_json(o,at,read_word(s,d+8))','decimal(o,at,get(w,FACT))',
       'bool_json(o,at,read_word(s,d+16))','refs_json(s,o,w,at)','quoted_number(o,at,read_word(s,d+48))',
@@ -403,22 +467,25 @@ def template():
 
 def program():
     from tools.generate_hia_mcp_request import WIRE_HELPERS
+    from tools.generate_hia_evaluate_nominal import source as nominal_source
+    from tools.generate_hia_evaluate_settlement import hia_literals
     src=case_source()
     helpers=[function(src,x) for x in ('read_word','get','put','widen')]
     tree=ast.parse(json_slice())
     decoder='\n'.join(ast.unparse(f) for f in tree.body if f.name.startswith('section_'))
-    constants={k:int.from_bytes(v,'little') for k,v in dict(REQUEST=b'HIAEMJ01',FRESH=b'HIAEFI04',
+    constants={k:int.from_bytes(v,'little') for k,v in dict(REQUEST=b'HIAEMJ01',FRESH=b'HIAEFI04',HALF=b'HIAEFH01',CLAIM=b'HIAEJC01',
         DECISION=b'HIAESD01',NATIVE=b'HIAENR01',ARCHIVE=b'HIAEMT01',PAIR=b'HIAEPM01',BATCH=b'HIAEBT01').items()}
     state=34<<20
     constants.update(MAX=(1<<64)-1,BAD=0xfffffffd,SECTIONS=state,FACT=state+256,WINDOW=state+512,
                      BASE=state+640,OTHER=state+656,CONTEXT=state+672,OBJECTIVE=state+688,WORK=state+704,
-                     METRIC=state+720,NATIVE_RUNS=state+736,CORE=state+752,BATCHES=state+784,ROWS=state+4096)
+                     METRIC=state+720,NREF=36<<20,NATIVE_RUNS=state+736,CORE=state+752,BATCHES=state+784,ROWS=state+4096)
     constants.update({f'K_{n}':i for i,n in enumerate(FIELDS,1)})
     policy=literals(POLICY+'\n'+template())+'\n'+function(MATCH,'node_field')
     policy=re.sub(r'\b('+'|'.join(constants)+r')\b',lambda m:str(constants[m[0]]),policy)
-    return '\n'.join((policy,*helpers,decoder,function(WIRE_HELPERS,'match_word'),key_table(FIELDS),
+    return '\n'.join((policy,*helpers,decoder,nominal_source(),function(WIRE_HELPERS,'match_word'),key_table(FIELDS),
                      snapshot_hash(),format_program(),function(SETTLE,'same'),function(SETTLE,'copy_wire'),
-                     function(SETTLE,'decimal'),function(SETTLE,'hexchar'),
+                     function(SETTLE,'decimal'),function(SETTLE,'hexchar'),function(SETTLE,'digest_matches'),
+                     function(hia_literals(),'literal_read'),function(hia_literals(),'evaluate_tool_literal'),
                      'def next_power(p:u64) -> u64:\n    return (p >> 1) * 14757395258967641293'))
 
 def packer_document():

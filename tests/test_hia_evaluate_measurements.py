@@ -173,6 +173,44 @@ class MeasurementTests(unittest.TestCase):
                 failed=subprocess.run([self.measure],input=bad,capture_output=True,timeout=5)
                 self.assertEqual((failed.returncode,failed.stdout,failed.stderr),(2,b'',b''))
 
+    def test_reordered_public_envelope_and_committed_projections(self):
+        params=[('v','u32')]
+        program=m(f('answer',params,['u32'],[],[b('entry',params,[],ret('v'))]))
+        specimen=self.specimen(program,program,[dict(function='answer',arguments=[11])],'artifact_bytes')
+        packet,original=self.issue(*specimen)
+        sizes=list(struct.unpack_from('<6Q',packet,8))
+        fresh=packet[56:56+sizes[0]]
+        old_n=struct.unpack_from('<Q',fresh,48)[0]
+        args=json.loads(fresh[112:112+old_n])['arguments']
+        admitted=dict(tool='hia_evaluate',profile_sha256='a'*64,catalog_sha256='b'*64,
+                      schema='hia-agent-worker-request-v1',arguments=args)
+        unsigned=wire(admitted)
+        call=wire(dict(arguments=args,tool='hia_evaluate'))
+        raw=json.dumps({**admitted,'request_sha256':sha256(unsigned).hexdigest()},indent=2).encode()
+        raw=raw.replace(b'ctx-',b'ctx' + bytes((92,)) + b'u002d',1)
+        actual=fresh[:48]+struct.pack('<Q',len(raw))+fresh[56:112]+raw+fresh[112+old_n:]
+        def replace_evidence(evidence):
+            return struct.pack('<8s6Q',b'HIAEMJ01',len(evidence),*sizes[1:])+evidence+packet[56+sizes[0]:]
+        self.assertEqual(self.run_role(self.measure,replace_evidence(actual)),original)
+        journal=bytearray(512)
+        key=sha256(call).hexdigest().encode()
+        owner=sha256(wire(dict(key=args['request_key'],tool='hia_evaluate'))).hexdigest().encode()
+        struct.pack_into('<8s5Q',journal,0,b'HIAJRN02',3,9,1,0,1)
+        journal[64:128]=key
+        journal[128:192]=owner
+        journal[192:258]=b'r-'+key
+        command=struct.pack('<8s7Q',b'HIAJMO01',2,11,0,48,0,48,512)
+        claim=struct.pack('<8s7Q',b'HIAEJC01',len(actual),3,7,19,512,64,8)+journal+command+b'HIASTCP1'+actual
+        admitted_tick=struct.unpack_from('<Q',actual,80)[0]-1
+        half=struct.pack('<8s4Q',b'HIAEFH01',admitted_tick,len(claim),len(unsigned),len(call))+claim+unsigned+call
+        self.assertEqual(self.run_role(self.measure,replace_evidence(half)),original)
+        for offset in (40+128,40+len(claim)+13,40+len(claim)+len(unsigned)+13,
+                       40+648+112+raw.index(b'"request_sha256": "')+19):
+            altered=bytearray(half)
+            altered[offset]^=1
+            run=subprocess.run([self.measure],input=replace_evidence(altered),capture_output=True,timeout=10)
+            self.assertEqual((run.returncode,run.stdout,run.stderr),(2,b'',b''))
+
     def test_public_resource_trap_with_actual_post_write_bytes(self):
         from tests.test_hia_agent_buffer_lifecycle import trap_program
         spec=self.specimen(trap_program(),trap_program(),[dict(function='write_then_trap',
