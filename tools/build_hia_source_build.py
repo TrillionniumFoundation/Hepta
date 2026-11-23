@@ -280,6 +280,28 @@ def _publish_captured(directory, executable, report, *, sourcekit=None):
         os.close(dfd)
 
 
+def _rebuild_source_seed(bootstrap, wire, sources, images, directory):
+    """Use the previous HIA executable to compile and pack each native generation."""
+    previous = bootstrap
+    prior_kit = None
+    generations = []
+    for generation in (1, 2):
+        built = _run_captured(previous, 'build', wire, directory)
+        if built.returncode or built.stderr:
+            raise ValueError(f'native source-kit compilation failed in generation {generation}')
+        if _compiled_sources(built.stdout, sources) != images:
+            raise ValueError(f'native source-kit images differ from cold inputs in generation {generation}')
+        if prior_kit is not None and built.stdout != prior_kit:
+            raise ValueError('native source-kit bytes changed between generations')
+        rebuilt = _run_captured(previous, 'pack', built.stdout, directory)
+        if rebuilt.returncode or rebuilt.stderr or rebuilt.stdout != previous:
+            raise ValueError(f'native self-repack did not reproduce generation {generation}')
+        previous, prior_kit = rebuilt.stdout, built.stdout
+        generations.append({'generation': generation, 'executable_sha256': sha256(previous).hexdigest(),
+                            'sourcekit_sha256': sha256(prior_kit).hexdigest()})
+    return previous, prior_kit, generations
+
+
 def _build_captured(output: Path, compiler: Path, cold_report: Path):
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     source_bytes = {name: (ROOT / name).read_bytes() for name in SOURCES}
@@ -311,12 +333,10 @@ def _build_captured(output: Path, compiler: Path, cold_report: Path):
     if compiled.returncode or compiled.stderr or compiled.stdout != compiler_bytes:
         raise ValueError('installed raw-source compiler does not reproduce the qualified compiler image')
     wire = _source_bundle([source_bytes[name] for name in SOURCES[:3]])
-    built = _run_captured(executable_bytes, 'build', wire, output)
-    if built.returncode or built.stderr:
-        raise ValueError('native source-kit compilation refused the captured source bundle')
-    rebuilt = _run_captured(executable_bytes, 'pack', built.stdout, output)
-    if rebuilt.returncode or rebuilt.stderr or rebuilt.stdout != executable_bytes:
-        raise ValueError('native source-kit identity and self-repack do not reproduce the executable')
+    selected_sources = {role: source_bytes[path] for role, path in zip(ROLE_NAMES, SOURCES[:3], strict=True)}
+    selected_images = dict(zip(ROLE_NAMES, (policy, compiler_bytes, packer), strict=True))
+    native_executable, native_kit, generations = _rebuild_source_seed(
+        executable_bytes, wire, selected_sources, selected_images, output)
     if (compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != cold_bytes
             or pinned_compiler.read_bytes() != compiler_bytes
             or any((ROOT / name).read_bytes() != raw for name, raw in source_bytes.items())
@@ -333,8 +353,9 @@ def _build_captured(output: Path, compiler: Path, cold_report: Path):
         'cold_report_sha256': sha256(cold_bytes).hexdigest(),
         'image_sha256': {name: sha256(raw).hexdigest() for name, (_, raw) in images.items()},
         'compile_receipts': receipts, 'pack_receipt': receipt,
-        'executable_path': executable.name, 'executable_sha256': sha256(executable_bytes).hexdigest(),
-        'executable': inspection, 'sourcekit_sha256': sha256(built.stdout).hexdigest(),
+        'executable_path': executable.name, 'executable_sha256': sha256(native_executable).hexdigest(),
+        'executable': inspection, 'sourcekit_sha256': sha256(native_kit).hexdigest(),
+        'published_native_generation': 2, 'native_generations': generations,
         'native_self_repack_equal': True, 'native_compiler_self_rebuild_equal': True, 'memory_layout': LAYOUT,
         'input_and_output_limit': 64 << 20, 'source_and_image_limit': 1 << 20,
         'runtime_python_or_libc_or_child_required': False,
@@ -345,8 +366,8 @@ def _build_captured(output: Path, compiler: Path, cold_report: Path):
         'host_bootstrap_and_cold_custody_driver': True,
         'all_input_equivalence_proved': False, 'whole_native_delivery_qualified': False,
     }
-    _publish_captured(output, executable_bytes, report, sourcekit=built.stdout)
-    return executable, executable_bytes
+    _publish_captured(output, native_executable, report, sourcekit=native_kit)
+    return executable, native_executable
 
 
 def build(output: Path, compiler: Path, cold_report: Path):

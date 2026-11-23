@@ -383,6 +383,22 @@ class SourceBuilderNativeTests(unittest.TestCase):
         self.run_app(SMALL + b'bad trailing input', 'compile', code=18)
         self.run_app(self.input_bundle, 'compile', code=18)
 
+    def test_native_seed_generations_bind_all_three_cold_images_before_publication(self):
+        from tools.build_hia_source_build import _rebuild_source_seed
+
+        sources = {name: source for name, _, source in self.sources}
+        images = dict(zip(ROLE_NAMES, (self.policy_image, self.compiler_image, self.packer_image), strict=True))
+        executable, kit, trace = _rebuild_source_seed(self.original_app, self.input_bundle, sources, images, self.case)
+        self.assertEqual(executable, self.original_app)
+        self.assertEqual(kit, self.run_app(self.input_bundle))
+        for n in (1, 2):
+            self.assertEqual(trace[n - 1], {'generation': n, 'executable_sha256': sha256(executable).hexdigest(),
+                                            'sourcekit_sha256': sha256(kit).hexdigest()})
+        for name in ROLE_NAMES:
+            with self.subTest(source=name), self.assertRaisesRegex(ValueError, 'images differ from cold inputs'):
+                _rebuild_source_seed(self.original_app, self.input_bundle, sources,
+                                     {**images, name: images[name][:-1]}, self.case)
+
     def test_complete_sourcekit_and_two_native_self_rebuilds(self):
         previous = self.original_app
         app = self.app
