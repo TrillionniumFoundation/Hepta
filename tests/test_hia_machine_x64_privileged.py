@@ -92,6 +92,70 @@ class PrivilegedEncodingTests(unittest.TestCase):
             self.assertIn("iretq", disassembly)
             self.assertNotIn("(bad)", disassembly)
 
+    @unittest.skipUnless(shutil.which("as") and shutil.which("objcopy") and
+                         shutil.which("objdump"), "independent GNU binutils required")
+    def test_cr0_cr4_msr_bytes_match_independent_gnu_assembler(self):
+        # Validate the full GPR / REX.B surface, not only a hand-picked byte.
+        code = PrivilegedCode()
+        asm = [".text", ".globl control_msr_oracle", "control_msr_oracle:"]
+        for cr in ("cr0", "cr4"):
+            for reg in REGISTERS:
+                getattr(code, "read_" + cr)(reg)
+                asm.append(f"  mov %{cr},%{reg}")
+                getattr(code, "write_" + cr)(reg)
+                asm.append(f"  mov %{reg},%{cr}")
+        for op in ("rdmsr", "wrmsr"):
+            getattr(code, op)()
+            asm.append("  " + op)
+        data, relocs = code.finalize()
+        self.assertEqual(relocs, [])
+        self.assertEqual(len(asm) - 3, 4 * len(REGISTERS) + 2)
+        with tempfile.TemporaryDirectory(prefix="hia-crx-msr-byte-oracle-") as directory:
+            root = Path(directory)
+            (root / "oracle.s").write_text("\n".join(asm) + "\n")
+            subprocess.run(["as", "--64", "-o", str(root / "oracle.o"),
+                            str(root / "oracle.s")], check=True, capture_output=True)
+            subprocess.run(["objcopy", "-O", "binary", "--only-section=.text",
+                            str(root / "oracle.o"), str(root / "oracle.bin")],
+                           check=True, capture_output=True)
+            self.assertEqual(data, (root / "oracle.bin").read_bytes())
+            disassembly = subprocess.run(["objdump", "-d", "-M", "intel",
+                                          str(root / "oracle.o")],
+                                         check=True, capture_output=True, text=True).stdout
+            self.assertIn("cr0", disassembly)
+            self.assertIn("cr4", disassembly)
+            self.assertEqual(disassembly.count("rdmsr"), 1)
+            self.assertEqual(disassembly.count("wrmsr"), 1)
+            self.assertNotIn("(bad)", disassembly)
+
+    def test_control_register_msr_stage_is_fail_closed(self):
+        from hepta.hia_opcodes import EFFECTS, OPCODES
+        self.assertEqual(EFFECTS, {"alloc", "read", "write", "trap"})
+        names = ("read_cr0", "write_cr0", "read_cr4", "write_cr4",
+                 "rdmsr", "wrmsr")
+        for name in names:
+            with self.subTest(op=name):
+                self.assertFalse(hasattr(Code(), name))
+                self.assertTrue(hasattr(PrivilegedCode(), name))
+                self.assertNotIn("x86." + name, OPCODES)
+        for name in names[:4]:
+            for invalid in ("eax", "cr0", "cr4", "xmm0", None, True, 0, []):
+                with self.subTest(op=name, invalid=repr(invalid)):
+                    code = PrivilegedCode()
+                    with self.assertRaises(MachineEncodingError):
+                        getattr(code, name)(invalid)
+                    self.assertEqual(code.finalize(), (b"", []))
+        for name in names[4:]:
+            code = PrivilegedCode()
+            with self.assertRaises(TypeError):
+                getattr(code, name)(0)
+            self.assertEqual(code.finalize(), (b"", []))
+        # Distinct valid architectural registers must not silently alias.
+        one, other = PrivilegedCode(), PrivilegedCode()
+        one.read_cr4("rax")
+        other.read_cr4("r8")
+        self.assertNotEqual(one.finalize()[0], other.finalize()[0])
+
     def test_scratch_register_renaming_is_respected(self):
         code = PrivilegedCode(scratch_registers={"r10": "r11", "r11": "r10"})
         code.read_cr3("r10")
