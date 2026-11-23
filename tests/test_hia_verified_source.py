@@ -271,6 +271,34 @@ class VerifiedSourceBindingTests(unittest.TestCase):
                 raise AssertionError('missing executed source was admitted')
         ''', probe=True)
 
+    def test_source_reader_refuses_intermediate_symlink(self):
+        from hepta.hia_loaded_source import _read_source, VerifiedSourceRejected
+        with tempfile.TemporaryDirectory(prefix="hia-source-parents-") as temporary:
+            root = Path(temporary)
+            actual = root / "actual"
+            actual.mkdir()
+            original = actual / "module.py"
+            original.write_bytes(b"native_source = 1\n")
+            alias = root / "alias"
+            alias.symlink_to(actual, target_is_directory=True)
+            self.assertEqual(_read_source(original), b"native_source = 1\n")
+            with self.assertRaisesRegex(VerifiedSourceRejected, "unavailable|symbolic"):
+                _read_source(alias / "module.py")
+            leaf = root / "leaf.py"
+            leaf.symlink_to(original)
+            with self.assertRaises(VerifiedSourceRejected):
+                _read_source(leaf)
+
+    def test_source_reader_rejects_noncanonical_traversal(self):
+        from hepta.hia_loaded_source import _read_source, VerifiedSourceRejected
+        with tempfile.TemporaryDirectory(prefix="hia-source-normalize-") as temporary:
+            root = Path(temporary)
+            (root / "module.py").write_bytes(b"value = 1\n")
+            with self.assertRaises(VerifiedSourceRejected):
+                _read_source(root / ".." / root.name / "module.py")
+            with self.assertRaises(VerifiedSourceRejected):
+                _read_source(Path("module.py"))
+
     def test_actual_scalar_proof_rejects_checker_change_after_import(self):
         self._actual_changed_checker('scalar')
 

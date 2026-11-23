@@ -43,12 +43,37 @@ def _require(condition, message):
         raise VerifiedSourceRejected("E_HIA_VERIFIED_SOURCE: " + message)
 
 
+def _open_source_without_symlinks(path):
+    """Open each absolute source component without following directory aliases."""
+    raw = os.fspath(path)
+    _require(type(raw) is str and raw.startswith("/"),
+             "registered source must be an absolute path")
+    components = raw.split("/")[1:]
+    _require(bool(components) and all(name not in ("", ".", "..") for name in components),
+             "registered source has an ambiguous path component")
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    directory = getattr(os, "O_DIRECTORY", 0)
+    _require(nofollow and directory and os.open in os.supports_dir_fd,
+             "descriptor-relative source opening is unavailable")
+    close_on_exec = getattr(os, "O_CLOEXEC", 0)
+    directory_flags = os.O_RDONLY | nofollow | directory | close_on_exec
+    source_flags = os.O_RDONLY | nofollow | getattr(os, "O_NONBLOCK", 0) | close_on_exec
+    source_flags |= getattr(os, "O_BINARY", 0)
+    parent = os.open("/", directory_flags)
+    try:
+        for name in components[:-1]:
+            following = os.open(name, directory_flags, dir_fd=parent)
+            os.close(parent)
+            parent = following
+        return os.open(components[-1], source_flags, dir_fd=parent)
+    finally:
+        os.close(parent)
+
+
 def _read_source(path):
     """Read one bounded regular source through a single stable descriptor."""
     try:
-        flags = (os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0) |
-                 getattr(os, "O_BINARY", 0))
-        descriptor = os.open(path, flags)
+        descriptor = _open_source_without_symlinks(path)
         try:
             before = os.fstat(descriptor)
             _require(stat.S_ISREG(before.st_mode) and 0 < before.st_size <= MAX_SOURCE_BYTES,
