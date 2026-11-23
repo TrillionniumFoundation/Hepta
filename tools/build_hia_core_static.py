@@ -25,7 +25,9 @@ def cold_tools(directory, compiler, cold_report, admitted):
             raise ValueError(f'native Core application {operation} failed ({result.returncode})')
         return result.stdout
 
-    def compile_sources(named):
+    from tools.build_hia_native_store_release import NativeReleaseSources
+
+    def capture_sources(named):
         pinned = {}
         for name, relative in sorted(named.items()):
             path = BOOTSTRAP + relative
@@ -33,11 +35,15 @@ def cold_tools(directory, compiler, cold_report, admitted):
             if sha256(source).hexdigest() != admitted.get(path):
                 raise ValueError('Core application source differs from cold admission: ' + path)
             pinned[name] = source
+        return pinned
+
+    def compile_sources(named):
+        pinned = capture_sources(named)
         wire = _source_bundle(pinned.values(), names=pinned)
         result = call(seed, 'build', wire)
         return result, _compiled_sources(result, pinned), pinned
 
-    return seed, compile_sources, call
+    return seed, NativeReleaseSources(seed, compile_sources, capture_sources, call), call
 
 
 def source_prover(directory, tools, admitted):
@@ -76,12 +82,9 @@ def source_constructor(directory, tools, admitted):
 
 
 def policy_builder(tools, policy, leaf):
-    seed, compile_sources, call = tools
-    kit, _, _ = compile_sources({
-        'source_build_policy.hepta': policy, 'selfhost.hepta': 'selfhost.hepta',
-        'source_build_packer.hepta': leaf.removeprefix(BOOTSTRAP),
-    })
-    return call(seed, 'pack', kit)
+    from tools.build_hia_native_store_release import release_sources
+
+    return release_sources(*tools).kit(policy, leaf.removeprefix(BOOTSTRAP))
 
 
 class ReleaseCodec:

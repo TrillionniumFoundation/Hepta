@@ -150,6 +150,47 @@ class InstalledSourceMemberTests(unittest.TestCase):
         corrupt = composer('wrong-template', altered)
         self.invoke([corrupt, 'build'], wire, refused=True)
 
+    def test_auxiliary_kits_share_the_bootstrap_and_compile_each_captured_snapshot(self):
+        from tools.build_hia_native_store_release import NativeReleaseSources, release_sources
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+
+        seed = self.seed.read_bytes()
+        compiled = []
+        captures = []
+
+        def files(named):
+            return {alias: self.sources / path for alias, path in named.items()}
+
+        def capture_sources(named):
+            captures.append(named.copy())
+            return {alias: path.read_bytes() for alias, path in files(named).items()}
+
+        def compile_sources(named):
+            compiled.append(named.copy())
+            sources = {alias: path.read_bytes() for alias, path in files(named).items()}
+            group = self.source_images(self.work / 'bootstrap-composer', files(named))
+            return group, _compiled_sources(group, sources), sources
+
+        def call(program, mode, wire):
+            result = _run_captured(program, mode, wire, self.work)
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            return result.stdout
+
+        compiler = NativeReleaseSources(seed, compile_sources, capture_sources, call)
+        self.assertIs(release_sources(seed, compiler, call), compiler)
+        for policy, packer in (('source_safe_proof.hepta', 'native_filter_packer.hepta'),
+                               ('source_agent_stdio.hepta', 'agent_stdio_packer.hepta'),
+                               ('source_core_codec.hepta', 'core_edit/source_codec_packer.hepta')):
+            with self.subTest(policy=policy, packer=packer):
+                expected = {'source_build_policy.hepta': policy, 'selfhost.hepta': 'selfhost.hepta',
+                            'source_build_packer.hepta': packer}
+                actual = compiler.kit(policy, packer)
+                group = self.source_images(self.work / policy, files(expected))
+                self.assertEqual(actual, self.invoke([self.seed, 'pack'], group))
+                self.assertEqual(captures[-1], expected)
+        self.assertEqual(len(captures), 3)
+        self.assertEqual([group['source_build_policy.hepta'] for group in compiled], ['source_release_kit.hepta'])
+
     def test_named_source_packet_matches_physical_directory_and_rejects_invalid_frames(self):
         import struct
         from tools.build_hia_native_store_release import _named_source_request
