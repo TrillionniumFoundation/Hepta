@@ -68,6 +68,10 @@ class ServiceSlotSourceTests(unittest.TestCase):
         cases = {v['id']: v for v in inputs()['cases']}
         expected = expected_rows(self.originals)
         program = assemble_program(native.SOURCE.read_bytes()); image = vm_image(program)
+        from unittest.mock import patch
+        self.enterContext(patch(
+            'hepta.hia_default_native.default_integer_image',
+            side_effect=AssertionError('independent service Slot VM consulted a package owner')))
         initialize = native.NativeServiceSlot.__init__
         def forbidden(*a, **k): raise AssertionError('independent VM mapped native code')
         native.NativeServiceSlot.__init__ = forbidden

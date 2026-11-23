@@ -31,6 +31,7 @@ INPUTS = (
     "tests/hia_service_slot_original_oracle.py",
     "tests/hia_service_slot_observer.py",
     "tests/hia_service_slot_controls.py",
+    "tests/hia_independent_vm.py",
     "tests/hia_service_slot_resources.py",
     "tests/hia_service_slot_transport.py",
     "tests/hia_service_slot_public_workflow.py",
