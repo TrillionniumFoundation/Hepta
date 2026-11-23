@@ -203,3 +203,18 @@ For budget-observation, budget-store, cost-ledger, cost-ledger-flow, measurement
 The same HIA member policy rebuilds the Agent stdio executables. Bootstrap one builder with `mcp_stdio_packer.hepta` in the packer slot to build all single-image Agent stdio roles. For `hia-agent-journal`, bootstrap a second builder with `agent_journal_stdio_packer.hepta` and include `agent_journal_transport.hepta` in the input directory.
 
 Stage the role's HIA application under the public release name plus `.hepta`. For example, `hia-agent-read-page` takes `agent_read_page.hepta` under the name `hia-agent-read-page.hepta`. The kernel selects the wire mode from the exact public filename and checks the source's declared HIA module. It recompiles the sources and verifies that the original application and optional codec bytes occur at their expected positions in the finished ELF. The directory, compiler and `member-builder build` stages use the same commands as the filter example above. The `VARIANTS` data in `tools/build_hia_agent_read_page.py` identifies the original source basename for every existing public role.
+
+## Building Worker carriers and launchers
+
+The standard Store release builds the Worker carriers and launchers through
+the same HIA member policy. Each carrier uses its own checked packer.
+Emit, Adopt, Verify and the Evaluate proof carrier also take their two ordered
+companion images. The native, Evaluate intake, replay and full launchers take
+the separately compiled capsule authority. The read, read-only and Context
+control launchers use their own authority as the primary source.
+
+The public filename selects the build recipe. The policy checks the primary
+module and any required companion identities, recompiles all supplied sources,
+then frames and checks the resulting ELF. The installed-role tests compare
+each output against a separately built release and exercise changed images
+and missing companion inputs.

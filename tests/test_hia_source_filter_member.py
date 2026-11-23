@@ -125,3 +125,26 @@ class InstalledSourceMemberTests(unittest.TestCase):
             'hia-agent-journal.hepta': self.sources / (VARIANTS['journal'][0] + '.hepta'),
             'worker_request.hepta': self.sources / 'worker_request.hepta'})
         self.invoke([journal, 'build'], wrong_codec, refused=True)
+
+    def test_from_native_sources_against_every_worker_carrier_and_launcher(self):
+        from tools.build_hia_native_store_release import _source_worker_recipes
+
+        builders = {}
+        products = set()
+        for name, packer, sources in _source_worker_recipes():
+            with self.subTest(member=name):
+                products.add(name)
+                if packer not in builders:
+                    builders[packer] = self.member_builder(self.work / packer, packer)
+                builder = builders[packer]
+                inputs = {alias: self.sources / source for alias, source in sources.items()}
+                images = self.source_images(self.work / name, inputs)
+                self.assertEqual(self.invoke([builder, 'build'], images), (self.release / name).read_bytes())
+                self.invoke([builder, 'build'], images[:-1] + bytes([images[-1] ^ 1]), refused=True)
+                if len(inputs) > 1:
+                    without = dict(inputs)
+                    del without[next(reversed(without))]
+                    missing = self.source_images(self.work / 'missing-companion', without)
+                    self.invoke([builder, 'build'], missing, refused=True)
+        self.assertTrue({'hia-agent-verify-worker-carrier', 'hia-agent-evaluate-full-launcher',
+                         'hia-agent-context-control-launcher', 'hia-agent-evaluate-unkeyed-worker-carrier'} <= products)

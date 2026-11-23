@@ -59,10 +59,6 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
         component('release_install', kind=kind)
     for kind in ('static', 'verified-shared', 'direct-shared'):
         component('elf_linker', kind=kind)
-    for kind in LAUNCHERS:
-        component('read_launcher', kind=kind)
-    for kind in FLOW_ROLES:
-        component('worker_flow', kind=kind)
     for name in ('agent_artifact_capture', 'worker_read_release', 'core_patch_result_cli',
                  'core_workspace_pipeline', 'source_build', 'worker_prepare', 'proof_cnf',
                  'release_selection', 'supplied_safe_core_proof', 'scalar_reference_cli',
@@ -120,6 +116,36 @@ def _stage_helper_images(work, compiler, cold_report, publish):
         publish(manifest, kind + '-manifest.json')
         publish(manifest.parent / image_name, expected=record['image_sha256'])
 
+
+def _source_worker_recipes():
+    from tools.build_hia_read_launcher import LAUNCHERS as READ_PROGRAMS
+    from tools.generate_hia_readonly_worker_capsule import FULL_SOURCE, INTAKE_SOURCE, NATIVE_SOURCE, REPLAY_SOURCE
+    from tools.generate_hia_worker_flow_packer import PROGRAMS, SECTIONS
+
+    authorities = {'native': NATIVE_SOURCE, 'evaluate-intake': INTAKE_SOURCE,
+                   'evaluate-replay': REPLAY_SOURCE, 'evaluate-full': FULL_SOURCE}
+    for kind in FLOW_ROLES:
+        suffix = '' if kind in ('input', 'discovery', 'discovery-bootstrap') else '-worker'
+        name = f'hia-agent-{kind}{suffix}-carrier'
+        primary, packer = PROGRAMS[kind]
+        sources = {name + '.hepta': Path(primary).name}
+        for part in SECTIONS.get(kind, ()):
+            sources[Path(part).name] = Path(part).name
+        yield name, Path(packer).name, sources
+
+    for kind in LAUNCHERS:
+        name = f'hia-agent-{kind}-launcher'
+        if kind in authorities:
+            primary, packer = PROGRAMS[kind + '-launcher']
+            authority = Path(authorities[kind]).name
+            sources = {name + '.hepta': Path(primary).name, authority: authority}
+        else:
+            launcher = READ_PROGRAMS[kind]
+            packer = launcher.source
+            sources = {name + '.hepta': Path(launcher.authority).name}
+        yield name, Path(packer).name, sources
+
+
 def _source_member_recipes():
     """Map published names to checked-in HIA inputs. Framing and modes belong to HIA."""
     for role in STDIO_ROLES:
@@ -144,6 +170,8 @@ def _source_member_recipes():
             ('hia-execution-budget-session', 'execution_budget', 'execution_budget_session_packer'),
             ('hia-safe-core-loader', 'safe_core_elf_inventory', 'safe_core_loader_filter_packer')):
         yield name, packer + '.hepta', {stem + '.hepta': stem + '.hepta'}
+
+    yield from _source_worker_recipes()
 
 
 def _stage_source_members(work, stage, admitted, members, publish):
