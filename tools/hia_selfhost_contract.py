@@ -153,6 +153,7 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'examples/hia_bootstrap/scalar_reference_cli_packer.hepta',
     'tools/build_hia_scalar_reference_cli.py',
     'tools/hia_scalar_reference_syscalls.S',
+    'examples/hia_bootstrap/evaluate_reference_wire_filter_packer.hepta',
     'tools/generate_hia_evaluate_reference_wire.py',
     'tools/generate_hia_scalar_reference.py',
     'tools/generate_hia_scalar_symbolic.py',

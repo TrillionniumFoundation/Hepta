@@ -219,6 +219,7 @@ CANDIDATES = {
     'elf-direct-shared-linker-filter': ('direct_shared_linker_filter_packer', 'elf-direct-shared-linker-filter'),
     'elf-verified-linker': ('elf_verified_linker', 'elf-verified-linker'),
     'evaluate-reference-wire': ('evaluate_reference_wire', 'evaluate-reference-wire'),
+    'evaluate-reference-wire-filter': ('evaluate_reference_wire_filter_packer', 'evaluate-reference-wire-filter'),
     'scalar-reference': ('scalar_reference', 'scalar-reference'),
     'scalar-symbolic': ('scalar_symbolic', 'scalar-symbolic'),
     'cnf': ('cnf', 'cnf'),

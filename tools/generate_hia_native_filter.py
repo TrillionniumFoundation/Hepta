@@ -10,6 +10,9 @@ from pathlib import Path
 import struct
 from tempfile import TemporaryDirectory
 from hepta.hia_agent_assembly import assemble_program, render_assembly
+from hepta.hia_program import MAX_BYTES
+from hepta.hia_evaluate_reference_wire_native import WORK_BYTES as PROJECTOR_WORK_BYTES
+from hepta.hia_scalar_reference_wire import MAX_PACKET_BYTES
 from hepta.hia_elf_shared_linker_native import MAX_ELF_BYTES, WORKSPACE_BYTES as DIRECT_LINK_WORKSPACE
 from hepta.hia_safe_core_elf_inventory_native import (
     AUTHORITY_BYTES, CAPACITY as ELF_REPLY_BYTES, FINAL_LOADER_MAGIC, FINAL_LOADER_NAME,
@@ -21,6 +24,7 @@ MAGIC=int.from_bytes(b'HIAFLT01','little')
 DIRECT_LINK_FILTER_MAGIC = int.from_bytes(b'HIADSL01', 'little')
 LINK_FILTER_MAGIC = int.from_bytes(b'HIAELF01', 'little')
 WORKER_FILTER_MAGIC = int.from_bytes(b'HIAWRF01', 'little')
+EVALUATE_PROJECTOR_FILTER_MAGIC = int.from_bytes(b'HIAEPF01', 'little')
 SAFE_CORE_LOADER_FILTER_MAGIC = int.from_bytes(b'HIAELW01', 'little')
 SAFE_CORE_LOADER_INPUT_HEADER = 8 + 256
 WORKER_REQUEST_MAGIC = int.from_bytes(b'HIAWRA01', 'little')
@@ -400,6 +404,12 @@ def direct_shared_linker_document():
                     workspace_bytes=DIRECT_LINK_WORKSPACE, magic=DIRECT_LINK_FILTER_MAGIC,
                     module='direct_shared_linker_filter_packer')
 
+def evaluate_reference_wire_filter_document():
+    return document(wire_bytes=MAX_BYTES + 140, output_bytes=MAX_PACKET_BYTES,
+                    workspace_bytes=PROJECTOR_WORK_BYTES, magic=EVALUATE_PROJECTOR_FILTER_MAGIC,
+                    module='evaluate_reference_wire_filter_packer')
+
+
 def safe_core_loader_document():
     adapter = template(wire_bytes=MAX_ELF + SAFE_CORE_LOADER_INPUT_HEADER,
                        output_bytes=ELF_REPLY_BYTES + AUTHORITY_BYTES,
@@ -414,6 +424,7 @@ def main():
         ('native_filter_packer', document()),
         ('direct_shared_linker_filter_packer', direct_shared_linker_document()),
         ('safe_core_loader_filter_packer', safe_core_loader_document()),
+        ('evaluate_reference_wire_filter_packer', evaluate_reference_wire_filter_document()),
         ('scalar_reference_cli_packer', reference_cli_document()),
         ('elf_linker_filter_packer', document(magic=LINK_FILTER_MAGIC,
                                              module='elf_linker_filter_packer', object_files=True)),

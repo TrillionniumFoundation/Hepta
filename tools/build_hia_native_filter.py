@@ -9,7 +9,7 @@ import struct
 
 from tools.build_hia_json_preflight import CANDIDATES, admit_cold_build, build as build_image, current_sources
 from tools.build_hia_source_build import _check_pack_output
-from tools.generate_hia_native_filter import MAGIC, SAFE_CORE_LOADER_FILTER_MAGIC
+from tools.generate_hia_native_filter import EVALUATE_PROJECTOR_FILTER_MAGIC, MAGIC, SAFE_CORE_LOADER_FILTER_MAGIC
 from tools.qualify_hia_selfhost import invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -65,12 +65,28 @@ def build_filter(output: Path, compiler: Path, cold_report: Path, *,
     return executable
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Build the standalone HIA Safe Core ELF loader check.')
+def build_evaluate_projector(output, compiler, cold_report):
+    return build_filter(output, compiler, cold_report, application='evaluate-reference-wire',
+                        packer='evaluate-reference-wire-filter', magic=EVALUATE_PROJECTOR_FILTER_MAGIC,
+                        filename='hia-evaluate-projector', schema='hepta.hia.evaluate-projector-filter-build.v1')
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire'),
+                        default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + flag, type=Path, required=True)
     args = parser.parse_args()
-    print(build_filter(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
+    output, compiler, cold_report = args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()
+    if args.application == 'evaluate-reference-wire':
+        print(build_evaluate_projector(output, compiler, cold_report))
+        return
+    print(build_filter(output, compiler, cold_report,
                        application='safe-core-elf-inventory', packer='safe-core-loader-filter',
                        magic=SAFE_CORE_LOADER_FILTER_MAGIC, filename='hia-safe-core-loader',
                        schema='hepta.hia.safe-core-loader-filter-build.v1'))
+
+
+if __name__ == '__main__':
+    main()
