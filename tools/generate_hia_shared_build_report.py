@@ -65,6 +65,8 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return planned_report(s, o, choose(magic == PLAN_QUALIFIED_INPUT_MAGIC, 80, 144))
     if magic == ELF_INPUT_MAGIC:
         return linked_import_mask(s, w)
+    if magic == SIMD_PROOF_INPUT_MAGIC:
+        return simd_build_report(s, o, w)
     if magic == PROOF_INPUT_MAGIC:
         return admit_proof(s, w)
     if magic == EXPORT_NAMES_INPUT_MAGIC:
@@ -169,6 +171,8 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 
 # The plan authorization is independent of the emitted object and belongs
 # to the same sealed descriptor the build adapter used for block selection.
+@SIMD_REPORT@
+
 def planned_report(s:readbuf, o:mutbuf, prefix:u64) -> u64:
     n = length(s)
     if n < prefix + 4 or n - prefix > 1048576 or word_load(s, 8) != 0:
@@ -456,8 +460,111 @@ def match_function(name, literal):
     return source + '    return 1\n'
 
 
+SIMD_REPORT = r'''
+def simd_build_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 464 or length(w) != 8192 or length(o) < 32768:
+        return 0
+    isa = word_load(s, 16)
+    kind = word_load(s, 24)
+    n = word_load(s, 64)
+    path = word_load(w, 120)
+    size = word_load(w, 64)
+    offset = word_load(s, 48)
+    span = word_load(s, 56)
+    if word_load(s, 8) != 1 or isa != 1 or kind < 1 or kind > 3 or n < 1 or n > 128 or path > 4095:
+        return 0
+    if word_load(w, 72) != kind or word_load(w, 80) != isa or word_load(s, 32) != 16 or word_load(s, 40) != 4:
+        return 0
+    if word_load(s, 72) != 0 or span == 0 or offset > size or span > size - offset:
+        return 0
+    i = 0
+    while i < 32:
+        if byte(s, 144 + i) != byte(w, i):
+            return 0
+        i = i + 1
+    at = 0
+    LIT('{"artifact_bytes":')
+    at = decimal(o, at, size)
+    LIT(',"artifact_sha256":"')
+    at = digest(s, o, at, 144)
+    LIT('","object_sha256":"')
+    at = digest(s, o, at, 112)
+    LIT('","text_sha256":"')
+    at = digest(s, o, at, 176)
+    LIT('","ok":true,"output":"')
+    i = 0
+    while i < path:
+        ch = byte(w, 128 + i)
+        if ch == 34 or ch == 92:
+            store(o, at, 92)
+            at = at + 1
+        if ch < 32:
+            LIT('\\u00')
+            store(o, at, hex_digit(ch >> 4))
+            store(o, at + 1, hex_digit(ch & 15))
+            at = at + 2
+        else:
+            store(o, at, ch)
+            at = at + 1
+        i = i + 1
+    LIT('","schema":"hepta.hia.verified-simd-build.v1","selected_strategy":"simd","simd_isa":"sse2","simd_unroll":4,')
+    if kind == 3:
+        LIT('"simd_copy_tail":"byte","simd_reduce_tail":null,')
+    else:
+        LIT('"simd_copy_tail":null,"simd_reduce_tail":"byte",')
+    LIT('"runtime_solver_calls":0,"status":"validated_not_executed","exports":["')
+    at = copy(s, o, 208, 208 + n, at)
+    LIT('"],"source_identity":{"core_sha256":"')
+    at = digest(s, o, at, 80)
+    LIT('","verifier_sha256":"')
+    at = simd_mut_digest(o, w, at, 88)
+    LIT('"},"toolchain":{"mode":"hia","sha256":"')
+    at = simd_mut_digest(o, w, at, 32)
+    LIT('","role":"link_generated_object_only"},"validation":{"ok":true,"complete":true,"target_isa":"sse2","required_cpu_features":["sse2"],"required_xcr0_mask":0,"kind":"')
+    if kind == 1:
+        LIT('sum_u8')
+    elif kind == 2:
+        LIT('all_zero_u8')
+    else:
+        LIT('copy_u8')
+    LIT('","validation_mode":"closed_instruction_and_control_flow","native_execution_observed":false,"image_binding":{"function_text_offset":')
+    at = decimal(o, at, offset)
+    LIT(',"function_text_bytes":')
+    at = decimal(o, at, span)
+    LIT('}}}\n')
+    return at
+
+def simd_mut_digest(o:mutbuf, w:mutbuf, at:u64, offset:u64) -> u64:
+    i = 0
+    while i < 32:
+        value = byte(w, offset + i)
+        store(o, at, hex_digit(value >> 4))
+        store(o, at + 1, hex_digit(value & 15))
+        at = at + 2
+        i = i + 1
+    return at
+'''
+
+def simd_report_source():
+    lines = []
+    for line in SIMD_REPORT.splitlines():
+        expression = line.strip()
+        if not expression.startswith('LIT('):
+            lines.append(line)
+            continue
+        raw = ast.literal_eval(expression[4:-1]).encode('ascii')
+        indent = line[:-len(line.lstrip())]
+        for offset in range(0, len(raw), 8):
+            part = raw[offset:offset + 8]
+            word = int.from_bytes(part, 'little')
+            lines.append(f'{indent}at = append_word(o, at, {word}, {len(part)})')
+    return '\n'.join(lines)
+
+
 def source_program():
-    source = (SOURCE.replace('REPORT_MAGIC', str(int.from_bytes(MAGIC, 'little')))
+    source = (SOURCE.replace('@SIMD_REPORT@', simd_report_source())
+              .replace('SIMD_PROOF_INPUT_MAGIC', str(int.from_bytes(b'HIASIMR1', 'little')))
+              .replace('REPORT_MAGIC', str(int.from_bytes(MAGIC, 'little')))
               .replace('SOURCE_IO_MAGIC', str(int.from_bytes(INPUT_ERROR_MAGIC, 'little')))
               .replace('VERIFIED_INPUT_MAGIC', str(int.from_bytes(VERIFIED_MAGIC, 'little')))
               .replace('PROOF_INPUT_MAGIC', str(int.from_bytes(PROOF_MAGIC, 'little')))

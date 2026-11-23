@@ -750,19 +750,16 @@ def check_release(release, directory):
             expected = wire(receipt, pretty=True)
             arguments += ['--output', str(build_target)]
         elif action == 'capabilities':
-            # The independent release has a bounded scalar prover, not the
-            # general hosted Safe Core solver.
             capabilities = json.loads(reference_cli([action]))
             capabilities['implementation'] = 'hia_native'
             build = capabilities['build']
             build['selfhost']['hosted_cli_and_publication'] = False
-            build['backend'] = 'native'
-            del build['auto_object']
-            build['auto_shared'] = {
-                'selection': 'supported scalar Core only',
-                'final_image_validation_required': True,
-                'outside_profile': 'reject before publication',
-            }
+            shared = build['auto_shared']
+            assert shared['default_target_isa'] == 'native'
+            assert shared['available_target_isas'] == ['native', 'sse2', 'avx2', 'avx512']
+            shared['selection'] = 'admitted scalar Core or an explicitly selected SIMD kernel'
+            shared['simd_target_isas'] = ['sse2']
+            shared['simd_kernels'] = ['sum_u8', 'all_zero_u8', 'copy_u8']
             build['native_shared'] = 'ordinary linked native ABI; ABI inventory checked, no machine verification claim'
             expected = wire(capabilities, pretty=True)
         else:

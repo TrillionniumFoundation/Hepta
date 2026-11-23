@@ -25,6 +25,9 @@ invokes the verified linker and publishes the final machine-proof receipt.
 The implicit local ISA and the selectors `native`, `sse2`, `avx2` and
 `avx512` produce the same shared object and machine proof for this scalar
 program. The dispatcher carries each explicit fixed ISA to the verified compiler.
+For the sum, all-zero predicate and copy kernels over byte buffers, an explicit
+`--target-isa sse2` selects the HIA SSE2 backend. The standalone prover
+checks the submitted Core graph, object relocations and linked instructions.
 
 The checked-in pin is `None`. Source checkouts and ordinary portable wheels keep
 their existing defaults and the two retained Python arithmetic bodies. This

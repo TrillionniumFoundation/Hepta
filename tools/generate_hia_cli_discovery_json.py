@@ -700,14 +700,11 @@ def standalone_capabilities_source():
     capabilities['implementation'] = 'hia_native'
     build = capabilities['build']
     build['selfhost']['hosted_cli_and_publication'] = False
-    del build['auto_object']
-    build['auto_shared'] = {
-        'selection': 'supported scalar Core only',
-        'final_image_validation_required': True,
-        'outside_profile': 'reject before publication',
-    }
+    shared = build['auto_shared']
+    shared['selection'] = 'admitted scalar Core or an explicitly selected SIMD kernel'
+    shared['simd_target_isas'] = ['sse2']
+    shared['simd_kernels'] = ['sum_u8', 'all_zero_u8', 'copy_u8']
     build['native_shared'] = 'ordinary linked native ABI; ABI inventory checked, no machine verification claim'
-    build['backend'] = 'native'
     wire = (json.dumps(capabilities, indent=2, ensure_ascii=False, sort_keys=True) + '\n').encode()
     source = f'''def capabilities(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) != 0 or length(o) < {len(wire)} or length(w) < 128:

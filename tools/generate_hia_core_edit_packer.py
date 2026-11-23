@@ -36,8 +36,13 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     while index < parts:
         size = uint(s, 32 + 8 * index, 8)
         # A role can contain an offset table and more than one linked image.
-        if size == 0 or size > 2097152:
+        if size == 0 or end > length(s) or size > length(s) - end:
             return 16
+        if size > 2097152:
+            # The verified launcher carries two independently bounded block archives.
+            # Its compressed implementation can exceed the ordinary raw-section cap.
+            if tag != PACK_MAGIC or calls != 2 or parts != 3 or index == 0 or archived_member(s, end, size) == 0:
+                return 16
         end = end + size
         index = index + 1
     if end != length(s):
@@ -87,6 +92,28 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         write(o, hole, align(position(s, 176 + stub, image)) - hole - 4, 4)
         i = i + 1
     return size
+
+def archived_member(s:readbuf, start:u64, size:u64) -> u64:
+    if size < 32 or size > 4198400 or uint(s, start, 8) != 3544421156595517768:
+        return 0
+    remaining = uint(s, start + 8, 8)
+    if remaining < 176 or remaining > 8388608:
+        return 0
+    at = start + 16
+    end = start + size
+    while remaining != 0:
+        if end - at < 16:
+            return 0
+        stored = uint(s, at, 8)
+        decoded = uint(s, at + 8, 8)
+        if decoded != choose(remaining > 524288, 524288, remaining):
+            return 0
+        at = at + 16
+        if stored == 0 or stored > 1048576 or stored > end - at:
+            return 0
+        remaining = remaining - decoded
+        at = at + stored
+    return choose(at == end, 1, 0)
 
 def position(s:readbuf, start:u64, index:u64) -> u64:
     i = 0

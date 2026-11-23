@@ -64,6 +64,11 @@
 # A 48-byte proof request must not overwrite the live optional plan state.
 .equ PROOF_REQUEST,3856
 .equ VERIFIED_TARGET_ISA,3920
+.equ SIMD_SUBJECT_PTR,3928
+.equ SIMD_SUBJECT_BYTES,3936
+.equ SIMD_WORK_PTR,3944
+.equ SIMD_REPORT_CONTEXT,3952
+.equ SIMD_SHAPE,3960
 _start:
  # The static linker calls this entry. The adapter itself never returns.
  add rsp,8
@@ -347,6 +352,14 @@ check_core:
  je lower_nominal
 core_verified:
  call require_native_zero
+ cmp QWORD PTR [rbp+SHARED_MODE],2
+ jne scalar_build_plan
+ cmp QWORD PTR [rbp+VERIFIED_TARGET_ISA],1
+ jne scalar_build_plan
+ call try_verified_sse2
+ test rax,rax
+ jnz publish_artifact
+scalar_build_plan:
  movabs rax,0x3330515645414948    # HIAEVQ03
  cmp [rbp+PLAN_PREFIX],rax
  jne protect_core_arena
@@ -1556,6 +1569,12 @@ prove_shared_artifact:
  mov [rbp+PROOF_INPUT],rax
  lea rsi,[rbp+PROOF_REQUEST]
  movabs rax,0x3130465250414948    # HIAPRF01
+ cmp QWORD PTR [rbp+SIMD_SHAPE],0
+ je proof_request_selected
+ movabs rax,0x3130305053414948    # HIASP001
+ mov rcx,[rbp+VERIFIED_TARGET_ISA]
+ mov [rsi+8],rcx
+proof_request_selected:
  mov [rsi],rax
  mov QWORD PTR [rsi+16],10000
  mov rax,[rbp+88]
@@ -1637,6 +1656,8 @@ wait_proof:
  mov edi,[rbp+PROOF_OUTPUT]
  call close_proof_file
 
+ cmp QWORD PTR [rbp+SIMD_SHAPE],0
+ jne simd_supplied_report
  # HIA admits only a positive receipt for these exact immutable final bytes.
  mov rdi,[rbp+PROOF_REPORT]
  mov rsi,[rbp+PROOF_SIZE]
@@ -1665,6 +1686,7 @@ wait_proof:
  movabs rdx,0x3230524253414948    # HIASBR02
  mov [rax],rdx
  add QWORD PTR [rbp+SHARED_FRAME_EXTENT],40
+release_proof_report:
  mov rdi,[rbp+PROOF_REPORT]
  mov rsi,[rbp+PROOF_SIZE]
  call release
@@ -1714,6 +1736,178 @@ proof_child:
  mov eax,322
  syscall
  jmp io_failure
+
+# The whole Core has already passed admission. Only the independently described
+# borrowed-byte recurrence enters this ISA-specific path.
+try_verified_sse2:
+ sub rsp,8
+ mov esi,65536
+ call allocate
+ mov [rbp+SIMD_SUBJECT_PTR],rax
+ mov esi,16<<20
+ call allocate
+ mov [rbp+SIMD_WORK_PTR],rax
+ mov rdi,[rbp]
+ mov rsi,[rbp+88]
+ mov rdx,[rbp+SIMD_SUBJECT_PTR]
+ mov ecx,65536
+ mov r8,rax
+ mov r9d,16<<20
+ call build_simd_subject_start
+ mov [rbp+SIMD_SUBJECT_BYTES],rax
+ mov rdi,[rbp+SIMD_WORK_PTR]
+ mov esi,16<<20
+ call release
+ mov rax,[rbp+SIMD_SUBJECT_BYTES]
+ test rax,rax
+ jz no_verified_sse2_match
+ cmp rax,25
+ jb invalid
+ cmp rax,152
+ ja invalid
+ mov rbx,[rbp+SIMD_SUBJECT_PTR]
+ mov rcx,[rbp+VERIFIED_TARGET_ISA]
+ mov [rbx+rax],rcx
+ add QWORD PTR [rbp+SIMD_SUBJECT_BYTES],8
+ mov rcx,[rbx+8]
+ mov [rbp+SIMD_SHAPE],rcx
+ mov rdi,rbx
+ mov esi,65536
+ call protect_readonly
+ mov esi,ART_N
+ call allocate
+ mov [rbp+48],rax
+ mov esi,2048
+ call allocate
+ mov [rbp+SIMD_WORK_PTR],rax
+ mov rdi,[rbp+SIMD_SUBJECT_PTR]
+ mov rsi,[rbp+SIMD_SUBJECT_BYTES]
+ mov rdx,[rbp+48]
+ mov ecx,ART_N
+ mov r8,rax
+ mov r9d,2048
+ call build_simd_object_start
+ cmp rax,64
+ jb invalid
+ cmp rax,VERIFIED_OBJECT_LIMIT
+ ja invalid
+ mov [rbp+56],rax
+ mov rdi,[rbp+48]
+ mov esi,ART_N
+ call protect_readonly
+ mov rdi,[rbp+SIMD_WORK_PTR]
+ mov esi,2048
+ call release
+ mov rdi,[rbp+SIMD_SUBJECT_PTR]
+ mov esi,65536
+ call release
+ mov esi,ART_N
+ call allocate
+ mov [rbp+SHARED_ARTIFACT],rax
+ mov esi,512
+ call allocate
+ mov [rbp+SIMD_WORK_PTR],rax
+ mov rdi,[rbp+48]
+ mov rsi,[rbp+56]
+ mov rdx,[rbp+SHARED_ARTIFACT]
+ mov ecx,VERIFIED_LINK_LIMIT
+ mov r8,rax
+ mov r9d,512
+ call build_verified_linker_start
+ cmp rax,64
+ jb invalid
+ cmp rax,VERIFIED_LINK_LIMIT
+ ja invalid
+ mov [rbp+SHARED_EXTENT],rax
+ mov rdi,[rbp+SHARED_ARTIFACT]
+ mov esi,ART_N
+ call protect_readonly
+ mov rdi,[rbp+SIMD_WORK_PTR]
+ mov esi,512
+ call release
+ mov r12,[rbp+SHARED_ARTIFACT]
+ mov r13,[rbp+SHARED_EXTENT]
+ call hash_bytes
+ mov esi,8192
+ call allocate
+ mov [rbp+SIMD_REPORT_CONTEXT],rax
+ mov rdi,rax
+ lea rsi,[rbp+SHARED_DIGEST]
+ cld
+ mov ecx,4
+ rep movsq
+ lea rsi,[rip+build_verified_linker_identity_start]
+ mov ecx,4
+ rep movsq
+ mov rax,[rbp+SHARED_EXTENT]
+ stosq
+ mov rax,[rbp+SIMD_SHAPE]
+ stosq
+ mov rax,[rbp+VERIFIED_TARGET_ISA]
+ stosq
+ lea rsi,[rip+build_prover_identity_start+8]
+ mov ecx,4
+ rep movsq
+ mov rax,[r15+48]
+ cmp rax,4095
+ ja invalid
+ stosq
+ mov rcx,rax
+ mov rsi,[r15+40]
+ rep movsb
+ mov rdi,[rbp+SIMD_REPORT_CONTEXT]
+ mov esi,8192
+ call protect_readonly
+ call prove_shared_artifact
+ mov rdi,[rbp+48]
+ mov esi,ART_N
+ call release
+ mov rax,[rbp+SHARED_ARTIFACT]
+ mov [rbp+48],rax
+ mov rax,[rbp+SHARED_EXTENT]
+ mov [rbp+56],rax
+ mov rdi,[rbp+8]
+ mov esi,CORE_N
+ call release
+ mov rdi,[rbp+16]
+ mov esi,EVT_MAP
+ call release
+ mov eax,1
+ add rsp,8
+ ret
+no_verified_sse2_match:
+ mov rdi,[rbp+SIMD_SUBJECT_PTR]
+ mov esi,65536
+ call release
+ xor eax,eax
+ add rsp,8
+ ret
+
+simd_supplied_report:
+ cmp QWORD PTR [rbp+PROOF_SIZE],464
+ jne invalid
+ mov esi,262144
+ call allocate
+ mov [r15+24],rax
+ mov rdi,[rbp+PROOF_REPORT]
+ mov rsi,[rbp+PROOF_SIZE]
+ mov rdx,rax
+ mov ecx,262144
+ mov r8,[rbp+SIMD_REPORT_CONTEXT]
+ mov r9d,8192
+ call build_shared_report_start
+ cmp rax,64
+ jb invalid
+ cmp rax,262144
+ ja invalid
+ mov [r15+32],rax
+ mov rdi,[r15+24]
+ mov esi,262144
+ call protect_readonly
+ mov rdi,[rbp+SIMD_REPORT_CONTEXT]
+ mov esi,8192
+ call release
+ jmp release_proof_report
 
 new_proof_file:
  lea rdi,[rip+prover_name]

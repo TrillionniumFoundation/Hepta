@@ -81,6 +81,8 @@ REGISTER_IMAGES = {
 }
 OBJECT_BUILD_IMAGES = {
     CORE_ADMISSION: 'build_core',
+    BOOTSTRAP + 'verified_simd_core.hepta': 'build_simd_subject',
+    BOOTSTRAP + 'verified_simd_sse2_object.hepta': 'build_simd_object',
     EDIT + 'publication_frontend.hepta': 'build_frontend',
     CLI + 'build_codegen.hepta': 'build_codegen',
     CLI + 'build_backend.hepta': 'build_backend',

@@ -278,6 +278,7 @@ SAFE_CORE_PROOF_SDIST_FILES = (
     'tools/generate_hia_verified_simd_sse2_object.py',
     'tests/test_hia_verified_simd_core_native.py',
     'tests/test_hia_verified_simd_sse2_native.py',
+    'tests/test_hia_verified_simd_public_cli.py',
     'examples/hia_bootstrap/supplied_safe_core_proof.hepta',
     'examples/hia_bootstrap/supplied_safe_core_proof_packer.hepta',
     'tools/build_hia_supplied_safe_core_proof.py',
