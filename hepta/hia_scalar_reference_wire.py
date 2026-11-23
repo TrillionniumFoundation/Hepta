@@ -6,7 +6,7 @@ import json
 import os
 import struct
 
-from .hia_opcodes import RESOURCES, SCALARS, WIDTHS, opcode_spec
+from .hia_opcodes import WORD_LOADS, WORD_STORES, RESOURCES, SCALARS, WIDTHS, opcode_spec
 
 PROGRAM_MAGIC = int.from_bytes(b'HIASPG01', 'little')
 RESOURCE_PROGRAM_MAGIC = int.from_bytes(b'HIARPG02', 'little')
@@ -35,10 +35,14 @@ RESOURCE_SIGNATURES = {
     'chain.empty': (None,), 'chain.is_empty': ('chain',), 'chain.try_push': ('chain',),
     'chain.pop': ('chain',), 'chain.head_read': ('chain',), 'chain.head_mut': ('chain',),
 }
-RESOURCE_NAMES = tuple(RESOURCE_SIGNATURES)
-RESOURCE_CODES = {name: i for i, name in enumerate(RESOURCE_NAMES, 1)}
+# Returned-loan restoration occupies the original command number between the
+# v8 resource commands and the v9 word operations.
+RESOURCE_NAMES = (*RESOURCE_SIGNATURES, 'return_loans', *WORD_LOADS, *WORD_STORES)
+RETURN_LOANS_CODE = RESOURCE_NAMES.index('return_loans') + 1
+RESOURCE_SIGNATURES.update({name: ('readbuf', 'mutbuf') for name in WORD_LOADS})
+RESOURCE_SIGNATURES.update({name: ('mutbuf',) for name in WORD_STORES})
+RESOURCE_CODES = {name: i for i, name in enumerate(RESOURCE_NAMES, 1) if name != 'return_loans'}
 RESOURCE_SITE = struct.Struct('<4Q')
-RETURN_LOANS_CODE = len(RESOURCE_CODES) + 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,7 +74,7 @@ def resource_request(wire, offset):
         if not bindings:
             raise ValueError('missing Core returned-loan origins')
         return ResourceRequest('return_loans', None, inputs, outputs, tuple(bindings))
-    if not 1 <= code <= len(RESOURCE_CODES) or kind >= len(RESOURCE_KINDS):
+    if not 1 <= code <= len(RESOURCE_NAMES) or kind >= len(RESOURCE_KINDS):
         raise ValueError('invalid Core resource command')
     operation = RESOURCE_NAMES[code - 1]
     first = RESOURCE_KINDS[kind]

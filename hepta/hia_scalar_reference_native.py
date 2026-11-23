@@ -41,6 +41,10 @@ OPCODES = {name: index for index, name in enumerate((
     'cast.wrap', 'cast.checked', 'select',
 ), 1)}
 BYTE_OPERATIONS = {
+    'load.u64.le': (7, 'u64 word outside the borrowed buffer'),
+    'load.u64.be': (8, 'u64 word outside the borrowed buffer'),
+    'store.u64.le': (9, 'u64 word outside the borrowed buffer'),
+    'store.u64.be': (10, 'u64 word outside the borrowed buffer'),
     'load': (1, 'byte load outside the borrowed buffer'),
     'store': (2, 'byte store outside the borrowed buffer'),
     'fill': (3, 'fill range exceeds owned extent'),
@@ -156,11 +160,15 @@ class NativeScalarReference(NativeHiaJsonImage):
         # Zero extents still use a non-null unused pointer.
         out = ((ctypes.c_ubyte*len(destination)).from_buffer(destination)
                if destination else ctypes.create_string_buffer(1))
+        if opcode in (7, 8):
+            source = bytearray(8)
         other = ((ctypes.c_ubyte*len(source)).from_buffer(source)
                  if source else ctypes.create_string_buffer(1))
         status = self._entry(wire, len(request), out, len(destination), other, len(source or ()))
         if status == 0xfffffffd:
             raise HIAProgramTrap('bounds', message)
+        if opcode in (7, 8) and status == 0:
+            return struct.unpack_from('<Q', source)[0]
         if name == 'load' and 256 <= status <= 511:
             return status - 256
         if name != 'load' and status == 0:
@@ -264,6 +272,8 @@ class NativeScalarReference(NativeHiaJsonImage):
         status = self._entry(wire, len(request), backing, capacity, table, len(workspace))
         if status == 0xfffffffd:
             raise HIAProgramTrap('bounds', message)
+        if opcode in (7, 8) and status == 0:
+            return struct.unpack_from('<Q', workspace, OWNER_RECORD_BYTES - 8)[0]
         if name == 'load' and 256 <= status <= 511:
             return status - 256
         if name != 'load' and status == 0:

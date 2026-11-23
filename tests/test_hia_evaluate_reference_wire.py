@@ -214,6 +214,9 @@ class EvaluateReferenceWireTests(unittest.TestCase):
         for function in (swap, allocate):
             document = {**m(function), "schema": SCHEMA_V8}
             programs.append((verify_program(document), function["name"]))
+        from tools.hia_word_memory_cases import ORDERS, owned_program
+        words = verify_program(owned_program())
+        programs.extend((words, f"{access}_{order}") for access in ("load", "store") for order in ORDERS)
         covered = set()
         for checked, entry in programs:
             with self.subTest(program=checked.sha256, entry=entry):

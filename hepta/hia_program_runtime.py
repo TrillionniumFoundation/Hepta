@@ -391,7 +391,13 @@ class _Machine:
             # store may modify a prefix before trapping.
             if index > extent or 8 > extent - index:
                 raise HIAProgramTrap("bounds", "u64 word outside the borrowed buffer")
-            if op in WORD_LOADS:
+            if self.scalar_reference is not None:
+                operation = op.removeprefix("buffer.")
+                if op in WORD_LOADS:
+                    result = [self.scalar_reference.byte_operation(operation, owner.data, offset=index)]
+                else:
+                    self.scalar_reference.byte_operation(operation, owner.data, offset=index, value=args[2])
+            elif op in WORD_LOADS:
                 result = [int.from_bytes(owner.data[index:index + 8], WORD_LOADS[op])]
             else:
                 owner.data[index:index + 8] = args[2].to_bytes(8, WORD_STORES[op])
@@ -840,14 +846,17 @@ class _ReferenceResources:
                                           **transfer)
 
     def _byte_operation(self, op, first_kind, words):
-        read_only = op in {"len", "load"}
+        read_only = op in {"len", "load", "load.u64.le", "load.u64.be"}
         token = self.owner_token(words[0]) if first_kind == "buffer" else words[0]
         _, owner = self.loan(1, token, mutable=not read_only)
         extent = owner.length if isinstance(owner, _OwnerSpan) else len(owner.data)
         if op == "len":
             return [extent]
-        if op == "load":
-            return [self.transfer_bytes("load", owner, offset=words[1])]
+        if op in {"load", "load.u64.le", "load.u64.be"}:
+            return [self.transfer_bytes(op, owner, offset=words[1])]
+        if op in {"store.u64.le", "store.u64.be"}:
+            self.transfer_bytes(op, owner, offset=words[1], value=words[2])
+            return []
         if op in {"copy", "copy_range"}:
             _, source = self.loan(1, words[1])
             if owner.ident == source.ident:

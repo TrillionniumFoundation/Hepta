@@ -543,6 +543,15 @@ def byte_operation(s:readbuf, target:mutbuf, source:mutbuf) -> u32:
     other = uint(s, 24, 8)
     count = uint(s, 32, 8)
     value = uint(s, 40, 8)
+    if op >= 7 and op <= 10:
+        if within(length(target), offset, 8) == 0:
+            return 4294967293
+        if op <= 8 and length(source) < 8:
+            return 4294967295
+        result = word_memory(target, offset, op, value)
+        if op <= 8:
+            put(source, 0, result)
+        return 0
     if op == 1 or op == 2 or op == 6:
         if offset >= length(target):
             return 4294967293
@@ -581,6 +590,17 @@ def byte_operation(s:readbuf, target:mutbuf, source:mutbuf) -> u32:
             move_bytes(target, offset, other, count)
     else:
         return 4294967295
+    return 0
+
+def word_memory(target:mutbuf, at:u64, op:u64, value:u64) -> u64:
+    if op == 7:
+        return load_word_le(target, at)
+    if op == 8:
+        return load_word_be(target, at)
+    if op == 9:
+        store_word_le(target, at, value)
+    else:
+        store_word_be(target, at, value)
     return 0
 
 def move_bytes(target:mutbuf, offset:u64, source:u64, count:u64) -> u64:
@@ -751,13 +771,20 @@ def storage_bytes(s:readbuf, backing:mutbuf, w:mutbuf) -> u32:
     return access_storage(backing, w, uint(s, 8, 8), uint(s, 16, 8), uint(s, 24, 8), uint(s, 32, 8), uint(s, 40, 8), uint(s, 48, 8), uint(s, 56, 8))
 
 def access_storage(backing:mutbuf, w:mutbuf, operation:u64, ident:u64, source:u64, offset:u64, other:u64, count:u64, value:u64) -> u32:
-    if operation < 1 or operation > 6:
+    if operation < 1 or operation > 10:
         return 4294967295
     slot = owner_span(w, ident, length(backing))
     if slot == 0:
         return 4294967295
     start = get(w, slot + 24)
     size = get(w, slot + 16)
+    if operation >= 7:
+        if within(size, offset, 8) == 0:
+            return 4294967293
+        result = word_memory(backing, start + offset, operation, value)
+        if operation <= 8:
+            put(w, 104, result)
+        return 0
     if operation == 1 or operation == 2:
         if offset >= size:
             return 4294967293
@@ -1099,6 +1126,12 @@ class ReferenceBuilder(LinkerBuilder):
     def expr(self, value):
         if isinstance(value, ast.UnaryOp) and isinstance(value.op, ast.Not):
             return self.op('bool.not', [self.expr(value.operand)], 'bool')
+        if isinstance(value, ast.Call) and value.func.id in ('load_word_le', 'load_word_be',
+                                                              'store_word_le', 'store_word_be'):
+            access, _, order = value.func.id.split('_')
+            buffer, offset, *word = (self.expr(arg) for arg in value.args)
+            args = [buffer, self.cast(offset, 'usize'), *word]
+            return self.op(f'buffer.{access}.u64.{order}', args, 'u64' if access == 'load' else None)
         if isinstance(value, ast.Call) and value.func.id == 'copy_range':
             dest, source, *extent = (self.expr(arg) for arg in value.args)
             return self.op('buffer.copy_range', [dest, source, *(self.cast(word, 'usize') for word in extent)])
@@ -1147,7 +1180,7 @@ def document(*, prefix='', module='scalar_reference'):
         functions.append({'name': names[node.name], 'params': [builder.param(value) for value in builder.params],
                           'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
                           'entry': 'b0', 'blocks': builder.blocks})
-    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module,
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v9', 'module': module,
                                   'functions': functions})
 
 

@@ -185,7 +185,7 @@ def run_owned(s:readbuf, o:mutbuf, frames:mutbuf, owners:mutbuf, loans:mutbuf, b
         else:
             kind = uint(s, site + 8, 8)
             outcome = 0
-            if code >= @r.chain.empty@ or kind == 2:
+            if (code >= @r.chain.empty@ and code <= @r.chain.head_mut@) or kind == 2:
                 outcome = owned_chain_command(s, o, frames, owners, loans, backing, chains, code, maximum, failure)
             else:
                 outcome = owned_command(o, owners, loans, backing, code, kind, maximum, failure)
@@ -300,10 +300,11 @@ def owned_command(o:mutbuf, owners:mutbuf, loans:mutbuf, backing:mutbuf, code:u6
         count = length(o) - 8
         put(o, count, get(o, count) + 1)
         return 0
-    if code < @r.buffer.len@ or code > @r.buffer.swap@:
+    word = code >= @r.buffer.load.u64.le@ and code <= @r.buffer.store.u64.be@
+    if (code < @r.buffer.len@ or code > @r.buffer.swap@) and not word:
         return 20
     writable = 0
-    if code != @r.buffer.len@ and code != @r.buffer.load@:
+    if code != @r.buffer.len@ and code != @r.buffer.load@ and code != @r.buffer.load.u64.le@ and code != @r.buffer.load.u64.be@:
         writable = 1
     handle = first
     if kind == 1:
@@ -501,6 +502,16 @@ def owned_bytes(o:mutbuf, owners:mutbuf, loans:mutbuf, backing:mutbuf, code:u64,
     fifth = get(o, 64)
     if code == @r.buffer.len@:
         put(o, 32, get(owners, slot + 16))
+        return 0
+    if code >= @r.buffer.load.u64.le@ and code <= @r.buffer.store.u64.be@:
+        operation = 7 + code - @r.buffer.load.u64.le@
+        status = unsigned_word(access_storage(backing, owners, operation, owner, 0, second, 0, 0, third))
+        if status == 4294967293:
+            return 18
+        if status != 0:
+            return 20
+        if operation <= 8:
+            put(o, 32, get(owners, 104))
         return 0
     if code == @r.buffer.load@:
         return finish_bytes(o, access_storage(backing, owners, 1, owner, 0, second, 0, 0, 0), 1)

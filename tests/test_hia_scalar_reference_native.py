@@ -510,6 +510,42 @@ class ScalarReferenceNativeTests(unittest.TestCase):
             self.assertEqual(actual['report']['observations'], [baseline])
             self.assertEqual(actual['report']['owned_reference_standalone_calls'], 1)
 
+        # Public direct execution must admit all four v9 word operations, retain
+        # offsets wider than 32 bits, and match the bytewise independent oracle.
+        from tools.hia_word_memory_cases import ORDERS, expected as word_expected, foreign_program, owned_program
+        word_program = verify_program(owned_program())
+        seed_word = 0xFEDCBA9876543210
+        word_cases = []
+        for mode in ("load", "store"):
+            for order in ORDERS:
+                for offset, probe in ((1, 0), (1, 1), (1, 8), (1, 9), (9, 16),
+                                      (10, 0), (1 << 32, 0), ((1 << 64) - 1, 0)):
+                    word_cases.append({"function": f"{mode}_{order}", "arguments": [17, offset, seed_word, probe]})
+        direct = run_direct(word_program, word_cases, **limits)
+        self.assertEqual(direct["status"], "returned", direct)
+        self.assertEqual(direct["report"]["owned_reference_standalone_calls"], len(word_cases))
+        for case, outcome in zip(word_cases, direct["report"]["observations"], strict=True):
+            mode, order = case["function"].split("_")
+            size, offset, value, probe = case["arguments"]
+            if offset > size - 8:
+                self.assertEqual((outcome["status"], outcome["trap_code"]), ("trapped", "bounds"))
+            else:
+                self.assertEqual(outcome["values"], [word_expected(mode, order, size, offset, value, probe)])
+        external = verify_program(foreign_program())
+        word_exports = (("f0", 65536),)
+        external_cases = []
+        for tag in range(4):
+            for offset in (1, 3, (1 << 64) - 1):
+                request = bytes((tag,)) + struct.pack("<2Q", offset, seed_word)
+                regions = (request, bytes(range(10)), b"\xba" * 8)
+                external_cases.append({"function": "f0", "arguments": [{"bytes_hex": region.hex()} for region in regions]})
+        wanted = [reference_observation(external, case, word_exports, steps=10_000_000, heap=1 << 24)
+                  for case in external_cases]
+        direct = run_direct(external, external_cases, foreign_buffer_exports=word_exports, **limits)
+        self.assertEqual(direct["status"], "returned", direct)
+        self.assertEqual(direct["report"]["owned_reference_standalone_calls"], len(external_cases))
+        self.assertEqual(direct["report"]["observations"], wanted)
+
         slow = trap_program()
         blocks = slow['functions'][0]['blocks']
         blocks[0]['term'] = jump('repeat')
@@ -877,6 +913,46 @@ class ScalarReferenceNativeTests(unittest.TestCase):
               patch.object(NativeScalarReference, 'byte_operation', side_effect=AssertionError('old byte transport'))):
             actual = execute_program(program, 'owned', [8, 25])
         self.assertEqual(actual, baseline)
+
+    def test_word_operations_check_entire_range_before_native_memory_access(self):
+        from hepta.hia_program_runtime import _ReferenceResources
+        from tools.hia_word_memory_cases import acyclic_program, instruction
+        table = bytearray(OWNER_RECORD_BYTES * 3)
+        backing = bytearray(17)
+        owner = self.native.attach_storage(table, backing, 17, 17)[1]
+        seed = bytes(range(17))
+        value = 0xFEDCBA9876543210
+        for order, native_order in (("le", "little"), ("be", "big")):
+            for hosted_storage in (False, True):
+                def access(name, offset, val=0):
+                    if hosted_storage:
+                        return self.native.byte_operation(name, backing, offset=offset, value=val)
+                    return self.native.storage_bytes(name, table, backing, owner, offset=offset, value=val)
+                for offset in (0, 1, 9):
+                    backing[:] = seed
+                    self.assertEqual(access("load.u64." + order, offset),
+                                     int.from_bytes(seed[offset:offset+8], native_order))
+                    access("store.u64." + order, offset, value)
+                    self.assertEqual(backing, seed[:offset] + value.to_bytes(8, native_order) + seed[offset+8:])
+                for offset in (10, 17, (1 << 64) - 1):
+                    backing[:] = seed
+                    for mode in ("load", "store"):
+                        with self.assertRaises(HIAProgramTrap) as caught:
+                            access(mode + ".u64." + order, offset, value)
+                        self.assertEqual(caught.exception.code, "bounds")
+                        self.assertEqual(backing, seed)
+
+        # The native resource adapter must accept a read loan for a word load.
+        program = acyclic_program()
+        ops = program["functions"][0]["blocks"][0]["ops"]
+        ops[6:7] = [instruction("loan.end", ["view"]),
+                    instruction("borrow.read", ["owner"], [("reader", "readbuf")]),
+                    instruction("buffer.load.u64.be", ["reader", "offset"], [("result", "u64")])]
+        ops[9]["args"] = ["reader"]
+        with (patch.dict(os.environ, {SELECTOR: str(self.manifest)}),
+              patch.object(_ReferenceResources, "byte_storage", side_effect=AssertionError("host slice")),
+              patch.object(_Machine, "invoke", side_effect=AssertionError("hosted Core"))):
+            self.assertEqual(execute_program(program, "probe", [])["result"], 0x1032547698BADCFE)
 
     def test_native_storage_compacts_live_spans_and_zeros_reclaimed_bytes(self):
         import mmap
