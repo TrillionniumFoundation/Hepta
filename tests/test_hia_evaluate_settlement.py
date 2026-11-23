@@ -134,11 +134,13 @@ class SettlementTests(unittest.TestCase):
         result=self.identity.evaluation_result(args,receipt,measure,ledger,outcome,complete)
         return issued,result
 
-    def issuer_proof(self, *, physical=None):
+    def issuer_proof(self, *, physical=None, claimed=None):
         tmp=tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         store=AgentStore(Path(tmp.name)/'store')
         self.addCleanup(store.close)
+        if claimed is not None:
+            physical=claimed[648:]
         if physical is None:
             typed=[]
             def retain(kind,body,meta=b''):
@@ -164,7 +166,9 @@ class SettlementTests(unittest.TestCase):
             retain(6,b'object')
             retain(0,objective_body)
             retain(0,workload_body)
-            whole=wire({'arguments':args,'request_sha256':REQUEST[2:].decode()})
+            outer={'arguments':args,'catalog_sha256':'a'*64,'profile_sha256':'b'*64,
+                   'schema':'hia-agent-worker-request-v1','tool':'hia_evaluate'}
+            whole=wire({**outer,'request_sha256':sha256(wire(outer)).hexdigest()})
             rows=b''.join(typed)
             batch=struct.pack('<8s2Q',b'HIAEBT01',1,1)
             physical=(struct.pack('<8s13Q',b'HIAEFI04',len(typed),999,1999,4000,1<<26,
@@ -173,7 +177,16 @@ class SettlementTests(unittest.TestCase):
         h=struct.unpack_from('<8s13Q',physical)
         at=112
         req=json.loads(physical[at:at+h[6]])
-        args=req['arguments']; key=b'r-'+req['request_sha256'].encode()
+        args=req['arguments']; call=wire({'arguments':args,'tool':req['tool']})
+        unsigned=wire({k:v for k,v in req.items() if k!='request_sha256'})
+        key=b'r-'+sha256(call).hexdigest().encode()
+        journal_key=KEY if claimed is None else claimed[192:256]
+        if claimed is None:
+            state=bytearray(512)
+            struct.pack_into('<8s7Q',state,0,b'HIAJRN02',3,9,1,0,1,1,0)
+            state[64:128]=key[2:]; state[128:192]=journal_key; state[192:258]=key
+            route=struct.pack('<8s7Q',b'HIAJMO01',2,11,0,48,0,48,512)
+            claimed=struct.pack('<8s7Q',b'HIAEJC01',len(physical),3,134,123456,512,64,8)+state+route+b'HIASTCP1'+physical
         ctx=args['context']; at+=h[6]; facts=[]
         for i in range(h[1]):
             index,kind,m,n=struct.unpack_from('<4Q',physical,at)
@@ -196,7 +209,7 @@ class SettlementTests(unittest.TestCase):
         for original,_state in steps:
             # Parameterize independent admitted HIA state-machine traffic with
             # the actual Context and budget identity, leaving events unchanged.
-            n,terminal,_=engine.call(original.replace(CONTEXT,ctx['id'].encode()))
+            n,terminal,_=engine.call(original.replace(OWNER,journal_key).replace(CONTEXT,ctx['id'].encode()))
         pair=observation()
         cases=json.loads(facts[-1][2])['cases'];case=cases[0]
         rows=[{'index':0,'function':case['function'],'arguments':case['arguments'],
@@ -215,9 +228,9 @@ class SettlementTests(unittest.TestCase):
         ledger=store.put(cost,'cost-ledger')
         issued=b''.join(wire(x) for x in (args['baseline_artifact'],args['candidate_artifact'],args['build_receipt'],ledger,measure))
         issued+=b''.join(struct.pack('<Q',len(x))+x for x in (store.get(ledger,kind='cost-ledger')[0],
-                                                                store.get(measure,kind='measurements')[0],physical))
+                                                                store.get(measure,kind='measurements')[0],claimed,call,unsigned))
         request=(struct.pack('<8s3Qd5Q',b'HIAEPR01',before,after,1,threshold,len(pair),len(terminal),len(issued),
-                            reference,elapsed)+ctx['id'].encode()+OWNER+KEY+key+pair+terminal+issued)
+                            reference,elapsed)+ctx['id'].encode()+journal_key+journal_key+key+pair+terminal+issued)
         expected=self.identity.evaluation_record(args,*coredig,installation,measure,ledger,outcome,True)
         return request,expected
 
@@ -233,6 +246,20 @@ class SettlementTests(unittest.TestCase):
     def test_issue_from_real_public_fresh_intake(self):
         raw,expected=self.issuer_proof(physical=Path(os.environ['HIA_TEST_FRESH_HANDOFF']).read_bytes())
         self.assertEqual(self.invoke(raw),(0,expected))
+
+    @unittest.skipUnless(os.environ.get('HIA_TEST_JOURNAL_CLAIM'),'live HIA Journal claim required')
+    def test_issued_receipt_binds_the_live_public_id_and_the_distinct_envelope_pin(self):
+        claim=Path(os.environ['HIA_TEST_JOURNAL_CLAIM']).read_bytes()
+        packet,expected=self.issuer_proof(claimed=claim)
+        self.assertEqual(self.invoke(packet),(0,expected))
+        n=struct.unpack_from('<Q',claim,648+48)[0]
+        request=json.loads(claim[760:760+n])
+        transport=request['request_sha256'].encode()
+        self.assertNotEqual(transport,packet[246:310])
+        bad=bytearray(packet);bad[246:310]=transport
+        self.assertEqual(self.invoke(bytes(bad)),(2,b''))
+        for old,new in ((b'HIASTCP1',b'BADSTCP1'),(b'HIAJRN02',b'HIAJRN01'),(transport,b'0'*64)):
+            self.assertEqual(self.invoke(packet.replace(old,new,1)),(2,b''))
 
     def check_terminal(self,raw,status,payload):
         magic,state,n,side,command,reserved=struct.unpack_from('<8s5Q',raw)

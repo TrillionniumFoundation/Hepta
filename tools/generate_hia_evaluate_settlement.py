@@ -10,7 +10,8 @@ before emitting the public response, Journal command or cost sideband.
 
 HIAEPR01 uses the same settled header with five refs (baseline, candidate,
 build receipt, ledger, measurements), and length-prefixed ledger, measurements,
-and HIAEFI04 evidence. It issues original public evaluation-receipt JSON.
+and the committed HIAEJC01 claim plus the canonical call and unsigned envelope.
+It issues original public evaluation-receipt JSON.
 """
 
 from pathlib import Path
@@ -397,14 +398,73 @@ def issue_receipt(s:readbuf,o:mutbuf,w:mutbuf,refs:u64,n:u64) -> u64:
             put(w,20056,get(w,2048+16*K_workload))
         cursor = cursor+width
         i = i+1
-    if length(s)-cursor < 120 or read_word(s,cursor) != length(s)-cursor-8:
-        return BAD
-    start = cursor+8
-    if fresh_facts(s,o,w,refs,start) == False:
+    put(w,20768,refs)
+    if claimed_inputs(s,o,w,cursor) == False:
         return BAD
     return issue_json(s,o,w,refs)
 
-def fresh_facts(s:readbuf,o:mutbuf,w:mutbuf,refs:u64,start:u64) -> bool:
+# Only the immutable unique-Store acknowledgement and its original two admitted
+# canonical projections can authorize new receipt issuance.
+def claimed_inputs(s:readbuf,o:mutbuf,w:mutbuf,cursor:u64) -> bool:
+    if length(s)-cursor < 8:
+        return False
+    size = read_word(s,cursor)
+    at = cursor+8
+    if size < 760 or size > length(s)-at or read_word(s,at) != CLAIM:
+        return False
+    if read_word(s,at+8) != size-648 or read_word(s,at+16) < 1 or read_word(s,at+24) < 1 or read_word(s,at+32) == 0:
+        return False
+    if ((read_word(s,at+40)^512) | (read_word(s,at+48)^64) | (read_word(s,at+56)^8)) != 0:
+        return False
+    state = at+64
+    state_tag = (read_word(s,state)^JOURNAL) | (read_word(s,state+8)^3) | (read_word(s,state+16)^9)
+    state_flags = (read_word(s,state+24)^1) | read_word(s,state+32) | (read_word(s,state+40)^1)
+    if (state_tag | state_flags) != 0:
+        return False
+    if same(s,state+128,116,64) == False or same(s,state+64,246,64) == False or same(s,state+128,180,64) == False or same(s,state+192,244,66) == False:
+        return False
+    route = at+576
+    route_tag = (read_word(s,route)^ROUTE) | (read_word(s,route+8)^2) | (read_word(s,route+16)^11)
+    route_sizes = read_word(s,route+24) | (read_word(s,route+32)^48) | read_word(s,route+40) | (read_word(s,route+48)^48)
+    if (route_tag | route_sizes | (read_word(s,route+56)^512) | (read_word(s,at+640)^COMMIT_ACK)) != 0:
+        return False
+    stop = at+size
+    if length(s)-stop < 8:
+        return False
+    call_size = read_word(s,stop)
+    call = stop+8
+    if call_size < 2 or call_size > 8388608 or call_size > length(s)-call:
+        return False
+    if widen(pair_hash_sha256(s,w,call,call_size)) != 32 or digest_matches(s,w,246) == False:
+        return False
+    if fields(s,o,w,call,call_size) == False or get(o,96) != 2 or evaluate_tool(s,w) == False:
+        return False
+    args = get(w,2048+16*K_arguments)
+    width = get(w,2056+16*K_arguments)
+    put(w,20736,args)
+    put(w,20744,width)
+    pos = call+call_size
+    if length(s)-pos < 8:
+        return False
+    unsigned = pos+8
+    extent = read_word(s,pos)
+    if extent < 2 or extent > 8388608 or extent != length(s)-unsigned:
+        return False
+    if fields(s,o,w,unsigned,extent) == False or get(o,96) != 5 or evaluate_tool(s,w) == False:
+        return False
+    if width == 0 or width != get(w,2056+16*K_arguments) or same(s,args,get(w,2048+16*K_arguments),width) == False:
+        return False
+    if get(w,2056+16*K_request_sha256) != 0:
+        return False
+    put(w,20752,unsigned)
+    put(w,20760,extent)
+    return fresh_facts(s,o,w,get(w,20768),at+648,stop)
+
+def evaluate_tool(s:readbuf,w:mutbuf) -> bool:
+    at = get(w,2048+16*K_tool)
+    return get(w,2056+16*K_tool) == 14 and evaluate_tool_literal(s,at)
+
+def fresh_facts(s:readbuf,o:mutbuf,w:mutbuf,refs:u64,start:u64,end:u64) -> bool:
     if read_word(s,start) != FRESH:
         return False
     count = read_word(s,start+8)
@@ -419,9 +479,9 @@ def fresh_facts(s:readbuf,o:mutbuf,w:mutbuf,refs:u64,start:u64) -> bool:
     left = read_word(s,start+64)
     right = read_word(s,start+72)
     at = start+112
-    if req < 2 or req > length(s)-at or rows > length(s)-at-req:
+    if req < 2 or req > end-at or rows > end-at-req:
         return False
-    if left > length(s)-at-req-rows or right != length(s)-at-req-rows-left or left < 24 or right < 24:
+    if left > end-at-req-rows or right != end-at-req-rows-left or left < 24 or right < 24:
         return False
     if read_word(s,at+req+rows) != BATCH or read_word(s,at+req+rows+left) != BATCH:
         return False
@@ -430,10 +490,10 @@ def fresh_facts(s:readbuf,o:mutbuf,w:mutbuf,refs:u64,start:u64) -> bool:
     if fields(s,o,w,at,req) == False:
         return False
     id = get(w,2048+16*K_request_sha256)
-    if get(w,2056+16*K_request_sha256) != 66 or same(s,id+1,246,64) == False:
+    if get(w,2056+16*K_request_sha256) != 66 or widen(pair_hash_sha256(s,w,get(w,20752),get(w,20760))) != 32 or digest_matches(s,w,id+1) == False:
         return False
-    arg = get(w,2048+16*K_arguments)
-    width = get(w,2056+16*K_arguments)
+    arg = get(w,20736)
+    width = get(w,20744)
     if width == 0 or fields(s,o,w,arg,width) == False:
         return False
     if ref_field(s,w,K_baseline_artifact,refs) == False or ref_field(s,w,K_candidate_artifact,refs+176) == False or ref_field(s,w,K_build_receipt,refs+352) == False or ref_field_len(s,w,K_context,get(w,256),121) == False:
@@ -649,7 +709,7 @@ FIELDS = ('schema','outcome','baseline_artifact','candidate_artifact','full_cost
           'metric','baseline_value','candidate_value','planned_cases','planned_workload_complete','report_complete',
           'termination_confirmed','adopted','reference_wall_ns','native_child_wall_ns','evaluation_wall_ns_through_report','context','improvement_ratio','observations','native_runs',
           'reference_runs','baseline','candidate','index','elapsed_ns','baseline_vm','candidate_vm','baseline_native',
-          'candidate_native','total_native_ns','arguments','request_sha256','build_receipt','verification_receipts','installation','core_sha256','objective','workload','min_improvement_ratio')
+          'candidate_native','total_native_ns','arguments','request_sha256','build_receipt','verification_receipts','installation','core_sha256','objective','workload','min_improvement_ratio','tool')
 OUTCOMES = ('budget_exceeded','incorrect','inconclusive','improved','regressed','unchanged')
 NAMES = (*OUTCOMES, 'hepta.hia.agent.evaluation.v1','hepta.hia.agent.cost-ledger.v1',
          'hepta.hia.agent.measurements.v1','artifact_bytes','latency_ns')
@@ -667,7 +727,7 @@ LITERALS = {
     'envelope_request':',"request_id":"','envelope_rejected':'","status":"rejected"}',
     'write_true':'true','write_false':'false',
 }
-CHECKS = {'context_prefix':'{"id":"', 'ref_prefix':'{"id":"a-', 'ref_hash_prefix':'","sha256":"',
+CHECKS = {'evaluate_tool_literal':'"hia_evaluate"', 'context_prefix':'{"id":"', 'ref_prefix':'{"id":"a-', 'ref_hash_prefix':'","sha256":"',
           'ref_uri_prefix':'","uri":"hia://artifacts/', 'true_text':'true','false_text':'false'}
 STATE = 32 << 20
 
@@ -691,7 +751,7 @@ def hia_literals():
             if len(block) == 8:
                 parts.append(f'(read_word(s,at+{i}) ^ {int.from_bytes(block,"little")})')
             else:
-                parts.extend(f'(widen(byte(s,at+{i+j})) ^ {ch})' for j,ch in enumerate(block))
+                parts.extend(f'(byte(s,at+{i+j}) ^ {ch})' for j,ch in enumerate(block))
         lines.extend((f'def {name}(s:readbuf, at:u64) -> bool:', '    return ('+' | '.join(parts)+') == 0'))
     from tools.generate_hia_agent_identity import EVALUATION_RECORD
     parts = EVALUATION_RECORD.split('{}')
@@ -754,10 +814,28 @@ def relocated(source):
     return ast.unparse(ast.fix_missing_locations(Memory().visit(tree)))
 
 
+def settlement_keys(names):
+    """Match each complete JSON key with one branch per encoded length."""
+    lines = ['def key_id(w:mutbuf, at:u64, extent:u64) -> u64:']
+    encoded = [(i, name.encode('ascii')) for i, name in enumerate(names, 1)]
+    for width in sorted({len(name) for _, name in encoded}):
+        lines.append(f'    if extent == {width}:')
+        for off in range(0, width, 8):
+            lines.append(f'        word{off} = match_word(w, at + {off}, {min(8, width-off)})')
+        lines.append('        result = 0')
+        for ordinal, name in encoded:
+            if len(name) != width:
+                continue
+            comparisons = [f'(word{off} ^ {int.from_bytes(name[off:off+8], "little")})'
+                           for off in range(0, width, 8)]
+            lines.append(f'        result = result | choose(({" | ".join(comparisons)}) == 0, {ordinal}, 0)')
+        lines.append('        return result')
+    return '\n'.join((*lines, '    return 0', ''))
+
+
 def json_slice():
     import ast
     from tools.generate_hia_json_decode import source_program
-    from tools.generate_hia_worker_emit_verification import key_table
     from tools.generate_hia_mcp_request import WIRE_HELPERS
     tree = ast.parse(source_program(wire_spans=True))
     names = {n.name for n in tree.body}
@@ -787,7 +865,7 @@ def json_slice():
                     n.args[1]=ast.BinOp(ast.parse('('+self.span+' >> 32)',mode='eval').body,ast.Add(),n.args[1])
             return n
     decoder=ast.unparse(ast.fix_missing_locations(Span().visit(tree)))
-    helpers=function(WIRE_HELPERS,'match_word')+'\n'+key_table(FIELDS)
+    helpers=function(WIRE_HELPERS,'match_word')+'\n'+settlement_keys(FIELDS)
     body=f'''
 def fields(s:readbuf, o:mutbuf, w:mutbuf, at:u64, width:u64) -> bool:
     put(w,{STATE+264},at)
@@ -826,6 +904,7 @@ def program():
     judge=re.sub(r'read_word\(s, (\d+)\)',lambda m:f'get(w,{STATE+128+int(m[1])})',judge)
     constants={name:int.from_bytes(raw,'little') for name,raw in dict(
         REQUEST=b'HIAEST01',ISSUE=b'HIAEPR01',FRESH=b'HIAEFI04',BATCH=b'HIAEBT01',PAIR=b'HIAEPM01',BUDGET=b'HIAEBRS1',DECISION=b'HIAESD01',
+        CLAIM=b'HIAEJC01',JOURNAL=b'HIAJRN02',ROUTE=b'HIAJMO01',COMMIT_ACK=b'HIASTCP1',
         TERMINAL=b'HIAESTR1',SIDEBAND=b'HIAIND01',UPDATE=b'HIAUPB01',CTX=b'ctx-').items()}
     constants.update(MAX=(1<<64)-1,BAD=4294967293,S_RECEIPT=7,S_LEDGER=8,S_MEASURE=9,S_BYTES=10,S_LATENCY=11)
     constants.update({'K_'+k:i for i,k in enumerate(FIELDS,1)})
@@ -840,6 +919,30 @@ def program():
                       *(function(case,name) for name in ('read_word','put','get','widen'))))
 
 
+
+def settlement_document():
+    """Fold fixed wire offsets before emitting the bounded self-host source."""
+    import ast
+    import operator
+
+    operators = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+                 ast.BitAnd: operator.and_, ast.BitOr: operator.or_, ast.BitXor: operator.xor}
+
+    class FixedOffsets(ast.NodeTransformer):
+        def visit_BinOp(self, node):
+            node = self.generic_visit(node)
+            operation = operators.get(type(node.op))
+            if (operation is not None and isinstance(node.left, ast.Constant)
+                    and isinstance(node.right, ast.Constant)
+                    and type(node.left.value) is int and type(node.right.value) is int):
+                value = operation(node.left.value, node.right.value) & ((1 << 64) - 1)
+                return ast.copy_location(ast.Constant(value), node)
+            return node
+
+    source = ast.unparse(FixedOffsets().visit(ast.parse(program())))
+    return document(source, SOURCE.stem)
+
+
 def packer_document():
     from tools.generate_hia_native_filter import document as packer, elf_header, template
     frame=template(wire_bytes=512<<20,output_bytes=32<<20,workspace_bytes=48<<20)
@@ -847,5 +950,5 @@ def packer_document():
 
 
 if __name__=='__main__':
-    SOURCE.write_text(render_assembly(document(program(), SOURCE.stem)),encoding='utf-8')
+    SOURCE.write_text(render_assembly(settlement_document()),encoding='utf-8')
     PACKER.write_text(render_assembly(packer_document()),encoding='utf-8')
