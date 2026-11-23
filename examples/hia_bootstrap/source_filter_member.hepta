@@ -494,7 +494,7 @@ block b1(v6:readbuf,v7:mutbuf)
   single_request:bool = compare.eq(v14,single_tag)
   branch single_request single(v6,v7) paired(v6,v7,v14)
 block single(single_in:readbuf,single_work:mutbuf)
-  admitted:u32 = call(single_in,single_work) {"function":"admit_single_stdio"}
+  admitted:u32 = call(single_in,single_work) {"function":"admit_single_source"}
   ret(admitted)
 block paired(paired_in:readbuf,paired_work:mutbuf,paired_tag:u64)
   v15:u64 = const() {"value":3544416767357045064}
@@ -8079,7 +8079,7 @@ block done()
   ok:u64 = const() {"value":0}
   ret(ok)
 end
-fn admit_single_stdio(input:readbuf,work:mutbuf) -> (u32) effects(read,write,trap) entry(start)
+fn admit_single_source(input:readbuf,work:mutbuf) -> (u32) effects(read,write,trap) entry(start)
 block start(input:readbuf,work:mutbuf)
   extent:usize = buffer.len(input)
   total:u64 = int.cast(extent) {"mode":"wrap"}
@@ -8121,7 +8121,16 @@ block identify(packet:readbuf,w:mutbuf,all_bytes:u64,n_at:u64,n_bytes:u64,s_at:u
   low_ok:bool = compare.ge(mode,first_mode)
   high_ok:bool = compare.le(mode,last_mode)
   stdio:bool = bool.and(low_ok,high_ok)
-  branch stdio accept(w,all_bytes,s_at,s_bytes,mode) invalid()
+  branch stdio accept(w,all_bytes,s_at,s_bytes,mode) filter(packet,w,all_bytes,n_at,n_bytes,s_at,s_bytes)
+block filter(filter_input:readbuf,filter_state:mutbuf,filter_total:u64,filter_name_at:u64,filter_name_bytes:u64,filter_source_at:u64,filter_source_size:u64)
+  filter_role:u64 = call(filter_input,filter_name_at,filter_name_bytes,filter_source_at,filter_source_size) {"function":"role"}
+  first_primary:u64 = const() {"value":32}
+  primary:bool = compare.ge(filter_role,first_primary)
+  required:u64 = call(filter_role) {"function":"companions"}
+  filter_zero:u64 = const() {"value":0}
+  independent:bool = compare.eq(required,filter_zero)
+  admissible:bool = bool.and(primary,independent)
+  branch admissible accept(filter_state,filter_total,filter_source_at,filter_source_size,filter_role) invalid()
 block accept(st:mutbuf,input_bytes:u64,source_at:u64,source_bytes:u64,role:u64)
   phase_at:u64 = const() {"value":8}
   phase_next:u64 = const() {"value":2}

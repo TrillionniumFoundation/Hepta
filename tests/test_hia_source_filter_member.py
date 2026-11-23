@@ -943,6 +943,8 @@ class InstalledSourceMemberTests(unittest.TestCase):
         self.assertEqual(published, ['hia-agent-read-carrier'])
 
     def test_from_native_sources_against_every_installed_filter(self):
+        from tools.build_hia_native_store_release import _named_source_request
+
         for name in MEMBERS:
             with self.subTest(member=name):
                 path = self.work / name
@@ -953,7 +955,13 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 if name in CANONICAL:
                     inputs['worker_request.hepta'] = self.sources / 'worker_request.hepta'
                 images = self.source_images(path / 'inputs', inputs)
-                self.assertEqual(self.invoke([builder, 'build'], images), (self.release / name).read_bytes())
+                installed = (self.release / name).read_bytes()
+                self.assertEqual(self.invoke([builder, 'build'], images), installed)
+                direct = _named_source_request({app + '.hepta': inputs[app + '.hepta'].read_bytes()}, tag=b'HIASRC01')
+                if name in CANONICAL:
+                    self.invoke([builder, 'build'], direct, refused=True)
+                else:
+                    self.assertEqual(self.invoke([builder, 'build'], direct), installed)
                 for rejected in (images[:-1], images + b'x', b'badmagic' + images[8:],
                                  images[:-1] + bytes((images[-1] ^ 1,))):
                     self.invoke([builder, 'build'], rejected, refused=True)
@@ -968,6 +976,10 @@ class InstalledSourceMemberTests(unittest.TestCase):
                     disguised = self.source_images(path / 'wrong-module', {
                         'evaluate_settlement.hepta': self.sources / 'evaluate_measurements.hepta'})
                     self.invoke([builder, 'build'], disguised, refused=True)
+                    other = (self.sources / 'evaluate_measurements.hepta').read_bytes()
+                    for alias in ('evaluate_settlement.hepta', 'evaluate_measurements.hepta'):
+                        wrong = _named_source_request({alias: other}, tag=b'HIASRC01')
+                        self.invoke([builder, 'build'], wrong, refused=True)
 
     def test_from_native_sources_against_every_installed_agent_stdio_role(self):
         from tools.build_hia_agent_read_page import JOURNAL_PACKER, JOURNAL_TRANSPORT, STDIO_PACKER, VARIANTS
