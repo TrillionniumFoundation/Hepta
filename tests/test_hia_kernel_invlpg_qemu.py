@@ -82,7 +82,7 @@ def build(root, name, native, macros):
     for offset in offsets:
         assert 1 <= offset and offset + 4 <= len(expected)
         assert expected[offset - 1] == 0xe8, "relocation not a direct call"
-        expected[offset:offset + 4] = b"\\0" * 4
+        expected[offset:offset + 4] = bytes(4)
 
     object_nm = invoke(["nm", "-n", str(p / "native.o")]).stdout.decode()
     linked_nm = invoke(["nm", "-n", str(p / "guest.elf")]).stdout.decode()
@@ -111,7 +111,7 @@ def build(root, name, native, macros):
         observed = bytearray(joined[start:start + len(expected)])
         for offset in offsets:
             assert observed[offset - 1] == 0xe8, "linked call opcode changed"
-            observed[offset:offset + 4] = b"\\0" * 4
+            observed[offset:offset + 4] = bytes(4)
         assert observed == expected, (
             f"HIA original text changed outside allowlisted abort relocs in {elf}: {name}")
         sections.append(joined)
