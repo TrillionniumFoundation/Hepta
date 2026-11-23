@@ -1246,6 +1246,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/wheel_record_row.hepta',
     'examples/hia_bootstrap/wheel_zip_directory.hepta',
     'examples/hia_bootstrap/wheel_inflate.hepta',
+    'examples/hia_bootstrap/wheel_zip_local.hepta',
     'tools/hia_continuation_guard_syscalls.S',
     'tools/build_hia_native_continuation.py',
     'tools/hia_continuation_pack_child.py',

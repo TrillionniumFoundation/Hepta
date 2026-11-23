@@ -303,6 +303,32 @@ class DefaultReleaseNativeTests(unittest.TestCase):
         with patch.object(ctypes, 'create_string_buffer', bounded), self.assertRaises(zipfile.BadZipFile):
             _inflate_wheel_member(image, encoded, 1 << 44)
 
+    def test_stored_and_deflated_members_use_checked_local_hia_extent(self):
+        import ctypes
+        import io
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from tools.build_hia_default_release import _wheel_member
+
+        folder = self.root / 'build' / 'wheel-record'
+        def image(name):
+            raw = (folder / (name + '.image.bin')).read_bytes()
+            digest = json.loads((folder / (name + '.receipt.json')).read_bytes())['produced_sha256']
+            return NativeHiaJsonImage(raw, digest)
+        images = (None, None, image('wheel_zip_directory'), image('wheel_inflate'), image('wheel_zip_local'))
+        workspace = ctypes.create_string_buffer(2048)
+        wire = io.BytesIO()
+        expected = {'payload/é': b'example' * 1024, 'empty': b''}
+        with zipfile.ZipFile(wire, 'w') as archive:
+            archive.writestr('payload/é', expected['payload/é'], compress_type=zipfile.ZIP_DEFLATED)
+            archive.writestr('empty', b'', compress_type=zipfile.ZIP_STORED)
+        with zipfile.ZipFile(wire) as archive, patch.object(zipfile.ZipFile, 'open', side_effect=AssertionError):
+            for name, raw in expected.items():
+                self.assertEqual(_wheel_member(archive, name, images, workspace), raw)
+        damaged = bytearray(wire.getvalue())
+        damaged[30] ^= 1
+        with zipfile.ZipFile(io.BytesIO(damaged)) as archive, self.assertRaises(zipfile.BadZipFile):
+            _wheel_member(archive, 'payload/é', images, workspace)
+
     def test_wheel_is_platform_specific_and_only_pin_is_derived_runtime_source(self):
         import csv
         import io

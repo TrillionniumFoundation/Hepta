@@ -225,7 +225,8 @@ def _wheel_record_images(directory, compiler, sources, cold_bytes):
     directory.mkdir(mode=0o700)
     images = []
     programs = (('sha256_stream', NativeSha256Stream), ('wheel_record_row', NativeHiaJsonImage),
-                ('wheel_zip_directory', NativeHiaJsonImage), ('wheel_inflate', NativeHiaJsonImage))
+                ('wheel_zip_directory', NativeHiaJsonImage), ('wheel_inflate', NativeHiaJsonImage),
+                ('wheel_zip_local', NativeHiaJsonImage))
     for name, image_type in programs:
         relative = 'examples/hia_bootstrap/' + name + '.hepta'
         path = ROOT / relative
@@ -297,14 +298,35 @@ def _inflate_wheel_member(image, compressed, size):
 
 
 def _wheel_member(archive, name, images, crc_workspace):
-    _, _, zipper, inflater = images
+    _, _, zipper, inflater, locator = images
     info = archive.getinfo(name)
-    if info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+    limit = getattr(info, '_end_offset', None)
+    # Preserve optional codec, encryption and duplicate-offset behavior of the supplied ZipFile.
+    if (info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED) or info.flag_bits & 0x61
+            or limit is None or limit == info.header_offset):
         return archive.read(info)
-    # ZipFile.open admits the original local name, flags and nonoverlapping extent.
-    # This private archive reader has a single owner for the duration of the build.
-    with archive.open(info):
-        compressed = archive.fp.read(info.compress_size)
+    stream = archive.fp
+    stream.seek(info.header_offset)
+    header = stream.read(30)
+    if len(header) != 30:
+        raise zipfile.BadZipFile('Truncated file header')
+    request = struct.pack('<8s3Q', b'HIAZLOC1', info.header_offset, info.compress_size, limit) + header
+    source = ctypes.create_string_buffer(request, len(request))
+    extent = ctypes.create_string_buffer(32)
+    status = locator._entry(source, len(request), extent, len(extent), None, 0)
+    if status == 2:
+        raise zipfile.BadZipFile('Bad magic number for file header')
+    if status == 3:
+        raise zipfile.BadZipFile('Overlapped entries: %r (possible zip bomb)' % info.orig_filename)
+    if status:
+        raise zipfile.BadZipFile('invalid HIA wheel local header')
+    flags, name_size, start, end = struct.unpack('<4Q', extent.raw)
+    filename = stream.read(name_size)
+    encoding = 'utf-8' if flags & 0x800 else archive.metadata_encoding or 'cp437'
+    if filename.decode(encoding) != info.orig_filename:
+        raise zipfile.BadZipFile('File name in directory %r and header %r differ.' % (info.orig_filename, filename))
+    stream.seek(start)
+    compressed = stream.read(end - start)
     if len(compressed) != info.compress_size:
         raise zipfile.BadZipFile('truncated wheel member')
     raw = compressed if info.compress_type == zipfile.ZIP_STORED else _inflate_wheel_member(
@@ -336,7 +358,7 @@ def _write_zip(stream, files, distribution, encoder):
 def _write_wheel(path, files, distribution, record_images):
     if os.path.lexists(path):
         raise FileExistsError(path)
-    hasher, encoder, zipper, _ = record_images
+    hasher, encoder, zipper = record_images[:3]
     record = distribution + '/RECORD'
     entries = bytearray()
     digests = {}
