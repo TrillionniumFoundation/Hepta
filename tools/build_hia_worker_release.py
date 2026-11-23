@@ -334,6 +334,21 @@ def _job_writer_has_supervisor_identity(writer):
     return True
 
 
+def _worker_prepare_has_owner_lock_admission(prepare):
+    for index, (phase, mode, uid, links, existing, expected) in enumerate((
+            (0, 0o100600, 1000, 1, 0, 1), (0, 0o100640, 1000, 1, 0, 0),
+            (0, 0o100600, 1001, 1, 0, 0), (0, 0o100600, 1000, 2, 0, 0),
+            (1, 0o100600, 1000, 1, 0, 1), (1, 0o100600, 1000, 1, 16, 0))):
+        frame = struct.pack('<8s6Q', b'HIAJLK01', phase, mode, uid, 1000, links, existing)
+        result = subprocess.run([prepare], input=frame, env={'PATH': ''}, capture_output=True, timeout=5)
+        observed = result.returncode, result.stdout, result.stderr
+        if index == 0 and observed == (2, b'', b''):
+            return False
+        if observed != (0, struct.pack('<8sQ', b'HIAJLR01', expected), b''):
+            raise ValueError('installed HIA owner lifetime lock admission is invalid')
+    return True
+
+
 def _worker_prepare_has_workdir_authority(prepare):
     root = b'/workdir/probe'
     for path, allowed in ((root + b'/nested', True), (root + b'-sibling', False)):
@@ -458,6 +473,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v18'
     if schema == 'hepta.hia.mcp.controller.v18' and _job_writer_has_supervisor_identity(receipt_writer):
         schema = 'hepta.hia.mcp.controller.v19'
+    if schema == 'hepta.hia.mcp.controller.v19' and _worker_prepare_has_owner_lock_admission(release / 'hia-worker-prepare'):
+        schema = 'hepta.hia.mcp.controller.v20'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

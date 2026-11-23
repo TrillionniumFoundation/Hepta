@@ -53,6 +53,8 @@ JOB_OWNER_INPUT = b'HIAJOQ01'
 JOB_OWNER_OUTPUT = b'HIAJOR01'
 JOB_OPERATION_INPUT = b'HIAJOP01'
 JOB_PENDING_INPUT = b'HIAJPN01'
+OWNER_LOCK_INPUT = b'HIAJLK01'
+OWNER_LOCK_OUTPUT = b'HIAJLR01'
 
 SOURCE = '''
 def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -98,6 +100,8 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return job_operation(s, o)
     if magic == JOB_PENDING_INPUT:
         return job_pending(s, o)
+    if magic == OWNER_LOCK_INPUT:
+        return owner_lock_admission(s, o)
     if n < 112 or magic != INPUT_MAGIC:
         return 4294967293
     if length(o) < 524552:
@@ -1202,6 +1206,7 @@ def source_program():
               .replace('DESCRIPTION_TAIL', str(int.from_bytes(b'b ', 'little')))
               .replace('JOB_OPERATION_INPUT', str(int.from_bytes(JOB_OPERATION_INPUT, 'little')))
               .replace('JOB_PENDING_INPUT', str(int.from_bytes(JOB_PENDING_INPUT, 'little')))
+              .replace('OWNER_LOCK_INPUT', str(int.from_bytes(OWNER_LOCK_INPUT, 'little')))
               .replace('NOT_FOUND_HEAD', str(int.from_bytes(b'not-foun', 'little')))
               .replace('ACTIVE_WORD', str(int.from_bytes(b'active', 'little')))
               .replace('EXITED_WORD', str(int.from_bytes(b'exited', 'little')))
@@ -1232,7 +1237,30 @@ def source_program():
             part = raw[start:start + 8]
             source += f'    at = append_word(o, at, {int.from_bytes(part, "little")}, {len(part)})\n'
         source += '    return at\n'
-    return source + worker_hash_program()
+    # Append the new owner entry after existing functions to keep their assembly identifiers stable.
+    owner_lock = """
+def owner_lock_admission(s:readbuf, o:mutbuf) -> u64:
+    if length(s) != 56 or length(o) < 16:
+        return 4294967293
+    phase = word_load(s, 8)
+    mode = word_load(s, 16)
+    file_uid = word_load(s, 24)
+    caller_uid = word_load(s, 32)
+    links = word_load(s, 40)
+    existing = word_load(s, 48)
+    if phase > 1 or mode > 65535 or file_uid > 4294967295 or caller_uid > 4294967295 or existing > 31:
+        return 4294967293
+    if phase == 0 and existing != 0:
+        return 4294967293
+    admitted = 0
+    if mode & 61440 == 32768 and mode & 63 == 0 and file_uid == caller_uid and links == 1 and existing == 0:
+        admitted = 1
+    word_store(o, 0, OWNER_LOCK_OUTPUT)
+    word_store(o, 8, admitted)
+    return 16
+"""
+    return source + worker_hash_program() + owner_lock.replace(
+        'OWNER_LOCK_OUTPUT', str(int.from_bytes(OWNER_LOCK_OUTPUT, 'little')))
 
 
 def document():
