@@ -151,14 +151,15 @@ def prepare_backend(root, backend, manifest):
         if manifest is not None:
             raise ValueError('VM does not claim a compiled native manifest')
         from hepta.hia_agent_assembly import assemble_program
-        from hepta.hia_program_runtime import _Machine, _Owner, _View
-        from hepta.hia_program_runtime_arithmetic import prepare_arithmetic_runtime
+        from hepta.hia_program_runtime import _Owner, _View
+        from tests.hia_independent_vm import IndependentMachine
+        from hepta.hia_program_runtime_prepared import prepare_runtime_program
         program = assemble_program(native.SOURCE.read_bytes())
-        program, machine_factory = prepare_arithmetic_runtime(program)
+        program = prepare_runtime_program(program)
         image = object.__new__(native.NativeSlotOperations)
         image.image_sha256 = 'INDEPENDENT_VM_NO_EXECUTABLE_MAPPING'
         image.admitted_source_sha256 = sha(regular_bytes(native.SOURCE))
-        entry = _VMEntry(program, machine_factory, _Owner, _View)
+        entry = _VMEntry(program, IndependentMachine, _Owner, _View)
         image._entry = entry
         authority = _VMSelection(image, native.SOURCE)
         admission = {'kind': 'INDEPENDENT_VM_COMPONENT_INJECTION',

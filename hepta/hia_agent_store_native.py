@@ -131,6 +131,15 @@ _SLOT_MOVE = _write_plan(2, _UPDATES, b'HIAUPB01')
 _LEASE_LOOKUP = _query_plan(8)
 _LEASE_RETAIN = _write_plan(4, _INSERTS, b'HIAINS01')
 _LEASE_RELEASE = _write_plan(3, _UPDATES, b'HIAUPB01')
+# The public ledger's fixed provider arguments identify these ten typed Store
+# effects. Return the same one-pass cursor shape to both database providers.
+_SLOT_CURSOR_PLANS = {
+    _SELECTS[9][0]: _SLOT_LOOKUP, _SELECTS[12][0]: _VERSION_LOOKUP,
+    _SELECTS[10][0]: _SLOT_LEASE_COUNT, _SELECTS[15][0]: _SLOT_GENERATIONS,
+    _SELECTS[7][0]: _LEASE_LOOKUP, _INSERTS[6][0]: _SLOT_CREATE,
+    _INSERTS[7][0]: _VERSION_RETAIN, _INSERTS[3][0]: _LEASE_RETAIN,
+    _UPDATES[1][0]: _SLOT_MOVE, _UPDATES[2][0]: _LEASE_RELEASE,
+}
 _STATEMENTS = {
     **{row[0]: _query_plan(i) for i, row in enumerate(_SELECTS, 1)},
     **{row[0]: _write_plan(i, _INSERTS, b'HIAINS01') for i, row in enumerate(_INSERTS, 1)},
@@ -837,6 +846,13 @@ class NativeStoreConnection:
 
     def cursor_retain(self, identity, artifact, digest, offset):
         self._typed_operation(_CURSOR_RETAIN, (identity, artifact, digest, offset))
+
+    def slot_cursor(self, statement, parameters):
+        plan = _SLOT_CURSOR_PLANS.get(statement) if type(statement) is str else None
+        if plan is not None:
+            return self._typed_operation(plan, parameters)
+        # The original public _execute also accepts other administrator statements.
+        return self.execute(statement, parameters)
 
     def slot_lookup(self, slot):
         return self._typed_operation(_SLOT_LOOKUP, (slot,)).fetchone()

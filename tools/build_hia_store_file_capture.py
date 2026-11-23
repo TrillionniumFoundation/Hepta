@@ -32,6 +32,7 @@ INPUTS = (
     'hepta/hia_program_runtime.py', 'hepta/hia_program_runtime_prepared.py',
     'tools/generate_hia_service_context.py', 'tools/generate_hia_selfhost.py',
     'tests/test_hia_store_file_capture_native.py', 'tests/hia_store_file_capture_oracle.py',
+    'tests/hia_independent_vm.py',
     'tests/hia_store_file_capture_observer.py', 'tests/hia_store_file_capture_controls.py',
     'tests/hia_store_file_capture_installed.py',
     'tests/fixtures/hia_store_file_capture_inputs_v1.json',

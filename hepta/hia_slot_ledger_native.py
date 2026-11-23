@@ -344,22 +344,8 @@ class NativeSlotLedgerStore:
 
     def _execute(self, connection, statement, parameters=()):
         if self.store.db is not connection:
-            _custody('slot operation lost its original Store connection')
+            _custody('slot operation lost its original SQLite connection')
         return connection.execute(statement, parameters)
-
-    def _effect(self, connection, operation, statement, parameters, *, read=None):
-        from .hia_agent_store_native import NativeStoreConnection
-
-        if isinstance(connection, NativeStoreConnection):
-            if self.store.db is not connection:
-                _custody('slot operation lost its original Store connection')
-            return getattr(connection, operation)(*parameters)
-        cursor = self._execute(connection, statement, parameters)
-        if read == 'row':
-            return cursor.fetchone()
-        if read == 'count':
-            return cursor.fetchone()[0]
-        return cursor
 
     def _call(self, opcode, fields=(), *, labels=(), state=None, **values):
         receipt = self.image.transition(request_packet(opcode, fields, **values), state)
@@ -368,14 +354,14 @@ class NativeSlotLedgerStore:
     def snapshot(self, slot):
         from .hia_agent_store import decode_data, wire
         db = self.store.db
-        row = self._effect(db, 'slot_lookup', 'SELECT * FROM slots WHERE name=?', (slot,), read='row')
+        row = self._execute(db, 'SELECT * FROM slots WHERE name=?', (slot,)).fetchone()
         if row is None:
             receipt = self._call(2)
         else:
-            version = self._effect(db, 'version_lookup', 'SELECT artifact FROM versions WHERE slot=? AND generation=?',
-                (slot, row['generation']), read='row')
-            count = self._effect(db, 'slot_lease_count', 'SELECT COUNT(*) FROM leases WHERE slot=? AND active=1',
-                (slot,), read='count')
+            version = self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',
+                (slot, row['generation'])).fetchone()
+            count = self._execute(db, 'SELECT COUNT(*) FROM leases WHERE slot=? AND active=1',
+                (slot,)).fetchone()[0]
             artifact = decode_data(version['artifact'])
             receipt = self._call(2, (_text(row['generation']), _text(row['epoch']),
                 _text(row['context_id']), wire(artifact)), flags=1, a=count)
@@ -446,29 +432,28 @@ class NativeSlotLedgerStore:
         active = snapshot['active_artifact'] is not None
         plan = self._call(12, flags=int(active))
         if plan.action == 1:
-            self._effect(db, 'slot_create', 'INSERT INTO slots VALUES (?,?,?,?,?)',
+            self._execute(db, 'INSERT INTO slots VALUES (?,?,?,?,?)',
                 (args['target_slot'], args['context']['id'], '0', '0', abi))
-            self._effect(db, 'version_retain', 'INSERT INTO versions VALUES (?,?,?)',
+            self._execute(db, 'INSERT INTO versions VALUES (?,?,?)',
                 (args['target_slot'], '0', wire(evaluation['baseline_artifact']).decode()))
         else:
-            current = self._effect(db, 'slot_lookup', 'SELECT * FROM slots WHERE name=?',
-                (args['target_slot'],), read='row')
+            current = self._execute(db, 'SELECT * FROM slots WHERE name=?',
+                (args['target_slot'],)).fetchone()
             self._call(4, (_text(current['abi_sha256']), _text(abi)))
             data, _metadata, _program = native(snapshot['active_artifact'])
             self._call(5, (_text(sha256(data).hexdigest()), _text(evaluation['baseline_artifact']['sha256'])))
         workspace, token = self._begin(snapshot['current']['epoch'])
         # Consume the original cursor row by row. SQL cannot truncate the stream
         # or cast u64 TEXT through SQLite's signed integer range.
-        cursor = self._effect(db, 'slot_generations', 'SELECT generation FROM versions WHERE slot=?',
-                              (args['target_slot'],))
+        cursor = self._execute(db, 'SELECT generation FROM versions WHERE slot=?', (args['target_slot'],))
         for row in cursor:
             self._call(8, (_decimal(row['generation']),), token=token, state=workspace,
                 labels=('generation',))
         final = self._call(9, token=token, state=workspace)
         current = {'generation': final.fields[0].decode('ascii'), 'epoch': final.fields[1].decode('ascii')}
-        self._effect(db, 'version_retain', 'INSERT INTO versions VALUES (?,?,?)',
+        self._execute(db, 'INSERT INTO versions VALUES (?,?,?)',
             (args['target_slot'], current['generation'], wire(args['candidate_artifact']).decode()))
-        self._effect(db, 'slot_move', 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',
+        self._execute(db, 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',
             (current['generation'], current['epoch'], args['context']['id'], args['target_slot']))
         return current
 
@@ -476,18 +461,18 @@ class NativeSlotLedgerStore:
         from .hia_agent_store import decode_data, digest
         db = self.store.db
         self._call(6, flags=int(snapshot['active_artifact'] is not None), a=1)
-        row = self._effect(db, 'version_lookup', 'SELECT artifact FROM versions WHERE slot=? AND generation=?',
-            (args['target_slot'], args['retained_generation']), read='row')
+        row = self._execute(db, 'SELECT artifact FROM versions WHERE slot=? AND generation=?',
+            (args['target_slot'], args['retained_generation'])).fetchone()
         self._call(10, flags=int(row is not None))
         artifact = decode_data(row['artifact'])
         _data, metadata, _program = native(artifact)
-        current_row = self._effect(db, 'slot_lookup', 'SELECT * FROM slots WHERE name=?',
-            (args['target_slot'],), read='row')
+        current_row = self._execute(db, 'SELECT * FROM slots WHERE name=?',
+            (args['target_slot'],)).fetchone()
         self._call(11, (_text(digest(metadata['signatures'])), _text(current_row['abi_sha256'])))
         workspace, token = self._begin(snapshot['current']['epoch'], args['retained_generation'])
         final = self._call(9, token=token, state=workspace)
         current = {'generation': final.fields[0].decode('ascii'), 'epoch': final.fields[1].decode('ascii')}
-        self._effect(db, 'slot_move', 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',
+        self._execute(db, 'UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?',
             (current['generation'], current['epoch'], args['context']['id'], args['target_slot']))
         return current, artifact
 
@@ -508,7 +493,7 @@ class NativeSlotLedgerStore:
                   _text(snapshot['current']['generation']), wire(snapshot['active_artifact']))
         result = self._call(15, fields, flags=1)
         lease = self._lease_value(result.fields)
-        self._effect(db, 'lease_retain', 'INSERT INTO leases VALUES (?,?,?,?,1)',
+        self._execute(db, 'INSERT INTO leases VALUES (?,?,?,?,1)',
             (lease['id'], lease['slot'], lease['generation'], result.fields[3].decode()))
         return lease
 
@@ -516,8 +501,7 @@ class NativeSlotLedgerStore:
         from .hia_agent_store import decode_data, keys, wire
         keys(lease, ('id', 'slot', 'generation', 'artifact'), label='generation lease')
         db = self.store.db if connection is None else connection
-        row = self._effect(db, 'lease_lookup', 'SELECT * FROM leases WHERE id=?',
-                           (lease['id'],), read='row')
+        row = self._execute(db, 'SELECT * FROM leases WHERE id=?', (lease['id'],)).fetchone()
         # HIA first preserves the original OR short-circuit: unknown, inactive
         # or mismatched keys must refuse before decoding the row's artifact.
         raw_fields = ((b'', b'', b'', b'') if row is None else
@@ -540,7 +524,7 @@ class NativeSlotLedgerStore:
     def release(self, lease):
         db = self.store.db
         frozen = self.lease(lease, release=True, connection=db)
-        self._effect(db, 'lease_release', 'UPDATE leases SET active=0 WHERE id=?', (frozen['id'],))
+        self._execute(db, 'UPDATE leases SET active=0 WHERE id=?', (frozen['id'],))
         return {'released': True, 'generation': frozen['generation'], 'artifact_retained': True}
 
 
@@ -548,6 +532,18 @@ class NativeSlotLedgerStore:
 # Actual runtime binding is explicit: no selector/scope returns the original
 # descriptor; a selected instance OR class call executes the HIA controller.
 # Qualifiers poison this declared reference table, not an unused alias.
+def _slot_execute(self, connection, statement, parameters=()):
+    if self.store.db is not connection:
+        _custody('slot operation lost its original Store connection')
+    native = sys.modules.get(__package__ + '.hia_agent_store_native')
+    if native is not None and issubclass(type(connection), native.NativeStoreConnection):
+        return connection.slot_cursor(statement, parameters)
+    return connection.execute(statement, parameters)
+
+
+_slot_execute.__qualname__ = NativeSlotLedgerStore._execute.__qualname__
+_slot_execute.__name__ = NativeSlotLedgerStore._execute.__name__
+NativeSlotLedgerStore._execute = _slot_execute
 from .hia_slot_operations_selection import install_slot_control_methods as _install_slot_control_methods
 _install_slot_control_methods(NativeSlotLedgerStore)
 del _install_slot_control_methods
