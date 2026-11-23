@@ -228,6 +228,36 @@ class InstalledSourceMemberTests(unittest.TestCase):
         release._stage_sqlite_units(self.work, seed, linker, compile_sources, call, admitted, publish)
         self.assertEqual(published, {'hia-' + unit for unit in (*UNITS, 'agent-artifact-capture', 'nominal-packet', 'sqlite-pager', PROJECTION)})
 
+    def test_read_carrier_rebuilds_all_four_native_flows(self):
+        from tools import build_hia_native_store_release as release
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+        from tools.generate_hia_worker_flow_packer import FLOW, PEERS, PORTS, PROGRAMS
+        from tools.generate_hia_worker_read_release import ADAPTER, ENTRIES, SOURCE
+
+        names = (FLOW, PEERS, PORTS, ADAPTER, SOURCE, *(PROGRAMS[role][1] for role in ENTRIES))
+        admitted = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in names}
+
+        def compile_sources(named):
+            paths = {name: self.sources / path for name, path in named.items()}
+            captured = {name: path.read_bytes() for name, path in paths.items()}
+            group = self.source_images(self.work / 'four-flows', paths)
+            return group, _compiled_sources(group, captured), captured
+
+        def call(program, mode, wire):
+            result = _run_captured(program, mode, wire, self.work)
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            return result.stdout
+
+        published = []
+        def publish(path, *, expected):
+            self.assertEqual(path.name, 'hia-agent-read-carrier')
+            self.assertEqual(path.read_bytes(), (self.release / path.name).read_bytes())
+            self.assertEqual(sha256(path.read_bytes()).hexdigest(), expected)
+            published.append(path.name)
+
+        release._stage_read_carrier(self.work, self.seed.read_bytes(), compile_sources, call, admitted, publish)
+        self.assertEqual(published, ['hia-agent-read-carrier'])
+
     def test_from_native_sources_against_every_installed_filter(self):
         for name in MEMBERS:
             with self.subTest(member=name):

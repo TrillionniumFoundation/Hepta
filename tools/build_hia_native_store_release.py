@@ -55,8 +55,7 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
             publish(output / name)
         publish(output / 'hia-worker-scalar-implementation')
 
-    for name in ('worker_read_release',
-                 'source_build',
+    for name in ('source_build',
                  'supplied_safe_core_proof',
                  'owned_reference_cli', 'nominal_constructor'):
         component(name)
@@ -125,6 +124,54 @@ def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
         image_path = work / image_name
         image_path.write_bytes(image)
         publish(image_path, expected=expected['image_sha256'])
+
+
+def _stage_read_carrier(work, seed, compile_sources, call, admitted, publish):
+    """Build each Read flow and bind the four position-independent entries in HIA."""
+    from tools.build_hia_agent_batch_commit import verify_placement
+    from tools.build_hia_worker_flow import _adapter_binding
+    from tools.generate_hia_native_filter import elf_header, read_adapter_binding, verify_adapter
+    from tools.generate_hia_worker_flow_packer import FLOW, PEERS, PEER_KINDS, PORTS, PROGRAMS
+    from tools.generate_hia_worker_read_release import ADAPTER, ENTRIES, SOURCE
+
+    def cold_source(name):
+        raw = (ROOT / name).read_bytes()
+        if sha256(raw).hexdigest() != admitted.get(name):
+            raise ValueError('native Read carrier dependency differs from cold admission: ' + name)
+        return raw
+
+    def builder(packer):
+        kit, _, _ = compile_sources({
+            'source_build_policy.hepta': 'source_read_carrier.hepta',
+            'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': Path(packer).name,
+        })
+        return call(seed, 'pack', kit)
+
+    source_names = [Path(PROGRAMS[role][0]).name for role in ENTRIES]
+    _, images, sources = compile_sources({name: name for name in source_names})
+    entries = []
+    bodies = {}
+    flow = {name: cold_source(name) for name in (FLOW, PORTS)}
+    for ordinal, (role, name) in enumerate(zip(ENTRIES, source_names, strict=True), 1):
+        _, packer = PROGRAMS[role]
+        source = sources[name]
+        request = struct.pack('<8sQQ', b'HIARDIN1', ordinal, len(source)) + source
+        elf = call(builder(packer), 'build', request)
+        dependencies = {**flow, packer: cold_source(packer)}
+        if role in PEER_KINDS:
+            dependencies[PEERS] = cold_source(PEERS)
+        binding = _adapter_binding(dependencies, role, packer)
+        verify_adapter(elf, images[name], binding, entries=(0,))
+        entries.extend((source, elf))
+        bodies[role] = elf[len(elf_header()):]
+
+    request = struct.pack('<8s8Q', b'HIARDLK1', *map(len, entries)) + b''.join(entries)
+    carrier = call(builder(SOURCE), 'build', request)
+    binding = read_adapter_binding(cold_source(SOURCE), cold_source(ADAPTER), calls=len(ENTRIES))
+    verify_placement(carrier, binding, bodies, instructions=(b'\xe9',) * len(ENTRIES))
+    path = work / 'hia-agent-read-carrier'
+    path.write_bytes(carrier)
+    publish(path, expected=sha256(carrier).hexdigest())
 
 
 def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, publish):
@@ -477,6 +524,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
 
     _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
+    _stage_read_carrier(work, seed, compile_sources, call, admitted, publish)
     return _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
 
 
