@@ -321,7 +321,7 @@ def _direct_reference_program(artifact_bytes, cases, exports, *, owned=False):
     from .hia_opcodes import RESOURCES
     from .hia_program import scalar_value_valid, verify_program
     from .hia_program_tools import decode_json
-    from .hia_scalar_reference_wire import MAX_PACKET_BYTES, program_wire
+    from .hia_scalar_reference_wire import MAX_PACKET_BYTES, selected_program_wire
     try:
         program = verify_program(decode_json(artifact_bytes))
         functions = {fn['name']: fn for fn in program.as_dict()['functions']}
@@ -346,7 +346,7 @@ def _direct_reference_program(artifact_bytes, cases, exports, *, owned=False):
             elif len(kinds) != len(arguments) or not all(
                     scalar_value_valid(value, kind) for kind, value in zip(kinds, arguments)):
                 return None
-            packed = program_wire(program.canonical_bytes, name, allow_resources=True)
+            packed = selected_program_wire(program.canonical_bytes, name, allow_resources=True)
             if packed is None:
                 return None
             if packed[4] or loans:

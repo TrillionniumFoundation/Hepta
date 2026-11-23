@@ -218,6 +218,7 @@ CANDIDATES = {
     'elf-shared-linker': ('elf_shared_linker', 'elf-shared-linker'),
     'elf-direct-shared-linker-filter': ('direct_shared_linker_filter_packer', 'elf-direct-shared-linker-filter'),
     'elf-verified-linker': ('elf_verified_linker', 'elf-verified-linker'),
+    'evaluate-reference-wire': ('evaluate_reference_wire', 'evaluate-reference-wire'),
     'scalar-reference': ('scalar_reference', 'scalar-reference'),
     'scalar-symbolic': ('scalar_symbolic', 'scalar-symbolic'),
     'cnf': ('cnf', 'cnf'),
@@ -352,7 +353,7 @@ def main():
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
                                  'elf-verified-linker',
-                                 'scalar-reference', 'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
+                                 'evaluate-reference-wire', 'scalar-reference', 'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
                                  'safe-core-elf-inventory', 'core-proof-wire', 'worker-prepare'))
     args = parser.parse_args()
     path = build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),

@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from functools import lru_cache
 import json
+import os
 import struct
 
 from .hia_opcodes import RESOURCES, SCALARS, WIDTHS, opcode_spec
@@ -242,3 +243,22 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
     if len(output) > MAX_PACKET_BYTES or max_regs + max_arguments > MAX_FRAME_WORDS:
         return None
     return bytes(output), max_regs, max_arguments, tuple(functions[entry]['returns']), resource_sites
+
+
+
+def selected_program_wire(canonical: bytes, entry: str, *, allow_resources=False):
+    """Use the selected HIA scalar projector before the resource-capable encoder."""
+    manifest = os.environ.get('HEPTA_HIA_EVALUATE_REFERENCE_WIRE_MANIFEST')
+    if manifest is not None:
+        from .hia_evaluate_reference_wire_native import NativeEvaluateReferenceWire, SCHEMA, SOURCE
+        from .hia_json_preflight_native import _installed_json_image
+        try:
+            selected = _installed_json_image(manifest, SOURCE, SCHEMA, NativeEvaluateReferenceWire)
+            projected = selected.project(canonical, entry)
+        except (ValueError, OSError) as error:
+            # Runner input refusal is recoverable. A selected helper that lost its
+            # identity or returned a malformed packet must stop that request.
+            raise RuntimeError('invalid selected HIA Evaluate reference projector') from error
+        if projected is not None:
+            return projected
+    return program_wire(canonical, entry, allow_resources=allow_resources)

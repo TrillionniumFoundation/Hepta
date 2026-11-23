@@ -299,12 +299,12 @@ class NativeScalarReference(NativeHiaJsonImage):
         from .hia_program_runtime import HIAProgramBudgetExceeded, _ReferenceResources
         from .hia_scalar_reference_wire import (
             MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
-            program_wire, resource_request,
+            resource_request, selected_program_wire,
         )
 
         standalone = _STANDALONE.get()
         isolated = getattr(standalone, 'direct_only', False)
-        compiled = program_wire(canonical, function, allow_resources=machine is not None)
+        compiled = selected_program_wire(canonical, function, allow_resources=machine is not None)
         if compiled is None or len(compiled[0]) + 8*len(arguments) > MAX_PACKET_BYTES:
             if isolated:
                 raise RuntimeError('admitted isolated reference lost its scalar wire')
