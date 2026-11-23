@@ -207,6 +207,34 @@ def _verify_terminal_publisher(writer, scratch):
             raise ValueError('installed HIA terminal publisher did not preserve the complete witness bytes')
 
 
+def _job_writer_has_owner_file_lock(writer, scratch):
+    import fcntl
+
+    with TemporaryDirectory(prefix='owner-file-lock-', dir=scratch) as temp:
+        path = Path(temp) / 'owner.lock'
+        with path.open('x+b') as owner, path.open('r+b') as independent:
+            path.chmod(0o600)
+            state = os.fstat(owner.fileno())
+            frame = struct.pack('<8s4Q', b'HIAJLF01', os.getpid(), state.st_dev, state.st_ino, 0)
+            with _sealed_frame(frame) as source:
+                response = subprocess.run([writer], stdin=source, stdout=owner, stderr=subprocess.PIPE,
+                                          env={'PATH': ''}, timeout=5)
+            if (response.returncode, response.stderr) == (65, b''):
+                return False
+            expected = (0, struct.pack('<8sQq', b'HIAJRW01', 2, 0))
+            if (response.returncode, response.stderr) != expected:
+                raise ValueError('installed HIA lifetime lock has no successful kernel receipt')
+            try:
+                fcntl.flock(independent, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                pass
+            else:
+                raise ValueError('installed HIA lifetime lock did not survive writer exit')
+        with path.open('r+b') as successor:
+            fcntl.flock(successor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    return True
+
+
 def _job_writer_has_owner_publication(writer, scratch):
     raw = b'{"supervisor_pid": 17}'
     frame = struct.pack('<8s3Q', b'HIAJRO01', len(raw), os.getpid(), 0) + raw
@@ -503,6 +531,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v20'
     if schema == 'hepta.hia.mcp.controller.v20' and _worker_prepare_has_owner_record(release / 'hia-worker-prepare'):
         schema = 'hepta.hia.mcp.controller.v21'
+    if schema == 'hepta.hia.mcp.controller.v21' and _job_writer_has_owner_file_lock(receipt_writer, scratch):
+        schema = 'hepta.hia.mcp.controller.v22'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}
