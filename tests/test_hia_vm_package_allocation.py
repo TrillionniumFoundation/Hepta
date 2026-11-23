@@ -7,11 +7,13 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 
+from tests.hia_distribution_fixture import VM_EXECUTION_ROUTES
+
 from tests.test_hia_program import b, c, f, i, m, ret
 
 
 INSTALLED = os.environ.get('HEPTA_HIA_TEST_INSTALLED_ALLOCATION_SITE')
-CHECK = '''
+CHECK = VM_EXECUTION_ROUTES + '''
 import json
 from pathlib import Path
 import sys
@@ -43,14 +45,22 @@ with patch.object(NativeScalarReference, 'allocation', observed), patch.object(v
         except (vm.HIAProgramTrap, vm.HIAProgramBudgetExceeded) as error:
             return error.report
 
-    for name in ('new', 'try_new'):
-        assert run(name, 0, 0, 1)['values'] == [0, True]
-        assert run(name, 2, 2, 1 << 70)['values'] == [2, True]
-        assert run(name, 2, 1, 1)['status'] == 'budget_exceeded'
-    for n, budget, fail_at in ((2, 2, 1), (1 << 63, 0, 1)):
-        assert run('new', n, budget, fail_at)['status'] == 'trapped'
-        refused = run('try_new', n, budget, fail_at)
-        assert refused['values'] == [0, False] and refused['resources']['live_owners'] == 0
+    def collect(check_primitive):
+        reports = []
+        def capture(*args):
+            result = run(*args)
+            reports.append(result)
+            return result
+        for name in ('new', 'try_new'):
+            assert capture(name, 0, 0, 1)['values'] == [0, True]
+            assert capture(name, 2, 2, 1 << 70)['values'] == [2, True]
+            assert capture(name, 2, 1, 1)['status'] == 'budget_exceeded'
+        for n, budget, fail_at in ((2, 2, 1), (1 << 63, 0, 1)):
+            assert capture('new', n, budget, fail_at)['status'] == 'trapped'
+            refused = capture('try_new', n, budget, fail_at)
+            assert refused['values'] == [0, False] and refused['resources']['live_owners'] == 0
+        return reports
+    compare_vm_routes(collect)
 assert decisions == [('empty', 0), ('allocate', 1), ('heap-budget', 0)] * 2 + [('injected', 1)] * 2 + [('object-model', 0)] * 2, decisions
 '''
 

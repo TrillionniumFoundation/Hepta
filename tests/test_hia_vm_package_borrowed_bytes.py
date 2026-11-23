@@ -7,11 +7,13 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 
+from tests.hia_distribution_fixture import VM_EXECUTION_ROUTES
+
 from tools.hia_word_memory_cases import owned_program
 
 
 INSTALLED = os.environ.get('HEPTA_HIA_TEST_INSTALLED_BORROWED_SITE')
-PROBE = '''
+PROBE = VM_EXECUTION_ROUTES + '''
 from collections import Counter
 import ctypes
 import json
@@ -36,8 +38,8 @@ def observed(image, name, owner, **arguments):
     seen[name] += 1
     return actual(image, name, owner, **arguments)
 
-rows = []
-def run():
+def run(check_primitive):
+    rows = []
     verified = vm.verify_program(program)
     for name in ('load_le', 'load_be', 'store_le', 'store_be'):
         for n, at, value, probe in (
@@ -50,10 +52,11 @@ def run():
             except vm.HIAProgramTrap as error:
                 report = error.report
             rows.append(report)
+    return rows
 
 if mode == 'native':
     with patch.object(NativeScalarReference, 'package_byte_operation', observed):
-        run()
+        rows = compare_vm_routes(run)
     assert set(seen) == {'load', 'store', 'load.u64.le', 'load.u64.be', 'store.u64.le', 'store.u64.be'}, seen
     assert seen['store'] == 4 * 67
     image = default_integer_image()
@@ -67,7 +70,7 @@ if mode == 'native':
         else:
             raise AssertionError(name)
 else:
-    run()
+    rows = run(False)
 Path(sys.argv[4]).write_text(json.dumps({'reports': rows, 'calls': dict(seen)}))
 '''
 

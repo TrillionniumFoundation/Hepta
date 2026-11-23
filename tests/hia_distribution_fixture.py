@@ -64,7 +64,7 @@ def derived_python_pin(archive):
         digest('hepta/' + PROOF_BUNDLE_RESOURCE), digest('hepta/' + CLI_BUNDLE_RESOURCE),
         digest('hepta/' + BINDER_RESOURCE),
     )
-    from hepta.hia_default_native import INTEGER_BUNDLE_RESOURCE, LEDGER_BUNDLE_RESOURCE
+    from hepta.hia_default_native import INTEGER_BUNDLE_RESOURCE, LEDGER_BUNDLE_RESOURCE, GRAPH_BUNDLE_RESOURCE, OWNED_VM_RESOURCE
     integer_bundle = 'hepta/' + INTEGER_BUNDLE_RESOURCE
     if integer_bundle in archive.namelist():
         values += (digest(integer_bundle),)
@@ -73,6 +73,11 @@ def derived_python_pin(archive):
         if integer_bundle not in archive.namelist():
             raise ValueError('the installed ledger bundle has no scalar predecessor')
         values += (digest(ledger_bundle),)
+    graph_bundle, owned = 'hepta/' + GRAPH_BUNDLE_RESOURCE, 'hepta/' + OWNED_VM_RESOURCE
+    if graph_bundle in archive.namelist() or owned in archive.namelist():
+        if ledger_bundle not in archive.namelist():
+            raise ValueError('the installed graph owners have no execution-ledger predecessor')
+        values += (digest(graph_bundle), digest(owned))
     if provenance.get('derived_pin_resource') is not None:
         resource = PACKAGE_DIRECTORY + '/pin.json'
         data = (json.dumps(values, ensure_ascii=True, separators=(',', ':')) + '\n').encode('ascii')
@@ -158,3 +163,26 @@ def ordinary_wheel(source, python=None):
         _check_wheel(path, sources)
         _cache[key] = (path, sha256(path.read_bytes()).hexdigest())
         return path
+
+
+# Inject into isolated installed-Python probes, which deliberately have no tests on sys.path.
+VM_EXECUTION_ROUTES = """
+def compare_vm_routes(collect):
+    import os
+    from unittest.mock import patch
+    from hepta import hia_default_native as default, hia_program_runtime as vm
+
+    factory = getattr(default, 'default_reference_graph', None)
+    projector = factory() if factory is not None else None
+    if projector is None:
+        return collect(True)
+    # Observe the unrestricted public call and its existing operation-level route.
+    with patch.object(vm._Machine, 'invoke', side_effect=AssertionError('installed graph used host dispatch')):
+        graph_reports = collect(False)
+    selector, _ = default.GRAPH_OWNER
+    manifest = projector._default_package_binding.selections[selector]
+    with patch.dict(os.environ, {selector: str(manifest)}):
+        operation_reports = collect(True)
+    assert operation_reports == graph_reports
+    return graph_reports
+"""

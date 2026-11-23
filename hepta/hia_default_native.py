@@ -18,6 +18,9 @@ INTEGER_BUNDLE_RESOURCE = '_data/native/default/full_cost/integer-bundle.json'
 INTEGER_OWNER = ('HEPTA_HIA_SCALAR_REFERENCE_MANIFEST', 'scalar-reference')
 LEDGER_BUNDLE_RESOURCE = '_data/native/default/full_cost/ledger-bundle.json'
 LEDGER_OWNER = ('HEPTA_HIA_EXECUTION_LEDGER_MANIFEST', 'execution-ledger')
+GRAPH_BUNDLE_RESOURCE = '_data/native/default/full_cost/reference-graph-bundle.json'
+GRAPH_OWNER = ('HEPTA_HIA_EVALUATE_REFERENCE_WIRE_MANIFEST', 'evaluate-reference-wire')
+OWNED_VM_RESOURCE = '_data/native/default/full_cost/hia-owned-reference-wire'
 PROOF_BUNDLE_RESOURCE = '_data/native/default/full_cost/proof-bundle.json'
 BINDER_RESOURCE = '_data/native/default/full_cost/hia-safe-core-bind'
 CLI_BUNDLE_RESOURCE = '_data/native/default/cli/manifest.json'
@@ -56,7 +59,7 @@ def _verify_data_resources(directory, value):
 
     from .hia_native_helpers import _read
 
-    if len(value) not in ((10, 11, 12) if value[4] == SCOPES[0] else (7,)):
+    if len(value) not in ((10, 11, 12, 14) if value[4] == SCOPES[0] else (7,)):
         raise ValueError('incomplete native-default data pin')
     contract_name = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
     contract = _read(directory / '_data' / contract_name, 4 << 20)
@@ -74,6 +77,8 @@ def _verify_data_resources(directory, value):
         resources.append((INTEGER_BUNDLE_RESOURCE, value[10]))
     if len(value) >= 12:
         resources.append((LEDGER_BUNDLE_RESOURCE, value[11]))
+    if len(value) == 14:
+        resources.extend(((GRAPH_BUNDLE_RESOURCE, value[12]), (OWNED_VM_RESOURCE, value[13])))
     for path, expected in resources:
         raw = _read(directory / path, 16 << 20).raw
         if sha256(raw).hexdigest() != expected:
@@ -158,7 +163,7 @@ def _capture_package():
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
             raise ValueError('portable native-default pin bytes changed')
         return None
-    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12)
+    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12, 14)
             or any(type(item) is not str for item in value)
             or value[:3] != (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE)
             or value[4] not in SCOPES
@@ -257,7 +262,12 @@ def default_execution_ledger_image():
     return _default_vm_image(LEDGER_OWNER, LEDGER_BUNDLE_RESOURCE, 11)
 
 
-def _default_vm_image(owner, resource, pin_index):
+def default_reference_graph():
+    """Select the cold graph projector and its independently compiled resource VM."""
+    return _default_vm_image(GRAPH_OWNER, GRAPH_BUNDLE_RESOURCE, 12, owned_vm=True)
+
+
+def _default_vm_image(owner, resource, pin_index, *, owned_vm=False):
     from . import hia_native_helpers as helpers
 
     helpers._check_scope_owner()
@@ -276,6 +286,14 @@ def _default_vm_image(owner, resource, pin_index):
     binding.snapshots.extend(pins)
     binding.check_files()
     image, = binding.images.values()
+    if owned_vm:
+        from hashlib import sha256
+        executable = helpers._read(directory / OWNED_VM_RESOURCE, 16 << 20)
+        if sha256(executable.raw).hexdigest() != value[13]:
+            raise ValueError('resource VM differs from its installed source-bound identity')
+        binding.snapshots.append((executable, 16 << 20))
+        image._default_owned_vm = executable.raw, value[13]
+        binding.check_files()
     binding.images.clear()
     image._default_package_binding = binding
     return image

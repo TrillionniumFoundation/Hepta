@@ -284,7 +284,7 @@ def _stage_safe_proof(work, seed, compile_sources, call, admitted, publish):
     publish(path, expected=sha256(product).hexdigest())
 
 
-def _stage_owned_reference(work, seed, compile_sources, call, compiler, admitted, publish):
+def source_owned_reference(seed, compile_sources, call, compiler, admitted):
     """Link a native compiler that reports the private executor entry for this source."""
     from tools.generate_hia_native_filter import elf_header, read_adapter_binding, verify_adapter
     from tools.generate_hia_owned_reference import ADAPTER_PATH, PACKER_PATH, SOURCE_PATH
@@ -320,6 +320,11 @@ def _stage_owned_reference(work, seed, compile_sources, call, compiler, admitted
     if entry < 0 or images[owned][entry:entry + 4] != bytes.fromhex('554889e5'):
         raise ValueError('owned reference private entry lacks the compiled function prologue')
     verify_adapter(product, images[owned], binding, entries=(0, entry))
+    return product
+
+
+def _stage_owned_reference(work, seed, compile_sources, call, compiler, admitted, publish):
+    product = source_owned_reference(seed, compile_sources, call, compiler, admitted)
     path = work / 'hia-owned-reference-wire'
     path.write_bytes(product)
     publish(path, expected=sha256(product).hexdigest())

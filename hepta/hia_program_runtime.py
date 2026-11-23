@@ -621,10 +621,15 @@ class _Machine:
         return value
 
     def execute(self, fn, arguments):
+        result = None
         native = self.scalar_reference
-        result = (None if native is None else
-                  native.program(self.program.canonical_bytes, fn["name"], arguments,
-                                 self.max_steps, self.max_call_depth, machine=self))
+        if native is not None:
+            result = native.program(self.program.canonical_bytes, fn["name"], arguments,
+                                    self.max_steps, self.max_call_depth, machine=self)
+        elif type(self) is _Machine:
+            package = self.package_scalar_reference()
+            if package is not None:
+                result = package.package_program(self, fn["name"], arguments)
         if result is None:
             return self.invoke(fn, arguments)
         self.steps, values, error = result
@@ -677,9 +682,9 @@ class _Machine:
 class _ReferenceResources:
     """Transport physical memory effects for HIA's resource arenas."""
 
-    def __init__(self, machine):
+    def __init__(self, machine, native):
         self.machine = proxy(machine)
-        self.native = machine.scalar_reference
+        self.native = native
         self.loans = bytearray(24 * 17)
         self.chains = bytearray(40 * 17)
         self.owners = bytearray(OWNER_RECORD_BYTES * 17)

@@ -345,17 +345,39 @@ class NativeScalarReference(NativeHiaJsonImage):
             return bool(result)
         return result - (1 << 64) if typ.startswith('i') and result >> 63 else result
 
+    def package_program(self, machine, function, arguments):
+        from .hia_bounded_memory_native import SELECTOR as bounded_selector
+        from .hia_default_native import default_reference_graph
+
+        projector = default_reference_graph()
+        if projector is None:
+            return None
+        binding = projector._default_package_binding
+        with self.package_custody():
+            binding.check_files()
+            try:
+                # A selected bounded-memory helper owns mutations through its original VM path.
+                compiled = projector.project(machine.program.canonical_bytes, function,
+                                             allow_resources=bounded_selector not in os.environ)
+                if compiled is None:
+                    return None
+                return self._projected_program(compiled, function, arguments, machine.max_steps,
+                                               machine.max_call_depth, machine, projector._default_owned_vm)
+            finally:
+                binding.check_files()
+
     def program(self, canonical, function, arguments, max_steps, max_call_depth, *, machine=None):
+        from .hia_scalar_reference_wire import selected_program_wire
+        compiled = selected_program_wire(canonical, function, allow_resources=machine is not None)
+        return self._projected_program(compiled, function, arguments, max_steps, max_call_depth, machine)
+
+    def _projected_program(self, compiled, function, arguments, max_steps, max_call_depth, machine, owned_vm=None):
         from .hia_opcodes import OWNERS, RESOURCES
         from .hia_program_runtime import HIAProgramBudgetExceeded, _ReferenceResources
-        from .hia_scalar_reference_wire import (
-            MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC,
-            resource_request, selected_program_wire,
-        )
+        from .hia_scalar_reference_wire import MAX_PACKET_BYTES, PROGRAM_MAGIC, PROGRAM_RESULT, RESOURCE_PROGRAM_MAGIC, resource_request
 
         standalone = _STANDALONE.get()
         isolated = getattr(standalone, 'direct_only', False)
-        compiled = selected_program_wire(canonical, function, allow_resources=machine is not None)
         if compiled is None or len(compiled[0]) + 8*len(arguments) > MAX_PACKET_BYTES:
             if isolated:
                 raise RuntimeError('admitted isolated reference lost its scalar wire')
@@ -365,18 +387,25 @@ class NativeScalarReference(NativeHiaJsonImage):
                  if machine is not None else ())
         needs_resources = resource_sites or any(kind in RESOURCES for kind in kinds)
         owned = _OWNED.get()
-        if (machine is not None and owned is not None
+        if (machine is not None and (owned is not None or owned_vm is not None)
                 and needs_resources
                 and not any(kind in OWNERS for kind in kinds)
                 and not any(kind in RESOURCES for kind in returns)):
             header = struct.pack('<8Q', RESOURCE_PROGRAM_MAGIC, max_steps, max_call_depth,
                                  registers, bounce, len(body), len(arguments), len(returns))
-            suffix, external = self._owned_arguments(kinds, arguments, machine)
-            if len(body) + len(suffix) <= MAX_PACKET_BYTES:
-                return self._owned_result(owned.run(header + body[64:] + suffix), machine, returns, external)
+            suffix, external = self._owned_arguments(kinds, arguments, machine, MAX_PACKET_BYTES - len(body))
+            if suffix is not None:
+                packet = header + body[64:] + suffix
+                if owned is not None:
+                    output = owned.run(packet)
+                else:
+                    raw, digest = owned_vm
+                    with sealed_reference_bytes(raw) as fd:
+                        output = _StandaloneReference(fd, digest, allow_space=True).run(packet)
+                return self._owned_result(output, machine, returns, external)
         if isolated and needs_resources:
             raise RuntimeError('isolated reference cannot request hosted resources')
-        resources = _ReferenceResources(machine) if needs_resources else None
+        resources = _ReferenceResources(machine, self) if needs_resources else None
         magic = RESOURCE_PROGRAM_MAGIC if resource_sites else PROGRAM_MAGIC
         header = struct.pack('<8Q', magic, max_steps, max_call_depth,
                              registers, bounce, len(body), len(arguments), len(returns))
@@ -442,7 +471,7 @@ class NativeScalarReference(NativeHiaJsonImage):
         return self._program_result(output, size, status, steps, typ, returns)
 
     @staticmethod
-    def _owned_arguments(kinds, arguments, machine):
+    def _owned_arguments(kinds, arguments, machine, capacity):
         from .hia_program_runtime import HIAProgramRejected, _Owner, _View
 
         words, records, external = [], [], []
@@ -460,6 +489,12 @@ class NativeScalarReference(NativeHiaJsonImage):
             external.append((value.parent.data, mutable))
         if len({id(data) for data, _ in external}) != len(external):
             raise HIAProgramRejected('non-distinct external runtime views', 'E_HIA_RUNTIME_INVARIANT')
+        # Check the transport extent before copying any caller-owned view into it.
+        needed = 8 * (len(words) + 2)
+        if external:
+            needed += 8 * (1 + len(records)) + sum(len(data) for data, _ in external)
+        if needed > capacity:
+            return None, external
         failure = machine.allocation_fail_at or 0
         if failure > machine.max_steps:
             failure = 0

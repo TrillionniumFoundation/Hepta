@@ -1049,6 +1049,10 @@ assert not blocked.intersection(sys.modules)
             if 'hepta/_data/' + full + 'ledger-bundle.json' in z.namelist():
                 native.update((full + 'ledger-bundle.json', full + 'execution-ledger/manifest.json',
                                full + 'execution-ledger/execution-ledger.image.bin'))
+            if 'hepta/_data/' + full + 'reference-graph-bundle.json' in z.namelist():
+                native.update((full + 'reference-graph-bundle.json', full + 'hia-owned-reference-wire',
+                               full + 'evaluate-reference-wire/manifest.json',
+                               full + 'evaluate-reference-wire/evaluate-reference-wire.image.bin'))
             provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))
             if 'derived_pin_resource' in provenance:
                 self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')
@@ -1115,7 +1119,8 @@ assert not blocked.intersection(sys.modules)
         for typ in ('bool', 'i64', 'unit'):
             scalar('select', ('bool', typ, typ), typ)
         self.assertEqual({row[0] for row in rows}, set(OPCODES))
-        script = """import json, sys
+        from tests.hia_distribution_fixture import VM_EXECUTION_ROUTES
+        script = VM_EXECUTION_ROUTES + """import json, sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
 from hepta.hia_program import execute_program
@@ -1127,10 +1132,17 @@ def observed(image, operation, typ, values):
     seen.append(operation)
     return original(image, operation, typ, values)
 NativeScalarReference.operation = observed
-for operation, program, entry, arguments, expected in json.load(sys.stdin):
-    assert execute_program(program, entry, arguments) == expected
-    assert seen == [operation], seen
-    seen.clear()
+inputs = json.load(sys.stdin)
+def collect(check_primitive):
+    reports = []
+    for operation, program, entry, arguments, expected in inputs:
+        report = execute_program(program, entry, arguments)
+        assert report == expected
+        assert seen == ([operation] if check_primitive else []), seen
+        seen.clear()
+        reports.append(report)
+    return reports
+compare_vm_routes(collect)
 """
         environment = {name: value for name, value in os.environ.items()
                        if not name.startswith(('HEPTA_HIA_', 'PYTHON'))}

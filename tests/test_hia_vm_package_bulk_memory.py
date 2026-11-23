@@ -7,6 +7,8 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 
+from tests.hia_distribution_fixture import VM_EXECUTION_ROUTES
+
 from tests.test_hia_bulk_memory import bulk_program
 from tests.test_hia_offset_copy_v5 import copy_program
 from tests.test_hia_overlap_move import move_program
@@ -34,7 +36,7 @@ def inventory():
     }
 
 
-PROBE = '''
+PROBE = VM_EXECUTION_ROUTES + '''
 from collections import Counter
 from contextlib import nullcontext
 import json
@@ -52,7 +54,6 @@ from hepta.hia_scalar_reference_native import NativeScalarReference
 assert Path(vm.__file__).resolve().is_relative_to(site)
 domains = json.loads(Path(sys.argv[2]).read_bytes())
 counts = Counter()
-rows = {}
 mode = sys.argv[3]
 def observed(image, name, destination, **options):
     assert image._default_package_binding
@@ -64,7 +65,8 @@ if mode == 'native':
     scope = patch.object(NativeScalarReference, 'package_byte_operation', observed)
 else:
     scope = nullcontext()
-with scope:
+def collect(check_primitive):
+    rows = {}
     for name, (document, cases) in domains.items():
         verified = vm.verify_program(document)
         reports = []
@@ -75,6 +77,10 @@ with scope:
                 report = error.report
             reports.append(report)
         rows[name] = reports
+    return rows
+
+with scope:
+    rows = compare_vm_routes(collect) if mode == 'native' else collect(False)
 
 if mode == 'native':
     assert all(counts[label] for label in ('fill', 'copy', 'move', 'copy_range', 'swap')), counts
