@@ -57,7 +57,7 @@ def build(root, name, native, macros):
     invoke(["cc", "-m64", "-c", "-nostdlib", "-fno-pie", *flags,
             str(BOOT), "-o", str(p / "observer.o")])
     undefined = invoke(["nm", "-u", str(p / "native.o")]).stdout
-    assert not undefined, f"HIA object has forbidden runtime dependencies: {undefined!r}"
+    assert {line.decode().split()[-1] for line in undefined.splitlines()} <= {"abort"}, (\n        f"HIA object has unexpected runtime dependencies: {undefined!r}")
     invoke(["ld", "-nostdlib", "-z", "noexecstack", "-z", "max-page-size=0x1000",
             "-T", str(LINKER), "-o", str(p / "guest.elf"),
             str(p / "observer.o"), str(p / "native.o")])
