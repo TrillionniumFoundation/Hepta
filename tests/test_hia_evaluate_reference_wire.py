@@ -1,4 +1,4 @@
-"""Compare the Evaluate HIA projector against the independent scalar wire encoder."""
+"""Compare the Evaluate HIA projector against the independent scalar and resource wire encoder."""
 
 import ctypes
 from hashlib import sha256
@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 import struct
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -13,7 +15,7 @@ from unittest.mock import patch
 from hepta import hia_scalar_reference_wire as scalar_wire
 from hepta.hia_evaluate_reference_wire_native import NativeEvaluateReferenceWire, SCHEMA, SELECTOR
 from hepta.hia_native_helpers import native_helpers_scope
-from hepta.hia_program import integer_range, verify_program
+from hepta.hia_program import SCHEMA_V8, integer_range, verify_program
 from hepta.hia_scalar_reference_native import OPCODES
 from hepta.hia_scalar_reference_wire import MAX_PACKET_BYTES, TYPES, program_wire
 from tests.test_hia_program import arithmetic, b, branch, c, f, i, jump, m, ret
@@ -173,7 +175,7 @@ class EvaluateReferenceWireTests(unittest.TestCase):
         unused = f("unused", borrowed, [], [], [b("start", borrowed, [], ret())])
         self.compare(m(unused), "unused")
 
-    def test_pinned_worker_selects_native_and_preserves_resource_encoder(self):
+    def test_pinned_worker_selects_native_scalar_and_resource_encoders(self):
         scalar = verify_program(arithmetic()).canonical_bytes
         expected = program_wire(scalar, "calculate")
         resource_fn = f("borrowed", [("s", "readbuf")], ["usize"], ["read"], [
@@ -186,10 +188,101 @@ class EvaluateReferenceWireTests(unittest.TestCase):
             with patch.object(scalar_wire, "program_wire", side_effect=AssertionError("hosted scalar encoder called")):
                 self.assertEqual(scalar_wire.selected_program_wire(scalar, "calculate"), expected)
                 self.assertEqual(scalar_wire.selected_program_wire(scalar, "calculate", allow_resources=True), expected)
-            with patch.object(scalar_wire, "program_wire", wraps=program_wire) as legacy:
+            with patch.object(scalar_wire, "program_wire", side_effect=AssertionError("hosted resource encoder called")):
                 self.assertEqual(scalar_wire.selected_program_wire(resource, "borrowed", allow_resources=True),
                                  resource_expected)
-                legacy.assert_called_once_with(resource, "borrowed", allow_resources=True)
+
+    def test_native_resource_sites_and_full_opcode_inventory(self):
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_scalar_reference_wire import RESOURCE_CODES
+        from tests.test_hia_program import resource_program
+        from tools.hia_selfhost_bulk import bulk_cases, fixture_source
+        from tools.hia_selfhost_chain_cases import cases as chain_cases
+        programs = [(verify_program(resource_program()), "owned")]
+        for row in chain_cases():
+            programs.append((assemble_program(row["source"]), "f0"))
+        examples = {row["opcode"]: row for row in bulk_cases()}
+        for row in examples.values():
+            programs.append((assemble_program(fixture_source(row)), "f0"))
+        params = [("dest", "mutbuf"), ("x", "usize"), ("y", "usize")]
+        swap = f("swap", params, [], ["read", "write", "trap"], [
+            b("entry", params, [i("buffer.swap", ["dest", "x", "y"])], ret())])
+        params = [("size", "usize")]
+        allocate = f("allocate", params, ["bool"], ["alloc", "trap"], [b("entry", params, [
+            i("buffer.try_new", ["size"], [("owner", "buffer"), ("ok", "bool")]),
+            i("owner.drop", ["owner"])], ret("ok"))])
+        for function in (swap, allocate):
+            document = {**m(function), "schema": SCHEMA_V8}
+            programs.append((verify_program(document), function["name"]))
+        covered = set()
+        for checked, entry in programs:
+            with self.subTest(program=checked.sha256, entry=entry):
+                expected = program_wire(checked.canonical_bytes, entry, allow_resources=True)
+                self.assertIsNotNone(expected)
+                self.assertEqual(self.image.project(checked.canonical_bytes, entry, allow_resources=True), expected)
+                covered.update(op["op"] for fn in checked.as_dict()["functions"]
+                               for block in fn["blocks"] for op in block["ops"] if op["op"] in RESOURCE_CODES)
+        self.assertEqual(covered, set(RESOURCE_CODES))
+
+    def test_native_returned_loan_tables_and_direct_evaluation_admission(self):
+        from hepta.hia_agent_runner import _direct_reference_program
+        from tests.test_hia_returned_loans import fallible_return_program, loan_program, multiple_shared, swapped_mutable
+        programs = [loan_program(mode, construction) for mode in ("read", "mut")
+                    for construction in ("forward", "child", "cfg", "recursive")]
+        programs.extend(multiple_shared(mode) for mode in ("forward", "children", "mixed"))
+        programs.extend((swapped_mutable(), fallible_return_program()))
+        for document in programs:
+            checked = verify_program(document)
+            for fn in checked.as_dict()["functions"]:
+                with self.subTest(program=checked.sha256, function=fn["name"]):
+                    expected = program_wire(checked.canonical_bytes, fn["name"], allow_resources=True)
+                    self.assertIsNotNone(expected)
+                    self.assertEqual(self.image.project(checked.canonical_bytes, fn["name"], allow_resources=True),
+                                     expected)
+        checked = verify_program(loan_program("read", "recursive"))
+        cases = [{"function": checked.as_dict()["exports"][0], "arguments": [20, 211]}]
+        with native_helpers_scope(str(self.bundle), self.bundle_digest), patch.object(
+                scalar_wire, "program_wire", side_effect=AssertionError("legacy called")):
+            self.assertIsNotNone(_direct_reference_program(checked.canonical_bytes, cases, (), owned=True))
+
+    def test_compact_and_fixed_profiles_match_under_runner_memory_budget(self):
+        from tests.test_hia_returned_loans import swapped_mutable
+        checked = verify_program(swapped_mutable())
+        entry = checked.as_dict()["exports"][0]
+        expected = program_wire(checked.canonical_bytes, entry, allow_resources=True)
+        name = json.dumps(entry).encode("ascii")
+        owned = b"[" + checked.canonical_bytes + b"," + name
+        self.assertEqual(self.invoke(owned + b",true]"), self.invoke(owned + b",1]"))
+        scalar = verify_program(arithmetic()).canonical_bytes
+        self.assertEqual(self.invoke(b"[" + scalar + b',"calculate"]'),
+                         self.invoke(b"[" + scalar + b',"calculate",0]'))
+        script = """
+import os, resource, sys
+from hashlib import sha256
+sys.path.insert(0, sys.argv[1])
+from hepta import hia_scalar_reference_wire as wire
+resource.setrlimit(resource.RLIMIT_AS, (64 << 20, 64 << 20))
+def hosted(*args, **kwargs):
+    raise AssertionError('hosted resource wire was selected')
+wire.program_wire = hosted
+print(sha256(wire.selected_program_wire(sys.stdin.buffer.read(), sys.argv[2],
+                                       allow_resources=True)[0]).hexdigest())
+"""
+        result = subprocess.run([sys.executable, "-B", "-I", "-c", script, str(ROOT), entry],
+                                env={**os.environ, SELECTOR: str(self.manifest)}, input=checked.canonical_bytes,
+                                capture_output=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.decode().strip(), sha256(expected[0]).hexdigest())
+
+    def test_invalid_declared_loan_origins_are_refused(self):
+        from tests.test_hia_returned_loans import swapped_mutable
+        document = verify_program(swapped_mutable()).as_dict()
+        function = next(fn for fn in document["functions"] if "return_loans" in fn)
+        for origins in (["missing", "left"], ["left"], "left"):
+            with self.subTest(origins=origins):
+                function["return_loans"] = origins
+                wire = json.dumps([document, function["name"], True], separators=(",", ":")).encode()
+                self.assertIsNone(self.invoke(wire))
 
     def test_explicit_pin_and_manifest_errors_propagate(self):
         scalar = verify_program(arithmetic()).canonical_bytes

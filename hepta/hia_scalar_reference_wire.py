@@ -247,14 +247,14 @@ def program_wire(canonical: bytes, entry: str, *, allow_resources=False):
 
 
 def selected_program_wire(canonical: bytes, entry: str, *, allow_resources=False):
-    """Use the selected HIA scalar projector before the resource-capable encoder."""
+    """Use the selected HIA projector for the requested reference profile."""
     manifest = os.environ.get('HEPTA_HIA_EVALUATE_REFERENCE_WIRE_MANIFEST')
     if manifest is not None:
         from .hia_evaluate_reference_wire_native import NativeEvaluateReferenceWire, SCHEMA, SOURCE
         from .hia_json_preflight_native import _installed_json_image
         try:
             selected = _installed_json_image(manifest, SOURCE, SCHEMA, NativeEvaluateReferenceWire)
-            projected = selected.project(canonical, entry)
+            projected = selected.project(canonical, entry, allow_resources=allow_resources)
         except (ValueError, OSError) as error:
             # Runner input refusal is recoverable. A selected helper that lost its
             # identity or returned a malformed packet must stop that request.
