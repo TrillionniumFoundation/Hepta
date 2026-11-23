@@ -217,6 +217,8 @@ class _Machine:
         outputs = ins["out"]
         typ = outputs[0]["type"] if outputs else None
         result = []
+        if op == "x86.tlb.invlpg":
+            raise HIAProgramRejected("x86 INVLPG requires native CPL0 execution", "E_HIA_RUNTIME_UNSUPPORTED")
         if op == "x86.fence.mfence":
             # A sequential Python interpreter cannot implement the hardware ordering
             # contract. Refuse instead of reporting a successful fence execution.
