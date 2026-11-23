@@ -219,6 +219,15 @@ class NativeAgentIdentity(NativeHiaJsonImage):
             raise RuntimeError('invalid native direct capture decision')
         return decision
 
+    def runner_terminal(self, returncode, timed_out, stdout_size, stderr_size, limit):
+        process_status = 256 if returncode is None else returncode & WORD_MASK
+        frame = struct.pack('<7Q', MAGIC, 50, process_status, int(timed_out), stdout_size, stderr_size, limit)
+        valid, decision = self._request(frame)
+        outcomes = (None, 'invalid_report', 'budget_exceeded', 'trapped', 'faulted')
+        if valid != 1 or not 0 <= decision < len(outcomes):
+            raise RuntimeError('invalid native runner terminal decision')
+        return outcomes[decision]
+
     def direct_call_request(self, protocol, function, arguments, *, parent, memory, cpu,
                             artifact, artifact_bytes, borrowed, returns, expected, warmup, repetitions):
         version = 2 if protocol >= 2 else 1

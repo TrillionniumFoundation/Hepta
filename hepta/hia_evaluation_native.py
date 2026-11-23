@@ -397,6 +397,8 @@ class EvaluationFrame:
                           (d['candidate_bytes'], d['candidate_meta']))[self.receipt.arm]
         planner = d.get('workload_planner')
         options = {} if planner is None else {'_evaluate_planner': planner}
+        if 'admission' in d:
+            options['_evaluate_terminal'] = True
         return d['budget_claim'].run(self.run_native_batch, data, metadata['signatures'], cases,
             now=api['time'].monotonic_ns(), total_ms=self._remaining_total_ms(),
             warmup=int(warmup), repetitions=int(repetitions),
@@ -515,10 +517,11 @@ class EvaluationFrame:
             d['references'] = {}
         elif name == 'reference_run':
             program = (d['baseline_program'], d['candidate_program'])[self.receipt.arm]
+            options = {'_evaluate_terminal': True} if 'admission' in d else {}
             d['reference'] = self.run_reference_batch(program, d['workload']['cases'],
                 timeout_ms=self._remaining_total_ms(),
                 memory_bytes=api['uint64'](d['context']['budget']['max_memory_bytes'], 'max_memory_bytes'),
-                foreign_buffer_exports=d['exports'])
+                foreign_buffer_exports=d['exports'], **options)
             d['references'][label] = d['reference']
         elif name == 'reference_returned':
             return int(not bool(d['reference']['status'] != 'returned'))

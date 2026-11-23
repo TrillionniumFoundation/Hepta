@@ -548,14 +548,33 @@ def _direct_call_report(receipts, signatures, submissions, snapshots, initial_di
             'timing_scope': 'native SysV calls measured inside standalone HIA processes; snapshot reset and hashing outside call timing'}
 
 
+def _reference_runner_terminal(returncode, timed_out, stdout_size, stderr_size, limit):
+    if stdout_size > limit or stderr_size > 65536 or returncode == _REPORT_TOO_LARGE:
+        return 'invalid_report'
+    if timed_out or returncode == -signal.SIGXCPU:
+        return 'budget_exceeded'
+    if returncode == -signal.SIGABRT:
+        return 'trapped'
+    return 'faulted' if returncode != 0 else None
+
+
 def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions=1,
                      timeout_ms=30000, memory_bytes=256 * 1024 * 1024, _mode="native",
-                     foreign_buffer_exports=(), capture_buffers=False, _evaluate_planner=None):
+                     foreign_buffer_exports=(), capture_buffers=False, _evaluate_planner=None,
+                     _evaluate_terminal=False):
     if sys.platform != "linux" or not 64 * 1024 * 1024 <= memory_bytes <= 4 * 1024 * 1024 * 1024:
         reject("E_HIA_EXECUTION_PROFILE", "native execution requires Linux and 64 MiB..4 GiB address-space budget")
     if timeout_ms <= 0:
         return {"status": "budget_exceeded", "termination_confirmed": True,
                 "started": False, "wall_ns": "0", "returncode": None, "report": None}
+    classify = _reference_runner_terminal
+    if _evaluate_terminal:
+        identity = _native_agent_identity()
+        if identity is None:
+            from .hia_evaluation_native import EvaluationUnknown
+
+            raise EvaluationUnknown('installed HIA Evaluate terminal authority is missing')
+        classify = identity.runner_terminal
     if _mode == "native" and _evaluate_planner is None:
         validate_cases(signatures, cases)
     if capture_buffers and len(cases) != 1:
@@ -677,16 +696,9 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                 if capture_buffers:
                     captured.append({**observation, "data": data})
             snapshots.append({"case": index, "buffers": observed})
+    status = classify(returncode, timed_out, len(stdout), len(stderr), _REPORT_LIMIT)
     report = None
-    if len(stdout) > _REPORT_LIMIT or len(stderr) > 65536 or returncode == _REPORT_TOO_LARGE:
-        status = "invalid_report"
-    elif timed_out or returncode == -signal.SIGXCPU:
-        status = "budget_exceeded"
-    elif returncode == -signal.SIGABRT:
-        status = "trapped"
-    elif returncode != 0:
-        status = "faulted"
-    else:
+    if status is None:
         try:
             if direct_call is not None:
                 report = _direct_call_report(direct_receipts, signatures, cases, snapshots, initial_digests,
@@ -735,10 +747,13 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
     return result
 
 
-def run_reference_batch(program, cases, *, timeout_ms, memory_bytes, foreign_buffer_exports=()):
+def run_reference_batch(program, cases, *, timeout_ms, memory_bytes, foreign_buffer_exports=(),
+                        _evaluate_terminal=False):
     """Run the existing VM under the same disposable process/deadline owner."""
+    options = {'_evaluate_terminal': True} if _evaluate_terminal else {}
     return run_native_batch(program.canonical_bytes, {}, cases, timeout_ms=timeout_ms,
-                            memory_bytes=memory_bytes, _mode="reference", foreign_buffer_exports=foreign_buffer_exports)
+                            memory_bytes=memory_bytes, _mode="reference", foreign_buffer_exports=foreign_buffer_exports,
+                            **options)
 
 
 def main():

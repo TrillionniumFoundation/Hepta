@@ -163,6 +163,8 @@ def identity_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return required_claims(s, o)
     if kind == 49:
         return direct_call_request(s, o)
+    if kind == 50:
+        return runner_terminal(s, o)
     if kind > 1:
         return context_policy(s, o, kind)
     if length(s) > 80:
@@ -1840,6 +1842,27 @@ EVALUATION_RESULT = ('{"adopted":false,"baseline_artifact":{},"candidate_artifac
                      '"report_complete":true,"termination_confirmed":true}')
 ARTIFACT_KEY_MATERIAL = '{"kind":{},"metadata":{},"sha256":{}}'
 
+# The child status uses Linux x86-64's fixed SIGXCPU (24) and SIGABRT (6).
+# A successful exit grants permission to inspect the report; it is not
+# itself a completed evaluation.
+RUNNER_TERMINAL = r'''
+def runner_terminal(s:readbuf, o:mutbuf) -> u32:
+    if length(s) != 56 or read_word(s, 24) > 1:
+        return 4294967293
+    if length(o) < 24:
+        return 4294967294
+    child = read_word(s, 16)
+    if read_word(s, 32) > read_word(s, 48) or read_word(s, 40) > 65536 or child == 65:
+        return finite_function_reply(o, 1)
+    if read_word(s, 24) == 1 or child == 18446744073709551592:
+        return finite_function_reply(o, 2)
+    if child == 18446744073709551610:
+        return finite_function_reply(o, 3)
+    if child != 0:
+        return finite_function_reply(o, 4)
+    return finite_function_reply(o, 0)
+'''
+
 
 def source_program():
     pure = sum(1 << PROOF_OPCODE_IDS[opcode] for opcode in PURE)
@@ -1880,7 +1903,8 @@ def source_program():
             + receipt_template('evaluation_record', EVALUATION_RECORD)
             + receipt_template('evaluation_result', EVALUATION_RESULT)
             + receipt_template('artifact_key_material', ARTIFACT_KEY_MATERIAL, aggregate_suffix='')
-            + (EVALUATION_SCHEDULE + READ_WINDOW + REQUIRED_CLAIMS).replace('@RESULT_MAGIC@', str(RESULT_MAGIC)))
+            + (EVALUATION_SCHEDULE + READ_WINDOW + REQUIRED_CLAIMS).replace('@RESULT_MAGIC@', str(RESULT_MAGIC))
+            + RUNNER_TERMINAL)
 
 
 def document():
