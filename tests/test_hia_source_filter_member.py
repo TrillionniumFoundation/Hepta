@@ -277,6 +277,9 @@ class InstalledSourceMemberTests(unittest.TestCase):
             self.assertEqual(digest, sha256(raw).digest())
             return raw, digest.hex()
 
+        def plan(request):
+            return self.invoke([builder, 'build'], request)
+
         for partial in ('clean', 'existing', 'dangling', 'duplicate'):
             with self.subTest(case=partial):
                 stage = self.work / partial
@@ -290,7 +293,7 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 if partial == 'duplicate':
                     members[last.name] = 'existing member'
                 if partial == 'clean':
-                    release._stage_captured_members(self.work, stage, members, products, packet)
+                    release._stage_captured_members(self.work, stage, members, products, packet, plan)
                     self.assertEqual(members,{k:sha256(raw).hexdigest() for k,raw in products.items()})
                     for name, raw in products.items():
                         path = stage/name
@@ -299,7 +302,7 @@ class InstalledSourceMemberTests(unittest.TestCase):
                         self.assertEqual(path.stat().st_nlink,1)
                 else:
                     with self.assertRaises(FileExistsError if partial != 'duplicate' else ValueError):
-                        release._stage_captured_members(self.work, stage, members, products, packet)
+                        release._stage_captured_members(self.work, stage, members, products, packet, plan)
                     self.assertFalse((stage/'hia-artifact').exists())
                     self.assertFalse((stage/'hia-release').exists())
                     if partial == 'existing':
@@ -312,7 +315,7 @@ class InstalledSourceMemberTests(unittest.TestCase):
         samples = {'01.empty': b'', 'manifest.json': b'{}', 'selfhost.hepta': b'text'}
         all_members = {**products, **samples, 'hia': products['hia-artifact']}
         registered = {}
-        actual = release._stage_captured_members(self.work, incoming, registered, all_members, packet)
+        actual = release._stage_captured_members(self.work, incoming, registered, all_members, packet, plan)
         self.assertEqual(set(registered), set(all_members))
         for name, raw in all_members.items():
             self.assertEqual((actual / name).read_bytes(), raw)
