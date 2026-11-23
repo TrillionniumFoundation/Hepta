@@ -39,8 +39,12 @@ class TypedWorkloadTests(unittest.TestCase):
                'catalog_sha256': digest, 'budget': {'max_total_wall_ms': 1234}}
         size, result = self.project([installed, args, ctx])
         self.assertEqual((size, struct.unpack('<8sQ', result)), (16, (b'HIAEWD01', 1234)))
-        for modified in (dict(ctx, catalog_sha256='b' * 64), dict(ctx, budget={'max_total_wall_ms': 0})):
+        for stale in (dict(ctx, catalog_sha256='b' * 64), dict(ctx, installation={'name': 'other'})):
+            size, result = self.project([installed, args, stale])
+            self.assertEqual((size, struct.unpack('<8sQ', result)), (16, (b'HIAEQB01', 23)))
+        for modified in (dict(ctx, catalog_sha256='malformed'), dict(ctx, budget={'max_total_wall_ms': 0})):
             self.assertEqual(self.project([installed, args, modified])[0], 4294967293)
+        self.assertEqual(self.project([installed, {'catalog_sha256': 'b' * 64}, ctx])[0], 4294967293)
 
     def test_integer_matches_the_retained_unsigned_byte(self):
         self.assertEqual(self.evaluate((0, 255)), (b'HIAEQB01', 0))

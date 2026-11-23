@@ -4,7 +4,7 @@ INGRESS = '''
 def refuse_business(o:mutbuf,w:mutbuf,reason:u64) -> u64:
     # Baseline and the original scalar tag have their existing identities.
     # The other workload planner codes are shifted by ten in this envelope.
-    if reason != 1 and reason != 2 and (reason < 11 or reason > 21 or reason == 12):
+    if reason != 1 and reason != 2 and (reason < 11 or reason > 23 or reason == 12):
         return close_store(o,w,CLOSE_REFUSED)
     put(w,BUSINESS_REASON,reason)
     return close_store(o,w,CLOSE_ERROR)
@@ -44,6 +44,8 @@ def rejection_progress(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     fd = input_word(s,32)
     size = input_word(s,40)
     if state == EARLY_LIMIT:
+        if plan_ok(s) and size == 24 and input_word(s,72) == BUSINESS and input_word(s,80) == 23:
+            return refuse_business(o,w,23)
         if plan_ok(s) == False or size != 24 or input_word(s,72) != CONTEXT_WINDOW:
             return close_store(o,w,CLOSE_REFUSED)
         total = input_word(s,80)
@@ -91,6 +93,10 @@ def ingress(driver, policy, controls, constants):
     driver=driver.replace('    return intake(s, o, w, state)',
                           '    if state >= CASE_OPERANDS and state <= EARLY_LIMIT:\n'
                           '        return rejection_progress(s,o,w,state)\n    return intake(s, o, w, state)')
+    policy=policy.replace('    if state == CTX_OBSERVED:', '    if state == CTX_OBSERVED:\n'
+                          '        if plan_ok(s) and size == 24 and input_word(s,72) == CONTEXT_OBSERVED_TAG:\n'
+                          '            status = input_word(s,80)\n'
+                          '            if status == 1 or status == 2:\n                return refuse_business(o,w,22)')
     policy=policy.replace('    if state == DOCUMENT_BOUND:\n        observe_slot(s, w, BIND_PREFIX)',
                           '    if state == DOCUMENT_BOUND:\n        observe_slot(s, w, BIND_PREFIX)\n'
                           '        if get(w,SELECTOR) == 0:\n'
@@ -130,6 +136,8 @@ def closeout_literals():
     from hepta.hia_evaluation_native import _WORKLOAD_REFUSALS
     from tools.generate_hia_evaluate_settlement import LITERALS
     reasons = [('baseline_error','E_HIA_BASELINE','evaluation baseline differs from the frozen Core snapshot','execution')]
+    reasons.append(('stale_context','E_HIA_CONTEXT_STALE','context binds a different installed implementation','context'))
+    reasons.append(('unknown_context','E_HIA_CONTEXT_IDENTITY','context is not a retained server record','context'))
     reasons.append(('expired_context','E_HIA_BUDGET','context total wall budget has expired','context'))
     for code, (error, message) in sorted(_WORKLOAD_REFUSALS.items()):
         reasons.append((f'workload_error_{code}',error,message,'admission'))
@@ -147,6 +155,8 @@ def closeout_literals():
         lines.append(f'    return at+{len(data)}')
     lines.append('def error_document(o:mutbuf,at:u64,reason:u64) -> u64:')
     lines.extend(('    if reason == 1:', '        return baseline_error(o,at)'))
+    lines.extend(('    if reason == 23:', '        return stale_context(o,at)'))
+    lines.extend(('    if reason == 22:', '        return unknown_context(o,at)'))
     lines.extend(('    if reason == 21:', '        return expired_context(o,at)'))
     for code in sorted(_WORKLOAD_REFUSALS):
         tag = 2 if code == 2 else 10 + code
@@ -200,6 +210,8 @@ def refusal_header(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         fragment(o,1,INLINE_FRAGMENT,400,last-400)
         return action(o,w,ERROR_REPLY,MAKE,0,0,2,first-HEADER)
     reason = input_word(s,88)
+    if reason == 22 or reason == 23:
+        put(w,GLOBAL_COST,1)
     end = error_document(o,first,reason)
     if end == 0:
         return BAD

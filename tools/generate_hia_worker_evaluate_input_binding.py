@@ -96,11 +96,17 @@ def context_window(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     ctx = next(w,args)
     if get(w,installed) != 6 or get(w,args) != 6 or get(w,ctx) != 6 or next(w,ctx) != NONE:
         return INVALID
-    if context_schema(w,lookup(w,ctx,K_schema)) == False or field_matches(s,w,ctx,K_installation,installed) == False:
+    if context_schema(w,lookup(w,ctx,K_schema)) == False:
         return INVALID
+    retained = lookup(w,ctx,K_installation)
     catalog = lookup(w,args,K_catalog_sha256)
-    if field_matches(s,w,ctx,K_catalog_sha256,catalog) == False or field_matches(s,w,installed,K_catalog_sha256,catalog) == False:
+    recorded_catalog = lookup(w,ctx,K_catalog_sha256)
+    if retained == NONE or get(w,retained) != 6 or digest_text(w,recorded_catalog,False) == False:
         return INVALID
+    if digest_text(w,catalog,False) == False or field_matches(s,w,installed,K_catalog_sha256,catalog) == False:
+        return INVALID
+    if field_matches(s,w,ctx,K_installation,installed) == False or field_matches(s,w,ctx,K_catalog_sha256,catalog) == False:
+        return business_status(o,23)
     budget = lookup(w,ctx,K_budget)
     if budget == NONE or get(w,budget) != 6:
         return INVALID
