@@ -57,7 +57,7 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
 
     component('release_install', kind='directory')
     for name in ('agent_artifact_capture', 'worker_read_release',
-                 'core_workspace_pipeline', 'source_build',
+                 'source_build',
                  'supplied_safe_core_proof',
                  'owned_reference_cli', 'nominal_constructor'):
         component(name)
@@ -192,6 +192,9 @@ def _source_release_recipes():
 
     yield recipe('hia-release', installer[1], (installer[0], installer[2]))
     yield recipe('hia-core-json', 'core_json_cli_packer.hepta', ('core_json_frontend.hepta', 'selfhost.hepta'))
+    yield recipe('hia-workspace-compile', 'core_workspace_pipeline_packer.hepta',
+                 ('core_workspace_json.hepta', 'core_admission.hepta', 'core_json_frontend.hepta',
+                  'selfhost.hepta'))
     yield recipe('hia-select', selector[3], selector[:3])
     yield recipe('hia-patch-result', 'core_patch_result_cli_packer.hepta', ('core_patch.hepta', 'core_admission.hepta'))
     for mode, name in (('suite', 'hia-core'), ('totality', 'hia-totality-core'), ('proof-wire', 'hia-core-proof-wire')):
@@ -308,9 +311,9 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             stream.write(product)
             stream.flush()
             publish(Path(stream.name), name, expected=sha256(product).hexdigest())
+        if 'selfhost.hepta' in images and images['selfhost.hepta'] != compiler_bytes:
+            raise ValueError('source-built selfhost differs from the admitted cold compiler')
         if name == 'hia-core-json':
-            if images['selfhost.hepta'] != compiler_bytes:
-                raise ValueError('source-built selfhost differs from the admitted cold compiler')
             # The manifest owner independently recompiles the three sources, repacks the
             # exact selected ELF and hashes all nine raw inputs before its first write.
             author_sources = {

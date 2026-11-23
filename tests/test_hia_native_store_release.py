@@ -52,6 +52,14 @@ class StoreReleaseBuildTests(unittest.TestCase):
         for kind in ('evaluate-claim', 'evaluate-proof', 'evaluate-document'):
             self.assertIn(kind, release.FLOW_ROLES)
 
+    def test_workspace_compiler_requires_all_four_source_images(self):
+        recipes = {name: (packer, inputs) for name, packer, inputs in release._source_release_recipes()}
+        packer, inputs = recipes['hia-workspace-compile']
+        self.assertEqual(packer, 'core_workspace_pipeline_packer.hepta')
+        self.assertEqual(list(inputs.values()),
+                         ['core_workspace_json.hepta', 'core_admission.hepta',
+                          'core_json_frontend.hepta', 'selfhost.hepta'])
+
     def test_source_member_admission_checks_the_staged_elf_and_captured_hia_sources(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
