@@ -54,13 +54,10 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
             publish(output / name)
         publish(output / 'hia-worker-scalar-implementation')
 
-    for kind in ('suite', 'totality', 'proof_wire'):
-        component('core_admission_cli', **{kind: True})
-    for kind in ('installer', 'directory'):
-        component('release_install', kind=kind)
-    for name in ('agent_artifact_capture', 'worker_read_release', 'core_patch_result_cli',
+    component('release_install', kind='directory')
+    for name in ('agent_artifact_capture', 'worker_read_release',
                  'core_workspace_pipeline', 'source_build',
-                 'release_selection', 'supplied_safe_core_proof',
+                 'supplied_safe_core_proof',
                  'owned_reference_cli', 'nominal_constructor'):
         component(name)
     component('agent_stdio', output_profile='elf')
@@ -159,6 +156,26 @@ def _source_tool_recipes():
     yield 'hia-reference-wire', Path(REFERENCE_CLI_PACKER).name, {'hia-reference-wire.hepta': 'scalar_reference.hepta'}
 
 
+def _source_release_recipes():
+    from tools.build_hia_core_admission_cli import MODES
+    from tools.build_hia_release_install import SOURCES as installer
+    from tools.build_hia_release_selection import SOURCES as selector
+
+    def recipe(name, packer, components):
+        main, *companions = (Path(source).name for source in components)
+        inputs = {name + '.hepta': main, **{source: source for source in companions}}
+        return name, Path(packer).name, inputs
+
+    yield recipe('hia-release', installer[1], (installer[0], installer[2]))
+    yield recipe('hia-select', selector[3], selector[:3])
+    yield recipe('hia-patch-result', 'core_patch_result_cli_packer.hepta', ('core_patch.hepta', 'core_admission.hepta'))
+    for mode, name in (('suite', 'hia-core'), ('totality', 'hia-totality-core'), ('proof-wire', 'hia-core-proof-wire')):
+        _magic, packer, components = MODES[mode]
+        inputs = list(components)
+        inputs.insert(1 if mode == 'suite' else 0, 'core_admission.hepta')
+        yield recipe(name, packer, inputs)
+
+
 def _source_member_recipes():
     """Map published names to checked-in HIA inputs. Framing and modes belong to HIA."""
     for role in STDIO_ROLES:
@@ -186,6 +203,7 @@ def _source_member_recipes():
 
     yield from _source_worker_recipes()
     yield from _source_tool_recipes()
+    yield from _source_release_recipes()
 
 
 def _stage_source_members(work, stage, admitted, members, publish):

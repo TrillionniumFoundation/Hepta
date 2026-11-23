@@ -109,7 +109,7 @@ block b19(v154:readbuf,v155:mutbuf,v156:mutbuf)
   v170:u32 = int.cast(v169) {"mode":"wrap"}
   ret(v170)
 block b20(v160:readbuf,v161:mutbuf,v162:mutbuf,v165:u64)
-  v171:u64 = const() {"value":2}
+  v171:u64 = const() {"value":3}
   v172:bool = compare.gt(v165,v171)
   branch v172 b21(v160,v161,v162) b22(v160,v161,v162,v165)
 block b21(v173:readbuf,v174:mutbuf,v175:mutbuf)
@@ -221,7 +221,10 @@ block b34(v337:readbuf,v338:mutbuf,v339:mutbuf)
   v359:u64 = const() {"value":3544415714955839816}
   v360:bool = compare.eq(v350,v359)
   v361:u64 = const() {"value":2101248}
-  v362:u64 = select(v360,v361,v358)
+  existing_limit:u64 = select(v360,v361,v358)
+  patch_role:u64 = const() {"value":196611}
+  is_patch:bool = compare.eq(v350,patch_role)
+  v362:u64 = select(is_patch,v361,existing_limit)
   v363:u64 = const() {"value":131072}
   v364:bool = compare.ge(v350,v363)
   v365:u64 = const() {"value":131200}
@@ -348,7 +351,10 @@ block b60(v636:readbuf,v637:mutbuf,v638:mutbuf,v641:u64)
   v652:u64 = int.add.wrap(v649,v651)
   v653:u64 = const() {"value":152}
   v654:u64 = call(v638,v653) {"function":"get"}
-  v655:u64 = int.add.wrap(v652,v654)
+  first_three:u64 = int.add.wrap(v652,v654)
+  fourth_length_at:u64 = const() {"value":168}
+  fourth_length:u64 = call(v638,fourth_length_at) {"function":"get"}
+  v655:u64 = int.add.wrap(first_three,fourth_length)
   v656:u64 = int.add.wrap(v648,v655)
   v657:bool = compare.lt(v641,v656)
   branch v657 b61(v636,v637,v638) b62(v636,v637,v638,v641,v655)
@@ -453,7 +459,10 @@ block b6(v30:readbuf,v31:mutbuf)
   v41:u64 = const() {"value":6}
   v42:bool = compare.ne(v35,v41)
   v43:bool = bool.and(v40,v42)
-  branch v43 b7(v30,v31) b8(v30,v31,v35)
+  four_pairs:u64 = const() {"value":8}
+  other_count:bool = compare.ne(v35,four_pairs)
+  invalid_count:bool = bool.and(v43,other_count)
+  branch invalid_count b7(v30,v31) b8(v30,v31,v35)
 block b7(v44:readbuf,v45:mutbuf)
   v50:u64 = const() {"value":16}
   v51:u32 = int.cast(v50) {"mode":"wrap"}
@@ -894,7 +903,8 @@ block b8(v85:readbuf,v86:mutbuf,v87:mutbuf,v88:u64,v89:u64,v90:u64,v91:u64)
   receipt_role:u64 = const() {"value":196608}
   is_receipt:bool = compare.eq(v88,receipt_role)
   receipt_magic:u64 = const() {"value":3544415714955839816}
-  tool_magic:u64 = select(is_receipt,receipt_magic,v88)
+  fallback_magic:u64 = select(is_receipt,receipt_magic,v88)
+  tool_magic:u64 = call(v88,fallback_magic) {"function":"release_frame_magic"}
   v96:u64 = call(v86,v95,tool_magic) {"function":"put"}
   jump b11(v85,v86,v87,v88,v89,v90,v91)
 block b11(v111:readbuf,v112:mutbuf,v113:mutbuf,v114:u64,v115:u64,v116:u64,v117:u64)
@@ -6420,7 +6430,8 @@ block b20(v49:u64)
   v52:bool = compare.eq(v49,v51)
   v53:u64 = const() {"value":14}
   v54:u64 = const() {"value":0}
-  v55:u64 = select(v52,v53,v54)
+  worker_companions:u64 = select(v52,v53,v54)
+  v55:u64 = call(v49,worker_companions) {"function":"release_companions"}
   ret(v55)
 end
 fn raw_launcher_magic(v0:u64) -> (u64) effects(read,write,trap) entry(b0)
@@ -6632,7 +6643,7 @@ block tool7(input7:readbuf,name_at7:u64,name_size7:u64,source_at7:u64,source_siz
   name7word6:u64 = const() {"value":0}
   name7word7:u64 = const() {"value":0}
   name7:bool = call(input7,name_at7,name_size7,name7word0,name7word1,name7word2,name7word3,name7word4,name7word5,name7word6,name7word7) {"function":"is_name"}
-  branch name7 matched7(input7,source_at7,source_size7) unknown(input7)
+  branch name7 matched7(input7,source_at7,source_size7) release0(input7,name_at7,name_size7,source_at7,source_size7)
 block matched7(body7:readbuf,body_at7:u64,body_size7:u64)
   module7word0:u64 = const() {"value":16}
   module7word1:u64 = const() {"value":8241431605867012979}
@@ -6647,7 +6658,388 @@ block matched7(body7:readbuf,body_at7:u64,body_size7:u64)
   absent7:u64 = const() {"value":0}
   admitted7:u64 = select(module7,tag7,absent7)
   ret(admitted7)
+block release0(rel_src0:readbuf,rel_name0:u64,rel_n0:u64,rel_pos0:u64,rel_z0:u64)
+  rel_name0v0:u64 = const() {"value":17}
+  rel_name0v1:u64 = const() {"value":7308327836377508200}
+  rel_name0v2:u64 = const() {"value":8390317603920638817}
+  rel_name0v3:u64 = const() {"value":97}
+  rel_name0v4:u64 = const() {"value":0}
+  rel_name0v5:u64 = const() {"value":0}
+  rel_name0v6:u64 = const() {"value":0}
+  rel_name0v7:u64 = const() {"value":0}
+  rel_name_match0:bool = call(rel_src0,rel_name0,rel_n0,rel_name0v0,rel_name0v1,rel_name0v2,rel_name0v3,rel_name0v4,rel_name0v5,rel_name0v6,rel_name0v7) {"function":"is_name"}
+  branch rel_name_match0 rel_match0(rel_src0,rel_pos0,rel_z0) release1(rel_src0,rel_name0,rel_n0,rel_pos0,rel_z0)
+block rel_match0(relbody0:readbuf,reloff0:u64,relext0:u64)
+  rel_module0v0:u64 = const() {"value":22}
+  rel_module0v1:u64 = const() {"value":6874027268401554802}
+  rel_module0v2:u64 = const() {"value":6875989896909254249}
+  rel_module0v3:u64 = const() {"value":133467877437296}
+  rel_module0v4:u64 = const() {"value":0}
+  rel_module0v5:u64 = const() {"value":0}
+  rel_module0v6:u64 = const() {"value":0}
+  rel_module0v7:u64 = const() {"value":0}
+  rel_module0:bool = call(relbody0,reloff0,relext0,rel_module0v0,rel_module0v1,rel_module0v2,rel_module0v3,rel_module0v4,rel_module0v5,rel_module0v6,rel_module0v7) {"function":"is_module"}
+  role_value0:u64 = const() {"value":196609}
+  no_value0:u64 = const() {"value":0}
+  rel_out0:u64 = select(rel_module0,role_value0,no_value0)
+  ret(rel_out0)
+block release1(rel_src1:readbuf,rel_name1:u64,rel_n1:u64,rel_pos1:u64,rel_z1:u64)
+  rel_name1v0:u64 = const() {"value":16}
+  rel_name1v1:u64 = const() {"value":7308327840672475496}
+  rel_name1v2:u64 = const() {"value":7022361299819328611}
+  rel_name1v3:u64 = const() {"value":0}
+  rel_name1v4:u64 = const() {"value":0}
+  rel_name1v5:u64 = const() {"value":0}
+  rel_name1v6:u64 = const() {"value":0}
+  rel_name1v7:u64 = const() {"value":0}
+  rel_name_match1:bool = call(rel_src1,rel_name1,rel_n1,rel_name1v0,rel_name1v1,rel_name1v2,rel_name1v3,rel_name1v4,rel_name1v5,rel_name1v6,rel_name1v7) {"function":"is_name"}
+  branch rel_name_match1 rel_match1(rel_src1,rel_pos1,rel_z1) release2(rel_src1,rel_name1,rel_n1,rel_pos1,rel_z1)
+block rel_match1(relbody1:readbuf,reloff1:u64,relext1:u64)
+  rel_module1v0:u64 = const() {"value":22}
+  rel_module1v1:u64 = const() {"value":6874027268401554802}
+  rel_module1v2:u64 = const() {"value":6875989896909254249}
+  rel_module1v3:u64 = const() {"value":133467877437296}
+  rel_module1v4:u64 = const() {"value":0}
+  rel_module1v5:u64 = const() {"value":0}
+  rel_module1v6:u64 = const() {"value":0}
+  rel_module1v7:u64 = const() {"value":0}
+  rel_module1:bool = call(relbody1,reloff1,relext1,rel_module1v0,rel_module1v1,rel_module1v2,rel_module1v3,rel_module1v4,rel_module1v5,rel_module1v6,rel_module1v7) {"function":"is_module"}
+  role_value1:u64 = const() {"value":196610}
+  no_value1:u64 = const() {"value":0}
+  rel_out1:u64 = select(rel_module1,role_value1,no_value1)
+  ret(rel_out1)
+block release2(rel_src2:readbuf,rel_name2:u64,rel_n2:u64,rel_pos2:u64,rel_z2:u64)
+  rel_name2v0:u64 = const() {"value":22}
+  rel_name2v1:u64 = const() {"value":7166460041478891880}
+  rel_name2v2:u64 = const() {"value":8389209344368061800}
+  rel_name2v3:u64 = const() {"value":107152729794606}
+  rel_name2v4:u64 = const() {"value":0}
+  rel_name2v5:u64 = const() {"value":0}
+  rel_name2v6:u64 = const() {"value":0}
+  rel_name2v7:u64 = const() {"value":0}
+  rel_name_match2:bool = call(rel_src2,rel_name2,rel_n2,rel_name2v0,rel_name2v1,rel_name2v2,rel_name2v3,rel_name2v4,rel_name2v5,rel_name2v6,rel_name2v7) {"function":"is_name"}
+  branch rel_name_match2 rel_match2(rel_src2,rel_pos2,rel_z2) release3(rel_src2,rel_name2,rel_n2,rel_pos2,rel_z2)
+block rel_match2(relbody2:readbuf,reloff2:u64,relext2:u64)
+  rel_module2v0:u64 = const() {"value":10}
+  rel_module2v1:u64 = const() {"value":8386107536166776675}
+  rel_module2v2:u64 = const() {"value":26723}
+  rel_module2v3:u64 = const() {"value":0}
+  rel_module2v4:u64 = const() {"value":0}
+  rel_module2v5:u64 = const() {"value":0}
+  rel_module2v6:u64 = const() {"value":0}
+  rel_module2v7:u64 = const() {"value":0}
+  rel_module2:bool = call(relbody2,reloff2,relext2,rel_module2v0,rel_module2v1,rel_module2v2,rel_module2v3,rel_module2v4,rel_module2v5,rel_module2v6,rel_module2v7) {"function":"is_module"}
+  role_value2:u64 = const() {"value":196611}
+  no_value2:u64 = const() {"value":0}
+  rel_out2:u64 = select(rel_module2,role_value2,no_value2)
+  ret(rel_out2)
+block release3(rel_src3:readbuf,rel_name3:u64,rel_n3:u64,rel_pos3:u64,rel_z3:u64)
+  rel_name3v0:u64 = const() {"value":14}
+  rel_name3v1:u64 = const() {"value":7310027616929540456}
+  rel_name3v2:u64 = const() {"value":107152729794606}
+  rel_name3v3:u64 = const() {"value":0}
+  rel_name3v4:u64 = const() {"value":0}
+  rel_name3v5:u64 = const() {"value":0}
+  rel_name3v6:u64 = const() {"value":0}
+  rel_name3v7:u64 = const() {"value":0}
+  rel_name_match3:bool = call(rel_src3,rel_name3,rel_n3,rel_name3v0,rel_name3v1,rel_name3v2,rel_name3v3,rel_name3v4,rel_name3v5,rel_name3v6,rel_name3v7) {"function":"is_name"}
+  branch rel_name_match3 rel_match3(rel_src3,rel_pos3,rel_z3) release4(rel_src3,rel_name3,rel_n3,rel_pos3,rel_z3)
+block rel_match3(relbody3:readbuf,reloff3:u64,relext3:u64)
+  rel_module3v0:u64 = const() {"value":19}
+  rel_module3v1:u64 = const() {"value":7599106799818665827}
+  rel_module3v2:u64 = const() {"value":7021238715563337076}
+  rel_module3v3:u64 = const() {"value":6841204}
+  rel_module3v4:u64 = const() {"value":0}
+  rel_module3v5:u64 = const() {"value":0}
+  rel_module3v6:u64 = const() {"value":0}
+  rel_module3v7:u64 = const() {"value":0}
+  rel_module3:bool = call(relbody3,reloff3,relext3,rel_module3v0,rel_module3v1,rel_module3v2,rel_module3v3,rel_module3v4,rel_module3v5,rel_module3v6,rel_module3v7) {"function":"is_module"}
+  role_value3:u64 = const() {"value":196612}
+  no_value3:u64 = const() {"value":0}
+  rel_out3:u64 = select(rel_module3,role_value3,no_value3)
+  ret(rel_out3)
+block release4(rel_src4:readbuf,rel_name4:u64,rel_n4:u64,rel_pos4:u64,rel_z4:u64)
+  rel_name4v0:u64 = const() {"value":23}
+  rel_name4v1:u64 = const() {"value":7022360263745694056}
+  rel_name4v2:u64 = const() {"value":8245918489701017964}
+  rel_name4v3:u64 = const() {"value":27431098827419237}
+  rel_name4v4:u64 = const() {"value":0}
+  rel_name4v5:u64 = const() {"value":0}
+  rel_name4v6:u64 = const() {"value":0}
+  rel_name4v7:u64 = const() {"value":0}
+  rel_name_match4:bool = call(rel_src4,rel_name4,rel_n4,rel_name4v0,rel_name4v1,rel_name4v2,rel_name4v3,rel_name4v4,rel_name4v5,rel_name4v6,rel_name4v7) {"function":"is_name"}
+  branch rel_name_match4 rel_match4(rel_src4,rel_pos4,rel_z4) release5(rel_src4,rel_name4,rel_n4,rel_pos4,rel_z4)
+block rel_match4(relbody4:readbuf,reloff4:u64,relext4:u64)
+  rel_module4v0:u64 = const() {"value":14}
+  rel_module4v1:u64 = const() {"value":7882532310156996451}
+  rel_module4v2:u64 = const() {"value":121424789599081}
+  rel_module4v3:u64 = const() {"value":0}
+  rel_module4v4:u64 = const() {"value":0}
+  rel_module4v5:u64 = const() {"value":0}
+  rel_module4v6:u64 = const() {"value":0}
+  rel_module4v7:u64 = const() {"value":0}
+  rel_module4:bool = call(relbody4,reloff4,relext4,rel_module4v0,rel_module4v1,rel_module4v2,rel_module4v3,rel_module4v4,rel_module4v5,rel_module4v6,rel_module4v7) {"function":"is_module"}
+  role_value4:u64 = const() {"value":196613}
+  no_value4:u64 = const() {"value":0}
+  rel_out4:u64 = select(rel_module4,role_value4,no_value4)
+  ret(rel_out4)
+block release5(rel_src5:readbuf,rel_name5:u64,rel_n5:u64,rel_pos5:u64,rel_z5:u64)
+  rel_name5v0:u64 = const() {"value":25}
+  rel_name5v1:u64 = const() {"value":7310027616929540456}
+  rel_name5v2:u64 = const() {"value":8587632693262577709}
+  rel_name5v3:u64 = const() {"value":8390317603920638569}
+  rel_name5v4:u64 = const() {"value":97}
+  rel_name5v5:u64 = const() {"value":0}
+  rel_name5v6:u64 = const() {"value":0}
+  rel_name5v7:u64 = const() {"value":0}
+  rel_name_match5:bool = call(rel_src5,rel_name5,rel_n5,rel_name5v0,rel_name5v1,rel_name5v2,rel_name5v3,rel_name5v4,rel_name5v5,rel_name5v6,rel_name5v7) {"function":"is_name"}
+  branch rel_name_match5 rel_match5(rel_src5,rel_pos5,rel_z5) release6(rel_src5,rel_name5,rel_n5,rel_pos5,rel_z5)
+block rel_match5(relbody5:readbuf,reloff5:u64,relext5:u64)
+  rel_module5v0:u64 = const() {"value":14}
+  rel_module5v1:u64 = const() {"value":7882532310156996451}
+  rel_module5v2:u64 = const() {"value":121424789599081}
+  rel_module5v3:u64 = const() {"value":0}
+  rel_module5v4:u64 = const() {"value":0}
+  rel_module5v5:u64 = const() {"value":0}
+  rel_module5v6:u64 = const() {"value":0}
+  rel_module5v7:u64 = const() {"value":0}
+  rel_module5:bool = call(relbody5,reloff5,relext5,rel_module5v0,rel_module5v1,rel_module5v2,rel_module5v3,rel_module5v4,rel_module5v5,rel_module5v6,rel_module5v7) {"function":"is_module"}
+  role_value5:u64 = const() {"value":196614}
+  no_value5:u64 = const() {"value":0}
+  rel_out5:u64 = select(rel_module5,role_value5,no_value5)
+  ret(rel_out5)
+block release6(rel_src6:readbuf,rel_name6:u64,rel_n6:u64,rel_pos6:u64,rel_z6:u64)
+  rel_name6v0:u64 = const() {"value":19}
+  rel_name6v1:u64 = const() {"value":8313423039255636083}
+  rel_name6v2:u64 = const() {"value":7307141442728981108}
+  rel_name6v3:u64 = const() {"value":6386800}
+  rel_name6v4:u64 = const() {"value":0}
+  rel_name6v5:u64 = const() {"value":0}
+  rel_name6v6:u64 = const() {"value":0}
+  rel_name6v7:u64 = const() {"value":0}
+  rel_name_match6:bool = call(rel_src6,rel_name6,rel_n6,rel_name6v0,rel_name6v1,rel_name6v2,rel_name6v3,rel_name6v4,rel_name6v5,rel_name6v6,rel_name6v7) {"function":"is_name"}
+  branch rel_name_match6 rel_match6(rel_src6,rel_pos6,rel_z6) release7(rel_src6,rel_name6,rel_n6,rel_pos6,rel_z6)
+block rel_match6(relbody6:readbuf,reloff6:u64,relext6:u64)
+  rel_module6v0:u64 = const() {"value":13}
+  rel_module6v1:u64 = const() {"value":8313423039255636083}
+  rel_module6v2:u64 = const() {"value":469785473652}
+  rel_module6v3:u64 = const() {"value":0}
+  rel_module6v4:u64 = const() {"value":0}
+  rel_module6v5:u64 = const() {"value":0}
+  rel_module6v6:u64 = const() {"value":0}
+  rel_module6v7:u64 = const() {"value":0}
+  rel_module6:bool = call(relbody6,reloff6,relext6,rel_module6v0,rel_module6v1,rel_module6v2,rel_module6v3,rel_module6v4,rel_module6v5,rel_module6v6,rel_module6v7) {"function":"is_module"}
+  role_value6:u64 = const() {"value":15}
+  no_value6:u64 = const() {"value":0}
+  rel_out6:u64 = select(rel_module6,role_value6,no_value6)
+  ret(rel_out6)
+block release7(rel_src7:readbuf,rel_name7:u64,rel_n7:u64,rel_pos7:u64,rel_z7:u64)
+  rel_name7v0:u64 = const() {"value":30}
+  rel_name7v1:u64 = const() {"value":6874027268401554802}
+  rel_name7v2:u64 = const() {"value":8028075781016806771}
+  rel_name7v3:u64 = const() {"value":8746950815730655086}
+  rel_name7v4:u64 = const() {"value":107152729794606}
+  rel_name7v5:u64 = const() {"value":0}
+  rel_name7v6:u64 = const() {"value":0}
+  rel_name7v7:u64 = const() {"value":0}
+  rel_name_match7:bool = call(rel_src7,rel_name7,rel_n7,rel_name7v0,rel_name7v1,rel_name7v2,rel_name7v3,rel_name7v4,rel_name7v5,rel_name7v6,rel_name7v7) {"function":"is_name"}
+  branch rel_name_match7 rel_match7(rel_src7,rel_pos7,rel_z7) release8(rel_src7,rel_name7,rel_n7,rel_pos7,rel_z7)
+block rel_match7(relbody7:readbuf,reloff7:u64,relext7:u64)
+  rel_module7v0:u64 = const() {"value":24}
+  rel_module7v1:u64 = const() {"value":6874027268401554802}
+  rel_module7v2:u64 = const() {"value":8028075781016806771}
+  rel_module7v3:u64 = const() {"value":8746950815730655086}
+  rel_module7v4:u64 = const() {"value":0}
+  rel_module7v5:u64 = const() {"value":0}
+  rel_module7v6:u64 = const() {"value":0}
+  rel_module7v7:u64 = const() {"value":0}
+  rel_module7:bool = call(relbody7,reloff7,relext7,rel_module7v0,rel_module7v1,rel_module7v2,rel_module7v3,rel_module7v4,rel_module7v5,rel_module7v6,rel_module7v7) {"function":"is_module"}
+  role_value7:u64 = const() {"value":16}
+  no_value7:u64 = const() {"value":0}
+  rel_out7:u64 = select(rel_module7,role_value7,no_value7)
+  ret(rel_out7)
+block release8(rel_src8:readbuf,rel_name8:u64,rel_n8:u64,rel_pos8:u64,rel_z8:u64)
+  rel_name8v0:u64 = const() {"value":20}
+  rel_name8v1:u64 = const() {"value":7882532310156996451}
+  rel_name8v2:u64 = const() {"value":7507059053662794601}
+  rel_name8v3:u64 = const() {"value":1635020901}
+  rel_name8v4:u64 = const() {"value":0}
+  rel_name8v5:u64 = const() {"value":0}
+  rel_name8v6:u64 = const() {"value":0}
+  rel_name8v7:u64 = const() {"value":0}
+  rel_name_match8:bool = call(rel_src8,rel_name8,rel_n8,rel_name8v0,rel_name8v1,rel_name8v2,rel_name8v3,rel_name8v4,rel_name8v5,rel_name8v6,rel_name8v7) {"function":"is_name"}
+  branch rel_name_match8 rel_match8(rel_src8,rel_pos8,rel_z8) release9(rel_src8,rel_name8,rel_n8,rel_pos8,rel_z8)
+block rel_match8(relbody8:readbuf,reloff8:u64,relext8:u64)
+  rel_module8v0:u64 = const() {"value":14}
+  rel_module8v1:u64 = const() {"value":7882532310156996451}
+  rel_module8v2:u64 = const() {"value":121424789599081}
+  rel_module8v3:u64 = const() {"value":0}
+  rel_module8v4:u64 = const() {"value":0}
+  rel_module8v5:u64 = const() {"value":0}
+  rel_module8v6:u64 = const() {"value":0}
+  rel_module8v7:u64 = const() {"value":0}
+  rel_module8:bool = call(relbody8,reloff8,relext8,rel_module8v0,rel_module8v1,rel_module8v2,rel_module8v3,rel_module8v4,rel_module8v5,rel_module8v6,rel_module8v7) {"function":"is_module"}
+  role_value8:u64 = const() {"value":17}
+  no_value8:u64 = const() {"value":0}
+  rel_out8:u64 = select(rel_module8,role_value8,no_value8)
+  ret(rel_out8)
+block release9(rel_src9:readbuf,rel_name9:u64,rel_n9:u64,rel_pos9:u64,rel_z9:u64)
+  rel_name9v0:u64 = const() {"value":22}
+  rel_name9v1:u64 = const() {"value":7310028700201938787}
+  rel_name9v2:u64 = const() {"value":7957705967292478580}
+  rel_name9v3:u64 = const() {"value":107152729794606}
+  rel_name9v4:u64 = const() {"value":0}
+  rel_name9v5:u64 = const() {"value":0}
+  rel_name9v6:u64 = const() {"value":0}
+  rel_name9v7:u64 = const() {"value":0}
+  rel_name_match9:bool = call(rel_src9,rel_name9,rel_n9,rel_name9v0,rel_name9v1,rel_name9v2,rel_name9v3,rel_name9v4,rel_name9v5,rel_name9v6,rel_name9v7) {"function":"is_name"}
+  branch rel_name_match9 rel_match9(rel_src9,rel_pos9,rel_z9) release10(rel_src9,rel_name9,rel_n9,rel_pos9,rel_z9)
+block rel_match9(relbody9:readbuf,reloff9:u64,relext9:u64)
+  rel_module9v0:u64 = const() {"value":16}
+  rel_module9v1:u64 = const() {"value":7310028700201938787}
+  rel_module9v2:u64 = const() {"value":7957705967292478580}
+  rel_module9v3:u64 = const() {"value":0}
+  rel_module9v4:u64 = const() {"value":0}
+  rel_module9v5:u64 = const() {"value":0}
+  rel_module9v6:u64 = const() {"value":0}
+  rel_module9v7:u64 = const() {"value":0}
+  rel_module9:bool = call(relbody9,reloff9,relext9,rel_module9v0,rel_module9v1,rel_module9v2,rel_module9v3,rel_module9v4,rel_module9v5,rel_module9v6,rel_module9v7) {"function":"is_module"}
+  role_value9:u64 = const() {"value":18}
+  no_value9:u64 = const() {"value":0}
+  rel_out9:u64 = select(rel_module9,role_value9,no_value9)
+  ret(rel_out9)
+block release10(rel_src10:readbuf,rel_name10:u64,rel_n10:u64,rel_pos10:u64,rel_z10:u64)
+  rel_name10v0:u64 = const() {"value":23}
+  rel_name10v1:u64 = const() {"value":8317701420244692835}
+  rel_name10v2:u64 = const() {"value":8030879518738834800}
+  rel_name10v3:u64 = const() {"value":27431098827419246}
+  rel_name10v4:u64 = const() {"value":0}
+  rel_name10v5:u64 = const() {"value":0}
+  rel_name10v6:u64 = const() {"value":0}
+  rel_name10v7:u64 = const() {"value":0}
+  rel_name_match10:bool = call(rel_src10,rel_name10,rel_n10,rel_name10v0,rel_name10v1,rel_name10v2,rel_name10v3,rel_name10v4,rel_name10v5,rel_name10v6,rel_name10v7) {"function":"is_name"}
+  branch rel_name_match10 rel_match10(rel_src10,rel_pos10,rel_z10) release11(rel_src10,rel_name10,rel_n10,rel_pos10,rel_z10)
+block rel_match10(relbody10:readbuf,reloff10:u64,relext10:u64)
+  rel_module10v0:u64 = const() {"value":17}
+  rel_module10v1:u64 = const() {"value":8317701420244692835}
+  rel_module10v2:u64 = const() {"value":8030879518738834800}
+  rel_module10v3:u64 = const() {"value":110}
+  rel_module10v4:u64 = const() {"value":0}
+  rel_module10v5:u64 = const() {"value":0}
+  rel_module10v6:u64 = const() {"value":0}
+  rel_module10v7:u64 = const() {"value":0}
+  rel_module10:bool = call(relbody10,reloff10,relext10,rel_module10v0,rel_module10v1,rel_module10v2,rel_module10v3,rel_module10v4,rel_module10v5,rel_module10v6,rel_module10v7) {"function":"is_module"}
+  role_value10:u64 = const() {"value":19}
+  no_value10:u64 = const() {"value":0}
+  rel_out10:u64 = select(rel_module10,role_value10,no_value10)
+  ret(rel_out10)
+block release11(rel_src11:readbuf,rel_name11:u64,rel_n11:u64,rel_pos11:u64,rel_z11:u64)
+  rel_name11v0:u64 = const() {"value":30}
+  rel_name11v1:u64 = const() {"value":8247343671183306595}
+  rel_name11v2:u64 = const() {"value":6875977875312632693}
+  rel_name11v3:u64 = const() {"value":8751735890100121460}
+  rel_name11v4:u64 = const() {"value":107152729794606}
+  rel_name11v5:u64 = const() {"value":0}
+  rel_name11v6:u64 = const() {"value":0}
+  rel_name11v7:u64 = const() {"value":0}
+  rel_name_match11:bool = call(rel_src11,rel_name11,rel_n11,rel_name11v0,rel_name11v1,rel_name11v2,rel_name11v3,rel_name11v4,rel_name11v5,rel_name11v6,rel_name11v7) {"function":"is_name"}
+  branch rel_name_match11 rel_match11(rel_src11,rel_pos11,rel_z11) release12(rel_src11,rel_name11,rel_n11,rel_pos11,rel_z11)
+block rel_match11(relbody11:readbuf,reloff11:u64,relext11:u64)
+  rel_module11v0:u64 = const() {"value":24}
+  rel_module11v1:u64 = const() {"value":8247343671183306595}
+  rel_module11v2:u64 = const() {"value":6875977875312632693}
+  rel_module11v3:u64 = const() {"value":8751735890100121460}
+  rel_module11v4:u64 = const() {"value":0}
+  rel_module11v5:u64 = const() {"value":0}
+  rel_module11v6:u64 = const() {"value":0}
+  rel_module11v7:u64 = const() {"value":0}
+  rel_module11:bool = call(relbody11,reloff11,relext11,rel_module11v0,rel_module11v1,rel_module11v2,rel_module11v3,rel_module11v4,rel_module11v5,rel_module11v6,rel_module11v7) {"function":"is_module"}
+  role_value11:u64 = const() {"value":20}
+  no_value11:u64 = const() {"value":0}
+  rel_out11:u64 = select(rel_module11,role_value11,no_value11)
+  ret(rel_out11)
+block release12(rel_src12:readbuf,rel_name12:u64,rel_n12:u64,rel_pos12:u64,rel_z12:u64)
+  rel_name12v0:u64 = const() {"value":21}
+  rel_name12v1:u64 = const() {"value":8030604640581218147}
+  rel_name12v2:u64 = const() {"value":3343204095692334703}
+  rel_name12v3:u64 = const() {"value":418565350760}
+  rel_name12v4:u64 = const() {"value":0}
+  rel_name12v5:u64 = const() {"value":0}
+  rel_name12v6:u64 = const() {"value":0}
+  rel_name12v7:u64 = const() {"value":0}
+  rel_name_match12:bool = call(rel_src12,rel_name12,rel_n12,rel_name12v0,rel_name12v1,rel_name12v2,rel_name12v3,rel_name12v4,rel_name12v5,rel_name12v6,rel_name12v7) {"function":"is_name"}
+  branch rel_name_match12 rel_match12(rel_src12,rel_pos12,rel_z12) unknown(rel_src12)
+block rel_match12(relbody12:readbuf,reloff12:u64,relext12:u64)
+  rel_module12v0:u64 = const() {"value":15}
+  rel_module12v1:u64 = const() {"value":8030604640581218147}
+  rel_module12v2:u64 = const() {"value":28554769947649647}
+  rel_module12v3:u64 = const() {"value":0}
+  rel_module12v4:u64 = const() {"value":0}
+  rel_module12v5:u64 = const() {"value":0}
+  rel_module12v6:u64 = const() {"value":0}
+  rel_module12v7:u64 = const() {"value":0}
+  rel_module12:bool = call(relbody12,reloff12,relext12,rel_module12v0,rel_module12v1,rel_module12v2,rel_module12v3,rel_module12v4,rel_module12v5,rel_module12v6,rel_module12v7) {"function":"is_module"}
+  role_value12:u64 = const() {"value":21}
+  no_value12:u64 = const() {"value":0}
+  rel_out12:u64 = select(rel_module12,role_value12,no_value12)
+  ret(rel_out12)
 block unknown(unknown_input:readbuf)
   missing:u64 = const() {"value":0}
   ret(missing)
+end
+fn release_frame_magic(mode:u64,default_value:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(mode:u64,default_value:u64)
+  tag0:u64 = const() {"value":196609}
+  selected0:bool = compare.eq(mode,tag0)
+  value0:u64 = const() {"value":3544424502442150216}
+  result0:u64 = select(selected0,value0,default_value)
+  tag1:u64 = const() {"value":196610}
+  selected1:bool = compare.eq(mode,tag1)
+  value1:u64 = const() {"value":3544415715106834760}
+  result1:u64 = select(selected1,value1,result0)
+  tag2:u64 = const() {"value":196611}
+  selected2:bool = compare.eq(mode,tag2)
+  value2:u64 = const() {"value":3551453633184876872}
+  result2:u64 = select(selected2,value2,result1)
+  tag3:u64 = const() {"value":196612}
+  selected3:bool = compare.eq(mode,tag3)
+  value3:u64 = const() {"value":3544386040909351240}
+  result3:u64 = select(selected3,value3,result2)
+  tag4:u64 = const() {"value":196613}
+  selected4:bool = compare.eq(mode,tag4)
+  value4:u64 = const() {"value":3544425606433294664}
+  result4:u64 = select(selected4,value4,result3)
+  tag5:u64 = const() {"value":196614}
+  selected5:bool = compare.eq(mode,tag5)
+  value5:u64 = const() {"value":3544386028024449352}
+  result5:u64 = select(selected5,value5,result4)
+  ret(result5)
+end
+fn release_companions(mode:u64,default_value:u64) -> (u64) effects(read,write,trap) entry(entry)
+block entry(mode:u64,default_value:u64)
+  tag0:u64 = const() {"value":196609}
+  selected0:bool = compare.eq(mode,tag0)
+  value0:u64 = const() {"value":15}
+  result0:u64 = select(selected0,value0,default_value)
+  tag1:u64 = const() {"value":196610}
+  selected1:bool = compare.eq(mode,tag1)
+  value1:u64 = const() {"value":4111}
+  result1:u64 = select(selected1,value1,result0)
+  tag2:u64 = const() {"value":196611}
+  selected2:bool = compare.eq(mode,tag2)
+  value2:u64 = const() {"value":17}
+  result2:u64 = select(selected2,value2,result1)
+  tag3:u64 = const() {"value":196612}
+  selected3:bool = compare.eq(mode,tag3)
+  value3:u64 = const() {"value":1249809}
+  result3:u64 = select(selected3,value3,result2)
+  tag4:u64 = const() {"value":196613}
+  selected4:bool = compare.eq(mode,tag4)
+  value4:u64 = const() {"value":20}
+  result4:u64 = select(selected4,value4,result3)
+  tag5:u64 = const() {"value":196614}
+  selected5:bool = compare.eq(mode,tag5)
+  value5:u64 = const() {"value":21}
+  result5:u64 = select(selected5,value5,result4)
+  ret(result5)
 end

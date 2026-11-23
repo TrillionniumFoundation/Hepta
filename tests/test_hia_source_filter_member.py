@@ -165,3 +165,19 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 alias, = sources
                 mismatch = self.source_images(self.work / 'alias-mismatch', {alias: other})
                 self.invoke([builders[packer], 'build'], mismatch, refused=True)
+
+    def test_build_core_and_release_tools_against_independent_installation(self):
+        from tools.build_hia_native_store_release import _source_release_recipes
+
+        for name, packer, sources in _source_release_recipes():
+            with self.subTest(name=name):
+                builder = self.member_builder(self.work / packer, packer)
+                inputs = {alias: self.sources / source for alias, source in sources.items()}
+                # Bundle order is independent of required image order in the ELF.
+                image = self.source_images(self.work / name, dict(reversed(tuple(inputs.items()))))
+                self.assertEqual(self.invoke([builder, 'build'], image), (self.release / name).read_bytes())
+                for missing in inputs:
+                    partial = {alias: source for alias, source in inputs.items() if alias != missing}
+                    broken = self.source_images(self.work / 'incomplete-core', partial)
+                    self.invoke([builder, 'build'], broken, refused=True)
+                self.invoke([builder, 'build'], image[:-1] + bytes([image[-1] ^ 1]), refused=True)

@@ -229,3 +229,13 @@ checks that the name matches the source module and rebuilds the image before
 running its packer. Direct-call, job-receipt and scalar-reference builds also
 verify their original syscall adapter source, relocated call and full embedded
 image against the finished executable.
+
+## Rebuilding release management and Core programs
+
+The HIA member builder constructs `hia-release`, `hia-select`,
+`hia-patch-result`, `hia-totality-core`, `hia-core-proof-wire` and the
+four-image `hia-core` suite. Each recipe names all required components and
+their positions in the packed executable. Source directories can list those
+files in any order. Missing, extra or mismatched source/image pairs prevent
+publication. The Core patch-result packer retains its two-image plus 4 KiB
+output bound.
