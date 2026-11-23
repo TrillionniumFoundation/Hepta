@@ -330,6 +330,24 @@ class ReleaseSelectionKernelTests(unittest.TestCase):
     def selected(self):
         return json.loads(self.run_app().stdout)
 
+    def test_extended_release_can_be_activated_verified_and_rolled_back(self):
+        members = [(f'f{index:03d}', 0o400, bytes([index % 251])) for index in range(257)]
+        package = b'HIAREL02' + install_controls.bundle(members)[8:]
+        digest = sha256(package).hexdigest()
+        installed = subprocess.run([self.installer, 'install', self.root, digest],
+                                   input=package, capture_output=True, env={'PATH': ''}, check=True)
+        self.assertEqual(json.loads(installed.stdout)['files'], len(members))
+        self.wires.append(package)
+        self.ids.append(digest)
+        index = len(self.ids) - 1
+        self.run_app('activate', 0, None, 0)
+        active = json.loads(self.run_app('activate', 1, self.ids[0], index).stdout)
+        self.assertEqual((active['current'], active['previous']), (digest, self.ids[0]))
+        verified = json.loads(self.run_app('verify', 2, digest, index).stdout)
+        self.assertTrue(verified['release_verified'])
+        self.run_app('rollback', 2, digest, 0)
+        self.assertEqual(self.selected()['current'], self.ids[0])
+
     def test_real_activation_status_rollback_and_immutable_releases(self):
         before={p.name:(p.stat().st_ino,(p/'app').read_bytes()) for p in self.root.iterdir()}
         empty=self.selected()
