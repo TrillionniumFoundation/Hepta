@@ -140,3 +140,19 @@ When the writer exits, the original supervisor still holds its file
 description. Another independent open remains excluded until the last
 holder of the original description closes it. The installer exercises both
 exclusion and release before publishing a v22 controller manifest.
+
+## Installed owner marker observation
+
+After the original supervisor has obtained the lifetime lock, controller v23
+asks the HIA receipt writer to observe the five ownership and terminal names.
+The writer receives the already pinned job directory as descriptor 1. Its
+sealed `HIAJMK01` request carries the parent PID, expected directory device,
+inode and a zero reserved word as four little-endian unsigned 64-bit integers.
+
+HIA confirms the expected private directory and selects all five lookups.
+Each lookup uses the pinned directory and `AT_SYMLINK_NOFOLLOW`. A dangling
+symbolic link therefore counts as an existing marker. The phase-three
+`HIAJRW01` receipt returns the existing v20 five-bit mask. The file-descriptor
+check and directory lookup errors are reported as negative kernel results in
+phases one and two respectively. Either error prevents a fresh workload
+submission. The installed encoder still applies its post-lock admission rule.
