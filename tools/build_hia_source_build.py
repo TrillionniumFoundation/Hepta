@@ -146,7 +146,9 @@ def _run_captured(executable, operation, wire, directory):
         if fcntl.fcntl(fd, getattr(fcntl, 'F_GET_SEALS', 1034)) & 15 != 15:
             raise ValueError('native bootstrap descriptor was not sealed')
         argv = ['/proc/self/fd/' + str(fd)]
-        if operation is not None:
+        if isinstance(operation, tuple):
+            argv.extend(operation)
+        elif operation is not None:
             argv.append(operation)
         return subprocess.run(argv, input=wire,
                               capture_output=True, env={'PATH': ''}, cwd=directory,

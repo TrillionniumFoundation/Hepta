@@ -110,6 +110,40 @@ class InstalledSourceMemberTests(unittest.TestCase):
         self.assertEqual(self.invoke([self.release / 'hia-elf-link'], linked_input),
                          (self.release / 'hia-agent-artifact-capture').read_bytes())
 
+    def test_agent_stdio_rebuilds_the_catalogs_and_three_source_images(self):
+        from tools import build_hia_native_store_release as release
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+
+        seed = self.seed.read_bytes()
+        catalog_program = (self.release / 'hia-catalog').read_bytes()
+        compiler = self.invoke([self.seed, 'compile'], (self.release / 'selfhost.hepta').read_bytes())
+        published = []
+
+        def compile_sources(named):
+            files = {alias: self.sources / path for alias, path in named.items()}
+            sources = {alias: path.read_bytes() for alias, path in files.items()}
+            packet = self.source_images(self.work / 'agent-stdio', files)
+            return packet, _compiled_sources(packet, sources), sources
+
+        def call(program, operation, wire):
+            proc = _run_captured(program, operation, wire, self.work)
+            self.assertEqual((proc.returncode, proc.stderr), (0, b''))
+            if program != catalog_program and operation == 'build':
+                for changed in (wire[:-1], wire + b'x'):
+                    refused = _run_captured(program, operation, changed, self.work)
+                    self.assertNotEqual(refused.returncode, 0)
+                    self.assertEqual((refused.stdout, refused.stderr), (b'', b''))
+            return proc.stdout
+
+        def publish(path, *, expected):
+            data = path.read_bytes()
+            self.assertEqual(sha256(data).hexdigest(), expected)
+            self.assertEqual(data, (self.release / 'hia-native').read_bytes())
+            published.append(path.name)
+
+        release._stage_agent_stdio(self.work, seed, catalog_program, compile_sources, call, compiler, publish)
+        self.assertEqual(published, ['hia-native'])
+
     def test_flat_helper_manifests_recompile_both_images_before_publishing(self):
         import json
         import struct

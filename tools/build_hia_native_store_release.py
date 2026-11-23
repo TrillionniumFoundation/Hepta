@@ -60,7 +60,6 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
                  'supplied_safe_core_proof',
                  'owned_reference_cli', 'nominal_constructor'):
         component(name)
-    component('agent_stdio', output_profile='elf')
 
     with TemporaryDirectory(prefix='standalone-', dir=work) as tmp:
         directory = Path(tmp)
@@ -196,6 +195,29 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
               'source_sha256': {name: admitted[name] for name in projection_sources},
               'image_sha256': {unit: sha256(images[source_names[unit]]).hexdigest() for unit in projection_units}}
     return staging, record
+
+
+def _stage_agent_stdio(work, seed, catalog_program, compile_sources, call, compiler_bytes, publish):
+    """Publish the original Agent stdio ELF with catalog recipes constructed by HIA."""
+    core = ('agent_stdio_dispatch.hepta', 'core_json_frontend.hepta', 'selfhost.hepta')
+    _, images, sources = compile_sources({name: name for name in core})
+    if images['selfhost.hepta'] != compiler_bytes:
+        raise ValueError('Agent stdio selfhost differs from the cold compiler')
+    kit, _, _ = compile_sources({
+        'source_build_policy.hepta': 'source_agent_stdio.hepta',
+        'selfhost.hepta': 'selfhost.hepta',
+        'source_build_packer.hepta': 'agent_stdio_packer.hepta',
+    })
+    author = call(seed, 'pack', kit)
+    # Nine ordered catalogs belong to the published Agent stdio v2 protocol.
+    catalogs = [call(catalog_program, ('--schema', f'hepta.hia.program.v{version}'), b'')
+                for version in range(1, 10)]
+    parts = [*(sources[name] for name in core), *(images[name] for name in core), *catalogs]
+    request = struct.pack('<8s15Q', b'HIAAGS01', *map(len, parts)) + b''.join(parts)
+    executable = call(author, 'build', request)
+    path = work / 'hia-native'
+    path.write_bytes(executable)
+    publish(path, expected=sha256(executable).hexdigest())
 
 
 def _source_worker_recipes():
@@ -433,6 +455,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             publish(path)
 
     _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
+    _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
     return _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
 
 
