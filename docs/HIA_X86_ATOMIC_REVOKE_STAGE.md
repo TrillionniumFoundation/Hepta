@@ -15,9 +15,12 @@ No byte injection into HIA Core or `selfhost_elf` is involved.
 
 The independent GNU-as oracle tests 770 source/address/disp combinations,
 including REX extension bits, RSP/R12 SIB, RBP/R13 displacement cases,
-signed displacement boundaries and malformed operands. The complete
-guarded operation is independently assembled and byte-compared, including
-three conditional rejection branches. PC and Q35 QEMU execute its *exact
+signed displacement boundaries and malformed operands. A separate unprivileged x86-64 Linux hardware oracle executes generated
+LOCK CMPXCHGQ on actual RAM and checks both successful replacement/ZF=1
+and deterministic stale-value refusal/ZF=0. It runs NO CRx, INVLPG or other
+privileged instructions on the host. The complete guarded operation is
+independently assembled and byte-compared, including three conditional
+rejection branches. PC and Q35 QEMU execute its *exact
 staged bytes* and independently check the real PTE and non-present #PF,
 wrong-CR3, stale-old and dishonest RET-only controls. Each image/source
 SHA and each unrun, timed-out or failed case remains separately recorded.
