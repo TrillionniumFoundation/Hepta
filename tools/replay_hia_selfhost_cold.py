@@ -84,9 +84,18 @@ def cold_replay(output, *, native_transport=False):
                     for path, digest in files.items())
     untouched_origin = all(sha256((ROOT / path).read_bytes()).hexdigest() == digest
                            for path, digest in files.items())
+    observer = None
+    observer_error = None
+    if nested and nested.get("status") == "SELF_HOSTED_FIXED_CORE_PASS":
+        from tools.hia_selfhost_native_observer import exported_observer
+        try:
+            observer = exported_observer(nested_output.with_suffix(".evidence") / "native-observer.elf",
+                                         nested, files["examples/hia_bootstrap/native_observer_packer.hepta"])
+        except (OSError, KeyError, TypeError, ValueError) as error:
+            observer_error = str(error)
     checks = {"nested_process_exit_zero": owner_complete and returncode == 0,
               "owned_process_tree_cleanup_confirmed": owner.get("cleanup", {}).get("complete") is True,
-              "nested_full_qualification_pass": bool(nested and nested.get("status") == "SELF_HOSTED_FIXED_CORE_PASS"),
+              "nested_full_qualification_pass": observer is not None,
               "source_export_hashes_preserved": preserved,
               "origin_hashes_preserved": untouched_origin,
               "export_manifest_matches_qualification": bool(nested and nested.get("source_manifest") == files),
@@ -112,6 +121,10 @@ def cold_replay(output, *, native_transport=False):
                             "virtual_machine": False, "security_sandbox": False,
                             "shared_host_dependencies": ["CPython executable and standard library",
                                                          "GNU ld", "libc", "kernel", "hardware"]}}
+    if observer is not None:
+        result["native_flat_observer_hex"] = observer.hex()
+    elif observer_error is not None:
+        result["native_flat_observer_error"] = observer_error
     if native_transport:
         result["isolation"]["shared_host_dependencies"].extend([
             "current CPython headers and shared library", "current source-bound C compiler for the explicit R3 bridge"])

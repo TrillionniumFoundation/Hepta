@@ -201,6 +201,43 @@ class SourceBuilderSourceTests(unittest.TestCase):
             self.assertEqual(start % 4096, 0)
         self.assertEqual(regions[-1][0] + regions[-1][1], LAYOUT['MAPSIZE'])
 
+    def test_cold_observer_is_portable_and_changed_executable_is_refused(self):
+        from tools.generate_hia_native_observer import reference_image
+        from tools.hia_selfhost_native_observer import PACKER, cold_compiler_observer, exported_observer
+
+        image = reference_image()
+        source_sha = sha256(PACKER.read_bytes()).hexdigest()
+        identity = sha256(image).hexdigest()
+        nested = {
+            'native_observer_reference': {'before_B0': True, 'every_output_byte_compared': True,
+                'expected_image_bytes': len(image), 'expected_image_sha256': identity, 'packer_source_sha256': source_sha},
+            'native_observer_build': {'independent_reference_before_B0': True, 'executable_sha256': identity,
+                'source_sha256': source_sha},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'native-observer.elf'
+            path.write_bytes(image)
+            captured = exported_observer(path, nested, source_sha)
+            portable = json.dumps({'native_flat_observer_hex': captured.hex()}).encode()
+            self.assertEqual(cold_compiler_observer(portable), image)
+            self.assertEqual(cold_compiler_observer(b'{}'), image)
+            wrong = bytearray(image)
+            wrong[-1] ^= 1
+            path.write_bytes(wrong)
+            with self.assertRaises(ValueError):
+                exported_observer(path, nested, source_sha)
+            for altered in (None, 0, wrong.hex(), image.hex()[:-2]):
+                with self.subTest(altered=type(altered)), self.assertRaises(ValueError):
+                    cold_compiler_observer(json.dumps({'native_flat_observer_hex': altered}).encode())
+            other = path.with_name('observer-link')
+            other.symlink_to(path)
+            with self.assertRaises(OSError):
+                exported_observer(other, nested, source_sha)
+            path.write_bytes(image)
+            nested['native_observer_reference']['before_B0'] = False
+            with self.assertRaises(ValueError):
+                exported_observer(path, nested, source_sha)
+
     def test_independent_vm_arguments_and_permanent_protocol_poison(self):
         args = struct.pack('<2Q', 1, 5) + b'build'
         self.assertEqual(observe_policy(args, workspace(), work_offsets=(8, 16)), (0, b'\x01\x01'))

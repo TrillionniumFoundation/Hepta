@@ -146,17 +146,21 @@ def build_seed(directory, source=None):
 def invoke(directory, label, image, source, *, image_format="flat-x86-64",
            capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
            output_initial=None, observe_trap_writes=False, compiler_function_offsets=(),
-           worker_section_pack=False):
+           worker_section_pack=False, flat_observer=None):
     """Copy private inputs and run one pinned artifact under fixed limits."""
+    if flat_observer is not None and (type(flat_observer) is not bytes or image_format != 'flat-x86-64'
+                                      or compiler_function_offsets or worker_section_pack):
+        raise ValueError('explicit flat observer requires the ordinary flat byte ABI')
     if NATIVE_LINKED_OBSERVER is not None and image_format == 'linked-selfhost' and not compiler_function_offsets:
         from tools.hia_selfhost_linked_observer import invoke as observe_linked_native
         return observe_linked_native(directory, label, NATIVE_LINKED_OBSERVER, image, source,
             capacity=capacity, workspace_size=workspace_size, workspace_fill=workspace_fill,
             output_initial=output_initial, observe_trap_writes=observe_trap_writes)
-    if (NATIVE_OBSERVER is not None and image_format == 'flat-x86-64'
+    selected_observer = NATIVE_OBSERVER if flat_observer is None else flat_observer
+    if (selected_observer is not None and image_format == 'flat-x86-64'
             and not compiler_function_offsets and not worker_section_pack):
         from tools.hia_selfhost_native_observer import invoke as observe_native
-        return observe_native(directory,label,NATIVE_OBSERVER,image,source,capacity=capacity,
+        return observe_native(directory,label,selected_observer,image,source,capacity=capacity,
             workspace_size=workspace_size,workspace_fill=workspace_fill,
             output_initial=output_initial,observe_trap_writes=observe_trap_writes)
     directory, image = Path(directory), Path(image)
@@ -219,10 +223,12 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
 
 
 def compile_stage(directory, label, image, source, *, image_format="flat-x86-64", workspace_fill=0,
-                  output_extension=".image.bin", compiler_function_offsets=()):
+                  output_extension=".image.bin", compiler_function_offsets=(), flat_observer=None):
     compiler_bytes = Path(image).read_bytes()
+    observer_options = {} if flat_observer is None else {"flat_observer": flat_observer}
     result, output = invoke(directory, label, image, source, image_format=image_format,
-                            workspace_fill=workspace_fill, compiler_function_offsets=compiler_function_offsets)
+                            workspace_fill=workspace_fill, compiler_function_offsets=compiler_function_offsets,
+                            **observer_options)
     # These are publication conditions, including under Python -O.  In
     # particular, bool/float zero is not a successful native integer status,
     # and a missing/truthy custody observation is not an unchanged-source

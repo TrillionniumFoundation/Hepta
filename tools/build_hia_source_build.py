@@ -313,12 +313,14 @@ def _rebuild_source_seed(bootstrap, wire, sources, images, directory):
 
 def _build_captured(output: Path, compiler: Path, cold_report: Path):
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
+    from tools.hia_selfhost_native_observer import cold_compiler_observer
     source_bytes = {name: (ROOT / name).read_bytes() for name in SOURCES}
     admitted = admit_cold_build(compiler_bytes, cold_bytes)
     if any(admitted.get(name) != sha256(raw).hexdigest() for name, raw in source_bytes.items()):
         raise ValueError('source builder source missing from matching cold contract')
     if not 0 < len(compiler_bytes) <= 1 << 20:
         raise ValueError('compiler image exceeds the retained image limit')
+    observer = cold_compiler_observer(cold_bytes)
     output.mkdir(mode=0o700)
     # The actual compiler path passed to every child contains captured bytes.
     # Per-call receipts bind the bytes actually loaded, catching even a
@@ -328,14 +330,14 @@ def _build_captured(output: Path, compiler: Path, cold_report: Path):
     pinned_compiler.chmod(0o400)
     images, receipts = {}, {}
     for label, name in (('policy', SOURCES[0]), ('packer', SOURCES[2])):
-        path, receipt = compile_stage(output, label, pinned_compiler, source_bytes[name])
+        path, receipt = compile_stage(output, label, pinned_compiler, source_bytes[name], flat_observer=observer)
         raw = path.read_bytes()
         _check_compile_receipt(receipt, compiler=compiler_bytes, source=source_bytes[name], produced=raw)
         images[label] = (path, raw)
         receipts[label] = receipt
     policy, packer = images['policy'][1], images['packer'][1]
     frame = struct.pack('<4Q', PACK_MAGIC, len(policy), len(compiler_bytes), len(packer)) + policy + compiler_bytes + packer
-    receipt, packed = invoke(output, 'bootstrap-pack', images['packer'][0], frame)
+    receipt, packed = invoke(output, 'bootstrap-pack', images['packer'][0], frame, flat_observer=observer)
     executable_bytes = _check_pack_output(receipt, packed, artifact=packer, source=frame)
     inspection = inspect_executable(executable_bytes)
     compiled = _run_captured(executable_bytes, 'compile', source_bytes[SOURCES[1]], output)

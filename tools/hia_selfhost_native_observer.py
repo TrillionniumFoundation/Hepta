@@ -14,6 +14,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import stat
 import struct
 import subprocess
 import time
@@ -68,6 +69,49 @@ def independent_reference():
         'vm_windows':observations, 'expected_image_sha256':digest(image),
         'expected_image_bytes':len(image), 'every_output_byte_compared':True,
         'whole_stack_rewritten_in_hia':False, 'all_input_equivalence_proved':False}
+
+
+def exported_observer(path, nested, packer_sha256):
+    """Capture the HIA-emitted ELF admitted by both cold observer witnesses."""
+    from tools.generate_hia_native_observer import reference_image
+
+    expected = reference_image()
+    reference = nested['native_observer_reference']
+    build = nested['native_observer_build']
+    identity = digest(expected)
+    if (reference['before_B0'] is not True or reference['every_output_byte_compared'] is not True
+            or reference['expected_image_bytes'] != len(expected)
+            or reference['expected_image_sha256'] != identity or build['executable_sha256'] != identity
+            or build['independent_reference_before_B0'] is not True
+            or reference['packer_source_sha256'] != packer_sha256 or build['source_sha256'] != packer_sha256):
+        raise ValueError('cold observer does not match its HIA source and independent reference')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as source:
+        metadata = os.fstat(source.fileno())
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size != len(expected):
+            raise ValueError('cold observer has an invalid extent')
+        executable = source.read(len(expected) + 1)
+    if executable != expected:
+        raise ValueError('cold observer differs from its checked HIA image')
+    return executable
+
+
+def cold_compiler_observer(cold_bytes):
+    """Select immutable HIA observer bytes even when a portable report predates the embedded ELF."""
+    from tools.generate_hia_native_observer import reference_image
+
+    report = json.loads(cold_bytes)
+    expected = reference_image()
+    if 'native_flat_observer_hex' in report:
+        encoded = report['native_flat_observer_hex']
+        if encoded != expected.hex():
+            raise ValueError('cold compiler observer differs from the admitted syscall ABI')
+        return bytes.fromhex(encoded)
+    reference = independent_reference()
+    image = b''.join(bytes(row['result']['values'][1:]) for row in reference['vm_windows'])
+    if image != expected:
+        raise ValueError('HIA observer reconstruction differs from its admitted image')
+    return image
 
 
 def build(directory, compiler, reference):
@@ -205,8 +249,10 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
             output_initial=output_initial,observe_trap_writes=observe_trap_writes)
     if image_format != 'flat-x86-64':
         raise ValueError('unknown explicit native observer format')
-    directory, image, observer = Path(directory), Path(image), Path(observer)
-    image_bytes, executable = image.read_bytes(), observer.read_bytes()
+    directory, image = Path(directory), Path(image)
+    observer_path = None if isinstance(observer, bytes) else Path(observer)
+    executable = observer if observer_path is None else observer_path.read_bytes()
+    image_bytes = image.read_bytes()
     # Validate before creating a file descriptor or serializing large buffers.
     _validate_frame(image_bytes,source,capacity,workspace_size,workspace_fill)
     initial = b'\xa5'*capacity if output_initial is None else output_initial
@@ -291,7 +337,8 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
             artifact_sha256=digest(image_bytes),format='flat-x86-64',runner_sha256=digest(executable),
             wall_elapsed_ns=time.monotonic_ns()-began,transport=request['transport'],
             fresh_native_exec=True,successor_process_reuse=False)
-        if observer.read_bytes()!=executable or image.read_bytes()!=image_bytes or input_path.read_bytes()!=source:
+        if ((observer_path is not None and observer_path.read_bytes() != executable)
+                or image.read_bytes() != image_bytes or input_path.read_bytes() != source):
             raise AssertionError('native observer or immutable inputs changed')
         (directory/(label+'.stdout.log')).write_text(json.dumps(result,sort_keys=True)+'\n')
         (directory/(label+'.stderr.log')).write_bytes(stderr)
