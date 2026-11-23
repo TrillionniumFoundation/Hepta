@@ -74,6 +74,50 @@ class InstalledSourceMemberTests(unittest.TestCase):
         builder.chmod(0o500)
         return builder
 
+    def test_flat_helper_manifests_recompile_both_images_before_publishing(self):
+        import json
+        import struct
+        from tools.build_hia_json_preflight import CANDIDATES
+        from tools.build_hia_source_build import _compiled_sources
+        from tools.build_hia_worker_release import INSTALLED_HELPERS
+
+        selfhost = self.sources / 'selfhost.hepta'
+        kit = self.source_images(self.work / 'manifest-kit', {
+            'source_build_policy.hepta': SOURCES / 'source_helper_manifest.hepta',
+            'selfhost.hepta': selfhost,
+            'source_build_packer.hepta': self.sources / 'source_build_packer.hepta',
+        })
+        author = self.work / 'manifest-author'
+        author.write_bytes(self.invoke([self.seed, 'pack'], kit))
+        author.chmod(0o500)
+        compiler = self.invoke([self.seed, 'compile'], selfhost.read_bytes())
+        paths = {CANDIDATES[k][0] + '.hepta': self.sources / (CANDIDATES[k][0] + '.hepta')
+                 for k in INSTALLED_HELPERS}
+        sources = {name: path.read_bytes() for name, path in paths.items()}
+        images = _compiled_sources(self.source_images(self.work / 'helpers', paths), sources)
+
+        def frame(role, source, image, compiler_source, compiler_image):
+            parts = (source, image, compiler_source, compiler_image)
+            return struct.pack('<8s5Q', b'HIAHLM01', role, *map(len, parts)) + b''.join(parts)
+
+        compiler_source = selfhost.read_bytes()
+        for role, kind in enumerate(INSTALLED_HELPERS, 1):
+            name = CANDIDATES[kind][0] + '.hepta'
+            source, image = sources[name], images[name]
+            with self.subTest(kind=kind):
+                raw = self.invoke([author, 'build'], frame(role, source, image, compiler_source, compiler))
+                self.assertEqual(raw, (self.release / (kind + '-manifest.json')).read_bytes())
+                record = json.loads(raw)
+                self.assertEqual(image, (self.release / record['image_path']).read_bytes())
+                self.assertEqual(record['source_sha256'], sha256(source).hexdigest())
+                self.assertEqual(record['compiler_sha256'], sha256(compiler).hexdigest())
+            if role == 1:
+                for invalid in (frame(2, source, image, compiler_source, compiler),
+                                frame(role, source, image[:-1], compiler_source, compiler),
+                                frame(role, source, image, compiler_source, compiler[:-1]),
+                                frame(role, source, image, source, compiler)):
+                    self.invoke([author, 'build'], invalid, refused=True)
+
     def test_from_native_sources_against_every_installed_filter(self):
         for name in MEMBERS:
             with self.subTest(member=name):

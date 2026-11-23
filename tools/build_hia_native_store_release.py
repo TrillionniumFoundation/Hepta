@@ -9,6 +9,7 @@ from importlib import import_module
 import json
 import os
 import stat
+import struct
 from pathlib import Path
 import subprocess
 import tarfile
@@ -16,7 +17,7 @@ from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from tools.build_hia_core_edit import PROGRAMS as CORE_EDIT_PROGRAMS
 from tools.build_hia_source_build import _compiled_sources, _run_captured
-from tools.build_hia_json_preflight import ROOT, admit_cold_build, build_batch, current_sources
+from tools.build_hia_json_preflight import CANDIDATES, ROOT, _image_manifest, admit_cold_build, current_sources
 from tools.build_hia_sqlite_components import PROJECTION, UNITS
 from tools.build_hia_worker_release import AGENT_STDIO_ROLES, INSTALLED_HELPERS
 
@@ -96,16 +97,36 @@ def _stage_sqlite(work, compiler, cold_report, publish):
                                  'publisher': publisher})
 
 
-def _stage_helper_images(work, compiler, cold_report, publish):
-    images = build_batch(work / 'images', compiler, cold_report, candidates=INSTALLED_HELPERS)
-    for kind in INSTALLED_HELPERS:
-        manifest = images[kind]
-        record = json.loads(manifest.read_bytes())
-        image_name = record['image_path']
-        if Path(image_name).name != image_name:
-            raise ValueError('sealed Store helper has a nonlocal image name')
-        publish(manifest, kind + '-manifest.json')
-        publish(manifest.parent / image_name, expected=record['image_sha256'])
+def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
+    """Rebuild the eight flat images and let HIA attest each source/compiler/image tuple."""
+    kit, kit_images, kit_sources = compile_sources({
+        'source_build_policy.hepta': 'source_helper_manifest.hepta',
+        'selfhost.hepta': 'selfhost.hepta',
+        'source_build_packer.hepta': 'source_build_packer.hepta',
+    })
+    if kit_images['selfhost.hepta'] != compiler:
+        raise ValueError('flat helper compiler differs from the admitted cold compiler')
+    author = call(seed, 'pack', kit)
+    selfhost = kit_sources['selfhost.hepta']
+    names = [CANDIDATES[kind][0] + '.hepta' for kind in INSTALLED_HELPERS]
+    _, images, sources = compile_sources({name: name for name in names})
+    compiler_sha = sha256(compiler).hexdigest()
+
+    for role, (kind, name) in enumerate(zip(INSTALLED_HELPERS, names, strict=True), 1):
+        source, image = sources[name], images[name]
+        frame = struct.pack('<8s5Q', b'HIAHLM01', role, len(source), len(image), len(selfhost), len(compiler))
+        raw = call(author, 'build', frame + source + image + selfhost + compiler)
+        protocol = CANDIDATES[kind][1]
+        image_name = protocol + '.image.bin'
+        expected = _image_manifest(kind, protocol, source, image, image_name, compiler_sha)
+        if json.loads(raw) != expected:
+            raise ValueError('native flat helper manifest differs from the admitted inputs: ' + kind)
+        manifest_path = work / (kind + '-manifest.json')
+        manifest_path.write_bytes(raw)
+        publish(manifest_path)
+        image_path = work / image_name
+        image_path.write_bytes(image)
+        publish(image_path, expected=expected['image_sha256'])
 
 
 def _source_worker_recipes():
@@ -248,16 +269,18 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
                 raise ValueError('native source directory receipt differs from its bytes')
         compiled = call(seed, 'build', packed.stdout)
         # Authenticate the actual source copies read by both native programs.
-        return compiled, _compiled_sources(compiled, pinned)
+        return compiled, _compiled_sources(compiled, pinned), pinned
+
+    _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
 
     for name, packer, sources in _source_member_recipes():
         if packer not in builders:
-            kit, kit_images = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
+            kit, kit_images, _ = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
                                       'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
             builders[packer] = call(seed, 'pack', kit)
             if packer == 'core_json_cli_packer.hepta':
                 compiler_packer = kit_images['source_build_packer.hepta']
-        group, images = compile_sources(sources)
+        group, images, _ = compile_sources(sources)
         product = call(builders[packer], 'build', group)
         if name in adapter_files:
             adapter_file = adapter_files[name]
@@ -348,7 +371,6 @@ def build(output, compiler, cold_report):
             publish(ROOT / name, expected=admitted[name])
         _stage_component_outputs(work, compiler, cold_report, publish)
         _stage_sqlite(work, compiler, cold_report, publish)
-        _stage_helper_images(work, compiler, cold_report, publish)
         _stage_source_members(work, stage, admitted, members, publish,
                               compiler_bytes=compiler_bytes, report_bytes=report_bytes)
         package = _pack_and_verify(work, stage, members)
