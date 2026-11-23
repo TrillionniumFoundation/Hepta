@@ -646,7 +646,12 @@ def document():
     helpers = shared_transport()
     helpers = helpers[helpers.index('\ndef copy_work('):helpers.index('\ndef next(')]
     constants = {name: value for name, value in globals().items() if name.isupper() and type(value) is int}
-    machine = embedded_source(BINDING, OBLIGATION, OBSERVATION)
+    grammar_words = [f'word{i}' for i in range(8)]
+    grammar_args = ', '.join(name + ':u64' for name in grammar_words)
+    grammar_writer = [f'def store_simd_grammar8(w:mutbuf, at:u64, {grammar_args}) -> u64:']
+    grammar_writer.extend(f'    put(w, at + {8 * i}, {name})' for i, name in enumerate(grammar_words))
+    grammar_writer.append('    return 0')
+    machine = '\n'.join(grammar_writer) + '\n' + embedded_source(BINDING, OBLIGATION, OBSERVATION)
     for prefix,checker in [('avx2_',avx2_checker),('avx512_',avx512_checker)]:
         machine += '\n' + embedded_source(BINDING, OBLIGATION, OBSERVATION, source_factory=checker, prefix=prefix)
     import ast

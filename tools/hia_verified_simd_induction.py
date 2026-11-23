@@ -46,9 +46,16 @@ class WordCircuit:
                 immediate = 0
             encoded.append(tag | (left << 8) | (right << 16) | (immediate << 24))
         lines = [f'def {name}(w:mutbuf, delta:u64) -> u64:']
+        pairs = []
         for i in range(0, len(encoded), 2):
             upper = encoded[i + 1] if i + 1 < len(encoded) else 0xffffffff
-            lines.append(f'    simd_word_pair(w, {i}, {encoded[i] | (upper << 32)})')
+            pairs.append(encoded[i] | (upper << 32))
+        used = len(pairs) // 8 * 8
+        for i in range(0, used, 8):
+            words = ', '.join(str(word) for word in pairs[i:i + 8])
+            lines.append(f'    simd_word_pairs8(w, {2 * i}, {words})')
+        for i in range(used, len(pairs)):
+            lines.append(f'    simd_word_pair(w, {2 * i}, {pairs[i]})')
         for index, value in overrides:
             lines.append(f'    put(w, FRAME + {64 + 40 * index}, {value})')
         lines.append(f'    return simd_miter(w, {len(encoded)}, {predicate}, {false})')
@@ -409,8 +416,16 @@ def simd_miter(w:mutbuf, nodes:u64, predicate:u64, false:u64) -> u64:
 '''
 
 
+def word_pair_writer():
+    words = [f'pair{i}' for i in range(8)]
+    args = ', '.join(name + ':u64' for name in words)
+    lines = [f'def simd_word_pairs8(w:mutbuf, at:u64, {args}) -> u64:']
+    lines.extend(f'    simd_word_pair(w, at + {2 * i}, {name})' for i, name in enumerate(words))
+    return '\n'.join([*lines, '    return 0'])
+
+
 def source():
-    return '\n\n'.join((TRANSPORT.replace('CIRCUIT_MAGIC', str(CIRCUIT_REQUEST)).replace(
+    return '\n\n'.join((word_pair_writer(), TRANSPORT.replace('CIRCUIT_MAGIC', str(CIRCUIT_REQUEST)).replace(
                             'PACKED_WIDTHS', str(int.from_bytes(bytes(WIDTHS[:8]), 'little'))),
                         caller_contract(False), caller_contract(True), abort_stack(), scalar_tail_exit(), interval_step(),
                         endpoint_dispatch(), endpoint_query(False), endpoint_query(True), bounded_word_partition(),
