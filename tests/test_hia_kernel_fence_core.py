@@ -85,7 +85,7 @@ class KernelFenceCoreTests(unittest.TestCase):
         self.assertEqual(first.object_bytes, second.object_bytes)
         self.assertEqual(first.text_bytes, second.text_bytes)
         self.assertEqual(first.text_bytes.count(FENCE), 1)
-        with patch.object(Code, "mfence", lambda self: self.emit(b"\\x90")):
+        with patch.object(Code, "mfence", lambda self: self.emit(b"\x90")):
             dishonest = emit_program_machine(admitted)
         # An output-only smoke test cannot detect missing ordering.
         self.assertNotIn(FENCE, dishonest.text_bytes)
@@ -98,7 +98,7 @@ class KernelFenceCoreTests(unittest.TestCase):
         self.assertIsNotNone(shutil.which("objcopy"))
         with tempfile.TemporaryDirectory(prefix="hia-mfence-") as root:
             p = Path(root)
-            (p / "oracle.s").write_text(".text\\n.globl oracle\\noracle:\\n mfence\\n")
+            (p / "oracle.s").write_text(".text\n.globl oracle\noracle:\n mfence\n")
             subprocess.run(["as", "--64", "-o", str(p / "oracle.o"), str(p / "oracle.s")],
                            check=True, capture_output=True)
             subprocess.run(["objcopy", "-O", "binary", "--only-section=.text",
