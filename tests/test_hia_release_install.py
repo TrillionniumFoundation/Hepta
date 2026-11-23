@@ -511,6 +511,70 @@ class ReleaseInstallerKernelTests(unittest.TestCase):
         release.chmod(0o500)
         self.run_app('verify',code=10)
 
+    def test_source_attestation_reads_native_files_and_rejects_invalid_inventories(self):
+        from tools.build_hia_native_store_release import _source_inventory_packet
+
+        self.run_app()
+        digest = sha256(self.wire).hexdigest()
+        files = reference_unpack(self.wire)
+        members = {name.decode(): sha256(data).hexdigest() for name, (_, data) in files.items()}
+        frame = _source_inventory_packet(self.wire, members)
+        result = self.run_app('attest', wire=frame, digest=digest)
+        self.assertTrue(json.loads(result.stdout)['source_attested'])
+        for name in members:
+            changed = dict(members, **{name: '0' * 64})
+            self.run_app('attest', wire=_source_inventory_packet(self.wire, changed), digest=digest, code=11)
+        for invalid in (frame[:-1], frame[:-16] + b'x' + frame[-16:],
+                        frame[:-16] + struct.pack('<Q8s', len(frame) + 1, b'HIAATT01'),
+                        _source_inventory_packet(self.wire, {'app': members['app']}),
+                        _source_inventory_packet(self.wire, dict(members, z='0' * 64))):
+            self.run_app('attest', wire=invalid, digest=digest, code=16)
+        swapped = frame[:len(self.wire)] + frame[len(self.wire):].replace(b'app', b'alt', 1)
+        self.run_app('attest', wire=swapped, digest=digest, code=11)
+        self.run_app('attest', wire=frame, digest='0' * 64, code=11)
+        installed = self.root / digest
+        peer = self.case / 'extra-hard-link'
+        os.link(installed / 'app', peer)
+        self.run_app('attest', wire=frame, digest=digest, code=10)
+        peer.unlink()
+        app = installed / 'app'
+        app.chmod(0o400)
+        self.run_app('attest', wire=frame, digest=digest, code=10)
+        app.chmod(0o500)
+        installed.chmod(0o700)
+        app.unlink()
+        app.symlink_to(self.app)
+        installed.chmod(0o500)
+        self.run_app('attest', wire=frame, digest=digest, code=10)
+
+    def test_source_attestation_refuses_a_replaced_depot_after_open(self):
+        import time
+        from tools.build_hia_native_store_release import _source_inventory_packet
+
+        self.run_app()
+        digest = sha256(self.wire).hexdigest()
+        members = {name.decode(): sha256(data).hexdigest()
+                   for name, (_, data) in reference_unpack(self.wire).items()}
+        prefix, trace = self.trace('pread64:delay_enter=1s:when=1')
+        with tempfile.TemporaryFile() as packet:
+            packet.write(_source_inventory_packet(self.wire, members))
+            packet.seek(0)
+            with subprocess.Popen([*prefix, str(self.app), 'attest', str(self.root), digest],
+                                  stdin=packet, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  env={'PATH': ''}) as process:
+                deadline = time.monotonic() + 10
+                while time.monotonic() < deadline and process.poll() is None:
+                    if trace.exists() and re.search(r'openat\(\d+, "app",', trace.read_text()):
+                        break
+                    time.sleep(.01)
+                else:
+                    self.fail('attester did not open the original member')
+                self.root.rename(self.case / 'original-depot')
+                self.root.mkdir(mode=0o700)
+                stdout, stderr = process.communicate(timeout=10)
+        self.assertEqual((process.returncode, stdout, stderr), (12, b'', b''))
+        self.assertEqual(list(self.root.iterdir()), [])
+
     def test_count_name_and_transport_limits(self):
         self.run_app(wire=bundle([(f'file-{i}',0o400,b'') for i in range(256)]))
         self.run_app(wire=bundle([(f'file-{i}',0o400,b'') for i in range(257)]),code=16)

@@ -41,6 +41,8 @@
 .endm
 
 _start:
+ /* The selection adapter shares the ordinary installer helpers, not source attestation. */
+ .set SOURCE_ATTEST,1
  mov r15,rsp
  cmp QWORD PTR [r15],4
  jne usage
@@ -92,11 +94,21 @@ argv_next:
 policy_initial_hole: .long 0
  cmp eax,1
  jb input_exit
- cmp eax,2
+ cmp eax,3
  ja input_exit
  /* Immutable captured package, including a one-byte oversize guard. */
  xor edi,edi
+ .ifdef SOURCE_ATTEST
+ mov QWORD PTR [rbp+WORK+152],WIRE
+ cmp QWORD PTR [rbp+WORK+8],3
+ jne source_wire_capacity
+ add QWORD PTR [rbp+WORK+152],65552
+source_wire_capacity:
+ mov rsi,[rbp+WORK+152]
+ add rsi,4096
+ .else
  mov esi,WIRE+4096
+ .endif
  mov edx,3
  mov r10d,0x22
  mov r8,-1
@@ -110,7 +122,12 @@ policy_initial_hole: .long 0
 stdin_next:
  xor edi,edi
  lea rsi,[r12+r13]
+ .ifdef SOURCE_ATTEST
+ mov rdx,[rbp+WORK+152]
+ inc rdx
+ .else
  mov edx,WIRE+1
+ .endif
  sub rdx,r13
  xor eax,eax
  retry stdin_retry
@@ -118,10 +135,22 @@ stdin_next:
  js io_exit
  jz stdin_done
  add r13,rax
+ .ifdef SOURCE_ATTEST
+ cmp r13,[rbp+WORK+152]
+ .else
  cmp r13,WIRE
+ .endif
  ja space_exit
  jmp stdin_next
 stdin_done:
+ .ifdef SOURCE_ATTEST
+ cmp QWORD PTR [rbp+WORK+8],3
+ jne source_package_ready
+ mov [rbp+WORK+144],r13
+ gate 18
+ mov r13,[rbp+WORK+136]
+source_package_ready:
+ .endif
  /* Hash all captured bytes in bounded HIA streaming chunks. */
  mov BYTE PTR [rbp+SHAIN],0
  mov esi,1
@@ -163,9 +192,25 @@ hash_finish:
  test eax,eax
  jnz policy_exit
  gate 2
+ .ifdef SOURCE_ATTEST
+ cmp QWORD PTR [rbp+WORK+8],3
+ jne source_inventory_ready
+ mov QWORD PTR [rbp+WORK],19
+ mov rdi,r12
+ mov rsi,[rbp+WORK+144]
+ call policy_inputs
+ test eax,eax
+ jnz policy_exit
+source_inventory_ready:
+ .endif
  /* Even the package cannot be modified through this adapter after admission. */
  mov rdi,r12
+ .ifdef SOURCE_ATTEST
+ mov rsi,[rbp+WORK+152]
+ add rsi,4096
+ .else
  mov esi,WIRE+4096
+ .endif
  mov edx,1
  mov eax,10
  syscall
@@ -231,6 +276,8 @@ root_done:
  stat_current r14d
  gate 5
  cmp QWORD PTR [rbp+WORK+8],2
+ je open_release
+ cmp QWORD PTR [rbp+WORK+8],3
  je open_release
  /* Private mode contract, independent of the invoking process's umask. */
  mov edi,63
@@ -392,6 +439,21 @@ published_verify:
  gate 7
  stat_current r14d
  gate 5
+ .ifdef SOURCE_ATTEST
+ cmp QWORD PTR [rbp+WORK+8],3
+ jne source_directory_ready
+ /* The public depot pathname must still name the directory used for all member reads. */
+ mov edi,-100
+ mov rsi,[r15+24]
+ lea rdx,[rbp+WORK+560]
+ mov r10d,256
+ mov eax,262
+ retry source_depot_named_retry
+ test rax,rax
+ js identity_exit
+ gate 21
+source_directory_ready:
+ .endif
  mov QWORD PTR [rbp+WORK],14
  call policy_call
  test eax,eax
@@ -441,6 +503,16 @@ verify_file_next:
  test rax,rax
  js io_exit
  gate 8
+ .ifdef SOURCE_ATTEST
+ cmp QWORD PTR [rbp+WORK+8],3
+ jne member_hash_ready
+ mov BYTE PTR [rbp+SHAIN],0
+ mov esi,1
+ call sha_call
+ test eax,eax
+ jnz input_exit
+member_hash_ready:
+ .endif
  mov QWORD PTR [rbp+WORK+72],0
 pread_next:
  mov rdx,[rbp+WORK+48]
@@ -463,6 +535,21 @@ pread_count:
  call policy_buffer
  test eax,eax
  jnz policy_exit
+ .ifdef SOURCE_ATTEST
+ cmp QWORD PTR [rbp+WORK+8],3
+ jne member_chunk_done
+ mov rcx,[rbp+WORK+80]
+ lea rsi,[rbp+BUF]
+ lea rdi,[rbp+SHAIN+1]
+ rep movsb
+ mov BYTE PTR [rbp+SHAIN],1
+ mov rsi,[rbp+WORK+80]
+ inc rsi
+ call sha_call
+ test eax,eax
+ jnz input_exit
+member_chunk_done:
+ .endif
  mov rax,[rbp+WORK+80]
  add [rbp+WORK+72],rax
  jmp pread_next
@@ -483,6 +570,22 @@ pread_eof:
  test rax,rax
  js io_exit
  gate 9
+ .ifdef SOURCE_ATTEST
+ cmp QWORD PTR [rbp+WORK+8],3
+ jne member_digest_done
+ mov BYTE PTR [rbp+SHAIN],2
+ mov esi,1
+ call sha_call
+ cmp eax,32
+ jne input_exit
+ mov QWORD PTR [rbp+WORK],20
+ lea rdi,[rbp+SHAOUT]
+ mov esi,32
+ call policy_inputs
+ test eax,eax
+ jnz policy_exit
+member_digest_done:
+ .endif
  mov rdi,[rbp+WORK+120]
  mov eax,3
  syscall
