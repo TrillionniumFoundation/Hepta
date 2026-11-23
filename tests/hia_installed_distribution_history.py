@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 FIXTURE = 'tests/fixtures/hia_installed_distribution_sources.json'
-FIXTURE_SHA256 = '1152e3de87c46951264e26822cc338eda7fbd34db7da51318abce1f1921f9b6e'
+FIXTURE_SHA256 = 'c60f8ef556c2a69682cb2a762fa3447f0256160002ebb6de136179500c52cbb7'
 
 
 @lru_cache(maxsize=1)

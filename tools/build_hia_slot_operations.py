@@ -46,6 +46,7 @@ INPUTS = (
     'tests/test_hia_slot_worker_terminal.py',
     'tests/fixtures/slot_worker_terminal_v2.json',
     'tests/fixtures/worker_unknown_original_r17b/hia_agent_worker.py.txt',
+    'tests/hia_independent_vm.py',
     'tests/hia_slot_operations_observer.py',
     'tests/hia_slot_operations_public_observer.py',
     'tests/hia_slot_operations_qualification_support.py',

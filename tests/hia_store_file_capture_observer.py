@@ -45,11 +45,12 @@ class VMEntry:
     def __init__(self, program):
         self.program, self.calls = program, 0
     def __call__(self, source, size, output, capacity, state, extent):
-        from hepta.hia_program_runtime import _Machine, _Owner, _View
+        from hepta.hia_program_runtime import _Owner, _View
+        from tests.hia_independent_vm import IndependentMachine
         raw = ctypes.string_at(source, size)
         owners = [_Owner(i + 1, bytearray(x)) for i, x in enumerate((
             raw, ctypes.string_at(output, capacity), ctypes.string_at(state, extent)))]
-        machine = _Machine(self.program, 2_000_000, 16 << 20, None, 128)
+        machine = IndependentMachine(self.program, 2_000_000, 16 << 20, None, 128)
         code = machine.invoke(machine.functions['f0'],
                               [_View(owner, i != 0) for i, owner in enumerate(owners)])[0]
         if bytes(owners[0].data) != raw:
