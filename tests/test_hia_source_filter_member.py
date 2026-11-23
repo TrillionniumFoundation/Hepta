@@ -140,6 +140,31 @@ class InstalledSourceMemberTests(unittest.TestCase):
                         packet = self.source_images(self.work / 'incomplete', partial)
                         self.invoke([builder, 'build'], packet, refused=True)
 
+    def test_packaged_scalar_and_attached_prover_match_the_installed_compiler(self):
+        from tools import build_hia_core_static as core
+        from tools.build_hia_json_preflight import current_sources
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+
+        def call(program, operation, wire):
+            run = _run_captured(program, operation, wire, self.work)
+            self.assertEqual((run.returncode, run.stderr), (0, b''))
+            return run.stdout
+
+        def compile_sources(named):
+            files = {name: self.sources / relative for name, relative in named.items()}
+            pinned = {name: path.read_bytes() for name, path in files.items()}
+            bundle = self.source_images(self.work / 'wrapper-sources', files)
+            return bundle, _compiled_sources(bundle, pinned), pinned
+
+        tools = self.seed.read_bytes(), compile_sources, call
+        scalar = (self.release / 'hia-worker-scalar-implementation').read_bytes()
+        prover = (self.release / 'hia-safe-core-prove').read_bytes()
+        compiled, detail = core.pack_implementation(tools, current_sources(), core.ReleaseCodec(tools),
+                                                    scalar, prover=prover)
+        self.assertEqual(compiled, (self.release / 'hia-build-object').read_bytes())
+        self.assertEqual(detail['implementation_sha256'], sha256(scalar).hexdigest())
+        self.assertEqual(detail['attached_prover_sha256'], sha256(prover).hexdigest())
+
     def test_native_dispatch_binds_the_actual_selfhost_executable(self):
         import struct
         from tools.build_hia_core_edit import SELFHOST_ENTRY

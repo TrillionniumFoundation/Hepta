@@ -9,8 +9,10 @@ from tools.build_hia_source_build import _build_captured, _compiled_sources, _ru
 ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP = 'examples/hia_bootstrap/'
 POLICY = 'source_core_application.hepta'
-KINDS = ('catalog', 'capabilities', 'normalize_core', 'verify_core_json', 'inspect_core_json',
-         'render_assembly', 'publish_program', 'publish_assembly', 'import_assembly')
+ROLE_ORDER = ('catalog', 'capabilities', 'normalize_core', 'verify_core_json', 'inspect_core_json',
+              'render_assembly', 'publish_program', 'publish_assembly', 'import_assembly', 'dispatch',
+              'selfhost_component', 'emit_object', 'packed_exec')
+KINDS = tuple(kind for kind in ROLE_ORDER if kind not in ('dispatch', 'packed_exec'))
 
 
 def cold_tools(directory, compiler, cold_report, admitted):
@@ -51,11 +53,20 @@ class ReleaseCodec:
     """Run the existing HIA encoder and decoder with their exact bounded ABI views."""
 
     def __init__(self, tools):
+        self.tools = tools
         _, compile_sources, self.call = tools
         self.builder = policy_builder(tools, 'source_core_codec.hepta', 'core_edit/source_codec_packer.hepta')
-        self.inputs = ('release_deflate.hepta', 'argument_payload.hepta')
-        _, self.images, self.sources = compile_sources({n: 'core_cli/' + n for n in self.inputs})
+        self.inputs = ('release_deflate.hepta', 'argument_payload.hepta', 'packer.hepta')
+        _, self.images, self.sources = compile_sources({self.inputs[0]: 'core_cli/' + self.inputs[0],
+                                                       self.inputs[1]: 'core_cli/' + self.inputs[1],
+                                                       self.inputs[2]: 'core_edit/' + self.inputs[2]})
+        self.owners = {}
         self.executables = {}
+
+    def owner(self, leaf):
+        if leaf not in self.owners:
+            self.owners[leaf] = policy_builder(self.tools, POLICY, leaf)
+        return self.owners[leaf]
 
     def executable(self, mode, capacity):
         key = (mode, capacity)
@@ -92,6 +103,9 @@ def source_paths(kind, roles):
                 core.ARGUMENT_PAYLOAD, core.ARGUMENT_PARSER, core.ARGUMENT_FORMATTER)
     if kind == 'import_assembly':
         return (*(path for path, _ in roles[:3]), *ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
+    if kind == 'selfhost_component':
+        from tools.build_hia_core_edit import SELFHOST_CORE_SOURCES
+        return (roles[0][0], roles[1][0], *SELFHOST_CORE_SOURCES, roles[3][0])
     return tuple(path for path, _ in roles)
 
 
@@ -104,22 +118,93 @@ def indexed_images(images):
     return struct.pack(f'<{len(offsets)}Q', *offsets) + b''.join(images)
 
 
-def build_products(tools, admitted, *, overrides=None, compressor=None):
-    """The host transports sources and checks the physical output; HIA owns row selection,
-    recompilation, relocation binding, aligned layout and publication.
-    """
+def product(tools, admitted, codec, kind, inputs, sources, images, suffix, sections):
+    """Independently inspect the source-bound HIA row and the final ELF placement."""
     from tools.build_hia_core_edit import (
-        ADAPTER_RECORD, PACKER, PROGRAMS, STATIC_ADAPTER_ROLES, STATIC_RELOCATIONS, check_placement,
+        ADAPTER_RECORD, CAPACITY, PACKER, REGISTER_RELAY, STATIC_ADAPTER_ROLES, STATIC_RELOCATIONS,
+        check_placement,
     )
+    _, _, call = tools
+    ordinal = ROLE_ORDER.index(kind) + 1
+    adapter_name = 'tools/hia_core_edit_' + kind + '.S'
+
+    def physical(path):
+        raw = (ROOT / path).read_bytes()
+        if sha256(raw).hexdigest() != admitted.get(path):
+            raise ValueError('Core mechanical adapter differs from cold admission: ' + path)
+        return raw
+
+    adapter = physical(adapter_name)
+    packer = codec.owner(PACKER)
+    if kind == 'emit_object':
+        relay = physical(REGISTER_RELAY)
+        request = struct.pack('<8s3Q', b'HIACINC1', ordinal, len(adapter), len(relay))
+        adapter = call(packer, 'build', request + adapter + relay)
+    group, _ = STATIC_ADAPTER_ROLES[adapter_name]
+    row = call(codec.owner(group), 'build', struct.pack('<8sQ', b'HIACST01', ordinal))
+    source_sha, stub_sha, object_sha, size, count = ADAPTER_RECORD.unpack_from(row)
+    relocs = STATIC_RELOCATIONS[adapter_name]
+    stub_at = ADAPTER_RECORD.size + 8 * len(relocs)
+    stub = row[stub_at:]
+    if (count != len(relocs) or len(stub) != size or not 5 <= size <= 8016
+            or sha256(adapter).digest() != source_sha or sha256(stub).digest() != stub_sha):
+        raise ValueError('native Core adapter record differs from source: ' + kind)
+    offsets = struct.unpack_from(f'<{count}Q', row, ADAPTER_RECORD.size)
+    holes = [(offset, target) for offset, (_, target) in zip(offsets, relocs, strict=True)]
+    pairs = [(sources[key], images[key]) for key in inputs]
+    header = struct.pack('<8s3Q', b'HIACSA01', ordinal, len(adapter), len(row))
+    lengths = b''.join(struct.pack('<2Q', len(source), len(image)) for source, image in pairs)
+    wire = header + lengths + adapter + row + b''.join(data for pair in pairs for data in pair) + suffix
+    output = call(packer, 'build', wire)
+    if kind in ('selfhost_component', 'emit_object', 'packed_exec'):
+        # These frames can exceed the three-image scratch area of the source seed.
+        # The original HIA Core packer runs in a sealed process with the full four-MiB view.
+        output = call(codec.executable(3, CAPACITY), None, output)
+    elf = check_placement(output, stub, holes, sections)
+    return output, {
+        'elf': elf, 'adapter_object_sha256': object_sha.hex(),
+        'native_source_sha256': {key: sha256(sources[key]).hexdigest() for key in inputs},
+        'native_image_sha256': {key: sha256(images[key]).hexdigest() for key in inputs},
+    }
+
+
+def pack_implementation(tools, admitted, codec, executable, *, prover=None):
+    """HIA re-inflates every block against its physical ELF before emitting the launcher frame."""
+    from tools.build_hia_core_edit import EXEC_ARCHIVE_MAGIC, EXEC_CHUNK, ORDINARY_CLI_IMAGE_CAPACITY
+
+    members = (executable,) if prover is None else (executable, prover)
+    encoded = [struct.pack('<Q', len(members))]
+    sections = [codec.images['argument_payload.hepta']]
+    for raw in members:
+        if not 176 <= len(raw) <= ORDINARY_CLI_IMAGE_CAPACITY:
+            raise ValueError('Core compressed implementation exceeds the release extent')
+        encoded.extend((struct.pack('<Q', len(raw)), raw))
+        archive = [struct.pack('<8sQ', EXEC_ARCHIVE_MAGIC, len(raw))]
+        for at in range(0, len(raw), EXEC_CHUNK):
+            block = raw[at:at + EXEC_CHUNK]
+            packed = codec.compress(block, 1 << 20)
+            encoded.extend((struct.pack('<Q', len(packed)), packed))
+            archive.extend((struct.pack('<2Q', len(packed), len(block)), packed))
+        sections.append(b''.join(archive))
+    binary, receipt = product(tools, admitted, codec, 'packed_exec', ('argument_payload.hepta',),
+                              codec.sources, codec.images, b''.join(encoded), sections)
+    if binary.count(EXEC_ARCHIVE_MAGIC) != len(members):
+        raise ValueError('packed Core executable contains ambiguous framing')
+    details = {'implementation_sha256': sha256(executable).hexdigest(), 'implementation_bytes': len(executable),
+               'elf': receipt['elf'], 'launcher_object_sha256': receipt['adapter_object_sha256']}
+    if prover is not None:
+        details['attached_prover_sha256'] = sha256(prover).hexdigest()
+    return binary, details
+
+
+def build_products(tools, admitted, *, overrides=None, compressor=None, release_only=False):
+    """Recompile and link uncompressed and composite Core applications with the sealed HIA owners."""
+    from tools.build_hia_core_edit import PROGRAMS
+
     seed, compile_sources, call = tools
-    builders = {}
-
-    def builder(leaf):
-        if leaf not in builders:
-            builders[leaf] = policy_builder(tools, POLICY, leaf)
-        return builders[leaf]
-
-    selected = ('dispatch',) if overrides is not None else KINDS
+    codec = ReleaseCodec(tools) if compressor is None else compressor
+    selected = ('dispatch',) if overrides is not None else tuple(
+        kind for kind in KINDS if kind != 'emit_object' or not release_only)
     overrides = {} if overrides is None else overrides
     paths = {path for kind in selected for path in source_paths(kind, PROGRAMS[kind][1])}
     named = {Path(path).name: path.removeprefix(BOOTSTRAP) for path in paths}
@@ -131,46 +216,26 @@ def build_products(tools, admitted, *, overrides=None, compressor=None):
         key = Path(path).name
         sources[key] = source
         images[key] = call(seed, 'compile', source)
-    packer = builder(PACKER)
+
     products = {}
     for kind in selected:
-        ordinal = (*KINDS, 'dispatch').index(kind) + 1
         name, roles = PROGRAMS[kind]
-        adapter_name = 'tools/hia_core_edit_' + kind + '.S'
-        adapter = (ROOT / adapter_name).read_bytes()
-        if sha256(adapter).hexdigest() != admitted.get(adapter_name):
-            raise ValueError('Core mechanical adapter differs from cold admission: ' + adapter_name)
-        group, _ = STATIC_ADAPTER_ROLES[adapter_name]
-        row = call(builder(group), 'build', struct.pack('<8sQ', b'HIACST01', ordinal))
-        source_sha, stub_sha, object_sha, size, count = ADAPTER_RECORD.unpack_from(row)
-        relocs = STATIC_RELOCATIONS[adapter_name]
-        stub_at = ADAPTER_RECORD.size + 8 * len(relocs)
-        stub = row[stub_at:]
-        if (count != len(relocs) or len(stub) != size or not 5 <= size <= 8016
-                or sha256(adapter).digest() != source_sha or sha256(stub).digest() != stub_sha):
-            raise ValueError('native Core adapter record differs from source: ' + kind)
-        offsets = struct.unpack_from(f'<{count}Q', row, ADAPTER_RECORD.size)
-        holes = [(offset, target) for offset, (_, target) in zip(offsets, relocs, strict=True)]
         inputs = [Path(path).name for path in source_paths(kind, roles)]
-        pairs = [(sources[key], images[key]) for key in inputs]
-        header = struct.pack('<8s3Q', b'HIACSA01', ordinal, len(adapter), len(row))
-        lengths = b''.join(struct.pack('<2Q', len(source), len(image)) for source, image in pairs)
-        wire = header + lengths + adapter + row + b''.join(data for pair in pairs for data in pair)
-        sections = [image for _, image in pairs]
+        sections = [images[key] for key in inputs]
+        suffix = b''
         if kind == 'dispatch':
             control, formatter = sections[4:]
             raw = control + formatter
-            encoded = compressor.compress(raw, (1 << 20) - 24)
-            wire += encoded
-            arguments = struct.pack('<3Q', len(encoded), len(raw), len(control)) + encoded
+            suffix = codec.compress(raw, (1 << 20) - 24)
+            arguments = struct.pack('<3Q', len(suffix), len(raw), len(control)) + suffix
             sections = [indexed_images(sections[:2]), *sections[2:4], arguments]
-        binary = call(packer, 'build', wire)
-        if kind == 'import_assembly':
+        elif kind == 'import_assembly':
             sections = [*sections[:3], indexed_images(sections[3:])]
-        elf = check_placement(binary, stub, holes, sections)
-        products[name] = (binary, {
-            'elf': elf, 'adapter_object_sha256': object_sha.hex(),
-            'native_source_sha256': {key: sha256(sources[key]).hexdigest() for key in inputs},
-            'native_image_sha256': {key: sha256(images[key]).hexdigest() for key in inputs},
-        })
+        elif kind == 'selfhost_component':
+            sections = [*sections[:2], indexed_images(sections[2:5]), sections[5]]
+        binary, details = product(tools, admitted, codec, kind, inputs, sources, images, suffix, sections)
+        if kind == 'selfhost_component':
+            binary, wrapper = pack_implementation(tools, admitted, codec, binary)
+            details.update(wrapper)
+        products[name] = binary, details
     return products
