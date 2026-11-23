@@ -5,7 +5,7 @@ import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_discovery_artifact import (
-    VERIFY_FIRST_KIND, VERIFY_LAST_KIND, kind_match_source, kind_width_source,
+    EVALUATE_FIRST_KIND, EVALUATE_LAST_KIND, VERIFY_FIRST_KIND, VERIFY_LAST_KIND, kind_match_source, kind_width_source,
 )
 from tools.generate_hia_discovery_effect import source_program as discovery_policy
 from tools.generate_hia_sha256 import source_program as sha256_policy
@@ -24,7 +24,7 @@ def publication_observation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return INVALID
     kind = input_word(s, 8)
     extent = input_word(s, 208)
-    if kind >= VERIFY_FIRST and kind <= VERIFY_LAST:
+    if (kind >= VERIFY_FIRST and kind <= VERIFY_LAST) or (kind >= EVALUATE_FIRST and kind <= EVALUATE_LAST):
         if extent != 2:
             return INVALID
     elif kind < 12 or kind > 14 or extent < 2 or extent > 8388608:
@@ -117,7 +117,8 @@ def sha256_range():
 
 def program():
     constants = {'HEADER': 216, 'INVALID': 4294967293,
-                 'VERIFY_FIRST': VERIFY_FIRST_KIND, 'VERIFY_LAST': VERIFY_LAST_KIND}
+                 'VERIFY_FIRST': VERIFY_FIRST_KIND, 'VERIFY_LAST': VERIFY_LAST_KIND,
+                 'EVALUATE_FIRST': EVALUATE_FIRST_KIND, 'EVALUATE_LAST': EVALUATE_LAST_KIND}
     for name, value in (('EXPECTED', b'HIAEPO01'), ('ROW', b'HIAROW01'),
                         ('DOCUMENT', b'HIADOC01'), ('MISSING', b'HIAEPB01')):
         constants[name] = int.from_bytes(value, 'little')

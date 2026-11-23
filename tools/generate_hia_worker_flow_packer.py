@@ -42,6 +42,7 @@ LAUNCHER = 'tools/hia_worker_launcher_ports.S'
 LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_launcher_flow.hepta'
 LAUNCHER_PACKER = 'examples/hia_bootstrap/worker_launcher_flow_packer.hepta'
 LAUNCHER_KIND = 'native-launcher'
+DOCUMENT_KIND = 'evaluate-document'
 CLAIM_KIND = 'evaluate-claim'
 CLAIM_POLICY = 'examples/hia_bootstrap/worker_evaluate_claim_flow.hepta'
 INTAKE_KIND = 'evaluate-intake'
@@ -90,6 +91,8 @@ PROGRAMS = {
     'artifact': (ARTIFACT_POLICY, ARTIFACT_PACKER),
     REPLAY_KIND: (REPLAY_POLICY, REPLAY_PACKER),
     INTAKE_KIND: (INTAKE_POLICY, INTAKE_PACKER),
+    DOCUMENT_KIND: ('examples/hia_bootstrap/worker_evaluate_document_flow.hepta',
+                    'examples/hia_bootstrap/worker_evaluate_document_flow_packer.hepta'),
     CLAIM_KIND: (CLAIM_POLICY, INTAKE_PACKER),
     'discovery': (DISCOVERY_POLICY, DISCOVERY_PACKER),
     'context': (CONTEXT_POLICY, CONTEXT_PACKER),
@@ -106,7 +109,7 @@ PROGRAMS = {
     INTAKE_LAUNCHER_KIND: (INTAKE_LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
 PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
-              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, CLAIM_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
+              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, CLAIM_KIND, DOCUMENT_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -114,6 +117,18 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
     # Local references let the existing flat-template builder prove that
     # every syscall adapter relocation is already resolved. The sole HIA
     # application call deliberately remains a zero rel32 hole.
+    if kind == DOCUMENT_KIND:
+        from tools.generate_hia_worker_evaluate_document_flow import ROLES
+        for original, replacement in (
+            (b'.equ ROLE_COUNT, 31', f'.equ ROLE_COUNT, {len(ROLES)}'.encode()),
+            (b'.equ WORK_BYTES, 4096', b'.equ WORK_BYTES, 12288'),
+            (b'--worker-context', b'--worker-evaluate-document'),
+            (b'native HIA Context Worker transport', b'native HIA Evaluate document Worker transport'),
+        ):
+            if flow.count(original) != 1:
+                raise ValueError('unexpected Context descriptor transport layout')
+            flow = flow.replace(original, replacement)
+        kind = 'context'
     if kind == PROOF_KIND:
         replacements = ((b'.equ ROLE_COUNT, 73', b'.equ ROLE_COUNT, 74'),
                         (b'--worker-adopt', b'--worker-evaluate-proof'),
@@ -223,7 +238,7 @@ def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
     module = Path(packer_path).stem
     template = header + stub, tuple(len(header) + hole for hole in holes)
     if kind in ('input', 'artifact', 'discovery', 'context', 'inspection', 'candidate', 'rollback', *SECTIONS,
-                'discovery-bootstrap', INTAKE_KIND, REPLAY_KIND, LAUNCHER_KIND):
+                'discovery-bootstrap', DOCUMENT_KIND, INTAKE_KIND, REPLAY_KIND, LAUNCHER_KIND):
         packer = partitioned_packer(module, *template, extra_image=kind == LAUNCHER_KIND,
                                     separate_sections=kind in SECTIONS)
     else:

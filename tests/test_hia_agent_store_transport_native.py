@@ -150,6 +150,23 @@ class StoreTransportTests(unittest.TestCase):
         self.assertEqual(reserve('hia_evaluate', state='pending'), 0)
         self.assertEqual(reserve('hia_evaluate', response='{}'), 0)
 
+    def test_evaluate_documents_keep_distinct_names_and_empty_store_metadata(self):
+        def admit(kind, metadata):
+            values = ('a-' + '1' * 32, '2' * 64, 'hia://artifacts/' + '3' * 32,
+                      kind, metadata, '4' * 64)
+            parameters = _parameters(values, 9, b'HIAINS01')
+            packet = struct.pack('<8s5Q', b'HIASTUP1', 1, 20, 2, 5, len(parameters)) + parameters
+            output = ctypes.create_string_buffer(8160)
+            state = ctypes.create_string_buffer(2304)
+            return self.codec._entry(packet, len(packet), output, len(output), state, len(state))
+
+        for kind in ('measurements', 'cost-ledger', 'evaluation-receipt'):
+            with self.subTest(kind=kind):
+                self.assertGreater(admit(kind, '{}'), 0)
+                self.assertEqual(admit(kind, '[]'), 0)
+                self.assertEqual(admit(kind, '{"unissued":true}'), 0)
+                self.assertEqual(admit(kind + 's', '{}'), 0)
+
     def test_large_artifact_insert_carries_sealed_input_instead_of_copying_to_state(self):
         metadata = json.dumps({
             "candidate": {}, "codegen": {}, "context": {}, "core_sha256": "a" * 64,

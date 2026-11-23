@@ -49,7 +49,7 @@ class StoreReleaseBuildTests(unittest.TestCase):
         for kind in ('evaluate-replay', 'evaluate-intake'):
             self.assertIn(kind, release.FLOW_ROLES)
             self.assertIn(kind, release.LAUNCHERS)
-        for kind in ('evaluate-claim', 'evaluate-proof'):
+        for kind in ('evaluate-claim', 'evaluate-proof', 'evaluate-document'):
             self.assertIn(kind, release.FLOW_ROLES)
 
     def test_source_archive_is_deterministic_and_includes_only_the_complete_cold_inputs(self):

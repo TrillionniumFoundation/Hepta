@@ -14,12 +14,15 @@ VERIFY_DOCUMENT_KINDS = (
     b'verification-assumptions', b'verification-evidence', b'verification-receipt',
     b'machine-validation-certificate',
 )
+EVALUATE_DOCUMENT_KINDS = (b'measurements', b'cost-ledger', b'evaluation-receipt')
 DOCUMENT_KINDS = (b'profile', b'discovery', b'input', b'context',
                   b'inspection', b'edit-query', b'lowering-object',
                   b'core', b'candidate-diagnostics', b'rollback-receipt', b'slot-snapshot',
-                  *EMIT_DOCUMENT_KINDS, b'adoption-receipt', *VERIFY_DOCUMENT_KINDS)
-VERIFY_FIRST_KIND = len(DOCUMENT_KINDS) - len(VERIFY_DOCUMENT_KINDS) + 1
-VERIFY_LAST_KIND = len(DOCUMENT_KINDS)
+                  *EMIT_DOCUMENT_KINDS, b'adoption-receipt', *VERIFY_DOCUMENT_KINDS, *EVALUATE_DOCUMENT_KINDS)
+VERIFY_FIRST_KIND = DOCUMENT_KINDS.index(VERIFY_DOCUMENT_KINDS[0]) + 1
+VERIFY_LAST_KIND = DOCUMENT_KINDS.index(VERIFY_DOCUMENT_KINDS[-1]) + 1
+EVALUATE_FIRST_KIND = DOCUMENT_KINDS.index(EVALUATE_DOCUMENT_KINDS[0]) + 1
+EVALUATE_LAST_KIND = DOCUMENT_KINDS.index(EVALUATE_DOCUMENT_KINDS[-1]) + 1
 
 CANDIDATE_CONTEXT = '''
 def candidate_context(s:readbuf, at:u64) -> bool:
