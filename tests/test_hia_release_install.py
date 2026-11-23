@@ -15,7 +15,7 @@ import unittest
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_program import execute_program
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_release_install import BUNDLE_MAGIC, MAGIC, WIRE_LIMIT, policy_source, packer_source, template
+from tools.generate_hia_release_install import BUNDLE_MAGIC, EXTENDED_BUNDLE_MAGIC, MAGIC, MAX_RELEASE_MEMBERS, V1_WIRE_LIMIT, WIRE_LIMIT, policy_source, packer_source, template
 from tools.hia_selfhost_bulk import Body
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,7 +42,8 @@ def reference_unpack(raw):
     if len(raw) > WIRE_LIMIT or len(header) != 24:
         raise ValueError('size')
     magic, count, reserved = struct.unpack('<3Q', header)
-    if magic != BUNDLE_MAGIC or reserved or not 1 <= count <= 256:
+    expected = EXTENDED_BUNDLE_MAGIC if count > 256 or len(raw) > V1_WIRE_LIMIT else BUNDLE_MAGIC
+    if magic != expected or reserved or not 1 <= count <= MAX_RELEASE_MEMBERS:
         raise ValueError('header')
     files = {}
     for _ in range(count):
@@ -513,6 +514,11 @@ class ReleaseInstallerKernelTests(unittest.TestCase):
     def test_count_name_and_transport_limits(self):
         self.run_app(wire=bundle([(f'file-{i}',0o400,b'') for i in range(256)]))
         self.run_app(wire=bundle([(f'file-{i}',0o400,b'') for i in range(257)]),code=16)
+        data = bundle([(f'file-{i}',0o400,b'') for i in range(MAX_RELEASE_MEMBERS)])
+        self.run_app(wire=b'HIAREL02'+data[8:])
+        excessive = bundle([(f'file-{i}',0o400,b'') for i in range(MAX_RELEASE_MEMBERS+1)])
+        self.run_app(wire=b'HIAREL02'+excessive[8:],code=16)
+        self.run_app(wire=b'HIAREL02'+self.wire[8:],code=16)
         self.run_app(wire=bundle([('x'*127,0o400,b'')]))
         self.run_app(wire=bundle([('native-bundle', 0o400, b'\x01' * (64 << 20))]))
         self.run_app(wire=b'\x00'*(WIRE_LIMIT+1),code=17)

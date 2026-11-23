@@ -16,7 +16,10 @@ from tools.generate_hia_artifact_publication import document
 ROOT = Path(__file__).resolve().parents[1]
 MAGIC = int.from_bytes(b'HIAINS01', 'little')
 BUNDLE_MAGIC = int.from_bytes(b'HIAREL01', 'little')
-WIRE_LIMIT = 128 << 20
+EXTENDED_BUNDLE_MAGIC = int.from_bytes(b'HIAREL02', 'little')
+V1_WIRE_LIMIT = 128 << 20
+WIRE_LIMIT = 256 << 20
+MAX_RELEASE_MEMBERS = 384
 WORK_BYTES = 65536
 
 POLICY_SOURCE = '''def policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -178,10 +181,12 @@ def component(s:readbuf, at:u64, size:u64) -> u64:
 def package(s:readbuf, w:mutbuf) -> u32:
     if length(s) < 24 or length(s) > RELEASE_WIRE_LIMIT:
         return 16
-    if uint(s, 0, 8) != 3544407730921556296 or uint(s, 16, 8) != 0:
+    magic = uint(s, 0, 8)
+    if (magic != 3544407730921556296 and magic != EXTENDED_BUNDLE_MAGIC) or uint(s, 16, 8) != 0:
         return 16
     count = uint(s, 8, 8)
-    if count == 0 or count > 256:
+    extended = count > 256 or length(s) > V1_WIRE_LIMIT
+    if count == 0 or count > MAX_RELEASE_MEMBERS or (magic == EXTENDED_BUNDLE_MAGIC) != extended:
         return 16
     at = 24
     i = 0
@@ -236,7 +241,7 @@ def package(s:readbuf, w:mutbuf) -> u32:
 
 def select(s:readbuf, w:mutbuf) -> u32:
     index = get(w, 32)
-    if index >= get(w, 24) or index >= 256:
+    if index >= get(w, 24) or index >= MAX_RELEASE_MEMBERS:
         return 16
     row = 4096 + index * 96
     name = get(w, row)
@@ -262,7 +267,7 @@ def directory(w:mutbuf, at:u64) -> u64:
 
 def file_stat(w:mutbuf, phase:u64) -> u32:
     index = get(w, 32)
-    if index >= get(w, 24) or index >= 256:
+    if index >= get(w, 24) or index >= MAX_RELEASE_MEMBERS:
         return 16
     row = 4096 + index * 96
     if get(w, 440) & 4294967295 != 32768 + get(w, row + 32):
@@ -447,7 +452,9 @@ def write(o:mutbuf, at:u64, v:u64, size:u64) -> u64:
 
 def policy_source():
     source = POLICY_SOURCE.replace('30526565255720553', str(int.from_bytes(b'install', 'little')))
-    source = source.replace('RELEASE_WIRE_LIMIT', str(WIRE_LIMIT))
+    for token, value in (('RELEASE_WIRE_LIMIT', WIRE_LIMIT), ('EXTENDED_BUNDLE_MAGIC', EXTENDED_BUNDLE_MAGIC),
+                         ('V1_WIRE_LIMIT', V1_WIRE_LIMIT), ('MAX_RELEASE_MEMBERS', MAX_RELEASE_MEMBERS)):
+        source = source.replace(token, str(value))
     source = source.replace('133476589827702', str(int.from_bytes(b'verify', 'little')))
     source = source.replace('3544407730921556296', str(BUNDLE_MAGIC))
     source = source.replace('7022071303105570862', str(int.from_bytes(b'.hia-sta', 'little')))

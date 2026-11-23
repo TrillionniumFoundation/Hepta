@@ -13,7 +13,7 @@
 .equ SHAOUT,217088
 .equ SHAWORK,221184
 .equ MAPSIZE,229376
-.equ WIRE,128<<20
+.equ WIRE,256<<20
 
 .macro retry name
  mov [rbp+WORK+2048],rax
