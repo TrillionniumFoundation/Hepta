@@ -22,12 +22,35 @@ def _git(*arguments, root=None):
                                    cwd=ROOT if root is None else root)
 
 
+def _open_source_descriptor(path):
+    """Walk every ancestor with O_NOFOLLOW; the last component alone is insufficient."""
+    path = Path(path)
+    _require(path.is_absolute() and len(path.parts) > 1
+             and all(part not in ("", ".", "..") for part in path.parts[1:]),
+             "unsafe absolute source path: " + str(path))
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+    parent = os.open(path.anchor, directory_flags)
+    try:
+        for component in path.parts[1:-1]:
+            try:
+                following = os.open(component, directory_flags, dir_fd=parent)
+            except OSError as error:
+                raise ValueError("source parent is a symlink or unsafe directory: "
+                                 + str(path.parent)) from error
+            os.close(parent)
+            parent = following
+        return os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW |
+                       os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=parent)
+    finally:
+        os.close(parent)
+
+
 def _digest_file(path, *, expected_blob=None, expected_mode=None):
     """Hash stable regular bytes, optionally binding them to a raw Git blob."""
     path = Path(path)
     before = path.lstat()
     _require(stat.S_ISREG(before.st_mode), "expected regular file: " + str(path))
-    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    descriptor = _open_source_descriptor(path)
     with os.fdopen(descriptor, "rb") as stream:
         opened = os.fstat(stream.fileno())
         _require(stat.S_ISREG(opened.st_mode), "opened object is not a regular file: " + str(path))
