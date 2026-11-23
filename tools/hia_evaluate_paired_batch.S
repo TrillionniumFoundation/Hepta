@@ -1,6 +1,7 @@
 /* Six already admitted immutable fds: [ABI,workload], baseline ELF, candidate
- * ELF, direct-call supervisor, agreed HIA reference batch, memory/deadline.
- * The six ports below perform only bounded transport. HIA drives progress,
+ * ELF, direct-call supervisor, baseline HIA reference batch, memory/deadline.
+ * HIAEPL02 additionally opens fds 9..11 for the other reference and both Core files.
+ * The ports below perform only bounded transport. HIA drives progress,
  * owns comparison, trap policy, warmups and report order, and emits the report. */
 .intel_syntax noprefix
 .text
@@ -21,11 +22,15 @@
 .equ STAT,120
 .equ FRAME,280
 .equ WHEN,320
+.equ SECOND_REF,336
+.equ BASE_CORE,352
+.equ OTHER_CORE,368
 _start:
     cmp QWORD PTR [rsp],1
     jne refuse
     sub rsp,384
     mov rbp,rsp
+    mov QWORD PTR [rbp+SECOND_REF],0
     lea rdi,[rbp+FRAME]
     mov ecx,4
     xor eax,eax
@@ -121,20 +126,44 @@ json:
     jmp dispatch
 reference:
     lea r14,[rbp+REF]
+    jmp dispatch
+both_refs:
+    call clock_now
+    cmp QWORD PTR [rbp+SECOND_REF],0
+    jne reference_pair_ready
+    mov edi,9
+    mov esi,67108864
+    call sealed_input
+    mov [rbp+SECOND_REF],rax
+    mov [rbp+SECOND_REF+8],rsi
+reference_pair_ready:
+    lea r14,[rbp+REF]
+    mov rdi,[r14]
+    mov rsi,[r14+8]
+    mov rdx,[rbp+SECOND_REF]
+    mov rcx,[rbp+SECOND_REF+8]
+    jmp enter_hia
+base_core:
+    mov edi,10
+    mov esi,8388608
+    call sealed_input
+    lea r14,[rbp+BASE_CORE]
+    jmp core_input
+other_core:
+    mov edi,11
+    mov esi,8388608
+    call sealed_input
+    lea r14,[rbp+OTHER_CORE]
+core_input:
+    mov [r14],rax
+    mov [r14+8],rsi
 dispatch:
-    mov edi,1
-    lea rsi,[rbp+WHEN]
-    mov eax,228
-    syscall
-    test rax,rax
-    jne refuse
-    imul rax,[rbp+WHEN],1000000000
-    add rax,[rbp+WHEN+8]
-    mov [r15+48],rax
+    call clock_now
     mov rdi,[r14]
     mov rsi,[r14+8]
     mov rdx,[rbp+OUTPUT]
     mov ecx,OUT
+enter_hia:
     mov r8,[rbp+PRIVATE]
     mov r9d,WORK
     .byte 0xe8
@@ -149,6 +178,12 @@ pair_call_hole: .long 0
     je supervise
     cmp eax,5
     je loan_read
+    cmp eax,7
+    je both_refs
+    cmp eax,8
+    je base_core
+    cmp eax,9
+    je other_core
     cmp eax,6
     jne refuse
     mov edi,1
@@ -304,6 +339,17 @@ exec_owner:
     mov eax,322
     syscall
     jmp refuse
+clock_now:
+    mov edi,1
+    lea rsi,[rbp+WHEN]
+    mov eax,228
+    syscall
+    test rax,rax
+    jne refuse
+    imul rax,[rbp+WHEN],1000000000
+    add rax,[rbp+WHEN+8]
+    mov [r15+48],rax
+    ret
 inherit_fd:
     mov esi,2
     xor edx,edx
@@ -329,6 +375,17 @@ allocate:
     test rax,rax
     js refuse
     ret
+sealed_input:
+    push rsi
+    mov esi,1034
+    mov eax,72
+    syscall
+    pop rsi
+    test rax,rax
+    js refuse
+    and eax,15
+    cmp eax,15
+    jne refuse
 map_input:
     mov r12,rsi
     call extent

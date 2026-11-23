@@ -1,4 +1,18 @@
-"""Build the HIA native measurement loop over admitted workload and reference bytes."""
+"""Build a native paired measurement loop over admitted workload and artifact bytes.
+
+Sealed fds 3 through 8 contain [ABI, workload], the two artifact ELFs, the
+direct-call supervisor, the baseline reference batch, and the limits packet.
+HIAEPL02 also requires the candidate reference batch on fd 9 and the two
+canonical Core files on fds 10 and 11. HIAEPL01 accepts one agreed reference.
+
+The HIAEPM01 header is ten little-endian u64 words (magic, status, case count,
+sample count, per-arm measured nanoseconds, per-arm measured calls, case and
+arm of first mismatch or terminal). Status 0 means agreement, 1 disagreement,
+2 budget exceeded, 3 runner fault, 4 invalid native report, and 5 a declared
+expectation different from the baseline. Arm 2 denotes reference comparison.
+The samples retain case, arm, reference status, signed exit code, raw return,
+native nanoseconds, observed variation and total inspected external bytes.
+"""
 
 from pathlib import Path
 import re
@@ -7,7 +21,12 @@ from tempfile import TemporaryDirectory
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_agent_identity_native import ABI_SCALAR_IDS
 from tools.generate_hia_artifact_publication import document
-from tools.generate_hia_worker_evaluate_case import source_program as evaluate_case
+from hepta.hia_schema import PRIMITIVE_PROFILES, supports_feature
+from tools.generate_hia_sha256 import source_program as sha256_source
+from tools.generate_hia_worker_emit_verification import key_table, literal_match
+from tools.generate_hia_worker_evaluate_case import FIELDS, source_program as evaluate_case
+from tools.generate_hia_worker_finite_reference import enum_reader
+from tools.generate_hia_worker_request import renamed
 
 SOURCE = Path('examples/hia_bootstrap/evaluate_paired_batch.hepta')
 PACKER = SOURCE.with_name('evaluate_paired_batch_packer.hepta')
@@ -17,7 +36,8 @@ PACK_MAGIC = int.from_bytes(b'HIAEPP01', 'little')
 G = 64 << 20
 P = G + 4096
 ROWS = G + 16384
-SAMPLES = G + 49152
+SAMPLES = G + 131072
+DIGESTS = G + 262144
 LOAN = G + (1 << 20)
 LIMIT = (1 << 64)-1
 STATE_FIELDS = {
@@ -56,6 +76,10 @@ STATE_FIELDS = {
     'CALL_NS': 304,
     'VARIATION': 312,
     'STDERR_BYTES': 320,
+    'DOUBLE_REFERENCE': 328,
+    'BASE_CHAINS': 336,
+    'OTHER_CHAINS': 344,
+    'DEFERRED_STATUS': 352,
 }
 
 # File descriptors 3..8 carry [ABI, workload], baseline, candidate, native
@@ -66,7 +90,7 @@ POLICY = '''
 def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     state = get(w, STATE)
     if state == 0:
-        if length(s) != 24 or read_word(s, 0) != CONTROL:
+        if length(s) != 24 or (read_word(s,0) != CONTROL and read_word(s,0) != BOTH_CONTROL):
             return 0
         m = read_word(s, 8)
         d = read_word(s, 16)
@@ -76,6 +100,10 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         put(w, MEMORY_LIMIT, m)
         put(w, DEADLINE, d)
+        if read_word(s,0) == BOTH_CONTROL:
+            put(w,DOUBLE_REFERENCE,1)
+            put(w,STATE,8)
+            return 8
         put(w, STATE, 1)
         return 1
     if state == 1:
@@ -101,6 +129,14 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return read_files(o, w)
     if state == 7:
         return compare_file(s, o, w)
+    if state == 8 or state == 9:
+        return core_ledger(s, o, w, state)
+    if state == 10:
+        return compare_references(s, o, w)
+    if state == 11:
+        return finish(o,w,get(w,DEFERRED_STATUS))
+    if state == 12:
+        return compare_one(s,o,w)
     return 0
 
 def retain_shapes(s:readbuf, o:mutbuf, w:mutbuf, count:u64) -> u64:
@@ -112,10 +148,12 @@ def retain_shapes(s:readbuf, o:mutbuf, w:mutbuf, count:u64) -> u64:
         size = plan_named_case(s, o, w, signatures, case)
         if size < 80 or size > 6224:
             return 0
-        row = ROWS + 48*i
+        row = ROWS + 96*i
         put(w,row+24,case)
         put(w,row+32,choose(get(o,24) == 0,0,8))
         put(w,row+40,get(o,32))
+        if get(w,DOUBLE_REFERENCE) != 0 and declared(s,o,w,row,i,case) == False:
+            put(w,row+64,3)
         case = next(w, case)
         i = i + 1
     put(w,STATE,2)
@@ -144,7 +182,7 @@ def admit_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             if i + 1 != done:
                 return 0
             budget = 1
-        row = ROWS + 48*i
+        row = ROWS + 96*i
         if size != 144 + choose(status == 0,get(w,row+32),0) + get(w,row+40):
             return 0
         put(w, row, at)
@@ -157,8 +195,217 @@ def admit_reference(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if budget != 0:
         put(w, CASE_INDEX, done - 1)
         return finish(o, w, 2)
+    if get(w,DOUBLE_REFERENCE) != 0:
+        put(w,STATE,10)
+        return 7
     put(w, STATE, 3)
     return 1
+
+def core_ledger(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    put(o,48,524289)
+    put(o,56,128)
+    if widen(decode_json(s,w,o)) >= 4294967292 or get(w,64) != 6:
+        return 0
+    chains = ledger_shape(w,lookup(w,64,KEY_SCHEMA))
+    if chains > 1:
+        return 0
+    if state == 8:
+        put(w,BASE_CHAINS,chains)
+        put(w,STATE,9)
+        return 9
+    put(w,OTHER_CHAINS,chains)
+    put(w,STATE,1)
+    return 1
+
+# Save the optional frozen expectation while its numeric spelling and typed
+# case plan are in scope. Raw bytes of the declared SHA stay in private memory.
+def declared(s:readbuf, o:mutbuf, w:mutbuf, row:u64, index:u64, case:u64) -> bool:
+    expected = lookup(w,case,KEY_EXPECTED)
+    if expected == MAX:
+        return True
+    if is_object(w,expected) == False:
+        return False
+    status = lookup(w,expected,KEY_STATUS)
+    values = lookup(w,expected,KEY_VALUES)
+    if returned_status(w,status):
+        if values == MAX or get(w,values) != 5:
+            return False
+        role = get(o,24)
+        if get(w,values+32) != choose(role==0,0,1):
+            return False
+        put(w,row+64,1)
+        if role != 0:
+            if scalar_plan(s,o,w,first(w,values),8192,choose(role==256,U32,role)) == 0:
+                return False
+            put(w,row+72,get(o,8200))
+    elif trapped_status(w,status):
+        if values != MAX:
+            return False
+        put(w,row+64,2)
+    else:
+        return False
+    buffers = lookup(w,expected,KEY_BUFFERS)
+    if buffers == MAX:
+        return True
+    if get(w,buffers) != 5 or get(o,40) == 0 or get(w,buffers+32) != get(o,40):
+        return False
+    put(w,row+80,get(o,40))
+    node = first(w,buffers)
+    arg = 0
+    loan = 0
+    while arg < get(o,16):
+        at = 80+48*arg
+        role = get(o,at)
+        if role != 0:
+            if node == MAX or is_object(w,node) == False:
+                return False
+            if uint(s,w,lookup(w,node,KEY_ARGUMENT),128) != arg:
+                return False
+            size = get(o,at+8)
+            if uint(s,w,lookup(w,node,KEY_BYTE_LENGTH),1048576) != size:
+                return False
+            kind = lookup(w,node,KEY_KIND)
+            if (role == 1 and readbuf_kind(w,kind) == False) or (role == 2 and mutbuf_kind(w,kind) == False):
+                return False
+            digest = lookup(w,node,KEY_SHA256)
+            if digest == MAX or get(w,digest) != 4 or get(w,digest+32) != 64:
+                return False
+            dest = DIGESTS + 40*(8*index + loan)
+            put(w,dest,size)
+            off = get(w,digest+24)
+            i = 0
+            while i < 32:
+                high = snapshot_nibble(byte(w,off+2*i))
+                low = snapshot_nibble(byte(w,off+2*i+1))
+                if high > 15 or low > 15:
+                    return False
+                store(w,dest+8+i,(high << 4) | low)
+                i = i+1
+            node = next(w,node)
+            loan = loan+1
+        arg = arg+1
+    return node == MAX
+
+# s and o are separate sealed read-only mappings on this port. All outputs
+# and progress go into private w until the normal writable output port resumes.
+def compare_references(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    if length(o) < 24 or get(o,0) != BATCH or get(o,8) != get(w,CASE_COUNT):
+        return 0
+    done = get(o,16)
+    if done == 0 or done > get(w,CASE_COUNT):
+        return 0
+    at = 24
+    index = 0
+    budget = 0
+    while index < done:
+        row = ROWS + 96*index
+        if at > length(o) or length(o)-at < 160 or get(o,at) != index:
+            return 0
+        size = get(o,at+8)
+        at = at+16
+        status = get(o,at+8)
+        if get(o,at) != REFERENCE or status > 19 or (status > 11 and status < 15):
+            return 0
+        if size != 144 + choose(status == 0,get(w,row+32),0) + get(w,row+40) or size > length(o)-at:
+            return 0
+        if status == 5 or status == 6 or status == 16:
+            if index+1 != done:
+                return 0
+            budget = 1
+        put(w,row+48,at)
+        put(w,row+56,status)
+        at = at+size
+        index = index+1
+    if at != length(o) or (budget == 0 and done != get(w,CASE_COUNT)):
+        return 0
+    if budget != 0:
+        return reference_terminal(w,2,done-1)
+    put(w,STATE,12)
+    put(w,CASE_INDEX,0)
+    return compare_one(s,o,w)
+
+def compare_one(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    index = get(w,CASE_INDEX)
+    if get(w,CLOCK) >= get(w,DEADLINE):
+        return reference_terminal(w,2,index)
+    row = ROWS + 96*index
+    left = get(w,row)
+    right = get(w,row+48)
+    old = get(w,row+16)
+    new = get(w,row+56)
+    before = left+32+choose(old == 0,get(w,row+32),0)
+    after = right+32+choose(new == 0,get(w,row+32),0)
+    if get(w,row+64) == 3 or declared_matches(s,w,row,index,before+112) == False:
+        return reference_terminal(w,5,index)
+    equal = trap_class(old) == trap_class(new) and get(w,BASE_CHAINS) == get(w,OTHER_CHAINS)
+    if old == 0 and new == 0 and get(w,row+32) != 0:
+        equal = equal and read_word(s,left+32) == get(o,right+32)
+    # 9 fixed machine counters correspond to the public base ledger.
+    # Four further counters back the recursive-chain ledger when present.
+    # The final retained machine diagnostic is independent of public scope.
+    count = choose(get(w,BASE_CHAINS) == 0,9,13)
+    i = 0
+    while i < count:
+        equal = equal and read_word(s,before+8*i) == get(o,after+8*i)
+        i = i+1
+    i = 0
+    while i < get(w,row+40):
+        equal = equal and byte(s,before+112+i) == byte(o,after+112+i)
+        i = i+1
+    if equal == False:
+        put(w,CASE_INDEX,index)
+        put(w,ARM,2)
+        mismatch(w)
+    index = index+1
+    if index < get(w,CASE_COUNT):
+        put(w,CASE_INDEX,index)
+        return 7
+    put(w,CASE_INDEX,0)
+    put(w,ARM,0)
+    put(w,STATE,3)
+    return 1
+
+def reference_terminal(w:mutbuf, status:u64, index:u64) -> u64:
+    put(w,CASE_INDEX,index)
+    put(w,ARM,2)
+    put(w,DEFERRED_STATUS,status)
+    put(w,STATE,11)
+    return 1
+
+def trap_class(status:u64) -> u64:
+    if status == 1 or status == 3 or status == 4:
+        return 8
+    if status == 2:
+        return 9
+    if status == 15 or status == 17:
+        return 11
+    if status == 18 or status == 19:
+        return 10
+    return status
+
+def declared_matches(s:readbuf, w:mutbuf, row:u64, index:u64, start:u64) -> bool:
+    declared = get(w,row+64)
+    if declared == 0:
+        return True
+    status = get(w,row+16)
+    if (declared == 1) != (status == 0):
+        return False
+    if status == 0 and get(w,row+32) != 0 and get(w,row+72) != read_word(s,get(w,row)+32):
+        return False
+    loan = 0
+    while loan < get(w,row+80):
+        spec = DIGESTS + 40*(8*index+loan)
+        size = get(w,spec)
+        if widen(pair_hash_sha256(s,w,start,size)) != 32:
+            return False
+        i = 0
+        while i < 32:
+            if byte(w,length(w)-4096+1088+i) != byte(w,spec+8+i):
+                return False
+            i = i+1
+        start = start+size
+        loan = loan+1
+    return True
 
 def measure_next(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     n = get(w, CASE_COUNT)
@@ -172,7 +419,7 @@ def measure_next(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             if traps == 2:
                 traps = 0
                 arm = arm + 1
-        elif (get(w, ROWS+48*index+16) != 0) == (traps != 0):
+        elif (get(w, ROWS+96*index+16) != 0) == (traps != 0):
             put(w, CASE_INDEX, index)
             put(w, ARM, arm)
             put(w, TRAP_PHASE, traps)
@@ -183,7 +430,7 @@ def measure_next(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 
 def prepare_case(s:readbuf, o:mutbuf, w:mutbuf, index:u64) -> u64:
     signatures = first(w, 64)
-    case = get(w,ROWS+48*index+24)
+    case = get(w,ROWS+96*index+24)
     size = plan_named_case(s, o, w, signatures, case)
     if size < 80 or size > 6224 or get(o, 0) != PLAN:
         return 0
@@ -191,7 +438,7 @@ def prepare_case(s:readbuf, o:mutbuf, w:mutbuf, index:u64) -> u64:
     while i < size:
         put(w, P+i, get(o, i))
         i = i + 8
-    row = ROWS + 48*index
+    row = ROWS + 96*index
     has_value = get(w, row+16) == 0 and get(o, 24) != 0
     if get(w, row+8) != 144+choose(has_value, 8, 0)+get(o, 32):
         return 0
@@ -326,7 +573,7 @@ def observe(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return finish(o,w,2)
     arm = get(w,ARM)
     index = get(w,CASE_INDEX)
-    row = ROWS + 48*index
+    row = ROWS + 96*index
     expected = get(w,row+16)
     sample = SAMPLES + 64*get(w,SAMPLE_COUNT)
     put(w,sample,index)
@@ -436,15 +683,41 @@ def finish(o:mutbuf, w:mutbuf, status:u64) -> u64:
 '''
 
 
+def snapshot_hash():
+    # Use the same HIA SHA-256 implementation as the independent digest role.
+    # Relocate its small private arrays beyond the decoded JSON and case rows.
+    source = sha256_source().replace('length(s)', 'n')
+    source = source.replace('def sha256(s:readbuf, o:mutbuf, w:mutbuf)',
+                            'def sha256(s:readbuf, w:mutbuf, base:u64, n:u64)')
+    source = source.replace(' or length(o) < 32', ' or base > length(s) or n > length(s)-base')
+    source = source.replace('padded_byte(s, block + i * 4 + j, padded)',
+                            'padded_byte(s, block + i * 4 + j, padded, base, n)')
+    source = source.replace('def padded_byte(s:readbuf, index:u64, total:u64)',
+                            'def padded_byte(s:readbuf, index:u64, total:u64, base:u64, n:u64)')
+    source = source.replace('byte(s, index)', 'byte(s, base + index)')
+    source = source.replace('store(o, i * 4 + j,', 'store(w, 1088 + i * 4 + j,')
+    return renamed(source, 'pair_hash_', scratch=4096)
+
+
 def program():
-    magic = dict(CONTROL=b'HIAEPL01', WORKLOAD=b'HIAEVW01', BATCH=b'HIAEBT01', REFERENCE=b'HIASPR01',
+    magic = dict(CONTROL=b'HIAEPL01', BOTH_CONTROL=b'HIAEPL02', WORKLOAD=b'HIAEVW01', BATCH=b'HIAEBT01', REFERENCE=b'HIASPR01',
                  PLAN=b'HIAEVC01', SUPERVISE=b'HIADRS01', RUN=b'HIADRX02', TERMINAL=b'HIADRT01',
                  RECEIPT=b'HIADRR02', PAIR=b'HIAEPM01')
     values = {name: int.from_bytes(value, 'little') for name, value in magic.items()}
     values.update({name: G + offset for name, offset in STATE_FIELDS.items()})
-    values.update(P=P, ROWS=ROWS, SAMPLES=SAMPLES, LOAN=LOAN, MAX=LIMIT, KEY_CASES=11, BOOL=ABI_SCALAR_IDS['bool'])
+    values.update(P=P, ROWS=ROWS, SAMPLES=SAMPLES, LOAN=LOAN, DIGESTS=DIGESTS, MAX=LIMIT, BOOL=ABI_SCALAR_IDS['bool'], U32=ABI_SCALAR_IDS['u32'])
+    keys = (*FIELDS, 'schema', 'status', 'values', 'buffers', 'argument', 'kind', 'sha256')
+    values.update({'KEY_'+name.upper(): index for index,name in enumerate(keys,1)})
     policy = re.sub(r'\b('+'|'.join(values)+r')\b', lambda m: str(values[m[0]]), POLICY)
-    return policy + '\n' + evaluate_case()
+    case = evaluate_case()
+    if case.count(key_table(FIELDS)) != 1:
+        raise ValueError('HIA Evaluate case key table changed')
+    case = case.replace(key_table(FIELDS), key_table(keys))
+    schema = enum_reader('ledger_shape', [(name,int(supports_feature(name, 'recursive_chain')))
+                                         for name in PRIMITIVE_PROFILES])
+    literals = [literal_match(name,text) for name,text in (('returned_status','returned'),
+                ('trapped_status','trapped'), ('readbuf_kind','readbuf'), ('mutbuf_kind','mutbuf'))]
+    return '\n'.join((policy,case,schema,*literals,snapshot_hash()))
 
 
 def packer_document():

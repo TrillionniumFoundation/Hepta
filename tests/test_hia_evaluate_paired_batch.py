@@ -34,7 +34,7 @@ def run_pair(executable, inputs, *, unsealed=None):
         out = stack.enter_context(tempfile.TemporaryFile())
         err = stack.enter_context(tempfile.TemporaryFile())
         actions = []
-        for fd, target in zip((*sources, out.fileno(), err.fileno()), (3,4,5,6,7,8,1,2), strict=True):
+        for fd, target in zip((*sources, out.fileno(), err.fileno()), (*range(3,3+len(inputs)),1,2), strict=True):
             copy = fcntl.fcntl(fd, fcntl.F_DUPFD_CLOEXEC, 32)
             stack.callback(os.close, copy)
             actions.append((os.POSIX_SPAWN_DUP2, copy, target))
@@ -74,7 +74,7 @@ class PairedMeasurementTests(unittest.TestCase):
         raw = link.read_bytes()
         cls.linker = NativeSharedLinker(raw, sha256(raw).hexdigest())
 
-    def fixture(self, doc, cases, *, other=None, exports=(), warmup=2, repetitions=4, deadline=None):
+    def fixture(self, doc, cases, *, other=None, exports=(), warmup=2, repetitions=4, deadline=None, double=False):
         checked = verify_program(doc)
         def artifact(program):
             return self.linker.link(emit_program_machine(program,foreign_buffer_exports=exports).object_bytes)
@@ -90,7 +90,14 @@ class PairedMeasurementTests(unittest.TestCase):
         data = json.dumps([_signatures(checked,exports),workload],separators=(',',':')).encode()
         limits = struct.pack('<8sQQ', b'HIAEPL01',64<<20,
                              time.monotonic_ns()+5_000_000_000 if deadline is None else deadline)
-        return [data,baseline,candidate,self.owner,reference,limits]
+        inputs = [data,baseline,candidate,self.owner,reference,limits]
+        if double:
+            second = checked if other is None else verify_program(other)
+            code, second_reference, err = self.reference.invoke(second,workload)
+            self.assertEqual((code,err),(0,b''))
+            inputs[5] = b'HIAEPL02'+limits[8:]
+            inputs.extend((second_reference,checked.canonical_bytes,second.canonical_bytes))
+        return inputs
 
     def result(self, fixture):
         code, raw, err = run_pair(self.pair,fixture)
@@ -137,6 +144,76 @@ class PairedMeasurementTests(unittest.TestCase):
         h, rows = self.result(self.fixture(trap,[case],exports=(('write_then_trap',16),)))
         self.assertEqual(h[1],0)
         self.assertEqual([(r[3],r[7]) for r in rows],[(2**64-6,2)]*2)
+
+    def test_two_reference_values_and_ledger_have_public_scope(self):
+        params = [('x','u32')]
+        cases = [{'function':'answer','arguments':[n], 'expected':{'status':'returned','values':[n]}} for n in (37,9)]
+        plain = m(f('answer',params,['u32'],[],[b('entry',params,[],ret('x'))]))
+        # More reference steps have no effect on observable agreement.
+        extra = m(f('answer',params,['u32'],[],[b('entry',params,[
+            c('zero','u32',0),i('int.add.wrap',['x','zero'],[('y','u32')])],ret('y'))]))
+        h, rows = self.result(self.fixture(plain,cases,other=extra,double=True))
+        self.assertEqual((h[1],len(rows)),(0,4))
+        # Equal native outputs but a real owner lifetime changes the ledger.
+        resource = m(f('answer',params,['u32'],['alloc','write','trap'],[b('entry',params,[
+            c('n','usize',3),i('buffer.new',['n'],[('storage','buffer')]),i('owner.drop',['storage'])
+            ],ret('x'))]))
+        h, rows = self.result(self.fixture(plain,cases,other=resource,double=True))
+        self.assertEqual((h[1],h[8:10]),(1,(0,2)))
+        self.assertEqual([r[4] for r in rows],[37,9,37,9])
+        cases[0]['expected']['values'] = [38]
+        h, rows = self.result(self.fixture(plain,cases,double=True))
+        self.assertEqual((h[1],h[8:10],rows),(5,(0,2),[]))
+
+    def test_candidate_reference_budget_and_malformed_shape_precede_native(self):
+        params = [('x','u32')]
+        base = m(f('answer',params,['u32'],[],[b('entry',params,[],ret('x'))]))
+        recursive = m(f('answer',params,['u32'],[],[b('entry',params,[
+            i('call',['x'],[('v','u32')],function='answer')],ret('v'))]))
+        cases = [{'function':'answer','arguments':[7]},{'function':'answer','arguments':[9]}]
+        inputs = self.fixture(base,cases,other=recursive,double=True)
+        h, rows = self.result(inputs)
+        self.assertEqual((h[1],h[8:10],rows),(2,(0,2),[]))
+        inputs = self.fixture(base,cases,double=True)
+        inputs[6] += b'x'
+        self.assertEqual(run_pair(self.pair,inputs),(2,b'',b''))
+
+    def test_two_reference_snapshots_and_declarations_use_exact_sha256(self):
+        from tests.test_hia_agent_buffer_lifecycle import byte_program
+        from hepta.hia_agent_buffers import buffer_observation
+        args = [{'bytes_hex':'005aff'}, {'byte_length':5,'fill_byte':165}]
+        observed = [buffer_observation(0,'readbuf',bytes.fromhex('005aff')),
+                    buffer_observation(1,'mutbuf',bytes.fromhex('005affa5a5'))]
+        case = {'function':'copy_bytes','arguments':args,
+                'expected':{'status':'returned','values':[0],'buffers':observed}}
+        exports=(('copy_bytes',16),)
+        base = self.fixture(byte_program(),[case],exports=exports,double=True)
+        h, rows = self.result(base)
+        self.assertEqual((h[1],len(rows),rows[0][7]),(0,2,8))
+        changed = list(base)
+        changed[6] = base[6][:-1] + bytes((base[6][-1]^1,))
+        h, rows = self.result(changed)
+        self.assertEqual((h[1],h[8:10],len(rows)),(1,(0,2),2))
+        case['expected']['buffers'][1]['sha256'] = '00'*32
+        h, rows = self.result(self.fixture(byte_program(),[case],exports=exports,double=True))
+        self.assertEqual((h[1],h[8:10],rows),(5,(0,2),[]))
+        for slot in (6,7,8):
+            with self.subTest(unsealed_reference_or_core=slot):
+                self.assertEqual(run_pair(self.pair,base,unsealed=slot),(2,b'',b''))
+
+    def test_two_reference_trap_classes_and_chain_ledger_presence(self):
+        def trapped(code):
+            return m(f('test',[],['u32'],['trap'],[b('entry',[],[],{'op':'trap','code':code})]))
+        cases=[{'function':'test','arguments':[], 'expected':{'status':'trapped'}}]
+        h, rows = self.result(self.fixture(trapped('bounds'),cases,other=trapped('user'),double=True))
+        self.assertEqual((h[1],h[8:10]),(1,(0,2)))
+        self.assertEqual([r[3] for r in rows],[2**64-6,2**64-6])
+        from hepta.hia_schema import PRIMITIVE_PROFILES, supports_feature
+        same = m(f('test',[],['u32'],[],[b('entry',[],[c('a','u32',0)],ret('a'))]))
+        with_chains = dict(same,schema=next(k for k in PRIMITIVE_PROFILES if supports_feature(k,'recursive_chain')))
+        h, rows = self.result(self.fixture(same,[{'function':'test','arguments':[]}],
+                                         other=with_chains,double=True))
+        self.assertEqual((h[1],h[8:10],len(rows)),(1,(0,2),2))
 
     def test_read_and_mutable_loans_are_separate_for_every_arm_and_call(self):
         from tests.test_hia_agent_buffer_lifecycle import byte_program
