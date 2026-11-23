@@ -16,6 +16,8 @@ RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_
 # The two declared native package files also belong in the actual wheel;
 # all other support paths remain absent from its package root.
 SDIST_SUPPORT_FILES=(
+    'examples/hia_bootstrap/source_filter_member.hepta',
+    'tests/test_hia_source_filter_member.py',
     'examples/hia_bootstrap/job_terminal_receipt.hepta',
     'tools/generate_hia_job_terminal_receipt.py',
     'tests/test_hia_job_terminal_receipt.py',
