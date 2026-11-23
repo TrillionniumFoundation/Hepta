@@ -140,33 +140,20 @@ class StoreReleaseBuildTests(unittest.TestCase):
                             self.assertFalse(output.exists())
                             self.assertEqual(stage.read_bytes(), expected)
 
-    def test_native_inventory_reads_the_real_installed_files_and_refuses_changed_bytes(self):
-        import json
-        import subprocess
+    def test_source_inventory_packet_uses_canonical_names_and_complete_digests(self):
+        import struct
 
-        with tempfile.TemporaryDirectory() as temporary:
-            installed = Path(temporary)
-            (installed / 'zero').touch()
-            (installed / 'data').write_bytes(b'native member')
-            members = {path.name: sha256(path.read_bytes()).hexdigest() for path in installed.iterdir()}
-            actions = []
-
-            def native(_image, args, _wire, _work, *, stdin, pass_fds):
-                operation, path, alias = args
-                self.assertTrue(pass_fds)
-                if operation == 'verify':
-                    self.assertTrue(Path(path).samefile(alias))
-                data = stdin.read()
-                actions.append(operation)
-                receipt = {'sha256': sha256(data).hexdigest(), 'bytes': len(data)}
-                return subprocess.CompletedProcess(args, 0, json.dumps(receipt).encode(), b'')
-
-            with patch.object(release, '_run_captured', side_effect=native):
-                release._verify_installed_members(installed, members, b'image', installed)
-                self.assertCountEqual(actions, ['store-hash', 'verify'])
-                (installed / 'data').write_bytes(b'different')
-                with self.assertRaisesRegex(ValueError, 'differs from its source'):
-                    release._verify_installed_members(installed, members, b'image', installed)
+        data = sha256(b'native member').digest()
+        empty = sha256(b'').digest()
+        members = {'zero': empty.hex(), 'data': data.hex()}
+        package = b'captured package'
+        self.assertEqual(release._source_inventory_packet(package, members),
+                         package + b'\x04data' + data + b'\x04zero' + empty
+                         + struct.pack('<Q8s', len(package), b'HIAATT01'))
+        for name, digest in (('', data.hex()), ('x' * 128, empty.hex()),
+                             ('a', empty.hex().upper()), ('a', '00' * 31)):
+            with self.subTest(name=name, digest=digest), self.assertRaises(ValueError):
+                release._source_inventory_packet(package, {name: digest})
 
     def test_source_archive_rejects_symlinks_and_nonregular_cold_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
