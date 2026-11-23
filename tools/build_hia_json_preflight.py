@@ -232,6 +232,8 @@ CANDIDATES = {
     'evaluate-reference-report-packer': ('evaluate_reference_report_packer', 'evaluate-reference-report-packer'),
     'evaluate-native-report': ('evaluate_native_report', 'evaluate-native-report'),
     'evaluate-native-report-packer': ('evaluate_native_report_packer', 'evaluate-native-report-packer'),
+    'evaluate-measurements': ('evaluate_measurements', 'evaluate-measurements'),
+    'evaluate-measurements-packer': ('evaluate_measurements_packer', 'evaluate-measurements-packer'),
     'evaluate-settlement': ('evaluate_settlement', 'evaluate-settlement'),
     'evaluate-settlement-packer': ('evaluate_settlement_packer', 'evaluate-settlement-packer'),
     'evaluate-paired-batch-packer': ('evaluate_paired_batch_packer', 'evaluate-paired-batch-packer'),
@@ -372,7 +374,9 @@ def main():
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
                                  'elf-verified-linker',
-                                 'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-reference-report', 'evaluate-reference-wire', 'scalar-reference',
+                                 'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement',
+                                 'evaluate-reference-report', 'evaluate-native-report', 'evaluate-measurements',
+                                 'evaluate-reference-wire', 'scalar-reference',
                                  'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
                                  'safe-core-elf-inventory', 'core-proof-wire', 'worker-prepare'))
     args = parser.parse_args()
