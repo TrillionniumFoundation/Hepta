@@ -332,7 +332,8 @@ class _CapturedAdmission:
         from tests.hia_store_delivery_successor import reverse_exact
 
         name = 'tests/test_hia_worker_native_helpers.py'
-        if CALLER_AUTHORITIES[self._authority]['kind'] != 'store' or name not in self._records:
+        # Both caller inventories freeze this module from the same 73f16346 tree.
+        if CALLER_AUTHORITIES[self._authority]['kind'] not in ('store', 'emission') or name not in self._records:
             return
         expected = self._records[name]
         raw = self._capture(name)

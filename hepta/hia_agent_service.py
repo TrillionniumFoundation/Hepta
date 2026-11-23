@@ -1411,10 +1411,44 @@ class HIAAgentService:
             from .hia_emission_native import installed_emission, EmissionFrame
             return EmissionFrame(installed_emission(selected), 1, self,
                 (program, kind, machine_plan, timeout_ms, foreign_buffer_exports)).finish()
+        if ('HEPTA_HIA_SHA256_STREAM_MANIFEST' in os.environ
+                or 'HEPTA_HIA_SHA256_MANIFEST' in os.environ
+                or 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ):
+            return HIAAgentService._compile_with_components(
+                self, program, kind, machine_plan, timeout_ms,
+                foreign_buffer_exports=foreign_buffer_exports)
         return self._compile_reference(program, kind, machine_plan, timeout_ms,
                                        foreign_buffer_exports=foreign_buffer_exports)
 
     def _compile_reference(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):
+        from .hia_program_native import emit_program_machine, compile_program_machine
+        if timeout_ms <= 0:
+            reject("E_HIA_BUDGET", "frozen context deadline expired before emission", "codegen")
+        deadline = time.monotonic() + timeout_ms / 1000
+        image = emit_program_machine(program, machine_plan=machine_plan, foreign_buffer_exports=foreign_buffer_exports)
+        object_bytes = image.object_bytes
+        if type(object_bytes) is not bytes:
+            reject("E_HIA_RECEIPT_BINDING", "emission did not produce immutable object bytes", "codegen")
+        commands = []
+        with tempfile.TemporaryDirectory(prefix="build-", dir=self.store.root) as directory:
+            output = Path(directory) / ("program.o" if kind == "object" else "program.so")
+            result = compile_program_machine(image, program=program, output=output, kind=kind,
+                linker="ld", command_log=commands, machine_plan=machine_plan, parent_death_guard=True,
+                timeout_seconds=min(3600, max(0, deadline - time.monotonic())))
+            data = output.read_bytes()
+        result.pop("output", None)
+        result["commands"] = commands
+        if (result.get("object_sha256") != sha256(object_bytes).hexdigest()
+                or result.get("core_sha256") != program.sha256
+                or result.get("artifact_sha256") != sha256(data).hexdigest()
+                or kind == "object" and data != object_bytes):
+            reject("E_HIA_RECEIPT_BINDING", "native build metadata differs from the actual emitted bytes", "codegen")
+        result["object_artifact"] = self.store.put(object_bytes, "build-object", {
+            "schema": "hepta.hia.agent.build-object.v1", "core_sha256": program.sha256,
+            "machine_plan_sha256": result["machine_plan_sha256"], "installation": self.identities})
+        return data, result
+
+    def _compile_with_components(self, program, kind, machine_plan, timeout_ms, *, foreign_buffer_exports=()):
         from .hia_program_native import emit_program_machine, compile_program_machine
         if timeout_ms <= 0:
             reject("E_HIA_BUDGET", "frozen context deadline expired before emission", "codegen")
@@ -1447,9 +1481,48 @@ class HIAAgentService:
         if selected is not None:
             from .hia_emission_native import installed_emission, EmissionFrame
             return EmissionFrame(installed_emission(selected), 2, self, (args,)).finish()
+        if ('HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ
+                or 'HEPTA_HIA_AGENT_PLAN_SCHEMA_MANIFEST' in os.environ):
+            return HIAAgentService._hia_emit_with_components(self, args)
         return self._hia_emit_reference(args)
 
     def _hia_emit_reference(self, args):
+        self._profile(args["backend_profile"], "backend")
+        context = self._context(args["context"])
+        program = self._program(args["candidate"])
+        for ref in args["verification_receipts"]:
+            self._verification(ref, args["context"], args["candidate"])
+        codegen, plan = args["codegen"], None
+        if codegen["kind"] == "canonical":
+            self._profile(codegen["lowering_profile"], "lowering")
+        else:
+            self._profile(codegen["plan_profile"], "plan")
+            plan, _ = self.store.get_json(codegen["plan"])
+            validate(plan, PLAN_SCHEMA, "machine_plan")
+            receipt = self._verification(codegen["verification_receipt"], args["context"], args["candidate"])
+            expected_subject = {"kind": "agent_machine_plan", "backend_profile": args["backend_profile"],
+                                "plan_profile": codegen["plan_profile"], "plan": codegen["plan"]}
+            if receipt["subject"] != expected_subject or not any(c["claim"] == "lowering_refinement" and c["status"] == "proved" for c in receipt["checks"]):
+                reject("E_HIA_PLAN_RECEIPT", "plan lacks an exact subject-bound qualified layout receipt", "codegen")
+        exports = tuple(map(tuple, context.get("foreign_buffer_exports", [])))
+        data, native_build = self._compile(program, args["output_kind"], plan, self._remaining_ms(context),
+                                          **({"foreign_buffer_exports": exports} if exports else {}))
+        metadata = {"context": args["context"], "candidate": args["candidate"],
+            "core_sha256": program.sha256, "output_kind": args["output_kind"], "codegen": codegen,
+            "machine_plan": plan, "installation": self.identities, "signatures": _signatures(program, exports),
+            "foreign_buffer_exports": [list(pair) for pair in exports],
+            "object_artifact": native_build["object_artifact"], "object_sha256": native_build["object_sha256"]}
+        artifact = self.store.put(data, "native", metadata)
+        receipt = self.store.json({"schema": "hepta.hia.agent.build.v1", **metadata,
+            "native_artifact": artifact, "native_build": native_build,
+            "backend_profile": args["backend_profile"], "target_profile": context["target_profile"],
+            "verification_receipts": args["verification_receipts"]}, "build-receipt")
+        return {"candidate": args["candidate"], "native_artifact": artifact, "build_receipt": receipt,
+            "backend_profile": args["backend_profile"], "target_profile": context["target_profile"],
+            "codegen_backend": "hia-direct", "llvm_codegen_used": False, "external_assembler_used": False,
+            "linker_used": args["output_kind"] == "shared", "native_execution_observed": False, "adopted": False}
+
+    def _hia_emit_with_components(self, args):
         from .hia_agent_store import _native_agent_identity
 
         self._profile(args["backend_profile"], "backend")
