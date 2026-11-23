@@ -63,16 +63,14 @@ def _stage_agent_store(work, seed, compile_sources, call, compiler, admitted, pu
             or [group['role'] for group in groups] != list(range(4))):
         raise ValueError('invalid native Store module plan')
 
+    builds = release_sources(seed, compile_sources, call)
+
     def owner(name):
-        kit, images, sources = compile_sources({
-            'source_build_policy.hepta': 'source_agent_store.hepta',
-            'selfhost.hepta': 'selfhost.hepta',
-            'source_build_packer.hepta': 'agent_store/' + name,
-        })
+        program, images, sources = builds.kit_objects('source_agent_store.hepta', 'agent_store/' + name)
         if images['selfhost.hepta'] != compiler:
             raise ValueError('native Store requires the admitted cold compiler')
         alias = 'source_build_packer.hepta'
-        return call(seed, 'pack', kit), images[alias], sources[alias]
+        return program, images[alias], sources[alias]
 
     def build(program, tag, role, parts):
         sizes = struct.pack('<' + 'Q' * len(parts), *map(len, parts))
@@ -186,14 +184,10 @@ def _stage_sqlite_migrations(work, compile_sources, admitted, publish, tools, li
 
 def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
     """Rebuild the eight flat images and let HIA attest each source/compiler/image tuple."""
-    kit, kit_images, kit_sources = compile_sources({
-        'source_build_policy.hepta': 'source_helper_manifest.hepta',
-        'selfhost.hepta': 'selfhost.hepta',
-        'source_build_packer.hepta': 'source_build_packer.hepta',
-    })
+    builds = release_sources(seed, compile_sources, call)
+    author, kit_images, kit_sources = builds.kit_objects('source_helper_manifest.hepta', 'source_build_packer.hepta')
     if kit_images['selfhost.hepta'] != compiler:
         raise ValueError('flat helper compiler differs from the admitted cold compiler')
-    author = call(seed, 'pack', kit)
     selfhost = kit_sources['selfhost.hepta']
     names = [CANDIDATES[kind][0] + '.hepta' for kind in INSTALLED_HELPERS]
     _, images, sources = compile_sources({name: name for name in names})
@@ -288,13 +282,10 @@ def source_owned_reference(seed, compile_sources, call, compiler, admitted):
     from tools.generate_hia_owned_reference import ADAPTER_PATH, PACKER_PATH, SOURCE_PATH
 
     policy = 'source_owned_reference.hepta'
-    kit, kit_images, _ = compile_sources({
-        'source_build_policy.hepta': policy, 'selfhost.hepta': 'selfhost.hepta',
-        'source_build_packer.hepta': 'source_build_packer.hepta',
-    })
+    builds = release_sources(seed, compile_sources, call)
+    composer, kit_images, _ = builds.kit_objects(policy, 'source_build_packer.hepta')
     if kit_images['selfhost.hepta'] != compiler:
         raise ValueError('owned reference requires the admitted cold compiler')
-    composer = call(seed, 'pack', kit)
     packer = Path(PACKER_PATH).name
     owned = Path(SOURCE_PATH).name
     components = (policy, 'selfhost.hepta', 'owned_reference_entry_wrapper.hepta',
@@ -645,6 +636,31 @@ def _named_source_request(sources, *, tag=b'HIANAM01'):
     return bytes(frame)
 
 
+def _kit_with_objects(frame):
+    """Read the three attested ELF object ranges bound by the kit's x86-64 call sites."""
+    from tools.generate_hia_source_build import ROLE_NAMES
+
+    if len(frame) < 176 + 64:
+        raise ValueError('truncated native kit object view')
+    elf_size, *fields, magic = struct.unpack_from('<7Q8s', frame, len(frame) - 64)
+    sizes, sites = fields[:3], fields[3:]
+    prefix = elf_size - sum(sizes)
+    if (magic != b'HIAKIMG1' or elf_size != len(frame) - 64 or prefix < 176
+            or not frame.startswith(b'\x7fELF\x02\x01\x01') or len(set(sites)) != 3
+            or any(not 0 < size <= 1 << 20 for size in sizes)
+            or struct.unpack_from('<2Q', frame, 96) != (elf_size, elf_size)):
+        raise ValueError('invalid native kit object view')
+    images = {}
+    start = prefix
+    for name, size, site in zip(ROLE_NAMES, sizes, sites, strict=True):
+        if (not 176 < site <= prefix - 4 or frame[site - 1] != 0xe8
+                or site + 4 + struct.unpack_from('<i', frame, site)[0] != start):
+            raise ValueError('native kit call site differs from its compiled object boundary')
+        images[name] = frame[start:start + size]
+        start += size
+    return frame[:elf_size], images
+
+
 def _kit_sources(policy, packer):
     return {'source_build_policy.hepta': policy, 'selfhost.hepta': 'selfhost.hepta',
             'source_build_packer.hepta': packer}
@@ -668,6 +684,12 @@ class NativeReleaseSources:
 
     def kit(self, policy, packer):
         return self.kit_from_sources(self.capture_sources(_kit_sources(policy, packer)))
+
+    def kit_objects(self, policy, packer):
+        sources = self.capture_sources(_kit_sources(policy, packer))
+        frame = self.call(self.composer, 'build', _named_source_request(sources, tag=b'HIAKOBJ1'))
+        program, images = _kit_with_objects(frame)
+        return program, images, sources
 
 
 def release_sources(seed, compile_sources, call):
@@ -1001,11 +1023,11 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             publish(output / name)
         publish(output / 'hia-worker-scalar-implementation')
 
-    _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
-    _stage_agent_store(work, seed, compile_sources, call, compiler_bytes, admitted, publish)
+    _stage_helper_images(work, seed, builds, call, compiler_bytes, publish)
+    _stage_agent_store(work, seed, builds, call, compiler_bytes, admitted, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), builds, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, builds, call, admitted, publish)
-    _stage_owned_reference(work, seed, compile_sources, call, compiler_bytes, admitted, publish)
+    _stage_owned_reference(work, seed, builds, call, compiler_bytes, admitted, publish)
     linked = _stage_sqlite_units(work, compile_sources, admitted, publish, sqlite_tools)
     _stage_sqlite_migrations(work, compile_sources, admitted, publish, sqlite_tools, linked,
                              migration_dependencies, compiler_bytes, report_bytes)

@@ -150,6 +150,46 @@ class InstalledSourceMemberTests(unittest.TestCase):
         corrupt = composer('wrong-template', altered)
         self.invoke([corrupt, 'build'], wire, refused=True)
 
+    def test_attested_kit_object_views_match_independent_compilation(self):
+        import struct
+        from tools.build_hia_native_store_release import _kit_with_objects, _named_source_request
+
+        aliases = ('source_build_policy.hepta', 'selfhost.hepta', 'source_build_packer.hepta')
+        roots = ('source_release_kit.hepta', 'selfhost.hepta', 'source_build_packer.hepta')
+        kit = self.source_images(self.work / 'object-composer', dict(zip(aliases, (self.sources / n for n in roots))))
+        composer = self.work / 'composer'
+        composer.write_bytes(self.invoke([self.seed, 'pack'], kit))
+        composer.chmod(0o500)
+        for policy, leaf in (('source_helper_manifest.hepta', 'source_build_packer.hepta'),
+                             ('source_agent_store.hepta', 'agent_store/bundle_packer.hepta')):
+            inputs = dict(zip(aliases, (self.sources / policy, self.sources / 'selfhost.hepta', self.sources / leaf)))
+            raw = {alias: path.read_bytes() for alias, path in reversed(inputs.items())}
+            wire = _named_source_request(raw, tag=b'HIAKOBJ1')
+            frame = self.invoke([composer, 'build'], wire)
+            executable, images = _kit_with_objects(frame)
+            program = self.invoke([composer, 'build'], _named_source_request(raw, tag=b'HIAKIT01'))
+            self.assertEqual(program, executable)
+            self.assertEqual(executable, self.invoke([self.seed, 'pack'], self.source_images(self.work / 'group', inputs)))
+            self.assertEqual(images, {name: self.invoke([self.seed, 'compile'], source) for name, source in raw.items()})
+            self.invoke([composer, 'build'], wire[:-1], refused=True)
+            self.invoke([composer, 'build'], wire + b'x', refused=True)
+
+            elf, first, second, last, *sites, tag = struct.unpack_from('<7Q8s', frame, len(frame) - 64)
+            for sizes, positions in (((0, second, last), sites), ((first + 1, second - 1, last), sites),
+                                     ((first, second, last), [sites[0], sites[0], sites[2]]),
+                                     ((first, second, last), [elf, *sites[1:]])):
+                footer = struct.pack('<7Q8s', elf, *sizes, *positions, tag)
+                with self.assertRaises(ValueError):
+                    _kit_with_objects(frame[:-64] + footer)
+            damaged_call = bytearray(frame)
+            damaged_call[sites[1]] ^= 1
+            wrong_elf_size = bytearray(frame)
+            wrong_elf_size[96] ^= 1
+            for invalid in (frame[:-1], frame + b'x', program, frame[:-8] + b'bad-view',
+                            damaged_call, wrong_elf_size):
+                with self.assertRaises(ValueError):
+                    _kit_with_objects(invalid)
+
     def test_auxiliary_kits_share_the_bootstrap_and_compile_each_captured_snapshot(self):
         from tools.build_hia_native_store_release import NativeReleaseSources, release_sources
         from tools.build_hia_source_build import _compiled_sources, _run_captured
@@ -786,6 +826,21 @@ class InstalledSourceMemberTests(unittest.TestCase):
         compiler = invoke(seed, 'compile', (self.sources / 'selfhost.hepta').read_bytes())
         release._stage_agent_store(self.work, seed, compile_sources, invoke, compiler, admitted, publish)
         self.assertEqual(outputs, {'hia-agent-store', *(f'module-{n}.bin' for n in range(4))})
+
+        wrong_compiler = compiler[:-1]
+        with self.assertRaisesRegex(ValueError, 'admitted cold compiler'):
+            release._stage_agent_store(self.work, seed, compile_sources, invoke, wrong_compiler, admitted, publish)
+        with self.assertRaisesRegex(ValueError, 'admitted cold compiler'):
+            release._stage_helper_images(self.work, seed, compile_sources, invoke, wrong_compiler, publish)
+        with self.assertRaisesRegex(ValueError, 'admitted cold compiler'):
+            release.source_owned_reference(seed, compile_sources, invoke, wrong_compiler, admitted)
+
+        def replaced_bundle_packer(names):
+            return compile_sources({name: 'agent_store/word_filter.hepta' if path == 'agent_store/bundle_packer.hepta'
+                                    else path for name, path in names.items()})
+
+        with self.assertRaisesRegex(ValueError, 'bundle packer differs from its plan'):
+            release._stage_agent_store(self.work, seed, replaced_bundle_packer, invoke, compiler, admitted, publish)
 
         # The established bounded-step ABI still yields in the original 16 KiB workspace.
         unit = json.loads((ROOT / PLAN).read_bytes())['units']['rowid']
