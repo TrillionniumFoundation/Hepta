@@ -13,6 +13,7 @@ REPLAY_SOURCE = 'examples/hia_bootstrap/worker_evaluate_replay_capsule.hepta'
 REPLAY_OWNER = 'hia-agent-evaluate-replay-worker-carrier'
 INTAKE_OWNER = 'hia-agent-evaluate-intake-worker-carrier'
 INTAKE_SOURCE = 'examples/hia_bootstrap/worker_evaluate_intake_capsule.hepta'
+FULL_SOURCE = 'examples/hia_bootstrap/worker_evaluate_full_capsule.hepta'
 NATIVE_MANIFEST = b'HIANCP01'
 ARTIFACT_CONFIG = b'HIARAC01'
 MANIFEST_MAGIC = b'HIADCP01'
@@ -435,13 +436,16 @@ def native_policy():
     return inventory + profile + PROOF_TRUST_POLICY
 
 
-def source_program(*, artifact=False, evaluate_replay=False, evaluate_intake=False):
+def source_program(*, artifact=False, evaluate_replay=False, evaluate_intake=False, evaluate_full=False):
     tags = {'MANIFEST': NATIVE_MANIFEST if artifact else MANIFEST_MAGIC, 'DOSSIER': DOSSIER_MAGIC,
             'BOOTSTRAP': BOOTSTRAP_MAGIC, 'RESOURCES': RESOURCES_MAGIC}
     if artifact:
         tags.update(ARTIFACT=ARTIFACT_CONFIG, PROOF_TRUST_MAGIC=PROOF_TRUST_MAGIC)
     constants = {name: int.from_bytes(raw, 'little') for name, raw in tags.items()}
     roles = NATIVE_ROLES if artifact else ROLES
+    if evaluate_full:
+        from tools.generate_hia_worker_evaluate_launcher import inventory
+        roles = inventory()
     if evaluate_replay or evaluate_intake:
         roles = replay_inventory(intake=evaluate_intake)
     constants.update(PROOF_TRUST_BYTES=PROOF_TRUST_BYTES, PROOF_TRUST_RUNTIME_MAX=PROOF_TRUST_RUNTIME_MAX,
@@ -456,7 +460,7 @@ def source_program(*, artifact=False, evaluate_replay=False, evaluate_intake=Fal
     source = native_policy() if artifact else POLICY
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
-    return source + routing(artifact=artifact, evaluate_replay=evaluate_replay or evaluate_intake) + '\n' + sha256_program()
+    return source + routing(artifact=artifact, evaluate_replay=evaluate_replay or evaluate_intake or evaluate_full) + '\n' + sha256_program()
 
 
 if __name__ == '__main__':

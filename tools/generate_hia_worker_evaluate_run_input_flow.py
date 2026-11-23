@@ -50,6 +50,20 @@ def run_input_recipe(driver, policy, controls, constants):
     if state == REQUEST_ADMITTED:
         if input_word(s,40) < 2 or input_word(s,56) == 0 or byte(s,64) != 123:
             return BAD''')
+    # A completed row is observed under the same initial read-only transaction
+    # as a miss. Replay it using the original Journal terminal and public report.
+    policy = policy.replace('    if purpose == CLOSED_RESERVATION:',
+                            '    if purpose == CLOSED_LOOKUP and get(w,CLAIM_ACTIVE) == 0 and get(w,JOURNAL_NEXT) == 3 and get(w,CACHED_BYTES) > 0:\n'
+                            '        return send_journal(o,w,3)\n'
+                            '    if purpose == CLOSED_RESERVATION:')
+    policy = policy.replace('    if stage == 2 and next == 11 and get(w, CLAIM_ACTIVE) == 1:',
+                            '    if stage == 3 and next == 19 and get(w,CLAIM_ACTIVE) == 0:\n'
+                            '        return send_report(o,w,True)\n'
+                            '    if stage == 2 and next == 11 and get(w, CLAIM_ACTIVE) == 1:')
+    driver = driver.replace('    return intake(s, o, w, state)',
+                            '    if state == TERMINAL or state == REPORT_END or state == REPORT_PUBLISHED:\n'
+                            '        return publish_cached(s,o,w,state)\n'
+                            '    return intake(s, o, w, state)')
     old = function(policy, 'publish_claim')
     policy = policy.replace(old.strip(), POLICY.strip()).replace(
         'return publish_claim(s, o, w)', 'return publish_execution_input(s, o, w)')

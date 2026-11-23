@@ -704,6 +704,8 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                                        kind='evaluate-replay'),
             'evaluate-intake': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots,
                                        kind='evaluate-intake'),
+            'evaluate-full': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots,
+                                     kind='evaluate-full'),
         }
         for kind in binders:
             launcher = release / ('hia-agent-' + kind + '-launcher')
@@ -741,7 +743,7 @@ def main():
                          readonly_artifact_roots=args.readonly_artifact_root)
     result = {'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
               'package_sha256': args.package_sha256, 'production_activated': False}
-    for kind in ('read', 'readonly', 'native', 'evaluate-replay', 'evaluate-intake'):
+    for kind in ('read', 'readonly', 'native', 'evaluate-replay', 'evaluate-intake', 'evaluate-full'):
         manifest = profile.parent / (kind + '-worker.json')
         if manifest.is_file():
             label = kind.replace('-', '_')

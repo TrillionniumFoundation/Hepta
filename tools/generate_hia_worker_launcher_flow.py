@@ -333,11 +333,12 @@ def route_tables(inventory_names=NATIVE_ROLES, routes=ROUTES):
             + roles + '    return 0\n' + children)
 
 
-def program(*, evaluate_replay=False, evaluate_intake=False):
+def program(*, evaluate_replay=False, evaluate_intake=False, evaluate_full=False):
     roles, routes, policy = NATIVE_ROLES, ROUTES, POLICY
-    if evaluate_replay or evaluate_intake:
-        roles = replay_inventory(intake=evaluate_intake)
-        routes += (evaluate_route(intake=evaluate_intake),)
+    if evaluate_replay or evaluate_intake or evaluate_full:
+        from tools.generate_hia_worker_evaluate_launcher import inventory, public_route
+        roles = inventory() if evaluate_full else replay_inventory(intake=evaluate_intake)
+        routes += (public_route() if evaluate_full else evaluate_route(intake=evaluate_intake),)
         # Completed rows can be read without creating bootstrap records for a missing key.
         policy = policy.replace('        return launch_bootstrap(o, w)',
                                 '        if route == REPLAY_ROUTE:\n            return launch_worker(o, w, route)\n'
@@ -368,13 +369,21 @@ def program(*, evaluate_replay=False, evaluate_intake=False):
                      EMIT_ARG_COUNT=6 + len(EMIT_ROLES), ADOPT_ARG_COUNT=6 + len(ADOPT_ROLES),
                      PROOF_TRUST_BYTES=PROOF_TRUST_BYTES,
                      BOOTSTRAP=roles.index(BOOTSTRAP_OWNER), ADMIT=roles.index('hia-worker-admit'))
-    if evaluate_replay or evaluate_intake:
+    if evaluate_full:
+        from tools.generate_hia_worker_evaluate_launcher import bindings, compose
+        constants.update(bindings(roles))
+        policy = compose(policy, roles)
+    if evaluate_replay or evaluate_intake or evaluate_full:
         constants['REPLAY_ROUTE'] = len(routes)
     tables = route_tables(roles, routes)
     issue = function(DESCRIBE, 'issue').replace('seq > 160', 'seq > 512').replace(
         '    put(o, 152, choose(op == RUN, DEFAULT_CHILD_LEASE, 0))',
         '    if op == RUN:\n        put(o, 152, choose(next == REQUEST_ADMITTED, 30000000000, DEFAULT_CHILD_LEASE))').replace(
         '    return HEADER + local', '    return choose(args == 0, HEADER + local, 1024 + args * 16)')
+    if evaluate_full:
+        issue = issue.replace('seq > 512', f'seq > {3*len(roles)+128}')
+        issue = issue.replace('choose(next == REQUEST_ADMITTED, 30000000000, DEFAULT_CHILD_LEASE)',
+            'choose(next == PAID_DONE, 3610000000000, choose(next == REQUEST_ADMITTED, 30000000000, DEFAULT_CHILD_LEASE))')
     copy = function(DESCRIBE, 'copy_private')
     copy_span = '''def copy_span(s:readbuf, o:mutbuf, offset:u64, target:u64, width:u64) -> u64:
     i = 0

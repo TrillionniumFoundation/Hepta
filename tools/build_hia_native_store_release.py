@@ -33,7 +33,7 @@ STDIO_ROLES = tuple(sorted(AGENT_STDIO_ROLES.keys() - {
 FLOW_ROLES = ('describe', 'input', 'artifact', 'discovery', 'context', 'inspection',
               'candidate', 'rollback', 'emit', 'adopt', 'verify', 'discovery-bootstrap',
               'evaluate-replay', 'evaluate-intake', 'evaluate-claim', 'evaluate-run-input', 'evaluate-run', 'evaluate-proof', 'evaluate-document', 'evaluate-closeout')
-LAUNCHERS = ('read', 'context-control', 'native', 'readonly', 'evaluate-replay', 'evaluate-intake')
+LAUNCHERS = ('read', 'context-control', 'native', 'readonly', 'evaluate-replay', 'evaluate-intake', 'evaluate-full')
 RESOURCES = ('examples/hia_bootstrap/selfhost.hepta', 'examples/hia_bootstrap/source_build_packer.hepta',
              'examples/hia_bootstrap/source_build_policy.hepta', 'examples/hia_bootstrap/core_json_cli_packer.hepta',
              'examples/hia_bootstrap/core_json_frontend.hepta', 'docs/HIA_SELFHOST_CORE_SUPPORT.json',
@@ -74,6 +74,7 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
                  'owned_reference_cli', 'nominal_constructor'):
         component(name)
     component('direct_call', role='job-receipt')
+    component('direct_call')
     component('agent_stdio', output_profile='elf')
 
     with TemporaryDirectory(prefix='standalone-', dir=work) as tmp:

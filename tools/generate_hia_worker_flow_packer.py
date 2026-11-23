@@ -52,6 +52,9 @@ RUN_INPUT_KIND = 'evaluate-run-input'
 RUN_INPUT_POLICY = 'examples/hia_bootstrap/worker_evaluate_run_input_flow.hepta'
 CLAIM_KIND = 'evaluate-claim'
 CLAIM_POLICY = 'examples/hia_bootstrap/worker_evaluate_claim_flow.hepta'
+FULL_KIND = 'evaluate-full'
+FULL_LAUNCHER_KIND = 'evaluate-full-launcher'
+FULL_LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_evaluate_full_launcher.hepta'
 INTAKE_KIND = 'evaluate-intake'
 INTAKE_LAUNCHER_KIND = 'evaluate-intake-launcher'
 INTAKE_LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_evaluate_intake_launcher.hepta'
@@ -60,7 +63,7 @@ INTAKE_PACKER = 'examples/hia_bootstrap/worker_evaluate_intake_flow_packer.hepta
 REPLAY_KIND = 'evaluate-replay'
 REPLAY_LAUNCHER_KIND = 'evaluate-replay-launcher'
 REPLAY_LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_evaluate_replay_launcher.hepta'
-LAUNCHER_KINDS = (LAUNCHER_KIND, REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND)
+LAUNCHER_KINDS = (LAUNCHER_KIND, REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND, FULL_LAUNCHER_KIND)
 REPLAY_POLICY = 'examples/hia_bootstrap/worker_evaluate_replay_flow.hepta'
 REPLAY_PACKER = 'examples/hia_bootstrap/worker_evaluate_replay_flow_packer.hepta'
 EMIT_KIND = 'emit'
@@ -118,6 +121,7 @@ PROGRAMS = {
     LAUNCHER_KIND: (LAUNCHER_POLICY, LAUNCHER_PACKER),
     REPLAY_LAUNCHER_KIND: (REPLAY_LAUNCHER_POLICY, LAUNCHER_PACKER),
     INTAKE_LAUNCHER_KIND: (INTAKE_LAUNCHER_POLICY, LAUNCHER_PACKER),
+    FULL_LAUNCHER_KIND: (FULL_LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
 PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
               'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, CLAIM_KIND, RUN_INPUT_KIND, RUN_KIND, DOCUMENT_KIND, CLOSEOUT_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
@@ -173,7 +177,7 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
         kind = ADOPT_KIND
     if kind in (CLAIM_KIND, RUN_INPUT_KIND):
         kind = INTAKE_KIND
-    if kind in (REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
+    if kind in (REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND, FULL_LAUNCHER_KIND):
         kind = LAUNCHER_KIND
     if kind in (REPLAY_KIND, INTAKE_KIND):
         if kind == REPLAY_KIND:
@@ -282,7 +286,7 @@ def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
 if __name__ == '__main__':
     sources = Path(FLOW).read_bytes(), Path(PORTS).read_bytes()
     for kind, (_, path) in PROGRAMS.items():
-        if kind in (CLAIM_KIND, RUN_INPUT_KIND, REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
+        if kind in (CLAIM_KIND, RUN_INPUT_KIND, REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND, FULL_LAUNCHER_KIND):
             continue  # Both launchers use the same platform packer.
         peers = Path(PEERS).read_bytes() if kind in PEER_KINDS else b''
         launcher = Path(LAUNCHER).read_bytes() if kind == LAUNCHER_KIND else b''

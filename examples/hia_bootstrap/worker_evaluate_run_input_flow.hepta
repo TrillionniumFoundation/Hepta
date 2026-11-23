@@ -339,9 +339,23 @@ block b71(v725:readbuf,v726:mutbuf,v727:mutbuf,v728:u64)
   v742:u32 = int.cast(v741) {"mode":"wrap"}
   ret(v742)
 block b72(v733:readbuf,v734:mutbuf,v735:mutbuf,v736:u64)
-  v743:u64 = call(v733,v734,v735,v736) {"function":"f4"}
-  v744:u32 = int.cast(v743) {"mode":"wrap"}
-  ret(v744)
+  v743:u64 = const() {"value":44}
+  v744:bool = compare.eq(v736,v743)
+  v745:u64 = const() {"value":45}
+  v746:bool = compare.eq(v736,v745)
+  v747:bool = bool.or(v744,v746)
+  v748:u64 = const() {"value":46}
+  v749:bool = compare.eq(v736,v748)
+  v750:bool = bool.or(v747,v749)
+  branch v750 b73(v733,v734,v735,v736) b74(v733,v734,v735,v736)
+block b73(v751:readbuf,v752:mutbuf,v753:mutbuf,v754:u64)
+  v767:u64 = call(v751,v752,v753,v754) {"function":"f32"}
+  v768:u32 = int.cast(v767) {"mode":"wrap"}
+  ret(v768)
+block b74(v759:readbuf,v760:mutbuf,v761:mutbuf,v762:u64)
+  v769:u64 = call(v759,v760,v761,v762) {"function":"f4"}
+  v770:u32 = int.cast(v769) {"mode":"wrap"}
+  ret(v770)
 end
 fn f1(v0:mutbuf,v1:mutbuf) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:mutbuf)
@@ -424,50 +438,82 @@ fn f3(v0:mutbuf,v1:mutbuf) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:mutbuf)
   v2:u64 = const() {"value":272}
   v3:u64 = call(v1,v2) {"function":"f68"}
-  v4:u64 = const() {"value":5}
+  v4:u64 = const() {"value":4}
   v5:bool = compare.eq(v3,v4)
-  branch v5 b1(v0,v1) b2(v0,v1,v3)
-block b1(v6:mutbuf,v7:mutbuf)
-  v12:u64 = call(v6,v7) {"function":"f27"}
-  ret(v12)
-block b2(v9:mutbuf,v10:mutbuf,v11:u64)
-  v13:u64 = const() {"value":4}
-  v14:bool = compare.eq(v11,v13)
-  branch v14 b3(v9,v10,v11) b4(v9,v10,v11,v14)
-block b3(v15:mutbuf,v16:mutbuf,v17:u64)
-  v23:u64 = const() {"value":3144}
-  v24:u64 = call(v16,v23) {"function":"f68"}
-  v25:u64 = const() {"value":0}
-  v26:bool = compare.eq(v24,v25)
-  jump b4(v15,v16,v17,v26)
-block b4(v19:mutbuf,v20:mutbuf,v21:u64,v22:bool)
-  branch v22 b5(v19,v20,v21) b6(v19,v20,v21,v22)
-block b5(v27:mutbuf,v28:mutbuf,v29:u64)
-  v35:u64 = const() {"value":200}
-  v36:u64 = call(v28,v35) {"function":"f68"}
-  v37:u64 = const() {"value":2}
-  v38:bool = compare.eq(v36,v37)
-  jump b6(v27,v28,v29,v38)
-block b6(v31:mutbuf,v32:mutbuf,v33:u64,v34:bool)
-  branch v34 b7(v31,v32) b8(v31,v32,v33)
-block b7(v39:mutbuf,v40:mutbuf)
-  v45:u64 = const() {"value":7}
-  v46:u64 = const() {"value":3544421148307573064}
-  v47:u64 = const() {"value":10}
-  v48:u64 = call(v39,v40,v45,v46,v47) {"function":"f33"}
-  ret(v48)
-block b8(v42:mutbuf,v43:mutbuf,v44:u64)
-  v49:u64 = const() {"value":53}
-  v50:bool = compare.eq(v44,v49)
-  branch v50 b9(v42,v43) b10(v42,v43)
-block b9(v51:mutbuf,v52:mutbuf)
-  v57:u64 = const() {"value":81}
-  v58:u64 = const() {"value":1}
-  v59:u64 = call(v51,v52,v57,v58) {"function":"f69"}
-  ret(v59)
-block b10(v54:mutbuf,v55:mutbuf)
-  v60:u64 = const() {"value":4294967293}
-  ret(v60)
+  branch v5 b1(v0,v1,v3) b2(v0,v1,v3,v5)
+block b1(v6:mutbuf,v7:mutbuf,v8:u64)
+  v14:u64 = const() {"value":3144}
+  v15:u64 = call(v7,v14) {"function":"f68"}
+  v16:u64 = const() {"value":0}
+  v17:bool = compare.eq(v15,v16)
+  jump b2(v6,v7,v8,v17)
+block b2(v10:mutbuf,v11:mutbuf,v12:u64,v13:bool)
+  branch v13 b3(v10,v11,v12) b4(v10,v11,v12,v13)
+block b3(v18:mutbuf,v19:mutbuf,v20:u64)
+  v26:u64 = const() {"value":200}
+  v27:u64 = call(v19,v26) {"function":"f68"}
+  v28:u64 = const() {"value":3}
+  v29:bool = compare.eq(v27,v28)
+  jump b4(v18,v19,v20,v29)
+block b4(v22:mutbuf,v23:mutbuf,v24:u64,v25:bool)
+  branch v25 b5(v22,v23,v24) b6(v22,v23,v24,v25)
+block b5(v30:mutbuf,v31:mutbuf,v32:u64)
+  v38:u64 = const() {"value":256}
+  v39:u64 = call(v31,v38) {"function":"f68"}
+  v40:u64 = const() {"value":0}
+  v41:bool = compare.gt(v39,v40)
+  jump b6(v30,v31,v32,v41)
+block b6(v34:mutbuf,v35:mutbuf,v36:u64,v37:bool)
+  branch v37 b7(v34,v35) b8(v34,v35,v36)
+block b7(v42:mutbuf,v43:mutbuf)
+  v48:u64 = const() {"value":3}
+  v49:u64 = call(v42,v43,v48) {"function":"f35"}
+  ret(v49)
+block b8(v45:mutbuf,v46:mutbuf,v47:u64)
+  v50:u64 = const() {"value":5}
+  v51:bool = compare.eq(v47,v50)
+  branch v51 b9(v45,v46) b10(v45,v46,v47)
+block b9(v52:mutbuf,v53:mutbuf)
+  v58:u64 = call(v52,v53) {"function":"f27"}
+  ret(v58)
+block b10(v55:mutbuf,v56:mutbuf,v57:u64)
+  v59:u64 = const() {"value":4}
+  v60:bool = compare.eq(v57,v59)
+  branch v60 b11(v55,v56,v57) b12(v55,v56,v57,v60)
+block b11(v61:mutbuf,v62:mutbuf,v63:u64)
+  v69:u64 = const() {"value":3144}
+  v70:u64 = call(v62,v69) {"function":"f68"}
+  v71:u64 = const() {"value":0}
+  v72:bool = compare.eq(v70,v71)
+  jump b12(v61,v62,v63,v72)
+block b12(v65:mutbuf,v66:mutbuf,v67:u64,v68:bool)
+  branch v68 b13(v65,v66,v67) b14(v65,v66,v67,v68)
+block b13(v73:mutbuf,v74:mutbuf,v75:u64)
+  v81:u64 = const() {"value":200}
+  v82:u64 = call(v74,v81) {"function":"f68"}
+  v83:u64 = const() {"value":2}
+  v84:bool = compare.eq(v82,v83)
+  jump b14(v73,v74,v75,v84)
+block b14(v77:mutbuf,v78:mutbuf,v79:u64,v80:bool)
+  branch v80 b15(v77,v78) b16(v77,v78,v79)
+block b15(v85:mutbuf,v86:mutbuf)
+  v91:u64 = const() {"value":7}
+  v92:u64 = const() {"value":3544421148307573064}
+  v93:u64 = const() {"value":10}
+  v94:u64 = call(v85,v86,v91,v92,v93) {"function":"f33"}
+  ret(v94)
+block b16(v88:mutbuf,v89:mutbuf,v90:u64)
+  v95:u64 = const() {"value":53}
+  v96:bool = compare.eq(v90,v95)
+  branch v96 b17(v88,v89) b18(v88,v89)
+block b17(v97:mutbuf,v98:mutbuf)
+  v103:u64 = const() {"value":81}
+  v104:u64 = const() {"value":1}
+  v105:u64 = call(v97,v98,v103,v104) {"function":"f69"}
+  ret(v105)
+block b18(v100:mutbuf,v101:mutbuf)
+  v106:u64 = const() {"value":4294967293}
+  ret(v106)
 end
 fn f4(v0:readbuf,v1:mutbuf,v2:mutbuf,v3:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf,v2:mutbuf,v3:u64)
@@ -2535,9 +2581,9 @@ block b5(v32:mutbuf,v33:mutbuf,v35:u64)
   v43:bool = compare.eq(v41,v42)
   branch v43 b7(v32,v33,v35) b8(v32,v33,v43)
 block b6(v36:mutbuf,v37:mutbuf,v38:u64,v39:u64)
-  v69:u64 = const() {"value":2}
+  v69:u64 = const() {"value":3}
   v70:bool = compare.eq(v38,v69)
-  branch v70 b11(v36,v37,v39) b12(v36,v37,v70)
+  branch v70 b11(v36,v37,v38,v39) b12(v36,v37,v38,v39,v70)
 block b7(v44:mutbuf,v45:mutbuf,v47:u64)
   v54:u64 = const() {"value":2}
   v55:bool = compare.eq(v47,v54)
@@ -2553,35 +2599,57 @@ block b10(v60:mutbuf,v61:mutbuf)
   v67:u64 = const() {"value":4}
   v68:u64 = call(v60,v61,v67) {"function":"f39"}
   ret(v68)
-block b11(v71:mutbuf,v72:mutbuf,v74:u64)
-  v81:u64 = const() {"value":11}
+block b11(v71:mutbuf,v72:mutbuf,v73:u64,v74:u64)
+  v81:u64 = const() {"value":19}
   v82:bool = compare.eq(v74,v81)
-  jump b12(v71,v72,v82)
-block b12(v76:mutbuf,v77:mutbuf,v80:bool)
-  branch v80 b13(v76,v77) b14(v76,v77,v80)
-block b13(v83:mutbuf,v84:mutbuf)
+  jump b12(v71,v72,v73,v74,v82)
+block b12(v76:mutbuf,v77:mutbuf,v78:u64,v79:u64,v80:bool)
+  branch v80 b13(v76,v77,v78,v79) b14(v76,v77,v78,v79,v80)
+block b13(v83:mutbuf,v84:mutbuf,v85:u64,v86:u64)
   v93:u64 = const() {"value":3144}
   v94:u64 = call(v84,v93) {"function":"f68"}
-  v95:u64 = const() {"value":1}
+  v95:u64 = const() {"value":0}
   v96:bool = compare.eq(v94,v95)
-  jump b14(v83,v84,v96)
-block b14(v88:mutbuf,v89:mutbuf,v92:bool)
-  branch v92 b15(v88,v89) b16(v88,v89)
+  jump b14(v83,v84,v85,v86,v96)
+block b14(v88:mutbuf,v89:mutbuf,v90:u64,v91:u64,v92:bool)
+  branch v92 b15(v88,v89) b16(v88,v89,v90,v91)
 block b15(v97:mutbuf,v98:mutbuf)
-  v105:u64 = const() {"value":1792}
-  v106:u64 = const() {"value":512}
-  v107:u64 = const() {"value":48}
-  v108:u64 = int.add.wrap(v106,v107)
-  v109:u64 = const() {"value":64}
-  v110:u64 = call(v98,v97,v105,v108,v109) {"function":"f58"}
-  v111:u64 = const() {"value":11}
-  v112:u64 = const() {"value":23}
-  v113:u64 = const() {"value":0}
-  v114:u64 = call(v97,v98,v111,v112,v113,v113,v113,v109) {"function":"f41"}
-  ret(v114)
-block b16(v101:mutbuf,v102:mutbuf)
-  v115:u64 = const() {"value":4294967293}
-  ret(v115)
+  v105:bool = const() {"value":true}
+  v106:u64 = call(v97,v98,v105) {"function":"f43"}
+  ret(v106)
+block b16(v101:mutbuf,v102:mutbuf,v103:u64,v104:u64)
+  v107:u64 = const() {"value":2}
+  v108:bool = compare.eq(v103,v107)
+  branch v108 b17(v101,v102,v104) b18(v101,v102,v108)
+block b17(v109:mutbuf,v110:mutbuf,v112:u64)
+  v119:u64 = const() {"value":11}
+  v120:bool = compare.eq(v112,v119)
+  jump b18(v109,v110,v120)
+block b18(v114:mutbuf,v115:mutbuf,v118:bool)
+  branch v118 b19(v114,v115) b20(v114,v115,v118)
+block b19(v121:mutbuf,v122:mutbuf)
+  v131:u64 = const() {"value":3144}
+  v132:u64 = call(v122,v131) {"function":"f68"}
+  v133:u64 = const() {"value":1}
+  v134:bool = compare.eq(v132,v133)
+  jump b20(v121,v122,v134)
+block b20(v126:mutbuf,v127:mutbuf,v130:bool)
+  branch v130 b21(v126,v127) b22(v126,v127)
+block b21(v135:mutbuf,v136:mutbuf)
+  v143:u64 = const() {"value":1792}
+  v144:u64 = const() {"value":512}
+  v145:u64 = const() {"value":48}
+  v146:u64 = int.add.wrap(v144,v145)
+  v147:u64 = const() {"value":64}
+  v148:u64 = call(v136,v135,v143,v146,v147) {"function":"f58"}
+  v149:u64 = const() {"value":11}
+  v150:u64 = const() {"value":23}
+  v151:u64 = const() {"value":0}
+  v152:u64 = call(v135,v136,v149,v150,v151,v151,v151,v147) {"function":"f41"}
+  ret(v152)
+block b22(v139:mutbuf,v140:mutbuf)
+  v153:u64 = const() {"value":4294967293}
+  ret(v153)
 end
 fn f25(v0:mutbuf,v1:mutbuf) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:mutbuf)
