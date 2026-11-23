@@ -50,6 +50,9 @@ def build(output, compiler, cold_report, *, kind='describe'):
     compiler_bytes, report_bytes = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_bytes, report_bytes)
     names = (FLOW, PORTS, packer_source, policy_source, DRIVER, AUTHOR)
+    if kind == 'evaluate-run':
+        from tools.generate_hia_worker_flow_packer import RUN_STREAM
+        names += (RUN_STREAM,)
     if kind in PEER_KINDS:
         names += (PEERS,)
     if kind in LAUNCHER_KINDS:
