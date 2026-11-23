@@ -140,6 +140,39 @@ class InstalledSourceMemberTests(unittest.TestCase):
                         packet = self.source_images(self.work / 'incomplete', partial)
                         self.invoke([builder, 'build'], packet, refused=True)
 
+    def test_native_dispatch_binds_the_actual_selfhost_executable(self):
+        import struct
+        from tools.build_hia_core_edit import SELFHOST_ENTRY
+        from tools.build_hia_core_static import bound_source
+        from tools.build_hia_source_build import _run_captured
+
+        kit = self.source_images(self.work / 'pin-kit', {
+            'selfhost.hepta': self.sources / 'selfhost.hepta',
+            'source_build_policy.hepta': SOURCES / 'source_core_pin.hepta',
+            'source_build_packer.hepta': self.sources / 'source_build_packer.hepta',
+        })
+        binder = self.invoke([self.seed, 'pack'], kit)
+        role = 'hia-selfhost-component'
+        template = (ROOT / SELFHOST_ENTRY).read_bytes()
+        original = (self.release / role).read_bytes()
+
+        def call(program, operation, wire):
+            run = _run_captured(program, operation, wire, self.work)
+            self.assertEqual((run.returncode, run.stderr), (0, b''))
+            return run.stdout
+
+        for executable in (original, original + b'x'):
+            bound = bound_source((None, None, call), binder, 2, template, {role: executable})
+            for word in (len(executable), *struct.unpack('<4Q', sha256(executable).digest())):
+                self.assertIn(b'{"value":' + str(word).encode('ascii') + b'}', bound)
+        for name, source, payload in ((role, template + b' ', original), ('wrong', template, original),
+                                      (role, template, b'bad')):
+            wire = (struct.pack('<8s4Q', b'HIACPIN1', 2, len(source), len(name), len(payload))
+                    + source + name.encode('ascii') + payload)
+            run = _run_captured(binder, 'build', wire, self.work)
+            self.assertNotEqual(run.returncode, 0)
+            self.assertEqual((run.stdout, run.stderr), (b'', b''))
+
     def test_fixed_core_source_rejects_unbound_adapter_and_recompiled_image(self):
         import struct
         from tools.build_hia_source_build import _compiled_sources

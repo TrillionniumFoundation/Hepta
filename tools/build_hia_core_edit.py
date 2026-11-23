@@ -5,7 +5,6 @@ import ctypes
 from hashlib import sha256
 import json
 from pathlib import Path
-import re
 import struct
 
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
@@ -63,12 +62,6 @@ DISPATCH_ROLES = frozenset((
     'hia-publish-batch', 'hia-publish-batch-query', 'hia-publish-edit', 'hia-publish-patch',
     'hia-publish-query',
 ))
-DISPATCH_PIN_SLOTS = (65728, 65744, 65752, 65760, 65768)
-DISPATCH_WORD = re.compile(
-    rb'  (v\d+):u64 = const\(\) \{"value":(\d+)\}\n'
-    rb'  (v\d+):u64 = const\(\) \{"value":(\d+)\}\n'
-    rb'  v\d+:u64 = call\(v\d+,\1,\3\) \{"function":"f43"\}')
-SELFHOST_ENTRY_WORD = re.compile(DISPATCH_WORD.pattern.replace(b'f43', b'f7'))
 ASSEMBLY_PRESENTATION = '<assembly-presenters>'
 ASSEMBLY_PRESENTERS = tuple(CLI + name + '.hepta' for name in (
     'assembly_diagnostic_report', 'assembly_pretty', 'assembly_driver'))
@@ -318,39 +311,6 @@ def expand_register_relay(source, relay):
     return source.replace(REGISTER_RELAY_INCLUDE, relay)
 
 
-class ReleaseCompressor:
-    """Transport build bytes through the admitted HIA encoder and decoder."""
-
-    def __init__(self, encoder, decoder):
-        self.encoder = encoder
-        self.decoder = decoder
-        self.encoder_workspace = ctypes.create_string_buffer(393216)
-        self.decoder_workspace = ctypes.create_string_buffer(4096)
-
-    def compress(self, raw, capacity):
-        source = ctypes.create_string_buffer(raw, len(raw))
-        packed = ctypes.create_string_buffer(capacity)
-        size = self.encoder._entry(source, len(raw), packed, capacity,
-                                   self.encoder_workspace, len(self.encoder_workspace))
-        if not 0 < size <= capacity or source.raw != raw or any(packed.raw[size:]):
-            raise ValueError('HIA release encoder refused or changed private bytes')
-        encoded = packed.raw[:size]
-        decoded = ctypes.create_string_buffer(len(raw))
-        restored = self.decoder._entry(packed, size, decoded, len(raw),
-                                       self.decoder_workspace, len(self.decoder_workspace))
-        if restored != len(raw) or decoded.raw != raw or packed.raw[:size] != encoded:
-            raise ValueError('HIA release encoder failed the native round trip')
-        return encoded
-
-
-def argument_images(control, formatter, compressor):
-    raw = control + formatter
-    if not control or not formatter or len(raw) > 1048576:
-        raise ValueError('native CLI argument images exceed the decoded extent')
-    compressed = compressor.compress(raw, 1048576 - 24)
-    return struct.pack('<3Q', len(compressed), len(raw), len(control)) + compressed
-
-
 def pack(packer, stub, holes, images):
     lengths = list(map(len, images))
     parts = len(lengths)
@@ -459,56 +419,6 @@ def pack_executable(packer, launcher, inflater, executable, compressor, *, prove
     return binary, {'elf': inspection, 'launcher_object_sha256': adapter_hash, **details}
 
 
-def bind_identity_words(block, slots, executable):
-    values = (len(executable), *struct.unpack('<4Q', sha256(executable).digest()))
-    fields = (slots[slot].span(4) for slot in DISPATCH_PIN_SLOTS)
-    for (start, end), value in sorted(zip(fields, values, strict=True), reverse=True):
-        block = block[:start] + str(value).encode('ascii') + block[end:]
-    return block
-
-
-def bind_selfhost_entry(template, executable):
-    match, = re.finditer(rb'^fn f6\([^\n]*\n.*?^end$', template, re.M | re.S)
-    block = match[0]
-    words = list(SELFHOST_ENTRY_WORD.finditer(block))
-    pin_words = [word for word in words if int(word[2]) in DISPATCH_PIN_SLOTS]
-    pins = {int(word[2]): word for word in pin_words}
-    if (len(pins) != len(DISPATCH_PIN_SLOTS) or len(pins) != len(pin_words)
-            or any(int(word[4]) != 0 for word in pins.values())
-            or not executable.startswith(b'\x7fELF') or len(executable) > CAPACITY):
-        raise ValueError('invalid native HIA selfhost entry identity template or component')
-    return template[:match.start()] + bind_identity_words(block, pins, executable) + template[match.end():]
-
-
-def bind_dispatch_roles(template, executables):
-    """Fill only the release identity words in the admitted HIA dispatcher."""
-    if executables.keys() != DISPATCH_ROLES:
-        raise ValueError('incomplete native HIA dispatcher release roles')
-    blocks = re.split(rb'(?=^block |^fn |^end$)', template, flags=re.M)
-    observed = set()
-    for index, block in enumerate(blocks):
-        words = list(DISPATCH_WORD.finditer(block))
-        if not any(int(word[2]) == DISPATCH_PIN_SLOTS[0] for word in words):
-            continue
-        slots = {int(word[2]): word for word in words}
-        required = {*DISPATCH_PIN_SLOTS, 65736, 65776, 8192, 8200}
-        if (len(slots) != len(words) or not required <= slots.keys()
-                or any(int(slots[slot][4]) != 0 for slot in DISPATCH_PIN_SLOTS)):
-            raise ValueError('malformed native HIA dispatcher pin template')
-        name_words = (int(slots[slot][4]) if slot in slots else 0 for slot in (8192, 8200, 8208))
-        name = struct.pack('<3Q', *name_words).rstrip(b'\0').decode('ascii')
-        if name in observed or name not in executables or len(name) != int(slots[65736][4]):
-            raise ValueError('unexpected or duplicate native HIA dispatcher release role: ' + name)
-        observed.add(name)
-        executable = executables[name]
-        if not executable.startswith(b'\x7fELF') or len(executable) > ORDINARY_CLI_IMAGE_CAPACITY:
-            raise ValueError('native HIA dispatcher role has an invalid executable extent: ' + name)
-        blocks[index] = bind_identity_words(block, slots, executable)
-    if observed != DISPATCH_ROLES:
-        raise ValueError('missing native HIA dispatcher pin templates')
-    return b''.join(blocks)
-
-
 def build(output, compiler, cold_report, *, release_only=False, native_tools=None, constructor=None):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
@@ -545,16 +455,12 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
     for path, raw in sources.items():
         if path.endswith('.json'):
             images[path] = raw
-        if not path.endswith('.hepta') or path in (DISPATCH, SELFHOST_ENTRY) or path in native_only:
+        if not path.endswith('.hepta') or path in (DISPATCH, SELFHOST_ENTRY, ARGUMENT_PARSER, ARGUMENT_FORMATTER, RELEASE_DEFLATE) or path in native_only:
             continue
         image, receipt = compile_stage(output, Path(path).stem, compiler, raw)
         images[path] = image.read_bytes()
         receipts[path] = receipt
-    compressor = ReleaseCompressor(*(
-        NativeHiaJsonImage(images[path], receipts[path]['produced_sha256'])
-        for path in (RELEASE_DEFLATE, ARGUMENT_PAYLOAD)))
-    images[ARGUMENT_ARCHIVE] = argument_images(
-        images[ARGUMENT_PARSER], images[ARGUMENT_FORMATTER], compressor)
+    compressor = core_static.ReleaseCodec(native_tools)
     core, policy, diagnostic = (images[path] for path in SELFHOST_CORE_SOURCES)
     images[SELFHOST_CORE_ARCHIVE] = struct.pack(
         '<3Q', 24, 24 + len(core), 24 + len(core) + len(policy)) + core + policy + diagnostic
@@ -606,23 +512,20 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
         constructor = build_nominal_constructor(output / 'nominal-constructor', compiler, cold_report)
     elif native_tools is None or constructor.name != 'hia-nominal-constructor':
         raise ValueError('the bound nominal constructor requires the native release source tools')
-    selfhost_component = products['hia-selfhost-component'][0]
-    bound_selfhost = bind_selfhost_entry(sources[SELFHOST_ENTRY], selfhost_component)
-    image, receipts[SELFHOST_ENTRY] = compile_stage(output, Path(SELFHOST_ENTRY).stem, compiler, bound_selfhost)
-    images[SELFHOST_ENTRY] = image.read_bytes()
     bound_roles = {name: products[name][0] for name in DISPATCH_ROLES if name != constructor.name}
     bound_roles[constructor.name] = constructor.read_bytes()
-    bound_dispatch = bind_dispatch_roles(sources[DISPATCH], bound_roles)
-    image, receipts[DISPATCH] = compile_stage(output, Path(DISPATCH).stem, compiler, bound_dispatch)
-    dispatch_image = images[DISPATCH] = image.read_bytes()
-    query_image = images[NOMINAL_BUILD_SOURCES['public-presentation']]
-    images[DISPATCH_ARCHIVE] = struct.pack('<2Q', 16, 16 + len(dispatch_image)) + dispatch_image + query_image
-    name, roles = programs['dispatch']
-    adapter = adapters['dispatch']
-    stub, holes, adapter_hash = load_static_adapter(templates, adapter, sources[adapter])
-    binary, details = pack(packer, stub, holes, [images[path] for path, _calls in roles])
-    products[name] = (binary, {'elf': details, 'adapter_object_sha256': adapter_hash,
-                              'role_sha256': {role: digest(raw) for role, raw in bound_roles.items()}})
+    pin_owner = core_static.policy_builder(native_tools, 'source_core_pin.hepta', 'source_build_packer.hepta')
+    overrides = {
+        DISPATCH: core_static.bound_source(native_tools, pin_owner, 1, sources[DISPATCH], bound_roles),
+        SELFHOST_ENTRY: core_static.bound_source(native_tools, pin_owner, 2, sources[SELFHOST_ENTRY], {
+            'hia-selfhost-component': products['hia-selfhost-component'][0],
+        }),
+    }
+    dispatch = core_static.build_products(native_tools, admitted, overrides=overrides, compressor=compressor)
+    name = programs['dispatch'][0]
+    binary, details = dispatch[name]
+    details['role_sha256'] = {role: digest(raw) for role, raw in bound_roles.items()}
+    products[name] = binary, details
     if (current_sources() != admitted or compiler.read_bytes() != compiler_raw
             or cold_report.read_bytes() != report_raw
             or constructor.read_bytes() != bound_roles[constructor.name]

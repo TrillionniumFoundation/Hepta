@@ -38,8 +38,58 @@ def cold_tools(directory, compiler, cold_report, admitted):
     return seed, compile_sources, call
 
 
+def policy_builder(tools, policy, leaf):
+    seed, compile_sources, call = tools
+    kit, _, _ = compile_sources({
+        'source_build_policy.hepta': policy, 'selfhost.hepta': 'selfhost.hepta',
+        'source_build_packer.hepta': leaf.removeprefix(BOOTSTRAP),
+    })
+    return call(seed, 'pack', kit)
+
+
+class ReleaseCodec:
+    """Run the existing HIA encoder and decoder with their exact bounded ABI views."""
+
+    def __init__(self, tools):
+        _, compile_sources, self.call = tools
+        self.builder = policy_builder(tools, 'source_core_codec.hepta', 'core_edit/source_codec_packer.hepta')
+        self.inputs = ('release_deflate.hepta', 'argument_payload.hepta')
+        _, self.images, self.sources = compile_sources({n: 'core_cli/' + n for n in self.inputs})
+        self.executables = {}
+
+    def executable(self, mode, capacity):
+        key = (mode, capacity)
+        if key not in self.executables:
+            name = self.inputs[mode - 1]
+            source, image = self.sources[name], self.images[name]
+            wire = struct.pack('<8s4Q', b'HIACCO01', mode, capacity, len(source), len(image))
+            self.executables[key] = self.call(self.builder, 'build', wire + source + image)
+        return self.executables[key]
+
+    def compress(self, raw, capacity):
+        encoded = self.call(self.executable(1, capacity), None, raw)
+        if not 0 < len(encoded) <= capacity:
+            raise ValueError('native Core release compressor exceeded its output view')
+        decoded = self.call(self.executable(2, len(raw)), None, encoded)
+        if decoded != raw:
+            raise ValueError('native Core release codec failed its exact-byte round trip')
+        return encoded
+
+
+def bound_source(tools, builder, mode, template, executables):
+    _, _, call = tools
+    entries = [(name.encode('ascii'), raw) for name, raw in sorted(executables.items())]
+    header = struct.pack('<8s2Q', b'HIACPIN1', mode, len(template))
+    lengths = b''.join(struct.pack('<2Q', len(name), len(data)) for name, data in entries)
+    return call(builder, 'build', header + lengths + template + b''.join(name + data for name, data in entries))
+
+
 def source_paths(kind, roles):
     from tools.build_hia_core_edit import ASSEMBLY_PRESENTERS, ASSEMBLY_PUBLICATION
+    if kind == 'dispatch':
+        from tools import build_hia_core_edit as core
+        return (core.DISPATCH, core.NOMINAL_BUILD_SOURCES['public-presentation'], core.SELFHOST_ENTRY,
+                core.ARGUMENT_PAYLOAD, core.ARGUMENT_PARSER, core.ARGUMENT_FORMATTER)
     if kind == 'import_assembly':
         return (*(path for path, _ in roles[:3]), *ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
     return tuple(path for path, _ in roles)
@@ -54,7 +104,7 @@ def indexed_images(images):
     return struct.pack(f'<{len(offsets)}Q', *offsets) + b''.join(images)
 
 
-def build_products(tools, admitted):
+def build_products(tools, admitted, *, overrides=None, compressor=None):
     """The host transports sources and checks the physical output; HIA owns row selection,
     recompilation, relocation binding, aligned layout and publication.
     """
@@ -66,21 +116,25 @@ def build_products(tools, admitted):
 
     def builder(leaf):
         if leaf not in builders:
-            kit, _, _ = compile_sources({
-                'source_build_policy.hepta': POLICY, 'selfhost.hepta': 'selfhost.hepta',
-                'source_build_packer.hepta': leaf.removeprefix(BOOTSTRAP),
-            })
-            builders[leaf] = call(seed, 'pack', kit)
+            builders[leaf] = policy_builder(tools, POLICY, leaf)
         return builders[leaf]
 
-    paths = {path for kind in KINDS for path in source_paths(kind, PROGRAMS[kind][1])}
+    selected = ('dispatch',) if overrides is not None else KINDS
+    overrides = {} if overrides is None else overrides
+    paths = {path for kind in selected for path in source_paths(kind, PROGRAMS[kind][1])}
     named = {Path(path).name: path.removeprefix(BOOTSTRAP) for path in paths}
     if len(named) != len(paths):
         raise ValueError('Core application source names collide')
-    _, images, sources = compile_sources(named)
+    _, images, sources = compile_sources({key: value for key, value in named.items()
+                                         if BOOTSTRAP + value not in overrides})
+    for path, source in overrides.items():
+        key = Path(path).name
+        sources[key] = source
+        images[key] = call(seed, 'compile', source)
     packer = builder(PACKER)
     products = {}
-    for ordinal, kind in enumerate(KINDS, 1):
+    for kind in selected:
+        ordinal = (*KINDS, 'dispatch').index(kind) + 1
         name, roles = PROGRAMS[kind]
         adapter_name = 'tools/hia_core_edit_' + kind + '.S'
         adapter = (ROOT / adapter_name).read_bytes()
@@ -102,8 +156,15 @@ def build_products(tools, admitted):
         header = struct.pack('<8s3Q', b'HIACSA01', ordinal, len(adapter), len(row))
         lengths = b''.join(struct.pack('<2Q', len(source), len(image)) for source, image in pairs)
         wire = header + lengths + adapter + row + b''.join(data for pair in pairs for data in pair)
-        binary = call(packer, 'build', wire)
         sections = [image for _, image in pairs]
+        if kind == 'dispatch':
+            control, formatter = sections[4:]
+            raw = control + formatter
+            encoded = compressor.compress(raw, (1 << 20) - 24)
+            wire += encoded
+            arguments = struct.pack('<3Q', len(encoded), len(raw), len(control)) + encoded
+            sections = [indexed_images(sections[:2]), *sections[2:4], arguments]
+        binary = call(packer, 'build', wire)
         if kind == 'import_assembly':
             sections = [*sections[:3], indexed_images(sections[3:])]
         elf = check_placement(binary, stub, holes, sections)
