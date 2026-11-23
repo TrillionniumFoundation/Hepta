@@ -650,6 +650,17 @@ def _member_batches(inputs, limit):
         yield batch
 
 
+def _install_captured_packet(work, installer, depot, packet, digest, count):
+    receipt = {'sha256': digest, 'files': count, 'bytes': len(packet)}
+    for action in ('install', 'verify'):
+        checked = _run_captured(installer, (action, depot, digest), packet, work)
+        checked.check_returncode()
+        result = json.loads(checked.stdout)
+        if checked.stderr or any(result.get(k) != v for k, v in receipt.items()):
+            raise ValueError('captured Store package differs from its installation receipt')
+    return depot / digest
+
+
 def _stage_captured_members(work, stage, members, products, capture_packet):
     """Use the native installer for data and code and publish their verified inodes."""
     if members.keys() & products.keys():
@@ -667,16 +678,8 @@ def _stage_captured_members(work, stage, members, products, capture_packet):
 
     def install(batch, tag, depot):
         packet, digest = capture_packet(batch, tag=tag)
-        receipt = {'sha256': digest, 'files': len(batch)}
-        for action in ('install', 'verify'):
-            checked = _run_captured(installer, (action, depot, digest), packet, work)
-            checked.check_returncode()
-            result = json.loads(checked.stdout)
-            if checked.stderr or any(result.get(k) != v for k, v in receipt.items()):
-                raise ValueError('captured Store package differs from its installation receipt')
-        installed = depot / digest
-        # The private build must be able to add or unlink names without chmod
-        # on the published file inodes themselves.
+        installed = _install_captured_packet(work, installer, depot, packet, digest, len(batch))
+        # The private build can change directory entries without chmod on member inodes.
         os.chmod(installed, 0o700)
         return installed
 
@@ -766,17 +769,15 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             raise ValueError(f'native release member {operation} failed ({result.returncode})')
         return result.stdout
 
-    def native_directory_packet(program, pinned):
-        with TemporaryDirectory(prefix='member-sources-', dir=work) as staging:
-            directory = Path(staging)
-            for name, data in pinned.items():
-                with (directory / name).open('xb') as stream:
-                    stream.write(data)
-                    os.fchmod(stream.fileno(), 0o400)
-            packed = _run_captured(program, directory, b'', work)
-            if packed.returncode or packed.stderr != (sha256(packed.stdout).hexdigest() + '\n').encode():
-                raise ValueError('native source directory receipt differs from its bytes')
-            return packed.stdout
+    def verify_bootstrap_packets(installer):
+        for count, wire in bootstrap_packets:
+            with TemporaryDirectory(prefix='member-sources-', dir=work) as depot:
+                digest = sha256(wire).hexdigest()
+                installed = _install_captured_packet(work, installer, Path(depot), wire, digest, count)
+                packed = _run_captured(pack_directory, installed, b'', work)
+                if (packed.returncode or packed.stdout != wire
+                        or packed.stderr != (digest + '\n').encode('ascii')):
+                    raise ValueError('source-built directory packer differs from its bootstrap packet')
 
     def capture_sources(named):
         pinned = {}
@@ -807,13 +808,13 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
 
     if capture_packet(policy_sources)[0] != bootstrap:
         raise ValueError('native source packager differs from its bootstrap packet')
-    bootstrap_packets.append((policy_sources, bootstrap))
+    bootstrap_packets.append((len(policy_sources), bootstrap))
 
     def compile_sources(named):
         pinned = capture_sources(named)
         wire, _ = capture_packet(pinned)
         if pack_directory is None:
-            bootstrap_packets.append((pinned, wire))
+            bootstrap_packets.append((len(pinned), wire))
         compiled = call(seed, 'build', wire)
         return compiled, _compiled_sources(compiled, pinned), pinned
 
@@ -876,9 +877,8 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         products[name] = product
         if name == 'hia-directory-package-build':
             pack_directory = captured(name)
-            for pinned, wire in bootstrap_packets:
-                if native_directory_packet(pack_directory, pinned) != wire:
-                    raise ValueError('source-built directory packer differs from its bootstrap packet')
+        if name == 'hia-release':
+            verify_bootstrap_packets(product)
             bootstrap_packets.clear()
         if 'selfhost.hepta' in images and images['selfhost.hepta'] != compiler_bytes:
             raise ValueError('source-built selfhost differs from the admitted cold compiler')
@@ -897,10 +897,12 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
                      captured('selfhost.hepta'))
             packet = struct.pack('<8s9Q', b'HIACMF01', *map(len, parts)) + b''.join(parts)
             manifest = call(author, 'build', packet)
-            path = work / 'compiler-manifest.json'
-            path.write_bytes(manifest)
-            publish(path)
+            if 'compiler-manifest.json' in products or 'compiler-manifest.json' in members:
+                raise ValueError('duplicate compiled Store member: compiler-manifest.json')
+            products['compiler-manifest.json'] = manifest
 
+    if bootstrap_packets:
+        raise ValueError('release member plan did not verify its bootstrap packets')
     sqlite_tools = _sqlite_build_tools(seed, captured('hia-elf-link'), compile_sources, call, admitted)
     _stage_safe_proof(work, seed, compile_sources, call, admitted, publish)
     constructor = _stage_nominal_constructor(work, compile_sources, publish, sqlite_tools)
