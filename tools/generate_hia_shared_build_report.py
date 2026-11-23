@@ -16,6 +16,7 @@ from tools.generate_hia_worker_request import WorkerRequestBuilder
 SOURCE_PATH = 'examples/hia_bootstrap/core_cli/shared_build_report.hepta'
 MAGIC = b'HIASBR01'
 VERIFIED_MAGIC = b'HIASBR02'
+INPUT_ERROR_MAGIC = b'HIAIOER1'
 PROOF_MAGIC = b'HIAPRR01'
 EXPORT_MAGIC = b'HIASEX01'
 EXPORT_NAMES_MAGIC = b'HIASEN01'
@@ -39,6 +40,27 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if n < 8:
         return 4294967293
     magic = word_load(s, 0)
+    if magic == SOURCE_IO_MAGIC:
+        if n != 24 or length(o) < 256:
+            return 4294967293
+        observation = word_load(s, 8)
+        mode = word_load(s, 16)
+        at = input_error_start(o, 0)
+        if observation == 2:
+            if (mode & 61440) == 16384:
+                at = input_read_error(o, at)
+            else:
+                at = input_file_limit(o, at)
+        else:
+            if mode != 0:
+                return 4294967293
+            if observation == 1:
+                at = input_read_error(o, at)
+            else:
+                if observation != 3:
+                    return 4294967293
+                at = input_stream_limit(o, at)
+        return input_error_end(o, at)
     if magic == PLAN_QUALIFIED_INPUT_MAGIC or magic == PLAN_NORMALIZED_INPUT_MAGIC or magic == PLAN_REGISTER_INPUT_MAGIC:
         return planned_report(s, o, choose(magic == PLAN_QUALIFIED_INPUT_MAGIC, 80, 144))
     if magic == ELF_INPUT_MAGIC:
@@ -371,6 +393,14 @@ def append_word(o:mutbuf, at:u64, word:u64, size:u64) -> u64:
     return at + size
 '''
 
+INPUT_ERROR_LITERALS = {
+    'input_error_start': '{\n  "diagnostics": [\n    {\n      "code": "E_DRIVER",\n      "message": "E_HIA_EDIT: ',
+    'input_error_end': '",\n      "phase": "driver"\n    }\n  ],\n  "ok": false,\n  "status": "error"\n}\n',
+    'input_read_error': 'cannot read ordinary input',
+    'input_file_limit': 'input must be a bounded ordinary file',
+    'input_stream_limit': 'input exceeds byte limit',
+}
+
 LITERALS = {
     'bytes_prefix': '  "artifact_bytes": ',
     'artifact_hash_prefix': '  "artifact_sha256": "',
@@ -428,6 +458,7 @@ def match_function(name, literal):
 
 def source_program():
     source = (SOURCE.replace('REPORT_MAGIC', str(int.from_bytes(MAGIC, 'little')))
+              .replace('SOURCE_IO_MAGIC', str(int.from_bytes(INPUT_ERROR_MAGIC, 'little')))
               .replace('VERIFIED_INPUT_MAGIC', str(int.from_bytes(VERIFIED_MAGIC, 'little')))
               .replace('PROOF_INPUT_MAGIC', str(int.from_bytes(PROOF_MAGIC, 'little')))
               .replace('PLAN_QUALIFIED_INPUT_MAGIC', str(int.from_bytes(PLAN_QUALIFIED_MAGIC, 'little')))
@@ -471,7 +502,10 @@ def source_program():
                    '        if written == 0:\n            at = import_first(o, at)\n'
                    '        else:\n            at = import_rest(o, at)\n'
                    f'        at = import_{index}(o, at)\n        written = 1\n')
-    return source + '    return import_end(o, at)\n'
+    source += '    return import_end(o, at)\n'
+    for name, literal in INPUT_ERROR_LITERALS.items():
+        source += append_function(name, literal)
+    return source
 
 
 class ReportBuilder(WorkerRequestBuilder):

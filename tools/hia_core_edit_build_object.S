@@ -216,7 +216,7 @@ open_source:
  cmp rax,-4
  je open_source
  test rax,rax
- js io_failure
+ js source_read_failed
  mov [rbp+112],rax
  mov rbx,[r15+104]
  mov [rbx+8],rax
@@ -244,9 +244,8 @@ stat_source:
  push 8
  pop r9
  call build_frontend_start
- mov rdi,rax
  test rax,rax
- jnz exit
+ jnz source_stat_refused
 source_admitted:
  mov rdi,[r15+104]
  mov esi,270336
@@ -259,7 +258,7 @@ source_admitted:
  pop rax
  syscall
  test rax,rax
- jnz io_failure
+ jnz source_read_failed
  lea rdi,[rbp+1360]
  push 65
  pop rcx
@@ -301,11 +300,11 @@ read_input:
  cmp rax,-4
  je read_input
  test rax,rax
- js io_failure
+ js source_read_failed
  jz input_complete
  add [rbp+88],rax
  cmp QWORD PTR [rbp+88],RAW_N
- ja capacity
+ ja source_size_changed
  jmp read_input
 input_complete:
  cmp QWORD PTR [rbp+120],0
@@ -315,7 +314,7 @@ input_complete:
  pop rax
  syscall
  test rax,rax
- jnz io_failure
+ jnz source_read_failed
 source_closed:
  mov rdi,r12
  mov esi,RAW_N
@@ -1939,6 +1938,64 @@ native_status:
  mov edx,0xfffffffd
  cmp rax,rdx
  je io_failure
+source_stat_refused:
+ cmp eax,4
+ je source_read_failed
+ cmp eax,2
+ je source_stat_reason
+ cmp eax,3
+ jne io_failure
+source_stat_reason:
+ mov edx,[rbx+56]
+ mov esi,2
+ jmp report_source_error
+source_read_failed:
+ cmp QWORD PTR [rbp+120],0
+ je io_failure
+ mov esi,1
+ xor edx,edx
+ jmp report_source_error
+source_size_changed:
+ cmp QWORD PTR [rbp+120],0
+ je capacity
+ mov esi,3
+ xor edx,edx
+report_source_error:
+ # The HIA report owner selects the public diagnostic from the observed file
+ # operation and stat mode. Transport errors keep the internal I/O status.
+ sub rsp,48
+ movabs rax,0x3152454f49414948
+ mov [rsp],rax
+ mov [rsp+8],rsi
+ mov [rsp+16],rdx
+ mov esi,4096
+ call allocate
+ mov [rsp+24],rax
+ mov rdi,rsp
+ mov esi,24
+ mov rdx,rax
+ mov ecx,4096
+ lea r8,[rsp+32]
+ mov r9d,8
+ call build_shared_report_start
+ test rax,rax
+ jz io_failure
+ cmp rax,256
+ ja io_failure
+ mov rdx,rax
+ mov rsi,[rsp+24]
+write_source_diagnostic:
+ mov eax,1
+ mov edi,1
+ syscall
+ cmp rax,-4
+ je write_source_diagnostic
+ test rax,rax
+ jle io_failure
+ add rsi,rax
+ sub rdx,rax
+ jnz write_source_diagnostic
+ jmp invalid
 invalid:
  push 2
  pop rdi

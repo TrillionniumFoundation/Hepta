@@ -299,10 +299,43 @@ def check_object_builds(release):
     return 2 * len(documents) + 4
 
 
+def check_build_input_diagnostics(release):
+    """Real public builds must report file I/O failures before creating their output."""
+    import os
+
+    from tempfile import TemporaryDirectory
+
+    with TemporaryDirectory() as temporary:
+        directory = Path(temporary)
+        source = directory / 'absent.hepta'
+        link = directory / 'link.hepta'
+        link.symlink_to(source)
+        fifo = directory / 'stream.hepta'
+        os.mkfifo(fifo, 0o600)
+        oversized = directory / 'oversized.hepta'
+        with oversized.open('wb') as stream:
+            stream.truncate((8 << 20) + 1)
+        destination = directory / 'output'
+        refused = [(source, 'cannot read ordinary input'), (directory, 'cannot read ordinary input'),
+                   (link, 'cannot read ordinary input'), (fifo, 'input must be a bounded ordinary file'),
+                   (oversized, 'input must be a bounded ordinary file')]
+        for path, message in refused:
+            diagnostic = {'ok': False, 'status': 'error',
+                          'diagnostics': [{'phase': 'driver', 'code': 'E_DRIVER', 'message': 'E_HIA_EDIT: ' + message}]}
+            expected = (json.dumps(diagnostic, sort_keys=True, indent=2) + '\n').encode()
+            for kind in ('object', 'shared'):
+                result = subprocess.run([release / 'hia', 'build', path, '-o', destination, '--kind', kind],
+                                        cwd=directory, env={'PATH': ''}, capture_output=True, timeout=60)
+                assert (result.returncode, result.stdout, result.stderr) == (2, expected, b''), (path, kind, result)
+                assert not destination.exists()
+    return 2 * len(refused)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('release', type=Path)
     args = parser.parse_args()
     print(f'{check_release(args.release)} installed native Core edit and impact comparisons passed')
     print(f'{check_object_builds(args.release)} installed native object build comparisons passed')
+    print(f'{check_build_input_diagnostics(args.release)} installed native input refusal comparisons passed')
     print(f'{check_agent_diagnostics(args.release / "hia-prepare-edit-query")} installed Agent query comparisons passed')
