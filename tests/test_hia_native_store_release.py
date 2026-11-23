@@ -52,6 +52,24 @@ class StoreReleaseBuildTests(unittest.TestCase):
         for kind in ('evaluate-claim', 'evaluate-proof', 'evaluate-document'):
             self.assertIn(kind, release.FLOW_ROLES)
 
+    def test_source_member_admission_checks_the_staged_elf_and_captured_hia_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            names = ('hia-source-build', 'hia-directory-package-build')
+            tools = {}
+            for name in names:
+                data = name.encode()
+                (work / name).write_bytes(data)
+                tools[name] = sha256(data).hexdigest()
+            published = []
+            with patch.object(release, '_run_captured', side_effect=AssertionError('premature execution')):
+                with self.assertRaisesRegex(ValueError, 'source differs from cold admission'):
+                    release._stage_source_members(work, work, {}, tools, published.append)
+                (work / names[0]).write_bytes(b'changed')
+                with self.assertRaisesRegex(ValueError, 'tool differs from its staged identity'):
+                    release._stage_source_members(work, work, {}, tools, published.append)
+            self.assertEqual(published, [])
+
     def test_source_archive_is_deterministic_and_includes_only_the_complete_cold_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

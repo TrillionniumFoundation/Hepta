@@ -9,21 +9,15 @@ from importlib import import_module
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import tarfile
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from tools.build_hia_core_edit import PROGRAMS as CORE_EDIT_PROGRAMS
+from tools.build_hia_source_build import _compiled_sources, _run_captured
 from tools.build_hia_json_preflight import ROOT, admit_cold_build, build_batch, current_sources
-from tools.build_hia_native_filter import (
-    SAFE_CORE_LOADER_FILTER_MAGIC, build_evaluate_paired_batch, build_evaluate_projector,
-    build_evaluate_publication, build_evaluate_budget_observation, build_evaluate_budget_store, build_evaluate_cost_ledger, build_evaluate_run_plan, build_evaluate_measurements, build_evaluate_native_report, build_evaluate_reference_batch, build_evaluate_reference_report,
-    build_evaluate_report_flow, build_evaluate_cost_ledger_flow, build_evaluate_settlement,
-    build_execution_budget_session, build_filter,
-)
 from tools.build_hia_sqlite_components import PROJECTION, UNITS
-from tools.build_hia_worker_release import AGENT_STDIO_ROLES, INSTALLED_HELPERS, build_packaged_stdio_roles
+from tools.build_hia_worker_release import AGENT_STDIO_ROLES, INSTALLED_HELPERS
 
 
 # These are release entry points. Other stdio variants have independent build contracts.
@@ -115,7 +109,7 @@ def _stage_sqlite(work, compiler, cold_report, publish):
                                  'publisher': publisher})
 
 
-def _stage_roles(work, compiler, cold_report, publish):
+def _stage_helper_images(work, compiler, cold_report, publish):
     images = build_batch(work / 'images', compiler, cold_report, candidates=INSTALLED_HELPERS)
     for kind in INSTALLED_HELPERS:
         manifest = images[kind]
@@ -125,17 +119,84 @@ def _stage_roles(work, compiler, cold_report, publish):
             raise ValueError('sealed Store helper has a nonlocal image name')
         publish(manifest, kind + '-manifest.json')
         publish(manifest.parent / image_name, expected=record['image_sha256'])
-    for _, executable in build_packaged_stdio_roles(work / 'stdio', compiler, cold_report, STDIO_ROLES, images=images):
-        publish(executable)
-        shutil.rmtree(executable.parent)
-    for builder in (build_evaluate_projector, build_evaluate_paired_batch, build_evaluate_reference_batch,
-                    build_evaluate_reference_report, build_evaluate_native_report, build_evaluate_measurements,
-                    build_evaluate_report_flow, build_evaluate_cost_ledger_flow, build_evaluate_settlement,
-                    build_evaluate_publication, build_evaluate_budget_observation, build_evaluate_budget_store, build_evaluate_cost_ledger, build_evaluate_run_plan, build_execution_budget_session):
-        publish(builder(work / builder.__name__, compiler, cold_report))
-    publish(build_filter(work / 'safe-core-loader', compiler, cold_report, application='safe-core-elf-inventory',
-                         packer='safe-core-loader-filter', magic=SAFE_CORE_LOADER_FILTER_MAGIC,
-                         filename='hia-safe-core-loader', schema='hepta.hia.safe-core-loader-filter-build.v1'))
+
+def _source_member_recipes():
+    """Map published names to checked-in HIA inputs. Framing and modes belong to HIA."""
+    for role in STDIO_ROLES:
+        name = 'hia-agent-' + role
+        sources = {name + '.hepta': AGENT_STDIO_ROLES[role][0] + '.hepta'}
+        if role == 'journal':
+            sources['agent_journal_transport.hepta'] = 'agent_journal_transport.hepta'
+            yield name, 'agent_journal_stdio_packer.hepta', sources
+        else:
+            yield name, 'mcp_stdio_packer.hepta', sources
+
+    for role in ('budget-observation', 'budget-store', 'cost-ledger', 'cost-ledger-flow',
+                 'measurements', 'native-report', 'paired-batch', 'publication', 'reference-batch',
+                 'reference-report', 'report-flow', 'run-plan', 'settlement'):
+        stem = 'evaluate_' + role.replace('-', '_')
+        sources = {stem + '.hepta': stem + '.hepta'}
+        if role in ('cost-ledger', 'run-plan'):
+            sources['worker_request.hepta'] = 'worker_request.hepta'
+        yield 'hia-evaluate-' + role, stem + '_packer.hepta', sources
+    for name, stem, packer in (
+            ('hia-evaluate-projector', 'evaluate_reference_wire', 'evaluate_reference_wire_filter_packer'),
+            ('hia-execution-budget-session', 'execution_budget', 'execution_budget_session_packer'),
+            ('hia-safe-core-loader', 'safe_core_elf_inventory', 'safe_core_loader_filter_packer')):
+        yield name, packer + '.hepta', {stem + '.hepta': stem + '.hepta'}
+
+
+def _stage_source_members(work, stage, admitted, members, publish):
+    """Compile and pack release members with the captured native seed and HIA policy."""
+    def captured(role):
+        data = (stage / role).read_bytes()
+        if sha256(data).hexdigest() != members[role]:
+            raise ValueError('native release tool differs from its staged identity: ' + role)
+        return data
+
+    seed = captured('hia-source-build')
+    pack_directory = captured('hia-directory-package-build')
+    builders = {}
+
+    def call(program, operation, wire):
+        result = _run_captured(program, operation, wire, work)
+        if result.returncode or result.stderr or not result.stdout:
+            raise ValueError(f'native release member {operation} failed ({result.returncode})')
+        return result.stdout
+
+    def compile_sources(named):
+        pinned = {}
+        with TemporaryDirectory(prefix='member-sources-', dir=work) as staging:
+            directory = Path(staging)
+            for name, source in named.items():
+                relative = 'examples/hia_bootstrap/' + source
+                data = (ROOT / relative).read_bytes()
+                if admitted.get(relative) != sha256(data).hexdigest():
+                    raise ValueError('release member source differs from cold admission: ' + relative)
+                pinned[name] = data
+                with (directory / name).open('xb') as stream:
+                    stream.write(data)
+                    os.fchmod(stream.fileno(), 0o400)
+            packed = _run_captured(pack_directory, directory, b'', work)
+            if packed.returncode or packed.stderr != (sha256(packed.stdout).hexdigest() + '\n').encode():
+                raise ValueError('native source directory receipt differs from its bytes')
+        compiled = call(seed, 'build', packed.stdout)
+        # Authenticate the actual source copies read by both native programs.
+        _compiled_sources(compiled, pinned)
+        return compiled
+
+    for name, packer, sources in _source_member_recipes():
+        if packer not in builders:
+            kit = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
+                                   'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
+            builders[packer] = call(seed, 'pack', kit)
+        product = call(builders[packer], 'build', compile_sources(sources))
+        if not product.startswith(b'\x7fELF'):
+            raise ValueError('native source member returned an invalid release program: ' + name)
+        with NamedTemporaryFile(dir=work, prefix='native-member-') as stream:
+            stream.write(product)
+            stream.flush()
+            publish(Path(stream.name), name, expected=sha256(product).hexdigest())
 
 
 def _pack_and_verify(work, stage, members):
@@ -195,7 +256,8 @@ def build(output, compiler, cold_report):
             publish(ROOT / name, expected=admitted[name])
         _stage_component_outputs(work, compiler, cold_report, publish)
         _stage_sqlite(work, compiler, cold_report, publish)
-        _stage_roles(work, compiler, cold_report, publish)
+        _stage_helper_images(work, compiler, cold_report, publish)
+        _stage_source_members(work, stage, admitted, members, publish)
         package = _pack_and_verify(work, stage, members)
         if current_sources() != admitted or compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != report_bytes:
             raise ValueError('native Store cold inputs changed before publication')

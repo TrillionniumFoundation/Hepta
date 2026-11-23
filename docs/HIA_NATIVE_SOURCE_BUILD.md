@@ -166,6 +166,8 @@ sourcekit is an optional keyword for existing executable-only test callers.
 
 ## Building native filter release members from the installed seed
 
+The default native Store release builder uses this path for the complete native filter and packaged Agent stdio inventories. It captures the selected seed and each generated member builder before execution and authenticates the original HIA source bytes through the returned image bundles.
+
 `source_filter_member.hepta` rebuilds the standalone Store filters that take an application and a role packer. The cost ledger and run plan also take the canonical renderer `worker_request.hepta`. Every compiler and packer call below uses the qualified, installed `hia-source-build` or an ELF produced by that seed. HIA checks the source and image names, recompiles each source and compares all image bytes, builds the role's frame, and admits the packer's ELF before the first stdout write.
 
 For example, to rebuild `hia-evaluate-measurements`, set `sources` to the absolute path of `examples/hia_bootstrap`, `release` to the qualified Store installation and `work` to a new private directory. The two directories below stage the exact bytes under the names expected by the seed.
