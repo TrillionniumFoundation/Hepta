@@ -73,7 +73,7 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
             publish(owner.parent / metadata['module_root'] / name, expected=digest)
 
 
-def _stage_sqlite(work, compiler, cold_report, publish):
+def _stage_sqlite(work, compiler, cold_report, publish, projection):
     def component(name, *args, **options):
         path = _compile(work, name, compiler, cold_report, *args, **options)
         publish(path)
@@ -84,8 +84,14 @@ def _stage_sqlite(work, compiler, cold_report, publish):
     for kind in ('batch', 'sealed', 'initialize'):
         batches[kind] = component('agent_batch_commit', label='commit-' + kind, kind=kind)
     pager = component('sqlite_pager')
-    components = _compile(work, 'sqlite_components', compiler, cold_report, projection_only=True)
-    publish(components / ('hia-' + PROJECTION))
+    components, selected = projection
+    # The migration coordinator independently checks its staged input against the
+    # cold report, the actual executable and each consumed source identity.
+    receipt = {'schema': 'hepta.hia.sqlite-component-process-build.v1',
+               'compiler_sha256': sha256(compiler.read_bytes()).hexdigest(),
+               'cold_report_sha256': sha256(cold_report.read_bytes()).hexdigest(),
+               'source_sha256': selected['source_sha256'], 'executable_manifest': {PROJECTION: selected}}
+    (components / 'build.json').write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n')
     publisher = component('sqlite_migration_publish', artifacts, batches['batch'])
     component('sqlite_migrate', {'pager': pager, 'staging': components, 'initializer': batches['initialize'],
                                  'publisher': publisher})
@@ -126,8 +132,10 @@ def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
 def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, publish):
     """Build the installed SQLite units through sealed HIA source, embedding and linking stages."""
     from tools.build_hia_agent_artifact_capture import UNIT as CAPTURE_UNIT
-    from tools.build_hia_sqlite_components import CAPTURE_ADAPTERS, INPUT, START
-    from tools.build_hia_sqlite_pager import verify_executable
+    from tools.build_hia_sqlite_components import (
+        CAPTURE_ADAPTERS, COMPONENT_TEMPLATES, INPUT, PROJECTION_ADAPTER, PROJECTION_ROLES, START,
+    )
+    from tools.build_hia_sqlite_pager import EMBED_SOURCE, STATIC_LINKER, verify_executable
 
     def owner(application):
         kit, _, _ = compile_sources({
@@ -140,7 +148,7 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
     adapters = owner('sqlite_component_adapters.hepta')
     embedder = owner('elf_embed_image.hepta')
     objects = []
-    for ordinal, name in enumerate((START, INPUT, *CAPTURE_ADAPTERS)):
+    for ordinal, name in enumerate((START, INPUT, *CAPTURE_ADAPTERS, PROJECTION_ADAPTER)):
         source = (ROOT / name).read_bytes()
         if sha256(source).hexdigest() != admitted.get(name):
             raise ValueError('SQLite adapter source differs from cold admission: ' + name)
@@ -148,21 +156,46 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
         objects.append(call(adapters, 'build', frame))
 
     recipes = [(unit, b'HIASQUN1', ordinal, objects[:2]) for ordinal, unit in enumerate(UNITS, 1)]
-    recipes.append((CAPTURE_UNIT, b'HIASQCP1', 32, objects[2:]))
-    names = [unit.replace('-', '_') + '.hepta' for unit, *_ in recipes]
-    _, images, sources = compile_sources({name: name for name in names})
-    for (unit, kind, ordinal, adapter_objects), name in zip(recipes, names, strict=True):
-        source = sources[name]
+    recipes.append((CAPTURE_UNIT, b'HIASQCP1', 32, objects[2:4]))
+    projection_units = (PROJECTION, *PROJECTION_ROLES)
+    source_names = {unit: unit.replace('-', '_') + '.hepta'
+                    for unit in (*[row[0] for row in recipes], *projection_units)}
+    _, images, sources = compile_sources({name: name for name in source_names.values()})
+
+    def embed(unit, kind, ordinal):
+        source = sources[source_names[unit]]
         request = struct.pack('<8sQQ', kind, ordinal, len(source)) + source
-        component = call(embedder, 'build', request)
-        inputs = (*adapter_objects, component)
-        request = struct.pack('<8s3Q', b'HIASQLK1', *map(len, inputs)) + b''.join(inputs)
-        link_input = call(embedder, 'build', request)
-        executable = call(linker, None, link_input)
-        verify_executable(executable, images[name])
+        return call(embedder, 'build', request)
+
+    def link(kind, inputs):
+        request = struct.pack('<8s' + str(len(inputs)) + 'Q', kind, *map(len, inputs)) + b''.join(inputs)
+        return call(linker, None, call(embedder, 'build', request))
+
+    for unit, kind, ordinal, adapter_objects in recipes:
+        executable = link(b'HIASQLK1', (*adapter_objects, embed(unit, kind, ordinal)))
+        verify_executable(executable, images[source_names[unit]])
         path = work / ('hia-' + unit)
         path.write_bytes(executable)
         publish(path, expected=sha256(executable).hexdigest())
+
+    projection_inputs = [objects[4]]
+    for ordinal, unit in enumerate(projection_units, 1):
+        projection_inputs.append(embed(unit, b'HIASQPR1', ordinal))
+    executable = link(b'HIASQPL1', projection_inputs)
+    for unit in projection_units:
+        verify_executable(executable, images[source_names[unit]])
+    staging = work / 'native-sqlite-staging'
+    staging.mkdir(mode=0o700)
+    path = staging / ('hia-' + PROJECTION)
+    path.write_bytes(executable)
+    digest = sha256(executable).hexdigest()
+    publish(path, expected=digest)
+    projection_sources = [STATIC_LINKER, EMBED_SOURCE, COMPONENT_TEMPLATES, PROJECTION_ADAPTER,
+                          *('examples/hia_bootstrap/' + source_names[unit] for unit in projection_units)]
+    record = {'name': path.name, 'sha256': digest, 'bytes': len(executable),
+              'source_sha256': {name: admitted[name] for name in projection_sources},
+              'image_sha256': {unit: sha256(images[source_names[unit]]).hexdigest() for unit in projection_units}}
+    return staging, record
 
 
 def _source_worker_recipes():
@@ -400,7 +433,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             publish(path)
 
     _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
-    _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
+    return _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
 
 
 def _pack_and_verify(work, stage, members):
@@ -459,9 +492,9 @@ def build(output, compiler, cold_report):
         for name in RESOURCES:
             publish(ROOT / name, expected=admitted[name])
         _stage_component_outputs(work, compiler, cold_report, publish)
-        _stage_sqlite(work, compiler, cold_report, publish)
-        _stage_source_members(work, stage, admitted, members, publish,
-                              compiler_bytes=compiler_bytes, report_bytes=report_bytes)
+        projection = _stage_source_members(work, stage, admitted, members, publish,
+                                           compiler_bytes=compiler_bytes, report_bytes=report_bytes)
+        _stage_sqlite(work, compiler, cold_report, publish, projection)
         package = _pack_and_verify(work, stage, members)
         if current_sources() != admitted or compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != report_bytes:
             raise ValueError('native Store cold inputs changed before publication')

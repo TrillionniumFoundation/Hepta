@@ -141,21 +141,9 @@ def build_projection(output, compiler, cold_report, admitted):
             'link_receipt': link_receipt}
 
 
-def build(output, compiler, cold_report, *, projection_only=False):
-    if projection_only:
-        compiler_bytes, report_bytes = compiler.read_bytes(), cold_report.read_bytes()
-        admitted = admit_cold_build(compiler_bytes, report_bytes)
-        output.mkdir(mode=0o700)
-        report = {'compiler_sha256': digest(compiler_bytes), 'cold_report_sha256': digest(report_bytes),
-                  'executable_manifest': {}, 'runtime_python_or_libc': False, 'agent_store_replaced': False}
-    else:
-        report, admitted = build_executables(output, compiler, cold_report, UNITS, (START, INPUT), ())
-    projection = build_projection(output, compiler, cold_report, admitted)
-    if projection_only:
-        report['source_sha256'] = projection['source_sha256']
-        if compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != report_bytes:
-            raise ValueError('SQLite projection cold inputs changed before publication')
-    report['executable_manifest'][PROJECTION] = projection
+def build(output, compiler, cold_report):
+    report, admitted = build_executables(output, compiler, cold_report, UNITS, (START, INPUT), ())
+    report['executable_manifest'][PROJECTION] = build_projection(output, compiler, cold_report, admitted)
     report.update(schema='hepta.hia.sqlite-component-process-build.v1',
                   status='NATIVE_SQLITE_COMPONENT_PROCESSES_BUILT')
     write_new(output / 'build.json', (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
