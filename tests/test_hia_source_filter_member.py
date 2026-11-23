@@ -268,6 +268,46 @@ class InstalledSourceMemberTests(unittest.TestCase):
         rows = {name: (name, packer, inputs) for name, packer, inputs in _decode_member_plan(wire)}
         return [rows[name] for name in names]
 
+    def test_group_builder_binds_companions_and_returns_compiler_objects(self):
+        import struct
+        from tools.build_hia_native_store_release import _decode_member_plan, _member_with_objects, _named_source_request
+        from tools.build_hia_source_build import _compiled_sources
+
+        table = (self.sources / 'release_member_sources.tsv').read_bytes()
+        rows = _decode_member_plan(self.invoke([self.release_planner(), 'build'], table))
+        builders = {}
+        groups = 0
+        for name, packer, sources in rows:
+            if len(sources) < 2:
+                continue
+            with self.subTest(member=name):
+                groups += 1
+                if packer not in builders:
+                    builders[packer] = self.member_builder(self.work / ('builder-' + name), packer)
+                builder = builders[packer]
+                inputs = {alias: self.sources / relative for alias, relative in sources.items()}
+                raw = {alias: path.read_bytes() for alias, path in inputs.items()}
+                paired = self.source_images(self.work / name, inputs)
+                expected_images = _compiled_sources(paired, raw)
+                expected_elf = (self.release / name).read_bytes()
+                for submitted in (raw, dict(reversed(tuple(raw.items())))):
+                    group = _named_source_request(submitted, tag=b'HIAMUL01')
+                    frame = self.invoke([builder, 'build'], group)
+                    elf, images = _member_with_objects(frame, submitted)
+                    self.assertEqual(elf, expected_elf)
+                    self.assertEqual(images, expected_images)
+                self.invoke([builder, 'build'], group[:-1], refused=True)
+                if name == 'hia-agent-journal':
+                    alias, data = next(iter(raw.items()))
+                    only_primary = _named_source_request({alias: data}, tag=b'HIAMUL01')
+                    duplicate = only_primary[:8] + struct.pack('<Q', 2) + only_primary[16:] * 2
+                    for bad in (only_primary, duplicate, group + b'x', group[:8] + bytes(8) + group[16:]):
+                        self.invoke([builder, 'build'], bad, refused=True)
+                    for bad in (frame[:-1], frame + b'x', frame[-24:]):
+                        with self.assertRaises(ValueError):
+                            _member_with_objects(bad, submitted)
+        self.assertEqual(groups, 22)
+
     def test_native_release_plan_preserves_role_and_input_order(self):
         from tools.build_hia_native_store_release import _decode_member_plan
 

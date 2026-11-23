@@ -63,12 +63,13 @@ workspace. This standalone transport uses the same sizes and clears the entire
 compiler workspace before each call. The input package becomes read-only after
 EOF. Compiler output occupies a separate 1 MiB region inside the policy arena;
 input, output, policy, pack frame and compiler workspace never overlap during a
-call. The calculated anonymous mapping is 139,538,432 bytes (133 MiB + 76 KiB):
+call. The calculated anonymous mapping is 143,732,736 bytes (137 MiB + 76 KiB).
 
 | Region | Extent |
 | --- | ---: |
 | Arguments and syscall metadata | 4 KiB |
-| Policy state, member table and compiler result | 1 MiB + 64 KiB |
+| Policy state, member table and live compiler result | 1 MiB + 64 KiB |
+| Retained group objects | 4 MiB |
 | Compiler workspace | 1 MiB |
 | Three-image pack frame | 3 MiB + 4 KiB |
 | Deferred output | 64 MiB |
@@ -205,6 +206,8 @@ The same HIA member policy rebuilds the Agent stdio executables. Bootstrap one b
 The production release sends each single-source recipe directly to its member builder. Recipes with companion sources must supply those companions. The request starts with the eight bytes `HIASRC01`, followed by three little-endian 64-bit integers holding the source count (one), the filename length and the source byte length. The filename and source follow without padding. The HIA policy admits the filename and declared module and invokes its embedded compiler. It sends the image in its workspace to the embedded ELF packer, then checks the bytes in the final ELF against that image before publication.
 
 For a tool with a separately checked syscall adapter or transaction layout, the release requests the compiled object with the eight-byte tag `HIAIMG01` and the same source fields. The builder checks the final ELF, appends the object directly from the compiler workspace, then writes the ELF length and object length as two little-endian 64-bit integers followed by `HIAOBJ01`. The release consumer uses that object to check the adapter placement.
+
+For recipes with two to four sources, the release uses `HIAMUL01` followed by the source count and the same length-prefixed filename and source for each input. The member builder checks the declared module of every input and matches the required companion identities. It compiles each source once and saves up to four 1 MiB objects outside the live compiler output region. It passes the objects to the packer in the order required by the primary module and compares their bytes in the finished ELF. The response contains the ELF and each compiled object in request order. Its footer holds the ELF length, one length per object, and the object count as little-endian 64-bit integers, followed by `HIAOBJS1`. The source-less Worker port retains its existing `HIAWPRT1` request.
 
 The builder also accepts the source-and-image packet produced by the installed seed. Stage the role's HIA application under the public release name plus `.hepta`. For example, `hia-agent-read-page` takes `agent_read_page.hepta` under the name `hia-agent-read-page.hepta`. The kernel selects the wire mode from the exact public filename and checks the source's declared HIA module. It recompiles the sources and verifies that the original application and optional codec bytes occur at their expected positions in the finished ELF. The directory, compiler and `member-builder build` stages use the same commands as the filter example above. The `VARIANTS` data in `tools/build_hia_agent_read_page.py` identifies the original source basename for every existing public role.
 

@@ -667,6 +667,25 @@ def _member_with_object(frame):
     return frame[:elf_size], frame[elf_size:-24]
 
 
+def _member_with_objects(frame, sources):
+    """Recover the ELF and source-order objects retained by a group member builder."""
+    count = len(sources)
+    footer_bytes = (count + 3) * 8
+    if not 2 <= count <= 4 or len(frame) < footer_bytes:
+        raise ValueError('truncated member object group')
+    footer = len(frame) - footer_bytes
+    elf_size, *sizes, declared, magic = struct.unpack_from(f'<Q{count}QQ8s', frame, footer)
+    if (magic != b'HIAOBJS1' or declared != count or not frame.startswith(b'\x7fELF') or elf_size < 4
+            or any(not 0 < size <= 1 << 20 for size in sizes) or elf_size + sum(sizes) != footer):
+        raise ValueError('invalid member object group')
+    offset = elf_size
+    images = {}
+    for name, size in zip(sources, sizes, strict=True):
+        images[name] = frame[offset:offset + size]
+        offset += size
+    return frame[:elf_size], images
+
+
 def _native_member_batches(products, plan):
     """Materialize the HIA planner's ordered Store batches from captured bytes."""
     items = list(products.items())
@@ -894,11 +913,13 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             tag = b'HIAIMG01' if attach_image else b'HIASRC01'
             group, images = _named_source_request(capture_sources(sources), tag=tag), {}
         else:
-            group, images, _ = compile_sources(sources)
+            group, images = _named_source_request(capture_sources(sources), tag=b'HIAMUL01'), {}
         product = call(builders[owner], 'build', group)
         if attach_image:
             alias, = sources
             product, images[alias] = _member_with_object(product)
+        elif len(sources) > 1:
+            product, images = _member_with_objects(product, sources)
         if name == 'hia-artifact':
             migration_dependencies['artifact'] = _bind_artifact_publisher(
                 work, product, admitted, compiler_bytes, report_bytes)

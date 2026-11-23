@@ -22,7 +22,10 @@ IMAGE_LIMIT = 1 << 20
 # This component does not extend the compiler's supported language or limits.
 COMPILER_WORK_BYTES = 1 << 20
 IMAGE_AT = 65536
-POLICY_WORK_BYTES = IMAGE_AT + IMAGE_LIMIT
+# Keep up to four admitted group objects beyond the live compiler output.
+# Source compilation always receives exactly IMAGE_LIMIT bytes.
+MIN_POLICY_WORK_BYTES = IMAGE_AT + IMAGE_LIMIT
+POLICY_WORK_BYTES = MIN_POLICY_WORK_BYTES + 4 * IMAGE_LIMIT
 ROLE_NAMES = ('source_build_policy.hepta', 'selfhost.hepta', 'source_build_packer.hepta')
 LAYOUT = {'ARGS': 0, 'WORK': 4096}
 LAYOUT['COMPWORK'] = LAYOUT['WORK'] + POLICY_WORK_BYTES
@@ -376,7 +379,7 @@ def policy_source():
         roles += ['    if ' + ' and '.join(terms) + ':', f'        return {index}']
     roles += ['    return 0']
     source = POLICY.replace('ROLE_FUNCTION', '\n'.join(roles))
-    values = {'POLICY_WORK_BYTES': POLICY_WORK_BYTES, 'TEMPLATE_SIZE': len(template()[0]),
+    values = {'POLICY_WORK_BYTES': MIN_POLICY_WORK_BYTES, 'TEMPLATE_SIZE': len(template()[0]),
               'BUNDLE_MAGIC': BUNDLE_MAGIC, 'PACK_MAGIC': PACK_MAGIC,
               'COMPILE_WORD': int.from_bytes(b'compile', 'little'),
               'BUILD_WORD': int.from_bytes(b'build', 'little'), 'PACK_WORD': int.from_bytes(b'pack', 'little'),

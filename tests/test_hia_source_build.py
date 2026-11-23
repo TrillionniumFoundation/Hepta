@@ -192,6 +192,7 @@ class SourceBuilderSourceTests(unittest.TestCase):
         self.assertEqual(PACKER.read_text(), render_assembly(document(packer_source(), 'source_build_packer')))
         self.assertEqual(IMAGE_LIMIT, CAPACITY)
         self.assertEqual(COMPILER_WORK_BYTES, CAPACITY)
+        self.assertEqual(POLICY_WORK_BYTES, IMAGE_AT + 5 * CAPACITY)
         regions = [(LAYOUT['ARGS'], 4096), (LAYOUT['WORK'], POLICY_WORK_BYTES),
                    (LAYOUT['COMPWORK'], COMPILER_WORK_BYTES), (LAYOUT['FRAME'], LAYOUT['FRAME_CAP']),
                    (LAYOUT['OUT'], WIRE_LIMIT), (LAYOUT['WIRE'], LAYOUT['WIRE_CAP'])]
