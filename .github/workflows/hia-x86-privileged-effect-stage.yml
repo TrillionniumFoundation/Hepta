@@ -1,0 +1,27 @@
+name: HIA x86 privileged effect lowering stage (unpromoted)
+on:
+  push:
+    branches:
+      - "automation/hia-x86-effect-lowering-*"
+  pull_request:
+    paths:
+      - "experiments/hia_x86_privileged_effect_lowering.py"
+      - "tests/test_hia_x86_privileged_effect_lowering.py"
+      - ".github/workflows/hia-x86-privileged-effect-stage.yml"
+jobs:
+  independent-effect-and-ISA-oracle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Require independent GNU ISA tools and exact staged positive/negative checks
+        run: |
+          set -euo pipefail
+          command -v as
+          command -v objcopy
+          command -v objdump
+          python -m unittest discover -s tests -p 'test_hia_machine_x64_privileged.py' -v
+          python -m unittest discover -s tests -p 'test_hia_x86_privileged_effect_lowering.py' -v
