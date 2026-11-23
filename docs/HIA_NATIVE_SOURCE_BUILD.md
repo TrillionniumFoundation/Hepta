@@ -21,6 +21,17 @@ each original source and its produced image into a new `HIAREL01` bundle. The
 first standard-output write occurs after every compilation and serialization
 has succeeded. The runtime opens no files and runs no child programs.
 
+`hia-source-build sources` compiles a group of named assembly sources in one
+native process. Its binary input starts with the eight ASCII bytes `HIANAM01`
+and an unsigned 64-bit source count in little-endian order. Each record has
+two little-endian unsigned 64-bit lengths, followed by the ASCII name and the
+source bytes. It accepts 1 through 128 distinct names ending in `.hepta` and
+up to 1 MiB per source. The compiler checks the entire input, sorts the names
+by ASCII byte order and emits the same source/image pairs as a directory
+package passed to `build`. A malformed record or a rejected source yields
+empty stdout. The Store release, standalone Core builder and batched helper
+builder use this entry point.
+
 `hia-source-build pack` constructs a standalone executable with the checked HIA
 ELF packer. It accepts exactly the three image roles below, or exactly their
 three sources plus three images in any order:
@@ -114,6 +125,14 @@ bound to the invocation's own inode. This bootstrap publication requires Linux
 `O_TMPFILE` support on the output filesystem and fails closed without it.
 The published source kit is produced by the native builder, and native repacking
 must reproduce the captured executable.
+
+A successful cold replay records the HIA-emitted flat-call observer in
+`native_flat_observer_hex`. The source-seed builder and single-helper builder
+run this captured ELF from sealed descriptors to compile and pack their input.
+The cold report and B3 compiler can be moved together. For a report predating
+the embedded observer, the bootstrap recovers its bytes by executing the
+checked-in HIA packer in the independent reference VM. A damaged embedded
+observer fails admission before either builder creates its output.
 
 The bootstrap's Python generator, assembler, cold gate and receipt checks remain
 declared host boundaries. The generated ELF has no Python, libc, source-generator,

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from hashlib import sha256
 import json
@@ -36,6 +38,7 @@ INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 # Explicit per-phase transport; never enabled for seed or generation controls.
 NATIVE_OBSERVER = None
 NATIVE_LINKED_OBSERVER = None
+_RELEASE_FLAT_OBSERVER = ContextVar("hia_release_flat_observer", default=None)
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
                           "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts", "explicit-traps", "cli", "names", "exports")
@@ -143,6 +146,18 @@ def build_seed(directory, source=None):
     return output, receipt
 
 
+@contextmanager
+def release_compiler_calls(cold_bytes):
+    """Use the matching cold HIA observer for ordinary flat calls in this release build."""
+    from tools.hia_selfhost_native_observer import cold_compiler_observer
+
+    token = _RELEASE_FLAT_OBSERVER.set(cold_compiler_observer(cold_bytes))
+    try:
+        yield
+    finally:
+        _RELEASE_FLAT_OBSERVER.reset(token)
+
+
 def invoke(directory, label, image, source, *, image_format="flat-x86-64",
            capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
            output_initial=None, observe_trap_writes=False, compiler_function_offsets=(),
@@ -157,6 +172,12 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
             capacity=capacity, workspace_size=workspace_size, workspace_fill=workspace_fill,
             output_initial=output_initial, observe_trap_writes=observe_trap_writes)
     selected_observer = NATIVE_OBSERVER if flat_observer is None else flat_observer
+    scoped = _RELEASE_FLAT_OBSERVER.get()
+    if (selected_observer is None and scoped is not None and image_format == 'flat-x86-64'
+            and not compiler_function_offsets and not worker_section_pack
+            and len(source) <= CAPACITY and capacity <= CAPACITY and workspace_size <= CAPACITY
+            and Path(image).stat().st_size <= 4 * CAPACITY):
+        selected_observer = scoped
     if (selected_observer is not None and image_format == 'flat-x86-64'
             and not compiler_function_offsets and not worker_section_pack):
         from tools.hia_selfhost_native_observer import invoke as observe_native

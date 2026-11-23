@@ -29,7 +29,8 @@ from tools.build_hia_agent_data_json import build as build_agent_data_json
 from tools.build_hia_direct_call import build as build_direct_call
 from tools.build_hia_evaluation import build as build_evaluation
 from tools.build_hia_agent_read_page import VARIANTS as AGENT_STDIO_ROLES, build as build_agent_stdio
-from tools.build_hia_json_preflight import CANDIDATES, build_batch as build_helper_batch
+from tools.build_hia_json_preflight import CANDIDATES, admit_cold_build, build_batch as build_helper_batch
+from tools.qualify_hia_selfhost import release_compiler_calls
 from tools.build_hia_native_build_admission import build as build_build_admission
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_native_filter import (
@@ -513,7 +514,9 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
     depot = output / 'store'
     depot.mkdir(mode=0o700)
     release = depot / package_sha256
-    with TemporaryDirectory(prefix='hia-worker-release-tools-', dir=output.parent) as temp:
+    cold_bytes = Path(cold_report).read_bytes()
+    admit_cold_build(Path(compiler).read_bytes(), cold_bytes)
+    with release_compiler_calls(cold_bytes), TemporaryDirectory(prefix='hia-worker-release-tools-', dir=output.parent) as temp:
         scratch = Path(temp)
         installer = build_installer(scratch / 'installer', compiler, cold_report)
         for action in ('install', 'verify'):
