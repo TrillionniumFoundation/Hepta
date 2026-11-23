@@ -6,14 +6,16 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_worker_adopt_flow import recipe as adopt_recipe
 from tools.generate_hia_worker_adopt_custody import custody_sections
-from tools.generate_hia_worker_adopt_proof import reachable_policy
+from tools.generate_hia_worker_adopt_proof import adopt_proof_recipe, reachable_policy
 from tools.generate_hia_worker_candidate_flow import replace_function
 from tools.generate_hia_worker_context_flow import flow_source, function
 from tools.generate_hia_worker_emit_flow import native_recipe
+from tools.generate_hia_worker_emit_measurement import splice_list
 from tools.generate_hia_worker_inspection_flow import VIEW_DRIVER
 
 FRONT = Path('examples/hia_bootstrap/worker_evaluate_proof_flow.hepta')
 CUSTODY = Path('examples/hia_bootstrap/worker_evaluate_proof_custody.hepta')
+REPLAY = Path('examples/hia_bootstrap/worker_evaluate_proof_replay.hepta')
 
 # The request owner recomputes the envelope digest and returns its exact five-field
 # canonical preimage. The installed schema then admits exactly Evaluate arguments.
@@ -146,7 +148,7 @@ def sources():
     constants, entry, controls = adopt_recipe()
     role = constants['ROLE_COUNT']
     constants.update(ROLE_COUNT=role + 1, ENTRY_BYTES=constants['ENTRY_BYTES'] + 40,
-                     SCHEMA_TOOL=9, EVALUATE_REQUEST_ROLE=role, PROOF_REQUEST_SHA=11968,
+                     SCHEMA_TOOL=9, EVALUATE_REQUEST_ROLE=role, PROOF_REQUEST_SHA=11968, EMIT_ENCODING_REPORT_BOUND=767,
                      EVALUATE_LAYOUT=int.from_bytes(b'HIAEVQ01', 'little'),
                      PROVED_TAG=int.from_bytes(b'HIAEDP01', 'little'))
     states = ('PROOF_TOOL', 'PROOF_HASH', 'PROOF_DIGEST', 'PROOF_MADE', 'PROOF_PUBLISHED')
@@ -196,9 +198,25 @@ def sources():
             return emit_proof_read(o, w, READ_EMIT_CUSTODY_BUILD, 5)
 ''' + needle)
     custody, parts = reachable_policy(source, 'adopt_custody')
-    return flow_source(front, controls, constants), flow_source(custody, parts, constants)
+    proof, proof_parts = adopt_proof_recipe(constants)
+    proof = proof.replace('    if state == RETAINED_DIGEST:', """    if state == EMIT_ENCODING_REPORT_BOUND:
+        if plan_ok(s) == False or input_word(s, 40) != 24 or input_word(s, 72) != EMIT_CUSTODY_PACKET or input_word(s, 80) != 0:
+            return BAD
+        return emit_proof_scope_request(o, w)
+    if state == RETAINED_DIGEST:""")
+    source = '\n'.join((proof, *proof_parts))
+    pattern = '        return emit_proof_scope_request(o, w)\n    if state == EMIT_PROOF_SCOPE_BOUND:'
+    assert source.count(pattern) == 1
+    source = source.replace(pattern, """        if get(w, EMIT_PROOF_SUBJECT) == 4 and get(w, EMIT_PROOF_CLAIM_KIND) == 4:
+            return evaluate_encoding_report(o, w)
+""" + pattern)
+    source += splice_list('evaluate_encoding_report', 'EMIT_ENCODING_REPORT_BOUND',
+                          ('EMIT_CUSTODY_BUILD', 'EMIT_PROOF_EVIDENCE'), role='EMIT_CUSTODY_ROLE')
+    proof, proof_parts = reachable_policy(source, 'adopt_proof_flow')
+    return (flow_source(front, controls, constants), flow_source(custody, parts, constants),
+            flow_source(proof, proof_parts, constants))
 
 
 if __name__ == '__main__':
-    for path, source in zip((FRONT, CUSTODY), sources(), strict=True):
+    for path, source in zip((FRONT, CUSTODY, REPLAY), sources(), strict=True):
         path.write_text(render_assembly(document(source, path.stem)), encoding='utf-8')

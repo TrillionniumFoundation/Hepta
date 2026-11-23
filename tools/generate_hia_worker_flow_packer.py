@@ -70,6 +70,7 @@ PROOF_KIND = 'evaluate-proof'
 PROOF_POLICY = 'examples/hia_bootstrap/worker_evaluate_proof_flow.hepta'
 PROOF_CUSTODY = 'examples/hia_bootstrap/worker_evaluate_proof_custody.hepta'
 PROOF_PACKER = 'examples/hia_bootstrap/worker_evaluate_proof_flow_packer.hepta'
+PROOF_REPLAY = 'examples/hia_bootstrap/worker_evaluate_proof_replay.hepta'
 VERIFY_KIND = 'verify'
 VERIFY_POLICY = 'examples/hia_bootstrap/worker_verify_flow.hepta'
 VERIFY_PRODUCT = 'examples/hia_bootstrap/worker_verify_publication_flow.hepta'
@@ -78,7 +79,7 @@ VERIFY_PACKER = 'examples/hia_bootstrap/worker_verify_flow_packer.hepta'
 SECTIONS = {
     EMIT_KIND: (EMIT_PRODUCT, EMIT_PROOF),
     ADOPT_KIND: (ADOPT_PRODUCT, ADOPT_PROOF),
-    PROOF_KIND: (PROOF_CUSTODY, ADOPT_PROOF),
+    PROOF_KIND: (PROOF_CUSTODY, PROOF_REPLAY),
     VERIFY_KIND: (VERIFY_PRODUCT, VERIFY_PROOF),
 }
 PROGRAMS = {

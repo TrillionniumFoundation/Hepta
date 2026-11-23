@@ -552,6 +552,7 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_worker_evaluate_intake_flow.py',
     'examples/hia_bootstrap/worker_evaluate_proof_flow.hepta',
     'examples/hia_bootstrap/worker_evaluate_proof_custody.hepta',
+    'examples/hia_bootstrap/worker_evaluate_proof_replay.hepta',
     'examples/hia_bootstrap/worker_evaluate_proof_flow_packer.hepta',
     'tools/generate_hia_worker_evaluate_proof_flow.py',
     'tools/generate_hia_worker_evaluate_claim_flow.py',

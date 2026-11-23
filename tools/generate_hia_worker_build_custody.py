@@ -16,7 +16,8 @@ METADATA = ('candidate', 'codegen', 'context', 'core_sha256', 'foreign_buffer_ex
             'installation', 'machine_plan', 'object_artifact', 'object_sha256', 'output_kind', 'signatures')
 KEYS = (*METADATA, 'artifact_bytes', 'artifact_sha256', 'backend_profile', 'backend_sha256',
         'implementation_sha256', 'input_sha256', 'kind', 'machine_plan_sha256', 'native_artifact',
-        'native_build', 'schema', 'sha256', 'target_profile', 'plan')
+        'native_build', 'schema', 'sha256', 'target_profile', 'plan', 'actual_sha256', 'rederived_sha256',
+        'object_identity_equal', 'bytes_equal', 'no_llvm_or_external_assembler')
 
 POLICY = r'''
 # Protected input:
@@ -38,6 +39,9 @@ def build_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
         return INVALID
     fields = get(w, 96)
+    if fields == 2:
+        build = 64 + get(w, 88) * 72
+        return answer(o, choose(encoding_report(s, w, build, next(w, build)), 0, 3))
     if fields != 6 and fields != 10:
         return INVALID
     install = 64 + get(w, 88) * 72
@@ -75,6 +79,41 @@ def build_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if result == 24 and observed_plan(s, w, record, facts) == False:
         return answer(o, 5)
     return result
+
+# Called only after the proof engine has verified this receipt's physical
+# image, object and candidate. The re-emission report must explain the
+# original check's exact byte and object equality observations.
+def encoding_report(s:readbuf, w:mutbuf, build:u64, evidence:u64) -> bool:
+    if get(w, build) != 6 or get(w, evidence) != 6 or build_schema(w, lookup(w, build, K_schema)) == False:
+        return False
+    native = lookup(w, build, K_native_artifact)
+    retained = lookup(w, build, K_native_build)
+    rebuilt = lookup(w, evidence, K_native_build)
+    if retained == NONE or rebuilt == NONE or get(w, retained) != 6 or get(w, rebuilt) != 6 or exact_reference(s, w, native) == False:
+        return False
+    actual = lookup(w, native, K_sha256)
+    observed = lookup(w, evidence, K_actual_sha256)
+    output = lookup(w, evidence, K_rederived_sha256)
+    obj = lookup(w, retained, K_object_sha256)
+    produced = lookup(w, rebuilt, K_object_sha256)
+    if digest_text(w, output, False) == False or digest_text(w, produced, False) == False or digest_text(w, observed, False) == False:
+        return False
+    if digest_text(w, obj, False) == False:
+        return False
+    if equal_span(s, w, actual, observed) == False or field_matches(s, w, rebuilt, K_artifact_sha256, output) == False:
+        return False
+    flag = lookup(w, evidence, K_no_llvm_or_external_assembler)
+    bytes_equal = lookup(w, evidence, K_bytes_equal)
+    object_equal = lookup(w, evidence, K_object_identity_equal)
+    if flag == NONE or get(w, flag) != 2 or bytes_equal == NONE or object_equal == NONE:
+        return False
+    if get(w, bytes_equal) != choose(equal_span(s, w, actual, output), 2, 1):
+        return False
+    if get(w, object_equal) != choose(equal_span(s, w, obj, produced), 2, 1):
+        return False
+    if get(w, bytes_equal) == 2 and get(w, object_equal) == 2:
+        return equal_span(s, w, retained, rebuilt)
+    return True
 
 def build_references(s:readbuf, w:mutbuf, o:mutbuf, record:u64, same_subject:bool) -> u64:
     if length(o) < 368:
