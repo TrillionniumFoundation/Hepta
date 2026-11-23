@@ -64,15 +64,58 @@ def build(root, name, native, macros):
             str(p / "observer.o"), str(p / "native.o")])
     invoke(["objcopy", "-O", "elf32-i386", str(p / "guest.elf"),
             str(p / "guest32.elf")])
+    # The Core object has a verified PLT32 abort callsite: ld resolves its
+    # four-byte operand to the explicit guest failure sink. Mask *only* this
+    # independently enumerated ELF relocation; all remaining HIA instruction
+    # bytes must match exactly, including the INVLPG opcode.
+    rels = invoke(["readelf", "-Wr", str(p / "native.o")]).stdout.decode()
+    offsets = []
+    for line in rels.splitlines():
+        if "R_X86_64_" not in line:
+            continue
+        fields = line.split()
+        assert ("R_X86_64_PLT32" in line and "abort" in fields), (
+            f"unreviewed native Core relocation: {line}")
+        offsets.append(int(fields[0], 16))
+    assert offsets, "expected explicitly accounted abort call relocation"
+    expected = bytearray(native.text_bytes)
+    for offset in offsets:
+        assert 1 <= offset and offset + 4 <= len(expected)
+        assert expected[offset - 1] == 0xe8, "relocation not a direct call"
+        expected[offset:offset + 4] = b"\\0" * 4
+
+    object_nm = invoke(["nm", "-n", str(p / "native.o")]).stdout.decode()
+    linked_nm = invoke(["nm", "-n", str(p / "guest.elf")]).stdout.decode()
+    def value_from_nm(text, name):
+        matches = [int(fields[0], 16) for line in text.splitlines()
+                   if (fields := line.split()) and len(fields) >= 3
+                   and fields[-1] == name]
+        assert len(matches) == 1, f"missing/duplicate symbol {name}"
+        return matches[0]
+    f0_native = value_from_nm(object_nm, "f0")
+    f0_linked = value_from_nm(linked_nm, "f0")
+    headers = invoke(["objdump", "-h", str(p / "guest.elf")]).stdout.decode()
+    text_sections = [line.split() for line in headers.splitlines()
+                     if len(line.split()) >= 6 and line.split()[1] == ".text"]
+    assert len(text_sections) == 1
+    text_base = int(text_sections[0][3], 16)
+    start = f0_linked - text_base - f0_native
+    assert start >= 0
+    sections = []
     for elf in ("guest.elf", "guest32.elf"):
         section = p / (elf + ".text")
         invoke(["objcopy", "--dump-section", ".text=" + str(section),
                 str(p / elf)])
-        # The *complete* original HIA .text must survive both link and
-        # Multiboot ELF32 wrapper unchanged and with exactly one occurrence.
         joined = section.read_bytes()
-        assert joined.count(native.text_bytes) == 1, (
-            f"HIA .text not uniquely preserved in {elf}: {name}")
+        assert start + len(expected) <= len(joined)
+        observed = bytearray(joined[start:start + len(expected)])
+        for offset in offsets:
+            assert observed[offset - 1] == 0xe8, "linked call opcode changed"
+            observed[offset:offset + 4] = b"\\0" * 4
+        assert observed == expected, (
+            f"HIA original text changed outside allowlisted abort relocs in {elf}: {name}")
+        sections.append(joined)
+    assert sections[0] == sections[1], "Multiboot ELF32 conversion mutated linked HIA text"
     return p / "guest32.elf"
 
 
