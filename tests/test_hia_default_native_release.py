@@ -285,7 +285,8 @@ with patch.object(cli, '_reference_hia_main', forbidden), \
         try:
             cli.hia_main(['capabilities'])
         except ValueError as error:
-            assert 'native CLI bundle identity mismatch' in str(error)
+            assert str(error) in ('native CLI bundle identity mismatch',
+                                  'native-default pin differs from package resource ' + CLI_BUNDLE_RESOURCE)
         else:
             raise AssertionError('changed package CLI bundle reached the command')
     finally:
