@@ -260,7 +260,8 @@ class DefaultReleaseNativeTests(unittest.TestCase):
         encoder = NativeHiaJsonImage(image, receipt['produced_sha256'])
         package = 'hia_core-1'
         program = package + '.data/scripts/hia'
-        members = {program: b'\\x7fELF' + b'x' * (1 << 20), '资料/é': b'payload', 'empty': b''}
+        members = {program: b'\x7fELF' + b'x' * (1 << 20), '资料/é': b'payload', 'empty': b''}
+        members[package + '.data/scripts/text'] = b'not an ELF'
         actual = io.BytesIO()
         _write_zip(actual, members, package + '.dist-info', encoder)
         original = io.BytesIO()
