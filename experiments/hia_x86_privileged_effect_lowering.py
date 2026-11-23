@@ -33,6 +33,7 @@ class QuiescentOwner:
     global_pages_disabled: bool
     la57_disabled: bool
     upper_table_links_checked: bool
+    pte_slot_identity_mapped: bool
 
 
 @dataclass(frozen=True)
@@ -71,7 +72,8 @@ def admit_leaf_revoke(owner: QuiescentOwner, request: LeafRevoke) -> None:
     flags = (owner.interrupts_masked, owner.preemption_disabled,
              owner.exclusive_page_table_owner, owner.dma_quiescent,
              owner.pcid_disabled, owner.global_pages_disabled,
-             owner.la57_disabled, owner.upper_table_links_checked)
+             owner.la57_disabled, owner.upper_table_links_checked,
+             owner.pte_slot_identity_mapped)
     _require(all(type(x) is bool and x for x in flags),
              "all quiescence and paging exclusion claims required")
     for name, value in vars(request).items():
@@ -84,6 +86,8 @@ def admit_leaf_revoke(owner: QuiescentOwner, request: LeafRevoke) -> None:
              request.pte_slot_phys % 8 == 0 and
              (request.pte_slot_phys + 7) < phys_limit,
              "aligned physical 8-byte PTE slot required")
+    _require(request.pte_slot_phys + 7 < (1 << 47),
+             "identity-mapped PTE slot must have a canonical low VA")
     _require(request.pte_slot_phys // 4096 != request.active_cr3 // 4096,
              "leaf PTE cannot alias the PML4 root page")
     va = request.virtual_page
@@ -95,6 +99,9 @@ def admit_leaf_revoke(owner: QuiescentOwner, request: LeafRevoke) -> None:
     frame = old & _PHYS_MASK
     _require(0 < frame < phys_limit,
              "valid nonzero physical frame required")
+    _require(frame != request.active_cr3 and
+             frame != (request.pte_slot_phys & ~4095),
+             "reclaimed frame cannot alias the root or PTE table page")
     _require((old & _PHYS_MASK) ==
              (old & (((1 << owner.max_physical_address_bits) - 1) & _PHYS_MASK)),
              "no reserved physical address bits")
