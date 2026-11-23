@@ -6965,13 +6965,20 @@ block b9(v41:mutbuf,v42:u64)
 block b10(v44:mutbuf,v45:u64,v46:u64)
   v48:u64 = const() {"value":6}
   v49:bool = compare.eq(v46,v48)
-  branch v49 b11(v44,v45) b12(v44)
+  branch v49 b11(v44,v45) b12(v44,v45,v46)
 block b11(v50:mutbuf,v51:u64)
   v56:bool = call(v50,v51) {"function":"f73"}
   ret(v56)
-block b12(v53:mutbuf)
-  v57:bool = const() {"value":false}
-  ret(v57)
+block b12(v53:mutbuf,v54:u64,v55:u64)
+  v57:u64 = const() {"value":8}
+  v58:bool = compare.eq(v55,v57)
+  branch v58 b13(v53,v54) b14(v53)
+block b13(v59:mutbuf,v60:u64)
+  v65:bool = call(v59,v60) {"function":"f77"}
+  ret(v65)
+block b14(v62:mutbuf)
+  v66:bool = const() {"value":false}
+  ret(v66)
 end
 fn f81(v0:mutbuf,v1:u64) -> (bool) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64)

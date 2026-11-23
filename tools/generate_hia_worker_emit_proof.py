@@ -333,6 +333,8 @@ def emit_proof_file_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         sample_span(s, w, EMIT_PROOF_ORDINAL_SPAN)
         if get(w, EMIT_PROOF_TRUST_SELECTION + 16) != 66 or get(w, EMIT_PROOF_TRUST_RUNTIME + 16) < 2:
             return BAD
+        if get(w, EMIT_PROOF_SUBJECT) == 4 and get(w, EMIT_PROOF_CLAIM_KIND) == 4:
+            CHECK_ENCODING_REPORT
         return emit_proof_scope_request(o, w)
     if state == EMIT_PROOF_SCOPE_BOUND:
         if (plan_ok(s) == False or size != 56 or input_word(s, 72) != EMIT_SCOPE_PERMISSION
@@ -457,6 +459,10 @@ def emit_requested_plan_subject(o:mutbuf, w:mutbuf) -> u64:
 ENTRY = r'''
 def emit_proof_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     state = get(w, 0)
+    if state == EMIT_ENCODING_REPORT_BOUND:
+        if plan_ok(s) == False or input_word(s, 40) != 24 or input_word(s, 72) != EMIT_CUSTODY_PACKET or input_word(s, 80) != 0:
+            return BAD
+        return emit_proof_scope_request(o, w)
     if state == RETAINED_DIGEST:
         return emit_proof_typed_artifact(s, o, w)
     if state == INSPECTION_ACTION:
@@ -525,6 +531,7 @@ def proof_constants():
         **{f'EMIT_PLAN_{name}': 512 + i for i, name in enumerate(names)},
         **{f'EMIT_PROOF_{name}': 528 + i for i, name in enumerate(bind_states)},
         **{name: int.from_bytes(value, 'little') for name, value in words.items()},
+        'EMIT_ENCODING_REPORT_BOUND': 767,
         'READ_EMIT_PLAN': 6, 'READ_EMIT_PROOF': 7, 'READ_EMIT_BASE': 8,
         'READ_EMIT_SUBJECT_PLAN': 9, 'READ_EMIT_ASSUMPTIONS': 10, 'READ_EMIT_EVIDENCE': 11,
         'EMIT_LAYOUT_ROLE': 46, 'EMIT_VERIFY_ROLE': 44, 'EMIT_SCOPE_ROLE': 45, 'EMIT_APPROVED_PLAN': 6616,
@@ -569,6 +576,8 @@ def proof_recipe(shared_error, open_profile, *,
                          'EMIT_PROOF_EVIDENCE', 'EMIT_PROOF_TRUST_SELECTION', 'EMIT_PROOF_TRUST_RUNTIME',
                          ('EMIT_PROOF_TRUST_RUNTIME', 'EMIT_TRUST_NATIVE_OFFSET', 'EMIT_TRUST_NATIVE_BYTES')),
                         role='EMIT_SCOPE_ROLE')
+    encoding = splice_list('emit_encoding_report', 'EMIT_ENCODING_REPORT_BOUND',
+                           ('EMIT_CUSTODY_BUILD', 'EMIT_PROOF_EVIDENCE'), role='EMIT_CUSTODY_ROLE')
     approve = splice_list('emit_proof_approve_plan', 'EMIT_PROOF_QUALIFIED_PLAN',
                           ('EMIT_PROOF_REQUESTED_SUBJECT', 'EMIT_PROOF_RECORD', 'EMIT_PROOF_SUBJECT_RAW_SHA',
                            'EMIT_PROOF_SUBJECT_CANONICAL_SHA', 'EMIT_PROOF_SUBJECT_PLAN'), role='EMIT_VERIFY_ROLE')
@@ -587,7 +596,12 @@ def proof_recipe(shared_error, open_profile, *,
         shared_error,
         open_profile,
     )
-    files = FILES.replace('FINISH_RETAINED_PROOF', finish_retained)
+    # Emit already uses all 128 Selfhost-Core function slots. Keep the sealed
+    # encoding/build comparison in the claim branch of the same function.
+    encoding_body = encoding.strip().splitlines()[1:]
+    files = FILES.replace('            CHECK_ENCODING_REPORT',
+                          '\n'.join('        ' + line for line in encoding_body))
+    files = files.replace('FINISH_RETAINED_PROOF', finish_retained)
     return ENTRY, (PLAN, RETAINED, files, layout, profiles, binding, scope, approve,
                    *layout_replay_source(), *custody_replay_source(function(RECORD, 'emit_signature')),
                    *finite_replay_source(), *complete_replay_source(), *machine_replay_source(), COMPOSITION,

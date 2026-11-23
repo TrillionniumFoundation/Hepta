@@ -32,7 +32,7 @@ METHODS = tuple(_CHECKERS)
 CONSUMER_METHODS = (*METHODS, MACHINE_METHOD)
 NATIVE_REPLAY_METHODS = ('core_admission', 'canonical_core_identity', 'finite_domain',
                          'context_budget_exhausted', 'canonical_lowering_unsupported',
-                         'checked_explicit_machine_choices')
+                         'checked_explicit_machine_choices', 'complete_native_rederivation')
 CLAIMS = ('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check')
 STATUSES = ('proved', 'refuted', 'unknown', 'unsupported')
 
