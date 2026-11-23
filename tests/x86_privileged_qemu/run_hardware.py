@@ -34,7 +34,7 @@ REQUEST = LeafRevoke(
 EXPECTED = {"valid": (67, "P"), "stale_old": (69, "U"),
             "wrong_cr3": (69, "U"), "postcheck_race": (69, "U"),
             "cr4_pge": (69, "U"), "dishonest_noop": (255, "F"),
-            "descriptor_noop": (255, "F")}
+            "descriptor_noop": (255, "F"), "ltr_noop": (255, "F")}
 # This exact ISA signature comes from the independent GNU-as byte oracle.
 # It is deliberately not looked up from the encoder under test.
 _LOCKED_CAS = bytes.fromhex("f0490fb19200100000")
@@ -83,6 +83,20 @@ def descriptor_bytes(case: str) -> bytes:
     return machine
 
 
+def ltr_bytes(case: str) -> bytes:
+    code = KernelDescriptorCode()
+    if case != "ltr_noop":
+        code.ltr("rax")
+    code.ret()
+    raw, relocs = code.finalize()
+    # Literal independent ISA vector; neither the encoder nor the guest
+    # fixture defines the oracle for the native stage's instruction bytes.
+    expected = bytes.fromhex("c3" if case == "ltr_noop" else "0f00d8c3")
+    if relocs or raw != expected:
+        raise AssertionError("LTR/RET native bytes differ from audited ISA vector")
+    return raw
+
+
 def build(case: str, directory: Path) -> dict:
     directory.mkdir(parents=True)
     effect = effect_bytes(case)
@@ -100,6 +114,8 @@ def build(case: str, directory: Path) -> dict:
     (directory / "effect.bin").write_bytes(effect)
     descriptor = descriptor_bytes(case)
     (directory / "descriptor.bin").write_bytes(descriptor)
+    ltr = ltr_bytes(case)
+    (directory / "ltr.bin").write_bytes(ltr)
     checked(["as", "--64", "-o", "boot.o", str(HERE / "boot.S")], directory)
     checked(["ld", "-nostdlib", "-T", str(HERE / "layout.ld"),
              "-o", "guest.elf", "boot.o"], directory)
@@ -129,6 +145,10 @@ def build(case: str, directory: Path) -> dict:
     descriptor_end = symbols["descriptor_end"] - symbols["__text_begin"]
     if final[descriptor_begin:descriptor_end] != descriptor:
         raise AssertionError("final linked LIDT bytes differ from staged descriptor encoder")
+    ltr_begin = symbols["tr_stage_start"] - symbols["__text_begin"]
+    ltr_end = symbols["tr_stage_end"] - symbols["__text_begin"]
+    if final[ltr_begin:ltr_end] != ltr:
+        raise AssertionError("final linked LTR bytes differ from staged descriptor encoder")
     if final != final32 or final[start:end] != effect:
         raise AssertionError("ELF64/ELF32 final machine bytes differ from staged encoder")
     executable32 = (directory / "guest32.elf").read_bytes()
@@ -146,6 +166,10 @@ def build(case: str, directory: Path) -> dict:
         "descriptor_hardware_observer": "SIDT limit and base, PC/Q35",
         "descriptor_negative_noop": case == "descriptor_noop",
         "ltr_hardware_execution": "NOT_RUN",
+        "ltr_stage_sha256": sha256(ltr).hexdigest(),
+        "ltr_stage_bytes": len(ltr),
+        "ltr_negative_noop": case == "ltr_noop",
+        "ltr_independent_observer": "STR selector and TSS64 busy bit",
         "elf64_sha256": sha256((directory / "guest.elf").read_bytes()).hexdigest(),
         "image_sha256": sha256(executable32).hexdigest(),
         "test_assembly_sha256": sha256((HERE / "boot.S").read_bytes()).hexdigest(),
@@ -211,6 +235,9 @@ def main() -> int:
                         observations.append(execute_guest(directory / "guest32.elf",
                                                           machine, expected))
                 item["observations"] = observations
+                if not args.build_only and all(r["status"] == "PASS" for r in observations):
+                    item["ltr_hardware_execution"] = (
+                        "NOOP_DETECTED" if case == "ltr_noop" else "PASS")
                 item["status"] = ("NOT_RUN" if args.build_only else
                                   "PASS" if all(r["status"] == "PASS" for r in observations)
                                   else "FAILED")

@@ -86,6 +86,32 @@ long_mode:
     leaq idt(%rip), %rax
     cmpq %rax, idtr_readback+2(%rip)
     jne fail
+    /* Test-only non-HIA descriptor provisioning, not authority verification:
+     * install an actual 64-bit available TSS at GDT selector 0x18.
+     * The LTR instruction itself is *only* the staged direct encoder bytes.
+     */
+    leaq tss(%rip), %rax
+    movw $103, gdt+24(%rip)
+    movw %ax, gdt+26(%rip)
+    shrq $16, %rax
+    movb %al, gdt+28(%rip)
+    movb $0x89, gdt+29(%rip)
+    movb $0, gdt+30(%rip)
+    shrq $8, %rax
+    movb %al, gdt+31(%rip)
+    shrq $8, %rax
+    movl %eax, gdt+32(%rip)
+    movl $0, gdt+36(%rip)
+    movw $0x18, %ax
+    call tr_stage_start
+    /* Independent CPU-visible TR and GDT descriptor-busy readback.
+     * A malicious RET-only LTR stage must fail both hardware checks.
+     */
+    str %ax
+    cmpw $0x18, %ax
+    jne fail
+    cmpb $0x8b, gdt+29(%rip)
+    jne fail
     /* Warm this 4KiB translation before native PTE revoke + INVLPG. */
     movl $0x400000, %eax
     movq (%rax), %r9
@@ -199,12 +225,19 @@ descriptor_start:
 .incbin "descriptor.bin"
 descriptor_end:
 
+.align 16
+.global tr_stage_start, tr_stage_end
+tr_stage_start:
+.incbin "ltr.bin"
+tr_stage_end:
+
 .section .rodata,"a",@progbits
 .align 8
 gdt:
     .quad 0
     .quad 0x00af9a000000ffff
     .quad 0x00cf92000000ffff
+    .skip 16  /* TSS64 descriptor, filled by NON-HIA fixture. */
 gdt_end:
 gdt_ptr:
     .word gdt_end-gdt-1
@@ -223,6 +256,9 @@ race_seen:
 .align 8
 idtr_readback:
     .skip 16
+.align 16
+tss:
+    .skip 104
 
 .section .paging,"aw",@nobits
 .align 4096
