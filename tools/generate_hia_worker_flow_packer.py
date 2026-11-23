@@ -42,10 +42,15 @@ LAUNCHER = 'tools/hia_worker_launcher_ports.S'
 LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_launcher_flow.hepta'
 LAUNCHER_PACKER = 'examples/hia_bootstrap/worker_launcher_flow_packer.hepta'
 LAUNCHER_KIND = 'native-launcher'
+INTAKE_KIND = 'evaluate-intake'
+INTAKE_LAUNCHER_KIND = 'evaluate-intake-launcher'
+INTAKE_LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_evaluate_intake_launcher.hepta'
+INTAKE_POLICY = 'examples/hia_bootstrap/worker_evaluate_intake_flow.hepta'
+INTAKE_PACKER = 'examples/hia_bootstrap/worker_evaluate_intake_flow_packer.hepta'
 REPLAY_KIND = 'evaluate-replay'
 REPLAY_LAUNCHER_KIND = 'evaluate-replay-launcher'
 REPLAY_LAUNCHER_POLICY = 'examples/hia_bootstrap/worker_evaluate_replay_launcher.hepta'
-LAUNCHER_KINDS = (LAUNCHER_KIND, REPLAY_LAUNCHER_KIND)
+LAUNCHER_KINDS = (LAUNCHER_KIND, REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND)
 REPLAY_POLICY = 'examples/hia_bootstrap/worker_evaluate_replay_flow.hepta'
 REPLAY_PACKER = 'examples/hia_bootstrap/worker_evaluate_replay_flow_packer.hepta'
 EMIT_KIND = 'emit'
@@ -76,6 +81,7 @@ PROGRAMS = {
     'input': (INPUT_POLICY, INPUT_PACKER),
     'artifact': (ARTIFACT_POLICY, ARTIFACT_PACKER),
     REPLAY_KIND: (REPLAY_POLICY, REPLAY_PACKER),
+    INTAKE_KIND: (INTAKE_POLICY, INTAKE_PACKER),
     'discovery': (DISCOVERY_POLICY, DISCOVERY_PACKER),
     'context': (CONTEXT_POLICY, CONTEXT_PACKER),
     'inspection': (INSPECTION_POLICY, INSPECTION_PACKER),
@@ -87,9 +93,10 @@ PROGRAMS = {
     'discovery-bootstrap': (BOOTSTRAP_POLICY, BOOTSTRAP_PACKER),
     LAUNCHER_KIND: (LAUNCHER_POLICY, LAUNCHER_PACKER),
     REPLAY_LAUNCHER_KIND: (REPLAY_LAUNCHER_POLICY, LAUNCHER_PACKER),
+    INTAKE_LAUNCHER_KIND: (INTAKE_LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
 PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
-              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', REPLAY_KIND, *LAUNCHER_KINDS)
+              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -97,18 +104,22 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
     # Local references let the existing flat-template builder prove that
     # every syscall adapter relocation is already resolved. The sole HIA
     # application call deliberately remains a zero rel32 hole.
-    if kind == REPLAY_LAUNCHER_KIND:
+    if kind in (REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
         kind = LAUNCHER_KIND
-    if kind == REPLAY_KIND:
-        from tools.generate_hia_worker_evaluate_replay_flow import ROLES
-        # Reuse the existing descriptor transport with only the ten replay authorities.
+    if kind in (REPLAY_KIND, INTAKE_KIND):
+        if kind == REPLAY_KIND:
+            from tools.generate_hia_worker_evaluate_replay_flow import ROLES
+            label = b'Evaluate replay'
+        else:
+            from tools.generate_hia_worker_evaluate_intake_flow import ROLES
+            label = b'Evaluate intake'
         for original, selected in (
             (b'.equ ROLE_COUNT, 23', f'.equ ROLE_COUNT, {len(ROLES)}'.encode()),
-            (b'--worker-artifact', b'--worker-evaluate-replay'),
-            (b'native HIA Artifact Worker transport', b'native HIA Evaluate replay Worker transport'),
+            (b'--worker-artifact', ('--worker-' + kind).encode()),
+            (b'native HIA Artifact Worker transport', b'native HIA ' + label + b' Worker transport'),
         ):
             if flow.count(original) != 1:
-                raise ValueError('unexpected replay transport layout')
+                raise ValueError('unexpected descriptor transport layout')
             flow = flow.replace(original, selected)
     if launcher:
         flow += b'\n' + launcher
@@ -125,6 +136,7 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
         'read-external': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                           b'.equ WORKER_EXTERNAL_READ, 1\n'),
         'input': b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n.equ WORKER_INPUT, 1\n',
+        INTAKE_KIND: b'.equ HAS_MAKE_PORT, 1\n.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n.equ WORKER_ARTIFACT, 1\n',
         REPLAY_KIND: b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n.equ WORKER_ARTIFACT, 1\n',
         'artifact': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                      b'.equ WORKER_ARTIFACT, 1\n'),
@@ -188,7 +200,7 @@ def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
     module = Path(packer_path).stem
     template = header + stub, tuple(len(header) + hole for hole in holes)
     if kind in ('input', 'artifact', 'discovery', 'context', 'inspection', 'candidate', 'rollback', *SECTIONS,
-                'discovery-bootstrap', REPLAY_KIND, LAUNCHER_KIND):
+                'discovery-bootstrap', INTAKE_KIND, REPLAY_KIND, LAUNCHER_KIND):
         packer = partitioned_packer(module, *template, extra_image=kind == LAUNCHER_KIND,
                                     separate_sections=kind in SECTIONS)
     else:
@@ -199,7 +211,7 @@ def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
 if __name__ == '__main__':
     sources = Path(FLOW).read_bytes(), Path(PORTS).read_bytes()
     for kind, (_, path) in PROGRAMS.items():
-        if kind == REPLAY_LAUNCHER_KIND:
+        if kind in (REPLAY_LAUNCHER_KIND, INTAKE_LAUNCHER_KIND):
             continue  # Both launchers use the same platform packer.
         peers = Path(PEERS).read_bytes() if kind in PEER_KINDS else b''
         launcher = Path(LAUNCHER).read_bytes() if kind == LAUNCHER_KIND else b''

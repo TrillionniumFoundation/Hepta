@@ -8,9 +8,9 @@ import struct
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.build_hia_source_build import _check_pack_output
 from tools.generate_hia_native_filter import elf_header, read_adapter_binding, verify_adapter
-from tools.generate_hia_readonly_worker_capsule import NATIVE_SOURCE, REPLAY_SOURCE
+from tools.generate_hia_readonly_worker_capsule import INTAKE_SOURCE, NATIVE_SOURCE, REPLAY_SOURCE
 from tools.generate_hia_worker_flow_packer import (
-    EMIT_PACK_LIMIT, FLOW, LAUNCHER, LAUNCHER_KIND, LAUNCHER_KINDS, LAUNCHER_PACKER, REPLAY_LAUNCHER_KIND,
+    EMIT_PACK_LIMIT, INTAKE_LAUNCHER_KIND, FLOW, LAUNCHER, LAUNCHER_KIND, LAUNCHER_KINDS, LAUNCHER_PACKER, REPLAY_LAUNCHER_KIND,
     MAGIC, PEERS, PEER_KINDS, PORTS, PROGRAMS, SECTIONS,
     adapter_source,
 )
@@ -53,7 +53,8 @@ def build(output, compiler, cold_report, *, kind='describe'):
     if kind in PEER_KINDS:
         names += (PEERS,)
     if kind in LAUNCHER_KINDS:
-        authority_source = REPLAY_SOURCE if kind == REPLAY_LAUNCHER_KIND else NATIVE_SOURCE
+        authority_source = {LAUNCHER_KIND: NATIVE_SOURCE, REPLAY_LAUNCHER_KIND: REPLAY_SOURCE,
+                            INTAKE_LAUNCHER_KIND: INTAKE_SOURCE}[kind]
         names += (LAUNCHER, authority_source)
     names += SECTIONS.get(kind, ())
     sources = {name: (ROOT / name).read_bytes() for name in names}

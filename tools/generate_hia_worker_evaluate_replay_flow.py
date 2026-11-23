@@ -118,10 +118,10 @@ def closed_store(o:mutbuf, w:mutbuf) -> u64:
 '''
 
 
-def program():
+def recipe(roles):
     constants = policy_constants()
-    constants.update({role + '_ROLE': ordinal for ordinal, (role, _) in enumerate(ROLES)})
-    constants.update(ROLE_COUNT=len(ROLES), ENTRY_BYTES=64 + 312 + 40 * len(ROLES))
+    constants.update({role + '_ROLE': ordinal for ordinal, (role, _) in enumerate(roles)})
+    constants.update(ROLE_COUNT=len(roles), ENTRY_BYTES=64 + 312 + 40 * len(roles))
     entry = function(ARTIFACT, 'artifact_entry').replace(
         'return read_span(o, w, CONFIG_HEADER, slot_fd(w, METADATA_FD), 0, 88)',
         'return start_replay(o, w)')
@@ -144,6 +144,11 @@ def program():
         *(function(common, name) for name in ('valid_fd', 'is_hex', 'copy_span', 'input_word', 'put', 'write')),
         function(RELEASE_WRITER, 'get'),
     )
+    return constants, controls
+
+
+def program():
+    constants, controls = recipe(ROLES)
     return flow_source(DRIVER, controls, constants)
 
 

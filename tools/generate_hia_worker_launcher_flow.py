@@ -11,7 +11,7 @@ from tools.generate_hia_readonly_worker_capsule import (
     CANDIDATE_OWNER, CANDIDATE_ROLES, CONTEXT_OWNER, CONTEXT_ROLES, DESCRIBE_OWNER, DESCRIBE_ROLES,
     EMIT_OWNER, EMIT_ROLES, INSPECTION_OWNER, INSPECTION_ROLES, NATIVE_ROLES, PROOF_TRUST_BYTES,
     ROLLBACK_OWNER, ROLLBACK_ROLES, VERIFY_OWNER, VERIFY_ROLES,
-    POLICY as CAPSULE_POLICY, REPLAY_OWNER, replay_inventory,
+    POLICY as CAPSULE_POLICY, evaluate_route, replay_inventory,
 )
 from tools.generate_hia_worker_describe_flow import POLICY as DESCRIBE, flow_source
 from tools.generate_hia_worker_inspection_effect import function
@@ -20,6 +20,7 @@ from tools.generate_hia_sha256 import source_program as sha256_program
 SOURCE = Path('examples/hia_bootstrap/worker_launcher_flow.hepta')
 
 REPLAY_SOURCE = Path('examples/hia_bootstrap/worker_evaluate_replay_launcher.hepta')
+INTAKE_SOURCE = Path('examples/hia_bootstrap/worker_evaluate_intake_launcher.hepta')
 
 ROUTES = (
     ('hia-agent-read-carrier', '--worker-read', READ_ROLES),
@@ -332,12 +333,11 @@ def route_tables(inventory_names=NATIVE_ROLES, routes=ROUTES):
             + roles + '    return 0\n' + children)
 
 
-def program(*, evaluate_replay=False):
+def program(*, evaluate_replay=False, evaluate_intake=False):
     roles, routes, policy = NATIVE_ROLES, ROUTES, POLICY
-    if evaluate_replay:
-        from tools.generate_hia_worker_evaluate_replay_flow import ROLES as replay_roles
-        roles = replay_inventory()
-        routes += ((REPLAY_OWNER, '--worker-evaluate-replay', tuple(name for _, name in replay_roles)),)
+    if evaluate_replay or evaluate_intake:
+        roles = replay_inventory(intake=evaluate_intake)
+        routes += (evaluate_route(intake=evaluate_intake),)
         # Completed rows can be read without creating bootstrap records for a missing key.
         policy = policy.replace('        return launch_bootstrap(o, w)',
                                 '        if route == REPLAY_ROUTE:\n            return launch_worker(o, w, route)\n'
@@ -368,7 +368,7 @@ def program(*, evaluate_replay=False):
                      EMIT_ARG_COUNT=6 + len(EMIT_ROLES), ADOPT_ARG_COUNT=6 + len(ADOPT_ROLES),
                      PROOF_TRUST_BYTES=PROOF_TRUST_BYTES,
                      BOOTSTRAP=roles.index(BOOTSTRAP_OWNER), ADMIT=roles.index('hia-worker-admit'))
-    if evaluate_replay:
+    if evaluate_replay or evaluate_intake:
         constants['REPLAY_ROUTE'] = len(routes)
     tables = route_tables(roles, routes)
     issue = function(DESCRIBE, 'issue').replace('seq > 160', 'seq > 512').replace(
