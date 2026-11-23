@@ -105,6 +105,15 @@ def build_evaluate_paired_batch(output: Path, compiler: Path, cold_report: Path)
                         schema='hepta.hia.evaluate-paired-batch-build.v1')
 
 
+def build_evaluate_budget_observation(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_budget_observation import PACK_MAGIC
+
+    return build_filter(output, compiler, cold_report, application='evaluate-budget-observation',
+                        packer='evaluate-budget-observation-packer', magic=PACK_MAGIC,
+                        filename='hia-evaluate-budget-observation', schema='hepta.hia.evaluate-budget-observation-build.v1')
+
+
+
 def build_evaluate_budget_store(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.generate_hia_evaluate_budget_store import PACK_MAGIC
 
@@ -153,12 +162,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
                                                   'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-measurements', 'evaluate-native-report', 'evaluate-reference-report',
-                                                  'execution-budget-session', 'evaluate-budget-store'),
+                                                  'execution-budget-session', 'evaluate-budget-store', 'evaluate-budget-observation'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + flag, type=Path, required=True)
     args = parser.parse_args()
     output, compiler, cold_report = args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()
+    if args.application == 'evaluate-budget-observation':
+        print(build_evaluate_budget_observation(output, compiler, cold_report))
+        return
     if args.application == 'evaluate-budget-store':
         print(build_evaluate_budget_store(output, compiler, cold_report))
         return
