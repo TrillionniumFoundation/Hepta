@@ -48,6 +48,8 @@ SIMD_DECREMENT_SLOT = 560
 SIMD_COUNT_SLOT = 568
 SIMD_RESULT_MOVE_SLOT = 576
 SIMD_COUNT_MOVE_SLOT = 584
+SIMD_SOLVER_PHASE = 12
+SIMD_MACHINE_PHASE = 13
 SIMD_SUBJECT = int.from_bytes(b'HIASIMC1', 'little')
 SIMD_RECEIPT = int.from_bytes(b'HIASIMR1', 'little')
 REQUEST_HEAD = 48
@@ -122,9 +124,9 @@ def proof_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
             return 0
         copy_output(o, w, DIGEST, end + 8, 32)
         return end + 72
-    if phase == 12:
+    if phase == SIMD_SOLVER_PHASE:
         return receive_simd_induction(o, w)
-    if phase == 11:
+    if phase == SIMD_MACHINE_PHASE:
         return received_simd_circuit(w)
     return 0
 
@@ -368,7 +370,7 @@ def send_machine_simd(w:mutbuf, role:u64) -> u64:
     put(w, HEADER + 8, get(w, SIMD_ISA_SLOT))
     put(w, HEADER + 16, get(w, SIMD_KIND_SLOT))
     put(w, HEADER + 24, role)
-    return dispatch(w, 11, 3, WORK_OFFSET + HEADER, 32, FRAME, 10320,
+    return dispatch(w, SIMD_MACHINE_PHASE, 3, WORK_OFFSET + HEADER, 32, FRAME, 10320,
                     WORK_OFFSET + BINDING, get(w, 192))
 
 def received_simd_circuit(w:mutbuf) -> u64:
@@ -384,7 +386,7 @@ def received_simd_circuit(w:mutbuf) -> u64:
     put(w, HEADER, OBLIGATION_MAGIC)
     put(w, HEADER + 8, 3)
     put(w, HEADER + 16, budget)
-    return dispatch(w, 10, 5, WORK_OFFSET + HEADER, 24, OBLIGATION, OBLIGATION_CAP,
+    return dispatch(w, SIMD_SOLVER_PHASE, 5, WORK_OFFSET + HEADER, 24, OBLIGATION, OBLIGATION_CAP,
                     WORK_OFFSET + FRAME, size)
 
 def following_data_role(isa:u64, shape:u64, role:u64) -> u64:
@@ -472,7 +474,7 @@ def send_simd_induction(w:mutbuf) -> u64:
     put(w, HEADER, OBLIGATION_MAGIC)
     put(w, HEADER + 8, 3)
     put(w, HEADER + 16, budget)
-    return dispatch(w, 12, 5, WORK_OFFSET + HEADER, 24, OBLIGATION, OBLIGATION_CAP,
+    return dispatch(w, SIMD_SOLVER_PHASE, 5, WORK_OFFSET + HEADER, 24, OBLIGATION, OBLIGATION_CAP,
                     WORK_OFFSET + FRAME, extent)
 
 def receive_simd_induction(o:mutbuf, w:mutbuf) -> u64:

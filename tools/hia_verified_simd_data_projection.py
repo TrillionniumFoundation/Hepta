@@ -193,6 +193,16 @@ def data_run(w:mutbuf, instruction:u64, token:u64) -> u64:
     b = (instruction >> 32) & 255
     raw = get(w, SD_RAW_MASK)
     shape = get(w, SD_SHAPE)
+    if op == 7 or op == 13:
+        if a != choose(shape == 3, 2, 7):
+            return 0
+    if op == 8 or op == 14:
+        if a != 7 or shape != 3:
+            return 0
+    if op == 5 or op == 6 or op == 7 or op == 13:
+        size = choose(op == 13, width, 8 * width)
+        if b + size > get(w, SD_MEMORY):
+            return 0
     if shape == 1 and (op == 2 or op == 6 or op == 16):
         return 0
     if shape == 2 and (op == 1 or op == 3 or op == 5 or op == 15):
