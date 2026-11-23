@@ -1,0 +1,45 @@
+name: HIA x86 privileged QEMU stage (unpromoted)
+on:
+  push:
+    branches:
+      - "automation/hia-x86-effect-qemu-*"
+  pull_request:
+    paths:
+      - "tests/x86_privileged_qemu/**"
+      - ".github/workflows/hia-x86-privileged-qemu-stage.yml"
+jobs:
+  independent-qemu-hardware-oracle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Ensure GNU ISA tools and isolated QEMU
+        run: |
+          set -euo pipefail
+          command -v as
+          command -v ld
+          command -v nm
+          command -v objcopy
+          if ! command -v qemu-system-x86_64 >/dev/null; then
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y qemu-system-x86
+          fi
+          qemu-system-x86_64 --version
+      - name: Check upstream ISA bytes and effect rejection tests
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_hia_machine_x64_privileged.py' -v
+          python -m unittest discover -s tests -p 'test_hia_x86_privileged_effect_lowering.py' -v
+      - name: Exercise PC and Q35 real exception/refusal paths
+        run: |
+          set -euo pipefail
+          python tests/x86_privileged_qemu/run_hardware.py --report qemu-hardware-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-x86-privileged-qemu-stage
+          path: qemu-hardware-report.json
+          if-no-files-found: warn
