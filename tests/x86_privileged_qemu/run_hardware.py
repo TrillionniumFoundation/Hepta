@@ -78,7 +78,7 @@ def descriptor_bytes(case: str) -> bytes:
     machine, relocs = code.finalize()
     if relocs:
         raise AssertionError("descriptor must be relocation-free")
-    if machine not in (bytes.fromhex("410f011ac3"), b"\\xc3"):
+    if machine not in (bytes.fromhex("410f011ac3"), bytes.fromhex("c3")):
         raise AssertionError("LIDT/RET must match independently audited ISA vector")
     return machine
 
