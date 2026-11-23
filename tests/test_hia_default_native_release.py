@@ -310,6 +310,11 @@ resources = [installed / 'hepta' / path for path in (defaults.ASSEMBLY_SYNTAX_RE
 pair = tuple(sha256(resource.read_bytes()).hexdigest() for resource in resources)
 with patch.object(asm, '_native_assembly_document', capture), patch.object(asm, '_parse_assembly_document', forbidden), patch.object(asm, '_source', forbidden):
     assert [outcome(source) for source in cases] == expected
+    for field, bound, detail in (('MAX_FUNCTIONS', 0, 'function inventory'), ('MAX_BLOCKS', 0, 'block inventory'),
+                                 ('MAX_OPERATIONS', 1, 'operation inventory')):
+        with patch.object(asm, field, bound):
+            blocked = outcome(valid)
+            assert blocked[1] == 'E_HIA_ASSEMBLY_LIMIT' and detail in blocked[4]
     from tempfile import TemporaryDirectory
     with TemporaryDirectory() as temporary:
         assembly = Path(temporary) / 'example.hia'
@@ -318,7 +323,7 @@ with patch.object(asm, '_native_assembly_document', capture), patch.object(asm, 
         with contextlib.redirect_stdout(output):
             assert cli.hia_main(['import-assembly', str(assembly)]) == 0
         assert json.loads(output.getvalue())['module'] == 'sums'
-assert observed == [pair] * (len(cases) + 1)
+assert observed == [pair] * (len(cases) + 4)
 role = installed / 'bin' / 'hia-import-assembly'
 assert all(role.read_bytes().count(path.read_bytes()) == 1 for path in resources)
 for text, expected in zip((attributes, loans, obsolete), reports, strict=True):

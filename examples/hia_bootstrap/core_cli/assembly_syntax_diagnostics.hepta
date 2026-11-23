@@ -636,7 +636,9 @@ block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
   v7:u64 = call(v0,v2) {"function":"f16"}
   v8:u64 = const() {"value":80}
   v9:u64 = call(v2,v8) {"function":"f25"}
-  v10:u64 = const() {"value":256}
+  function_default:u64 = const() {"value":256}
+  function_offset:u64 = const() {"value":131080}
+  v10:u64 = call(v2,function_offset,function_default) {"function":"inventory_limit"}
   v11:bool = compare.ge(v9,v10)
   branch v11 b1(v0,v1,v2) b2(v0,v1,v2)
 block b1(v12:readbuf,v13:mutbuf,v14:mutbuf)
@@ -823,7 +825,9 @@ block b3(v19:readbuf,v20:mutbuf,v21:mutbuf)
 block b4(v22:readbuf,v23:mutbuf,v24:mutbuf)
   v28:u64 = const() {"value":88}
   v29:u64 = call(v24,v28) {"function":"f25"}
-  v30:u64 = const() {"value":4096}
+  block_default:u64 = const() {"value":4096}
+  block_offset:u64 = const() {"value":131088}
+  v30:u64 = call(v24,block_offset,block_default) {"function":"inventory_limit"}
   v31:bool = compare.ge(v29,v30)
   branch v31 b5(v22,v23,v24) b6(v22,v23,v24)
 block b5(v32:readbuf,v33:mutbuf,v34:mutbuf)
@@ -886,7 +890,9 @@ fn f6(v0:readbuf,v1:mutbuf,v2:mutbuf,v3:u64) -> (u64) effects(read,write,trap) e
 block b0(v0:readbuf,v1:mutbuf,v2:mutbuf,v3:u64)
   v4:u64 = const() {"value":96}
   v5:u64 = call(v2,v4) {"function":"f25"}
-  v6:u64 = const() {"value":16384}
+  operation_default:u64 = const() {"value":16384}
+  operation_offset:u64 = const() {"value":131096}
+  v6:u64 = call(v2,operation_offset,operation_default) {"function":"inventory_limit"}
   v7:bool = compare.ge(v5,v6)
   branch v7 b1(v0,v1,v2) b2(v0,v1,v2,v3)
 block b1(v8:readbuf,v9:mutbuf,v10:mutbuf)
@@ -4510,4 +4516,25 @@ block b29(v259:readbuf,v260:mutbuf)
 block b31(v279:readbuf,v280:mutbuf)
   v283:u64 = call(v280) {"function":"f51"}
   ret(v283)
+end
+fn inventory_limit(arena:mutbuf,offset:u64,default_limit:u64) -> (u64) effects(read,write,trap) entry(size)
+block size(arena:mutbuf,offset:u64,default_limit:u64)
+  extent:usize = buffer.len(arena)
+  extent64:u64 = int.cast(extent) {"mode":"wrap"}
+  framed:u64 = const() {"value":131104}
+  matches:bool = compare.eq(extent64,framed)
+  branch matches header(arena,offset,default_limit) ordinary(default_limit)
+block header(memory:mutbuf,field:u64,ceiling:u64)
+  first:u64 = const() {"value":131072}
+  marker:u64 = call(memory,first) {"function":"f25"}
+  expected:u64 = const() {"value":3544419052296423752}
+  valid:bool = compare.eq(marker,expected)
+  branch valid configured(memory,field,ceiling) ordinary(ceiling)
+block configured(bytes:mutbuf,location:u64,maximum:u64)
+  requested:u64 = call(bytes,location) {"function":"f25"}
+  tightened:bool = compare.lt(requested,maximum)
+  admitted:u64 = select(tightened,requested,maximum)
+  ret(admitted)
+block ordinary(limit:u64)
+  ret(limit)
 end

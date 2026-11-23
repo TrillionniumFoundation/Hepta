@@ -284,7 +284,8 @@ def _native_assembly_document(syntax, presenter, source):
     struct.pack_into('<Q', state, 88, 1274)  # Source preflight, before syntax.
     present(state)
     with mmap.mmap(-1, 16 << 20) as output:
-        arena = ctypes.create_string_buffer(131072)
+        arena = ctypes.create_string_buffer(131104)
+        struct.pack_into('<8s3Q', arena, 131072, b'HIASYN01', MAX_FUNCTIONS, MAX_BLOCKS, MAX_OPERATIONS)
         extent = syntax._entry(raw, len(raw), ctypes.addressof(ctypes.c_char.from_buffer(output)), len(output),
                                arena, len(arena))
         if 0 < extent <= len(output):

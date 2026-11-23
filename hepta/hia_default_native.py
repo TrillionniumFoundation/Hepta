@@ -258,8 +258,16 @@ def default_assembly_text(canonical):
 
 
 def default_assembly_document(source):
-    from .hia_agent_assembly import _native_assembly_document
-    return _package_assembly(_native_assembly_document, source,
+    from . import hia_agent_assembly as assembly
+
+    limits = (assembly.MAX_FUNCTIONS, assembly.MAX_BLOCKS, assembly.MAX_OPERATIONS)
+    if any(type(value) is not int or not 0 <= value <= maximum
+           for value, maximum in zip(limits, (256, 4096, 16384), strict=True)):
+        return None
+    if (assembly.MAX_SOURCE_BYTES, assembly.MAX_LINES, assembly.MAX_LINE_BYTES, assembly.MAX_LIST_ITEMS,
+            assembly.MAX_ATTRIBUTE_NODES, assembly.MAX_ATTRIBUTE_DEPTH) != (1 << 20, 16384, 16384, 256, 2048, 16):
+        return None
+    return _package_assembly(assembly._native_assembly_document, source,
                              ((ASSEMBLY_SYNTAX_RESOURCE, 16), (ASSEMBLY_DIAGNOSTIC_RESOURCE, 17)))
 
 
