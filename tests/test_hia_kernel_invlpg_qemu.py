@@ -42,7 +42,7 @@ def generate():
     assert good.object_bytes == again.object_bytes
     assert good.text_bytes == again.text_bytes
     assert good.text_bytes.count(bytes.fromhex("0f0138")) == 1
-    with patch.object(Code, "invlpg", lambda self, base, disp=0: self.emit(b"\\x90")):
+    with patch.object(Code, "invlpg", lambda self, base, disp=0: self.emit(bytes((0x90,)))):
         dishonest = emit_program_machine(admitted)
     assert good.object_bytes != dishonest.object_bytes
     assert bytes.fromhex("0f0138") not in dishonest.text_bytes
