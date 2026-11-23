@@ -75,7 +75,12 @@ PRIMITIVE_PROFILES = MappingProxyType({
     KERNEL_FENCE_SCHEMA: KERNEL_FENCE_PROFILE,
     KERNEL_TLB_SCHEMA: KERNEL_TLB_PROFILE,
 })
-PRIMITIVE_SCHEMAS = frozenset(PRIMITIVE_PROFILES)
+# The native HIA source/shape ABI retains precisely the original v1-v8 set.
+# Experimental kernels have explicit grammar profiles but cannot masquerade
+# as historical HIA Core schemas in the frozen source-shape inventory.
+PRIMITIVE_SCHEMAS = frozenset((SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4,
+                              SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8))
+KERNEL_PRIMITIVE_SCHEMAS = frozenset((KERNEL_FENCE_SCHEMA, KERNEL_TLB_SCHEMA))
 _FEATURE_ORDER = ("bulk_memory", "inplace_memory", "byte_swap", "offset_copy", "range_fill", "recursive_chain", "parameter_loan_returns")
 PRIMITIVE_FEATURES = MappingProxyType({
     schema: frozenset(_FEATURE_ORDER[:index])

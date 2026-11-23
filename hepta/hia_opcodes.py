@@ -191,13 +191,6 @@ def _table():
         OpcodeSpec("buffer.swap", ("mutbuf", "usize", "usize"), (), effects=("read", "write", "trap"), traps=("bounds",), since=4, guards=("write:0",), semantic_rule="check_both_indices_before_swap"),
         OpcodeSpec("buffer.copy_range", ("mutbuf", "readbuf", "usize", "usize", "usize"), (), effects=("read", "write", "trap"), traps=("bounds",), since=5, guards=("write:0", "read:1", "distinct:0:1"), semantic_rule="checked_disjoint_offset_copy"),
         OpcodeSpec("buffer.fill_range", ("mutbuf", "usize", "usize", "u8"), (), effects=("write", "trap"), traps=("bounds",), since=6, guards=("write:0",), semantic_rule="check_complete_range_before_fill"),
-        # An explicitly selected kernel-fence profile; not admitted by v1-v8.
-        # This operation has no authority to issue privileged instructions.
-        OpcodeSpec("x86.fence.mfence", (), (), effects=("atomic",), since=9,
-                   semantic_rule="x86_local_load_store_fence_no_device_or_intercpu_ack"),
-        # An effect declaration, not CPL0 authority or authentic CR3 provenance.
-        OpcodeSpec("x86.tlb.invlpg", ("u64",), (), effects=("privilege",), since=10,
-                   semantic_rule="x86_local_linear_address_tlb_invalidate_requires_cpl0"),
         OpcodeSpec("call", None, None, ("function",), guards=("callee_interface",), resource_transition="call", semantic_rule="checked_callee_and_parameter_loan_contract"),
     ]
     assert len({row.name for row in rows}) == len(rows)
@@ -205,6 +198,18 @@ def _table():
 
 
 OPCODES = _table()
+# Keep the original 50-opcode source ABI immutable. Experimental instruction
+# admission is selected by the explicit kernel schema, never inserted into the
+# historical catalog used by the native HIA instruction-policy implementation.
+KERNEL_OPCODES = MappingProxyType({
+    **OPCODES,
+    "x86.fence.mfence": OpcodeSpec(
+        "x86.fence.mfence", (), (), effects=("atomic",), since=9,
+        semantic_rule="x86_local_load_store_fence_no_device_or_intercpu_ack"),
+    "x86.tlb.invlpg": OpcodeSpec(
+        "x86.tlb.invlpg", ("u64",), (), effects=("privilege",), since=10,
+        semantic_rule="x86_local_linear_address_tlb_invalidate_requires_cpl0"),
+})
 # Terminator structure is consumed by the same parser as instruction attributes.
 TERMINATORS = MappingProxyType({"ret": ("op", "values"), "jump": ("op", "target", "args"),
                                "branch": ("op", "cond", "then", "else"), "trap": ("op", "code")})
@@ -213,7 +218,10 @@ TERMINATORS = MappingProxyType({"ret": ("op", "values"), "jump": ("op", "target"
 def opcode_spec(name: str, schema: str = LATEST_CORE_SCHEMA) -> OpcodeSpec:
     if schema not in PRIMITIVE_PROFILES:
         raise OpcodeRejected("unknown primitive schema; legacy/composite input requires an explicit adapter")
-    spec = OPCODES.get(name)
+    spec = (KERNEL_OPCODES if schema in {
+        "hepta.hia.program.kernel-fence.v1",
+        "hepta.hia.program.kernel-tlb.v1",
+    } else OPCODES).get(name)
     if spec is None:
         raise OpcodeRejected(f"unsupported opcode {name}")
     if list(PRIMITIVE_PROFILES).index(schema) + 1 < spec.since:
@@ -264,7 +272,8 @@ def opcode_catalog(schema: str | None = None) -> dict:
     if schema not in PRIMITIVE_PROFILES:
         raise OpcodeRejected("catalog requires an exact primitive schema")
     version = list(PRIMITIVE_PROFILES).index(schema) + 1
-    rows = [asdict(spec) for spec in OPCODES.values() if spec.since <= version]
+    selected = KERNEL_OPCODES if version > 8 else OPCODES
+    rows = [asdict(spec) for spec in selected.values() if spec.since <= version]
     visible_types = TYPES - ({"chain"} if version < 7 else set())
     result = {"schema": "hepta.hia.opcode-catalog.v1", "core_schema": schema,
         "profile": PRIMITIVE_PROFILES[schema], "word_bits": 64,

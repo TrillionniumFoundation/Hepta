@@ -26,7 +26,7 @@ from .clang_capture import run_bounded
 from .elf_shared_abi import inspect_owned_shared_elf
 from .native_tool_identity import digest_executable
 from .object_symbols import inspect_object_symbols
-from .hia_machine_x64 import Code
+from .hia_machine_x64 import Code, KernelCode
 from .hia_machine_elf import write_elf_object
 
 
@@ -330,15 +330,7 @@ class _Function:
         op, args, attrs = ins["op"], ins["args"], ins["attrs"]
         out = [v["name"] for v in ins["out"]]
         typ = self.types[args[0]] if args else None
-        if op == "x86.fence.mfence":
-            # The Core catalog enforces zero operands/results and the atomic effect.
-            # ISA instruction selection is owned by the native encoder, not by the source.
-            c.mfence()
-        elif op == "x86.tlb.invlpg":
-            # Genuine typed HIA lowering; CPL0/ownership not yet authorized.
-            self.load(args[0])
-            c.invlpg("rax")
-        elif op == "const":
+        if op == "const":
             self.immediate(out[0], 0 if attrs["value"] is None else attrs["value"])
         elif op.startswith("int.") and op.split(".")[1] in {"add", "sub", "mul"}:
             action, mode = op.split(".")[1:]
@@ -637,6 +629,20 @@ class _Function:
         self.parent.frames.append((self.fn["name"], self.frame))
 
 
+class _KernelFunction(_Function):
+    """Experimental lowering only, keeping the historical Core function ABI intact."""
+
+    def operation(self, ins):
+        op = ins["op"]
+        if op == "x86.fence.mfence":
+            self.c.mfence()
+        elif op == "x86.tlb.invlpg":
+            self.load(ins["args"][0])
+            self.c.invlpg("rax")
+        else:
+            super().operation(ins)
+
+
 class _Emitter:
     def __new__(cls, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
         if cls is _Emitter:
@@ -649,7 +655,10 @@ class _Emitter:
     def __init__(self, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
         from .hia_machine_plan import code_options
         self.document, self.allowed_exports = document, allowed_exports
-        self.c, self.symbols, self.exports, self.frames = Code(**code_options(machine_plan)), [], [], []
+        kernel_profile = document["schema"] in {"hepta.hia.program.kernel-fence.v1",
+                                                  "hepta.hia.program.kernel-tlb.v1"}
+        code_cls = KernelCode if kernel_profile else Code
+        self.c, self.symbols, self.exports, self.frames = code_cls(**code_options(machine_plan)), [], [], []
         self.machine_plan = machine_plan
         self.function_alignment = 1 if machine_plan is None else machine_plan.get("function_alignment", 1)
         self.indices = {fn["name"]: i for i, fn in enumerate(document["functions"])}
@@ -733,7 +742,11 @@ class _Emitter:
             functions = [by_name[name] for name in self.machine_plan["function_order"]]
         for fn in functions:
             self.c.align(self.function_alignment)
-            _Function(self, fn, self.indices[fn["name"]]).render()
+            function_cls = (_KernelFunction if self.document["schema"] in {
+                "hepta.hia.program.kernel-fence.v1",
+                "hepta.hia.program.kernel-tlb.v1",
+            } else _Function)
+            function_cls(self, fn, self.indices[fn["name"]]).render()
         for fn in functions:
             self.c.align(self.function_alignment)
             self.wrapper(fn)
