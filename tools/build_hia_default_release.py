@@ -163,8 +163,9 @@ def _wheel_contents(path, sources, captured):
     return files, distribution, release_tag
 
 
-def _native_cli_scripts(directory, compiler, cold_report, distribution):
+def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sources):
     """Produce pip's scripts directly from the authenticated public Core build."""
+    from hepta.hia_program_selfhost import SOURCE_FILES
     from tools.build_hia_core_edit import DISPATCH_ROLES, PROGRAMS, build as build_core
 
     build_core(directory, compiler, cold_report, release_only=True, wheel_layout=True)
@@ -178,7 +179,15 @@ def _native_cli_scripts(directory, compiler, cold_report, distribution):
             or any(not raw.startswith(b'\x7fELF\x02\x01\x01') for raw in binaries.values())):
         raise ValueError('wheel CLI differs from the executables authenticated by its native dispatcher')
     scripts = distribution.removesuffix('.dist-info') + '.data/scripts/'
-    return {scripts + name: binaries[path] for name, path in paths.items()}, binaries
+    members = {scripts + name: binaries[path] for name, path in paths.items()}
+    for relative in SOURCE_FILES:
+        path = ROOT / relative
+        raw = path.read_bytes()
+        if sha256(raw).hexdigest() != sources[relative]:
+            raise ValueError(f'selfhost CLI resource differs from cold source {relative}')
+        members[scripts + path.name] = raw
+        binaries[path] = raw
+    return members, binaries
 
 
 def _write_wheel(path, files, distribution):
@@ -196,8 +205,9 @@ def _write_wheel(path, files, distribution):
         for name, raw in sorted(files.items()):
             item = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
             item.create_system = 3
-            item.external_attr = (0o100755 if name.startswith(distribution.removesuffix('.dist-info') + '.data/scripts/')
-                                  else 0o100644) << 16
+            is_program = (name.startswith(distribution.removesuffix('.dist-info') + '.data/scripts/')
+                          and raw.startswith(b'\x7fELF'))
+            item.external_attr = (0o100755 if is_program else 0o100644) << 16
             item.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(item, raw)
     return {name: sha256(raw).hexdigest() for name, raw in sorted(files.items())}
@@ -327,7 +337,7 @@ def build(output, compiler, cold_report=None, *, development=False):
         PACKAGE_DIRECTORY + '/provenance.json': provenance,
         distribution + '/WHEEL': wheel_meta}
     if not development:
-        cli_scripts, cli_inputs = _native_cli_scripts(output / 'native-cli', compiler, cold_report, distribution)
+        cli_scripts, cli_inputs = _native_cli_scripts(output / 'native-cli', compiler, cold_report, distribution, sources=sources)
         derived.update(cli_scripts)
         owner_inputs.update(cli_inputs)
         derived[PACKAGE_DIRECTORY + '/cold-report.json'] = cold_bytes

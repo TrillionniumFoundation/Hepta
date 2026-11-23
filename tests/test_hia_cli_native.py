@@ -913,6 +913,11 @@ entries=[e for e in importlib.metadata.distribution("hia-core").entry_points
 assert not entries
 physical_entry = installed / "bin/hia"
 assert physical_entry.read_bytes().startswith(b"\x7fELF")
+from hepta.hia_program_selfhost import SOURCE_FILES
+for relative in SOURCE_FILES:
+ resource = physical_entry.parent / Path(relative).name
+ assert resource.read_bytes() == (installed / "hepta/_data" / relative).read_bytes()
+ assert resource.is_file() and not (resource.stat().st_mode & 0o111)
 import subprocess
 physical = subprocess.run([physical_entry, "--version"], cwd=installed, env={"PATH": ""}, capture_output=True)
 assert physical.returncode == 0 and physical.stdout == b"hia 0.3.0\n" and not physical.stderr
