@@ -2,11 +2,16 @@
 
 HIA uses lowercase `.hepta` source files. **The source naming migration is
 complete; whole-product native implementation and qualification remain incomplete.**
-The portable wheel still enters `hepta.cli:hia_main` and its default release
-pin is `None`. The separate Linux x86-64 Core candidate installs a standalone
-`hia` without Python; it is not a replacement for every hosted command or the
-durable MCP service. `whole_native_delivery_qualified`,
+The ordinary Linux x86-64 wheel and editable build both package the public
+`hia` ELF and its companion executables. The wheel build derives package pins
+from the matching cold report. The source pin template remains `None`, and
+the Python import library retains `hepta.cli.hia_main`.
+The independently installable Core package also supplies a standalone `hia`.
+The durable MCP service, default worker startup and whole-product delivery
+still require their own qualification. `whole_native_delivery_qualified`,
 `old_stack_can_be_removed` and `production_activated` remain false.
+[Wheel backend](../tools/hia_wheel_backend.py) ·
+[Release builder](../tools/build_hia_default_release.py).
 
 This is the single current-state entry. Component contracts describe their
 interfaces; the [selfhost contract](HIA_SELFHOST_CORE_SUPPORT.json) and
@@ -239,8 +244,9 @@ retains `hia-asm.v1`, structured Core retains its explicit schema, and the
 The [source naming contract](HIA_SOURCE_SUFFIX.md) also covers generators,
 package resources and historical path mappings.
 
-The [ordinary CLI](HIA_CLI_NATIVE.md#all-15-ordinary-actions) has fifteen
-actions; selected HIA control still uses its declared foreign effects.
+The installed `hia` dispatches to packaged native programs. The Python
+[CLI bridge](HIA_CLI_NATIVE.md#all-15-ordinary-actions) exposes fifteen
+actions and retains its declared foreign effects.
 The ordinary worker constructs `HIAAgentService` and dispatches eleven
 public tools, with `hia_resource_read` as an alias.
 The [standalone native frontend](HIA_AGENT_STDIO_NATIVE.md) supplies six
@@ -375,7 +381,7 @@ calls, loops, ownership, concurrency, foreign lifetimes and application cost.
 
 | Surface | HIA implementation and remaining owner |
 | --- | --- |
-| CLI and compilation | Selected HIA control, lowering, emission and verified kernels; ordinary entry, general Core verification, foreign objects, compiler/solver/linker tools and publication still have hosted owners |
+| CLI and compilation | The installed command dispatches through a native ELF. Hosted APIs retain foreign objects, compiler/solver/linker dependencies and publication paths |
 | Worker and service | Native request/report, discovery, verification, bootstrap, context and read policies; `HIAAgentService`, imports, tool dispatch and foreign providers remain |
 | Store and evaluation | Native lifecycle, transaction, profile, cost and evaluation controls; SQLite/WAL durability, JSON/hash providers, clocks, exceptions and replay remain |
 | Execution and VM | Explicit integer and observation components; general VM, runner setup, limits, child termination, complete reports and foreign lifetime semantics remain |

@@ -20,11 +20,11 @@ under an explicit administrator bundle pin; its hosted custody and durable
 service/runtime dependencies are not yet retired. See
 [worker policy and custody](docs/HIA_WORKER_REPORT_NATIVE.md).
 
-An explicit [default-owner candidate wheel](docs/HIA_DEFAULT_NATIVE_RELEASE.md)
-packages the full-cost HIA image for Linux x86-64. Its ordinary full-cost API and
-worker scope bind the installed image without selector environment variables.
-The source/portable package and the remaining worker/service owners are unchanged;
-this candidate is a step toward default native delivery, not whole-stack cutover.
+On Linux x86-64 the ordinary wheel build packages the HIA dispatcher and
+its sibling executables alongside the Python import library. The build derives
+the full-cost helper pin from the matching cold qualification. See the
+[wheel backend](tools/hia_wheel_backend.py) and
+[packaged owners](docs/HIA_DEFAULT_NATIVE_RELEASE.md).
 
 ## Native Linux Core candidate
 
@@ -43,12 +43,12 @@ env -i PATH= ./hia-release verify "$PWD/hia-install" "$digest" < store.hiapack
 env -i PATH= "$PWD/hia-install/$digest/hia" --version
 ```
 
-This `hia` is a native executable, not the Python wheel entry point. It covers
-Core and selected Agent Store components; it does not replace the hosted MCP
-service or the verified shared-library build route. See
-[native release and source rebuild](docs/HIA_NATIVE_SOURCE_BUILD.md).
+The installed `hia` runs from this release directory. Its package covers
+Core and selected Agent Store components. The durable MCP service has a
+separate installation and lifecycle.
+[Native release and source rebuild](docs/HIA_NATIVE_SOURCE_BUILD.md).
 
-## Hosted Agent entry
+## Installed Linux x86-64 CLI
 
 ```sh
 python -m pip install .
@@ -57,21 +57,16 @@ hia check-assembly examples/hia_bootstrap/bytesum.hepta
 hia verify examples/hia_program/counter.hepta
 ```
 
-The wheel's `hia` entry is a Python-hosted bridge. An explicitly selected
-[HIA CLI ownership](docs/HIA_CLI_NATIVE.md)
-now controls all fifteen actions, argument/help/error presentation, sequencing
-and current selfhost-build selection. Semantic action bodies, file policy and
-successful JSON presentation remain named foreign owners; this is not a
-standalone wholly native CLI.
-The independently built
-HIA-native stdio application supports `capabilities`, `verify`, `compile`,
-`render-assembly`, direct HIA-source `assemble` and `check-assembly` on
-Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
-The ordinary `hia build --backend selfhost` route can explicitly select an
-operator-pinned HIA compiler for bounded primitive Core v8/v9 ELF objects. Its
-native frontend and code generator execute without the Python emitter or an
-external linker; the CLI, admission and publication bridge remain hosted.
-See [native compiler selection and its supported profile](docs/HIA_PROGRAM_SELFHOST_BUILD.md).
+Both regular and editable installs build the public `hia` ELF and install
+the companion programs in the scripts directory. The release builder checks
+their ELF format and the dispatcher's recorded role hashes before packaging.
+The Python API keeps its hosted CLI bridge and its own
+[control and foreign effects](docs/HIA_CLI_NATIVE.md).
+The independently built [native stdio application](docs/HIA_AGENT_STDIO_NATIVE.md)
+supports `capabilities`, `verify`, `compile`, `render-assembly`, `assemble`
+and `check-assembly` on Linux x86-64.
+The [Python selfhost build API](docs/HIA_PROGRAM_SELFHOST_BUILD.md) supports
+an operator-pinned HIA compiler for bounded primitive Core v8/v9 ELF objects.
 The separate [native patch application](docs/HIA_CORE_PATCH_CLI.md) performs
 snapshot-bound edits with native whole-Core checks of both base and candidate.
 The [native patch-result application](docs/HIA_CORE_PATCH_RESULT_CLI.md) also
