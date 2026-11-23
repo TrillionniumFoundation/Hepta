@@ -288,6 +288,27 @@ def _render_assembly_document(data: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _native_assembly_text(image, canonical: bytes) -> str:
+    import ctypes
+    import mmap
+    import struct
+    from .hia_program import MAX_BYTES, MAX_NODES, MAX_DEPTH
+
+    # The wheel's standalone renderer lends the same six-argument image an
+    # 8 MiB output and a 32 MiB JSON arena. Anonymous maps commit touched pages.
+    with mmap.mmap(-1, MAX_BYTES) as output, mmap.mmap(-1, 32 << 20) as arena:
+        struct.pack_into('<2Q', arena, 48, MAX_NODES, MAX_DEPTH)
+        extent = image._entry(canonical, len(canonical),
+                              ctypes.addressof(ctypes.c_char.from_buffer(output)), len(output),
+                              ctypes.addressof(ctypes.c_char.from_buffer(arena)), len(arena))
+        if extent == 0xfffffffa:
+            _reject("source exceeds byte budget", limit=True)
+        if not 0 < extent <= MAX_SOURCE_BYTES:
+            raise HIAAssemblyRejected("native renderer refused checked Core", "E_HIA_ASSEMBLY_ROUNDTRIP",
+                                      phase="representation")
+        return output[:extent].decode('utf-8')
+
+
 def render_assembly(document) -> str:
     """Canonical compact text whose exact primitive Core round trip is checked."""
     checked = verify_program(document)
@@ -295,7 +316,10 @@ def render_assembly(document) -> str:
     if checked.structured_bytes is not None or data["schema"] not in CORE_SCHEMAS:
         raise HIAAssemblyRejected("render requires explicit primitive v6/v7/v8/v9 Core; use the existing adapter first",
                                   "E_HIA_ASSEMBLY_PROFILE", phase="representation")
-    rendered = _render_assembly_document(data)
+    from .hia_default_native import default_assembly_text
+    rendered = default_assembly_text(checked.canonical_bytes)
+    if rendered is None:
+        rendered = _render_assembly_document(data)
     if assemble_program(rendered).canonical_bytes != checked.canonical_bytes:
         raise HIAAssemblyRejected("renderer changed canonical Core", "E_HIA_ASSEMBLY_ROUNDTRIP",
                                   phase="representation")

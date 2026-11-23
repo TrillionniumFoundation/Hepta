@@ -308,6 +308,56 @@ print(json.dumps(answer, sort_keys=True))
 '''
         self.assertEqual(json.loads(self.child(body).stdout), self.expected)
 
+    def test_installed_public_api_and_cli_share_the_authenticated_assembly_renderer(self):
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
+            self.skipTest('the public renderer comes from the matching cold CLI link')
+        from tests.test_hia_agent_assembly import SOURCE
+        body = r'''
+from hashlib import sha256
+from hepta import cli, hia_agent_assembly as assembly
+from hepta.hia_agent_assembly import assemble_program, render_assembly
+from hepta.hia_native_helpers import native_helpers_scope
+import contextlib, io
+text = sys.argv[3]
+checked = assemble_program(text)
+renderer = installed / 'hepta' / defaults.ASSEMBLY_RENDER_RESOURCE
+digest = sha256(renderer.read_bytes()).hexdigest()
+role = installed / 'bin' / 'hia-render-assembly'
+assert role.read_bytes().count(renderer.read_bytes()) == 1
+observed = []
+original = assembly._native_assembly_text
+def consume(image, core):
+    observed.append((image.image_sha256, sha256(core).hexdigest()))
+    return original(image, core)
+with patch.object(assembly, '_native_assembly_text', consume), patch.object(assembly, '_render_assembly_document', forbidden):
+    assert render_assembly(checked) == text
+    from tempfile import TemporaryDirectory
+    with TemporaryDirectory() as temporary:
+        source = Path(temporary) / 'program.json'
+        source.write_bytes(checked.canonical_bytes)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            assert cli.hia_main(['render-assembly', str(source)]) == 0
+        assert output.getvalue() == text
+assert observed == [(digest, checked.sha256)] * 2
+with native_helpers_scope(), patch.object(assembly, '_native_assembly_text', forbidden):
+    assert render_assembly(checked) == text
+original_image = renderer.read_bytes()
+try:
+    renderer.write_bytes(original_image[:-1])
+    with patch.object(assembly, '_render_assembly_document', forbidden), patch.object(assembly, '_native_assembly_text', forbidden):
+        try:
+            render_assembly(checked)
+        except ValueError as error:
+            assert defaults.ASSEMBLY_RENDER_RESOURCE in str(error)
+        else:
+            raise AssertionError('damaged package renderer reached the public API')
+finally:
+    renderer.write_bytes(original_image)
+print('PACKAGE_HIA_ASSEMBLY_RENDER')
+'''
+        self.assertEqual(self.child(body, SOURCE).stdout.strip(), 'PACKAGE_HIA_ASSEMBLY_RENDER')
+
     def test_installed_cli_uses_package_control_without_argparse_or_selectors(self):
         from hepta.hia_cli_native import native_cli_profile
 
