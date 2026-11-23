@@ -93,6 +93,16 @@ def _source_bundle(sources, *, names=ROLE_NAMES):
     return bytes(wire)
 
 
+def _named_source_request(sources, *, tag=b'HIANAM01'):
+    frame = bytearray(struct.pack('<8sQ', tag, len(sources)))
+    for name, raw in sources.items():
+        encoded = name.encode('ascii')
+        frame.extend(struct.pack('<2Q', len(encoded), len(raw)))
+        frame.extend(encoded)
+        frame.extend(raw)
+    return bytes(frame)
+
+
 def _compiled_sources(raw, sources):
     """Read only the admitted source/image pairs from a successful native build."""
     expected = set(sources) | {name + '.bin' for name in sources}
@@ -125,8 +135,7 @@ def compile_source_batch(bootstrap, compiler, cold_report, sources):
     if not 1 <= len(sources) <= 128:
         raise ValueError('native batch source inventory exceeds the builder profile')
     _, executable = _build_captured(bootstrap, compiler, cold_report)
-    packet = _source_bundle(sources.values(), names=tuple(sources))
-    run = _run_captured(executable, 'build', packet, bootstrap)
+    run = _run_captured(executable, 'sources', _named_source_request(sources), bootstrap)
     if run.returncode or run.stderr:
         raise ValueError('HIA refused the complete native batch: ' + str(run.returncode))
     return _compiled_sources(run.stdout, sources)

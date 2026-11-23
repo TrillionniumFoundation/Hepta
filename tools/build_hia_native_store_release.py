@@ -16,7 +16,7 @@ import tarfile
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from tools.build_hia_core_edit import PROGRAMS as CORE_EDIT_PROGRAMS
-from tools.build_hia_source_build import _compiled_sources, _run_captured, _source_bundle
+from tools.build_hia_source_build import _compiled_sources, _named_source_request, _run_captured
 from tools.build_hia_json_preflight import CANDIDATES, ROOT, _image_manifest, admit_cold_build, current_sources
 from tools.build_hia_sqlite_components import PROJECTION, UNITS
 from tools.build_hia_worker_release import AGENT_STDIO_ROLES, INSTALLED_HELPERS
@@ -626,15 +626,6 @@ def _release_packer_schedule(wire, call_planner):
     return list(zip(recipes, owners, strict=True))
 
 
-def _named_source_request(sources, *, tag=b'HIANAM01'):
-    frame = bytearray(struct.pack('<8sQ', tag, len(sources)))
-    for name, raw in sources.items():
-        encoded = name.encode('ascii')
-        frame.extend(struct.pack('<2Q', len(encoded), len(raw)))
-        frame.extend(encoded)
-        frame.extend(raw)
-    return bytes(frame)
-
 
 def _kit_with_objects(frame):
     """Read the three attested ELF object ranges bound by the kit's x86-64 call sites."""
@@ -896,8 +887,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         'source_build_packer.hepta': 'source_build_packer.hepta',
         'source_build_policy.hepta': 'source_named_packet.hepta',
     })
-    bootstrap = _source_bundle(policy_sources.values(), names=policy_sources)
-    compiled = call(seed, 'build', bootstrap)
+    compiled = call(seed, 'sources', _named_source_request(policy_sources))
     _compiled_sources(compiled, policy_sources)
     named_packer = call(seed, 'pack', compiled)
 
@@ -908,18 +898,19 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             raise ValueError('native source packet digest differs from its bytes')
         return wire, digest.hex()
 
-    if capture_packet(policy_sources)[0] != bootstrap:
-        raise ValueError('native source packager differs from its bootstrap packet')
+    bootstrap, _ = capture_packet(policy_sources)
+    if call(seed, 'build', bootstrap) != compiled:
+        raise ValueError('native source packager differs from the admitted bootstrap sources')
     bootstrap_packets.append((len(policy_sources), bootstrap))
 
     def compile_sources(named):
         pinned = capture_sources(named)
+        compiled = call(seed, 'sources', _named_source_request(pinned))
         if pack_directory is None:
             wire, _ = capture_packet(pinned)
+            if call(seed, 'build', wire) != compiled:
+                raise ValueError('bootstrap source transport changed its compiled group')
             bootstrap_packets.append((len(pinned), wire))
-            compiled = call(seed, 'build', wire)
-        else:
-            compiled = call(seed, 'sources', _named_source_request(pinned))
         return compiled, _compiled_sources(compiled, pinned), pinned
 
     # Bootstrap once. The kit composer binds all three freshly compiled objects

@@ -4,7 +4,7 @@ from hashlib import sha256
 from pathlib import Path
 import struct
 
-from tools.build_hia_source_build import _build_captured, _compiled_sources, _run_captured, _source_bundle
+from tools.build_hia_source_build import _build_captured, _compiled_sources, _named_source_request, _run_captured
 
 ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP = 'examples/hia_bootstrap/'
@@ -39,8 +39,7 @@ def cold_tools(directory, compiler, cold_report, admitted):
 
     def compile_sources(named):
         pinned = capture_sources(named)
-        wire = _source_bundle(pinned.values(), names=pinned)
-        result = call(seed, 'build', wire)
+        result = call(seed, 'sources', _named_source_request(pinned))
         return result, _compiled_sources(result, pinned), pinned
 
     return seed, NativeReleaseSources(seed, compile_sources, capture_sources, call), call
