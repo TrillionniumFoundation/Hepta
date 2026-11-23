@@ -857,14 +857,17 @@ def _reference_primitive_structure(data):
         _reject("invalid function inventory", "E_HIA_FORMAT")
     functions, block_maps = {}, {}
     for fn in data["functions"]:
+        # Validate the complete function container and its effect list before
+        # inspecting profile-specific permissions. An attacker-controlled list
+        # or scalar must raise HIAProgramRejected, never an unchecked TypeError.
+        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
+                                 parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
         # New effects must not silently widen historical Core v1-v8 grammar.
         if data["schema"] not in {"hepta.hia.program.kernel-fence.v1",
                                   "hepta.hia.program.kernel-tlb.v1"} and "atomic" in fn["effects"]:
             _reject("atomic effect requires an explicit kernel effect schema", "E_HIA_EFFECT")
         if data["schema"] != "hepta.hia.program.kernel-tlb.v1" and "privilege" in fn["effects"]:
             _reject("privilege effect requires the explicit kernel-tlb schema", "E_HIA_EFFECT")
-        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
-                                 parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
         if fn["name"] in functions:
             _reject("duplicate function", "E_HIA_NAME")
         functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
