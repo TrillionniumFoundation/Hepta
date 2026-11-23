@@ -42,7 +42,7 @@ CORE_REPORT_MODE = int.from_bytes(b'HIACRPT1', 'little')
 
 def template(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
              formatter=False, suite=False, object_files=False, worker_request=False, final_loader=False,
-             canonical_render_tag=None):
+             canonical_render_tag=None, canonical_section=None):
     output_offset = wire_bytes + 4096
     workspace_offset=output_offset+output_bytes
     mapping_bytes=workspace_offset+workspace_bytes
@@ -187,6 +187,34 @@ def template(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_byte
         emit('49 8d 74 24 08 49 8d bc 24');word(workspace_offset + FINAL_LOADER_NAME)
         emit('b9');word(256);emit('fc f3 a4')
     calls.append(call_image())
+    if canonical_section is not None:
+        # The HIA plan owns a fixed header and variable byte sections. Re-encode
+        # only its ordinary JSON section using the original Worker image.
+        # Both other sections and their published order are byte-preserving.
+        fixed, extent = canonical_section
+        if not 0 <= extent <= fixed-8 or fixed >= output_bytes or wire_bytes < output_bytes:
+            raise ValueError('invalid JSON section layout')
+        emit('3d');word(output_bytes);branch('0f 87','invalid')
+        emit('3d');word(fixed);branch('0f 82','invalid')
+        emit('41 89 c5 4d 8d bc 24');word(output_offset)
+        emit('4d 8b b7');word(extent)
+        emit('2d');word(fixed)
+        emit('49 39 c6');branch('0f 87','invalid')
+        emit('49 8d bf');word(fixed)
+        emit('4c 89 f6 49 8d 94 24');word(fixed)
+        emit('b9');word(8<<20)
+        emit('4d 8d 84 24');word(workspace_offset)
+        emit('41 b9');word(workspace_bytes)
+        emit('49 c7 00 00 00 00 00 49 c7 40 08');word(4300)
+        emit('e8');calls.append(len(code));word(0)
+        emit('3d');word(8<<20);branch('0f 87','invalid')
+        emit('89 c3 4d 29 f5 49 01 c5 49 81 fd');word(output_bytes);branch('0f 87','invalid')
+        emit('4c 89 fe 4c 89 e7 b9');word(fixed);emit('fc f3 a4')
+        emit('49 89 9c 24');word(extent)
+        emit('4b 8d b4 37');word(fixed)
+        emit('49 8d bc 1c');word(fixed)
+        emit('4c 89 e9 48 29 d9 48 81 e9');word(fixed);emit('f3 a4')
+        emit('4d 89 ee 4d 89 e7');branch('e9','write')
     if canonical_render_tag is not None:
         # The first HIA section emits a Store command plan or a ledger. The
         # second is the original Worker ordinary-data canonical JSON section.

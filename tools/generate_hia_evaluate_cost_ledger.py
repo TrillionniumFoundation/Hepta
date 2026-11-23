@@ -11,8 +11,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_agent_identity import source_program as identity
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_evaluate_paired_batch import snapshot_hash
-from tools.generate_hia_evaluate_settlement import FIELDS, ISSUE, MATCH, POLICY, STATE, hia_literals, json_slice
-from tools.generate_hia_worker_emit_verification import key_table
+from tools.generate_hia_evaluate_settlement import ISSUE, MATCH, POLICY, STATE, hia_literals, json_slice
 from tools.generate_hia_worker_evaluate_case import source_program as case_source
 from tools.generate_hia_worker_inspection_effect import function
 
@@ -579,7 +578,7 @@ def program():
         from tools.generate_hia_evaluate_settlement import program as settlement
         helpers += [function(settlement(),'next_power')]
     helpers += [function(case,k) for k in ('read_word','put','get','widen')]
-    decode = json_slice().replace(key_table(FIELDS),key_table(KEYS))
+    decode = json_slice(KEYS)
     template = ('cost_receipt','cost_receipt_pass','cost_rows','cost_row','receipt_literal',
                 'receipt_fragment','receipt_delimited_fragment','receipt_fragment_size')
     emit = '\n'.join(function(original,k) for k in template)

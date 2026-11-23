@@ -868,7 +868,7 @@ def settlement_keys(names):
     return '\n'.join((*lines, '    return 0', ''))
 
 
-def json_slice():
+def json_slice(keys=FIELDS):
     import ast
     from tools.generate_hia_json_decode import source_program
     from tools.generate_hia_mcp_request import WIRE_HELPERS
@@ -900,7 +900,7 @@ def json_slice():
                     n.args[1]=ast.BinOp(ast.parse('('+self.span+' >> 32)',mode='eval').body,ast.Add(),n.args[1])
             return n
     decoder=ast.unparse(ast.fix_missing_locations(Span().visit(tree)))
-    helpers=function(WIRE_HELPERS,'match_word')+'\n'+settlement_keys(FIELDS)
+    helpers=function(WIRE_HELPERS,'match_word')+'\n'+settlement_keys(keys)
     body=f'''
 def fields(s:readbuf, o:mutbuf, w:mutbuf, at:u64, width:u64) -> bool:
     put(w,{STATE+264},at)
@@ -911,7 +911,7 @@ def fields(s:readbuf, o:mutbuf, w:mutbuf, at:u64, width:u64) -> bool:
     if widen(section_decode_json(s,o,w)) >= 4294967292 or get(o,64) != 6:
         return False
     i = 0
-    while i <= {len(FIELDS)}:
+    while i <= {len(keys)}:
         put(w,{STATE+2048}+16*i,0)
         put(w,{STATE+2056}+16*i,0)
         i = i+1

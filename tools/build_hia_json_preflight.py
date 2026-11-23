@@ -230,6 +230,8 @@ CANDIDATES = {
     'evaluate-publication': ('evaluate_publication', 'evaluate-publication'),
     'evaluate-budget-observation-packer': ('evaluate_budget_observation_packer', 'evaluate-budget-observation-packer'),
     'evaluate-publication-packer': ('evaluate_publication_packer', 'evaluate-publication-packer'),
+    'evaluate-run-plan': ('evaluate_run_plan', 'evaluate-run-plan'),
+    'evaluate-run-plan-packer': ('evaluate_run_plan_packer', 'evaluate-run-plan-packer'),
     'evaluate-cost-ledger': ('evaluate_cost_ledger', 'evaluate-cost-ledger'),
     'evaluate-cost-ledger-packer': ('evaluate_cost_ledger_packer', 'evaluate-cost-ledger-packer'),
     'evaluate-budget-store': ('evaluate_budget_store', 'evaluate-budget-store'),

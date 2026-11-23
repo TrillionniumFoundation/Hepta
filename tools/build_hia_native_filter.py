@@ -130,6 +130,13 @@ def build_evaluate_publication(output: Path, compiler: Path, cold_report: Path) 
 
 
 
+def build_evaluate_run_plan(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_run_plan import PACK_MAGIC
+    return build_filter(output, compiler, cold_report, application='evaluate-run-plan',
+                        packer='evaluate-run-plan-packer', magic=PACK_MAGIC, canonical_output=True,
+                        filename='hia-evaluate-run-plan', schema='hepta.hia.evaluate-run-plan-build.v1')
+
+
 def build_evaluate_cost_ledger(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.generate_hia_evaluate_cost_ledger import PACK_MAGIC
     return build_filter(output, compiler, cold_report, application='evaluate-cost-ledger',
@@ -195,7 +202,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
                                                   'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-report-flow', 'evaluate-measurements', 'evaluate-native-report', 'evaluate-reference-report',
-                                                  'execution-budget-session', 'evaluate-cost-ledger', 'evaluate-budget-store', 'evaluate-budget-observation', 'evaluate-publication'),
+                                                  'execution-budget-session', 'evaluate-run-plan', 'evaluate-cost-ledger', 'evaluate-budget-store', 'evaluate-budget-observation', 'evaluate-publication'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + flag, type=Path, required=True)
@@ -206,6 +213,9 @@ def main():
         return
     if args.application == 'evaluate-publication':
         print(build_evaluate_publication(output, compiler, cold_report))
+        return
+    if args.application == 'evaluate-run-plan':
+        print(build_evaluate_run_plan(output, compiler, cold_report))
         return
     if args.application == 'evaluate-cost-ledger':
         print(build_evaluate_cost_ledger(output, compiler, cold_report))
