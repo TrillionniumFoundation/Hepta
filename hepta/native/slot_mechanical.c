@@ -468,6 +468,7 @@ static int close_scopes(Session *s,PyObject *error) {
     return 0;
 }
 static int session_traverse(Session *s,visitproc visit,void *arg) {
+    Py_VISIT(Py_TYPE(s));
     Py_VISIT(s->module); Py_VISIT(s->function); Py_VISIT(s->binding);
     Py_VISIT(s->frame_type); Py_VISIT(s->unknown); Py_VISIT(s->admission);
     Py_VISIT(s->frame); Py_VISIT(s->record); Py_VISIT(s->series);
@@ -627,6 +628,7 @@ static PyObject *method_vectorcall(PyObject *object,PyObject *const *args,
     return invoke(method,args,nargsf,kwnames,NULL,NULL,NULL);
 }
 static int method_traverse(Method *m,visitproc visit,void *arg) {
+    Py_VISIT(Py_TYPE(m));
     Py_VISIT(m->module); Py_VISIT(m->function); Py_VISIT(m->binding);
     Py_VISIT(m->frame_type); Py_VISIT(m->unknown); Py_VISIT(m->admission);
     return 0;
@@ -1007,6 +1009,7 @@ static PyObject *lease_opcode(PyObject *module,PyObject *const *args,Py_ssize_t 
     return PyLong_FromLong(port == LEASE_RELEASE ? 14 : 13);
 }
 static int iteration_traverse(Iteration *self,visitproc visit,void *arg) {
+    Py_VISIT(Py_TYPE(self));
     Py_VISIT(self->session); Py_VISIT(self->iterator); return 0;
 }
 static int iteration_clear(Iteration *self) {
