@@ -26,6 +26,7 @@ OWNED_VM_RESOURCE = '_data/native/default/full_cost/hia-owned-reference-wire'
 PROOF_BUNDLE_RESOURCE = '_data/native/default/full_cost/proof-bundle.json'
 BINDER_RESOURCE = '_data/native/default/full_cost/hia-safe-core-bind'
 CLI_BUNDLE_RESOURCE = '_data/native/default/cli/manifest.json'
+ASSEMBLY_RENDER_RESOURCE = '_data/native/default/cli/assembly-render.bin'
 SELECTOR = 'HEPTA_HIA_FULL_COST_MANIFEST'
 CORE_ELF_OWNERS = (
     ('HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST', 'elf-shared-linker'),
@@ -61,7 +62,7 @@ def _verify_data_resources(directory, value):
 
     from .hia_native_helpers import _read
 
-    if len(value) not in ((10, 11, 12, 14, 15) if value[4] == SCOPES[0] else (7,)):
+    if len(value) not in ((10, 11, 12, 14, 15, 16) if value[4] == SCOPES[0] else (7,)):
         raise ValueError('incomplete native-default data pin')
     contract_name = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
     contract = _read(directory / '_data' / contract_name, 4 << 20)
@@ -81,8 +82,10 @@ def _verify_data_resources(directory, value):
         resources.append((LEDGER_BUNDLE_RESOURCE, value[11]))
     if len(value) >= 14:
         resources.extend(((GRAPH_BUNDLE_RESOURCE, value[12]), (OWNED_VM_RESOURCE, value[13])))
-    if len(value) == 15:
+    if len(value) >= 15:
         resources.append((ADMISSION_BUNDLE_RESOURCE, value[14]))
+    if len(value) >= 16:
+        resources.append((ASSEMBLY_RENDER_RESOURCE, value[15]))
     for path, expected in resources:
         raw = _read(directory / path, 16 << 20).raw
         if sha256(raw).hexdigest() != expected:
@@ -167,7 +170,7 @@ def _capture_package():
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
             raise ValueError('portable native-default pin bytes changed')
         return None
-    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12, 14, 15)
+    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12, 14, 15, 16)
             or any(type(item) is not str for item in value)
             or value[:3] != (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE)
             or value[4] not in SCOPES
@@ -243,6 +246,34 @@ def default_cli():
                 or gettext.find(domain, gettext.bindtextdomain(domain)) is not None):
             return None
     return _package_cli()
+
+
+def default_assembly_text(canonical):
+    """Render checked Core with the wheel's own public HIA renderer image."""
+    from hashlib import sha256
+    from . import hia_native_helpers as helpers
+    from .hia_agent_assembly import _native_assembly_text
+    from .hia_json_preflight_native import MAX_IMAGE_BYTES, NativeHiaJsonImage
+
+    helpers._check_scope_owner()
+    if helpers._SCOPE_OWNER is not None:
+        return None
+    captured = _capture_package()
+    if captured is None:
+        return None
+    directory, value, pins = captured
+    if len(value) < 16:
+        return None
+    image = helpers._read(directory / ASSEMBLY_RENDER_RESOURCE, MAX_IMAGE_BYTES)
+    if sha256(image.raw).hexdigest() != value[15]:
+        raise ValueError('installed assembly renderer differs from its package pin')
+    snapshots = (*pins, (image, MAX_IMAGE_BYTES))
+    try:
+        renderer = NativeHiaJsonImage(image.raw, value[15])
+        return _native_assembly_text(renderer, canonical)
+    finally:
+        if any(helpers._read(item.path, limit) != item for item, limit in snapshots):
+            raise ValueError('installed assembly renderer changed during rendering')
 
 
 def default_cli_discovery():

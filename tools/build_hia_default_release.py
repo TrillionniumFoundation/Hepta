@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_default_native import (ADMISSION_BUNDLE_RESOURCE, ADMISSION_OWNER, BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
+from hepta.hia_default_native import (ADMISSION_BUNDLE_RESOURCE, ADMISSION_OWNER, ASSEMBLY_RENDER_RESOURCE, BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
                                      CORE_WIRE_OWNER, INTEGER_BUNDLE_RESOURCE, INTEGER_OWNER,
                                      LEDGER_BUNDLE_RESOURCE, LEDGER_OWNER, GRAPH_BUNDLE_RESOURCE, GRAPH_OWNER, OWNED_VM_RESOURCE,
                                      PIN_RESOURCE, PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
@@ -164,6 +164,38 @@ def _wheel_contents(path, sources, captured):
     return files, distribution, release_tag
 
 
+def _renderer_from_public_elf(binary, roles, receipt, sources):
+    """Recover the HIA image already emitted and linked into the public tool."""
+    from tools.build_hia_agent_batch_commit import ELF_HEADER_SIZE
+
+    receipts = receipt['compile_receipts']
+    names = receipt['executables']['hia-render-assembly']['native_image_sha256']
+    sizes = [receipts[source]['produced_bytes'] for source, _ in roles]
+    if not sizes or any(type(size) is not int or size <= 0 for size in sizes):
+        raise ValueError('invalid public assembly renderer image extent')
+    # The packer aligns each flat to eight bytes and ends exactly at the last.
+    offset = len(binary) - sizes[-1] - sum(size + (-size % 8) for size in sizes[:-1])
+    if offset < ELF_HEADER_SIZE or offset % 8:
+        raise ValueError('invalid public assembly renderer image placement')
+    renderer = None
+    for (source, _), size in zip(roles, sizes, strict=True):
+        row = receipts[source]
+        image = binary[offset:offset + size]
+        expected = row['produced_sha256']
+        if (row['source_sha256'] != sources[source] or row['compiler_sha256'] != receipt['compiler_sha256']
+                or expected != names[Path(source).name] or sha256(image).hexdigest() != expected):
+            raise ValueError('public assembly renderer differs from its admitted HIA image')
+        if source == 'examples/hia_bootstrap/core_cli/assembly_render.hepta':
+            renderer = image
+        end = offset + size
+        offset = end + (-size % 8)
+        if any(binary[end:offset]):
+            raise ValueError('invalid public assembly image alignment padding')
+    if renderer is None:
+        raise ValueError('public assembly renderer has no source-bound render image')
+    return renderer
+
+
 def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sources):
     """Produce pip's scripts directly from the authenticated public Core build."""
     from hepta.hia_program_selfhost import SOURCE_FILES
@@ -188,7 +220,9 @@ def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sourc
             raise ValueError(f'selfhost CLI resource differs from cold source {relative}')
         members[scripts + path.name] = raw
         binaries[path] = raw
-    return members, binaries
+    role, layout = PROGRAMS['render_assembly']
+    renderer = _renderer_from_public_elf(binaries[paths[role]], layout, receipt, sources)
+    return members, binaries, renderer
 
 
 def _write_wheel(path, files, distribution):
@@ -328,7 +362,6 @@ def build(output, compiler, cold_report=None, *, development=False):
         pin += tuple(sha256(owner_members['hepta/' + resource]).hexdigest() for resource in (
             INTEGER_BUNDLE_RESOURCE, LEDGER_BUNDLE_RESOURCE, GRAPH_BUNDLE_RESOURCE,
             OWNED_VM_RESOURCE, ADMISSION_BUNDLE_RESOURCE))
-    pin_raw = render_pin_data(pin)
     staging = output / 'source'
     staging.mkdir(mode=0o700)
     base_wheel, command = _base_wheel(staging, output / 'base-wheel', captured, native_store_only=not development)
@@ -336,6 +369,15 @@ def build(output, compiler, cold_report=None, *, development=False):
     if (files.get('hepta/_data/examples/hia_bootstrap/full_cost.hepta')
             != captured['examples/hia_bootstrap/full_cost.hepta']):
         raise ValueError('native candidate wheel does not own its exact HIA source')
+    if not development:
+        cli_scripts, cli_inputs, renderer = _native_cli_scripts(
+            output / 'native-cli', compiler, cold_report, distribution, sources=sources)
+        owner_members.update(cli_scripts)
+        owner_inputs.update(cli_inputs)
+        owner_members['hepta/' + ASSEMBLY_RENDER_RESOURCE] = renderer
+        owner_members[PACKAGE_DIRECTORY + '/cold-report.json'] = cold_bytes
+        pin += (sha256(renderer).hexdigest(),)
+    pin_raw = render_pin_data(pin)
     build_tag = '1hiafullcostdev' if development else '1hiafullcostcold'
     wheel_meta = ('Wheel-Version: 1.0\nGenerator: hepta.default-native-candidate.v1\n'
                   'Root-Is-Purelib: false\nBuild: ' + build_tag + '\nTag: ' + wheel_tag + '\n').encode()
@@ -353,11 +395,6 @@ def build(output, compiler, cold_report=None, *, development=False):
         PACKAGE_DIRECTORY + '/component-build.json': component_report,
         PACKAGE_DIRECTORY + '/provenance.json': provenance,
         distribution + '/WHEEL': wheel_meta}
-    if not development:
-        cli_scripts, cli_inputs = _native_cli_scripts(output / 'native-cli', compiler, cold_report, distribution, sources=sources)
-        derived.update(cli_scripts)
-        owner_inputs.update(cli_inputs)
-        derived[PACKAGE_DIRECTORY + '/cold-report.json'] = cold_bytes
     files.update(derived)
     prefix = base_wheel.name.removesuffix('.whl').rsplit('-', 3)[0]
     wheel = output / (prefix + '-' + build_tag + '-' + wheel_tag + '.whl')
