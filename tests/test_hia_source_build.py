@@ -374,6 +374,29 @@ class SourceBuilderNativeTests(unittest.TestCase):
             receipt, _ = invoke(self.case, name, image, b'', capacity=0, workspace_size=0)
             self.assertEqual((receipt['status'], receipt['core_u32']), ('returned', value))
 
+    def test_named_sources_compile_in_directory_order_and_refuse_invalid_groups(self):
+        changed = SMALL.replace(b'"value":7', b'"value":19')
+        sources = {'z.hepta': SMALL, 'a-0.hepta': changed, 'a.hepta': SMALL}
+        def frame(rows):
+            wire = bytearray(struct.pack('<8sQ', b'HIANAM01', len(rows)))
+            for name, source in rows:
+                raw_name = name.encode('ascii')
+                wire.extend(struct.pack('<QQ', len(raw_name), len(source)))
+                wire.extend(raw_name)
+                wire.extend(source)
+            return bytes(wire)
+        expected = self.run_app(bundle([(name, 0o400, source) for name, source in sorted(sources.items())]))
+        rows = list(sources.items())
+        self.assertEqual(self.run_app(frame(rows), 'sources'), expected)
+        self.assertEqual(self.run_app(frame(rows[::-1]), 'sources'), expected)
+        self.assertNotEqual(unpack(expected)[b'a-0.hepta.bin'], unpack(expected)[b'z.hepta.bin'])
+        for wire in (frame([]), frame(rows + rows[:1]), frame(rows)[:-1], frame(rows) + b'x',
+                     frame([('bad/name.hepta', SMALL)]), frame([('wrong.bin', SMALL)]),
+                     frame([('a.hepta', b'')]), self.input_bundle):
+            self.run_app(wire, 'sources', code=16)
+        self.run_app(frame(rows), 'build', code=16)
+        self.run_app(frame(rows + [('zz.hepta', b'invalid assembly')]), 'sources', code=18)
+
     def test_compile_accepts_raw_assembly_and_rebuilds_the_qualified_compiler(self):
         self.assertEqual(self.run_app(self.sources[1][2], 'compile'), self.compiler_image)
         for source in (SMALL, SMALL.replace(b'"value":7', b'"value":19')):

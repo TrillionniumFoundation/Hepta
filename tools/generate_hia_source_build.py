@@ -82,6 +82,8 @@ def arguments(s:readbuf, w:mutbuf) -> u32:
         op = 2
     if n == 7 and uint(s, 16, 7) == COMPILE_WORD:
         op = 3
+    if n == 7 and uint(s, 16, 7) == SOURCES_WORD:
+        op = 4
     if op == 0:
         return bad(w, 16)
     put(w, 8, op)
@@ -101,28 +103,36 @@ def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 4120, length(s))
         put(w, 16, 2)
         return 0
-    if length(s) < 24 or length(s) > 67108864:
+    if length(s) < 16 or length(s) > 67108864:
         return bad(w, 16)
-    if uint(s, 0, 8) != BUNDLE_MAGIC or uint(s, 16, 8) != 0:
-        return bad(w, 16)
-    count = uint(s, 8, 8)
     op = get(w, 8)
+    header = 24
+    at = 24
+    if op == 4:
+        if uint(s, 0, 8) != NAMED_MAGIC:
+            return bad(w, 16)
+        header = 16
+        at = 16
+    else:
+        if length(s) < 24 or uint(s, 0, 8) != BUNDLE_MAGIC or uint(s, 16, 8) != 0:
+            return bad(w, 16)
+    count = uint(s, 8, 8)
     if count == 0 or count > 128:
         return bad(w, 16)
     if op == 2 and count != 3 and count != 6:
         return bad(w, 16)
-    at = 24
     i = 0
     bits = 0
     while i < count:
-        if at > length(s) or length(s) - at < 24:
+        if at > length(s) or length(s) - at < header:
             return bad(w, 16)
         n = uint(s, at, 8)
-        mode = uint(s, at + 8, 8)
-        size = uint(s, at + 16, 8)
-        if n == 0 or n > 127 or mode != 256 or size == 0 or size > 1048576:
+        size = uint(s, at + header - 8, 8)
+        if n == 0 or n > 127 or size == 0 or size > 1048576:
             return bad(w, 16)
-        at = at + 24
+        if op != 4 and uint(s, at + 8, 8) != 256:
+            return bad(w, 16)
+        at = at + header
         if n > length(s) - at:
             return bad(w, 16)
         j = 0
@@ -132,7 +142,7 @@ def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 if j == 0 or v != 46 and v != 45 and v != 95:
                     return bad(w, 16)
             j = j + 1
-        if op == 1:
+        if op == 1 or op == 4:
             if n < 7 or n > 123 or uint(s, at + n - 6, 6) != SUFFIX_WORD:
                 return bad(w, 16)
         j = 0
@@ -168,6 +178,9 @@ def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         i = i + 1
     if at != length(s):
         return bad(w, 16)
+    if op == 4:
+        order_sources(s, w, count)
+        put(w, 8, 1)
     if op == 2:
         if count == 3 and bits != 56 or count == 6 and bits != 63:
             return bad(w, 16)
@@ -183,6 +196,40 @@ def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, 32, 0)
     put(w, 40, length(s))
     put(w, 48, 24)
+    return 0
+
+def order_sources(s:readbuf, w:mutbuf, count:u64) -> u64:
+    i = 1
+    while i < count:
+        j = i
+        while j > 0:
+            right = 4096 + j * 40
+            left = right - 40
+            if name_before(s, get(w, right), get(w, right + 8), get(w, left), get(w, left + 8)) == 0:
+                j = 0
+            else:
+                offset = 0
+                while offset < 32:
+                    previous = get(w, left + offset)
+                    put(w, left + offset, get(w, right + offset))
+                    put(w, right + offset, previous)
+                    offset = offset + 8
+                j = j - 1
+        i = i + 1
+    return 0
+
+def name_before(s:readbuf, left:u64, left_size:u64, right:u64, right_size:u64) -> u64:
+    i = 0
+    while i < left_size and i < right_size:
+        a = byte(s, left + i)
+        b = byte(s, right + i)
+        if a < b:
+            return 1
+        if b < a:
+            return 0
+        i = i + 1
+    if left_size < right_size:
+        return 1
     return 0
 
 def select(s:readbuf, w:mutbuf) -> u32:
@@ -382,6 +429,8 @@ def policy_source():
     values = {'POLICY_WORK_BYTES': MIN_POLICY_WORK_BYTES, 'TEMPLATE_SIZE': len(template()[0]),
               'BUNDLE_MAGIC': BUNDLE_MAGIC, 'PACK_MAGIC': PACK_MAGIC,
               'COMPILE_WORD': int.from_bytes(b'compile', 'little'),
+              'SOURCES_WORD': int.from_bytes(b'sources', 'little'),
+              'NAMED_MAGIC': int.from_bytes(b'HIANAM01', 'little'),
               'BUILD_WORD': int.from_bytes(b'build', 'little'), 'PACK_WORD': int.from_bytes(b'pack', 'little'),
               'SUFFIX_WORD': int.from_bytes(b'.hepta', 'little'),
               'IMAGE_SUFFIX_WORD': int.from_bytes(b'.bin', 'little')}

@@ -892,10 +892,12 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
 
     def compile_sources(named):
         pinned = capture_sources(named)
-        wire, _ = capture_packet(pinned)
         if pack_directory is None:
+            wire, _ = capture_packet(pinned)
             bootstrap_packets.append((len(pinned), wire))
-        compiled = call(seed, 'build', wire)
+            compiled = call(seed, 'build', wire)
+        else:
+            compiled = call(seed, 'sources', _named_source_request(pinned))
         return compiled, _compiled_sources(compiled, pinned), pinned
 
     # Bootstrap once. The kit composer binds all three freshly compiled objects
