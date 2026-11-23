@@ -8,6 +8,7 @@ from hashlib import file_digest, sha256
 from importlib import import_module
 import json
 import os
+import stat
 from pathlib import Path
 import subprocess
 import tarfile
@@ -335,6 +336,34 @@ def build(output, compiler, cold_report):
     return target
 
 
+def _read_regular_cold_source(relative):
+    """Pin cold source descriptors and reject links/devices before reading any bytes.
+
+    The checked-in inventory is not permission to traverse a symlink, including
+    a parent directory symlink, or to block indefinitely on a FIFO.
+    """
+    opened = []
+    try:
+        directory = os.open(ROOT, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        opened.append(directory)
+        for component in relative.parts[:-1]:
+            directory = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                dir_fd=directory)
+            opened.append(directory)
+        file = os.open(relative.parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                       dir_fd=directory)
+        opened.append(file)
+        if not stat.S_ISREG(os.fstat(file).st_mode):
+            raise ValueError('cold source is not a regular file: ' + str(relative))
+        with os.fdopen(os.dup(file), 'rb') as stream:
+            return stream.read()
+    except OSError as error:
+        raise ValueError('cold source is a symlink or not a regular file: ' + str(relative)) from error
+    finally:
+        for descriptor in reversed(opened):
+            os.close(descriptor)
+
+
 def write_source_archive(output):
     """Archive precisely the files exported by the cold replay, including its support contract."""
     output = Path(output).absolute()
@@ -348,7 +377,7 @@ def write_source_archive(output):
                     path = Path(name)
                     if path.is_absolute() or path.as_posix() != name or '..' in path.parts:
                         raise ValueError('invalid cold source path: ' + name)
-                    data = (ROOT / path).read_bytes()
+                    data = _read_regular_cold_source(path)
                     if sha256(data).hexdigest() != expected:
                         raise ValueError('cold source changed during export: ' + name)
                     entry = tarfile.TarInfo('hia-core-source/' + name)

@@ -70,6 +70,29 @@ class StoreReleaseBuildTests(unittest.TestCase):
                     release._stage_source_members(work, work, {}, tools, published.append)
             self.assertEqual(published, [])
 
+    def test_source_archive_rejects_symlinks_and_nonregular_cold_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / 'source'
+            external = root / 'external'
+            source.mkdir()
+            external.mkdir()
+            (external / 'data').write_bytes(b'outside cold source root')
+            (source / 'direct').symlink_to(external / 'data')
+            (source / 'parent').symlink_to(external, target_is_directory=True)
+            fifo = source / 'fifo'
+            import os
+            os.mkfifo(fifo)
+            for name in ('direct', 'parent/data', 'fifo'):
+                with self.subTest(name=name):
+                    digest = sha256(b'outside cold source root').hexdigest()
+                    with patch.object(release, 'ROOT', source), patch.object(
+                            release, 'current_sources', return_value={name: digest}):
+                        destination = root / ('archive-' + name.replace('/', '-'))
+                        with self.assertRaisesRegex(ValueError, 'cold source.*(regular|symlink)'):
+                            release.write_source_archive(destination)
+                        self.assertFalse(destination.exists())
+
     def test_source_archive_is_deterministic_and_includes_only_the_complete_cold_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
