@@ -661,6 +661,33 @@ class HIAAgentService:
         return _reference_wall_window(created_ns, now_ns, total_ms)
 
     def _hia_describe(self, args):
+        from .hia_opcodes import opcode_catalog
+        if "cursor" in args:
+            reject("E_HIA_CURSOR", "discovery has no further page for this bounded manifest")
+        if "backend_profile" in args and args["backend_profile"] != self.profiles["backend"]["id"]:
+            reject("E_HIA_PROFILE", "requested backend profile is unavailable")
+        language_schema = args.get("language_schema", "hepta.hia.program.v8")
+        language = opcode_catalog(language_schema)
+        profile, language_ref = self.store.profile(language_schema, language)
+        section = args["section"]
+        resources = {
+            "manifest": [self.manifest],
+            "language": [self.resources["schema_registry"], self.resources["assembly_grammar"], self.resources["core_language"], language_ref],
+            "backend": [self.profile_artifacts["backend"], self.profile_artifacts["lowering"], self.profile_artifacts["target"],
+                        self.resources["byte_bootstrap_guide"], self.resources["self_hosting_core_guide"],
+                        self.resources["self_hosting_core_support"], self.profile_artifacts["validation"],
+                        self.resources["machine_validation_guide"], self.resources["proof_contract_guide"],
+                        self.resources["buffer_lifecycle_guide"]],
+            "examples": [self.resources["examples"]], "diagnostics": [self.resources["diagnostics"]],
+            "plans": [self.profile_artifacts["plan"], self.resources["plan_schema"],
+                      self.resources["machine_plan_guide"], self.resources["macro_policy"],
+                      self.resources["macro_policy_guide"]],
+        }[section]
+        return {"catalog_sha256": self.catalog_sha256, "manifest": self.manifest,
+            "language_catalogs": [profile], "backend_profiles": [self.profiles["backend"]],
+            "artifact_profiles": [self.profiles["artifact"]], "resources": resources, "next_cursor": None}
+
+    def _hia_describe_with_components(self, args):
         from .hia_agent_describe_answer_native import (
             SELECTOR as answer_selector, installed_agent_describe_answer,
         )
@@ -1076,6 +1103,48 @@ class HIAAgentService:
         from .hia_program_native import emit_program_machine
         program = self._program(args["program"])
         selector = args.get("selector", {})
+        if "cursor" in args:
+            reject("E_HIA_CURSOR", "inspection returns an immutable artifact; paginate it through hia_read")
+        view, query = args["view"], None
+        if view == "summary":
+            result = inspect_program(program)
+        elif view == "lowering":
+            context = self._context(args["context"])
+            image = emit_program_machine(program,
+                foreign_buffer_exports=tuple(map(tuple, context.get("foreign_buffer_exports", []))))
+            result = {"schema": "hepta.hia.agent.lowering-view.v1", "core_sha256": program.sha256,
+                "text_sha256": sha256(image.text_bytes).hexdigest(), "object_sha256": image.sha256,
+                "text_bytes": str(len(image.text_bytes)), "frames": dict(image.function_frames),
+                "lowering_profile": self.profiles["lowering"], "optimizer_used": False,
+                "object": self.store.put(image.object_bytes, "lowering-object")}
+        elif view == "dependencies":
+            if not all(k in selector for k in ("function", "block", "output")):
+                reject("E_HIA_SELECTOR", "dependencies require function, block and output")
+            prepared = prepare_edit(program, function=selector["function"], block=selector["block"],
+                                    output=selector["output"], fields=["op", "args", "attrs"])
+            result = prepared
+            query = self.store.json(prepared, "edit-query")
+        else:
+            if "function" not in selector:
+                reject("E_HIA_SELECTOR", "function view requires an exact function")
+            functions = {fn["name"]: fn for fn in program.as_dict()["functions"]}
+            if selector["function"] not in functions:
+                reject("E_HIA_SELECTOR", "function is not in this program")
+            result = functions[selector["function"]]
+            if view == "block":
+                blocks = {b["id"]: b for b in result["blocks"]}
+                if selector.get("block") not in blocks:
+                    reject("E_HIA_SELECTOR", "block is not in this function")
+                result = blocks[selector["block"]]
+        return {"program": args["program"], "view_artifact": self.store.json(result, "inspection"),
+                "query_artifact": query, "next_cursor": None}
+
+    def _hia_inspect_with_components(self, args):
+        from .hia_program_tools import inspect_program
+        from .hia_edit_query import prepare_edit
+        from .hia_program_native import emit_program_machine
+        program = self._program(args["program"])
+        selector = args.get("selector", {})
         request_manifest = os.environ.get('HEPTA_HIA_INSPECTION_REQUEST_MANIFEST')
         if request_manifest is not None:
             from .hia_worker_inspection_request_native import installed_worker_inspection_request
@@ -1144,6 +1213,37 @@ class HIAAgentService:
                 "query_artifact": query, "next_cursor": None}
 
     def _hia_candidate(self, args):
+        from .hia_agent_assembly import assemble_program
+        from .hia_program_tools import apply_program_patch
+        change, base, native_payloads = args["change"], None, None
+        if change["kind"] == "import":
+            data, _ = self.store.get(change["source"])
+            program = assemble_program(data) if change["format"] == "hia-asm.v1" else verify_program(decode_json(data))
+            diagnostics = {"schema": "hepta.hia.agent.candidate-diagnostics.v1", "whole_program_checked": True,
+                           "input_sha256": program.input_sha256, "core_sha256": program.sha256}
+        else:
+            base = change["base_program"]
+            selected = os.environ.get('HEPTA_HIA_CORE_PATCH_MANIFEST')
+            if selected:
+                from .hia_agent_candidate_native import apply_candidate_patch
+                original_bytes, _ = self.store.get(base)
+                patch_bytes, _ = self.store.get(change["patch"])
+                native_payloads = apply_candidate_patch(selected, original_bytes, patch_bytes, change["patch_schema"])
+            else:
+                original = self._program(base)
+                patch, _ = self.store.get_json(change["patch"])
+                if patch.get("schema") != change["patch_schema"]:
+                    reject("E_HIA_PATCH_SCHEMA", "patch artifact differs from declared patch schema")
+                program, diagnostics = apply_program_patch(original, patch)
+        candidate = self.store.put(native_payloads[0] if native_payloads is not None else program.canonical_bytes,
+                                   "core", {"context": args["context"]})
+        diagnostic_artifact = (self.store.put(native_payloads[1], "candidate-diagnostics") if native_payloads is not None
+                               else self.store.json(diagnostics, "candidate-diagnostics"))
+        return {"candidate": candidate, "base_program": base,
+            "diagnostics": diagnostic_artifact, "core_admitted": True,
+            "behavior_equivalence_proved": False, "adopted": False}
+
+    def _hia_candidate_with_components(self, args):
         from .hia_agent_store import _native_agent_identity
         from .hia_program_tools import apply_program_patch
         change, base, native_payloads = args["change"], None, None
@@ -1193,6 +1293,97 @@ class HIAAgentService:
         return verify_program(decode_json(data))
 
     def _behavior_equivalence(self, original, revised, timeout_ms):
+        """A conservative proof decision, separate from workload testing."""
+        from .hia_optimization import PURE, DEFAULT_POLICY, verify_optimization
+        from .hia_program import WIDTHS, integer_range
+        if timeout_ms <= 0:
+            return "unknown", "Verification cannot exceed the frozen context deadline", {
+                "method": "context_budget_exhausted", "reason": "context wall budget exhausted"}
+        if original.canonical_bytes == revised.canonical_bytes:
+            return "proved", "Reflexivity for the exact admitted canonical Core bytes, including resources and traps", {
+                "method": "canonical_core_identity", "base_sha256": original.sha256,
+                "candidate_sha256": revised.sha256, "all_inputs": True}
+        left, right = original.as_dict(), revised.as_dict()
+        signatures = _signatures(original)
+        finite = signatures == _signatures(revised) and bool(signatures)
+        # Only pure scalar functions without calls, allocation or ownership can
+        # use finite value enumeration as complete semantic evidence. The
+        # structural resource/effect checker is used for wider programs.
+        for document in (left, right):
+            for fn in document["functions"]:
+                if len(fn["blocks"]) > 128 or sum(len(b["ops"]) for b in fn["blocks"]) > 4096:
+                    finite = False
+                if set(fn["effects"]) - {"trap"} or any(op["op"] not in PURE for b in fn["blocks"] for op in b["ops"]):
+                    finite = False
+                blocks = {b["id"]: b for b in fn["blocks"]}
+                visiting, done = set(), set()
+
+                def acyclic(name):
+                    if name in visiting:
+                        return False
+                    if name in done:
+                        return True
+                    visiting.add(name)
+                    term = blocks[name]["term"]
+                    targets = ([term["target"]] if term["op"] == "jump" else
+                               [term["then"]["target"], term["else"]["target"]] if term["op"] == "branch" else [])
+                    if not all(acyclic(target) for target in targets):
+                        return False
+                    visiting.remove(name)
+                    done.add(name)
+                    return True
+                if not acyclic(fn["entry"]):
+                    finite = False
+        interface = lambda d: {fn["name"]: {k: fn[k] for k in ("params", "returns", "effects")} for fn in d["functions"]}
+        if interface(left) != interface(right):
+            finite = False
+        domains, total = {}, 0
+        if finite:
+            for name, signature in signatures.items():
+                bits = sum(1 if typ == "bool" else WIDTHS.get(typ, 1000000) for typ in signature["params"])
+                if bits > 12 or total + (1 << bits) > 4096:
+                    finite = False
+                    break
+                domains[name] = [[False, True] if typ == "bool" else range(integer_range(typ)[0], integer_range(typ)[1] + 1)
+                                 for typ in signature["params"]]
+                total += 1 << bits
+        if finite:
+            transcript = sha256()
+            checked = 0
+            deadline = time.monotonic_ns() + min(10000, timeout_ms) * 1_000_000
+            for name, input_domains in domains.items():
+                for arguments in itertools.product(*input_domains):
+                    if time.monotonic_ns() > deadline:
+                        return "unknown", "Pure acyclic scalar finite domain; exhaustive enumeration deadline expired", {
+                            "method": "finite_domain", "checked": checked, "required": total, "complete": False}
+                    case = {"function": name, "arguments": list(arguments)}
+                    before = _vm_observation(original, case, steps=10000)
+                    after = _vm_observation(revised, case, steps=10000)
+                    if "budget_exceeded" in {before["status"], after["status"]}:
+                        return "unknown", "Pure acyclic scalar finite domain; reference budget prevented completeness", {
+                            "method": "finite_domain", "checked": checked, "required": total, "complete": False}
+                    observables = lambda row: {"status": row["status"], "values": row.get("values"),
+                        "first_trap": row.get("trap_code"), "resources": row["ledger"]["resources"]}
+                    first, second = observables(before), observables(after)
+                    transcript.update(wire({"case": case, "before": first, "after": second}))
+                    checked += 1
+                    if first != second:
+                        return "refuted", "All scalar inputs in a finite pure acyclic domain; return/first-trap/resource observations", {
+                            "method": "finite_domain", "counterexample": case, "before": first, "after": second,
+                            "checked": checked, "required": total, "complete": False}
+            if time.monotonic_ns() > deadline:
+                return "unknown", "Exhaustive scalar enumeration finished after its frozen verification deadline", {
+                    "method": "finite_domain", "checked": checked, "required": total,
+                    "complete": False, "deadline_met": False}
+            return "proved", "Exhaustive complete pure acyclic scalar domain (at most 12 total input bits), including first trap and resource ledger", {
+                "method": "finite_domain", "checked": checked, "required": total, "complete": True,
+                "all_inputs_in_declared_widths": True, "transcript_sha256": transcript.hexdigest(),
+                "base_sha256": original.sha256, "candidate_sha256": revised.sha256}
+        report = verify_optimization(original, revised, {**DEFAULT_POLICY, "timeout_ms": min(5000, timeout_ms)})
+        status = {"verified": "proved", "rejected": "refuted", "unknown": "unknown", "timeout": "unknown"}[report["status"]]
+        return status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report
+
+    def _behavior_equivalence_with_components(self, original, revised, timeout_ms):
         """A conservative proof decision, separate from workload testing."""
         from .hia_agent_store import _native_agent_identity
         from .hia_optimization import DEFAULT_POLICY, NATIVE_CORE_SCHEMA, verify_optimization
@@ -1302,6 +1493,25 @@ class HIAAgentService:
         if subject["kind"] == "agent_machine_plan":
             from .hia_program_native import validate_block_layout_plan
             self._profile(subject["plan_profile"], "plan")
+            plan, _ = self.store.get_json(subject["plan"])
+            validate(plan, PLAN_SCHEMA, "machine_plan")
+            return validate_block_layout_plan(program, plan)
+        if subject["kind"] == "native_artifact":
+            receipt = self._build_receipt(subject["build_receipt"], args["context"],
+                                          subject["native_artifact"])
+            if receipt["candidate"] != args["candidate"]:
+                reject("E_HIA_SUBJECT", "native build receipt belongs to a different candidate", "verification")
+        return None
+
+    def _subject_with_components(self, args, program):
+        subject = args["subject"]
+        if subject["kind"] != "core":
+            self._profile(subject["backend_profile"], "backend")
+        if subject["kind"] == "canonical_lowering":
+            self._profile(subject["lowering_profile"], "lowering")
+        if subject["kind"] == "agent_machine_plan":
+            from .hia_program_native import validate_block_layout_plan
+            self._profile(subject["plan_profile"], "plan")
             plan = self._read_machine_plan(subject["plan"])
             return validate_block_layout_plan(program, plan)
         if subject["kind"] == "native_artifact":
@@ -1312,6 +1522,86 @@ class HIAAgentService:
         return None
 
     def _hia_verify(self, args):
+        context = self._context(args["context"])
+        self._profile(args["validation_profile"], "validation")
+        program = self._program(args["candidate"])
+        original = None if args["base_program"] is None else self._program(args["base_program"])
+        plan = self._subject(args, program)
+        binding = {"context": args["context"], "candidate": args["candidate"],
+            "candidate_core_sha256": program.sha256, "base_program": args["base_program"],
+            "base_core_sha256": None if original is None else original.sha256,
+            "subject": args["subject"]}
+        scoped_subject = proof_subject(binding, context["target_profile"])
+        checks = []
+        for claim in args["claims"]:
+            if claim == "core_admission":
+                status, domain, evidence = "proved", "Exact canonical Core accepted by the installed whole-program checker; no behavioral or native claim", {
+                    "checker": "hepta.hia_program.verify_program", "core_sha256": program.sha256,
+                    "input_sha256": program.input_sha256, "canonical_bytes": str(len(program.canonical_bytes))}
+            elif claim == "behavior_equivalence":
+                if original is None:
+                    reject("E_HIA_SUBJECT", "behavior equivalence requires a base program", "verification")
+                status, domain, evidence = self._behavior_equivalence(original, program, self._remaining_ms(context))
+            elif claim == "lowering_refinement":
+                if args["subject"]["kind"] == "native_artifact":
+                    status, domain, evidence = self._independent_native_refinement(args, program, context)
+                elif plan is None:
+                    status, domain, evidence = "unsupported", "Whole Core-to-x86 refinement of canonical lowering is not proved by this profile", {
+                        "reason": "native qualification and deterministic reemission are not a universal semantic refinement proof"}
+                else:
+                    from .hia_program_native import emit_program_machine
+                    exports = tuple(map(tuple, context.get("foreign_buffer_exports", [])))
+                    image = emit_program_machine(program, machine_plan=plan, foreign_buffer_exports=exports)
+                    canonical = emit_program_machine(program, foreign_buffer_exports=exports)
+                    from .hia_machine_plan import preservation_checks
+                    choice_checks = preservation_checks(plan, program)
+                    status, domain = "proved", "Checked explicit machine choices preserve canonical CFG, scalar value lifetimes and path effects, conditional on canonical lowering/encoder correctness"
+                    evidence = {"method": "checked_explicit_machine_choices", "choice_checks": choice_checks, "core_sha256": program.sha256,
+                        "plan": plan, "canonical_object_sha256": canonical.sha256,
+                        "planned_object_sha256": image.sha256,
+                        "same_slots": not any(plan.get("value_registers", {}).values()),
+                        "same_frame_sizes": dict(canonical.function_frames) == dict(image.function_frames),
+                        "canonical_frame_bytes": dict(canonical.function_frames),
+                        "planned_frame_bytes": dict(image.function_frames),
+                        "implicit_optimizer_used": False}
+            elif claim == "encoding_check":
+                subject = args["subject"]
+                built = self._build_receipt(subject["build_receipt"], args["context"], subject["native_artifact"])
+                actual, _ = self.store.get(subject["native_artifact"], kind="native")
+                exports = tuple(map(tuple, context.get("foreign_buffer_exports", [])))
+                reemitted, rebuilt = self._compile(program, built["output_kind"], built["machine_plan"], self._remaining_ms(context),
+                    **({"foreign_buffer_exports": exports} if exports else {}))
+                bytes_equal = actual == reemitted
+                object_equal = rebuilt["object_sha256"] == built["native_build"]["object_sha256"]
+                matches = bytes_equal and object_equal
+                status = "proved" if matches else "refuted"
+                domain = "Exact actual artifact equals reverified Core/plan reemission and linkage by the same installed implementation, with checked closed symbol/ABI inventory; no independent semantic refinement claim"
+                evidence = {"method": "complete_native_rederivation", "actual_sha256": sha256(actual).hexdigest(),
+                    "rederived_sha256": sha256(reemitted).hexdigest(), "bytes_equal": bytes_equal,
+                    "object_identity_equal": object_equal,
+                    "native_build": rebuilt, "no_llvm_or_external_assembler": True}
+            else:
+                reject("E_HIA_CLAIM", "unimplemented verification claim", "verification")
+            scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,
+                profile=args["validation_profile"], installation=self.identities, evidence=evidence)
+            if evidence.get("method") == SAFE_CORE_METHOD and status == "proved" and self._remaining_ms(context) <= 0:
+                status = "unknown"
+                evidence.update(outcome=status, deadline_met=False,
+                                reason="the frozen context deadline expired before proof publication")
+                scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,
+                    profile=args["validation_profile"], installation=self.identities, evidence=evidence)
+            checks.append({**scoped,
+                "assumptions_artifact": self.store.json(assumptions_document(scoped), "verification-assumptions"),
+                "evidence_artifact": self.store.json({**evidence, "proof_binding": scoped}, "verification-evidence")})
+        receipt = self.store.json({"schema": "hepta.hia.agent.verification.v1", "context": args["context"],
+            "candidate": args["candidate"], "candidate_core_sha256": program.sha256,
+            "base_program": args["base_program"], "base_core_sha256": None if original is None else original.sha256,
+            "validation_profile": args["validation_profile"], "subject": args["subject"],
+            "checks": checks, "installation": self.identities}, "verification-receipt")
+        return {"candidate": args["candidate"], "subject": args["subject"],
+                "verification_receipt": receipt, "checks": checks, "adopted": False}
+
+    def _hia_verify_with_components(self, args):
         from .hia_agent_store import _native_agent_identity
 
         context = self._context(args["context"])
@@ -1401,6 +1691,42 @@ class HIAAgentService:
                 "verification_receipt": receipt, "checks": checks, "adopted": False}
 
     def _verification(self, ref, context, candidate=None):
+        record, _ = self.store.get_json(ref, kind="verification-receipt")
+        if (record["context"] != context or record["installation"] != self.identities
+                or candidate is not None and record["candidate"] != candidate):
+            reject("E_HIA_RECEIPT_BINDING", "verification receipt belongs to a different context, candidate or implementation", "verification")
+        self._profile(record["validation_profile"], "validation")
+        program = self._program(record["candidate"])
+        if program.sha256 != record["candidate_core_sha256"]:
+            reject("E_HIA_RECEIPT_BINDING", "verification Core identity changed", "verification")
+        original = None if record["base_program"] is None else self._program(record["base_program"])
+        if record["base_core_sha256"] != (None if original is None else original.sha256):
+            reject("E_HIA_RECEIPT_BINDING", "verification base Core identity changed", "verification")
+        self._subject(record, program)
+        context_record = self._context(context)
+        subject = proof_subject(record, context_record["target_profile"])
+        checks_schema = self.tools["hia_verify"]["outputSchema"]["properties"]["result"]["properties"]["checks"]
+        try:
+            validate(record["checks"], checks_schema, "verification.checks")
+        except AgentRejected as exc:
+            reject("E_HIA_PROOF_SCOPE", "missing or invalid proof scope; rerun verification with a fresh request key: " + str(exc), "verification")
+        if len({check["claim"] for check in record["checks"]}) != len(record["checks"]):
+            reject("E_HIA_PROOF_SCOPE", "verification repeats a proof property", "verification")
+        for check in record["checks"]:
+            evidence, _ = self.store.get_json(check["evidence_artifact"], kind="verification-evidence")
+            assumptions, _ = self.store.get_json(check["assumptions_artifact"], kind="verification-assumptions")
+            if evidence.get("method") == SAFE_CORE_METHOD:
+                self._check_native_refinement_evidence(evidence, record["subject"], context, program)
+            expected = proof_result(claim=check["claim"], status=check["status"], domain=check["domain"],
+                subject=subject, profile=record["validation_profile"], installation=self.identities, evidence=evidence)
+            actual = {key: value for key, value in check.items()
+                      if key not in {"assumptions_artifact", "evidence_artifact"}}
+            if (actual != expected or evidence.get("proof_binding") != expected
+                    or assumptions != assumptions_document(expected)):
+                reject("E_HIA_PROOF_SCOPE", "proof scope or retained checker conclusion differs; rerun verification with a fresh request key", "verification")
+        return record
+
+    def _verification_with_components(self, ref, context, candidate=None):
         record, _, raw = self.store.get_json_with_wire(ref, kind="verification-receipt")
         equal = selected_json_equality()
         if (not equal(record["context"], context) or not equal(record["installation"], self.identities)
@@ -1452,6 +1778,23 @@ class HIAAgentService:
             raise ValueError("native proof receipt disagrees with the contract")
 
     def _replay_verification(self, response, arguments):
+        """Observe an original result only if its complete scope remains valid."""
+        try:
+            validate(response, self.tools["hia_verify"]["outputSchema"], "replayed verification")
+        except AgentRejected as exc:
+            reject("E_HIA_PROOF_SCOPE", "cached proof lacks current scope; rerun verification with a fresh request key: " + str(exc), "verification")
+        if installation_manifest() != self.identities:
+            reject("E_HIA_IMPLEMENTATION_STALE", "installed implementation changed during verification replay")
+        result = response["result"]
+        retained = self._verification(result["verification_receipt"], arguments["context"], arguments["candidate"])
+        if (result["candidate"] != retained["candidate"] or result["subject"] != retained["subject"]
+                or result["checks"] != retained["checks"] or retained["subject"] != arguments["subject"]
+                or retained["base_program"] != arguments["base_program"]
+                or retained["validation_profile"] != arguments["validation_profile"]
+                or [check["claim"] for check in retained["checks"]] != arguments["claims"]):
+            reject("E_HIA_PROOF_SCOPE", "cached proof differs from the original subject or retained conclusion; rerun verification with a fresh request key", "verification")
+
+    def _replay_verification_with_components(self, response, arguments):
         """Observe an original result only if its complete scope remains valid."""
         try:
             self._validate_tool_response('hia_verify', response, 'replayed verification')
@@ -1760,12 +2103,81 @@ class HIAAgentService:
     def _native_refinement_binding(subject, built, program, object_bytes, final_bytes):
         return {"candidate_core_sha256": program.sha256, "input_sha256": program.input_sha256,
             "native_artifact": subject["native_artifact"], "build_receipt": subject["build_receipt"],
+            "object_artifact": built["object_artifact"], "object_sha256": sha256(object_bytes).hexdigest(),
+            "final_image_sha256": sha256(final_bytes).hexdigest(), "output_kind": built["output_kind"],
+            "entry_symbols": [fn["name"] for fn in program.as_dict()["functions"]],
+            "foreign_buffer_exports": built["native_build"].get("foreign_buffer_exports")}
+
+    @staticmethod
+    def _native_refinement_binding_with_components(subject, built, program, object_bytes, final_bytes):
+        return {"candidate_core_sha256": program.sha256, "input_sha256": program.input_sha256,
+            "native_artifact": subject["native_artifact"], "build_receipt": subject["build_receipt"],
             "object_artifact": built["object_artifact"], "object_sha256": payload_sha256(object_bytes).hex(),
             "final_image_sha256": payload_sha256(final_bytes).hex(), "output_kind": built["output_kind"],
             "entry_symbols": [fn["name"] for fn in program.as_dict()["functions"]],
             "foreign_buffer_exports": built["native_build"].get("foreign_buffer_exports")}
 
     def _independent_native_refinement(self, args, program, context):
+        from .hia_safe_core import (ARTIFACT_PROFILE, ARTIFACT_OBLIGATIONS, SafeCoreRejected,
+            _profile, _checker_source_identity, validate_safe_core_artifact)
+        subject = args["subject"]
+        built, final_bytes, object_bytes, retained = self._build_inputs(
+            subject["build_receipt"], args["context"], subject["native_artifact"])
+        if retained.sha256 != program.sha256:
+            reject("E_HIA_RECEIPT_BINDING", "retained machine subject differs from the requested Core", "verification")
+        identity = _checker_source_identity()
+        evidence = {"method": SAFE_CORE_METHOD, "profile": ARTIFACT_PROFILE,
+            "service_profile": SAFE_CORE_SERVICE_PROFILE,
+            "artifact_binding": self._native_refinement_binding(subject, built, program, object_bytes, final_bytes),
+            "source_identity": identity, "checker_sha256": digest(identity), "solver": None,
+            "validation": None, "queries": [], "deadline_met": False}
+
+        def finish(status, reason=None):
+            evidence["outcome"] = status
+            if reason is not None:
+                evidence["reason"] = reason
+            return status, SAFE_CORE_DOMAIN, evidence
+
+        if built["output_kind"] != "shared" or built["native_build"].get("foreign_buffer_exports") != []:
+            return finish("unsupported", "Agent machine validation admits final shared ELF with scalar entries only")
+        try:
+            _profile(program, foreign_buffer_exports=())
+        except SafeCoreRejected as exc:
+            return finish("unsupported", str(exc))
+        remaining = min(60000, self._remaining_ms(context))
+        if remaining < 100:
+            return finish("unknown", "less than the minimum 100 ms remains in the frozen verification budget")
+        status, reason = "unknown", None
+        with tempfile.TemporaryDirectory(prefix="machine-proof-", dir=self.store.root) as directory:
+            query_directory = Path(directory) / "queries"
+            try:
+                evidence["validation"] = validate_safe_core_artifact(program, object_bytes, final_bytes,
+                    timeout_ms=remaining, query_directory=query_directory)
+                status = "proved"
+            except SafeCoreRejected as exc:
+                evidence["validation"] = exc.validation
+                counterexample = exc.counterexample
+                violation_names = {name for name, expected in ARTIFACT_OBLIGATIONS if expected == "unsat"}
+                if (type(counterexample) is dict and counterexample.get("obligation") in violation_names
+                        and type(exc.validation) is dict and exc.validation.get("status") == "refuted"):
+                    status = "refuted"
+                    evidence["counterexample"] = counterexample
+                reason = str(exc)
+            except ValueError as exc:
+                status, reason = "unsupported", str(exc)
+            validation = evidence["validation"]
+            if validation is not None:
+                evidence["solver"] = validation["solver"]
+            for path in sorted(query_directory.glob("*.smt2")):
+                data = path.read_bytes()
+                evidence["queries"].append({"name": path.name, "sha256": sha256(data).hexdigest(),
+                    "artifact": self.store.put(data, "machine-validation-query")})
+        evidence["deadline_met"] = self._remaining_ms(context) > 0
+        if not evidence["deadline_met"]:
+            status, reason = "unknown", "the frozen context deadline expired before proof publication"
+        return finish(status, reason)
+
+    def _independent_native_refinement_with_components(self, args, program, context):
         from .hia_safe_core import (ARTIFACT_PROFILE, ARTIFACT_OBLIGATIONS, SafeCoreRejected,
             _profile, _checker_source_identity, validate_safe_core_artifact)
         subject = args["subject"]
@@ -1849,12 +2261,70 @@ class HIAAgentService:
             if type(query) is not dict or set(query) != {"name", "sha256", "artifact"}:
                 reject("E_HIA_PROOF_SCOPE", "machine proof query reference is invalid", "verification")
             data, _ = self.store.get(query["artifact"], kind="machine-validation-query")
+            if (sha256(data).hexdigest() != query["sha256"]
+                    or validation is not None and (query["sha256"] != reports[index].get("query_sha256")
+                        or query["name"] != reports[index].get("query_file"))):
+                reject("E_HIA_PROOF_SCOPE", "machine proof query bytes differ", "verification")
+
+    def _check_native_refinement_evidence_with_components(self, evidence, subject, context, program):
+        if subject.get("kind") != "native_artifact":
+            reject("E_HIA_PROOF_SCOPE", "independent machine evidence requires its exact native subject", "verification")
+        built, final_bytes, object_bytes, retained = self._build_inputs(
+            subject["build_receipt"], context, subject["native_artifact"])
+        expected = self._native_refinement_binding(subject, built, retained, object_bytes, final_bytes)
+        if program.sha256 != retained.sha256 or evidence.get("artifact_binding") != expected:
+            reject("E_HIA_PROOF_SCOPE", "machine evidence differs from retained Core/object/final build bytes", "verification")
+        validation = evidence.get("validation")
+        if type(validation) is dict:
+            from .hia_safe_core_elf import bind_final_artifact
+            binding = bind_final_artifact(object_bytes, final_bytes, retained.as_dict()["functions"][0]["name"])
+            if validation.get("image_binding") != binding["binding"]:
+                reject("E_HIA_PROOF_SCOPE", "machine proof's ELF binding differs from the actual retained bytes", "verification")
+        queries = evidence.get("queries")
+        if type(queries) is not list:
+            reject("E_HIA_PROOF_SCOPE", "machine proof lacks retained query identities", "verification")
+        reports = [] if validation is None else validation.get("obligations", [])
+        if validation is not None and len(queries) != len(reports):
+            reject("E_HIA_PROOF_SCOPE", "machine proof query inventory differs", "verification")
+        for index, query in enumerate(queries):
+            if type(query) is not dict or set(query) != {"name", "sha256", "artifact"}:
+                reject("E_HIA_PROOF_SCOPE", "machine proof query reference is invalid", "verification")
+            data, _ = self.store.get(query["artifact"], kind="machine-validation-query")
             if (payload_sha256(data).hex() != query["sha256"]
                     or validation is not None and (query["sha256"] != reports[index].get("query_sha256")
                         or query["name"] != reports[index].get("query_file"))):
                 reject("E_HIA_PROOF_SCOPE", "machine proof query bytes differ", "verification")
 
     def _required_claims(self, context, candidate_artifact, refs, baseline_core_sha=None):
+        _data, native, _program = self._native(candidate_artifact, context["ref"])
+        objective, _ = self.store.get_json(context["objective"])
+        receipts = [self._verification(ref, context["ref"], native["candidate"]) for ref in refs]
+        for claim in objective["required_claims"]:
+            qualified = False
+            for receipt in receipts:
+                if not any(c["claim"] == claim and c["status"] == "proved" for c in receipt["checks"]):
+                    continue
+                subject = receipt["subject"]
+                if claim == "encoding_check":
+                    if subject["kind"] != "native_artifact" or subject["native_artifact"] != candidate_artifact:
+                        continue
+                    self._build_receipt(subject["build_receipt"], context["ref"], candidate_artifact)
+                elif claim == "behavior_equivalence":
+                    if receipt["base_core_sha256"] != baseline_core_sha:
+                        continue
+                elif claim == "lowering_refinement":
+                    if subject["kind"] == "native_artifact":
+                        if subject["native_artifact"] != candidate_artifact:
+                            continue
+                        self._build_receipt(subject["build_receipt"], context["ref"], candidate_artifact)
+                    elif native["machine_plan"] is None or subject["kind"] != "agent_machine_plan" or subject["plan"] != native["codegen"]["plan"]:
+                        continue
+                qualified = True
+            if not qualified:
+                reject("E_HIA_CLAIM_REQUIRED", "missing exact proved acceptance claim: " + claim, "verification")
+        return objective
+
+    def _required_claims_with_components(self, context, candidate_artifact, refs, baseline_core_sha=None):
         from .hia_agent_identity_native import CLAIM_BUILD_RECHECK
         from .hia_agent_store import _native_agent_identity
 
@@ -2839,7 +3309,13 @@ HIAAgentService._hia_candidate_reference = _SERVICE_INSPECTION_CANDIDATE_REFEREN
 def _selected_hia_inspect(self, args):
     selector = os.environ.get('HEPTA_HIA_SERVICE_INSPECTION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_INSPECTION_INSPECT_REFERENCE, 'self': self, 'args': args}
+        if (issubclass(type(self), HIAAgentService)
+                or 'HEPTA_HIA_INSPECTION_REQUEST_MANIFEST' in os.environ
+                or 'HEPTA_HIA_AGENT_INSPECTION_MANIFEST' in os.environ):
+            callee = HIAAgentService._hia_inspect_with_components
+        else:
+            callee = _SERVICE_INSPECTION_INSPECT_REFERENCE
+        call = {'callee': callee, 'self': self, 'args': args}
         del self, args
         return call.pop('callee')(call.pop('self'), call.pop('args'))
     from .hia_service_inspection_native import ServiceInspectionFrame, installed_service_inspection
@@ -2851,7 +3327,12 @@ def _selected_hia_inspect(self, args):
 def _selected_hia_candidate(self, args):
     selector = os.environ.get('HEPTA_HIA_SERVICE_INSPECTION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_INSPECTION_CANDIDATE_REFERENCE, 'self': self, 'args': args}
+        if (issubclass(type(self), HIAAgentService)
+                or 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ):
+            callee = HIAAgentService._hia_candidate_with_components
+        else:
+            callee = _SERVICE_INSPECTION_CANDIDATE_REFERENCE
+        call = {'callee': callee, 'self': self, 'args': args}
         del self, args
         return call.pop('callee')(call.pop('self'), call.pop('args'))
     from .hia_service_inspection_native import ServiceInspectionFrame, installed_service_inspection
@@ -3004,7 +3485,13 @@ HIAAgentService._examples_reference = staticmethod(_SERVICE_DISCOVERY_EXAMPLES_R
 def _selected_hia_describe(self, args):
     selector = os.environ.get('HEPTA_HIA_SERVICE_DISCOVERY_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_DISCOVERY_DESCRIBE_REFERENCE, 'self': self, 'args': args}
+        if (issubclass(type(self), HIAAgentService)
+                or 'HEPTA_HIA_AGENT_DISCOVERY_MANIFEST' in os.environ
+                or 'HEPTA_HIA_AGENT_DESCRIBE_ANSWER_MANIFEST' in os.environ):
+            callee = HIAAgentService._hia_describe_with_components
+        else:
+            callee = _SERVICE_DISCOVERY_DESCRIBE_REFERENCE
+        call = {'callee': callee, 'self': self, 'args': args}
         del self, args
         return call.pop('callee')(call.pop('self'), call.pop('args'))
     native = _SERVICE_DISCOVERY_HOST_IMPORT(
@@ -3117,7 +3604,14 @@ _SERVICE_VERIFICATION_IMPORTS = {
 def _selected_service_verification_1(self, original, revised, timeout_ms):
     selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_1, 'self': self, 'original': original, 'revised': revised, 'timeout_ms': timeout_ms}
+        if (issubclass(type(self), HIAAgentService)
+                or 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ
+                or 'HEPTA_HIA_SCALAR_REFERENCE_MANIFEST' in os.environ
+                or 'HEPTA_HIA_SHA256_STREAM_MANIFEST' in os.environ):
+            callee = HIAAgentService._behavior_equivalence_with_components
+        else:
+            callee = _SERVICE_VERIFICATION_REFERENCE_1
+        call = {'callee': callee, 'self': self, 'original': original, 'revised': revised, 'timeout_ms': timeout_ms}
         del self, original, revised, timeout_ms
         return call.pop('callee')(call.pop('self'), call.pop('original'), call.pop('revised'), call.pop('timeout_ms'))
     native = _SERVICE_VERIFICATION_HOST_IMPORT(
@@ -3138,7 +3632,11 @@ HIAAgentService._behavior_equivalence = _selected_service_verification_1
 def _selected_service_verification_2(self, args, program):
     selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_2, 'self': self, 'args': args, 'program': program}
+        if (issubclass(type(self), HIAAgentService)):
+            callee = HIAAgentService._subject_with_components
+        else:
+            callee = _SERVICE_VERIFICATION_REFERENCE_2
+        call = {'callee': callee, 'self': self, 'args': args, 'program': program}
         del self, args, program
         return call.pop('callee')(call.pop('self'), call.pop('args'), call.pop('program'))
     native = _SERVICE_VERIFICATION_HOST_IMPORT(
@@ -3159,7 +3657,14 @@ HIAAgentService._subject = _selected_service_verification_2
 def _selected_service_verification_3(self, args):
     selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_3, 'self': self, 'args': args}
+        if (issubclass(type(self), HIAAgentService)
+                or 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ
+                or 'HEPTA_HIA_SHA256_STREAM_MANIFEST' in os.environ
+                or 'HEPTA_HIA_SHA256_MANIFEST' in os.environ):
+            callee = HIAAgentService._hia_verify_with_components
+        else:
+            callee = _SERVICE_VERIFICATION_REFERENCE_3
+        call = {'callee': callee, 'self': self, 'args': args}
         del self, args
         return call.pop('callee')(call.pop('self'), call.pop('args'))
     native = _SERVICE_VERIFICATION_HOST_IMPORT(
@@ -3180,7 +3685,12 @@ HIAAgentService._hia_verify = _selected_service_verification_3
 def _selected_service_verification_4(self, ref, context, candidate=None):
     selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_4, 'self': self, 'ref': ref, 'context': context, 'candidate': candidate}
+        if (issubclass(type(self), HIAAgentService)
+                or 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ):
+            callee = HIAAgentService._verification_with_components
+        else:
+            callee = _SERVICE_VERIFICATION_REFERENCE_4
+        call = {'callee': callee, 'self': self, 'ref': ref, 'context': context, 'candidate': candidate}
         del self, ref, context, candidate
         return call.pop('callee')(call.pop('self'), call.pop('ref'), call.pop('context'), call.pop('candidate'))
     native = _SERVICE_VERIFICATION_HOST_IMPORT(
@@ -3201,7 +3711,11 @@ HIAAgentService._verification = _selected_service_verification_4
 def _selected_service_verification_5(self, response, arguments):
     selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_5, 'self': self, 'response': response, 'arguments': arguments}
+        if (issubclass(type(self), HIAAgentService)):
+            callee = HIAAgentService._replay_verification_with_components
+        else:
+            callee = _SERVICE_VERIFICATION_REFERENCE_5
+        call = {'callee': callee, 'self': self, 'response': response, 'arguments': arguments}
         del self, response, arguments
         return call.pop('callee')(call.pop('self'), call.pop('response'), call.pop('arguments'))
     native = _SERVICE_VERIFICATION_HOST_IMPORT(
@@ -3222,7 +3736,12 @@ HIAAgentService._replay_verification = _selected_service_verification_5
 def _selected_service_verification_6(subject, built, program, object_bytes, final_bytes):
     selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_6, 'subject': subject, 'built': built, 'program': program, 'object_bytes': object_bytes, 'final_bytes': final_bytes}
+        if ('HEPTA_HIA_SHA256_STREAM_MANIFEST' in os.environ
+                or 'HEPTA_HIA_SHA256_MANIFEST' in os.environ):
+            callee = HIAAgentService._native_refinement_binding_with_components
+        else:
+            callee = _SERVICE_VERIFICATION_REFERENCE_6
+        call = {'callee': callee, 'subject': subject, 'built': built, 'program': program, 'object_bytes': object_bytes, 'final_bytes': final_bytes}
         del subject, built, program, object_bytes, final_bytes
         return call.pop('callee')(call.pop('subject'), call.pop('built'), call.pop('program'), call.pop('object_bytes'), call.pop('final_bytes'))
     native = _SERVICE_VERIFICATION_HOST_IMPORT(
@@ -3243,7 +3762,13 @@ HIAAgentService._native_refinement_binding = staticmethod(_selected_service_veri
 def _selected_service_verification_7(self, args, program, context):
     selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_7, 'self': self, 'args': args, 'program': program, 'context': context}
+        if (issubclass(type(self), HIAAgentService)
+                or 'HEPTA_HIA_SHA256_STREAM_MANIFEST' in os.environ
+                or 'HEPTA_HIA_SHA256_MANIFEST' in os.environ):
+            callee = HIAAgentService._independent_native_refinement_with_components
+        else:
+            callee = _SERVICE_VERIFICATION_REFERENCE_7
+        call = {'callee': callee, 'self': self, 'args': args, 'program': program, 'context': context}
         del self, args, program, context
         return call.pop('callee')(call.pop('self'), call.pop('args'), call.pop('program'), call.pop('context'))
     native = _SERVICE_VERIFICATION_HOST_IMPORT(
@@ -3264,7 +3789,13 @@ HIAAgentService._independent_native_refinement = _selected_service_verification_
 def _selected_service_verification_8(self, evidence, subject, context, program):
     selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_8, 'self': self, 'evidence': evidence, 'subject': subject, 'context': context, 'program': program}
+        if (issubclass(type(self), HIAAgentService)
+                or 'HEPTA_HIA_SHA256_STREAM_MANIFEST' in os.environ
+                or 'HEPTA_HIA_SHA256_MANIFEST' in os.environ):
+            callee = HIAAgentService._check_native_refinement_evidence_with_components
+        else:
+            callee = _SERVICE_VERIFICATION_REFERENCE_8
+        call = {'callee': callee, 'self': self, 'evidence': evidence, 'subject': subject, 'context': context, 'program': program}
         del self, evidence, subject, context, program
         return call.pop('callee')(call.pop('self'), call.pop('evidence'), call.pop('subject'), call.pop('context'), call.pop('program'))
     native = _SERVICE_VERIFICATION_HOST_IMPORT(
@@ -3285,7 +3816,12 @@ HIAAgentService._check_native_refinement_evidence = _selected_service_verificati
 def _selected_service_verification_9(self, context, candidate_artifact, refs, baseline_core_sha=None):
     selector = os.environ.get('HEPTA_HIA_SERVICE_VERIFICATION_MANIFEST')
     if selector is None:
-        call = {'callee': _SERVICE_VERIFICATION_REFERENCE_9, 'self': self, 'context': context, 'candidate_artifact': candidate_artifact, 'refs': refs, 'baseline_core_sha': baseline_core_sha}
+        if (issubclass(type(self), HIAAgentService)
+                or 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ):
+            callee = HIAAgentService._required_claims_with_components
+        else:
+            callee = _SERVICE_VERIFICATION_REFERENCE_9
+        call = {'callee': callee, 'self': self, 'context': context, 'candidate_artifact': candidate_artifact, 'refs': refs, 'baseline_core_sha': baseline_core_sha}
         del self, context, candidate_artifact, refs, baseline_core_sha
         return call.pop('callee')(call.pop('self'), call.pop('context'), call.pop('candidate_artifact'), call.pop('refs'), call.pop('baseline_core_sha'))
     native = _SERVICE_VERIFICATION_HOST_IMPORT(

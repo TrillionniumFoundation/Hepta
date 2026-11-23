@@ -26,7 +26,7 @@ SERVICE_PATH = 'hepta/hia_agent_service.py'
 EVALUATION_PATH = 'hepta/hia_evaluation_native.py'
 QUALIFIER_PATH = 'tests/hia_caller_terminal_admission.py'
 EVALUATE_FIXTURE = 'tests/fixtures/store_evaluate_delivery_successor.json'
-EVALUATE_FIXTURE_SHA256 = '5ab86ecf706165760117253802c6b5fa822fc160b75aa9001877dfa7416efdfc'
+EVALUATE_FIXTURE_SHA256 = '6a239a623d3bb296e98f31e709eebb63330f79855cb3316b4ef08409df834a2f'
 EVALUATION_PLANNER_SHA256 = 'd30d4f0796535ba524746a2e8a07f76fe253e9799745cf8458fedf526bce0a70'
 JOURNAL_COST = ROOT / 'tests/fixtures/worker_journal_cost_successor.json'
 JOURNAL_COST_SHA256 = '97f1c36e9f12af0ffe96b3c789603365e74a3df0b8b5b52fa2be9dca9b7c3cd1'
@@ -111,11 +111,34 @@ def evaluate_records(frozen):
         raise ValueError('Store Evaluate source provenance changed')
     value = json.loads(frozen)
     if (set(value) != {'schema', 'files', 'service_followups', 'build_qualifier', 'build_inventory_test', 'evaluation_qualifier'}
-            or type(value['service_followups']) is not list or len(value['service_followups']) != 5
+            or type(value['service_followups']) is not list or len(value['service_followups']) != 6
             or value['schema'] != 'hepta.hia.store-evaluate-delivery-successor.v1'
             or set(value['files']) != {SERVICE_PATH, EVALUATION_PATH, QUALIFIER_PATH}):
         raise ValueError('Store Evaluate source provenance scope differs')
     return value
+
+
+
+def retained_bootstrap_service(raw):
+    """Verify and reverse each physical service update back to the original Bootstrap prefix."""
+    captures = {ROOT / EVALUATE_FIXTURE: (ROOT / EVALUATE_FIXTURE).read_bytes(),
+                RETAINED_READ: RETAINED_READ.read_bytes(),
+                COMPOSITION_SUCCESSOR: COMPOSITION_SUCCESSOR.read_bytes()}
+    checked = evaluate_records(captures[ROOT / EVALUATE_FIXTURE])
+    if (sha256(captures[RETAINED_READ]).hexdigest() != RETAINED_READ_SHA256
+            or sha256(captures[COMPOSITION_SUCCESSOR]).hexdigest() != COMPOSITION_SUCCESSOR_SHA256):
+        raise ValueError('Bootstrap service source provenance differs')
+    records = [json.loads(captures[COMPOSITION_SUCCESSOR])['files'][SERVICE_PATH],
+               json.loads(captures[RETAINED_READ])['patch'],
+               checked['files'][SERVICE_PATH], *checked['service_followups']]
+    restored = raw
+    for record in reversed(records):
+        restored = reverse_exact(restored, record, {
+            'bytes': record['old_bytes'], 'sha256': record['old_sha256']})
+    if ((ROOT / SERVICE_PATH).read_bytes() != raw
+            or any(path.read_bytes() != value for path, value in captures.items())):
+        raise ValueError('Bootstrap service source changed during admission')
+    return restored
 
 
 def _adapter_definitions(raw):

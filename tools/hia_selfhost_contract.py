@@ -225,6 +225,7 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tests/test_hia_cnf_native.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
+    'tests/hia_independent_vm.py',
     'examples/hia_bootstrap/source_named_packet.hepta',
     'tools/generate_hia_worker_prepare.py',
     'tools/build_hia_worker_prepare.py',
