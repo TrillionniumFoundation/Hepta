@@ -1020,9 +1020,16 @@ class HIAAgentService:
         from .hia_program_native import emit_program_machine
         program = self._program(args["program"])
         selector = args.get("selector", {})
-        if "cursor" in args:
-            reject("E_HIA_CURSOR", "inspection returns an immutable artifact; paginate it through hia_read")
-        view, query, view_bytes = args["view"], None, None
+        request_manifest = os.environ.get('HEPTA_HIA_INSPECTION_REQUEST_MANIFEST')
+        if request_manifest is not None:
+            from .hia_worker_inspection_request_native import installed_worker_inspection_request
+            view, native_selector = installed_worker_inspection_request(request_manifest).project(
+                args, self.catalog_sha256)
+        else:
+            if "cursor" in args:
+                reject("E_HIA_CURSOR", "inspection returns an immutable artifact; paginate it through hia_read")
+            view, native_selector = args["view"], None
+        query, view_bytes = None, None
         selected = os.environ.get('HEPTA_HIA_AGENT_INSPECTION_MANIFEST')
         if selected and view in ("summary", "function", "block"):
             from .hia_agent_inspection_native import installed_agent_inspection
@@ -1046,10 +1053,12 @@ class HIAAgentService:
                     "text_bytes": str(len(image.text_bytes)), "frames": dict(image.function_frames),
                     "lowering_profile": profile, "optimizer_used": False, "object": object_ref}
         elif view == "dependencies":
-            if not all(k in selector for k in ("function", "block", "output")):
-                reject("E_HIA_SELECTOR", "dependencies require function, block and output")
-            # Optional selector members belonging to other views do not affect this query.
-            site = {name: selector[name] for name in ("function", "block", "output")}
+            if native_selector is not None:
+                site = native_selector
+            else:
+                if not all(k in selector for k in ("function", "block", "output")):
+                    reject("E_HIA_SELECTOR", "dependencies require function, block and output")
+                site = {name: selector[name] for name in ("function", "block", "output")}
             if self._native_edit_query is not None:
                 view_bytes = self._native_edit_query.prepare(program, site)
                 if view_bytes is None:

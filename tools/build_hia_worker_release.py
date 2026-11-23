@@ -52,7 +52,7 @@ INSTALLED_HELPERS = (
 )
 ADDITIONAL_HELPERS = (
     'worker-request', 'agent-journal', 'execution-budget', 'candidate-budget',
-    'agent-read-page', 'agent-read-request', 'slot-ledger', 'execution-ledger', 'scalar-symbolic',
+    'agent-read-page', 'agent-read-request', 'inspection-request', 'slot-ledger', 'execution-ledger', 'scalar-symbolic',
     'sha256-stream', 'cnf', 'evaluate-reference-wire',
     'agent-data-json', 'agent-binary64', 'agent-binary64-format',
     'agent-describe-answer', 'agent-payload-schema', 'agent-plan-schema', 'machine-plan',

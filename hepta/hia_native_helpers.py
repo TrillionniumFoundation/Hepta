@@ -65,6 +65,7 @@ HELPERS = {
     "HEPTA_HIA_AGENT_BINARY64_MANIFEST": ("hia_agent_binary64_native", "NativeAgentBinary64"),
     "HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST": ("hia_agent_binary64_format_native", "NativeAgentBinary64Format"),
     "HEPTA_HIA_AGENT_SLICE_MANIFEST": ("hia_agent_slice_native", "NativeAgentSlice"),
+    "HEPTA_HIA_INSPECTION_REQUEST_MANIFEST": ("hia_worker_inspection_request_native", "NativeWorkerInspectionRequest"),
     "HEPTA_HIA_AGENT_INSPECTION_MANIFEST": ("hia_agent_inspection_native", "NativeAgentInspection"),
     "HEPTA_HIA_AGENT_DISCOVERY_MANIFEST": ("hia_agent_discovery_native", "NativeAgentDiscovery"),
     "HEPTA_HIA_AGENT_DESCRIBE_ANSWER_MANIFEST": (

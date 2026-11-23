@@ -336,7 +336,6 @@ MCP_WIRE_SDIST_FILES = (
     'examples/hia_bootstrap/worker_context_store.hepta',
     'examples/hia_bootstrap/worker_context_record.hepta',
     'examples/hia_bootstrap/worker_context_request.hepta',
-    'examples/hia_bootstrap/worker_inspection_request.hepta',
     'examples/hia_bootstrap/worker_candidate_request.hepta',
     'tools/generate_hia_worker_inspection_request.py',
     'examples/hia_bootstrap/worker_inspection_effect.hepta',
@@ -1743,6 +1742,7 @@ SOURCE_FILES = (
     'tools/hia_agent_read_page_stdio.S',
     'tests/test_hia_agent_read_page_native.py',
     'examples/hia_bootstrap/agent_inspection.hepta',
+    'examples/hia_bootstrap/worker_inspection_request.hepta',
     'tools/generate_hia_agent_inspection.py',
     'examples/hia_bootstrap/agent_discovery.hepta',
     'examples/hia_bootstrap/agent_describe_answer.hepta',
@@ -2839,6 +2839,11 @@ def support_contract(root=ROOT):
         },
         'agent_inspection': {
             'source': 'examples/hia_bootstrap/agent_inspection.hepta',
+            'request_projection': {
+                'source': 'examples/hia_bootstrap/worker_inspection_request.hepta',
+                'selection': 'HEPTA_HIA_INSPECTION_REQUEST_MANIFEST',
+                'native_owners': ['view dispatch', 'cursor refusal', 'dependency selector projection'],
+            },
             'selection': 'explicit HEPTA_HIA_AGENT_INSPECTION_MANIFEST; no fallback',
             'native_owners': ['canonical summary including the original structured identity',
                               'exact function and block selection', 'canonical inspection artifact bytes'],
