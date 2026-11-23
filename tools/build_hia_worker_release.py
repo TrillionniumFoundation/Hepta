@@ -42,6 +42,7 @@ from tools.build_hia_read_launcher import (
 from tools.build_hia_sha256 import build as build_sha256
 from tools.build_hia_service_context import build as build_service_context
 from tools.build_hia_slot_ledger import build as build_slot_ledger
+from tools.build_hia_worker_flow import build as build_worker_flow
 from tools.build_hia_worker_report import bind_worker_bundle, build as build_report
 from tools.build_hia_worker_scheduling_bundle import bind_scheduling_bundle
 
@@ -612,6 +613,15 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             if reference_batch.read_bytes() != expected.read_bytes():
                 raise ValueError('Store release Evaluate reference batch differs from the cold-built HIA role')
         profile = output / 'worker.json'
+        for kind in ('evaluate-replay', 'evaluate-intake'):
+            launcher = release / f'hia-agent-{kind}-launcher'
+            carrier = release / f'hia-agent-{kind}-worker-carrier'
+            if launcher.is_file() != carrier.is_file():
+                raise ValueError(f'Store release {kind} requires its launcher and carrier together')
+            if carrier.is_file():
+                expected = build_worker_flow(scratch / (kind + '-carrier'), compiler, cold_report, kind=kind)
+                if carrier.read_bytes() != expected.read_bytes():
+                    raise ValueError(f'Store release {kind} carrier differs from the cold-built HIA role')
         pin = bind_worker_store(profile, scheduled, release, candidate_import=True, portable=True,
                                 reference_executable=reference, owned_reference_executable=owned_reference,
                                 direct_call_executable=direct_call, direct_call_protocol=5,
@@ -629,6 +639,8 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             'native': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots, kind='native'),
             'evaluate-replay': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots,
                                        kind='evaluate-replay'),
+            'evaluate-intake': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots,
+                                       kind='evaluate-intake'),
         }
         for kind in binders:
             launcher = release / ('hia-agent-' + kind + '-launcher')
@@ -666,7 +678,7 @@ def main():
                          readonly_artifact_roots=args.readonly_artifact_root)
     result = {'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
               'package_sha256': args.package_sha256, 'production_activated': False}
-    for kind in ('read', 'readonly', 'native', 'evaluate-replay'):
+    for kind in ('read', 'readonly', 'native', 'evaluate-replay', 'evaluate-intake'):
         manifest = profile.parent / (kind + '-worker.json')
         if manifest.is_file():
             label = kind.replace('-', '_')
