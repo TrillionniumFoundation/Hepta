@@ -49,9 +49,7 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
             result = _compile(Path(tmp), name, compiler, cold_report, *args, **options)
             publish(result)
 
-    for name in ('source_build',
-                 'supplied_safe_core_proof',
-                 'nominal_constructor',):
+    for name in ('source_build', 'supplied_safe_core_proof'):
         component(name)
 
     with TemporaryDirectory(prefix='standalone-', dir=work) as tmp:
@@ -266,10 +264,20 @@ def _sqlite_build_tools(seed, linker, compile_sources, call, admitted):
         })
         return call(seed, 'pack', kit)
 
-    def adapter(template, ordinal, name):
+    def adapter(template, ordinal, name, *, continuation=None):
         source = (ROOT / name).read_bytes()
         if sha256(source).hexdigest() != admitted.get(name):
             raise ValueError('SQLite adapter source differs from cold admission: ' + name)
+        if continuation is not None:
+            if ordinal != 0:
+                raise ValueError('the split nominal constructor adapter uses role zero')
+            fragments = []
+            for part, path in enumerate((template, continuation)):
+                request = struct.pack('<8sQQ', b'HIACTPT1', part, len(source)) + source
+                fragments.append(call(owner(Path(path).name), 'build', request))
+            first, tail = fragments
+            packet = struct.pack('<8s3Q', b'HIACTAD1', len(source), len(first), len(tail))
+            return call(embedder, 'build', packet + source + first + tail)
         frame = struct.pack('<8sQQ', b'HIASQAD1', ordinal, len(source)) + source
         return call(owner(Path(template).name), 'build', frame)
 
@@ -284,6 +292,32 @@ def _sqlite_build_tools(seed, linker, compile_sources, call, admitted):
         return call(linker, None, call(embedder, 'build', request))
 
     return adapter, embed, link
+
+
+def _stage_nominal_constructor(work, compile_sources, publish, tools):
+    """Compile the twenty public constructor components and link their named HIA objects."""
+    from tools.build_hia_nominal_constructor import COMPONENTS, CONSTRUCTOR_IMAGES, TRANSPORT_ROLES, TRANSPORT_TEMPLATES
+    from tools.build_hia_sqlite_pager import verify_executable
+
+    adapter, embed, link = tools
+    transport = adapter(TRANSPORT_TEMPLATES['constructor'], 0, TRANSPORT_ROLES[0],
+                        continuation=TRANSPORT_TEMPLATES['constructor-tail'])
+    objects = [transport]
+    for ordinal, name in enumerate(TRANSPORT_ROLES[1:], 1):
+        objects.append(adapter(TRANSPORT_TEMPLATES['publication'], ordinal, name))
+    paths = {Path(COMPONENTS[role]).name: COMPONENTS[role].removeprefix('examples/hia_bootstrap/')
+             for role in CONSTRUCTOR_IMAGES}
+    _, images, sources = compile_sources(paths)
+    for ordinal, role in enumerate(CONSTRUCTOR_IMAGES, 39):
+        alias = Path(COMPONENTS[role]).name
+        objects.append(embed(b'HIACTIM1', ordinal, sources[alias]))
+    executable = link(b'HIACTLK1', objects)
+    for image in images.values():
+        verify_executable(executable, image)
+    path = work / 'hia-nominal-constructor'
+    path.write_bytes(executable)
+    publish(path, expected=sha256(executable).hexdigest())
+    return path
 
 
 def _stage_sqlite_units(work, compile_sources, admitted, publish, tools):
@@ -695,8 +729,11 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             path.write_bytes(manifest)
             publish(path)
 
+    sqlite_tools = _sqlite_build_tools(seed, captured('hia-elf-link'), compile_sources, call, admitted)
+    constructor = _stage_nominal_constructor(work, compile_sources, publish, sqlite_tools)
     with TemporaryDirectory(prefix='core-edit-', dir=work) as tmp:
-        output = _compile(Path(tmp), 'core_edit', *core_inputs, native_tools=(seed, compile_sources, call))
+        output = _compile(Path(tmp), 'core_edit', *core_inputs, native_tools=(seed, compile_sources, call),
+                          constructor=constructor)
         for name, _ in CORE_EDIT_PROGRAMS.values():
             publish(output / name)
         publish(output / 'hia-worker-scalar-implementation')
@@ -705,7 +742,6 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, compile_sources, call, admitted, publish)
     _stage_owned_reference(work, seed, compile_sources, call, compiler_bytes, admitted, publish)
-    sqlite_tools = _sqlite_build_tools(seed, captured('hia-elf-link'), compile_sources, call, admitted)
     linked = _stage_sqlite_units(work, compile_sources, admitted, publish, sqlite_tools)
     _stage_sqlite_migrations(work, compile_sources, admitted, publish, sqlite_tools, linked,
                              migration_dependencies, compiler_bytes, report_bytes)

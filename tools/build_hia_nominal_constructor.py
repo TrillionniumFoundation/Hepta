@@ -54,6 +54,18 @@ COMPONENTS = {
 }
 
 
+CONSTRUCTOR_IMAGES = {
+    **NOMINAL_IMAGE_LABELS, 'types': 'types_image', 'admit': 'function_admit',
+    'records': 'function_records', 'terms': 'function_terms',
+    'advanced': 'function_advanced', 'function-render': 'function_render',
+    'helpers': 'function_helper', 'outer-owner': 'outer_owner',
+    'outer-render': 'outer_render', 'public-core': 'public_core',
+    'public-canonical': 'public_canonical', 'public-presentation': 'public_presentation',
+    'publish-frontend': 'publish_frontend', 'publish-program': 'publish_program',
+    'publish-policy': 'publish_policy',
+    'assembly-roundtrip': 'assembly_roundtrip',
+    'assembly-publication': 'assembly_publication'}
+
 def build(output: Path, compiler: Path, cold: Path) -> Path:
     compiler_body, cold_body = compiler.read_bytes(), cold.read_bytes()
     admitted = admit_cold_build(compiler_body, cold_body)
@@ -77,23 +89,13 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
     objects.extend(load_static_object(templates['publication'], role, inputs[adapter])
                    for role, adapter in enumerate(TRANSPORT_ROLES[1:], 1))
     embedder = build_embedder(output, compiler, inputs[EMBED_SOURCE])
-    embedded = {**NOMINAL_IMAGE_LABELS, 'types': 'types_image', 'admit': 'function_admit',
-                'records': 'function_records', 'terms': 'function_terms',
-                'advanced': 'function_advanced', 'function-render': 'function_render',
-                'helpers': 'function_helper', 'outer-owner': 'outer_owner',
-                'outer-render': 'outer_render', 'public-core': 'public_core',
-                'public-canonical': 'public_canonical', 'public-presentation': 'public_presentation',
-                'publish-frontend': 'publish_frontend', 'publish-program': 'publish_program',
-                'publish-policy': 'publish_policy',
-                'assembly-roundtrip': 'assembly_roundtrip',
-                'assembly-publication': 'assembly_publication'}
-    for role, label in embedded.items():
+    for role, label in CONSTRUCTOR_IMAGES.items():
         stem = 'constructor-' + role
         objects.append(embed(output, label, stem, images[role], embedder))
         checks[output / (stem + '.embedded.elf')] = images[role]
     binary, link_receipt = link(output, images['linker'], images['owner'], objects,
                                 wire_magic=b'HIALNK01', executable_limit=ORDINARY_CLI_IMAGE_CAPACITY)
-    for label in embedded:
+    for label in CONSTRUCTOR_IMAGES:
         verify_executable(binary, images[label])
     if (current_sources() != admitted or compiler.read_bytes() != compiler_body
             or cold.read_bytes() != cold_body

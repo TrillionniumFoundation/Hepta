@@ -509,7 +509,7 @@ def bind_dispatch_roles(template, executables):
     return b''.join(blocks)
 
 
-def build(output, compiler, cold_report, *, release_only=False, native_tools=None):
+def build(output, compiler, cold_report, *, release_only=False, native_tools=None, constructor=None):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
     # The stdin-to-object development probe is not a public dispatcher role.
@@ -608,7 +608,10 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
                                              images[ARGUMENT_PAYLOAD], binary, compressor)
             details.update(packed)
         products[name] = (binary, details)
-    constructor = build_nominal_constructor(output / 'nominal-constructor', compiler, cold_report)
+    if constructor is None:
+        constructor = build_nominal_constructor(output / 'nominal-constructor', compiler, cold_report)
+    elif native_tools is None or constructor.name != 'hia-nominal-constructor':
+        raise ValueError('the bound nominal constructor requires the native release source tools')
     selfhost_component = products['hia-selfhost-component'][0]
     bound_selfhost = bind_selfhost_entry(sources[SELFHOST_ENTRY], selfhost_component)
     image, receipts[SELFHOST_ENTRY] = compile_stage(output, Path(SELFHOST_ENTRY).stem, compiler, bound_selfhost)

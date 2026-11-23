@@ -291,6 +291,38 @@ class InstalledSourceMemberTests(unittest.TestCase):
                                 frame(role, source, image, source, compiler)):
                     self.invoke([author, 'build'], invalid, refused=True)
 
+    def test_nominal_constructor_rebuilds_all_embedded_images_and_its_split_transport(self):
+        from tools import build_hia_native_store_release as release
+        from tools.build_hia_nominal_constructor import TRANSPORT_ROLES
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+
+        def compile_sources(names):
+            paths = {alias: self.sources / name for alias, name in names.items()}
+            sources = {alias: path.read_bytes() for alias, path in paths.items()}
+            packet = self.source_images(self.work / 'constructor-sources', paths)
+            return packet, _compiled_sources(packet, sources), sources
+
+        def invoke(program, operation, wire):
+            result = _run_captured(program, operation, wire, self.work)
+            if result.returncode or result.stderr:
+                raise ValueError(f'constructor source rejected with status {result.returncode}')
+            return result.stdout
+
+        expected = (self.release / 'hia-nominal-constructor').read_bytes()
+        outputs = []
+        def publish(path, *, expected):
+            raw = path.read_bytes()
+            self.assertEqual(sha256(raw).hexdigest(), expected)
+            outputs.append((path.name, raw))
+
+        inputs = {path: sha256((ROOT / path).read_bytes()).hexdigest() for path in TRANSPORT_ROLES}
+        seed = self.seed.read_bytes()
+        tools = release._sqlite_build_tools(seed, (self.release / 'hia-elf-link').read_bytes(),
+                                           compile_sources, invoke, inputs)
+        path = release._stage_nominal_constructor(self.work, compile_sources, publish, tools)
+        self.assertEqual(outputs, [('hia-nominal-constructor', expected)])
+        self.assertEqual(path.read_bytes(), expected)
+
     def test_normal_sqlite_units_match_the_independent_installed_programs(self):
         from tools import build_hia_native_store_release as release
         from tools.build_hia_agent_batch_commit import VARIANTS
