@@ -17,7 +17,7 @@ OWNER = QuiescentOwner(
     interrupts_masked=True, preemption_disabled=True,
     exclusive_page_table_owner=True, dma_quiescent=True,
     pcid_disabled=True, global_pages_disabled=True, la57_disabled=True,
-    upper_table_links_checked=True,
+    upper_table_links_checked=True, pte_slot_identity_mapped=True,
 )
 REQUEST = LeafRevoke(
     active_cr3=0x100000, pte_slot_phys=0x203008,
@@ -53,7 +53,8 @@ class GuardedLeafRevokeStage(unittest.TestCase):
     def test_target_faults_and_stale_word_refusals(self):
         variants = {
             "active_cr3": (0, 0x12345, 1 << 48, True, -1, "4096"),
-            "pte_slot_phys": (0, 0x100000, 0x203009, 1 << 48, True, -1),
+            "pte_slot_phys": (0, 0x100000, 0x203009, 1 << 47,
+                              1 << 48, True, -1),
             "virtual_page": (0x0000800000000000, 0xffff800000400001,
                              0x00007fffffffffff, -1, 1 << 64, False),
             "expected_old_pte": (0, 0x500066, 0x500167, True, -1, 1 << 64),
