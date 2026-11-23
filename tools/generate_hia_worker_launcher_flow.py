@@ -60,12 +60,14 @@ def launcher(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return dispatch(s, o, w, state)
 
 def begin_launch(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    if length(s) != 72 or capsule_word(s, 0) != ENTRY:
+    if length(s) != 73 or capsule_word(s, 0) != ENTRY:
+        return BAD
+    if byte(s, 8) != 47:
         return BAD
     i = 0
     while i < 32:
-        first = hex_digit(byte(s, 8 + 2 * i))
-        next = hex_digit(byte(s, 9 + 2 * i))
+        first = hex_digit(byte(s, 9 + 2 * i))
+        next = hex_digit(byte(s, 10 + 2 * i))
         if first > 15 or next > 15:
             return BAD
         store(w, PIN + i, 16 * first + next)
@@ -329,7 +331,7 @@ def route_tables():
 
 
 def program():
-    words = {'ENTRY': b'HIALEN01', 'OBSERVATION': b'HIADFO01', 'COMMAND': b'HIADFC01',
+    words = {'ENTRY': b'HIALEN02', 'OBSERVATION': b'HIADFO01', 'COMMAND': b'HIADFC01',
              'ADMISSION': b'HIAWRA01'}
     constants = {name: int.from_bytes(raw, 'little') for name, raw in words.items()}
     states = ('CAPSULE_CAPTURED', 'CAPSULE_AUTHORIZED', 'CAPSULE_HEADER', 'RELEASE_DIRECTORY',

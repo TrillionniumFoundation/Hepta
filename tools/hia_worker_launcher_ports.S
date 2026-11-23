@@ -16,23 +16,24 @@
 
 .Llauncher_entry:
  mov rax, [r15+32]
- cmp BYTE PTR [rax], 47
- jne .Lrefused
+ mov al, BYTE PTR [rax]
+ mov BYTE PTR [rbp+OBS+8], al
  mov rsi, [r15+40]
- lea rdi, [rbp+OBS+8]
- mov ecx, 64
+ lea rdi, [rbp+OBS+9]
+ mov ecx, 65                     /* One byte past the longest admissible pin. */
 .Llauncher_pin_byte:
  lodsb
  test al, al
- jz .Lrefused
+ jz .Llauncher_arguments_captured
  stosb
  dec ecx
  jnz .Llauncher_pin_byte
- cmp BYTE PTR [rsi], 0
- jne .Lrefused
+.Llauncher_arguments_captured:
+ lea rax, [rbp+OBS]
+ sub rdi, rax
+ mov [rbp+OBS_SIZE], rdi
  mov rax, [rip+.Llauncher_magic]
  mov [rbp+OBS], rax
- mov QWORD PTR [rbp+OBS_SIZE], 72
  jmp .Lnext
 
 .Llauncher_find_nul:
@@ -340,4 +341,4 @@ worker_authority_hole: .long 0
  mov [rbp+OBS_SIZE], rax
  jmp .Lnext
 
-.Llauncher_magic: .ascii "HIALEN01"
+.Llauncher_magic: .ascii "HIALEN02"
