@@ -8,14 +8,14 @@ inputs. Explicit development construction is reported separately throughout.
 from __future__ import annotations
 
 import argparse
-import base64
-import csv
+import ctypes
 from hashlib import sha256
-import io
 import json
 import os
 from pathlib import Path
+import struct
 import subprocess
+from tempfile import TemporaryDirectory
 import sys
 import zipfile
 
@@ -191,27 +191,75 @@ def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sourc
     return members, binaries
 
 
-def _write_wheel(path, files, distribution):
+def _wheel_record_images(directory, compiler, sources, cold_bytes):
+    """Compile and bind the two HIA programs that produce wheel member records."""
+    from hepta.hia_json_preflight_native import NativeHiaJsonImage
+    from hepta.hia_sha256_stream_native import NativeSha256Stream
+    from tools.build_hia_source_build import _check_compile_receipt
+    from tools.qualify_hia_selfhost import compile_stage
+    from tools.replay_hia_selfhost_cold import cold_compiler_observer
+
+    observer = None if cold_bytes is None else cold_compiler_observer(cold_bytes)
+    compiler_raw = compiler.read_bytes()
+    directory.mkdir(mode=0o700)
+    images = []
+    for name, image_type in (('sha256_stream', NativeSha256Stream), ('wheel_record_row', NativeHiaJsonImage)):
+        relative = 'examples/hia_bootstrap/' + name + '.hepta'
+        path = ROOT / relative
+        raw = path.read_bytes()
+        if sha256(raw).hexdigest() != sources.get(relative):
+            raise ValueError('wheel record source differs from its admitted identity: ' + name)
+        image, receipt = compile_stage(directory, name, compiler, raw, flat_observer=observer)
+        compiled = image.read_bytes()
+        _check_compile_receipt(receipt, compiler=compiler_raw, source=raw, produced=compiled)
+        if path.read_bytes() != raw or compiler.read_bytes() != compiler_raw:
+            raise ValueError('wheel record compiler inputs changed')
+        images.append(image_type(compiled, receipt['produced_sha256']))
+    return tuple(images)
+
+
+def _wheel_record_row(encoder, name, size, digest=None):
+    path = name.encode('utf-8')
+    if len(path) > 65535 or (digest is not None and len(digest) != 32):
+        raise ValueError('invalid wheel record member')
+    wire = struct.pack('<8s3Q', b'HIAWROW1', int(digest is None), len(path), size) + path + (digest or b'')
+    source = ctypes.create_string_buffer(wire, len(wire))
+    output = ctypes.create_string_buffer(2 * len(path) + 80)
+    used = encoder._entry(source, len(wire), output, len(output), None, 0)
+    if not 0 < used <= len(output):
+        raise ValueError('HIA refused a wheel inventory row')
+    return output.raw[:used]
+
+
+def _write_wheel(path, files, distribution, record_images):
+    if os.path.lexists(path):
+        raise FileExistsError(path)
+    hasher, encoder = record_images
     record = distribution + '/RECORD'
-    entries = io.StringIO(newline='')
-    writer = csv.writer(entries, lineterminator='\n')
+    entries = bytearray()
+    digests = {}
     for name, raw in sorted(files.items()):
-        if name == record:
-            continue
-        digest = base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode('ascii')
-        writer.writerow((name, 'sha256=' + digest, str(len(raw))))
-    writer.writerow((record, '', ''))
-    files = {**files, record: entries.getvalue().encode()}
-    with zipfile.ZipFile(path, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
-        for name, raw in sorted(files.items()):
-            item = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
-            item.create_system = 3
-            is_program = (name.startswith(distribution.removesuffix('.dist-info') + '.data/scripts/')
-                          and raw.startswith(b'\x7fELF'))
-            item.external_attr = (0o100755 if is_program else 0o100644) << 16
-            item.compress_type = zipfile.ZIP_DEFLATED
-            archive.writestr(item, raw)
-    return {name: sha256(raw).hexdigest() for name, raw in sorted(files.items())}
+        if name != record:
+            digest = hasher.digest(raw)
+            digests[name] = digest.hex()
+            entries.extend(_wheel_record_row(encoder, name, len(raw), digest))
+    entries.extend(_wheel_record_row(encoder, record, 0))
+    record_bytes = bytes(entries)
+    digests[record] = hasher.digest(record_bytes).hex()
+    files = {**files, record: record_bytes}
+    with TemporaryDirectory(prefix='.hia-wheel-', dir=path.parent) as folder:
+        staged = Path(folder) / path.name
+        with zipfile.ZipFile(staged, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
+            for name, raw in sorted(files.items()):
+                item = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+                item.create_system = 3
+                is_program = (name.startswith(distribution.removesuffix('.dist-info') + '.data/scripts/')
+                              and raw.startswith(b'\x7fELF'))
+                item.external_attr = (0o100755 if is_program else 0o100644) << 16
+                item.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(item, raw)
+        os.link(staged, path)
+    return {name: digests[name] for name in sorted(files)}
 
 
 def _cli_package_members(output, compiler, cold_report):
@@ -361,12 +409,13 @@ def build(output, compiler, cold_report=None, *, development=False):
     files.update(derived)
     prefix = base_wheel.name.removesuffix('.whl').rsplit('-', 3)[0]
     wheel = output / (prefix + '-' + build_tag + '-' + wheel_tag + '.whl')
+    record_images = _wheel_record_images(output / 'wheel-record', compiler, sources, cold_bytes)
     if (current_sources() != sources or compiler.read_bytes() != compiler_bytes
             or (cold_bytes is not None and cold_report.read_bytes() != cold_bytes)
             or any((ROOT / name).read_bytes() != raw for name, raw in captured.items())
             or any(path.read_bytes() != raw for path, raw in owner_inputs.items())):
         raise ValueError('default candidate inputs changed before wheel publication')
-    members = _write_wheel(wheel, files, distribution)
+    members = _write_wheel(wheel, files, distribution, record_images)
     report = {'schema': SCHEMA, 'scope': scope, 'target': TARGET, 'wheel_tag': wheel_tag,
         'wheel': str(wheel), 'wheel_sha256': sha256(wheel.read_bytes()).hexdigest(),
         'base_wheel_sha256': sha256(base_wheel.read_bytes()).hexdigest(),

@@ -1243,6 +1243,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/continuation_inprocess_packer.hepta',
     'examples/hia_bootstrap/continuation_guarded_packer.hepta',
     'examples/hia_bootstrap/continuation_guard_check.hepta',
+    'examples/hia_bootstrap/wheel_record_row.hepta',
     'tools/hia_continuation_guard_syscalls.S',
     'tools/build_hia_native_continuation.py',
     'tools/hia_continuation_pack_child.py',

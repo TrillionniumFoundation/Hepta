@@ -218,6 +218,37 @@ class DefaultReleaseNativeTests(unittest.TestCase):
     def tearDown(self):
         self.assertEqual(self.inventory(), self.initial_files)
 
+    def test_wheel_record_rows_and_incremental_hashes_match_original_wheel_protocol(self):
+        import base64
+        import csv
+        import io
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from hepta.hia_sha256_stream_native import MAX_CHUNK, NativeSha256Stream
+        from tools.build_hia_default_release import _wheel_record_row
+
+        images = self.root / 'build' / 'wheel-record'
+        def load(name, image_type):
+            image = (images / (name + '.image.bin')).read_bytes()
+            receipt = json.loads((images / (name + '.receipt.json')).read_bytes())
+            return image_type(image, receipt['produced_sha256'])
+
+        encoder = load('wheel_record_row', NativeHiaJsonImage)
+        hasher = load('sha256_stream', NativeSha256Stream)
+        content = b'wheel' * (MAX_CHUNK // 5 + 1)
+        expected = sha256(content).digest()
+        self.assertEqual(hasher.digest(content), expected)
+        for name, size, digest in (('目录/"quoted",file\r\n', (1 << 64) - 1, expected),
+                                   ('x' * 65535, 0, sha256(b'').digest()), ('w.dist-info/RECORD', 0, None)):
+            with self.subTest(length=len(name), size=size):
+                writer = io.StringIO(newline='')
+                checksum = 'sha256=' + base64.urlsafe_b64encode(digest).decode().rstrip('=') if digest else ''
+                csv.writer(writer, lineterminator='\n').writerow((name, checksum, size if digest else ''))
+                self.assertEqual(_wheel_record_row(encoder, name, size, digest), writer.getvalue().encode())
+        with self.assertRaises(ValueError):
+            _wheel_record_row(encoder, 'x' * 65536, 0, expected)
+        with self.assertRaises(ValueError):
+            _wheel_record_row(encoder, 'w.dist-info/RECORD', 1)
+
     def test_wheel_is_platform_specific_and_only_pin_is_derived_runtime_source(self):
         import csv
         import io

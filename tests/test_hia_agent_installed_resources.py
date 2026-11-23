@@ -17,6 +17,7 @@ RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_
 # all other support paths remain absent from its package root.
 SDIST_SUPPORT_FILES=(
     'examples/hia_bootstrap/continuation_guard_check.hepta',
+    'examples/hia_bootstrap/wheel_record_row.hepta',
     'examples/hia_bootstrap/continuation_guarded_packer.hepta',
     'tools/hia_continuation_guard_syscalls.S',
     'tools/build_hia_default_release.py', 'tools/hia_wheel_backend.py',

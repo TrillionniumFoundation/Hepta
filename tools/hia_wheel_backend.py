@@ -33,7 +33,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     """Keep the Python API editable and install the same physical public ELF programs."""
-    from tools.build_hia_default_release import WHEEL_TAG, _native_cli_scripts, _write_wheel
+    from tools.build_hia_default_release import WHEEL_TAG, _native_cli_scripts, _wheel_record_images, _write_wheel
     from tools.build_hia_json_preflight import admit_cold_build
 
     destination = Path(wheel_directory).resolve()
@@ -56,5 +56,6 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
             files[meta] = files[meta].replace(b'Root-Is-Purelib: true', b'Root-Is-Purelib: false').replace(
                 b'Tag: py3-none-any', b'Tag: ' + WHEEL_TAG.encode())
             wheel_name = current[0] + '-' + WHEEL_TAG + '.whl'
-        _write_wheel(destination / wheel_name, files, distribution)
+        record_images = _wheel_record_images(work / 'wheel-record', compiler, sources, report.read_bytes())
+        _write_wheel(destination / wheel_name, files, distribution, record_images)
         return wheel_name
