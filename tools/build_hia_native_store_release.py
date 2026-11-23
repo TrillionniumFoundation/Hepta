@@ -52,13 +52,72 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
     for name in ('source_build', 'supplied_safe_core_proof'):
         component(name)
 
-    with TemporaryDirectory(prefix='standalone-', dir=work) as tmp:
-        directory = Path(tmp)
-        owner = _compile(directory, 'agent_store', compiler, cold_report)
-        publish(owner)
-        metadata = json.loads((owner.parent / 'build.json').read_bytes())
-        for name, digest in metadata['module_sha256'].items():
-            publish(owner.parent / metadata['module_root'] / name, expected=digest)
+
+def _stage_agent_store(work, seed, compile_sources, call, compiler, admitted, publish):
+    """Compile the Store's word-filtered units, bundle its modules and bind the transaction root."""
+    from tools.build_hia_agent_batch_commit import verify_placement
+    from tools.build_hia_agent_store import ADAPTER, PLAN, PROGRAMS, ROOT_INSTRUCTIONS
+    from tools.generate_hia_native_filter import read_adapter_binding
+
+    plan_bytes = (ROOT / PLAN).read_bytes()
+    if sha256(plan_bytes).hexdigest() != admitted.get(PLAN):
+        raise ValueError('native Store plan differs from its cold admission')
+    plan = json.loads(plan_bytes)
+    groups = plan['modules']
+    if (plan['schema'] != 'hepta.hia.agent-store-build-plan.v1'
+            or [group['role'] for group in groups] != list(range(4))):
+        raise ValueError('invalid native Store module plan')
+
+    def owner(name):
+        kit, images, sources = compile_sources({
+            'source_build_policy.hepta': 'source_agent_store.hepta',
+            'selfhost.hepta': 'selfhost.hepta',
+            'source_build_packer.hepta': 'agent_store/' + name,
+        })
+        if images['selfhost.hepta'] != compiler:
+            raise ValueError('native Store requires the admitted cold compiler')
+        alias = 'source_build_packer.hepta'
+        return call(seed, 'pack', kit), images[alias], sources[alias]
+
+    def build(program, tag, role, parts):
+        sizes = struct.pack('<' + 'Q' * len(parts), *map(len, parts))
+        header = struct.pack('<8s3Q', tag, role, len(plan_bytes), len(parts))
+        return call(program, 'build', header + sizes + plan_bytes + b''.join(parts))
+
+    word_filter, _, _ = owner('word_filter.hepta')
+    bundle, bundle_image, _ = owner('bundle_packer.hepta')
+    root, _, root_packer_source = owner(plan['units']['packer']['source'])
+    if sha256(bundle_image).hexdigest() != plan['bundle_packer_sha256']:
+        raise ValueError('native Store bundle packer differs from its plan')
+    adapter = (ROOT / ADAPTER).read_bytes()
+    if sha256(adapter).hexdigest() != admitted.get(ADAPTER):
+        raise ValueError('native Store adapter differs from its cold admission')
+    binding = read_adapter_binding(root_packer_source, adapter, calls=len(ROOT_INSTRUCTIONS))
+
+    units = {name: spec for name, spec in plan['units'].items() if 'id' in spec}
+    if sorted(spec['id'] for spec in units.values()) != list(range(25)):
+        raise ValueError('invalid native Store word-filter unit identities')
+    paths = {spec['source']: (PROGRAMS + spec['source']).removeprefix('examples/hia_bootstrap/')
+             for spec in units.values()}
+    _, flats, _ = compile_sources(paths)
+    images = {}
+    for name, spec in units.items():
+        images[name] = build(word_filter, b'HIAAWFL1', spec['id'], [flats[spec['source']]])
+    modules = [build(bundle, b'HIAAWBN1', group['role'], [images[name] for name in group['units']])
+               for group in groups]
+    manifest = build(bundle, b'HIAAWMF1', 0, modules)
+    parts = {'loader': images['loader'], 'owner': images['owner'], 'manifest': manifest, 'json': images['JSON_hub']}
+    executable = build(root, b'HIAAWR01', 0, list(parts.values()))
+    verify_placement(executable, binding, parts, instructions=tuple(ROOT_INSTRUCTIONS[name] for name in parts))
+    if (ROOT / PLAN).read_bytes() != plan_bytes or (ROOT / ADAPTER).read_bytes() != adapter:
+        raise ValueError('a Store build input changed before publication')
+    for group, module in zip(groups, modules, strict=True):
+        path = work / f"module-{group['role']}.bin"
+        path.write_bytes(module)
+        publish(path, expected=group['sha256'])
+    path = work / 'hia-agent-store'
+    path.write_bytes(executable)
+    publish(path, expected=plan['expected_root_sha256'])
 
 
 def _stage_sqlite_migrations(work, compile_sources, admitted, publish, tools, linked, dependencies, compiler, report):
@@ -739,6 +798,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         publish(output / 'hia-worker-scalar-implementation')
 
     _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
+    _stage_agent_store(work, seed, compile_sources, call, compiler_bytes, admitted, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, compile_sources, call, admitted, publish)
     _stage_owned_reference(work, seed, compile_sources, call, compiler_bytes, admitted, publish)

@@ -291,6 +291,49 @@ class InstalledSourceMemberTests(unittest.TestCase):
                                 frame(role, source, image, source, compiler)):
                     self.invoke([author, 'build'], invalid, refused=True)
 
+    def test_agent_store_rebuilds_all_native_modules_and_its_transaction_root(self):
+        import json
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from tools import build_hia_native_store_release as release
+        from tools.build_hia_agent_store import ADAPTER, PLAN, apply_filter
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+
+        def compile_sources(names):
+            paths = {alias: self.sources / name for alias, name in names.items()}
+            sources = {alias: path.read_bytes() for alias, path in paths.items()}
+            packet = self.source_images(self.work / 'store-sources', paths)
+            return packet, _compiled_sources(packet, sources), sources
+
+        def invoke(program, operation, wire):
+            result = _run_captured(program, operation, wire, self.work)
+            if result.returncode or result.stderr:
+                raise ValueError(f'Store source was rejected with status {result.returncode}')
+            return result.stdout
+
+        outputs = set()
+        def publish(path, *, expected):
+            raw = path.read_bytes()
+            self.assertNotIn(path.name, outputs)
+            self.assertEqual(raw, (self.release / path.name).read_bytes())
+            self.assertEqual(sha256(raw).hexdigest(), expected)
+            outputs.add(path.name)
+
+        admitted = {path: sha256((ROOT / path).read_bytes()).hexdigest() for path in (PLAN, ADAPTER)}
+        seed = self.seed.read_bytes()
+        compiler = invoke(seed, 'compile', (self.sources / 'selfhost.hepta').read_bytes())
+        release._stage_agent_store(self.work, seed, compile_sources, invoke, compiler, admitted, publish)
+        self.assertEqual(outputs, {'hia-agent-store', *(f'module-{n}.bin' for n in range(4))})
+
+        # The established bounded-step ABI still yields in the original 16 KiB workspace.
+        unit = json.loads((ROOT / PLAN).read_bytes())['units']['rowid']
+        programs = self.sources / 'agent_store'
+        word_filter = invoke(seed, 'compile', (programs / 'word_filter.hepta').read_bytes())
+        image = NativeHiaJsonImage(word_filter, sha256(word_filter).hexdigest())
+        flat = invoke(seed, 'compile', (programs / unit['source']).read_bytes())
+        data, calls = apply_filter(image, flat, unit)
+        self.assertGreater(calls, 1)
+        self.assertEqual(sha256(data).hexdigest(), unit['image_sha256'])
+
     def test_nominal_constructor_rebuilds_all_embedded_images_and_its_split_transport(self):
         from tools import build_hia_native_store_release as release
         from tools.build_hia_nominal_constructor import TRANSPORT_ROLES

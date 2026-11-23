@@ -1,4 +1,31 @@
 hia-asm.v1 hepta.hia.program.v8 agent_store_word_filter
+fn apply_filter(source:readbuf,out:mutbuf,state:mutbuf) -> (u32) effects(read,write,trap) entry(start)
+block start(source:readbuf,out:mutbuf,state:mutbuf)
+  work_bytes:usize = buffer.len(state)
+  native_workspace:usize = const() {"value":1048576}
+  native_work:bool = compare.eq(work_bytes,native_workspace)
+  out_bytes:usize = buffer.len(out)
+  native_output:usize = const() {"value":67108864}
+  native_out:bool = compare.eq(out_bytes,native_output)
+  finish:bool = bool.and(native_work,native_out)
+  zero:u64 = const() {"value":0}
+  branch finish repeat(source,out,state,zero) once(source,out,state)
+block once(s:readbuf,o:mutbuf,w:mutbuf)
+  status:u32 = call(s,o,w) {"function":"f0"}
+  ret(status)
+block repeat(a:readbuf,b:mutbuf,c:mutbuf,iteration:u64)
+  step:u32 = call(a,b,c) {"function":"f0"}
+  more:u32 = const() {"value":0}
+  yielded:bool = compare.eq(step,more)
+  limit:u64 = const() {"value":4095}
+  budget:bool = compare.lt(iteration,limit)
+  again:bool = bool.and(yielded,budget)
+  one:u64 = const() {"value":1}
+  following:u64 = int.add.wrap(iteration,one)
+  branch again repeat(a,b,c,following) done(a,b,c,step)
+block done(ignored_s:readbuf,ignored_o:mutbuf,ignored_w:mutbuf,result:u32)
+  ret(result)
+end
 fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
   v3:usize = buffer.len(v2)

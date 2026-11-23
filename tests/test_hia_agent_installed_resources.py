@@ -26,6 +26,7 @@ SDIST_SUPPORT_FILES=(
     'examples/hia_bootstrap/owned_reference_entry_wrapper.hepta',
     'examples/hia_bootstrap/owned_reference_entry_stub.hepta',
     'examples/hia_bootstrap/source_sqlite_unit.hepta',
+    'examples/hia_bootstrap/source_agent_store.hepta',
     'tests/test_hia_source_filter_member.py',
     'examples/hia_bootstrap/job_terminal_receipt.hepta',
     'tools/generate_hia_job_terminal_receipt.py',

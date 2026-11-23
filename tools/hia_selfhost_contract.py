@@ -1401,6 +1401,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/owned_reference_entry_stub.hepta',
     'examples/hia_bootstrap/source_core_application.hepta',
     'examples/hia_bootstrap/source_sqlite_unit.hepta',
+    'examples/hia_bootstrap/source_agent_store.hepta',
     'tests/test_hia_source_filter_member.py',
     'examples/hia_bootstrap/source_build_packer.hepta',
     'tests/test_hia_source_build.py',
