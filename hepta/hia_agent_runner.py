@@ -148,13 +148,14 @@ def _snapshot_fd(record, custody):
 class _EvaluateCall:
     """Retain one HIA-issued case plan until its native owner has finished."""
 
-    def __init__(self, planner, signature, case):
+    def __init__(self, planner, signature, case, deadline):
         from .hia_evaluation_native import EvaluationUnknown, _run_native_evaluate_planner
 
         self.invoke = _run_native_evaluate_planner
         self.planner = planner
+        self.deadline = deadline
         self.source = b'[' + wire({case['function']: signature}) + b',' + wire(case) + b']'
-        self.plan = self.invoke(planner, self.source)
+        self.plan = self.invoke(planner, self.source, deadline=deadline)
         if len(self.plan) < 80 or not self.plan.startswith(b'HIAEVC01'):
             raise EvaluationUnknown('installed HIA Evaluate case plan identity differs')
         status, count, _return_role, _bytes, loans = struct.unpack_from('<5Q', self.plan, 8)
@@ -170,7 +171,7 @@ class _EvaluateCall:
             if role == 0:
                 continue
             frame = struct.pack('<8s2Q', b'HIAEVB01', argument, len(self.plan))
-            material = self.invoke(self.planner, frame, self.plan, self.source)
+            material = self.invoke(self.planner, frame, self.plan, self.source, deadline=self.deadline)
             binding = struct.pack('<8s3Q', b'HIAEVS01', argument, role, size)
             if (role not in (1, 2) or not material.startswith(binding)
                     or len(material) != 32 + max(1, size)
@@ -186,7 +187,7 @@ class _EvaluateCall:
         frame = struct.pack('<8s9Q', b'HIAEVR01', os.getpid(), memory, cpu, artifact, artifact_bytes,
                             warmup, repetitions, self.loans, len(self.plan))
         loans = struct.pack(f'<{self.loans}Q', *descriptors)
-        result = self.invoke(self.planner, frame, loans, self.plan, self.source)
+        result = self.invoke(self.planner, frame, loans, self.plan, self.source, deadline=self.deadline)
         if len(result) < 105 or not result.startswith(b'HIADRX02'):
             raise EvaluationUnknown('installed HIA Evaluate runner packet identity differs')
         return result
@@ -407,6 +408,7 @@ def _run_reference_direct(admitted, artifact_hash, executable, owned, evaluator,
 
 def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_files, cwd,
                       memory_bytes, deadline, protocol, warmup, repetitions, plans=None):
+    from .hia_evaluation_native import EvaluationPlanningExpired
     from .hia_scalar_reference_native import sealed_reference_bytes
 
     native = _native_agent_identity()
@@ -422,9 +424,13 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
                 break
             cpu_seconds = (remaining + 999_999_999) // 1_000_000_000
             with ExitStack() as descriptors:
-                command, payload, options = _direct_call_transport(signatures[case['function']], case, files,
-                    artifact, len(artifact_bytes), runner, descriptors, memory_bytes, cpu_seconds,
-                    protocol, warmup, repetitions, prepare, plans[index] if plans is not None else None)
+                try:
+                    command, payload, options = _direct_call_transport(signatures[case['function']], case, files,
+                        artifact, len(artifact_bytes), runner, descriptors, memory_bytes, cpu_seconds,
+                        protocol, warmup, repetitions, prepare, plans[index] if plans is not None else None)
+                except EvaluationPlanningExpired:
+                    timed_out = True
+                    break
                 if plans is not None and time.monotonic_ns() >= deadline:
                     timed_out = True
                     break
@@ -581,6 +587,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
         reject("E_HIA_BUFFER_CAPTURE", "buffer capture requires one owned synchronous invocation")
     artifact_hash = sha256(artifact_bytes).hexdigest()
     started = time.monotonic_ns()
+    from .hia_evaluation_native import EvaluationPlanningExpired
     from .hia_native_helpers import (
         pinned_direct_call_executable, pinned_direct_call_protocol, pinned_owned_reference_executable,
         pinned_reference_executable,
@@ -614,6 +621,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
         from .hia_evaluation_native import EvaluationUnknown
 
         raise EvaluationUnknown('installed HIA Evaluate planner requires the pinned native call owner')
+    deadline = started + math.ceil(timeout_ms * 1_000_000) if direct_call is not None else None
     has_reference_child = any(executable is not None for _, _, executable in executables)
     with (tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory,
           ExitStack() as custody):
@@ -629,21 +637,25 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             files = []
             if _mode == "native":
                 signature = signatures[case["function"]]
-                if planner is None:
-                    snapshots = ((i, typ, buffer_bytes(value)) for i, (typ, value) in
-                                 enumerate(zip(signature["params"], case["arguments"])) if typ in LOANS)
-                else:
-                    plan = _EvaluateCall(planner, signature, case)
-                    plans.append(plan)
-                    snapshots = plan.snapshots()
-                for argument, typ, data in snapshots:
-                    if direct_call is not None and typ == 'readbuf':
-                        initial_digests[index, argument] = sha256(data).hexdigest()
-                    path = Path(directory) / ("buffer-" + str(index) + "-" + str(argument))
-                    with path.open("xb") as stream:
-                        stream.write(data if data else b"\0")
-                    path.chmod(0o600)
-                    files.append({"argument": argument, "kind": typ, "byte_length": len(data), "path": str(path)})
+                try:
+                    if planner is None:
+                        snapshots = ((i, typ, buffer_bytes(value)) for i, (typ, value) in
+                                     enumerate(zip(signature["params"], case["arguments"])) if typ in LOANS)
+                    else:
+                        plan = _EvaluateCall(planner, signature, case, deadline)
+                        plans.append(plan)
+                        snapshots = plan.snapshots()
+                    for argument, typ, data in snapshots:
+                        if direct_call is not None and typ == 'readbuf':
+                            initial_digests[index, argument] = sha256(data).hexdigest()
+                        path = Path(directory) / ("buffer-" + str(index) + "-" + str(argument))
+                        with path.open("xb") as stream:
+                            stream.write(data if data else b"\0")
+                        path.chmod(0o600)
+                        files.append({"argument": argument, "kind": typ, "byte_length": len(data), "path": str(path)})
+                except EvaluationPlanningExpired:
+                    return {"status": "budget_exceeded", "termination_confirmed": True, "started": False,
+                            "wall_ns": str(time.monotonic_ns() - started), "returncode": None, "report": None}
             snapshot_files.append(files)
         request = {"artifact": str(artifact), "artifact_sha256": artifact_hash,
                    "artifact_bytes": len(artifact_bytes),
@@ -669,7 +681,6 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
                 isolated_reference, artifact_hash, scalar_executable, owned_executable,
                 reference_evaluator, memory_bytes, timeout_ms, warmup, repetitions, owned_capable)
         elif direct_call is not None:
-            deadline = started + math.ceil(timeout_ms * 1_000_000)
             returncode, stdout, stderr, timed_out, direct_receipts = _run_direct_cases(
                 artifact_bytes, direct_call[0], signatures, cases, snapshot_files, runner_root,
                 memory_bytes, deadline, direct_protocol, warmup, repetitions, plans)

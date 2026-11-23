@@ -24,6 +24,7 @@ from pathlib import Path
 import struct
 import subprocess
 import threading
+import time
 
 from .hia_evaluation_protocol import PORT, PORTS, OUTCOMES
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
@@ -46,6 +47,10 @@ class EvaluationUnknown(RuntimeError):
     """An evaluation observation is unconfirmed; no retry or implicit refund."""
 
 
+class EvaluationPlanningExpired(Exception):
+    """The owned wall budget expired before a planned native call could start."""
+
+
 _WORKLOAD_REFUSALS = {
     1: ('E_HIA_ABI', 'workload names an unavailable public entry'),
     2: ('E_HIA_ARGUMENTS', 'call arguments do not have the exact declared scalar types'),
@@ -60,15 +65,25 @@ _WORKLOAD_REFUSALS = {
 }
 
 
-def _run_native_evaluate_planner(planner, *parts):
+def _run_native_evaluate_planner(planner, *parts, deadline=None):
     from .hia_scalar_reference_native import sealed_reference_bytes
 
     with sealed_reference_bytes(*parts) as source:
+        remaining = 30.0 if deadline is None else (deadline - time.monotonic_ns()) / 1_000_000_000
+        if remaining <= 0:
+            raise EvaluationPlanningExpired
         try:
             result = subprocess.run(['/proc/self/fd/' + str(planner)], stdin=source, pass_fds=(planner,),
-                                    env={'PATH': ''}, capture_output=True, timeout=30)
-        except (OSError, subprocess.TimeoutExpired) as error:
+                                    env={'PATH': ''}, capture_output=True, timeout=min(30.0, remaining))
+        except subprocess.TimeoutExpired as error:
+            # subprocess.run has already killed and reaped this pure planner.
+            if deadline is not None and remaining <= 30.0:
+                raise EvaluationPlanningExpired from error
             raise EvaluationUnknown('installed HIA Evaluate planner could not be observed') from error
+        except OSError as error:
+            raise EvaluationUnknown('installed HIA Evaluate planner could not be observed') from error
+        if deadline is not None and time.monotonic_ns() >= deadline:
+            raise EvaluationPlanningExpired
     reply = result.stdout
     if (result.returncode or result.stderr or len(reply) < 16
             or struct.unpack_from('<Q', reply)[0] != len(reply) - 8):
