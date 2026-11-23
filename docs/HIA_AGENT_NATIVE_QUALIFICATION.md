@@ -156,3 +156,27 @@ symbolic link therefore counts as an existing marker. The phase-three
 check and directory lookup errors are reported as negative kernel results in
 phases one and two respectively. Either error prevents a fresh workload
 submission. The installed encoder still applies its post-lock admission rule.
+
+## Installed lifetime descriptor handoff
+
+Controller v24 submits the pinned job directory to the HIA receipt writer.
+The sealed request begins with `HIAJLH01` followed by five little-endian
+unsigned 64-bit integers: the direct parent PID, directory device, directory
+inode, local Unix socket descriptor and a reserved zero word. The supervisor
+creates the socket pair for this launch and passes one endpoint to the writer.
+
+The HIA program verifies the directory and the kernel-reported peer PID and UID
+before opening `owner.lock` relative to the directory. The Linux adapter opens
+the lock with mode 0600 and no symlink following. HIA validates its metadata
+before and after an exclusive nonblocking flock, then checks all five owner and
+terminal names on the pinned directory. A fresh launch transfers the already
+locked file description in one `SCM_RIGHTS` message. Its payload is the byte
+`L`. The original supervisor receives one close-on-exec descriptor and holds
+it until exit. Closing the writer, or closing an additional duplicate in the
+supervisor, leaves the original lock intact.
+
+The `HIAJRW01` receipt uses phase 12 and value zero for a successful transfer,
+phase 20 for an unsafe lock and phase 21 with the nonzero existing-marker mask
+for a replay refusal. A negative result preserves the kernel error and phase.
+The installer checks the resulting inode, close-on-exec flag, contention and
+release before selecting v24.

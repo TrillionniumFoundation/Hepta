@@ -207,6 +207,57 @@ def _verify_terminal_publisher(writer, scratch):
             raise ValueError('installed HIA terminal publisher did not preserve the complete witness bytes')
 
 
+def _job_writer_has_owner_custody(writer, scratch):
+    from array import array
+    import fcntl
+    import socket
+
+    with TemporaryDirectory(prefix='owner-custody-probe-', dir=scratch) as temp:
+        directory = Path(temp)
+        pin = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            state = os.fstat(pin)
+            receiver, sender = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
+            with receiver, sender:
+                frame = struct.pack('<8s5Q', b'HIAJLH01', os.getpid(), state.st_dev, state.st_ino, sender.fileno(), 0)
+                with _sealed_frame(frame) as source:
+                    r = subprocess.run([writer], stdin=source, stdout=pin, stderr=subprocess.PIPE,
+                                       pass_fds=(sender.fileno(),), env={'PATH': ''}, timeout=5)
+                if (r.returncode, r.stderr) == (65, b'') and not list(directory.iterdir()):
+                    return False
+                if (r.returncode, r.stderr) != (0, struct.pack('<8sQq', b'HIAJRW01', 12, 0)):
+                    raise ValueError('installed HIA custodian did not transfer the lifetime lock')
+                receiver.setblocking(False)
+                width = array('i').itemsize
+                tag, control, flags, _ = receiver.recvmsg(1, socket.CMSG_SPACE(width), socket.MSG_CMSG_CLOEXEC)
+                descriptors = array('i')
+                for level, kind, data in control:
+                    if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS:
+                        descriptors.frombytes(data[:len(data) - len(data) % width])
+                try:
+                    if (tag != b'L' or flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC) or
+                            len(descriptors) != 1 or os.get_inheritable(descriptors[0])):
+                        raise ValueError('installed HIA custodian returned an invalid descriptor')
+                    path = directory / 'owner.lock'
+                    with path.open('r+b') as other:
+                        if not os.path.samestat(os.fstat(other.fileno()), os.fstat(descriptors[0])):
+                            raise ValueError('installed HIA custodian returned a different inode')
+                        try:
+                            fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        except BlockingIOError:
+                            pass
+                        else:
+                            raise ValueError('installed HIA custodian lost the original lock')
+                finally:
+                    for descriptor in descriptors:
+                        os.close(descriptor)
+                with path.open('r+b') as successor:
+                    fcntl.flock(successor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        finally:
+            os.close(pin)
+    return True
+
+
 def _job_writer_has_owner_markers(writer, scratch):
     with TemporaryDirectory(prefix='owner-marker-probe-', dir=scratch) as temp:
         directory = Path(temp)
@@ -554,6 +605,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v22'
     if schema == 'hepta.hia.mcp.controller.v22' and _job_writer_has_owner_markers(receipt_writer, scratch):
         schema = 'hepta.hia.mcp.controller.v23'
+    if schema == 'hepta.hia.mcp.controller.v23' and _job_writer_has_owner_custody(receipt_writer, scratch):
+        schema = 'hepta.hia.mcp.controller.v24'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

@@ -28,6 +28,7 @@ PROCESS_IDENTITY_MAGIC = int.from_bytes(b'HIAJPI01', 'little')
 CAPTURE_CHUNK_BYTES = 65536
 ISOLATED_OUTPUT_BYTES = 16 * 1024 * 1024
 CANCEL_MAGIC = int.from_bytes(b'HIAJRC01', 'little')
+OWNER_CUSTODY_MAGIC = int.from_bytes(b'HIAJLH01', 'little')
 OWNER_MARKERS_MAGIC = int.from_bytes(b'HIAJMK01', 'little')
 OWNER_LOCK_MAGIC = int.from_bytes(b'HIAJLF01', 'little')
 GROUP_SIGNAL_MAGIC = int.from_bytes(b'HIASGQ01', 'little')
@@ -41,6 +42,8 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return workload_spawn_plan(s, o)
     if length(s) == 48 and uint(s, 0, 8) == {CAPTURE_MAGIC}:
         return capture_output_chunk(s, o)
+    if length(s) == 48 and uint(s, 0, 8) == {OWNER_CUSTODY_MAGIC}:
+        return acquire_owner_custody(s, o, w)
     if length(s) == 40 and uint(s, 0, 8) == {OWNER_MARKERS_MAGIC}:
         return observe_owner_markers(s, o, w)
     if length(s) == 40 and uint(s, 0, 8) == {OWNER_LOCK_MAGIC}:
@@ -563,6 +566,76 @@ def owner_marker_name(o:mutbuf, phase:u64) -> u64:
         put(o, 200, {int.from_bytes(b'ness.jso', 'little')}, 8)
         put(o, 208, {int.from_bytes(b'n.tmp', 'little')}, 6)
     return 0
+
+
+def acquire_owner_custody(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    phase = observed(w, 0)
+    result = observed(w, 8)
+    if phase == 0:
+        parent = uint(s, 8, 8)
+        peer = uint(s, 32, 8)
+        if parent < 2 or parent > 2147483647 or parent != observed(w, 16):
+            return 0
+        if peer < 3 or peer > 2147483647 or uint(s, 40, 8) != 0:
+            return 0
+        put(w, 0, 1, 8)
+        return 14
+    if phase >= 7 and phase <= 11:
+        return custody_marker(o, w, phase, result)
+    if result >> 63 != 0:
+        return acknowledge(o, phase, result)
+    if phase == 1:
+        if uint(s, 16, 8) != observed(w, 24) or uint(s, 24, 8) != observed(w, 32):
+            return 0
+        if observed(w, 40) & 61440 != 16384 or observed(w, 40) & 63 != 0:
+            return 0
+        if observed(o, 8) != observed(o, 16):
+            return 0
+        put(w, 0, 2, 8)
+        return 17
+    if phase == 2:
+        if observed(o, 24) != observed(w, 16) or observed(o, 32) != observed(o, 16):
+            return 0
+        put(o, 192, {int.from_bytes(b'owner.lo', 'little')}, 8)
+        put(o, 200, {int.from_bytes(b'ck', 'little')}, 3)
+        put(w, 0, 3, 8)
+        return 18
+    if phase == 3 or phase == 5:
+        put(w, 0, phase + 1, 8)
+        return 19
+    if phase == 4 or phase == 6:
+        if custody_lock_valid(o, w) == False:
+            return acknowledge(o, 20, 0)
+        if phase == 4:
+            put(w, 0, 5, 8)
+            return 20
+        put(w, 24, 0, 8)
+        owner_marker_name(o, 1)
+        put(w, 0, 7, 8)
+        return 16
+    if phase == 12 and result == 1:
+        return acknowledge(o, 12, 0)
+    return 0
+
+def custody_lock_valid(o:mutbuf, w:mutbuf) -> bool:
+    mode = observed(w, 40)
+    return mode & 61440 == 32768 and mode & 63 == 0 and observed(o, 0) == 1 and observed(o, 8) == observed(o, 16)
+
+def custody_marker(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u64:
+    mask = observed(w, 24)
+    if result == 0:
+        mask = mask | (1 << (phase - 7))
+    elif result != 18446744073709551614:
+        return acknowledge(o, phase, result)
+    if phase == 11:
+        if mask != 0:
+            return acknowledge(o, 21, mask)
+        put(w, 0, 12, 8)
+        return 21
+    put(w, 24, mask, 8)
+    owner_marker_name(o, phase - 5)
+    put(w, 0, phase + 1, 8)
+    return 16
 
 '''
 
