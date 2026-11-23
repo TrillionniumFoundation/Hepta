@@ -77,7 +77,7 @@ def build(case: str, directory: Path) -> dict:
         raise AssertionError("postcheck race must execute byte-identical native stage")
     # Configuration is consumed ONLY by the non-HIA observer assembly.
     # No insertion or mutation of the staged native machine code is permitted.
-    race_config = f".set RACE_MODE, {int(race)}\\n.set CAS_OFFSET, {offset}\\n"
+    race_config = f".set RACE_MODE, {int(race)}\n.set CAS_OFFSET, {offset}\n"
     (directory / "race_config.inc").write_text(race_config)
     (directory / "effect.bin").write_bytes(effect)
     checked(["as", "--64", "-o", "boot.o", str(HERE / "boot.S")], directory)
