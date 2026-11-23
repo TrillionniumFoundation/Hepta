@@ -28,8 +28,8 @@ from tools.build_hia_cost_ledger import build as build_cost_ledger
 from tools.build_hia_agent_data_json import build as build_agent_data_json
 from tools.build_hia_direct_call import build as build_direct_call
 from tools.build_hia_evaluation import build as build_evaluation
-from tools.build_hia_agent_read_page import build as build_agent_stdio
-from tools.build_hia_json_preflight import build_batch as build_helper_batch
+from tools.build_hia_agent_read_page import VARIANTS as AGENT_STDIO_ROLES, build as build_agent_stdio
+from tools.build_hia_json_preflight import CANDIDATES, build_batch as build_helper_batch
 from tools.build_hia_native_build_admission import build as build_build_admission
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_native_filter import build_evaluate_projector, build_evaluate_reference_batch
@@ -486,6 +486,21 @@ def _install_controller(output, scratch, release, installer):
         raise ValueError('installed HIA controller manifest differs from its verified role pins')
 
 
+def build_packaged_stdio_roles(output, compiler, cold_report, kinds, *, images=None):
+    """Rebuild the named packaged Worker programs using their checked-in HIA sources."""
+    output.mkdir(mode=0o700)
+    images = dict(images or {})
+    by_source = {symbol: candidate for candidate, (symbol, _protocol) in CANDIDATES.items()}
+    owners = {kind: by_source[AGENT_STDIO_ROLES[kind][0]] for kind in kinds}
+    missing = sorted(set(owners.values()) - images.keys())
+    # Bound each compiler invocation without limiting the release inventory.
+    for start in range(0, len(missing), 16):
+        group = missing[start:start + 16]
+        images.update(build_helper_batch(output / f'images-{start}', compiler, cold_report, candidates=group))
+    for kind, candidate in owners.items():
+        yield kind, build_agent_stdio(output / kind, compiler, cold_report, images[candidate], kind=kind)
+
+
 def build(output, compiler, cold_report, package, package_sha256, *, readonly_artifact_roots=()):
     if not authority._digest(package_sha256):
         raise ValueError('an exact Store release SHA-256 is required')
@@ -575,18 +590,12 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
         worker_data = (release / 'hia-worker-data').is_file()
         cost_role = release / 'hia-agent-journal-cost'
         journal_cost = cost_role if cost_role.is_file() else None
-        evaluate_roles = {kind: release / ('hia-agent-' + kind)
-                          for kind in ('worker-evaluate-case', 'worker-evaluate-request',
-                                       'evaluate-journal', 'evaluate-journal-observation',
-                                       'evaluate-journal-records', 'evaluate-diagnostic')
+        packaged_roles = {kind: release / ('hia-agent-' + kind) for kind in AGENT_STDIO_ROLES
                           if (release / ('hia-agent-' + kind)).is_file()}
-        if evaluate_roles:
-            manifests = build_helper_batch(scratch / 'evaluate-images', compiler, cold_report,
-                                           candidates=tuple(evaluate_roles))
-            for kind, executable in evaluate_roles.items():
-                expected = build_agent_stdio(scratch / kind, compiler, cold_report, manifests[kind], kind=kind)
-                if executable.read_bytes() != expected.read_bytes():
-                    raise ValueError(f'Store release {kind} differs from the cold-built HIA role')
+        for kind, expected in build_packaged_stdio_roles(scratch / 'packaged-stdio', compiler, cold_report,
+                                                         packaged_roles, images=batched):
+            if packaged_roles[kind].read_bytes() != expected.read_bytes():
+                raise ValueError(f'Store release {kind} differs from the cold-built HIA role')
         projector = release / 'hia-evaluate-projector'
         if projector.is_file():
             expected = build_evaluate_projector(scratch / 'evaluate-projector', compiler, cold_report)
@@ -604,9 +613,9 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                                 read_page_executable=read_page, initialize_fresh=True,
                                 journal_executable=journal, store_unique_executable=store_unique,
                                 standalone_worker_data=worker_data, journal_cost_executable=journal_cost,
-                                standalone_evaluate_case='worker-evaluate-case' in evaluate_roles,
-                                standalone_evaluate_request='worker-evaluate-request' in evaluate_roles,
-                                standalone_evaluate_authority='worker-evaluate-request' in evaluate_roles)
+                                standalone_evaluate_case='worker-evaluate-case' in packaged_roles,
+                                standalone_evaluate_request='worker-evaluate-request' in packaged_roles,
+                                standalone_evaluate_authority='worker-evaluate-request' in packaged_roles)
         profile.chmod(0o400)
         release_launchers = {}
         binders = {
