@@ -708,6 +708,11 @@ class NativeStoreConnection:
         self.in_transaction = False
 
     def execute(self, sql, values=()):
+        # Slot providers call their original cursor API. The ten established
+        # requests go straight to the admitted Store plan with the same cursor.
+        plan = _SLOT_CURSOR_PLANS.get(sql) if type(sql) is str else None
+        if plan is not None:
+            return self._typed_operation(plan, values)
         with self.lock:
             return self._execute(sql, values)
 
@@ -846,13 +851,6 @@ class NativeStoreConnection:
 
     def cursor_retain(self, identity, artifact, digest, offset):
         self._typed_operation(_CURSOR_RETAIN, (identity, artifact, digest, offset))
-
-    def slot_cursor(self, statement, parameters):
-        plan = _SLOT_CURSOR_PLANS.get(statement) if type(statement) is str else None
-        if plan is not None:
-            return self._typed_operation(plan, parameters)
-        # The original public _execute also accepts other administrator statements.
-        return self.execute(statement, parameters)
 
     def slot_lookup(self, slot):
         return self._typed_operation(_SLOT_LOOKUP, (slot,)).fetchone()

@@ -532,18 +532,6 @@ class NativeSlotLedgerStore:
 # Actual runtime binding is explicit: no selector/scope returns the original
 # descriptor; a selected instance OR class call executes the HIA controller.
 # Qualifiers poison this declared reference table, not an unused alias.
-def _slot_execute(self, connection, statement, parameters=()):
-    if self.store.db is not connection:
-        _custody('slot operation lost its original Store connection')
-    native = sys.modules.get(__package__ + '.hia_agent_store_native')
-    if native is not None and issubclass(type(connection), native.NativeStoreConnection):
-        return connection.slot_cursor(statement, parameters)
-    return connection.execute(statement, parameters)
-
-
-_slot_execute.__qualname__ = NativeSlotLedgerStore._execute.__qualname__
-_slot_execute.__name__ = NativeSlotLedgerStore._execute.__name__
-NativeSlotLedgerStore._execute = _slot_execute
 from .hia_slot_operations_selection import install_slot_control_methods as _install_slot_control_methods
 _install_slot_control_methods(NativeSlotLedgerStore)
 del _install_slot_control_methods

@@ -156,7 +156,8 @@ def run(lane, inputs_path, output, expected_path=None, manifest=None):
             candidate_bytes[str(ROOT / name)] = (ROOT / name).read_bytes()
         if lane == 'vm':
             for name in ('hepta/hia_agent_assembly.py', 'hepta/hia_program.py',
-                         'hepta/hia_program_runtime.py', 'hepta/hia_program_runtime_prepared.py'):
+                         'hepta/hia_program_runtime.py', 'hepta/hia_program_runtime_prepared.py',
+                         'tests/hia_independent_vm.py'):
                 candidate_bytes[str(ROOT / name)] = (ROOT / name).read_bytes()
         if lane == 'native':
             manifest_path = Path(manifest).resolve(strict=True)
