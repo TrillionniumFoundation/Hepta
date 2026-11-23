@@ -41,3 +41,27 @@ lowering. Independently verify machine effects in PC/Q35 QEMU, including
 negative controls, before proposing promotion. HeptaKernel retains its pinned
 toolchain unchanged, its non-HIA `boot.S` bridge, and all Linux acceptance
 gates HOLD.
+
+## Additional CR0/CR4 and MSR encoding stage
+
+The stacked extension adds `read_cr0`, `write_cr0`, `read_cr4`,
+`write_cr4`, `rdmsr`, and `wrmsr` to the *isolated*
+`PrivilegedCode` byte emitter, without expanding the ordinary `Code` AST,
+HIA Core opcode/effect set, native-selected compiler or HeptaKernel lock.
+
+The independent GNU assembler oracle covers all sixteen GPRs for each
+CR0/CR4 direction (64 machine instructions) plus RDMSR and WRMSR, and
+checks decode identity. Malformed GPRs must fail without emitting bytes;
+MSR encoders accept no hidden register/index arguments.
+
+This is deliberately **not** an HIA kernel capability. RDMSR/WRMSR use ECX
+for the MSR index and EDX:EAX for the 64-bit value; writes and reads have
+architecturally defined #GP failure conditions. Real HIA exposure must verify
+CPL0 authority, explicit whitelisted MSR indices (including EFER/STAR/LSTAR/
+FMASK), reserved-bit constraints, CPU feature flags, interrupt/preemption
+conditions, control-register transitions and rollback/fault semantics.
+CR0/CR4 changes can alter paging, write protection and execution security.
+A byte match does not establish those properties or authorize host execution.
+
+No guest QEMU CR0/CR4/MSR execution, privilege verifier, selfhost_elf lowering,
+general Linux driver compatibility or all-architecture acceptance is claimed.

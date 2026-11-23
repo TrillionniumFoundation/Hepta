@@ -392,6 +392,37 @@ class PrivilegedCode(Code):
         self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x01" +
                   bytes([modrm]) + sib + displacement)
 
+
+    # Unpromoted machine-byte encoding only. CPL0 authority, CPU-feature
+    # constraints and the actual privilege effect are not inferred here.
+    def read_cr0(self, destination):
+        r = self._reg(destination)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x20" +
+                  bytes([0xc0 | (r & 7)]))
+
+    def write_cr0(self, source):
+        r = self._reg(source)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x22" +
+                  bytes([0xc0 | (r & 7)]))
+
+    def read_cr4(self, destination):
+        r = self._reg(destination)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x20" +
+                  bytes([0xe0 | (r & 7)]))
+
+    def write_cr4(self, source):
+        r = self._reg(source)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x22" +
+                  bytes([0xe0 | (r & 7)]))
+
+    def rdmsr(self):
+        # ECX selects the MSR; EDX:EAX receives the 64-bit value; bad ECX #GP.
+        self.emit(b"\x0f\x32")
+
+    def wrmsr(self):
+        # ECX selects the MSR; EDX:EAX supplies its value; invalid writes #GP.
+        self.emit(b"\x0f\x30")
+
     def iretq(self):
         # Long-mode 64-bit interrupt return, not a normal function return.
         self.emit(b"\x48\xcf")
