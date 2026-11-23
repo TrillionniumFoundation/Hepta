@@ -195,12 +195,13 @@ class InstalledSourceMemberTests(unittest.TestCase):
         from tools.build_hia_sqlite_components import (
             CAPTURE_ADAPTERS, COMPONENT_TEMPLATES, INPUT, PROJECTION, PROJECTION_ADAPTER, PROJECTION_ROLES, START, UNITS,
         )
-        from tools.build_hia_sqlite_pager import EMBED_SOURCE, STATIC_LINKER
+        from tools.build_hia_sqlite_pager import ADAPTERS, EMBED_SOURCE, PAGER, STATIC_LINKER, STREAM, TEMPLATES
 
         seed = self.seed.read_bytes()
         linker = (self.release / 'hia-elf-link').read_bytes()
         dependencies = (START, INPUT, *CAPTURE_ADAPTERS, PROJECTION_ADAPTER, COMPONENT_TEMPLATES, EMBED_SOURCE,
-                        STDIO, STATIC_LINKER, *('examples/hia_bootstrap/' + unit.replace('-', '_') + '.hepta'
+                        STDIO, STATIC_LINKER, PAGER, STREAM, TEMPLATES, *ADAPTERS,
+                        'examples/hia_bootstrap/source_sqlite_unit.hepta', *('examples/hia_bootstrap/' + unit.replace('-', '_') + '.hepta'
                                          for unit in (PROJECTION, *PROJECTION_ROLES)))
         admitted = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in dependencies}
 
@@ -225,7 +226,7 @@ class InstalledSourceMemberTests(unittest.TestCase):
             published.add(path.name)
 
         release._stage_sqlite_units(self.work, seed, linker, compile_sources, call, admitted, publish)
-        self.assertEqual(published, {'hia-' + unit for unit in (*UNITS, 'agent-artifact-capture', 'nominal-packet', PROJECTION)})
+        self.assertEqual(published, {'hia-' + unit for unit in (*UNITS, 'agent-artifact-capture', 'nominal-packet', 'sqlite-pager', PROJECTION)})
 
     def test_from_native_sources_against_every_installed_filter(self):
         for name in MEMBERS:

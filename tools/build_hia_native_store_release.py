@@ -70,7 +70,7 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
             publish(owner.parent / metadata['module_root'] / name, expected=digest)
 
 
-def _stage_sqlite(work, compiler, cold_report, publish, projection):
+def _stage_sqlite(work, compiler, cold_report, publish, linked_components):
     def component(name, *args, **options):
         path = _compile(work, name, compiler, cold_report, *args, **options)
         publish(path)
@@ -80,14 +80,15 @@ def _stage_sqlite(work, compiler, cold_report, publish, projection):
     batches = {}
     for kind in ('batch', 'sealed', 'initialize'):
         batches[kind] = component('agent_batch_commit', label='commit-' + kind, kind=kind)
-    pager = component('sqlite_pager')
-    components, selected = projection
+    (components, selected), (pager, pager_record) = linked_components
+    cold_identity = {'compiler_sha256': sha256(compiler.read_bytes()).hexdigest(),
+                     'cold_report_sha256': sha256(cold_report.read_bytes()).hexdigest()}
+    pager_receipt = {'schema': 'hepta.hia.sqlite-pager-build.v1', **cold_identity, **pager_record}
+    (pager / 'build.json').write_text(json.dumps(pager_receipt, sort_keys=True, indent=2) + '\n')
     # The migration coordinator independently checks its staged input against the
     # cold report, the actual executable and each consumed source identity.
     receipt = {'schema': 'hepta.hia.sqlite-component-process-build.v1',
-               'compiler_sha256': sha256(compiler.read_bytes()).hexdigest(),
-               'cold_report_sha256': sha256(cold_report.read_bytes()).hexdigest(),
-               'source_sha256': selected['source_sha256'], 'executable_manifest': {PROJECTION: selected}}
+               **cold_identity, 'source_sha256': selected['source_sha256'], 'executable_manifest': {PROJECTION: selected}}
     (components / 'build.json').write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n')
     publisher = component('sqlite_migration_publish', artifacts, batches['batch'])
     component('sqlite_migrate', {'pager': pager, 'staging': components, 'initializer': batches['initialize'],
@@ -133,7 +134,7 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
     from tools.build_hia_sqlite_components import (
         CAPTURE_ADAPTERS, COMPONENT_TEMPLATES, INPUT, PROJECTION_ADAPTER, PROJECTION_ROLES, START,
     )
-    from tools.build_hia_sqlite_pager import EMBED_SOURCE, STATIC_LINKER, verify_executable
+    from tools.build_hia_sqlite_pager import ADAPTERS, EMBED_SOURCE, PAGER, STATIC_LINKER, STREAM, TEMPLATES, verify_executable
 
     def owner(application):
         kit, _, _ = compile_sources({
@@ -155,6 +156,8 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
     objects = [adapter_object(adapters, ordinal, name)
                for ordinal, name in enumerate((START, INPUT, *CAPTURE_ADAPTERS, PROJECTION_ADAPTER))]
     nominal_adapter = adapter_object(owner(Path(STDIO_TEMPLATE).name), 0, STDIO)
+    pager_template = owner(Path(TEMPLATES).name)
+    pager_adapters = [adapter_object(pager_template, i, path) for i, path in enumerate(ADAPTERS)]
     recipes = [(unit, b'HIASQUN1', ordinal, objects[:2]) for ordinal, unit in enumerate(UNITS, 1)]
     recipes.append((CAPTURE_UNIT, b'HIASQCP1', 32, objects[2:4]))
     recipes.append(('nominal-packet', b'HIANMPK1', 33, [nominal_adapter]))
@@ -162,6 +165,7 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
     source_names = {unit: unit.replace('-', '_') + '.hepta'
                     for unit in (*[row[0] for row in recipes], *projection_units)}
     source_names['nominal-packet'] = Path(NOMINAL_SOURCE).name
+    source_names.update({'pager': Path(PAGER).name, 'stream': Path(STREAM).name})
     _, images, sources = compile_sources({name: name for name in source_names.values()})
 
     def embed(unit, kind, ordinal):
@@ -198,7 +202,20 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
     record = {'name': path.name, 'sha256': digest, 'bytes': len(executable),
               'source_sha256': {name: admitted[name] for name in projection_sources},
               'image_sha256': {unit: sha256(images[source_names[unit]]).hexdigest() for unit in projection_units}}
-    return staging, record
+    pager_inputs = (*pager_adapters, embed('pager', b'HIAPGIM1', 34), embed('stream', b'HIAPGIM1', 35))
+    pager = link(b'HIAPGLK3', pager_inputs)
+    for name in ('pager', 'stream'):
+        verify_executable(pager, images[source_names[name]])
+    pager_directory = work / 'native-sqlite-pager'
+    pager_directory.mkdir(mode=0o700)
+    executable = pager_directory / 'hia-sqlite-pager'
+    executable.write_bytes(pager)
+    pager_digest = sha256(pager).hexdigest()
+    publish(executable, expected=pager_digest)
+    consumed = (PAGER, STREAM, TEMPLATES, STATIC_LINKER, EMBED_SOURCE, *ADAPTERS,
+                'examples/hia_bootstrap/source_sqlite_unit.hepta')
+    pager_record = {'executable_sha256': pager_digest, 'source_sha256': {path: admitted[path] for path in consumed}}
+    return (staging, record), (pager_directory, pager_record)
 
 
 def _stage_agent_stdio(work, seed, catalog_program, compile_sources, call, compiler_bytes, publish):
@@ -519,9 +536,9 @@ def build(output, compiler, cold_report):
         for name in RESOURCES:
             publish(ROOT / name, expected=admitted[name])
         _stage_component_outputs(work, compiler, cold_report, publish)
-        projection = _stage_source_members(work, stage, admitted, members, publish,
+        linked_components = _stage_source_members(work, stage, admitted, members, publish,
                                            compiler_bytes=compiler_bytes, report_bytes=report_bytes)
-        _stage_sqlite(work, compiler, cold_report, publish, projection)
+        _stage_sqlite(work, compiler, cold_report, publish, linked_components)
         package = _pack_and_verify(work, stage, members)
         if current_sources() != admitted or compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != report_bytes:
             raise ValueError('native Store cold inputs changed before publication')
