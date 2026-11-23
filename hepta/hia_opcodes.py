@@ -11,7 +11,7 @@ from hashlib import sha256
 import json
 from types import MappingProxyType
 
-from .hia_schema import LATEST_CORE_SCHEMA, ALL_PRIMITIVE_PROFILES
+from .hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES, ALL_PRIMITIVE_PROFILES
 
 WIDTHS = MappingProxyType({**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
                           "isize": 64, "usize": 64})

@@ -106,6 +106,42 @@ class KernelTlbCoreTests(unittest.TestCase):
             self.assertIn(schema, help_text.getvalue())
         self.assertEqual(verify_program(sample()).as_dict()["schema"], KERNEL_TLB_SCHEMA)
 
+    def test_incremental_profile_aliases_keep_cache_policy_bound(self):
+        from hepta import hia_opcodes as opcodes, hia_program as core, hia_schema
+        from hepta.hia_incremental import IncrementalVerifier
+
+        self.assertIs(opcodes.PRIMITIVE_PROFILES, hia_schema.PRIMITIVE_PROFILES)
+        document = sample()
+        document["schema"] = "hepta.hia.program.v8"
+        function = document["functions"][0]
+        function["effects"] = []
+        function["blocks"][0]["ops"] = []
+        session = IncrementalVerifier(document)
+        checked, report = session.verify(document)
+        self.assertEqual(checked.canonical_bytes, core.verify_program(document).canonical_bytes)
+        for owner in (opcodes, core):
+            # Change a live registry alias without changing the public schema
+            # inventory or any historical opcode. The old cache must not grant
+            # admission under the changed dependency policy.
+            with self.subTest(owner=owner.__name__):
+                changed = dict(owner.ALL_PRIMITIVE_PROFILES)
+                changed["test-only-policy-marker"] = "test-only"
+                with patch.object(owner, "ALL_PRIMITIVE_PROFILES", changed):
+                    checked, report = session.verify(document)
+                    self.assertEqual(report["mode"], "full")
+                    self.assertEqual(report["fallback_reason"], "verifier_or_registry_changed")
+                    self.assertEqual(report["functions_body_reused"], [])
+                    self.assertEqual(checked.canonical_bytes,
+                                     core.verify_program(document).canonical_bytes)
+                session.verify(document)
+        # Experimental schemas continue to receive a whole verification, never
+        # reuse from the historical incremental dependency contract.
+        checked, report = session.verify(sample())
+        self.assertEqual(report["mode"], "full")
+        self.assertEqual(report["fallback_reason"], "schema_outside_incremental_contract")
+        self.assertEqual(report["functions_body_reused"], [])
+        self.assertEqual(checked.canonical_bytes, core.verify_program(sample()).canonical_bytes)
+
     def test_experimental_emitter_cannot_bypass_frozen_owner(self):
         from hepta import hia_program_native as native
         document = sample()
