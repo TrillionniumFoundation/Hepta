@@ -13,7 +13,7 @@ from tools.generate_hia_owned_reference import (
     ADAPTER_PATH, PACKER_MAGIC, PACKER_PATH, ROOT, RUN_FUNCTION, SOURCE_PATH,
 )
 from tools.generate_hia_selfhost import FBASE, FSTRIDE
-from tools.qualify_hia_selfhost import compile_stage
+from tools.qualify_hia_selfhost import compile_stage, release_compiler_calls
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
 DRIVER = 'tools/build_hia_owned_reference_cli.py'
@@ -62,8 +62,9 @@ def build(output, compiler, cold_report):
     if any(admitted.get(name) != digest(raw) for name, raw in sources.items()):
         raise ValueError('standalone HIA owned reference needs matching cold source')
     binding = read_adapter_binding(sources[PACKER_PATH], sources[ADAPTER_PATH], calls=2)
-    output.mkdir(mode=0o700)
-    binary, report = assemble(output, compiler, sources, binding)
+    with release_compiler_calls(cold_bytes):
+        output.mkdir(mode=0o700)
+        binary, report = assemble(output, compiler, sources, binding)
     if (current_sources() != admitted or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes):
         raise ValueError('owned reference inputs changed before publication')

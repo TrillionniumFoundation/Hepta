@@ -158,13 +158,45 @@ def release_compiler_calls(cold_bytes):
         _RELEASE_FLAT_OBSERVER.reset(token)
 
 
+def _capture_compiler_words(directory, label, result, source, output, workspace_size, offsets):
+    """Read requested words from the original HIA process response."""
+    from tools.read_hia_cold_native_transport import decode_original_process_streams
+
+    directory = Path(directory)
+    request_raw = (directory / (label + ".request.json")).read_bytes()
+    record_raw = (directory / (label + ".process-streams.json")).read_bytes()
+    stored = {name: (directory / (label + ".process." + name + ".zlib")).read_bytes()
+              for name in ("stdout", "stderr")}
+    record, streams = decode_original_process_streams(record_raw, request_raw, stored, label=label)
+    request = json.loads(request_raw)
+    original = streams["stdout"]
+    boundary = 24 + len(source) + len(output)
+    if (record["returncode"] != 0 or record["timed_out"] or streams["stderr"]
+            or request["observer_sha256"] != result["runner_sha256"]
+            or request["image_sha256"] != result["artifact_sha256"]
+            or request["source_sha256"] != digest(source)
+            or (request["capacity"], request["workspace_size"]) != (len(output), workspace_size)
+            or len(original) != boundary + workspace_size or original[:8] != b"HIAOBR02"
+            or struct.unpack_from("<2Q", original, 8) != (result["result_u64"], result["native_elapsed_ns"])
+            or original[24:24+len(source)] != source or original[24+len(source):boundary] != output):
+        raise ValueError("original HIA compiler workspace observation differs")
+    for offset in offsets:
+        result["workspace_header"][str(offset)] = struct.unpack_from("<Q", original, boundary + offset)[0]
+    (directory / (label + ".receipt.json")).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+
+
 def invoke(directory, label, image, source, *, image_format="flat-x86-64",
            capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
            output_initial=None, observe_trap_writes=False, compiler_function_offsets=(),
            worker_section_pack=False, flat_observer=None):
     """Copy private inputs and run one pinned artifact under fixed limits."""
+    if compiler_function_offsets:
+        if (image_format != "flat-x86-64" or
+                any(type(offset) is not int or offset % 8 or not 0 <= offset <= workspace_size - 8
+                    for offset in compiler_function_offsets)):
+            raise ValueError("invalid compiler function workspace offsets")
     if flat_observer is not None and (type(flat_observer) is not bytes or image_format != 'flat-x86-64'
-                                      or compiler_function_offsets or worker_section_pack):
+                                      or worker_section_pack):
         raise ValueError('explicit flat observer requires the ordinary flat byte ABI')
     if NATIVE_LINKED_OBSERVER is not None and image_format == 'linked-selfhost' and not compiler_function_offsets:
         from tools.hia_selfhost_linked_observer import invoke as observe_linked_native
@@ -174,12 +206,12 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
     selected_observer = NATIVE_OBSERVER if flat_observer is None else flat_observer
     scoped = _RELEASE_FLAT_OBSERVER.get()
     if (selected_observer is None and scoped is not None and image_format == 'flat-x86-64'
-            and not compiler_function_offsets and not worker_section_pack
+            and not worker_section_pack
             and len(source) <= CAPACITY and capacity <= CAPACITY and workspace_size <= CAPACITY
             and Path(image).stat().st_size <= 4 * CAPACITY):
         selected_observer = scoped
     if (selected_observer is not None and image_format == 'flat-x86-64'
-            and not compiler_function_offsets and not worker_section_pack):
+            and (not compiler_function_offsets or isinstance(selected_observer, bytes)) and not worker_section_pack):
         from tools.hia_selfhost_native_observer import invoke as observe_native
         if isinstance(selected_observer, bytes):
             from hepta.hia_scalar_reference_native import sealed_reference_bytes
@@ -188,9 +220,12 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
             captured = nullcontext(None)
         with captured as descriptor:
             path = selected_observer if descriptor is None else Path('/proc/self/fd') / str(descriptor)
-            return observe_native(directory, label, path, image, source, capacity=capacity,
+            result, output = observe_native(directory, label, path, image, source, capacity=capacity,
                 workspace_size=workspace_size, workspace_fill=workspace_fill,
                 output_initial=output_initial, observe_trap_writes=observe_trap_writes)
+        if compiler_function_offsets and result.get("status") == "returned":
+            _capture_compiler_words(directory, label, result, source, output, workspace_size, compiler_function_offsets)
+        return result, output
     directory, image = Path(directory), Path(image)
     source_path, output_path = directory / (label + ".input.bin"), directory / (label + ".output.bin")
     request_path = directory / (label + ".request.json")
@@ -210,10 +245,6 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
     if observe_trap_writes:
         request["observe_trap_writes"] = True
     if compiler_function_offsets:
-        if (image_format != "flat-x86-64" or
-                any(type(offset) is not int or offset % 8 or not 0 <= offset <= workspace_size - 8
-                    for offset in compiler_function_offsets)):
-            raise ValueError("invalid compiler function workspace offsets")
         request["compiler_function_offsets"] = tuple(compiler_function_offsets)
     request_path.write_text(json.dumps(request, sort_keys=True) + "\n")
     started = time.monotonic_ns()

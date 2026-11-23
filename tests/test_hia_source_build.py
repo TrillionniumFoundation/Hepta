@@ -201,6 +201,37 @@ class SourceBuilderSourceTests(unittest.TestCase):
             self.assertEqual(start % 4096, 0)
         self.assertEqual(regions[-1][0] + regions[-1][1], LAYOUT['MAPSIZE'])
 
+    def test_compiler_workspace_words_are_bound_to_the_complete_native_response(self):
+        from tools.hia_selfhost_native_observer import retain_process_streams
+        from tools.qualify_hia_selfhost import _capture_compiler_words
+
+        source, output = b'input', b'out'
+        workspace = struct.pack('<3Q', 5, 19, 101)
+        runner, image = sha256(b'runner').hexdigest(), sha256(b'image').hexdigest()
+        request = dict(observer_sha256=runner, image_sha256=image, source_sha256=sha256(source).hexdigest(),
+                       capacity=len(output), workspace_size=len(workspace))
+        result = dict(runner_sha256=runner, artifact_sha256=image, native_elapsed_ns=17, result_u64=3,
+                      workspace_header={})
+        response = struct.pack('<8sQQ', b'HIAOBR02', 3, 17) + source + output + workspace
+        with tempfile.TemporaryDirectory() as folder:
+            directory = Path(folder)
+            (directory / 'compile.request.json').write_text(json.dumps(request, sort_keys=True) + '\n')
+
+            def capture(raw, stderr=b''):
+                retain_process_streams(directory, 'compile', raw, stderr, request=request, returncode=0, timed_out=False)
+                _capture_compiler_words(directory, 'compile', result, source, output, len(workspace), (0, 16))
+
+            capture(response)
+            self.assertEqual(result['workspace_header'], {'0': 5, '16': 101})
+            self.assertEqual(json.loads((directory / 'compile.receipt.json').read_bytes()), result)
+            for altered in (response[:-1], response + b'x', b'?' + response[1:],
+                            response[:16] + struct.pack('<Q', 18) + response[24:],
+                            response[:24] + b'?' + response[25:]):
+                with self.subTest(extent=len(altered)), self.assertRaises(ValueError):
+                    capture(altered)
+            with self.assertRaises(ValueError):
+                capture(response, stderr=b'failed')
+
     def test_cold_observer_is_portable_and_changed_executable_is_refused(self):
         from tools.generate_hia_native_observer import reference_image
         from tools.hia_selfhost_native_observer import PACKER
