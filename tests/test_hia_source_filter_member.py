@@ -343,6 +343,12 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 original = (self.release / name).read_bytes()
                 program = self.invoke([builder, 'build'], group)
                 self.assertEqual(program, original)
+                if len(source) == 1:
+                    alias, = source
+                    frame = release._named_source_request({alias: source[alias].read_bytes()}, tag=b'HIAIMG01')
+                    direct, image = release._member_with_object(self.invoke([builder, 'build'], frame))
+                    self.assertEqual(direct, original)
+                    self.assertEqual(image, compiled[alias])
                 self.invoke([builder, 'build'], group[:-1], refused=True)
                 admitted = {p: sha256((ROOT / p).read_bytes()).hexdigest() for p in
                             (variant[2], variant[3], *('examples/hia_bootstrap/' + v for v in inputs.values()))}
@@ -1052,6 +1058,8 @@ class InstalledSourceMemberTests(unittest.TestCase):
 
     def test_source_to_installed_linkers_reference_executor_and_transport_tools(self):
 
+        from tools.build_hia_native_store_release import _member_with_object, _named_source_request
+
         builders = {}
         for name, packer, sources in self.release_recipes(TOOL_MEMBERS):
             with self.subTest(name=name):
@@ -1059,7 +1067,19 @@ class InstalledSourceMemberTests(unittest.TestCase):
                     builders[packer] = self.member_builder(self.work / packer, packer)
                 inputs = {alias: self.sources / source for alias, source in sources.items()}
                 images = self.source_images(self.work / name, inputs)
-                self.assertEqual(self.invoke([builders[packer], 'build'], images), (self.release / name).read_bytes())
+                expected = (self.release / name).read_bytes()
+                self.assertEqual(self.invoke([builders[packer], 'build'], images), expected)
+                named = {alias: path.read_bytes() for alias, path in inputs.items()}
+                plain = _named_source_request(named, tag=b'HIASRC01')
+                self.assertEqual(self.invoke([builders[packer], 'build'], plain), expected)
+                request = _named_source_request(named, tag=b'HIAIMG01')
+                frame = self.invoke([builders[packer], 'build'], request)
+                elf, image = _member_with_object(frame)
+                self.assertEqual(elf, expected)
+                self.assertEqual(image, self.invoke([self.seed, 'compile'], next(iter(named.values()))))
+                for damaged in (frame[:-1], frame + b'x', frame[:-24] + bytes(24), frame[-24:]):
+                    with self.assertRaises(ValueError):
+                        _member_with_object(damaged)
                 self.invoke([builders[packer], 'build'], images[:-1] + bytes([images[-1] ^ 1]), refused=True)
                 other = self.sources / ('cnf.hepta' if 'cnf.hepta' not in sources.values() else 'worker_prepare.hepta')
                 alias, = sources
@@ -1124,6 +1144,8 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 self.invoke([author, 'build'], frame(changed), refused=True)
 
     def test_request_programs_from_their_native_source_and_packer(self):
+        from tools.build_hia_native_store_release import _named_source_request
+
         builders = {}
         for name, packer, inputs in self.release_recipes(REQUEST_MEMBERS):
             with self.subTest(name=name):
@@ -1134,6 +1156,8 @@ class InstalledSourceMemberTests(unittest.TestCase):
                     source = {alias: self.sources / path for alias, path in inputs.items()}
                     packet = self.source_images(self.work / name, source)
                     alias, = inputs
+                    direct = _named_source_request({alias: source[alias].read_bytes()}, tag=b'HIASRC01')
+                    self.assertEqual(self.invoke([builder, 'build'], direct), (self.release / name).read_bytes())
                     wrong = self.source_images(self.work / 'wrong-request-module',
                                                {alias: self.sources / 'cnf.hepta'})
                     self.invoke([builder, 'build'], wrong, refused=True)

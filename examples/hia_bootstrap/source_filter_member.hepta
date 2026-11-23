@@ -416,7 +416,35 @@ block compare_compiled(input:readbuf,elf:mutbuf,work:mutbuf,elf_size:u64,image_a
   branch image_matches b68(input,elf,work,elf_size,image_at,ordinal,image_size) b69(input,elf,work)
 block b65(v713:readbuf,v714:mutbuf,v715:mutbuf,v718:u64)
   note_ok:bool = call(v714,v715,v718) {"function":"valid_delivery_descriptor"}
-  branch note_ok publish_member(v715,v718) b69(v713,v714,v715)
+  branch note_ok delivery(v713,v714,v715,v718) b69(v713,v714,v715)
+block delivery(delivery_in:readbuf,delivery_out:mutbuf,delivery_work:mutbuf,delivery_elf_size:u64)
+  tag_at:u64 = const() {"value":0}
+  tag_size:u64 = const() {"value":8}
+  input_tag:u64 = call(delivery_in,tag_at,tag_size) {"function":"uint"}
+  with_image_tag:u64 = const() {"value":3544411304007649608}
+  with_image:bool = compare.eq(input_tag,with_image_tag)
+  branch with_image object_extent(delivery_in,delivery_out,delivery_work,delivery_elf_size) publish_member(delivery_work,delivery_elf_size)
+block object_extent(obj_in:readbuf,obj_out:mutbuf,obj_work:mutbuf,obj_elf:u64)
+  size_slot:u64 = const() {"value":120}
+  obj_image:u64 = call(obj_work,size_slot) {"function":"get"}
+  obj_end:u64 = int.add.wrap(obj_elf,obj_image)
+  footer_size:u64 = const() {"value":24}
+  total:u64 = int.add.wrap(obj_end,footer_size)
+  out_count:usize = buffer.len(obj_out)
+  out_extent:u64 = int.cast(out_count) {"mode":"wrap"}
+  frame_fits:bool = compare.le(total,out_extent)
+  branch frame_fits object_frame(obj_in,obj_out,obj_work,obj_elf,obj_image,obj_end,total) b69(obj_in,obj_out,obj_work)
+block object_frame(frame_in:readbuf,frame_out:mutbuf,frame_work:mutbuf,elf_bytes:u64,image_bytes:u64,footer:u64,frame_size:u64)
+  own_compilation:u64 = const() {"value":0}
+  image_copied:u64 = call(frame_in,frame_out,frame_work,own_compilation,elf_bytes,image_bytes) {"function":"copy_member_image"}
+  field_size:u64 = const() {"value":8}
+  second:u64 = int.add.wrap(footer,field_size)
+  third:u64 = int.add.wrap(second,field_size)
+  object_magic:u64 = const() {"value":3544414555398555976}
+  elf_length_written:u64 = call(frame_out,footer,elf_bytes) {"function":"put"}
+  image_length_written:u64 = call(frame_out,second,image_bytes) {"function":"put"}
+  magic_written:u64 = call(frame_out,third,object_magic) {"function":"put"}
+  jump publish_member(frame_work,frame_size)
 block publish_member(publication_state:mutbuf,publication_size:u64)
   v832:u64 = const() {"value":88}
   v833:u64 = call(publication_state,v832,publication_size) {"function":"put"}
@@ -492,7 +520,10 @@ block b1(v6:readbuf,v7:mutbuf)
   v14:u64 = call(v6,v12,v13) {"function":"uint"}
   single_tag:u64 = const() {"value":3544406927603747144}
   single_request:bool = compare.eq(v14,single_tag)
-  branch single_request single(v6,v7) paired(v6,v7,v14)
+  object_tag:u64 = const() {"value":3544411304007649608}
+  object_request:bool = compare.eq(v14,object_tag)
+  from_source:bool = bool.or(single_request,object_request)
+  branch from_source single(v6,v7) paired(v6,v7,v14)
 block single(single_in:readbuf,single_work:mutbuf)
   admitted:u32 = call(single_in,single_work) {"function":"admit_single_source"}
   ret(admitted)
@@ -632,25 +663,8 @@ block b28(v248:readbuf,v249:mutbuf)
   v267:u32 = int.cast(v266) {"mode":"wrap"}
   ret(v267)
 block b29(v257:readbuf,v258:mutbuf,v260:u64,v261:u64,v262:u64,v263:u64,v264:u64,v265:u64)
-  v268:u64 = call(v257,v265,v263,v261,v264) {"function":"role"}
-  v269:u64 = const() {"value":0}
-  v270:bool = compare.eq(v268,v269)
-  branch v270 b30(v257,v258,v260,v261,v262,v263,v264,v265) b32(v257,v258,v260,v261,v262,v263,v264,v265,v268)
-block b30(v271:readbuf,v272:mutbuf,v274:u64,v275:u64,v276:u64,v277:u64,v278:u64,v279:u64)
-  v291:u64 = call(v271,v279,v277,v275,v278) {"function":"worker_aux"}
-  jump b32(v271,v272,v274,v275,v276,v277,v278,v279,v291)
-block b32(v292:readbuf,v293:mutbuf,v295:u64,v296:u64,v297:u64,v298:u64,v299:u64,v300:u64,v301:u64)
-  v302:u64 = const() {"value":0}
-  v303:bool = compare.eq(v301,v302)
-  branch v303 b33(v292,v293,v295,v296,v297,v298,v299,v300) b35(v292,v293,v295,v296,v297,v298,v299,v300,v301)
-block b33(v304:readbuf,v305:mutbuf,v307:u64,v308:u64,v309:u64,v310:u64,v311:u64,v312:u64)
-  v324:u64 = call(v304,v312,v310,v308,v311) {"function":"stdio_role"}
-  no_role:u64 = const() {"value":0}
-  try_tool:bool = compare.eq(v324,no_role)
-  branch try_tool tool_dispatch(v304,v305,v307,v308,v309,v310,v311,v312) b35(v304,v305,v307,v308,v309,v310,v311,v312,v324)
-block tool_dispatch(tool_input:readbuf,tool_state:mutbuf,tool_count:u64,tool_source:u64,tool_index:u64,tool_name_size:u64,tool_source_size:u64,tool_name:u64)
-  tool_kind:u64 = call(tool_input,tool_name,tool_name_size,tool_source,tool_source_size) {"function":"release_tool"}
-  jump b35(tool_input,tool_state,tool_count,tool_source,tool_index,tool_name_size,tool_source_size,tool_name,tool_kind)
+  v268:u64 = call(v257,v265,v263,v261,v264) {"function":"member_role"}
+  jump b35(v257,v258,v260,v261,v262,v263,v264,v265,v268)
 block b35(v325:readbuf,v326:mutbuf,v328:u64,v329:u64,v330:u64,v331:u64,v332:u64,v333:u64,v334:u64)
   v335:u64 = const() {"value":0}
   v336:bool = compare.eq(v334,v335)
@@ -8115,32 +8129,14 @@ block source(raw:readbuf,mem:mutbuf,bytes:u64,nat:u64,nsize:u64,ssize:u64)
   valid_source:bool = bool.and(exact,bounded)
   branch valid_source identify(raw,mem,bytes,nat,nsize,sat,ssize) invalid()
 block identify(packet:readbuf,w:mutbuf,all_bytes:u64,n_at:u64,n_bytes:u64,s_at:u64,s_bytes:u64)
-  mode:u64 = call(packet,n_at,n_bytes,s_at,s_bytes) {"function":"stdio_role"}
-  first_mode:u64 = const() {"value":65536}
-  last_mode:u64 = const() {"value":65581}
-  low_ok:bool = compare.ge(mode,first_mode)
-  high_ok:bool = compare.le(mode,last_mode)
-  stdio:bool = bool.and(low_ok,high_ok)
-  worker_first:u64 = const() {"value":131072}
-  worker_limit:u64 = const() {"value":131200}
-  worker_low:bool = compare.ge(mode,worker_first)
-  worker_high:bool = compare.lt(mode,worker_limit)
-  worker:bool = bool.and(worker_low,worker_high)
-  catalog_member:bool = bool.or(stdio,worker)
-  required_roles:u64 = call(mode) {"function":"companions"}
-  none_required:u64 = const() {"value":0}
-  standalone:bool = compare.eq(required_roles,none_required)
-  single_catalog_member:bool = bool.and(catalog_member,standalone)
-  branch single_catalog_member accept(w,all_bytes,s_at,s_bytes,mode) filter(packet,w,all_bytes,n_at,n_bytes,s_at,s_bytes)
-block filter(filter_input:readbuf,filter_state:mutbuf,filter_total:u64,filter_name_at:u64,filter_name_bytes:u64,filter_source_at:u64,filter_source_size:u64)
-  filter_role:u64 = call(filter_input,filter_name_at,filter_name_bytes,filter_source_at,filter_source_size) {"function":"role"}
+  mode:u64 = call(packet,n_at,n_bytes,s_at,s_bytes) {"function":"member_role"}
   first_primary:u64 = const() {"value":32}
-  primary:bool = compare.ge(filter_role,first_primary)
-  required:u64 = call(filter_role) {"function":"companions"}
-  filter_zero:u64 = const() {"value":0}
-  independent:bool = compare.eq(required,filter_zero)
-  admissible:bool = bool.and(primary,independent)
-  branch admissible accept(filter_state,filter_total,filter_source_at,filter_source_size,filter_role) invalid()
+  primary:bool = compare.ge(mode,first_primary)
+  required:u64 = call(mode) {"function":"companions"}
+  no_companions:u64 = const() {"value":0}
+  standalone:bool = compare.eq(required,no_companions)
+  admissible:bool = bool.and(primary,standalone)
+  branch admissible accept(w,all_bytes,s_at,s_bytes,mode) invalid()
 block accept(st:mutbuf,input_bytes:u64,source_at:u64,source_bytes:u64,role:u64)
   phase_at:u64 = const() {"value":8}
   phase_next:u64 = const() {"value":2}
@@ -8187,4 +8183,24 @@ block equal()
 block different()
   no:bool = const() {"value":false}
   ret(no)
+end
+fn member_role(input:readbuf,name:u64,name_size:u64,source:u64,source_size:u64) -> (u64) effects(read,write,trap) entry(first)
+block first(input:readbuf,name:u64,name_size:u64,source:u64,source_size:u64)
+  primary:u64 = call(input,name,name_size,source,source_size) {"function":"role"}
+  zero:u64 = const() {"value":0}
+  found:bool = compare.ne(primary,zero)
+  branch found known(primary) worker(input,name,name_size,source,source_size,zero)
+block worker(w:readbuf,wn:u64,wns:u64,ws:u64,wss:u64,wz:u64)
+  aux:u64 = call(w,wn,wns,ws,wss) {"function":"worker_aux"}
+  has_aux:bool = compare.ne(aux,wz)
+  branch has_aux known(aux) catalog(w,wn,wns,ws,wss,wz)
+block catalog(c:readbuf,cn:u64,cns:u64,cs:u64,css:u64,cz:u64)
+  stdio:u64 = call(c,cn,cns,cs,css) {"function":"stdio_role"}
+  has_stdio:bool = compare.ne(stdio,cz)
+  branch has_stdio known(stdio) tool(c,cn,cns,cs,css)
+block tool(t:readbuf,tn:u64,tns:u64,ts:u64,tss:u64)
+  release:u64 = call(t,tn,tns,ts,tss) {"function":"release_tool"}
+  ret(release)
+block known(result:u64)
+  ret(result)
 end

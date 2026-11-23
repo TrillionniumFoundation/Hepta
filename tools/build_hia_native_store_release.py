@@ -656,6 +656,17 @@ def _named_source_request(sources, *, tag=b'HIANAM01'):
     return bytes(frame)
 
 
+def _member_with_object(frame):
+    """Split the verified ELF and the object copied from the embedded compiler workspace."""
+    if len(frame) < 24:
+        raise ValueError('truncated compiled member frame')
+    elf_size, image_size, magic = struct.unpack_from('<QQ8s', frame, len(frame) - 24)
+    if (magic != b'HIAOBJ01' or not frame.startswith(b'\x7fELF') or elf_size < 4
+            or not 0 < image_size <= 1 << 20 or elf_size + image_size != len(frame) - 24):
+        raise ValueError('invalid compiled member frame')
+    return frame[:elf_size], frame[elf_size:-24]
+
+
 def _native_member_batches(products, plan):
     """Materialize the HIA planner's ordered Store batches from captured bytes."""
     items = list(products.items())
@@ -875,17 +886,19 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             builders[owner] = call(seed, 'pack', kit)
             if packer == 'core_json_cli_packer.hepta':
                 compiler_packer = kit_images['source_build_packer.hepta']
+        attach_image = len(sources) == 1 and (name in adapter_files or name in transaction_members)
         if name == 'hia-worker-port':
             group, images = b'HIAWPRT1', {}
-        elif len(sources) == 1 and (
-                (name.startswith('hia-agent-') and (
-                    packer == 'mcp_stdio_packer.hepta' or name.endswith(('-carrier', '-launcher'))))
-                or name.startswith('hia-evaluate-') or name in {'hia-execution-budget-session', 'hia-safe-core-loader'}):
-            # The embedded compiler and packer share one workspace for this member.
-            group, images = _named_source_request(capture_sources(sources), tag=b'HIASRC01'), {}
+        elif len(sources) == 1:
+            # Bound tools return their independently compiled object for the adapter placement check.
+            tag = b'HIAIMG01' if attach_image else b'HIASRC01'
+            group, images = _named_source_request(capture_sources(sources), tag=tag), {}
         else:
             group, images, _ = compile_sources(sources)
         product = call(builders[owner], 'build', group)
+        if attach_image:
+            alias, = sources
+            product, images[alias] = _member_with_object(product)
         if name == 'hia-artifact':
             migration_dependencies['artifact'] = _bind_artifact_publisher(
                 work, product, admitted, compiler_bytes, report_bytes)
