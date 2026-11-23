@@ -1383,6 +1383,8 @@ SOURCE_FILES = (
     'tools/hia_source_build_syscalls.S',
     'tools/build_hia_source_build.py',
     'examples/hia_bootstrap/source_build_policy.hepta',
+    'examples/hia_bootstrap/source_filter_member.hepta',
+    'tests/test_hia_source_filter_member.py',
     'examples/hia_bootstrap/source_build_packer.hepta',
     'tests/test_hia_source_build.py',
     'tests/test_hia_source_build_entrypoint.py',

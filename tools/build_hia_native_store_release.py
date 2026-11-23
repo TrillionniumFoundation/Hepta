@@ -35,6 +35,7 @@ FLOW_ROLES = ('describe', 'input', 'artifact', 'discovery', 'context', 'inspecti
               'evaluate-replay', 'evaluate-intake', 'evaluate-claim', 'evaluate-run-input', 'evaluate-run', 'evaluate-proof', 'evaluate-document', 'evaluate-closeout')
 LAUNCHERS = ('read', 'context-control', 'native', 'readonly', 'evaluate-replay', 'evaluate-intake', 'evaluate-full')
 RESOURCES = ('examples/hia_bootstrap/selfhost.hepta', 'examples/hia_bootstrap/source_build_packer.hepta',
+             'examples/hia_bootstrap/source_filter_member.hepta',
              'examples/hia_bootstrap/source_build_policy.hepta', 'examples/hia_bootstrap/core_json_cli_packer.hepta',
              'examples/hia_bootstrap/core_json_frontend.hepta', 'docs/HIA_SELFHOST_CORE_SUPPORT.json',
              'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json')

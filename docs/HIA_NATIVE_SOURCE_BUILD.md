@@ -163,3 +163,35 @@ published kit back to identical ELF bytes. This is a positive product-integrity
 control. It does not claim an observed sourcekit substitution counterexample.
 The private publisher retains its original three positional arguments; the
 sourcekit is an optional keyword for existing executable-only test callers.
+
+## Building native filter release members from the installed seed
+
+`source_filter_member.hepta` rebuilds the standalone Store filters that take an application and a role packer. The cost ledger and run plan also take the canonical renderer `worker_request.hepta`. Every compiler and packer call below uses the qualified, installed `hia-source-build` or an ELF produced by that seed. HIA checks the source and image names, recompiles each source and compares all image bytes, builds the role's frame, and admits the packer's ELF before the first stdout write.
+
+For example, to rebuild `hia-evaluate-measurements`, set `sources` to the absolute path of `examples/hia_bootstrap`, `release` to the qualified Store installation and `work` to a new private directory. The two directories below stage the exact bytes under the names expected by the seed.
+
+```sh
+mkdir -m 700 "$work/tool" "$work/input"
+install -m 400 "$sources/source_filter_member.hepta" "$work/tool/source_build_policy.hepta"
+install -m 400 "$sources/selfhost.hepta" "$work/tool/selfhost.hepta"
+install -m 400 "$sources/evaluate_measurements_packer.hepta" "$work/tool/source_build_packer.hepta"
+install -m 400 "$sources/evaluate_measurements.hepta" "$work/input/evaluate_measurements.hepta"
+
+"$release/hia-directory-package-build" "$work/tool" > "$work/tool.sources" &&
+"$release/hia-source-build" build < "$work/tool.sources" > "$work/tool.images" &&
+"$release/hia-source-build" pack < "$work/tool.images" > "$work/member-builder" &&
+chmod 500 "$work/member-builder" &&
+"$release/hia-directory-package-build" "$work/input" > "$work/member.sources" &&
+"$release/hia-source-build" build < "$work/member.sources" > "$work/member.images" &&
+"$work/member-builder" build < "$work/member.images" > "$work/hia-evaluate-measurements"
+```
+
+For budget-observation, budget-store, cost-ledger, cost-ledger-flow, measurements, native-report, paired-batch, publication, reference-batch, reference-report, report-flow, run-plan, and settlement, use the corresponding `evaluate_<name>.hepta` and `evaluate_<name>_packer.hepta`, replacing hyphens in the name with underscores. For cost-ledger and run-plan, also stage `worker_request.hepta` as a mode-0400 input. The other supported release members use these source names.
+
+| Release member | Application | Packer |
+| --- | --- | --- |
+| `hia-evaluate-projector` | `evaluate_reference_wire.hepta` | `evaluate_reference_wire_filter_packer.hepta` |
+| `hia-execution-budget-session` | `execution_budget.hepta` | `execution_budget_session_packer.hepta` |
+| `hia-safe-core-loader` | `safe_core_elf_inventory.hepta` | `safe_core_loader_filter_packer.hepta` |
+
+`HIA_TEST_NATIVE_FILTER_RELEASE` selects an installation for the full source-to-ELF comparison in `tests.test_hia_source_filter_member`. The test accepts an explicitly selected matching source directory in `HIA_TEST_NATIVE_FILTER_SOURCES`.
