@@ -223,6 +223,7 @@ CANDIDATES = {
     'elf-shared-linker': ('elf_shared_linker', 'elf-shared-linker'),
     'elf-direct-shared-linker-filter': ('direct_shared_linker_filter_packer', 'elf-direct-shared-linker-filter'),
     'elf-verified-linker': ('elf_verified_linker', 'elf-verified-linker'),
+    'execution-budget-session-packer': ('execution_budget_session_packer', 'execution-budget-session-packer'),
     'evaluate-reference-batch': ('evaluate_reference_batch', 'evaluate-reference-batch'),
     'evaluate-paired-batch': ('evaluate_paired_batch', 'evaluate-paired-batch'),
     'evaluate-paired-batch-packer': ('evaluate_paired_batch_packer', 'evaluate-paired-batch-packer'),

@@ -18,7 +18,7 @@ from tools.build_hia_core_edit import PROGRAMS as CORE_EDIT_PROGRAMS
 from tools.build_hia_json_preflight import ROOT, admit_cold_build, build_batch, current_sources
 from tools.build_hia_native_filter import (
     SAFE_CORE_LOADER_FILTER_MAGIC, build_evaluate_paired_batch, build_evaluate_projector,
-    build_evaluate_reference_batch, build_filter,
+    build_evaluate_reference_batch, build_execution_budget_session, build_filter,
 )
 from tools.build_hia_sqlite_components import PROJECTION, UNITS
 from tools.build_hia_worker_release import AGENT_STDIO_ROLES, INSTALLED_HELPERS, build_packaged_stdio_roles
@@ -124,7 +124,8 @@ def _stage_roles(work, compiler, cold_report, publish):
     for _, executable in build_packaged_stdio_roles(work / 'stdio', compiler, cold_report, STDIO_ROLES, images=images):
         publish(executable)
         shutil.rmtree(executable.parent)
-    for builder in (build_evaluate_projector, build_evaluate_paired_batch, build_evaluate_reference_batch):
+    for builder in (build_evaluate_projector, build_evaluate_paired_batch, build_evaluate_reference_batch,
+                    build_execution_budget_session):
         publish(builder(work / builder.__name__, compiler, cold_report))
     publish(build_filter(work / 'safe-core-loader', compiler, cold_report, application='safe-core-elf-inventory',
                          packer='safe-core-loader-filter', magic=SAFE_CORE_LOADER_FILTER_MAGIC,

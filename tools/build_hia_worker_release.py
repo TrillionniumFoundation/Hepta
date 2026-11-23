@@ -32,7 +32,10 @@ from tools.build_hia_agent_read_page import VARIANTS as AGENT_STDIO_ROLES, build
 from tools.build_hia_json_preflight import CANDIDATES, build_batch as build_helper_batch
 from tools.build_hia_native_build_admission import build as build_build_admission
 from tools.build_hia_native_continuation import build as build_scheduler
-from tools.build_hia_native_filter import build_evaluate_projector, build_evaluate_reference_batch, build_evaluate_paired_batch
+from tools.build_hia_native_filter import (
+    build_evaluate_paired_batch, build_evaluate_projector, build_evaluate_reference_batch,
+    build_execution_budget_session,
+)
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
 from tools.build_hia_owned_reference_cli import build as build_owned_reference_executable
@@ -597,6 +600,11 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                                                          packaged_roles, images=batched):
             if packaged_roles[kind].read_bytes() != expected.read_bytes():
                 raise ValueError(f'Store release {kind} differs from the cold-built HIA role')
+        budget_session = release / 'hia-execution-budget-session'
+        if budget_session.is_file():
+            expected = build_execution_budget_session(scratch / 'execution-budget-session', compiler, cold_report)
+            if budget_session.read_bytes() != expected.read_bytes():
+                raise ValueError('Store release execution budget session differs from its cold-built HIA role')
         projector = release / 'hia-evaluate-projector'
         if projector.is_file():
             expected = build_evaluate_projector(scratch / 'evaluate-projector', compiler, cold_report)

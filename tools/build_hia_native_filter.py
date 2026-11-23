@@ -78,6 +78,15 @@ def build_evaluate_projector(output, compiler, cold_report):
                         filename='hia-evaluate-projector', schema='hepta.hia.evaluate-projector-filter-build.v1')
 
 
+def build_execution_budget_session(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_execution_budget_session import ADAPTER, PACK_MAGIC
+
+    return build_filter(output, compiler, cold_report, application='execution-budget',
+                        packer='execution-budget-session-packer', magic=PACK_MAGIC, adapter=ADAPTER,
+                        filename='hia-execution-budget-session',
+                        schema='hepta.hia.execution-budget-session-build.v1')
+
+
 def build_evaluate_reference_batch(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.generate_hia_evaluate_reference_batch import ADAPTER, PACK_MAGIC
 
@@ -99,12 +108,15 @@ def build_evaluate_paired_batch(output: Path, compiler: Path, cold_report: Path)
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
-                                                  'evaluate-reference-batch', 'evaluate-paired-batch'),
+                                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'execution-budget-session'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + flag, type=Path, required=True)
     args = parser.parse_args()
     output, compiler, cold_report = args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()
+    if args.application == 'execution-budget-session':
+        print(build_execution_budget_session(output, compiler, cold_report))
+        return
     if args.application == 'evaluate-paired-batch':
         print(build_evaluate_paired_batch(output, compiler, cold_report))
         return
