@@ -256,6 +256,10 @@ class InstalledSourceMemberTests(unittest.TestCase):
 
     def test_normal_sqlite_units_match_the_independent_installed_programs(self):
         from tools import build_hia_native_store_release as release
+        from tools.build_hia_agent_batch_commit import VARIANTS
+        from tools.build_hia_artifact_publication import SOURCES as ARTIFACT_SOURCES
+        from tools.build_hia_sqlite_migration_publish import ADAPTER as PUBLISH_ADAPTER, MIGRATION_TEMPLATES, UNITS as PUBLISH_UNITS
+        from tools.build_hia_sqlite_migrate import ADAPTER as MIGRATE_ADAPTER, COORDINATOR
         from tools.build_hia_nominal_json import STDIO
         from tools.build_hia_source_build import _compiled_sources, _run_captured
         from tools.build_hia_sqlite_components import (
@@ -267,6 +271,8 @@ class InstalledSourceMemberTests(unittest.TestCase):
         linker = (self.release / 'hia-elf-link').read_bytes()
         dependencies = (START, INPUT, *CAPTURE_ADAPTERS, PROJECTION_ADAPTER, COMPONENT_TEMPLATES, EMBED_SOURCE,
                         STDIO, STATIC_LINKER, PAGER, STREAM, TEMPLATES, *ADAPTERS,
+                        *ARTIFACT_SOURCES, *PUBLISH_UNITS.values(), MIGRATION_TEMPLATES,
+                        PUBLISH_ADAPTER, MIGRATE_ADAPTER, COORDINATOR,
                         'examples/hia_bootstrap/source_sqlite_unit.hepta', *('examples/hia_bootstrap/' + unit.replace('-', '_') + '.hepta'
                                          for unit in (PROJECTION, *PROJECTION_ROLES)))
         admitted = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in dependencies}
@@ -279,7 +285,8 @@ class InstalledSourceMemberTests(unittest.TestCase):
 
         def call(program, operation, wire):
             result = _run_captured(program, operation, wire, self.work)
-            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            if result.returncode or result.stderr:
+                raise ValueError(f'embedded SQLite source rejected with status {result.returncode}')
             return result.stdout
 
         published = set()
@@ -291,8 +298,32 @@ class InstalledSourceMemberTests(unittest.TestCase):
             self.assertEqual(output, (self.release / path.name).read_bytes())
             published.add(path.name)
 
-        release._stage_sqlite_units(self.work, seed, linker, compile_sources, call, admitted, publish)
-        self.assertEqual(published, {'hia-' + unit for unit in (*UNITS, 'agent-artifact-capture', 'nominal-packet', 'sqlite-pager', PROJECTION)})
+        tools = release._sqlite_build_tools(seed, linker, compile_sources, call, admitted)
+        linked = release._stage_sqlite_units(self.work, compile_sources, admitted, publish, tools)
+        compiler = self.invoke([self.seed, 'compile'], (self.sources / 'selfhost.hepta').read_bytes())
+        report = b'independent cold receipt for staged SQLite inputs'
+        artifact = (self.release / 'hia-artifact').read_bytes()
+        folders = {'artifact': release._bind_artifact_publisher(self.work, artifact, admitted, compiler, report)}
+        variants = {row[0]: (kind, row) for kind, row in VARIANTS.items()}
+        for name, _, inputs in release._source_transaction_recipes():
+            kind, variant = variants[name]
+            if kind in ('batch', 'initialize'):
+                paths = [variant[2], variant[3], *('examples/hia_bootstrap/' + value for value in inputs.values())]
+                admitted.update({path: sha256((ROOT / path).read_bytes()).hexdigest() for path in paths})
+                _, images, _ = compile_sources(inputs)
+                raw = (self.release / name).read_bytes()
+                folders[kind] = release._bind_transaction_program(self.work, kind, variant, inputs, images, raw,
+                                                                  admitted, compiler, report)
+        release._stage_sqlite_migrations(self.work, compile_sources, admitted, publish, tools, linked, folders,
+                                         compiler, report)
+        self.assertEqual(published, {'hia-' + unit for unit in (*UNITS, 'agent-artifact-capture', 'nominal-packet',
+                                      'sqlite-pager', PROJECTION, 'sqlite-migration-publish', 'sqlite-migrate')})
+        _, embed, _ = tools
+        for digest in (sha256(artifact + b'x').digest(), bytes(32)):
+            with self.assertRaises(ValueError):
+                embed(b'HIAMGEL1', 17, artifact, digest)
+        with self.assertRaises(ValueError):
+            embed(b'HIAMGEL1', 18, artifact, sha256(artifact).digest())
 
     def test_read_carrier_rebuilds_all_four_native_flows(self):
         from tools import build_hia_native_store_release as release

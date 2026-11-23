@@ -69,25 +69,73 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
             publish(owner.parent / metadata['module_root'] / name, expected=digest)
 
 
-def _stage_sqlite(work, compiler, cold_report, publish, linked_components):
-    def component(name, *args, **options):
-        path = _compile(work, name, compiler, cold_report, *args, **options)
-        publish(path)
-        return path.parent
+def _stage_sqlite_migrations(work, compile_sources, admitted, publish, tools, linked, dependencies, compiler, report):
+    """Use native source objects and hash-bound child executables for both migration programs."""
+    from tools.build_hia_sqlite_migrate import ADAPTER as MIGRATE_ADAPTER, COMPONENTS, COORDINATOR, read_component
+    from tools.build_hia_sqlite_migration_publish import (
+        ADAPTER as PUBLISH_ADAPTER, MIGRATION_TEMPLATES, UNITS as PUBLISH_UNITS, read_dependency,
+    )
+    from tools.build_hia_sqlite_pager import EMBED_SOURCE, STATIC_LINKER, verify_executable
 
-    ((components, selected), (pager, pager_record)), dependencies = linked_components
-    cold_identity = {'compiler_sha256': sha256(compiler.read_bytes()).hexdigest(),
-                     'cold_report_sha256': sha256(cold_report.read_bytes()).hexdigest()}
-    pager_receipt = {'schema': 'hepta.hia.sqlite-pager-build.v1', **cold_identity, **pager_record}
+    adapter, embed, link = tools
+    (components, selected), (pager, pager_record) = linked
+    compiler_pin, report_pin = sha256(compiler).hexdigest(), sha256(report).hexdigest()
+    identity = {'compiler_sha256': compiler_pin, 'cold_report_sha256': report_pin}
+    pager_receipt = {'schema': 'hepta.hia.sqlite-pager-build.v1', **identity, **pager_record}
     (pager / 'build.json').write_text(json.dumps(pager_receipt, sort_keys=True, indent=2) + '\n')
-    # The migration coordinator independently checks its staged input against the
-    # cold report, the actual executable and each consumed source identity.
-    receipt = {'schema': 'hepta.hia.sqlite-component-process-build.v1',
-               **cold_identity, 'source_sha256': selected['source_sha256'], 'executable_manifest': {PROJECTION: selected}}
+    receipt = {'schema': 'hepta.hia.sqlite-component-process-build.v1', **identity,
+               'source_sha256': selected['source_sha256'], 'executable_manifest': {PROJECTION: selected}}
     (components / 'build.json').write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n')
-    publisher = component('sqlite_migration_publish', dependencies['artifact'], dependencies['batch'])
-    component('sqlite_migrate', {'pager': pager, 'staging': components, 'initializer': dependencies['initialize'],
-                                 'publisher': publisher})
+
+    publication = (PUBLISH_UNITS['sqlite-migration-publish'], PUBLISH_UNITS['sqlite-agent-artifact-catalog'])
+    names = {Path(path).name: Path(path).name for path in (*publication, COORDINATOR)}
+    _, images, sources = compile_sources(names)
+    owner_path = 'examples/hia_bootstrap/source_sqlite_unit.hepta'
+    common = (MIGRATION_TEMPLATES, EMBED_SOURCE, STATIC_LINKER, owner_path)
+    folders = {'pager': pager, 'staging': components, 'initializer': dependencies['initialize']}
+    checks = []
+    for name, template_role, adapter_path, source_roles, section, magic in (
+            ('hia-sqlite-migration-publish', 0, PUBLISH_ADAPTER, tuple(enumerate(publication, 36)), 17, b'HIAMGPL1'),
+            ('hia-sqlite-migrate', 1, MIGRATE_ADAPTER, ((38, COORDINATOR),), 20, b'HIAMGCL1')):
+        objects = [adapter(MIGRATION_TEMPLATES, template_role, adapter_path)]
+        embedded = []
+        for role, path in source_roles:
+            alias = Path(path).name
+            objects.append(embed(b'HIAMGIS1', role, sources[alias]))
+            embedded.append(images[alias])
+
+        children = []
+        if template_role == 0:
+            for folder, program, schema in (
+                    (dependencies['artifact'], 'hia-artifact', 'hepta.hia.artifact-publication-build.v1'),
+                    (dependencies['batch'], 'hia-agent-batch-commit', 'hepta.hia.agent-batch-commit-build.v1')):
+                raw, executable, receipt = read_dependency(folder, program, schema, compiler_pin, report_pin, admitted)
+                children.append(raw)
+                checks.extend((executable, receipt))
+        else:
+            for label, program, schema in COMPONENTS:
+                raw, captured = read_component(folders[label], label, program, schema, compiler_pin, report_pin, admitted)
+                children.append(raw)
+                checks.extend(captured)
+        for ordinal, raw in enumerate(children, section):
+            objects.append(embed(b'HIAMGEL1', ordinal, raw, sha256(raw).digest()))
+        executable = link(magic, objects)
+        for raw in (*embedded, *children):
+            verify_executable(executable, raw)
+        if any(path.read_bytes() != raw for path, raw in checks):
+            raise ValueError('a sealed SQLite migration dependency changed before publication')
+        digest = sha256(executable).hexdigest()
+        if template_role == 0:
+            consumed = (*common, adapter_path, *publication)
+            source_pins = {path: admitted[path] for path in consumed}
+            folder = _migration_dependency(work, name, 'hepta.hia.sqlite-migration-publish-build.v1', executable,
+                                           {'sha256': digest}, source_pins, compiler, report)
+            folders['publisher'] = folder
+            path = folder / name
+        else:
+            path = work / name
+            path.write_bytes(executable)
+        publish(path, expected=digest)
 
 
 def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
@@ -170,15 +218,11 @@ def _stage_read_carrier(work, seed, compile_sources, call, admitted, publish):
     publish(path, expected=sha256(carrier).hexdigest())
 
 
-def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, publish):
-    """Build the installed SQLite units through sealed HIA source, embedding and linking stages."""
-    from tools.build_hia_agent_artifact_capture import UNIT as CAPTURE_UNIT
-    from tools.build_hia_nominal_json import SOURCE_NAME as NOMINAL_SOURCE, STDIO, STDIO_TEMPLATE
-    from tools.build_hia_sqlite_components import (
-        CAPTURE_ADAPTERS, COMPONENT_TEMPLATES, INPUT, PROJECTION_ADAPTER, PROJECTION_ROLES, START,
-    )
-    from tools.build_hia_sqlite_pager import ADAPTERS, EMBED_SOURCE, PAGER, STATIC_LINKER, STREAM, TEMPLATES, verify_executable
+def _sqlite_build_tools(seed, linker, compile_sources, call, admitted):
+    """Bind source admission, object generation and sealed native linking to one build."""
+    from functools import cache
 
+    @cache
     def owner(application):
         kit, _, _ = compile_sources({
             'source_build_policy.hepta': 'source_sqlite_unit.hepta',
@@ -187,20 +231,40 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
         })
         return call(seed, 'pack', kit)
 
-    adapters = owner('sqlite_component_adapters.hepta')
-    embedder = owner('elf_embed_image.hepta')
-    def adapter_object(program, ordinal, name):
+    def adapter(template, ordinal, name):
         source = (ROOT / name).read_bytes()
         if sha256(source).hexdigest() != admitted.get(name):
             raise ValueError('SQLite adapter source differs from cold admission: ' + name)
         frame = struct.pack('<8sQQ', b'HIASQAD1', ordinal, len(source)) + source
-        return call(program, 'build', frame)
+        return call(owner(Path(template).name), 'build', frame)
 
-    objects = [adapter_object(adapters, ordinal, name)
+    embedder = owner('elf_embed_image.hepta')
+
+    def embed(kind, ordinal, data, pin=b''):
+        request = struct.pack('<8sQQ', kind, ordinal, len(data)) + pin + data
+        return call(embedder, 'build', request)
+
+    def link(kind, inputs):
+        request = struct.pack('<8s' + str(len(inputs)) + 'Q', kind, *map(len, inputs)) + b''.join(inputs)
+        return call(linker, None, call(embedder, 'build', request))
+
+    return adapter, embed, link
+
+
+def _stage_sqlite_units(work, compile_sources, admitted, publish, tools):
+    """Build the installed SQLite units through sealed HIA source, embedding and linking stages."""
+    from tools.build_hia_agent_artifact_capture import UNIT as CAPTURE_UNIT
+    from tools.build_hia_nominal_json import SOURCE_NAME as NOMINAL_SOURCE, STDIO, STDIO_TEMPLATE
+    from tools.build_hia_sqlite_components import (
+        CAPTURE_ADAPTERS, COMPONENT_TEMPLATES, INPUT, PROJECTION_ADAPTER, PROJECTION_ROLES, START,
+    )
+    from tools.build_hia_sqlite_pager import ADAPTERS, EMBED_SOURCE, PAGER, STATIC_LINKER, STREAM, TEMPLATES, verify_executable
+
+    adapter, embed_bytes, link = tools
+    objects = [adapter(COMPONENT_TEMPLATES, ordinal, name)
                for ordinal, name in enumerate((START, INPUT, *CAPTURE_ADAPTERS, PROJECTION_ADAPTER))]
-    nominal_adapter = adapter_object(owner(Path(STDIO_TEMPLATE).name), 0, STDIO)
-    pager_template = owner(Path(TEMPLATES).name)
-    pager_adapters = [adapter_object(pager_template, i, path) for i, path in enumerate(ADAPTERS)]
+    nominal_adapter = adapter(STDIO_TEMPLATE, 0, STDIO)
+    pager_adapters = [adapter(TEMPLATES, i, path) for i, path in enumerate(ADAPTERS)]
     recipes = [(unit, b'HIASQUN1', ordinal, objects[:2]) for ordinal, unit in enumerate(UNITS, 1)]
     recipes.append((CAPTURE_UNIT, b'HIASQCP1', 32, objects[2:4]))
     recipes.append(('nominal-packet', b'HIANMPK1', 33, [nominal_adapter]))
@@ -213,12 +277,7 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
 
     def embed(unit, kind, ordinal):
         source = sources[source_names[unit]]
-        request = struct.pack('<8sQQ', kind, ordinal, len(source)) + source
-        return call(embedder, 'build', request)
-
-    def link(kind, inputs):
-        request = struct.pack('<8s' + str(len(inputs)) + 'Q', kind, *map(len, inputs)) + b''.join(inputs)
-        return call(linker, None, call(embedder, 'build', request))
+        return embed_bytes(kind, ordinal, source)
 
     for unit, kind, ordinal, adapter_objects in recipes:
         link_kind = b'HIANMLK1' if unit == 'nominal-packet' else b'HIASQLK1'
@@ -604,8 +663,10 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, compile_sources, call, admitted, publish)
-    linked = _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
-    return linked, migration_dependencies
+    sqlite_tools = _sqlite_build_tools(seed, captured('hia-elf-link'), compile_sources, call, admitted)
+    linked = _stage_sqlite_units(work, compile_sources, admitted, publish, sqlite_tools)
+    _stage_sqlite_migrations(work, compile_sources, admitted, publish, sqlite_tools, linked,
+                             migration_dependencies, compiler_bytes, report_bytes)
 
 
 def _pack_and_verify(work, stage, members):
@@ -664,9 +725,8 @@ def build(output, compiler, cold_report):
         for name in RESOURCES:
             publish(ROOT / name, expected=admitted[name])
         _stage_component_outputs(work, compiler, cold_report, publish)
-        linked_components = _stage_source_members(work, stage, admitted, members, publish,
-                                           compiler_bytes=compiler_bytes, report_bytes=report_bytes)
-        _stage_sqlite(work, compiler, cold_report, publish, linked_components)
+        _stage_source_members(work, stage, admitted, members, publish,
+                              compiler_bytes=compiler_bytes, report_bytes=report_bytes)
         package = _pack_and_verify(work, stage, members)
         if current_sources() != admitted or compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != report_bytes:
             raise ValueError('native Store cold inputs changed before publication')
