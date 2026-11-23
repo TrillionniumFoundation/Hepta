@@ -61,6 +61,7 @@ WIRE = {
     'SLOT_LEASE_COUNT': b'HIASTLC1',
     'SLOT_GENERATION_MAX': b'HIASTGM1',
     'ROLLBACK_COMMIT': b'HIARLC01',
+    'EVALUATE_COMMIT': b'HIAETC01',
     'ADOPTION_COMMIT': b'HIAADC01',
     'RUNNING_STATE': b'running',
 }
@@ -163,6 +164,11 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     elif plan == 32:
         if mode != 0 or valid_rollback_commit(s, size, request, generation) == False:
             return 0
+    elif plan == 37:
+        if mode != 0 or size != 112 or read_word(s,48) != EVALUATE_COMMIT or read_word(s,56) != 2:
+            return 0
+        if ordered_write_receipts(s,size,request,generation) == False:
+            return 0
     elif plan == 36:
         if mode != 0 or valid_adoption_commit(s, size, request, generation) == False:
             return 0
@@ -228,7 +234,7 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if plan == 23 or plan == 26:
         write_word(w, 152, choose(plan == 23, 1, 2))
         return begin_unique_commit(o, w)
-    if plan == 32 or plan == 36:
+    if plan == 32 or plan == 36 or plan == 37:
         write_word(w, 152, read_word(s, 56))
         return begin_unique_commit(o, w)
     if mapped == False:
@@ -240,13 +246,11 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 # The borrowed reservation may commit only after the Journal image has
 # acknowledged its stage-2 state. This command sends no arbitrary Store bytes.
 def valid_reservation_ack(s:readbuf, size:u64) -> bool:
-    if size != 64 or read_word(s, 48) != ARTIFACT_JOURNAL_ACK:
+    if size != 64:
         return False
-    if read_word(s, 56) != 2 or read_word(s, 64) != 11 or read_word(s, 72) != 0:
-        return False
-    if read_word(s, 80) != 48 or read_word(s, 88) != 0 or read_word(s, 96) != 48:
-        return False
-    return read_word(s, 104) == 512
+    header = (read_word(s,48)^ARTIFACT_JOURNAL_ACK) | (read_word(s,56)^2) | (read_word(s,64)^11)
+    route = read_word(s,72) | (read_word(s,80)^48) | read_word(s,88) | (read_word(s,96)^48)
+    return (header | route | (read_word(s,104)^512)) == 0
 
 # Query ordinal 12 projects the one retained profile document reference.
 def valid_worker_profile_lookup(s:readbuf, size:u64) -> bool:
@@ -312,9 +316,8 @@ def ordered_write_receipts(s:readbuf, size:u64, request:u64, generation:u64) -> 
     last = 0
     while at < 48 + size:
         sequence = read_word(s, at + 32)
-        if read_word(s, at) != 5 or read_word(s, at + 8) != 0 or read_word(s, at + 16) != 1:
-            return False
-        if read_word(s, at + 24) != 0 or read_word(s, at + 40) != generation:
+        tag = (read_word(s,at)^5) | read_word(s,at+8) | (read_word(s,at+16)^1)
+        if (tag | read_word(s,at+24) | (read_word(s,at+40)^generation)) != 0:
             return False
         if sequence <= last or sequence > request:
             return False
@@ -674,7 +677,7 @@ def cell_difference(s:readbuf, at:u64, kind:u64, offset:u64, size:u64) -> u64:
     return (read_word(s, at) ^ kind) | (read_word(s, at + 8) ^ offset) | (read_word(s, at + 16) ^ size)
 
 def durable_write(plan:u64) -> bool:
-    return plan == 10 or plan == 31 or plan == 32 or (plan >= 34 and plan <= 36) or (plan >= 18 and plan <= 27)
+    return plan == 10 or plan == 31 or plan == 32 or (plan >= 34 and plan <= 37) or (plan >= 18 and plan <= 27)
 
 def unique_query_plan(plan:u64) -> u64:
     if plan == 28:
@@ -796,7 +799,7 @@ def durable_insert_result(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     count = read_word(s, 40)
     if (plan == 23 and count != 1) or (plan == 26 and count != 2):
         return 0
-    if (plan == 27 or plan == 32 or plan == 36) and count != read_state(w, 152):
+    if (plan == 27 or plan == 32 or plan == 36 or plan == 37) and count != read_state(w, 152):
         return 0
     advanced = choose(count == 0, 0, 1)
     prior = read_state(w, 120)

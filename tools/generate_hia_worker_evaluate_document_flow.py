@@ -81,17 +81,18 @@ def emit_publication_complete(o:mutbuf, w:mutbuf) -> u64:
     return action(o, w, DOC_PUBLISHED, PUBLISH, 0, 0, 1, 0)
 '''
 
-def program():
+def program(*, entry=ENTRY, roles=ROLES, root='evaluate_document', extra=None, adjust=None):
     constants, parent, controls = verification_publication()
-    constants.update(ROLE_COUNT=len(ROLES), ENTRY_BYTES=376 + 40 * len(ROLES), MAX_INPUT=67108864,
+    constants.update(ROLE_COUNT=len(roles), ENTRY_BYTES=376 + 40 * len(roles), MAX_INPUT=67108864,
                      STORE_ROLE=0, READY_ROLE=1, UNIQUE_ROLE=2, PUBLISHER_ROLE=3,
                      DOCUMENT_PLAN_ROLE=4, EMIT_PUBLICATION_ROLE=5, EMIT_NATIVE_ARTIFACT_ROLE=6,
                      EVAL_FIRST=EVALUATE_FIRST_KIND, EVAL_LAST=EVALUATE_LAST_KIND,
                      DOC_REQUEST=int.from_bytes(b'HIAEDU01', 'little'), DOC_KIND=12080,
                      DOC_BODY=12088, DOC_HEADER=1600, DOC_METADATA=1601, DOC_PUBLISHED=1602)
+    constants.update(extra or {})
     # Preserve the same action/observation ownership checks as Verify.
     observation = parent[parent.index('    if (length(s) < 64'):parent.index('    if state == INSPECTION_HASH_RETURNED:')]
-    entries = [ENTRY.replace('    OBSERVE_REQUEST\n', observation)]
+    entries = [entry.replace('    OBSERVE_REQUEST\n', observation)]
     replaced = ('inspection_hash_bound', 'emit_publication_complete')
     for control in controls:
         name = control.split('(', 1)[0].strip().removeprefix('def ')
@@ -106,9 +107,9 @@ def program():
             line = '        copy_span(s, w, at, EMIT_PUB_CONTENT_HASH, 64)\n'
             assert control.count(line) == 1
             control = control.replace(line, line + '        if emit_authorized_digest(w, EMIT_PUBLIC_AUTHORITY) == False:\n            return BAD\n')
-        entries.append(control)
+        entries.append(adjust(name, control) if adjust is not None else control)
     entries += [function(ENTRY_POLICY, name) for name in ('admit_entry', 'dossier_identity', 'trusted_descriptors')]
-    entry, helpers = reachable_policy('\n'.join(entries), 'evaluate_document')
+    entry, helpers = reachable_policy('\n'.join(entries), root)
     return flow_source(entry, helpers, constants)
 
 

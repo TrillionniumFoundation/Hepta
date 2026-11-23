@@ -46,6 +46,7 @@ RUN_KIND = 'evaluate-run'
 RUN_POLICY = 'examples/hia_bootstrap/worker_evaluate_run_flow.hepta'
 RUN_PACKER = 'examples/hia_bootstrap/worker_evaluate_run_flow_packer.hepta'
 RUN_STREAM = 'tools/hia_worker_evaluate_run_stream.S'
+CLOSEOUT_KIND = 'evaluate-closeout'
 DOCUMENT_KIND = 'evaluate-document'
 RUN_INPUT_KIND = 'evaluate-run-input'
 RUN_INPUT_POLICY = 'examples/hia_bootstrap/worker_evaluate_run_input_flow.hepta'
@@ -98,6 +99,8 @@ PROGRAMS = {
     REPLAY_KIND: (REPLAY_POLICY, REPLAY_PACKER),
     INTAKE_KIND: (INTAKE_POLICY, INTAKE_PACKER),
     RUN_KIND: (RUN_POLICY, RUN_PACKER),
+    CLOSEOUT_KIND: ('examples/hia_bootstrap/worker_evaluate_closeout_flow.hepta',
+                   'examples/hia_bootstrap/worker_evaluate_closeout_flow_packer.hepta'),
     DOCUMENT_KIND: ('examples/hia_bootstrap/worker_evaluate_document_flow.hepta',
                     'examples/hia_bootstrap/worker_evaluate_document_flow_packer.hepta'),
     CLAIM_KIND: (CLAIM_POLICY, INTAKE_PACKER),
@@ -117,7 +120,7 @@ PROGRAMS = {
     INTAKE_LAUNCHER_KIND: (INTAKE_LAUNCHER_POLICY, LAUNCHER_PACKER),
 }
 PEER_KINDS = ('cost', 'read-store', 'read-external', 'input', 'artifact', 'discovery', 'context',
-              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, CLAIM_KIND, RUN_INPUT_KIND, RUN_KIND, DOCUMENT_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
+              'inspection', 'candidate', 'rollback', *SECTIONS, 'discovery-bootstrap', INTAKE_KIND, CLAIM_KIND, RUN_INPUT_KIND, RUN_KIND, DOCUMENT_KIND, CLOSEOUT_KIND, REPLAY_KIND, *LAUNCHER_KINDS)
 MAGIC = int.from_bytes(b'HIADPK01', 'little')
 
 
@@ -142,13 +145,18 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
             flow = flow.replace(original, selected)
         flow += b'\n' + Path(RUN_STREAM).read_bytes()
         kind = 'context'
-    if kind == DOCUMENT_KIND:
-        from tools.generate_hia_worker_evaluate_document_flow import ROLES
+    if kind in (DOCUMENT_KIND,CLOSEOUT_KIND):
+        if kind == CLOSEOUT_KIND:
+            from tools.generate_hia_worker_evaluate_closeout_flow import ROLES
+            work, flag, label = 16384, b'--worker-evaluate-closeout', b'closeout'
+        else:
+            from tools.generate_hia_worker_evaluate_document_flow import ROLES
+            work, flag, label = 12288, b'--worker-evaluate-document', b'document'
         for original, replacement in (
             (b'.equ ROLE_COUNT, 31', f'.equ ROLE_COUNT, {len(ROLES)}'.encode()),
-            (b'.equ WORK_BYTES, 4096', b'.equ WORK_BYTES, 12288'),
-            (b'--worker-context', b'--worker-evaluate-document'),
-            (b'native HIA Context Worker transport', b'native HIA Evaluate document Worker transport'),
+            (b'.equ WORK_BYTES, 4096', f'.equ WORK_BYTES, {work}'.encode()),
+            (b'--worker-context', flag),
+            (b'native HIA Context Worker transport', b'native HIA Evaluate ' + label + b' Worker transport'),
         ):
             if flow.count(original) != 1:
                 raise ValueError('unexpected Context descriptor transport layout')
@@ -263,7 +271,7 @@ def source_packer(flow, ports, packer_path, *, kind, peers, launcher=b''):
     module = Path(packer_path).stem
     template = header + stub, tuple(len(header) + hole for hole in holes)
     if kind in ('input', 'artifact', 'discovery', 'context', 'inspection', 'candidate', 'rollback', *SECTIONS,
-                'discovery-bootstrap', DOCUMENT_KIND, RUN_KIND, INTAKE_KIND, REPLAY_KIND, LAUNCHER_KIND):
+                'discovery-bootstrap', DOCUMENT_KIND, CLOSEOUT_KIND, RUN_KIND, INTAKE_KIND, REPLAY_KIND, LAUNCHER_KIND):
         packer = partitioned_packer(module, *template, extra_image=kind == LAUNCHER_KIND,
                                     separate_sections=kind in SECTIONS)
     else:

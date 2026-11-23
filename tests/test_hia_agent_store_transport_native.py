@@ -188,3 +188,32 @@ class StoreTransportTests(unittest.TestCase):
         self.assertEqual(struct.unpack("<8s5Q", output.raw[32:80]),
                          (b"HIATCM01", 1, 2, 27, 1, len(parameters)))
         self.assertEqual(state.raw[192:], bytes(len(state) - 192))
+
+    def test_evaluate_terminal_commit_requires_both_ordered_write_receipts(self):
+        def receipt(sequence, generation=5, rows=1):
+            return struct.pack('<6Q', 5, 0, rows, 0, sequence, generation)
+
+        def plan(writes, *, count=2, mode=0, request=3, generation=5,
+                 magic=b'HIAETC01'):
+            payload = struct.pack('<8sQ', magic, count) + writes
+            envelope = struct.pack('<8s5Q', b'HIASTUP1', request, 37, mode,
+                                   generation, len(payload)) + payload
+            workspace = ctypes.create_string_buffer(2304)
+            output = ctypes.create_string_buffer(8160)
+            size = self.codec._entry(envelope, len(envelope), output, len(output),
+                                     workspace, len(workspace))
+            return output.raw[:size]
+
+        first, last = receipt(2), receipt(3)
+        accepted = plan(first + last)
+        self.assertEqual(len(accepted), 88)
+        self.assertEqual(accepted[80:], b'HIASTCP1')
+        for writes in (first, first + first, last + first, last + last,
+                       first + receipt(4), receipt(2, 6) + last,
+                       first + receipt(3, rows=0), first + last + b'x'):
+            with self.subTest(writes=writes):
+                self.assertEqual(plan(writes), b'')
+        for parameters in ({'count': 1}, {'mode': 1}, {'mode': 2}, {'request': 4},
+                           {'generation': 6}, {'magic': b'HIARLC01'}):
+            with self.subTest(parameters=parameters):
+                self.assertEqual(plan(first + last, **parameters), b'')
