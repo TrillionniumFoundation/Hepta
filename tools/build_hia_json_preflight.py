@@ -226,6 +226,8 @@ CANDIDATES = {
     'execution-budget-session-packer': ('execution_budget_session_packer', 'execution-budget-session-packer'),
     'evaluate-reference-batch': ('evaluate_reference_batch', 'evaluate-reference-batch'),
     'evaluate-paired-batch': ('evaluate_paired_batch', 'evaluate-paired-batch'),
+    'evaluate-settlement': ('evaluate_settlement', 'evaluate-settlement'),
+    'evaluate-settlement-packer': ('evaluate_settlement_packer', 'evaluate-settlement-packer'),
     'evaluate-paired-batch-packer': ('evaluate_paired_batch_packer', 'evaluate-paired-batch-packer'),
     'evaluate-reference-batch-packer': ('evaluate_reference_batch_packer', 'evaluate-reference-batch-packer'),
     'evaluate-reference-wire': ('evaluate_reference_wire', 'evaluate-reference-wire'),
@@ -364,7 +366,7 @@ def main():
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
                                  'elf-verified-linker',
-                                 'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-reference-wire', 'scalar-reference',
+                                 'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-reference-wire', 'scalar-reference',
                                  'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
                                  'safe-core-elf-inventory', 'core-proof-wire', 'worker-prepare'))
     args = parser.parse_args()

@@ -34,7 +34,7 @@ from tools.build_hia_native_build_admission import build as build_build_admissio
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_native_filter import (
     build_evaluate_paired_batch, build_evaluate_projector, build_evaluate_reference_batch,
-    build_execution_budget_session,
+    build_evaluate_settlement, build_execution_budget_session,
 )
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
@@ -620,6 +620,11 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             expected = build_evaluate_reference_batch(scratch / 'evaluate-reference-batch', compiler, cold_report)
             if reference_batch.read_bytes() != expected.read_bytes():
                 raise ValueError('Store release Evaluate reference batch differs from the cold-built HIA role')
+        settlement = release / 'hia-evaluate-settlement'
+        if settlement.is_file():
+            expected = build_evaluate_settlement(scratch / 'evaluate-settlement', compiler, cold_report)
+            if settlement.read_bytes() != expected.read_bytes():
+                raise ValueError('Store release Evaluate settlement differs from the cold-built HIA role')
         profile = output / 'worker.json'
         for kind in ('evaluate-replay', 'evaluate-intake'):
             launcher = release / f'hia-agent-{kind}-launcher'

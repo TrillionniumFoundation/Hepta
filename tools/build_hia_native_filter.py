@@ -105,15 +105,28 @@ def build_evaluate_paired_batch(output: Path, compiler: Path, cold_report: Path)
                         schema='hepta.hia.evaluate-paired-batch-build.v1')
 
 
+def build_evaluate_settlement(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_settlement import MAGIC as settlement_magic
+
+    return build_filter(output, compiler, cold_report, application='evaluate-settlement',
+                        packer='evaluate-settlement-packer', magic=settlement_magic,
+                        filename='hia-evaluate-settlement',
+                        schema='hepta.hia.evaluate-settlement-build.v1')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
-                                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'execution-budget-session'),
+                                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement',
+                                                  'execution-budget-session'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + flag, type=Path, required=True)
     args = parser.parse_args()
     output, compiler, cold_report = args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()
+    if args.application == 'evaluate-settlement':
+        print(build_evaluate_settlement(output, compiler, cold_report))
+        return
     if args.application == 'execution-budget-session':
         print(build_execution_budget_session(output, compiler, cold_report))
         return
