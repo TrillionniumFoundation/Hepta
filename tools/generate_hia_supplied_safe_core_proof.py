@@ -28,6 +28,11 @@ DEADLINE = 3
 OUTSIDE_PROFILE = 4
 INCOMPLETE = 5
 TYPED_REQUEST_SLOT = 256
+SIMD_ISA_SLOT = 264
+SIMD_KIND_SLOT = 272
+SIMD_REQUEST = int.from_bytes(b'HIASP001', 'little')
+SIMD_SUBJECT = int.from_bytes(b'HIASIMC1', 'little')
+SIMD_RECEIPT = int.from_bytes(b'HIASIMR1', 'little')
 REQUEST_HEAD = 48
 RECEIPT_HEAD = 464
 FILE_LIMIT = 8 << 20
@@ -85,13 +90,17 @@ def admit(s:readbuf, w:mutbuf) -> u64:
     if length(s) < REQUEST_HEAD:
         return 0
     magic = uint(s, 0, 8)
-    if magic != REQUEST_MAGIC and magic != TYPED_REQUEST_MAGIC:
+    if magic != REQUEST_MAGIC and magic != TYPED_REQUEST_MAGIC and magic != SIMD_REQUEST:
         return 0
     profile = uint(s, 8, 8)
     budget = uint(s, 16, 8)
     core = uint(s, 24, 8)
     obj = uint(s, 32, 8)
     final = uint(s, 40, 8)
+    if magic == SIMD_REQUEST:
+        if profile != 1:
+            return 0
+        put(w, SIMD_ISA_SLOT, profile)
     if profile > 6 or budget < 100 or budget > 60000:
         return 0
     if core == 0 or core > FILE_LIMIT or obj < 64 or obj > FILE_LIMIT or final < 64 or final > FILE_LIMIT:
@@ -120,6 +129,15 @@ def digest_inputs(o:mutbuf, w:mutbuf, phase:u64) -> u64:
 
 def bind_subject(o:mutbuf, w:mutbuf) -> u64:
     size = get(w, 64)
+    if get(w, SIMD_ISA_SLOT) != 0:
+        if size < 25 or size > 152 or get(w, SUBJECT) != SIMD_SUBJECT:
+            return 0
+        shape = get(w, SUBJECT + 8)
+        name = get(w, SUBJECT + 16)
+        if shape < 1 or shape > 3 or name != size - 24:
+            return 0
+        put(w, SIMD_KIND_SLOT, shape)
+        return bind_export(o, w, SUBJECT + 24, name)
     if size < SUBJECT_HEADER + 40 or size > SUBJECT_CAP or get(w, SUBJECT) != SUBJECT_MAGIC:
         return 0
     minimum = get(w, SUBJECT + 16)
@@ -142,15 +160,18 @@ def bind_subject(o:mutbuf, w:mutbuf) -> u64:
     put(w, 168, graph)
     put(w, 176, arguments)
     put(w, 184, paths)
+    return bind_export(o, w, SUBJECT + 64, name)
+
+def bind_export(o:mutbuf, w:mutbuf, symbol:u64, name:u64) -> u64:
     put(o, 64, name)
-    copy_output(o, w, SUBJECT + 64, 208, NAME_LIMIT)
+    copy_output(o, w, symbol, 208, name)
     obj = get(w, 144)
     final = get(w, 152)
     put(w, HEADER, choose(get(w, TYPED_REQUEST_SLOT) == 1, BIND_DIAGNOSTIC_REQUEST, BIND_MAGIC))
     put(w, HEADER + 8, obj)
     put(w, HEADER + 16, final)
     put(w, HEADER + 24, name)
-    copy_work(w, SUBJECT + 64, HEADER + 32, NAME_LIMIT)
+    copy_work(w, symbol, HEADER + 32, name)
     return dispatch(w, 5, 2, WORK_OFFSET + HEADER, 288, BINDING, BIND_CAP,
                     REQUEST_HEAD + get(w, 136), obj + final)
 
@@ -178,6 +199,21 @@ def observe_machine(o:mutbuf, w:mutbuf) -> u64:
     if get(w, 64) != 32:
         return 0
     copy_output(o, w, DIGEST, 176, 32)
+    if get(w, SIMD_ISA_SLOT) != 0:
+        shape = get(w, SIMD_KIND_SLOT)
+        put(w, BINDING - 8, shape)
+        if simd_validate(w) != 32:
+            return 0
+        put(o, 0, SIMD_RECEIPT)
+        put(o, 8, 1)
+        put(o, 16, get(w, SIMD_ISA_SLOT))
+        put(o, 24, shape)
+        put(o, 32, 16)
+        put(o, 40, 4)
+        put(o, 48, get(w, 240))
+        put(o, 56, get(w, 248))
+        put(o, 72, 0)
+        return RECEIPT_HEAD
     profile = get(w, 160)
     flags = 0
     if profile > 2:
@@ -307,10 +343,13 @@ def now(w:mutbuf) -> u64:
 def document():
     from tools.generate_hia_safe_core_binder import shared_transport
 
+    from tools.generate_hia_verified_simd_sse2_check import embedded_source
+
     helpers = shared_transport()
     helpers = helpers[helpers.index('\ndef copy_work('):helpers.index('\ndef next(')]
     constants = {name: value for name, value in globals().items() if name.isupper() and type(value) is int}
-    return transport_document(SOURCE + helpers, module='supplied_safe_core_proof', extra=constants)
+    machine = embedded_source(BINDING, OBLIGATION, OBSERVATION)
+    return transport_document(SOURCE + helpers + '\n' + machine, module='supplied_safe_core_proof', extra=constants)
 
 
 if __name__ == '__main__':

@@ -337,6 +337,53 @@ def source_program():
     return source
 
 
+
+def embedded_source(binding, scratch, result):
+    """Read the already bound text in the supplied verifier's private arena."""
+    import ast
+    nodes = ast.parse(source_program()).body
+    names = {n.name for n in nodes}
+    def ref(name):
+        return ast.Name(id=name, ctx=ast.Load())
+    def number(n):
+        return ast.Constant(n)
+    def add(n, expr):
+        return ast.BinOp(number(n), ast.Add(), expr)
+    def call(name, *args):
+        return ast.Call(ref(name), list(args), [])
+    class Arena(ast.NodeTransformer):
+        def visit_Call(self, node):
+            name = node.func.id
+            if name == 'length':
+                return {'s': add(8, call('get',ref('w'),number(192))), 'o':number(32), 'w':number(2048)}[node.args[0].id]
+            args = [self.visit(arg) for arg in node.args]
+            if name in names:
+                args = [arg for arg in args if not (isinstance(arg,ast.Name) and arg.id in {'s','o'})]
+                return call('simd_' + name, *args)
+            if name in ('uint','byte') and isinstance(args[0],ast.Name) and args[0].id == 's':
+                return call('simd_read' if name=='uint' else 'byte',ref('w'),add(binding-8,args[1]),*args[2:])
+            if name in ('get','put'):
+                base = result if args[0].id == 'o' else scratch
+                return call(name,ref('w'),add(base,args[1]),*args[2:])
+            return call(name,*args)
+        def visit_FunctionDef(self, node):
+            if node.name == 'validate':
+                node.returns.id = 'u64'
+            node.name = 'simd_' + node.name
+            node.args.args = [arg for arg in node.args.args if arg.arg not in {'s','o'}]
+            return self.generic_visit(node)
+    transformed=ast.fix_missing_locations(Arena().visit(ast.Module(nodes,[])))
+    return ast.unparse(transformed) + '''
+def simd_read(w:mutbuf, at:u64, n:u64) -> u64:
+    result = 0
+    i = 0
+    while i < n:
+        result = result | (byte(w, at + i) << (8 * i))
+        i = i + 1
+    return result
+'''
+
+
 if __name__ == '__main__':
     helpers = ELF[ELF.index('def uint('):ELF.index('def copy_bytes(')]
     target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap' / (MODULE + '.hepta')

@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ADAPTER = 'tools/hia_supplied_safe_core_proof_syscalls.S'
 PACKER = 'examples/hia_bootstrap/supplied_safe_core_proof_packer.hepta'
 MAGIC = int.from_bytes(b'HIAPKP01', 'little')
-PACK_LIMIT = 4 << 20
+# Seven individually bounded components plus the aligned, package-pinned transport.
+PACK_LIMIT = 8 << 20
 PACK_HEAD = 64
 ROLE_TABLE = 80
 CALLS = ('proof_policy_hole', 'proof_hash_hole')

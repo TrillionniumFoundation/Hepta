@@ -216,7 +216,7 @@ def narrow(n:u64) -> u32:
     return n
 '''
 
-def program():
+def matcher_source():
     vocabulary = {}
     entry = POLICY.replace('SIMD_SUBJECT', str(int.from_bytes(b'HIASIMC1', 'little')))
     entry = entry.replace('RESERVED_PREFIX', str(int.from_bytes(b'__hia_', 'little')))
@@ -237,7 +237,11 @@ def program():
         words = ', '.join(map(str, packed(token)))
         entry += f'    if which == {number}:\n        return same(w, start, size, {words})\n'
     entry += '    return 0\n'
-    nodes = ast.parse(source_program(entry=entry)).body
+    return entry
+
+
+def program():
+    nodes = ast.parse(source_program(entry=matcher_source())).body
     required = {'recognize'}
     while True:
         calls = {call.func.id for fn in nodes if fn.name in required for call in ast.walk(fn)

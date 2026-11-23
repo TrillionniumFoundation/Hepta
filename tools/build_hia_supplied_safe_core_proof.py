@@ -1,4 +1,4 @@
-"""Build a self-contained HIA verifier of supplied scalar Core and paired ELF bytes."""
+"""Build the self-contained HIA verifier for supplied Core, object and linked ELF bytes."""
 from __future__ import annotations
 
 import argparse

@@ -1236,6 +1236,9 @@ SUBJECT_POLICY = '''
 def proof_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     graph = widen(scalar_graph(s, o, w))
     if graph >= 4294967292 or graph < 40 or length(o) < SUBJECT_HEADER + graph:
+        recognized = widen(recognize(s, o, w))
+        if recognized != 0:
+            return recognized
         return REFUSED
     functions = field(w, 0, K_functions)
     fn = child(w, functions)
@@ -1352,6 +1355,8 @@ def minimum_type_profile(typ:u64) -> u64:
 
 
 def subject_source():
+    from tools.generate_hia_verified_simd_core import matcher_source
+
     source = SUBJECT_POLICY + '\ndef scalar_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n'
     source += POLICY[POLICY.index('    if length(o) < 32768'):]
     operations = {name: _GRAPH_OPERATIONS['int.' + name.lower() + '.checked']
@@ -1359,7 +1364,7 @@ def subject_source():
     constants = {'SUBJECT_MAGIC': SUBJECT_MAGIC, 'SUBJECT_HEADER': SUBJECT_HEADER, **operations}
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
-    return source + '\n' + match('effect', {'read': 1, 'write': 1, 'trap': 1})
+    return source + '\n' + match('effect', {'read': 1, 'write': 1, 'trap': 1}) + '\n' + matcher_source()
 
 
 def program(*, elf_only=False, solver_only=False, subject=False):

@@ -10,7 +10,7 @@ block b1(v7:readbuf,v8:mutbuf,v9:mutbuf)
   v15:usize = buffer.len(v7)
   v16:u64 = int.cast(v15) {"mode":"wrap"}
   v17:u64 = const() {"value":64}
-  v18:u64 = const() {"value":4194304}
+  v18:u64 = const() {"value":8388608}
   v19:u64 = int.add.wrap(v17,v18)
   v20:bool = compare.gt(v16,v19)
   jump b2(v7,v8,v9,v20)
@@ -37,7 +37,7 @@ block b6(v37:readbuf,v38:mutbuf,v39:mutbuf)
   v44:bool = compare.eq(v42,v43)
   branch v44 b8(v37,v38,v39,v42,v44) b7(v37,v38,v39,v42)
 block b7(v45:readbuf,v46:mutbuf,v47:mutbuf,v48:u64)
-  v55:u64 = const() {"value":4194304}
+  v55:u64 = const() {"value":8388608}
   v56:bool = compare.gt(v48,v55)
   jump b8(v45,v46,v47,v48,v56)
 block b8(v50:readbuf,v51:mutbuf,v52:mutbuf,v53:u64,v54:bool)
