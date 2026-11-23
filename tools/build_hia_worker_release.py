@@ -728,6 +728,15 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                         'capsule_sha256': capsule_pin,
                     }, stream, sort_keys=True, separators=(',', ':'))
                     stream.write('\n')
+            if 'evaluate-full' in release_launchers:
+                from hepta.hia_agent_contract import installation_manifest
+                from tools.build_hia_installed_worker_entry import build as build_public_entry
+                _, expected = release_launchers['evaluate-full']
+                public_capsule = output / 'evaluate-full-worker-capsule.bin'
+                build_public_entry(output / 'hia-agent-worker', scratch / 'installed-public-entry', compiler,
+                    cold_report, profile=profile, release=release, capsule=public_capsule,
+                    capsule_pin=sha256(public_capsule.read_bytes()).hexdigest(), expected_launcher=expected,
+                    identities=installation_manifest(), artifact_roots=readonly_artifact_roots)
             binding.check()
     return profile, pin
 
@@ -743,6 +752,10 @@ def main():
                          readonly_artifact_roots=args.readonly_artifact_root)
     result = {'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
               'package_sha256': args.package_sha256, 'production_activated': False}
+    executable = profile.parent / 'hia-agent-worker'
+    if executable.is_file():
+        result.update(python_executable=str(executable),
+                      native_worker_executable_sha256=sha256(executable.read_bytes()).hexdigest())
     for kind in ('read', 'readonly', 'native', 'evaluate-replay', 'evaluate-intake', 'evaluate-full'):
         manifest = profile.parent / (kind + '-worker.json')
         if manifest.is_file():
