@@ -2,7 +2,9 @@
 
 INGRESS = '''
 def refuse_business(o:mutbuf,w:mutbuf,reason:u64) -> u64:
-    if reason != 1 and reason != 2:
+    # Baseline and the original scalar tag have their existing identities.
+    # The other workload planner codes are shifted by ten in this envelope.
+    if reason != 1 and reason != 2 and (reason < 11 or reason > 20 or reason == 12):
         return close_store(o,w,CLOSE_REFUSED)
     put(w,BUSINESS_REASON,reason)
     return close_store(o,w,CLOSE_ERROR)
@@ -91,9 +93,9 @@ def closeout_literals():
     import json
     from hepta.hia_evaluation_native import _WORKLOAD_REFUSALS
     from tools.generate_hia_evaluate_settlement import LITERALS
-    scalar_code, scalar_message = _WORKLOAD_REFUSALS[2]
-    reasons = (('baseline_error','E_HIA_BASELINE','evaluation baseline differs from the frozen Core snapshot','execution'),
-               ('scalar_error',scalar_code,scalar_message,'admission'))
+    reasons = [('baseline_error','E_HIA_BASELINE','evaluation baseline differs from the frozen Core snapshot','execution')]
+    for code, (error, message) in sorted(_WORKLOAD_REFUSALS.items()):
+        reasons.append((f'workload_error_{code}',error,message,'admission'))
     values = {'rejected_begin':LITERALS['envelope_begin']+LITERALS['envelope_error'],
               'request_prefix':LITERALS['envelope_request'], 'rejected_end':LITERALS['envelope_rejected']}
     for name, code, message, phase in reasons:
@@ -106,6 +108,12 @@ def closeout_literals():
         for at in range(0,len(data),8):
             lines.append(f'    put(o,at+{at},{int.from_bytes(data[at:at+8],"little")})')
         lines.append(f'    return at+{len(data)}')
+    lines.append('def error_document(o:mutbuf,at:u64,reason:u64) -> u64:')
+    lines.extend(('    if reason == 1:', '        return baseline_error(o,at)'))
+    for code in sorted(_WORKLOAD_REFUSALS):
+        tag = 2 if code == 2 else 10 + code
+        lines.extend((f'    if reason == {tag}:', f'        return workload_error_{code}(o,at)'))
+    lines.append('    return 0')
     return '\n'.join(lines)+'\n'
 
 
@@ -135,11 +143,8 @@ def refusal_header(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     copy_span(s,w,348,CLAIM_PUBLIC,66)
     first = rejected_begin(o,HEADER)
     reason = input_word(s,88)
-    if reason == 1:
-        end = baseline_error(o,first)
-    elif reason == 2:
-        end = scalar_error(o,first)
-    else:
+    end = error_document(o,first,reason)
+    if end == 0:
         return BAD
     put(w,ERROR_BODY+8,first-HEADER)
     put(w,ERROR_BODY+16,end-first)
