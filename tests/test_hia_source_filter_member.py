@@ -225,3 +225,45 @@ class InstalledSourceMemberTests(unittest.TestCase):
                     broken = self.source_images(self.work / 'incomplete-core', partial)
                     self.invoke([builder, 'build'], broken, refused=True)
                 self.invoke([builder, 'build'], image[:-1] + bytes([image[-1] ^ 1]), refused=True)
+
+    def test_compiler_manifest_rebuilds_three_images_and_the_selected_elf(self):
+        import json
+        import struct
+        from tools.build_hia_source_build import _compiled_sources
+
+        core_sources = ('core_json_cli_packer.hepta', 'core_json_frontend.hepta', 'selfhost.hepta')
+        sources = {name: self.release / name for name in core_sources}
+        compiled = self.source_images(self.work / 'core-sources', sources)
+        captured = {name: path.read_bytes() for name, path in sources.items()}
+        images = _compiled_sources(compiled, captured)
+        kit = self.source_images(self.work / 'manifest-author', {
+            'source_build_policy.hepta': SOURCES / 'source_compiler_manifest.hepta',
+            'selfhost.hepta': sources['selfhost.hepta'],
+            'source_build_packer.hepta': sources['core_json_cli_packer.hepta'],
+        })
+        author = self.work / 'author'
+        author.write_bytes(self.invoke([self.seed, 'pack'], kit))
+        author.chmod(0o500)
+        # Use the installation's actual manifest as independent oracle for every
+        # field except the fixture cold report, whose bytes belong to this test.
+        cold = b'captured test report'
+        expected = json.loads((self.release / 'compiler-manifest.json').read_bytes())
+        expected['cold_report_sha256'] = sha256(cold).hexdigest()
+        parts = [cold, images['selfhost.hepta'], (self.release / 'hia-core-json').read_bytes(),
+                 images['core_json_frontend.hepta'], images['core_json_cli_packer.hepta'],
+                 (self.release / 'HIA_SELFHOST_CORE_SUPPORT.json').read_bytes(),
+                 *(captured[name] for name in core_sources)]
+
+        def frame(fields):
+            return struct.pack('<8s9Q', b'HIACMF01', *map(len, fields)) + b''.join(fields)
+
+        packet = frame(parts)
+        actual = self.invoke([author, 'build'], packet)
+        self.assertEqual(actual, (json.dumps(expected, indent=2, sort_keys=True) + '\n').encode())
+        for malformed in (packet[:-1], packet + b'x', b'bad-head' + packet[8:]):
+            self.invoke([author, 'build'], malformed, refused=True)
+        for slot in (1, 2, 3, 4, 6, 7, 8):
+            with self.subTest(slot=slot):
+                changed = parts.copy()
+                changed[slot] = bytes([changed[slot][0] ^ 1]) + changed[slot][1:]
+                self.invoke([author, 'build'], frame(changed), refused=True)

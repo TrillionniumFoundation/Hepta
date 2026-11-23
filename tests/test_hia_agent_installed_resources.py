@@ -18,6 +18,7 @@ RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_
 SDIST_SUPPORT_FILES=(
     'examples/hia_bootstrap/source_filter_member.hepta',
     'examples/hia_bootstrap/source_helper_manifest.hepta',
+    'examples/hia_bootstrap/source_compiler_manifest.hepta',
     'tests/test_hia_source_filter_member.py',
     'examples/hia_bootstrap/job_terminal_receipt.hepta',
     'tools/generate_hia_job_terminal_receipt.py',

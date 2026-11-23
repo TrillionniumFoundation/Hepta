@@ -299,18 +299,24 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             stream.flush()
             publish(Path(stream.name), name, expected=sha256(product).hexdigest())
         if name == 'hia-core-json':
-            from hepta.hia_program_selfhost import SOURCE_FILES, manifest_value
-
             if images['selfhost.hepta'] != compiler_bytes:
                 raise ValueError('source-built selfhost differs from the admitted cold compiler')
-            manifest = manifest_value(stage / name,
-                compiler_sha256=sha256(compiler_bytes).hexdigest(),
-                frontend_sha256=sha256(images[name + '.hepta']).hexdigest(),
-                packer_sha256=sha256(compiler_packer).hexdigest(),
-                cold_report_sha256=sha256(report_bytes).hexdigest(),
-                source_sha256={path: admitted[path] for path in SOURCE_FILES})
+            # The manifest owner independently recompiles the three sources, repacks the
+            # exact selected ELF and hashes all nine raw inputs before its first write.
+            author_sources = {
+                'source_build_policy.hepta': 'source_compiler_manifest.hepta',
+                'selfhost.hepta': 'selfhost.hepta',
+                'source_build_packer.hepta': 'core_json_cli_packer.hepta',
+            }
+            author = call(seed, 'pack', compile_sources(author_sources)[0])
+            parts = (report_bytes, compiler_bytes, captured(name), images[name + '.hepta'],
+                     compiler_packer, captured('HIA_SELFHOST_CORE_SUPPORT.json'),
+                     captured('core_json_cli_packer.hepta'), captured('core_json_frontend.hepta'),
+                     captured('selfhost.hepta'))
+            packet = struct.pack('<8s9Q', b'HIACMF01', *map(len, parts)) + b''.join(parts)
+            manifest = call(author, 'build', packet)
             path = work / 'compiler-manifest.json'
-            path.write_text(json.dumps(manifest, sort_keys=True, indent=2) + '\n')
+            path.write_bytes(manifest)
             publish(path)
 
 

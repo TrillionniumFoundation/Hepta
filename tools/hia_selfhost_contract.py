@@ -1392,6 +1392,7 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/source_build_policy.hepta',
     'examples/hia_bootstrap/source_filter_member.hepta',
     'examples/hia_bootstrap/source_helper_manifest.hepta',
+    'examples/hia_bootstrap/source_compiler_manifest.hepta',
     'tests/test_hia_source_filter_member.py',
     'examples/hia_bootstrap/source_build_packer.hepta',
     'tests/test_hia_source_build.py',
