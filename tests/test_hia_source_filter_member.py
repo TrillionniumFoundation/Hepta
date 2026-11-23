@@ -28,63 +28,100 @@ class SourceFilterMemberTests(unittest.TestCase):
     def test_native_policy_is_valid_assembly(self):
         self.assertGreater(len(assemble_program(POLICY.read_bytes()).as_dict()['functions']), 3)
 
-    @unittest.skipUnless(os.environ.get('HIA_TEST_NATIVE_FILTER_RELEASE'), 'requires a qualified, installed Store')
-    def test_from_native_sources_against_every_installed_member(self):
-        release = Path(os.environ['HIA_TEST_NATIVE_FILTER_RELEASE']).resolve()
-        sources = Path(os.environ.get('HIA_TEST_NATIVE_FILTER_SOURCES', SOURCES)).resolve()
-        seed = release / 'hia-source-build'
-        with TemporaryDirectory() as temp:
-            work = Path(temp)
-            def invoke(argv, wire=b'', *, refused=False):
-                result = subprocess.run(argv, input=wire, capture_output=True, cwd=work,
-                                        env={'PATH': ''}, timeout=120)
-                self.assertEqual(result.stderr, b'')
-                if refused:
-                    self.assertNotEqual(result.returncode, 0)
-                    self.assertEqual(result.stdout, b'')
-                else:
-                    self.assertEqual(result.returncode, 0)
-                return result.stdout
 
-            def source_images(directory, named_sources):
-                directory.mkdir(mode=0o700)
-                for name, path in named_sources.items():
-                    member = directory / name
-                    member.write_bytes(path.read_bytes())
-                    member.chmod(0o400)
-                # The native directory packer emits a SHA256 receipt on stderr.
-                packed = subprocess.run([release / 'hia-directory-package-build', directory],
-                                        capture_output=True, cwd=work, env={'PATH': ''}, timeout=120)
-                self.assertEqual(packed.returncode, 0)
-                self.assertEqual(packed.stderr, (sha256(packed.stdout).hexdigest() + '\n').encode())
-                self.assertEqual(packed.stdout[:8], b'HIAREL01')
-                return invoke([seed, 'build'], packed.stdout)
+@unittest.skipUnless(os.environ.get('HIA_TEST_NATIVE_FILTER_RELEASE'), 'requires a qualified, installed Store')
+class InstalledSourceMemberTests(unittest.TestCase):
+    def setUp(self):
+        self.release = Path(os.environ['HIA_TEST_NATIVE_FILTER_RELEASE']).resolve()
+        self.sources = Path(os.environ.get('HIA_TEST_NATIVE_FILTER_SOURCES', SOURCES)).resolve()
+        self.seed = self.release / 'hia-source-build'
+        temporary = TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.work = Path(temporary.name)
 
-            for name in MEMBERS:
-                with self.subTest(member=name):
-                    path = work / name
-                    path.mkdir(mode=0o700)
-                    stem = name[4:].replace('-', '_')
-                    app, packer = SPECIAL.get(name, (stem, stem + '_packer'))
-                    kit = source_images(path / 'kit', {
-                        'source_build_policy.hepta': POLICY, 'selfhost.hepta': sources / 'selfhost.hepta',
-                        'source_build_packer.hepta': sources / (packer + '.hepta')})
-                    builder = path / 'member-builder'
-                    builder.write_bytes(invoke([seed, 'pack'], kit))
-                    builder.chmod(0o500)
-                    inputs = {app + '.hepta': sources / (app + '.hepta')}
-                    if name in CANONICAL:
-                        inputs['worker_request.hepta'] = sources / 'worker_request.hepta'
-                    images = source_images(path / 'inputs', inputs)
-                    self.assertEqual(invoke([builder, 'build'], images), (release / name).read_bytes())
-                    for rejected in (images[:-1], images + b'x', b'badmagic' + images[8:],
-                                     images[:-1] + bytes((images[-1] ^ 1,))):
-                        invoke([builder, 'build'], rejected, refused=True)
-                    if name in CANONICAL:
-                        alone = source_images(path / 'missing-canonical', {app + '.hepta': inputs[app + '.hepta']})
-                        invoke([builder, 'build'], alone, refused=True)
-                    if name == 'hia-evaluate-settlement':
-                        other = path / 'wrong-role'
-                        packet = source_images(other, {'evaluate_measurements.hepta': sources / 'evaluate_measurements.hepta'})
-                        invoke([builder, 'build'], packet, refused=True)
-                        invoke([builder, 'compile'], images, refused=True)
+    def invoke(self, argv, wire=b'', *, refused=False):
+        result = subprocess.run(argv, input=wire, capture_output=True, cwd=self.work,
+                                env={'PATH': ''}, timeout=120)
+        self.assertEqual(result.stderr, b'')
+        if refused:
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(result.stdout, b'')
+        else:
+            self.assertEqual(result.returncode, 0)
+        return result.stdout
+
+    def source_images(self, directory, named_sources):
+        with TemporaryDirectory(dir=directory.parent, prefix=directory.name + '-') as tmp:
+            directory = Path(tmp)
+            for name, path in named_sources.items():
+                member = directory / name
+                member.write_bytes(path.read_bytes())
+                member.chmod(0o400)
+            packed = subprocess.run([self.release / 'hia-directory-package-build', directory],
+                                    capture_output=True, cwd=self.work, env={'PATH': ''}, timeout=120)
+        self.assertEqual(packed.returncode, 0)
+        self.assertEqual(packed.stderr, (sha256(packed.stdout).hexdigest() + '\n').encode())
+        self.assertEqual(packed.stdout[:8], b'HIAREL01')
+        return self.invoke([self.seed, 'build'], packed.stdout)
+
+    def member_builder(self, directory, packer):
+        directory.mkdir(mode=0o700)
+        kit = self.source_images(directory / 'kit', {
+            'source_build_policy.hepta': POLICY, 'selfhost.hepta': self.sources / 'selfhost.hepta',
+            'source_build_packer.hepta': self.sources / packer})
+        builder = directory / 'member-builder'
+        builder.write_bytes(self.invoke([self.seed, 'pack'], kit))
+        builder.chmod(0o500)
+        return builder
+
+    def test_from_native_sources_against_every_installed_filter(self):
+        for name in MEMBERS:
+            with self.subTest(member=name):
+                path = self.work / name
+                stem = name[4:].replace('-', '_')
+                app, packer = SPECIAL.get(name, (stem, stem + '_packer'))
+                builder = self.member_builder(path, packer + '.hepta')
+                inputs = {app + '.hepta': self.sources / (app + '.hepta')}
+                if name in CANONICAL:
+                    inputs['worker_request.hepta'] = self.sources / 'worker_request.hepta'
+                images = self.source_images(path / 'inputs', inputs)
+                self.assertEqual(self.invoke([builder, 'build'], images), (self.release / name).read_bytes())
+                for rejected in (images[:-1], images + b'x', b'badmagic' + images[8:],
+                                 images[:-1] + bytes((images[-1] ^ 1,))):
+                    self.invoke([builder, 'build'], rejected, refused=True)
+                if name in CANONICAL:
+                    alone = self.source_images(path / 'missing-canonical', {app + '.hepta': inputs[app + '.hepta']})
+                    self.invoke([builder, 'build'], alone, refused=True)
+                if name == 'hia-evaluate-settlement':
+                    packet = self.source_images(path / 'wrong-role', {
+                        'evaluate_measurements.hepta': self.sources / 'evaluate_measurements.hepta'})
+                    self.invoke([builder, 'build'], packet, refused=True)
+                    self.invoke([builder, 'compile'], images, refused=True)
+                    disguised = self.source_images(path / 'wrong-module', {
+                        'evaluate_settlement.hepta': self.sources / 'evaluate_measurements.hepta'})
+                    self.invoke([builder, 'build'], disguised, refused=True)
+
+    def test_from_native_sources_against_every_installed_agent_stdio_role(self):
+        from tools.build_hia_agent_read_page import JOURNAL_PACKER, JOURNAL_TRANSPORT, STDIO_PACKER, VARIANTS
+        from tools.build_hia_native_store_release import STDIO_ROLES
+
+        generic = self.member_builder(self.work / 'stdio', Path(STDIO_PACKER).name)
+        journal = self.member_builder(self.work / 'journal', Path(JOURNAL_PACKER).name)
+        codec = Path(JOURNAL_TRANSPORT).name
+        for role in STDIO_ROLES:
+            name = 'hia-agent-' + role
+            with self.subTest(member=name):
+                builder = journal if role == 'journal' else generic
+                inputs = {name + '.hepta': self.sources / (VARIANTS[role][0] + '.hepta')}
+                if role == 'journal':
+                    inputs[codec] = self.sources / codec
+                packet = self.source_images(self.work / name, inputs)
+                self.assertEqual(self.invoke([builder, 'build'], packet), (self.release / name).read_bytes())
+                self.invoke([builder, 'build'], packet[:-1] + bytes([packet[-1] ^ 1]), refused=True)
+        wrong = self.source_images(self.work / 'wrong-module', {
+            'hia-agent-worker-canonical.hepta': self.sources / 'worker_evaluate_case.hepta'})
+        self.invoke([generic, 'build'], wrong, refused=True)
+        wrong_codec = self.source_images(self.work / 'wrong-journal-transport', {
+            'hia-agent-journal.hepta': self.sources / (VARIANTS['journal'][0] + '.hepta'),
+            'worker_request.hepta': self.sources / 'worker_request.hepta'})
+        self.invoke([journal, 'build'], wrong_codec, refused=True)

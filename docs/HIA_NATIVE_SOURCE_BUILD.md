@@ -195,3 +195,9 @@ For budget-observation, budget-store, cost-ledger, cost-ledger-flow, measurement
 | `hia-safe-core-loader` | `safe_core_elf_inventory.hepta` | `safe_core_loader_filter_packer.hepta` |
 
 `HIA_TEST_NATIVE_FILTER_RELEASE` selects an installation for the full source-to-ELF comparison in `tests.test_hia_source_filter_member`. The test accepts an explicitly selected matching source directory in `HIA_TEST_NATIVE_FILTER_SOURCES`.
+
+## Building installed Agent stdio roles
+
+The same HIA member policy rebuilds the Agent stdio executables. Bootstrap one builder with `mcp_stdio_packer.hepta` in the packer slot to build all single-image Agent stdio roles. For `hia-agent-journal`, bootstrap a second builder with `agent_journal_stdio_packer.hepta` and include `agent_journal_transport.hepta` in the input directory.
+
+Stage the role's HIA application under the public release name plus `.hepta`. For example, `hia-agent-read-page` takes `agent_read_page.hepta` under the name `hia-agent-read-page.hepta`. The kernel selects the wire mode from the exact public filename and checks the source's declared HIA module. It recompiles the sources and verifies that the original application and optional codec bytes occur at their expected positions in the finished ELF. The directory, compiler and `member-builder build` stages use the same commands as the filter example above. The `VARIANTS` data in `tools/build_hia_agent_read_page.py` identifies the original source basename for every existing public role.
