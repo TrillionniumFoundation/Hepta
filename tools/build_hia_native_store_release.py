@@ -4,7 +4,8 @@ from __future__ import annotations
 import argparse
 import gzip
 import io
-from hashlib import file_digest, sha256
+from contextlib import ExitStack
+from hashlib import sha256
 from importlib import import_module
 import json
 import os
@@ -728,10 +729,7 @@ def _source_member_recipes():
 def _stage_source_members(work, stage, admitted, members, publish, *, compiler_bytes, report_bytes, core_inputs):
     """Compile and pack release members with the captured native seed and HIA policy."""
     def captured(role):
-        data = (stage / role).read_bytes()
-        if sha256(data).hexdigest() != members[role]:
-            raise ValueError('native release tool differs from its staged identity: ' + role)
-        return data
+        return _capture_release_tool(stage, role, members)
 
     seed = captured('hia-source-build')
     pack_directory = None
@@ -871,29 +869,144 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
                              migration_dependencies, compiler_bytes, report_bytes)
 
 
+def _capture_release_tool(stage, name, members):
+    descriptor = os.open(stage / name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, 'rb') as source:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            raise ValueError('native release tool is not an ordinary file: ' + name)
+        image = source.read()
+    if sha256(image).hexdigest() != members[name]:
+        raise ValueError('native release tool differs from its staged identity: ' + name)
+    return image
+
+
+def _verify_installed_members(installed, members, publisher, work):
+    """Compare the native installer's files with every source-side member digest."""
+    directory = os.open(installed, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        if set(os.listdir(directory)) != members.keys():
+            raise ValueError('installed native Store names differ from their source-built members')
+        for name, digest in members.items():
+            descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+            with os.fdopen(descriptor, 'rb') as stream:
+                info = os.fstat(descriptor)
+                if not stat.S_ISREG(info.st_mode):
+                    raise ValueError('installed native Store member is not an ordinary file: ' + name)
+                if info.st_size:
+                    # Both names must still resolve to the same installed inode. The
+                    # inherited input descriptor supplies independently opened exact bytes.
+                    action = ('verify', installed / name, f'/proc/self/fd/{directory}/{name}')
+                else:
+                    # The generic hard-link verifier requires nonempty input. The
+                    # native Store hash operation admits the empty payload as well.
+                    action = ('store-hash', installed, '-')
+                result = _run_captured(publisher, action, None, work, stdin=stream, pass_fds=(directory,))
+                result.check_returncode()
+                if result.stderr or json.loads(result.stdout) != {'sha256': digest, 'bytes': info.st_size}:
+                    raise ValueError('installed native Store member differs from its source: ' + name)
+                if not os.path.samestat(info, os.stat(name, dir_fd=directory, follow_symlinks=False)):
+                    raise ValueError('installed native Store member identity changed: ' + name)
+        if set(os.listdir(directory)) != members.keys():
+            raise ValueError('installed native Store names changed during verification')
+    finally:
+        os.close(directory)
+
+
 def _pack_and_verify(work, stage, members):
     package = work / 'store.hiapack'
-    with package.open('xb') as result:
-        pack = subprocess.run([stage / 'hia-directory-package-build', stage], stdout=result, stderr=subprocess.PIPE,
-                              env={'PATH': ''}, check=True, timeout=180)
-    with package.open('rb') as stream:
-        digest = file_digest(stream, 'sha256').hexdigest()
-    if pack.stderr != (digest + '\n').encode():
-        raise ValueError('native directory package digest differs from its output')
+    packer = _capture_release_tool(stage, 'hia-directory-package-build', members)
+    installer = _capture_release_tool(stage, 'hia-release', members)
+    with package.open('x+b') as stream:
+        packed = _run_captured(packer, stage, b'', work, stdout=stream)
+        os.fchmod(stream.fileno(), 0o400)
+        identity = os.fstat(stream.fileno())
+        stream.seek(0)
+        expected = stream.read()
+    if (packed.returncode or len(packed.stderr) != 65 or packed.stderr[-1:] != b'\n'
+            or any(value not in b'0123456789abcdef' for value in packed.stderr[:-1])):
+        raise ValueError('native directory packager failed to issue its package digest')
+    digest = packed.stderr[:-1].decode('ascii')
     depot = work / 'verified'
     depot.mkdir(mode=0o700)
     for action in ('install', 'verify'):
-        with package.open('rb') as stream:
-            checked = subprocess.run([stage / 'hia-release', action, depot, digest], stdin=stream,
-                                     capture_output=True, env={'PATH': ''}, check=True, timeout=180)
+        checked = _run_captured(installer, (action, depot, digest), expected, work)
+        checked.check_returncode()
         receipt = json.loads(checked.stdout)
         if checked.stderr or receipt['sha256'] != digest or receipt['files'] != len(members):
             raise ValueError('native Store installation receipt differs from its built inventory')
-    installed = depot / digest
-    actual = {path.name: sha256(path.read_bytes()).hexdigest() for path in installed.iterdir()}
-    if actual != members:
-        raise ValueError('installed native Store files differ from their source-built members')
-    return package
+    publisher = _capture_release_tool(stage, 'hia-artifact', members)
+    _verify_installed_members(depot / digest, members, publisher, work)
+    return package, expected, digest, publisher, identity
+
+
+def _publish_verified_package(package, output, expected, digest, publisher, original):
+    """Publish the exact native installer input and verify the resulting hard link."""
+    target = output / package.name
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    with ExitStack() as opened:
+        authority = Path(opened.enter_context(TemporaryDirectory(dir=package.parent))) / package.name
+        reference = _run_captured(publisher, ('publish', package, authority), expected, package.parent)
+        reference.check_returncode()
+        receipt = {'sha256': digest, 'bytes': len(expected)}
+        if (reference.stderr or json.loads(reference.stdout) != receipt
+                or not os.path.samestat(original, authority.lstat())
+                or stat.S_IMODE(authority.lstat().st_mode) != 0o400):
+            raise ValueError('package differs from its verified inode, bytes or mode')
+        parent = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+        opened.callback(os.close, parent)
+        try:
+            directory = os.open(output.name, directory_flags, dir_fd=parent)
+            created = False
+        except FileNotFoundError:
+            os.mkdir(output.name, 0o700, dir_fd=parent)
+            directory = os.open(output.name, directory_flags, dir_fd=parent)
+            created = True
+        opened.callback(os.close, directory)
+        identity = os.fstat(directory)
+
+        def named_directory():
+            try:
+                return os.path.samestat(identity, output.lstat())
+            except FileNotFoundError:
+                return False
+
+        destination = f'/proc/self/fd/{directory}/{package.name}'
+
+        def invoke(action, payload):
+            return _run_captured(publisher, (action, authority, destination), payload,
+                                 package.parent, pass_fds=(directory,))
+
+        linked = False
+        try:
+            if os.listdir(directory) or not named_directory():
+                raise FileExistsError('release output changed during the build: ' + str(output))
+            for operation in ('publish', 'verify'):
+                if not os.path.samestat(original, package.lstat()):
+                    raise ValueError('verified package inode changed during publication')
+                if operation == 'publish':
+                    linked = True
+                result = invoke(operation, expected)
+                if operation == 'publish':
+                    # A signal or an I/O failure may follow a completed hard link.
+                    # Only a kernel no-replace refusal proves that this call did not link.
+                    linked = result.returncode != 14
+                    if result.returncode == 14 and os.path.lexists(destination):
+                        raise FileExistsError('native Store publication refused an existing target')
+                result.check_returncode()
+                if result.stderr or json.loads(result.stdout) != receipt:
+                    raise ValueError('native package publication receipt differs from the verified release')
+            if not os.path.samestat(original, package.lstat()):
+                raise ValueError('verified package inode changed after publication')
+            if not named_directory() or os.listdir(directory) != [package.name]:
+                raise FileExistsError('release output changed during publication: ' + str(output))
+        except BaseException:
+            if linked:
+                withdrawn = invoke('withdraw', b'')
+                withdrawn.check_returncode()
+            if created and named_directory() and not os.listdir(directory):
+                os.rmdir(output.name, dir_fd=parent)
+            raise
+    return target
 
 
 def build(output, compiler, cold_report):
@@ -930,23 +1043,10 @@ def build(output, compiler, cold_report):
         _stage_source_members(work, stage, admitted, members, publish,
                               compiler_bytes=compiler_bytes, report_bytes=report_bytes,
                               core_inputs=(compiler, cold_report))
-        package = _pack_and_verify(work, stage, members)
+        package, expected, digest, publisher, identity = _pack_and_verify(work, stage, members)
         if current_sources() != admitted or compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != report_bytes:
             raise ValueError('native Store cold inputs changed before publication')
-        created = not output.exists()
-        if created:
-            output.mkdir(mode=0o700)
-        elif output.is_symlink() or any(output.iterdir()):
-            raise FileExistsError('release output changed during the build')
-        target = output / package.name
-        try:
-            package.chmod(0o400)
-            os.link(package, target)
-        except BaseException:
-            if created:
-                output.rmdir()
-            raise
-    return target
+        return _publish_verified_package(package, output, expected, digest, publisher, identity)
 
 
 def _read_regular_cold_source(relative):

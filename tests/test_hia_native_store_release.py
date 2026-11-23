@@ -87,6 +87,77 @@ class StoreReleaseBuildTests(unittest.TestCase):
                                                   compiler_bytes=b'', report_bytes=b'', core_inputs=(None, None))
             self.assertEqual(published, [])
 
+    def test_package_publication_retains_the_verified_inode_across_receipts_and_withdrawal(self):
+        import json
+        import os
+        import subprocess
+        from hepta.artifact_publication import publish_verified, verify_published, withdraw_own_link
+
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(os.environ, {}, clear=True):
+            root = Path(temporary)
+            expected = b'ordinary release package'
+            digest = sha256(expected).hexdigest()
+            for timing in ('unchanged', 'publish', 'verify'):
+                with self.subTest(timing=timing):
+                    stage = root / ('package-' + timing)
+                    stage.write_bytes(expected)
+                    stage.chmod(0o400)
+                    original = stage.stat()
+                    output = root / ('output-' + timing)
+
+                    def native(_image, args, wire, _work, **_options):
+                        operation, source, destination = args
+                        if operation == 'withdraw':
+                            receipt = {'withdrawn': withdraw_own_link(source, destination)}
+                        else:
+                            action = publish_verified if operation == 'publish' else verify_published
+                            receipt = action(source, destination, wire)
+                        if str(destination).startswith('/proc/self/fd/') and operation == timing:
+                            stage.unlink()
+                            stage.write_bytes(expected)
+                            stage.chmod(0o400)
+                        return subprocess.CompletedProcess(args, 0, json.dumps(receipt).encode(), b'')
+
+                    with patch.object(release, '_run_captured', side_effect=native):
+                        if timing == 'unchanged':
+                            published = release._publish_verified_package(stage, output, expected, digest,
+                                                                          b'image', original)
+                            self.assertTrue(published.samefile(stage))
+                        else:
+                            with self.assertRaisesRegex(ValueError, 'inode changed'):
+                                release._publish_verified_package(stage, output, expected, digest,
+                                                                  b'image', original)
+                            self.assertFalse(output.exists())
+                            self.assertEqual(stage.read_bytes(), expected)
+
+    def test_native_inventory_reads_the_real_installed_files_and_refuses_changed_bytes(self):
+        import json
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as temporary:
+            installed = Path(temporary)
+            (installed / 'zero').touch()
+            (installed / 'data').write_bytes(b'native member')
+            members = {path.name: sha256(path.read_bytes()).hexdigest() for path in installed.iterdir()}
+            actions = []
+
+            def native(_image, args, _wire, _work, *, stdin, pass_fds):
+                operation, path, alias = args
+                self.assertTrue(pass_fds)
+                if operation == 'verify':
+                    self.assertTrue(Path(path).samefile(alias))
+                data = stdin.read()
+                actions.append(operation)
+                receipt = {'sha256': sha256(data).hexdigest(), 'bytes': len(data)}
+                return subprocess.CompletedProcess(args, 0, json.dumps(receipt).encode(), b'')
+
+            with patch.object(release, '_run_captured', side_effect=native):
+                release._verify_installed_members(installed, members, b'image', installed)
+                self.assertCountEqual(actions, ['store-hash', 'verify'])
+                (installed / 'data').write_bytes(b'different')
+                with self.assertRaisesRegex(ValueError, 'differs from its source'):
+                    release._verify_installed_members(installed, members, b'image', installed)
+
     def test_source_archive_rejects_symlinks_and_nonregular_cold_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
