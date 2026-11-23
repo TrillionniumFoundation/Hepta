@@ -40,6 +40,25 @@ def cold_tools(directory, compiler, cold_report, admitted):
     return seed, compile_sources, call
 
 
+def source_prover(directory, tools, admitted):
+    """Build the same verified proof executable for a standalone Core source build."""
+    from tools.build_hia_native_store_release import _stage_safe_proof
+
+    seed, compile_sources, call = tools
+    directory.mkdir(mode=0o700)
+    emitted = []
+
+    def capture(path, *, expected):
+        raw = path.read_bytes()
+        if path.name != 'hia-safe-core-prove' or sha256(raw).hexdigest() != expected:
+            raise ValueError('native Core verifier changed before capture')
+        emitted.append(raw)
+
+    _stage_safe_proof(directory, seed, compile_sources, call, admitted, capture)
+    prover, = emitted
+    return prover
+
+
 def policy_builder(tools, policy, leaf):
     seed, compile_sources, call = tools
     kit, _, _ = compile_sources({

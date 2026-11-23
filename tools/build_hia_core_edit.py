@@ -16,7 +16,6 @@ from tools.build_hia_nominal_constructor import (
     build as build_nominal_constructor,
 )
 from tools.build_hia_sqlite_pager import EMBED_SOURCE, embed, link, load_static_object, verify_executable
-from tools.build_hia_supplied_safe_core_proof import build as build_supplied_proof
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -350,7 +349,7 @@ def link_nominal_cli(folder, adapter, images, roles, embedder, adapters, *, edit
     return binary, {'link_receipt': receipt, 'adapter_object_sha256': digest(objects[0])}
 
 
-def build(output, compiler, cold_report, *, release_only=False, native_tools=None, constructor=None):
+def build(output, compiler, cold_report, *, release_only=False, native_tools=None, constructor=None, prover_bytes=None):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
     # The stdin-to-object development probe is not a public dispatcher role.
@@ -399,11 +398,10 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
     nominal_objects = {name: load_static_object(templates[group], role,
                          expand_register_relay(sources[name], sources[REGISTER_RELAY]))
                        for name, (group, role) in NOMINAL_ADAPTER_ROLES.items()}
-    supplied_proof = build_supplied_proof(output / 'supplied-proof', compiler, cold_report)
-    prover_bytes = supplied_proof.read_bytes()
-    proof_receipt = json.loads((supplied_proof.parent / 'build.json').read_bytes())
-    if digest(prover_bytes) != proof_receipt['executable_sha256']:
-        raise ValueError('public Core build verifier differs from the native proof build')
+    if prover_bytes is None:
+        prover_bytes = core_static.source_prover(output / 'supplied-proof', native_tools, admitted)
+    if type(prover_bytes) is not bytes or not 176 <= len(prover_bytes) <= ORDINARY_CLI_IMAGE_CAPACITY:
+        raise ValueError('Core requires the captured Safe Core verifier')
     scalar_implementation = None
     for kind, (name, roles) in programs.items():
         if kind == 'dispatch' or kind in core_static.KINDS:
@@ -447,7 +445,6 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
     if (current_sources() != admitted or compiler.read_bytes() != compiler_raw
             or cold_report.read_bytes() != report_raw
             or constructor.read_bytes() != bound_roles[constructor.name]
-            or supplied_proof.read_bytes() != prover_bytes
             or any((ROOT / path).read_bytes() != raw for path, raw in sources.items())
             or any(digest(images[path]) != receipt['produced_sha256']
                    or Path(receipt['produced_image']).read_bytes() != images[path]
@@ -464,6 +461,7 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
     (output / 'build.json').write_text(json.dumps({
         'schema': 'hepta.hia.core-edit-build.v1',
         'compiler_sha256': digest(compiler_raw), 'cold_report_sha256': digest(report_raw),
+        'supplied_proof_sha256': digest(prover_bytes),
         'native_nominal_adapter_object_sha256': {name: digest(raw) for name, raw in nominal_objects.items()},
         'source_sha256': {path: digest(raw) for path, raw in sources.items()},
         'compile_receipts': receipts, 'executables': {name: details for name, (_, details) in products.items()},

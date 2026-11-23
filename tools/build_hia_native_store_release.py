@@ -856,7 +856,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     constructor = _stage_nominal_constructor(work, compile_sources, publish, sqlite_tools)
     with TemporaryDirectory(prefix='core-edit-', dir=work) as tmp:
         output = _compile(Path(tmp), 'core_edit', *core_inputs, native_tools=(seed, compile_sources, call),
-                          constructor=constructor)
+                          constructor=constructor, prover_bytes=captured('hia-safe-core-prove'))
         for name, _ in CORE_EDIT_PROGRAMS.values():
             publish(output / name)
         publish(output / 'hia-worker-scalar-implementation')
