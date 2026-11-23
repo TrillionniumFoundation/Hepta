@@ -612,6 +612,7 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_worker_evaluate_unkeyed_flow.py',
     'tools/generate_hia_worker_evaluate_claim_flow.py',
     'tools/generate_hia_worker_evaluate_run_input_flow.py',
+    'tools/generate_hia_worker_evaluate_keyed_rejection.py',
     'tools/generate_hia_worker_evaluate_input_binding.py',
     'examples/hia_bootstrap/worker_evaluate_replay_launcher.hepta',
     'examples/hia_bootstrap/worker_evaluate_replay_capsule.hepta',

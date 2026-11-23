@@ -9,6 +9,8 @@ ROLES = (*DOCUMENT_ROLES,'hia-evaluate-publication','hia-evaluate-settlement','h
 
 LATE = r'''
 def begin_closeout(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
+    if length(s) == 112 and input_word(s,64) == KEYED_REFUSAL and slot_bytes(w,ORIGINAL) == 676:
+        return read_span(o,w,ERROR_HEADER,0,0,676)
     if length(s) != 112 or input_word(s,64) != CLOSE_INPUT or input_word(s,72) == 0:
         return BAD
     put(w,ADMISSION_NS,input_word(s,72))
@@ -105,7 +107,7 @@ def document_stored(o:mutbuf,w:mutbuf) -> u64:
 # The Journal closure is completed only after a Store-confirmed two-write commit.
 JOURNAL = r'''
 def terminal_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
-    if length(s) != 112 or input_word(s,64) != TERMINAL or input_word(s,72) != 1 or input_word(s,104) != 0:
+    if length(s) != 112 or input_word(s,64) != TERMINAL or input_word(s,72) != choose(get(w,FINAL_STATUS) == 2,2,1) or input_word(s,104) != 0:
         return BAD
     reply = input_word(s,80)
     side = input_word(s,88)
@@ -116,13 +118,14 @@ def terminal_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     fd = get(w, FINAL_FRAME)
     hold(w,FINAL_REPLY,fd,48,reply)
     hold(w,FINAL_STMT,fd,48+reply+side,stmt)
+    hold(w,ERROR_BODY,fd,48+reply+68,side-68)
     return read_span(o,w,SIDEBAND_CONTEXT,fd,48+reply,68)
 
 def commit_steps(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     fd = input_word(s,32)
     size = input_word(s,40)
     if state == SIDEBAND_CONTEXT:
-        if length(s) != 132 or input_word(s,64) != SIDEBAND or input_word(s,72) != 1 or input_word(s,80) != 36:
+        if length(s) != 132 or input_word(s,64) != SIDEBAND or input_word(s,72) != choose(get(w,FINAL_STATUS) == 2,2,1) or input_word(s,80) != 36:
             return BAD
         copy_span(s,w,96,FINAL_CONTEXT,36)
         put(o,144,0)
@@ -132,7 +135,7 @@ def commit_steps(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
             return BAD
         put(o,HEADER,COST)
         put(o,HEADER+8,input_word(s,64)-get(w,ADMISSION_NS))
-        put(o,HEADER+16,1)
+        put(o,HEADER+16,choose(get(w,FINAL_STATUS) == 2,2,1))
         put(o,HEADER+24,36)
         put(o,HEADER+32,12)
         put(o,HEADER+40,66)
@@ -141,6 +144,19 @@ def commit_steps(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
         put(o,HEADER+92,TOOL_A)
         put(o,HEADER+100,TOOL_B)
         copy_private(w,o,CLAIM_PUBLIC,HEADER+104,66)
+        if get(w,FINAL_STATUS) == 2:
+            extent = get(w,ERROR_BODY+16)
+            if extent < 2 or extent > 1024:
+                return BAD
+            put(o,HEADER+48,9+extent+18)
+            put(o,HEADER+170,ERROR_PREFIX0)
+            store(o,HEADER+178,58)
+            use_span(w,o,ERROR_BODY,0)
+            put(o,400,ERROR_END0)
+            put(o,408,ERROR_END1)
+            put(o,416,ERROR_END2)
+            fragment(o,1,INLINE_FRAGMENT,400,18)
+            return action(o,w,COST_READY,RUN,FINAL_COST_ROLE,0,2,179)
         put(o,HEADER+170,DETAIL0)
         put(o,HEADER+178,DETAIL1)
         put(o,HEADER+186,DETAIL2)
@@ -253,10 +269,11 @@ def attest_two_writes(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
 
 def program():
     data = b'{"error":null,"replayed":false}'
-    words = dict(CLOSE_INPUT=b'HIAEFC01', PROJECTION=b'HIAEPU01', CLAIM_MAGIC=b'HIAEJC01',
+    words = dict(KEYED_REFUSAL=b'HIAERJ01',CONTEXT_PREFIX=b'ctx-',CLAIM_STATE=b'HIAJRN02',CLAIM_ROUTE=b'HIAJMO01',UPDATE_WIRE=b'HIAUPB01',CLOSE_INPUT=b'HIAEFC01', PROJECTION=b'HIAEPU01', CLAIM_MAGIC=b'HIAEJC01',
                  TERMINAL=b'HIAESTR1', SIDEBAND=b'HIAIND01', COST=b'HIAJCF01', INSERT=b'HIAINS01',
                  QUERY=b'HIAQPA01', ROW=b'HIAROW01', RUNNING=b'running', EVAL_COMMIT=b'HIAETC01',
                  INTENT=b'HIASTCP1', TOOL_A=b'hia_eval', TOOL_B=b'uate')
+    words.update(ERROR_PREFIX0=b'{"error"',ERROR_END0=b',"replay',ERROR_END1=b'ed":fals',ERROR_END2=b'e}')
     words.update({f'DETAIL{i}':data[8*i:8*i+8] for i in range(4)})
     constants = {k:int.from_bytes(v,'little') for k,v in words.items()}
     states=('CLOSE_HEADER','CLAIM_FIXED','PLAN_EXTEND','PLAN_READY','SETTLEMENT_READY','TERMINAL_HEADER',
@@ -265,15 +282,19 @@ def program():
     constants.update({name:1700+i for i,name in enumerate(states)})
     purposes=('FINAL_DB_OPEN','FINAL_LOOKUP','FINAL_UPDATE','FINAL_INSERT','FINAL_COMMIT','FINAL_DB_CLOSED')
     constants.update({name:1800+i for i,name in enumerate(purposes)})
-    constants.update(EMIT_WORK_BYTES=16384,PLANNER_ROLE=7,SETTLE_ROLE=8,FINAL_COST_ROLE=9,
+    constants.update(EMIT_WORK_BYTES=16384,ERROR_HEADER=1750,ERROR_REPLY=1751,ERROR_UPDATE=1752,FINAL_STATUS=12968,ERROR_BODY=12976,PLANNER_ROLE=7,SETTLE_ROLE=8,FINAL_COST_ROLE=9,
                      LATE_PARTS=12320,LATE_MODE=12512,LATE_INDEX=12520,ADMISSION_NS=12528,
                      FRAME_FD=12536,FRAME_SIZE=12544,CLAIM_TIME=12552,CLAIM_DIGEST=12560,
                      CLAIM_KEY=12624,CLAIM_PUBLIC=12688,FINAL_CONTEXT=12760,
                      FINAL_FRAME=12800,FINAL_REPLY=12824,FINAL_STMT=12848,FINAL_COST=12872,FIRST_WRITE=12900)
     entry=ENTRY.replace('def evaluate_document(', 'def evaluate_closeout(')
-    entry=entry.replace('if size <= 96:', 'if size < 848:')
+    entry=entry.replace('if size <= 96:', 'if size < 848 and size != 676:')
     entry=entry.replace('return read_span(o, w, DOC_HEADER, 0, 0, 96)','return read_span(o,w,CLOSE_HEADER,0,0,48)')
-    entry=entry.replace('    if state == DOC_HEADER:', '''    if state >= CLOSE_HEADER and state <= TERMINAL_HEADER:
+    entry=entry.replace('    if state == DOC_HEADER:', '''    if state == ERROR_HEADER:
+        return refusal_header(s,o,w)
+    if state == ERROR_REPLY or state == ERROR_UPDATE:
+        return refusal_products(s,o,w,state)
+    if state >= CLOSE_HEADER and state <= TERMINAL_HEADER:
         return late_product(s,o,w,state)
     if state == COMMIT_INTENT_SEEN:
         if length(s) != 72 or input_word(s,64) != INTENT:
@@ -297,7 +318,8 @@ def program():
             src=src.replace('found > 1','found > choose(get(w,STORE_PURPOSE) == FINAL_COMMIT,2,1)')
             src=src.replace('    if purpose != EMIT_PUB_LOOKUP', '    if purpose >= FINAL_LOOKUP and purpose <= FINAL_COMMIT:\n        return final_store_ack(s,o,w,purpose,bytes,found)\n    if purpose != EMIT_PUB_LOOKUP')
         return src
-    return document_program(entry=entry+LATE+JOURNAL,roles=ROLES,root='evaluate_closeout',extra=constants,adjust=adjust)
+    from tools.generate_hia_worker_evaluate_keyed_rejection import CLOSEOUT,closeout_literals
+    return document_program(entry=entry+LATE+JOURNAL+CLOSEOUT+closeout_literals(),roles=ROLES,root='evaluate_closeout',extra=constants,adjust=adjust)
 
 
 if __name__ == '__main__':

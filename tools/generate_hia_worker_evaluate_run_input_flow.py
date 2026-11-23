@@ -78,7 +78,8 @@ def run_input_recipe(driver, policy, controls, constants):
     old = function(policy, 'publish_claim')
     policy = policy.replace(old.strip(), POLICY.strip()).replace(
         'return publish_claim(s, o, w)', 'return publish_execution_input(s, o, w)')
-    return driver, policy, controls
+    from tools.generate_hia_worker_evaluate_keyed_rejection import ingress
+    return ingress(driver, policy, controls, constants)
 
 
 if __name__ == '__main__':

@@ -9,6 +9,8 @@ from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS
 from tools.generate_hia_worker_artifact_authority import source_program as artifact_authority
 from tools.generate_hia_worker_build_custody import METADATA, POLICY as BUILD
+from tools.generate_hia_worker_adopt_proof import reachable_policy
+from tools.generate_hia_worker_evaluate_case import FIELDS as CASE_FIELDS, source_program as case_source
 from tools.generate_hia_worker_context_request import POLICY as CONTEXT, literal_match
 from tools.generate_hia_worker_inspection_effect import function
 from tools.generate_hia_worker_proof_scope import split_key_table
@@ -32,6 +34,8 @@ def bind_evaluate(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if widen(decode_json(s, w, o)) >= 4294967292 or get(w, 64) != 5:
         return INVALID
     fields = get(w, 96)
+    if fields == 2:
+        return check_workload(s,o,w)
     if fields < 7 or fields > 22:
         return INVALID
     install = 64 + 72 * get(w, 88)
@@ -56,8 +60,10 @@ def bind_evaluate(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if field_matches(s, w, base, K_foreign_buffer_exports, exports) == False or field_matches(s, w, candidate, K_foreign_buffer_exports, exports) == False:
         return INVALID
     expected = lookup(w, ctx, K_baseline_core_sha256)
-    if expected == NONE or (get(w, expected) != 0 and field_matches(s, w, base, K_core_sha256, expected) == False):
+    if expected == NONE:
         return INVALID
+    if get(w,expected) != 0 and field_matches(s,w,base,K_core_sha256,expected) == False:
+        return business_status(o,1)
     if get(w, build) != 6 or build_schema(w, lookup(w, build, K_schema)) == False or matches_metadata(s, w, build, candidate) == False:
         return INVALID
     art = lookup(w, args, K_candidate_artifact)
@@ -81,6 +87,48 @@ def bind_evaluate(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         receipt = next(w, receipt)
         index = index + 1
     return runtime_inputs(s, o, w, ctx, base, candidate, build)
+
+def business_status(o:mutbuf, reason:u64) -> u64:
+    put(o,0,BUSINESS)
+    put(o,8,reason)
+    return 16
+
+def check_workload(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
+    meta = 64+72*get(w,88)
+    workload = next(w,meta)
+    if get(w,meta) != 6 or workload == NONE or get(w,workload) != 6 or next(w,workload) != NONE:
+        return INVALID
+    sig = lookup(w,meta,K_signatures)
+    cases = lookup(w,workload,K_cases)
+    if sig == NONE or get(w,sig) != 6 or cases == NONE or get(w,cases) != 5 or length(o) < 6224:
+        return INVALID
+    count = get(w,cases+32)
+    if count == 0 or count > 512:
+        return INVALID
+    case = first(w,cases)
+    used = 0
+    i = 0
+    while i < count:
+        if case == NONE or get(w,case) != 6:
+            return INVALID
+        width = plan_named_case(s,o,w,sig,case)
+        if width == INVALID:
+            return INVALID
+        if width == 16:
+            kind = get(o,8)
+            if kind == 0 or kind > 10:
+                return INVALID
+            return business_status(o,choose(kind==2,2,10+kind))
+        if width < 80 or width > 6224:
+            return INVALID
+        used = used+get(o,32)
+        if used > 33554432:
+            return business_status(o,19)
+        case = next(w,case)
+        i = i+1
+    if case != NONE:
+        return INVALID
+    return business_status(o,0)
 
 def native_metadata(s:readbuf, w:mutbuf, record:u64, install:u64, scope:u64) -> bool:
     if get(w, record) != 6 or field_matches(s, w, record, K_installation, install) == False or field_matches(s, w, record, K_context, scope) == False:
@@ -145,18 +193,27 @@ def memory_limit(w:mutbuf, node:u64) -> u64:
 
 
 def program():
-    names = {f'K_{name}': i for i,name in enumerate(FIELDS,1)}
+    fields = tuple(dict.fromkeys((*FIELDS,*CASE_FIELDS)))
+    names = {f'K_{name}': i for i,name in enumerate(fields,1)}
     names.update(INVALID=4294967293, NONE=(1 << 64)-1, META_COUNT=len(METADATA),
-                 RESULT=int.from_bytes(b'HIAEFB02','little'))
+                 RESULT=int.from_bytes(b'HIAEFB02','little'), BUSINESS=int.from_bytes(b'HIAEQB01','little'))
     art = artifact_authority()
     controls = (POLICY,
-                *(function(BUILD, name) for name in ('next','exact_reference','field_matches','matches_metadata','copy_reference')),
+                *(function(BUILD, name) for name in ('exact_reference','field_matches','matches_metadata','copy_reference')),
                 *(function(CONTEXT, name) for name in ('equal_span','digest_text','budget_integer')),
                 *(function(art, name) for name in ('artifact_reference','artifact_start','artifact_digest','artifact_uri','valid_hex','matches')),
-                WIRE_HELPERS.split('\ndef signed_id',1)[0], split_key_table(FIELDS[:16],FIELDS[16:]),
+                WIRE_HELPERS.split('\ndef signed_id',1)[0], split_key_table(fields[:16],fields[16:]),
                 literal_match('context_schema','hepta.hia.agent.context.v1'),literal_match('shared_kind','shared'),
                 literal_match('build_schema','hepta.hia.agent.build.v1'))
-    body = '\n'.join(controls)
+    # The same case planner used at the public execution boundary supplies
+    # the first typed case refusal. Its field numbers are private to its own
+    # JSON dictionary; translate them to the combined binding dictionary.
+    entry, case = reachable_policy(case_source(), 'plan_named_case')
+    omit = {'lookup','match_word','key_id','get','put'}
+    retained = [entry, *(t for t in case if t.lstrip().split('(',1)[0][4:] not in omit)]
+    remap = lambda m: f"lookup(w, {m[1]}, K_{CASE_FIELDS[int(m[2])-1]})"
+    planner = re.sub(r'lookup\(w, ([a-z_]+), ([0-9]+)\)',remap,'\n'.join(retained))
+    body = '\n'.join((*controls,planner))
     return re.sub(r'\b('+'|'.join(names)+r')\b',lambda match:str(names[match[0]]),body)+'\n'+json_decoder(wire_spans=True)
 
 
