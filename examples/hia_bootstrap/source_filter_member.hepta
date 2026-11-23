@@ -423,9 +423,31 @@ fn admit_source_images(v0:readbuf,v1:mutbuf) -> (u32) effects(read,write,trap) e
 block b0(v0:readbuf,v1:mutbuf)
   v2:usize = buffer.len(v0)
   v3:u64 = int.cast(v2) {"mode":"wrap"}
+  port_marker_width:u64 = const() {"value":8}
+  port_marker_size:bool = compare.eq(v3,port_marker_width)
+  branch port_marker_size port_marker(v0,v1) bundle_extent(v0,v1,v3)
+block port_marker(port_in:readbuf,port_work:mutbuf)
+  port_zero:u64 = const() {"value":0}
+  port_eight:u64 = const() {"value":8}
+  port_kind:u64 = call(port_in,port_zero,port_eight) {"function":"uint"}
+  port_expected:u64 = const() {"value":3554556510916921672}
+  port_valid:bool = compare.eq(port_kind,port_expected)
+  branch port_valid admit_port(port_work) b5(port_in,port_work)
+block admit_port(port_state:mutbuf)
+  state_slot:u64 = const() {"value":8}
+  state_ready:u64 = const() {"value":2}
+  input_slot:u64 = const() {"value":40}
+  role_slot:u64 = const() {"value":96}
+  role_port:u64 = const() {"value":65558}
+  state_updated:u64 = call(port_state,state_slot,state_ready) {"function":"put"}
+  input_updated:u64 = call(port_state,input_slot,state_slot) {"function":"put"}
+  role_updated:u64 = call(port_state,role_slot,role_port) {"function":"put"}
+  port_ok:u32 = const() {"value":0}
+  ret(port_ok)
+block bundle_extent(bundle_in:readbuf,bundle_work:mutbuf,bundle_bytes:u64)
   v4:u64 = const() {"value":24}
-  v5:bool = compare.lt(v3,v4)
-  branch v5 b2(v0,v1,v5) b1(v0,v1)
+  v5:bool = compare.lt(bundle_bytes,v4)
+  branch v5 b2(bundle_in,bundle_work,v5) b1(bundle_in,bundle_work)
 block b1(v6:readbuf,v7:mutbuf)
   v12:u64 = const() {"value":0}
   v13:u64 = const() {"value":8}
@@ -901,7 +923,15 @@ block b7(v78:readbuf,v79:mutbuf,v80:mutbuf,v81:u64,v82:u64,v83:u64,v84:u64)
   v92:u64 = const() {"value":0}
   v93:u64 = const() {"value":3552020981100923208}
   v94:u64 = call(v79,v92,v93) {"function":"put"}
-  jump b11(v78,v79,v80,v81,v82,v83,v84)
+  sealed_port:u64 = const() {"value":65558}
+  static_port:bool = compare.eq(v81,sealed_port)
+  branch static_port port_frame(v78,v79,v80) b11(v78,v79,v80,v81,v82,v83,v84)
+block port_frame(frame_in:readbuf,frame_out:mutbuf,frame_state:mutbuf)
+  header_field:u64 = const() {"value":8}
+  port_mode:u64 = const() {"value":22}
+  header_bytes:u64 = const() {"value":16}
+  port_mode_written:u64 = call(frame_out,header_field,port_mode) {"function":"put"}
+  jump b14(frame_in,frame_out,frame_state,header_bytes)
 block b8(v85:readbuf,v86:mutbuf,v87:mutbuf,v88:u64,v89:u64,v90:u64,v91:u64)
   v95:u64 = const() {"value":0}
   receipt_role:u64 = const() {"value":196608}
@@ -7030,7 +7060,7 @@ block release14(rel_src14:readbuf,rel_name14:u64,rel_n14:u64,rel_pos14:u64,rel_z
   rel_name14v6:u64 = const() {"value":0}
   rel_name14v7:u64 = const() {"value":0}
   rel_name_match14:bool = call(rel_src14,rel_name14,rel_n14,rel_name14v0,rel_name14v1,rel_name14v2,rel_name14v3,rel_name14v4,rel_name14v5,rel_name14v6,rel_name14v7) {"function":"is_name"}
-  branch rel_name_match14 rel_match14(rel_src14,rel_pos14,rel_z14) unknown(rel_src14)
+  branch rel_name_match14 rel_match14(rel_src14,rel_pos14,rel_z14) release15(rel_src14,rel_name14,rel_n14,rel_pos14,rel_z14)
 block rel_match14(relbody14:readbuf,reloff14:u64,relext14:u64)
   rel_module14v0:u64 = const() {"value":8}
   rel_module14v1:u64 = const() {"value":8391173024907027827}
@@ -7045,6 +7075,131 @@ block rel_match14(relbody14:readbuf,reloff14:u64,relext14:u64)
   no_value14:u64 = const() {"value":0}
   rel_out14:u64 = select(rel_module14,role_value14,no_value14)
   ret(rel_out14)
+block release15(rel_src15:readbuf,rel_name15:u64,rel_n15:u64,rel_pos15:u64,rel_z15:u64)
+  rel_name15v0:u64 = const() {"value":22}
+  rel_name15v1:u64 = const() {"value":7742373267056453992}
+  rel_name15v2:u64 = const() {"value":8388356058848784997}
+  rel_name15v3:u64 = const() {"value":107152729794606}
+  rel_name15v4:u64 = const() {"value":0}
+  rel_name15v5:u64 = const() {"value":0}
+  rel_name15v6:u64 = const() {"value":0}
+  rel_name15v7:u64 = const() {"value":0}
+  rel_name_match15:bool = call(rel_src15,rel_name15,rel_n15,rel_name15v0,rel_name15v1,rel_name15v2,rel_name15v3,rel_name15v4,rel_name15v5,rel_name15v6,rel_name15v7) {"function":"is_name"}
+  branch rel_name_match15 rel_match15(rel_src15,rel_pos15,rel_z15) release16(rel_src15,rel_name15,rel_n15,rel_pos15,rel_z15)
+block rel_match15(relbody15:readbuf,reloff15:u64,relext15:u64)
+  rel_module15v0:u64 = const() {"value":14}
+  rel_module15v1:u64 = const() {"value":8241431623031222135}
+  rel_module15v2:u64 = const() {"value":128038972256613}
+  rel_module15v3:u64 = const() {"value":0}
+  rel_module15v4:u64 = const() {"value":0}
+  rel_module15v5:u64 = const() {"value":0}
+  rel_module15v6:u64 = const() {"value":0}
+  rel_module15v7:u64 = const() {"value":0}
+  rel_module15:bool = call(relbody15,reloff15,relext15,rel_module15v0,rel_module15v1,rel_module15v2,rel_module15v3,rel_module15v4,rel_module15v5,rel_module15v6,rel_module15v7) {"function":"is_module"}
+  role_value15:u64 = const() {"value":3544410226205739336}
+  no_value15:u64 = const() {"value":0}
+  rel_out15:u64 = select(rel_module15,role_value15,no_value15)
+  ret(rel_out15)
+block release16(rel_src16:readbuf,rel_name16:u64,rel_n16:u64,rel_pos16:u64,rel_z16:u64)
+  rel_name16v0:u64 = const() {"value":25}
+  rel_name16v1:u64 = const() {"value":7742373267056453992}
+  rel_name16v2:u64 = const() {"value":7596853926510293605}
+  rel_name16v3:u64 = const() {"value":8390317603921092974}
+  rel_name16v4:u64 = const() {"value":97}
+  rel_name16v5:u64 = const() {"value":0}
+  rel_name16v6:u64 = const() {"value":0}
+  rel_name16v7:u64 = const() {"value":0}
+  rel_name_match16:bool = call(rel_src16,rel_name16,rel_n16,rel_name16v0,rel_name16v1,rel_name16v2,rel_name16v3,rel_name16v4,rel_name16v5,rel_name16v6,rel_name16v7) {"function":"is_name"}
+  branch rel_name_match16 rel_match16(rel_src16,rel_pos16,rel_z16) release17(rel_src16,rel_name16,rel_n16,rel_pos16,rel_z16)
+block rel_match16(relbody16:readbuf,reloff16:u64,relext16:u64)
+  rel_module16v0:u64 = const() {"value":14}
+  rel_module16v1:u64 = const() {"value":8241431623031222135}
+  rel_module16v2:u64 = const() {"value":128038972256613}
+  rel_module16v3:u64 = const() {"value":0}
+  rel_module16v4:u64 = const() {"value":0}
+  rel_module16v5:u64 = const() {"value":0}
+  rel_module16v6:u64 = const() {"value":0}
+  rel_module16v7:u64 = const() {"value":0}
+  rel_module16:bool = call(relbody16,reloff16,relext16,rel_module16v0,rel_module16v1,rel_module16v2,rel_module16v3,rel_module16v4,rel_module16v5,rel_module16v6,rel_module16v7) {"function":"is_module"}
+  role_value16:u64 = const() {"value":65541}
+  no_value16:u64 = const() {"value":0}
+  rel_out16:u64 = select(rel_module16,role_value16,no_value16)
+  ret(rel_out16)
+block release17(rel_src17:readbuf,rel_name17:u64,rel_n17:u64,rel_pos17:u64,rel_z17:u64)
+  rel_name17v0:u64 = const() {"value":21}
+  rel_name17v1:u64 = const() {"value":7742373267056453992}
+  rel_name17v2:u64 = const() {"value":3342080360126968421}
+  rel_name17v3:u64 = const() {"value":418565350760}
+  rel_name17v4:u64 = const() {"value":0}
+  rel_name17v5:u64 = const() {"value":0}
+  rel_name17v6:u64 = const() {"value":0}
+  rel_name17v7:u64 = const() {"value":0}
+  rel_name_match17:bool = call(rel_src17,rel_name17,rel_n17,rel_name17v0,rel_name17v1,rel_name17v2,rel_name17v3,rel_name17v4,rel_name17v5,rel_name17v6,rel_name17v7) {"function":"is_name"}
+  branch rel_name_match17 rel_match17(rel_src17,rel_pos17,rel_z17) release18(rel_src17,rel_name17,rel_n17,rel_pos17,rel_z17)
+block rel_match17(relbody17:readbuf,reloff17:u64,relext17:u64)
+  rel_module17v0:u64 = const() {"value":14}
+  rel_module17v1:u64 = const() {"value":8241431623031222135}
+  rel_module17v2:u64 = const() {"value":128038972256613}
+  rel_module17v3:u64 = const() {"value":0}
+  rel_module17v4:u64 = const() {"value":0}
+  rel_module17v5:u64 = const() {"value":0}
+  rel_module17v6:u64 = const() {"value":0}
+  rel_module17v7:u64 = const() {"value":0}
+  rel_module17:bool = call(relbody17,reloff17,relext17,rel_module17v0,rel_module17v1,rel_module17v2,rel_module17v3,rel_module17v4,rel_module17v5,rel_module17v6,rel_module17v7) {"function":"is_module"}
+  role_value17:u64 = const() {"value":65554}
+  no_value17:u64 = const() {"value":0}
+  rel_out17:u64 = select(rel_module17,role_value17,no_value17)
+  ret(rel_out17)
+block release18(rel_src18:readbuf,rel_name18:u64,rel_n18:u64,rel_pos18:u64,rel_z18:u64)
+  rel_name18v0:u64 = const() {"value":25}
+  rel_name18v1:u64 = const() {"value":7742373267056453992}
+  rel_name18v2:u64 = const() {"value":8030045015146066533}
+  rel_name18v3:u64 = const() {"value":8390317603920638830}
+  rel_name18v4:u64 = const() {"value":97}
+  rel_name18v5:u64 = const() {"value":0}
+  rel_name18v6:u64 = const() {"value":0}
+  rel_name18v7:u64 = const() {"value":0}
+  rel_name_match18:bool = call(rel_src18,rel_name18,rel_n18,rel_name18v0,rel_name18v1,rel_name18v2,rel_name18v3,rel_name18v4,rel_name18v5,rel_name18v6,rel_name18v7) {"function":"is_name"}
+  branch rel_name_match18 rel_match18(rel_src18,rel_pos18,rel_z18) release19(rel_src18,rel_name18,rel_n18,rel_pos18,rel_z18)
+block rel_match18(relbody18:readbuf,reloff18:u64,relext18:u64)
+  rel_module18v0:u64 = const() {"value":14}
+  rel_module18v1:u64 = const() {"value":8241431623031222135}
+  rel_module18v2:u64 = const() {"value":128038972256613}
+  rel_module18v3:u64 = const() {"value":0}
+  rel_module18v4:u64 = const() {"value":0}
+  rel_module18v5:u64 = const() {"value":0}
+  rel_module18v6:u64 = const() {"value":0}
+  rel_module18v7:u64 = const() {"value":0}
+  rel_module18:bool = call(relbody18,reloff18,relext18,rel_module18v0,rel_module18v1,rel_module18v2,rel_module18v3,rel_module18v4,rel_module18v5,rel_module18v6,rel_module18v7) {"function":"is_module"}
+  role_value18:u64 = const() {"value":65555}
+  no_value18:u64 = const() {"value":0}
+  rel_out18:u64 = select(rel_module18,role_value18,no_value18)
+  ret(rel_out18)
+block release19(rel_src19:readbuf,rel_name19:u64,rel_n19:u64,rel_pos19:u64,rel_z19:u64)
+  rel_name19v0:u64 = const() {"value":29}
+  rel_name19v1:u64 = const() {"value":7742373267056453992}
+  rel_name19v2:u64 = const() {"value":7958552612900270693}
+  rel_name19v3:u64 = const() {"value":3345167788760984673}
+  rel_name19v4:u64 = const() {"value":418565350760}
+  rel_name19v5:u64 = const() {"value":0}
+  rel_name19v6:u64 = const() {"value":0}
+  rel_name19v7:u64 = const() {"value":0}
+  rel_name_match19:bool = call(rel_src19,rel_name19,rel_n19,rel_name19v0,rel_name19v1,rel_name19v2,rel_name19v3,rel_name19v4,rel_name19v5,rel_name19v6,rel_name19v7) {"function":"is_name"}
+  branch rel_name_match19 rel_match19(rel_src19,rel_pos19,rel_z19) unknown(rel_src19)
+block rel_match19(relbody19:readbuf,reloff19:u64,relext19:u64)
+  rel_module19v0:u64 = const() {"value":14}
+  rel_module19v1:u64 = const() {"value":8241431623031222135}
+  rel_module19v2:u64 = const() {"value":128038972256613}
+  rel_module19v3:u64 = const() {"value":0}
+  rel_module19v4:u64 = const() {"value":0}
+  rel_module19v5:u64 = const() {"value":0}
+  rel_module19v6:u64 = const() {"value":0}
+  rel_module19v7:u64 = const() {"value":0}
+  rel_module19:bool = call(relbody19,reloff19,relext19,rel_module19v0,rel_module19v1,rel_module19v2,rel_module19v3,rel_module19v4,rel_module19v5,rel_module19v6,rel_module19v7) {"function":"is_module"}
+  role_value19:u64 = const() {"value":65556}
+  no_value19:u64 = const() {"value":0}
+  rel_out19:u64 = select(rel_module19,role_value19,no_value19)
+  ret(rel_out19)
 block unknown(unknown_input:readbuf)
   missing:u64 = const() {"value":0}
   ret(missing)

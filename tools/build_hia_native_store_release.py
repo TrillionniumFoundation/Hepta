@@ -67,10 +67,6 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
         directory = Path(tmp)
         manifest = _compile(directory, 'nominal_json', compiler, cold_report, standalone=True)
         publish(manifest.parent / 'hia-nominal-packet')
-        admit = _compile(directory, 'worker_request_cli', compiler, cold_report)
-        publish(admit)
-        for name in ('terminal', 'data', 'response', 'journal-call', 'port'):
-            publish(admit.parent / ('hia-worker-' + name))
         owner = _compile(directory, 'agent_store', compiler, cold_report)
         publish(owner)
         metadata = json.loads((owner.parent / 'build.json').read_bytes())
@@ -174,6 +170,16 @@ def _source_tool_recipes():
     yield 'hia-reference-wire', Path(REFERENCE_CLI_PACKER).name, {'hia-reference-wire.hepta': 'scalar_reference.hepta'}
 
 
+def _source_request_recipes():
+    stdio = 'mcp_stdio_packer.hepta'
+    for suffix in ('admit', 'terminal', 'data', 'response', 'journal-call'):
+        name = 'hia-worker-' + suffix
+        packer = 'worker_request_filter_packer.hepta' if suffix == 'admit' else stdio
+        yield name, packer, {name + '.hepta': 'worker_request.hepta'}
+    # Its entire body belongs to the stdio packer's fixed sealed-port mode.
+    yield 'hia-worker-port', stdio, {}
+
+
 def _source_release_recipes():
     from tools.build_hia_core_admission_cli import MODES
     from tools.build_hia_release_install import SOURCES as installer
@@ -222,6 +228,7 @@ def _source_member_recipes():
 
     yield from _source_worker_recipes()
     yield from _source_tool_recipes()
+    yield from _source_request_recipes()
     yield from _source_release_recipes()
 
 
@@ -280,7 +287,10 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             builders[packer] = call(seed, 'pack', kit)
             if packer == 'core_json_cli_packer.hepta':
                 compiler_packer = kit_images['source_build_packer.hepta']
-        group, images, _ = compile_sources(sources)
+        if name == 'hia-worker-port':
+            group, images = b'HIAWPRT1', {}
+        else:
+            group, images, _ = compile_sources(sources)
         product = call(builders[packer], 'build', group)
         if name in adapter_files:
             adapter_file = adapter_files[name]

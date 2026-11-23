@@ -267,3 +267,26 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 changed = parts.copy()
                 changed[slot] = bytes([changed[slot][0] ^ 1]) + changed[slot][1:]
                 self.invoke([author, 'build'], frame(changed), refused=True)
+
+    def test_request_programs_from_their_native_source_and_packer(self):
+        from tools.build_hia_native_store_release import _source_request_recipes
+        builders = {}
+        for name, packer, inputs in _source_request_recipes():
+            with self.subTest(name=name):
+                if packer not in builders:
+                    builders[packer] = self.member_builder(self.work / packer, packer)
+                builder = builders[packer]
+                if inputs:
+                    source = {alias: self.sources / path for alias, path in inputs.items()}
+                    packet = self.source_images(self.work / name, source)
+                    alias, = inputs
+                    wrong = self.source_images(self.work / 'wrong-request-module',
+                                               {alias: self.sources / 'cnf.hepta'})
+                    self.invoke([builder, 'build'], wrong, refused=True)
+                    self.invoke([builder, 'build'], packet[:-1] + bytes([packet[-1] ^ 1]), refused=True)
+                else:
+                    packet = b'HIAWPRT1'
+                    self.invoke([builder, 'build'], b'HIAWPRT0', refused=True)
+                self.assertEqual(self.invoke([builder, 'build'], packet),
+                                 (self.release / name).read_bytes())
+                self.invoke([builder, 'build'], packet + b'x', refused=True)
