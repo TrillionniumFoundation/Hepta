@@ -19,7 +19,7 @@ from tools.build_hia_json_preflight import ROOT, admit_cold_build, build_batch, 
 from tools.build_hia_native_filter import (
     SAFE_CORE_LOADER_FILTER_MAGIC, build_evaluate_paired_batch, build_evaluate_projector,
     build_evaluate_budget_observation, build_evaluate_budget_store, build_evaluate_measurements, build_evaluate_native_report, build_evaluate_reference_batch, build_evaluate_reference_report,
-    build_evaluate_settlement,
+    build_evaluate_report_flow, build_evaluate_settlement,
     build_execution_budget_session, build_filter,
 )
 from tools.build_hia_sqlite_components import PROJECTION, UNITS
@@ -128,7 +128,7 @@ def _stage_roles(work, compiler, cold_report, publish):
         shutil.rmtree(executable.parent)
     for builder in (build_evaluate_projector, build_evaluate_paired_batch, build_evaluate_reference_batch,
                     build_evaluate_reference_report, build_evaluate_native_report, build_evaluate_measurements,
-                    build_evaluate_settlement,
+                    build_evaluate_report_flow, build_evaluate_settlement,
                     build_evaluate_budget_observation, build_evaluate_budget_store, build_execution_budget_session):
         publish(builder(work / builder.__name__, compiler, cold_report))
     publish(build_filter(work / 'safe-core-loader', compiler, cold_report, application='safe-core-elf-inventory',

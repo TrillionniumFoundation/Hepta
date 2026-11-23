@@ -236,6 +236,8 @@ CANDIDATES = {
     'evaluate-native-report-packer': ('evaluate_native_report_packer', 'evaluate-native-report-packer'),
     'evaluate-measurements': ('evaluate_measurements', 'evaluate-measurements'),
     'evaluate-measurements-packer': ('evaluate_measurements_packer', 'evaluate-measurements-packer'),
+    'evaluate-report-flow': ('evaluate_report_flow', 'evaluate-report-flow'),
+    'evaluate-report-flow-packer': ('evaluate_report_flow_packer', 'evaluate-report-flow-packer'),
     'evaluate-settlement': ('evaluate_settlement', 'evaluate-settlement'),
     'evaluate-settlement-packer': ('evaluate_settlement_packer', 'evaluate-settlement-packer'),
     'evaluate-paired-batch-packer': ('evaluate_paired_batch_packer', 'evaluate-paired-batch-packer'),
@@ -377,7 +379,7 @@ def main():
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
                                  'elf-verified-linker',
                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement',
-                                 'evaluate-reference-report', 'evaluate-native-report', 'evaluate-measurements',
+                                 'evaluate-reference-report', 'evaluate-native-report', 'evaluate-measurements', 'evaluate-report-flow',
                                  'evaluate-reference-wire', 'scalar-reference',
                                  'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
                                  'safe-core-elf-inventory', 'core-proof-wire', 'worker-prepare'))

@@ -34,7 +34,7 @@ from tools.build_hia_native_build_admission import build as build_build_admissio
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_native_filter import (
     build_evaluate_paired_batch, build_evaluate_projector, build_evaluate_reference_batch,
-    build_evaluate_budget_observation, build_evaluate_budget_store, build_evaluate_measurements, build_evaluate_native_report, build_evaluate_reference_report, build_evaluate_settlement, build_execution_budget_session,
+    build_evaluate_budget_observation, build_evaluate_budget_store, build_evaluate_measurements, build_evaluate_native_report, build_evaluate_reference_report, build_evaluate_report_flow, build_evaluate_settlement, build_execution_budget_session,
 )
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
@@ -645,6 +645,11 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             expected = build_evaluate_measurements(scratch / 'evaluate-measurements', compiler, cold_report)
             if measurements.read_bytes() != expected.read_bytes():
                 raise ValueError('Store release Evaluate measurement document differs from the cold-built HIA role')
+        report_flow = release / 'hia-evaluate-report-flow'
+        if report_flow.is_file():
+            expected = build_evaluate_report_flow(scratch / 'evaluate-report-flow', compiler, cold_report)
+            if report_flow.read_bytes() != expected.read_bytes():
+                raise ValueError('Store release Evaluate paid report continuation differs from the cold-built HIA role')
         settlement = release / 'hia-evaluate-settlement'
         if settlement.is_file():
             expected = build_evaluate_settlement(scratch / 'evaluate-settlement', compiler, cold_report)

@@ -20,11 +20,11 @@ PACKER = 'native-filter'
 
 def build_filter(output: Path, compiler: Path, cold_report: Path, *,
                  application: str, filename: str, schema: str,
-                 packer=PACKER, magic=MAGIC, adapter=None) -> Path:
+                 packer=PACKER, magic=MAGIC, adapter=None, adapter_dependencies=(), adapter_source=None) -> Path:
     roles = application, packer
     sources = tuple(ROOT / 'examples/hia_bootstrap' / (CANDIDATES[role][0] + '.hepta') for role in roles)
     if adapter is not None:
-        sources += (ROOT / adapter,)
+        sources += tuple(ROOT / name for name in (adapter, *adapter_dependencies))
     pins = {path: path.read_bytes() for path in (compiler, cold_report, *sources)}
     admitted = admit_cold_build(pins[compiler], pins[cold_report])
     if any(admitted.get(path.relative_to(ROOT).as_posix()) != sha256(pins[path]).hexdigest()
@@ -52,7 +52,10 @@ def build_filter(output: Path, compiler: Path, cold_report: Path, *,
     if adapter is not None:
         from tools.generate_hia_native_filter import read_adapter_binding, verify_adapter
 
-        binding = read_adapter_binding(pins[sources[1]], pins[ROOT / adapter], calls=1)
+        original = pins[ROOT / adapter]
+        if adapter_source is not None:
+            original = adapter_source(original, *(pins[ROOT / name] for name in adapter_dependencies))
+        binding = read_adapter_binding(pins[sources[1]], original, calls=1)
         verify_adapter(executable_bytes, application_bytes, binding, entries=(0,))
     if any(path.read_bytes() != before for path, before in pins.items()) or current_sources() != admitted:
         raise ValueError(f'{application} filter build input changed')
@@ -149,6 +152,16 @@ def build_evaluate_measurements(output: Path, compiler: Path, cold_report: Path)
                         schema='hepta.hia.evaluate-measurements-build.v1')
 
 
+def build_evaluate_report_flow(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_report_flow import ADAPTER, MAGIC, PORTS, adapter_source
+
+    return build_filter(output, compiler, cold_report, application='evaluate-report-flow',
+                        packer='evaluate-report-flow-packer', magic=MAGIC, adapter=ADAPTER,
+                        adapter_dependencies=(PORTS,), adapter_source=adapter_source,
+                        filename='hia-evaluate-report-flow',
+                        schema='hepta.hia.evaluate-report-flow-build.v1')
+
+
 def build_evaluate_settlement(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.generate_hia_evaluate_settlement import MAGIC as settlement_magic
 
@@ -161,7 +174,7 @@ def build_evaluate_settlement(output: Path, compiler: Path, cold_report: Path) -
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
-                                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-measurements', 'evaluate-native-report', 'evaluate-reference-report',
+                                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-report-flow', 'evaluate-measurements', 'evaluate-native-report', 'evaluate-reference-report',
                                                   'execution-budget-session', 'evaluate-budget-store', 'evaluate-budget-observation'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
@@ -182,6 +195,9 @@ def main():
         return
     if args.application == 'evaluate-measurements':
         print(build_evaluate_measurements(output, compiler, cold_report))
+        return
+    if args.application == 'evaluate-report-flow':
+        print(build_evaluate_report_flow(output, compiler, cold_report))
         return
     if args.application == 'evaluate-settlement':
         print(build_evaluate_settlement(output, compiler, cold_report))
