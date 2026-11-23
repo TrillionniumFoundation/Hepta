@@ -132,6 +132,24 @@ class StoreTransportTests(unittest.TestCase):
         self.assertIsNone(self.codec.parameters(1, None, ((1, b'not eight'),), 128))
         self.assertIsNone(self.codec.parameters(1, None, ((5, b''),), 128))
 
+    def test_evaluate_reservation_requires_the_exact_tool_and_running_record(self):
+        def reserve(tool, state='running', response=None):
+            values = ('a' * 64, 'b' * 64, tool, state, response, '1795403300451274111')
+            parameters = _parameters(values, 6, b'HIAINS01')
+            frame = struct.pack('<8s5Q', b'HIASTUP1', 1, 21, 0, 5, len(parameters)) + parameters
+            workspace = ctypes.create_string_buffer(2304)
+            output = ctypes.create_string_buffer(8160)
+            return self.codec._entry(frame, len(frame), output, len(output), workspace, len(workspace))
+
+        for tool in ('hia_evaluate', 'hia_artifact', 'hia_adopt'):
+            with self.subTest(tool=tool):
+                self.assertGreater(reserve(tool), 0)
+        for tool in ('hia_evaluata', 'hia_evaluat', 'hia_evaluatex', 'hia_evaluate\x00'):
+            with self.subTest(tool=tool):
+                self.assertEqual(reserve(tool), 0)
+        self.assertEqual(reserve('hia_evaluate', state='pending'), 0)
+        self.assertEqual(reserve('hia_evaluate', response='{}'), 0)
+
     def test_large_artifact_insert_carries_sealed_input_instead_of_copying_to_state(self):
         metadata = json.dumps({
             "candidate": {}, "codegen": {}, "context": {}, "core_sha256": "a" * 64,

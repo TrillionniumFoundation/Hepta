@@ -54,6 +54,8 @@ WIRE = {
     'VERIFY_TOOL_TAIL': b'fy',
     'EMIT_TOOL': b'hia_emit',
     'ADOPT_TOOL_HEAD': b'hia_adop',
+    'EVALUATE_TOOL_HEAD': b'hia_eval',
+    'EVALUATE_TOOL_TAIL': b'uate',
     'ROLLBACK_TOOL_HEAD': b'hia_roll',
     'ROLLBACK_TOOL_TAIL': b'back',
     'SLOT_LEASE_COUNT': b'HIASTLC1',
@@ -626,6 +628,8 @@ def valid_request_reserve(s:readbuf, size:u64) -> bool:
         width = 8
     elif tool == ADOPT_TOOL_HEAD and byte(s, 368) == 116:
         width = 9
+    elif tool == EVALUATE_TOOL_HEAD and read_word(s, 368) & 4294967295 == EVALUATE_TOOL_TAIL:
+        width = 12
     if width == 0 or size <= 319 + width or size > 339 + width:
         return False
     if valid_cell(s, 136, 3, 312, width) == False or valid_cell(s, 160, 3, 312 + width, 7) == False:
