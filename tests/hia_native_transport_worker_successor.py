@@ -564,9 +564,8 @@ QUALIFIER_STORE_DEPENDENCY_PIN = {'bytes': 13980, 'sha256': '99d25f2f21b71babf31
 QUALIFIER_STORE_CURRENT = {'bytes': 22723, 'sha256': '85f92bf60694e2d7950ced55e3632b0d6a9a078a1ae7762c4f491254d46ddb65'}
 
 
-def _admit_qualifier_dependency(raw, capture):
+def reviewed_qualifier_dependency(raw, capture):
     from tests.hia_installed_distribution_history import predecessor
-    actual = _pin(raw)
     raw = predecessor(QUALIFIER_DEPENDENCY_PATH, raw)
     sql_successor = _pin(raw)['sha256'] == 'fb0c4be8fc93e0a1658c4672f2110ab1298f5cfde85c72988843a449477a56a8'
     if sql_successor:
@@ -600,6 +599,13 @@ def _admit_qualifier_dependency(raw, capture):
         raw = reverse_exact(raw, reviewed['record'], QUALIFIER_DEPENDENCY_CURRENT)
     elif _pin(raw) != QUALIFIER_DEPENDENCY_CURRENT:
         raise ValueError('qualifier runtime dependency is neither fixed original nor exact successor')
+    return raw, sql_successor, build_successor, emission_successor, store_successor
+
+
+def _admit_qualifier_dependency(raw, capture):
+    from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, EVALUATE_FIXTURE_SHA256
+    actual = _pin(raw)
+    raw, sql_successor, build_successor, emission_successor, store_successor = reviewed_qualifier_dependency(raw, capture)
     frozen = capture(QUALIFIER_DEPENDENCY_FIXTURE)
     if _pin(frozen) != QUALIFIER_DEPENDENCY_FIXTURE_PIN:
         raise ValueError('qualifier dependency fixed provenance changed')

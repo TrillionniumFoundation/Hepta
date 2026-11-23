@@ -244,7 +244,7 @@ def default_image(selector):
 
 
 def default_integer_image():
-    """Use the separate ordinary-VM image only outside a selected worker scope."""
+    """Select the scalar reference image for ordinary VM instructions outside worker scopes."""
     from . import hia_native_helpers as helpers
 
     helpers._check_scope_owner()

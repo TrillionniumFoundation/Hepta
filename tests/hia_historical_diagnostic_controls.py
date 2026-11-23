@@ -43,3 +43,54 @@ def historical_caller_dependencies(root, sources, expected):
 def historical_bootstrap_dependencies(root, sources, scopes):
     historical_caller_dependencies(root, sources, {
         name: record['sha256'] for name, record in scopes['ordinary']['files'].items()})
+
+
+def historical_terminal_pair(root, sources, current, physical):
+    from tests.hia_installed_distribution_history import predecessor
+
+    def capture(name):
+        if name not in physical:
+            physical[name] = (root / name).read_bytes()
+        return physical[name]
+
+    for name, expected in current.items():
+        raw = predecessor(name, sources[name])
+        if diagnostics.pin(raw) != expected:
+            if name == delivery.TRANSPORT:
+                raw = delivery._reverse_sqlite_boundary(
+                    name, raw, capture(delivery.SQLITE_BOUNDARY_FIXTURE), delivery.FIXTURE,
+                    capture(delivery.FIXTURE), expected)
+            elif name == delivery.DELIVERY:
+                raw = delivery.restore_sql_source(name, raw, capture, expected)
+            elif name == delivery.EVALUATION:
+                raw = delivery.restore_evaluation_store(raw, capture(delivery.EVALUATION_STORE_FIXTURE))
+        if diagnostics.pin(raw) != expected:
+            raise ValueError('terminal test predecessor differs: ' + name)
+        sources[name] = raw
+    if any((root / name).read_bytes() != raw for name, raw in physical.items()):
+        raise ValueError('terminal source inputs changed during capture')
+
+
+def historical_terminal_callers(root, sources, expected):
+    from hepta.hia_native_helpers import HELPERS
+    from tests.hia_store_delivery_successor import reverse_exact
+
+    historical_caller_dependencies(root, sources, expected)
+    name = diagnostics.PATH
+    sources[name] = diagnostic_predecessor(root, sources[name])
+    name = 'tests/test_hia_cost_ledger_native.py'
+    fixed = (root / delivery.COMPONENT_FIXTURE).read_bytes()
+    if sha256(fixed).hexdigest() != delivery.COMPONENT_FIXTURE_SHA256:
+        raise ValueError('terminal component test authority differs')
+    record = json.loads(fixed)['files'][name][expected[name]]
+    sources[name] = reverse_exact(sources[name], record, {'bytes': record['old_bytes'], 'sha256': expected[name]})
+    name = 'tests/test_hia_worker_native_helpers.py'
+    fixed = (root / 'tests/fixtures/store_caller_worker_helpers_successor.json').read_bytes()
+    if sha256(fixed).hexdigest() != '168ef69fadf672e41f3dd717d3d79e54fcd1af70105d2e3552687b72af824904':
+        raise ValueError('terminal worker test authority differs')
+    record = json.loads(fixed)['record']
+    prior = reverse_exact(sources[name], record, {'bytes': record['old_bytes'], 'sha256': expected[name]})
+    old = b'        self.assertEqual(len(HELPERS), 37)\n'
+    if prior.count(old) != 1:
+        raise ValueError('original terminal worker helper-count assertion differs')
+    sources[name] = prior.replace(old, old.replace(b'37', str(len(HELPERS)).encode('ascii')), 1)

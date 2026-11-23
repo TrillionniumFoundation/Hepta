@@ -1086,6 +1086,32 @@ assert not blocked.intersection(sys.modules)
             entry = program['functions'][0]['name']
             arguments = operation_arguments(operation, 17, 2)
             rows.append([operation, program, entry, arguments, execute_program(program, entry, arguments)])
+        from tests.test_hia_program import b, f, i, m, ret
+        from hepta.hia_scalar_reference_native import OPCODES
+
+        values = {'i64': -9, 'u8': 7, 'bool': True, 'unit': None}
+        def scalar(operation, types, result_type):
+            names = ('a', 'b', 'c')[:len(types)]
+            params = list(zip(names, types))
+            cast = operation.startswith('cast.')
+            instruction = i('int.cast' if cast else operation, names, [('result', result_type)],
+                            **({'mode': operation.split('.')[1]} if cast else {}))
+            program = m(f('calculate', params, [result_type], ['trap'],
+                          [b('entry', params, [instruction], ret('result'))]))
+            arguments = [values[typ] for typ in types]
+            rows.append([operation, program, 'calculate', arguments,
+                         execute_program(program, 'calculate', arguments)])
+
+        for relation in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
+            scalar('compare.' + relation, ('i64', 'i64'), 'bool')
+        scalar('bool.not', ('bool',), 'bool')
+        for operator in ('and', 'or'):
+            scalar('bool.' + operator, ('bool', 'bool'), 'bool')
+        for mode in ('wrap', 'checked'):
+            scalar('cast.' + mode, ('u8',), 'i64')
+        for typ in ('bool', 'i64', 'unit'):
+            scalar('select', ('bool', typ, typ), typ)
+        self.assertEqual({row[0] for row in rows}, set(OPCODES))
         script = """import json, sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])

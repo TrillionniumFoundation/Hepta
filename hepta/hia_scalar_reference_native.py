@@ -130,8 +130,14 @@ class NativeScalarReference(NativeHiaJsonImage):
 
         signed = typ.startswith('i')
         boolean = typ == 'bool'
-        width = 1 if boolean else WIDTHS[typ]
-        words = [int(value) for value in arguments]
+        if typ == 'unit' and opcode == 'select':
+            if (len(arguments) != 3 or type(arguments[0]) is not bool
+                    or arguments[1] is not None or arguments[2] is not None):
+                raise ValueError('invalid HIA unit select arguments')
+            width, words = 1, [int(arguments[0]), 0, 0]
+        else:
+            width = 1 if boolean else WIDTHS[typ]
+            words = [int(value) for value in arguments]
         prefix = int(signed)
         for index, value in enumerate(words):
             prefix |= int(value < 0) << (index + 1)

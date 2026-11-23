@@ -56,8 +56,8 @@
     },
     "tests/hia_caller_terminal_admission.py": {
       "current": {
-        "bytes": 24784,
-        "sha256": "0fd50297b4048ed22719d2918e8098d29ce8732dbe9cb20e63b40768859e378d"
+        "bytes": 25395,
+        "sha256": "2778515c091610bf51322d670d266e81fe328b95c5aa187e4a4b313f157984b3"
       },
       "original": {
         "bytes": 23695,
@@ -83,6 +83,21 @@
           "after": "            self._physical[name] = (self._root / name).read_bytes()\n            self._captured[name] = predecessor(name, self._physical[name])\n",
           "before": "            self._captured[name] = (self._root / name).read_bytes()\n",
           "offset": 8935
+        },
+        {
+          "after": "    def _original_worker_count(self, name, raw, expected):\n        if name != 'tests/test_hia_worker_native_helpers.py':\n            return False\n        from hepta.hia_native_helpers import HELPERS\n        count = 36 if CALLER_AUTHORITIES[self._authority]['kind'] == 'build' else 37\n        template = b'        self.assertEqual(len(HELPERS), %d)\\n'\n        current = template % len(HELPERS)\n        return raw.count(current) == 1 and _pin(raw.replace(current, template % count, 1))['sha256'] == expected\n\n",
+          "before": "",
+          "offset": 16944
+        },
+        {
+          "after": "            if _pin(raw)['sha256'] == expected or self._original_worker_count(name, raw, expected):\n",
+          "before": "            if _pin(raw)['sha256'] == expected:\n",
+          "offset": 17321
+        },
+        {
+          "after": "        if current['sha256'] == expected or self._original_worker_count(name, raw, expected):\n",
+          "before": "        if current['sha256'] == expected:\n",
+          "offset": 18447
         },
         {
           "after": "        return self._physical[name]\n",
@@ -497,8 +512,8 @@
     },
     "tests/test_hia_agent_installed_resources.py": {
       "current": {
-        "bytes": 70936,
-        "sha256": "0686e762574032ddf7cf56e1a8f1f7b51579d0cdc7f49386f2d4632cef0dc04e"
+        "bytes": 72383,
+        "sha256": "6c96a4c38331c0130a0797ca23085c8e75fa8b99e7bde4ce8eacc3bebd838fba"
       },
       "original": {
         "bytes": 65955,
@@ -546,7 +561,7 @@
           "offset": 62104
         },
         {
-          "after": "\n    def test_installed_default_vm_executes_integer_instructions_and_refuses_missing_image(self):\n        from tests.hia_vm_integer_scalar_cases import operation_arguments, operation_program\n        from hepta.hia_program import execute_program\n        from hepta.hia_vm_integer_divrem_protocol import DEFAULT_INTEGER_OPERATIONS\n\n        rows = []\n        for operation in sorted(DEFAULT_INTEGER_OPERATIONS):\n            program = operation_program(operation, 'i32')\n            entry = program['functions'][0]['name']\n            arguments = operation_arguments(operation, 17, 2)\n            rows.append([operation, program, entry, arguments, execute_program(program, entry, arguments)])\n        script = \"\"\"import json, sys\nfrom pathlib import Path\nsys.path.insert(0, sys.argv[1])\nfrom hepta.hia_program import execute_program\nfrom hepta.hia_scalar_reference_native import NativeScalarReference\nseen = []\noriginal = NativeScalarReference.operation\ndef observed(image, operation, typ, values):\n    assert image._default_package_binding\n    seen.append(operation)\n    return original(image, operation, typ, values)\nNativeScalarReference.operation = observed\nfor operation, program, entry, arguments, expected in json.load(sys.stdin):\n    assert execute_program(program, entry, arguments) == expected\n    assert seen == [operation], seen\n    seen.clear()\n\"\"\"\n        environment = {name: value for name, value in os.environ.items()\n                       if not name.startswith(('HEPTA_HIA_', 'PYTHON'))}\n        command = [sys.executable, '-I', '-B', '-c', script, str(self.installed)]\n        def probe():\n            return subprocess.run(command, input=json.dumps(rows).encode(), cwd=self.folder,\n                                  env=environment, capture_output=True, timeout=60)\n        good = probe()\n        self.assertEqual((good.returncode, good.stdout, good.stderr), (0, b'', b''))\n        directory = self.installed / 'hepta/_data/native/default/full_cost'\n        for member in ('integer-bundle.json', 'scalar-reference/manifest.json',\n                       'scalar-reference/scalar-reference.image.bin'):\n            path = directory / member\n            held = path.with_suffix('.held')\n            path.rename(held)\n            try:\n                with self.subTest(member=member):\n                    refused = probe()\n                    self.assertNotEqual(refused.returncode, 0)\n                    self.assertIn(b'FileNotFoundError', refused.stderr)\n            finally:\n                held.rename(path)\n",
+          "after": "\n    def test_installed_default_vm_executes_integer_instructions_and_refuses_missing_image(self):\n        from tests.hia_vm_integer_scalar_cases import operation_arguments, operation_program\n        from hepta.hia_program import execute_program\n        from hepta.hia_vm_integer_divrem_protocol import DEFAULT_INTEGER_OPERATIONS\n\n        rows = []\n        for operation in sorted(DEFAULT_INTEGER_OPERATIONS):\n            program = operation_program(operation, 'i32')\n            entry = program['functions'][0]['name']\n            arguments = operation_arguments(operation, 17, 2)\n            rows.append([operation, program, entry, arguments, execute_program(program, entry, arguments)])\n        from tests.test_hia_program import b, f, i, m, ret\n        from hepta.hia_scalar_reference_native import OPCODES\n\n        values = {'i64': -9, 'u8': 7, 'bool': True, 'unit': None}\n        def scalar(operation, types, result_type):\n            names = ('a', 'b', 'c')[:len(types)]\n            params = list(zip(names, types))\n            cast = operation.startswith('cast.')\n            instruction = i('int.cast' if cast else operation, names, [('result', result_type)],\n                            **({'mode': operation.split('.')[1]} if cast else {}))\n            program = m(f('calculate', params, [result_type], ['trap'],\n                          [b('entry', params, [instruction], ret('result'))]))\n            arguments = [values[typ] for typ in types]\n            rows.append([operation, program, 'calculate', arguments,\n                         execute_program(program, 'calculate', arguments)])\n\n        for relation in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):\n            scalar('compare.' + relation, ('i64', 'i64'), 'bool')\n        scalar('bool.not', ('bool',), 'bool')\n        for operator in ('and', 'or'):\n            scalar('bool.' + operator, ('bool', 'bool'), 'bool')\n        for mode in ('wrap', 'checked'):\n            scalar('cast.' + mode, ('u8',), 'i64')\n        for typ in ('bool', 'i64', 'unit'):\n            scalar('select', ('bool', typ, typ), typ)\n        self.assertEqual({row[0] for row in rows}, set(OPCODES))\n        script = \"\"\"import json, sys\nfrom pathlib import Path\nsys.path.insert(0, sys.argv[1])\nfrom hepta.hia_program import execute_program\nfrom hepta.hia_scalar_reference_native import NativeScalarReference\nseen = []\noriginal = NativeScalarReference.operation\ndef observed(image, operation, typ, values):\n    assert image._default_package_binding\n    seen.append(operation)\n    return original(image, operation, typ, values)\nNativeScalarReference.operation = observed\nfor operation, program, entry, arguments, expected in json.load(sys.stdin):\n    assert execute_program(program, entry, arguments) == expected\n    assert seen == [operation], seen\n    seen.clear()\n\"\"\"\n        environment = {name: value for name, value in os.environ.items()\n                       if not name.startswith(('HEPTA_HIA_', 'PYTHON'))}\n        command = [sys.executable, '-I', '-B', '-c', script, str(self.installed)]\n        def probe():\n            return subprocess.run(command, input=json.dumps(rows).encode(), cwd=self.folder,\n                                  env=environment, capture_output=True, timeout=60)\n        good = probe()\n        self.assertEqual((good.returncode, good.stdout, good.stderr), (0, b'', b''))\n        directory = self.installed / 'hepta/_data/native/default/full_cost'\n        for member in ('integer-bundle.json', 'scalar-reference/manifest.json',\n                       'scalar-reference/scalar-reference.image.bin'):\n            path = directory / member\n            held = path.with_suffix('.held')\n            path.rename(held)\n            try:\n                with self.subTest(member=member):\n                    refused = probe()\n                    self.assertNotEqual(refused.returncode, 0)\n                    self.assertIn(b'FileNotFoundError', refused.stderr)\n            finally:\n                held.rename(path)\n",
           "before": "",
           "offset": 62582
         }
@@ -625,6 +640,60 @@
           "after": "             '--no-build-isolation', '--wheel-dir', str(wheels), str(distribution)], 'wheel-build')\n",
           "before": "             '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n",
           "offset": 16837
+        }
+      ]
+    },
+    "tests/test_hia_caller_qualifier_successor.py": {
+      "current": {
+        "bytes": 34209,
+        "sha256": "3d3ef94e841a7b3e29da749993b7d85e2aae7361d0602b0ca470353b529aeb2a"
+      },
+      "original": {
+        "bytes": 32186,
+        "sha256": "521a54f697e2bff97f137d022cb32cecfbaf3da9d91484581abf797247ca4028"
+      },
+      "splices": [
+        {
+          "after": "        from tests import hia_native_transport_worker_successor as delivery\n        from tests.hia_historical_diagnostic_controls import historical_terminal_pair\n        reviewed_pair = json.loads(cls.corpus[PAIR])['files']\n        expected = {name: record['new'] for name, record in reviewed_pair.items()}\n        expected[PRIOR_NAMES[2]] = json.loads(cls.corpus[EVALUATION])['record']['new']\n        historical_terminal_pair(ROOT, cls.corpus, expected, cls.source_raw)\n        def capture(name):\n            if name not in cls.source_raw:\n                cls.source_raw[name] = (ROOT / name).read_bytes()\n            return cls.source_raw[name]\n        cls.corpus[DEPENDENCY_PATH] = delivery.reviewed_qualifier_dependency(\n            cls.corpus[DEPENDENCY_PATH], capture)[0]\n        from tests.hia_installed_distribution_history import _records, predecessor\n        from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, evaluate_records, reverse_exact\n        inventory = cls.values['store']['unchanged_files']\n        latest = {name for value in cls.values.values() for name in value['unchanged_files']}\n        required = {*delivery.COMPONENT_PATHS, delivery.MACHINE_RECEIPT_CALLER,\n                    'tests/test_hia_native_build_admission_native.py', *(_records().keys() & latest)}\n        for name in required - cls.corpus.keys():\n            cls.corpus[name] = predecessor(name, capture(name))\n        for name in (delivery.SQL_SOURCE_FIXTURE, delivery.SQL_EFFECT_TEST, delivery.EVALUATION_STORE_FIXTURE):\n            cls.corpus[name] = capture(name)\n        name = delivery.MACHINE_RECEIPT_CALLER\n        cls.corpus[name] = delivery.restore_machine_receipt_caller(ROOT, cls.corpus[name], inventory[name])\n        name = 'tests/test_hia_native_build_admission_native.py'\n        if pin(cls.corpus[name]) != inventory[name]:\n            record = evaluate_records(capture(EVALUATE_FIXTURE))['build_inventory_test']\n            cls.corpus[name] = reverse_exact(cls.corpus[name], record, inventory[name])\n",
+          "before": "",
+          "offset": 6956
+        },
+        {
+          "after": "        after = {name: (ROOT / name).read_bytes() for name in cls.source_raw}\n",
+          "before": "        after = {name: (ROOT / name).read_bytes() for name in SOURCE_INPUTS}\n",
+          "offset": 10665
+        }
+      ]
+    },
+    "tests/test_hia_caller_terminal_admission.py": {
+      "current": {
+        "bytes": 25059,
+        "sha256": "93adb3c88453ce41d088e20cbf7cbcab4badfec9d22b609fa632ced823b7af30"
+      },
+      "original": {
+        "bytes": 24092,
+        "sha256": "ebf81d2282ee63665e421350a969cb145f3cc4ca0ebc02f3c7796cd3402d016e"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_historical_diagnostic_controls import historical_terminal_callers, historical_terminal_pair\n        cls.seed.update({name: (ROOT / name).read_bytes() for name in CURRENT})\n        from tests import hia_native_transport_worker_successor as delivery\n        from tests import hia_store_delivery_successor as composition\n        for name in (delivery.SQL_SOURCE_FIXTURE, delivery.SQL_EFFECT_TEST, delivery.EVALUATION_STORE_FIXTURE,\n                     delivery.MACHINE_RECEIPT_FIXTURE, delivery.COMPONENT_FIXTURE, composition.EVALUATE_FIXTURE,\n                     'tests/fixtures/store_caller_worker_helpers_successor.json'):\n            cls.seed[name] = (ROOT / name).read_bytes()\n        cls.physical = dict(cls.seed)\n        historical_terminal_callers(ROOT, cls.seed, source_records(cls.originals[PROFILE_ORIGINAL], 'store'))\n        historical_terminal_pair(ROOT, cls.seed, CURRENT, cls.physical)\n",
+          "before": "",
+          "offset": 9213
+        },
+        {
+          "after": "",
+          "before": "            cls.seed[name] = (ROOT / name).read_bytes()\n",
+          "offset": 9260
+        },
+        {
+          "after": "            'actual_input_files': {name: pin(raw) for name, raw in cls.physical.items()},\n            'reviewed_control_inputs': {name: pin(raw) for name, raw in cls.seed.items()},\n",
+          "before": "            'actual_input_files': {name: pin(raw) for name, raw in cls.seed.items()},\n",
+          "offset": 11383
+        },
+        {
+          "after": "        for name, raw in {**cls.physical, **cls.code}.items():\n",
+          "before": "        for name, raw in {**cls.seed, **cls.code}.items():\n",
+          "offset": 11780
         }
       ]
     },
@@ -1609,8 +1678,8 @@
     },
     "tests/test_hia_vm_integer_arithmetic_native.py": {
       "current": {
-        "bytes": 20241,
-        "sha256": "1d36a6ec6527d76e99d80dfcbdd802ea734be9764947361216db1b8160e82ced"
+        "bytes": 20240,
+        "sha256": "ca34bd4a6dc6840eff096685ed50eceef407053ea9dedd353b368d193dd5402a"
       },
       "original": {
         "bytes": 20117,
@@ -1618,7 +1687,7 @@
       },
       "splices": [
         {
-          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.PACKAGE_INTEGER_SHA256)\n",
+          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.PACKAGE_SCALAR_SHA256)\n",
           "before": "        self.assertEqual(sha256(raw).hexdigest(), selected.V9_RUNTIME_SHA256)\n",
           "offset": 2722
         },
@@ -1631,8 +1700,8 @@
     },
     "tests/test_hia_vm_integer_divrem_native.py": {
       "current": {
-        "bytes": 20528,
-        "sha256": "da43cb537b6a8ba4c40173aa5ae222b8ff7f4e90da9ebe32e3d8dff3e03e854f"
+        "bytes": 20527,
+        "sha256": "f131e67cb58407ed6ac50862aa831f88a7f57f6854886d8d5a269f4e6506f8c7"
       },
       "original": {
         "bytes": 20177,
@@ -1640,7 +1709,7 @@
       },
       "splices": [
         {
-          "after": "        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.PACKAGE_INTEGER_SHA256)\n        previous = selected.word_runtime_source(actual_runtime)\n        self.assertEqual(sha256(previous).hexdigest(), selected.V9_RUNTIME_SHA256)\n        self.assertEqual(selected._retained_runtime_source(previous), retained)\n",
+          "after": "        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.PACKAGE_SCALAR_SHA256)\n        previous = selected.word_runtime_source(actual_runtime)\n        self.assertEqual(sha256(previous).hexdigest(), selected.V9_RUNTIME_SHA256)\n        self.assertEqual(selected._retained_runtime_source(previous), retained)\n",
           "before": "        self.assertEqual(sha256(actual_runtime).hexdigest(), selected.V9_RUNTIME_SHA256)\n",
           "offset": 2090
         },
@@ -1653,8 +1722,8 @@
     },
     "tests/test_hia_vm_integer_scalar_native.py": {
       "current": {
-        "bytes": 23116,
-        "sha256": "b525b035ada55ead0fda06a53b61f9a9ef5d6b476f2e97629abd480735c699a7"
+        "bytes": 23115,
+        "sha256": "f0c71c43ed4c84babd4170aaee9d4fdfb4ec0b61b33ddeb6acf239dd292839a5"
       },
       "original": {
         "bytes": 22992,
@@ -1662,7 +1731,7 @@
       },
       "splices": [
         {
-          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.PACKAGE_INTEGER_SHA256)\n",
+          "after": "        self.assertEqual(sha256(raw).hexdigest(), selected.PACKAGE_SCALAR_SHA256)\n",
           "before": "        self.assertEqual(sha256(raw).hexdigest(), selected.V9_RUNTIME_SHA256)\n",
           "offset": 2985
         },

@@ -131,6 +131,34 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
         if pin(dependency_raw) != DEPENDENCY_AUTHORITY_PIN:
             raise AssertionError('fixed caller diagnostic dependency authority changed')
         cls.dependency = json.loads(dependency_raw)
+        from tests import hia_native_transport_worker_successor as delivery
+        from tests.hia_historical_diagnostic_controls import historical_terminal_pair
+        reviewed_pair = json.loads(cls.corpus[PAIR])['files']
+        expected = {name: record['new'] for name, record in reviewed_pair.items()}
+        expected[PRIOR_NAMES[2]] = json.loads(cls.corpus[EVALUATION])['record']['new']
+        historical_terminal_pair(ROOT, cls.corpus, expected, cls.source_raw)
+        def capture(name):
+            if name not in cls.source_raw:
+                cls.source_raw[name] = (ROOT / name).read_bytes()
+            return cls.source_raw[name]
+        cls.corpus[DEPENDENCY_PATH] = delivery.reviewed_qualifier_dependency(
+            cls.corpus[DEPENDENCY_PATH], capture)[0]
+        from tests.hia_installed_distribution_history import _records, predecessor
+        from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, evaluate_records, reverse_exact
+        inventory = cls.values['store']['unchanged_files']
+        latest = {name for value in cls.values.values() for name in value['unchanged_files']}
+        required = {*delivery.COMPONENT_PATHS, delivery.MACHINE_RECEIPT_CALLER,
+                    'tests/test_hia_native_build_admission_native.py', *(_records().keys() & latest)}
+        for name in required - cls.corpus.keys():
+            cls.corpus[name] = predecessor(name, capture(name))
+        for name in (delivery.SQL_SOURCE_FIXTURE, delivery.SQL_EFFECT_TEST, delivery.EVALUATION_STORE_FIXTURE):
+            cls.corpus[name] = capture(name)
+        name = delivery.MACHINE_RECEIPT_CALLER
+        cls.corpus[name] = delivery.restore_machine_receipt_caller(ROOT, cls.corpus[name], inventory[name])
+        name = 'tests/test_hia_native_build_admission_native.py'
+        if pin(cls.corpus[name]) != inventory[name]:
+            record = evaluate_records(capture(EVALUATE_FIXTURE))['build_inventory_test']
+            cls.corpus[name] = reverse_exact(cls.corpus[name], record, inventory[name])
         if pin(cls.corpus[DEPENDENCY_PATH]) != cls.dependency['record']['new']:
             raise AssertionError('control needs the exact complete current caller helper')
         cls.original_dependency = independent_inverse(
@@ -187,7 +215,7 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        after = {name: (ROOT / name).read_bytes() for name in SOURCE_INPUTS}
+        after = {name: (ROOT / name).read_bytes() for name in cls.source_raw}
         stable = after == cls.source_raw
         complete = [row['id'] for row in cls.results] == cls.planned
         passed = complete and stable and all(row['status'] == 'PASS_SOURCE_CONTROL' for row in cls.results)

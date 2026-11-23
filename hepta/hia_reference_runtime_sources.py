@@ -3,6 +3,8 @@ from hashlib import sha256
 
 TYPED_RESOURCE_SHA256 = "b5dfeb949c9fc1ba2b6b54c7b1b74a3142ba9e7ecfa346ad502b68144d35b0e5"
 PACKAGE_INTEGER_SHA256 = "8295665a1f138f09f2613fdec8f9b20bb40541db5bdf426ffe640b273c61c2e9"
+PACKAGE_SCALAR_SHA256 = "5110923716b1e60960e71ffa2a3678184c29b7a1a78bbb21743e40c486ae92ce"
+RESOURCE_RUNTIME_SHA256S = frozenset((TYPED_RESOURCE_SHA256, PACKAGE_INTEGER_SHA256, PACKAGE_SCALAR_SHA256))
 WORD_RUNTIME_SHA256 = "db118314608168799a0d2c1210cec04ba38981a329e8da6cf4debcd07b267aa0"
 
 # Ranges use zero-based complete source lines. Each replacement is the earlier
@@ -130,9 +132,14 @@ _PREVIOUS_LINES = (
 
 def word_runtime_source(raw):
     """Recover the v9 image from its admitted typed-resource successor."""
-    if type(raw) is bytes and sha256(raw).hexdigest() == PACKAGE_INTEGER_SHA256:
+    digest = sha256(raw).hexdigest() if type(raw) is bytes else None
+    additions = {
+        PACKAGE_INTEGER_SHA256: ((274, 276), (265, 271), (17, 18)),
+        PACKAGE_SCALAR_SHA256: ((273, 275), (264, 270)),
+    }
+    if digest in additions:
         lines = raw.splitlines(keepends=True)
-        for start, stop in ((274, 276), (265, 271), (17, 18)):
+        for start, stop in additions[digest]:
             del lines[start:stop]
         raw = b''.join(lines)
     if type(raw) is not bytes or sha256(raw).hexdigest() != TYPED_RESOURCE_SHA256:

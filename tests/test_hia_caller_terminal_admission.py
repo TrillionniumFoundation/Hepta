@@ -185,8 +185,18 @@ class CallerTerminalAdmissionSourceTests(unittest.TestCase):
             for name in records:
                 if name not in cls.seed:
                     cls.seed[name] = (ROOT / name).read_bytes()
-        for name, expected in CURRENT.items():
+        from tests.hia_historical_diagnostic_controls import historical_terminal_callers, historical_terminal_pair
+        cls.seed.update({name: (ROOT / name).read_bytes() for name in CURRENT})
+        from tests import hia_native_transport_worker_successor as delivery
+        from tests import hia_store_delivery_successor as composition
+        for name in (delivery.SQL_SOURCE_FIXTURE, delivery.SQL_EFFECT_TEST, delivery.EVALUATION_STORE_FIXTURE,
+                     delivery.MACHINE_RECEIPT_FIXTURE, delivery.COMPONENT_FIXTURE, composition.EVALUATE_FIXTURE,
+                     'tests/fixtures/store_caller_worker_helpers_successor.json'):
             cls.seed[name] = (ROOT / name).read_bytes()
+        cls.physical = dict(cls.seed)
+        historical_terminal_callers(ROOT, cls.seed, source_records(cls.originals[PROFILE_ORIGINAL], 'store'))
+        historical_terminal_pair(ROOT, cls.seed, CURRENT, cls.physical)
+        for name, expected in CURRENT.items():
             if pin(cls.seed[name]) != expected:
                 raise AssertionError('reviewed current source differs: ' + name)
         # Build old test bytes as data, independently of the admission implementation.
@@ -220,7 +230,8 @@ class CallerTerminalAdmissionSourceTests(unittest.TestCase):
         write_json(cls.evidence / 'inputs.json', {
             'schema': 'hepta.hia.caller-terminal-source-controls-inputs.v1',
             'actual_source_root': str(ROOT),
-            'actual_input_files': {name: pin(raw) for name, raw in cls.seed.items()},
+            'actual_input_files': {name: pin(raw) for name, raw in cls.physical.items()},
+            'reviewed_control_inputs': {name: pin(raw) for name, raw in cls.seed.items()},
             'actual_control_code': {name: pin(raw) for name, raw in cls.code.items()},
             'original_test_bytes_restored': {name: pin(raw) for name, raw in cls.legacy.items()},
             'copied_source_execution': False})
@@ -228,7 +239,7 @@ class CallerTerminalAdmissionSourceTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         stable, drift = True, []
-        for name, raw in {**cls.seed, **cls.code}.items():
+        for name, raw in {**cls.physical, **cls.code}.items():
             try:
                 same = (ROOT / name).read_bytes() == raw
             except OSError:
