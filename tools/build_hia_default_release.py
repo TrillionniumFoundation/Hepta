@@ -18,6 +18,7 @@ import subprocess
 from tempfile import TemporaryDirectory
 import sys
 import zipfile
+import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
@@ -226,7 +227,7 @@ def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sourc
 
 
 def _wheel_record_images(directory, compiler, sources, cold_bytes):
-    """Compile and bind the two HIA programs that produce wheel member records."""
+    """Compile and bind the HIA programs for the wheel inventory and ZIP directory."""
     from hepta.hia_json_preflight_native import NativeHiaJsonImage
     from hepta.hia_sha256_stream_native import NativeSha256Stream
     from tools.build_hia_source_build import _check_compile_receipt
@@ -237,7 +238,9 @@ def _wheel_record_images(directory, compiler, sources, cold_bytes):
     compiler_raw = compiler.read_bytes()
     directory.mkdir(mode=0o700)
     images = []
-    for name, image_type in (('sha256_stream', NativeSha256Stream), ('wheel_record_row', NativeHiaJsonImage)):
+    programs = (('sha256_stream', NativeSha256Stream), ('wheel_record_row', NativeHiaJsonImage),
+                ('wheel_zip_directory', NativeHiaJsonImage))
+    for name, image_type in programs:
         relative = 'examples/hia_bootstrap/' + name + '.hepta'
         path = ROOT / relative
         raw = path.read_bytes()
@@ -265,10 +268,50 @@ def _wheel_record_row(encoder, name, size, digest=None):
     return output.raw[:used]
 
 
+ZIP_LOCAL_MEMBER, ZIP_CENTRAL_MEMBER, ZIP_END_DIRECTORY, ZIP_CRC_UPDATE = range(4)
+
+
+def _zip_frame(encoder, action, *, size, compressed=0, offset=0, crc=0, executable=False,
+               name=b'', payload=b'', workspace=None):
+    prefix = struct.pack('<8s7Q', b'HIAWZIP1', action, size, compressed, offset, crc, int(executable), len(name))
+    wire = prefix + name + payload
+    source = ctypes.create_string_buffer(wire, len(wire))
+    output = ctypes.create_string_buffer(4 if workspace is not None else len(name) + 128)
+    work_size = len(workspace) if workspace is not None else 0
+    used = encoder._entry(source, len(wire), output, len(output), workspace, work_size)
+    if not 0 < used <= len(output) or (action == ZIP_CRC_UPDATE and used != 4):
+        raise ValueError('HIA refused the wheel ZIP frame')
+    return output.raw[:used]
+
+
+def _write_zip(stream, files, distribution, encoder):
+    directory = bytearray()
+    prefix = distribution.removesuffix('.dist-info') + '.data/scripts/'
+    workspace = ctypes.create_string_buffer(2048)
+    chunk_bytes = 1 << 20
+    for name, raw in sorted(files.items()):
+        crc = 0
+        for start in range(0, len(raw), chunk_bytes):
+            chunk = raw[start:start + chunk_bytes]
+            encoded = _zip_frame(encoder, ZIP_CRC_UPDATE, size=len(chunk), crc=crc, payload=chunk, workspace=workspace)
+            crc = int.from_bytes(encoded, 'little')
+        compressor = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION, zlib.DEFLATED, -15)
+        compressed = compressor.compress(raw) + compressor.flush()
+        metadata = dict(name=name.partition('\0')[0].encode('utf-8'), size=len(raw),
+                        compressed=len(compressed), crc=crc, offset=stream.tell(),
+                        executable=name.startswith(prefix) and raw.startswith(b'\x7fELF'))
+        stream.write(_zip_frame(encoder, ZIP_LOCAL_MEMBER, **metadata))
+        stream.write(compressed)
+        directory.extend(_zip_frame(encoder, ZIP_CENTRAL_MEMBER, **metadata))
+    offset = stream.tell()
+    stream.write(directory)
+    stream.write(_zip_frame(encoder, ZIP_END_DIRECTORY, size=len(files), compressed=len(directory), offset=offset))
+
+
 def _write_wheel(path, files, distribution, record_images):
     if os.path.lexists(path):
         raise FileExistsError(path)
-    hasher, encoder = record_images
+    hasher, encoder, zipper = record_images
     record = distribution + '/RECORD'
     entries = bytearray()
     digests = {}
@@ -283,15 +326,8 @@ def _write_wheel(path, files, distribution, record_images):
     files = {**files, record: record_bytes}
     with TemporaryDirectory(prefix='.hia-wheel-', dir=path.parent) as folder:
         staged = Path(folder) / path.name
-        with zipfile.ZipFile(staged, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
-            for name, raw in sorted(files.items()):
-                item = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
-                item.create_system = 3
-                is_program = (name.startswith(distribution.removesuffix('.dist-info') + '.data/scripts/')
-                              and raw.startswith(b'\x7fELF'))
-                item.external_attr = (0o100755 if is_program else 0o100644) << 16
-                item.compress_type = zipfile.ZIP_DEFLATED
-                archive.writestr(item, raw)
+        with staged.open('xb') as stream:
+            _write_zip(stream, files, distribution, zipper)
         os.link(staged, path)
     return {name: digests[name] for name in sorted(files)}
 

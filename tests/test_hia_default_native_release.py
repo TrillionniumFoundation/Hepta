@@ -249,6 +249,33 @@ class DefaultReleaseNativeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             _wheel_record_row(encoder, 'w.dist-info/RECORD', 1)
 
+    def test_hia_zip_writes_seekable_deflate_and_preserves_executable_mode(self):
+        import io
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from tools.build_hia_default_release import _write_zip
+
+        images = self.root / 'build' / 'wheel-record'
+        image = (images / 'wheel_zip_directory.image.bin').read_bytes()
+        receipt = json.loads((images / 'wheel_zip_directory.receipt.json').read_bytes())
+        encoder = NativeHiaJsonImage(image, receipt['produced_sha256'])
+        package = 'hia_core-1'
+        program = package + '.data/scripts/hia'
+        members = {program: b'\\x7fELF' + b'x' * (1 << 20), '资料/é': b'payload', 'empty': b''}
+        actual = io.BytesIO()
+        _write_zip(actual, members, package + '.dist-info', encoder)
+        original = io.BytesIO()
+        with zipfile.ZipFile(original, 'w') as archive:
+            for name, contents in sorted(members.items()):
+                member = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
+                member.create_system = 3
+                member.external_attr = (0o100755 if name == program else 0o100644) << 16
+                member.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(member, contents)
+        self.assertEqual(actual.getvalue(), original.getvalue())
+        with zipfile.ZipFile(actual) as archive:
+            self.assertIsNone(archive.testzip())
+            self.assertEqual(archive.getinfo(program).external_attr >> 16, 0o100755)
+
     def test_wheel_is_platform_specific_and_only_pin_is_derived_runtime_source(self):
         import csv
         import io
