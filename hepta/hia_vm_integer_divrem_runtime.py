@@ -18,7 +18,9 @@ import sys
 from types import CodeType, FunctionType, MappingProxyType
 import weakref
 
-from .hia_reference_runtime_sources import (PACKAGE_INTEGER_SHA256, PACKAGE_SCALAR_SHA256,
+from .hia_reference_runtime_sources import (PACKAGE_INTEGER_SHA256, PACKAGE_LEDGER_RUNTIME_SHA256S,
+                                            PACKAGE_SCALAR_DISPATCH_SHA256S,
+                                            PACKAGE_SCALAR_SHA256,
                                             RESOURCE_RUNTIME_SHA256S, word_runtime_source)
 from . import hia_program_runtime as original
 from . import hia_vm_integer_divrem_protocol as wire
@@ -362,10 +364,12 @@ def _derive(raw, factory, *, integer_arithmetic=False, integer_scalar=False):
             tests.append(_ARITHMETIC_TEST)
         if integer_scalar:
             tests.extend(source for source, _body in _SCALAR_REPLACEMENTS)
-        package_guard = {
-            PACKAGE_INTEGER_SHA256: "self.scalar_reference is None and op in DEFAULT_INTEGER_OPERATIONS and typ in WIDTHS",
-            PACKAGE_SCALAR_SHA256: "self.scalar_reference is None and scalar_op in NATIVE_SCALAR_OPCODES",
-        }.get(sha256(raw).hexdigest())
+        digest = sha256(raw).hexdigest()
+        package_guard = None
+        if digest in PACKAGE_SCALAR_DISPATCH_SHA256S:
+            package_guard = "self.scalar_reference is None and scalar_op in NATIVE_SCALAR_OPCODES"
+        elif digest == PACKAGE_INTEGER_SHA256:
+            package_guard = "self.scalar_reference is None and op in DEFAULT_INTEGER_OPERATIONS and typ in WIDTHS"
         _select_integer_dispatch(operation, execute, tests, package_default=package_guard)
     # The enclosing function creates closure code only. Its body is never run.
     outer = ast.parse("def _bind(_hia_evaluate, _hia_guard, _hia_factory):\n    pass\n").body[0]
@@ -427,20 +431,31 @@ class _Factory:
             ("scalar_value_valid", "hepta/hia_program.py"),
             ("fill_bytes", "hepta/hia_bounded_memory.py"),
             ("move_bytes", "hepta/hia_bounded_memory.py"),
-            ("supports_feature", "hepta/hia_schema.py"),
-            ("validate_execution_observation", "hepta/hia_opcodes.py"))
-        if sha256(raw).hexdigest() in RESOURCE_RUNTIME_SHA256S:
-            dependencies += (("selected_scalar_reference", "hepta/hia_scalar_reference_native.py"),
-                             ("installed_execution_ledger", "hepta/hia_execution_ledger_native.py"))
-        self.imported_functions = tuple((name, getattr(original, name), path) for name, path in dependencies)
+            ("supports_feature", "hepta/hia_schema.py"))
+        digest = sha256(raw).hexdigest()
+        if digest in RESOURCE_RUNTIME_SHA256S:
+            dependencies += (("selected_scalar_reference", "hepta/hia_scalar_reference_native.py"),)
+        if digest in PACKAGE_LEDGER_RUNTIME_SHA256S:
+            from . import hia_execution_ledger_native as ledger
+            dependencies += (("vm_execution_ledger_validator", "hepta/hia_execution_ledger_native.py"),)
+            ledger_module = ledger
+        else:
+            ledger_module = original
+        self.imported_functions = tuple((original, name, getattr(original, name), path)
+                                        for name, path in dependencies)
+        self.imported_functions += ((ledger_module, "validate_execution_observation",
+                                     ledger_module.validate_execution_observation, "hepta/hia_opcodes.py"),)
+        if digest in RESOURCE_RUNTIME_SHA256S:
+            self.imported_functions += ((ledger_module, "installed_execution_ledger",
+                                         ledger_module.installed_execution_ledger, "hepta/hia_execution_ledger_native.py"),)
         self.base_stamps = tuple(_stamp(fn) for _, fn in self.base_methods + self.global_functions)
-        self.imported_stamps = tuple(_stamp(fn) for _, fn, _ in self.imported_functions)
+        self.imported_stamps = tuple(_stamp(fn) for _, _, fn, _ in self.imported_functions)
         compiled = compile(raw, original.__file__, "exec", dont_inherit=True, optimize=sys.flags.optimize)
         for name, fn in self.base_methods + self.global_functions:
             if not _same_code(fn.__code__, _find_code(compiled, fn.__qualname__)):
                 raise ValueError("live original interpreter code differs: " + name)
         dependency_code = {}
-        for name, fn, path in self.imported_functions:
+        for _, name, fn, path in self.imported_functions:
             if path not in dependency_code:
                 dependency_code[path] = compile(binding.component_inputs[path], fn.__code__.co_filename,
                     "exec", dont_inherit=True, optimize=sys.flags.optimize)
@@ -473,7 +488,7 @@ class _Factory:
                 or any(original.__dict__.get(name) is not value for name, value in self.namespace)
                 or tuple(self.builtins) != tuple(name for name, _ in self.builtin_items)
                 or any(self.builtins.get(name) is not value for name, value in self.builtin_items)
-                or any(getattr(original, name) is not fn for name, fn, _ in self.imported_functions)
+                or any(getattr(module, name) is not fn for module, name, fn, _ in self.imported_functions)
                 or not all(_current(item) for item in self.imported_stamps)
                 or tuple(vars(self.base_type)) != tuple(name for name, _ in self.base_namespace)
                 or any(vars(self.base_type).get(name) is not value for name, value in self.base_namespace)

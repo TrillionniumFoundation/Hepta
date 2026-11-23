@@ -1046,6 +1046,9 @@ assert not blocked.intersection(sys.modules)
             if 'hepta/_data/' + full + 'integer-bundle.json' in z.namelist():
                 native.update((full + 'integer-bundle.json', full + 'scalar-reference/manifest.json',
                                full + 'scalar-reference/scalar-reference.image.bin'))
+            if 'hepta/_data/' + full + 'ledger-bundle.json' in z.namelist():
+                native.update((full + 'ledger-bundle.json', full + 'execution-ledger/manifest.json',
+                               full + 'execution-ledger/execution-ledger.image.bin'))
             provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))
             if 'derived_pin_resource' in provenance:
                 self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')

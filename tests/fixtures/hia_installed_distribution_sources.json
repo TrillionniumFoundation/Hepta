@@ -512,8 +512,8 @@
     },
     "tests/test_hia_agent_installed_resources.py": {
       "current": {
-        "bytes": 72383,
-        "sha256": "6c96a4c38331c0130a0797ca23085c8e75fa8b99e7bde4ce8eacc3bebd838fba"
+        "bytes": 72647,
+        "sha256": "9838ea261b05bcc677c73c1831e792a9fbea115c6191d1e06305c8165a6877c4"
       },
       "original": {
         "bytes": 65955,
@@ -546,7 +546,7 @@
           "offset": 61349
         },
         {
-          "after": "            from tests.hia_distribution_fixture import derived_python_pin\n            derived_python_pin(z)\n            if 'hepta/_data/' + full + 'integer-bundle.json' in z.namelist():\n                native.update((full + 'integer-bundle.json', full + 'scalar-reference/manifest.json',\n                               full + 'scalar-reference/scalar-reference.image.bin'))\n            provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))\n            if 'derived_pin_resource' in provenance:\n                self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')\n                native.add(full + 'pin.json')\n",
+          "after": "            from tests.hia_distribution_fixture import derived_python_pin\n            derived_python_pin(z)\n            if 'hepta/_data/' + full + 'integer-bundle.json' in z.namelist():\n                native.update((full + 'integer-bundle.json', full + 'scalar-reference/manifest.json',\n                               full + 'scalar-reference/scalar-reference.image.bin'))\n            if 'hepta/_data/' + full + 'ledger-bundle.json' in z.namelist():\n                native.update((full + 'ledger-bundle.json', full + 'execution-ledger/manifest.json',\n                               full + 'execution-ledger/execution-ledger.image.bin'))\n            provenance = json.loads(z.read('hepta/_data/' + full + 'provenance.json'))\n            if 'derived_pin_resource' in provenance:\n                self.assertEqual(provenance['derived_pin_resource'], 'hepta/_data/' + full + 'pin.json')\n                native.add(full + 'pin.json')\n",
           "before": "",
           "offset": 61396
         },

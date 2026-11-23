@@ -64,10 +64,15 @@ def derived_python_pin(archive):
         digest('hepta/' + PROOF_BUNDLE_RESOURCE), digest('hepta/' + CLI_BUNDLE_RESOURCE),
         digest('hepta/' + BINDER_RESOURCE),
     )
-    from hepta.hia_default_native import INTEGER_BUNDLE_RESOURCE
+    from hepta.hia_default_native import INTEGER_BUNDLE_RESOURCE, LEDGER_BUNDLE_RESOURCE
     integer_bundle = 'hepta/' + INTEGER_BUNDLE_RESOURCE
     if integer_bundle in archive.namelist():
         values += (digest(integer_bundle),)
+    ledger_bundle = 'hepta/' + LEDGER_BUNDLE_RESOURCE
+    if ledger_bundle in archive.namelist():
+        if integer_bundle not in archive.namelist():
+            raise ValueError('the installed ledger bundle has no scalar predecessor')
+        values += (digest(ledger_bundle),)
     if provenance.get('derived_pin_resource') is not None:
         resource = PACKAGE_DIRECTORY + '/pin.json'
         data = (json.dumps(values, ensure_ascii=True, separators=(',', ':')) + '\n').encode('ascii')

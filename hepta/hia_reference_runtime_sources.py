@@ -3,8 +3,19 @@ from hashlib import sha256
 
 TYPED_RESOURCE_SHA256 = "b5dfeb949c9fc1ba2b6b54c7b1b74a3142ba9e7ecfa346ad502b68144d35b0e5"
 PACKAGE_INTEGER_SHA256 = "8295665a1f138f09f2613fdec8f9b20bb40541db5bdf426ffe640b273c61c2e9"
-PACKAGE_SCALAR_SHA256 = "5110923716b1e60960e71ffa2a3678184c29b7a1a78bbb21743e40c486ae92ce"
-RESOURCE_RUNTIME_SHA256S = frozenset((TYPED_RESOURCE_SHA256, PACKAGE_INTEGER_SHA256, PACKAGE_SCALAR_SHA256))
+INITIAL_PACKAGE_SCALAR_SHA256 = "5110923716b1e60960e71ffa2a3678184c29b7a1a78bbb21743e40c486ae92ce"
+PACKAGE_ALLOCATION_SHA256 = "eda571fbc25f37f299468db718123a1b30a6e71c587ca712aa8a49a6d6b3906a"
+PACKAGE_LEDGER_SHA256 = "b0397a6778ddadd8136c4a76efb687508a9f8e2d9c8779817e0419d520537b4a"
+PACKAGE_BORROWED_SHA256 = "320b1ddf801d521ecbf530646444c9faa1abdb0a2bf9a9f9a9d45113a3767f22"
+PACKAGE_LEDGER_BORROWED_SHA256 = "6acf327f879f9c181e4ac3ddd90ff29459a3cb921a774bdc4cefe52e27c4f0f1"
+PACKAGE_BULK_SHA256 = "c522f9f95d2dab53189b634c0ac6834902add6e9bad5953898a8cbda096e2d11"
+PACKAGE_SCALAR_SHA256 = PACKAGE_BULK_SHA256
+PACKAGE_LEDGER_RUNTIME_SHA256S = frozenset((PACKAGE_LEDGER_SHA256, PACKAGE_LEDGER_BORROWED_SHA256, PACKAGE_BULK_SHA256))
+PACKAGE_SCALAR_DISPATCH_SHA256S = frozenset((
+    INITIAL_PACKAGE_SCALAR_SHA256, PACKAGE_ALLOCATION_SHA256, PACKAGE_LEDGER_SHA256,
+    PACKAGE_BORROWED_SHA256, PACKAGE_LEDGER_BORROWED_SHA256, PACKAGE_BULK_SHA256,
+))
+RESOURCE_RUNTIME_SHA256S = PACKAGE_SCALAR_DISPATCH_SHA256S | {TYPED_RESOURCE_SHA256, PACKAGE_INTEGER_SHA256}
 WORD_RUNTIME_SHA256 = "db118314608168799a0d2c1210cec04ba38981a329e8da6cf4debcd07b267aa0"
 
 # Ranges use zero-based complete source lines. Each replacement is the earlier
@@ -130,12 +141,109 @@ _PREVIOUS_LINES = (
 )
 
 
+_ALLOCATION_INVERSE = (
+    (208, 212, (
+        b'        if self.scalar_reference is not None:\n'
+        b'            decision, attempts = self.scalar_reference.allocation(\n'
+        b'                size, self.max_heap_bytes, self.live_bytes, self.allocation_attempts, self.allocation_fail_at)\n'
+        b'        else:\n'
+    )),
+    (213, 217, b''),
+    (260, 269, b''),
+    (279, 280, (
+        b"            if not hasattr(self, '_package_integer'):\n"
+        b'                from .hia_default_native import default_integer_image\n'
+        b'                self._package_integer = default_integer_image()\n'
+        b'            package_scalar = self._package_integer\n'
+    )),
+)
+
+_LEDGER_INVERSE = (
+    (18, 20, (
+        b'from .hia_execution_ledger_native import SELECTOR as LEDGER_SELECTOR, installed_execution_ledger\n'
+        b'from .hia_opcodes import ExecutionObservationRejected, WORD_LOADS, WORD_STORES, validate_execution_observation\n'
+    )),
+    (634, 635, (
+        b'            validator = validate_execution_observation\n'
+        b'            selected = os.environ.get(LEDGER_SELECTOR)\n'
+        b'            if selected is not None:\n'
+        b'                if not selected:\n'
+        b"                    raise ValueError('native execution ledger selector must not be empty')\n"
+        b'                validator = installed_execution_ledger(selected).validate\n'
+    )),
+)
+
+_BORROWED_INVERSE = (
+    (269, 275, b''),
+    (417, 419, b'            if self.scalar_reference is not None:\n'),
+    (421, 422, b'                    result = [self.scalar_reference.byte_operation(operation, owner.data, offset=index)]\n'),
+    (423, 424, b'                    self.scalar_reference.byte_operation(operation, owner.data, offset=index, value=args[2])\n'),
+    (430, 433, (
+        b'            if self.scalar_reference is not None:\n'
+        b'                result = [self.scalar_reference.byte_operation("load", owner.data, offset=index)]\n'
+    )),
+    (441, 444, (
+        b'            if self.scalar_reference is not None:\n'
+        b'                self.scalar_reference.byte_operation("store", owner.data, offset=index, value=value)\n'
+    )),
+)
+
+_BULK_INVERSE = (
+    (17, 18, b''),
+    (270, 271, b'    def borrowed_byte_operation(self):\n'),
+    (273, 275, b''),
+    (458, 461, (
+        b'                if self.scalar_reference is not None:\n'
+        b'                    self.scalar_reference.byte_operation("fill", owner.data, count=len(owner.data), value=value)\n'
+    )),
+    (471, 474, (
+        b'            if self.scalar_reference is not None:\n'
+        b'                self.scalar_reference.byte_operation("copy", destination.data, source=source.data, count=size)\n'
+    )),
+    (490, 494, (
+        b'                if self.scalar_reference is not None:\n'
+        b'                    self.scalar_reference.byte_operation("move", owner.data, offset=destination,\n'
+        b'                                                        source_offset=source, count=size)\n'
+    )),
+    (512, 515, (
+        b'                if self.scalar_reference is not None:\n'
+        b'                    self.scalar_reference.byte_operation("fill", owner.data, offset=offset, count=size, value=value)\n'
+    )),
+    (532, 536, (
+        b'            if self.scalar_reference is not None:\n'
+        b'                self.scalar_reference.byte_operation("copy_range", destination.data, offset=dst_offset,\n'
+        b'                                                    source=source.data, source_offset=src_offset, count=size)\n'
+    )),
+    (549, 552, (
+        b'            if self.scalar_reference is not None:\n'
+        b'                self.scalar_reference.byte_operation("swap", owner.data, offset=left, source_offset=right)\n'
+    )),
+)
+
+_PACKAGE_PREDECESSORS = {
+    PACKAGE_BULK_SHA256: (PACKAGE_LEDGER_BORROWED_SHA256, _BULK_INVERSE),
+    PACKAGE_ALLOCATION_SHA256: (INITIAL_PACKAGE_SCALAR_SHA256, _ALLOCATION_INVERSE),
+    PACKAGE_LEDGER_SHA256: (PACKAGE_ALLOCATION_SHA256, _LEDGER_INVERSE),
+    PACKAGE_BORROWED_SHA256: (PACKAGE_ALLOCATION_SHA256, _BORROWED_INVERSE),
+    PACKAGE_LEDGER_BORROWED_SHA256: (PACKAGE_LEDGER_SHA256, _BORROWED_INVERSE),
+}
+
+
 def word_runtime_source(raw):
     """Recover the v9 image from its admitted typed-resource successor."""
     digest = sha256(raw).hexdigest() if type(raw) is bytes else None
+    while digest in _PACKAGE_PREDECESSORS:
+        previous, inverse = _PACKAGE_PREDECESSORS[digest]
+        lines = raw.splitlines(keepends=True)
+        for start, stop, replacement in reversed(inverse):
+            lines[start:stop] = [replacement]
+        raw = b''.join(lines)
+        digest = sha256(raw).hexdigest()
+        if digest != previous:
+            raise ValueError('the package interpreter differs from its complete predecessor')
     additions = {
         PACKAGE_INTEGER_SHA256: ((274, 276), (265, 271), (17, 18)),
-        PACKAGE_SCALAR_SHA256: ((273, 275), (264, 270)),
+        INITIAL_PACKAGE_SCALAR_SHA256: ((273, 275), (264, 270)),
     }
     if digest in additions:
         lines = raw.splitlines(keepends=True)

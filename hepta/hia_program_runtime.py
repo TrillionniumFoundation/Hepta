@@ -15,6 +15,7 @@ from weakref import proxy
 from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS,
                           integer_range, scalar_value_valid, verify_program)
 from .hia_bounded_memory import fill_bytes, move_bytes
+from .hia_bounded_memory_native import SELECTOR as BOUNDED_MEMORY_SELECTOR
 from .hia_schema import supports_feature
 from .hia_execution_ledger_native import vm_execution_ledger_validator
 from .hia_opcodes import ExecutionObservationRejected, WORD_LOADS, WORD_STORES
@@ -267,6 +268,14 @@ class _Machine:
             self._package_integer = default_integer_image()
         return self._package_integer
 
+    def borrowed_byte_operation(self, *, bounded=False):
+        if self.scalar_reference is not None:
+            return self.scalar_reference.byte_operation
+        if bounded and BOUNDED_MEMORY_SELECTOR in os.environ:
+            return None
+        package = self.package_scalar_reference()
+        return package.package_byte_operation if package is not None else None
+
     def operation(self, ins, env, depth):
         op, attrs = ins["op"], ins["attrs"]
         names = ins["args"]
@@ -409,20 +418,22 @@ class _Machine:
             # store may modify a prefix before trapping.
             if index > extent or 8 > extent - index:
                 raise HIAProgramTrap("bounds", "u64 word outside the borrowed buffer")
-            if self.scalar_reference is not None:
+            byte_operation = self.borrowed_byte_operation()
+            if byte_operation is not None:
                 operation = op.removeprefix("buffer.")
                 if op in WORD_LOADS:
-                    result = [self.scalar_reference.byte_operation(operation, owner.data, offset=index)]
+                    result = [byte_operation(operation, owner.data, offset=index)]
                 else:
-                    self.scalar_reference.byte_operation(operation, owner.data, offset=index, value=args[2])
+                    byte_operation(operation, owner.data, offset=index, value=args[2])
             elif op in WORD_LOADS:
                 result = [int.from_bytes(owner.data[index:index + 8], WORD_LOADS[op])]
             else:
                 owner.data[index:index + 8] = args[2].to_bytes(8, WORD_STORES[op])
         elif op == "buffer.load":
             owner, index = _underlying(args[0]), args[1]
-            if self.scalar_reference is not None:
-                result = [self.scalar_reference.byte_operation("load", owner.data, offset=index)]
+            byte_operation = self.borrowed_byte_operation()
+            if byte_operation is not None:
+                result = [byte_operation("load", owner.data, offset=index)]
             else:
                 if index >= len(owner.data):
                     raise HIAProgramTrap("bounds", "byte load outside the borrowed buffer")
@@ -431,8 +442,9 @@ class _Machine:
             owner, index, value = _underlying(args[0]), args[1], args[2]
             if not isinstance(args[0], _View) or not args[0].mutable:
                 raise HIAProgramRejected("write through non-mutable view", "E_HIA_RUNTIME_INVARIANT")
-            if self.scalar_reference is not None:
-                self.scalar_reference.byte_operation("store", owner.data, offset=index, value=value)
+            byte_operation = self.borrowed_byte_operation()
+            if byte_operation is not None:
+                byte_operation("store", owner.data, offset=index, value=value)
             else:
                 if index >= len(owner.data):
                     raise HIAProgramTrap("bounds", "byte store outside the borrowed buffer")
@@ -444,8 +456,9 @@ class _Machine:
             # Bounded host scratch, not an O(owner_length) temporary.
             # The HIA Owner allocation and its declared effects are unchanged.
             try:
-                if self.scalar_reference is not None:
-                    self.scalar_reference.byte_operation("fill", owner.data, count=len(owner.data), value=value)
+                byte_operation = self.borrowed_byte_operation(bounded=True)
+                if byte_operation is not None:
+                    byte_operation("fill", owner.data, count=len(owner.data), value=value)
                 else:
                     fill_bytes(owner.data, 0, len(owner.data), value)
             except MemoryError as exc:
@@ -456,8 +469,9 @@ class _Machine:
                 raise HIAProgramRejected("copy requires checked mutable and shared loans", "E_HIA_RUNTIME_INVARIANT")
             if destination is source:
                 raise HIAProgramRejected("copy alias escaped static owner verification", "E_HIA_RUNTIME_INVARIANT")
-            if self.scalar_reference is not None:
-                self.scalar_reference.byte_operation("copy", destination.data, source=source.data, count=size)
+            byte_operation = self.borrowed_byte_operation()
+            if byte_operation is not None:
+                byte_operation("copy", destination.data, source=source.data, count=size)
             else:
                 if size > len(destination.data) or size > len(source.data):
                     raise HIAProgramTrap("bounds", "bulk copy exceeds an owner extent")
@@ -474,9 +488,10 @@ class _Machine:
                                          "E_HIA_RUNTIME_INVARIANT")
             extent = len(owner.data)
             try:
-                if self.scalar_reference is not None:
-                    self.scalar_reference.byte_operation("move", owner.data, offset=destination,
-                                                        source_offset=source, count=size)
+                byte_operation = self.borrowed_byte_operation(bounded=True)
+                if byte_operation is not None:
+                    byte_operation("move", owner.data, offset=destination,
+                                   source_offset=source, count=size)
                 else:
                     if (destination > extent or source > extent
                             or size > extent - destination or size > extent - source):
@@ -495,8 +510,9 @@ class _Machine:
                                          "E_HIA_RUNTIME_INVARIANT")
             extent = len(owner.data)
             try:
-                if self.scalar_reference is not None:
-                    self.scalar_reference.byte_operation("fill", owner.data, offset=offset, count=size, value=value)
+                byte_operation = self.borrowed_byte_operation(bounded=True)
+                if byte_operation is not None:
+                    byte_operation("fill", owner.data, offset=offset, count=size, value=value)
                 else:
                     if offset > extent or size > extent - offset:
                         raise HIAProgramTrap("bounds", "fill range exceeds owned extent")
@@ -514,9 +530,10 @@ class _Machine:
                 raise HIAProgramRejected("range copy violates checked distinct-owner loans",
                                          "E_HIA_RUNTIME_INVARIANT")
             dst_size, src_size = len(destination.data), len(source.data)
-            if self.scalar_reference is not None:
-                self.scalar_reference.byte_operation("copy_range", destination.data, offset=dst_offset,
-                                                    source=source.data, source_offset=src_offset, count=size)
+            byte_operation = self.borrowed_byte_operation()
+            if byte_operation is not None:
+                byte_operation("copy_range", destination.data, offset=dst_offset,
+                               source=source.data, source_offset=src_offset, count=size)
             else:
                 if (dst_offset > dst_size or src_offset > src_size
                         or size > dst_size - dst_offset or size > src_size - src_offset):
@@ -530,8 +547,9 @@ class _Machine:
             if not isinstance(args[0], _View) or not args[0].mutable:
                 raise HIAProgramRejected("swap needs one live mutable borrow",
                                          "E_HIA_RUNTIME_INVARIANT")
-            if self.scalar_reference is not None:
-                self.scalar_reference.byte_operation("swap", owner.data, offset=left, source_offset=right)
+            byte_operation = self.borrowed_byte_operation()
+            if byte_operation is not None:
+                byte_operation("swap", owner.data, offset=left, source_offset=right)
             else:
                 # Snapshot both source bytes before modifying either position.
                 if left >= len(owner.data) or right >= len(owner.data):

@@ -111,6 +111,12 @@ class _StandaloneReference:
 
 
 class NativeScalarReference(NativeHiaJsonImage):
+    def __init__(self, image, expected_sha256):
+        super().__init__(image, expected_sha256)
+        # Match the VM's atomic byte and fixed-width slice access to a borrowed owner.
+        signature = ctypes.PYFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3))
+        self._borrowed_entry = signature(self._image_address)
+
     def sealed_descriptor(self):
         """Pass the selected bytes themselves, never a child-reopened pathname."""
         return sealed_reference_bytes(self._mapping[:])
@@ -172,8 +178,17 @@ class NativeScalarReference(NativeHiaJsonImage):
         with self.package_custody():
             return self.allocation(size, maximum, live, attempts, fail_at)
 
+    def package_byte_operation(self, name, destination, *, offset=0, source=None,
+                               source_offset=0, count=0, value=0):
+        with self.package_custody():
+            return self._byte_operation(self._borrowed_entry, name, destination, offset,
+                                        source, source_offset, count, value)
+
     def byte_operation(self, name, destination, *, offset=0, source=None,
                        source_offset=0, count=0, value=0):
+        return self._byte_operation(self._entry, name, destination, offset, source, source_offset, count, value)
+
+    def _byte_operation(self, entry, name, destination, offset, source, source_offset, count, value):
         from .hia_program_runtime import HIAProgramTrap
 
         opcode, message = BYTE_OPERATIONS[name]
@@ -187,7 +202,10 @@ class NativeScalarReference(NativeHiaJsonImage):
             source = bytearray(8)
         other = ((ctypes.c_ubyte*len(source)).from_buffer(source)
                  if source else ctypes.create_string_buffer(1))
-        status = self._entry(wire, len(request), out, len(destination), other, len(source or ()))
+        try:
+            status = entry(wire, len(request), out, len(destination), other, len(source or ()))
+        finally:
+            del out, other
         if status == 0xfffffffd:
             raise HIAProgramTrap('bounds', message)
         if opcode in (7, 8) and status == 0:
