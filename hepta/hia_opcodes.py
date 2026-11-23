@@ -11,7 +11,7 @@ from hashlib import sha256
 import json
 from types import MappingProxyType
 
-from .hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES
+from .hia_schema import LATEST_CORE_SCHEMA, ALL_PRIMITIVE_PROFILES
 
 WIDTHS = MappingProxyType({**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
                           "isize": 64, "usize": 64})
@@ -216,7 +216,7 @@ TERMINATORS = MappingProxyType({"ret": ("op", "values"), "jump": ("op", "target"
 
 
 def opcode_spec(name: str, schema: str = LATEST_CORE_SCHEMA) -> OpcodeSpec:
-    if schema not in PRIMITIVE_PROFILES:
+    if schema not in ALL_PRIMITIVE_PROFILES:
         raise OpcodeRejected("unknown primitive schema; legacy/composite input requires an explicit adapter")
     spec = (KERNEL_OPCODES if schema in {
         "hepta.hia.program.kernel-fence.v1",
@@ -224,7 +224,7 @@ def opcode_spec(name: str, schema: str = LATEST_CORE_SCHEMA) -> OpcodeSpec:
     } else OPCODES).get(name)
     if spec is None:
         raise OpcodeRejected(f"unsupported opcode {name}")
-    if list(PRIMITIVE_PROFILES).index(schema) + 1 < spec.since:
+    if list(ALL_PRIMITIVE_PROFILES).index(schema) + 1 < spec.since:
         raise OpcodeRejected(f"{name} requires HIA program v{spec.since}")
     return spec
 
@@ -269,14 +269,14 @@ def check_instruction(spec: OpcodeSpec, operands, results, attributes) -> frozen
 def opcode_catalog(schema: str | None = None) -> dict:
     """Detached complete catalog; hashes bind metadata, never grant admission."""
     schema = LATEST_CORE_SCHEMA if schema is None else schema
-    if schema not in PRIMITIVE_PROFILES:
+    if schema not in ALL_PRIMITIVE_PROFILES:
         raise OpcodeRejected("catalog requires an exact primitive schema")
-    version = list(PRIMITIVE_PROFILES).index(schema) + 1
+    version = list(ALL_PRIMITIVE_PROFILES).index(schema) + 1
     selected = KERNEL_OPCODES if version > 8 else OPCODES
     rows = [asdict(spec) for spec in selected.values() if spec.since <= version]
     visible_types = TYPES - ({"chain"} if version < 7 else set())
     result = {"schema": "hepta.hia.opcode-catalog.v1", "core_schema": schema,
-        "profile": PRIMITIVE_PROFILES[schema], "word_bits": 64,
+        "profile": ALL_PRIMITIVE_PROFILES[schema], "word_bits": 64,
         "types": sorted(visible_types),
         "type_groups": {k: sorted(v & visible_types) for k, v in _GROUPS.items()},
         "signature_rules": {"=N": "same type as zero-based operand N", "declared:T": "explicit result type in group T",

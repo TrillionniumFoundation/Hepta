@@ -72,6 +72,40 @@ class KernelTlbCoreTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(HIAProgramRejected):
                 verify_program(altered)
 
+    def test_kernel_profiles_do_not_change_frozen_cli_discovery(self):
+        from contextlib import redirect_stdout, redirect_stderr
+        import io
+        from hepta.cli import _reference_hia_main
+        from hepta.hia_schema import (
+            PRIMITIVE_PROFILES, PRIMITIVE_FEATURES, KERNEL_PRIMITIVE_SCHEMAS,
+            profile_for_schema, schema_registry, supports_feature,
+        )
+        historical = tuple(f"hepta.hia.program.v{i}" for i in range(1, 9))
+        self.assertEqual(tuple(PRIMITIVE_PROFILES), historical)
+        self.assertEqual(tuple(PRIMITIVE_FEATURES), historical)
+        self.assertEqual(tuple(row["schema"] for row in
+                               schema_registry()["primitive"]), historical)
+        for schema in KERNEL_PRIMITIVE_SCHEMAS:
+            with self.subTest(schema=schema):
+                self.assertTrue(supports_feature(schema, "parameter_loan_returns"))
+                self.assertEqual(opcode_catalog(schema)["profile"],
+                                 profile_for_schema(schema))
+                errors = io.StringIO()
+                with redirect_stderr(errors), self.assertRaises(SystemExit) as error:
+                    _reference_hia_main(["catalog", "--schema", schema])
+                self.assertEqual(error.exception.code, 2)
+                # The error's rejected argument may name the experiment;
+                # the usage/choices must not advertise it as an ordinary CLI schema.
+                self.assertNotIn("kernel-", errors.getvalue().split("error:", 1)[0])
+        help_text = io.StringIO()
+        with redirect_stdout(help_text), self.assertRaises(SystemExit) as error:
+            _reference_hia_main(["catalog", "--help"])
+        self.assertEqual(error.exception.code, 0)
+        self.assertNotIn("kernel-", help_text.getvalue())
+        for schema in historical:
+            self.assertIn(schema, help_text.getvalue())
+        self.assertEqual(verify_program(sample()).as_dict()["schema"], KERNEL_TLB_SCHEMA)
+
     def test_experimental_emitter_cannot_bypass_frozen_owner(self):
         from hepta import hia_program_native as native
         document = sample()

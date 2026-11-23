@@ -29,7 +29,7 @@ from .hia_sha256_native import payload_sha256
 from .hia_capability_flow import (Capability as _Capability,
                                   CapabilityFlowRejected, rename_capabilities)
 from .hia_schema import (
-    COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, PRIMITIVE_PROFILES, PROFILE, PROFILE_V2, PROFILE_V3,
+    COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, ALL_PRIMITIVE_PROFILES, PROFILE, PROFILE_V2, PROFILE_V3,
     PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, PROFILE_V8, SCHEMA, SCHEMA_V2, SCHEMA_V3,
     SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, profile_for_schema, supports_feature,
 )
@@ -850,7 +850,7 @@ def _reference_primitive_structure(data):
     if type(data) is dict and "exports" in data:
         fields.add("exports")
     _keys(data, fields, "program")
-    if type(data["schema"]) is not str or data["schema"] not in PRIMITIVE_PROFILES:
+    if type(data["schema"]) is not str or data["schema"] not in ALL_PRIMITIVE_PROFILES:
         _reject("unsupported program schema", "E_HIA_SCHEMA")
     _ident(data["module"], "module")
     if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
