@@ -697,7 +697,9 @@ def standalone_capabilities_source():
     from tools.generate_hia_agent_stdio import writes
 
     capabilities = capabilities_from_source((BASE / 'hepta/cli.py').read_text())
+    capabilities['implementation'] = 'hia_native'
     build = capabilities['build']
+    build['selfhost']['hosted_cli_and_publication'] = False
     del build['auto_object']
     build['auto_shared'] = {
         'selection': 'supported scalar Core only',

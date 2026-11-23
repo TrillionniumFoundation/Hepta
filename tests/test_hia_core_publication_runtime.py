@@ -753,7 +753,9 @@ def check_release(release, directory):
             # The independent release has a bounded scalar prover, not the
             # general hosted Safe Core solver.
             capabilities = json.loads(reference_cli([action]))
+            capabilities['implementation'] = 'hia_native'
             build = capabilities['build']
+            build['selfhost']['hosted_cli_and_publication'] = False
             build['backend'] = 'native'
             del build['auto_object']
             build['auto_shared'] = {
