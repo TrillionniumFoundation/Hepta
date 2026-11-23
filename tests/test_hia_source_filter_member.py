@@ -118,6 +118,38 @@ class InstalledSourceMemberTests(unittest.TestCase):
                                 frame(role, source, image, source, compiler)):
                     self.invoke([author, 'build'], invalid, refused=True)
 
+    def test_normal_sqlite_units_match_the_independent_installed_programs(self):
+        from tools import build_hia_native_store_release as release
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+        from tools.build_hia_sqlite_components import INPUT, START, UNITS
+
+        seed = self.seed.read_bytes()
+        linker = (self.release / 'hia-elf-link').read_bytes()
+        admitted = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in (START, INPUT)}
+
+        def compile_sources(names):
+            paths = {name: self.sources / source for name, source in names.items()}
+            sources = {name: path.read_bytes() for name, path in paths.items()}
+            group = self.source_images(self.work / 'sqlite-sources', paths)
+            return group, _compiled_sources(group, sources), sources
+
+        def call(program, operation, wire):
+            result = _run_captured(program, operation, wire, self.work)
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            return result.stdout
+
+        published = set()
+
+        def publish(path, *, expected):
+            self.assertNotIn(path.name, published)
+            output = path.read_bytes()
+            self.assertEqual(sha256(output).hexdigest(), expected)
+            self.assertEqual(output, (self.release / path.name).read_bytes())
+            published.add(path.name)
+
+        release._stage_sqlite_units(self.work, seed, linker, compile_sources, call, admitted, publish)
+        self.assertEqual(published, {'hia-' + unit for unit in UNITS})
+
     def test_from_native_sources_against_every_installed_filter(self):
         for name in MEMBERS:
             with self.subTest(member=name):

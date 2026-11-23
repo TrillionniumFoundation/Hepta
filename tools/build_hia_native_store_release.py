@@ -85,9 +85,8 @@ def _stage_sqlite(work, compiler, cold_report, publish):
     for kind in ('batch', 'sealed', 'initialize'):
         batches[kind] = component('agent_batch_commit', label='commit-' + kind, kind=kind)
     pager = component('sqlite_pager')
-    components = _compile(work, 'sqlite_components', compiler, cold_report)
-    for unit in (*UNITS, PROJECTION):
-        publish(components / ('hia-' + unit))
+    components = _compile(work, 'sqlite_components', compiler, cold_report, projection_only=True)
+    publish(components / ('hia-' + PROJECTION))
     publisher = component('sqlite_migration_publish', artifacts, batches['batch'])
     component('sqlite_migrate', {'pager': pager, 'staging': components, 'initializer': batches['initialize'],
                                  'publisher': publisher})
@@ -123,6 +122,45 @@ def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
         image_path = work / image_name
         image_path.write_bytes(image)
         publish(image_path, expected=expected['image_sha256'])
+
+
+def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, publish):
+    """Build the installed SQLite units through sealed HIA source, embedding and linking stages."""
+    from tools.build_hia_sqlite_components import INPUT, START
+    from tools.build_hia_sqlite_pager import verify_executable
+
+    def owner(application):
+        kit, _, _ = compile_sources({
+            'source_build_policy.hepta': 'source_sqlite_unit.hepta',
+            'selfhost.hepta': 'selfhost.hepta',
+            'source_build_packer.hepta': application,
+        })
+        return call(seed, 'pack', kit)
+
+    adapters = owner('sqlite_component_adapters.hepta')
+    embedder = owner('elf_embed_image.hepta')
+    objects = []
+    for ordinal, name in enumerate((START, INPUT)):
+        source = (ROOT / name).read_bytes()
+        if sha256(source).hexdigest() != admitted.get(name):
+            raise ValueError('SQLite adapter source differs from cold admission: ' + name)
+        frame = struct.pack('<8sQQ', b'HIASQAD1', ordinal, len(source)) + source
+        objects.append(call(adapters, 'build', frame))
+
+    names = [unit.replace('-', '_') + '.hepta' for unit in UNITS]
+    _, images, sources = compile_sources({name: name for name in names})
+    for ordinal, (unit, name) in enumerate(zip(UNITS, names, strict=True), 1):
+        source = sources[name]
+        request = struct.pack('<8sQQ', b'HIASQUN1', ordinal, len(source)) + source
+        component = call(embedder, 'build', request)
+        inputs = (*objects, component)
+        request = struct.pack('<8s3Q', b'HIASQLK1', *map(len, inputs)) + b''.join(inputs)
+        link_input = call(embedder, 'build', request)
+        executable = call(linker, None, link_input)
+        verify_executable(executable, images[name])
+        path = work / ('hia-' + unit)
+        path.write_bytes(executable)
+        publish(path, expected=sha256(executable).hexdigest())
 
 
 def _source_worker_recipes():
@@ -331,6 +369,8 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             path = work / 'compiler-manifest.json'
             path.write_bytes(manifest)
             publish(path)
+
+    _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
 
 
 def _pack_and_verify(work, stage, members):
