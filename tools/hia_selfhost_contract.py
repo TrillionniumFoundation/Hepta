@@ -179,6 +179,7 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tests/test_hia_evaluate_cost_ledger.py',
     'tests/test_hia_evaluate_run_plan.py',
     'tests/test_hia_evaluate_unkeyed_flow.py',
+    'tests/test_hia_evaluate_keyed_schema.py',
     'tools/hia_execution_budget_session.S',
     'tests/test_hia_execution_budget_session.py',
     'tools/hia_evaluate_reference_batch.S',

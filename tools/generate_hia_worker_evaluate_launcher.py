@@ -75,10 +75,10 @@ def child_calls(roles):
 
 
 STATES = ('INPUT_CLASSIFIED PROOF_DONE PLAN_DONE PAID_DONE CLAIM_MADE ARCHIVE_MADE RECEIPT_MADE '
-          'TIMING_MADE REPORT_DONE LEDGER_DONE CLOSE_LEADING CLOSE_INPUT CLOSED').split()
+          'TIMING_MADE REPORT_DONE LEDGER_DONE CLOSE_LEADING CLOSE_INPUT CLOSED SCHEMA_DIAG SCHEMA_MADE').split()
 FIELDS = ('PREP_FD PREP_BYTES CLAIM_BYTES ADMITTED_BYTES CALL_BYTES ADMITTED_AT CALL_AT ENTRY_TIME '
           'PAID_FD ARCHIVE_BYTES RECEIPT_BYTES CLAIM_FD ARCHIVE_FD RECEIPT_FD REPORT_FD REPORT_BYTES '
-          'LEDGER_FD LEDGER_BYTES REFUSAL_FD').split()
+          'LEDGER_FD LEDGER_BYTES REFUSAL_FD REFUSAL_BYTES').split()
 
 POLICY = '''
 def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
@@ -92,7 +92,13 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     if state == INPUT_CLASSIFIED:
         if length(s) < 72:
             return BAD
+        if size > 677 and size <= 676+MAX_REQUEST and capsule_word(s,64) == SCHEMA_QUERY:
+            put(w,REFUSAL_FD,fd)
+            fragment(o,0,fd,676,size-676)
+            child_name(o,DIAGNOSTIC_ROLE)
+            return issue(o,w,SCHEMA_DIAG,RUN,role_fd(w,DIAGNOSTIC_ROLE),0,1,0)
         if size == 676 and capsule_word(s,64) == KEYED_REFUSAL:
+            put(w,REFUSAL_BYTES,676)
             put(w,REFUSAL_FD,fd)
             return launch_bootstrap(o,w)
         if byte(s,64) == 123:
@@ -120,6 +126,19 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
         put(w,CALL_BYTES,call)
         put(w,ADMITTED_AT,40+claim)
         put(w,CALL_AT,40+claim+admitted)
+        return launch_bootstrap(o,w)
+    if state == SCHEMA_DIAG:
+        if length(s) < 96 or size <= 32 or size > 65544 or capsule_word(s,64) != size-8 or capsule_word(s,72) != ERROR_START or capsule_word(s,80) != SCHEMA_START:
+            return BAD
+        put(o,HEADER,KEYED_SCHEMA)
+        fragment(o,0,get(w,REFUSAL_FD),8,668)
+        fragment(o,1,fd,8,size-8)
+        put(w,REFUSAL_BYTES,668+size)
+        return issue(o,w,SCHEMA_MADE,MAKE,0,0,2,8)
+    if state == SCHEMA_MADE:
+        if size != get(w,REFUSAL_BYTES) or capsule_word(s,64) != KEYED_SCHEMA:
+            return BAD
+        put(w,REFUSAL_FD,fd)
         return launch_bootstrap(o,w)
     if state == PROOF_DONE:
         if size < 80 or capsule_word(s,64) != PROVED:
@@ -225,7 +244,7 @@ def compose(source, roles):
                             '    return dispatch(s, o, w, state)')
     source = source.replace('        return launch_worker(o, w, get(w, ROUTE))',
                             '        if get(w,ROUTE) == REPLAY_ROUTE:\n'
-                            '            if get(w,REFUSAL_FD) != 0:\n                return full_closeout(o,w,get(w,REFUSAL_FD),676)\n'
+                            '            if get(w,REFUSAL_FD) != 0:\n                return full_closeout(o,w,get(w,REFUSAL_FD),get(w,REFUSAL_BYTES))\n'
                             '            return full_proof(o,w,get(w,REQUEST_FD),get(w,REQUEST_BYTES))\n'
                             '        return launch_worker(o, w, get(w, ROUTE))')
     source = source.replace('    return issue(o, w, WORKER_DONE, RUN,',
@@ -234,14 +253,15 @@ def compose(source, roles):
 
 
 def bindings(roles):
-    labels = dict(UNKEYED_HANDOFF=b'HIAENK01', KEYED_REFUSAL=b'HIAERJ01', PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
+    labels = dict(UNKEYED_HANDOFF=b'HIAENK01', KEYED_REFUSAL=b'HIAERJ01', SCHEMA_QUERY=b'HIAESQ01', KEYED_SCHEMA=b'HIAESR01',
+                  ERROR_START=b'{"code":', SCHEMA_START=b'"E_HIA_S', PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
                   PAID=b'HIAEXO01', JOURNAL=b'HIAEJC01', ARCHIVE=b'HIAEMT01', BUDGET=b'HIAEBRS1',
                   CLOCK_WIRE=b'HIAEMC01', REPORT_FRAME=b'HIAEMF01', CLOSING=b'HIAEFC01')
     values = {k: int.from_bytes(v, 'little') for k, v in labels.items()}
     values.update({n: 32+i for i, n in enumerate(STATES)})
     values.update({n: 2400+8*i for i, n in enumerate(FIELDS)})
     values.update(MAX_PRIVATE=64<<20, PLANNER_ROLE=roles.index(PLANNER), REPORT_ROLE=roles.index(REPORT),
-                  LEDGER_ROLE=roles.index(LEDGER))
+                  LEDGER_ROLE=roles.index(LEDGER), DIAGNOSTIC_ROLE=roles.index('hia-agent-evaluate-diagnostic'))
     return values
 
 

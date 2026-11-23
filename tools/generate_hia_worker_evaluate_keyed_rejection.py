@@ -34,6 +34,10 @@ def claimed_rejection(o:mutbuf,w:mutbuf) -> u64:
     copy_private(w,o,JOURNAL_STATE,HEADER+92,512)
     copy_private(w,o,JOURNAL_ROUTE,HEADER+604,64)
     fragment(o,0,slot_fd(w,STORE_RESULT),0,8)
+    if get(w,BUSINESS_REASON) == SHAPE_REASON:
+        put(o,HEADER,SCHEMA_QUERY)
+        after_prefix(w,o,ARGUMENT_FD,1)
+        return action(o,w,ERROR_CLAIMED,MAKE,0,0,2,668)
     return action(o,w,ERROR_CLAIMED,MAKE,0,0,1,668)
 
 def rejection_progress(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
@@ -61,7 +65,10 @@ def rejection_progress(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
             return refuse_business(o,w,reason)
         return retain_body(o,w,get(w,WORKLOAD_BODY),get(w,WORKLOAD_BODY+16))
     if state == ERROR_CLAIMED:
-        if size != 676 or input_word(s,64) != REJECTION:
+        if get(w,BUSINESS_REASON) == SHAPE_REASON:
+            if slot_bytes(w,ARGUMENT_FD) <= 8 or size != 668+slot_bytes(w,ARGUMENT_FD) or input_word(s,64) != SCHEMA_QUERY:
+                return BAD
+        elif size != 676 or input_word(s,64) != REJECTION:
             return BAD
         fragment(o,0,fd,0,size)
         return action(o,w,INTAKE_PUBLISHED,PUBLISH,0,0,1,0)
@@ -75,6 +82,12 @@ def ingress(driver, policy, controls, constants):
                      BUSINESS_CONTEXT=3240,BASE_METADATA=3280,WORKLOAD_BODY=3312,CLOSE_ERROR=58,
                      CASE_OPERANDS=104,CASE_CHECKED=105,ERROR_CLAIMED=106,EARLY_LIMIT=107,
                      CONTEXT_WINDOW=int.from_bytes(b'HIAEWD01','little'),CHECK_CONTEXT_WINDOW=3352)
+    constants.update(SHAPE_REASON=256,SCHEMA_QUERY=int.from_bytes(b'HIAESQ01','little'))
+    policy=policy.replace('    if state == INPUT_SCHEMA:', '''    if state == INPUT_SCHEMA:
+        if reply_word(s,1):
+            put(w,BUSINESS_REASON,SHAPE_REASON)
+            put(w,CLAIM_ACTIVE,1)
+            return send_journal(o,w,9)''')
     driver=driver.replace('    return intake(s, o, w, state)',
                           '    if state >= CASE_OPERANDS and state <= EARLY_LIMIT:\n'
                           '        return rejection_progress(s,o,w,state)\n    return intake(s, o, w, state)')
@@ -146,7 +159,14 @@ CLOSEOUT = '''
 def refusal_header(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if length(s) != 740 or input_word(s,72) == 0 or input_word(s,80) == 0 or input_word(s,96) != 512 or input_word(s,104) != 64 or input_word(s,112) != 8:
         return BAD
-    if (input_word(s,120) & 4294967295) != CONTEXT_PREFIX or input_word(s,156) != CLAIM_STATE or input_word(s,668) != CLAIM_ROUTE:
+    shape = input_word(s,64) == KEYED_SCHEMA and input_word(s,88) == SHAPE_REASON
+    if shape:
+        if slot_bytes(w,ORIGINAL) <= 678 or slot_bytes(w,ORIGINAL) > 676+DIAGNOSTIC_LIMIT:
+            return BAD
+        put(w,GLOBAL_COST,1)
+    elif input_word(s,64) != KEYED_REFUSAL or input_word(s,88) == SHAPE_REASON or (input_word(s,120) & 4294967295) != CONTEXT_PREFIX:
+        return BAD
+    if input_word(s,156) != CLAIM_STATE or input_word(s,668) != CLAIM_ROUTE:
         return BAD
     if input_word(s,676) != 2 or input_word(s,684) != 11 or input_word(s,692) != 0 or input_word(s,724) != 512 or input_word(s,732) != INTENT:
         return BAD
@@ -154,7 +174,9 @@ def refusal_header(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     while i < 64:
         if is_hex(byte(s,220+i)) == False or is_hex(byte(s,284+i)) == False or byte(s,220+i) != byte(s,350+i):
             return BAD
-        if i < 32 and is_hex(byte(s,124+i)) == False:
+        if shape and i < 36 and byte(s,120+i) != 0:
+            return BAD
+        if shape == False and i < 32 and is_hex(byte(s,124+i)) == False:
             return BAD
         i = i+1
     if byte(s,348) != 114 or byte(s,349) != 45:
@@ -167,6 +189,16 @@ def refusal_header(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     copy_span(s,w,284,CLAIM_KEY,64)
     copy_span(s,w,348,CLAIM_PUBLIC,66)
     first = rejected_begin(o,HEADER)
+    if shape:
+        extent = slot_bytes(w,ORIGINAL)-676
+        put(w,ERROR_BODY+8,first-HEADER)
+        put(w,ERROR_BODY+16,extent)
+        fragment(o,0,0,676,extent)
+        suffix = request_prefix(o,400)
+        copy_private(w,o,CLAIM_PUBLIC,suffix,66)
+        last = rejected_end(o,suffix+66)
+        fragment(o,1,INLINE_FRAGMENT,400,last-400)
+        return action(o,w,ERROR_REPLY,MAKE,0,0,2,first-HEADER)
     reason = input_word(s,88)
     end = error_document(o,first,reason)
     if end == 0:
@@ -182,7 +214,7 @@ def refusal_products(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     fd = input_word(s,32)
     size = input_word(s,40)
     if state == ERROR_REPLY:
-        if size < 240 or size > 1024 or get(w,ERROR_BODY+8)+get(w,ERROR_BODY+16) > size:
+        if size < 240 or size > choose(get(w,GLOBAL_COST) == 1,DIAGNOSTIC_LIMIT+256,1024) or get(w,ERROR_BODY+8)+get(w,ERROR_BODY+16) > size:
             return BAD
         hold(w,FINAL_REPLY,fd,0,size)
         put(w,ERROR_BODY,fd)
