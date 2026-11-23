@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from inspect import getattr_static
 import ctypes
 import os
 import struct
@@ -47,6 +48,28 @@ def capture_retained_page(store, reference, *, native_record=None, encoded=None)
         yield fd, size, encoded
     finally:
         os.close(fd)
+
+
+def lookup_page_cursor(store, arguments):
+    try:
+        lookup = store.cursor_lookup
+    except AttributeError:
+        if getattr_static(store, "cursor_lookup", None) is not None:
+            raise
+        return store.db.execute("SELECT * FROM cursors WHERE id=?", (arguments["cursor"],)).fetchone()
+    return lookup(arguments["cursor"])
+
+
+def retain_page_cursor(store, cursor, reference, offset):
+    try:
+        retain = store.cursor_retain
+    except AttributeError:
+        if getattr_static(store, "cursor_retain", None) is not None:
+            raise
+        store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+                         (cursor, reference["id"], reference["sha256"], offset))
+        return
+    retain(cursor, reference["id"], reference["sha256"], offset)
 
 
 class NativeAgentReadPage(NativeHiaJsonImage):

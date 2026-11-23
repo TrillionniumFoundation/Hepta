@@ -761,6 +761,53 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
+        ref = args["artifact"]
+        data, _ = self.store.get(ref)
+        offset = 0
+        if "cursor" in args:
+            row = self.store.db.execute("SELECT * FROM cursors WHERE id=?", (args["cursor"],)).fetchone()
+            if row is None or row["artifact_id"] != ref["id"] or row["sha256"] != ref["sha256"]:
+                reject("E_HIA_CURSOR", "cursor is not bound to this exact artifact")
+            offset = row["offset"]
+        limit = int(args.get("max_bytes", 65536))
+        chunk = data[offset:offset + limit]
+        encoding = "utf8"
+        try:
+            # Decode the complete artifact once to decide binary vs UTF-8, then
+            # only trim a page boundary. Never silently discard invalid bytes.
+            data.decode("utf-8")
+            while True:
+                try:
+                    content = chunk.decode("utf-8")
+                    break
+                except UnicodeDecodeError:
+                    chunk = chunk[:-1]
+        except UnicodeDecodeError:
+            encoding, content = "base64", base64.b64encode(chunk).decode("ascii")
+        # MCP JSON escaping can expand control characters sixfold. Bound the
+        # serialized page independently from the raw-byte content budget.
+        # The runtime exposes both structuredContent and a text JSON rendering.
+        # The latter escapes quotes/backslashes a second time. Budget both
+        # representations, not merely the first escaped content string.
+        while len(wire(content)) + len(wire(wire(content).decode("utf-8"))) > 230000:
+            chunk = chunk[:max(1, len(chunk) // 2)]
+            if encoding == "base64":
+                content = base64.b64encode(chunk).decode("ascii")
+            else:
+                while True:
+                    try:
+                        content = chunk.decode("utf-8")
+                        break
+                    except UnicodeDecodeError:
+                        chunk = chunk[:-1]
+        next_cursor = None
+        if offset + len(chunk) < len(data):
+            next_cursor = "page-" + digest({"artifact": ref, "offset": offset + len(chunk)})
+            self.store.db.execute("INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+                (next_cursor, ref["id"], ref["sha256"], offset + len(chunk)))
+        return {"artifact": ref, "encoding": encoding, "content": content, "next_cursor": next_cursor}
+
+    def _hia_read_with_components(self, args):
         from functools import partial
         from .hia_agent_store import _native_agent_identity, uses_native_store
         from .hia_agent_read_page_native import SELECTOR, capture_retained_page, installed_agent_read_page
@@ -816,7 +863,8 @@ class HIAAgentService:
                 next_cursor = ("page-" + digest({"artifact": ref, "offset": next_offset})
                                if next_offset is not None else None)
         if next_offset is not None:
-            self.store.cursor_retain(next_cursor, ref["id"], ref["sha256"], next_offset)
+            from .hia_agent_read_page_native import retain_page_cursor
+            retain_page_cursor(self.store, next_cursor, ref, next_offset)
         native = _native_agent_identity()
         if native is not None:
             return native.page_receipt(ref, content, encoding, next_cursor)
@@ -825,7 +873,8 @@ class HIAAgentService:
     def _read_window(self, args, ref):
         offset = 0
         if "cursor" in args:
-            row = self.store.cursor_lookup(args["cursor"])
+            from .hia_agent_read_page_native import lookup_page_cursor
+            row = lookup_page_cursor(self.store, args)
             stored = None if row is None else (row["artifact_id"], row["sha256"], "")
             if record_authority((ref["id"], ref["sha256"], ""), stored):
                 reject("E_HIA_CURSOR", "cursor is not bound to this exact artifact")
@@ -2477,7 +2526,15 @@ HIAAgentService._hia_read_reference = _SERVICE_READ_REFERENCE
 def _selected_hia_read(self, arguments):
     selector = os.environ.get('HEPTA_HIA_SERVICE_READ_MANIFEST')
     if selector is None:
-        return _SERVICE_READ_REFERENCE(self, arguments)
+        if (not issubclass(type(self), HIAAgentService)
+                and 'HEPTA_HIA_AGENT_READ_PAGE_MANIFEST' not in os.environ
+                and 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' not in os.environ):
+            # Detached historical receivers expose only Store. Keep an explicitly
+            # supplied page delegate on the component path without invoking it early.
+            from inspect import getattr_static
+            if getattr_static(self, '_read_window', None) is None:
+                return _SERVICE_READ_REFERENCE(self, arguments)
+        return HIAAgentService._hia_read_with_components(self, arguments)
     from .hia_service_read_native import ServiceReadFrame, installed_service_read
     return ServiceReadFrame(installed_service_read(selector), self, arguments).finish()
 
