@@ -189,6 +189,8 @@ WORKER_REQUEST_SDIST_FILES = (
     'tools/hia_worker_terminal.S',
     'tools/bind_hia_worker_store.py',
     'tools/build_hia_worker_release.py',
+    'tools/build_hia_native_store_release.py',
+    'tests/test_hia_native_store_release.py',
 )
 EXECUTION_LEDGER_SDIST_FILES = ('tools/generate_hia_execution_ledger.py',)
 SAFE_CORE_PROOF_SDIST_FILES = (
