@@ -495,7 +495,7 @@ def obligation_solver_wire(s:readbuf, o:mutbuf) -> u64:
     if phase == 2:
         return solver_search_frame(s, o, steps, learn, restart)
     if phase == 3:
-        return solver_reduce_signed_products(s, o, steps)
+        return solver_reduce_products(s, o, steps)
     return {REFUSED}
 
 def solver_circuit_ok(s:readbuf, at:u64) -> bool:
@@ -552,12 +552,14 @@ def solver_search_frame(s:readbuf, o:mutbuf, steps:u64, learn:u64, restart:u64) 
         offset = offset + 1
     return length(s) - 64
 
-def solver_reduce_signed_products(s:readbuf, o:mutbuf, steps:u64) -> u64:
-    # A signed m-bit by signed n-bit product fits in m+n signed bits.
-    # This retry changes only encoding size, never the input domain or lease.
+def solver_reduce_products(s:readbuf, o:mutbuf, steps:u64) -> u64:
+    # Reduce exact wide products before retrying the same CNF search lease.
     mapping = 64 + 40 * {CIRCUIT_NODES}
     if solver_circuit_ok(s, 64) == False or length(o) < mapping + 8 * {CIRCUIT_NODES}:
         return {REFUSED}
+    reduced = reduce_unsigned_product_pairs(s, o, steps)
+    if reduced != 0:
+        return reduced
     input_count = obligation_word(s, 72)
     pairs = obligation_word(s, 80)
     put(o, 0, {CIRCUIT_REQUEST})
@@ -830,6 +832,168 @@ def emit_word_table(s:readbuf, o:mutbuf, nodes:u64, pairs:u64, mapping:u64, rema
     work = choose(remaining < ({WORD_TABLE_WORK_LIMIT} >> 14), remaining << 14, {WORD_TABLE_WORK_LIMIT})
     put(o, at, work)
     return at + 8
+'''
+
+
+UNSIGNED_PRODUCT_WIRE = f'''
+def reduce_unsigned_product_pairs(s:readbuf, o:mutbuf, steps:u64) -> u64:
+    # A reflexive equality can replace a proved pair. Keep every original row
+    # so the encoder still validates the complete typed DAG and input ordering.
+    nodes = obligation_word(s, 72)
+    pairs = obligation_word(s, 80)
+    if nodes == 0 or pairs == 0:
+        return 0
+    seen = 0
+    n = 0
+    while n < nodes:
+        if exact_unsigned_product_comparison(s, n):
+            seen = 1
+        n = n + 1
+    if seen == 0:
+        return 0
+    first = 96 + nodes * 40
+    n = 0
+    while n < pairs:
+        left = obligation_word(s, first + n * 16)
+        right = obligation_word(s, first + n * 16 + 8)
+        if left >= nodes or right >= nodes:
+            return 0
+        if product_field(s, left, 8) != product_field(s, right, 8):
+            return 0
+        if unsigned_terms_equal(s, left, right) == False:
+            return 0
+        n = n + 1
+    obligation_copy(s, o, 64, 0, length(s) - 64)
+    put(o, 24, steps)
+    n = 0
+    while n < pairs * 2:
+        put(o, first - 64 + n * 8, 0)
+        n = n + 1
+    return length(s) - 64
+
+def unsigned_base(s:readbuf, n:u64) -> u64:
+    # Zero extension preserves the unsigned mathematical value.
+    while product_field(s, n, 0) == 30:
+        child = product_field(s, n, 16)
+        if child >= n or product_field(s, child, 8) > product_field(s, n, 8):
+            return n
+        n = child
+    return n
+
+def exact_unsigned_product(s:readbuf, a:u64, b:u64, bits:u64) -> bool:
+    a = unsigned_base(s, a)
+    b = unsigned_base(s, b)
+    left = product_field(s, a, 8)
+    right = product_field(s, b, 8)
+    return left != 0 and right != 0 and left <= 64 and right <= 64 and bits <= 64 and left + right <= bits
+
+def exact_unsigned_product_comparison(s:readbuf, n:u64) -> bool:
+    row = 96 + n * 40
+    if obligation_word(s, row) != 14 or obligation_word(s, row + 8) != 1:
+        return False
+    product = obligation_word(s, row + 16)
+    limit = obligation_word(s, row + 24)
+    if product >= n or limit >= n:
+        return False
+    p = 96 + product * 40
+    width = obligation_word(s, p + 8)
+    if obligation_word(s, p) != 32 or product_field(s, limit, 0) != 2:
+        return False
+    a = obligation_word(s, p + 16)
+    b = obligation_word(s, p + 24)
+    return a < product and b < product and exact_unsigned_product(s, a, b, width)
+
+def unsigned_boolean(s:readbuf, n:u64) -> u64:
+    row = 96 + n * 40
+    op = obligation_word(s, row)
+    if obligation_word(s, row + 8) != 1:
+        return 2
+    if op == 2:
+        value = obligation_word(s, row + 32)
+        return choose(value <= 1, value, 2)
+    if op == {WORD_PRODUCT_EXCEEDS}:
+        a = obligation_word(s, row + 16)
+        b = obligation_word(s, row + 24)
+        limit = obligation_word(s, row + 32)
+        if a >= n or b >= n or limit >= n:
+            return 2
+        bits = product_field(s, limit, 8)
+        if bits == 0 or bits > 64 or product_field(s, limit, 0) != 2:
+            return 2
+        maximum = 18446744073709551615
+        if bits < 64:
+            maximum = (1 << bits) - 1
+        # Even the greatest inputs fit. No overflow test over this domain
+        # can exceed the all-ones threshold of the widened destination.
+        if product_field(s, limit, 32) == maximum and exact_unsigned_product(s, a, b, bits):
+            return 0
+    return 2
+
+def unsigned_term(s:readbuf, n:u64) -> u64:
+    active = 1
+    while active == 1:
+        n = unsigned_base(s, n)
+        row = 96 + n * 40
+        active = 0
+        if obligation_word(s, row) == 11:
+            cond = obligation_word(s, row + 16)
+            if cond < n:
+                outcome = unsigned_boolean(s, cond)
+                if outcome < 2:
+                    branch = obligation_word(s, row + choose(outcome == 1, 24, 32))
+                    if branch < n:
+                        n = branch
+                        active = 1
+    return n
+
+def same_unsigned_product_test(s:readbuf, predicate:u64, comparison:u64) -> bool:
+    # product_exceeds(a,b,k) iff exact_product(zext(a),zext(b)) > zext(k).
+    row = 96 + predicate * 40
+    if obligation_word(s, row) != {WORD_PRODUCT_EXCEEDS} or exact_unsigned_product_comparison(s, comparison) == False:
+        return False
+    a = obligation_word(s, row + 16)
+    b = obligation_word(s, row + 24)
+    bound = obligation_word(s, row + 32)
+    if a >= predicate or b >= predicate or bound >= predicate or product_field(s, bound, 0) != 2:
+        return False
+    product = product_field(s, comparison, 16)
+    limit = product_field(s, comparison, 24)
+    if product_field(s, bound, 32) != product_field(s, limit, 32):
+        return False
+    a = unsigned_base(s, a)
+    b = unsigned_base(s, b)
+    x = unsigned_base(s, product_field(s, product, 16))
+    y = unsigned_base(s, product_field(s, product, 24))
+    return (a == x and b == y) or (a == y and b == x)
+
+def unsigned_terms_equal(s:readbuf, left:u64, right:u64) -> bool:
+    # An unsigned extension distributes over selection. Once the outer
+    # wide carry has been discharged, compare the condition and both arms.
+    a = unsigned_term(s, left)
+    b = unsigned_term(s, right)
+    if a != b and product_field(s, a, 0) == 11 and product_field(s, b, 0) == 11:
+        field = 16
+        while field <= 32:
+            x = product_field(s, a, field)
+            y = product_field(s, b, field)
+            if x >= a or y >= b or unsigned_atoms_equal(s, x, y) == False:
+                return False
+            field = field + 8
+        return True
+    return unsigned_atoms_equal(s, a, b)
+
+def unsigned_atoms_equal(s:readbuf, left:u64, right:u64) -> bool:
+    a = unsigned_term(s, left)
+    b = unsigned_term(s, right)
+    if a == b:
+        return True
+    if product_field(s, a, 0) == 2 and product_field(s, b, 0) == 2:
+        return product_field(s, a, 32) == product_field(s, b, 32)
+    return same_unsigned_product_test(s, a, b) or same_unsigned_product_test(s, b, a)
+
+def product_field(s:readbuf, node:u64, at:u64) -> u64:
+    return obligation_word(s, 96 + 40 * node + at)
+
 '''
 
 
@@ -1158,9 +1322,42 @@ WIDE_PRODUCT_NODES = (*WIDE_SUBTRACT_NODES[:11],
 WIDE_PRODUCT_ROOTS = (57, 49, 62, 48)
 
 
-EXACT_SOLVER_ROW = """
-def exact_solver_row(s:readbuf, at:u64, op:u64, width:u64, a:u64, b:u64, c:u64) -> bool:
-    return obligation_word(s, at) == op and obligation_word(s, at + 8) == width and obligation_word(s, at + 16) == a and obligation_word(s, at + 24) == b and obligation_word(s, at + 32) == c
+ARITHMETIC_TOKENS = {
+    'width': 128, 'distance': 129, 'sign': 130, 'minimum': 131, 'maximum': 132,
+    'mask': 133, 'high': 134, 1 << 63: 135, (1 << 63) - 1: 136,
+}
+
+EXACT_SOLVER_ROWS = """
+def exact_arithmetic_rows(s:readbuf, o:mutbuf, count:u64, width:u64) -> bool:
+    field = 0
+    while field < count:
+        expected = arithmetic_token(widen(byte(o, field)), width)
+        if obligation_word(s, 96 + field * 8) != expected:
+            return False
+        field = field + 1
+    return True
+
+def arithmetic_token(kind:u64, width:u64) -> u64:
+    if kind < 128:
+        return kind
+    if kind == 128:
+        return width
+    if kind == 129:
+        return 64 - width
+    sign = 1 << (width - 1)
+    if kind == 130:
+        return sign
+    if kind == 131:
+        return 0 - sign
+    if kind == 132:
+        return sign - 1
+    if kind == 133:
+        return (1 << width) - 1
+    if kind == 134:
+        return width - 1
+    if kind == 135:
+        return 9223372036854775808
+    return 9223372036854775807
 """
 
 
@@ -1180,18 +1377,24 @@ def checked_arithmetic_source(name, nodes, original_roots, reduced_roots):
         f'    width = obligation_word(s, {width_at})',
         '    if width != 16 and width != 32:',
         '        return 0',
-        '    distance = 64 - width',
-        '    sign = 1 << (width - 1)',
-        '    minimum = 0 - sign',
-        '    maximum = sign - 1',
     ]
-    if nodes is WIDE_PRODUCT_NODES:
-        lines.extend(('    mask = (1 << width) - 1', '    high = width - 1'))
-    for index, row in enumerate(nodes):
-        start = base + index * 40
-        words = ', '.join(str(word) for word in row)
-        lines.extend((f'    if exact_solver_row(s, {start}, {words}) == False:',
-                      '        return 0'))
+    # Store the fixed template in the result arena before filling the packet.
+    # Five byte tokens describe each full 5-u64 node. Compare the decoded
+    # values to every input word, including the width-dependent immediates.
+    tokens = bytearray()
+    for row in nodes:
+        for word in row:
+            if word in ARITHMETIC_TOKENS:
+                tokens.append(ARITHMETIC_TOKENS[word])
+            elif type(word) is int and 0 <= word < 128:
+                tokens.append(word)
+            else:
+                raise ValueError(f'unsupported signed arithmetic template word {word!r}')
+    for offset in range(0, len(tokens), 8):
+        chunk = int.from_bytes(tokens[offset:offset + 8], 'little')
+        lines.append(f'    put(o, {offset}, {chunk})')
+    lines.extend((f'    if exact_arithmetic_rows(s, o, {len(tokens)}, width) == False:',
+                  '        return 0'))
     for index, root in enumerate(original_roots):
         lines.extend((f'    if obligation_word(s, {roots + index * 8}) != {root}:',
                       '        return 0'))
@@ -1407,9 +1610,9 @@ def program(*, elf_only=False, solver_only=False, subject=False):
         # equal zero roots avoids materializing an irrelevant multiplier.
         solver += checked_arithmetic_source('checked_wide_product', WIDE_PRODUCT_NODES,
                                             WIDE_PRODUCT_ROOTS, (3, 3, 12, 12))
-        solver += EXACT_SOLVER_ROW
+        solver += EXACT_SOLVER_ROWS
     entry += OBLIGATIONS + caller_contract_source() + solver + WITNESS_WIRE + RELOCATION_WIRE
-    nodes = ast.parse(source_program(entry=entry)).body
+    nodes = ast.parse(source_program(entry=entry) + UNSIGNED_PRODUCT_WIRE).body
     retained = {'proof_wire'}
     while True:
         called = {call.func.id for node in nodes if node.name in retained for call in ast.walk(node)

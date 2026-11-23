@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ctypes
 from pathlib import Path
+import struct
 import subprocess
 import tempfile
 import unittest
@@ -229,6 +230,70 @@ class UnsignedMultiplyProfileTests(unittest.TestCase):
             obj, final, _ = self.custom(code)
             with self.subTest(previous_zero=previous_zero, right=right):
                 self.refuted(constant_core(17), obj, final)
+
+
+class UnsignedProductObligationTests(unittest.TestCase):
+    def test_exact_product_growth_and_conditional_values(self):
+        from hepta.hia_cnf_native import CIRCUIT_REQUEST, SEARCH_PLAN_REQUEST, WORD_PRODUCT_EXCEEDS
+        from hepta.hia_core_proof_wire_native import OBLIGATION_SOLVER_REQUEST
+        from tests.test_hia_core_workspace_facts_native import vm_run
+
+        source = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_obligation_wire.hepta'
+        narrow = 32
+        wide = 64
+        maximum = (1 << narrow) - 1
+        nodes = [
+            (1, narrow, 0, 0, 0), (1, narrow, 0, 0, 0),    # inputs
+            (30, wide, 0, 0, 0), (30, wide, 1, 0, 0),      # zero-extended inputs
+            (32, wide, 3, 2, 0), (2, wide, 0, 0, maximum), # exact, reversed product
+            (14, 1, 4, 5, 0),                              # unsigned product > threshold
+            (2, narrow, 0, 0, maximum),
+            (WORD_PRODUCT_EXCEEDS, 1, 0, 1, 7),
+            (32, narrow, 0, 1, 0), (30, wide, 9, 0, 0),    # low product
+            (2, narrow, 0, 0, 0), (2, wide, 0, 0, 0),
+            (11, narrow, 8, 11, 9), (30, wide, 13, 0, 0),  # extend after selection
+            (11, wide, 6, 12, 10),                         # extend before selection
+            (2, wide, 0, 0, (1 << wide) - 1),
+            (WORD_PRODUCT_EXCEEDS, 1, 2, 3, 16),           # always false
+            (11, wide, 17, 12, 15),
+        ]
+        observations = ((8, 6), (14, 18))
+        steps = 12345
+
+        def reduce(rows, pairs):
+            graph = b''.join(struct.pack('<5Q', *row) for row in rows)
+            returns = b''.join(struct.pack('<2Q', *pair) for pair in pairs)
+            frame = (struct.pack('<8Q', OBLIGATION_SOLVER_REQUEST, 3, 2, 0, SEARCH_PLAN_REQUEST, steps, 1, 0)
+                     + struct.pack('<4Q', CIRCUIT_REQUEST, len(rows), len(pairs), 0) + graph + returns)
+            code, response = vm_run(source, frame, 16384, 0)
+            if code == 0xfffffffc:
+                return None
+            self.assertEqual(response[:32], struct.pack('<4Q', CIRCUIT_REQUEST, len(rows), len(pairs), steps))
+            self.assertEqual(response[32:32 + len(graph)], graph)
+            self.assertEqual(code, 32 + len(graph) + 16 * len(pairs))
+            return response[32 + len(graph):]
+
+        self.assertEqual(reduce(nodes, observations), bytes(32))
+        # Each change invalidates at least one equality at a concrete input.
+        # A pair of observations must stay intact if either one remains open.
+        for name, index, replacement in (
+            ('threshold', 5, (2, wide, 0, 0, maximum - 1)),
+            ('non-strict', 6, (15, 1, 4, 5, 0)),
+            ('operand', 4, (32, wide, 2, 2, 0)),
+            ('extension', 2, (31, wide, 0, 0, 0)),
+            ('overflow limit', 16, (2, wide, 0, 0, maximum - 1)),
+            ('conditional', 15, (11, wide, 6, 10, 12)),
+        ):
+            with self.subTest(name=name):
+                changed = nodes.copy()
+                changed[index] = replacement
+                self.assertIsNone(reduce(changed, observations))
+        # At full operand width the wrapping product cannot model exact overflow.
+        wrapped = [(op, narrow if width == wide else width, left, right,
+                         maximum if index == 16 else immediate)
+                   for index, (op, width, left, right, immediate) in enumerate(nodes)]
+        self.assertIsNone(reduce(wrapped, observations))
+        self.assertIsNone(reduce(nodes, ((9, 10),)))
 
 
 if __name__ == "__main__":
