@@ -1,5 +1,6 @@
 """Source and refusal controls for the native Store release builder."""
 import tempfile
+from hashlib import sha256
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -47,3 +48,31 @@ class StoreReleaseBuildTests(unittest.TestCase):
         for kind in ('evaluate-replay', 'evaluate-intake'):
             self.assertIn(kind, release.FLOW_ROLES)
             self.assertIn(kind, release.LAUNCHERS)
+
+
+class InstalledMemberIntegrityTests(unittest.TestCase):
+    def test_installation_refuses_mode_drift_and_nonregular_members(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            native = directory / 'hia-worker'
+            data = directory / 'manifest.json'
+            native.write_bytes(b'\x7fELF' + b'valid-native-member')
+            data.write_bytes(b'{"source":"sealed"}')
+            native.chmod(0o500)
+            data.chmod(0o400)
+            expected = {x.name: sha256(x.read_bytes()).hexdigest() for x in (native, data)}
+            self.assertEqual(release._installed_member_hashes(directory), expected)
+            for target, unsafe in ((native, 0o700), (data, 0o600),
+                                   (data, 0o500), (native, 0o400)):
+                original = target.stat().st_mode & 0o7777
+                try:
+                    target.chmod(unsafe)
+                    with self.subTest(name=target.name, unsafe=oct(unsafe)):
+                        with self.assertRaisesRegex(ValueError, 'unsafe mode'):
+                            release._installed_member_hashes(directory)
+                finally:
+                    target.chmod(original)
+            alien = directory / 'other'
+            alien.symlink_to(data)
+            with self.assertRaisesRegex(ValueError, 'non-regular'):
+                release._installed_member_hashes(directory)

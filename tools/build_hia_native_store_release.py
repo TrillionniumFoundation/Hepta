@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 from tempfile import TemporaryDirectory
 
@@ -128,6 +129,21 @@ def _stage_roles(work, compiler, cold_report, publish):
                          filename='hia-safe-core-loader', schema='hepta.hia.safe-core-loader-filter-build.v1'))
 
 
+def _installed_member_hashes(installed):
+    """Inspect installed file bytes *and* modes; the package SHA omits file metadata."""
+    actual = {}
+    for path in installed.iterdir():
+        mode = path.lstat().st_mode
+        if not stat.S_ISREG(mode):
+            raise ValueError('native Store installation contains a non-regular member: ' + path.name)
+        raw = path.read_bytes()
+        expected_mode = 0o500 if raw.startswith(b'\x7fELF') else 0o400
+        if stat.S_IMODE(mode) != expected_mode:
+            raise ValueError('native Store installed member has an unsafe mode: ' + path.name)
+        actual[path.name] = sha256(raw).hexdigest()
+    return actual
+
+
 def _pack_and_verify(work, stage, members):
     package = work / 'store.hiapack'
     with package.open('xb') as result:
@@ -147,7 +163,7 @@ def _pack_and_verify(work, stage, members):
         if checked.stderr or receipt['sha256'] != digest or receipt['files'] != len(members):
             raise ValueError('native Store installation receipt differs from its built inventory')
     installed = depot / digest
-    actual = {path.name: sha256(path.read_bytes()).hexdigest() for path in installed.iterdir()}
+    actual = _installed_member_hashes(installed)
     if actual != members:
         raise ValueError('installed native Store files differ from their source-built members')
     return package
