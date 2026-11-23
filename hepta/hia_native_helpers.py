@@ -432,6 +432,11 @@ def pinned_evaluate_request_executable():
     return getattr(_ACTIVE, 'native_evaluate_request_executable', None)
 
 
+def pinned_evaluate_authority_executable():
+    _check_scope_owner()
+    return getattr(_ACTIVE, 'native_evaluate_authority_executable', None)
+
+
 def pinned_agent_store_unique_executable(selection):
     _check_scope_owner()
     executable = getattr(_ACTIVE, 'native_agent_store_unique_executable', None)

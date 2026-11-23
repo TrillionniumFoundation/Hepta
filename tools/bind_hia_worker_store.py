@@ -12,7 +12,7 @@ from hepta.hia_worker_store_profile import (
     EDIT_QUERY_SCHEMA, IMPORT_SCHEMA,
     JOURNAL_SCHEMA, OWNED_REFERENCE_SCHEMA, REFERENCE_OWNER_SCHEMA, REFERENCE_SCHEMA, SCHEMA,
     SEALED_PAGE_SCHEMA, STARTUP_SCHEMA, STORE_UNIQUE_SCHEMA, TERMINAL_SCHEMA, WORKER_COST_SCHEMA, WORKER_DATA_SCHEMA,
-    WORKER_EVALUATE_REQUEST_SCHEMA, WORKER_EVALUATE_SCHEMA, profile_images,
+    WORKER_EVALUATE_AUTHORITY_SCHEMA, WORKER_EVALUATE_REQUEST_SCHEMA, WORKER_EVALUATE_SCHEMA, profile_images,
 )
 from tools.build_hia_worker_report import custody_path
 
@@ -23,7 +23,7 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
                       standalone_terminal=False, standalone_admission=False, initialize_fresh=False,
                       journal_executable=None, store_unique_executable=None, standalone_worker_data=False,
                       journal_cost_executable=None, standalone_evaluate_case=False,
-                      standalone_evaluate_request=False):
+                      standalone_evaluate_request=False, standalone_evaluate_authority=False):
     base = authority._read(authority._path(str(Path(base_bundle).absolute())), authority.MAX_BUNDLE_BYTES)
     record = authority._decode(base.raw)
     if type(record) is not dict or record.get('schema') not in (
@@ -95,6 +95,10 @@ def bind_worker_store(output, base_bundle, release, *, edit_query=False, candida
         if schema != WORKER_EVALUATE_SCHEMA:
             raise ValueError('standalone Evaluate request requires the complete case planner profile')
         schema = WORKER_EVALUATE_REQUEST_SCHEMA
+    if standalone_evaluate_authority:
+        if schema != WORKER_EVALUATE_REQUEST_SCHEMA:
+            raise ValueError('standalone Evaluate authority requires both Evaluate roles')
+        schema = WORKER_EVALUATE_AUTHORITY_SCHEMA
     for field, (name, limit) in profile_images(schema).items():
         digest = sha256(authority._read(release / name, limit).raw).hexdigest()
         capture_release_image(release, name, limit, digest)
@@ -136,6 +140,7 @@ def main():
     parser.add_argument('--journal-cost-executable', type=Path)
     parser.add_argument('--standalone-evaluate-case', action='store_true')
     parser.add_argument('--standalone-evaluate-request', action='store_true')
+    parser.add_argument('--standalone-evaluate-authority', action='store_true')
     parser.add_argument('--portable', action='store_true',
                         help='require relative base/installation paths within the output directory')
     args = parser.parse_args()
@@ -152,7 +157,8 @@ def main():
                             standalone_worker_data=args.standalone_worker_data,
                             journal_cost_executable=args.journal_cost_executable,
                             standalone_evaluate_case=args.standalone_evaluate_case,
-                            standalone_evaluate_request=args.standalone_evaluate_request)
+                            standalone_evaluate_request=args.standalone_evaluate_request,
+                            standalone_evaluate_authority=args.standalone_evaluate_authority)
     print(json.dumps({'manifest': str(args.output.absolute()), 'sha256': pin}))
 
 

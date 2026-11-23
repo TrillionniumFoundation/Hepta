@@ -588,7 +588,8 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                                 journal_executable=journal, store_unique_executable=store_unique,
                                 standalone_worker_data=worker_data, journal_cost_executable=journal_cost,
                                 standalone_evaluate_case='worker-evaluate-case' in evaluate_roles,
-                                standalone_evaluate_request='worker-evaluate-request' in evaluate_roles)
+                                standalone_evaluate_request='worker-evaluate-request' in evaluate_roles,
+                                standalone_evaluate_authority='worker-evaluate-request' in evaluate_roles)
         profile.chmod(0o400)
         release_launchers = {}
         binders = {

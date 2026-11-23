@@ -126,6 +126,24 @@ def _project_native_evaluate_request(executable, catalog, arguments):
     return {'catalog_sha256': catalog, **dict(zip(keys, map(decode_data, spans[:6]), strict=True))}
 
 
+def _authorize_native_evaluate(executable, baseline, candidate, pinned, actual):
+    from .hia_agent_store import wire
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    fields = (wire(baseline['output_kind']), wire(candidate['output_kind']),
+              wire(baseline['signatures']), wire(candidate['signatures']),
+              b'' if pinned is None else pinned.encode('ascii'), actual.encode('ascii'))
+    frame = struct.pack('<8s5Q', b'HIAEVA01', *(len(field) for field in fields[:-1]))
+    with sealed_reference_bytes(executable) as planner:
+        reply = _run_native_evaluate_planner(planner, frame, *fields)
+    if len(reply) != 16 or not reply.startswith(b'HIAEVA02'):
+        raise EvaluationUnknown('installed HIA Evaluate authority reply differs')
+    flags, = struct.unpack_from('<Q', reply, 8)
+    if flags not in (0, 1, 3, 7, 15, 31):
+        raise EvaluationUnknown('installed HIA Evaluate authority refused its observation')
+    return flags
+
+
 def _after_fork_child():
     global _CUSTODY_LOCK, _CUSTODY_PID
     _CUSTODY_LOCK = threading.Lock()
@@ -411,15 +429,33 @@ class EvaluationFrame:
             d['candidate_bytes'], d['candidate_meta'], d['candidate_program'] = s._native(args['candidate_artifact'], args['context'])
         elif name == 'build_receipt':
             d['built'] = s._build_receipt(args['build_receipt'], args['context'], args['candidate_artifact'])
+            if d['native_store']:
+                from .hia_native_helpers import pinned_evaluate_authority_executable
+
+                authority = pinned_evaluate_authority_executable()
+                if authority is not None:
+                    d['admission'] = _authorize_native_evaluate(
+                        authority, d['baseline_meta'], d['candidate_meta'],
+                        d['context']['baseline_core_sha256'], d['baseline_program'].sha256)
         elif name == 'baseline_not_shared':
+            if 'admission' in d:
+                return int((d['admission'] & 1) == 0)
             return int(bool(d['baseline_meta']['output_kind'] != 'shared'))
         elif name == 'candidate_not_shared':
+            if 'admission' in d:
+                return int((d['admission'] & 2) == 0)
             return int(bool(d['candidate_meta']['output_kind'] != 'shared'))
         elif name == 'abi_equal':
+            if 'admission' in d:
+                return int(bool(d['admission'] & 4))
             return int(not bool(d['baseline_meta']['signatures'] != d['candidate_meta']['signatures']))
         elif name == 'baseline_pinned':
+            if 'admission' in d:
+                return int(bool(d['admission'] & 8))
             return int(d['context']['baseline_core_sha256'] is not None)
         elif name == 'baseline_equal':
+            if 'admission' in d:
+                return int(bool(d['admission'] & 16))
             return int(not bool(d['context']['baseline_core_sha256'] != d['baseline_program'].sha256))
         elif name == 'claims':
             d['objective'] = s._required_claims(d['context'], args['candidate_artifact'],

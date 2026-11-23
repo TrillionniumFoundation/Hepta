@@ -11,6 +11,7 @@ from tools.generate_hia_agent_snapshot_json import ADAPTER as SNAPSHOT
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_json_decode import source_program as json_decoder
 from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
+from tools.generate_hia_worker_artifact_authority import source_program as artifact_authority
 from tools.generate_hia_worker_context_workload import POLICY as WORKLOAD
 from tools.generate_hia_worker_emit_verification import POLICY as VERIFICATION, key_table
 from tools.generate_hia_worker_inspection_effect import function
@@ -20,7 +21,8 @@ FIELDS = ('params', 'returns', 'abi', 'max_buffer_bytes', 'function', 'arguments
           'bytes_hex', 'byte_length', 'fill_byte', 'cases', 'warmup_iterations', 'repetitions')
 TYPES = (*ABI_SCALAR_IDS, 'readbuf', 'mutbuf')
 # The admitted workload and its separately bounded ABI are carried together.
-INPUT_BYTES = (16 << 20) + 3
+CASE_INPUT_BYTES = (16 << 20) + 3
+INPUT_BYTES = (16 << 20) + 240
 CASE_BYTES = 80 + 128 * 48
 
 POLICY = r'''
@@ -32,6 +34,10 @@ def evaluate_case(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 8 or length(s) > INPUT_BYTES or length(o) < CASE_BYTES or length(w) < 4096:
         return INVALID
     magic = read_word(s, 0)
+    if magic == AUTHORITY_REQUEST:
+        return authorize_evaluation(s, o)
+    if length(s) > CASE_INPUT_BYTES:
+        return INVALID
     if magic == RUNNER_BINDING:
         return bind_runner(s, o)
     if magic == SNAPSHOT_BINDING:
@@ -48,6 +54,61 @@ def evaluate_case(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if cases != NONE:
         return plan_workload(s, o, w, signatures, case, cases)
     return plan_named_case(s, o, w, signatures, case)
+
+# The two ABI maps are canonical bytes from admitted Store metadata. The
+# presence and identity of the pinned baseline come from the retained Context.
+# Preserve the original refusal precedence before reading workload or running.
+def authorize_evaluation(s:readbuf, o:mutbuf) -> u64:
+    if length(s) < 120:
+        return INVALID
+    baseline_kind = read_word(s, 8)
+    candidate_kind = read_word(s, 16)
+    baseline_abi = read_word(s, 24)
+    candidate_abi = read_word(s, 32)
+    pinned = read_word(s, 40)
+    if baseline_kind < 2 or baseline_kind > 32 or candidate_kind < 2 or candidate_kind > 32:
+        return INVALID
+    if baseline_abi < 2 or baseline_abi > 8388608 or candidate_abi < 2 or candidate_abi > 8388608:
+        return INVALID
+    if pinned != 0 and pinned != 64:
+        return INVALID
+    candidate_at = 48 + baseline_kind
+    abi_at = candidate_at + candidate_kind
+    baseline_at = abi_at + baseline_abi + candidate_abi
+    if length(s) != baseline_at + pinned + 64:
+        return INVALID
+    if valid_hex(s, baseline_at + pinned, 64) == False:
+        return INVALID
+    if pinned != 0 and valid_hex(s, baseline_at, 64) == False:
+        return INVALID
+    if baseline_kind != 8 or read_word(s, 48) != SHARED_KIND:
+        return authority_reply(o, 0)
+    if candidate_kind != 8 or read_word(s, candidate_at) != SHARED_KIND:
+        return authority_reply(o, 1)
+    if baseline_abi != candidate_abi or equal_bytes(s, abi_at, abi_at + baseline_abi, baseline_abi) == False:
+        return authority_reply(o, 3)
+    if pinned == 0:
+        return authority_reply(o, 7)
+    if equal_bytes(s, baseline_at, baseline_at + 64, 64) == False:
+        return authority_reply(o, 15)
+    return authority_reply(o, 31)
+
+def authority_reply(o:mutbuf, admitted:u64) -> u64:
+    put(o, 0, AUTHORITY_RESULT)
+    put(o, 8, admitted)
+    return 16
+
+def equal_bytes(s:readbuf, left:u64, right:u64, size:u64) -> bool:
+    index = 0
+    while index + 8 <= size:
+        if read_word(s, left + index) != read_word(s, right + index):
+            return False
+        index = index + 8
+    while index < size:
+        if byte(s, left + index) != byte(s, right + index):
+            return False
+        index = index + 1
+    return True
 
 def plan_named_case(s:readbuf, o:mutbuf, w:mutbuf, signatures:u64, case:u64) -> u64:
     name = lookup(w, case, K_function)
@@ -442,7 +503,11 @@ def source_program():
     constants = {f'K_{name}': index for index, name in enumerate(FIELDS, 1)}
     constants.update(INVALID=4294967293, NONE=(1 << 64) - 1,
                      PLAN=int.from_bytes(b'HIAEVC01', 'little'),
-                     WORKLOAD_PLAN=int.from_bytes(b'HIAEVW01', 'little'), INPUT_BYTES=INPUT_BYTES, CASE_BYTES=CASE_BYTES,
+                     WORKLOAD_PLAN=int.from_bytes(b'HIAEVW01', 'little'), INPUT_BYTES=INPUT_BYTES,
+                     CASE_INPUT_BYTES=CASE_INPUT_BYTES, CASE_BYTES=CASE_BYTES,
+                     AUTHORITY_REQUEST=int.from_bytes(b'HIAEVA01', 'little'),
+                     AUTHORITY_RESULT=int.from_bytes(b'HIAEVA02', 'little'),
+                     SHARED_KIND=int.from_bytes(b'"shared"', 'little'),
                      RUNNER_BINDING=int.from_bytes(b'HIAEVR01', 'little'),
                      RUNNER_REQUEST=int.from_bytes(b'HIADRX02', 'little'),
                      SNAPSHOT_BINDING=int.from_bytes(b'HIAEVB01', 'little'),
@@ -456,6 +521,7 @@ def source_program():
         POLICY, snapshot, function(WORKLOAD, 'uint'), function(SNAPSHOT, 'snapshot_nibble'),
         *(function(VERIFICATION, name) for name in ('is_object', 'span')),
         *(function(identity(), name) for name in ('abi_scalar_valid', 'scalar_abi_type', 'direct_return_mask', 'read_word')),
+        function(artifact_authority(), 'valid_hex'),
         WIRE_HELPERS.split('\ndef signed_id', 1)[0], key_table(FIELDS),
         comparison_table('abi_role', TYPES), comparison_table('borrowed_profile', (PROFILE,)),
     ))

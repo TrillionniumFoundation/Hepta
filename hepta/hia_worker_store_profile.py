@@ -26,7 +26,9 @@ WORKER_DATA_SCHEMA = 'hepta.hia.native-helpers.v20'
 WORKER_COST_SCHEMA = 'hepta.hia.native-helpers.v21'
 WORKER_EVALUATE_SCHEMA = 'hepta.hia.native-helpers.v22'
 WORKER_EVALUATE_REQUEST_SCHEMA = 'hepta.hia.native-helpers.v23'
-WORKER_EVALUATE_SCHEMAS = (WORKER_EVALUATE_SCHEMA, WORKER_EVALUATE_REQUEST_SCHEMA)
+WORKER_EVALUATE_AUTHORITY_SCHEMA = 'hepta.hia.native-helpers.v24'
+WORKER_EVALUATE_REQUEST_SCHEMAS = (WORKER_EVALUATE_REQUEST_SCHEMA, WORKER_EVALUATE_AUTHORITY_SCHEMA)
+WORKER_EVALUATE_SCHEMAS = (WORKER_EVALUATE_SCHEMA, *WORKER_EVALUATE_REQUEST_SCHEMAS)
 WORKER_COST_SCHEMAS = (WORKER_COST_SCHEMA, *WORKER_EVALUATE_SCHEMAS)
 WORKER_DATA_SCHEMAS = (WORKER_DATA_SCHEMA, *WORKER_COST_SCHEMAS)
 STORE_UNIQUE_SCHEMAS = (STORE_UNIQUE_SCHEMA, *WORKER_DATA_SCHEMAS)
@@ -58,7 +60,7 @@ def profile_images(schema):
         result['worker_data_sha256'] = ('hia-worker-data', authority.MAX_IMAGE_BYTES)
     if schema in WORKER_EVALUATE_SCHEMAS:
         result['evaluate_case_sha256'] = ('hia-agent-worker-evaluate-case', authority.MAX_IMAGE_BYTES)
-    if schema == WORKER_EVALUATE_REQUEST_SCHEMA:
+    if schema in WORKER_EVALUATE_REQUEST_SCHEMAS:
         result['evaluate_request_sha256'] = ('hia-agent-worker-evaluate-request', authority.MAX_IMAGE_BYTES)
     if schema in STARTUP_SCHEMAS:
         result['initializer_sha256'] = ('hia-agent-store-init', authority.MAX_IMAGE_BYTES)
@@ -107,6 +109,8 @@ class NativeWorkerStoreBinding:
         request = captures.get('evaluate_request_sha256')
         self.native_evaluate_case_executable = evaluate.raw if evaluate is not None else None
         self.native_evaluate_request_executable = request.raw if request is not None else None
+        self.native_evaluate_authority_executable = (
+            self.native_evaluate_case_executable if schema == WORKER_EVALUATE_AUTHORITY_SCHEMA else None)
         if any(role is not None and not role.raw.startswith(b'\x7fELF') for role in (evaluate, request)):
             raise ValueError('standalone Evaluate roles must be pinned ELF executables')
         if request is not None and self.native_evaluate_request_executable == self.native_evaluate_case_executable:
