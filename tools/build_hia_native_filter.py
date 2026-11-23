@@ -189,6 +189,16 @@ def build_evaluate_report_flow(output: Path, compiler: Path, cold_report: Path) 
                         schema='hepta.hia.evaluate-report-flow-build.v1')
 
 
+def build_evaluate_cost_ledger_flow(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_cost_ledger_flow import ADAPTER, MAGIC, PORTS, adapter_source
+
+    return build_filter(output, compiler, cold_report, application='evaluate-cost-ledger-flow',
+                        packer='evaluate-cost-ledger-flow-packer', magic=MAGIC, adapter=ADAPTER,
+                        adapter_dependencies=(PORTS,), adapter_source=adapter_source,
+                        filename='hia-evaluate-cost-ledger-flow',
+                        schema='hepta.hia.evaluate-cost-ledger-flow-build.v1')
+
+
 def build_evaluate_settlement(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.generate_hia_evaluate_settlement import MAGIC as settlement_magic
 
@@ -201,7 +211,7 @@ def build_evaluate_settlement(output: Path, compiler: Path, cold_report: Path) -
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
-                                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-report-flow', 'evaluate-measurements', 'evaluate-native-report', 'evaluate-reference-report',
+                                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-report-flow', 'evaluate-cost-ledger-flow', 'evaluate-measurements', 'evaluate-native-report', 'evaluate-reference-report',
                                                   'execution-budget-session', 'evaluate-run-plan', 'evaluate-cost-ledger', 'evaluate-budget-store', 'evaluate-budget-observation', 'evaluate-publication'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
@@ -231,6 +241,9 @@ def main():
         return
     if args.application == 'evaluate-measurements':
         print(build_evaluate_measurements(output, compiler, cold_report))
+        return
+    if args.application == 'evaluate-cost-ledger-flow':
+        print(build_evaluate_cost_ledger_flow(output, compiler, cold_report))
         return
     if args.application == 'evaluate-report-flow':
         print(build_evaluate_report_flow(output, compiler, cold_report))

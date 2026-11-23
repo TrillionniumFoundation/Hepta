@@ -34,7 +34,7 @@ from tools.build_hia_native_build_admission import build as build_build_admissio
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_native_filter import (
     build_evaluate_paired_batch, build_evaluate_projector, build_evaluate_reference_batch,
-    build_evaluate_run_plan, build_evaluate_publication, build_evaluate_budget_observation, build_evaluate_budget_store, build_evaluate_cost_ledger, build_evaluate_measurements, build_evaluate_native_report, build_evaluate_reference_report, build_evaluate_report_flow, build_evaluate_settlement, build_execution_budget_session,
+    build_evaluate_run_plan, build_evaluate_publication, build_evaluate_budget_observation, build_evaluate_budget_store, build_evaluate_cost_ledger, build_evaluate_measurements, build_evaluate_native_report, build_evaluate_reference_report, build_evaluate_report_flow, build_evaluate_cost_ledger_flow, build_evaluate_settlement, build_execution_budget_session,
 )
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
@@ -665,6 +665,11 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             expected = build_evaluate_report_flow(scratch / 'evaluate-report-flow', compiler, cold_report)
             if report_flow.read_bytes() != expected.read_bytes():
                 raise ValueError('Store release Evaluate paid report continuation differs from the cold-built HIA role')
+        cost_ledger_flow = release / 'hia-evaluate-cost-ledger-flow'
+        if cost_ledger_flow.is_file():
+            expected = build_evaluate_cost_ledger_flow(scratch / 'evaluate-cost-ledger-flow', compiler, cold_report)
+            if cost_ledger_flow.read_bytes() != expected.read_bytes():
+                raise ValueError('Store release Evaluate paid cost ledger continuation differs from the cold-built HIA role')
         settlement = release / 'hia-evaluate-settlement'
         if settlement.is_file():
             expected = build_evaluate_settlement(scratch / 'evaluate-settlement', compiler, cold_report)

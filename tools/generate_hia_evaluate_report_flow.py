@@ -1,6 +1,6 @@
 """Author the native continuation from a claimed, paid Evaluate to measured documents.
 
-The caller supplies ten sealed descriptors, starting at 3: original HIAEJC01,
+The caller supplies ten sealed descriptors at 3 through 12, or ten decimal descriptor arguments: original HIAEJC01,
 physical HIAEMT01, settled HIAEBRS1, owned-reference and direct-call ELFs, four
 report roles (reference, native, settlement, measurements), and original
 CLOCK_MONOTONIC admission (HIAEMC01 + u64). The stdout HIAEMF01 contains

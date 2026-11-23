@@ -112,6 +112,15 @@ class ReportFlowTests(unittest.TestCase):
         self.assertEqual(json.loads(record)['native_runs'],{'baseline':expected,'candidate':expected})
         self.assertEqual(json.loads(record)['outcome'],'budget_exceeded')
 
+    def test_dynamic_descriptor_numbers_from_native_launcher(self):
+        from tests.test_hia_evaluate_cost_ledger_flow import inherited
+        files=self.specimen()
+        fixed=run_pair(self.exe,files)
+        named=inherited(self.exe,files,(),named=True)
+        self.assertEqual((fixed[0],named[0],fixed[2],named[2]),(0,0,b'',b''))
+        self.assertEqual(unpack(fixed[1])[0],unpack(named[1])[0])
+        self.assertEqual(unpack(fixed[1])[3],unpack(named[1])[3])
+
     def test_partial_normal_group_preserves_real_charge_and_credits_no_latency(self):
         from unittest.mock import patch
         from hepta.hia_program import verify_program

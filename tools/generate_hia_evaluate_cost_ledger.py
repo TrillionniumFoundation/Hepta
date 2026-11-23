@@ -572,7 +572,7 @@ def program():
     helpers += ['def is_evaluate(s:readbuf,a:u64) -> bool:\n    return ' +
                 ' and '.join(f'byte(s,a+{i}) == {v}' for i,v in enumerate(token))]
     fixed = hia_literals()
-    helpers += [function(fixed,k) for k in ('ref_prefix','ref_hash_prefix','ref_uri_prefix')]
+    helpers += [function(fixed,k) for k in ('ref_prefix','ref_hash_prefix','ref_uri_prefix','literal_read')]
     helpers += [function(decimal_program(),'next_power')] if 'def next_power(' in decimal_program() else []
     if not any('def next_power(' in s for s in helpers):
         from tools.generate_hia_evaluate_settlement import program as settlement

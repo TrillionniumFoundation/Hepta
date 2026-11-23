@@ -356,7 +356,7 @@ def program():
     base=POLICY+'\n'+MATCH+'\n'+ISSUE
     helpers=[function(base,k) for k in ('same','hexadecimal','digits','decimal_equal','checked_ref','digest_matches','hexchar','copy_wire')]
     literals=hia_literals()
-    helpers.extend(function(literals,k) for k in ('ref_prefix','ref_hash_prefix','ref_uri_prefix','evaluate_tool_literal'))
+    helpers.extend(function(literals,k) for k in ('ref_prefix','ref_hash_prefix','ref_uri_prefix','evaluate_tool_literal','literal_read'))
     case=case_source()
     helpers.extend(function(case,k) for k in ('read_word','get','put','widen'))
     digest=snapshot_hash()

@@ -184,7 +184,7 @@ def program():
     src = re.sub(r'\b('+'|'.join(values)+r')\b',lambda m:str(values[m[0]]),POLICY)
     shared = settlement_source()
     parts = [function(shared, name) for name in ('same','copy_wire','checked_ref','ref_prefix',
-             'ref_hash_prefix','ref_uri_prefix','hexadecimal','digest_matches','hexchar')]
+             'ref_hash_prefix','ref_uri_prefix','literal_read','hexadecimal','digest_matches','hexchar')]
     basic = case_source()
     return '\n'.join([src,*parts,snapshot_hash(),*(function(basic,n) for n in ('read_word','get','put','widen'))])
 

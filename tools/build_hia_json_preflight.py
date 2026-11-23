@@ -242,6 +242,8 @@ CANDIDATES = {
     'evaluate-native-report-packer': ('evaluate_native_report_packer', 'evaluate-native-report-packer'),
     'evaluate-measurements': ('evaluate_measurements', 'evaluate-measurements'),
     'evaluate-measurements-packer': ('evaluate_measurements_packer', 'evaluate-measurements-packer'),
+    'evaluate-cost-ledger-flow': ('evaluate_cost_ledger_flow', 'evaluate-cost-ledger-flow'),
+    'evaluate-cost-ledger-flow-packer': ('evaluate_cost_ledger_flow_packer', 'evaluate-cost-ledger-flow-packer'),
     'evaluate-report-flow': ('evaluate_report_flow', 'evaluate-report-flow'),
     'evaluate-report-flow-packer': ('evaluate_report_flow_packer', 'evaluate-report-flow-packer'),
     'evaluate-settlement': ('evaluate_settlement', 'evaluate-settlement'),
@@ -386,7 +388,7 @@ def main():
                                  'elf-verified-linker',
                                  'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement',
                                  'evaluate-reference-report', 'evaluate-native-report', 'evaluate-measurements',
-                                 'evaluate-publication', 'evaluate-publication-packer', 'evaluate-report-flow',
+                                 'evaluate-publication', 'evaluate-publication-packer', 'evaluate-report-flow', 'evaluate-cost-ledger-flow',
                                  'evaluate-reference-wire', 'scalar-reference',
                                  'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
                                  'safe-core-elf-inventory', 'core-proof-wire', 'worker-prepare'))
