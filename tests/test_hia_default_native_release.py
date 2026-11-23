@@ -285,7 +285,8 @@ with patch.object(cli, '_reference_hia_main', forbidden), \
         try:
             cli.hia_main(['capabilities'])
         except ValueError as error:
-            assert 'native CLI bundle identity mismatch' in str(error)
+            assert str(error) in ('native CLI bundle identity mismatch',
+                                  'native-default pin differs from package resource ' + CLI_BUNDLE_RESOURCE)
         else:
             raise AssertionError('changed package CLI bundle reached the command')
     finally:
@@ -293,6 +294,42 @@ with patch.object(cli, '_reference_hia_main', forbidden), \
 print('PACKAGE_HIA_CLI_CONTROL')
 '''
         self.assertEqual(self.child(body).stdout.strip(), 'PACKAGE_HIA_CLI_CONTROL')
+
+    def test_hosted_parser_uses_the_installed_discovery_image_after_admission(self):
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
+            self.skipTest('the cold wheel supplies the immutable discovery owner')
+        body = r'''
+import contextlib
+import io
+from hepta import cli, hia_default_native as default
+from hepta.hia_schema import PRIMITIVE_PROFILES
+
+def observe(owner, arguments):
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        try:
+            status = ('return', owner(iter(arguments)))
+        except SystemExit as error:
+            status = ('exit', error.code)
+    return status, out.getvalue(), err.getvalue()
+
+valid = (['capabilities'], ['catalog'], *(['catalog', '--schema', value] for value in PRIMITIVE_PROFILES))
+parser = (['--help'], ['--version'], ['catalog', '--schema', 'invalid'], ['capabilities', '--unexpected'])
+expected = [observe(cli._reference_hia_main, args) for args in valid]
+presentations = [observe(cli._reference_hia_main, args) for args in parser]
+with patch('hepta.hia_cli_native.native_cli_profile', return_value=None):
+    with patch.object(cli, 'agent_capabilities', forbidden), patch('hepta.hia_opcodes.opcode_catalog', forbidden):
+        assert [observe(cli.hia_main, args) for args in valid] == expected
+    with patch.object(default, 'default_cli_discovery', forbidden):
+        assert [observe(cli.hia_main, args) for args in parser] == presentations
+        with patch.dict(os.environ, {'HEPTA_HIA_CLI_DISCOVERY_JSON_MANIFEST': ''}):
+            status, output, _ = observe(cli.hia_main, ['catalog'])
+            assert status == ('return', 2) and 'must not be empty' in output
+    with patch.object(cli, 'agent_capabilities', return_value={'oracle': True}):
+        assert json.loads(observe(cli._reference_hia_main, ['capabilities'])[1]) == {'oracle': True}
+print('PACKAGE_DISCOVERY_HOSTED_PARSER')
+'''
+        self.assertEqual(self.child(body).stdout.strip(), 'PACKAGE_DISCOVERY_HOSTED_PARSER')
 
     def test_matching_cold_wheel_builds_direct_shared_without_manual_selectors(self):
         from tests.test_hia_program_tools import scalar_program
