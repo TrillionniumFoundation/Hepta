@@ -8,6 +8,8 @@ import ast
 import shutil
 from setuptools import setup
 from setuptools.command.build_py import build_py
+from setuptools.command.sdist import sdist
+import json
 # Load the exact local build helper even under python -I / isolated wheels.
 from importlib.util import spec_from_file_location, module_from_spec
 _mechanical_spec = spec_from_file_location(
@@ -73,6 +75,15 @@ class AgentResourceBuild(build_py):
     def get_outputs(self,include_bytecode=True):
         return super().get_outputs(include_bytecode)+getattr(self,'_agent_outputs',[])
 
-setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':MechanicalBuildExt},
+class ColdSourceDistribution(sdist):
+    """Include the source needed to reproduce the installed native command from an sdist."""
+
+    def make_release_tree(self, base_dir, files):
+        contract = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
+        manifest = json.loads((ROOT / contract).read_bytes())['source_identity']['files']
+        super().make_release_tree(base_dir, sorted(set(files) | set(manifest) | {contract}))
+
+
+setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':MechanicalBuildExt, 'sdist':ColdSourceDistribution},
       ext_modules=extensions(),
       package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py']})

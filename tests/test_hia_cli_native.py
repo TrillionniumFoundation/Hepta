@@ -846,11 +846,16 @@ raise SystemExit(0 if passed else 1)
         }
         for name in required.values():
             self.assertIn(name, NATIVE_SOURCE_FILES)
-        shutil.copytree(ROOT / "hepta", source / "hepta", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-        for name in (*resources, "setup.py", "pyproject.toml", "MANIFEST.in"):
+        contract = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
+        contract_bytes = (ROOT / contract).read_bytes()
+        pinned = json.loads(contract_bytes)['source_identity']['files']
+        self.assertTrue(set(resources).issubset(pinned))
+        for name, identity in {**pinned, contract: sha256(contract_bytes).hexdigest()}.items():
             target = source / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(ROOT / name, target)
+            raw = (ROOT / name).read_bytes()
+            self.assertEqual(sha256(raw).hexdigest(), identity, name)
+            target.write_bytes(raw)
         bundle = case / "bundle"
         shutil.copytree(self.manifest.parent, bundle)
         manifest = bundle / self.manifest.name
@@ -867,7 +872,7 @@ raise SystemExit(0 if passed else 1)
         }
 
         def command(arguments, label, *, env=None):
-            result = subprocess.run(arguments, cwd=case, env=env, capture_output=True, timeout=120)
+            result = subprocess.run(arguments, cwd=case, env=env, capture_output=True, timeout=1200 if label == "wheel" else 120)
             (case / (label + ".stdout")).write_bytes(result.stdout)
             (case / (label + ".stderr")).write_bytes(result.stderr)
             records.append({"label": label, "argv": arguments, "returncode": result.returncode,
@@ -905,9 +910,32 @@ cli._reference_hia_main=forbidden_cli
 argparse.ArgumentParser=forbidden_parser
 entries=[e for e in importlib.metadata.distribution("hia-core").entry_points
          if e.group=="console_scripts" and e.name=="hia"]
-assert len(entries)==1 and entries[0].value=="hepta.cli:hia_main"
-entry=entries[0].load()
-assert entry is cli.hia_main
+assert not entries
+physical_entry = installed / "bin/hia"
+assert physical_entry.read_bytes().startswith(b"\x7fELF")
+import subprocess
+physical = subprocess.run([physical_entry, "--version"], cwd=installed, env={"PATH": ""}, capture_output=True)
+assert physical.returncode == 0 and physical.stdout == b"hia 0.3.0\n" and not physical.stderr
+def public_catalog():
+ return subprocess.run([physical_entry, "catalog"], cwd=installed, env={"PATH": ""}, capture_output=True)
+catalog=public_catalog()
+assert catalog.returncode==0 and catalog.stdout and not catalog.stderr
+member=installed/"bin/hia-catalog"
+original=member.read_bytes()
+mode=member.stat().st_mode
+try:
+ member.write_bytes(original[:-1]+bytes([original[-1]^1]))
+ changed=public_catalog()
+ assert changed.returncode!=0 and not changed.stdout and not changed.stderr
+ member.write_bytes(original)
+ member.chmod(0o777)
+ writable=public_catalog()
+ assert writable.returncode!=0 and not writable.stdout and not writable.stderr
+finally:
+ member.write_bytes(original)
+ member.chmod(mode)
+assert public_catalog().stdout==catalog.stdout
+entry=cli.hia_main
 os.environ[SELECTOR]=str(manifest)
 source_bytes={}
 for name,path in SOURCES.items():

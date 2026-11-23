@@ -317,7 +317,7 @@ def check_placement(binary, stub, holes, images):
     return inspect_executable(binary)
 
 
-def build(output, compiler, cold_report, *, release_only=False, native_tools=None, constructor=None, prover_bytes=None):
+def build(output, compiler, cold_report, *, release_only=False, native_tools=None, constructor=None, prover_bytes=None, wheel_layout=False):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
     # The stdin-to-object development probe is not a public dispatcher role.
@@ -392,6 +392,14 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
             'hia-selfhost-component': products['hia-selfhost-component'][0],
         }),
     }
+    if wheel_layout:
+        # pip's scripts directory can be shared read-only with other users.
+        # The HIA layout owner authenticates each original stat predicate before
+        # admitting conventional root/user-owned modes. Member byte pins still bind the launch.
+        layout = core_static.policy_builder(native_tools, 'source_wheel_layout.hepta', 'source_build_packer.hepta')
+        for mode, path in enumerate((DISPATCH, SELFHOST_ENTRY), 1):
+            packet = struct.pack('<8sQ', b'HIAWPER1', mode) + overrides[path]
+            overrides[path] = call(layout, 'build', packet)
     dispatch = core_static.build_products(native_tools, admitted, overrides=overrides, compressor=compressor)
     name = programs['dispatch'][0]
     binary, details = dispatch[name]

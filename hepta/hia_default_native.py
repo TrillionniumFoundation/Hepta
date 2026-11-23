@@ -1,8 +1,7 @@
 """Package-owned default image custody, separate from operator selections.
 
-The checked-in pin is None, so ordinary source and portable wheels retain
-their existing defaults. The explicit candidate wheel builder derives one
-data-only pin after compiling the HIA owner. A candidate installation uses
+The checked-in module remains a portable source input. Linux wheels derive
+a separate data-only pin after compiling the HIA owners. An installation uses
 that fixed bundle without environment configuration. A cold wheel may also
 bind Core ELF owners; an administrator scope is never supplemented.
 """
@@ -13,6 +12,7 @@ from pathlib import Path
 
 PIN_SCHEMA = 'hepta.hia.default-native-package.v1'
 TARGET = 'linux-x86_64-lp64'
+PIN_RESOURCE = '_data/native/default/full_cost/pin.json'
 BUNDLE_RESOURCE = '_data/native/default/full_cost/bundle.json'
 PROOF_BUNDLE_RESOURCE = '_data/native/default/full_cost/proof-bundle.json'
 BINDER_RESOURCE = '_data/native/default/full_cost/hia-safe-core-bind'
@@ -36,11 +36,43 @@ PIN_HEADER = '"""Build-derived native default pin; None is the portable source p
 
 
 def render_pin(value):
-    """The sole build-derived Python declaration; no generated runtime policy."""
+    """Canonical encoding of the portable module and legacy module-format pins."""
     return (PIN_HEADER + repr(value) + '\n').encode('ascii')
 
 
-def _record_pin(pin_path, raw):
+def render_pin_data(value):
+    """Return the canonical contents of the wheel's package-owned pin file."""
+    import json
+    return (json.dumps(value, ensure_ascii=True, separators=(',', ':')) + '\n').encode('ascii')
+
+
+def _verify_data_resources(directory, value):
+    from hashlib import sha256
+    import json
+
+    from .hia_native_helpers import _read
+
+    if len(value) != (10 if value[4] == SCOPES[0] else 7):
+        raise ValueError('incomplete native-default data pin')
+    contract_name = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
+    contract = _read(directory / '_data' / contract_name, 4 << 20)
+    contents = json.loads(contract.raw)
+    files = {**contents['source_identity']['files'], contract_name: sha256(contract.raw).hexdigest()}
+    encoded = (json.dumps(files, ensure_ascii=False, sort_keys=True, separators=(',', ':')) + '\n').encode()
+    if sha256(encoded).hexdigest() != value[6]:
+        raise ValueError('native-default pin differs from the package source contract')
+    resources = [(BUNDLE_RESOURCE, value[3])]
+    if value[4] == SCOPES[0]:
+        resources.extend(((Path(BUNDLE_RESOURCE).with_name('cold-report.json'), value[5]),
+                          (PROOF_BUNDLE_RESOURCE, value[7]), (CLI_BUNDLE_RESOURCE, value[8]),
+                          (BINDER_RESOURCE, value[9])))
+    for path, expected in resources:
+        raw = _read(directory / path, 16 << 20).raw
+        if sha256(raw).hexdigest() != expected:
+            raise ValueError('native-default pin differs from package resource ' + str(path))
+
+
+def _record_pin(pin_path, raw, data_raw):
     """Bind an installed declaration to its actual wheel RECORD inventory.
 
     A fresh process must also refuse replacing the candidate declaration with
@@ -65,17 +97,26 @@ def _record_pin(pin_path, raw):
         record = bytes(captured)
     if len(record) > MAX_RECORD_BYTES:
         raise ValueError('installed native-default RECORD exceeds package bound')
-    pins, has_default = [], False
+    pins, data_pins, has_default = [], [], False
     for row in csv.reader(io.StringIO(record.decode('utf-8'))):
         if len(row) != 3:
             raise ValueError('invalid native-default wheel RECORD')
         if row[0] == 'hepta/hia_default_native_pin.py':
             pins.append(row)
+        if row[0] == 'hepta/' + PIN_RESOURCE:
+            data_pins.append(row)
         if row[0] == 'hepta/' + BUNDLE_RESOURCE:
             has_default = True
     expected = 'sha256=' + base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode('ascii')
     if len(pins) != 1 or pins[0][1:] != [expected, str(len(raw))]:
         raise ValueError('native-default declaration differs from installed wheel RECORD')
+    if data_raw is None:
+        if data_pins:
+            raise ValueError('installed wheel RECORD names missing native-default pin data')
+    else:
+        expected = 'sha256=' + base64.urlsafe_b64encode(sha256(data_raw).digest()).rstrip(b'=').decode('ascii')
+        if len(data_pins) != 1 or data_pins[0][1:] != [expected, str(len(data_raw))]:
+            raise ValueError('native-default pin data differs from installed wheel RECORD')
     return record_path, record, has_default
 
 
@@ -90,7 +131,20 @@ def _capture_package():
     pin_path = Path(__file__).resolve().with_name('hia_default_native_pin.py')
     with pin_path.open('rb', buffering=8192) as stream:
         raw = stream.read(MAX_PIN_BYTES + 1)
-    record = _record_pin(pin_path, raw)
+    from .hia_native_helpers import _read
+    try:
+        data = _read(pin_path.parent / PIN_RESOURCE, MAX_PIN_BYTES)
+    except FileNotFoundError:
+        data = None
+    record = _record_pin(pin_path, raw, None if data is None else data.raw)
+    if data is not None:
+        import json
+        if value is not None or raw != render_pin(None):
+            raise ValueError('native-default data accompanies a changed source pin module')
+        decoded = json.loads(data.raw)
+        if type(decoded) is not list or data.raw != render_pin_data(decoded):
+            raise ValueError('invalid or changed native-default pin data')
+        value = tuple(decoded)
     if value is None:
         if (raw != render_pin(None) or (record is not None and record[2])
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
@@ -106,14 +160,13 @@ def _capture_package():
             or (value[4] == SCOPES[0] and (len(value[5]) != 64
                 or any(c not in '0123456789abcdef' for c in value[5])))
             or (value[4] == SCOPES[1] and value[5] != '-')
-            or raw != render_pin(value)):
+            or (data is None and raw != render_pin(value))):
         raise ValueError('invalid or changed package native-default pin')
     import ctypes
     import platform
     if (platform.system() != 'Linux' or platform.machine() != 'x86_64'
             or ctypes.sizeof(ctypes.c_void_p) != 8):
         raise ValueError('default native candidate package requires Linux x86-64 LP64')
-    from .hia_native_helpers import _read
     captured = _read(pin_path, MAX_PIN_BYTES)
     if captured.raw != raw:
         raise ValueError('package native-default pin changed during capture')
@@ -122,7 +175,11 @@ def _capture_package():
     captured_record = _read(record[0], len(record[1]))
     if captured_record.raw != record[1]:
         raise ValueError('native-default wheel RECORD changed during capture')
-    return pin_path.parent, value, ((captured, MAX_PIN_BYTES), (captured_record, len(record[1])))
+    snapshots = [(captured, MAX_PIN_BYTES), (captured_record, len(record[1]))]
+    if data is not None:
+        _verify_data_resources(pin_path.parent, value)
+        snapshots.append((data, MAX_PIN_BYTES))
+    return pin_path.parent, value, tuple(snapshots)
 
 
 def capture_default_bundle():

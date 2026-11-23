@@ -130,8 +130,8 @@ def check(root=ROOT):
         if (root/name).exists():problems.append('removed source-only asset: '+name)
     import tomllib
     metadata=tomllib.loads((root/'pyproject.toml').read_text())
-    if metadata['project']['scripts']!={'hia':'hepta.cli:hia_main'}:
-        problems.append('installed entries must be HIA only')
+    if metadata['project'].get('scripts') or metadata['build-system']['build-backend'] != 'tools.hia_wheel_backend':
+        problems.append('the public HIA entry must be installed as its native executable')
     if metadata['project']['name']!='hia-core':problems.append('obsolete language distribution')
     scope=json.loads((root/'docs/HIA_CORE_ONLY_SCOPE.json').read_text())
     if scope.get('high_level_source_language')!='removed':problems.append('scope mismatch')

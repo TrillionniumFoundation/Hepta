@@ -189,7 +189,7 @@ class DefaultReleaseNativeTests(unittest.TestCase):
         import csv
         import io
         import base64
-        from hepta.hia_default_native import render_pin
+        from hepta.hia_default_native import PIN_RESOURCE, render_pin, render_pin_data
         from tools.build_hia_default_release import SLOT_RECEIPT, WHEEL_TAG
         base, = (self.root / 'build/base-wheel').glob('*.whl')
         with zipfile.ZipFile(self.wheel) as archive, zipfile.ZipFile(base) as original:
@@ -207,11 +207,11 @@ class DefaultReleaseNativeTests(unittest.TestCase):
                 tag = WHEEL_TAG
             self.assertIn(('Tag: ' + tag + '\n').encode(), archive.read(metadata))
             self.assertEqual(self.report['wheel_tag'], tag)
-            self.assertEqual(archive.read('hepta/hia_default_native_pin.py'), render_pin(tuple(self.report['pin'])))
+            self.assertEqual(archive.read('hepta/hia_default_native_pin.py'), render_pin(None))
+            self.assertEqual(archive.read('hepta/' + PIN_RESOURCE), render_pin_data(self.report['pin']))
             for name in names:
                 if name.startswith('hepta/') and name.endswith('.py') and '/_data/' not in name:
-                    if name != 'hepta/hia_default_native_pin.py':
-                        self.assertEqual(archive.read(name), (ROOT / name).read_bytes(), name)
+                    self.assertEqual(archive.read(name), (ROOT / name).read_bytes(), name)
             record, = [name for name in names if name.endswith('.dist-info/RECORD')]
             rows = list(csv.reader(io.StringIO(archive.read(record).decode())))
             self.assertEqual({row[0] for row in rows}, set(names))
@@ -220,7 +220,7 @@ class DefaultReleaseNativeTests(unittest.TestCase):
                     expected = base64.urlsafe_b64encode(sha256(archive.read(name)).digest()).rstrip(b'=').decode()
                     self.assertEqual(digest, 'sha256=' + expected)
                     self.assertEqual(int(length), len(archive.read(name)))
-        self.assertFalse(self.report['ordinary_source_default_changed'])
+        self.assertEqual(self.report['ordinary_source_default_changed'], self.report['matching_source_cold_component'])
         self.assertFalse(self.report['retained_reference_bodies_removed'])
 
     def test_ordinary_installed_API_needs_no_selector_or_authoring_imports(self):
@@ -581,7 +581,7 @@ print('AMBIENT_SELECTION_REFUSED_BEFORE_STATE')
 bundle, _digest, _pin = defaults.capture_default_bundle()
 manifest = json.loads((bundle.parent / 'manifest.json').read_bytes())
 paths = [bundle, bundle.parent / 'manifest.json', bundle.parent / manifest['image_path'],
-         native.SOURCE, installed / 'hepta/hia_default_native_pin.py',
+         native.SOURCE, installed / 'hepta/hia_default_native_pin.py', installed / 'hepta' / defaults.PIN_RESOURCE,
          next(installed.glob('hia_core-*.dist-info/RECORD'))]
 data = json.loads(raw)
 for path in paths:
@@ -623,11 +623,11 @@ print('ALL_COLD_AND_WARM_PACKAGE_INPUTS_REFUSED')
 
     def test_fresh_process_cannot_downgrade_candidate_pin_to_portable_none(self):
         body = r'''
-pin = installed / 'hepta/hia_default_native_pin.py'
+pin = installed / 'hepta' / defaults.PIN_RESOURCE
 saved = pin.read_bytes()
 assert 'hepta.hia_default_native_pin' not in sys.modules
 try:
-    pin.write_bytes(defaults.render_pin(None))
+    pin.unlink()
     try:
         owner.assess_full_cost(raw)
     except ValueError as error:

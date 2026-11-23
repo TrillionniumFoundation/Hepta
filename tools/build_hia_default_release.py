@@ -1,7 +1,7 @@
 """Construct a platform-tagged wheel with packaged HIA cost and Core ELF owners.
 
-This constructs a candidate artifact; ordinary source/portable builds remain
-unchanged. Strict mode requires the complete current cold source identity.
+The ordinary wheel installs a compiled HIA command and its sibling executables.
+Strict mode requires the complete current cold source identity.
 The data-only pin, image and wheel are derived outputs, never circular cold
 inputs. Explicit development construction is reported separately throughout.
 """
@@ -25,8 +25,8 @@ if __package__ in {None, ''}:
 
 from hepta.hia_default_native import (BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
                                      CORE_WIRE_OWNER,
-                                     PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
-                                     TARGET, render_pin)
+                                     PIN_RESOURCE, PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
+                                     TARGET, render_pin, render_pin_data)
 from tools.build_hia_json_preflight import admit_cold_build, build_batch, current_sources
 
 PIN_FILE = 'hepta/hia_default_native_pin.py'
@@ -82,8 +82,15 @@ def _base_wheel(stage, output, captured, *, native_store_only):
     environment['PYTHONDONTWRITEBYTECODE'] = '1'
     if native_store_only:
         environment['HEPTA_HIA_STRICT_NATIVE_STORE_WHEEL'] = '1'
-    command = [sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',
-               '--no-index', '--wheel-dir', str(output), str(stage)]
+    # This is the Python import library for the native wheel. Call its packaging
+    # backend directly so it cannot recursively dispatch the public wheel build.
+    output.mkdir(mode=0o700)
+    command = [sys.executable, '-B', '-c',
+               'from setuptools.build_meta import build_wheel; import sys; print(build_wheel(sys.argv[1]))',
+               str(output)]
+    if 'PYTHONPATH' in os.environ:
+        # pip puts its isolated build requirements on this path.
+        environment['PYTHONPATH'] = os.environ['PYTHONPATH']
     run = subprocess.run(command, cwd=stage, env=environment, capture_output=True, timeout=60)
     (stage.parent / 'wheel-build.stdout').write_bytes(run.stdout)
     (stage.parent / 'wheel-build.stderr').write_bytes(run.stderr)
@@ -156,6 +163,24 @@ def _wheel_contents(path, sources, captured):
     return files, distribution, release_tag
 
 
+def _native_cli_scripts(directory, compiler, cold_report, distribution):
+    """Produce pip's scripts directly from the authenticated public Core build."""
+    from tools.build_hia_core_edit import DISPATCH_ROLES, PROGRAMS, build as build_core
+
+    build_core(directory, compiler, cold_report, release_only=True, wheel_layout=True)
+    receipt = json.loads((directory / 'build.json').read_bytes())
+    paths = {name: directory / name for kind, (name, _) in PROGRAMS.items() if kind != 'emit_object'}
+    paths['hia-nominal-constructor'] = directory / 'nominal-constructor/hia-nominal-constructor'
+    binaries = {path: path.read_bytes() for path in paths.values()}
+    identities = {name: sha256(binaries[path]).hexdigest() for name, path in paths.items()}
+    pins = receipt['executables']['hia']['role_sha256']
+    if (set(pins) != DISPATCH_ROLES or any(identities[role] != value for role, value in pins.items())
+            or any(not raw.startswith(b'\x7fELF\x02\x01\x01') for raw in binaries.values())):
+        raise ValueError('wheel CLI differs from the executables authenticated by its native dispatcher')
+    scripts = distribution.removesuffix('.dist-info') + '.data/scripts/'
+    return {scripts + name: binaries[path] for name, path in paths.items()}, binaries
+
+
 def _write_wheel(path, files, distribution):
     record = distribution + '/RECORD'
     entries = io.StringIO(newline='')
@@ -171,7 +196,8 @@ def _write_wheel(path, files, distribution):
         for name, raw in sorted(files.items()):
             item = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
             item.create_system = 3
-            item.external_attr = 0o100644 << 16
+            item.external_attr = (0o100755 if name.startswith(distribution.removesuffix('.dist-info') + '.data/scripts/')
+                                  else 0o100644) << 16
             item.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(item, raw)
     return {name: sha256(raw).hexdigest() for name, raw in sorted(files.items())}
@@ -275,7 +301,7 @@ def build(output, compiler, cold_report=None, *, development=False):
         owner_inputs[executable] = native_binder
         owner_members['hepta/' + BINDER_RESOURCE] = native_binder
         pin += (sha256(native_binder).hexdigest(),)
-    pin_raw = render_pin(pin)
+    pin_raw = render_pin_data(pin)
     staging = output / 'source'
     staging.mkdir(mode=0o700)
     base_wheel, command = _base_wheel(staging, output / 'base-wheel', captured, native_store_only=not development)
@@ -293,14 +319,17 @@ def build(output, compiler, cold_report=None, *, development=False):
         'component_build_sha256': sha256(component_report).hexdigest(),
         'default_bundle_sha256': pin[3], 'pin_template_sha256': sha256(captured[PIN_FILE]).hexdigest(),
         'derived_pin_sha256': sha256(pin_raw).hexdigest(),
-        'runtime_source_transformations': {PIN_FILE: 'data-only pin derived by the cold-bound builder'},
+        'derived_pin_resource': 'hepta/' + PIN_RESOURCE, 'runtime_source_transformations': {},
         'retained_reference_bodies_removed': False, 'whole_native_delivery_qualified': False,
         'production_activated': False})
-    derived = {**owner_members, PIN_FILE: pin_raw, PACKAGE_DIRECTORY + '/bundle.json': bundle,
+    derived = {**owner_members, 'hepta/' + PIN_RESOURCE: pin_raw, PACKAGE_DIRECTORY + '/bundle.json': bundle,
         PACKAGE_DIRECTORY + '/component-build.json': component_report,
         PACKAGE_DIRECTORY + '/provenance.json': provenance,
         distribution + '/WHEEL': wheel_meta}
     if not development:
+        cli_scripts, cli_inputs = _native_cli_scripts(output / 'native-cli', compiler, cold_report, distribution)
+        derived.update(cli_scripts)
+        owner_inputs.update(cli_inputs)
         derived[PACKAGE_DIRECTORY + '/cold-report.json'] = cold_bytes
     files.update(derived)
     prefix = base_wheel.name.removesuffix('.whl').rsplit('-', 3)[0]
@@ -314,7 +343,7 @@ def build(output, compiler, cold_report=None, *, development=False):
     report = {'schema': SCHEMA, 'scope': scope, 'target': TARGET, 'wheel_tag': wheel_tag,
         'wheel': str(wheel), 'wheel_sha256': sha256(wheel.read_bytes()).hexdigest(),
         'base_wheel_sha256': sha256(base_wheel.read_bytes()).hexdigest(),
-        'ordinary_wheel_command': command, 'source_manifest': sources,
+        'python_library_wheel_command': command, 'source_manifest': sources,
         'source_identity_sha256': source_identity(sources), 'compiler_sha256': sha256(compiler_bytes).hexdigest(),
         'cold_report_sha256': None if cold_bytes is None else sha256(cold_bytes).hexdigest(),
         'default_bundle_sha256': pin[3], 'pin': pin, 'members': members,
@@ -322,7 +351,8 @@ def build(output, compiler, cold_report=None, *, development=False):
         'safe_core_proof_selectors': [entry['selector'] for entry in proof_manifests],
         'default_native_cli_control': not development,
         'derived_package_members': sorted(derived),
-        'ordinary_source_default_changed': False, 'retained_reference_bodies_removed': False,
+        'public_cli_entry': None if development else 'native-elf',
+        'ordinary_source_default_changed': not development, 'retained_reference_bodies_removed': False,
         'matching_source_cold_component': not development,
         'installed_default_qualification_completed': False,
         'whole_native_delivery_qualified': False, 'production_activated': False}

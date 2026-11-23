@@ -90,7 +90,8 @@ class CoreOnlyTests(unittest.TestCase):
     def test_only_agent_console_is_installed(self):
         import tomllib
         metadata=tomllib.loads((ROOT/'pyproject.toml').read_text())
-        self.assertEqual(metadata['project']['scripts'],{'hia':'hepta.cli:hia_main'})
+        self.assertFalse(metadata['project'].get('scripts'))
+        self.assertEqual(metadata['build-system']['build-backend'], 'tools.hia_wheel_backend')
 
     def test_source_and_migration_cli_routes_are_rejected(self):
         for command in ['check','lower','import-executable','import-scalar','import-cpp-project','hepta','hia']:

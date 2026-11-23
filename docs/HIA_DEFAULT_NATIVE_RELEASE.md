@@ -64,18 +64,16 @@ linker and independent inventory, checks their compiler output receipts, capture
 and builds an actual ordinary wheel with the existing setup hook. Every production
 Python module and packaged source is checked against captured source bytes.
 
-Only then does it derive the data-only `hia_default_native_pin.py` declaration,
-bundle, image resources and platform wheel metadata. Wheel `RECORD` is regenerated
-over the exact final bytes. The build report records every derived member and the
-final artifact digest. No other runtime Python source is transformed in packaging.
+The builder writes the deployment pin to
+`hepta/_data/native/default/full_cost/pin.json`. Wheel `RECORD` binds the pin,
+the image bundles and the executable scripts. The build report records every
+derived member and the final artifact digest. Each installed Python module is
+byte-identical to its cold source.
 
-The source contract binds the handwritten loader, builder and portable pin
-template. The derived image and pin are outputs, not cold source inputs. Adding
-their own digests to the cold input would create a cycle. The installed worker
-identity hashes the actual derived pin, which binds the exact helper bundle and
-its child manifest/image. The pinned HIA source stays byte-identical to cold input.
-The package provenance identifies the source template separately from its generated
-declaration; it never claims that every installed byte equals the cold source tree.
+The installed worker hashes the source modules and their declared resources.
+The loader separately checks the data pin against the actual cold report,
+source inventory, bundles and binder. Existing installations with a pin
+declaration in the Python module retain their original RECORD verification.
 
 `--development` is an explicit, mutually exclusive construction mode. Its pin,
 wheel build tag, component receipt and package report remain development-scoped.
@@ -83,11 +81,10 @@ It cannot supply a matching-source cold qualification.
 
 ## Default and administrator custody
 
-The package pin module is always installed. Missing or changed bytes cannot turn
-an installed candidate back into the portable profile. Its independent installed
-wheel `RECORD` binds both the declaration hash and the default bundle inventory;
-even rewriting the declaration to the valid portable `None` template in a fresh
-process refuses. Native selection occurs at
+The source pin module ships in every package. The loader checks its recorded
+identity and the separate deployment data. Removing the data file, changing
+its bytes, or selecting different physical inputs causes admission to fail.
+Native selection occurs at
 the original lazy full-cost admission point, after the same validated arm inputs.
 The captured bundle, child manifest, HIA source, image, pin and installed inventory are checked before
 and after native entries. No runtime authoring or compiler import is required.
