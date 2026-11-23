@@ -64,9 +64,9 @@ def build(root, name, native, macros):
             str(p / "observer.o"), str(p / "native.o")])
     invoke(["objcopy", "-O", "elf32-i386", str(p / "guest.elf"),
             str(p / "guest32.elf")])
-    # The Core object has a verified PLT32 abort callsite: ld resolves its
-    # four-byte operand to the explicit guest failure sink. Mask *only* this
-    # independently enumerated ELF relocation; all remaining HIA instruction
+    # The Core object has an exported-wrapper to internal-function PLT32 call
+    # and an unreachable abort PLT32 callsite. ld resolves their four-byte
+    # operands. Mask *only* these independently enumerated ELF relocations; all remaining HIA instruction
     # bytes must match exactly, including the INVLPG opcode.
     rels = invoke(["readelf", "-Wr", str(p / "native.o")]).stdout.decode()
     offsets = []
@@ -74,10 +74,11 @@ def build(root, name, native, macros):
         if "R_X86_64_" not in line:
             continue
         fields = line.split()
-        assert ("R_X86_64_PLT32" in line and "abort" in fields), (
+        assert ("R_X86_64_PLT32" in line and fields[-3] in
+                {"abort", "__hia_native_fn_0"}), (
             f"unreviewed native Core relocation: {line}")
         offsets.append(int(fields[0], 16))
-    assert offsets, "expected explicitly accounted abort call relocation"
+    assert len(offsets) >= 2, "expected internal-call and abort relocations"
     expected = bytearray(native.text_bytes)
     for offset in offsets:
         assert 1 <= offset and offset + 4 <= len(expected)
