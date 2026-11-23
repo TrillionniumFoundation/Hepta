@@ -3,7 +3,11 @@
 Input is the literal [canonical Core,workload] JSON, the actual HIAEBT01
 batch, and '<8s2Q' (HIAERJ01, JSON byte length, batch byte length). The
 HIA policy derives all names, scalar/loan types and sizes from the parsed
-documents. The public execution-ledger policy checks the physical counters.
+documents. HIAERJ02 inserts the two actual monotonic boundaries and the
+selected owned reference ELF between batch and footer. Its output wraps the
+same rows in the original public reference outcome, hashing physical stdout
+and the selected executable. HIAEFI04 is issued only after exit zero and empty
+stderr. The public execution-ledger policy checks the physical counters.
 """
 
 import ast
@@ -33,12 +37,19 @@ FIELDS=(*BATCH_FIELDS,'schema')
 POLICY=r'''
 def reference_report(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     n = length(s)
-    if n < 48 or read_word(s,n-24) != REQUEST:
+    if n < 48 or (read_word(s,n-24) != REQUEST and read_word(s,n-24) != OUTCOME):
         return BAD
     text = read_word(s,n-16)
     batch = read_word(s,n-8)
-    if text > 16777219 or text > n-24 or batch != n-text-24 or batch < 24 or batch > 67108864:
+    if text > 16777219 or text > n-24 or batch > n-text-24 or batch < 24 or batch > 67108864:
         return BAD
+    end = text+batch
+    mode = read_word(s,n-24)
+    if mode == REQUEST and end != n-24:
+        return BAD
+    if mode == OUTCOME:
+        if n-24-end < 80 or read_word(s,end) == 0 or read_word(s,end+8) < read_word(s,end) or (read_word(s,end+16) & 4294967295) != 1179403647:
+            return BAD
     if read_word(s,text) != BATCH or length(w) < 67108864 or length(o) < 8388608:
         return BAD
     put(o,48,524289)
@@ -66,37 +77,101 @@ def reference_report(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     while i < 32:
         store(w,CORE_HASH+i,byte(w,length(w)-4096+1088+i))
         i = i+1
+    put(w,CTX,core)
+    put(w,CTX+8,work)
+    put(w,CTX+16,chain)
+    put(w,CTX+24,text)
+    put(w,CTX+32,batch)
+    put(w,CTX+40,mode)
+    return emit_cases(s,o,w,child(w,cases))
+
+def emit_cases(s:readbuf,o:mutbuf,w:mutbuf,case:u64) -> u64:
+    text = get(w,CTX+24)
+    done = read_word(s,text+16)
+    end = text+get(w,CTX+32)
     row = text+24
-    case = child(w,cases)
     at = 0
+    if get(w,CTX+40) == OUTCOME:
+        at = report_start(s,o,w,text,get(w,CTX+32),done)
+        if at == BAD:
+            return BAD
     at = literal('[')
     i = 0
     while i < done:
-        if row > n-24 or n-24-row < 160 or read_word(s,row) != i:
+        if row > end or end-row < 160 or read_word(s,row) != i:
             return BAD
         size = read_word(s,row+8)
         row = row+16
-        if size < 144 or size > n-24-row or read_word(s,row) != RECEIPT:
+        if size < 144 or size > end-row or read_word(s,row) != RECEIPT:
             return BAD
-        fn = public_function(w,core,lookup(w,case,K_function))
+        fn = public_function(w,get(w,CTX),lookup(w,case,K_function))
         if fn == NONE or case == NONE:
             return BAD
         if i != 0:
             at = literal(',')
-        at = observation(s,o,w,at,fn,case,work,row,size,chain)
-        if at >= 8388607:
+        at = observation(s,o,w,at,fn,case,get(w,CTX+8),row,size,get(w,CTX+16))
+        if at >= 8384512:
             return BAD
         budget = get(w,FRAME+8) == 3
         if budget and i+1 != done:
             return BAD
-        if i+1 == done and done != count and budget == False:
+        if i+1 == done and done != read_word(s,text+8) and budget == False:
             return BAD
         row = row+size
         case = next(w,case)
         i = i+1
-    if row != n-24:
+    if row != end:
         return BAD
     at = literal(']')
+    if get(w,CTX+40) == OUTCOME:
+        return report_end(s,o,w,at,text,get(w,CTX+32))
+    return at
+
+def report_start(s:readbuf,o:mutbuf,w:mutbuf,text:u64,batch:u64,done:u64) -> u64:
+    last = text+24
+    i = 0
+    while i+1 < done:
+        if last > text+batch or text+batch-last < 16:
+            return BAD
+        size = read_word(s,last+8)
+        if size > text+batch-last-16:
+            return BAD
+        last = last+16+size
+        i = i+1
+    if last > text+batch or text+batch-last < 48:
+        return BAD
+    status = read_word(s,last+24)
+    complete = done == read_word(s,text+8) and status != 5 and status != 6 and status != 16
+    at = 0
+    at = literal('{"report":{"artifact_sha256":"')
+    at = hash_hex(o,w,at,CORE_HASH)
+    at = literal('","complete":')
+    if complete:
+        at = literal('true')
+    else:
+        at = literal('false')
+    at = literal(',"completed_cases":')
+    at = decimal(o,at,done)
+    at = literal(',"native_code_executed":false,"observations":')
+    return at
+
+def report_end(s:readbuf,o:mutbuf,w:mutbuf,at:u64,text:u64,batch:u64) -> u64:
+    end = text+batch
+    if widen(pair_hash_sha256(s,w,end+16,length(s)-end-40)) != 32:
+        return BAD
+    at = literal(',"owned_reference_executable_sha256":"')
+    at = hash_hex(o,w,at,length(w)-4096+1088)
+    at = literal('","owned_reference_standalone_calls":')
+    at = decimal(o,at,read_word(s,text+16))
+    at = literal(',"planned_cases":')
+    at = decimal(o,at,read_word(s,text+8))
+    at = literal(',"repetitions":1,"schema":"hepta.hia.agent.reference-observation.v1","warmup":0},"returncode":0,"started":true,"status":"returned","stderr_sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","stdout_sha256":"')
+    if widen(pair_hash_sha256(s,w,text,batch)) != 32:
+        return BAD
+    at = hash_hex(o,w,at,length(w)-4096+1088)
+    at = literal('","termination_confirmed":true,"wall_ns":"')
+    at = decimal(o,at,read_word(s,end+8)-read_word(s,end))
+    at = literal('"}')
     return at
 
 def observation(s:readbuf,o:mutbuf,w:mutbuf,at:u64,fn:u64,case:u64,work:u64,row:u64,size:u64,chain:u64) -> u64:
@@ -334,10 +409,9 @@ def literals(source):
         lines=[]
         for i in range(0,len(raw),8):
             chunk=raw[i:i+8]
-            if len(chunk)==8:
-                lines.append(f'put(o,at+{i},{int.from_bytes(chunk,"little")})')
-            else:
-                lines.extend(f'store(o,at+{i+j},{v})' for j,v in enumerate(chunk))
+            # The bounded output reserves eight bytes beyond its logical end.
+            # A subsequent append overwrites this private tail.
+            lines.append(f'put(o,at+{i},{int.from_bytes(chunk,"little")})')
         return '\n'.join(indent+line for line in (*lines,f'at = at+{len(raw)}'))
     return re.sub(r'^([ \t]*)at = literal\((.+)\)$',expand,source,flags=re.M)
 
@@ -365,13 +439,20 @@ def errors():
         if op in ('chain.head_read','chain.head_mut'):
             groups.append((f'status == 19 and detail == {i}','bounds','head borrow of an empty chain'))
     lines=['def error_id(status:u64,detail:u64) -> u64:','    if status == 0:','        return 0']
-    for cond,code,_ in groups:
+    lines.extend((f'    if status == 1 and detail < {len(TYPES)}:', f'        return {ERRORS["overflow"]}'))
+    for cond,code,_ in groups[len(TYPES):]:
         lines.extend((f'    if {cond}:',f'        return {ERRORS[code]}'))
     lines+=['    return NONE','def error_message(o:mutbuf,at:u64,status:u64,detail:u64) -> u64:',
             '    if status < 15:', '        return scalar_message(o,at,status,detail)',
             '    return resource_message(o,at,status,detail)']
-    for part, subset in (('scalar',groups[:len(TYPES)+10]),('resource',groups[len(TYPES)+10:])):
+    for part, subset in (('scalar',groups[len(TYPES):len(TYPES)+10]),('resource',groups[len(TYPES)+10:])):
         lines.append(f'def {part}_message(o:mutbuf,at:u64,status:u64,detail:u64) -> u64:')
+        if part=='scalar':
+            lines.append('    if status == 1:')
+            lines.append('        at = literal(' +repr('"E_HIA_TRAP_OVERFLOW: result is outside ')+')')
+            for i,kind in enumerate(TYPES):
+                suffix=kind+'"'
+                lines.extend((f'        if detail == {i}:',f'            at = literal({suffix!r})','            return at'))
         messages={}
         for condition,code,message in subset:
             category='BUDGET' if ERRORS[code]>=6 else 'TRAP'
@@ -415,7 +496,6 @@ def counters():
 def program():
     from hepta.hia_scalar_reference_wire import RESOURCE_KINDS
     from tools.generate_hia_mcp_request import WIRE_HELPERS
-    from tools.generate_hia_evaluate_settlement import hia_literals
     batch=batch_source()
     helpers=('public_function','published','named','object','kind','child','next','eq_text','lookup','snapshot','uint',
              'read_word','nibble','type_code','width','signed_type')
@@ -430,15 +510,16 @@ def program():
     source=literals(POLICY+'\n'+errors()+'\n'+counters())+'\n'+valid
     constants={f'K_{key}':i for i,key in enumerate(FIELDS,1)}
     types=(*TYPES,*RESOURCE_KINDS[1:])
-    constants.update(REQUEST=int.from_bytes(b'HIAERJ01','little'), BATCH=int.from_bytes(b'HIAEBT01','little'),
+    constants.update(REQUEST=int.from_bytes(b'HIAERJ01','little'),OUTCOME=int.from_bytes(b'HIAERJ02','little'), BATCH=int.from_bytes(b'HIAEBT01','little'),
                      RECEIPT=int.from_bytes(b'HIASPR01','little'),NONE=NONE,BAD=0xfffffffd,
-                     CORE_HASH=(64<<20)-19000,FRAME=(64<<20)-20000,ROW=(64<<20)-21000,SCALARS=len(TYPES),
+                     CORE_HASH=(64<<20)-19000,CTX=(64<<20)-22000,FRAME=(64<<20)-20000,ROW=(64<<20)-21000,SCALARS=len(TYPES),
                      READBUF=types.index('readbuf'),MUTBUF=types.index('mutbuf'),UNIT=TYPES.index('unit'),BOOL=TYPES.index('bool'))
     source=re.sub(r'\b('+'|'.join(constants)+r')\b',lambda m:str(constants[m[0]]),source)
     return '\n'.join((source,base,function(WIRE_HELPERS,'match_word'),key_table(FIELDS),
                      compact_enum('recursive',[(n,int(supports_feature(n,'recursive_chain'))) for n in PRIMITIVE_PROFILES]),
                      decoder,snapshot_hash(),function(SETTLE,'copy_wire'),function(SETTLE,'decimal'),
-                     function(SETTLE,'hexchar'),function(hia_literals(),'next_power')))
+                     function(SETTLE,'hexchar'),
+                     'def next_power(p:u64) -> u64:\n    return (p >> 1) * 14757395258967641293'))
 
 
 def packer_document():

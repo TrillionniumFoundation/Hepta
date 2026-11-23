@@ -1,6 +1,7 @@
 """Qualify public VM observation materialization on actual native batch results."""
 
 import json
+from hashlib import sha256
 import os
 from pathlib import Path
 import struct
@@ -33,9 +34,11 @@ class ReferenceObservationTests(unittest.TestCase):
                     struct.pack('<2Q',MAGIC,len(raw))+raw,output_extension='.elf')
         cls.exe.chmod(0o500)
 
-    def observe(self,core,workload,batch):
+    def observe(self,core,workload,batch,*,bounds=None):
         text=b'['+core+b','+wire(workload)+b']'
-        data=text+batch+struct.pack('<8s2Q',b'HIAERJ01',len(text),len(batch))
+        authorization=(b'' if bounds is None else struct.pack('<2Q',*bounds)+self.reference.owned.read_bytes())
+        data=text+batch+authorization+struct.pack('<8s2Q',b'HIAERJ01' if bounds is None else b'HIAERJ02',
+                                                   len(text),len(batch))
         p=subprocess.run([self.exe],input=data,capture_output=True,timeout=8)
         self.assertEqual(p.stderr,b'')
         return p.returncode,p.stdout
@@ -57,6 +60,22 @@ class ReferenceObservationTests(unittest.TestCase):
         got=self.observe(checked.canonical_bytes,workload,raw)
         self.assertEqual(got,(0,wire(expected)),(got[0],got[1][:1800],wire(expected)[:1800]))
         return checked,workload,raw
+
+    def check_outcome(self,core,work,raw,start,end):
+        from hepta.hia_agent_runner import _reference_batch_receipt
+        checked=verify_program(core)
+        rows=[]
+        exports=tuple((item['function'],item['max_buffer_bytes']) for item in work.get('foreign_buffer_exports',[]))
+        for case in work['cases']:
+            rows.append(_vm_observation(checked,case,foreign_buffer_exports=exports))
+            if rows[-1]['status']=='budget_exceeded':
+                break
+        owned=sha256(self.reference.owned.read_bytes()).hexdigest()
+        report=_reference_batch_receipt(checked.sha256,work['cases'],rows,0,1,None,None,(owned,len(rows)))
+        expected=dict(report=report,started=True,returncode=0,status='returned',stdout_sha256=sha256(raw).hexdigest(),
+                      stderr_sha256=sha256(b'').hexdigest(),termination_confirmed=True,wall_ns=str(end-start))
+        self.assertEqual(self.observe(core,work,raw,bounds=(start,end)),(0,wire(expected)))
+        self.assertEqual(self.observe(core,work,raw,bounds=(end,start)),(2,b''))
 
     def test_scalar_signed_boolean_unit_and_empty(self):
         for typ,values in (('i8',[-127,112]),('i64',[-(1<<63),0]),('u64',[0,(1<<64)-1]),
@@ -116,6 +135,7 @@ class ReferenceObservationTests(unittest.TestCase):
                                           {'function':'again','arguments':[2]}])
         self.assertEqual(struct.unpack_from('<2Q',raw,8),(2,1))
         self.assertEqual(json.loads(self.observe(checked.canonical_bytes,work,raw)[1])[0]['budget_code'],'calls')
+        self.check_outcome(checked.canonical_bytes,work,raw,900,2000)
 
     @unittest.skipUnless(os.environ.get('HIA_TEST_FRESH_HANDOFF'),'physical HIAEFI04 input required')
     def test_both_live_nominal_core_matches_actual_frozen_workload(self):
@@ -129,8 +149,9 @@ class ReferenceObservationTests(unittest.TestCase):
             facts.append((raw[at:at+meta],raw[at+meta:at+meta+body]))
             at+=meta+body
         work=json.loads(facts[-1][1])
-        for core,n in zip((facts[-5][0],facts[-4][0]),h[8:10],strict=True):
+        for arm,(core,n) in enumerate(zip((facts[-5][0],facts[-4][0]),h[8:10],strict=True)):
             batch=raw[at:at+n]
             at+=n
             expected=[_vm_observation(verify_program(core),case) for case in work['cases']]
             self.assertEqual(self.observe(core,work,batch),(0,wire(expected)))
+            self.check_outcome(core,work,batch,h[10+2*arm],h[11+2*arm])
