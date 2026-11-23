@@ -35,6 +35,7 @@ TYPED_REQUEST_SLOT = 256
 SIMD_ISA_SLOT = 264
 SIMD_KIND_SLOT = 272
 SIMD_REQUEST = int.from_bytes(b'HIASP001', 'little')
+SIMD_DATA_QUERY = int.from_bytes(b'HIASMOC1', 'little')
 SIMD_DETAIL_REQUEST = int.from_bytes(b'HIASP002', 'little')
 SIMD_DETAIL_RECEIPT = int.from_bytes(b'HIASIMR2', 'little')
 SIMD_DETAIL_SLOT = 512
@@ -123,6 +124,8 @@ def proof_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
         return end + 72
     if phase == 12:
         return receive_simd_induction(o, w)
+    if phase == 11:
+        return received_simd_circuit(w)
     return 0
 
 def admit(s:readbuf, w:mutbuf) -> u64:
@@ -360,31 +363,48 @@ def simd_endpoint_obligation(w:mutbuf, role:u64) -> u64:
         return simd_endpoint_bounds(w, width)
     return simd_endpoint_effects(w, width)
 
-def simd_register_move(w:mutbuf, at:u64) -> u64:
-    rex = byte(w, at)
-    modrm = byte(w, at + 2)
-    if (rex & 248) != 72 or byte(w, at + 1) != 137 or (modrm >> 6) != 3:
-        return 256
-    src = ((rex & 4) << 1) | ((modrm >> 3) & 7)
-    dest = ((rex & 1) << 3) | (modrm & 7)
-    return (dest << 4) | src
+def send_machine_simd(w:mutbuf, role:u64) -> u64:
+    put(w, HEADER, SIMD_DATA_QUERY)
+    put(w, HEADER + 8, get(w, SIMD_ISA_SLOT))
+    put(w, HEADER + 16, get(w, SIMD_KIND_SLOT))
+    put(w, HEADER + 24, role)
+    return dispatch(w, 11, 3, WORK_OFFSET + HEADER, 32, FRAME, 10320,
+                    WORK_OFFSET + BINDING, get(w, 192))
 
-def simd_initial_registers(w:mutbuf, copy:bool) -> u64:
-    at = BINDING + 80
-    count = simd_register_move(w, at + choose(copy, 90, 44))
-    if count > 255:
+def received_simd_circuit(w:mutbuf) -> u64:
+    size = get(w, 64)
+    if size < 120 or size > 10320 or get(w, FRAME) != CIRCUIT_REQUEST:
         return 0
-    put(w, SIMD_COUNT_MOVE_SLOT, count)
-    if copy:
-        result = simd_register_move(w, at)
-        if result > 255:
-            return 0
-        put(w, SIMD_RESULT_MOVE_SLOT, result)
-        return simd_copy_init(w, 0)
-    if byte(w, at) != 184:
+    nodes = get(w, FRAME + 8)
+    if nodes == 0 or nodes > 256 or size != 80 + 40 * nodes or get(w, FRAME + 16) != 3 or get(w, FRAME + 24) != 0:
         return 0
-    put(w, SIMD_RESULT_MOVE_SLOT, get(w, at + 1) & 4294967295)
-    return simd_read_init(w, 0)
+    budget = (get(w, 128) - now(w)) // 1000000
+    if budget < 100:
+        return 0
+    put(w, HEADER, OBLIGATION_MAGIC)
+    put(w, HEADER + 8, 3)
+    put(w, HEADER + 16, budget)
+    return dispatch(w, 10, 5, WORK_OFFSET + HEADER, 24, OBLIGATION, OBLIGATION_CAP,
+                    WORK_OFFSET + FRAME, size)
+
+def following_data_role(isa:u64, shape:u64, role:u64) -> u64:
+    if role == 40 or role == 41 or role == 42:
+        return role + 1
+    if role == 43:
+        if shape == 3:
+            return choose(isa == 1, 52, 53)
+        return choose(isa == 1, choose(shape == 1, 47, 44), 44)
+    if role == 44:
+        return choose(isa == 1, 47, 45)
+    if role == 45 or role == 46:
+        return role + 1
+    if role == 47:
+        return choose(isa == 1, 52, 48)
+    if role >= 48 and role < 51:
+        return role + 1
+    if role == 52:
+        return choose(shape == 3, 53, 0)
+    return 0
 
 def next_simd_ordinal(w:mutbuf, role:u64) -> u64:
     isa = get(w, SIMD_ISA_SLOT)
@@ -411,7 +431,11 @@ def next_simd_ordinal(w:mutbuf, role:u64) -> u64:
     if role == 30 or role == 31:
         return role + 1
     if role == 32:
-        return choose(isa == 1, 0, choose(copy, 0, 33))
+        return choose(isa == 1, 42, choose(copy, 42, 33))
+    if role == 33:
+        return 40
+    if role >= 40:
+        return following_data_role(isa, get(w, SIMD_KIND_SLOT), role)
     return 0
 
 def send_simd_induction(w:mutbuf) -> u64:
@@ -420,6 +444,8 @@ def send_simd_induction(w:mutbuf) -> u64:
     if budget < 100:
         return 0
     delta = get(w, SIMD_DELTA_SLOT)
+    if role >= 30:
+        return send_machine_simd(w, role)
     if role == 1:
         if get(w, SIMD_KIND_SLOT) == 3:
             extent = simd_copy_caller(w, delta)
@@ -439,17 +465,6 @@ def send_simd_induction(w:mutbuf) -> u64:
         extent = simd_bounded_partition(w, 0)
     elif role >= 16 and role <= 29:
         extent = simd_endpoint_obligation(w, role)
-    elif role == 30:
-        extent = simd_prefix_suffix_partition(w, 0)
-    elif role == 31:
-        if get(w, SIMD_KIND_SLOT) == 3:
-            extent = simd_copy_guards(w, 0)
-        else:
-            extent = simd_read_guards(w, 0)
-    elif role == 32:
-        extent = simd_initial_registers(w, get(w, SIMD_KIND_SLOT) == 3)
-    elif role == 33:
-        extent = simd_short_entry(w, 8 << get(w, SIMD_ISA_SLOT))
     else:
         return 0
     if extent == 0:

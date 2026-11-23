@@ -424,10 +424,14 @@ def word_pair_writer():
     return '\n'.join([*lines, '    return 0'])
 
 
+def packed_transport():
+    packed = TRANSPORT.replace('CIRCUIT_MAGIC', str(CIRCUIT_REQUEST)).replace(
+        'PACKED_WIDTHS', str(int.from_bytes(bytes(WIDTHS[:8]), 'little')))
+    return word_pair_writer() + '\n' + packed
+
+
 def source():
-    return '\n\n'.join((word_pair_writer(), TRANSPORT.replace('CIRCUIT_MAGIC', str(CIRCUIT_REQUEST)).replace(
-                            'PACKED_WIDTHS', str(int.from_bytes(bytes(WIDTHS[:8]), 'little'))),
-                        caller_contract(False), caller_contract(True), abort_stack(), scalar_tail_exit(), interval_step(),
-                        endpoint_dispatch(), endpoint_query(False), endpoint_query(True), bounded_word_partition(),
-                        endpoint_geometry_source(), prefix_suffix_partition(), entry_guards(False),
-                        entry_guards(True), loop_initiation(False), loop_initiation(True), short_entry()))
+    return '\n\n'.join((packed_transport(), caller_contract(False), caller_contract(True),
+                        abort_stack(), scalar_tail_exit(), interval_step(), endpoint_dispatch(),
+                        endpoint_query(False), endpoint_query(True), bounded_word_partition(),
+                        endpoint_geometry_source()))

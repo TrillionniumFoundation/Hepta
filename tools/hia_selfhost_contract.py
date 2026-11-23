@@ -285,6 +285,8 @@ SAFE_CORE_PROOF_SDIST_FILES = (
     'tools/hia_verified_simd_core_spec.py',
     'tools/generate_hia_verified_simd_sse2_check.py',
     'tools/hia_verified_simd_induction.py',
+    'tools/hia_verified_simd_data_obligations.py',
+    'tools/hia_verified_simd_data_projection.py',
     'tools/generate_hia_verified_simd_avx512_check.py',
     'examples/hia_bootstrap/verified_simd_avx2_check.hepta',
     'tools/generate_hia_verified_simd_avx2_check.py',

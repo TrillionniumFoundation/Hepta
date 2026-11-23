@@ -24,6 +24,13 @@ OBSERVATION = 3 << 20
 DECODE_CAP = 32 + MAX_INSTRUCTIONS * ROW.size
 OBSERVATION_CAP = MACHINE_VALUES_HEADER.size + CIRCUIT_NODES * MACHINE_VALUES_NODE.size
 REQUEST_BYTES = 24
+SIMD_DATA_QUERY = int.from_bytes(b'HIASMOC1', 'little')
+SD_SPAN, SD_ISA, SD_SHAPE, SD_ROLE, SD_LANES, SD_MEMORY = range(512, 560, 8)
+SD_CLASS_COUNT, SD_NODE_COUNT, SD_BAD_NODE, SD_FALSE_NODE, SD_RAW_MASK, SD_RAW_GPR = range(560, 608, 8)
+SD_TEXT, SD_OPS, SD_VEC, SD_GPR, SD_DST, SD_CLASSES = 8192, 12288, 12544, 13184, 13440, 13824
+FRAME = 16384
+SIMD_RESULT_MOVE_SLOT, SIMD_COUNT_MOVE_SLOT = 608, 616
+BINDING = SD_TEXT - 80
 
 SOURCE = '''
 def observe(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -31,6 +38,8 @@ def observe(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 0
     phase = get(w, 0)
     if phase == 0:
+        if length(s) >= 32 and uint(s, 0, 8) == SIMD_DATA_QUERY:
+            return simd_data(s, o, w)
         return admit(s, w)
     if phase == 1:
         return decode(w)
@@ -128,9 +137,11 @@ def document():
     constants.update(DECODER_WORK=WORKSPACE, ROW_BYTES=ROW.size,
                      OBSERVATION_HEAD=MACHINE_VALUES_HEADER.size, OBSERVATION_NODE=MACHINE_VALUES_NODE.size,
                      PATHS=1 << MACHINE_VALUES_BRANCH_DEPTH)
+    from tools.hia_verified_simd_data_obligations import source as simd_data_source
+
     helpers = shared_transport()
     helpers = helpers[:helpers.index('\ndef copy_work(')] + helpers[helpers.index('\ndef next('):]
-    return transport_document(SOURCE + helpers, module='safe_core_machine_observe', extra=constants)
+    return transport_document(SOURCE + helpers + simd_data_source(), module='safe_core_machine_observe', extra=constants)
 
 
 if __name__ == '__main__':
