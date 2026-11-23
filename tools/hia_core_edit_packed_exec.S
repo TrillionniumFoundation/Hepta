@@ -34,10 +34,20 @@ attached_image:
  # An attached verifier is expanded only for the HIA-dispatched proof role.
  mov rsi,[r15+8]
  lea rdi,[rip+verified_role]
- mov ecx,19
+ mov ecx,18
  cld
  repe cmpsb
  jne begin_exec
+ # The verified role has an optional fixed-ISA digit and no other suffix.
+ movzx eax,BYTE PTR [rsi]
+ test al,al
+ jz verified_role_ready
+ sub eax,'1'
+ cmp eax,2
+ ja failure
+ cmp BYTE PTR [rsi+1],0
+ jne failure
+verified_role_ready:
  mov rax,[r15]
  sub rax,2
  cmp rax,1

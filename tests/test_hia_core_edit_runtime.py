@@ -272,7 +272,8 @@ def check_object_builds(release):
 
         scalar = Path(__file__).resolve().parents[1] / 'examples/hia_safe_core/scalar_add.core.hepta'
         shared_builds = []
-        for name, options in [('implicit', []), ('explicit', ['--target-isa', 'native'])]:
+        choices = [('implicit', []), *((isa, ['--target-isa', isa]) for isa in ('native', 'sse2', 'avx2', 'avx512'))]
+        for name, options in choices:
             destination = folder / (name + '.so')
             verified = subprocess.run([executable, 'build', scalar, '-o', destination,
                                        '--backend', 'auto', '--kind', 'shared', *options],
@@ -283,7 +284,7 @@ def check_object_builds(release):
             assert receipt['artifact_sha256'] == sha256(shared).hexdigest()
             assert receipt['machine_proof']['obligations_proven'] > 0
             shared_builds.append((shared, receipt['machine_proof']))
-        assert shared_builds[0] == shared_builds[1]
+        assert len(shared_builds) == 5 and all(item == shared_builds[0] for item in shared_builds)
 
         invalid = pair_program()
         invalid['functions'][-1]['entry'] = 'absent'
@@ -296,7 +297,7 @@ def check_object_builds(release):
         link.symlink_to(source)
         result = build(link, refused)
         assert result.returncode != 0 and not refused.exists(), result
-    return 2 * len(documents) + 4
+    return 2 * len(documents) + len(choices) + 2
 
 
 def check_build_input_diagnostics(release):

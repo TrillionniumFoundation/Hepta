@@ -63,6 +63,7 @@
 .equ PLAN_PREFIX_BYTES,3840
 # A 48-byte proof request must not overwrite the live optional plan state.
 .equ PROOF_REQUEST,3856
+.equ VERIFIED_TARGET_ISA,3920
 _start:
  # The static linker calls this entry. The adapter itself never returns.
  add rsp,8
@@ -77,10 +78,22 @@ _start:
  jb usage
  mov rsi,[rsp+8]
  lea rdi,[rip+verified_build_mode]
- mov ecx,19
+ mov ecx,18
  cld
  repe cmpsb
  jne ordinary_build_mode
+ # Record the verified target before consuming the attached prover descriptor.
+ movzx eax,BYTE PTR [rsi]
+ test al,al
+ jz verified_target_ready
+ sub eax,'1'
+ cmp eax,2
+ ja usage
+ cmp BYTE PTR [rsi+1],0
+ jne usage
+ inc eax
+verified_target_ready:
+ mov [rbp+VERIFIED_TARGET_ISA],rax
  mov rax,[rsp]
  sub rax,3
  cmp rax,1

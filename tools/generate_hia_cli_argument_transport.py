@@ -541,7 +541,31 @@ def utf8_span(s:readbuf, o:mutbuf, index:u64, stop:u64, target:u64, stderr:bool)
             target = target + 4
     return target
 
+def fixed_shared_isa(s:readbuf, w:mutbuf) -> bool:
+    # A private build request carries the exact fixed ISA in its shared-kind slot.
+    # The public parser checks its own accepted combinations before this handoff.
+    kind = 256 + KIND_FIELD * 32
+    isa = 256 + ISA_FIELD * 32
+    if read_workspace(w, kind, 8) != 2 or read_workspace(w, kind + 16, 8) != 6 or read_workspace(w, isa, 8) != 2:
+        return False
+    at = read_workspace(w, kind + 8, 8)
+    if at > length(s) or length(s) - at < 24:
+        return False
+    if read_word(s, at, 8) != UTF_SH or read_word(s, at + 8, 8) != UTF_AR or read_word(s, at + 16, 8) != UTF_ED:
+        return False
+    at = read_workspace(w, isa + 8, 8)
+    size = read_workspace(w, isa + 16, 8)
+    if at > length(s) or size > ((length(s) - at) >> 2):
+        return False
+    if size == 4:
+        return (read_word(s, at, 8) == UTF_SS and read_word(s, at + 8, 8) == UTF_E2) or (read_word(s, at, 8) == UTF_AV and read_word(s, at + 8, 8) == UTF_X2)
+    if size == 6:
+        return read_word(s, at, 8) == UTF_AV and read_word(s, at + 8, 8) == UTF_X5 and read_word(s, at + 16, 8) == UTF_12
+    return False
+
 def command_word(s:readbuf, o:mutbuf, w:mutbuf, field:u64, entry:u64, target:u64) -> u64:
+    if field == KIND_FIELD and fixed_shared_isa(s, w):
+        field = ISA_FIELD
     at = 256 + field * 32
     begin = read_workspace(w, at + 8, 8)
     size = read_workspace(w, at + 16, 8)
@@ -565,6 +589,8 @@ def command_option(s:readbuf, w:mutbuf, field:u64) -> bool:
         if begin <= length(s) and length(s) - begin >= 16:
             if read_word(s, begin, 8) == AUTO_FIRST and read_word(s, begin + 8, 8) == AUTO_LAST:
                 return False
+    if field == ISA_FIELD and fixed_shared_isa(s, w):
+        return False
     # The native verified dispatcher selects the local CPU when the ISA option
     # is absent. Preserve that same choice when the public parser saw "native".
     if field == ISA_FIELD and read_workspace(w, at + 16, 8) == 6:
@@ -657,6 +683,16 @@ def source_program():
         'BAD': 4294967293,
         'FIELD_COUNT': len(FIELDS),
         'ISA_FIELD': FIELDS.index('target_isa'),
+        'KIND_FIELD': FIELDS.index('kind'),
+        'UTF_SH': int.from_bytes('sh'.encode('utf-32-le'), 'little'),
+        'UTF_AR': int.from_bytes('ar'.encode('utf-32-le'), 'little'),
+        'UTF_ED': int.from_bytes('ed'.encode('utf-32-le'), 'little'),
+        'UTF_SS': int.from_bytes('ss'.encode('utf-32-le'), 'little'),
+        'UTF_E2': int.from_bytes('e2'.encode('utf-32-le'), 'little'),
+        'UTF_AV': int.from_bytes('av'.encode('utf-32-le'), 'little'),
+        'UTF_X2': int.from_bytes('x2'.encode('utf-32-le'), 'little'),
+        'UTF_X5': int.from_bytes('x5'.encode('utf-32-le'), 'little'),
+        'UTF_12': int.from_bytes('12'.encode('utf-32-le'), 'little'),
         'NATIVE_NA': int.from_bytes('na'.encode('utf-32-le'), 'little'),
         'NATIVE_TI': int.from_bytes('ti'.encode('utf-32-le'), 'little'),
         'NATIVE_VE': int.from_bytes('ve'.encode('utf-32-le'), 'little'),
