@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import patch
 
 from tests import hia_native_transport_worker_successor as subject
+from tools.hia_frozen_component_sources import reviewed_source
 
 ROOT = Path(__file__).resolve().parents[1]
 ORIGINAL_HELPER = 'tests/fixtures/evaluation_worker_terminal_original_r21.py.txt'
@@ -96,7 +97,7 @@ class EvaluationWorkerSuccessorSourceTests(unittest.TestCase):
         cls.new_sources = {}
         cls.old_sources = {}
         for name in subject.PATHS:
-            current = (ROOT / name).read_bytes()
+            current = reviewed_source(ROOT, name, (ROOT / name).read_bytes())
             record = cls.pair['files'][name]
             if name == subject.TRANSPORT and pin(current) == subject.SQLITE_BOUNDARY_SOURCES[name]:
                 current = subject._reverse_sqlite_boundary(name, current,
@@ -106,7 +107,7 @@ class EvaluationWorkerSuccessorSourceTests(unittest.TestCase):
                 raise AssertionError('control needs the exact reviewed current pair')
             cls.new_sources[name] = current
             cls.old_sources[name] = restore_pair(current, record)
-        raw = (ROOT / subject.EVALUATION).read_bytes()
+        raw = reviewed_source(ROOT, subject.EVALUATION, (ROOT / subject.EVALUATION).read_bytes())
         if pin(raw) not in (REVIEWED_EVALUATION_PIN, ORIGINAL_EVALUATION_PIN):
             raw = subject.restore_evaluation_store(
                 raw, (ROOT / subject.EVALUATION_STORE_FIXTURE).read_bytes())
@@ -132,6 +133,7 @@ class EvaluationWorkerSuccessorSourceTests(unittest.TestCase):
                      for kind, raw in self.authorities.items()}
             files[subject.FIXTURE] = self.pair_raw
             files[subject.EVALUATION_FIXTURE] = self.evaluation_raw
+            files[subject.EVALUATION_STORE_FIXTURE] = (ROOT / subject.EVALUATION_STORE_FIXTURE).read_bytes()
             names = (*subject.PATHS, subject.EVALUATION)
             for bit, name in enumerate(names):
                 files[name] = (self.new_sources if mask & (1 << bit)
@@ -145,7 +147,7 @@ class EvaluationWorkerSuccessorSourceTests(unittest.TestCase):
                 yield root
 
     def admit(self, kind):
-        return subject.admit_terminal_sources(
+        return subject._admit_terminal_sources_before_qualifiers(
             deepcopy(self.authority_values[kind]), original_kind=kind)
 
     def test_01_original_pair_behavior_and_all_eight_combinations(self):
@@ -232,12 +234,12 @@ class EvaluationWorkerSuccessorSourceTests(unittest.TestCase):
                 for bad_kind in (None, True, 'unlisted'):
                     with self.subTest(kind=kind, original_kind=bad_kind):
                         with self.assertRaises(ValueError):
-                            subject.admit_terminal_sources(self.authority_values[kind],
+                            subject._admit_terminal_sources_before_qualifiers(self.authority_values[kind],
                                                            original_kind=bad_kind)
                 changed = deepcopy(self.authority_values[kind])
                 changed['unlisted'] = True
                 with self.assertRaises(ValueError):
-                    subject.admit_terminal_sources(changed, original_kind=kind)
+                    subject._admit_terminal_sources_before_qualifiers(changed, original_kind=kind)
         raw = self.new_sources[subject.EVALUATION]
         good = self.evaluation['record']
         self.assertEqual(subject.reverse_evaluation(raw, deepcopy(good)),

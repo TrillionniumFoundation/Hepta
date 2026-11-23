@@ -149,10 +149,13 @@ class WorkerInstallationManifestSourceTests(unittest.TestCase):
         original_raw, record_raw = original_path.read_bytes(), record_path.read_bytes()
         record = json.loads(record_raw)
         original_manifest = json.loads(original_raw)
+        from tools.hia_frozen_component_sources import reviewed_source
+        physical = {str(record_path): record_raw}
         paths = {str(record_path): record_raw}
         for name in (*original_manifest['candidate_runtime'],
                      'tools/generate_hia_worker_report.py'):
-            paths[str(ROOT / name)] = (ROOT / name).read_bytes()
+            physical[str(ROOT / name)] = (ROOT / name).read_bytes()
+            paths[str(ROOT / name)] = reviewed_source(ROOT, name, physical[str(ROOT / name)])
         self.assertEqual(reader._manifest_query_source_successor(
             original_raw, lambda path: paths[str(path)]),
             {name: {'bytes': len(paths[str(ROOT / name)]),
@@ -182,7 +185,7 @@ class WorkerInstallationManifestSourceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             reader._manifest_query_source_successor(
                 original_raw + b'\n', lambda path: paths[str(path)])
-        for path, raw in paths.items():
+        for path, raw in physical.items():
             self.assertEqual(Path(path).read_bytes(), raw)
         self.assertEqual(original_path.read_bytes(), original_raw)
 

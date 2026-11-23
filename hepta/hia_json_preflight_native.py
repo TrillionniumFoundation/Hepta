@@ -6,7 +6,6 @@ all-input refinement proof; independent qualification remains mandatory.
 The compiled HIA program only checks syntax/budgets: it builds no JSON values.
 """
 from __future__ import annotations
-import ctypes
 from contextvars import ContextVar
 from functools import lru_cache
 from hashlib import sha256

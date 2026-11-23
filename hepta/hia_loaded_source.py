@@ -25,6 +25,20 @@ import sys
 import threading
 import types
 
+try:
+    from .hia_native_admission_io import resolve_path as _admission_resolve
+except ModuleNotFoundError as error:
+    if error.name != __package__ + '.hia_native_admission_io':
+        raise
+
+    def _admission_resolve(path, *, strict):
+        return Path(path).resolve(strict=strict)
+
+try:
+    import posix as _source_io
+except ImportError:
+    _source_io = os
+
 
 PROFILE = "hia.loaded-python-source.v1"
 MAX_SOURCE_BYTES = 8 * 1024 * 1024
@@ -53,21 +67,21 @@ def _open_source_without_symlinks(path):
              "registered source has an ambiguous path component")
     nofollow = getattr(os, "O_NOFOLLOW", 0)
     directory = getattr(os, "O_DIRECTORY", 0)
-    _require(nofollow and directory and os.open in os.supports_dir_fd,
+    _require(nofollow and directory and _source_io.open in os.supports_dir_fd,
              "descriptor-relative source opening is unavailable")
     close_on_exec = getattr(os, "O_CLOEXEC", 0)
     directory_flags = os.O_RDONLY | nofollow | directory | close_on_exec
     source_flags = os.O_RDONLY | nofollow | getattr(os, "O_NONBLOCK", 0) | close_on_exec
     source_flags |= getattr(os, "O_BINARY", 0)
-    parent = os.open("/", directory_flags)
+    parent = _source_io.open("/", directory_flags)
     try:
         for name in components[:-1]:
-            following = os.open(name, directory_flags, dir_fd=parent)
-            os.close(parent)
+            following = _source_io.open(name, directory_flags, dir_fd=parent)
+            _source_io.close(parent)
             parent = following
-        return os.open(components[-1], source_flags, dir_fd=parent)
+        return _source_io.open(components[-1], source_flags, dir_fd=parent)
     finally:
-        os.close(parent)
+        _source_io.close(parent)
 
 
 def _read_source(path):
@@ -75,25 +89,25 @@ def _read_source(path):
     try:
         descriptor = _open_source_without_symlinks(path)
         try:
-            before = os.fstat(descriptor)
+            before = _source_io.fstat(descriptor)
             _require(stat.S_ISREG(before.st_mode) and 0 < before.st_size <= MAX_SOURCE_BYTES,
                      "registered source is not a bounded ordinary file")
             chunks, remaining = [], MAX_SOURCE_BYTES + 1
             while remaining:
-                block = os.read(descriptor, min(65536, remaining))
+                block = _source_io.read(descriptor, min(65536, remaining))
                 if not block:
                     break
                 chunks.append(block)
                 remaining -= len(block)
             raw = b"".join(chunks)
-            after = os.fstat(descriptor)
+            after = _source_io.fstat(descriptor)
             identity = lambda value: (value.st_dev, value.st_ino, value.st_size,
                                       value.st_mtime_ns, value.st_ctime_ns)
             _require(identity(before) == identity(after) and len(raw) == before.st_size,
                      "registered source changed during capture")
             return raw
         finally:
-            os.close(descriptor)
+            _source_io.close(descriptor)
     except OSError as exc:
         raise VerifiedSourceRejected("E_HIA_VERIFIED_SOURCE: registered source is unavailable") from exc
 
@@ -138,7 +152,7 @@ def register_loaded_module(name):
         _require(type(module) is types.ModuleType and module.__dict__ is namespace and
                  namespace.get("__name__") == name and frame.f_code.co_name == "<module>",
                  "registration must come from the actual module execution")
-        source = Path(namespace["__file__"]).resolve(strict=True)
+        source = _admission_resolve(namespace["__file__"], strict=True)
         _require(source.suffix == ".py", "registered modules require retained Python source")
         with _LOCK:
             if name in _MODULES or name in _TAINTED:
@@ -161,7 +175,7 @@ def _module_identity(name):
         module, namespace, source, digest, executed_code, raw = record
         _require(sys.modules.get(name) is module and module.__dict__ is namespace and
                  namespace.get("__name__") == name and
-                 Path(namespace.get("__file__", "")).resolve() == source,
+                 _admission_resolve(namespace.get("__file__", ""), strict=False) == source,
                  "registered module object or source location was replaced: " + name)
         _require(sha256(_read_source(source)).hexdigest() == digest,
                  "loaded module source changed; start a new process: " + name)

@@ -1,0 +1,677 @@
+{
+  "files": {
+    "hepta/hia_agent_worker.py": {
+      "physical_sha256": "d5f9f7ab7057e19c38aa263ae2acfa3494fec950f6f85299110f7522224dd172",
+      "reviewed_sha256": "6352879dc0e58515a6af9b2a586a5efa27f4018fb19d49a379ab72425eebf45a",
+      "splices": [
+        [
+          364,
+          33,
+          ""
+        ],
+        [
+          771,
+          572,
+          ""
+        ],
+        [
+          1423,
+          232,
+          "    parser.add_argument(\"--installation-manifest\", action=\"store_true\")\n    parser.add_argument(\"--state-root\")\n    parser.add_argument(\"--artifact-root\", action=\"append\", default=[])\n    parser.add_argument(\"--request-json-stdin\", action=\"store_true\")\n    parser.add_argument(\"--expected-worker-sha256\")\n    parser.add_argument(\"--expected-backend-sha256\")\n    parser.add_argument(\"--expected-catalog-sha256\")\n    parser.add_argument(\"--native-helpers-manifest\")\n    parser.add_argument(\"--expected-native-helpers-sha256\")\n    args = parser.parse_args(argv)\n"
+        ],
+        [
+          1821,
+          69,
+          "            with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256):\n                result = _run(parser, args)\n"
+        ],
+        [
+          2555,
+          856,
+          ""
+        ],
+        [
+          4996,
+          2547,
+          ""
+        ],
+        [
+          8832,
+          20,
+          ""
+        ],
+        [
+          9492,
+          146,
+          "                request = installed_worker_request(selected).admit(raw, identities['catalog_sha256'])\n"
+        ],
+        [
+          10954,
+          75,
+          "        from .hia_agent_service import HIAAgentService\n        service = HIAAgentService(args.state_root, artifact_roots=args.artifact_root)\n"
+        ],
+        [
+          12879,
+          146,
+          ""
+        ],
+        [
+          13606,
+          898,
+          ""
+        ]
+      ]
+    },
+    "hepta/hia_native_delivery.py": {
+      "physical_sha256": "08687e1997e8d4c7cc5f9807398f6fd765767af3b49d3b3b4b449383ce0167aa",
+      "reviewed_sha256": "782770141e1b9294974dcdfadf8b51ffbe9ac2588392ffa1b78914ed4c81e0c3",
+      "splices": [
+        [
+          608,
+          334,
+          ""
+        ]
+      ]
+    },
+    "hepta/hia_native_helpers.py": {
+      "physical_sha256": "3b6d754681ebb3cd0c8b1fd86a4992164282f8cb8909ec6c60f9eb46f9000a68",
+      "reviewed_sha256": "ee84fb3f778adcab884906cc7c41c52adecdd1f5ed794da9f4d49a2a1cda5b90",
+      "splices": [
+        [
+          912,
+          115,
+          ""
+        ],
+        [
+          2967,
+          1015,
+          ""
+        ],
+        [
+          4470,
+          1171,
+          ""
+        ],
+        [
+          6955,
+          101,
+          ""
+        ],
+        [
+          10267,
+          46,
+          "        raw = stream.read(limit + 1)\n"
+        ],
+        [
+          11322,
+          59,
+          ""
+        ],
+        [
+          11444,
+          80,
+          "    if bound is not None and (bound is not _ACTIVE or _SCOPE_OWNER is None):\n"
+        ],
+        [
+          11866,
+          122,
+          "        if not constructing and _ACTIVE is not None:\n            check = getattr(_ACTIVE, 'check_scheduling', None)\n"
+        ],
+        [
+          12331,
+          76,
+          "    \"\"\"Only the v3 administrator capsule registers these five fixed owners.\"\"\"\n"
+        ],
+        [
+          12481,
+          118,
+          "    lookup = getattr(_ACTIVE, 'scheduling_owner', None)\n"
+        ],
+        [
+          17926,
+          322,
+          "                self.images[key] = view(image.raw, record[\"image_sha256\"])\n"
+        ],
+        [
+          19115,
+          574,
+          ""
+        ],
+        [
+          21361,
+          484,
+          "        if type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v5':\n"
+        ],
+        [
+          22088,
+          99,
+          "        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v4':\n"
+        ],
+        [
+          22346,
+          120,
+          "        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v3':\n            from .hia_worker_scheduling_bundle import NativeWorkerSchedulingBinding\n            binding = NativeWorkerSchedulingBinding(captured, expected_sha256)\n        elif type(record) is dict and record.get('schema') == 'hepta.hia.native-helpers.v2':\n            from .hia_worker_bundle import NativeWorkerBundleBinding\n            binding = NativeWorkerBundleBinding(captured, expected_sha256)\n"
+        ],
+        [
+          22480,
+          71,
+          "            binding = NativeHelpersBinding(path, expected_sha256)\n"
+        ],
+        [
+          23483,
+          2618,
+          ""
+        ],
+        [
+          29974,
+          193,
+          ""
+        ]
+      ]
+    },
+    "hepta/hia_worker_report_native.py": {
+      "physical_sha256": "c921713cf3850b9573cb5e814298e2d1f358422531dc38e184ffcdb7d8ed4186",
+      "reviewed_sha256": "344552bda6ee16b12c03c6fb49f11cae5ef8196905318f20f913057bbbd4a810",
+      "splices": [
+        [
+          353,
+          31,
+          ""
+        ],
+        [
+          1174,
+          162,
+          ""
+        ],
+        [
+          8930,
+          85,
+          "    def __init__(self, owner, args, parser, identities, worker):\n"
+        ],
+        [
+          9265,
+          1358,
+          "        reg = self.observer.register\n        self.packet = struct.pack('<14Q', MAGIC, 0, 0, int(args.installation_manifest),\n            int(args.request_json_stdin), reg(args.state_root), reg(args.artifact_root),\n            reg(args.expected_worker_sha256), reg(args.expected_backend_sha256),\n            reg(args.expected_catalog_sha256), reg(identities), reg(worker.VERSION), reg(None), 0)\n"
+        ],
+        [
+          13021,
+          82,
+          "                from .hia_agent_service import HIAAgentService\n                x = reg(HIAAgentService(value(a), artifact_roots=value(b)))\n"
+        ],
+        [
+          15723,
+          339,
+          "                    x = reg(value(a)(value(b), value(c)))\n"
+        ],
+        [
+          17868,
+          274,
+          ""
+        ],
+        [
+          20157,
+          2899,
+          ""
+        ]
+      ]
+    },
+    "tests/test_hia_agent_native_machine_validation.py": {
+      "physical_sha256": "0c03b958462d2d2b8f7304b52bf419a9832037c3db4e51fa940053176fad0cbb",
+      "reviewed_sha256": "f8e60f923d5b462c3a98f11cb00b0e5a65fb9bc1db2a17a03d55933eb944aada",
+      "splices": [
+        [
+          388,
+          17,
+          ""
+        ],
+        [
+          4850,
+          97,
+          ""
+        ],
+        [
+          5629,
+          685,
+          "        result = self.native_verify(candidate, built)\n        record, evidence, _assumptions = self.read_proof(result)\n"
+        ],
+        [
+          8363,
+          196,
+          "        self.assertEqual(check[\"checker\"][\"solver\"], evidence[\"solver\"])\n"
+        ],
+        [
+          8626,
+          493,
+          "        self.assertEqual(evidence[\"solver\"][\"version\"], \"4.15.4\")\n"
+        ],
+        [
+          18930,
+          222,
+          ""
+        ]
+      ]
+    },
+    "tests/test_hia_agent_native_proof_contract.py": {
+      "physical_sha256": "cb958dfdac9ae83b421a55c34109247dbda64af85171525969da55ad3a6d1f03",
+      "reviewed_sha256": "0a9a3feb8444d33ec97afb4259a847cd6b738fc3a77cf07980b4772096c112a6",
+      "splices": [
+        [
+          298,
+          27,
+          ""
+        ],
+        [
+          2239,
+          298,
+          ""
+        ],
+        [
+          6625,
+          65,
+          ""
+        ],
+        [
+          7245,
+          593,
+          ""
+        ],
+        [
+          10219,
+          701,
+          "        base = self.prepare(typ=\"u32\")\n        candidate = self.session.import_program(add_program(optimized=True, typ=\"u32\"))\n"
+        ]
+      ]
+    },
+    "tests/test_hia_agent_native_tools.py": {
+      "physical_sha256": "64462e8735d8be3838396808dc05391e4437b2dba093fcc265468df6abb4cb70",
+      "reviewed_sha256": "b98c24327639363d266eb5e263c042e0a20d82a8f2e8cc08ffafb8f34f73f355",
+      "splices": [
+        [
+          458,
+          0,
+          "import sqlite3\n"
+        ],
+        [
+          35788,
+          32,
+          ""
+        ],
+        [
+          35912,
+          48,
+          ""
+        ],
+        [
+          36100,
+          255,
+          ""
+        ],
+        [
+          37495,
+          101,
+          ""
+        ],
+        [
+          38115,
+          87,
+          ""
+        ],
+        [
+          43780,
+          24,
+          ""
+        ],
+        [
+          44455,
+          64,
+          "            with patch(\"hepta.hia_agent_store.sqlite3.connect\", side_effect=connect):\n"
+        ],
+        [
+          45119,
+          24,
+          ""
+        ]
+      ]
+    },
+    "tests/test_hia_candidate_budget_native.py": {
+      "physical_sha256": "2a5e6deed4fa86630b659084320c95fbb06a4283d00bbb54764b1e0d4d66a24c",
+      "reviewed_sha256": "5839ff7b22f97ed807fbd0ed236188e667fc61276ea1f73c14d4b6042bb590aa",
+      "splices": [
+        [
+          43341,
+          105,
+          ""
+        ],
+        [
+          44255,
+          57,
+          "            cwd=case, capture_output=True, timeout=90)\n"
+        ]
+      ]
+    },
+    "tests/test_hia_cost_ledger_native.py": {
+      "physical_sha256": "0acde16af9e90455567aeb10264666f121eed3c95f271e902074c6e9f4a4454e",
+      "reviewed_sha256": "3dfaf1397f66d8cc0c12b9af2a9c61ad9e017c4096ac90d06f73005cead005af",
+      "splices": [
+        [
+          6484,
+          155,
+          "                    self.assertEqual(service._cost_ledger(context, 1, 2), frozen()(service, context, 1, 2))\n"
+        ],
+        [
+          16407,
+          65,
+          ""
+        ],
+        [
+          16675,
+          489,
+          "                self.assertEqual(self.service._cost_ledger(self.context, 3, 4)['context_tool_wall_ns_before_evaluation'], '-9')\n"
+        ],
+        [
+          21464,
+          205,
+          "        run(['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',self.case/'wheels',staging])\n"
+        ]
+      ]
+    },
+    "tests/test_hia_evaluation_native.py": {
+      "physical_sha256": "732379cfe3bcb3d41688669d83d6b610ca63e4954d56b9c2398b5e0f5291fe6b",
+      "reviewed_sha256": "673b1e330b48df5915a4a544188397e33055ac023986cb136e8b067e4574b9d3",
+      "splices": [
+        [
+          5536,
+          476,
+          "                self.assertEqual(list(planned), record['ordered_ids'])\n"
+        ],
+        [
+          7248,
+          569,
+          ""
+        ],
+        [
+          8070,
+          111,
+          "                actual = World(case, api).observe(lambda service, args: service._hia_evaluate(args))\n"
+        ],
+        [
+          21619,
+          66,
+          ""
+        ],
+        [
+          21780,
+          85,
+          "                      '--wheel-dir', self.case / 'wheels', staging])\n"
+        ]
+      ]
+    },
+    "tests/test_hia_execution_budget_native.py": {
+      "physical_sha256": "31becb0bf5001aa4b1cb6565a0bee2d68ecbd7248c951b1c485401eda2cf8b23",
+      "reviewed_sha256": "7e75e2eec37affe6173d08fd4e5d85dadd58a44fef224518bde38ac5acbecb71",
+      "splices": [
+        [
+          53085,
+          105,
+          ""
+        ],
+        [
+          54001,
+          47,
+          "            capture_output=True, timeout=120)\n"
+        ]
+      ]
+    },
+    "tests/test_hia_execution_observation_native.py": {
+      "physical_sha256": "7595bda181f97b5e4b4b7c020c2b008017cbe3f7b3d239609f55b8498d87c3d0",
+      "reviewed_sha256": "647f1a0dc6917a5253a4bb8c9e56ee4ef80fe49539951d02e3d85172c28f44c9",
+      "splices": [
+        [
+          17601,
+          117,
+          "            request.write_text(json.dumps(expected, sort_keys=True))\n"
+        ],
+        [
+          17808,
+          296,
+          ""
+        ],
+        [
+          19065,
+          104,
+          "                 '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')\n"
+        ]
+      ]
+    },
+    "tests/test_hia_native_delivery.py": {
+      "physical_sha256": "0a0ffdc697284b55e7cc3ad96dc3bbf72ac77d769443d3f8e84e5a6672b0a23d",
+      "reviewed_sha256": "09692f4ce91da30ad3aac0b009e15e520058022cd01af8fdf1a7dd8811aab64b",
+      "splices": [
+        [
+          1591,
+          57,
+          ""
+        ],
+        [
+          4466,
+          130,
+          ""
+        ],
+        [
+          4738,
+          62,
+          "            for node in ast.walk(tree):\n"
+        ]
+      ]
+    },
+    "tests/test_hia_native_transport_failures.py": {
+      "physical_sha256": "6a796f3dcaaa17a778d51caa84f0630e9c37780361b24fdca4414e7e8a53733d",
+      "reviewed_sha256": "6c7dfe5f723a951fe0c24d05f4f52b579149de71c3e112ba735af2c496d9a084",
+      "splices": [
+        [
+          79,
+          81,
+          "These controls retain the three original component test modules unchanged.\n"
+        ],
+        [
+          591,
+          34,
+          ""
+        ],
+        [
+          969,
+          57,
+          ""
+        ],
+        [
+          1323,
+          1913,
+          "ORIGINAL_TEST_SHA256 = {'tests/test_hia_service_context_native.py': 'db7651b17a26b2606cb4c8c556b222a89f9d42b1e21b9bc97380b6f1dfdb3f9c', 'tests/test_hia_store_lifecycle_native.py': '27b6490472f2d1edeb806a28d1d382662bd83574f433b0f2f1f1122e05dfa583', 'tests/test_hia_cost_ledger_native.py': '3dfaf1397f66d8cc0c12b9af2a9c61ad9e017c4096ac90d06f73005cead005af'}\n"
+        ],
+        [
+          5736,
+          460,
+          "        caught = eval(compile(expression, '<original request catch family>', 'eval'), vars(service_api))\n"
+        ],
+        [
+          6441,
+          696,
+          "            self.assertEqual(module._REQUEST_REJECTIONS, caught)\n        self.assertEqual(len(ORIGINAL_TEST_SHA256), 3)\n        for name, digest in ORIGINAL_TEST_SHA256.items():\n            self.assertEqual(sha256((ROOT / name).read_bytes()).hexdigest(), digest)\n"
+        ],
+        [
+          28142,
+          96,
+          "                patch.object(store_api.sqlite3, 'connect', connect), patch.object(image, '_entry', lost):\n"
+        ],
+        [
+          29626,
+          58,
+          "                patch.object(store_api.sqlite3, 'connect', failed):\n"
+        ],
+        [
+          33678,
+          61,
+          "                patch.object(store_api.sqlite3, 'connect', connect), \\\n"
+        ]
+      ]
+    },
+    "tests/test_hia_slot_ledger_native_integration.py": {
+      "physical_sha256": "e6aacdb28c34890f897b09d088ede33cd1360a9e8cf09ba44e48fecd1187ffd1",
+      "reviewed_sha256": "02081467ee8eff2589f1b284f6259a349526b4a87d643072f12c9b24a725de7d",
+      "splices": [
+        [
+          77586,
+          105,
+          ""
+        ],
+        [
+          78259,
+          107,
+          "            \"--no-build-isolation\", \"--wheel-dir\", str(self.root / \"wheels\"), str(archive)], timeout=90)\n"
+        ]
+      ]
+    },
+    "tests/test_hia_worker_native_helpers.py": {
+      "physical_sha256": "4fef9e2f0a8188f5f3a6c81e522b5babd3a1f0c0a88f58e286cdf762433caab3",
+      "reviewed_sha256": "76b59c92f377d3166cddc5881fad0bd7a65cc35b4280ab38f328cf4fc72f77ac",
+      "splices": [
+        [
+          1836,
+          854,
+          ""
+        ],
+        [
+          5298,
+          0,
+          "        self.assertEqual(len(HELPERS), 50)\n"
+        ],
+        [
+          5667,
+          1191,
+          ""
+        ],
+        [
+          37328,
+          0,
+          "        cls.journal_image = bytes(installed_agent_journal(str(manifest))._mapping)\n"
+        ],
+        [
+          37391,
+          297,
+          ""
+        ]
+      ]
+    },
+    "tools/generate_hia_worker_report.py": {
+      "physical_sha256": "87ab295ff5e321e28c873c27db8641c05765dd8297396e94a1cb5c0d48aa2d9b",
+      "reviewed_sha256": "04e7d22390b952c140ae42863d11ccb099096400e951a438032eee90b2e4ab4b",
+      "splices": [
+        [
+          362,
+          50,
+          ""
+        ],
+        [
+          613,
+          110,
+          ""
+        ],
+        [
+          2342,
+          92,
+          ""
+        ],
+        [
+          2514,
+          218,
+          "    'MAGIC': MAGIC, 'HIGH': HIGH,\n"
+        ],
+        [
+          3643,
+          49,
+          ""
+        ],
+        [
+          4046,
+          42,
+          "    'EQ_TOTAL': 672,\n"
+        ],
+        [
+          4480,
+          89,
+          ""
+        ],
+        [
+          4655,
+          455,
+          "        if length(s) != 112 or read64(s, 0) != MAGIC or read64(s, 8) != 0 or read64(s, 16) != 0:\n"
+        ],
+        [
+          5133,
+          249,
+          ""
+        ],
+        [
+          7025,
+          106,
+          ""
+        ],
+        [
+          9640,
+          107,
+          ""
+        ],
+        [
+          10716,
+          97,
+          ""
+        ],
+        [
+          11041,
+          206,
+          "        return ask(w, 7, read64(s, 32), L_ADMIT, 0, 0, 14)\n"
+        ],
+        [
+          11397,
+          96,
+          "        return ask(w, 30, get(w, CALLABLE), get(w, RAW), read64(s, 32), 0, 16)\n"
+        ],
+        [
+          11528,
+          77,
+          ""
+        ],
+        [
+          17579,
+          280,
+          ""
+        ],
+        [
+          19876,
+          224,
+          ""
+        ],
+        [
+          24067,
+          69,
+          ""
+        ],
+        [
+          31143,
+          104,
+          ""
+        ],
+        [
+          33362,
+          2293,
+          ""
+        ],
+        [
+          35860,
+          104,
+          "    tree = Constants().visit(ast.parse(SOURCE + EQUALITY + constant_program()))\n"
+        ]
+      ]
+    }
+  },
+  "schema": "hepta.frozen-component-source-relations.v1"
+}

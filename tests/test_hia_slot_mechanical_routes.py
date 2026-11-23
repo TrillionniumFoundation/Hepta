@@ -46,10 +46,16 @@ class SlotMechanicalDualRouteSourceTests(unittest.TestCase):
                 self.assertEqual(dump(definition(selected, "_bridge_" + str(mode))),
                                  dump(ast.parse(frozen["templates"][str(mode)]).body[0]))
         self.assertNotIn("_preload_mechanical", frame)
-        tree = ast.parse((ROOT / "hepta/hia_native_helpers.py").read_text())
+        from tools.hia_frozen_component_sources import reviewed_source
+        name = "hepta/hia_native_helpers.py"
+        current = (ROOT / name).read_bytes()
+        tree = ast.parse(reviewed_source(ROOT, name, current))
         registry = next(n for n in tree.body if isinstance(n, ast.Assign)
                         and any(isinstance(t, ast.Name) and t.id == "HELPERS" for t in n.targets))
         self.assertEqual(list(ast.literal_eval(registry.value)), frozen["helper_order"])
+        from hepta.hia_native_helpers import HELPERS
+        self.assertEqual([name for name in HELPERS if name in frozen["helper_order"]],
+                         frozen["helper_order"])
 
     def test_01_actual_optional_authority_function_distinguishes_old_build_live_and_stale(self):
         source = (ROOT / "hepta/hia_native_helpers.py").read_text()

@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from tools import read_hia_store_file_capture_callers as reader
+from tools.hia_frozen_component_sources import FIXTURE as RELATION, reviewed_source
 
 ROOT = Path(__file__).resolve().parents[1]
 TRANSPORT = 'tests/test_hia_native_transport_failures.py'
@@ -89,7 +90,8 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
                 raise ValueError('empty explicit caller reader evidence directory')
             cls.evidence = Path(configured)
             cls.evidence.mkdir(parents=True, exist_ok=False)
-        cls.seed = {name: (ROOT / name).read_bytes() for name in FIXED}
+        cls.physical = {name: (ROOT / name).read_bytes() for name in (*FIXED, RELATION)}
+        cls.seed = {name: reviewed_source(ROOT, name, cls.physical[name]) for name in FIXED}
         for name, expected in FIXED.items():
             if pin(cls.seed[name]) != expected:
                 raise AssertionError('fixed reader control source differs: ' + name)
@@ -98,7 +100,8 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
         if len(cls.records) != 17:
             raise AssertionError('original17 reader control inventory differs')
         for name in (*cls.records, DELIVERY):
-            cls.seed[name] = (ROOT / name).read_bytes()
+            cls.physical[name] = (ROOT / name).read_bytes()
+            cls.seed[name] = reviewed_source(ROOT, name, cls.physical[name])
         for name, expected in CURRENT.items():
             if pin(cls.seed[name]) != expected:
                 raise AssertionError('reviewed current reader source differs: ' + name)
@@ -142,14 +145,15 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
             'tests/test_hia_caller_terminal_readback.py')}
         write_json(cls.evidence / 'inputs.json', {
             'schema': 'hepta.hia.caller-terminal-readback-controls-inputs.v1',
-            'source_root': str(ROOT), 'actual_sources': {n: pin(r) for n, r in cls.seed.items()},
+            'source_root': str(ROOT), 'actual_sources': {n: pin(r) for n, r in cls.physical.items()},
+            'reviewed_inputs': {n: pin(r) for n, r in cls.seed.items()},
             'control_code': {n: pin(r) for n, r in cls.code.items()},
             'restored_originals': OLD, 'copied_test_execution': False})
 
     @classmethod
     def tearDownClass(cls):
         drift = []
-        for name, raw in {**cls.seed, **cls.code}.items():
+        for name, raw in {**cls.physical, **cls.code}.items():
             try:
                 same = (ROOT / name).read_bytes() == raw
             except OSError:

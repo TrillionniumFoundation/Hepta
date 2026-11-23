@@ -256,6 +256,8 @@ WORKER_REQUEST_SDIST_FILES = (
     'tests/hia_distribution_fixture.py',
     'tests/hia_installed_distribution_history.py',
     'tests/fixtures/hia_installed_distribution_sources.json',
+    'tools/hia_frozen_component_sources.py',
+    'tests/fixtures/hia_frozen_component_source_relations.json',
 )
 EXECUTION_LEDGER_SDIST_FILES = ('tools/generate_hia_execution_ledger.py',)
 SAFE_CORE_PROOF_SDIST_FILES = (

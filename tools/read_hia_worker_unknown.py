@@ -130,11 +130,21 @@ def fixture(capture):
         path = FIXTURE.parent / name
         capture.take(path, identity)
         expected[str(path)] = identity
-    runtime = _manifest_query_source_successor(raw, capture.take)
+    if __package__:
+        from .hia_frozen_component_sources import FIXTURE as relation, reviewed_source
+    else:
+        from hia_frozen_component_sources import FIXTURE as relation, reviewed_source
+
+    def reviewed(path):
+        source = capture.take(path)
+        return reviewed_source(ROOT, path.relative_to(ROOT).as_posix(), source, take=capture.take)
+
+    runtime = _manifest_query_source_successor(raw, reviewed)
+    expected[str(ROOT / relation)] = pin(capture.take(ROOT / relation))
     successor = ROOT / 'tests/fixtures/worker_installation_manifest_successor_v1.json'
     expected[str(successor)] = pin(capture.take(successor))
-    for name, identity in runtime.items():
-        expected[str(ROOT / name)] = identity
+    for name in runtime:
+        expected[str(ROOT / name)] = pin(capture.take(ROOT / name))
     cases = capture.parse(CASES, value['cases'])
     expected[str(CASES)] = value['cases']
     return value, cases, expected

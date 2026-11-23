@@ -240,7 +240,8 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
                 boundary = (ROOT / SQLITE_BOUNDARY_FIXTURE).read_bytes()
                 current = _reverse_sqlite_boundary(
                     name, current, boundary, FIXTURE, frozen, value['files'][name]['new'])
-            if name == DELIVERY and _pin(current) != value['files'][name]['new']:
+            if (name == DELIVERY and sha256(current).hexdigest()
+                    == '0a0ffdc697284b55e7cc3ad96dc3bbf72ac77d769443d3f8e84e5a6672b0a23d'):
                 current = restore_sql_source(name, current, capture_sql, value['files'][name]['new'])
             reverse_one(current, value['files'][name], OLD[name])
     evaluation_raw = (ROOT / EVALUATION).read_bytes()

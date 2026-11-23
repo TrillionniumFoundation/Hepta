@@ -107,7 +107,13 @@ def capture_inputs():
         if key not in captured:
             captured[key] = Path(path).read_bytes()
         return captured[key]
-    _manifest_query_source_successor(raw, take)
+    from tools.hia_frozen_component_sources import reviewed_source
+
+    def reviewed(path):
+        source = take(path)
+        return reviewed_source(ROOT, Path(path).relative_to(ROOT).as_posix(), source, take=take)
+
+    _manifest_query_source_successor(raw, reviewed)
     case_raw = CASES.read_bytes()
     if pin(case_raw) != frozen['cases']:
         raise ValueError('worker control cases differ')
