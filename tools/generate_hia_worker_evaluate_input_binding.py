@@ -19,7 +19,7 @@ SOURCE = Path('examples/hia_bootstrap/worker_evaluate_input_binding.hepta')
 FIELDS = (*METADATA, 'sha256','catalog_sha256','baseline_core_sha256','workload','objective','budget',
           'max_total_wall_ms','max_native_wall_ms','max_memory_bytes','native_artifact','candidate_artifact',
           'verification_receipts','schema','candidate_core_sha256','native_build','artifact_sha256',
-          'target_profile','base_program','base_core_sha256')
+          'target_profile','base_program','base_core_sha256','id','worker_sha256','backend_sha256','native_helpers_sha256')
 
 POLICY = r'''
 # [actual installed identity, admitted arguments, Context, baseline and candidate
@@ -38,6 +38,8 @@ def bind_evaluate(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return check_workload(s,o,w)
     if fields == 3:
         return context_window(s,o,w)
+    if fields == 4:
+        return baseline_scope(s,o,w)
     if fields < 7 or fields > 22:
         return INVALID
     install = 64 + 72 * get(w, 88)
@@ -91,6 +93,74 @@ def bind_evaluate(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         receipt = next(w, receipt)
         index = index + 1
     return runtime_inputs(s, o, w, ctx, base, candidate, build)
+
+def baseline_scope(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
+    installed = first(w,64)
+    args = next(w,installed)
+    ctx = next(w,args)
+    base = next(w,ctx)
+    if get(w,args) != 6 or get(w,ctx) != 6 or get(w,base) != 6 or next(w,base) != NONE:
+        return INVALID
+    recorded = lookup(w,base,K_installation)
+    scope = lookup(w,args,K_context)
+    issued = lookup(w,base,K_context)
+    if valid_installation(w,installed) == False or valid_installation(w,recorded) == False:
+        return INVALID
+    if valid_scope_id(w,scope) == False or valid_scope_id(w,issued) == False:
+        return INVALID
+    if get(w,installed+32) != get(w,recorded+32):
+        return business_status(o,28)
+    if same_text_field(w,installed,recorded,K_worker_sha256) == False or same_text_field(w,installed,recorded,K_catalog_sha256) == False:
+        return business_status(o,28)
+    if same_text_field(w,installed,recorded,K_backend_sha256) == False or same_text_field(w,installed,recorded,K_native_helpers_sha256) == False:
+        return business_status(o,28)
+    if same_text_field(w,scope,issued,K_id) == False or same_text_field(w,scope,issued,K_sha256) == False:
+        return business_status(o,28)
+    return business_status(o,0)
+
+def valid_installation(w:mutbuf,node:u64) -> bool:
+    if node == NONE or get(w,node) != 6:
+        return False
+    helpers = lookup(w,node,K_native_helpers_sha256)
+    if get(w,node+32) != choose(helpers == NONE,3,4):
+        return False
+    if helpers != NONE and digest_text(w,helpers,False) == False:
+        return False
+    return digest_text(w,lookup(w,node,K_worker_sha256),False) and digest_text(w,lookup(w,node,K_backend_sha256),False) and digest_text(w,lookup(w,node,K_catalog_sha256),False)
+
+def valid_scope_id(w:mutbuf,node:u64) -> bool:
+    if node == NONE or get(w,node) != 6 or get(w,node+32) != 2:
+        return False
+    id = lookup(w,node,K_id)
+    if id == NONE or get(w,id) != 4 or get(w,id+32) != 36 or digest_text(w,lookup(w,node,K_sha256),False) == False:
+        return False
+    at = get(w,id+24)
+    if byte(w,at) != 99 or byte(w,at+1) != 116 or byte(w,at+2) != 120 or byte(w,at+3) != 45:
+        return False
+    index = 4
+    while index < 36:
+        c = byte(w,at+index)
+        if (c < 48 or c > 57) and (c < 97 or c > 102):
+            return False
+        index = index+1
+    return True
+
+def same_text_field(w:mutbuf,left:u64,right:u64,key:u64) -> bool:
+    a = lookup(w,left,key)
+    b = lookup(w,right,key)
+    if a == NONE or b == NONE:
+        return a == b
+    size = get(w,a+32)
+    if size != get(w,b+32):
+        return False
+    first_byte = get(w,a+24)
+    second_byte = get(w,b+24)
+    index = 0
+    while index < size:
+        if byte(w,first_byte+index) != byte(w,second_byte+index):
+            return False
+        index = index+1
+    return True
 
 def context_window(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     installed = first(w,64)

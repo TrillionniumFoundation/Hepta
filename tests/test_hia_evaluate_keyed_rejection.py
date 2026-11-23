@@ -1,5 +1,6 @@
 """Check the retained ABI and admitted workload at the native Evaluate boundary."""
 from pathlib import Path
+import json
 import struct
 import unittest
 
@@ -23,13 +24,35 @@ class TypedWorkloadTests(unittest.TestCase):
         self.assertEqual(size, 16)
         return struct.unpack('<8sQ', result)
 
-    def project(self, records):
-        source = _Owner(-1, bytearray(wire(records)))
+    def project(self, records, *, raw=None):
+        source = _Owner(-1, bytearray(wire(records) if raw is None else raw))
         output = _Owner(-2, bytearray(1 << 20))
         work = _Owner(-3, bytearray(1 << 20))
         machine = _Machine(self.program, 10000000, 16 << 20, None, 128)
         size, = machine.invoke(self.entry, [_View(source, False), _View(output, True), _View(work, True)])
         return size, output.data[:16]
+
+    def test_first_issued_native_scope_uses_decoded_identity_fields(self):
+        install = {k: str(i) * 64 for i, k in enumerate(
+            ('worker_sha256', 'backend_sha256', 'catalog_sha256', 'native_helpers_sha256'), 1)}
+        scope = {'id': 'ctx-' + 'c' * 32, 'sha256': 'a' * 64}
+        args = {'context': scope}
+        base = {'installation': install, 'context': scope}
+        for issued, expected in [
+                (base, 0),
+                ({'installation': dict(reversed(tuple(install.items()))),
+                  'context': dict(reversed(tuple(scope.items())))}, 0),
+                (dict(base, context=dict(scope, id='ctx-' + 'd' * 32)), 28),
+                (dict(base, context=dict(scope, sha256='b' * 64)), 28),
+                (dict(base, installation=dict(install, backend_sha256='0' * 64)), 28),
+                (dict(base, installation={k: v for k, v in install.items() if k != 'native_helpers_sha256'}), 28)]:
+            with self.subTest(issued=issued):
+                records = [install, args, {}, issued]
+                raw = json.dumps(records, separators=(',', ':')).encode()
+                size, output = self.project(records, raw=raw)
+                self.assertEqual((size, struct.unpack('<8sQ', output)), (16, (b'HIAEQB01', expected)))
+        for invalid in [dict(base, context={'id': 'x'}), dict(base, installation={'worker_sha256': 'a' * 64})]:
+            self.assertGreaterEqual(self.project([install, args, {}, invalid])[0], 0xfffffffc)
 
     def test_window_uses_the_retained_context_and_current_catalog(self):
         digest = 'a' * 64

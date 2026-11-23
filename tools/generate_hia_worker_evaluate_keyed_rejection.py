@@ -4,7 +4,7 @@ INGRESS = '''
 def refuse_business(o:mutbuf,w:mutbuf,reason:u64) -> u64:
     # Baseline and the original scalar tag have their existing identities.
     # The other workload planner codes are shifted by ten in this envelope.
-    if reason != 1 and reason != 2 and (reason < 11 or reason > 27 or reason == 12):
+    if reason != 1 and reason != 2 and (reason < 11 or reason > 28 or reason == 12):
         return close_store(o,w,CLOSE_REFUSED)
     put(w,BUSINESS_REASON,reason)
     return close_store(o,w,CLOSE_ERROR)
@@ -43,6 +43,15 @@ def claimed_rejection(o:mutbuf,w:mutbuf) -> u64:
 def rejection_progress(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     fd = input_word(s,32)
     size = input_word(s,40)
+    if state == BASE_SCOPE:
+        if plan_ok(s) == False or size != 24 or input_word(s,72) != BUSINESS:
+            return close_store(o,w,CLOSE_REFUSED)
+        reason = input_word(s,80)
+        if reason == 28:
+            return refuse_business(o,w,reason)
+        if reason != 0:
+            return close_store(o,w,CLOSE_REFUSED)
+        return retain_body(o,w,slot_fd(w,RAW_BODY),slot_bytes(w,RAW_BODY))
     if state == EARLY_LIMIT:
         if plan_ok(s) and size == 24 and input_word(s,72) == BUSINESS and input_word(s,80) == 23:
             return refuse_business(o,w,23)
@@ -82,7 +91,7 @@ def ingress(driver, policy, controls, constants):
     constants.update(BUSINESS=int.from_bytes(b'HIAEQB01','little'),
                      REJECTION=int.from_bytes(b'HIAERJ01','little'), BUSINESS_REASON=3224,
                      BUSINESS_CONTEXT=3240,BASE_METADATA=3280,WORKLOAD_BODY=3312,CLOSE_ERROR=58,
-                     CASE_OPERANDS=104,CASE_CHECKED=105,ERROR_CLAIMED=106,EARLY_LIMIT=107,
+                     CASE_OPERANDS=104,CASE_CHECKED=105,ERROR_CLAIMED=106,EARLY_LIMIT=107,BASE_SCOPE=109,
                      CONTEXT_WINDOW=int.from_bytes(b'HIAEWD01','little'),CHECK_CONTEXT_WINDOW=3352)
     constants.update(SHAPE_REASON=256,SCHEMA_QUERY=int.from_bytes(b'HIAESQ01','little'))
     constants.update(EVALUATE_BASE_OBSERVE=int.from_bytes(b'HIAEAR01','little'),
@@ -101,7 +110,7 @@ def ingress(driver, policy, controls, constants):
             put(w,CLAIM_ACTIVE,1)
             return send_journal(o,w,9)''')
     driver=driver.replace('    return intake(s, o, w, state)',
-                          '    if state >= CASE_OPERANDS and state <= EARLY_LIMIT:\n'
+                          '    if (state >= CASE_OPERANDS and state <= EARLY_LIMIT) or state == BASE_SCOPE:\n'
                           '        return rejection_progress(s,o,w,state)\n    return intake(s, o, w, state)')
     policy=policy.replace('    if state == CTX_OBSERVED:', '    if state == CTX_OBSERVED:\n'
                           '        if plan_ok(s) and size == 24 and input_word(s,72) == CONTEXT_OBSERVED_TAG:\n'
@@ -109,10 +118,10 @@ def ingress(driver, policy, controls, constants):
                           '            if status == 1 or status == 2:\n                return refuse_business(o,w,22)')
     policy=policy.replace('    if state == DOCUMENT_BOUND:\n        observe_slot(s, w, BIND_PREFIX)',
                           '    if state == DOCUMENT_BOUND:\n        observe_slot(s, w, BIND_PREFIX)\n'
-                          '        if get(w,SELECTOR) == 0:\n'
+                          '        if get(w,SELECTOR) == 0 or get(w,SELECTOR) == 1:\n'
                           '            store(o,496,93)\n            whole_slot(w,o,BIND_PREFIX,0)\n'
                           '            fragment(o,1,INLINE_FRAGMENT,496,1)\n'
-                          '            return action(o,w,EARLY_LIMIT,RUN,BINDING_ROLE,0,2,0)')
+                          '            return action(o,w,choose(get(w,SELECTOR) == 0,EARLY_LIMIT,BASE_SCOPE),RUN,BINDING_ROLE,0,2,0)')
     policy=policy.replace('        deadline = get(w, UTC_DEADLINE)\n        if now >= deadline',
                           '        deadline = get(w, UTC_DEADLINE)\n'
                           '        if get(w,CHECK_CONTEXT_WINDOW) == 1:\n'
@@ -151,6 +160,7 @@ def closeout_literals():
                     ('abi_error','E_HIA_ABI','baseline and candidate frozen public ABI differ','execution')))
     reasons.extend((('unissued_artifact','E_HIA_ARTIFACT_IDENTITY','artifact reference was not issued in this runtime namespace','admission'),
                     ('wrong_native_kind','E_HIA_ARTIFACT_AUTHORITY','input bytes cannot impersonate a retained native','admission')))
+    reasons.append(('native_scope','E_HIA_RECEIPT_BINDING','native artifact belongs to a different context or implementation','admission'))
     reasons.append(('unknown_context','E_HIA_CONTEXT_IDENTITY','context is not a retained server record','context'))
     reasons.append(('expired_context','E_HIA_BUDGET','context total wall budget has expired','context'))
     for code, (error, message) in sorted(_WORKLOAD_REFUSALS.items()):
@@ -176,6 +186,7 @@ def closeout_literals():
                   '        if tens != 0:', '            store(o,p,48+tens-10*hundreds)', '            p = p+1',
                   '        store(o,p,48+index-10*tens)', '        return declared_suffix(o,p+1)'))
     lines.extend(('    if reason == 1:', '        return baseline_error(o,at)'))
+    lines.extend(('    if reason == 28:', '        return native_scope(o,at)'))
     lines.extend(('    if reason == 26:', '        return unissued_artifact(o,at)',
                   '    if reason == 27:', '        return wrong_native_kind(o,at)'))
     lines.extend(('    if reason == 24:', '        return profile_error(o,at)',
