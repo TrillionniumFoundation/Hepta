@@ -7,6 +7,8 @@ on:
   pull_request:
     paths:
       - "hepta/hia_machine_x64.py"
+      - "hepta/hia_x86_kernel_descriptor.py"
+      - "tests/test_hia_x86_kernel_descriptor.py"
       - "tests/test_hia_machine_x64_privileged.py"
       - ".github/workflows/hia-x86-privileged-encoder-stage.yml"
 
@@ -27,3 +29,4 @@ jobs:
           command -v objcopy
           command -v objdump
           python -m unittest discover -s tests -p 'test_hia_machine_x64_privileged.py' -v
+          python -m unittest discover -s tests -p 'test_hia_x86_kernel_descriptor.py' -v

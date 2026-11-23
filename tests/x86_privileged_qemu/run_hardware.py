@@ -14,6 +14,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 sys.path.insert(0, str(REPO))
+from hepta.hia_x86_kernel_descriptor import KernelDescriptorCode
 from experiments.hia_x86_privileged_effect_lowering import (
     LeafRevoke, QuiescentOwner, lower_leaf_revoke,
 )
@@ -32,7 +33,8 @@ REQUEST = LeafRevoke(
 )
 EXPECTED = {"valid": (67, "P"), "stale_old": (69, "U"),
             "wrong_cr3": (69, "U"), "postcheck_race": (69, "U"),
-            "cr4_pge": (69, "U"), "dishonest_noop": (255, "F")}
+            "cr4_pge": (69, "U"), "dishonest_noop": (255, "F"),
+            "descriptor_noop": (255, "F")}
 # This exact ISA signature comes from the independent GNU-as byte oracle.
 # It is deliberately not looked up from the encoder under test.
 _LOCKED_CAS = bytes.fromhex("f0490fb19200100000")
@@ -68,6 +70,19 @@ def effect_bytes(case: str) -> bytes:
     return lower_leaf_revoke(OWNER, request)
 
 
+def descriptor_bytes(case: str) -> bytes:
+    code = KernelDescriptorCode()
+    if case != "descriptor_noop":
+        code.lidt("r10")
+    code.ret()
+    machine, relocs = code.finalize()
+    if relocs:
+        raise AssertionError("descriptor must be relocation-free")
+    if machine not in (bytes.fromhex("410f011ac3"), bytes.fromhex("c3")):
+        raise AssertionError("LIDT/RET must match independently audited ISA vector")
+    return machine
+
+
 def build(case: str, directory: Path) -> dict:
     directory.mkdir(parents=True)
     effect = effect_bytes(case)
@@ -83,6 +98,8 @@ def build(case: str, directory: Path) -> dict:
                    f".set CR4_PGE_MODE, {int(cr4_pge)}\n")
     (directory / "race_config.inc").write_text(race_config)
     (directory / "effect.bin").write_bytes(effect)
+    descriptor = descriptor_bytes(case)
+    (directory / "descriptor.bin").write_bytes(descriptor)
     checked(["as", "--64", "-o", "boot.o", str(HERE / "boot.S")], directory)
     checked(["ld", "-nostdlib", "-T", str(HERE / "layout.ld"),
              "-o", "guest.elf", "boot.o"], directory)
@@ -108,6 +125,10 @@ def build(case: str, directory: Path) -> dict:
     end = symbols["effect_end"] - symbols["__text_begin"]
     final = (directory / "text.bin").read_bytes()
     final32 = (directory / "text32.bin").read_bytes()
+    descriptor_begin = symbols["descriptor_start"] - symbols["__text_begin"]
+    descriptor_end = symbols["descriptor_end"] - symbols["__text_begin"]
+    if final[descriptor_begin:descriptor_end] != descriptor:
+        raise AssertionError("final linked LIDT bytes differ from staged descriptor encoder")
     if final != final32 or final[start:end] != effect:
         raise AssertionError("ELF64/ELF32 final machine bytes differ from staged encoder")
     executable32 = (directory / "guest32.elf").read_bytes()
@@ -120,6 +141,11 @@ def build(case: str, directory: Path) -> dict:
         "cas_instruction_offset": offset if race else None,
         "race_bridge_config_sha256": sha256(race_config.encode()).hexdigest(),
         "effect_sha256": sha256(effect).hexdigest(),
+        "descriptor_stage_sha256": sha256(descriptor).hexdigest(),
+        "descriptor_stage_bytes": len(descriptor),
+        "descriptor_hardware_observer": "SIDT limit and base, PC/Q35",
+        "descriptor_negative_noop": case == "descriptor_noop",
+        "ltr_hardware_execution": "NOT_RUN",
         "elf64_sha256": sha256((directory / "guest.elf").read_bytes()).hexdigest(),
         "image_sha256": sha256(executable32).hexdigest(),
         "test_assembly_sha256": sha256((HERE / "boot.S").read_bytes()).hexdigest(),

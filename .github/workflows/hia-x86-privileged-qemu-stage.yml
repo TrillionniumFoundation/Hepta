@@ -8,6 +8,8 @@ on:
     paths:
       - "tests/x86_privileged_qemu/**"
       - "hepta/hia_machine_x64.py"
+      - "hepta/hia_x86_kernel_descriptor.py"
+      - "tests/test_hia_x86_kernel_descriptor.py"
       - "experiments/hia_x86_privileged_effect_lowering.py"
       - "tests/test_hia_x86_atomic_cmpxchg.py"
       - "tests/test_hia_x86_atomic_runtime.py"
@@ -38,6 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_hia_machine_x64_privileged.py' -v
+          python -m unittest discover -s tests -p 'test_hia_x86_kernel_descriptor.py' -v
           python -m unittest discover -s tests -p 'test_hia_x86_atomic_cmpxchg.py' -v
           python -m unittest discover -s tests -p 'test_hia_x86_atomic_runtime.py' -v
           python -m unittest discover -s tests -p 'test_hia_x86_privileged_effect_lowering.py' -v
