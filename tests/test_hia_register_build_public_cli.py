@@ -12,6 +12,26 @@ from hepta.hia_verified_scalar import emit_verified_scalar
 from tests.test_hia_program import arithmetic
 
 
+class BuildDescriptorSourceTests(unittest.TestCase):
+    def test_pinned_plan_and_prover_descriptor_domain(self):
+        from hepta.hia_agent_assembly import assemble_program
+        from tests.test_hia_elf_linker import reference
+        from tools.generate_hia_shared_build_report import SOURCE_PATH
+
+        root = Path(__file__).resolve().parents[1]
+        program = assemble_program((root / SOURCE_PATH).read_text())
+        refused = 0xfffffffd
+        cases = {b'00000003': 3, b'00000009': 9, b'000abcde': 0xabcde,
+                 b'7fffffff': 0x7fffffff, b'00000000': refused,
+                 b'00000002': refused, b'80000000': refused, b'ffffffff': refused,
+                 b'0000000F': refused, b'0000000/': refused, b'0000000:': refused,
+                 b'0000000g': refused, b'0000': refused, b'000000003': refused}
+        for token, expected in cases.items():
+            with self.subTest(token=token):
+                result, _ = reference(program, b'HIAFD001' + token, capacity=0, workspace=0)
+                self.assertEqual(result, expected)
+
+
 @unittest.skipUnless(os.environ.get('HIA_TEST_NATIVE_FILTER_RELEASE'), 'requires the installed native release')
 class RegisterBuildReceiptTests(unittest.TestCase):
     def test_published_register_leaf_binds_both_source_forms_and_real_stack_observation(self):

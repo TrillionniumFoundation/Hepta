@@ -1603,29 +1603,27 @@ bind_plan_report:
  ret
 
 read_pinned_descriptor:
- # The launcher passes the descriptor as eight lowercase hexadecimal digits.
- xor eax,eax
- push 8
- pop rcx
-proof_fd_digit:
- movzx edx,BYTE PTR [rsi]
- inc rsi
- sub edx,48
- cmp edx,9
- jbe proof_fd_append
- sub edx,39
- cmp edx,10
- jb usage
- cmp edx,15
- ja usage
-proof_fd_append:
- shl eax,4
- or eax,edx
- loop proof_fd_digit
- cmp BYTE PTR [rsi],0
+ # The adapter supplies a bounded argv view to the HIA descriptor parser.
+ mov rdi,rsi
+ mov ecx,9
+ call c_length
+ cmp eax,8
  jne usage
- cmp eax,3
- jl usage
+ sub rsp,24
+ movabs rax,0x3130304446414948    # HIAFD001
+ mov [rsp],rax
+ mov rax,[rdi]
+ mov [rsp+8],rax
+ mov rdi,rsp
+ mov esi,16
+ lea rdx,[rsp+16]
+ xor ecx,ecx
+ mov r8,rdx
+ xor r9d,r9d
+ call build_shared_report_start
+ add rsp,24
+ cmp eax,0x7fffffff
+ ja usage
  ret
 
 prove_shared_artifact:

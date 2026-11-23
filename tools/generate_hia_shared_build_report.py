@@ -43,6 +43,24 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if n < 8:
         return 4294967293
     magic = word_load(s, 0)
+    if magic == DESCRIPTOR_INPUT_MAGIC:
+        if n != 16:
+            return 4294967293
+        fd = 0
+        i = 8
+        while i < n:
+            digit = byte(s, i)
+            if digit >= 48 and digit <= 57:
+                digit = digit - 48
+            elif digit >= 97 and digit <= 102:
+                digit = digit - 87
+            else:
+                return 4294967293
+            fd = (fd << 4) | digit
+            i = i + 1
+        if fd < 3 or fd > 2147483647:
+            return 4294967293
+        return fd
     if magic == SOURCE_IO_MAGIC:
         if n != 24 or length(o) < 256:
             return 4294967293
@@ -909,6 +927,7 @@ def source_program():
               .replace('CHECKED_INPUT_MAGIC', str(int.from_bytes(CHECKED_MAGIC, 'little')))
               .replace('SIMD_PROOF_INPUT_MAGIC', str(int.from_bytes(b'HIASIMR1', 'little')))
               .replace('REPORT_MAGIC', str(int.from_bytes(MAGIC, 'little')))
+              .replace('DESCRIPTOR_INPUT_MAGIC', str(int.from_bytes(b'HIAFD001', 'little')))
               .replace('SOURCE_IO_MAGIC', str(int.from_bytes(INPUT_ERROR_MAGIC, 'little')))
               .replace('VERIFIED_INPUT_MAGIC', str(int.from_bytes(VERIFIED_MAGIC, 'little')))
               .replace('PROOF_INPUT_MAGIC', str(int.from_bytes(PROOF_MAGIC, 'little')))
