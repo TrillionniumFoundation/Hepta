@@ -109,6 +109,47 @@ class InstalledSourceMemberTests(unittest.TestCase):
         builder.chmod(0o500)
         return builder
 
+    def test_release_kit_compiles_sources_and_binds_every_packed_byte(self):
+        from tools.build_hia_native_store_release import _named_source_request
+
+        policy = self.sources / 'source_release_kit.hepta'
+        packer = self.sources / 'source_build_packer.hepta'
+
+        def composer(name, transport):
+            kit = self.source_images(self.work / (name + '-sources'), {
+                'source_build_policy.hepta': policy,
+                'selfhost.hepta': self.sources / 'selfhost.hepta',
+                'source_build_packer.hepta': transport,
+            })
+            program = self.work / name
+            program.write_bytes(self.invoke([self.seed, 'pack'], kit))
+            program.chmod(0o500)
+            return program
+
+        builder = composer('compose', packer)
+        files = {'source_build_policy.hepta': POLICY, 'selfhost.hepta': self.sources / 'selfhost.hepta',
+                 'source_build_packer.hepta': self.sources / 'release_directory_packer.hepta'}
+
+        def packet(items):
+            return _named_source_request({name: path.read_bytes() for name, path in items}, tag=b'HIAKIT01')
+
+        wire = packet(files.items())
+        previous = self.invoke([self.seed, 'pack'], self.source_images(self.work / 'previous', files))
+        self.assertEqual(self.invoke([builder, 'build'], wire), previous)
+        self.assertEqual(self.invoke([builder, 'build'], packet(reversed(files.items()))), previous)
+        for malformed in (wire[:-1], wire + b'x', packet(tuple(files.items())[:-1]),
+                          wire.replace(b'selfhost.hepta', b'selfhost.heptb', 1)):
+            self.invoke([builder, 'build'], malformed, refused=True)
+
+        # Change a byte in the actual packer's ELF template while keeping its return size.
+        marker = b'{"value":282584257676671}'
+        original = packer.read_bytes()
+        self.assertEqual(original.count(marker), 1)
+        altered = self.work / 'wrong-template.hepta'
+        altered.write_bytes(original.replace(marker, b'{"value":282584257676670}'))
+        corrupt = composer('wrong-template', altered)
+        self.invoke([corrupt, 'build'], wire, refused=True)
+
     def test_named_source_packet_matches_physical_directory_and_rejects_invalid_frames(self):
         import struct
         from tools.build_hia_native_store_release import _named_source_request

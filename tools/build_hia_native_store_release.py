@@ -876,6 +876,15 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         compiled = call(seed, 'build', wire)
         return compiled, _compiled_sources(compiled, pinned), pinned
 
+    # Bootstrap once. The kit composer binds all three freshly compiled objects
+    # and the complete executable template before returning a private builder.
+    composer_bundle, _, _ = compile_sources({
+        'source_build_policy.hepta': 'source_release_kit.hepta',
+        'selfhost.hepta': 'selfhost.hepta',
+        'source_build_packer.hepta': 'source_build_packer.hepta',
+    })
+    composer = call(seed, 'pack', composer_bundle)
+
     def planned_members():
         directory = _source_directory_recipe()
         yield directory, 0
@@ -900,11 +909,14 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         if pack_directory is None and name != 'hia-directory-package-build':
             raise ValueError('the first native release member must bootstrap its directory packer')
         if owner == index:
-            kit, kit_images, _ = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
-                                      'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
-            builders[owner] = call(seed, 'pack', kit)
+            kit_sources = capture_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
+                                           'selfhost.hepta': 'selfhost.hepta',
+                                           'source_build_packer.hepta': packer})
+            if pack_directory is None:
+                bootstrap_packets.append((len(kit_sources), capture_packet(kit_sources)[0]))
+            builders[owner] = call(composer, 'build', _named_source_request(kit_sources, tag=b'HIAKIT01'))
             if packer == 'core_json_cli_packer.hepta':
-                compiler_packer = kit_images['source_build_packer.hepta']
+                compiler_packer = call(seed, 'compile', kit_sources['source_build_packer.hepta'])
         attach_image = len(sources) == 1 and (name in adapter_files or name in transaction_members)
         if name == 'hia-worker-port':
             group, images = b'HIAWPRT1', {}
