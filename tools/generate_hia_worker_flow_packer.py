@@ -110,13 +110,15 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
         if kind == REPLAY_KIND:
             from tools.generate_hia_worker_evaluate_replay_flow import ROLES
             label = b'Evaluate replay'
+            previous_name, previous_count = b'Artifact', 23
         else:
             from tools.generate_hia_worker_evaluate_intake_flow import ROLES
             label = b'Evaluate intake'
+            previous_name, previous_count = b'Context', 31
         for original, selected in (
-            (b'.equ ROLE_COUNT, 23', f'.equ ROLE_COUNT, {len(ROLES)}'.encode()),
-            (b'--worker-artifact', ('--worker-' + kind).encode()),
-            (b'native HIA Artifact Worker transport', b'native HIA ' + label + b' Worker transport'),
+            (f'.equ ROLE_COUNT, {previous_count}'.encode(), f'.equ ROLE_COUNT, {len(ROLES)}'.encode()),
+            (b'--worker-' + previous_name.lower(), ('--worker-' + kind).encode()),
+            (b'native HIA ' + previous_name + b' Worker transport', b'native HIA ' + label + b' Worker transport'),
         ):
             if flow.count(original) != 1:
                 raise ValueError('unexpected descriptor transport layout')
@@ -136,7 +138,7 @@ def adapter_source(flow, ports, *, kind='describe', peers=b'', launcher=b''):
         'read-external': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                           b'.equ WORKER_EXTERNAL_READ, 1\n'),
         'input': b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n.equ WORKER_INPUT, 1\n',
-        INTAKE_KIND: b'.equ HAS_MAKE_PORT, 1\n.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n.equ WORKER_ARTIFACT, 1\n',
+        INTAKE_KIND: b'.equ WORKER_CONTEXT, 1\n.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n.equ WORKER_ARTIFACT, 1\n',
         REPLAY_KIND: b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n.equ WORKER_ARTIFACT, 1\n',
         'artifact': (b'.equ WORKER_COST, 1\n.equ WORKER_STORED_READ, 1\n'
                      b'.equ WORKER_ARTIFACT, 1\n'),

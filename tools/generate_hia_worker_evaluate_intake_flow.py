@@ -15,7 +15,8 @@ ROLES = (*REPLAY_ROLES,
          ('ARGUMENT', 'hia-agent-worker-arguments'), ('INPUT_SCHEMA', 'hia-agent-mcp-input-schema'),
          ('PLAN', 'hia-agent-worker-evaluate-request'), ('CONTEXT', 'hia-agent-context-request'),
          ('CONTEXT_STORE', 'hia-agent-context-store'), ('PROFILE', 'hia-agent-artifact-authority'),
-         ('PUBLISHER', 'hia-artifact'))
+         ('PUBLISHER', 'hia-artifact'), ('BINDING', 'hia-agent-worker-evaluate-input-binding'),
+         ('NOMINAL', 'hia-nominal-constructor'))
 
 POLICY = r'''
 # A novel key is eligible for reversible intake. The request is not reserved
@@ -31,6 +32,8 @@ def closed_store(o:mutbuf, w:mutbuf) -> u64:
 def intake(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     size = input_word(s, 40)
     fd = input_word(s, 32)
+    if state >= PREFIX_MADE:
+        return runtime_state(s, o, w, state)
     if state == ARGUMENT_PROJECTED:
         if prefixed(s) == False:
             return BAD
@@ -82,6 +85,14 @@ def intake(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == ART_BODY:
         if size < 1 or size > 67108864:
             return close_store(o, w, CLOSE_REFUSED)
+        index = get(w, SELECTOR)
+        retained = 4 + get(w, RECEIPT_COUNT)
+        if index < retained:
+            return append_binding(o, w, fd, size)
+        if index < retained + 2:
+            keep(w, RAW_BODY, fd, size)
+            fragment(o, 0, fd, 0, size)
+            return action(o, w, CORE_NOMINAL, RUN, NOMINAL_ROLE, 0, 1, 0)
         return retain_body(o, w, fd, size)
     if state == ROW_MADE:
         if size != get(w, RECORD_SIZE):
@@ -118,8 +129,7 @@ def bind_request_spans(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return BAD
         hold(w, SELECTORS + 24 * i, fd, offset - 60, span)
         i = i + 1
-    use_span(w, o, SELECTORS, 0)
-    return action(o, w, CTX_REFERENCE, RUN, CONTEXT_ROLE, 0, 1, 0)
+    return start_binding(o, w)
 
 def opened_intake(o:mutbuf, w:mutbuf) -> u64:
     fd = slot_fd(w, QUERY_FD)
@@ -149,7 +159,7 @@ def retained_query(o:mutbuf, w:mutbuf) -> u64:
 
 def capture_artifact(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     kind = get(w, ACTIVE_KIND)
-    if kind == 3:
+    if kind <= 4:
         if length(s) != 136 or input_word(s, 64) != RETAINED_AUTHORITY:
             return BAD
         hold(w, METADATA_SPAN, slot_fd(w, STORE_RESULT), 0, 0)
@@ -189,8 +199,13 @@ def retain_body(o:mutbuf, w:mutbuf, fd:u64, size:u64) -> u64:
 
 def next_artifact(o:mutbuf, w:mutbuf) -> u64:
     index = get(w, SELECTOR) + 1
-    if index == 4 + get(w, RECEIPT_COUNT):
-        return close_store(o, w, CLOSE_INTAKE)
+    retained = 4 + get(w, RECEIPT_COUNT)
+    if index == retained:
+        return bind_runtime(o, w)
+    if index == retained + 5:
+        return read_span(o, w, CREATION_OBSERVED, get(w, CREATION), get(w, CREATION + 8), get(w, CREATION + 16))
+    if index > retained:
+        return read_runtime(o, w, index - retained)
     put(w, SELECTOR, index)
     put(w, ACTIVE_KIND, choose(index < 3, 7, choose(index == 3, 5, 8)))
     src = SELECTORS + 24 * index
@@ -199,9 +214,143 @@ def next_artifact(o:mutbuf, w:mutbuf) -> u64:
 
 def publish_intake(o:mutbuf, w:mutbuf) -> u64:
     put(o, HEADER, INTAKE)
-    put(o, HEADER + 8, get(w, RECEIPT_COUNT) + 4)
+    put(o, HEADER + 8, get(w, RECEIPT_COUNT) + 9)
+    put(o, HEADER + 16, get(w, WINDOW_UTC))
+    put(o, HEADER + 24, get(w, UTC_DEADLINE))
+    put(o, HEADER + 32, get(w, LIMIT_NATIVE))
+    put(o, HEADER + 40, get(w, LIMIT_MEMORY))
     whole_slot(w, o, INTAKE_PACKET, 0)
-    return action(o, w, INTAKE_PUBLISHED, PUBLISH, 0, 0, 1, 16)
+    return action(o, w, INTAKE_PUBLISHED, PUBLISH, 0, 0, 1, 48)
+'''
+
+
+RUNTIME_POLICY = r'''
+def start_binding(o:mutbuf, w:mutbuf) -> u64:
+    # The installation and request originate in the authenticated launcher
+    # dossier and native admission, independently of any retained document.
+    store(o, HEADER, 91)
+    store(o, 496, 44)
+    fragment(o, 0, slot_fd(w, DOSSIER_FD), DOSSIER_HEAD + get(w, 40), get(w, 48))
+    fragment(o, 1, INLINE_FRAGMENT, 496, 1)
+    after_prefix(w, o, ARGUMENT_FD, 2)
+    return action(o, w, PREFIX_MADE, MAKE, 0, 0, 3, 1)
+
+def append_binding(o:mutbuf, w:mutbuf, fd:u64, size:u64) -> u64:
+    keep(w, RAW_BODY, fd, size)
+    whole_slot(w, o, BIND_PREFIX, 0)
+    store(o, 496, 44)
+    fragment(o, 1, INLINE_FRAGMENT, 496, 1)
+    if get(w, ACTIVE_KIND) == 7:
+        use_span(w, o, METADATA_SPAN, 2)
+    else:
+        fragment(o, 2, fd, 0, size)
+    return action(o, w, DOCUMENT_BOUND, MAKE, 0, 0, 3, 0)
+
+def bind_runtime(o:mutbuf, w:mutbuf) -> u64:
+    whole_slot(w, o, BIND_PREFIX, 0)
+    store(o, 496, 93)
+    fragment(o, 1, INLINE_FRAGMENT, 496, 1)
+    return action(o, w, RUNTIME_BOUND, RUN, BINDING_ROLE, 0, 2, 0)
+
+def read_runtime(o:mutbuf, w:mutbuf, index:u64) -> u64:
+    put(w, SELECTOR, get(w, RECEIPT_COUNT) + 4 + index)
+    put(w, ACTIVE_KIND, choose(index == 2, 6, 0))
+    hold(w, ACTIVE_REFERENCE, slot_fd(w, RUNTIME_SELECTION), 40 + 176 * index, 176)
+    return retained_query(o, w)
+
+def sample_budget(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    size = get(w, CREATION + 16)
+    if length(s) != 64 + size or size == 0 or size > 20:
+        return BAD
+    stamp = 0
+    i = 0
+    while i < size:
+        c = byte(s, 64 + i)
+        if c < 48 or c > 57 or stamp > 1844674407370955161 or (stamp == 1844674407370955161 and c > 53):
+            return BAD
+        stamp = stamp * 10 + c - 48
+        i = i + 1
+    limit = 1000000 * get(w, LIMIT_WALL)
+    if stamp > 18446744073709551615 - limit:
+        return BAD
+    put(w, UTC_DEADLINE, stamp + limit)
+    return clock_sample(o, w, WINDOW_SAMPLED, 1)
+
+def validate_core(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    size = input_word(s, 40)
+    prefix = input_word(s, 96)
+    span = input_word(s, 104)
+    if length(s) < 128 or size < 64 or input_word(s, 64) != NOMINAL_PACKET or input_word(s, 72) != 0 or input_word(s, 80) != 0:
+        return close_store(o, w, CLOSE_REFUSED)
+    if prefix == 0 or prefix > size - 64 or span == 0 or span != size - 64 - prefix:
+        return close_store(o, w, CLOSE_REFUSED)
+    fd = input_word(s, 32)
+    hold(w, CANONICAL, fd, 64 + prefix, span)
+    put(o, 416, 45)
+    use_span(w, o, CANONICAL, 0)
+    return artifact_command(o, w, CORE_HASHED, STORE_HASH, STORE_HASH_END, 1)
+
+def observed_digest(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    at = 64
+    while at + 75 <= length(s):
+        if input_word(s, at) == SHA_JSON and byte(s, at + 8) == 58 and byte(s, at + 9) == 34 and byte(s, at + 74) == 34:
+            i = 0
+            while i < 64:
+                if is_hex(byte(s, at + 10 + i)) == False:
+                    return BAD
+                store(w, EXPECTED_SHA + i, byte(s, at + 10 + i))
+                i = i + 1
+            arm = get(w, SELECTOR) - 4 - get(w, RECEIPT_COUNT)
+            return read_span(o, w, CORE_COMPARED, slot_fd(w, RUNTIME_SELECTION), 920 + 64 * arm, 64)
+        at = at + 1
+    return BAD
+
+def runtime_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    fd = input_word(s, 32)
+    size = input_word(s, 40)
+    if state == PREFIX_MADE:
+        observe_slot(s, w, BIND_PREFIX)
+        use_span(w, o, SELECTORS, 0)
+        return action(o, w, CTX_REFERENCE, RUN, CONTEXT_ROLE, 0, 1, 0)
+    if state == DOCUMENT_BOUND:
+        observe_slot(s, w, BIND_PREFIX)
+        return retain_body(o, w, slot_fd(w, RAW_BODY), slot_bytes(w, RAW_BODY))
+    if state == RUNTIME_BOUND:
+        if plan_ok(s) == False or size != 1048 or input_word(s, 72) != BIND_RESULT:
+            return close_store(o, w, CLOSE_REFUSED)
+        observe_slot(s, w, RUNTIME_SELECTION)
+        put(w, LIMIT_WALL, input_word(s, 80))
+        put(w, LIMIT_NATIVE, input_word(s, 88))
+        put(w, LIMIT_MEMORY, input_word(s, 96))
+        return read_runtime(o, w, 0)
+    if state == CORE_NOMINAL:
+        return validate_core(s, o, w)
+    if state == CORE_HASHED:
+        if size == 0 or size > 1024:
+            return BAD
+        return read_span(o, w, CORE_HASH_FRAME, fd, 0, size)
+    if state == CORE_HASH_FRAME:
+        return observed_digest(s, o, w)
+    if state == CORE_COMPARED:
+        i = 0
+        while i < 64:
+            if byte(s, 64 + i) != byte(w, EXPECTED_SHA + i):
+                return close_store(o, w, CLOSE_REFUSED)
+            i = i + 1
+        hold(w, METADATA_SPAN, get(w, CANONICAL), get(w, CANONICAL + 8), get(w, CANONICAL + 16))
+        return retain_body(o, w, slot_fd(w, RAW_BODY), slot_bytes(w, RAW_BODY))
+    if state == CREATION_OBSERVED:
+        return sample_budget(s, o, w)
+    if state == WINDOW_SAMPLED:
+        if length(s) != 72 or size != 8:
+            return BAD
+        now = input_word(s, 64)
+        deadline = get(w, UTC_DEADLINE)
+        if now >= deadline or deadline - now < 1000000:
+            return close_store(o, w, CLOSE_REFUSED)
+        put(w, WINDOW_UTC, now)
+        return close_store(o, w, CLOSE_INTAKE)
+    return BAD
 '''
 
 
@@ -209,12 +358,16 @@ def program():
     constants, controls = recipe(ROLES)
     constants.update(SCHEMA_TOOL=9, MAKE=11, RECEIPT_COUNT=2304, SELECTOR=2312, ACTIVE_KIND=2320,
                      RECORD_SIZE=2328, SELECTORS=2368, ACTIVE_REFERENCE=2848, METADATA_SPAN=2872,
-                     CREATION=2896, INTAKE_PACKET=18, OPEN_INTAKE=50, CTX_ROW=51, ART_ROW=52,
+                     CREATION=2896, CANONICAL=2920, EXPECTED_SHA=2944, LIMIT_WALL=3008,
+                     LIMIT_NATIVE=3016, LIMIT_MEMORY=3024, UTC_DEADLINE=3032, WINDOW_UTC=3040,
+                     BIND_PREFIX=19, RUNTIME_SELECTION=20, RAW_BODY=21, INTAKE_PACKET=18, OPEN_INTAKE=50, CTX_ROW=51, ART_ROW=52,
                      CLOSE_INTAKE=53, CLOSE_REFUSED=54)
     states = ('REQUEST_SPANS','CTX_REFERENCE','CTX_QUERY','CTX_OBSERVED','ART_QUERY','ART_OBSERVED',
-              'ART_AUTH','ART_BODY','ROW_MADE','ROW_JOINED','INTAKE_PUBLISHED')
+              'ART_AUTH','ART_BODY','ROW_MADE','ROW_JOINED','INTAKE_PUBLISHED','PREFIX_MADE','DOCUMENT_BOUND',
+              'RUNTIME_BOUND','CREATION_OBSERVED','WINDOW_SAMPLED','CORE_NOMINAL','CORE_HASHED','CORE_HASH_FRAME','CORE_COMPARED')
     constants.update({name: i for i, name in enumerate(states, 60)})
-    tags = dict(REQUEST_LAYOUT=b'HIAEVQ01', INTAKE=b'HIAEFI01', CONTEXT_REFERENCE_TAG=b'HIACTRL1',
+    tags = dict(REQUEST_LAYOUT=b'HIAEVQ01', INTAKE=b'HIAEFI02', BIND_RESULT=b'HIAEFB02', NOMINAL_PACKET=b'HIAVCF01',
+                SHA_JSON=b'"sha256"', STORE_HASH=b'store-ha', STORE_HASH_END=b'sh', CONTEXT_REFERENCE_TAG=b'HIACTRL1',
                 CONTEXT_QUERY_TAG=b'HIACTL01', CONTEXT_OBSERVE_TAG=b'HIACTO01', CONTEXT_OBSERVED_TAG=b'HIACTO02',
                 RETAINED_QUERY=b'HIARFG01', RETAINED_OBSERVED=b'HIARFG02', RETAINED_AUTHORITY=b'HIARFO02',
                 BUILD_AUTHORITY=b'HIABRD01')
@@ -228,10 +381,14 @@ def program():
     settled += ('    if purpose == STORE_LOOKUP:\n        return interpret_row(o, w, purpose, bytes)\n'
                 '    return inspect_row(o, w, purpose, bytes)\n')
     controls = [settled if c.lstrip().startswith('def settle_transaction(') else c for c in controls]
-    controls.extend((function(ARTIFACT,'json_pair'),function(ARTIFACT,'schema_receipt'),
+    issue = function(DESCRIBE, 'issue').replace('seq > 160', 'seq > 4096').replace(
+        '    put(o, 152,',
+        '    put(o, 136, 0)\n    put(o, 168, choose(op == RUN and role == NOMINAL_ROLE, 1, 0))\n    put(o, 152,')
+    controls = [issue if c.lstrip().startswith('def issue(') else c for c in controls]
+    controls.extend((function(ARTIFACT,'clock_sample'),function(ARTIFACT,'json_pair'),function(ARTIFACT,'schema_receipt'),
                      function(DESCRIBE,'reply_word'),function(CONTROL_POLICY,'hold'),function(CONTROL_POLICY,'use_span'),
                      function(RETAINED_POLICY,'artifact_command')))
-    return flow_source(driver + POLICY, controls, constants)
+    return flow_source(driver + POLICY + RUNTIME_POLICY, controls, constants)
 
 
 if __name__ == '__main__':

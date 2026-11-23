@@ -83,6 +83,7 @@ VARIANTS = {
     'verify-journal-observation': ('worker_verify_journal_observation', 'hepta.hia.verify-journal-observation-native.v1'),
     'verify-journal-records': ('worker_verify_journal_records', 'hepta.hia.verify-journal-records-native.v1'),
     'worker-evaluate-request': ('worker_evaluate_request', 'hepta.hia.worker-evaluate-request-native.v1'),
+    'worker-evaluate-input-binding': ('worker_evaluate_input_binding', 'hepta.hia.worker-evaluate-input-binding-native.v1'),
     'worker-evaluate-case': ('worker_evaluate_case', 'hepta.hia.worker-evaluate-case-native.v1'),
     'worker-verify-request': ('worker_verify_request', 'hepta.hia.worker-verify-request-native.v1'),
     'worker-verify-evidence': ('worker_verify_evidence', 'hepta.hia.worker-verify-evidence-native.v1'),
