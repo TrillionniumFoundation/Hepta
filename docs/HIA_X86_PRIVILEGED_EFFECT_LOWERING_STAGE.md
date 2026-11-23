@@ -9,6 +9,8 @@ The experiment validates a typed restricted context before emitting any bytes.
 It requires exactly one CPL0 CPU, interrupts masked, preemption disabled,
 exclusive page-table ownership, DMA quiescence, no PCID/global/LA57, an admitted
 maximum physical width, aligned CR3/PTE addresses, a canonical page VA, a
+**caller-asserted identity mapping** for the PTE slot (linear VA equals physical
+slot), and a slot below the low 47-bit canonical-address boundary, a
 present non-global PTE, and **only** clearing that PTE's Present bit. All
 context facts are **supplied by the caller**, not proved from hardware or
 authenticated HIA resources.
@@ -37,3 +39,9 @@ machine text to that source, then check the live PTE/CR3/TLB effects and
 fault-path readbacks in PC/Q35 QEMU. The pinned HeptaKernel compiler remains
 unchanged. All 17 full-target Linux gates and 422 syscall obligations remain
 HOLD.
+
+The PTE slot is dereferenced by a paged x86-64 CPU using a **linear address**;
+a physical address is not automatically a usable pointer. This prototype's
+identity-map claim is not authenticated and must be independently checked in
+a guest before any attempted hardware execution. The target frame must not be
+its own PTE-table or the current CR3 root frame.
