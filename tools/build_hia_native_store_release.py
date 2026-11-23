@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import gzip
+import io
 from hashlib import file_digest, sha256
 from importlib import import_module
 import json
@@ -9,7 +11,8 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-from tempfile import TemporaryDirectory
+import tarfile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from tools.build_hia_core_edit import PROGRAMS as CORE_EDIT_PROGRAMS
 from tools.build_hia_json_preflight import ROOT, admit_cold_build, build_batch, current_sources
@@ -205,12 +208,54 @@ def build(output, compiler, cold_report):
     return target
 
 
+def write_source_archive(output):
+    """Archive precisely the files exported by the cold replay, including its support contract."""
+    output = Path(output).absolute()
+    if output.exists() or output.is_symlink():
+        raise FileExistsError(output)
+    sources = current_sources()
+    with NamedTemporaryFile(dir=output.parent, prefix='.hia-native-source-') as temporary:
+        with gzip.GzipFile(fileobj=temporary, filename='', mode='wb', mtime=0, compresslevel=6) as compressed:
+            with tarfile.open(fileobj=compressed, mode='w|', format=tarfile.PAX_FORMAT) as archive:
+                for name, expected in sorted(sources.items()):
+                    path = Path(name)
+                    if path.is_absolute() or path.as_posix() != name or '..' in path.parts:
+                        raise ValueError('invalid cold source path: ' + name)
+                    data = (ROOT / path).read_bytes()
+                    if sha256(data).hexdigest() != expected:
+                        raise ValueError('cold source changed during export: ' + name)
+                    entry = tarfile.TarInfo('hia-core-source/' + name)
+                    entry.mode = 0o644
+                    entry.size = len(data)
+                    archive.addfile(entry, io.BytesIO(data))
+        temporary.flush()
+        if current_sources() != sources:
+            raise ValueError('cold source inventory changed before publication')
+        os.fchmod(temporary.fileno(), 0o400)
+        os.link(temporary.name, output)
+    return output
+
+
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    for name in ('output', 'compiler', 'cold-report'):
-        parser.add_argument('--' + name, type=Path, required=True)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='From an extracted hia-core-source directory:\n'
+               '  python -m tools.replay_hia_selfhost_cold --output ../cold.json\n'
+               '  python -m tools.build_hia_native_store_release --output ../release '
+               '--compiler ../cold.cold/qualification.evidence/B3.image.bin --cold-report ../cold.json')
+    action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument('--output', type=Path, help='new or empty directory for the native store.hiapack')
+    action.add_argument('--source-archive', type=Path, help='new .tar.gz path for all source inputs to cold replay')
+    parser.add_argument('--compiler', type=Path, help='B3 compiler image from the matching cold replay')
+    parser.add_argument('--cold-report', type=Path, help='matching source-qualified cold replay JSON')
     args = parser.parse_args()
-    print(build(args.output, args.compiler, args.cold_report))
+    if args.source_archive is not None:
+        if args.compiler is not None or args.cold_report is not None:
+            parser.error('--source-archive takes only the complete checked-in sources')
+        print(write_source_archive(args.source_archive))
+    else:
+        if args.compiler is None or args.cold_report is None:
+            parser.error('--output requires --compiler and --cold-report')
+        print(build(args.output, args.compiler, args.cold_report))
 
 
 if __name__ == '__main__':
