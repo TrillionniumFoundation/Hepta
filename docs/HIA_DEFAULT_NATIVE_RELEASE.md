@@ -20,8 +20,10 @@ The standalone executable release also supports the explicit native shared
 command without Python, LLVM, or an external linker. It links the admitted
 direct object, independently checks the linked ELF and its expected exports,
 and publishes the shared artifact with both the object and shared SHA-256
-values in the receipt. The standalone command does not implement verified
-`--backend auto --kind shared` and makes no machine verification claim.
+values in the receipt. For a supported scalar Core program, `--backend auto --kind shared`
+invokes the verified linker and publishes the final machine-proof receipt.
+The implicit local ISA and explicit `--target-isa native` produce the same
+shared object and proof receipt.
 
 The checked-in pin is `None`. Source checkouts and ordinary portable wheels keep
 their existing defaults and the two retained Python arithmetic bodies. This

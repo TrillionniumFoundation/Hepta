@@ -565,6 +565,13 @@ def command_option(s:readbuf, w:mutbuf, field:u64) -> bool:
         if begin <= length(s) and length(s) - begin >= 16:
             if read_word(s, begin, 8) == AUTO_FIRST and read_word(s, begin + 8, 8) == AUTO_LAST:
                 return False
+    # The native verified dispatcher selects the local CPU when the ISA option
+    # is absent. Preserve that same choice when the public parser saw "native".
+    if field == ISA_FIELD and read_workspace(w, at + 16, 8) == 6:
+        begin = read_workspace(w, at + 8, 8)
+        if begin <= length(s) and length(s) - begin >= 24:
+            if read_word(s, begin, 8) == NATIVE_NA and read_word(s, begin + 8, 8) == NATIVE_TI and read_word(s, begin + 16, 8) == NATIVE_VE:
+                return False
     return True
 
 def command_frame(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -649,6 +656,10 @@ def source_program():
     constants = {
         'BAD': 4294967293,
         'FIELD_COUNT': len(FIELDS),
+        'ISA_FIELD': FIELDS.index('target_isa'),
+        'NATIVE_NA': int.from_bytes('na'.encode('utf-32-le'), 'little'),
+        'NATIVE_TI': int.from_bytes('ti'.encode('utf-32-le'), 'little'),
+        'NATIVE_VE': int.from_bytes('ve'.encode('utf-32-le'), 'little'),
         'AUTO_FIRST': int.from_bytes('au'.encode('utf-32-le'), 'little'),
         'AUTO_LAST': int.from_bytes('to'.encode('utf-32-le'), 'little'),
         'ORDER_FIRST': sum(value << (i * 4) for i, value in enumerate(

@@ -270,6 +270,21 @@ def check_object_builds(release):
             assert build(source, output).returncode != 0
             assert output.read_bytes() == artifact
 
+        scalar = Path(__file__).resolve().parents[1] / 'examples/hia_safe_core/scalar_add.core.hepta'
+        shared_builds = []
+        for name, options in [('implicit', []), ('explicit', ['--target-isa', 'native'])]:
+            destination = folder / (name + '.so')
+            verified = subprocess.run([executable, 'build', scalar, '-o', destination,
+                                       '--backend', 'auto', '--kind', 'shared', *options],
+                                      capture_output=True, env={'PATH': ''}, timeout=60)
+            assert verified.returncode == 0 and not verified.stderr, verified
+            receipt = json.loads(verified.stdout)
+            shared = destination.read_bytes()
+            assert receipt['artifact_sha256'] == sha256(shared).hexdigest()
+            assert receipt['machine_proof']['obligations_proven'] > 0
+            shared_builds.append((shared, receipt['machine_proof']))
+        assert shared_builds[0] == shared_builds[1]
+
         invalid = pair_program()
         invalid['functions'][-1]['entry'] = 'absent'
         source.write_bytes(wire(invalid))
@@ -281,7 +296,7 @@ def check_object_builds(release):
         link.symlink_to(source)
         result = build(link, refused)
         assert result.returncode != 0 and not refused.exists(), result
-    return 2 * len(documents) + 2
+    return 2 * len(documents) + 4
 
 
 if __name__ == '__main__':
