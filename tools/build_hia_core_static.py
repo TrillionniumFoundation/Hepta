@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP = 'examples/hia_bootstrap/'
 POLICY = 'source_core_application.hepta'
 KINDS = ('catalog', 'capabilities', 'normalize_core', 'verify_core_json', 'inspect_core_json',
-         'render_assembly', 'publish_program', 'publish_assembly')
+         'render_assembly', 'publish_program', 'publish_assembly', 'import_assembly')
 
 
 def cold_tools(directory, compiler, cold_report, admitted):
@@ -38,6 +38,22 @@ def cold_tools(directory, compiler, cold_report, admitted):
     return seed, compile_sources, call
 
 
+def source_paths(kind, roles):
+    from tools.build_hia_core_edit import ASSEMBLY_PRESENTERS, ASSEMBLY_PUBLICATION
+    if kind == 'import_assembly':
+        return (*(path for path, _ in roles[:3]), *ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
+    return tuple(path for path, _ in roles)
+
+
+def indexed_images(images):
+    offset = 8 * len(images)
+    offsets = []
+    for image in images:
+        offsets.append(offset)
+        offset += len(image)
+    return struct.pack(f'<{len(offsets)}Q', *offsets) + b''.join(images)
+
+
 def build_products(tools, admitted):
     """The host transports sources and checks the physical output; HIA owns row selection,
     recompilation, relocation binding, aligned layout and publication.
@@ -57,7 +73,7 @@ def build_products(tools, admitted):
             builders[leaf] = call(seed, 'pack', kit)
         return builders[leaf]
 
-    paths = {path for kind in KINDS for path, _ in PROGRAMS[kind][1]}
+    paths = {path for kind in KINDS for path in source_paths(kind, PROGRAMS[kind][1])}
     named = {Path(path).name: path.removeprefix(BOOTSTRAP) for path in paths}
     if len(named) != len(paths):
         raise ValueError('Core application source names collide')
@@ -81,13 +97,16 @@ def build_products(tools, admitted):
             raise ValueError('native Core adapter record differs from source: ' + kind)
         offsets = struct.unpack_from(f'<{count}Q', row, ADAPTER_RECORD.size)
         holes = [(offset, target) for offset, (_, target) in zip(offsets, relocs, strict=True)]
-        inputs = [Path(path).name for path, _ in roles]
+        inputs = [Path(path).name for path in source_paths(kind, roles)]
         pairs = [(sources[key], images[key]) for key in inputs]
         header = struct.pack('<8s3Q', b'HIACSA01', ordinal, len(adapter), len(row))
         lengths = b''.join(struct.pack('<2Q', len(source), len(image)) for source, image in pairs)
         wire = header + lengths + adapter + row + b''.join(data for pair in pairs for data in pair)
         binary = call(packer, 'build', wire)
-        elf = check_placement(binary, stub, holes, [image for _, image in pairs])
+        sections = [image for _, image in pairs]
+        if kind == 'import_assembly':
+            sections = [*sections[:3], indexed_images(sections[3:])]
+        elf = check_placement(binary, stub, holes, sections)
         products[name] = (binary, {
             'elf': elf, 'adapter_object_sha256': object_sha.hex(),
             'native_source_sha256': {key: sha256(sources[key]).hexdigest() for key in inputs},

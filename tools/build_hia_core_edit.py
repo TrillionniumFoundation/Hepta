@@ -535,11 +535,12 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
         native_tools = core_static.cold_tools(output, compiler, cold_report, admitted)
     products = core_static.build_products(native_tools, admitted)
     # Shared image sources can still be needed by the compressed and nominal programs.
-    legacy_inputs = {*assembly_images, *SELFHOST_CORE_SOURCES, *NOMINAL_BUILD_SOURCES.values(),
+    legacy_inputs = {*SELFHOST_CORE_SOURCES, *NOMINAL_BUILD_SOURCES.values(),
                      *(path for kind, (_, roles) in programs.items() if kind not in core_static.KINDS
                        for path, _ in roles),
                      *(path for mapping in NOMINAL_CLI_IMAGES.values() for path in mapping)}
-    native_only = {path for kind in core_static.KINDS for path, _ in programs[kind][1]} - legacy_inputs
+    native_only = {path for kind in core_static.KINDS
+                   for path in core_static.source_paths(kind, programs[kind][1])} - legacy_inputs
     images, receipts = {}, {}
     for path, raw in sources.items():
         if path.endswith('.json'):
@@ -557,13 +558,6 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
     core, policy, diagnostic = (images[path] for path in SELFHOST_CORE_SOURCES)
     images[SELFHOST_CORE_ARCHIVE] = struct.pack(
         '<3Q', 24, 24 + len(core), 24 + len(core) + len(policy)) + core + policy + diagnostic
-    payloads = [images[path] for path in assembly_images]
-    position = 8 * len(payloads)
-    offsets = []
-    for payload in payloads:
-        offsets.append(struct.pack('<Q', position))
-        position += len(payload)
-    images[ASSEMBLY_PRESENTATION] = b''.join((*offsets, *payloads))
     packer = NativeHiaJsonImage(images[PACKER], receipts[PACKER]['produced_sha256'])
     embedder = NativeHiaJsonImage(images[EMBED_SOURCE], receipts[EMBED_SOURCE]['produced_sha256'])
     templates = {path: NativeHiaJsonImage(images[path], receipts[path]['produced_sha256'])
