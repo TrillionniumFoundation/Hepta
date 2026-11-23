@@ -130,6 +130,75 @@ class SafeCoreX64DecodeNativeTests(unittest.TestCase):
             with self.subTest(case=name):
                 self.assertIsNone(project(raw, calls))
 
+    def test_projection_requires_guarded_division_and_models_masked_cl_shifts(self):
+        from hepta.hia_machine_x64 import Code
+        from hepta.hia_cnf_native import (
+            WORD_ARITHMETIC_SHR, WORD_SIGNED_DIV, WORD_SIGNED_REM, WORD_UNSIGNED_DIV,
+            WORD_UNSIGNED_REM, WORD_VARIABLE_SHL, WORD_VARIABLE_SHR,
+        )
+
+        def project(code):
+            text, relocs = code.finalize()
+            calls = {r['offset'] - 1: r['symbol'] for r in relocs}
+            return self.native.project_scalar_values(
+                {'text':text, 'entry':0, 'calls':calls}, 2, allow_variable_shifts=True,
+                allow_unsigned_multiply=True, allow_unsigned_divide=True, allow_signed=True)
+
+        def divide(signed, *, check_zero=True, correct_high=True, correct_min=True, reassign=False):
+            code = Code()
+            code.mov_rr('rax','rdi')
+            code.mov_rr('rcx','rsi')
+            if check_zero:
+                code.test('rcx','rcx')
+                code.jcc('e','abort')
+            if reassign:
+                code.mov_rr('rcx','rdi')
+            if signed:
+                code.mov_imm('r11',(1<<63) if correct_min else 0)
+                code.cmp('rax','r11')
+                code.jcc('ne','permitted')
+                code.mov_imm('r11',(1<<64)-1)
+                code.cmp('rcx','r11')
+                code.jcc('e','abort')
+                code.label('permitted')
+            if not correct_high:
+                code.mov_rr('rdx','rdi')
+            elif signed:
+                code.cqo()
+            else:
+                code.xor('rdx','rdx')
+            (code.idiv if signed else code.div)('rcx')
+            code.ret()
+            code.label('abort')
+            code.alu_imm('sub','rsp',8)
+            code.call('abort')
+            code.ud2()
+            return code
+
+        for signed, quotient, remainder in ((False,WORD_UNSIGNED_DIV,WORD_UNSIGNED_REM),
+                                            (True,WORD_SIGNED_DIV,WORD_SIGNED_REM)):
+            with self.subTest(signed=signed):
+                nodes, _, _, _ = project(divide(signed))
+                self.assertTrue({quotient,remainder} <= {node[0] for node in nodes})
+                for rejected in (dict(check_zero=False),dict(correct_high=False),dict(reassign=True)):
+                    self.assertIsNone(project(divide(signed,**rejected)),rejected)
+                if signed:
+                    self.assertIsNone(project(divide(signed,correct_min=False)))
+
+        for operation, node_type in (('shl',WORD_VARIABLE_SHL),('shr',WORD_VARIABLE_SHR),('sar',WORD_ARITHMETIC_SHR)):
+            with self.subTest(shift=operation):
+                code = Code()
+                code.mov_rr('rax','rdi')
+                code.mov_rr('rcx','rsi')
+                code.shift_cl(operation,'rax')
+                code.ret()
+                nodes, value, _, _ = project(code)
+                root = nodes[value]
+                self.assertEqual(root[:3],(node_type,64,0))
+                mask = nodes[root[3]]
+                self.assertEqual(mask[:3],(3,64,1))
+                self.assertEqual(nodes[mask[3]],(2,64,0,0,63))
+
     def test_unsigned_profiles_preserve_exact_decoding_and_state_effects(self):
         import z3
 

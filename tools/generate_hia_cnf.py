@@ -90,7 +90,8 @@ def circuit_search_plan(source:readbuf, result:mutbuf) -> u32:
         width = read64(source, 40 + 16 * node)
         # Carry clauses need learned restarts; nonlinear clauses benefit
         # from conflict learning even if only a fault predicate survives.
-        learning = choose(operation >= WORD_UNSIGNED_DIV and operation <= WORD_PRODUCT_EXCEEDS, 1, learning)
+        division = (operation >= WORD_UNSIGNED_DIV and operation <= WORD_PRODUCT_EXCEEDS) or operation == WORD_SIGNED_DIV or operation == WORD_SIGNED_REM
+        learning = choose(division, 1, learning)
         carry = operation >= 9 and operation <= 10 and width > 8
         wide_carry = wide_carry or carry
         wide_select = wide_select or (operation == 11 and width > 8)
@@ -1069,9 +1070,7 @@ def evaluate_word_overflow(a:u64, b:u64, width:u64, operation:u64) -> u64:
     return choose(((a ^ b) & (a ^ result) & sign) != 0, 1, 0)
 
 def valid_node(source:readbuf, rows:u64, index:u64, operation:u64, width:u64, left:u64, right:u64, immediate:u64) -> u64:
-    if width == 0 or width > 64:
-        return 0
-    if operation < 1 or operation > WORD_SIGNED_REM:
+    if width == 0 or width > 64 or operation < 1 or operation > WORD_SIGNED_REM:
         return 0
     if operation <= 2:
         if left != 0 or right != 0 or (operation == 1 and immediate != 0):
@@ -1087,35 +1086,30 @@ def valid_node(source:readbuf, rows:u64, index:u64, operation:u64, width:u64, le
     lw = word_graph_width(source, rows, left)
     rw = word_graph_width(source, rows, choose(right < index, right, left))
     iw = word_graph_width(source, rows, choose(immediate < index, immediate, left))
-    if operation == 11:
-        return choose(right < index and immediate < index and lw == 1 and width == rw and width == iw, 1, 0)
-    if operation == WORD_PRODUCT_EXCEEDS:
-        return choose(width == 1 and right < index and immediate < index and lw > 1 and rw == lw and iw == lw, 1, 0)
-    if operation == 26:
-        return choose(right == 0 and immediate <= lw and width <= lw - immediate, 1, 0)
-    if operation == 27:
-        return choose(right < index and immediate == 0 and width == lw + rw, 1, 0)
-    if operation == 28 or operation == 29:
-        return choose(right == 0 and width == lw, 1, 0)
-    if operation == 30 or operation == 31:
-        return choose(right == 0 and immediate == 0 and width >= lw, 1, 0)
-    if immediate != 0:
-        return 0
-    if operation == 20 or operation == 21:
-        return choose(right == 0 and width != 1 and lw != 1, 1, 0)
-    if operation == 6:
-        return choose(right == 0 and width == lw, 1, 0)
-    if right >= index or lw != rw:
-        return 0
-    if operation == 32 or operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM or operation == WORD_SIGNED_DIV or operation == WORD_SIGNED_REM:
-        return choose(width > 1 and width == lw, 1, 0)
-    if operation == WORD_VARIABLE_SHL or operation == WORD_VARIABLE_SHR or operation == WORD_ARITHMETIC_SHR:
-        return choose(width == lw, 1, 0)
-    if operation >= 12:
-        return choose(width == 1 and lw != 1, 1, 0)
-    elif operation == 7 or operation == 8:
-        return choose(width == 1, 1, 0)
-    return choose(width == lw and (width != 1 or (operation != 9 and operation != 10)), 1, 0)
+    # All three operand widths are already available. Classify the fixed word
+    # formats with total comparisons, including every reserved field.
+    typed = width == lw
+    equal_pair = right < index and lw == rw
+    ordinary_output = typed and (width != 1 or (operation != 9 and operation != 10))
+    equality = operation == 7 or operation == 8
+    output = choose(operation >= 12, width == 1 and lw != 1, choose(equality, width == 1, ordinary_output))
+    same_word = operation == 32 or operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM or operation == WORD_SIGNED_DIV or operation == WORD_SIGNED_REM
+    variable_shift = operation >= WORD_VARIABLE_SHL and operation <= WORD_ARITHMETIC_SHR
+    output = choose(same_word, width > 1 and typed, choose(variable_shift, typed, output))
+    valid = immediate == 0 and equal_pair and output
+    valid = choose(operation == 6, right == 0 and immediate == 0 and typed, valid)
+    conversion = operation == 20 or operation == 21
+    valid = choose(conversion, right == 0 and immediate == 0 and width != 1 and lw != 1, valid)
+    extended = operation == 30 or operation == 31
+    valid = choose(extended, right == 0 and immediate == 0 and width >= lw, valid)
+    fixed_shift = operation == 28 or operation == 29
+    valid = choose(fixed_shift, right == 0 and typed, valid)
+    valid = choose(operation == 27, right < index and immediate == 0 and width == lw + rw, valid)
+    valid = choose(operation == 26, right == 0 and immediate <= lw and width <= lw - immediate, valid)
+    three = right < index and immediate < index
+    valid = choose(operation == 11, three and lw == 1 and width == rw and width == iw, valid)
+    valid = choose(operation == WORD_PRODUCT_EXCEEDS, three and width == 1 and lw > 1 and rw == lw and iw == lw, valid)
+    return choose(valid, 1, 0)
 
 def node_width(source:readbuf, node:u64) -> u64:
     return word_graph_width(source, 32, node)
@@ -1124,13 +1118,9 @@ def word_graph_width(source:readbuf, rows:u64, node:u64) -> u64:
     return read64(source, rows + 8 + 40 * node)
 
 def word_arguments(operation:u64) -> u64:
-    if operation <= 2:
-        return 0
-    if operation == 6 or operation == 20 or operation == 21 or operation == 26 or (operation >= 28 and operation <= 31):
-        return 1
-    if operation == 11 or operation == WORD_PRODUCT_EXCEEDS:
-        return 3
-    return 2
+    unary = operation == 6 or operation == 20 or operation == 21 or operation == 26 or (operation >= 28 and operation <= 31)
+    ternary = operation == 11 or operation == WORD_PRODUCT_EXCEEDS
+    return choose(operation <= 2, 0, choose(unary, 1, choose(ternary, 3, 2)))
 
 def mark_observed_nodes(source:readbuf, scratch:mutbuf, nodes:u64, returns:u64, guarded:bool) -> u64:
     # The first byte of each token row temporarily marks liveness. Nodes
@@ -1778,6 +1768,23 @@ def project_artifact_circuit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     core_valid = valid_word_graph(s, base, core)
     if choose(machine_valid == 0, True, core_valid == 0):
         return TOO_LARGE
+    # Division can exceed the bounded circuit capacity unless both models share the
+    # same quotient/remainder node. Apply its algebraic guarded-word normalization
+    # only for those graphs, preserving the existing derivations of other operations.
+    index = inputs
+    division = 0
+    variable_shift = 0
+    while index < machine:
+        row = 88 + 40 * index
+        operation = read64(s, row)
+        nonlinear = operation == WORD_UNSIGNED_DIV or operation == WORD_UNSIGNED_REM or operation == WORD_SIGNED_DIV or operation == WORD_SIGNED_REM
+        division = choose(nonlinear, 1, division)
+        if operation >= WORD_VARIABLE_SHL and operation <= WORD_ARITHMETIC_SHR:
+            count = read64(s, row + 24)
+            variable_shift = choose(read64(s, 88 + 40 * count) == 2, variable_shift, 1)
+        index = index + 1
+    write64(w, 88, division)
+    write64(w, 96, division | variable_shift)
     if p_artifact_graph(s, o, w, 88, machine, inputs, True) == 0:
         return TOO_LARGE
     actual = p_artifact_observation(s, w, 88, machine, 32, 64)
@@ -1845,7 +1852,19 @@ def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, a
     if known == 65535 or expected == 65535 or trap == 65535 or value == 65535:
         return TOO_LARGE
     if read_stack(o, 40 + 40 * value) < 64:
-        value = p_node(o, w, choose(signed, 31, 30), 64, value, 0, 0)
+        extension = choose(signed, 31, 30)
+        row = 32 + 40 * value
+        guarded = read_stack(w, 88) != 0
+        if guarded and read_stack(o, row) == 11:
+            # Extension distributes through the final Core return/trap selection.
+            condition = read_stack(o, row + 16)
+            first = read_stack(o, row + 24)
+            second = read_stack(o, row + 32)
+            first = p_extend_artifact_word(o, w, extension, first)
+            second = p_extend_artifact_word(o, w, extension, second)
+            value = p_node(o, w, 11, 64, condition, first, second)
+        else:
+            value = p_node(o, w, extension, 64, value, 0, 0)
     no_trap = p_node(o, w, 2, 8, 0, 0, 0)
     if machine_abort != read_stack(w, 40):
         # Core retains its detailed trap code in its own proof. An ELF call
@@ -1873,6 +1892,16 @@ def p_artifact_observations(s:readbuf, o:mutbuf, w:mutbuf, base:u64, core:u64, a
         write64(o, at + 56, actual_byte)
         return at + 64
     return at + 48
+
+def p_extend_artifact_word(o:mutbuf, w:mutbuf, extension:u64, value:u64) -> u64:
+    row = 32 + 40 * value
+    if read_stack(o, row) == 2:
+        width = read_stack(o, row + 8)
+        word = read_stack(o, row + 32)
+        if extension == 31 and (word >> (width - 1)) != 0:
+            word = word | (WORD_MASK ^ word_mask(width))
+        return p_node(o, w, 2, 64, 0, 0, word)
+    return p_node(o, w, extension, 64, value, 0, 0)
 
 def p_artifact_abort(o:mutbuf, w:mutbuf, tag:u64, zero:u64) -> u64:
     row = 32 + 40 * tag
@@ -1916,11 +1945,80 @@ def p_machine_low_node(o:mutbuf, w:mutbuf, node:u64, width:u64) -> u64:
         right = read_stack(w, 273408 + 8 * read_stack(o, row + 24))
         swap = op != 10 and left > right
         return p_node(o, w, op, width, choose(swap, right, left), choose(swap, left, right), 0)
+    if width > 1 and ((op >= WORD_VARIABLE_SHL and op <= WORD_SIGNED_REM) or op == WORD_UNSIGNED_DIV or op == WORD_UNSIGNED_REM):
+        left_row = 32 + 40 * read_stack(o, row + 16)
+        right_row = 32 + 40 * read_stack(o, row + 24)
+        right = read_stack(w, 273408 + 8 * read_stack(o, row + 24))
+        extension = choose(op == WORD_SIGNED_DIV or op == WORD_SIGNED_REM or op == WORD_ARITHMETIC_SHR, 31, 30)
+        left_op = read_stack(o, left_row)
+        left_width = read_stack(o, 40 + 40 * read_stack(o, left_row + 16))
+        left_exact = left_op == extension and left_width == width
+        right_op = read_stack(o, right_row)
+        right_width = read_stack(o, 40 + 40 * read_stack(o, right_row + 16))
+        if op == WORD_UNSIGNED_DIV or op == WORD_UNSIGNED_REM or op == WORD_SIGNED_DIV or op == WORD_SIGNED_REM:
+            # Dividing narrow extended operands at full width gives the same low quotient and remainder.
+            if left_exact and right_op == extension and right_width == width:
+                return p_node(o, w, op, width, left, right, 0)
+        else:
+            # Both extensions preserve whether a count is at least the narrow width.
+            # Left shift is unconditional in the shifted value; right shift also needs its upper bits.
+            count_exact = (right_op == 30 or right_op == 31) and right_width == width
+            if (op == WORD_VARIABLE_SHL or left_exact) and count_exact:
+                return p_node(o, w, op, width, left, right, 0)
     return p_node(o, w, 26, width, node, 0, 0)
 
 def p_artifact_word(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
+    division = read_stack(w, 88) != 0
+    normalize_mask = read_stack(w, 96) != 0
+    if normalize_mask and width == 64 and op == 3:
+        # An all-ones low mask zero-extends exactly the corresponding low word.
+        # Register operands may put the admitted literal on either side of AND.
+        left_literal = read_stack(o, 32 + 40 * a) == 2
+        literal = choose(left_literal, a, b)
+        operand = choose(left_literal, b, a)
+        row = 32 + 40 * literal
+        if read_stack(o, row) == 2:
+            mask = read_stack(o, row + 32)
+            bits = choose(mask == 255, 8, choose(mask == 65535, 16, choose(mask == 4294967295, 32, 0)))
+            if bits != 0:
+                low = p_machine_low_word(o, w, operand, bits)
+                if low >= CIRCUIT_NODES:
+                    return CIRCUIT_NODES
+                return p_node(o, w, 30, width, low, 0, 0)
+    if division and (op == 7 or op == 8):
+        left = 32 + 40 * a
+        right = 32 + 40 * b
+        extension = read_stack(o, left)
+        right_op = read_stack(o, right)
+        if (extension == 30 or extension == 31) and right_op == 2:
+            inner = read_stack(o, left + 16)
+            inner_width = read_stack(o, 40 + 40 * inner)
+            narrow = read_stack(o, right + 32) & word_mask(inner_width)
+            restored = narrow
+            negative = (narrow >> (inner_width - 1)) != 0
+            if extension == 31 and negative:
+                restored = narrow | (word_mask(read_stack(o, left + 8)) ^ word_mask(inner_width))
+            if restored == read_stack(o, right + 32):
+                return p_node(o, w, op, 1, inner, p_node(o, w, 2, inner_width, 0, 0, narrow), 0)
     if op == 11:
         predicate = 32 + 40 * a
+        nested = 32 + 40 * c
+        if division and read_stack(o, nested) == 11:
+            branch = read_stack(o, nested + 16)
+            first = read_stack(o, nested + 24)
+            second = read_stack(o, nested + 32)
+            if b == second:
+                # ite(p, x, ite(q, y, x)) selects y precisely when !p and q.
+                if read_stack(o, predicate) == 8:
+                    guard = p_node(o, w, 7, 1, read_stack(o, predicate + 16), read_stack(o, predicate + 24), 0)
+                else:
+                    guard = p_node(o, w, 6, 1, a, 0, 0)
+                condition = p_node(o, w, 3, 1, choose(guard < branch, guard, branch), choose(guard < branch, branch, guard), 0)
+                return p_node(o, w, 11, width, condition, first, second)
+            if b == first:
+                # ite(p, y, ite(q, y, x)) selects y when either guard holds.
+                condition = p_node(o, w, 4, 1, choose(a < branch, a, branch), choose(a < branch, branch, a), 0)
+                return p_node(o, w, 11, width, condition, first, second)
         if read_stack(o, predicate) == 6:
             return p_node(o, w, 11, width, read_stack(o, predicate + 16), c, b)
     if (op == 3 or op == 4 or op == 5 or op == 9 or op == 32 or op == WORD_PRODUCT_EXCEEDS) and a > b:
@@ -2070,32 +2168,33 @@ def write_scalar_summary(s:readbuf, o:mutbuf, w:mutbuf, nodes:u64, inputs:u64, o
     return types + 8 * inputs
 
 def p_width(typ:u64) -> u64:
-    if typ == PROJECT_UNIT_TYPE:
-        return 1
     bits = typ & 127
-    if typ > 192 or (bits == 1 and typ != 1):
-        return 0
-    if bits == 1 or bits == 8 or bits == 16 or bits == 32 or bits == 64:
-        return bits
-    return 0
+    standard = bits == 8 or bits == 16 or bits == 32 or bits == 64
+    admitted = typ <= 192 and (typ == 1 or standard)
+    return choose(typ == PROJECT_UNIT_TYPE, 1, choose(admitted, bits, 0))
 
 def p_node(o:mutbuf, w:mutbuf, op:u64, width:u64, a:u64, b:u64, c:u64) -> u64:
     index = read_stack(w, 0)
     if (op == 9 or op == 10) and a < index and b < index and index <= CIRCUIT_NODES:
         left = 32 + 40 * a
         right = 32 + 40 * b
-        if read_stack(o, left) == 2 and read_stack(o, right) == 2:
-            if read_stack(o, left + 8) == width and read_stack(o, right + 8) == width:
+        left_op = read_stack(o, left)
+        right_op = read_stack(o, right)
+        same_width = read_stack(o, left + 8) == width
+        right_width = read_stack(o, right + 8)
+        if same_width and right_width == width:
+            if left_op == 2 and right_op == 2:
                 av = read_stack(o, left + 32)
                 bv = read_stack(o, right + 32)
                 c = choose(op == 9, av + bv, av - bv) & word_mask(width)
                 a = 0
                 b = 0
                 op = 2
-        if op != 2 and read_stack(o, left + 8) == width and read_stack(o, right + 8) == width:
-            reduced = p_cancel_wrapping(o, op, a, b)
-            if reduced < index and read_stack(o, 40 + 40 * reduced) == width:
-                return reduced
+            else:
+                reduced = p_cancel_wrapping(o, op, a, b)
+                if reduced < index:
+                    if read_stack(o, 40 + 40 * reduced) == width:
+                        return reduced
     if op > 2 and index <= CIRCUIT_NODES:
         folded = p_fold(o, op, width, a, b, c, index)
         if folded < CIRCUIT_NODES:
@@ -2453,8 +2552,7 @@ def p_rebind_summary(s:readbuf, o:mutbuf, w:mutbuf, summary:u64, arguments:u64, 
 def p_clone_bound_word(s:readbuf, o:mutbuf, w:mutbuf, at:u64, index:u64, artifact:bool) -> u64:
     op = read64(s, at)
     width = read64(s, at + 8)
-    limit = choose(artifact, WORD_SIGNED_REM, WORD_PRODUCT_EXCEEDS)
-    if op < 2 or op > limit or width == 0 or width > 64:
+    if op < 2 or op > WORD_SIGNED_REM or width == 0 or width > 64:
         return 65535
     count = word_arguments(op)
     a = read64(s, at + 16)
@@ -2572,28 +2670,10 @@ def p_checked_shift(o:mutbuf, w:mutbuf, typ:u64, role:u64, a:u64, count:u64) -> 
     # negative count, whose word representation has its high bit set.
     p_fault(o, w, p_logic(o, w, 15, count, limit))
 
-    signed_right = role == PROJECT_CHECKED_SHR and (typ & 128) != 0
-    padding = 0
-    if signed_right:
-        sign = p_node(o, w, 26, 1, a, 0, width - 1)
-        padding = p_node(o, w, 31, width, sign, 0, 0)
-        a = p_node(o, w, 5, width, a, padding, 0)
-    shift = 28
+    operation = WORD_VARIABLE_SHL
     if role == PROJECT_CHECKED_SHR:
-        shift = 29
-    power = 1
-    bit = 0
-    while power < width:
-        enabled = p_node(o, w, 26, 1, count, 0, bit)
-        displaced = p_node(o, w, shift, width, a, 0, power)
-        a = p_node(o, w, 11, width, enabled, displaced, a)
-        power = power * 2
-        bit = bit + 1
-    if signed_right:
-        # Complementing a negative input before and after a zero-fill right
-        # shift produces the required sign fill; positive words are unchanged.
-        a = p_node(o, w, 5, width, a, padding, 0)
-    return p_bind(w, typ, a)
+        operation = choose((typ & 128) != 0, WORD_ARITHMETIC_SHR, WORD_VARIABLE_SHR)
+    return p_bind(w, typ, p_node(o, w, operation, width, a, count, 0))
 
 def p_fault(o:mutbuf, w:mutbuf, fault:u64) -> u64:
     return write64(w, 88, p_logic(o, w, 4, read_stack(w, 88), fault))
@@ -2618,15 +2698,8 @@ def p_checked_division(o:mutbuf, w:mutbuf, typ:u64, role:u64, a:u64, b:u64) -> u
     minus_one_input = p_logic(o, w, 7, b, minus_one)
     p_fault(o, w, p_logic(o, w, 3, minimum_input, minus_one_input))
 
-    sign_a = p_node(o, w, 26, 1, a, 0, width - 1)
-    sign_b = p_node(o, w, 26, 1, b, 0, width - 1)
-    magnitude_a = p_magnitude(o, w, width, zero, sign_a, a)
-    magnitude_b = p_magnitude(o, w, width, zero, sign_b, b)
-    result = p_node(o, w, operation, width, magnitude_a, magnitude_b, 0)
-    sign = sign_a
-    if operation == WORD_UNSIGNED_DIV:
-        sign = p_logic(o, w, 5, sign_a, sign_b)
-    return p_bind(w, typ, p_node(o, w, 11, width, sign, p_node(o, w, 10, width, zero, result, 0), result))
+    operation = choose(role == PROJECT_CHECKED_DIV, WORD_SIGNED_DIV, WORD_SIGNED_REM)
+    return p_bind(w, typ, p_node(o, w, operation, width, a, b, 0))
 
 def p_magnitude(o:mutbuf, w:mutbuf, width:u64, zero:u64, sign:u64, value:u64) -> u64:
     negative = p_node(o, w, 10, width, zero, value, 0)

@@ -8,6 +8,7 @@ from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_cnf_native import (
     ARTIFACT_PROJECTION_REQUEST, CIRCUIT_CAPACITY, CIRCUIT_NODES, CIRCUIT_REQUEST,
     GRAPH_PROJECTION_REQUEST, SPARSE_CLAUSES, SPARSE_REQUEST, SPARSE_VARIABLES,
+    WORD_SIGNED_DIV, WORD_SIGNED_REM, WORD_UNSIGNED_DIV, WORD_UNSIGNED_REM,
     WORD_ARITHMETIC_SHR, WORD_PRODUCT_EXCEEDS, WORD_VARIABLE_SHL, WORD_VARIABLE_SHR,
     WRAPPING_PRODUCT, _CORE_TRAP_TAGS,
 )
@@ -98,6 +99,9 @@ FIELDS.update(MV_REQUEST=MACHINE_VALUES_REQUEST, MV_REPLY=MACHINE_VALUES_REPLY,
               MV_STACK=192, MV_STACK_BASE=20000, MV_STACK_TOP=20000 + MACHINE_VALUES_STACK_BYTES,
               MV_CALLER=40000, MV_SAVED=40016, MV_LOCAL_RETURN=50000,
               MV_MUL_HIGH_TOKEN=200000, MV_MUL_HIGH_TEST=1000,
+              MV_DIV_GUARDS=184, MV_SIGNED_HIGH=300000,
+              MV_UNSIGNED_DIV=WORD_UNSIGNED_DIV, MV_UNSIGNED_REM=WORD_UNSIGNED_REM,
+              MV_SIGNED_DIV=WORD_SIGNED_DIV, MV_SIGNED_REM=WORD_SIGNED_REM,
               MV_PC=128, MV_STEPS=136, MV_LOW=144, MV_NODES=152, MV_COUNT=CIRCUIT_NODES,
               MV_FLAGS=160, MV_LEFT=168, MV_RIGHT=176,
               MV_FLAG_RESULT=MACHINE_VALUES_BRANCHES - 32,
@@ -1861,6 +1865,7 @@ def mv_prime_path(s:readbuf, w:mutbuf, words:u64, count:u64) -> u64:
     put(w, MV_LOW, MV_STACK_TOP)
     put(w, MV_PC, schedule_request(s, 8))
     put(w, MV_STEPS, 0)
+    put(w, MV_DIV_GUARDS, 0)
     put(w, MV_FLAGS, 0)
     put(w, MV_BRANCH_SEEN, 0)
     index = 0
@@ -1958,6 +1963,24 @@ def mv_step(s:readbuf, o:mutbuf, w:mutbuf, row:u64, sp:u64) -> u64:
     if op == OP_PUSH or op == OP_POP or op == OP_LEAVE or op == OP_CALL or op == OP_RET:
         return mv_control(w, op, a, sp)
     if op == OP_NOP:
+        return 1
+    if op == OP_SHL_CL or op == OP_SHR_CL or op == OP_SAR_CL:
+        return mv_variable_shift(o, w, op, a)
+    if op == OP_CQO:
+        low = get(w, 0)
+        if low == 0 or low > get(w, MV_NODES):
+            return 0
+        put(w, 16, MV_SIGNED_HIGH + low)
+        return 1
+    if op == OP_DIV or op == OP_IDIV:
+        return mv_divide(o, w, op, a)
+    if op == OP_XOR and a == b and a < 16:
+        zero = mv_node(o, w, 2, 0, 0, 0)
+        if zero == 0:
+            return 0
+        put(w, a * 8, zero)
+        mv_remember_flags(w, OP_XOR, zero, zero)
+        put(w, MV_FLAG_RESULT, zero)
         return 1
     if op == OP_MUL:
         return mv_unsigned_multiply(o, w, a)
@@ -2227,6 +2250,119 @@ def mv_arithmetic(o:mutbuf, w:mutbuf, op:u64, register:u64, right:u64) -> u64:
     put(w, MV_FLAG_RESULT, value)
     return 1
 
+def mv_variable_shift(o:mutbuf, w:mutbuf, op:u64, register:u64) -> u64:
+    if register >= 16:
+        return 0
+    left = get(w, 8 * register)
+    cl = get(w, 8)
+    nodes = get(w, MV_NODES)
+    if left == 0 or left > nodes or cl == 0 or cl > nodes:
+        return 0
+    count = cl
+    if ((get(w, MV_DIV_GUARDS) >> 27) & 511) != cl:
+        mask = mv_node(o, w, 2, 0, 0, 63)
+        if mask == 0:
+            return 0
+        count = mv_node(o, w, 3, cl - 1, mask - 1, 0)
+        if count == 0:
+            return 0
+    operation = choose(op == OP_SHL_CL, MV_SHIFT_LEFT, choose(op == OP_SHR_CL, MV_SHIFT_RIGHT, MV_SHIFT_ARITHMETIC))
+    value = mv_node(o, w, operation, left - 1, count - 1, 0)
+    if value == 0:
+        return 0
+    # A following flags consumer must establish fresh defined flags.
+    put(w, MV_FLAGS, 0)
+    put(w, register * 8, value)
+    return 1
+
+def mv_known_literal(o:mutbuf, w:mutbuf, node:u64, value:u64) -> bool:
+    if node == 0 or node > get(w, MV_NODES):
+        return False
+    row = MV_HEADER + (node - 1) * 40
+    return get(o, row) == 2 and get(o, row + 8) == 64 and get(o, row + 32) == value
+
+def mv_division_guard(o:mutbuf, w:mutbuf, cond:u64, taken:u64) -> u64:
+    # A real unsigned bound lower than or equal to 64 makes x86's CL mask redundant on this path.
+    if get(w, MV_FLAGS) == OP_CMP and ((cond == 2 and taken != 0) or (cond == 3 and taken == 0)):
+        lhs = get(w, MV_LEFT)
+        rhs = get(w, MV_RIGHT)
+        if lhs > 0 and lhs <= get(w, MV_NODES) and rhs > 0 and rhs <= get(w, MV_NODES):
+            row = MV_HEADER + 40 * (rhs - 1)
+            if get(o, row) == 2 and get(o, row + 8) == 64 and get(o, row + 32) <= 64:
+                kept = get(w, MV_DIV_GUARDS) & (18446744073709551615 ^ (511 << 27))
+                put(w, MV_DIV_GUARDS, kept | (lhs << 27))
+    # The actual direction of equality flags establishes a path-local inequality.
+    if (cond != 4 or taken != 0) and (cond != 5 or taken == 0):
+        return 1
+    op = get(w, MV_FLAGS)
+    a = get(w, MV_LEFT)
+    b = get(w, MV_RIGHT)
+    if a == 0 or b == 0 or a > get(w, MV_NODES) or b > get(w, MV_NODES):
+        return 1
+    fact = 0
+    node = a
+    if op == OP_TEST and a == b:
+        fact = 1
+    elif op == OP_CMP:
+        if mv_known_literal(o, w, b, 0):
+            fact = 1
+        elif mv_known_literal(o, w, b, 18446744073709551615):
+            fact = 2
+        elif mv_known_literal(o, w, b, 9223372036854775808):
+            fact = 3
+    if fact != 0:
+        shift = (fact - 1) * 9
+        retained = get(w, MV_DIV_GUARDS) & (18446744073709551615 ^ (511 << shift))
+        put(w, MV_DIV_GUARDS, retained | (node << shift))
+    return 1
+
+def mv_negative_min_excluded(o:mutbuf, w:mutbuf, node:u64) -> bool:
+    # A positive constant arithmetic or logical right shift cannot leave INT64_MIN.
+    row = MV_HEADER + (node - 1) * 40
+    op = get(o, row)
+    if op == 2:
+        return get(o, row + 32) != 9223372036854775808
+    if op != MV_SHIFT_RIGHT and op != MV_SHIFT_ARITHMETIC:
+        return False
+    arg = get(o, row + 24)
+    if arg >= get(w, MV_NODES):
+        return False
+    arg = MV_HEADER + arg * 40
+    count = get(o, arg + 32)
+    return get(o, arg) == 2 and count >= 1 and count <= 63
+
+def mv_divide(o:mutbuf, w:mutbuf, op:u64, source:u64) -> u64:
+    if source >= 16:
+        return 0
+    divisor = get(w, source * 8)
+    low = get(w, 0)
+    high = get(w, 16)
+    limit = get(w, MV_NODES)
+    if divisor == 0 or divisor > limit or low == 0 or low > limit:
+        return 0
+    facts = get(w, MV_DIV_GUARDS)
+    if (facts & 511) != divisor:
+        return 0
+    div_op = MV_UNSIGNED_DIV
+    rem_op = MV_UNSIGNED_REM
+    if op == OP_IDIV:
+        if high != MV_SIGNED_HIGH + low:
+            return 0
+        if ((facts >> 9) & 511) != divisor and ((facts >> 18) & 511) != low and mv_negative_min_excluded(o, w, low) == False:
+            return 0
+        div_op = MV_SIGNED_DIV
+        rem_op = MV_SIGNED_REM
+    elif mv_known_literal(o, w, high, 0) == False:
+        return 0
+    quotient = mv_node(o, w, div_op, low - 1, divisor - 1, 0)
+    remainder = mv_node(o, w, rem_op, low - 1, divisor - 1, 0)
+    if quotient == 0 or remainder == 0:
+        return 0
+    put(w, 0, quotient)
+    put(w, 16, remainder)
+    put(w, MV_FLAGS, 0)
+    return 1
+
 def mv_unsigned_multiply(o:mutbuf, w:mutbuf, source:u64) -> u64:
     if source >= 16:
         return 0
@@ -2467,16 +2603,17 @@ def mv_branch(o:mutbuf, w:mutbuf, pc:u64, condition:u64, target:u64) -> u64:
         # the fixed ABI state, chasing precisely the prior branch decisions.
         if pc != get(w, frame):
             return 0
-        if get(w, frame + 16) != 0:
+        taken = get(w, frame + 16)
+        if taken != 0:
             put(w, MV_PC, target)
-        return 1
+        return mv_division_guard(o, w, condition, taken)
     predicate = mv_condition(o, w, condition)
     if predicate == 0:
         return 0
     put(w, frame, pc)
     put(w, frame + 8, predicate)
     put(w, frame + 16, 0)
-    return 1
+    return mv_division_guard(o, w, condition, 0)
 
 '''
 
@@ -2585,15 +2722,23 @@ def query_write(o:mutbuf, at:u64, value:u64, count:u64) -> u64:
 '''
 
 
-def query_fragments():
-    functions = []
-    for name, raw in QUERY_FRAGMENTS.items():
-        lines = [f'def query_{name}(o:mutbuf, at:u64) -> u64:']
-        for offset in range(0, len(raw), 8):
-            piece = raw[offset:offset + 8]
-            lines.append(f'    at = query_write(o, at, {int.from_bytes(piece, "little")}, {len(piece)})')
-        functions.append('\n'.join(lines + ['    return at', '']))
-    return '\n'.join(functions)
+def query_source():
+    """Inline each fixed SMT-LIB fragment where the formatter writes it."""
+    class Fragments(ast.NodeTransformer):
+        def visit_Call(self, node):
+            node = self.generic_visit(node)
+            name = node.func.id
+            if not name.startswith('query_') or name[6:] not in QUERY_FRAGMENTS:
+                return node
+            output, cursor = node.args
+            raw = QUERY_FRAGMENTS[name[6:]]
+            for offset in range(0, len(raw), 8):
+                part = raw[offset:offset + 8]
+                cursor = ast.Call(ast.Name('query_write', ast.Load()),
+                                  [output, cursor, ast.Constant(int.from_bytes(part, 'little')),
+                                   ast.Constant(len(part))], [])
+            return ast.copy_location(cursor, node)
+    return ast.unparse(ast.fix_missing_locations(Fragments().visit(ast.parse(QUERY_SOURCE))))
 
 
 ARTIFACT_SOURCE_PATH = 'examples/hia_bootstrap/safe_core_artifact_wire.hepta'
@@ -2605,7 +2750,7 @@ def document(*, artifact_wire=False):
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
 
     nodes = ast.fix_missing_locations(Constants().visit(ast.parse(
-        SOURCE + QUERY_SOURCE + '\n' + query_fragments()))).body
+        SOURCE + query_source()))).body
     if artifact_wire:
         root, = ast.parse('''
 def artifact_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
