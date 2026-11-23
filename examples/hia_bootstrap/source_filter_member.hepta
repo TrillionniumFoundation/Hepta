@@ -147,8 +147,23 @@ block b23(v208:readbuf,v209:mutbuf,v210:mutbuf)
   v226:u64 = call(v210,v225) {"function":"get"}
   v227:u64 = const() {"value":72}
   v228:u64 = call(v210,v227) {"function":"get"}
-  v229:bool = compare.ne(v226,v228)
-  branch v229 b25(v208,v209,v210) b26(v208,v209,v210,v219,v223,v226)
+  no_image:u64 = const() {"value":0}
+  from_compiler:bool = compare.eq(v223,no_image)
+  branch from_compiler compiled(v208,v209,v210,v219,v228) supplied(v208,v209,v210,v219,v223,v226,v228)
+block supplied(si:readbuf,so:mutbuf,sw:mutbuf,index:u64,at:u64,expected:u64,actual:u64)
+  v229:bool = compare.ne(expected,actual)
+  branch v229 b25(si,so,sw) b26(si,so,sw,index,at,expected)
+block compiled(ci:readbuf,co:mutbuf,cw:mutbuf,cindex:u64,produced:u64)
+  zero_size:u64 = const() {"value":0}
+  image_limit:u64 = const() {"value":1048576}
+  nonempty:bool = compare.gt(produced,zero_size)
+  fits:bool = compare.le(produced,image_limit)
+  complete:bool = bool.and(nonempty,fits)
+  branch complete remember(ci,co,cw,cindex,produced) b25(ci,co,cw)
+block remember(ri:readbuf,ro:mutbuf,rw:mutbuf,rindex:u64,rsize:u64)
+  image_length:u64 = const() {"value":120}
+  saved_length:u64 = call(rw,image_length,rsize) {"function":"put"}
+  jump b29(ri,ro,rw,rindex)
 block b24(v213:readbuf,v214:mutbuf,v215:mutbuf,v216:u64,v217:u64)
   v318:u64 = const() {"value":4}
   v319:bool = compare.eq(v216,v318)
@@ -394,7 +409,11 @@ block b64(v700:readbuf,v701:mutbuf,v702:mutbuf,v705:u64,v711:u64,v712:u64)
   v732:u64 = int.add.wrap(v731,v728)
   v733:u64 = call(v702,v732) {"function":"get"}
   v734:u64 = const() {"value":0}
-  jump b66(v700,v701,v702,v705,v711,v712,v730,v733,v734)
+  retained_image:bool = compare.eq(v730,v734)
+  branch retained_image compare_compiled(v700,v701,v702,v705,v711,v712,v733) b66(v700,v701,v702,v705,v711,v712,v730,v733,v734)
+block compare_compiled(input:readbuf,elf:mutbuf,work:mutbuf,elf_size:u64,image_at:u64,ordinal:u64,image_size:u64)
+  image_matches:bool = call(work,elf,image_at,image_size) {"function":"verify_compiled_image"}
+  branch image_matches b68(input,elf,work,elf_size,image_at,ordinal,image_size) b69(input,elf,work)
 block b65(v713:readbuf,v714:mutbuf,v715:mutbuf,v718:u64)
   note_ok:bool = call(v714,v715,v718) {"function":"valid_delivery_descriptor"}
   branch note_ok publish_member(v715,v718) b69(v713,v714,v715)
@@ -471,9 +490,16 @@ block b1(v6:readbuf,v7:mutbuf)
   v12:u64 = const() {"value":0}
   v13:u64 = const() {"value":8}
   v14:u64 = call(v6,v12,v13) {"function":"uint"}
+  single_tag:u64 = const() {"value":3544406927603747144}
+  single_request:bool = compare.eq(v14,single_tag)
+  branch single_request single(v6,v7) paired(v6,v7,v14)
+block single(single_in:readbuf,single_work:mutbuf)
+  admitted:u32 = call(single_in,single_work) {"function":"admit_single_stdio"}
+  ret(admitted)
+block paired(paired_in:readbuf,paired_work:mutbuf,paired_tag:u64)
   v15:u64 = const() {"value":3544416767357045064}
-  v16:bool = compare.ne(v14,v15)
-  jump b2(v6,v7,v16)
+  v16:bool = compare.ne(paired_tag,v15)
+  jump b2(paired_in,paired_work,v16)
 block b2(v9:readbuf,v10:mutbuf,v11:bool)
   branch v11 b4(v9,v10,v11) b3(v9,v10)
 block b3(v17:readbuf,v18:mutbuf)
@@ -1033,7 +1059,7 @@ block b22(v243:readbuf,v244:mutbuf,v245:mutbuf,v246:u64,v247:u64,v248:u64,v250:u
   v255:u64 = int.mul.wrap(v250,v254)
   v256:u64 = int.add.wrap(v253,v255)
   v257:u64 = call(v245,v256) {"function":"get"}
-  v258:u64 = call(v243,v244,v257,v251,v252) {"function":"copy_bytes"}
+  v258:u64 = call(v243,v244,v245,v257,v251,v252) {"function":"copy_member_image"}
   v259:u64 = int.add.wrap(v251,v252)
   v260:u64 = const() {"value":1}
   v261:u64 = int.add.wrap(v250,v260)
@@ -8026,4 +8052,120 @@ block b92(v501:mutbuf,v502:mutbuf,v503:u64)
   v511:bool = compare.lt(v506,v510)
   v512:bool = bool.and(v508,v511)
   ret(v512)
+end
+fn copy_member_image(input:readbuf,frame:mutbuf,work:mutbuf,image_at:u64,dest:u64,size:u64) -> (u64) effects(read,write,trap) entry(start)
+block start(input:readbuf,frame:mutbuf,work:mutbuf,image_at:u64,dest:u64,size:u64)
+  zero:u64 = const() {"value":0}
+  retained:bool = compare.eq(image_at,zero)
+  branch retained loop(frame,work,dest,size,zero) supplied(input,frame,image_at,dest,size)
+block supplied(wire:readbuf,out:mutbuf,src:u64,offset:u64,length:u64)
+  copied:u64 = call(wire,out,src,offset,length) {"function":"copy_bytes"}
+  ret(copied)
+block loop(target:mutbuf,state:mutbuf,start_at:u64,extent:u64,index:u64)
+  more:bool = compare.lt(index,extent)
+  branch more byte(target,state,start_at,extent,index) done()
+block byte(buf:mutbuf,workspace:mutbuf,base:u64,n:u64,i:u64)
+  image_base:u64 = const() {"value":65536}
+  read_at:u64 = int.add.wrap(image_base,i)
+  source_index:usize = int.cast(read_at) {"mode":"wrap"}
+  value:u8 = buffer.load(workspace,source_index)
+  write_at:u64 = int.add.wrap(base,i)
+  output_index:usize = int.cast(write_at) {"mode":"wrap"}
+  _ = buffer.store(buf,output_index,value)
+  one:u64 = const() {"value":1}
+  next_index:u64 = int.add.wrap(i,one)
+  jump loop(buf,workspace,base,n,next_index)
+block done()
+  ok:u64 = const() {"value":0}
+  ret(ok)
+end
+fn admit_single_stdio(input:readbuf,work:mutbuf) -> (u32) effects(read,write,trap) entry(start)
+block start(input:readbuf,work:mutbuf)
+  extent:usize = buffer.len(input)
+  total:u64 = int.cast(extent) {"mode":"wrap"}
+  header:u64 = const() {"value":32}
+  has_header:bool = compare.ge(total,header)
+  branch has_header fields(input,work,total) invalid()
+block fields(wire:readbuf,state:mutbuf,length:u64)
+  word:u64 = const() {"value":8}
+  one:u64 = const() {"value":1}
+  name_field:u64 = const() {"value":16}
+  source_field:u64 = const() {"value":24}
+  name_at:u64 = const() {"value":32}
+  count:u64 = call(wire,word,word) {"function":"uint"}
+  name_size:u64 = call(wire,name_field,word) {"function":"uint"}
+  source_size:u64 = call(wire,source_field,word) {"function":"uint"}
+  single:bool = compare.eq(count,one)
+  available:u64 = int.sub.wrap(length,name_at)
+  name_fits:bool = compare.le(name_size,available)
+  name_limit:u64 = const() {"value":56}
+  short_name:bool = compare.le(name_size,name_limit)
+  prefix_fits:bool = bool.and(single,name_fits)
+  valid:bool = bool.and(prefix_fits,short_name)
+  branch valid source(wire,state,length,name_at,name_size,source_size) invalid()
+block source(raw:readbuf,mem:mutbuf,bytes:u64,nat:u64,nsize:u64,ssize:u64)
+  sat:u64 = int.add.wrap(nat,nsize)
+  remaining:u64 = int.sub.wrap(bytes,sat)
+  exact:bool = compare.eq(remaining,ssize)
+  min_source:u64 = const() {"value":34}
+  max_source:u64 = const() {"value":1048576}
+  has_module:bool = compare.ge(ssize,min_source)
+  fits_source:bool = compare.le(ssize,max_source)
+  bounded:bool = bool.and(has_module,fits_source)
+  valid_source:bool = bool.and(exact,bounded)
+  branch valid_source identify(raw,mem,bytes,nat,nsize,sat,ssize) invalid()
+block identify(packet:readbuf,w:mutbuf,all_bytes:u64,n_at:u64,n_bytes:u64,s_at:u64,s_bytes:u64)
+  mode:u64 = call(packet,n_at,n_bytes,s_at,s_bytes) {"function":"stdio_role"}
+  first_mode:u64 = const() {"value":65536}
+  last_mode:u64 = const() {"value":65581}
+  low_ok:bool = compare.ge(mode,first_mode)
+  high_ok:bool = compare.le(mode,last_mode)
+  stdio:bool = bool.and(low_ok,high_ok)
+  branch stdio accept(w,all_bytes,s_at,s_bytes,mode) invalid()
+block accept(st:mutbuf,input_bytes:u64,source_at:u64,source_bytes:u64,role:u64)
+  phase_at:u64 = const() {"value":8}
+  phase_next:u64 = const() {"value":2}
+  count_at:u64 = const() {"value":24}
+  source_count:u64 = const() {"value":1}
+  length_at:u64 = const() {"value":40}
+  role_at:u64 = const() {"value":96}
+  offset_at:u64 = const() {"value":256}
+  extent_at:u64 = const() {"value":264}
+  phase_written:u64 = call(st,phase_at,phase_next) {"function":"put"}
+  count_written:u64 = call(st,count_at,source_count) {"function":"put"}
+  length_written:u64 = call(st,length_at,input_bytes) {"function":"put"}
+  role_written:u64 = call(st,role_at,role) {"function":"put"}
+  offset_written:u64 = call(st,offset_at,source_at) {"function":"put"}
+  extent_written:u64 = call(st,extent_at,source_bytes) {"function":"put"}
+  success:u32 = const() {"value":0}
+  ret(success)
+block invalid()
+  refusal:u32 = const() {"value":16}
+  ret(refusal)
+end
+fn verify_compiled_image(work:mutbuf,elf:mutbuf,elf_at:u64,size:u64) -> (bool) effects(read,write,trap) entry(start)
+block start(work:mutbuf,elf:mutbuf,elf_at:u64,size:u64)
+  zero:u64 = const() {"value":0}
+  jump loop(work,elf,elf_at,size,zero)
+block loop(state:mutbuf,output:mutbuf,base:u64,length:u64,index:u64)
+  more:bool = compare.lt(index,length)
+  branch more byte(state,output,base,length,index) equal()
+block byte(w:mutbuf,out:mutbuf,at:u64,count:u64,i:u64)
+  image_base:u64 = const() {"value":65536}
+  src:u64 = int.add.wrap(image_base,i)
+  dst:u64 = int.add.wrap(at,i)
+  source_index:usize = int.cast(src) {"mode":"wrap"}
+  output_index:usize = int.cast(dst) {"mode":"wrap"}
+  expected:u8 = buffer.load(w,source_index)
+  actual:u8 = buffer.load(out,output_index)
+  same:bool = compare.eq(expected,actual)
+  one:u64 = const() {"value":1}
+  next_index:u64 = int.add.wrap(i,one)
+  branch same loop(w,out,at,count,next_index) different()
+block equal()
+  yes:bool = const() {"value":true}
+  ret(yes)
+block different()
+  no:bool = const() {"value":false}
+  ret(no)
 end

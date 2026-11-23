@@ -877,6 +877,10 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
                 compiler_packer = kit_images['source_build_packer.hepta']
         if name == 'hia-worker-port':
             group, images = b'HIAWPRT1', {}
+        elif packer == 'mcp_stdio_packer.hepta' and name.startswith('hia-agent-') and len(sources) == 1:
+            # The member compiles the admitted source into its own workspace and
+            # directly passes that image to its embedded stdio ELF packer.
+            group, images = _named_source_request(capture_sources(sources), tag=b'HIASRC01'), {}
         else:
             group, images, _ = compile_sources(sources)
         product = call(builders[owner], 'build', group)

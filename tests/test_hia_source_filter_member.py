@@ -928,7 +928,7 @@ class InstalledSourceMemberTests(unittest.TestCase):
 
     def test_from_native_sources_against_every_installed_agent_stdio_role(self):
         from tools.build_hia_agent_read_page import JOURNAL_PACKER, JOURNAL_TRANSPORT, STDIO_PACKER, VARIANTS
-        from tools.build_hia_native_store_release import STDIO_ROLES
+        from tools.build_hia_native_store_release import STDIO_ROLES, _named_source_request
 
         generic = self.member_builder(self.work / 'stdio', Path(STDIO_PACKER).name)
         journal = self.member_builder(self.work / 'journal', Path(JOURNAL_PACKER).name)
@@ -941,8 +941,21 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 if role == 'journal':
                     inputs[codec] = self.sources / codec
                 packet = self.source_images(self.work / name, inputs)
-                self.assertEqual(self.invoke([builder, 'build'], packet), (self.release / name).read_bytes())
+                installed = (self.release / name).read_bytes()
+                self.assertEqual(self.invoke([builder, 'build'], packet), installed)
+                if role != 'journal':
+                    source_only = _named_source_request(
+                        {alias: path.read_bytes() for alias, path in inputs.items()}, tag=b'HIASRC01')
+                    self.assertEqual(self.invoke([builder, 'build'], source_only), installed)
                 self.invoke([builder, 'build'], packet[:-1] + bytes([packet[-1] ^ 1]), refused=True)
+        alias = 'hia-agent-worker-canonical.hepta'
+        canonical = (self.sources / (VARIANTS['worker-canonical'][0] + '.hepta')).read_bytes()
+        single = _named_source_request({alias: canonical}, tag=b'HIASRC01')
+        for invalid in (single[:-1], single + b'x', single[:16] + b'\xff' * 8 + single[24:],
+                        _named_source_request({alias: canonical.splitlines()[0] + b'\ninvalid\n'}, tag=b'HIASRC01'),
+                        _named_source_request({alias: (self.sources / 'worker_evaluate_case.hepta').read_bytes()},
+                                              tag=b'HIASRC01')):
+            self.invoke([generic, 'build'], invalid, refused=True)
         wrong = self.source_images(self.work / 'wrong-module', {
             'hia-agent-worker-canonical.hepta': self.sources / 'worker_evaluate_case.hepta'})
         self.invoke([generic, 'build'], wrong, refused=True)

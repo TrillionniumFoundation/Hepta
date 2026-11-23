@@ -166,7 +166,7 @@ sourcekit is an optional keyword for existing executable-only test callers.
 
 ## Building native filter release members from the installed seed
 
-The default native Store release builder uses this path for the complete native filter and packaged Agent stdio inventories. It captures the selected seed and each generated member builder before execution and authenticates the original HIA source bytes through the returned image bundles.
+The default native Store release builder uses this path for the complete native filter and packaged Agent stdio inventories. It captures the selected seed and each generated member builder before execution. Each input source must match its SHA-256 in the cold qualification contract.
 
 `source_filter_member.hepta` rebuilds the standalone Store filters that take an application and a role packer. The cost ledger and run plan also take the canonical renderer `worker_request.hepta`. Every compiler and packer call below uses the qualified, installed `hia-source-build` or an ELF produced by that seed. HIA checks the source and image names, recompiles each source and compares all image bytes, builds the role's frame, and admits the packer's ELF before the first stdout write.
 
@@ -202,7 +202,9 @@ For budget-observation, budget-store, cost-ledger, cost-ledger-flow, measurement
 
 The same HIA member policy rebuilds the Agent stdio executables. Bootstrap one builder with `mcp_stdio_packer.hepta` in the packer slot to build all single-image Agent stdio roles. For `hia-agent-journal`, bootstrap a second builder with `agent_journal_stdio_packer.hepta` and include `agent_journal_transport.hepta` in the input directory.
 
-Stage the role's HIA application under the public release name plus `.hepta`. For example, `hia-agent-read-page` takes `agent_read_page.hepta` under the name `hia-agent-read-page.hepta`. The kernel selects the wire mode from the exact public filename and checks the source's declared HIA module. It recompiles the sources and verifies that the original application and optional codec bytes occur at their expected positions in the finished ELF. The directory, compiler and `member-builder build` stages use the same commands as the filter example above. The `VARIANTS` data in `tools/build_hia_agent_read_page.py` identifies the original source basename for every existing public role.
+The production release passes each single-source Agent stdio recipe directly to its builder. The request starts with the eight bytes `HIASRC01`, followed by three little-endian 64-bit integers holding the source count (one), the filename length and the source byte length. The filename and source follow without padding. The HIA policy admits the filename and declared module and invokes its embedded compiler. It sends the image in its workspace to the embedded stdio ELF packer, then checks the bytes in the final ELF against that image before publication.
+
+The builder also accepts the source-and-image packet produced by the installed seed. Stage the role's HIA application under the public release name plus `.hepta`. For example, `hia-agent-read-page` takes `agent_read_page.hepta` under the name `hia-agent-read-page.hepta`. The kernel selects the wire mode from the exact public filename and checks the source's declared HIA module. It recompiles the sources and verifies that the original application and optional codec bytes occur at their expected positions in the finished ELF. The directory, compiler and `member-builder build` stages use the same commands as the filter example above. The `VARIANTS` data in `tools/build_hia_agent_read_page.py` identifies the original source basename for every existing public role.
 
 ## Building Worker carriers and launchers
 
