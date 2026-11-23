@@ -210,6 +210,8 @@ The builder also accepts the source-and-image packet produced by the installed s
 
 The standard Store release builds the Worker carriers and launchers through
 the same HIA member policy. Each carrier uses its own checked packer.
+The 20 carriers and launchers that require one source compile and pack it
+inside their member builder. The other eight require their companion sources.
 Emit, Adopt, Verify and the Evaluate proof carrier also take their two ordered
 companion images. The native, Evaluate intake, replay and full launchers take
 the separately compiled capsule authority. The read, read-only and Context

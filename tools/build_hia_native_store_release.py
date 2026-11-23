@@ -878,7 +878,8 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         if name == 'hia-worker-port':
             group, images = b'HIAWPRT1', {}
         elif len(sources) == 1 and (
-                (packer == 'mcp_stdio_packer.hepta' and name.startswith('hia-agent-'))
+                (name.startswith('hia-agent-') and (
+                    packer == 'mcp_stdio_packer.hepta' or name.endswith(('-carrier', '-launcher'))))
                 or name.startswith('hia-evaluate-') or name in {'hia-execution-budget-session', 'hia-safe-core-loader'}):
             # The embedded compiler and packer share one workspace for this member.
             group, images = _named_source_request(capture_sources(sources), tag=b'HIASRC01'), {}

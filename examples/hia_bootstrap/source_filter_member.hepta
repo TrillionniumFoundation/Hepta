@@ -8121,7 +8121,17 @@ block identify(packet:readbuf,w:mutbuf,all_bytes:u64,n_at:u64,n_bytes:u64,s_at:u
   low_ok:bool = compare.ge(mode,first_mode)
   high_ok:bool = compare.le(mode,last_mode)
   stdio:bool = bool.and(low_ok,high_ok)
-  branch stdio accept(w,all_bytes,s_at,s_bytes,mode) filter(packet,w,all_bytes,n_at,n_bytes,s_at,s_bytes)
+  worker_first:u64 = const() {"value":131072}
+  worker_limit:u64 = const() {"value":131200}
+  worker_low:bool = compare.ge(mode,worker_first)
+  worker_high:bool = compare.lt(mode,worker_limit)
+  worker:bool = bool.and(worker_low,worker_high)
+  catalog_member:bool = bool.or(stdio,worker)
+  required_roles:u64 = call(mode) {"function":"companions"}
+  none_required:u64 = const() {"value":0}
+  standalone:bool = compare.eq(required_roles,none_required)
+  single_catalog_member:bool = bool.and(catalog_member,standalone)
+  branch single_catalog_member accept(w,all_bytes,s_at,s_bytes,mode) filter(packet,w,all_bytes,n_at,n_bytes,s_at,s_bytes)
 block filter(filter_input:readbuf,filter_state:mutbuf,filter_total:u64,filter_name_at:u64,filter_name_bytes:u64,filter_source_at:u64,filter_source_size:u64)
   filter_role:u64 = call(filter_input,filter_name_at,filter_name_bytes,filter_source_at,filter_source_size) {"function":"role"}
   first_primary:u64 = const() {"value":32}

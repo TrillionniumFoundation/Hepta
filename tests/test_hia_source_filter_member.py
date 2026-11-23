@@ -1020,6 +1020,8 @@ class InstalledSourceMemberTests(unittest.TestCase):
         self.invoke([journal, 'build'], wrong_codec, refused=True)
 
     def test_from_native_sources_against_every_worker_carrier_and_launcher(self):
+        from tools.build_hia_native_store_release import _named_source_request
+
 
         builders = {}
         products = set()
@@ -1031,7 +1033,14 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 builder = builders[packer]
                 inputs = {alias: self.sources / source for alias, source in sources.items()}
                 images = self.source_images(self.work / name, inputs)
-                self.assertEqual(self.invoke([builder, 'build'], images), (self.release / name).read_bytes())
+                expected = (self.release / name).read_bytes()
+                self.assertEqual(self.invoke([builder, 'build'], images), expected)
+                application = name + '.hepta'
+                direct = _named_source_request({application: inputs[application].read_bytes()}, tag=b'HIASRC01')
+                if len(inputs) == 1:
+                    self.assertEqual(self.invoke([builder, 'build'], direct), expected)
+                else:
+                    self.invoke([builder, 'build'], direct, refused=True)
                 self.invoke([builder, 'build'], images[:-1] + bytes([images[-1] ^ 1]), refused=True)
                 if len(inputs) > 1:
                     without = dict(inputs)
