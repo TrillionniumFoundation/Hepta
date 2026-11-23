@@ -322,9 +322,8 @@ def build_batch(output, compiler, cold_report, *, candidates):
 
 
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
-    from tools.qualify_hia_selfhost import compile_stage
+    from tools.qualify_hia_selfhost import CAPACITY, compile_stage, release_compiler_calls
     from tools.hia_selfhost_contract import PROFILE
-    from tools.hia_selfhost_native_observer import cold_compiler_observer
     if candidate not in CANDIDATES:
         raise ValueError('unknown HIA JSON candidate')
     source_name, protocol = CANDIDATES[candidate]
@@ -338,9 +337,11 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     source = source_path.read_bytes()
     if sha256(source).hexdigest() != sources[source_path.relative_to(ROOT).as_posix()]:
         raise ValueError('native candidate source changed after contract admission')
-    observer = cold_compiler_observer(raw)
-    output.mkdir(mode=0o700)
-    image, receipt = compile_stage(output, protocol, compiler, source, flat_observer=observer)
+    if len(source) > CAPACITY:
+        raise ValueError('native candidate exceeds the cold compiler input bound')
+    with release_compiler_calls(raw):
+        output.mkdir(mode=0o700)
+        image, receipt = compile_stage(output, protocol, compiler, source)
     image_bytes = image.read_bytes()
     if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != raw or current_sources() != sources

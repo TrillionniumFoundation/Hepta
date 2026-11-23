@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
+import os
+import stat
 from pathlib import Path
 import sys
 import time
@@ -18,6 +20,50 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(ROOT))
 from tools.hia_selfhost_contract import CONTRACT_PATH, validate_contract
 from tools.hia_selfhost_process_owner import run_owned
+
+
+def exported_observer(path, nested, packer_sha256):
+    """Capture the HIA-emitted ELF admitted by both cold observer witnesses."""
+    from tools.generate_hia_native_observer import reference_image
+
+    expected = reference_image()
+    reference = nested['native_observer_reference']
+    build = nested['native_observer_build']
+    identity = sha256(expected).hexdigest()
+    if (reference['before_B0'] is not True or reference['every_output_byte_compared'] is not True
+            or reference['expected_image_bytes'] != len(expected)
+            or reference['expected_image_sha256'] != identity or build['executable_sha256'] != identity
+            or build['independent_reference_before_B0'] is not True
+            or reference['packer_source_sha256'] != packer_sha256 or build['source_sha256'] != packer_sha256):
+        raise ValueError('cold observer does not match its HIA source and independent reference')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as source:
+        metadata = os.fstat(source.fileno())
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size != len(expected):
+            raise ValueError('cold observer has an invalid extent')
+        executable = source.read(len(expected) + 1)
+    if executable != expected:
+        raise ValueError('cold observer differs from its checked HIA image')
+    return executable
+
+
+def cold_compiler_observer(cold_bytes):
+    """Select immutable HIA observer bytes even when a portable report predates the embedded ELF."""
+    from tools.generate_hia_native_observer import reference_image
+
+    report = json.loads(cold_bytes)
+    expected = reference_image()
+    if 'native_flat_observer_hex' in report:
+        encoded = report['native_flat_observer_hex']
+        if encoded != expected.hex():
+            raise ValueError('cold compiler observer differs from the admitted syscall ABI')
+        return bytes.fromhex(encoded)
+    from tools.hia_selfhost_native_observer import independent_reference
+    reference = independent_reference()
+    image = b''.join(bytes(row['result']['values'][1:]) for row in reference['vm_windows'])
+    if image != expected:
+        raise ValueError('HIA observer reconstruction differs from its admitted image')
+    return image
 
 
 def cold_replay(output, *, native_transport=False):
@@ -87,7 +133,6 @@ def cold_replay(output, *, native_transport=False):
     observer = None
     observer_error = None
     if nested and nested.get("status") == "SELF_HOSTED_FIXED_CORE_PASS":
-        from tools.hia_selfhost_native_observer import exported_observer
         try:
             observer = exported_observer(nested_output.with_suffix(".evidence") / "native-observer.elf",
                                          nested, files["examples/hia_bootstrap/native_observer_packer.hepta"])

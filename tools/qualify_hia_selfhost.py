@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 from dataclasses import dataclass
 from hashlib import sha256
@@ -149,7 +149,7 @@ def build_seed(directory, source=None):
 @contextmanager
 def release_compiler_calls(cold_bytes):
     """Use the matching cold HIA observer for ordinary flat calls in this release build."""
-    from tools.hia_selfhost_native_observer import cold_compiler_observer
+    from tools.replay_hia_selfhost_cold import cold_compiler_observer
 
     token = _RELEASE_FLAT_OBSERVER.set(cold_compiler_observer(cold_bytes))
     try:
@@ -181,9 +181,16 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
     if (selected_observer is not None and image_format == 'flat-x86-64'
             and not compiler_function_offsets and not worker_section_pack):
         from tools.hia_selfhost_native_observer import invoke as observe_native
-        return observe_native(directory,label,selected_observer,image,source,capacity=capacity,
-            workspace_size=workspace_size,workspace_fill=workspace_fill,
-            output_initial=output_initial,observe_trap_writes=observe_trap_writes)
+        if isinstance(selected_observer, bytes):
+            from hepta.hia_scalar_reference_native import sealed_reference_bytes
+            captured = sealed_reference_bytes(selected_observer)
+        else:
+            captured = nullcontext(None)
+        with captured as descriptor:
+            path = selected_observer if descriptor is None else Path('/proc/self/fd') / str(descriptor)
+            return observe_native(directory, label, path, image, source, capacity=capacity,
+                workspace_size=workspace_size, workspace_fill=workspace_fill,
+                output_initial=output_initial, observe_trap_writes=observe_trap_writes)
     directory, image = Path(directory), Path(image)
     source_path, output_path = directory / (label + ".input.bin"), directory / (label + ".output.bin")
     request_path = directory / (label + ".request.json")

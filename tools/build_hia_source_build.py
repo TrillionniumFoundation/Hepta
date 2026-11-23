@@ -313,7 +313,7 @@ def _rebuild_source_seed(bootstrap, wire, sources, images, directory):
 
 def _build_captured(output: Path, compiler: Path, cold_report: Path):
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
-    from tools.hia_selfhost_native_observer import cold_compiler_observer
+    from tools.replay_hia_selfhost_cold import cold_compiler_observer
     source_bytes = {name: (ROOT / name).read_bytes() for name in SOURCES}
     admitted = admit_cold_build(compiler_bytes, cold_bytes)
     if any(admitted.get(name) != sha256(raw).hexdigest() for name, raw in source_bytes.items()):

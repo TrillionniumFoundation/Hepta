@@ -203,7 +203,8 @@ class SourceBuilderSourceTests(unittest.TestCase):
 
     def test_cold_observer_is_portable_and_changed_executable_is_refused(self):
         from tools.generate_hia_native_observer import reference_image
-        from tools.hia_selfhost_native_observer import PACKER, cold_compiler_observer, exported_observer
+        from tools.hia_selfhost_native_observer import PACKER
+        from tools.replay_hia_selfhost_cold import cold_compiler_observer, exported_observer
 
         image = reference_image()
         source_sha = sha256(PACKER.read_bytes()).hexdigest()
