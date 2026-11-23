@@ -4,7 +4,7 @@ INGRESS = '''
 def refuse_business(o:mutbuf,w:mutbuf,reason:u64) -> u64:
     # Baseline and the original scalar tag have their existing identities.
     # The other workload planner codes are shifted by ten in this envelope.
-    if reason != 1 and reason != 2 and (reason < 11 or reason > 25 or reason == 12):
+    if reason != 1 and reason != 2 and (reason < 11 or reason > 27 or reason == 12):
         return close_store(o,w,CLOSE_REFUSED)
     put(w,BUSINESS_REASON,reason)
     return close_store(o,w,CLOSE_ERROR)
@@ -85,6 +85,16 @@ def ingress(driver, policy, controls, constants):
                      CASE_OPERANDS=104,CASE_CHECKED=105,ERROR_CLAIMED=106,EARLY_LIMIT=107,
                      CONTEXT_WINDOW=int.from_bytes(b'HIAEWD01','little'),CHECK_CONTEXT_WINDOW=3352)
     constants.update(SHAPE_REASON=256,SCHEMA_QUERY=int.from_bytes(b'HIAESQ01','little'))
+    constants.update(EVALUATE_BASE_OBSERVE=int.from_bytes(b'HIAEAR01','little'),
+                     EVALUATE_ARTIFACT_REFUSAL=int.from_bytes(b'HIAEAR02','little'))
+    policy=policy.replace('    put(o, HEADER, RETAINED_OBSERVED)',
+                          '    put(o,HEADER,choose(get(w,SELECTOR) == 1,EVALUATE_BASE_OBSERVE,RETAINED_OBSERVED))')
+    policy=policy.replace('    if state == ART_OBSERVED:', '''    if state == ART_OBSERVED:
+        if get(w,SELECTOR) == 1 and get(w,ACTIVE_KIND) == 7 and plan_ok(s) and size == 24 and input_word(s,72) == EVALUATE_ARTIFACT_REFUSAL:
+            reason = input_word(s,80)
+            if reason == 26 or reason == 27:
+                return refuse_business(o,w,reason)
+            return close_store(o,w,CLOSE_REFUSED)''')
     policy=policy.replace('    if state == INPUT_SCHEMA:', '''    if state == INPUT_SCHEMA:
         if reply_word(s,1):
             put(w,BUSINESS_REASON,SHAPE_REASON)
@@ -139,6 +149,8 @@ def closeout_literals():
     reasons.append(('stale_context','E_HIA_CONTEXT_STALE','context binds a different installed implementation','context'))
     reasons.extend((('profile_error','E_HIA_EXECUTION_PROFILE','evaluation requires retained direct shared images','execution'),
                     ('abi_error','E_HIA_ABI','baseline and candidate frozen public ABI differ','execution')))
+    reasons.extend((('unissued_artifact','E_HIA_ARTIFACT_IDENTITY','artifact reference was not issued in this runtime namespace','admission'),
+                    ('wrong_native_kind','E_HIA_ARTIFACT_AUTHORITY','input bytes cannot impersonate a retained native','admission')))
     reasons.append(('unknown_context','E_HIA_CONTEXT_IDENTITY','context is not a retained server record','context'))
     reasons.append(('expired_context','E_HIA_BUDGET','context total wall budget has expired','context'))
     for code, (error, message) in sorted(_WORKLOAD_REFUSALS.items()):
@@ -164,6 +176,8 @@ def closeout_literals():
                   '        if tens != 0:', '            store(o,p,48+tens-10*hundreds)', '            p = p+1',
                   '        store(o,p,48+index-10*tens)', '        return declared_suffix(o,p+1)'))
     lines.extend(('    if reason == 1:', '        return baseline_error(o,at)'))
+    lines.extend(('    if reason == 26:', '        return unissued_artifact(o,at)',
+                  '    if reason == 27:', '        return wrong_native_kind(o,at)'))
     lines.extend(('    if reason == 24:', '        return profile_error(o,at)',
                   '    if reason == 25:', '        return abi_error(o,at)'))
     lines.extend(('    if reason == 23:', '        return stale_context(o,at)'))

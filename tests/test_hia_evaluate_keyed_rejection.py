@@ -74,3 +74,29 @@ class TypedWorkloadTests(unittest.TestCase):
                      'abi': 'hepta.hia.agent.borrowed-byte-snapshots.v1', 'max_buffer_bytes': 1048576}
         arguments = [{'byte_length': 1048576, 'fill_byte': 0}] * 33
         self.assertEqual(self.evaluate(arguments, signature=signature), (b'HIAEQB01', 19))
+
+
+class RetainedEvaluateBaselineTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from tools.generate_hia_worker_artifact_authority import SOURCE as artifact_authority
+        root = Path(__file__).resolve().parents[1]
+        cls.program = assemble_program((root / artifact_authority).read_bytes())
+        cls.entry = next(fn for fn in cls.program.as_dict()['functions'] if fn['name'] == 'f0')
+
+    def observe(self, *, mode=b'HIAEAR01', requested_kind=7, count=0, epoch=19):
+        ref = wire({'id':'a-' + 'a' * 32,'sha256':'c' * 64,'uri':'hia://artifacts/' + 'b' * 32})
+        packet = (struct.pack('<8s4Q',mode,0,71,19,requested_kind) + ref
+                  + struct.pack('<6Q',5,0,count,0,71,epoch))
+        vm = _Machine(self.program,1000000,1 << 20,None,128)
+        output = _Owner(-2,bytearray(2048))
+        length, = vm.invoke(self.entry,[_View(_Owner(-1,bytearray(packet)),False),
+                                        _View(output,True),_View(_Owner(-3,bytearray(65536)),True)])
+        return length,bytes(output.data[:16])
+
+    def test_empty_result_requires_the_original_typed_read_and_store_generation(self):
+        self.assertEqual(self.observe(), (16,struct.pack('<8sQ',b'HIAEAR02',26)))
+        for change in ({'count':1},{'epoch':20},{'requested_kind':5}):
+            with self.subTest(change=change):
+                self.assertEqual(self.observe(**change)[0],0xfffffffd)
+        self.assertEqual(self.observe(mode=b'HIARFG02')[0],0xfffffff8)

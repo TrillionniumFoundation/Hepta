@@ -45,7 +45,7 @@ def artifact_authority(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return contextual_retained_query(s, o)
     if mode == CONTEXT_MANIFEST_REF:
         return contextual_manifest_reference(s, o)
-    if mode == RETAINED_OBSERVE:
+    if mode == RETAINED_OBSERVE or mode == EVALUATE_BASE_OBSERVE:
         return retained_observation(s, o)
     if mode == INPUT_RESULT:
         return receipt(s, o)
@@ -180,12 +180,24 @@ def retained_observation(s:readbuf, o:mutbuf) -> u64:
     size = input_word(s, 8)
     if size != length(s) - 264 or unique_summary(s, 216 + size, size) == False:
         return 4294967293
-    return retain_binding(s, o, 40, size, input_word(s, 32), RETAINED_READ)
+    outcome = RETAINED_READ
+    if input_word(s,0) == EVALUATE_BASE_OBSERVE:
+        if input_word(s,32) != 7:
+            return 4294967293
+        outcome = EVALUATE_BASE_OBSERVE
+    return retain_binding(s, o, 40, size, input_word(s, 32), outcome)
+
+def baseline_refusal(o:mutbuf,reason:u64) -> u64:
+    put(o,0,EVALUATE_REFUSED)
+    put(o,8,reason)
+    return 16
 
 def retain_binding(s:readbuf, o:mutbuf, ref:u64, size:u64, kind:u64, outcome:u64) -> u64:
     if artifact_reference(s, ref) == False:
         return 4294967293
     if size == 0:
+        if outcome == EVALUATE_BASE_OBSERVE:
+            return baseline_refusal(o,26)
         return 4294967288
     row = ref + 176
     if size < 389 or row_header(s, row, 1, 6) == False:
@@ -204,9 +216,14 @@ def retain_binding(s:readbuf, o:mutbuf, ref:u64, size:u64, kind:u64, outcome:u64
         return 4294967293
     if valid_hex(s, row + size - 64, 64) == False:
         return 4294967293
+    same = matches(s,row+176,ref+7,34) and matches(s,row+210,ref+53,64) and matches(s,row+274,ref+126,48)
+    if outcome == EVALUATE_BASE_OBSERVE and same == False:
+        return baseline_refusal(o,26)
     if requested_kind(s, row + 322, width, kind) == False:
+        if outcome == EVALUATE_BASE_OBSERVE:
+            return baseline_refusal(o,27)
         return 4294967287
-    if matches(s, row + 176, ref + 7, 34) == False or matches(s, row + 210, ref + 53, 64) == False or matches(s, row + 274, ref + 126, 48) == False:
+    if same == False:
         return 4294967288
     if kind < 5:
         put(o, 0, outcome)
@@ -305,6 +322,7 @@ def source_program():
         'ARTIFACT_OBSERVE': b'HIARPF03', 'INPUT_RESULT': b'HIARPF04',
         'PROFILE_REF': b'HIARPO01', 'PROFILE_READ': b'HIARPO02',
         'RETAINED_QUERY': b'HIARFG01', 'RETAINED_OBSERVE': b'HIARFG02',
+        'EVALUATE_BASE_OBSERVE': b'HIAEAR01', 'EVALUATE_REFUSED': b'HIAEAR02',
         'RETAINED_READ': b'HIARFO02', 'CONTEXT_PROFILE_QUERY': b'HIARFP01',
         'BUILD_READ': b'HIABRD01',
         'CONTEXT_PROFILE_OBSERVE': b'HIARFP02', 'CONTEXT_PROFILE_ADMIT': b'HIARFP03',
