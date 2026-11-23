@@ -641,18 +641,31 @@ def _named_source_request(sources, *, tag=b'HIANAM01'):
     return bytes(frame)
 
 
-def _member_batches(inputs, limit):
-    batch = {}
-    extent = 24
-    for name, raw in inputs:
-        row_size = 24 + len(name.encode('ascii')) + len(raw)
-        if batch and (len(batch) == limit or extent + row_size > 64 << 20):
-            yield batch
-            batch, extent = {}, 24
-        batch[name] = raw
-        extent += row_size
-    if batch:
-        yield batch
+def _native_member_batches(products, plan):
+    """Materialize the HIA planner's ordered Store batches from captured bytes."""
+    items = list(products.items())
+    frame = bytearray(struct.pack('<8sQ', b'HIABAT01', len(items)))
+    for name, raw in items:
+        frame.extend(struct.pack('<3Q', len(name.encode('ascii')), len(raw),
+                                 int.from_bytes(raw[:4], 'little')))
+    result = plan(bytes(frame))
+    expected = struct.pack('<8sQ', b'HIABGR01', len(items))
+    if len(result) != 16 + len(items) * 24 or result[:16] != expected:
+        raise ValueError('native Store layout response extent differs')
+    seen = set()
+    groups = []
+    for index, group, mode in struct.iter_unpack('<3Q', result[16:]):
+        if index >= len(items) or index in seen or mode not in (0o400, 0o500):
+            raise ValueError('native Store member index or mode differs')
+        if group == len(groups):
+            groups.append((mode, {}))
+        if group != len(groups) - 1 or groups[group][0] != mode:
+            raise ValueError('native Store batch sequence differs')
+        seen.add(index)
+        name, raw = items[index]
+        groups[group][1][name] = raw
+    return (iter([batch for mode, batch in groups if mode == 0o400]),
+            iter([batch for mode, batch in groups if mode == 0o500]))
 
 
 def _install_captured_packet(work, installer, depot, packet, digest, count):
@@ -666,20 +679,15 @@ def _install_captured_packet(work, installer, depot, packet, digest, count):
     return depot / digest
 
 
-def _stage_captured_members(work, stage, members, products, capture_packet):
+def _stage_captured_members(work, stage, members, products, capture_packet, plan):
     """Use the native installer for data and code and publish their verified inodes."""
     if members.keys() & products.keys():
         raise ValueError('duplicate captured Store member')
     publisher, installer = products['hia-artifact'], products['hia-release']
     identities = {name: sha256(raw).hexdigest() for name, raw in products.items()}
-    programs, data = [], []
-    for item in products.items():
-        (programs if item[1].startswith(b'\x7fELF') else data).append(item)
-    # Empty members are valid Store data. Install them in the base directory
-    # itself, since the public artifact link protocol requires nonempty bytes.
-    data.sort(key=lambda item: bool(item[1]))
-    data_batches = _member_batches(data, 384)
-    code_batches = _member_batches(programs, 128)
+    data_batches, code_batches = _native_member_batches(products, plan)
+    # The native plan places empty data in the first batch. Those files stay
+    # in the installed base, since the artifact publisher links nonempty bytes.
 
     def install(batch, tag, depot):
         packet, digest = capture_packet(batch, tag=tag)
@@ -926,7 +934,8 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     linked = _stage_sqlite_units(work, compile_sources, admitted, publish, sqlite_tools)
     _stage_sqlite_migrations(work, compile_sources, admitted, publish, sqlite_tools, linked,
                              migration_dependencies, compiler_bytes, report_bytes)
-    return _stage_captured_members(work, stage, members, products, capture_packet)
+    return _stage_captured_members(work, stage, members, products, capture_packet,
+                                   lambda wire: call(named_packer, 'build', wire))
 
 
 def _capture_release_tool(stage, name, members):
