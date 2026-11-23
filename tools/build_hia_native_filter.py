@@ -87,15 +87,27 @@ def build_evaluate_reference_batch(output: Path, compiler: Path, cold_report: Pa
                         schema='hepta.hia.evaluate-reference-batch-build.v1')
 
 
+def build_evaluate_paired_batch(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_paired_batch import ADAPTER, PACK_MAGIC
+
+    return build_filter(output, compiler, cold_report, application='evaluate-paired-batch',
+                        packer='evaluate-paired-batch-packer', magic=PACK_MAGIC, adapter=ADAPTER,
+                        filename='hia-evaluate-paired-batch',
+                        schema='hepta.hia.evaluate-paired-batch-build.v1')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
-                                                  'evaluate-reference-batch'),
+                                                  'evaluate-reference-batch', 'evaluate-paired-batch'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + flag, type=Path, required=True)
     args = parser.parse_args()
     output, compiler, cold_report = args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()
+    if args.application == 'evaluate-paired-batch':
+        print(build_evaluate_paired_batch(output, compiler, cold_report))
+        return
     if args.application == 'evaluate-reference-batch':
         print(build_evaluate_reference_batch(output, compiler, cold_report))
         return

@@ -32,7 +32,7 @@ from tools.build_hia_agent_read_page import VARIANTS as AGENT_STDIO_ROLES, build
 from tools.build_hia_json_preflight import CANDIDATES, build_batch as build_helper_batch
 from tools.build_hia_native_build_admission import build as build_build_admission
 from tools.build_hia_native_continuation import build as build_scheduler
-from tools.build_hia_native_filter import build_evaluate_projector, build_evaluate_reference_batch
+from tools.build_hia_native_filter import build_evaluate_projector, build_evaluate_reference_batch, build_evaluate_paired_batch
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
 from tools.build_hia_owned_reference_cli import build as build_owned_reference_executable
@@ -601,6 +601,11 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             expected = build_evaluate_projector(scratch / 'evaluate-projector', compiler, cold_report)
             if projector.read_bytes() != expected.read_bytes():
                 raise ValueError('Store release Evaluate projector differs from the cold-built HIA role')
+        paired = release / 'hia-evaluate-paired-batch'
+        if paired.is_file():
+            expected = build_evaluate_paired_batch(scratch / 'evaluate-paired-batch', compiler, cold_report)
+            if paired.read_bytes() != expected.read_bytes():
+                raise ValueError('Store release Evaluate paired batch differs from the cold-built HIA role')
         reference_batch = release / 'hia-evaluate-reference-batch'
         if reference_batch.is_file():
             expected = build_evaluate_reference_batch(scratch / 'evaluate-reference-batch', compiler, cold_report)

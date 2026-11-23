@@ -223,6 +223,8 @@ CANDIDATES = {
     'elf-direct-shared-linker-filter': ('direct_shared_linker_filter_packer', 'elf-direct-shared-linker-filter'),
     'elf-verified-linker': ('elf_verified_linker', 'elf-verified-linker'),
     'evaluate-reference-batch': ('evaluate_reference_batch', 'evaluate-reference-batch'),
+    'evaluate-paired-batch': ('evaluate_paired_batch', 'evaluate-paired-batch'),
+    'evaluate-paired-batch-packer': ('evaluate_paired_batch_packer', 'evaluate-paired-batch-packer'),
     'evaluate-reference-batch-packer': ('evaluate_reference_batch_packer', 'evaluate-reference-batch-packer'),
     'evaluate-reference-wire': ('evaluate_reference_wire', 'evaluate-reference-wire'),
     'evaluate-reference-wire-filter': ('evaluate_reference_wire_filter_packer', 'evaluate-reference-wire-filter'),
@@ -360,7 +362,7 @@ def main():
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
                                  'elf-verified-linker',
-                                 'evaluate-reference-batch', 'evaluate-reference-wire', 'scalar-reference',
+                                 'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-reference-wire', 'scalar-reference',
                                  'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
                                  'safe-core-elf-inventory', 'core-proof-wire', 'worker-prepare'))
     args = parser.parse_args()
