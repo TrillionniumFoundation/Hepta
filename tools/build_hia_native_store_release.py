@@ -44,13 +44,8 @@ def _compile(work, component, compiler, cold_report, *args, label=None, **option
 
 
 def _stage_component_outputs(work, compiler, cold_report, publish):
-    def component(name, *args, **options):
-        with TemporaryDirectory(prefix=name + '-', dir=work) as tmp:
-            result = _compile(Path(tmp), name, compiler, cold_report, *args, **options)
-            publish(result)
-
-    for name in ('source_build', 'supplied_safe_core_proof'):
-        component(name)
+    with TemporaryDirectory(prefix='source-build-', dir=work) as tmp:
+        publish(_compile(Path(tmp), 'source_build', compiler, cold_report))
 
 
 def _stage_agent_store(work, seed, compile_sources, call, compiler, admitted, publish):
@@ -219,6 +214,74 @@ def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
         image_path = work / image_name
         image_path.write_bytes(image)
         publish(image_path, expected=expected['image_sha256'])
+
+
+def _stage_safe_proof(work, seed, compile_sources, call, admitted, publish):
+    """Recompile and authenticate the five nested proof programs before publishing their verifier."""
+    from tools.build_hia_agent_batch_commit import verify_placement
+    from tools.build_hia_safe_core_binder import PARTS, MACHINE_PARTS, OBSERVATION_PARTS, OBLIGATION_PARTS
+    from tools.build_hia_supplied_safe_core_proof import HASH_SOURCE, check_placement
+    from tools.generate_hia_core_admission_cli import STATE_BYTES, ARENA_BYTES
+    from tools.generate_hia_native_filter import elf_header, read_adapter_binding, template, verify_adapter
+    from tools.generate_hia_safe_core_binder_packer import ADAPTER, CALLS, PACKER, PROOF_PACKER, adapter_source
+    from tools.generate_hia_supplied_safe_core_proof import SOURCE_PATH
+    from tools.generate_hia_supplied_safe_core_proof_packer import ADAPTER as FINAL_ADAPTER, PACKER as FINAL_PACKER
+
+    def adapter(name):
+        data = (ROOT / name).read_bytes()
+        if sha256(data).hexdigest() != admitted.get(name):
+            raise ValueError('nested proof adapter differs from cold admission: ' + name)
+        return data
+
+    def owner(packer):
+        kit, _, _ = compile_sources({'source_build_policy.hepta': 'source_safe_proof.hepta',
+                                     'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
+        return call(seed, 'pack', kit)
+
+    def record(source, image, *, embedded=False):
+        header = struct.pack('<QQ', len(source), len(image))
+        return header + source if embedded else header + source + image
+
+    def request(role, rows):
+        return struct.pack('<8sQ', b'HIASPR01', role) + b''.join(rows)
+
+    subject = ('core_admission.hepta', 'core_proof_subject.hepta')
+    recipes = [subject, *(tuple(Path(path).name for path in parts.values())
+                          for parts in (PARTS, MACHINE_PARTS, OBSERVATION_PARTS, OBLIGATION_PARTS))]
+    packers = ('core_proof_subject_cli_packer.hepta', *(Path(PACKER).name for _ in range(3)), Path(PROOF_PACKER).name)
+    outer = (Path(SOURCE_PATH).name, Path(HASH_SOURCE).name)
+    final_packer = Path(FINAL_PACKER).name
+    names = {*packers, *outer, final_packer, *(name for group in recipes for name in group)}
+    _, images, sources = compile_sources({name: name for name in sorted(names)})
+    controllers = {name: owner(name) for name in dict.fromkeys((*packers, 'native_filter_packer.hepta'))}
+    final_rows = [record(sources[name], images[name]) for name in outer]
+    children = []
+    for role, (names, packer) in enumerate(zip(recipes, packers, strict=True), 1):
+        rows = [record(sources[name], images[name]) for name in names]
+        child = call(controllers[packer], 'build', request(role, rows))
+        if role == 1:
+            prefix, absolute = template(output_bytes=STATE_BYTES, workspace_bytes=ARENA_BYTES, formatter=True)
+            header = len(elf_header())
+            binding = (sha256(prefix[header:]).digest(), len(prefix) - header, tuple(h - header for h in absolute))
+            verify_adapter(child, b''.join(images[n] for n in names), binding, entries=(0, len(images[names[0]])))
+        else:
+            binding = read_adapter_binding(sources[packer], adapter_source(adapter(ADAPTER), proof=role == 5), calls=len(CALLS))
+            verify_placement(child, binding, {n: images[n] for n in names})
+        children.append(child)
+        final_rows.append(struct.pack('<Q', len(child)) + child)
+        final_rows.extend(record(sources[name], images[name], embedded=True) for name in names)
+
+    # The outer frame exceeds the source seed's three-image packing buffer. The HIA
+    # controller publishes it through its ordinary stdout arena after verifying every child.
+    filter_owner = controllers['native_filter_packer.hepta']
+    runner = call(filter_owner, 'build', request(7, [record(sources[final_packer], images[final_packer])]))
+    frame = call(filter_owner, 'build', request(6, final_rows))
+    product = call(runner, None, frame)
+    binding = read_adapter_binding(sources[final_packer], adapter(FINAL_ADAPTER), calls=3)
+    check_placement(product, binding, [*(images[name] for name in outer), *children])
+    path = work / 'hia-safe-core-prove'
+    path.write_bytes(product)
+    publish(path, expected=sha256(product).hexdigest())
 
 
 def _stage_owned_reference(work, seed, compile_sources, call, compiler, admitted, publish):
@@ -789,6 +852,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             publish(path)
 
     sqlite_tools = _sqlite_build_tools(seed, captured('hia-elf-link'), compile_sources, call, admitted)
+    _stage_safe_proof(work, seed, compile_sources, call, admitted, publish)
     constructor = _stage_nominal_constructor(work, compile_sources, publish, sqlite_tools)
     with TemporaryDirectory(prefix='core-edit-', dir=work) as tmp:
         output = _compile(Path(tmp), 'core_edit', *core_inputs, native_tools=(seed, compile_sources, call),

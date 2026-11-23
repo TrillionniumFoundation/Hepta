@@ -470,6 +470,53 @@ class InstalledSourceMemberTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             embed(b'HIAMGEL1', 18, artifact, sha256(artifact).digest())
 
+    def test_supplied_proof_rebuilds_and_rebinds_all_five_nested_programs(self):
+        import struct
+        from tools import build_hia_native_store_release as release
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+        from tools.generate_hia_safe_core_binder_packer import ADAPTER
+        from tools.generate_hia_supplied_safe_core_proof_packer import ADAPTER as OUTER_ADAPTER
+
+        admitted = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in (ADAPTER, OUTER_ADAPTER)}
+        children = {}
+        published = []
+
+        def compile_sources(named):
+            paths = {name: self.sources / path for name, path in named.items()}
+            captures = {name: path.read_bytes() for name, path in paths.items()}
+            group = self.source_images(self.work / 'proof-programs', paths)
+            return group, _compiled_sources(group, captures), captures
+
+        def call(program, mode, wire):
+            result = _run_captured(program, mode, wire, self.work)
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            if wire[:8] == b'HIASPR01':
+                role, = struct.unpack_from('<Q', wire, 8)
+                if role < 6:
+                    children[role] = result.stdout
+                if role == 6:
+                    self.assertEqual(set(children), set(range(1, 6)))
+                    for child in children.values():
+                        start = wire.index(child)
+                        self.assertEqual(wire.count(child), 1)
+                        # Cover the syscall adapter and the last image inside each distinct child.
+                        for offset in (start + 182, start + len(child) - 16):
+                            damaged = wire[:offset] + bytes([wire[offset] ^ 1]) + wire[offset + 1:]
+                            refused = _run_captured(program, mode, damaged, self.work)
+                            self.assertNotEqual(refused.returncode, 0)
+                            self.assertEqual((refused.stdout, refused.stderr), (b'', b''))
+            return result.stdout
+
+        def publish(path, *, expected):
+            data = path.read_bytes()
+            self.assertEqual(path.name, 'hia-safe-core-prove')
+            self.assertEqual(data, (self.release / path.name).read_bytes())
+            self.assertEqual(sha256(data).hexdigest(), expected)
+            published.append(path.name)
+
+        release._stage_safe_proof(self.work, self.seed.read_bytes(), compile_sources, call, admitted, publish)
+        self.assertEqual(published, ['hia-safe-core-prove'])
+
     def test_owned_reference_relocates_the_private_entry_when_source_layout_changes(self):
         import struct
         from tools import build_hia_native_store_release as release
