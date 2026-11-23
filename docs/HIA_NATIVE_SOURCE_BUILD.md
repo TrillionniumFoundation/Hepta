@@ -93,6 +93,14 @@ read-only protection, stdin/stdout transport, calls to embedded HIA entrypoints,
 SIGPIPE handling and process exit. HIA owns the command, member, phase, compiler
 result, pair identity, capacity and serialization decisions.
 
+The release builder also runs `hia-source-build inventory` on the member names
+and SHA-256 identities it captured from source. The input starts with
+`HIAINV01`, the little-endian u64 member count and the u64 package length.
+Each row contains the u64 name and digest lengths, the ASCII name and exactly
+64 lowercase hexadecimal digest bytes. The HIA policy validates and orders the rows and writes the
+binary inventory and `HIAATT01` footer consumed by `hia-release attest`.
+The release package stays outside the inventory compiler's input buffer.
+
 ## Failure and custody
 
 Policy failures poison the retained native invocation state. Exit 16 means an

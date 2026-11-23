@@ -84,6 +84,8 @@ def arguments(s:readbuf, w:mutbuf) -> u32:
         op = 3
     if n == 7 and uint(s, 16, 7) == SOURCES_WORD:
         op = 4
+    if n == 9 and uint(s, 16, 8) == INVENTORY_WORD and byte(s, 24) == 121:
+        op = 5
     if op == 0:
         return bad(w, 16)
     put(w, 8, op)
@@ -91,6 +93,8 @@ def arguments(s:readbuf, w:mutbuf) -> u32:
     return 0
 
 def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if get(w, 8) == 5:
+        return inventory(s, o, w)
     if get(w, 8) == 3:
         if length(s) == 0:
             return bad(w, 16)
@@ -198,6 +202,81 @@ def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, 48, 24)
     return 0
 
+def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) < 24 or uint(s, 0, 8) != INVENTORY_MAGIC:
+        return bad(w, 16)
+    count = uint(s, 8, 8)
+    package_bytes = uint(s, 16, 8)
+    if count == 0 or count > MAX_RELEASE_MEMBERS or package_bytes < 24 or package_bytes > RELEASE_WIRE_LIMIT:
+        return bad(w, 16)
+    at = 24
+    used = 16
+    i = 0
+    while i < count:
+        if at > length(s) or length(s) - at < 16:
+            return bad(w, 16)
+        n = uint(s, at, 8)
+        if uint(s, at + 8, 8) != 64:
+            return bad(w, 16)
+        at = at + 16
+        if n == 0 or n > 127 or n + 64 > length(s) - at:
+            return bad(w, 16)
+        k = 0
+        while k < n:
+            value = byte(s, at + k)
+            if alnum(value) == 0:
+                if k == 0 or value != 46 and value != 45 and value != 95:
+                    return bad(w, 16)
+            k = k + 1
+        row = 4096 + i * 40
+        put(w, row, at)
+        put(w, row + 8, n)
+        at = at + n + 64
+        used = used + 33 + n
+        i = i + 1
+    if at != length(s):
+        return bad(w, 16)
+    if used > length(o):
+        return bad(w, 17)
+    order_sources(s, w, count)
+    i = 0
+    target = 0
+    while i < count:
+        row = 4096 + i * 40
+        name = get(w, row)
+        n = get(w, row + 8)
+        if i > 0:
+            if name_before(s, get(w, row - 40), get(w, row - 32), name, n) == 0:
+                return bad(w, 16)
+        store(o, target, n)
+        copy_bytes(s, o, name, target + 1, n)
+        target = target + 1 + n
+        k = 0
+        while k < 32:
+            high = hex_digit(byte(s, name + n + 2 * k))
+            low = hex_digit(byte(s, name + n + 2 * k + 1))
+            if high > 15 or low > 15:
+                return bad(w, 16)
+            store(o, target + k, high * 16 + low)
+            k = k + 1
+        target = target + 32
+        i = i + 1
+    write(o, target, package_bytes, 8)
+    write(o, target + 8, ATTEST_MAGIC, 8)
+    put(w, 24, count)
+    put(w, 32, count)
+    put(w, 40, length(s))
+    put(w, 48, used)
+    put(w, 16, 2)
+    return 0
+
+def hex_digit(value:u64) -> u64:
+    if value >= 48 and value <= 57:
+        return value - 48
+    if value >= 97 and value <= 102:
+        return value - 87
+    return 16
+
 def order_sources(s:readbuf, w:mutbuf, count:u64) -> u64:
     i = 1
     while i < count:
@@ -235,7 +314,7 @@ def name_before(s:readbuf, left:u64, left_size:u64, right:u64, right_size:u64) -
 def select(s:readbuf, w:mutbuf) -> u32:
     op = get(w, 8)
     index = get(w, 32)
-    if op == 1 or op == 3:
+    if op == 1 or op == 3 or op == 5:
         if get(w, 16) != 2 or index > get(w, 24):
             return bad(w, 16)
         if index == get(w, 24):
@@ -426,7 +505,12 @@ def policy_source():
         roles += ['    if ' + ' and '.join(terms) + ':', f'        return {index}']
     roles += ['    return 0']
     source = POLICY.replace('ROLE_FUNCTION', '\n'.join(roles))
-    values = {'POLICY_WORK_BYTES': MIN_POLICY_WORK_BYTES, 'TEMPLATE_SIZE': len(template()[0]),
+    from tools.generate_hia_release_install import MAX_RELEASE_MEMBERS, WIRE_LIMIT as RELEASE_WIRE_LIMIT
+    values = {'INVENTORY_WORD': int.from_bytes(b'inventor', 'little'),
+              'INVENTORY_MAGIC': int.from_bytes(b'HIAINV01', 'little'),
+              'ATTEST_MAGIC': int.from_bytes(b'HIAATT01', 'little'),
+              'MAX_RELEASE_MEMBERS': MAX_RELEASE_MEMBERS, 'RELEASE_WIRE_LIMIT': RELEASE_WIRE_LIMIT,
+              'POLICY_WORK_BYTES': MIN_POLICY_WORK_BYTES, 'TEMPLATE_SIZE': len(template()[0]),
               'BUNDLE_MAGIC': BUNDLE_MAGIC, 'PACK_MAGIC': PACK_MAGIC,
               'COMPILE_WORD': int.from_bytes(b'compile', 'little'),
               'SOURCES_WORD': int.from_bytes(b'sources', 'little'),

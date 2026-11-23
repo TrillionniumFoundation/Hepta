@@ -443,6 +443,24 @@ class SourceBuilderNativeTests(unittest.TestCase):
             receipt, _ = invoke(self.case, name, image, b'', capacity=0, workspace_size=0)
             self.assertEqual((receipt['status'], receipt['core_u32']), ('returned', value))
 
+    def test_source_inventory_orders_independent_digests_and_rejects_ambiguous_rows(self):
+        def request(rows, size=123):
+            data = bytearray(struct.pack('<8sQQ', b'HIAINV01', len(rows), size))
+            for name, digest in rows:
+                data.extend(struct.pack('<2Q', len(name), len(digest)) + name + digest)
+            return bytes(data)
+
+        zero, one = b'0' * 64, b'1' * 64
+        rows = [(b'abc', zero), (b'a', one)]
+        expected = b'\x01a' + bytes.fromhex(one.decode()) + b'\x03abc' + bytes(32) + struct.pack('<Q8s', 123, b'HIAATT01')
+        for order in (rows, rows[::-1]):
+            self.assertEqual(self.run_app(request(order), 'inventory'), expected)
+        for wire in (request([]), request(rows, 23), request([rows[0], rows[0]]),
+                     request([(b'.file', zero)]), request([(b'file', b'A'*64)]),
+                     request([(b'file', b'1'*63)]), request(rows) + b'x'):
+            with self.subTest(wire=wire):
+                self.assertEqual(self.run_app(wire, 'inventory', code=16), b'')
+
     def test_named_sources_compile_in_directory_order_and_refuse_invalid_groups(self):
         changed = SMALL.replace(b'"value":7', b'"value":19')
         sources = {'z.hepta': SMALL, 'a-0.hepta': changed, 'a.hepta': SMALL}

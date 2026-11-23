@@ -1055,6 +1055,20 @@ def _source_inventory_packet(package, members):
     return b''.join((package, inventory, struct.pack('<Q8s', len(package), b'HIAATT01')))
 
 
+def _attestation_suffix(seed, members, package_bytes, work):
+    """Have HIA order independently captured source identities and emit the attestation."""
+    frame = bytearray(struct.pack('<8sQQ', b'HIAINV01', len(members), package_bytes))
+    for name, digest in members.items():
+        encoded, fingerprint = name.encode('ascii'), digest.encode('ascii')
+        frame.extend(struct.pack('<2Q', len(encoded), len(fingerprint)))
+        frame.extend(encoded)
+        frame.extend(fingerprint)
+    result = _run_captured(seed, 'inventory', bytes(frame), work)
+    if result.returncode or result.stderr or not result.stdout.endswith(struct.pack('<Q8s', package_bytes, b'HIAATT01')):
+        raise ValueError('native source inventory refused the captured release identities')
+    return result.stdout
+
+
 def _pack_and_verify(work, stage, members):
     package = work / 'store.hiapack'
     packer = _capture_release_tool(stage, 'hia-directory-package-build', members)
@@ -1071,8 +1085,10 @@ def _pack_and_verify(work, stage, members):
     digest = packed.stderr[:-1].decode('ascii')
     depot = work / 'verified'
     depot.mkdir(mode=0o700)
+    source_builder = _capture_release_tool(stage, 'hia-source-build', members)
+    suffix = _attestation_suffix(source_builder, members, len(expected), work)
     for action in ('install', 'attest'):
-        payload = expected if action == 'install' else _source_inventory_packet(expected, members)
+        payload = expected if action == 'install' else expected + suffix
         checked = _run_captured(installer, (action, depot, digest), payload, work)
         checked.check_returncode()
         receipt = {'schema': 'hepta.hia.release-install.v1', 'sha256': digest, 'bytes': len(expected),
