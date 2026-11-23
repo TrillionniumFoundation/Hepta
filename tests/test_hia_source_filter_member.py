@@ -277,6 +277,23 @@ class InstalledSourceMemberTests(unittest.TestCase):
         # Frozen from the independently built 191-role release, including relocation input order.
         self.assertEqual(sha256(wire).hexdigest(), '5d0dadcfb23371b82e7ff0c3aaa8d55b63a175b690216fe895825e33cd0e181b')
         self.assertEqual(len(_decode_member_plan(wire)), 191)
+        from tools.build_hia_native_store_release import _release_packer_schedule
+        first = {}
+        schedule = _release_packer_schedule(wire, lambda data: self.invoke([planner, 'build'], data))
+        for index, ((name, packer, sources), owner) in enumerate(schedule):
+            self.assertEqual(owner, first.setdefault(packer, index))
+        self.assertGreater(len(first), 1)
+        self.assertLess(len(first), len(schedule))
+        # A stale or mismatched schedule cannot select a future or unrelated builder.
+        import struct
+        reply = self.invoke([planner, 'build'], wire)
+        for altered in (reply[:-1], reply + b'x', b'HIARUSE2' + reply[8:],
+                        reply[:16] + struct.pack('<Q', 1) + reply[24:],
+                        reply[:24] + struct.pack('<Q', 0) + reply[32:]):
+            with self.assertRaises(ValueError):
+                _release_packer_schedule(wire, lambda unused: altered)
+        for malformed in (wire[:-1], wire + b'x', wire[:16] + b'\x01' + wire[17:]):
+            self.invoke([planner, 'build'], malformed, refused=True)
         lines = table.splitlines(keepends=True)
         duplicate_alias = lines[1].rstrip(b'\n') + b'\t' + lines[1].split(b'\t')[2] + b'\n'
         for label, changed in (

@@ -631,6 +631,21 @@ def _decode_member_plan(raw):
     return members
 
 
+def _release_packer_schedule(wire, call_planner):
+    """Read the HIA planner's first-use recipe slot for each packer."""
+    recipes = _decode_member_plan(wire)
+    count = len(recipes)
+    raw = call_planner(wire)
+    if (len(raw) != 16 + count * 8 or
+            raw[:16] != struct.pack('<8sQ', b'HIARUSE1', count)):
+        raise ValueError('native packer schedule extent differs')
+    owners = struct.unpack_from(f'<{count}Q', raw, 16)
+    for i, owner in enumerate(owners):
+        if owner > i or owners[owner] != owner or recipes[owner][1] != recipes[i][1]:
+            raise ValueError('native packer schedule references a different recipe')
+    return list(zip(recipes, owners, strict=True))
+
+
 def _named_source_request(sources, *, tag=b'HIANAM01'):
     frame = bytearray(struct.pack('<8sQ', tag, len(sources)))
     for name, raw in sources.items():
@@ -833,7 +848,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
 
     def planned_members():
         directory = _source_directory_recipe()
-        yield directory
+        yield directory, 0
         # Its successor is built with the admitted seed and the new directory packer.
         bundle, _, _ = compile_sources({
             'source_build_policy.hepta': 'source_release_member_plan.hepta',
@@ -845,25 +860,26 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         source = (ROOT / relative).read_bytes()
         if sha256(source).hexdigest() != admitted.get(relative):
             raise ValueError('release recipe table differs from cold admission')
-        recipes = _decode_member_plan(call(planner, 'build', source))
-        if recipes[0] != directory:
+        schedule = _release_packer_schedule(call(planner, 'build', source),
+                                            lambda wire: call(planner, 'build', wire))
+        if schedule[0] != (directory, 0):
             raise ValueError('native release plan differs from its directory bootstrap')
-        yield from recipes[1:]
+        yield from schedule[1:]
 
-    for name, packer, sources in planned_members():
+    for index, ((name, packer, sources), owner) in enumerate(planned_members()):
         if pack_directory is None and name != 'hia-directory-package-build':
             raise ValueError('the first native release member must bootstrap its directory packer')
-        if packer not in builders:
+        if owner == index:
             kit, kit_images, _ = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
                                       'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
-            builders[packer] = call(seed, 'pack', kit)
+            builders[owner] = call(seed, 'pack', kit)
             if packer == 'core_json_cli_packer.hepta':
                 compiler_packer = kit_images['source_build_packer.hepta']
         if name == 'hia-worker-port':
             group, images = b'HIAWPRT1', {}
         else:
             group, images, _ = compile_sources(sources)
-        product = call(builders[packer], 'build', group)
+        product = call(builders[owner], 'build', group)
         if name == 'hia-artifact':
             migration_dependencies['artifact'] = _bind_artifact_publisher(
                 work, product, admitted, compiler_bytes, report_bytes)
