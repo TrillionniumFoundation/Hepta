@@ -75,7 +75,7 @@ proof_policy_hole:
     cmp rax, 1
     jne .answer
     inc r15
-    cmp r15, 16
+    cmp r15, 48
     ja .invalid
 
     mov rsi, [r14 + 16]

@@ -310,6 +310,52 @@ def simd_interval_obligation(w:mutbuf, width:u64) -> u64:
         return 0
     return simd_interval_step(w, width)
 
+def simd_endpoint_obligation(w:mutbuf, role:u64) -> u64:
+    # The width codes for the second query of each pair are eight higher.
+    width = 1 << (role & 7)
+    if width >= (8 << get(w, SIMD_ISA_SLOT)):
+        return 0
+    at = BINDING + 80
+    end = at + get(w, 248)
+    observed = 0
+    while at < end:
+        extent = simd_endpoint_extent(w, at, end, width)
+        if extent > 0:
+            if extent > 64 or observed != 0:
+                return 0
+            observed = extent
+        at = at + 1
+    if observed == 0:
+        return 0
+    put(w, SIMD_DECREMENT_SLOT, observed)
+    if role < 24:
+        return simd_endpoint_bounds(w, width)
+    return simd_endpoint_effects(w, width)
+
+def next_simd_ordinal(w:mutbuf, role:u64) -> u64:
+    isa = get(w, SIMD_ISA_SLOT)
+    copy = get(w, SIMD_KIND_SLOT) == 3
+    if role == 2:
+        return choose(isa == 1, 3, 4)
+    if role < 5:
+        return role + 1
+    if role == 5:
+        if isa != 1 and copy:
+            return 7
+        return 6
+    if role == 6:
+        return choose(isa == 1, 0, 9)
+    if role == 7:
+        return 16
+    if role == 9:
+        return 0
+    if role >= 16 and role <= 21:
+        return role + 8
+    if role >= 24 and role <= 29:
+        widest = choose(isa == 2, 28, 29)
+        return choose(role == widest, 0, role - 7)
+    return 0
+
 def send_simd_induction(w:mutbuf) -> u64:
     role = get(w, SIMD_ORDINAL_SLOT)
     budget = (get(w, 128) - now(w)) // 1000000
@@ -329,6 +375,12 @@ def send_simd_induction(w:mutbuf) -> u64:
         vector = 8 << get(w, SIMD_ISA_SLOT)
         width = choose(role == 4, 4 * vector, choose(role == 5, vector, choose(vector == 16, 1, 16)))
         extent = simd_interval_obligation(w, width)
+    elif role == 7:
+        extent = simd_endpoint_partition(w, 8 << get(w, SIMD_ISA_SLOT))
+    elif role == 9:
+        extent = simd_bounded_partition(w, 0)
+    elif role >= 16 and role <= 29:
+        extent = simd_endpoint_obligation(w, role)
     else:
         return 0
     if extent == 0:
@@ -369,10 +421,10 @@ def receive_simd_induction(o:mutbuf, w:mutbuf) -> u64:
         if detail == 0:
             return 0
         return finish_simd_receipt(o, w, 2)
-    last = choose(get(w, SIMD_ISA_SLOT) == 1, 6, choose(get(w, SIMD_KIND_SLOT) == 3, 5, 6))
-    if role == last:
+    next = next_simd_ordinal(w, role)
+    if next == 0:
         return finish_simd_receipt(o, w, 1)
-    put(w, SIMD_ORDINAL_SLOT, choose(role == 2, choose(get(w, SIMD_ISA_SLOT) == 1, 3, 4), role + 1))
+    put(w, SIMD_ORDINAL_SLOT, next)
     return send_simd_induction(w)
 
 def finish_simd_receipt(o:mutbuf, w:mutbuf, status:u64) -> u64:

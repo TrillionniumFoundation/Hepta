@@ -100,6 +100,123 @@ def interval_step():
     return g.function('simd_interval_step', g.both(enters, bad))
 
 
+def endpoint_dispatch():
+    g = WordCircuit()
+    remaining = g.node(1, 7)
+    vector = g.constant('delta', 7)
+    zero = g.constant(0, 7)
+    hit = g.node(7, 1, remaining, zero)
+    duplicate = g.constant(0, 1)
+    for width in (1, 2, 4, 8, 16, 32):
+        lower = g.constant(width, 7)
+        upper = g.constant(2 * width, 7)
+        here = g.both(g.node(12, 1, lower, vector), g.node(15, 1, remaining, lower),
+                      g.node(12, 1, remaining, upper))
+        duplicate = g.either(duplicate, g.both(here, hit))
+        hit = g.either(hit, here)
+    outside_partition = g.either(duplicate, g.node(6, 1, hit))
+    return g.function('simd_endpoint_partition', g.both(g.node(12, 1, remaining, vector), outside_partition))
+
+
+def endpoint_query(effects):
+    g = WordCircuit()
+    remaining, point, outside = g.node(1, 7), g.node(1, 7), g.node(1, 1)
+    if effects:
+        source, before, other = g.node(1, 8), g.node(1, 8), g.node(1, 8)
+    width = g.constant('delta', 7)
+    decrement = g.constant('get(w, SIMD_DECREMENT_SLOT)', 7)
+    zero, one = g.constant(0, 7), g.constant(1, 7)
+    upper = g.node(9, 7, width, width)
+    path = g.both(g.node(15, 1, remaining, width), g.node(12, 1, remaining, upper))
+    inside = g.node(6, 1, outside)
+    target = g.both(inside, g.node(12, 1, point, remaining))
+    suffix = g.node(10, 7, remaining, decrement)
+    end = g.node(9, 7, suffix, width)
+    second = g.node(8, 1, width, one)
+    in_first = g.both(inside, g.node(12, 1, point, width))
+    in_last = g.both(inside, second, g.node(15, 1, point, suffix), g.node(12, 1, point, end))
+    # 0 <= remaining < 2*width <= 64. Every mathematical byte outside
+    # [0,127] is represented by outside. The caller invariant makes its
+    # absolute addresses equivalent to these relative offset checks.
+    bounds = g.either(g.node(14, 1, width, remaining),
+                      g.both(second, g.either(g.node(14, 1, decrement, remaining),
+                                              g.node(14, 1, end, remaining))))
+    if effects:
+        # The decoded schedule loads source before either store. At a symbolic
+        # destination byte j, an in-range store selects source[j - dst + src].
+        # Equal read/write offsets make both overlapping writes select the same
+        # source byte. An arbitrary other byte models every unequal address.
+        source_end = g.node(10, 7, remaining, decrement)
+        effective = g.node(9, 7, g.node(10, 7, point, suffix), source_end)
+        from_last = g.node(11, 8, g.node(7, 1, effective, point), source, other)
+        actual = g.node(11, 8, in_last, from_last, g.node(11, 8, in_first, source, before))
+        expected = g.node(11, 8, target, source, before)
+        bad = g.either(bounds, g.node(8, 1, actual, expected))
+    else:
+        bad = g.either(bounds, g.node(8, 1, g.either(in_first, in_last), target))
+    return g.function('simd_endpoint_effects' if effects else 'simd_endpoint_bounds', g.both(path, bad))
+
+
+def bounded_word_partition():
+    g = WordCircuit()
+    remaining, point, outside = g.node(1, 5), g.node(1, 5), g.node(1, 1)
+    zero = g.constant(0, 5)
+    inactive = g.constant(0, 1)
+    inside = g.node(6, 1, outside)
+    cursor, rest, hit, bad = zero, remaining, inactive, inactive
+    for width in (8, 4, 2, 1):
+        boundary = g.constant(width, 5)
+        take = g.node(15, 1, rest, boundary)
+        end = g.node(9, 5, cursor, boundary)
+        here = g.both(inside, take, g.node(13, 1, cursor, point), g.node(12, 1, point, end))
+        consumed = g.node(11, 5, take, boundary, zero)
+        rest = g.node(10, 5, rest, consumed)
+        bad = g.either(bad, g.both(take, g.node(14, 1, end, remaining)), g.both(hit, here),
+                       g.node(15, 1, rest, boundary))
+        hit = g.either(hit, here)
+        cursor = g.node(9, 5, cursor, consumed)
+    target = g.both(inside, g.node(12, 1, point, remaining))
+    bad = g.either(bad, g.node(8, 1, rest, zero), g.node(8, 1, cursor, remaining),
+                   g.node(8, 1, hit, target))
+    return g.function('simd_bounded_partition', g.both(g.node(12, 1, remaining, g.constant(16, 5)), bad))
+
+
+def endpoint_geometry_source():
+    from tools.generate_hia_verified_simd_avx512_check import VOCABULARY
+
+    # Both wide profiles use the same endpoint instructions at these widths.
+    # Read the actual SUB operand between exact loads/stores and pointer adds.
+    lines = ['def simd_endpoint_extent(w:mutbuf, at:u64, end:u64, width:u64) -> u64:']
+    for width in (1, 2, 4, 8, 16, 32):
+        bits = width * 8
+        vector = width >= 16
+        load = 'vload' if vector else 'copy_load'
+        store = 'vstore' if vector else 'copy_store'
+        first, last = (1, 2) if vector else (9, 11)
+        rows = [(load, bits, first, 2, 0)]
+        if width != 1:
+            rows.extend([('alu_imm', 'sub', 10, width), ('add', 2, 10), (load, bits, last, 2, 0)])
+        rows.append((store, bits, 7, 0, first))
+        if width != 1:
+            rows.extend([('add', 7, 10), (store, bits, 7, 0, last)])
+        encoded = [bytes.fromhex(VOCABULARY[op]) for op in rows]
+        raw = b''.join(encoded)
+        operand = len(encoded[0]) + 3 if width != 1 else None
+        lines.extend((f'    if width == {width}:', f'        if end - at < {len(raw)}:', '            return 0'))
+        for pos in range(0, len(raw), 8):
+            part = raw[pos:pos + 8]
+            mask = (1 << (len(part) * 8)) - 1
+            if operand is not None and pos <= operand < pos + len(part):
+                mask ^= 255 << (8 * (operand - pos))
+            value = int.from_bytes(part, 'little') & mask
+            lines.extend((f'        if (get(w, at + {pos}) & {mask}) != {value}:', '            return 0'))
+        if operand is None:
+            lines.append('        return 1')
+        else:
+            lines.append(f'        return byte(w, at + {operand})')
+    return '\n'.join((*lines, '    return 0'))
+
+
 def scalar_tail_exit():
     g = WordCircuit()
     count, index = g.node(1, 64), g.node(1, 64)
@@ -136,4 +253,6 @@ def simd_miter(w:mutbuf, nodes:u64, predicate:u64, false:u64) -> u64:
 
 def source():
     return '\n\n'.join((TRANSPORT.replace('CIRCUIT_MAGIC', str(CIRCUIT_REQUEST)),
-                        caller_contract(False), caller_contract(True), abort_stack(), scalar_tail_exit(), interval_step()))
+                        caller_contract(False), caller_contract(True), abort_stack(), scalar_tail_exit(), interval_step(),
+                        endpoint_dispatch(), endpoint_query(False), endpoint_query(True), bounded_word_partition(),
+                        endpoint_geometry_source()))
