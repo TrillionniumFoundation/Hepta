@@ -41,7 +41,8 @@ IMPORTS = frozenset({"abort", "calloc", "malloc", "free", "memset", "memcpy", "m
 # They may remain private Core function names, never external entrypoints.
 _LOADER_HOOKS = frozenset({"_init", "_fini", "__gmon_start__", "__cxa_finalize", "__dso_handle",
                           "_ITM_registerTMCloneTable", "_ITM_deregisterTMCloneTable"})
-CORE_SCHEMAS = frozenset(f"hepta.hia.program.v{v}" for v in range(1, 9)) | frozenset({"hepta.hia.program.kernel-fence.v1", "hepta.hia.program.kernel-tlb.v1"})
+CORE_SCHEMAS = frozenset(f"hepta.hia.program.v{v}" for v in range(1, 9))
+KERNEL_SCHEMAS = frozenset({"hepta.hia.program.kernel-fence.v1", "hepta.hia.program.kernel-tlb.v1"})
 WIDTHS = {**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
           "isize": 64, "usize": 64}
 BYTE_RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
@@ -56,9 +57,10 @@ SUPPORTED_OPCODES = frozenset({
     "buffer.new", "buffer.try_new", "buffer.len", "borrow.read", "borrow.mut",
     "loan.end", "owner.move", "owner.drop", "buffer.load", "buffer.store",
     "buffer.fill", "buffer.copy", "buffer.move_within", "buffer.swap",
-    "buffer.copy_range", "buffer.fill_range", "call", "x86.fence.mfence", "x86.tlb.invlpg",
+    "buffer.copy_range", "buffer.fill_range", "call",
     "chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut",
 })
+KERNEL_SUPPORTED_OPCODES = SUPPORTED_OPCODES | {"x86.fence.mfence", "x86.tlb.invlpg"}
 _ARG_REGS = ("rdi", "rsi", "rdx", "rcx", "r8", "r9")
 
 
@@ -655,10 +657,7 @@ class _Emitter:
     def __init__(self, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
         from .hia_machine_plan import code_options
         self.document, self.allowed_exports = document, allowed_exports
-        kernel_profile = document["schema"] in {"hepta.hia.program.kernel-fence.v1",
-                                                  "hepta.hia.program.kernel-tlb.v1"}
-        code_cls = KernelCode if kernel_profile else Code
-        self.c, self.symbols, self.exports, self.frames = code_cls(**code_options(machine_plan)), [], [], []
+        self.c, self.symbols, self.exports, self.frames = Code(**code_options(machine_plan)), [], [], []
         self.machine_plan = machine_plan
         self.function_alignment = 1 if machine_plan is None else machine_plan.get("function_alignment", 1)
         self.indices = {fn["name"]: i for i, fn in enumerate(document["functions"])}
@@ -742,11 +741,7 @@ class _Emitter:
             functions = [by_name[name] for name in self.machine_plan["function_order"]]
         for fn in functions:
             self.c.align(self.function_alignment)
-            function_cls = (_KernelFunction if self.document["schema"] in {
-                "hepta.hia.program.kernel-fence.v1",
-                "hepta.hia.program.kernel-tlb.v1",
-            } else _Function)
-            function_cls(self, fn, self.indices[fn["name"]]).render()
+            _Function(self, fn, self.indices[fn["name"]]).render()
         for fn in functions:
             self.c.align(self.function_alignment)
             self.wrapper(fn)
@@ -761,6 +756,58 @@ class _Emitter:
         obj = write_elf_object(text, self.symbols, relocations,
                                text_alignment=max(16, self.function_alignment))
         return text, obj
+
+class _KernelEmitter(_Emitter):
+    """Experimental typed kernel emitter; never the qualified v1-v8 owner."""
+
+    def __init__(self, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
+        from .hia_machine_plan import code_options
+        from .hia_core_emitter_selection import selected_core_emitter
+        from .hia_core_lowering_selection import active_core_lowering
+        if selected_core_emitter(globals()) is not None or active_core_lowering() is not None:
+            _reference_reject("experimental kernel lowering lacks a qualified Core owner", "E_HIA_PROGRAM_PROFILE")
+        super().__init__(document, allowed_exports, block_order, foreign_buffer_exports, machine_plan)
+        self.c = KernelCode(**code_options(machine_plan))
+
+    def render(self):
+        # Future Core additions require an explicit lowering review. A growing
+        # verifier registry cannot silently widen this backend through prefixes.
+        if self.document["schema"] not in KERNEL_SCHEMAS:
+            _reject("Core schema lacks a reviewed direct lowering", "E_HIA_PROGRAM_PROFILE")
+        for fn in self.document["functions"]:
+            types = [p["type"] for p in fn["params"]] + fn["returns"]
+            for block in fn["blocks"]:
+                types.extend(p["type"] for p in block["params"])
+                if block["term"]["op"] not in {"ret", "jump", "branch", "trap"}:
+                    _reject("terminator lacks a reviewed direct lowering", "E_HIA_PROGRAM_PROFILE")
+                for instruction in block["ops"]:
+                    if instruction["op"] not in KERNEL_SUPPORTED_OPCODES:
+                        _reject("opcode lacks a reviewed direct lowering", "E_HIA_PROGRAM_PROFILE")
+                    types.extend(p["type"] for p in instruction["out"])
+            if any(typ not in _TYPES for typ in types):
+                _reject("type lacks a reviewed direct lowering", "E_HIA_PROGRAM_PROFILE")
+        functions = self.document["functions"]
+        if self.machine_plan is not None and "function_order" in self.machine_plan:
+            by_name = {fn["name"]: fn for fn in functions}
+            functions = [by_name[name] for name in self.machine_plan["function_order"]]
+        for fn in functions:
+            self.c.align(self.function_alignment)
+            _KernelFunction(self, fn, self.indices[fn["name"]]).render()
+        for fn in functions:
+            self.c.align(self.function_alignment)
+            self.wrapper(fn)
+        missing = set(self.document.get("exports", [])) - set(self.exports)
+        if missing:
+            _reject("explicit exports have signatures outside the native C ABI: " + ", ".join(sorted(missing)), "E_HIA_PROGRAM_ABI")
+        if not 1 <= len(self.exports) <= 128:
+            _reject("native profile requires between 1 and 128 admitted entrypoints")
+        if len(self.c.data) > MAX_TEXT_BYTES:
+            _reject("direct code exceeds the text budget", "E_HIA_PROGRAM_LIMIT")
+        text, relocations = self.c.finalize()
+        obj = write_elf_object(text, self.symbols, relocations,
+                               text_alignment=max(16, self.function_alignment))
+        return text, obj
+
 
 
 def validate_block_layout_plan(program, machine_plan):
@@ -809,8 +856,10 @@ def _emit_program_machine_with_encoding(program, *, target=TARGET, machine_plan=
     plan = None if machine_plan is None else validate_block_layout_plan(checked, machine_plan)
     plan_hash = None if plan is None else sha256(json.dumps(
         plan, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
-    emitter = _Emitter(checked.as_dict(), checked.scalar_entrypoints,
-                       None if plan is None else plan["block_order"], byte_exports, plan)
+    document = checked.as_dict()
+    emitter_cls = _KernelEmitter if document["schema"] in KERNEL_SCHEMAS else _Emitter
+    emitter = emitter_cls(document, checked.scalar_entrypoints,
+                          None if plan is None else plan["block_order"], byte_exports, plan)
     text, obj = emitter.render()
     if len(obj) > MAX_ARTIFACT_BYTES:
         _reject("object exceeds artifact byte budget", "E_HIA_PROGRAM_LIMIT")

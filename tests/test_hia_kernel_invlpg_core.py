@@ -72,6 +72,20 @@ class KernelTlbCoreTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(HIAProgramRejected):
                 verify_program(altered)
 
+    def test_experimental_emitter_cannot_bypass_frozen_owner(self):
+        from hepta import hia_program_native as native
+        document = sample()
+        self.assertNotIn(document["schema"], native.CORE_SCHEMAS)
+        self.assertNotIn("x86.tlb.invlpg", native.SUPPORTED_OPCODES)
+        with self.assertRaisesRegex(native.HIAProgramNativeRejected, "E_HIA_PROGRAM_PROFILE"):
+            native._Emitter(document, {"f0"}).render()
+        for selector in (
+                "hepta.hia_core_emitter_selection.selected_core_emitter",
+                "hepta.hia_core_lowering_selection.active_core_lowering"):
+            with self.subTest(selector=selector), patch(selector, return_value=object()):
+                with self.assertRaisesRegex(native.HIAProgramNativeRejected, "lacks a qualified Core owner"):
+                    native._KernelEmitter(document, {"f0"})
+
     def test_interpreter_never_reports_privileged_success(self):
         with self.assertRaisesRegex(HIAProgramRejected, "CPL0"):
             execute_program(sample(), "f0", [0x4000])
