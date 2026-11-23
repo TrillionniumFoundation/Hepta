@@ -100,6 +100,16 @@ policy_call_hole:
  je acquire_owner_fd
  cmp eax,16
  je observe_owner_marker
+ cmp eax,17
+ je observe_handoff_peer
+ cmp eax,18
+ je open_custody_lock
+ cmp eax,19
+ je observe_custody_lock
+ cmp eax,20
+ je acquire_custody_lock
+ cmp eax,21
+ je send_custody_lock
  jmp refusal
 
 stage:
@@ -248,6 +258,7 @@ observed:
  * before selecting its next kernel operation. */
 observe_owner_fd:
  mov edi,1
+observe_selected_fd:
  mov rsi,rbp
  mov eax,5                    /* fstat */
  syscall
@@ -271,11 +282,12 @@ observe_owner_fd:
 
 acquire_owner_fd:
  mov edi,1
+acquire_selected_fd:
  mov esi,6                    /* LOCK_EX | LOCK_NB */
  mov eax,73                   /* flock */
  syscall
  cmp rax,-4
- je acquire_owner_fd
+ je acquire_selected_fd
  jmp observed
 
 observe_owner_marker:
@@ -287,6 +299,77 @@ observe_owner_marker:
  syscall
  cmp rax,-4
  je observe_owner_marker
+ jmp observed
+
+observe_handoff_peer:
+ mov edi,[r12+32]
+ mov esi,1                    /* SOL_SOCKET */
+ mov edx,17                   /* SO_PEERCRED */
+ lea r10,[rbp+640]
+ lea r8,[rbp+656]
+ mov DWORD PTR [r8],12
+ mov eax,55                   /* getsockopt */
+ syscall
+ test rax,rax
+ js observed
+ cmp DWORD PTR [rbp+656],12
+ jne refusal
+ mov eax,[rbp+640]
+ mov [rbp+216],rax             /* socket creator PID */
+ mov eax,[rbp+644]
+ mov [rbp+224],rax             /* socket creator UID */
+ xor eax,eax
+ jmp observed
+
+open_custody_lock:
+ mov edi,1
+ lea rsi,[rbp+384]
+ mov edx,0xa0042               /* O_RDWR|O_CREAT|O_NOFOLLOW|O_CLOEXEC */
+ mov r10d,384                 /* 0600, constrained by inherited umask */
+ mov eax,257                  /* openat */
+ syscall
+ cmp rax,-4
+ je open_custody_lock
+ mov r14,rax
+ jmp observed
+
+observe_custody_lock:
+ mov edi,r14d
+ jmp observe_selected_fd
+
+acquire_custody_lock:
+ mov edi,r14d
+ jmp acquire_selected_fd
+
+send_custody_lock:
+ /* One byte and one SCM_RIGHTS descriptor to the verified peer socket.
+  * The receiver obtains the same locked open file description. */
+ lea rdi,[rbp+640]
+ xor eax,eax
+ mov ecx,19
+ rep stosq
+ lea rax,[rbp+704]
+ mov [rbp+656],rax             /* msg_iov */
+ mov QWORD PTR [rbp+664],1    /* msg_iovlen */
+ lea rax,[rbp+736]
+ mov [rbp+672],rax             /* msg_control */
+ mov QWORD PTR [rbp+680],24   /* CMSG_SPACE(sizeof(int)) */
+ lea rax,[rbp+784]
+ mov [rbp+704],rax
+ mov QWORD PTR [rbp+712],1
+ mov QWORD PTR [rbp+736],20   /* CMSG_LEN(sizeof(int)) */
+ mov DWORD PTR [rbp+744],1    /* SOL_SOCKET */
+ mov DWORD PTR [rbp+748],1    /* SCM_RIGHTS */
+ mov [rbp+752],r14d
+ mov BYTE PTR [rbp+784],76    /* 'L' */
+send_custody_message:
+ mov edi,[r12+32]
+ lea rsi,[rbp+640]
+ mov edx,0x4040                /* MSG_NOSIGNAL|MSG_DONTWAIT */
+ mov eax,46                   /* sendmsg */
+ syscall
+ cmp rax,-4
+ je send_custody_message
  jmp observed
 
 emit:
