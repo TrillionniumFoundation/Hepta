@@ -1,4 +1,4 @@
-"""Reject unkeyed Evaluate requests with the original schema diagnostic and one Store cost."""
+"""Account for Evaluate admission failures without replacing an existing Journal intent."""
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
@@ -41,16 +41,24 @@ def reject_unkeyed(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if operation == READ and (input_word(s, 32) != get(w, 80) or offset != get(w, 88) or captured != get(w, 96)):
         return BAD
     if state == UNKEYED_HEADER:
-        if length(s) != 88 or input_word(s, 64) != UNKEYED or input_word(s, 72) == 0:
+        if length(s) != 88 or input_word(s, 72) == 0:
             return BAD
         n = input_word(s, 80)
-        if n < 2 or n > 8388608 or n + 24 != slot_bytes(w, ORIGINAL):
+        if n < 2 or n > 8388608 or n + 24 > slot_bytes(w, ORIGINAL):
+            return BAD
+        observed = slot_bytes(w, ORIGINAL) - 24 - n
+        tag = input_word(s, 64)
+        if tag == OBSERVED_HANDOFF and (observed == 95 or observed == 97):
+            keep(w, LOOKUP_FD, 0, slot_bytes(w, ORIGINAL))
+            put(w, LOOKUP_AT, 24 + n)
+            put(w, LOOKUP_BYTES, observed)
+        elif tag != UNKEYED or observed != 0:
             return BAD
         put(w, START_TIME, input_word(s, 72))
         fragment(o, 0, 0, 24, n)
         return action(o, w, ORIGINAL_READY, MAKE, 0, 0, 1, 0)
     if state == ORIGINAL_READY:
-        if extent + 24 != slot_bytes(w, ORIGINAL):
+        if extent + 24 + get(w, LOOKUP_BYTES) != slot_bytes(w, ORIGINAL):
             return BAD
         observe_slot(s, w, ORIGINAL)
         put(o, HEADER, ADMISSION)
@@ -80,6 +88,11 @@ def reject_unkeyed(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return BAD
         after_prefix(w, o, ARGUMENT_FD, 0)
         return action(o, w, DIAGNOSTIC, RUN, DIAGNOSTIC_ROLE, 0, 1, 0)
+    if state == ERROR_RENDERED:
+        if extent < 2 or length(s) < 65 or byte(s,64) != 123:
+            return BAD
+        observe_slot(s, w, EFFECT_FD)
+        return end_effect(o, w, 2, 0)
     if state == DIAGNOSTIC:
         if plan_ok(s) == False:
             return BAD
@@ -104,7 +117,9 @@ def artifact_edge(stage:u64, next:u64, status:u64, bytes:u64) -> bool:
     if stage == 9:
         return next == 0 and status == 0
     if stage == 0:
-        return next == 11 and status == 0
+        return (next == 1 or next == 11) and status == 0
+    if stage == 1:
+        return next == 14 and status == 0
     if stage == 14:
         return next == 17 and bytes <= 192
     return stage == 8 and next == 18 and status == 2
@@ -113,7 +128,14 @@ def journal_action(o:mutbuf, w:mutbuf) -> u64:
     stage = get(w, JOURNAL_STAGE)
     if stage == 9:
         return send_journal(o, w, 0)
-    if stage == 0 and get(w, JOURNAL_NEXT) == 11:
+    if stage == 0 and get(w, LOOKUP_BYTES) > 0 and get(w, JOURNAL_NEXT) == 1:
+        return send_journal(o, w, 1)
+    if stage == 1 and get(w, LOOKUP_BYTES) > 0 and get(w, JOURNAL_NEXT) == 14:
+        code = get(w, JOURNAL_STATE + 56)
+        if code != 2 and code != 3:
+            return BAD
+        return artifact_error(o, w, 1, code)
+    if stage == 0 and get(w, LOOKUP_BYTES) == 0 and get(w, JOURNAL_NEXT) == 11:
         return project_artifact(o, w, ARGUMENT_PROJECTED, ARGUMENT, ARGUMENT_ROLE)
     if stage == 8 and get(w, JOURNAL_NEXT) == 18 and get(w, EFFECT_STATUS) == 2:
         return clock_sample(o, w, COST_CLOCK, 0)
@@ -134,6 +156,7 @@ def closed_store(o:mutbuf, w:mutbuf) -> u64:
 def program():
     constants, shared = recipe(ROLES)
     constants.update(SCHEMA_TOOL=9, UNKEYED=int.from_bytes(b'HIAENK01', 'little'),
+                     OBSERVED_HANDOFF=int.from_bytes(b'HIAEKL01', 'little'),
                      UNKEYED_HEADER=60, ORIGINAL_READY=61, COST_ACK=62, MAKE=11,
                      COMMIT_INTENT=int.from_bytes(b'HIASTCP1', 'little'))
     controls = []
@@ -141,7 +164,7 @@ def program():
         if part.lstrip().startswith(('def interpret_row(', 'def lookup_observation(')):
             continue
         if part.lstrip().startswith('def admit_entry('):
-            part = part.replace('n > MAX_INPUT', 'n > MAX_INPUT + 24')
+            part = part.replace('n > MAX_INPUT', 'n > MAX_INPUT + 121')
         if part.lstrip().startswith('def issue('):
             # The Context descriptor carrier also recognizes wide commands and
             # special child names. Clear both fields on each ordinary command.
@@ -158,7 +181,7 @@ def program():
     return read_span(o, w, COST_ACK, slot_fd(w, STORE_RESULT), 0, 8)
 '''
         controls.append(part)
-    controls.extend(function(ARTIFACT, name) for name in ('schema_receipt', 'end_effect', 'clock_sample'))
+    controls.extend(function(ARTIFACT, name) for name in ('schema_receipt', 'end_effect', 'clock_sample', 'artifact_error'))
     controls.append(function(DESCRIBE, 'reply_word'))
     publication = function(EFFECT_POLICY, 'publish_artifact')
     cost = publication[publication.index('    if state == COST_CLOCK:'):publication.index('    if state == TERMINAL:')]

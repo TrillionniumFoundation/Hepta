@@ -10,6 +10,18 @@ SOURCE = Path('examples/hia_bootstrap/worker_evaluate_run_input_flow.hepta')
 # HIAEFH01 carries the same durable HIAEJC01 followed by the original native
 # admission and call projections. The clock is sampled before request parsing.
 POLICY = '''
+def publish_observed_rejection(o:mutbuf, w:mutbuf) -> u64:
+    original = slot_bytes(w, ORIGINAL)
+    observed = get(w, LOOKUP_BYTES)
+    if (observed != 95 and observed != 97) or original < 2 or original > 8388608 or get(w,64) == 0:
+        return BAD
+    put(o, HEADER, OBSERVED_HANDOFF)
+    put(o, HEADER + 8, get(w,64))
+    put(o, HEADER + 16, original)
+    whole_slot(w, o, ORIGINAL, 0)
+    fragment(o, 1, slot_fd(w,LOOKUP_FD), get(w,LOOKUP_AT), observed)
+    return action(o, w, OBSERVED_READY, MAKE, 0, 0, 2, 24)
+
 def publish_execution_input(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     size = input_word(s,40)
     admitted = slot_bytes(w,ADMITTED_FD)
@@ -38,6 +50,8 @@ def run_input_recipe(driver, policy, controls, constants):
                                               'return clock_sample(o, w, ENTRY_TICK, 0)')
     driver = driver.replace('return next == 1 and status == 0',
                             'return (next == 1 or next == 11) and status == 0')
+    constants['OBSERVED_READY'] = 108
+    constants['OBSERVED_HANDOFF'] = int.from_bytes(b'HIAEKL01', 'little')
     constants['UNKEYED_HANDOFF'] = int.from_bytes(b'HIAENK01', 'little')
     policy = policy.replace('    if stage == 0:\n        return open_store(o, w, OPEN_LOOKUP)', '''    if stage == 0:
         if next == 11 and get(w, CLAIM_ACTIVE) == 0:
@@ -47,7 +61,13 @@ def run_input_recipe(driver, policy, controls, constants):
             whole_slot(w, o, ORIGINAL, 0)
             return action(o, w, INTAKE_PUBLISHED, PUBLISH, 0, 0, 1, 24)
         return open_store(o, w, OPEN_LOOKUP)''')
-    driver = driver.replace('    if state == REQUEST_ADMITTED:', '''    if state == RUN_INPUT_MADE:
+    driver = driver.replace('    if state == REQUEST_ADMITTED:', '''    if state == OBSERVED_READY:
+        size = 24 + slot_bytes(w, ORIGINAL) + get(w, LOOKUP_BYTES)
+        if input_word(s,40) != size or input_word(s,64) != OBSERVED_HANDOFF:
+            return BAD
+        fragment(o,0,input_word(s,32),0,size)
+        return action(o,w,INTAKE_PUBLISHED,PUBLISH,0,0,1,0)
+    if state == RUN_INPUT_MADE:
         size = input_word(s,40)
         if size < 648 or input_word(s,64) != RUN_INPUT:
             return BAD
@@ -61,6 +81,12 @@ def run_input_recipe(driver, policy, controls, constants):
     if state == REQUEST_ADMITTED:
         if input_word(s,40) < 2 or input_word(s,56) == 0 or byte(s,64) != 123:
             return BAD''')
+    # Preserve precisely the lookup observation which the Journal classified. The
+    # cost owner must never query the row again after its read transaction closes.
+    policy = policy.replace('    if purpose == CLOSED_RESERVATION:',
+                            '    if purpose == CLOSED_LOOKUP and get(w,CLAIM_ACTIVE) == 0 and get(w,JOURNAL_NEXT) == 14:\n'
+                            '        return publish_observed_rejection(o,w)\n'
+                            '    if purpose == CLOSED_RESERVATION:')
     # A completed row is observed under the same initial read-only transaction
     # as a miss. Replay it using the original Journal terminal and public report.
     policy = policy.replace('    if purpose == CLOSED_RESERVATION:',

@@ -92,6 +92,14 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     if state >= BUILD_TICKET and state <= BUILD_COMPARED:
         return confirm_build_refusal(s,o,w,state)
     if state == INPUT_CLASSIFIED:
+        if length(s) >= 88 and capsule_word(s,64) == OBSERVED_HANDOFF:
+            original = capsule_word(s,80)
+            if original < 2 or original > MAX_REQUEST or size < 24+original or capsule_word(s,72) == 0:
+                return BAD
+            observed = size-24-original
+            if observed != 95 and observed != 97:
+                return BAD
+            return full_unkeyed(o,w,fd,size)
         if length(s) < 72:
             return BAD
         if size > 677 and size <= 676+MAX_REQUEST and capsule_word(s,64) == SCHEMA_QUERY:
@@ -349,7 +357,7 @@ def compose(source, roles):
 
 
 def bindings(roles):
-    labels = dict(UNKEYED_HANDOFF=b'HIAENK01', KEYED_REFUSAL=b'HIAERJ01',EXPECTED_REFUSAL=b'HIAEXR01', SCHEMA_QUERY=b'HIAESQ01', KEYED_SCHEMA=b'HIAESR01',
+    labels = dict(OBSERVED_HANDOFF=b'HIAEKL01', UNKEYED_HANDOFF=b'HIAENK01', KEYED_REFUSAL=b'HIAERJ01',EXPECTED_REFUSAL=b'HIAEXR01', SCHEMA_QUERY=b'HIAESQ01', KEYED_SCHEMA=b'HIAESR01',
                   ERROR_START=b'{"code":', SCHEMA_START=b'"E_HIA_S', PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', BUILD_REFUSAL=b'HIAEFP01', STORE_HASH=b'store-ha', STORE_HASH_END=b'sh',
                   HASH_START=b'{"sha256', HASH_VALUE=b'":"', HASH_END=b'","bytes', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
                   PAID=b'HIAEXO01', JOURNAL=b'HIAEJC01', ARCHIVE=b'HIAEMT01', BUDGET=b'HIAEBRS1',
