@@ -276,6 +276,32 @@ class DefaultReleaseNativeTests(unittest.TestCase):
             self.assertIsNone(archive.testzip())
             self.assertEqual(archive.getinfo(program).external_attr >> 16, 0o100755)
 
+    def test_hia_inflater_admits_extent_before_allocating(self):
+        import ctypes
+        import zlib
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from tools.build_hia_default_release import _inflate_wheel_member
+
+        folder = self.root / 'build' / 'wheel-record'
+        raw = (folder / 'wheel_inflate.image.bin').read_bytes()
+        receipt = json.loads((folder / 'wheel_inflate.receipt.json').read_bytes())
+        image = NativeHiaJsonImage(raw, receipt['produced_sha256'])
+        content = b'wheel' * 18432
+        for level, strategy in ((0, zlib.Z_DEFAULT_STRATEGY), (6, zlib.Z_FIXED), (9, zlib.Z_DEFAULT_STRATEGY)):
+            compressor = zlib.compressobj(level, zlib.DEFLATED, -15, zlib.DEF_MEM_LEVEL, strategy)
+            encoded = compressor.compress(content) + compressor.flush()
+            self.assertEqual(_inflate_wheel_member(image, encoded, len(content)), content)
+            for damaged in (encoded[:-1], encoded + b'X'):
+                with self.assertRaises(zipfile.BadZipFile):
+                    _inflate_wheel_member(image, damaged, len(content))
+        allocate = ctypes.create_string_buffer
+        def bounded(value, *args):
+            if isinstance(value, int) and value > 4112:
+                self.fail('allocation preceded validation of the declared uncompressed extent')
+            return allocate(value, *args)
+        with patch.object(ctypes, 'create_string_buffer', bounded), self.assertRaises(zipfile.BadZipFile):
+            _inflate_wheel_member(image, encoded, 1 << 44)
+
     def test_wheel_is_platform_specific_and_only_pin_is_derived_runtime_source(self):
         import csv
         import io

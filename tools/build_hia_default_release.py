@@ -136,13 +136,14 @@ def _slot_wheel_members(files, captured, tag):
     return {path, SLOT_RECEIPT}, tag
 
 
-def _wheel_contents(path, sources, captured):
+def _wheel_contents(path, sources, captured, images):
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
         if (len(names) != len(set(names))
                 or any(Path(name).is_absolute() or '..' in Path(name).parts for name in names)):
             raise ValueError('invalid ordinary wheel member inventory')
-        files = {name: archive.read(name) for name in names}
+        workspace = ctypes.create_string_buffer(2048)
+        files = {name: _wheel_member(archive, name, images, workspace) for name in names}
     records = [name for name in files if name.endswith('.dist-info/RECORD')]
     if len(records) != 1:
         raise ValueError('one wheel distribution inventory is required')
@@ -224,7 +225,7 @@ def _wheel_record_images(directory, compiler, sources, cold_bytes):
     directory.mkdir(mode=0o700)
     images = []
     programs = (('sha256_stream', NativeSha256Stream), ('wheel_record_row', NativeHiaJsonImage),
-                ('wheel_zip_directory', NativeHiaJsonImage))
+                ('wheel_zip_directory', NativeHiaJsonImage), ('wheel_inflate', NativeHiaJsonImage))
     for name, image_type in programs:
         relative = 'examples/hia_bootstrap/' + name + '.hepta'
         path = ROOT / relative
@@ -269,17 +270,56 @@ def _zip_frame(encoder, action, *, size, compressed=0, offset=0, crc=0, executab
     return output.raw[:used]
 
 
+def _wheel_crc(encoder, raw, workspace):
+    crc = 0
+    chunk_bytes = 1 << 20
+    for start in range(0, len(raw), chunk_bytes):
+        chunk = raw[start:start + chunk_bytes]
+        encoded = _zip_frame(encoder, ZIP_CRC_UPDATE, size=len(chunk), crc=crc, payload=chunk, workspace=workspace)
+        crc = int.from_bytes(encoded, 'little')
+    return crc
+
+
+def _inflate_wheel_member(image, compressed, size):
+    """Walk the entire stream and check its extent before allocating from the ZIP metadata."""
+    source = ctypes.create_string_buffer(compressed, max(1, len(compressed)))
+    measurement = ctypes.create_string_buffer(4112)
+    measurement[4096:] = struct.pack('<8sQ', b'HIACOUNT', size)
+    length = ctypes.create_string_buffer(8)
+    if (image._entry(source, len(compressed), length, 8, measurement, len(measurement)) != 0
+            or int.from_bytes(length.raw, 'little') != size):
+        raise zipfile.BadZipFile('invalid DEFLATE stream or declared wheel member size')
+    output = ctypes.create_string_buffer(size)
+    workspace = ctypes.create_string_buffer(4096)
+    if image._entry(source, len(compressed), output, size, workspace, len(workspace)) != 0:
+        raise zipfile.BadZipFile('invalid wheel DEFLATE payload')
+    return output.raw
+
+
+def _wheel_member(archive, name, images, crc_workspace):
+    _, _, zipper, inflater = images
+    info = archive.getinfo(name)
+    if info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+        return archive.read(info)
+    # ZipFile.open admits the original local name, flags and nonoverlapping extent.
+    # This private archive reader has a single owner for the duration of the build.
+    with archive.open(info):
+        compressed = archive.fp.read(info.compress_size)
+    if len(compressed) != info.compress_size:
+        raise zipfile.BadZipFile('truncated wheel member')
+    raw = compressed if info.compress_type == zipfile.ZIP_STORED else _inflate_wheel_member(
+        inflater, compressed, info.file_size)
+    if len(raw) != info.file_size or _wheel_crc(zipper, raw, crc_workspace) != info.CRC:
+        raise zipfile.BadZipFile('wheel member length or CRC differs')
+    return raw
+
+
 def _write_zip(stream, files, distribution, encoder):
     directory = bytearray()
     prefix = distribution.removesuffix('.dist-info') + '.data/scripts/'
     workspace = ctypes.create_string_buffer(2048)
-    chunk_bytes = 1 << 20
     for name, raw in sorted(files.items()):
-        crc = 0
-        for start in range(0, len(raw), chunk_bytes):
-            chunk = raw[start:start + chunk_bytes]
-            encoded = _zip_frame(encoder, ZIP_CRC_UPDATE, size=len(chunk), crc=crc, payload=chunk, workspace=workspace)
-            crc = int.from_bytes(encoded, 'little')
+        crc = _wheel_crc(encoder, raw, workspace)
         compressor = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION, zlib.DEFLATED, -15)
         compressed = compressor.compress(raw) + compressor.flush()
         metadata = dict(name=name.partition('\0')[0].encode('utf-8'), size=len(raw),
@@ -296,7 +336,7 @@ def _write_zip(stream, files, distribution, encoder):
 def _write_wheel(path, files, distribution, record_images):
     if os.path.lexists(path):
         raise FileExistsError(path)
-    hasher, encoder, zipper = record_images
+    hasher, encoder, zipper, _ = record_images
     record = distribution + '/RECORD'
     entries = bytearray()
     digests = {}
@@ -434,7 +474,8 @@ def build(output, compiler, cold_report=None, *, development=False):
     staging = output / 'source'
     staging.mkdir(mode=0o700)
     base_wheel, command = _base_wheel(staging, output / 'base-wheel', captured, native_store_only=not development)
-    files, distribution, wheel_tag = _wheel_contents(base_wheel, sources, captured)
+    record_images = _wheel_record_images(output / 'wheel-record', compiler, sources, cold_bytes)
+    files, distribution, wheel_tag = _wheel_contents(base_wheel, sources, captured, record_images)
     if (files.get('hepta/_data/examples/hia_bootstrap/full_cost.hepta')
             != captured['examples/hia_bootstrap/full_cost.hepta']):
         raise ValueError('native candidate wheel does not own its exact HIA source')
@@ -469,7 +510,6 @@ def build(output, compiler, cold_report=None, *, development=False):
     files.update(derived)
     prefix = base_wheel.name.removesuffix('.whl').rsplit('-', 3)[0]
     wheel = output / (prefix + '-' + build_tag + '-' + wheel_tag + '.whl')
-    record_images = _wheel_record_images(output / 'wheel-record', compiler, sources, cold_bytes)
     if (current_sources() != sources or compiler.read_bytes() != compiler_bytes
             or (cold_bytes is not None and cold_report.read_bytes() != cold_bytes)
             or any((ROOT / name).read_bytes() != raw for name, raw in captured.items())
