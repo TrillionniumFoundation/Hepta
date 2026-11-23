@@ -34,7 +34,7 @@ from tools.build_hia_native_build_admission import build as build_build_admissio
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_native_filter import (
     build_evaluate_paired_batch, build_evaluate_projector, build_evaluate_reference_batch,
-    build_evaluate_settlement, build_execution_budget_session,
+    build_evaluate_budget_store, build_evaluate_settlement, build_execution_budget_session,
 )
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
@@ -600,6 +600,11 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                                                          packaged_roles, images=batched):
             if packaged_roles[kind].read_bytes() != expected.read_bytes():
                 raise ValueError(f'Store release {kind} differs from the cold-built HIA role')
+        budget_store = release / 'hia-evaluate-budget-store'
+        if budget_store.is_file():
+            expected = build_evaluate_budget_store(scratch / 'evaluate-budget-store', compiler, cold_report)
+            if budget_store.read_bytes() != expected.read_bytes():
+                raise ValueError('Store release Evaluate budget command differs from its cold-built HIA role')
         budget_session = release / 'hia-execution-budget-session'
         if budget_session.is_file():
             expected = build_execution_budget_session(scratch / 'execution-budget-session', compiler, cold_report)

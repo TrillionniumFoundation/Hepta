@@ -226,6 +226,8 @@ CANDIDATES = {
     'execution-budget-session-packer': ('execution_budget_session_packer', 'execution-budget-session-packer'),
     'evaluate-reference-batch': ('evaluate_reference_batch', 'evaluate-reference-batch'),
     'evaluate-paired-batch': ('evaluate_paired_batch', 'evaluate-paired-batch'),
+    'evaluate-budget-store': ('evaluate_budget_store', 'evaluate-budget-store'),
+    'evaluate-budget-store-packer': ('evaluate_budget_store_packer', 'evaluate-budget-store-packer'),
     'evaluate-settlement': ('evaluate_settlement', 'evaluate-settlement'),
     'evaluate-settlement-packer': ('evaluate_settlement_packer', 'evaluate-settlement-packer'),
     'evaluate-paired-batch-packer': ('evaluate_paired_batch_packer', 'evaluate-paired-batch-packer'),
