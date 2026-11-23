@@ -143,6 +143,7 @@ def closeout_literals():
         reasons.append((f'workload_error_{code}',error,message,'admission'))
     values = {'rejected_begin':LITERALS['envelope_begin']+LITERALS['envelope_error'],
               'request_prefix':LITERALS['envelope_request'], 'rejected_end':LITERALS['envelope_rejected']}
+    values.update(declared_prefix=LITERALS['refused_prefix'],declared_suffix=LITERALS['refused_suffix'])
     for name, code, message, phase in reasons:
         values[name] = json.dumps(dict(code=code,details_artifact=None,message=message,phase=phase,
                                        retry_action='correct_input'),sort_keys=True,separators=(',',':'))
@@ -154,6 +155,12 @@ def closeout_literals():
             lines.append(f'    put(o,at+{at},{int.from_bytes(data[at:at+8],"little")})')
         lines.append(f'    return at+{len(data)}')
     lines.append('def error_document(o:mutbuf,at:u64,reason:u64) -> u64:')
+    lines.extend(('    if reason >= 512 and reason < 1024:',
+                  '        index = reason-512', '        p = declared_prefix(o,at)',
+                  '        tens = divide_ten(index)', '        hundreds = divide_ten(tens)',
+                  '        if hundreds != 0:', '            store(o,p,48+hundreds)', '            p = p+1',
+                  '        if tens != 0:', '            store(o,p,48+tens-10*hundreds)', '            p = p+1',
+                  '        store(o,p,48+index-10*tens)', '        return declared_suffix(o,p+1)'))
     lines.extend(('    if reason == 1:', '        return baseline_error(o,at)'))
     lines.extend(('    if reason == 23:', '        return stale_context(o,at)'))
     lines.extend(('    if reason == 22:', '        return unknown_context(o,at)'))

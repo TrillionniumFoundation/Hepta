@@ -75,10 +75,10 @@ def child_calls(roles):
 
 
 STATES = ('INPUT_CLASSIFIED PROOF_DONE PLAN_DONE PAID_DONE CLAIM_MADE ARCHIVE_MADE RECEIPT_MADE '
-          'TIMING_MADE REPORT_DONE LEDGER_DONE CLOSE_LEADING CLOSE_INPUT CLOSED SCHEMA_DIAG SCHEMA_MADE').split()
+          'TIMING_MADE REPORT_DONE LEDGER_DONE CLOSE_LEADING CLOSE_INPUT CLOSED SCHEMA_DIAG SCHEMA_MADE EXPECT_HEAD EXPECT_TAIL EXPECT_READY').split()
 FIELDS = ('PREP_FD PREP_BYTES CLAIM_BYTES ADMITTED_BYTES CALL_BYTES ADMITTED_AT CALL_AT ENTRY_TIME '
           'PAID_FD ARCHIVE_BYTES RECEIPT_BYTES CLAIM_FD ARCHIVE_FD RECEIPT_FD REPORT_FD REPORT_BYTES '
-          'LEDGER_FD LEDGER_BYTES REFUSAL_FD REFUSAL_BYTES').split()
+          'LEDGER_FD LEDGER_BYTES REFUSAL_FD REFUSAL_BYTES EXPECT_FD EXPECT_INDEX EXPECT_HEAD_FD').split()
 
 POLICY = '''
 def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
@@ -155,6 +155,17 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
             return BAD
         return full_paid(o,w,fd,size)
     if state == PAID_DONE:
+        if size == 68 and capsule_word(s,64) == EXPECTED_REFUSAL:
+            count = capsule_word(s,88)
+            index = capsule_word(s,80)
+            if capsule_word(s,72) != get(w,ENTRY_TIME) or count == 0 or count > 512 or index >= count:
+                return BAD
+            put(w,EXPECT_FD,fd)
+            put(w,EXPECT_INDEX,index)
+            put(o,HEADER,KEYED_REFUSAL)
+            put(o,HEADER+8,get(w,ENTRY_TIME))
+            fragment(o,0,get(w,PREP_FD),72,8)
+            return issue(o,w,EXPECT_HEAD,MAKE,0,0,1,16)
         if size < 32 or capsule_word(s,64) != PAID or capsule_word(s,72) != get(w,ENTRY_TIME):
             return BAD
         archive = capsule_word(s,80)
@@ -221,6 +232,27 @@ def full_next(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
         fragment(o,1,get(w,PREP_FD),get(w,CALL_AT),get(w,CALL_BYTES))
         fragment(o,2,get(w,PREP_FD),get(w,ADMITTED_AT),get(w,ADMITTED_BYTES))
         return issue(o,w,CLOSE_LEADING,MAKE,0,0,3,48)
+    if state == EXPECT_HEAD:
+        if size != 24 or capsule_word(s,64) != KEYED_REFUSAL:
+            return BAD
+        put(w,EXPECT_HEAD_FD,fd)
+        put(o,HEADER,512+get(w,EXPECT_INDEX))
+        put(o,HEADER+8,512)
+        put(o,HEADER+16,64)
+        put(o,HEADER+24,8)
+        fragment(o,0,get(w,EXPECT_FD),32,36)
+        fragment(o,1,get(w,PREP_FD),104,584)
+        return issue(o,w,EXPECT_TAIL,MAKE,0,0,2,32)
+    if state == EXPECT_TAIL:
+        if size != 652:
+            return BAD
+        fragment(o,0,get(w,EXPECT_HEAD_FD),0,24)
+        fragment(o,1,fd,0,652)
+        return issue(o,w,EXPECT_READY,MAKE,0,0,2,0)
+    if state == EXPECT_READY:
+        if size != 676 or capsule_word(s,64) != KEYED_REFUSAL:
+            return BAD
+        return full_closeout(o,w,fd,size)
     if state == CLOSE_LEADING:
         if size != 48+get(w,REPORT_BYTES)+get(w,CALL_BYTES)+get(w,ADMITTED_BYTES) or capsule_word(s,64) != CLOSING:
             return BAD
@@ -253,7 +285,7 @@ def compose(source, roles):
 
 
 def bindings(roles):
-    labels = dict(UNKEYED_HANDOFF=b'HIAENK01', KEYED_REFUSAL=b'HIAERJ01', SCHEMA_QUERY=b'HIAESQ01', KEYED_SCHEMA=b'HIAESR01',
+    labels = dict(UNKEYED_HANDOFF=b'HIAENK01', KEYED_REFUSAL=b'HIAERJ01',EXPECTED_REFUSAL=b'HIAEXR01', SCHEMA_QUERY=b'HIAESQ01', KEYED_SCHEMA=b'HIAESR01',
                   ERROR_START=b'{"code":', SCHEMA_START=b'"E_HIA_S', PREPARED=b'HIAEFH01', PROVED=b'HIAEDP01', PLAN_QUERY=b'HIAEXQ01', PLAN=b'HIAEXI01',
                   PAID=b'HIAEXO01', JOURNAL=b'HIAEJC01', ARCHIVE=b'HIAEMT01', BUDGET=b'HIAEBRS1',
                   CLOCK_WIRE=b'HIAEMC01', REPORT_FRAME=b'HIAEMF01', CLOSING=b'HIAEFC01')

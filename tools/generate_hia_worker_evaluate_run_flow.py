@@ -85,8 +85,12 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if length(s) != 72 or now == 0 or now >= expiry or expiry-now > 86400000000000 or get(w,SAMPLE_MONO) > MAX-(expiry-now):
             return BAD
         put(w,DEADLINE_AT,get(w,SAMPLE_MONO)+expiry-now)
-        put(o,144,32)
-        return action(o,w,RANDOM_IDS,RANDOM,0,0,0,0)
+        put(o,HEADER,CHECK_CONTROL)
+        put(o,HEADER+8,get(w,MEMORY))
+        put(o,HEADER+16,get(w,DEADLINE_AT))
+        return action(o,w,CHECK_LIMITS,MAKE,0,0,0,24)
+    if state >= CHECK_LIMITS and state <= CHECK_REFUSED:
+        return reference_precheck(s,o,w,state,size)
     if state == RANDOM_IDS:
         if length(s) != 96 or input_word(s,72) == 0 or input_word(s,88) == 0:
             return BAD
@@ -159,15 +163,7 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return query_receive(s,o,w,state)
     if state == LIMITS_MADE:
         observe_slot(s,w,LIMITS_SLOT)
-        argv(o,0,FD_ARG,slot_fd(w,1))
-        argv(o,1,FD_ARG,slot_fd(w,2))
-        argv(o,2,FD_ARG,slot_fd(w,3))
-        argv(o,3,FD_ARG,get(w,ROLE_BASE+40))
-        argv(o,4,FD_ARG,slot_fd(w,4))
-        argv(o,5,FD_ARG,slot_fd(w,LIMITS_SLOT))
-        argv(o,6,FD_ARG,slot_fd(w,5))
-        argv(o,7,FD_ARG,slot_fd(w,6))
-        argv(o,8,FD_ARG,slot_fd(w,7))
+        pair_arguments(o,w)
         put(o,176,2)
         return action(o,w,PAIR_STARTED,START_PEER,4,9,0,0)
     if state == PAIR_STARTED:
@@ -245,6 +241,57 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if state == PUBLISHED:
         return action(o,w,PUBLISHED,FINISHED,0,0,0,0)
     return BAD
+
+def reference_precheck(s:readbuf,o:mutbuf,w:mutbuf,state:u64,size:u64) -> u64:
+    if state == CHECK_LIMITS:
+        if size != 24 or input_word(s,64) != CHECK_CONTROL:
+            return BAD
+        observe_slot(s,w,LIMITS_SLOT)
+        pair_arguments(o,w)
+        return action(o,w,CHECK_SCANNED,RUN,4,9,0,0)
+    if state == CHECK_SCANNED:
+        if size != 80 or input_word(s,64) != PAIR_RESULT:
+            return BAD
+        return read_span(o,w,CHECK_RESULT,input_word(s,32),0,80)
+    if state == CHECK_RESULT:
+        if length(s) != 144 or input_word(s,64) != PAIR_RESULT:
+            return BAD
+        status = input_word(s,72)
+        count = input_word(s,80)
+        if count == 0 or count > 512 or input_word(s,88) != 0 or input_word(s,96) != 0 or input_word(s,104) != 0 or input_word(s,112) != 0 or input_word(s,120) != 0:
+            return BAD
+        if status == 5:
+            index = input_word(s,128)
+            if index >= count or input_word(s,136) != 2:
+                return BAD
+            put(o,HEADER,EXPECTED_REFUSAL)
+            put(o,HEADER+8,get(w,ENTERED))
+            put(o,HEADER+16,index)
+            put(o,HEADER+24,count)
+            copy_private(w,o,IDENTITY,HEADER+32,36)
+            return action(o,w,CHECK_REFUSED,MAKE,0,0,0,68)
+        if status > 2:
+            return BAD
+        put(o,144,32)
+        return action(o,w,RANDOM_IDS,RANDOM,0,0,0,0)
+    if state == CHECK_REFUSED:
+        if size != 68 or input_word(s,64) != EXPECTED_REFUSAL:
+            return BAD
+        fragment(o,0,input_word(s,32),0,68)
+        return action(o,w,PUBLISHED,PUBLISH,0,0,1,0)
+    return BAD
+
+def pair_arguments(o:mutbuf,w:mutbuf) -> u64:
+    argv(o,0,FD_ARG,slot_fd(w,1))
+    argv(o,1,FD_ARG,slot_fd(w,2))
+    argv(o,2,FD_ARG,slot_fd(w,3))
+    argv(o,3,FD_ARG,get(w,ROLE_BASE+40))
+    argv(o,4,FD_ARG,slot_fd(w,4))
+    argv(o,5,FD_ARG,slot_fd(w,LIMITS_SLOT))
+    argv(o,6,FD_ARG,slot_fd(w,5))
+    argv(o,7,FD_ARG,slot_fd(w,6))
+    argv(o,8,FD_ARG,slot_fd(w,7))
+    return 0
 
 def good_peer(s:readbuf) -> bool:
     return length(s) == 80 and valid_fd(input_word(s,64)) and valid_fd(input_word(s,72)) and input_word(s,64) != input_word(s,72)
@@ -380,7 +427,7 @@ def program():
               'OBS_PROJECTED BUDGET_SENT BUDGET_SIZE BUDGET_REPLY COMMAND_READY COMMAND_SENT FIXED_STORE '
               'ROW_HEADER ROW_BODY ROW_JOINED ROW_ACK ROW_ENDED LIMITS_MADE PAIR_STARTED PAIR_TAG GATE_BODY '
               'GATE_MADE GATE_CLOCK PAIR_ACKED ARCHIVE_SIZES ARCHIVE_STREAMED ARCHIVE_MADE PAIR_CLOSED '
-              'BUDGET_CLOSED STORE_CLOSED RESULT_MADE PUBLISHED').split()
+              'BUDGET_CLOSED STORE_CLOSED RESULT_MADE PUBLISHED CHECK_LIMITS CHECK_SCANNED CHECK_RESULT CHECK_REFUSED').split()
     constants.update({name: 2000 + i for i, name in enumerate(states)})
     fields = ('ENTERED EXPIRES MAX_MS MEMORY INDEX SAMPLE_MONO DEADLINE_AT EPOCH MODE BUDGET_SEQ '
               'AUTH_ACTION AUTH_PHASE STORE_ORD PAIR_BEGAN CURRENT_GATE NOW ARCHIVE_HEAD ARCHIVE_BYTES '
@@ -392,7 +439,7 @@ def program():
                      LIMITS_SLOT=13, ARCHIVE_SLOT=14)
     labels = dict(PLAN=b'HIAEXI01', RESULT=b'HIAEXO01', ACK=b'HIATXR01', CTX=b'ctx-',
                   BUDGET_REQUEST=b'HIAEBRQ1', BUDGET_RECEIPT=b'HIAEBRS1', OBS_INPUT=b'HIAEBO01',
-                  COMMAND_INPUT=b'HIAEBC01', CONTROL=b'HIAEPL04', GATE=b'HIAEPGT1', ARCHIVE=b'HIAEMT01',
+                  COMMAND_INPUT=b'HIAEBC01', CONTROL=b'HIAEPL04', CHECK_CONTROL=b'HIAEPL05', EXPECTED_REFUSAL=b'HIAEXR01', GATE=b'HIAEPGT1', ARCHIVE=b'HIAEMT01',
                   STORE_COMMAND=b'HIATCM01', ROW_FRAME=b'HIAQRF01', PAIR_RESULT=b'HIAEPM01')
     constants.update({name: int.from_bytes(value,'little') for name,value in labels.items()})
     names = ('admit_entry','dossier_identity','trusted_descriptors')
@@ -404,6 +451,7 @@ def program():
     source = source.replace('seq > 160','seq > 4096')
     source = source.replace('        put(o, 152, DEFAULT_CHILD_LEASE)',
         '        lease = DEFAULT_CHILD_LEASE\n'
+        '        if next == CHECK_SCANNED:\n            lease = lease+get(w,DEADLINE_AT)-get(w,SAMPLE_MONO)\n'
         '        if next == PAIR_TAG and get(w,AUTH_ACTION) == 7:\n'
         '            available = get(w,GRANT_MS)\n'
         '            if available > 3600000:\n'

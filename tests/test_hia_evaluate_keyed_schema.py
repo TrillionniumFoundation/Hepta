@@ -1,5 +1,6 @@
 """Verify the keyed schema handoff, response fragments, and null cost scope in HIA."""
 import ast
+import json
 from pathlib import Path
 import struct
 import unittest
@@ -58,3 +59,21 @@ class KeyedSchemaCloseoutTests(unittest.TestCase):
         for size in (2, 65537):
             with self.subTest(size=size):
                 self.assertEqual(self.run_header(self.header(), size)[0], 0xfffffffd)
+
+    def test_expectation_error_preserves_the_authenticated_case_index(self):
+        for index in (0, 9, 10, 99, 100, 255, 511, 512):
+            with self.subTest(index=index):
+                frame = self.header()
+                frame[64:72] = b'HIAERJ01'
+                struct.pack_into('<Q', frame, 88, 512 + index)
+                frame[120:156] = b'ctx-' + b'c' * 32
+                count, output = self.run_header(frame, diagnostic_size=0)
+                if index == 512:
+                    self.assertEqual(count, 0xfffffffd)
+                    continue
+                self.assertGreater(count, 512)
+                body = json.loads(output[512:count])
+                self.assertEqual(body['request_id'], 'r-' + 'a' * 64)
+                self.assertEqual(body['error']['code'], 'E_HIA_WORKLOAD_EXPECTATION')
+                self.assertEqual(body['error']['message'],
+                                 f'declared case expectation differs from baseline Core at index {index}')

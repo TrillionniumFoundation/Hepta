@@ -246,6 +246,23 @@ class PairedMeasurementTests(unittest.TestCase):
         h, rows = self.result(self.fixture(plain,cases,double=True))
         self.assertEqual((h[1],h[8:10],rows),(5,(0,2),[]))
 
+    def test_prebudget_comparison_returns_the_first_declared_error_without_execution(self):
+        params = [('x', 'u32')]
+        core = m(f('answer', params, ['u32'], [], [b('entry', params, [], ret('x'))]))
+        cases = [{'function': 'answer', 'arguments': [index],
+                  'expected': {'status': 'returned', 'values': [index]}} for index in range(13)]
+        for wrong in (False, True):
+            if wrong:
+                cases[12]['expected']['values'] = [99]
+            inputs = self.fixture(core, cases, double=True)
+            inputs[3] = b'No machine-code supervisor is available on this read-only path.'
+            inputs[5] = b'HIAEPL05' + inputs[5][8:]
+            header, rows = self.result(inputs)
+            self.assertEqual((header[1], header[2], rows), (5 if wrong else 0, 13, []))
+            self.assertEqual(header[4:8], (0, 0, 0, 0))
+            if wrong:
+                self.assertEqual(header[8:], (12, 2))
+
     def test_candidate_reference_budget_and_malformed_shape_precede_native(self):
         params = [('x','u32')]
         base = m(f('answer',params,['u32'],[],[b('entry',params,[],ret('x'))]))

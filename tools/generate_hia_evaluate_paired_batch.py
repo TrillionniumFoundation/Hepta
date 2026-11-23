@@ -10,6 +10,8 @@ requires a live grant and charge acknowledgement for each native arm. The
 worker reads each 64-byte HIAEPGT1 event from stdout and sends an eight-byte
 little-endian size and the original next HIAEBRS1 to stdin. Both identities
 and the receipt sequence must match. A final archive follows the last charge.
+HIAEPL05 compares both retained Core references and the declared results, then
+returns the 80-byte HIAEPM01 before the supervisor can launch a native arm.
 All nine source descriptors can also be supplied as decimal argv entries.
 
 HIAEMT01 contains four little-endian words (magic, pair length, event bytes,
@@ -104,7 +106,7 @@ STATE_FIELDS = {
     'GATED': 400, 'GLOBAL_DEADLINE': 408, 'GATE_SEQUENCE': 416, 'GATE_OPEN': 424,
     'GATE_BEGAN': 432, 'GATE_ARM': 440, 'GATE_MOMENT': 448, 'GATE_CHARGED': 456,
     'GATE_FINISH': 464, 'GATE_USED': 472, 'GATE_BINDING': 11000,
-    'CASE_MISMATCH': 480,
+    'CASE_MISMATCH': 480, 'CHECK_ONLY': 488,
 }
 
 # File descriptors 3..8 carry [ABI, workload], baseline, candidate, native
@@ -122,7 +124,7 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 return 0
             put(w,GATED,1)
             put(w,GLOBAL_DEADLINE,read_word(s,16))
-        elif length(s) != 24 or (read_word(s,0) != CONTROL and read_word(s,0) != BOTH_CONTROL and read_word(s,0) != ARCHIVE_CONTROL):
+        elif length(s) != 24 or (read_word(s,0) != CONTROL and read_word(s,0) != BOTH_CONTROL and read_word(s,0) != ARCHIVE_CONTROL and read_word(s,0) != CHECK_CONTROL):
             return 0
         m = read_word(s, 8)
         d = read_word(s, 16)
@@ -130,6 +132,7 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         if get(w,ARTIFACT_BYTES) == 0 or get(w,ARTIFACT_BYTES) > 67108864 or get(w,CANDIDATE_BYTES) == 0 or get(w,CANDIDATE_BYTES) > 67108864:
             return 0
+        put(w,CHECK_ONLY,choose(read_word(s,0) == CHECK_CONTROL,1,0))
         put(w, MEMORY_LIMIT, m)
         put(w, DEADLINE, d)
         if read_word(s,0) != CONTROL:
@@ -155,6 +158,8 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if state == 2:
         return admit_reference(s, o, w)
     if state == 3:
+        if get(w,CHECK_ONLY) == 1:
+            return finish(o,w,0)
         return measure_next(s, o, w)
     if state == 4:
         return prepare_files(s, o, w)
@@ -929,7 +934,7 @@ def snapshot_hash():
 
 
 def program():
-    magic = dict(CONTROL=b'HIAEPL01', BOTH_CONTROL=b'HIAEPL02', ARCHIVE_CONTROL=b'HIAEPL03', GATED_CONTROL=b'HIAEPL04', BUDGET_RESULT=b'HIAEBRS1', BUDGET_EVENT=b'HIAEPGT1', ARCHIVE=b'HIAEMT01', EVENT=b'HIAEEV01', WORKLOAD=b'HIAEVW01', BATCH=b'HIAEBT01', REFERENCE=b'HIASPR01',
+    magic = dict(CONTROL=b'HIAEPL01', BOTH_CONTROL=b'HIAEPL02', CHECK_CONTROL=b'HIAEPL05', ARCHIVE_CONTROL=b'HIAEPL03', GATED_CONTROL=b'HIAEPL04', BUDGET_RESULT=b'HIAEBRS1', BUDGET_EVENT=b'HIAEPGT1', ARCHIVE=b'HIAEMT01', EVENT=b'HIAEEV01', WORKLOAD=b'HIAEVW01', BATCH=b'HIAEBT01', REFERENCE=b'HIASPR01',
                  PLAN=b'HIAEVC01', SUPERVISE=b'HIADRS01', RUN=b'HIADRX02', TERMINAL=b'HIADRT01',
                  RECEIPT=b'HIADRR02', PAIR=b'HIAEPM01')
     values = {name: int.from_bytes(value, 'little') for name, value in magic.items()}
