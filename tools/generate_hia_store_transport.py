@@ -187,9 +187,13 @@ def request_unique(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     elif plan == 35:
         if mode != 0 or valid_version_retain(s, size) == False:
             return 0
-    elif plan == 4:
-        if size != 92 or valid_context_lookup(s) == False:
+    elif plan == 4 or plan == 38:
+        # Both forms select the same indexed Context row. Expanded public
+        # identifiers may only borrow an already-open read transaction.
+        public = plan == 38
+        if (public and mode != 0) or valid_context_lookup(s,size,public) == False:
             return 0
+        plan = 4
     elif plan == 12:
         if valid_worker_profile_lookup(s, size) == False:
             return 0
@@ -265,12 +269,17 @@ def valid_worker_profile_lookup(s:readbuf, size:u64) -> bool:
         return False
     return valid_hex(s, 128 + width, 64)
 
-def valid_context_lookup(s:readbuf) -> bool:
-    if read_word(s, 48) != QUERY_PARAMETERS or read_word(s, 56) != 1:
+def valid_context_lookup(s:readbuf,size:u64,public:bool) -> bool:
+    if size < 57 or size > 248:
         return False
-    if read_word(s, 64) != 1 or read_word(s, 72) != 92:
+    width = size-56
+    header = (read_word(s,48) ^ QUERY_PARAMETERS) | (read_word(s,56) ^ 1)
+    header = header | (read_word(s,64) ^ 1) | (read_word(s,72) ^ size)
+    if (header | cell_difference(s,80,3,56,width)) != 0:
         return False
-    return valid_cell(s, 80, 3, 56, 36) and context_id(s, 104)
+    if public:
+        return slot_name(s,104,width)
+    return width == 36 and context_id(s,104)
 
 def valid_context_claim(s:readbuf, size:u64) -> bool:
     if size != 80 or read_word(s, 48) != CONTEXT_CLAIM or read_word(s, 56) != 0:

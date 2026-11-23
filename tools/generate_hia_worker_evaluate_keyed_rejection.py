@@ -4,7 +4,7 @@ INGRESS = '''
 def refuse_business(o:mutbuf,w:mutbuf,reason:u64) -> u64:
     # Baseline and the original scalar tag have their existing identities.
     # The other workload planner codes are shifted by ten in this envelope.
-    if reason != 1 and reason != 2 and (reason < 11 or reason > 28 or reason == 12):
+    if reason != 32 and reason != 1 and reason != 2 and (reason < 11 or reason > 28 or reason == 12):
         return close_store(o,w,CLOSE_REFUSED)
     put(w,BUSINESS_REASON,reason)
     return close_store(o,w,CLOSE_ERROR)
@@ -93,6 +93,28 @@ def ingress(driver, policy, controls, constants):
                      BUSINESS_CONTEXT=3240,BASE_METADATA=3280,WORKLOAD_BODY=3312,CLOSE_ERROR=58,
                      CASE_OPERANDS=104,CASE_CHECKED=105,ERROR_CLAIMED=106,EARLY_LIMIT=107,BASE_SCOPE=109,
                      CONTEXT_WINDOW=int.from_bytes(b'HIAEWD01','little'),CHECK_CONTEXT_WINDOW=3352)
+    constants.update(VARIABLE_CONTEXT=int.from_bytes(b'HIAEVC01','little'),VARIABLE_CONTEXT_ACTIVE=3360)
+    policy=policy.replace('        return json_pair(o, w, ARGUMENT_PLAN, 68)',"""        after_prefix(w,o,ARGUMENT_FD,0)
+        store(o,496,44)
+        store(o,497,49)
+        store(o,498,93)
+        fragment(o,1,INLINE_FRAGMENT,496,3)
+        return action(o,w,ARGUMENT_PLAN,RUN,PLAN_ROLE,0,2,68)""")
+    policy=policy.replace('    if state == ARGUMENT_PLAN:',"""    if state == ARGUMENT_PLAN:
+        if plan_ok(s) and size >= 73 and size <= 264 and input_word(s,72) == VARIABLE_CONTEXT:
+            put(w,VARIABLE_CONTEXT_ACTIVE,1)
+            observe_slot(s,w,QUERY_FD)
+            return open_store(o,w,OPEN_INTAKE)""")
+    policy=policy.replace('    return store_transaction(o, w, CTX_ROW, 4, 0, fd, 8, slot_bytes(w, QUERY_FD) - 8)',
+                          '    at = choose(get(w,VARIABLE_CONTEXT_ACTIVE) == 1,16,8)\n'
+                          '    return store_transaction(o,w,CTX_ROW,choose(at == 16,38,4),0,fd,at,slot_bytes(w,QUERY_FD)-at)')
+    for i,part in enumerate(controls):
+        if part.lstrip().startswith('def settle_transaction('):
+            controls[i]=part.replace('    if purpose == STORE_LOOKUP:',"""    if purpose == CTX_ROW and get(w,VARIABLE_CONTEXT_ACTIVE) == 1:
+        if bytes == 0 and found == 0 and request != 0 and epoch != 0:
+            return refuse_business(o,w,32)
+        return close_store(o,w,CLOSE_REFUSED)
+    if purpose == STORE_LOOKUP:""")
     constants.update(SHAPE_REASON=256,SCHEMA_QUERY=int.from_bytes(b'HIAESQ01','little'))
     constants.update(EVALUATE_BASE_OBSERVE=int.from_bytes(b'HIAEAR01','little'),
                      EVALUATE_ARTIFACT_REFUSAL=int.from_bytes(b'HIAEAR02','little'))
@@ -192,7 +214,7 @@ def closeout_literals():
     lines.extend(('    if reason == 24:', '        return profile_error(o,at)',
                   '    if reason == 25:', '        return abi_error(o,at)'))
     lines.extend(('    if reason == 23:', '        return stale_context(o,at)'))
-    lines.extend(('    if reason == 22:', '        return unknown_context(o,at)'))
+    lines.extend(('    if reason == 22 or reason == 32:', '        return unknown_context(o,at)'))
     lines.extend(('    if reason == 21:', '        return expired_context(o,at)'))
     for code in sorted(_WORKLOAD_REFUSALS):
         tag = 2 if code == 2 else 10 + code
@@ -206,11 +228,12 @@ def refusal_header(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if length(s) != 740 or input_word(s,72) == 0 or input_word(s,80) == 0 or input_word(s,96) != 512 or input_word(s,104) != 64 or input_word(s,112) != 8:
         return BAD
     shape = input_word(s,64) == KEYED_SCHEMA and input_word(s,88) == SHAPE_REASON
+    unscoped = input_word(s,64) == KEYED_REFUSAL and input_word(s,88) == 32
     if shape:
         if slot_bytes(w,ORIGINAL) <= 678 or slot_bytes(w,ORIGINAL) > 676+DIAGNOSTIC_LIMIT:
             return BAD
         put(w,GLOBAL_COST,1)
-    elif input_word(s,64) != KEYED_REFUSAL or input_word(s,88) == SHAPE_REASON or (input_word(s,120) & 4294967295) != CONTEXT_PREFIX:
+    elif input_word(s,64) != KEYED_REFUSAL or input_word(s,88) == SHAPE_REASON or (unscoped == False and (input_word(s,120) & 4294967295) != CONTEXT_PREFIX):
         return BAD
     if input_word(s,156) != CLAIM_STATE or input_word(s,668) != CLAIM_ROUTE:
         return BAD
@@ -220,9 +243,9 @@ def refusal_header(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     while i < 64:
         if is_hex(byte(s,220+i)) == False or is_hex(byte(s,284+i)) == False or byte(s,220+i) != byte(s,350+i):
             return BAD
-        if shape and i < 36 and byte(s,120+i) != 0:
+        if (shape or unscoped) and i < 36 and byte(s,120+i) != 0:
             return BAD
-        if shape == False and i < 32 and is_hex(byte(s,124+i)) == False:
+        if shape == False and unscoped == False and i < 32 and is_hex(byte(s,124+i)) == False:
             return BAD
         i = i+1
     if byte(s,348) != 114 or byte(s,349) != 45:
@@ -246,7 +269,7 @@ def refusal_header(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         fragment(o,1,INLINE_FRAGMENT,400,last-400)
         return action(o,w,ERROR_REPLY,MAKE,0,0,2,first-HEADER)
     reason = input_word(s,88)
-    if reason == 22 or reason == 23:
+    if reason == 22 or reason == 23 or reason == 32:
         put(w,GLOBAL_COST,1)
     end = error_document(o,first,reason)
     if end == 0:

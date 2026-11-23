@@ -13,6 +13,7 @@ from tools.generate_hia_worker_context_request import POLICY as CONTEXT
 from tools.generate_hia_worker_emit_verification import POLICY as VERIFICATION, key_table
 from tools.generate_hia_worker_inspection_effect import function
 from tools.generate_hia_worker_rollback import POLICY as ROLLBACK
+from tools.generate_hia_store_transport import POLICY as STORE_TRANSPORT
 from tools.generate_hia_worker_verify_request import POLICY as VERIFY
 
 SOURCE = Path('examples/hia_bootstrap/worker_evaluate_request.hepta')
@@ -32,19 +33,42 @@ def evaluate_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return INVALID
     pinned = 64 + get(w, 88) * 72
     args = next(w, pinned)
-    if get(w, 96) == 3:
+    expanded = get(w,96) == 3
+    if expanded:
         marker = next(w, args)
         if marker != NONE and get(w, marker) == 0:
             return journal_catalog(s, o, w, pinned, args)
+        if marker == NONE or get(w,marker) != 3 or get(w,marker+32) != 1 or byte(s,get(w,marker+24)) != 49:
+            return INVALID
+    elif get(w,96) != 2:
         return INVALID
-    if get(w, 96) != 2 or is_object(w, args) == False or get(w, args + 32) != 7:
+    if is_object(w, args) == False or get(w, args + 32) != 7:
         return INVALID
     catalog = lookup(w, args, K_catalog_sha256)
     if digest_text(w, pinned, False) == False or digest_text(w, catalog, True) == False:
         return INVALID
     if equal_span(s, w, pinned, catalog) == False:
         return CATALOG_MISMATCH
+    if expanded:
+        context = lookup(w,args,K_context)
+        if context_reference(s,w,context) == False:
+            return context_key_query(w,o,context)
     return custody_request(s, o, w, args)
+
+def context_key_query(w:mutbuf,o:mutbuf,context:u64) -> u64:
+    if is_object(w,context) == False or get(w,context+32) != 2:
+        return INVALID
+    ref = lookup(w,context,K_id)
+    if allowed_text(w,ref,192) == False or digest_text(w,lookup(w,context,K_sha256),False) == False:
+        return INVALID
+    n = get(w,ref+32)
+    at = get(w,ref+24)
+    if public_context_name(w,at,n) == False:
+        return INVALID
+    put(o,0,VARIABLE_CONTEXT)
+    query_header(o,8,1,56+n)
+    query_field(o,40,56,n)
+    return copy_decoded(w,o,ref,64,n)
 
 def custody_request(s:readbuf, o:mutbuf, w:mutbuf, args:u64) -> u64:
     context = lookup(w, args, K_context)
@@ -97,15 +121,17 @@ def context_reference(s:readbuf, w:mutbuf, node:u64) -> bool:
 def source_program():
     constants = {f'K_{name}': index for index, name in enumerate(FIELDS, 1)}
     constants.update(INVALID=4294967293, CATALOG_MISMATCH=4294967286, NONE=(1 << 64) - 1,
-                     REQUEST=int.from_bytes(b'HIAEVQ01', 'little'))
+                     REQUEST=int.from_bytes(b'HIAEVQ01', 'little'),
+                     VARIABLE_CONTEXT=int.from_bytes(b'HIAEVC01','little'))
     artifact = artifact_authority()
     body = '\n'.join((
         POLICY, function(VERIFY, 'journal_catalog'), function(BUILD_CUSTODY, 'exact_reference'),
         *(function(VERIFICATION, name) for name in ('next', 'is_object', 'span')),
-        *(function(CONTEXT, name) for name in ('equal_span', 'digest_text', 'copy_value')),
+        *(function(CONTEXT, name) for name in ('equal_span', 'digest_text', 'copy_value', 'copy_decoded')),
         function(ROLLBACK, 'allowed_text'),
+        function(STORE_TRANSPORT, 'slot_name').replace('slot_name(s:readbuf', 'public_context_name(w:mutbuf').replace('byte(s,', 'byte(w,'),
         *(function(artifact, name) for name in ('artifact_reference', 'artifact_start', 'artifact_digest',
-                                              'artifact_uri', 'valid_hex', 'input_word')),
+                                              'artifact_uri', 'valid_hex', 'input_word', 'query_header', 'query_field')),
         function(artifact, 'matches').replace('def matches(', 'def bytes_equal('),
         WIRE_HELPERS.split('\ndef signed_id', 1)[0], key_table(FIELDS),
     ))

@@ -1,4 +1,5 @@
 """Check the retained ABI and admitted workload at the native Evaluate boundary."""
+import ast
 from pathlib import Path
 import json
 import struct
@@ -8,6 +9,11 @@ from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_agent_store import wire
 from hepta.hia_program_runtime import _Machine, _Owner, _View
 from tools.generate_hia_worker_evaluate_input_binding import SOURCE
+from tools.generate_hia_worker_evaluate_request import SOURCE as REQUEST_SOURCE
+from tools.generate_hia_worker_evaluate_intake_flow import program as intake_program
+from tools.generate_hia_worker_evaluate_run_input_flow import SOURCE as RUN_INPUT_SOURCE
+from tools.generate_hia_worker_artifact_flow import policy_constants
+from tools.generate_hia_store_transport import SOURCE as STORE_TRANSPORT_SOURCE, source_program as store_transport_program
 
 
 class TypedWorkloadTests(unittest.TestCase):
@@ -123,3 +129,84 @@ class RetainedEvaluateBaselineTests(unittest.TestCase):
             with self.subTest(change=change):
                 self.assertEqual(self.observe(**change)[0],0xfffffffd)
         self.assertEqual(self.observe(mode=b'HIARFG02')[0],0xfffffff8)
+
+
+class VariableEvaluateContextTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        root = Path(__file__).resolve().parents[1]
+        cls.checked = assemble_program((root / REQUEST_SOURCE).read_bytes())
+        cls.entry = next(fn for fn in cls.checked.as_dict()['functions'] if fn['name'] == 'f0')
+
+    def query(self, identity, marker):
+        digest = 'a' * 64
+        ref = {'id': 'a-' + 'b' * 32, 'sha256': digest, 'uri': 'hia://artifacts/' + 'b' * 32}
+        scope = {'id': identity, 'sha256': digest}
+        args = dict(catalog_sha256=digest, context=scope, request_key='r', baseline_artifact=ref,
+                    candidate_artifact=ref, build_receipt=ref, verification_receipts=[ref])
+        envelope = [digest, args] if marker is None else [digest, args, marker]
+        source = _Owner(-1, bytearray(wire(envelope)))
+        output = _Owner(-2, bytearray(1 << 20))
+        work = _Owner(-3, bytearray(1 << 20))
+        vm = _Machine(self.checked, 5_000_000, 16 << 20, None, 128)
+        size, = vm.invoke(self.entry, [_View(source, False), _View(output, True), _View(work, True)])
+        return size, output.data
+
+    def test_private_probe_binds_the_entire_admitted_identifier_and_never_classifies_a_store_row(self):
+        for name in ('x', 'A.0_B/C:D-1', 'q' * 192):
+            with self.subTest(name=name):
+                size, out = self.query(name, 1)
+                self.assertEqual(size, 64 + len(name))
+                self.assertEqual(struct.unpack_from('<8s8s6Q', out), (
+                    b'HIAEVC01', b'HIAQPA01', 1, 1, 56 + len(name), 3, 56, len(name)))
+                self.assertEqual(bytes(out[64:size]), name.encode())
+        for name, marker in [('x', None), ('x', 2), ('/start', 1), ('x!', 1), ('q' * 193, 1)]:
+            with self.subTest(identity=name, marker=marker):
+                self.assertGreaterEqual(self.query(name, marker)[0], 0xfffffffc)
+
+    def test_only_a_correlated_empty_context_query_can_charge_unknown_identity(self):
+        checked = assemble_program((Path(__file__).resolve().parents[1] / RUN_INPUT_SOURCE).read_bytes())
+        names = {fn['name']: fn for fn in checked.as_dict()['functions']}
+        functions = {node.name: names[f'f{i}'] for i, node in enumerate(ast.parse(intake_program(claim=True, run_input=True)).body)}
+        constants = policy_constants()
+        for request, epoch, found, size, refusal, bad in [
+                (5, 9, 0, 0, 32, False), (5, 9, 1, 0, 0, False), (5, 9, 0, 8, 0, False),
+                (4, 9, 0, 0, 0, True), (5, 8, 0, 0, 0, True)]:
+            with self.subTest(request=request, epoch=epoch, found=found, size=size):
+                vm = _Machine(checked, 1_000_000, 16 << 20, None, 128)
+                private = _Owner(-3, bytearray(4096))
+                work = _View(private, True)
+                for offset, value in ((3360, 1), (constants['STORE_PURPOSE'], 51),
+                                      (constants['STORE_REQUEST'], 4), (constants['STORE_STEP'], 1),
+                                      (constants['STORE_EPOCH'], 9)):
+                    struct.pack_into('<Q', private.data, offset, value)
+                vm.invoke(functions['keep'], [work, constants['STORE_RESULT'], 41, size + 48])
+                event = bytearray(112)
+                struct.pack_into('<Q', event, 40, size + 48)
+                struct.pack_into('<6Q', event, 64, 5, size, found, 0, request, epoch)
+                result, = vm.invoke(functions['settle_transaction'], [
+                    _View(_Owner(-1, event), False), _View(_Owner(-2, bytearray(2048)), True), work])
+                self.assertEqual(result == constants['BAD'], bad)
+                self.assertEqual(struct.unpack_from('<Q', private.data, 3224)[0], refusal)
+
+    def test_public_id_transport_only_selects_the_existing_context_query(self):
+        checked = assemble_program(STORE_TRANSPORT_SOURCE.read_bytes())
+        names = {fn['name']: fn for fn in checked.as_dict()['functions']}
+        index = next(i for i, node in enumerate(ast.parse(store_transport_program()).body) if node.name == 'request_unique')
+        for plan, mode, identity, accepted in [
+                (38, 0, 'x', True), (38, 1, 'x', False), (38, 2, 'x', False),
+                (38, 0, '.invalid', False), (4, 0, 'x', False), (4, 0, 'ctx-' + 'a'*32, True)]:
+            with self.subTest(plan=plan, mode=mode, identity=identity):
+                width = len(identity)
+                query = struct.pack('<8s6Q', b'HIAQPA01', 1, 1, 56+width, 3, 56, width) + identity.encode()
+                raw = struct.pack('<8s5Q', b'HIASTUP1', 1, plan, mode, 9, len(query)) + query
+                output = _Owner(-2, bytearray(4096))
+                work = _Owner(-3, bytearray(2304))
+                vm = _Machine(checked, 1_000_000, 16 << 20, None, 128)
+                size, = vm.invoke(names[f'f{index}'], [
+                    _View(_Owner(-1, bytearray(raw)), False), _View(output, True), _View(work, True)])
+                self.assertEqual(size > 0, accepted)
+                if accepted:
+                    self.assertEqual(struct.unpack_from('<Q', work.data, 16)[0], 4)
+                    self.assertEqual(struct.unpack_from('<Q', output.data, 64)[0], 7)
+                    self.assertEqual(output.data[80:size], query)
