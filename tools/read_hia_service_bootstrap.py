@@ -1317,10 +1317,16 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
     equal(declaration, scope, 'caller source declaration differs from the fixed authority')
     integer(len(scope['ordered_ids']), {'ordinary': 112, 'journal': 21, 'context': 15}[scope_name])
     integer(scope['outer_seconds'], 1800)
+    from tests.hia_bootstrap_caller_predecessors import bootstrap_caller_predecessor
+
     adjustments = {}
     journal_adjustments = {}
+    predecessors = {}
     for name, old_pin in scope['files'].items():
-        raw = take(name)
+        physical = take(name)
+        raw = bootstrap_caller_predecessor(ROOT, name, physical, old_pin, take)
+        if raw != physical:
+            predecessors[name] = {'physical': s.bytes_pin(physical), 'predecessor': s.bytes_pin(raw)}
         if s.same(s.bytes_pin(raw), old_pin):
             continue
         if name == _CALLER_JOURNAL_PATH:
@@ -1347,7 +1353,7 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
                 'original_method_count': 21, 'original_method_ids': list(scope['ordered_ids']),
                 'original_build_timeout_seconds': 120, 'original_install_timeout_seconds': 120,
                 'original_probe_timeout_seconds': 30, 'original_scope_budget_seconds': 1800,
-                'captured_files': {item: dict(consumed[item]) for item in
+                'captured_files': {item: (s.bytes_pin(raw) if item == name else dict(consumed[item])) for item in
                     (_CALLER_JOURNAL_PATH, _CALLER_JOURNAL_HELPER,
                      _CALLER_JOURNAL_FIXTURE, _CALLER_JOURNAL_ARCHIVE)},
                 'terminal_reread_identical': True, 'production_source_exceptions': [],
@@ -1381,12 +1387,14 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
         'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
         'production_source_exceptions': [], 'whole_native': False,
     }
+    if predecessors:
+        proof['reviewed_scope_predecessors'] = predecessors
     if journal_adjustments:
         proof['reviewed_journal_installed_preparation_source_adjustments'] = journal_adjustments
     if 'caller_source_admission' in inner:
         equal(inner['caller_source_admission'], proof,
               'caller producer source proof differs from independent full-source readback')
-    elif adjustments or journal_adjustments:
+    elif adjustments or journal_adjustments or predecessors:
         raise ValueError('a current caller successor requires its exact source proof')
     # Original unmodified callers still admit the prior v2 report with no new
     # proof field. A changed caller cannot obtain that legacy path.

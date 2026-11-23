@@ -90,10 +90,16 @@ def admit_original_scope(root, scope_name):
     if sha256(frozen).hexdigest() != FIXTURE_SHA256:
         raise ValueError('caller scope bytes differ')
     scope = json.loads(frozen)['scopes'][scope_name]
+    from tests.hia_bootstrap_caller_predecessors import bootstrap_caller_predecessor
+
     adjustments = {}
     journal_adjustments = {}
+    predecessors = {}
     for name, expected in scope['files'].items():
-        raw = capture(name)
+        physical = capture(name)
+        raw = bootstrap_caller_predecessor(root, name, physical, expected, capture)
+        if raw != physical:
+            predecessors[name] = {'physical': _source_pin(physical), 'predecessor': _source_pin(raw)}
         if _source_pin(raw) == expected:
             continue
         if name == _JOURNAL_CALLER:
@@ -110,9 +116,15 @@ def admit_original_scope(root, scope_name):
             from tests import hia_journal_installed_preparation as preparation
             if Path(preparation.__file__).read_bytes() != helper:
                 raise ValueError('bootstrap imported a different Journal preparation')
-            detail = preparation.admit_source(root, name, raw, expected)
+            if raw == physical:
+                detail = preparation.admit_source(root, name, raw, expected)
+            else:
+                from tests.hia_installed_distribution_history import journal_preparation_source
+                detail = journal_preparation_source(root, physical, expected)
+
             actual = {item: _source_pin(captured[item]) for item in
                       (_JOURNAL_CALLER, _JOURNAL_HELPER, _JOURNAL_FIXTURE, _JOURNAL_ARCHIVE)}
+            actual[name] = _source_pin(raw)
             if (canonical(detail['captured_files']) != canonical(actual)
                     or detail['original_method_ids'] != scope['ordered_ids']):
                 raise ValueError('bootstrap Journal source admission differs from captured scope')
@@ -150,6 +162,8 @@ def admit_original_scope(root, scope_name):
         'production_source_exceptions': [],
         'whole_native': False,
     }
+    if predecessors:
+        proof['reviewed_scope_predecessors'] = predecessors
     if journal_adjustments:
         proof['reviewed_journal_installed_preparation_source_adjustments'] = journal_adjustments
     return scope, proof

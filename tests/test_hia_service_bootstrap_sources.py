@@ -75,8 +75,8 @@ class ServiceBootstrapStaticSourceTests(unittest.TestCase):
         for name,count in (('ordinary',112),('journal',21),('context',15)):
             self.assertEqual(len(scopes[name]['ordered_ids']),count)
             self.assertEqual(scopes[name]['outer_seconds'],1800)
-            from tests.hia_historical_diagnostic_controls import checked_bootstrap_scope
-            admitted,proof=checked_bootstrap_scope(ROOT,name,scopes)
+            from tools.qualify_hia_service_bootstrap_callers import admit_original_scope
+            admitted,proof=admit_original_scope(ROOT,name)
             self.assertEqual(admitted,scopes[name])
             self.assertEqual(proof['original_files'],scopes[name]['files'])
             self.assertEqual(proof['original_ordered_ids'],scopes[name]['ordered_ids'])
@@ -85,6 +85,46 @@ class ServiceBootstrapStaticSourceTests(unittest.TestCase):
             from tools.qualify_hia_service_bootstrap_callers import bind_scope_admission_to_source_capture
             physical = {path: sha256((ROOT / path).read_bytes()).hexdigest() for path in proof['captured_files']}
             bind_scope_admission_to_source_capture(proof, physical)
+
+    def test_reviewed_scope_proof_matches_physical_captures_and_independent_reader(self):
+        from copy import deepcopy
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from tools import qualify_hia_service_bootstrap_callers as producer
+        from tools import read_hia_service_bootstrap as reader
+
+        for name, count in (('ordinary', 3), ('journal', 1), ('context', 1)):
+            scope, proof = producer.admit_original_scope(ROOT, name)
+            histories = proof['reviewed_scope_predecessors']
+            self.assertEqual(len(histories), count)
+            digests = {path: pin['sha256'] for path, pin in proof['captured_files'].items()}
+            observed = {'caller_source_admission': proof, 'source_before': digests, 'source_after': digests}
+            captured = []
+            self.assertEqual(reader._read_caller_source_admission(name, scope, observed, captured), proof)
+            reader.unchanged(captured)
+            with TemporaryDirectory() as directory, patch.object(reader, 'ROOT', Path(directory)):
+                stage = Path(directory)
+                for path, data in captured:
+                    target = stage / path.relative_to(ROOT)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(data)
+                for path in histories:
+                    with self.subTest(scope=name, path=path):
+                        altered = deepcopy(observed)
+                        altered['caller_source_admission']['reviewed_scope_predecessors'][path]['predecessor']['sha256'] = '0' * 64
+                        with self.assertRaises(ValueError):
+                            reader._read_caller_source_admission(name, scope, altered, [])
+                        target = stage / path
+                        raw = target.read_bytes()
+                        for index in (0, len(raw) // 2, len(raw) - 1):
+                            changed = bytearray(raw)
+                            changed[index] ^= 1
+                            target.write_bytes(changed)
+                            with self.assertRaises(ValueError):
+                                producer.admit_original_scope(stage, name)
+                            with self.assertRaises(ValueError):
+                                reader._read_caller_source_admission(name, scope, observed, [])
+                        target.write_bytes(raw)
 
     def test_historical_service_inverse_refuses_changed_physical_input(self):
         from tests.hia_store_delivery_successor import retained_bootstrap_service
