@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_native import emit_program_machine
-from hepta.hia_machine_x64 import Code, MachineEncodingError
+from hepta.hia_machine_x64 import KernelCode as Code, MachineEncodingError
 from hepta.hia_program_runtime import execute_program
 from hepta.hia_opcodes import opcode_catalog
 from hepta.hia_schema import KERNEL_TLB_SCHEMA
@@ -71,6 +71,90 @@ class KernelTlbCoreTests(unittest.TestCase):
                 fn["blocks"][0]["ops"] = []
             with self.subTest(change=change), self.assertRaises(HIAProgramRejected):
                 verify_program(altered)
+
+    def test_kernel_profiles_do_not_change_frozen_cli_discovery(self):
+        from contextlib import redirect_stdout, redirect_stderr
+        import io
+        from hepta.cli import _reference_hia_main
+        from hepta.hia_schema import (
+            PRIMITIVE_PROFILES, PRIMITIVE_FEATURES, KERNEL_PRIMITIVE_SCHEMAS,
+            profile_for_schema, schema_registry, supports_feature,
+        )
+        historical = tuple(f"hepta.hia.program.v{i}" for i in range(1, 9))
+        self.assertEqual(tuple(PRIMITIVE_PROFILES), historical)
+        self.assertEqual(tuple(PRIMITIVE_FEATURES), historical)
+        self.assertEqual(tuple(row["schema"] for row in
+                               schema_registry()["primitive"]), historical)
+        for schema in KERNEL_PRIMITIVE_SCHEMAS:
+            with self.subTest(schema=schema):
+                self.assertTrue(supports_feature(schema, "parameter_loan_returns"))
+                self.assertEqual(opcode_catalog(schema)["profile"],
+                                 profile_for_schema(schema))
+                errors = io.StringIO()
+                with redirect_stderr(errors), self.assertRaises(SystemExit) as error:
+                    _reference_hia_main(["catalog", "--schema", schema])
+                self.assertEqual(error.exception.code, 2)
+                # The error's rejected argument may name the experiment;
+                # the usage/choices must not advertise it as an ordinary CLI schema.
+                self.assertNotIn("kernel-", errors.getvalue().split("error:", 1)[0])
+        help_text = io.StringIO()
+        with redirect_stdout(help_text), self.assertRaises(SystemExit) as error:
+            _reference_hia_main(["catalog", "--help"])
+        self.assertEqual(error.exception.code, 0)
+        self.assertNotIn("kernel-", help_text.getvalue())
+        for schema in historical:
+            self.assertIn(schema, help_text.getvalue())
+        self.assertEqual(verify_program(sample()).as_dict()["schema"], KERNEL_TLB_SCHEMA)
+
+    def test_incremental_profile_aliases_keep_cache_policy_bound(self):
+        from hepta import hia_opcodes as opcodes, hia_program as core, hia_schema
+        from hepta.hia_incremental import IncrementalVerifier
+
+        self.assertIs(opcodes.PRIMITIVE_PROFILES, hia_schema.PRIMITIVE_PROFILES)
+        document = sample()
+        document["schema"] = "hepta.hia.program.v8"
+        function = document["functions"][0]
+        function["effects"] = []
+        function["blocks"][0]["ops"] = []
+        session = IncrementalVerifier(document)
+        checked, report = session.verify(document)
+        self.assertEqual(checked.canonical_bytes, core.verify_program(document).canonical_bytes)
+        for owner in (opcodes, core):
+            # Change a live registry alias without changing the public schema
+            # inventory or any historical opcode. The old cache must not grant
+            # admission under the changed dependency policy.
+            with self.subTest(owner=owner.__name__):
+                changed = dict(owner.ALL_PRIMITIVE_PROFILES)
+                changed["test-only-policy-marker"] = "test-only"
+                with patch.object(owner, "ALL_PRIMITIVE_PROFILES", changed):
+                    checked, report = session.verify(document)
+                    self.assertEqual(report["mode"], "full")
+                    self.assertEqual(report["fallback_reason"], "verifier_or_registry_changed")
+                    self.assertEqual(report["functions_body_reused"], [])
+                    self.assertEqual(checked.canonical_bytes,
+                                     core.verify_program(document).canonical_bytes)
+                session.verify(document)
+        # Experimental schemas continue to receive a whole verification, never
+        # reuse from the historical incremental dependency contract.
+        checked, report = session.verify(sample())
+        self.assertEqual(report["mode"], "full")
+        self.assertEqual(report["fallback_reason"], "schema_outside_incremental_contract")
+        self.assertEqual(report["functions_body_reused"], [])
+        self.assertEqual(checked.canonical_bytes, core.verify_program(sample()).canonical_bytes)
+
+    def test_experimental_emitter_cannot_bypass_frozen_owner(self):
+        from hepta import hia_program_native as native
+        document = sample()
+        self.assertNotIn(document["schema"], native.CORE_SCHEMAS)
+        self.assertNotIn("x86.tlb.invlpg", native.SUPPORTED_OPCODES)
+        with self.assertRaisesRegex(native.HIAProgramNativeRejected, "E_HIA_PROGRAM_PROFILE"):
+            native._Emitter(document, {"f0"}).render()
+        for selector in (
+                "hepta.hia_core_emitter_selection.selected_core_emitter",
+                "hepta.hia_core_lowering_selection.active_core_lowering"):
+            with self.subTest(selector=selector), patch(selector, return_value=object()):
+                with self.assertRaisesRegex(native.HIAProgramNativeRejected, "lacks a qualified Core owner"):
+                    native._KernelEmitter(document, {"f0"})
 
     def test_interpreter_never_reports_privileged_success(self):
         with self.assertRaisesRegex(HIAProgramRejected, "CPL0"):

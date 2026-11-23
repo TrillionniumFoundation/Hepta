@@ -72,10 +72,20 @@ PRIMITIVE_PROFILES = MappingProxyType({
     SCHEMA: PROFILE, SCHEMA_V2: PROFILE_V2, SCHEMA_V3: PROFILE_V3,
     SCHEMA_V4: PROFILE_V4, SCHEMA_V5: PROFILE_V5, SCHEMA_V6: PROFILE_V6,
     SCHEMA_V7: PROFILE_V7, SCHEMA_V8: PROFILE_V8,
+})
+# Keep the public/frozen discovery registry unchanged. Kernel profiles are
+# explicit opt-ins for typed Core verification and direct native lowering only.
+KERNEL_PRIMITIVE_PROFILES = MappingProxyType({
     KERNEL_FENCE_SCHEMA: KERNEL_FENCE_PROFILE,
     KERNEL_TLB_SCHEMA: KERNEL_TLB_PROFILE,
 })
-PRIMITIVE_SCHEMAS = frozenset(PRIMITIVE_PROFILES)
+ALL_PRIMITIVE_PROFILES = MappingProxyType({**PRIMITIVE_PROFILES, **KERNEL_PRIMITIVE_PROFILES})
+# The native HIA source/shape ABI retains precisely the original v1-v8 set.
+# Experimental kernels have explicit grammar profiles but cannot masquerade
+# as historical HIA Core schemas in the frozen source-shape inventory.
+PRIMITIVE_SCHEMAS = frozenset((SCHEMA, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4,
+                              SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8))
+KERNEL_PRIMITIVE_SCHEMAS = frozenset((KERNEL_FENCE_SCHEMA, KERNEL_TLB_SCHEMA))
 _FEATURE_ORDER = ("bulk_memory", "inplace_memory", "byte_swap", "offset_copy", "range_fill", "recursive_chain", "parameter_loan_returns")
 PRIMITIVE_FEATURES = MappingProxyType({
     schema: frozenset(_FEATURE_ORDER[:index])
@@ -87,7 +97,7 @@ def profile_for_schema(schema: str) -> str:
     """Return the exact declared grammar profile; unknown schemas raise KeyError."""
     if schema in COMPOSITE_PROFILES:
         return COMPOSITE_PROFILES[schema]
-    return PRIMITIVE_PROFILES[schema]
+    return ALL_PRIMITIVE_PROFILES[schema]
 
 
 def composite_core_schema(schema: str) -> str:
@@ -98,6 +108,8 @@ def composite_core_schema(schema: str) -> str:
 
 def supports_feature(schema: str, feature: str) -> bool:
     """Report primitive grammar support, without making a safety assertion."""
+    if schema in KERNEL_PRIMITIVE_PROFILES:
+        schema = SCHEMA_V8
     return feature in PRIMITIVE_FEATURES.get(schema, ())
 
 

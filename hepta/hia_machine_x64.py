@@ -345,13 +345,34 @@ class Code:
         r = self._reg(reg)
         self.emit((b"\x41" if r >= 8 else b"") + bytes([0x58 + (r & 7)]))
 
+    def ret(self): self.emit(b"\xc3")
+    def leave(self): self.emit(b"\xc9")
+    def ud2(self): self.emit(b"\x0f\x0b")
+
+    def finalize(self):
+        if len(self.data) > MAX_CODE_BYTES:
+            raise MachineEncodingError("x86-64 image exceeds code byte limit")
+        result = bytearray(self.data)
+        for offset, target in self.fixups:
+            if target not in self.labels:
+                raise MachineEncodingError("unresolved machine label: " + target)
+            result[offset:offset + 4] = _s32(self.labels[target] - (offset + 4))
+        return bytes(result), [dict(row) for row in self.relocations]
+
+class KernelCode(Code):
+    """Isolated x86 kernel instruction encoder, not the original Code ABI.
+
+    Direct Core kernel-only entrypoints use this typed instruction surface;
+    bare Code and its frozen native HIA equivalent remain byte-for-byte intact.
+    """
+
     def mfence(self):
         """Architectural x86-64 MFENCE; does not imply remote CPU acknowledgement."""
         self.emit(b"\x0f\xae\xf0")
-
+   
     def invlpg(self, base, disp=0):
         """Encode CPL0 INVLPG m8 using validated register/displacement operands.
-
+   
         Encoding does not authorize execution, authenticate a page table or
         prove CPU privilege; those are separate HIA kernel obligations.
         """
@@ -368,17 +389,3 @@ class Code:
         sib = b"\x24" if (b & 7) == 4 else b""
         prefix = b"\x41" if b >= 8 else b""
         self.emit(prefix + b"\x0f\x01" + bytes([modrm]) + sib + displacement)
-
-    def ret(self): self.emit(b"\xc3")
-    def leave(self): self.emit(b"\xc9")
-    def ud2(self): self.emit(b"\x0f\x0b")
-
-    def finalize(self):
-        if len(self.data) > MAX_CODE_BYTES:
-            raise MachineEncodingError("x86-64 image exceeds code byte limit")
-        result = bytearray(self.data)
-        for offset, target in self.fixups:
-            if target not in self.labels:
-                raise MachineEncodingError("unresolved machine label: " + target)
-            result[offset:offset + 4] = _s32(self.labels[target] - (offset + 4))
-        return bytes(result), [dict(row) for row in self.relocations]

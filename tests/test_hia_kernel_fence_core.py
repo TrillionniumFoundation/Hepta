@@ -18,7 +18,7 @@ from unittest.mock import patch
 
 from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_native import build_program_machine, emit_program_machine
-from hepta.hia_machine_x64 import Code
+from hepta.hia_machine_x64 import KernelCode as Code
 from hepta.hia_program_runtime import execute_program
 from hepta.hia_schema import KERNEL_FENCE_SCHEMA
 from hepta.hia_opcodes import opcode_catalog
