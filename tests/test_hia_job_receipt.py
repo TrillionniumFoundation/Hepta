@@ -64,6 +64,50 @@ class JobReceiptExecutableTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(struct.unpack('<8sQq', result.stderr), (b'HIAJRW01', phase, status))
 
+    def acquire_owner_lock(self, descriptor, *, parent=None, device=None, inode=None, sealed=True):
+        state = os.fstat(descriptor)
+        caller = os.getpid() if parent is None else parent
+        frame = struct.pack('<8s4Q', b'HIAJLF01', caller, state.st_dev if device is None else device,
+                            state.st_ino if inode is None else inode, 0)
+        with os.fdopen(os.memfd_create('owner-fd-frame', os.MFD_ALLOW_SEALING), 'wb', buffering=0) as source:
+            source.write(frame)
+            if sealed:
+                fcntl.fcntl(source, fcntl.F_ADD_SEALS, SEALS)
+            return subprocess.run([self.executable], stdin=source, stdout=descriptor, stderr=subprocess.PIPE,
+                                  env={'PATH': ''}, timeout=5)
+
+    def test_owner_lock_stays_with_original_open_description(self):
+        path = self.root / 'owner.lock'
+        with path.open('x+b') as owner, path.open('r+b') as competing:
+            path.chmod(0o600)
+            self.check_receipt(self.acquire_owner_lock(owner.fileno()), 2, 0)
+            self.check_receipt(self.acquire_owner_lock(competing.fileno()), 2, -errno.EWOULDBLOCK)
+            with os.fdopen(os.dup(owner.fileno()), 'r+b') as duplicate:
+                owner.close()
+                self.check_receipt(self.acquire_owner_lock(duplicate.fileno()), 2, 0)
+                with self.assertRaises(BlockingIOError):
+                    fcntl.flock(competing, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.check_receipt(self.acquire_owner_lock(competing.fileno()), 2, 0)
+            self.assertEqual(path.read_bytes(), b'')
+
+    def test_owner_lock_requires_sealed_parent_and_exact_private_inode(self):
+        path = self.root / 'owner.lock'
+        with path.open('x+b') as owner, path.open('r+b') as independent:
+            path.chmod(0o600)
+            fd = owner.fileno()
+            for change in ({'parent': os.getppid()}, {'inode': os.fstat(fd).st_ino + 1},
+                           {'device': os.fstat(fd).st_dev + 1}, {'sealed': False}):
+                result = self.acquire_owner_lock(fd, **change)
+                self.assertEqual((result.returncode, result.stderr), (65, b''))
+            path.chmod(0o640)
+            result = self.acquire_owner_lock(fd)
+            self.assertEqual((result.returncode, result.stderr), (65, b''))
+            path.chmod(0o600)
+            os.link(path, self.root / 'second')
+            result = self.acquire_owner_lock(fd)
+            self.assertEqual((result.returncode, result.stderr), (65, b''))
+            fcntl.flock(independent, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
     def group_signal(self, leader, action, *, parent=None):
         caller = os.getpid() if parent is None else parent
         return self.invoke(struct.pack('<8s4Q', b'HIASGQ01', caller, leader, action, 0))
