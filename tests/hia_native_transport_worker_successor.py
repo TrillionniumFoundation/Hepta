@@ -516,7 +516,13 @@ QUALIFIER_STORE_CURRENT = {'bytes': 22723, 'sha256': '85f92bf60694e2d7950ced55e3
 
 def _admit_qualifier_dependency(raw, capture):
     actual = _pin(raw)
-    emission_successor = actual['sha256'] == '521ada376c448627744c18dffc6c2f391e08de2ff48b5579b62ca5f94c36b1c5'
+    build_successor = actual['sha256'] == '44b53db9a34ffe236652473d02ab45697d3612ba9b7ec556b0ea4e96d0568893'
+    if build_successor:
+        from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, evaluate_records, reverse_exact
+        record = evaluate_records(capture(EVALUATE_FIXTURE))['build_qualifier']
+        raw = reverse_exact(raw, record, {'bytes': 22823,
+            'sha256': '521ada376c448627744c18dffc6c2f391e08de2ff48b5579b62ca5f94c36b1c5'})
+    emission_successor = _pin(raw)['sha256'] == '521ada376c448627744c18dffc6c2f391e08de2ff48b5579b62ca5f94c36b1c5'
     if emission_successor:
         from tests.hia_store_delivery_successor import (
             EVALUATE_FIXTURE, EVALUATE_FIXTURE_SHA256, evaluate_records, reverse_exact,
@@ -567,6 +573,8 @@ def _admit_qualifier_dependency(raw, capture):
             'exact_splice_count': 6, 'complete_original_inverse_verified': True,
             'complete_current_forward_replay_verified': True,
             'original_qualifier_authority_unchanged': True, 'production_source_exception': False}
+    if build_successor:
+        proof['build_shared_worker_source'] = {'path': EVALUATE_FIXTURE, 'sha256': EVALUATE_FIXTURE_SHA256}
     if emission_successor:
         proof['emission_shared_worker_source'] = {'path': EVALUATE_FIXTURE, 'sha256': EVALUATE_FIXTURE_SHA256}
     if store_successor:
@@ -1114,7 +1122,8 @@ def _admit_terminal_sources_before_ordinary_callers(original_value, *, original_
     if frozen is not None:
         prior = _admit_journal_preparation_sources(original_value, original_kind, prior, frozen)
     prior = _admit_component_successors(original_value, prior)
-    return _admit_machine_receipt_caller(original_value, prior)
+    prior = _admit_machine_receipt_caller(original_value, prior)
+    return _admit_build_inventory_control(original_value, prior)
 
 
 COMPONENT_FIXTURE = 'tests/fixtures/delivery_component_successor.json'
@@ -1399,3 +1408,32 @@ def admit_terminal_sources(original_value, *, original_kind):
     if frozen is None:
         return prior
     return _admit_ordinary_caller_sources(original_value, original_kind, prior, frozen)
+
+
+def _admit_build_inventory_control(inventory, prior):
+    from tests.hia_store_delivery_successor import (
+        EVALUATE_FIXTURE, EVALUATE_FIXTURE_SHA256, evaluate_records, reverse_exact,
+    )
+
+    name = 'tests/test_hia_native_build_admission_native.py'
+    try:
+        raw = (ROOT / name).read_bytes()
+    except FileNotFoundError:
+        # The complete outer gate still checks every original source.
+        return prior
+    expected = inventory['unchanged_files'][name]
+    if _pin(raw) == expected:
+        return prior
+    frozen = (ROOT / EVALUATE_FIXTURE).read_bytes()
+    record = evaluate_records(frozen)['build_inventory_test']
+    reverse_exact(raw, record, expected)
+    if (ROOT / name).read_bytes() != raw or (ROOT / EVALUATE_FIXTURE).read_bytes() != frozen:
+        raise ValueError('build caller inventory proof changed during admission')
+    if name in prior['source_adjustments']:
+        raise ValueError('build caller inventory successor overlapped an earlier review')
+    adjustment = {'path': name, 'original_bytes': expected['bytes'],
+                  'original_sha256': expected['sha256'],
+                  'current_bytes': record['new_bytes'], 'current_sha256': record['new_sha256'],
+                  'reversible_patch_fixture_sha256': EVALUATE_FIXTURE_SHA256,
+                  'scope': 'original caller order plus the exact independently reviewed address-space test'}
+    return {**prior, 'source_adjustments': {**prior['source_adjustments'], name: adjustment}}

@@ -26,7 +26,7 @@ SERVICE_PATH = 'hepta/hia_agent_service.py'
 EVALUATION_PATH = 'hepta/hia_evaluation_native.py'
 QUALIFIER_PATH = 'tests/hia_caller_terminal_admission.py'
 EVALUATE_FIXTURE = 'tests/fixtures/store_evaluate_delivery_successor.json'
-EVALUATE_FIXTURE_SHA256 = 'bb3e18ddd0e82abf37a7f2c455395732ed9e3a51eced153e96766ab4d343bdc5'
+EVALUATE_FIXTURE_SHA256 = 'bfce45bff50ea8b1acbd6745b494dd0a9d7a90aefc281dea9db7c27b41201ab9'
 EVALUATION_PLANNER_SHA256 = 'd30d4f0796535ba524746a2e8a07f76fe253e9799745cf8458fedf526bce0a70'
 JOURNAL_COST = ROOT / 'tests/fixtures/worker_journal_cost_successor.json'
 JOURNAL_COST_SHA256 = '97f1c36e9f12af0ffe96b3c789603365e74a3df0b8b5b52fa2be9dca9b7c3cd1'
@@ -110,8 +110,8 @@ def evaluate_records(frozen):
     if sha256(frozen).hexdigest() != EVALUATE_FIXTURE_SHA256:
         raise ValueError('Store Evaluate source provenance changed')
     value = json.loads(frozen)
-    if (set(value) != {'schema', 'files', 'service_followups'}
-            or type(value['service_followups']) is not list or len(value['service_followups']) != 3
+    if (set(value) != {'schema', 'files', 'service_followups', 'build_qualifier', 'build_inventory_test'}
+            or type(value['service_followups']) is not list or len(value['service_followups']) != 4
             or value['schema'] != 'hepta.hia.store-evaluate-delivery-successor.v1'
             or set(value['files']) != {SERVICE_PATH, EVALUATION_PATH, QUALIFIER_PATH}):
         raise ValueError('Store Evaluate source provenance scope differs')
@@ -185,7 +185,7 @@ def _restore_composition_successor(captured, approved, shared):
             latest = record
             if name == SERVICE_PATH:
                 # Each exact service stage adds one reviewed capability in order:
-                # Inspect selection, SQL cost-ledger support, then cursor paging.
+                # Inspect, SQL cost ledgers, cursor paging, then native build inputs.
                 stages = [record, *reviewed['service_followups']]
                 for prior, step in reversed(list(zip(stages, stages[1:]))):
                     if sha256(source[name]).hexdigest() == step['new_sha256']:
@@ -308,7 +308,7 @@ def admit_composition(original_value):
         service = adjustments[SERVICE_PATH]
         service['preceding_patch_fixture_sha256'] = service['reversible_patch_fixture_sha256']
         service['reversible_patch_fixture_sha256'] = EVALUATE_FIXTURE_SHA256
-        service['scope'] += ', installed Evaluate planning, Artifact and Emission providers and reviewed Inspect, Cost and Read dispatch'
+        service['scope'] += ', installed Evaluate planning, Artifact and Emission providers and reviewed Inspect, Cost, Read and native build dispatch'
     shared = dict(inventory['shared_dependency_review'])
     for path in SHARED_PATHS:
         # Return the fixed, independently reviewed literal pins only after

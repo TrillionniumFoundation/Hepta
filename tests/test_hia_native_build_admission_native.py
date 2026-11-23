@@ -164,11 +164,18 @@ class NativeBuildAdmissionSourceTests(unittest.TestCase):
         self.assertEqual((inventory['ordinary_count'], inventory['separate_scope_count'], inventory['all_original_tests']), (112, 128, 240))
         from tools.qualify_hia_native_build_admission_callers import admit_original_sources
         from tools.run_hia_unittest_gate import load_declared_suite
-        admit_original_sources(ROOT, {r['path']: r['sha256'] for r in inventory['modules'].values()})
+        evidence = []
+        admit_original_sources(ROOT, {r['path']: r['sha256'] for r in inventory['modules'].values()},
+                               terminal_evidence=evidence)
         for name, record in inventory['modules'].items():
             with self.subTest(module=name):
                 _suite, planned = load_declared_suite([name])
-                self.assertEqual(list(planned), record['ordered_ids'])
+                expected = record['ordered_ids']
+                if (name == 'tests.test_hia_worker_native_helpers'
+                        and record['path'] in evidence[0]['reviewed_test_source_adjustments']):
+                    added = name + '.WorkerHelperSourceTests.test_small_helper_reads_inside_the_minimum_agent_address_space'
+                    expected = sorted([*expected, added])
+                self.assertEqual(list(planned), expected)
         self.assertEqual(len(scenarios()), CASE_COUNT)
 
     def test_independent_VM_precedes_mapping_and_matches_original_effects(self):

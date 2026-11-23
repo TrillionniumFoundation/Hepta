@@ -332,12 +332,16 @@ class _CapturedAdmission:
         from tests.hia_store_delivery_successor import reverse_exact
 
         name = 'tests/test_hia_worker_native_helpers.py'
-        # Both caller inventories freeze this module from the same 73f16346 tree.
-        if CALLER_AUTHORITIES[self._authority]['kind'] not in ('store', 'emission') or name not in self._records:
+        if name not in self._records:
             return
+        kind = CALLER_AUTHORITIES[self._authority]['kind']
         expected = self._records[name]
         raw = self._capture(name)
-        if _pin(raw)['sha256'] == expected:
+        current = _pin(raw)
+        if current['sha256'] == expected:
+            return
+        if kind == 'build' and current['sha256'] != '4fef9e2f0a8188f5f3a6c81e522b5babd3a1f0c0a88f58e286cdf762433caab3':
+            # The build qualifier separately admits its original count-only change.
             return
         fixture = 'tests/fixtures/store_caller_worker_helpers_successor.json'
         digest = '168ef69fadf672e41f3dd717d3d79e54fcd1af70105d2e3552687b72af824904'
@@ -350,9 +354,17 @@ class _CapturedAdmission:
                 or value['path'] != name or value['original_commit'] != '73f16346'):
             raise ValueError('Store administrator-helper caller provenance scope differs')
         record = value['record']
-        original = {'bytes': record['old_bytes'], 'sha256': expected}
-        reverse_exact(raw, record, original)
-        self._allowed[name] = self._adjustment(name, original, _pin(raw), fixture, digest,
+        retained = reverse_exact(raw, record, {'bytes': record['old_bytes'], 'sha256': record['old_sha256']})
+        if kind == 'build':
+            # Between aac7550 and 73f16346 this exact row was the only difference.
+            row = b'        self.assertEqual(len(HELPERS), 37)\n'
+            if retained.count(row) != 1:
+                raise ValueError('original Build helper count row differs')
+            retained = retained.replace(row, row.replace(b'37', b'36'), 1)
+        original = _pin(retained)
+        if original['sha256'] != expected:
+            raise ValueError('helper reconstruction differs from the complete caller source')
+        self._allowed[name] = self._adjustment(name, original, current, fixture, digest,
             'address-space regression, expanded exact helper inventory and pinned journal fixture')
 
     @staticmethod

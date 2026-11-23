@@ -13,6 +13,7 @@ import itertools
 import json
 import os
 from pathlib import Path
+from types import MethodType
 import platform
 import signal
 import tempfile
@@ -58,6 +59,12 @@ def _owns_context_state(service):
 def _reference_wall_window(created_ns, now_ns, total_ms):
     delta = created_ns + total_ms * 1_000_000 - now_ns
     return delta < 0, max(0, delta // 1_000_000)
+
+
+def _build_input_bytes_differ(left, right):
+    if 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST' in os.environ:
+        return not _exact_artifact_equal(left, right)
+    return left != right
 
 
 def _exact_artifact_equal(left: bytes, right: bytes) -> bool:
@@ -1631,9 +1638,24 @@ class HIAAgentService:
             from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
             return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 2,
                                              self, (ref, context)).finish()
-        return self._native_reference(ref, context)
+        reference = self._native_reference
+        if type(reference) is MethodType and reference.__func__ is _ADMISSION_NATIVE_REFERENCE:
+            return HIAAgentService._native_with_components(reference.__self__, ref, context)
+        return reference(ref, context)
 
     def _native_reference(self, ref, context=None):
+        data, metadata = self.store.get(ref, kind="native")
+        if metadata["installation"] != self.identities or context is not None and metadata["context"] != context:
+            reject("E_HIA_RECEIPT_BINDING", "native artifact belongs to a different context or implementation")
+        program = self._program(metadata["candidate"])
+        retained_context = self._context(metadata["context"])
+        exports = tuple(map(tuple, retained_context.get("foreign_buffer_exports", [])))
+        if (metadata["core_sha256"] != program.sha256 or _signatures(program, exports) != metadata["signatures"]
+                or metadata.get("foreign_buffer_exports", []) != [list(pair) for pair in exports]):
+            reject("E_HIA_RECEIPT_BINDING", "native artifact's admitted Core identity differs")
+        return data, metadata, program
+
+    def _native_with_components(self, ref, context=None):
         data, metadata = self.store.get(ref, kind="native")
         differs = selected_json_inequality()
         if (differs(metadata["installation"], self.identities)
@@ -1665,9 +1687,42 @@ class HIAAgentService:
             from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
             return NativeBuildAdmissionFrame(installed_native_build_admission(selected), 3,
                                              self, (ref, context, artifact)).finish()
-        return self._build_inputs_reference(ref, context, artifact)
+        reference = self._build_inputs_reference
+        if type(reference) is MethodType and reference.__func__ is _ADMISSION_INPUTS_REFERENCE:
+            return HIAAgentService._build_inputs_with_components(reference.__self__, ref, context, artifact)
+        return reference(ref, context, artifact)
 
     def _build_inputs_reference(self, ref, context, artifact):
+        """Capture and validate one immutable Core/object/final build observation."""
+        record, _ = self.store.get_json(ref, kind="build-receipt")
+        if (record["context"] != context or record["native_artifact"] != artifact or record["installation"] != self.identities
+                or record.get("target_profile") != self.profiles["target"]
+                or record.get("backend_profile") != self.profiles["backend"]):
+            reject("E_HIA_RECEIPT_BINDING", "build receipt belongs to a different native subject")
+        data, metadata, program = self._native(artifact, context)
+        if any(record.get(name) != value for name, value in metadata.items()):
+            reject("E_HIA_RECEIPT_BINDING", "build record differs from retained native metadata")
+        built = record.get("native_build")
+        if (type(built) is not dict or type(record.get("object_artifact")) is not dict
+                or record["object_artifact"] != built.get("object_artifact")
+                or record.get("object_sha256") != built.get("object_sha256")
+                or built.get("core_sha256") != program.sha256
+                or built.get("input_sha256") != program.input_sha256
+                or built.get("implementation_sha256") != self.identities["backend_sha256"]
+                or built.get("kind") != record["output_kind"]
+                or built.get("foreign_buffer_exports") != record.get("foreign_buffer_exports", [])
+                or built.get("artifact_sha256") != sha256(data).hexdigest()):
+            reject("E_HIA_RECEIPT_BINDING", "build record differs from actual artifact bytes")
+        object_bytes, object_metadata = self.store.get(record["object_artifact"], kind="build-object")
+        expected_metadata = {"schema": "hepta.hia.agent.build-object.v1", "core_sha256": program.sha256,
+            "machine_plan_sha256": built.get("machine_plan_sha256"), "installation": self.identities}
+        if (object_metadata != expected_metadata or sha256(object_bytes).hexdigest() != record["object_sha256"]
+                or record["object_artifact"]["sha256"] != record["object_sha256"]
+                or record["output_kind"] == "object" and object_bytes != data):
+            reject("E_HIA_RECEIPT_BINDING", "retained object differs from its exact build binding")
+        return record, data, object_bytes, program
+
+    def _build_inputs_with_components(self, ref, context, artifact):
         """Capture and validate one immutable Core/object/final build observation."""
         record, _ = self.store.get_json(ref, kind="build-receipt")
         differs = selected_json_inequality()
@@ -1697,7 +1752,7 @@ class HIAAgentService:
         if (differs(object_metadata, expected_metadata)
                 or differs(_build_input_digest(object_bytes), record["object_sha256"])
                 or differs(record["object_artifact"]["sha256"], record["object_sha256"])
-                or record["output_kind"] == "object" and not _exact_artifact_equal(object_bytes, data)):
+                or record["output_kind"] == "object" and _build_input_bytes_differ(object_bytes, data)):
             reject("E_HIA_RECEIPT_BINDING", "retained object differs from its exact build binding")
         return record, data, object_bytes, program
 
@@ -2493,6 +2548,8 @@ _NATIVE_BUILD_SIGNATURES_BRIDGE = _signatures
 _NATIVE_BUILD_NATIVE_BRIDGE = HIAAgentService._native
 _NATIVE_BUILD_INPUTS_BRIDGE = HIAAgentService._build_inputs
 _NATIVE_BUILD_GLOBAL_BUILTINS = _signatures.__builtins__
+_ADMISSION_NATIVE_REFERENCE = HIAAgentService._native_reference
+_ADMISSION_INPUTS_REFERENCE = HIAAgentService._build_inputs_reference
 
 # Preserve the original functions' bound builtins dictionary even if a caller
 # later replaces the module's __builtins__ binding or an explicit provider.
