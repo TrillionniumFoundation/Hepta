@@ -75,8 +75,7 @@ def _stage_sqlite(work, compiler, cold_report, publish, linked_components):
         publish(path)
         return path.parent
 
-    artifacts = component('artifact_publication')
-    ((components, selected), (pager, pager_record)), batches = linked_components
+    ((components, selected), (pager, pager_record)), dependencies = linked_components
     cold_identity = {'compiler_sha256': sha256(compiler.read_bytes()).hexdigest(),
                      'cold_report_sha256': sha256(cold_report.read_bytes()).hexdigest()}
     pager_receipt = {'schema': 'hepta.hia.sqlite-pager-build.v1', **cold_identity, **pager_record}
@@ -86,8 +85,8 @@ def _stage_sqlite(work, compiler, cold_report, publish, linked_components):
     receipt = {'schema': 'hepta.hia.sqlite-component-process-build.v1',
                **cold_identity, 'source_sha256': selected['source_sha256'], 'executable_manifest': {PROJECTION: selected}}
     (components / 'build.json').write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n')
-    publisher = component('sqlite_migration_publish', artifacts, batches['batch'])
-    component('sqlite_migrate', {'pager': pager, 'staging': components, 'initializer': batches['initialize'],
+    publisher = component('sqlite_migration_publish', dependencies['artifact'], dependencies['batch'])
+    component('sqlite_migrate', {'pager': pager, 'staging': components, 'initializer': dependencies['initialize'],
                                  'publisher': publisher})
 
 
@@ -360,17 +359,42 @@ def _bind_transaction_program(work, kind, variant, source_map, images, program, 
         return None
     # The migration publisher consumes the batch writer. Its coordinator opens
     # the initializer independently and validates its executable and cold pins.
-    folder = work / ('native-transaction-' + kind)
-    folder.mkdir(mode=0o700)
-    (folder / name).write_bytes(program)
     sources = (packer, adapter, *('examples/hia_bootstrap/' + value for value in source_map.values()))
     schema = ('hepta.hia.agent-store-init-build.v1' if kind == 'initialize'
               else 'hepta.hia.agent-batch-commit-build.v1')
+    return _migration_dependency(work, name, schema, program, inspect_executable(program),
+                                 {path: admitted[path] for path in sources}, compiler, report)
+
+
+def _migration_dependency(work, name, schema, program, inspection, sources, compiler, report):
+    folder = work / ('migration-dependency-' + name)
+    folder.mkdir(mode=0o700)
+    (folder / name).write_bytes(program)
     receipt = {'schema': schema, 'executable_path': name, 'executable_sha256': sha256(program).hexdigest(),
-               'executable': inspect_executable(program), 'source_sha256': {path: admitted[path] for path in sources},
+               'executable': inspection, 'source_sha256': sources,
                'compiler_sha256': sha256(compiler).hexdigest(), 'cold_report_sha256': sha256(report).hexdigest()}
     (folder / 'build.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
     return folder
+
+
+def _bind_artifact_publisher(work, program, admitted, compiler, report):
+    from hepta.hia_artifact_delivery_protocol import control_descriptor, private_executable, public_executable
+    from tools.build_hia_artifact_publication import SOURCES
+
+    sources = {}
+    for name in SOURCES:
+        digest = sha256((ROOT / name).read_bytes()).hexdigest()
+        if digest != admitted.get(name):
+            raise ValueError('artifact publisher source differs from its cold admission: ' + name)
+        sources[name] = digest
+    descriptor = control_descriptor(program)
+    private = private_executable(program)
+    if public_executable(private) != program:
+        raise ValueError('artifact delivery descriptor does not restore the public publisher')
+    inspection = {'sha256': sha256(program).hexdigest(), 'public_entry': descriptor.public_entry,
+                  'private_entry': descriptor.private_entry, 'private_sha256': sha256(private).hexdigest()}
+    return _migration_dependency(work, 'hia-artifact', 'hepta.hia.artifact-publication-build.v1',
+                                 program, inspection, sources, compiler, report)
 
 
 def _source_request_recipes():
@@ -393,6 +417,8 @@ def _source_release_recipes():
         inputs = {name + '.hepta': main, **{source: source for source in companions}}
         return name, Path(packer).name, inputs
 
+    from tools.build_hia_artifact_publication import SOURCES as publisher
+    yield recipe('hia-artifact', publisher[1], (publisher[0], publisher[2]))
     yield recipe('hia-release', installer[1], (installer[0], installer[2]))
     yield recipe('hia-core-json', 'core_json_cli_packer.hepta', ('core_json_frontend.hepta', 'selfhost.hepta'))
     yield recipe('hia-workspace-compile', 'core_workspace_pipeline_packer.hepta',
@@ -467,7 +493,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     # separately as part of the original build contract.
     from tools.build_hia_agent_batch_commit import VARIANTS as transaction_variants
     transaction_members = {values[0]: (kind, values) for kind, values in transaction_variants.items()}
-    transactions = {}
+    migration_dependencies = {}
     from tools.build_hia_direct_call import ROLES as direct_roles
     from tools.generate_hia_native_filter import REFERENCE_CLI_ADAPTER, read_adapter_binding, verify_adapter
     adapter_files = {'hia-' + role: info[2] for role, info in direct_roles.items()}
@@ -523,12 +549,15 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         else:
             group, images, _ = compile_sources(sources)
         product = call(builders[packer], 'build', group)
+        if name == 'hia-artifact':
+            migration_dependencies['artifact'] = _bind_artifact_publisher(
+                work, product, admitted, compiler_bytes, report_bytes)
         if name in transaction_members:
             kind, variant = transaction_members[name]
             folder = _bind_transaction_program(work, kind, variant, sources, images, product,
                                                admitted, compiler_bytes, report_bytes)
             if folder is not None:
-                transactions[kind] = folder
+                migration_dependencies[kind] = folder
         if name in adapter_files:
             adapter_file = adapter_files[name]
             packer_file = 'examples/hia_bootstrap/' + packer
@@ -576,7 +605,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, compile_sources, call, admitted, publish)
     linked = _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
-    return linked, transactions
+    return linked, migration_dependencies
 
 
 def _pack_and_verify(work, stage, members):

@@ -74,6 +74,24 @@ class InstalledSourceMemberTests(unittest.TestCase):
         builder.chmod(0o500)
         return builder
 
+    def test_publication_descriptor_pins_public_and_private_entrypoints_for_migration(self):
+        from hepta.hia_artifact_delivery_protocol import DESCRIPTOR_OFFSET, ENTRY_WORD_OFFSET, NOTE_OFFSET
+        from tools import build_hia_native_store_release as release
+        from tools.build_hia_artifact_publication import SOURCES
+        from tools.build_hia_sqlite_migration_publish import read_dependency
+
+        original = (self.release / 'hia-artifact').read_bytes()
+        admitted = {path: sha256((ROOT / path).read_bytes()).hexdigest() for path in SOURCES}
+        for offset in (ENTRY_WORD_OFFSET, NOTE_OFFSET, DESCRIPTOR_OFFSET + 16, DESCRIPTOR_OFFSET + 40):
+            changed = bytearray(original)
+            changed[offset] ^= 1
+            with self.subTest(offset=offset), self.assertRaises(ValueError):
+                release._bind_artifact_publisher(self.work, bytes(changed), admitted, b'compiler', b'cold')
+        folder = release._bind_artifact_publisher(self.work, original, admitted, b'compiler', b'cold')
+        body, *_ = read_dependency(folder, 'hia-artifact', 'hepta.hia.artifact-publication-build.v1',
+                                   sha256(b'compiler').hexdigest(), sha256(b'cold').hexdigest(), admitted)
+        self.assertEqual(body, original)
+
     def test_transaction_programs_match_original_placement_and_migration_receipts(self):
         from tools import build_hia_native_store_release as release
         from tools.build_hia_agent_batch_commit import VARIANTS
