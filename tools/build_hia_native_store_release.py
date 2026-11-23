@@ -626,9 +626,122 @@ def _decode_member_plan(raw):
     return members
 
 
-def _stage_source_members(work, stage, admitted, members, publish, *, compiler_bytes, report_bytes, core_inputs):
+def _named_source_request(sources, *, tag=b'HIANAM01'):
+    frame = bytearray(struct.pack('<8sQ', tag, len(sources)))
+    for name, raw in sources.items():
+        encoded = name.encode('ascii')
+        frame.extend(struct.pack('<2Q', len(encoded), len(raw)))
+        frame.extend(encoded)
+        frame.extend(raw)
+    return bytes(frame)
+
+
+def _member_batches(inputs, limit):
+    batch = {}
+    extent = 24
+    for name, raw in inputs:
+        row_size = 24 + len(name.encode('ascii')) + len(raw)
+        if batch and (len(batch) == limit or extent + row_size > 64 << 20):
+            yield batch
+            batch, extent = {}, 24
+        batch[name] = raw
+        extent += row_size
+    if batch:
+        yield batch
+
+
+def _stage_captured_members(work, stage, members, products, capture_packet):
+    """Use the native installer for data and code and publish their verified inodes."""
+    if members.keys() & products.keys():
+        raise ValueError('duplicate captured Store member')
+    publisher, installer = products['hia-artifact'], products['hia-release']
+    identities = {name: sha256(raw).hexdigest() for name, raw in products.items()}
+    programs, data = [], []
+    for item in products.items():
+        (programs if item[1].startswith(b'\x7fELF') else data).append(item)
+    # Empty members are valid Store data. Install them in the base directory
+    # itself, since the public artifact link protocol requires nonempty bytes.
+    data.sort(key=lambda item: bool(item[1]))
+    data_batches = _member_batches(data, 384)
+    code_batches = _member_batches(programs, 128)
+
+    def install(batch, tag, depot):
+        packet, digest = capture_packet(batch, tag=tag)
+        receipt = {'sha256': digest, 'files': len(batch)}
+        for action in ('install', 'verify'):
+            checked = _run_captured(installer, (action, depot, digest), packet, work)
+            checked.check_returncode()
+            result = json.loads(checked.stdout)
+            if checked.stderr or any(result.get(k) != v for k, v in receipt.items()):
+                raise ValueError('captured Store package differs from its installation receipt')
+        installed = depot / digest
+        # The private build must be able to add or unlink names without chmod
+        # on the published file inodes themselves.
+        os.chmod(installed, 0o700)
+        return installed
+
+    base = next(data_batches, None)
+    if base is not None:
+        if any(stage.iterdir()):
+            raise FileExistsError('captured Store staging directory already contains entries')
+        stage = install(base, b'HIADATA1', stage)
+        for name, raw in base.items():
+            file = stage / name
+            if stat.S_IMODE(file.lstat().st_mode) != 0o400 or file.read_bytes() != raw:
+                raise ValueError('native Store data differs from its capture: ' + name)
+
+    directory = os.open(stage, os.O_DIRECTORY | os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        with TemporaryDirectory(prefix='compiled-members-', dir=work) as depot:
+            depot = Path(depot)
+            linked = []
+            def invoke(action, source, target, expected):
+                return _run_captured(publisher, (action, source, target), expected, work, pass_fds=(directory,))
+            try:
+                for tag, batches, mode in ((b'HIADATA1', data_batches, 0o400), (b'HIAELF01', code_batches, 0o500)):
+                    for batch in batches:
+                        installed = install(batch, tag, depot)
+                        for name, raw in batch.items():
+                            source = installed / name
+                            target = Path(f'/proc/self/fd/{directory}') / name
+                            if stat.S_IMODE(source.lstat().st_mode) != mode:
+                                raise ValueError('captured Store member has an invalid native mode: ' + name)
+                            # An interrupted publisher can already have linked its inode.
+                            linked.append((source, target))
+                            publication = invoke('publish', source, target, raw)
+                            if publication.returncode == 14:
+                                linked.pop()
+                                raise FileExistsError('captured Store member already exists: ' + name)
+                            publication.check_returncode()
+                            expected = {'bytes': len(raw), 'sha256': identities[name]}
+                            if (publication.stderr or json.loads(publication.stdout) != expected
+                                    or not os.path.samestat(source.lstat(), target.lstat())):
+                                raise ValueError('captured Store member differs from its native publication: ' + name)
+                if not os.path.samestat(stage.lstat(), os.fstat(directory)):
+                    raise ValueError('captured Store staging directory changed')
+            except BaseException:
+                for source, target in reversed(linked):
+                    try:
+                        same = os.path.samestat(source.lstat(), target.lstat())
+                    except FileNotFoundError:
+                        same = False
+                    if same:
+                        invoke('withdraw', source, target, b'').check_returncode()
+                raise
+        members.update(identities)
+        return stage
+    finally:
+        os.close(directory)
+
+
+def _stage_source_members(work, stage, admitted, members, publish, *, compiler_bytes, report_bytes, core_inputs,
+                          captured_members=None):
     """Compile and pack release members with the captured native seed and HIA policy."""
+    products = {} if captured_members is None else captured_members
+
     def captured(role):
+        if role in products:
+            return products[role]
         return _capture_release_tool(stage, role, members)
 
     seed = captured('hia-source-build')
@@ -665,21 +778,42 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
                 raise ValueError('native source directory receipt differs from its bytes')
             return packed.stdout
 
-    def compile_sources(named):
+    def capture_sources(named):
         pinned = {}
-        for name, source in sorted(named.items()):
+        for name, source in named.items():
             relative = 'examples/hia_bootstrap/' + source
             data = (ROOT / relative).read_bytes()
             if admitted.get(relative) != sha256(data).hexdigest():
                 raise ValueError('release member source differs from cold admission: ' + relative)
             pinned[name] = data
+        return pinned
+
+    policy_sources = capture_sources({
+        'selfhost.hepta': 'selfhost.hepta',
+        'source_build_packer.hepta': 'source_build_packer.hepta',
+        'source_build_policy.hepta': 'source_named_packet.hepta',
+    })
+    bootstrap = _source_bundle(policy_sources.values(), names=policy_sources)
+    compiled = call(seed, 'build', bootstrap)
+    _compiled_sources(compiled, policy_sources)
+    named_packer = call(seed, 'pack', compiled)
+
+    def capture_packet(pinned, *, tag=b'HIANAM01'):
+        wire = call(named_packer, 'build', _named_source_request(pinned, tag=tag))
+        digest = call(named_packer, 'pack', wire)
+        if digest != sha256(wire).digest():
+            raise ValueError('native source packet digest differs from its bytes')
+        return wire, digest.hex()
+
+    if capture_packet(policy_sources)[0] != bootstrap:
+        raise ValueError('native source packager differs from its bootstrap packet')
+    bootstrap_packets.append((policy_sources, bootstrap))
+
+    def compile_sources(named):
+        pinned = capture_sources(named)
+        wire, _ = capture_packet(pinned)
         if pack_directory is None:
-            # Before the directory packer exists only a source byte transport is
-            # needed. Its two packets must subsequently match the HIA program.
-            wire = _source_bundle(pinned.values(), names=pinned)
             bootstrap_packets.append((pinned, wire))
-        else:
-            wire = native_directory_packet(pack_directory, pinned)
         compiled = call(seed, 'build', wire)
         return compiled, _compiled_sources(compiled, pinned), pinned
 
@@ -737,10 +871,9 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             verify_adapter(product, images[name + '.hepta'], binding, entries=(0,))
         if not product.startswith(b'\x7fELF'):
             raise ValueError('native source member returned an invalid release program: ' + name)
-        with NamedTemporaryFile(dir=work, prefix='native-member-') as stream:
-            stream.write(product)
-            stream.flush()
-            publish(Path(stream.name), name, expected=sha256(product).hexdigest())
+        if name in members or name in products:
+            raise ValueError('duplicate compiled Store member: ' + name)
+        products[name] = product
         if name == 'hia-directory-package-build':
             pack_directory = captured(name)
             for pinned, wire in bootstrap_packets:
@@ -786,6 +919,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     linked = _stage_sqlite_units(work, compile_sources, admitted, publish, sqlite_tools)
     _stage_sqlite_migrations(work, compile_sources, admitted, publish, sqlite_tools, linked,
                              migration_dependencies, compiler_bytes, report_bytes)
+    return _stage_captured_members(work, stage, members, products, capture_packet)
 
 
 def _capture_release_tool(stage, name, members):
@@ -941,27 +1075,27 @@ def build(output, compiler, cold_report):
         stage = work / 'stage'
         stage.mkdir(mode=0o700)
         members = {}
+        captures = {}
 
         def publish(path, name=None, *, expected=None):
             name = path.name if name is None else name
-            if Path(name).name != name or name in members or path.is_symlink() or not path.is_file():
+            if Path(name).name != name or name in captures or path.is_symlink() or not path.is_file():
                 raise ValueError('invalid or duplicate Store release member: ' + name)
-            raw = path.read_bytes()
-            digest = sha256(raw).hexdigest()
-            if expected is not None and digest != expected:
+            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(descriptor, 'rb') as stream:
+                if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+                    raise ValueError('invalid Store release member: ' + name)
+                raw = stream.read()
+            if expected is not None and sha256(raw).hexdigest() != expected:
                 raise ValueError('Store release member differs from its declared source: ' + name)
-            target = stage / name
-            with target.open('xb') as stream:
-                stream.write(raw)
-                os.fchmod(stream.fileno(), 0o500 if raw.startswith(b'\x7fELF') else 0o400)
-            members[name] = digest
+            captures[name] = raw
 
         for name in RESOURCES:
             publish(ROOT / name, expected=admitted[name])
         _stage_component_outputs(work, compiler, cold_report, publish)
-        _stage_source_members(work, stage, admitted, members, publish,
-                              compiler_bytes=compiler_bytes, report_bytes=report_bytes,
-                              core_inputs=(compiler, cold_report))
+        stage = _stage_source_members(work, stage, admitted, members, publish,
+                                      compiler_bytes=compiler_bytes, report_bytes=report_bytes,
+                                      core_inputs=(compiler, cold_report), captured_members=captures)
         package, expected, digest, publisher, identity = _pack_and_verify(work, stage, members)
         if current_sources() != admitted or compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != report_bytes:
             raise ValueError('native Store cold inputs changed before publication')

@@ -109,6 +109,121 @@ class InstalledSourceMemberTests(unittest.TestCase):
         builder.chmod(0o500)
         return builder
 
+    def test_named_source_packet_matches_physical_directory_and_rejects_invalid_frames(self):
+        import struct
+        from tools.build_hia_native_store_release import _named_source_request
+
+        kit = self.source_images(self.work / 'packet-kit', {
+            'source_build_policy.hepta': self.sources / 'source_named_packet.hepta',
+            'source_build_packer.hepta': self.sources / 'source_build_packer.hepta',
+            'selfhost.hepta': self.sources / 'selfhost.hepta',
+        })
+        builder = self.work / 'source-packet'
+        builder.write_bytes(self.invoke([self.seed, 'pack'], kit))
+        builder.chmod(0o500)
+        captured = {'z.hepta': bytes(range(256)), 'a0.hepta': b'\0\n\xff',
+                    'A.hepta': b'a', 'a.hepta': b'prefix'}
+        physical = self.work / 'directory'
+        physical.mkdir(mode=0o700)
+        for name, raw in captured.items():
+            (physical / name).write_bytes(raw)
+            (physical / name).chmod(0o400)
+        old = subprocess.run([self.release / 'hia-directory-package-build', physical],
+                             env={'PATH':''}, capture_output=True, check=True)
+        packet = self.invoke([builder, 'build'], _named_source_request(captured))
+        self.assertEqual(packet, old.stdout)
+        digest = self.invoke([builder, 'pack'], packet)
+        self.assertEqual(digest, sha256(packet).digest())
+        self.assertEqual(digest.hex().encode() + b'\n', old.stderr)
+        many = {f'x{i:03}.hepta': bytes((i,)) for i in reversed(range(128))}
+        self.assertEqual(self.invoke([builder, 'build'], _named_source_request(many)),
+                         self.invoke([builder, 'build'], _named_source_request(dict(reversed(many.items())))))
+        one = _named_source_request({'a.hepta': b'1'})
+        header = lambda n: struct.pack('<8sQ', b'HIANAM01', n)
+        failures = [one[:-1], one+b'\0', header(2)+one[16:]*2, header(0),
+                    header(129)+one[16:]*129, one[:16]+struct.pack('<2Q', 7, 2**64-1)+one[32:],
+                    _named_source_request({'missing':b'1'}), _named_source_request({'a.hepta': b''}),
+                    _named_source_request({'a.hepta':bytes(1048577)}),
+                    _named_source_request({'a/parent.hepta':b'.'}), _named_source_request({'.a.hepta':b'a'}),
+                    _named_source_request({'x'*118+'.hepta':b'a'})]
+        for i, raw in enumerate(failures):
+            with self.subTest(refusal=i):
+                self.invoke([builder, 'build'], raw, refused=True)
+
+    def test_compiled_elf_stage_installs_the_verified_inode_and_preserves_collisions(self):
+        from tools import build_hia_native_store_release as release
+
+        kit = self.source_images(self.work / 'compiled-kit', {
+            'source_build_policy.hepta': self.sources / 'source_named_packet.hepta',
+            'source_build_packer.hepta': self.sources / 'source_build_packer.hepta',
+            'selfhost.hepta': self.sources / 'selfhost.hepta',
+        })
+        builder = self.work / 'elf-packet'
+        builder.write_bytes(self.invoke([self.seed, 'pack'], kit))
+        builder.chmod(0o500)
+        products = {name:(self.release / name).read_bytes()
+                    for name in ('hia-artifact','hia-release','hia-directory-package-build')}
+        def packet(batch, *, tag):
+            request = release._named_source_request(batch, tag=tag)
+            raw = self.invoke([builder,'build'], request)
+            digest = self.invoke([builder,'pack'], raw)
+            self.assertEqual(digest, sha256(raw).digest())
+            return raw, digest.hex()
+
+        for partial in ('clean', 'existing', 'dangling', 'duplicate'):
+            with self.subTest(case=partial):
+                stage = self.work / partial
+                stage.mkdir(mode=0o700)
+                members = {}
+                last = stage / 'hia-directory-package-build'
+                if partial == 'existing':
+                    last.write_bytes(b'previous')
+                if partial == 'dangling':
+                    last.symlink_to('absent')
+                if partial == 'duplicate':
+                    members[last.name] = 'existing member'
+                if partial == 'clean':
+                    release._stage_captured_members(self.work, stage, members, products, packet)
+                    self.assertEqual(members,{k:sha256(raw).hexdigest() for k,raw in products.items()})
+                    for name, raw in products.items():
+                        path = stage/name
+                        self.assertEqual(path.read_bytes(),raw)
+                        self.assertEqual(path.stat().st_mode & 0o777,0o500)
+                        self.assertEqual(path.stat().st_nlink,1)
+                else:
+                    with self.assertRaises(FileExistsError if partial != 'duplicate' else ValueError):
+                        release._stage_captured_members(self.work, stage, members, products, packet)
+                    self.assertFalse((stage/'hia-artifact').exists())
+                    self.assertFalse((stage/'hia-release').exists())
+                    if partial == 'existing':
+                        self.assertEqual(last.read_bytes(),b'previous')
+                    if partial == 'dangling':
+                        self.assertEqual(os.readlink(last),'absent')
+                    self.assertEqual(members,{last.name:'existing member'} if partial=='duplicate' else {})
+        incoming = self.work / 'mixed-capture'
+        incoming.mkdir(mode=0o700)
+        samples = {'01.empty': b'', 'manifest.json': b'{}', 'selfhost.hepta': b'text'}
+        all_members = {**products, **samples, 'hia': products['hia-artifact']}
+        registered = {}
+        actual = release._stage_captured_members(self.work, incoming, registered, all_members, packet)
+        self.assertEqual(set(registered), set(all_members))
+        for name, raw in all_members.items():
+            self.assertEqual((actual / name).read_bytes(), raw)
+            self.assertEqual((actual / name).stat().st_mode & 0o777, 0o400 if name in samples else 0o500)
+            self.assertEqual((actual / name).stat().st_nlink, 1)
+        resources = {f'data-{i:03}': b'' for i in range(257)}
+        extended, digest = packet(resources, tag=b'HIADATA1')
+        self.assertEqual(extended[:8], b'HIAREL02')
+        extended_depot = self.work / 'extended-data'
+        extended_depot.mkdir(mode=0o700)
+        self.invoke([self.release / 'hia-release', 'install', extended_depot, digest], extended)
+        self.assertEqual(set(p.name for p in (extended_depot / digest).iterdir()), set(resources))
+        self.invoke([builder,'build'], release._named_source_request(
+            {'data.bin': products['hia-artifact']},tag=b'HIADATA1'), refused=True)
+        for name,raw in (('hia-invalid',b'not an ELF'), ('../outside',products['hia-artifact']),
+                         ('unbound',products['hia-artifact'])):
+            self.invoke([builder,'build'],release._named_source_request({name:raw},tag=b'HIAELF01'),refused=True)
+
     def release_planner(self):
         kit = self.source_images(self.work / 'recipe-kit', {
             'source_build_policy.hepta': self.sources / 'source_release_member_plan.hepta',
