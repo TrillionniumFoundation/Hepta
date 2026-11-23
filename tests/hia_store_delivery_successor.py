@@ -26,7 +26,7 @@ SERVICE_PATH = 'hepta/hia_agent_service.py'
 EVALUATION_PATH = 'hepta/hia_evaluation_native.py'
 QUALIFIER_PATH = 'tests/hia_caller_terminal_admission.py'
 EVALUATE_FIXTURE = 'tests/fixtures/store_evaluate_delivery_successor.json'
-EVALUATE_FIXTURE_SHA256 = 'bfce45bff50ea8b1acbd6745b494dd0a9d7a90aefc281dea9db7c27b41201ab9'
+EVALUATE_FIXTURE_SHA256 = '5ab86ecf706165760117253802c6b5fa822fc160b75aa9001877dfa7416efdfc'
 EVALUATION_PLANNER_SHA256 = 'd30d4f0796535ba524746a2e8a07f76fe253e9799745cf8458fedf526bce0a70'
 JOURNAL_COST = ROOT / 'tests/fixtures/worker_journal_cost_successor.json'
 JOURNAL_COST_SHA256 = '97f1c36e9f12af0ffe96b3c789603365e74a3df0b8b5b52fa2be9dca9b7c3cd1'
@@ -110,8 +110,8 @@ def evaluate_records(frozen):
     if sha256(frozen).hexdigest() != EVALUATE_FIXTURE_SHA256:
         raise ValueError('Store Evaluate source provenance changed')
     value = json.loads(frozen)
-    if (set(value) != {'schema', 'files', 'service_followups', 'build_qualifier', 'build_inventory_test'}
-            or type(value['service_followups']) is not list or len(value['service_followups']) != 4
+    if (set(value) != {'schema', 'files', 'service_followups', 'build_qualifier', 'build_inventory_test', 'evaluation_qualifier'}
+            or type(value['service_followups']) is not list or len(value['service_followups']) != 5
             or value['schema'] != 'hepta.hia.store-evaluate-delivery-successor.v1'
             or set(value['files']) != {SERVICE_PATH, EVALUATION_PATH, QUALIFIER_PATH}):
         raise ValueError('Store Evaluate source provenance scope differs')
@@ -185,7 +185,7 @@ def _restore_composition_successor(captured, approved, shared):
             latest = record
             if name == SERVICE_PATH:
                 # Each exact service stage adds one reviewed capability in order:
-                # Inspect, SQL cost ledgers, cursor paging, then native build inputs.
+                # Inspect, SQL cost ledgers, cursor paging, build inputs and Evaluate providers.
                 stages = [record, *reviewed['service_followups']]
                 for prior, step in reversed(list(zip(stages, stages[1:]))):
                     if sha256(source[name]).hexdigest() == step['new_sha256']:

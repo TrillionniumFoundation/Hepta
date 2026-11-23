@@ -121,7 +121,11 @@ class EvaluationSourceTests(unittest.TestCase):
         for name, record in inventory['modules'].items():
             with self.subTest(module=name):
                 _suite, planned = load_declared_suite([name])
-                self.assertEqual(list(planned), record['ordered_ids'])
+                added = (['tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.'
+                          'test_small_helper_reads_inside_the_minimum_agent_address_space']
+                         if name == 'tests.test_hia_worker_native_helpers' else [])
+                self.assertEqual([test for test in planned if test not in record['ordered_ids']], added)
+                self.assertEqual([test for test in planned if test not in added], record['ordered_ids'])
 
     def test_independent_VM_precedes_native_mapping_and_matches_original_effects(self):
         program = assemble_program(native.SOURCE.read_bytes())

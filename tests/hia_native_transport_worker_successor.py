@@ -154,7 +154,20 @@ def restore_evaluation_store(raw, fixture):
 
     if sha256(fixture).hexdigest() != EVALUATION_STORE_FIXTURE_SHA256:
         raise ValueError('evaluation typed Store test provenance changed')
-    return reverse_exact(raw, json.loads(fixture), EVALUATION_NEW)
+    record = json.loads(fixture)
+    if sha256(raw).hexdigest() == 'b93ed81c5c1b2f98429981b16fe0ff893775d6352cb8df17688c29c93645caa8':
+        after = (
+            b"                added = (['tests.test_hia_worker_native_helpers.WorkerHelperSourceTests.'\n"
+            b"                          'test_small_helper_reads_inside_the_minimum_agent_address_space']\n"
+            b"                         if name == 'tests.test_hia_worker_native_helpers' else [])\n"
+            b"                self.assertEqual([test for test in planned if test not in record['ordered_ids']], added)\n"
+            b"                self.assertEqual([test for test in planned if test not in added], record['ordered_ids'])\n"
+        )
+        before = b"                self.assertEqual(list(planned), record['ordered_ids'])\n"
+        if raw.count(after) != 1:
+            raise ValueError('reviewed evaluation inventory assertion changed')
+        raw = raw.replace(after, before, 1)
+    return reverse_exact(raw, record, EVALUATION_NEW)
 
 
 def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
@@ -930,6 +943,12 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
         raw, record = capture(path), value['files'][path]
         expected = DIAGNOSTIC_RECORDS[path]
         reviewed = raw
+        caller_update = (path == 'tools/qualify_hia_evaluation_callers.py'
+                         and sha256(raw).hexdigest() == '4ff2b72e17ff08e0016379cd5242b6293344ba644eb607ea490c85f3a4c1a339')
+        if caller_update:
+            from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, evaluate_records, reverse_exact
+            update = evaluate_records(capture(EVALUATE_FIXTURE))['evaluation_qualifier']
+            reviewed = reverse_exact(raw, update, expected['new'])
         boundary = _pin(raw) == SQLITE_BOUNDARY_SOURCES.get(path)
         if boundary:
             reviewed = _reverse_sqlite_boundary(path, raw, capture(SQLITE_BOUNDARY_FIXTURE),
@@ -954,6 +973,9 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
                     'complete_original_inverse_verified': True,
                     'complete_current_forward_replay_verified': True,
                     'production_source_exception': False}
+                if caller_update:
+                    adjustments[path].update(current_bytes=len(raw), current_sha256=sha256(raw).hexdigest(),
+                                             original_evaluation_callers_verified=183)
                 if boundary:
                     adjustments[path].update({
                         'current_bytes': len(raw), 'current_sha256': sha256(raw).hexdigest(),

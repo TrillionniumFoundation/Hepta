@@ -58,6 +58,10 @@ def admit_original_sources(root, records, *, source_proof=None):
     original_line = b'        self.assertEqual(len(HELPERS), 35)\n'
     current_line = ('        self.assertEqual(len(HELPERS), ' + str(count) + ')\n').encode()
     adjustments, diagnostic_adjustments = [], {}
+    historical = 'tests/fixtures/evaluation_historical_controls_v1.json'
+    reviewed_paths = {'tests/test_hia_agent_native_machine_validation.py',
+                      'tests/test_hia_cost_ledger_native.py', 'tests/test_hia_worker_native_helpers.py'}
+    reviewed = {}
     for name, digest in records.items():
         raw = capture(name)
         actual = sha256(raw).hexdigest()
@@ -70,13 +74,34 @@ def admit_original_sources(root, records, *, source_proof=None):
             if (len(helper) != 5185 or sha256(helper).hexdigest()
                     != '9e11b98d395229bcb38f0b36094da8bffb37e694ba1ad4afdfa998a8392dd578'):
                 raise ValueError('exact caller diagnostics source changed')
+            projected = raw
+            if diagnostics.pin(raw) != diagnostics.CURRENT:
+                from tests import hia_native_transport_worker_successor as delivery
+                if diagnostics.pin(raw) != delivery.SQLITE_BOUNDARY_SOURCES[name]:
+                    raise ValueError('unreviewed diagnostic caller source changed')
+                projected = delivery._reverse_sqlite_boundary(name, raw,
+                    capture(delivery.SQLITE_BOUNDARY_FIXTURE), delivery.DIAGNOSTIC_FIXTURE,
+                    capture(delivery.DIAGNOSTIC_FIXTURE), diagnostics.CURRENT)
             diagnostic_adjustments[name] = diagnostics.admit(
-                name, raw, digest, capture(diagnostics.FIXTURE))
+                name, projected, digest, capture(diagnostics.FIXTURE))
             continue
         if (name != 'tests/test_hia_worker_native_helpers.py'
                 or raw.count(current_line) != 1
                 or sha256(raw.replace(current_line, original_line, 1)).hexdigest() != digest):
-            raise ValueError('original caller source differs: ' + name)
+            if name not in reviewed_paths or not (root / historical).is_file():
+                raise ValueError('original caller source differs: ' + name)
+            from tests.hia_store_delivery_successor import reverse_exact
+            evidence = capture(historical)
+            if sha256(evidence).hexdigest() != 'a239054b8a1bc4c3e8b473cd1278cd40c94e25c6030637c6bccdde9025e1d232':
+                raise ValueError('historical evaluation caller authority changed')
+            inventory = json.loads(evidence)
+            if (inventory['schema'] != 'hepta.hia.historical-evaluation-callers.v1'
+                    or set(inventory['records']) != reviewed_paths):
+                raise ValueError('historical evaluation caller inventory differs')
+            row = inventory['records'][name]
+            reverse_exact(raw, row, {'bytes': row['old_bytes'], 'sha256': digest})
+            reviewed[name] = {'current_sha256': actual, 'original_sha256': digest}
+            continue
         adjustments.append({'path': name, 'original_sha256': digest, 'current_sha256': actual,
             'original_helper_count': 35, 'current_helper_count': count,
             'sole_permitted_change': 'one exact registry-count assertion decimal literal',
@@ -92,6 +117,7 @@ def admit_original_sources(root, records, *, source_proof=None):
                                        for name, raw in sorted(captured.items())},
             'registry_count_assertion_adjustments': list(adjustments),
             'reviewed_diagnostic_source_adjustments': diagnostic_adjustments,
+            'reviewed_historical_callers': reviewed,
             'terminal_reread_identical': True, 'production_source_exceptions': []})
     return adjustments
 

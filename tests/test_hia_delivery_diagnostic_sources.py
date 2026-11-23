@@ -117,7 +117,7 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             'tests/test_hia_delivery_diagnostic_sources.py', 'tests/__init__.py',
             subject.FIXTURE, subject.EVALUATION_FIXTURE, subject.QUALIFIER_FIXTURE,
             subject.SQLITE_BOUNDARY_FIXTURE,
-            subject.QUALIFIER_DEPENDENCY_FIXTURE,
+            subject.QUALIFIER_DEPENDENCY_FIXTURE, composition.EVALUATE_FIXTURE,
             str(composition.FIXTURE.relative_to(ROOT)),
             *subject.PATHS, subject.EVALUATION,
             *subject.QUALIFIER_PATHS, *subject.QUALIFIER_DEPENDENCIES,
@@ -145,7 +145,11 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
         for name in TARGETS:
             record = cls.authority['files'][name]
             current = cls.source_raw[name]
-            if pin(current) != record['new']:
+            if name == TARGETS[1] and pin(current) != record['new']:
+                update = composition.evaluate_records(
+                    cls.source_raw[composition.EVALUATE_FIXTURE])['evaluation_qualifier']
+                current = composition.reverse_exact(current, update, record['new'])
+            elif pin(current) != record['new']:
                 boundary = cls.source_raw[subject.SQLITE_BOUNDARY_FIXTURE]
                 current = subject._reverse_sqlite_boundary(
                     name, current, boundary, AUTHORITY, cls.source_raw[AUTHORITY], record['new'])
@@ -250,7 +254,12 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             self.assertEqual(propagated[name], proof['source_adjustments'][name])
             reviewed = self.authority['files'][name]['new']
             active = pin(self.source_raw[name])
-            if active != reviewed:
+            if name == TARGETS[1] and active != reviewed:
+                update = composition.evaluate_records(
+                    self.source_raw[composition.EVALUATE_FIXTURE])['evaluation_qualifier']
+                self.assertEqual(active, {'bytes': update['new_bytes'], 'sha256': update['new_sha256']})
+                self.assertEqual(propagated[name]['original_evaluation_callers_verified'], 183)
+            elif active != reviewed:
                 self.assertEqual(active, subject.SQLITE_BOUNDARY_SOURCES[name])
                 self.assertEqual(propagated[name]['sqlite_boundary_successor'], {
                     'authority': {'path': subject.SQLITE_BOUNDARY_FIXTURE, **subject.SQLITE_BOUNDARY_FIXTURE_PIN},
