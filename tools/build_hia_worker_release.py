@@ -613,6 +613,8 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             'read': bind_read_release,
             'readonly': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots),
             'native': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots, kind='native'),
+            'evaluate-replay': partial(bind_readonly_release, artifact_roots=readonly_artifact_roots,
+                                       kind='evaluate-replay'),
         }
         for kind in binders:
             launcher = release / ('hia-agent-' + kind + '-launcher')
@@ -650,11 +652,12 @@ def main():
                          readonly_artifact_roots=args.readonly_artifact_root)
     result = {'native_helpers_manifest': str(profile), 'native_helpers_sha256': pin,
               'package_sha256': args.package_sha256, 'production_activated': False}
-    for kind in ('read', 'readonly', 'native'):
+    for kind in ('read', 'readonly', 'native', 'evaluate-replay'):
         manifest = profile.parent / (kind + '-worker.json')
         if manifest.is_file():
-            result[f'native_{kind}_worker_manifest'] = str(manifest)
-            result[f'native_{kind}_worker_sha256'] = sha256(manifest.read_bytes()).hexdigest()
+            label = kind.replace('-', '_')
+            result[f'native_{label}_worker_manifest'] = str(manifest)
+            result[f'native_{label}_worker_sha256'] = sha256(manifest.read_bytes()).hexdigest()
     controller = list(profile.parent.glob('controller/*/' + CONTROLLER_MANIFEST))
     if controller:
         manifest, = controller
