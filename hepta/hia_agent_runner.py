@@ -139,9 +139,67 @@ def _write_child_report(report, stream):
     return 0
 
 
+def _snapshot_fd(record, custody):
+    fd = os.open(record['path'], os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW)
+    custody.callback(os.close, fd)
+    return fd
+
+
+class _EvaluateCall:
+    """Retain one HIA-issued case plan until its native owner has finished."""
+
+    def __init__(self, planner, signature, case):
+        from .hia_evaluation_native import EvaluationUnknown, _run_native_evaluate_planner
+
+        self.invoke = _run_native_evaluate_planner
+        self.planner = planner
+        self.source = b'[' + wire({case['function']: signature}) + b',' + wire(case) + b']'
+        self.plan = self.invoke(planner, self.source)
+        if len(self.plan) < 80 or not self.plan.startswith(b'HIAEVC01'):
+            raise EvaluationUnknown('installed HIA Evaluate case plan identity differs')
+        status, count, _return_role, _bytes, loans = struct.unpack_from('<5Q', self.plan, 8)
+        if status or count > 128 or loans > 8 or len(self.plan) != 80 + 48 * count:
+            raise EvaluationUnknown('installed HIA Evaluate case plan differs from its admitted scope')
+        self.count, self.loans = count, loans
+
+    def snapshots(self):
+        from .hia_evaluation_native import EvaluationUnknown
+
+        for argument in range(self.count):
+            role, size = struct.unpack_from('<2Q', self.plan, 80 + 48 * argument)
+            if role == 0:
+                continue
+            frame = struct.pack('<8s2Q', b'HIAEVB01', argument, len(self.plan))
+            material = self.invoke(self.planner, frame, self.plan, self.source)
+            binding = struct.pack('<8s3Q', b'HIAEVS01', argument, role, size)
+            if (role not in (1, 2) or not material.startswith(binding)
+                    or len(material) != 32 + max(1, size)
+                    or size == 0 and material[32:] != b'\0'):
+                raise EvaluationUnknown('installed HIA Evaluate snapshot differs from its issued extent')
+            yield argument, 'readbuf' if role == 1 else 'mutbuf', material[32:32 + size]
+
+    def bind(self, memory, cpu, artifact, artifact_bytes, warmup, repetitions, descriptors):
+        from .hia_evaluation_native import EvaluationUnknown
+
+        if len(descriptors) != self.loans:
+            raise EvaluationUnknown('installed HIA Evaluate loan custody differs from its issued plan')
+        frame = struct.pack('<8s9Q', b'HIAEVR01', os.getpid(), memory, cpu, artifact, artifact_bytes,
+                            warmup, repetitions, self.loans, len(self.plan))
+        loans = struct.pack(f'<{self.loans}Q', *descriptors)
+        result = self.invoke(self.planner, frame, loans, self.plan, self.source)
+        if len(result) < 105 or not result.startswith(b'HIADRX02'):
+            raise EvaluationUnknown('installed HIA Evaluate runner packet identity differs')
+        return result
+
+
 def _direct_call_transport(signature, case, files, artifact, artifact_size, runner, custody,
-                           memory_bytes, cpu_seconds, protocol, warmup, repetitions, prepare):
+                           memory_bytes, cpu_seconds, protocol, warmup, repetitions, prepare, planned=None):
     """Give the pinned HIA runner sealed code and only its per-call backing files."""
+    command = ['/proc/self/fd/' + str(runner)]
+    if planned is not None:
+        loans = tuple(_snapshot_fd(record, custody) for record in files)
+        payload = planned.bind(memory_bytes, cpu_seconds, artifact, artifact_size, warmup, repetitions, loans)
+        return command, payload, {'pass_fds': (artifact, runner, *loans), 'env': {'PATH': ''}}
     descriptors = [artifact, runner]
     records = {row['argument']: row for row in files}
     arguments = []
@@ -150,15 +208,14 @@ def _direct_call_transport(signature, case, files, artifact, artifact_size, runn
             arguments.append((0, int(value) % (1 << 64), 0))
             continue
         record = records[index]
-        fd = os.open(record['path'], os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW)
-        custody.callback(os.close, fd)
+        fd = _snapshot_fd(record, custody)
         descriptors.append(fd)
         arguments.append((1 if typ == 'readbuf' else 2, fd, record['byte_length']))
     function = case['function'].encode('ascii')
     payload = prepare(protocol, function, arguments, parent=os.getpid(), memory=memory_bytes, cpu=cpu_seconds,
                       artifact=artifact, artifact_bytes=artifact_size, borrowed=signature.get('abi') == BUFFER_PROFILE,
                       returns=signature['returns'], expected='expected' in case, warmup=warmup, repetitions=repetitions)
-    return ['/proc/self/fd/' + str(runner)], payload, {'pass_fds': tuple(descriptors), 'env': {'PATH': ''}}
+    return command, payload, {'pass_fds': tuple(descriptors), 'env': {'PATH': ''}}
 
 
 def _reference_direct_call_request(protocol, function, arguments, *, parent, memory, cpu,
@@ -349,7 +406,7 @@ def _run_reference_direct(admitted, artifact_hash, executable, owned, evaluator,
 
 
 def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_files, cwd,
-                      memory_bytes, deadline, protocol, warmup, repetitions):
+                      memory_bytes, deadline, protocol, warmup, repetitions, plans=None):
     from .hia_scalar_reference_native import sealed_reference_bytes
 
     native = _native_agent_identity()
@@ -358,7 +415,7 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
     receipts, stdout, stderr = [], bytearray(), bytearray()
     returncode, timed_out = None, False
     with (sealed_reference_bytes(artifact_bytes) as artifact, sealed_reference_bytes(executable) as runner):
-        for case, files in zip(cases, snapshot_files, strict=True):
+        for index, (case, files) in enumerate(zip(cases, snapshot_files, strict=True)):
             remaining = deadline - time.monotonic_ns()
             if remaining <= 0:
                 timed_out = True
@@ -367,7 +424,10 @@ def _run_direct_cases(artifact_bytes, executable, signatures, cases, snapshot_fi
             with ExitStack() as descriptors:
                 command, payload, options = _direct_call_transport(signatures[case['function']], case, files,
                     artifact, len(artifact_bytes), runner, descriptors, memory_bytes, cpu_seconds,
-                    protocol, warmup, repetitions, prepare)
+                    protocol, warmup, repetitions, prepare, plans[index] if plans is not None else None)
+                if plans is not None and time.monotonic_ns() >= deadline:
+                    timed_out = True
+                    break
                 if protocol >= 4:
                     child_code, out, err, timed_out = _observe_native_direct_owner(
                         command, payload, cwd=cwd, deadline=deadline, **options)
@@ -490,13 +550,13 @@ def _direct_call_report(receipts, signatures, submissions, snapshots, initial_di
 
 def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions=1,
                      timeout_ms=30000, memory_bytes=256 * 1024 * 1024, _mode="native",
-                     foreign_buffer_exports=(), capture_buffers=False):
+                     foreign_buffer_exports=(), capture_buffers=False, _evaluate_planner=None):
     if sys.platform != "linux" or not 64 * 1024 * 1024 <= memory_bytes <= 4 * 1024 * 1024 * 1024:
         reject("E_HIA_EXECUTION_PROFILE", "native execution requires Linux and 64 MiB..4 GiB address-space budget")
     if timeout_ms <= 0:
         return {"status": "budget_exceeded", "termination_confirmed": True,
                 "started": False, "wall_ns": "0", "returncode": None, "report": None}
-    if _mode == "native":
+    if _mode == "native" and _evaluate_planner is None:
         validate_cases(signatures, cases)
     if capture_buffers and len(cases) != 1:
         reject("E_HIA_BUFFER_CAPTURE", "buffer capture requires one owned synchronous invocation")
@@ -531,6 +591,10 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
     supported_cases = len(cases) == 1 or direct_protocol >= 3 and 1 <= len(cases) <= 512
     direct_call = (pinned_direct_call_executable()
                    if _mode == 'native' and supported_cases and (one_call or supported_repeat) else None)
+    if _evaluate_planner is not None and (direct_call is None or direct_protocol != 5):
+        from .hia_evaluation_native import EvaluationUnknown
+
+        raise EvaluationUnknown('installed HIA Evaluate planner requires the pinned native call owner')
     has_reference_child = any(executable is not None for _, _, executable in executables)
     with (tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory,
           ExitStack() as custody):
@@ -539,14 +603,21 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             with artifact.open("xb") as stream:
                 stream.write(artifact_bytes)
             artifact.chmod(0o400)
+        planner = None if _evaluate_planner is None else custody.enter_context(sealed_reference_bytes(_evaluate_planner))
+        plans = None if planner is None else []
         snapshot_files, initial_digests = [], {}
         for index, case in enumerate(cases):
             files = []
             if _mode == "native":
-                for argument, (typ, value) in enumerate(zip(signatures[case["function"]]["params"], case["arguments"])):
-                    if typ not in LOANS:
-                        continue
-                    data = buffer_bytes(value)
+                signature = signatures[case["function"]]
+                if planner is None:
+                    snapshots = ((i, typ, buffer_bytes(value)) for i, (typ, value) in
+                                 enumerate(zip(signature["params"], case["arguments"])) if typ in LOANS)
+                else:
+                    plan = _EvaluateCall(planner, signature, case)
+                    plans.append(plan)
+                    snapshots = plan.snapshots()
+                for argument, typ, data in snapshots:
                     if direct_call is not None and typ == 'readbuf':
                         initial_digests[index, argument] = sha256(data).hexdigest()
                     path = Path(directory) / ("buffer-" + str(index) + "-" + str(argument))
@@ -582,7 +653,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             deadline = started + math.ceil(timeout_ms * 1_000_000)
             returncode, stdout, stderr, timed_out, direct_receipts = _run_direct_cases(
                 artifact_bytes, direct_call[0], signatures, cases, snapshot_files, runner_root,
-                memory_bytes, deadline, direct_protocol, warmup, repetitions)
+                memory_bytes, deadline, direct_protocol, warmup, repetitions, plans)
         else:
             payload = wire(request)
             cpu_seconds = max(1, math.ceil(timeout_ms / 1000))

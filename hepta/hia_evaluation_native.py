@@ -14,7 +14,6 @@ import ctypes
 from .hia_agent_identity_native import DECLARED_OBSERVATION, NATIVE_OBSERVATION, REFERENCE_OBSERVATION
 from .hia_agent_store import _native_agent_identity, uses_native_store
 from .hia_native_delivery import DeliveryRecord, request_rejections
-from contextlib import ExitStack
 from dataclasses import dataclass
 from functools import lru_cache
 from hashlib import sha256
@@ -61,25 +60,33 @@ _WORKLOAD_REFUSALS = {
 }
 
 
+def _run_native_evaluate_planner(planner, *parts):
+    from .hia_scalar_reference_native import sealed_reference_bytes
+
+    with sealed_reference_bytes(*parts) as source:
+        try:
+            result = subprocess.run(['/proc/self/fd/' + str(planner)], stdin=source, pass_fds=(planner,),
+                                    env={'PATH': ''}, capture_output=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise EvaluationUnknown('installed HIA Evaluate planner could not be observed') from error
+    reply = result.stdout
+    if (result.returncode or result.stderr or len(reply) < 16
+            or struct.unpack_from('<Q', reply)[0] != len(reply) - 8):
+        raise EvaluationUnknown('installed HIA Evaluate planner did not return an admitted packet')
+    return reply[8:]
+
+
 def _admit_native_workload(executable, signatures, raw, workload):
     """Send exact retained bytes to the installed HIA planner, not a Python validator."""
     from .hia_agent_store import reject, wire
     from .hia_scalar_reference_native import sealed_reference_bytes
 
-    with ExitStack() as custody:
-        planner = custody.enter_context(sealed_reference_bytes(executable))
-        source = custody.enter_context(sealed_reference_bytes(b'[', wire(signatures), b',', raw, b']'))
-        try:
-            result = subprocess.run(['/proc/self/fd/' + str(planner)], stdin=source, pass_fds=(planner,),
-                                    env={'PATH': ''}, capture_output=True, timeout=30)
-        except (OSError, subprocess.TimeoutExpired) as error:
-            raise EvaluationUnknown('installed HIA workload planner could not be observed') from error
-    reply = result.stdout
-    if result.returncode or result.stderr or len(reply) < 32:
-        raise EvaluationUnknown('installed HIA workload planner did not return an admitted packet')
-    size, magic, status, count = struct.unpack_from('<Q8s2Q', reply)
-    if size != len(reply) - 8 or magic != b'HIAEVW01':
+    with sealed_reference_bytes(executable) as planner:
+        reply = _run_native_evaluate_planner(planner, b'[', wire(signatures), b',', raw, b']')
+    if len(reply) < 24 or not reply.startswith(b'HIAEVW01'):
         raise EvaluationUnknown('installed HIA workload planner packet identity differs')
+    size = len(reply)
+    status, count = struct.unpack_from('<2Q', reply, 8)
     cases = len(workload['cases'])
     if status:
         refusal = _WORKLOAD_REFUSALS.get(status)
@@ -88,7 +95,7 @@ def _admit_native_workload(executable, signatures, raw, workload):
         reject(*refusal)
     if count != cases or size != 48 + 64 * count:
         raise EvaluationUnknown('installed HIA workload planner omitted an issued case')
-    total, warmup, repetitions = struct.unpack_from('<3Q', reply, 32)
+    total, warmup, repetitions = struct.unpack_from('<3Q', reply, 24)
     if (total > 32 * 1024 * 1024 or warmup != workload['warmup_iterations']
             or repetitions != workload['repetitions']):
         raise EvaluationUnknown('installed HIA workload planner scope differs from the admitted workload')
@@ -345,10 +352,12 @@ class EvaluationFrame:
         d, api = self.data, self.namespace
         data, metadata = ((d['baseline_bytes'], d['baseline_meta']),
                           (d['candidate_bytes'], d['candidate_meta']))[self.receipt.arm]
+        planner = d.get('workload_planner')
+        options = {} if planner is None else {'_evaluate_planner': planner}
         return d['budget_claim'].run(self.run_native_batch, data, metadata['signatures'], cases,
             now=api['time'].monotonic_ns(), total_ms=self._remaining_total_ms(),
             warmup=int(warmup), repetitions=int(repetitions),
-            memory_bytes=api['uint64'](d['context']['budget']['max_memory_bytes'], 'max_memory_bytes'))
+            memory_bytes=api['uint64'](d['context']['budget']['max_memory_bytes'], 'max_memory_bytes'), **options)
 
     def effect(self, port):
         """One fixed foreign operation; only HIA chooses the next port."""
@@ -405,7 +414,7 @@ class EvaluationFrame:
                 api['validate'](d['workload'], api['WORKLOAD_SCHEMA'], 'workload')
         elif name == 'validate_cases':
             signatures = d['baseline_meta']['signatures']
-            planner = d.pop('workload_planner', None)
+            planner = d.get('workload_planner')
             if planner is None:
                 self.validate_cases(signatures, d['workload']['cases'])
             else:
