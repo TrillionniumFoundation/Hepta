@@ -90,14 +90,16 @@ effect_oracle:
     cmp %r8, %rcx
     .byte 0x0f, 0x85
     .long reject - . - 4
-    movabs {chr(36)}{req.pte_slot_phys - 4096:#x}, %rax
-    mov 4096(%rax), %r9
-    movabs {chr(36)}{req.expected_old_pte:#x}, %rdx
-    cmp %rdx, %r9
+    movabs {chr(36)}{req.pte_slot_phys - 4096:#x}, %r10
+    mov 4096(%r10), %r9
+    movabs {chr(36)}{req.expected_old_pte:#x}, %rax
+    cmp %rax, %r9
     .byte 0x0f, 0x85
     .long reject - . - 4
     movabs {chr(36)}{req.replacement_pte:#x}, %rdx
-    mov %rdx, 4096(%rax)
+    lock cmpxchgq %rdx, 4096(%r10)
+    .byte 0x0f, 0x85
+    .long reject - . - 4
     movabs {chr(36)}{req.virtual_page:#x}, %rax
     invlpg (%rax)
     ret
@@ -117,10 +119,10 @@ reject:
             asm = subprocess.run(["objdump", "-d", "-M", "intel",
                                   str(base / "ref.o")], check=True,
                                  capture_output=True, text=True).stdout
-            for mnemonic in ("cr3", "cmp", "jne", "invlpg", "ud2", "ret"):
+            for mnemonic in ("cr3", "cmp", "lock cmpxchg", "jne", "invlpg", "ud2", "ret"):
                 self.assertIn(mnemonic, asm)
             self.assertEqual(asm.count("ud2"), 1)
-            self.assertEqual(asm.count("jne"), 2)
+            self.assertEqual(asm.count("jne"), 3)
 
     def test_regular_core_still_rejects_all_privileged_effects(self):
         from hepta.hia_machine_x64 import Code, PrivilegedCode
