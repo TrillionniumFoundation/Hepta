@@ -51,7 +51,7 @@ class HIAAgentAssemblyTests(unittest.TestCase):
         with patch('hepta.hia_default_native.default_assembly_document', return_value=data) as syntax:
             with self.assertRaises(HIAAssemblyRejected) as caught:
                 assemble_program(SOURCE)
-            syntax.assert_called_once_with(SOURCE)
+            syntax.assert_called_once_with(SOURCE, verify=True)
         self.assertEqual(caught.exception.phase, 'core_verification')
         self.assertIsNone(caught.exception.line)
         self.assertIsInstance(caught.exception.__cause__, HIAProgramRejected)

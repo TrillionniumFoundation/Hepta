@@ -277,6 +277,53 @@ print(json.dumps(answer, sort_keys=True))
 '''
         self.assertEqual(json.loads(self.child(body).stdout), self.expected)
 
+    def test_installed_assembly_reaches_whole_hia_core_before_returning_verified_bytes(self):
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
+            self.skipTest('requires the matching cold Core verifier and canonicalizer')
+        from tests.test_hia_agent_assembly import SOURCE
+        body = r'''
+from hepta import hia_agent_assembly as asm, hia_program as core
+from hepta.hia_json_canonical_native import NativeJsonCanonicalizer
+from hepta.hia_core_admission_native import NativeCoreAdmission
+from hashlib import sha256
+text = sys.argv[3]
+def observe(source):
+    try:
+        return 'ok', asm.assemble_program(source).canonical_bytes
+    except asm.HIAAssemblyRejected as error:
+        return 'error', error.code, str(error), error.phase, error.line, type(error.__cause__).__name__
+cases = [text.replace('v6', 'v' + str(version)) for version in range(6, 10)]
+cases += [text.replace('ret(answer)', 'ret(unknown)'), text.replace('effects()', 'effects(weird)')]
+with patch.object(defaults, 'default_assembly_document', return_value=None):
+    original = [observe(source) for source in cases]
+assert [value[0] for value in original] == ['ok'] * 4 + ['error'] * 2
+linked = installed / 'bin' / 'hia-import-assembly'
+resource = installed / 'hepta' / defaults.ASSEMBLY_CANONICAL_RESOURCE
+canonical_hash = sha256(resource.read_bytes()).hexdigest()
+assert linked.read_bytes().count(resource.read_bytes()) == 1
+seen = []
+canonicalize, admit = NativeJsonCanonicalizer.canonicalize, NativeCoreAdmission.admit
+def canonical(self, wire, **limits):
+    result = canonicalize(self, wire, **limits)
+    seen.append(('canonical', self.image_sha256, sha256(result).digest()))
+    return result
+def full(self, wire):
+    seen.append(('core', self.image_sha256, sha256(wire).digest()))
+    return admit(self, wire)
+with patch.object(NativeJsonCanonicalizer, 'canonicalize', canonical), patch.object(NativeCoreAdmission, 'admit', full), patch.object(core, '_decode', forbidden), patch.object(core, '_bounded_detached_snapshot', forbidden), patch.object(asm, '_parse_assembly_document', forbidden):
+    assert [observe(source) for source in cases] == original
+assert len(seen) == 2 * len(cases)
+for encoding, semantic in zip(seen[::2], seen[1::2], strict=True):
+    assert encoding[:2] == ('canonical', canonical_hash) and semantic[0] == 'core' and encoding[2] == semantic[2]
+with patch.object(asm, 'verify_program', wraps=core.verify_program) as customized, patch.object(NativeJsonCanonicalizer, 'canonicalize', forbidden):
+    assert observe(text) == original[0]
+    customized.assert_called_once()
+with patch.dict(os.environ, {'HEPTA_HIA_JSON_CANONICAL_MANIFEST': '/unused-by-the-dictionary-path'}), patch.object(NativeJsonCanonicalizer, 'canonicalize', forbidden):
+    assert observe(text) == original[0]
+print('HIA_ASSEMBLY_WIRE_TO_VERIFIED_CORE')
+'''
+        self.assertEqual(self.child(body, SOURCE).stdout.strip(), 'HIA_ASSEMBLY_WIRE_TO_VERIFIED_CORE')
+
     def test_installed_assembly_parser_and_public_checker_preserve_real_diagnostics(self):
         if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
             self.skipTest('the parser and diagnostic reporter are linked into the cold public tool')

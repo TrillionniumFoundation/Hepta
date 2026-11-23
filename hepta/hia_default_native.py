@@ -29,6 +29,7 @@ CLI_BUNDLE_RESOURCE = '_data/native/default/cli/manifest.json'
 ASSEMBLY_RENDER_RESOURCE = '_data/native/default/cli/assembly-render.bin'
 ASSEMBLY_SYNTAX_RESOURCE = '_data/native/default/cli/assembly-syntax.bin'
 ASSEMBLY_DIAGNOSTIC_RESOURCE = '_data/native/default/cli/assembly-diagnostic.bin'
+ASSEMBLY_CANONICAL_RESOURCE = '_data/native/default/cli/assembly-canonical.bin'
 SELECTOR = 'HEPTA_HIA_FULL_COST_MANIFEST'
 CORE_ELF_OWNERS = (
     ('HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST', 'elf-shared-linker'),
@@ -64,7 +65,7 @@ def _verify_data_resources(directory, value):
 
     from .hia_native_helpers import _read
 
-    if len(value) not in ((10, 11, 12, 14, 15, 16, 18) if value[4] == SCOPES[0] else (7,)):
+    if len(value) not in ((10, 11, 12, 14, 15, 16, 18, 19) if value[4] == SCOPES[0] else (7,)):
         raise ValueError('incomplete native-default data pin')
     contract_name = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
     contract = _read(directory / '_data' / contract_name, 4 << 20)
@@ -90,6 +91,8 @@ def _verify_data_resources(directory, value):
         resources.append((ASSEMBLY_RENDER_RESOURCE, value[15]))
     if len(value) >= 18:
         resources.extend(((ASSEMBLY_SYNTAX_RESOURCE, value[16]), (ASSEMBLY_DIAGNOSTIC_RESOURCE, value[17])))
+    if len(value) >= 19:
+        resources.append((ASSEMBLY_CANONICAL_RESOURCE, value[18]))
     for path, expected in resources:
         raw = _read(directory / path, 16 << 20).raw
         if sha256(raw).hexdigest() != expected:
@@ -174,7 +177,7 @@ def _capture_package():
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
             raise ValueError('portable native-default pin bytes changed')
         return None
-    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12, 14, 15, 16, 18)
+    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12, 14, 15, 16, 18, 19)
             or any(type(item) is not str for item in value)
             or value[:3] != (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE)
             or value[4] not in SCOPES
@@ -257,7 +260,7 @@ def default_assembly_text(canonical):
     return _package_assembly(_native_assembly_text, canonical, ((ASSEMBLY_RENDER_RESOURCE, 15),))
 
 
-def default_assembly_document(source):
+def default_assembly_document(source, *, verify=False):
     from . import hia_agent_assembly as assembly
 
     limits = (assembly.MAX_FUNCTIONS, assembly.MAX_BLOCKS, assembly.MAX_OPERATIONS)
@@ -267,11 +270,16 @@ def default_assembly_document(source):
     if (assembly.MAX_SOURCE_BYTES, assembly.MAX_LINES, assembly.MAX_LINE_BYTES, assembly.MAX_LIST_ITEMS,
             assembly.MAX_ATTRIBUTE_NODES, assembly.MAX_ATTRIBUTE_DEPTH) != (1 << 20, 16384, 16384, 256, 2048, 16):
         return None
-    return _package_assembly(assembly._native_assembly_document, source,
-                             ((ASSEMBLY_SYNTAX_RESOURCE, 16), (ASSEMBLY_DIAGNOSTIC_RESOURCE, 17)))
+    result = _package_assembly(assembly._native_assembly_document, source,
+                               ((ASSEMBLY_SYNTAX_RESOURCE, 16), (ASSEMBLY_DIAGNOSTIC_RESOURCE, 17)),
+                               verify_wire=verify)
+    if type(result) is bytes:
+        import json
+        return json.loads(result)
+    return result
 
 
-def _package_assembly(operation, argument, resources):
+def _package_assembly(operation, argument, resources, *, verify_wire=False):
     """Use the exact images linked into the wheel's public assembly tools."""
     from hashlib import sha256
     from . import hia_native_helpers as helpers
@@ -295,10 +303,50 @@ def _package_assembly(operation, argument, resources):
         snapshots.append((item, MAX_IMAGE_BYTES))
         images.append(NativeHiaJsonImage(item.raw, value[index]))
     try:
-        return operation(*images, argument)
+        result = operation(*images, argument)
+        if verify_wire and len(value) >= 19:
+            return _verify_assembly_wire(result, directory, value, pins, snapshots)
+        return result
     finally:
         if any(helpers._read(item.path, limit) != item for item, limit in snapshots):
             raise ValueError('installed assembly image changed during the operation')
+
+
+def _verify_assembly_wire(wire, directory, value, pins, snapshots):
+    from . import hia_agent_assembly as assembly, hia_native_helpers as helpers, hia_program as core
+    from .hia_json_canonical_native import NativeJsonCanonicalizer
+    from .hia_json_preflight_native import MAX_IMAGE_BYTES
+
+    # Explicitly owned JSON/Core policies and customized verification retain
+    # their original call path. The HIA canonicalizer accepts up to 8 MiB.
+    if (assembly.verify_program is not core.verify_program or (core.MAX_BYTES, core.MAX_NODES, core.MAX_DEPTH)
+            != (8 << 20, 262144, 64) or len(wire) > core.MAX_BYTES
+            or any(key.startswith('HEPTA_HIA_') and key.endswith('_MANIFEST') for key in os.environ)):
+        return wire
+    admission = default_core_admission()
+    if admission is None:
+        return wire
+    binding = admission._default_package_binding
+    if any(item not in binding.snapshots for item in pins):
+        raise ValueError('assembly parser and Core verifier belong to different captures')
+    canonical_item = helpers._read(directory / ASSEMBLY_CANONICAL_RESOURCE, MAX_IMAGE_BYTES)
+    snapshots.append((canonical_item, MAX_IMAGE_BYTES))
+    canonicalizer = NativeJsonCanonicalizer(canonical_item.raw, value[18])
+    try:
+        canonical = canonicalizer.canonicalize(wire, max_nodes=core.MAX_NODES, max_depth=core.MAX_DEPTH)
+    except OverflowError:
+        canonical = None
+    if canonical is None:
+        # Assembly attributes are limited to depth 16 and loan lists to 2.
+        # An over-budget generated tree therefore crosses the same queued-node
+        # bound as the ordinary detached Core snapshot.
+        raise core.HIAProgramRejected('caller-owned tree exceeds queued-node budget', 'E_HIA_LIMIT')
+    binding.check_files()
+    try:
+        admission.admit(canonical)
+    finally:
+        binding.check_files()
+    return core.VerifiedProgram(canonical)
 
 
 def default_cli_discovery():

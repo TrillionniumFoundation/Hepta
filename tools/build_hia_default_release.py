@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_default_native import (ADMISSION_BUNDLE_RESOURCE, ADMISSION_OWNER, ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE, BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
+from hepta.hia_default_native import (ADMISSION_BUNDLE_RESOURCE, ADMISSION_OWNER, ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE, ASSEMBLY_CANONICAL_RESOURCE, BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
                                      CORE_WIRE_OWNER, INTEGER_BUNDLE_RESOURCE, INTEGER_OWNER,
                                      LEDGER_BUNDLE_RESOURCE, LEDGER_OWNER, GRAPH_BUNDLE_RESOURCE, GRAPH_OWNER, OWNED_VM_RESOURCE,
                                      PIN_RESOURCE, PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
@@ -173,6 +173,7 @@ def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sourc
         'examples/hia_bootstrap/core_cli/assembly_render.hepta': ('hia-render-assembly', ASSEMBLY_RENDER_RESOURCE),
         'examples/hia_bootstrap/core_cli/assembly_syntax_diagnostics.hepta': ('hia-import-assembly', ASSEMBLY_SYNTAX_RESOURCE),
         'examples/hia_bootstrap/core_cli/assembly_diagnostic_report.hepta': ('hia-import-assembly', ASSEMBLY_DIAGNOSTIC_RESOURCE),
+        'examples/hia_bootstrap/json_canonical.hepta': ('hia-import-assembly', ASSEMBLY_CANONICAL_RESOURCE),
     }
     captured = {}
     def retain(source, image):
@@ -359,7 +360,8 @@ def build(output, compiler, cold_report=None, *, development=False):
             output / 'native-cli', compiler, cold_report, distribution, sources=sources)
         owner_members.update(cli_scripts)
         owner_inputs.update(cli_inputs)
-        for resource in (ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE):
+        for resource in (ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE,
+                         ASSEMBLY_CANONICAL_RESOURCE):
             raw = assembly_images[resource]
             owner_members['hepta/' + resource] = raw
             pin += (sha256(raw).hexdigest(),)
