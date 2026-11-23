@@ -55,7 +55,7 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
             publish(output / name)
         publish(output / 'hia-worker-scalar-implementation')
 
-    for name in ('agent_artifact_capture', 'worker_read_release',
+    for name in ('worker_read_release',
                  'source_build',
                  'supplied_safe_core_proof',
                  'owned_reference_cli', 'nominal_constructor'):
@@ -125,7 +125,8 @@ def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
 
 def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, publish):
     """Build the installed SQLite units through sealed HIA source, embedding and linking stages."""
-    from tools.build_hia_sqlite_components import INPUT, START
+    from tools.build_hia_agent_artifact_capture import UNIT as CAPTURE_UNIT
+    from tools.build_hia_sqlite_components import CAPTURE_ADAPTERS, INPUT, START
     from tools.build_hia_sqlite_pager import verify_executable
 
     def owner(application):
@@ -139,20 +140,22 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
     adapters = owner('sqlite_component_adapters.hepta')
     embedder = owner('elf_embed_image.hepta')
     objects = []
-    for ordinal, name in enumerate((START, INPUT)):
+    for ordinal, name in enumerate((START, INPUT, *CAPTURE_ADAPTERS)):
         source = (ROOT / name).read_bytes()
         if sha256(source).hexdigest() != admitted.get(name):
             raise ValueError('SQLite adapter source differs from cold admission: ' + name)
         frame = struct.pack('<8sQQ', b'HIASQAD1', ordinal, len(source)) + source
         objects.append(call(adapters, 'build', frame))
 
-    names = [unit.replace('-', '_') + '.hepta' for unit in UNITS]
+    recipes = [(unit, b'HIASQUN1', ordinal, objects[:2]) for ordinal, unit in enumerate(UNITS, 1)]
+    recipes.append((CAPTURE_UNIT, b'HIASQCP1', 32, objects[2:]))
+    names = [unit.replace('-', '_') + '.hepta' for unit, *_ in recipes]
     _, images, sources = compile_sources({name: name for name in names})
-    for ordinal, (unit, name) in enumerate(zip(UNITS, names, strict=True), 1):
+    for (unit, kind, ordinal, adapter_objects), name in zip(recipes, names, strict=True):
         source = sources[name]
-        request = struct.pack('<8sQQ', b'HIASQUN1', ordinal, len(source)) + source
+        request = struct.pack('<8sQQ', kind, ordinal, len(source)) + source
         component = call(embedder, 'build', request)
-        inputs = (*objects, component)
+        inputs = (*adapter_objects, component)
         request = struct.pack('<8s3Q', b'HIASQLK1', *map(len, inputs)) + b''.join(inputs)
         link_input = call(embedder, 'build', request)
         executable = call(linker, None, link_input)

@@ -74,6 +74,42 @@ class InstalledSourceMemberTests(unittest.TestCase):
         builder.chmod(0o500)
         return builder
 
+    def test_artifact_capture_from_admitted_native_adapters_and_source(self):
+        import struct
+        from tools.build_hia_sqlite_components import CAPTURE_ADAPTERS
+
+        source = self.sources / 'agent_artifact_capture.hepta'
+        def owner(packer):
+            kit = self.source_images(self.work / 'capture-kit', {
+                'source_build_policy.hepta': SOURCES / 'source_sqlite_unit.hepta',
+                'selfhost.hepta': self.sources / 'selfhost.hepta',
+                'source_build_packer.hepta': self.sources / packer,
+            })
+            program = self.work / packer
+            program.write_bytes(self.invoke([self.seed, 'pack'], kit))
+            program.chmod(0o500)
+            return program
+
+        def request(tag, ordinal, data):
+            return struct.pack('<8sQQ', tag, ordinal, len(data)) + data
+
+        adapter = owner('sqlite_component_adapters.hepta')
+        embedder = owner('elf_embed_image.hepta')
+        objects = []
+        for ordinal, filename in enumerate(CAPTURE_ADAPTERS, 2):
+            data = (ROOT / filename).read_bytes()
+            objects.append(self.invoke([adapter, 'build'], request(b'HIASQAD1', ordinal, data)))
+            self.invoke([adapter, 'build'], request(b'HIASQAD1', ordinal, data + b'x'), refused=True)
+        data = source.read_bytes()
+        component = self.invoke([embedder, 'build'], request(b'HIASQCP1', 32, data))
+        for tag, ordinal in ((b'HIASQCP1', 1), (b'HIASQUN1', 32)):
+            self.invoke([embedder, 'build'], request(tag, ordinal, data), refused=True)
+        objects.append(component)
+        wire = struct.pack('<8s3Q', b'HIASQLK1', *map(len, objects)) + b''.join(objects)
+        linked_input = self.invoke([embedder, 'build'], wire)
+        self.assertEqual(self.invoke([self.release / 'hia-elf-link'], linked_input),
+                         (self.release / 'hia-agent-artifact-capture').read_bytes())
+
     def test_flat_helper_manifests_recompile_both_images_before_publishing(self):
         import json
         import struct
@@ -121,11 +157,11 @@ class InstalledSourceMemberTests(unittest.TestCase):
     def test_normal_sqlite_units_match_the_independent_installed_programs(self):
         from tools import build_hia_native_store_release as release
         from tools.build_hia_source_build import _compiled_sources, _run_captured
-        from tools.build_hia_sqlite_components import INPUT, START, UNITS
+        from tools.build_hia_sqlite_components import CAPTURE_ADAPTERS, INPUT, START, UNITS
 
         seed = self.seed.read_bytes()
         linker = (self.release / 'hia-elf-link').read_bytes()
-        admitted = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in (START, INPUT)}
+        admitted = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in (START, INPUT, *CAPTURE_ADAPTERS)}
 
         def compile_sources(names):
             paths = {name: self.sources / source for name, source in names.items()}
@@ -148,7 +184,7 @@ class InstalledSourceMemberTests(unittest.TestCase):
             published.add(path.name)
 
         release._stage_sqlite_units(self.work, seed, linker, compile_sources, call, admitted, publish)
-        self.assertEqual(published, {'hia-' + unit for unit in UNITS})
+        self.assertEqual(published, {'hia-' + unit for unit in (*UNITS, 'agent-artifact-capture')})
 
     def test_from_native_sources_against_every_installed_filter(self):
         for name in MEMBERS:
