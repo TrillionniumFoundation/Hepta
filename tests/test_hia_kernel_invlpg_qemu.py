@@ -135,12 +135,21 @@ def qemu(machine, image, expected_code, expected_serial):
     except subprocess.TimeoutExpired as exc:
         raise AssertionError(f"{machine}: guest timed out: {image}") from exc
     output = done.stdout.decode("utf-8", "replace")
-    assert done.returncode == expected_code and output == expected_serial, (
+    # INVLPG is allowed to invalidate additional TLB entries. TCG may
+    # invalidate a broader set, so an unrelated-VA experiment is observational,
+    # NEVER a valid negative control for address selectivity.
+    if expected_code is None:
+        valid = (done.returncode, output) in {(33, "P"), (35, "N")}
+        role = "diagnostic_overinvalidation_allowed"
+    else:
+        valid = done.returncode == expected_code and output == expected_serial
+        role = "discriminating_hardware_oracle"
+    assert valid, (
         f"{machine}/{image.parent.name}: expected rc={expected_code},"
         f" serial={expected_serial!r}; got rc={done.returncode},"
         f" serial={output!r}; stderr={done.stderr[-3000:]!r}")
     return {"machine": machine, "case": image.parent.name,
-            "exit_code": done.returncode, "serial": output}
+            "exit_code": done.returncode, "serial": output, "role": role}
 
 
 def run():
@@ -153,7 +162,7 @@ def run():
         cases = (
             ("invlpg", good, (), 33, "P"),
             ("malicious-nop", dishonest, (), 35, "N"),
-            ("wrong-virtual-address", good, ("HIA_TEST_WRONG_VA",), 35, "N"),
+            ("wrong-virtual-address", good, ("HIA_TEST_WRONG_VA",), None, None),
             ("mapping-restored", good, ("HIA_TEST_RESTORE",), 65, "R"),
         )
         reports = []
