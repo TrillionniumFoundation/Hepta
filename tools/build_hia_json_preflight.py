@@ -228,6 +228,8 @@ CANDIDATES = {
     'evaluate-paired-batch': ('evaluate_paired_batch', 'evaluate-paired-batch'),
     'evaluate-budget-store': ('evaluate_budget_store', 'evaluate-budget-store'),
     'evaluate-budget-store-packer': ('evaluate_budget_store_packer', 'evaluate-budget-store-packer'),
+    'evaluate-reference-report': ('evaluate_reference_report', 'evaluate-reference-report'),
+    'evaluate-reference-report-packer': ('evaluate_reference_report_packer', 'evaluate-reference-report-packer'),
     'evaluate-settlement': ('evaluate_settlement', 'evaluate-settlement'),
     'evaluate-settlement-packer': ('evaluate_settlement_packer', 'evaluate-settlement-packer'),
     'evaluate-paired-batch-packer': ('evaluate_paired_batch_packer', 'evaluate-paired-batch-packer'),
@@ -368,7 +370,7 @@ def main():
                                  'sqlite-agent-import-batch', 'sqlite-agent-cost-sequence',
                                  'sqlite-agent-artifact-catalog', 'sqlite-agent-catalog', 'elf-shared-linker',
                                  'elf-verified-linker',
-                                 'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-reference-wire', 'scalar-reference',
+                                 'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-reference-report', 'evaluate-reference-wire', 'scalar-reference',
                                  'scalar-symbolic', 'cnf', 'safe-core-x64-decode',
                                  'safe-core-elf-inventory', 'core-proof-wire', 'worker-prepare'))
     args = parser.parse_args()
