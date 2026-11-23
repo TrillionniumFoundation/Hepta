@@ -6,7 +6,16 @@ This draft adds **genuine x86-64 LOCK CMPXCHGQ bytes** to the existing
 single-CPU PTE Present-bit revoke with an aligned, locked 64-bit
 compare-exchange and a required ZF success check before local INVLPG.
 
-The entry sequence reads the current CR3, rejects a wrong root, samples the
+The entry sequence first reads the CPU's **actual CR4** and rejects any set
+PGE (bit 7), LA57 (bit 12), or PCIDE (bit 17), before reading CR3 or
+accessing the PTE. This moves three previously caller-asserted paging-mode
+exclusions into runtime machine-code checks; the remaining owner/quiescence
+assertions are still untrusted. The isolated PC/Q35 hardware oracle also
+enables CR4.PGE in a negative-control image while leaving the PTE intact,
+and requires original UD2 rejection with an unchanged PTE. The CR4 guard
+does not authenticate single-CPU ownership, DMA quiescence or shootdown.
+
+The sequence then reads the current CR3, rejects a wrong root, samples the
 old PTE, and then uses RAX as the expected-old value and RDX as replacement.
 The *final* memory comparison and update are performed by the CPU as a
 single locked read-modify-write operation. A mismatch must take the UD2
@@ -19,7 +28,7 @@ signed displacement boundaries and malformed operands. A separate unprivileged x
 LOCK CMPXCHGQ on actual RAM and checks both successful replacement/ZF=1
 and deterministic stale-value refusal/ZF=0. It runs NO CRx, INVLPG or other
 privileged instructions on the host. The complete guarded operation is
-independently assembled and byte-compared, including three conditional
+independently assembled and byte-compared, including four conditional
 rejection branches. PC and Q35 QEMU execute its *exact
 staged bytes* and independently check the real PTE and non-present #PF,
 wrong-CR3, stale-old and dishonest RET-only controls. Each image/source

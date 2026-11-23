@@ -31,7 +31,9 @@ class GuardedLeafRevokeStage(unittest.TestCase):
         machine = lower_leaf_revoke(OWNER, REQUEST)
         self.assertEqual(machine, lower_leaf_revoke(OWNER, REQUEST))
         self.assertGreater(len(machine), 70)
-        self.assertLess(len(machine), 150)
+        self.assertLess(len(machine), 190)
+        # Instruction prefix independently binds the real CR4 hardware read.
+        self.assertTrue(machine.startswith(bytes.fromhex("410f20e3")))
         self.assertTrue(machine.endswith(b"\xc3\x0f\x0b"))
 
     def test_quiescence_is_exact_and_fail_closed(self):
@@ -85,6 +87,11 @@ class GuardedLeafRevokeStage(unittest.TestCase):
         assembly = f""".text
 .global effect_oracle
 effect_oracle:
+    mov %cr4, %r11
+    movabs {chr(36)}0x21080, %r8
+    test %r8, %r11
+    .byte 0x0f, 0x85
+    .long reject - . - 4
     mov %cr3, %rcx
     movabs {chr(36)}{req.active_cr3:#x}, %r8
     cmp %r8, %rcx
@@ -119,10 +126,10 @@ reject:
             asm = subprocess.run(["objdump", "-d", "-M", "intel",
                                   str(base / "ref.o")], check=True,
                                  capture_output=True, text=True).stdout
-            for mnemonic in ("cr3", "cmp", "lock cmpxchg", "jne", "invlpg", "ud2", "ret"):
+            for mnemonic in ("cr4", "test", "cr3", "cmp", "lock cmpxchg", "jne", "invlpg", "ud2", "ret"):
                 self.assertIn(mnemonic, asm)
             self.assertEqual(asm.count("ud2"), 1)
-            self.assertEqual(asm.count("jne"), 3)
+            self.assertEqual(asm.count("jne"), 4)
 
     def test_regular_core_still_rejects_all_privileged_effects(self):
         from hepta.hia_machine_x64 import Code, PrivilegedCode

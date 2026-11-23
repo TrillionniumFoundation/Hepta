@@ -107,14 +107,20 @@ def admit_leaf_revoke(owner: QuiescentOwner, request: LeafRevoke) -> None:
              "no reserved physical address bits")
     _require(request.replacement_pte == (old & ~1),
              "only exact Present-bit clearing is admitted")
-    # Hardware CR3 and live PTE are rechecked in the emitted code. All other
-    # authority facts remain caller assertions, NOT authenticated resources.
+    # Hardware CR4 exclusions, CR3 and live PTE are checked by emitted code.
+    # Remaining authority facts are assertions, NOT authenticated resources.
 
 
 def lower_leaf_revoke(owner: QuiescentOwner, request: LeafRevoke) -> bytes:
     """Emit one guarded PTE Present-clear and local INVLPG; reject before bytes."""
     admit_leaf_revoke(owner, request)
     code = PrivilegedCode()
+    # Check hardware CR4 before touching the PTE; owner claims are not trusted
+    # for PGE(bit7), LA57(bit12) or PCIDE(bit17).
+    code.read_cr4("r11")
+    code.mov_imm("r8", (1 << 7) | (1 << 12) | (1 << 17))
+    code.test("r11", "r8")
+    code.jcc("ne", "reject")
     code.read_cr3("rcx")
     code.mov_imm("r8", request.active_cr3)
     code.cmp("rcx", "r8")

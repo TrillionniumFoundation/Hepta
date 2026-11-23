@@ -85,6 +85,12 @@ long_mode:
     orq $0x100, (%rsp)
     popfq
 .endif
+.if CR4_PGE_MODE
+    /* Test-only injection: enable actual CR4.PGE against the owner claim. */
+    movq %cr4, %rax
+    orq $0x80, %rax
+    movq %rax, %cr4
+.endif
     call effect_start
     movabs $pt, %rax
     movq (%rax), %rbx
