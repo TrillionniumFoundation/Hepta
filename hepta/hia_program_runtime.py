@@ -206,11 +206,15 @@ class _Machine:
     def allocate(self, size, optional):
         # Zero-size owners are real capabilities but require no allocator call,
         # cannot fail, and do not consume the deterministic failure injection.
-        if self.scalar_reference is not None:
-            decision, attempts = self.scalar_reference.allocation(
-                size, self.max_heap_bytes, self.live_bytes, self.allocation_attempts, self.allocation_fail_at)
-        else:
+        reference = self.scalar_reference
+        if reference is None:
+            reference = self.package_scalar_reference()
+        if reference is None:
             decision, attempts = self._reference_allocation_decision(size)
+        else:
+            decide = reference.allocation if self.scalar_reference is not None else reference.package_allocation
+            decision, attempts = decide(
+                size, self.max_heap_bytes, self.live_bytes, self.allocation_attempts, self.allocation_fail_at)
         self.allocation_attempts = attempts
         if decision == "empty":
             return self.new_owner(bytearray()), True
@@ -254,6 +258,15 @@ class _Machine:
         owner.active = False
         owner.data = bytearray()
 
+    def package_scalar_reference(self):
+        """Reuse this machine's package binding when no reference evaluator is selected."""
+        if self.scalar_reference is not None:
+            return None
+        if not hasattr(self, '_package_integer'):
+            from .hia_default_native import default_integer_image
+            self._package_integer = default_integer_image()
+        return self._package_integer
+
     def operation(self, ins, env, depth):
         op, attrs = ins["op"], ins["attrs"]
         names = ins["args"]
@@ -264,10 +277,7 @@ class _Machine:
         scalar_op = "cast." + attrs["mode"] if op == "int.cast" else op
         package_scalar = None
         if self.scalar_reference is None and scalar_op in NATIVE_SCALAR_OPCODES:
-            if not hasattr(self, '_package_integer'):
-                from .hia_default_native import default_integer_image
-                self._package_integer = default_integer_image()
-            package_scalar = self._package_integer
+            package_scalar = self.package_scalar_reference()
         if (self.scalar_reference is not None and scalar_op in NATIVE_SCALAR_OPCODES
                 and (typ in WIDTHS or typ == "bool")):
             result = [self.scalar_reference.operation(scalar_op, typ, args)]

@@ -155,13 +155,22 @@ class NativeScalarReference(NativeHiaJsonImage):
             raise self._arithmetic_error(error, typ)
         return self._value(typ, result)
 
-    def package_integer_operation(self, opcode, typ, arguments):
+    @contextmanager
+    def package_custody(self):
         binding = self._default_package_binding
         binding.check_files()
         try:
-            return self.operation(opcode, typ, arguments)
+            yield
         finally:
             binding.check_files()
+
+    def package_integer_operation(self, opcode, typ, arguments):
+        with self.package_custody():
+            return self.operation(opcode, typ, arguments)
+
+    def package_allocation(self, size, maximum, live, attempts, fail_at):
+        with self.package_custody():
+            return self.allocation(size, maximum, live, attempts, fail_at)
 
     def byte_operation(self, name, destination, *, offset=0, source=None,
                        source_offset=0, count=0, value=0):
