@@ -293,6 +293,7 @@ SAFE_CORE_PROOF_SDIST_FILES = (
     'tests/test_hia_verified_simd_sse2_native.py',
     'tests/test_hia_verified_simd_avx512_native.py',
     'tests/test_hia_verified_simd_public_cli.py',
+    'tests/test_hia_checked_build_public_cli.py',
     'examples/hia_bootstrap/supplied_safe_core_proof.hepta',
     'examples/hia_bootstrap/supplied_safe_core_proof_packer.hepta',
     'tools/build_hia_supplied_safe_core_proof.py',

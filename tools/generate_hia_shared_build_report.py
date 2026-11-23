@@ -16,6 +16,7 @@ from tools.generate_hia_worker_request import WorkerRequestBuilder
 SOURCE_PATH = 'examples/hia_bootstrap/core_cli/shared_build_report.hepta'
 MAGIC = b'HIASBR01'
 VERIFIED_MAGIC = b'HIASBR02'
+CHECKED_MAGIC = b'HIASBR03'
 INPUT_ERROR_MAGIC = b'HIAIOER1'
 PROOF_MAGIC = b'HIAPRR01'
 EXPORT_MAGIC = b'HIASEX01'
@@ -78,11 +79,20 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if extent == EXPECTED_WORK_BYTES:
             sort_export_names(o)
         return extent
-    proven = magic == VERIFIED_INPUT_MAGIC
+    checked = magic == CHECKED_INPUT_MAGIC
+    proven = checked or magic == VERIFIED_INPUT_MAGIC
     if proven:
-        if n < 132:
+        extra = choose(checked, 160, 40)
+        if n < 92 + extra:
             return 4294967293
-        n = n - 40
+        n = n - extra
+        if checked:
+            selection = word_load(s, n + 40)
+            shape = selection & 255
+            if (shape != 0 and shape != 1 and shape != 3) or (selection >> 8) > 12:
+                return 4294967293
+            if word_load(s, n + 48) > 6 or word_load(s, n + 56) == 0 or word_load(s, n + 56) > 1024:
+                return 4294967293
         if word_load(s, n + 32) < 1 or word_load(s, n + 32) > 6:
             return 4294967293
     if n < 92 or n > 262232 or length(w) < 96:
@@ -134,7 +144,18 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) < n - 88 + 2 * (end - start) + 4096:
         return 4294967294
 
+    if checked and length(o) < 2 * (n + 2 * (end - start)) + 8192:
+        return 4294967294
     at = copy(s, o, 88, 90, 0)
+    if checked:
+        at = checked_metadata(s, o, at, n)
+        at = checked_compilation_start(o, at)
+        at = shared_fields(s, o, w, at, n, proven, False)
+        at = checked_compilation_end(o, at)
+    at = shared_fields(s, o, w, at, n, proven, checked)
+    return copy(s, o, n - 2, n, at)
+
+def shared_fields(s:readbuf, o:mutbuf, w:mutbuf, at:u64, n:u64, proven:bool, outer:bool) -> u64:
     cursor = 90
     while cursor < n - 2:
         end = member_end(s, cursor, n)
@@ -164,14 +185,22 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 at = verified_linker_suffix(o, at)
             else:
                 at = linker_suffix(o, at)
+        elif outer and has_checked_schema(s, cursor) != 0:
+            at = checked_schema(o, at)
+        elif outer and has_checked_status(s, cursor) != 0:
+            at = checked_status(o, at)
+        elif outer and has_checked_claims(s, cursor) != 0:
+            at = checked_claims(o, at)
         else:
             at = copy(s, o, cursor, end, at)
         cursor = end
-    return copy(s, o, n - 2, n, at)
+    return at
 
 # The plan authorization is independent of the emitted object and belongs
 # to the same sealed descriptor the build adapter used for block selection.
 @SIMD_REPORT@
+
+@CHECKED_REPORT@
 
 def planned_report(s:readbuf, o:mutbuf, prefix:u64) -> u64:
     n = length(s)
@@ -185,6 +214,8 @@ def planned_report(s:readbuf, o:mutbuf, prefix:u64) -> u64:
         if (digit < 48 or digit > 57) and (digit < 97 or digit > 102):
             return 4294967293
         digit_at = digit_at + 1
+    if checked_wrapper_prefix(s, prefix + 2) != 0:
+        return bind_checked_plan(s, o, prefix)
     if length(o) < n - prefix + 62:
         return 4294967294
     at = prefix + 2
@@ -205,6 +236,74 @@ def planned_report(s:readbuf, o:mutbuf, prefix:u64) -> u64:
     cursor = copy(s, o, prefix - 64, prefix, cursor + 1)
     store(o, cursor, 34)
     return copy(s, o, location + 4, n, cursor + 1)
+
+
+def bind_checked_plan(s:readbuf, o:mutbuf, prefix:u64) -> u64:
+    n = length(s)
+    if length(o) < n - prefix + 124:
+        return 4294967294
+    # Track the two authenticated fields independently. Quotes and escaped
+    # characters in an output path cannot introduce a member or end an object.
+    depth = 0
+    quoted = False
+    escaped = False
+    compilation = False
+    found_compilation = False
+    inner = 0
+    outer = 0
+    cursor = prefix
+    while cursor < n:
+        ch = byte(s, cursor)
+        if quoted:
+            if escaped:
+                escaped = False
+            elif ch == 92:
+                escaped = True
+            elif ch == 34:
+                quoted = False
+        elif ch == 34:
+            quoted = True
+        elif ch == 123 or ch == 91:
+            depth = depth + 1
+        elif ch == 125 or ch == 93:
+            if depth == 0:
+                return 4294967293
+            if compilation and depth == 2:
+                compilation = False
+            depth = depth - 1
+        elif ch == 10 and cursor + 1 < n:
+            field = cursor + 1
+            if depth == 1 and has_compilation_object(s, field) != 0:
+                if found_compilation:
+                    return 4294967293
+                found_compilation = True
+                compilation = True
+            elif (depth == 1 or (compilation and depth == 2)) and plan_member(s, field) != 0:
+                slot = field + PLAN_MEMBER_PREFIX
+                if plan_null(s, slot) == 0:
+                    return 4294967293
+                if depth == 1:
+                    if outer != 0:
+                        return 4294967293
+                    outer = slot
+                else:
+                    if inner != 0:
+                        return 4294967293
+                    inner = slot
+        cursor = cursor + 1
+    if depth != 0 or quoted or inner == 0 or outer <= inner + 4:
+        return 4294967293
+    at = copy(s, o, prefix, inner, 0)
+    at = quoted_plan_hash(s, o, prefix, at)
+    at = copy(s, o, inner + 4, outer, at)
+    at = quoted_plan_hash(s, o, prefix, at)
+    return copy(s, o, outer + 4, n, at)
+
+def quoted_plan_hash(s:readbuf, o:mutbuf, prefix:u64, at:u64) -> u64:
+    store(o, at, 34)
+    at = copy(s, o, prefix - 64, prefix, at + 1)
+    store(o, at, 34)
+    return at + 1
 
 def admit_proof(s:readbuf, w:mutbuf) -> u64:
     if length(s) < 464 or length(s) > 2097152 or length(w) != 32:
@@ -406,6 +505,11 @@ INPUT_ERROR_LITERALS = {
 }
 
 LITERALS = {
+    'checked_schema': '  "schema": "hepta.hia.safe-core-build.v1",\n',
+    'checked_status': '  "status": "smt_validated_not_executed",\n',
+    'checked_compilation_start': '  "compilation": {\n',
+    'checked_compilation_end': '  },\n',
+    'checked_claims': '  "claims": {"acyclic_model_termination_checked":true,"all_input_refinement_in_independent_model":true,"core_abort_and_foreign_memory_effects_preserved":true,"exact_final_image_and_relocations_bound":true,"foreign_memory_access_bounds_checked":true,"foreign_pointer_provenance_or_liveness_proved":false,"machine_checked_isa_refinement_proved":false,"python_checker_soundness_proved":false,"serialized_receipt_authorizes_execution":false,"sysv_saved_registers_and_stack_checked":true,"timing_or_side_channels_proved":false,"whole_language_soundness_proved":false},\n',
     'bytes_prefix': '  "artifact_bytes": ',
     'artifact_hash_prefix': '  "artifact_sha256": "',
     'comma_line': ',\n',
@@ -455,8 +559,13 @@ def match_function(name, literal):
     raw = literal.encode('ascii')
     source = f'\ndef {name}(s:readbuf, at:u64) -> u64:\n'
     source += f'    if length(s) - at < {len(raw)}:\n        return 0\n'
-    for offset, byte in enumerate(raw):
-        source += f'    if byte(s, at + {offset}) != {byte}:\n        return 0\n'
+    # Bounds were checked once. Compare each complete word and then its tail.
+    words_end = len(raw) - len(raw) % 8
+    for offset in range(0, words_end, 8):
+        word = int.from_bytes(raw[offset:offset + 8], 'little')
+        source += f'    if word_load(s, at + {offset}) != {word}:\n        return 0\n'
+    for offset in range(words_end, len(raw)):
+        source += f'    if byte(s, at + {offset}) != {raw[offset]}:\n        return 0\n'
     return source + '    return 1\n'
 
 
@@ -577,9 +686,84 @@ def simd_mut_digest(o:mutbuf, w:mutbuf, at:u64, offset:u64) -> u64:
     return at
 '''
 
-def simd_report_source():
+
+CHECKED_REPORT = r'''
+def checked_metadata(s:readbuf, o:mutbuf, at:u64, n:u64) -> u64:
+    LIT('  "runtime_solver_calls":0,\n  "selected_strategy":"checked",\n  "selection_refusals":[')
+    selection = word_load(s, n + 40)
+    shape = selection & 255
+    reason = selection >> 8
+    if reason == 0 and shape == 3:
+        reason = 3
+    if reason != 0:
+        at = scalar_selection_reason(o, at, reason)
+    if shape == 1 or shape == 3:
+        LIT('{"strategy":"simd","reason":"E_HIA_VERIFIED_SIMD: one primitive v8 Core function required"}')
+    else:
+        LIT('{"strategy":"simd","reason":"E_HIA_VERIFIED_SIMD: no matching verified byte kernel"}')
+    LIT('],\n  "validation":')
+    at = append_checked_validation(s, o, at, n)
+    LIT(',\n')
+    return at
+
+
+def scalar_selection_reason(o:mutbuf, at:u64, reason:u64) -> u64:
+    LIT('{"strategy":"scalar","reason":"E_HIA_VERIFIED_SCALAR: ')
+    if reason == 1:
+        LIT('operation requires the ordinary checked lowering')
+    elif reason == 2:
+        LIT('live values exceed the caller-saved register budget')
+    elif reason == 3:
+        LIT('only one straight-line block is supported')
+    elif reason == 4:
+        LIT('borrowed memory uses a separate kernel profile')
+    elif reason == 5:
+        LIT('loader and imported symbol names cannot be exported')
+    elif reason == 6:
+        LIT('a scalar return is required')
+    elif reason == 7:
+        LIT('CL shift needs a free caller-saved register budget')
+    elif reason == 8:
+        LIT('DIV divisor needs a free caller-saved register budget')
+    elif reason == 9:
+        LIT('DIV needs a free caller-saved register budget')
+    elif reason == 10:
+        LIT('MUL needs a free caller-saved register budget')
+    elif reason == 11:
+        LIT('checked range needs a free caller-saved register budget')
+    elif reason == 12:
+        LIT('checked cast needs a free caller-saved register budget')
+    LIT('"},')
+    return at
+
+def append_checked_validation(s:readbuf, o:mutbuf, at:u64, n:u64) -> u64:
+    LIT('{"schema":"hepta.hia.safe-core-machine-validation.v1","status":"smt_validated","ok":true,"complete":true,')
+    LIT('"validation_mode":"independent_supplied_bytes","checker":{"implementation":"hia","receipt_sha256":"')
+    at = digest(s, o, at, n)
+    LIT('"},"source_identity":{"supplied_core_sha256":"')
+    at = digest(s, o, at, n + 64)
+    LIT('"},"image_binding":{"supplied_object_sha256":"')
+    at = digest(s, o, at, n + 96)
+    LIT('","final_image_sha256":"')
+    at = digest(s, o, at, 24)
+    LIT('","function_text_sha256":"')
+    at = digest(s, o, at, n + 128)
+    LIT('"},"model_counts":{"arguments":')
+    at = decimal(o, at, word_load(s, n + 48))
+    LIT(',"paths":')
+    at = decimal(o, at, word_load(s, n + 56))
+    LIT('},"obligations":[{"name":"caller_contract_nonvacuous","result":"sat"},')
+    LIT('{"name":"machine_memory_access_bounds","result":"unsat"},')
+    LIT('{"name":"sysv_stack_alignment_and_preservation","result":"unsat"},')
+    LIT('{"name":"all_inputs_reach_a_terminal_model_outcome","result":"unsat"},')
+    LIT('{"name":"core_to_final_image_return_abort_and_caller_bytes","result":"unsat"}],"unproved_obligations":[]}')
+    return at
+'''
+
+
+def report_literals(template):
     lines = []
-    for line in SIMD_REPORT.splitlines():
+    for line in template.splitlines():
         expression = line.strip()
         if not expression.startswith('LIT('):
             lines.append(line)
@@ -594,7 +778,9 @@ def simd_report_source():
 
 
 def source_program():
-    source = (SOURCE.replace('@SIMD_REPORT@', simd_report_source())
+    source = (SOURCE.replace('@SIMD_REPORT@', report_literals(SIMD_REPORT))
+              .replace('@CHECKED_REPORT@', report_literals(CHECKED_REPORT))
+              .replace('CHECKED_INPUT_MAGIC', str(int.from_bytes(CHECKED_MAGIC, 'little')))
               .replace('SIMD_PROOF_INPUT_MAGIC', str(int.from_bytes(b'HIASIMR1', 'little')))
               .replace('REPORT_MAGIC', str(int.from_bytes(MAGIC, 'little')))
               .replace('SOURCE_IO_MAGIC', str(int.from_bytes(INPUT_ERROR_MAGIC, 'little')))
@@ -619,6 +805,10 @@ def source_program():
         source += append_function(name, literal)
     source += match_function('object_line', OBJECT_LINE)
     source += match_function('toolchain_line', TOOLCHAIN_LINE)
+    for key in ('schema', 'status', 'claims'):
+        source += match_function('has_checked_' + key, f'  "{key}": ')
+    source += match_function('checked_wrapper_prefix', '  "runtime_solver_calls":0,\n  "selected_strategy":"checked",\n')
+    source += match_function('has_compilation_object', LITERALS['checked_compilation_start'])
     source += match_function('plan_member', PLAN_MEMBER)
     source += match_function('plan_null', PLAN_NULL)
     for name in MEMBERS:

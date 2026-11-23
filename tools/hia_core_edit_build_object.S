@@ -69,6 +69,8 @@
 .equ SIMD_WORK_PTR,3944
 .equ SIMD_REPORT_CONTEXT,3952
 .equ SIMD_SHAPE,3960
+.equ CHECKED_SELECTION,3968
+.equ CHECKED_SCALAR_REFUSAL,3976
 _start:
  # The static linker calls this entry. The adapter itself never returns.
  add rsp,8
@@ -1681,9 +1683,27 @@ wait_proof:
  cld
  rep movsq
  mov rax,[rbp+SHARED_FRAME]
- movabs rdx,0x3230524253414948    # HIASBR02
+ movabs rdx,0x3330524253414948    # HIASBR03
  mov [rax],rdx
- add QWORD PTR [rbp+SHARED_FRAME_EXTENT],40
+ mov rax,[rbp+CHECKED_SELECTION]
+ mov rcx,[rbp+CHECKED_SCALAR_REFUSAL]                # Source-emitter refusal, zero until a strategy rejects.
+ shl rcx,8
+ or rax,rcx
+ mov [rbx+40],rax
+ mov rsi,[rbp+PROOF_REPORT]
+ mov rax,[rsi+24]
+ mov [rbx+48],rax
+ mov rax,[rsi+32]
+ mov [rbx+56],rax
+ lea rdi,[rbx+64]
+ add rsi,80
+ mov ecx,8                       # Identified Core and independent object SHA-256s
+ cld
+ rep movsq
+ add rsi,32                      # The artifact digest was checked by admit_proof.
+ mov ecx,4                       # Independently bound final text SHA-256
+ rep movsq
+ add QWORD PTR [rbp+SHARED_FRAME_EXTENT],160
 release_proof_report:
  mov rdi,[rbp+PROOF_REPORT]
  mov rsi,[rbp+PROOF_SIZE]
@@ -1880,6 +1900,12 @@ verified_target_selected:
  ret
 no_verified_simd_match:
  mov rdi,[rbp+SIMD_SUBJECT_PTR]
+ movabs rax,0x3130534353414948    # HIASCS01, valid v1 scalar shape
+ cmp [rdi],rax
+ jne no_checked_selection_detail
+ mov rax,[rdi+8]
+ mov [rbp+CHECKED_SELECTION],rax
+no_checked_selection_detail:
  mov esi,65536
  call release
  xor eax,eax

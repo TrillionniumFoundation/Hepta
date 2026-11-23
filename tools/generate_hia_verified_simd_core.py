@@ -83,6 +83,21 @@ def recognize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 i = i + 1
             return narrow(24 + size)
         shape = shape + 1
+    # The syscall adapter reads this only on a declined SIMD match. A valid
+    # source tree and its actual block count distinguish older scalar CFGs.
+    schema = member(w, 0, REPORT_SCHEMA_KEY)
+    functions = member(w, 0, REPORT_FUNCTIONS_KEY)
+    if schema == NONE or functions == NONE:
+        return 0
+    if kind(w, schema) != 4 or kind(w, functions) != 5 or count(w, functions) != 1:
+        return 0
+    position = get(w, 64 + schema * 56 + 24)
+    if same(w, position, count(w, schema), REPORT_V1_LITERAL) == 0:
+        return 0
+    blocks = member(w, child(w, functions), REPORT_BLOCKS_KEY)
+    if blocks != NONE and kind(w, blocks) == 5 and count(w, blocks) != 0:
+        put(o, 0, REPORT_SHAPE_MAGIC)
+        put(o, 8, choose(count(w, blocks) > 1, 3, 1))
     return 0
 
 def matches(s:readbuf, w:mutbuf, base:u64, size:u64) -> u64:
@@ -222,6 +237,11 @@ def matcher_source():
     entry = entry.replace('RESERVED_PREFIX', str(int.from_bytes(b'__hia_', 'little')))
     entry += '\ndef pattern(w:mutbuf, base:u64, shape:u64) -> u64:\n'
     tapes = [encode(recurrence(kind), vocabulary) for kind in KINDS]
+    for marker, field in (('REPORT_SCHEMA_KEY', 'schema'), ('REPORT_FUNCTIONS_KEY', 'functions'),
+                          ('REPORT_BLOCKS_KEY', 'blocks')):
+        entry = entry.replace(marker, str(vocabulary[field]))
+    entry = entry.replace('REPORT_V1_LITERAL', ', '.join(map(str, packed('hepta.hia.program.v1'))))
+    entry = entry.replace('REPORT_SHAPE_MAGIC', str(int.from_bytes(b'HIASCS01', 'little')))
     for index, tape in enumerate(tapes, 1):
         assert len(tape) < 4096
         entry += f'    if shape == {index}:\n        return pattern_{index}(w, base)\n'
