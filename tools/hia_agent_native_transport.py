@@ -82,8 +82,20 @@ class MCPStdio:
         while True:
             response = self._read_message(deadline)
             self.protocol_records.append({"request": request, "response": response})
-            if response.get("id") != request["id"]:
+            if not isinstance(response, dict):
+                raise QualificationFailure("MCP server emitted a non-object JSON-RPC message")
+            if "id" not in response:
+                # Server-side notifications may occur between responses.
+                if response.get("jsonrpc") != "2.0" or not isinstance(response.get("method"), str):
+                    raise QualificationFailure("MCP server emitted a malformed notification")
                 continue
+            # Python considers True == 1 and 1.0 == 1. Require the exact
+            # JSON-RPC request-id type, not numeric/coercive equality.
+            if type(response["id"]) is not type(request["id"]) or response["id"] != request["id"]:
+                continue
+            if (response.get("jsonrpc") != "2.0"
+                    or ("error" in response) == ("result" in response)):
+                raise QualificationFailure("MCP server emitted a malformed matching response")
             if "error" in response:
                 raise QualificationFailure(f"MCP {method} error: {response['error']}")
             return response["result"]
@@ -140,6 +152,8 @@ class MCPStdio:
             except subprocess.TimeoutExpired:
                 self.process.kill()
                 self.process.wait(timeout=10)
+        if self.process.stdout and not self.process.stdout.closed:
+            self.process.stdout.close()
         self.stderr_file.close()
 
     def __enter__(self):
