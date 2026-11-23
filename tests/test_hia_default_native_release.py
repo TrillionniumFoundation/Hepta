@@ -25,6 +25,39 @@ def clean_environment():
 
 
 class DefaultReleaseSourceTests(unittest.TestCase):
+    def test_cpython_3123_package_selection_preserves_scopes_and_translations(self):
+        import argparse
+        from hepta import hia_default_native as default
+        from hepta.hia_native_helpers import native_helpers_scope
+        with (patch('hepta.hia_cli_native.native_cli_profile', return_value=3123),
+              patch.object(default, '_package_cli', return_value='ordinary') as package,
+              patch('gettext.find', return_value=None)):
+            self.assertEqual(default.default_cli(), 'ordinary')
+            with native_helpers_scope():
+                self.assertIsNone(default.default_cli())
+            with patch('gettext.find', return_value='/catalog/messages.mo'):
+                self.assertIsNone(default.default_cli())
+            with patch.object(argparse, '_', side_effect=lambda text: 'local ' + text):
+                self.assertIsNone(default.default_cli())
+            package.assert_called_once_with()
+
+    def test_cpython_3123_implicit_python_argv_keeps_host_object_protocol(self):
+        from hepta.hia_cli_native import NativeCli, SELECTOR
+        from hepta import cli
+        class Argument(str):
+            pass
+        argv = [Argument('catalog'), object()]
+        owner = NativeCli(None, None)
+        environment = {key: value for key, value in os.environ.items() if key != SELECTOR}
+        with (patch.dict(os.environ, environment, clear=True),
+              patch('hepta.hia_cli_native.native_cli_profile', return_value=3123),
+              patch.object(cli, '_reference_hia_main', return_value=17) as reference):
+            self.assertEqual(owner.run(iter(argv), cli), 17)
+            received = reference.call_args.args[0]
+            self.assertIs(received[0], argv[0])
+            self.assertIs(received[1], argv[1])
+            reference.assert_called_once_with(argv, package_discovery=True)
+
     def test_portable_pin_retains_original_api_on_other_host_observations(self):
         from hepta.hia_default_native import capture_default_bundle, render_pin
         from hepta.hia_full_cost_gate import assess_full_cost
