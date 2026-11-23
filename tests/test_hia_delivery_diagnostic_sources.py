@@ -135,8 +135,9 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
         names.update((subject.SQL_SOURCE_FIXTURE, subject.SQL_EFFECT_TEST))
         cls.source_raw = {name: (ROOT / name).read_bytes() for name in sorted(names)}
         cls.source_names = tuple(sorted(names))
+        from tests.hia_installed_distribution_history import predecessor
         for name, expected in OUTER_PINS.items():
-            raw = cls.source_raw[name]
+            raw = predecessor(name, cls.source_raw[name])
             if name == subject.DELIVERY and pin(raw) != expected:
                 raw = subject.restore_sql_source(name, raw, cls.source_raw.__getitem__, expected)
             if pin(raw) != expected:
@@ -148,7 +149,7 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
         cls.reviewed_sources = {}
         for name in TARGETS:
             record = cls.authority['files'][name]
-            current = cls.source_raw[name]
+            current = predecessor(name, cls.source_raw[name])
             if name == TARGETS[1] and pin(current) != record['new']:
                 update = composition.evaluate_records(
                     cls.source_raw[composition.EVALUATE_FIXTURE])['evaluation_qualifier']
@@ -261,7 +262,9 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             if name == TARGETS[1] and active != reviewed:
                 update = composition.evaluate_records(
                     self.source_raw[composition.EVALUATE_FIXTURE])['evaluation_qualifier']
-                self.assertEqual(active, {'bytes': update['new_bytes'], 'sha256': update['new_sha256']})
+                from tests.hia_installed_distribution_history import predecessor
+                reviewed_input = predecessor(name, self.source_raw[name])
+                self.assertEqual(pin(reviewed_input), {'bytes': update['new_bytes'], 'sha256': update['new_sha256']})
                 self.assertEqual(propagated[name]['original_evaluation_callers_verified'], 183)
             elif active != reviewed:
                 self.assertEqual(active, subject.SQLITE_BOUNDARY_SOURCES[name])

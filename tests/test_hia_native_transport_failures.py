@@ -150,8 +150,9 @@ class NativeTransportSourceTests(unittest.TestCase):
         with patch.dict(sys.modules, {'_sqlite3': None}):
             self.assertEqual(request_rejections(), caught[:-1])
         self.assertEqual(len(COMPONENT_TEST_SHA256), 3)
+        from tests.hia_installed_distribution_history import predecessor
         for name, digest in COMPONENT_TEST_SHA256.items():
-            raw = (ROOT / name).read_bytes()
+            raw = predecessor(name, (ROOT / name).read_bytes())
             if name.endswith('test_hia_cost_ledger_native.py'):
                 raw = original_cost_ledger_controls(raw)
             self.assertEqual(sha256(raw).hexdigest(), digest)

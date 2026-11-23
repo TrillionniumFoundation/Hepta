@@ -79,8 +79,9 @@ class CostContextCallerDeliverySourceTests(unittest.TestCase):
             names.update(cls.originals[kind].get('shared_dependency_review', {}))
         names.update((subject.SQL_SOURCE_FIXTURE, subject.SQL_EFFECT_TEST))
         cls.sources = {name: (ROOT / name).read_bytes() for name in sorted(names)}
+        from tests.hia_installed_distribution_history import predecessor
         for name, expected in OUTER_PINS.items():
-            raw = cls.sources[name]
+            raw = predecessor(name, cls.sources[name])
             if name == subject.DELIVERY and pin(raw) != expected:
                 raw = subject.restore_sql_source(name, raw, cls.sources.__getitem__, expected)
             if pin(raw) != expected:

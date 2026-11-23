@@ -149,8 +149,10 @@ class _CapturedAdmission:
             raise ValueError('caller terminal records must be the complete original mapping')
         self._root = Path(root)
         self._captured = {}
+        self._physical = {}
         self._consumed = []
         self._accepted = set()
+        self._accepted_distribution = set()
         self._allowed = {}
         self._diagnostics = {}
         self._accepted_diagnostics = set()
@@ -176,8 +178,10 @@ class _CapturedAdmission:
         self._admit_store_admin_helpers()
 
     def _capture(self, name):
+        from tests.hia_installed_distribution_history import predecessor
         if name not in self._captured:
-            self._captured[name] = (self._root / name).read_bytes()
+            self._physical[name] = (self._root / name).read_bytes()
+            self._captured[name] = predecessor(name, self._physical[name])
         return self._captured[name]
 
     def _admit_pair_and_evaluation(self):
@@ -381,13 +385,20 @@ class _CapturedAdmission:
             raise ValueError('caller original source consumption is missing, duplicate or closed')
         self._consumed.append(name)
         # Return the exact captured current bytes, never the reconstructed old bytes.
-        return self._captured[name]
+        return self._physical[name]
 
     def permits(self, name, expected_sha256, raw):
         if (self._finished or name not in self._consumed
-                or type(raw) is not bytes or raw != self._captured[name]
+                or type(raw) is not bytes or raw != self._physical[name]
                 or expected_sha256 != self._records[name]):
             raise ValueError('caller terminal consumed bytes or expected old identity differ')
+        previous = self._captured[name]
+        if raw != previous and _pin(previous)['sha256'] == expected_sha256:
+            if name in self._accepted_distribution:
+                raise ValueError('duplicate installed distribution caller admission')
+            self._accepted_distribution.add(name)
+            return True
+        raw = previous
         if name in self._diagnostics:
             reviewed = self._diagnostics[name]
             if (expected_sha256 != reviewed['original']['sha256']
@@ -405,12 +416,16 @@ class _CapturedAdmission:
         return True
 
     def finish(self):
+        required_distribution = {name for name, digest in self._records.items()
+                                 if self._physical[name] != self._captured[name]
+                                 and _pin(self._captured[name])['sha256'] == digest}
         if (self._finished or set(self._consumed) != set(self._records)
                 or len(self._consumed) != len(self._records)
+                or self._accepted_distribution != required_distribution
                 or self._accepted != set(self._allowed)
                 or self._accepted_diagnostics != set(self._diagnostics)):
             raise ValueError('caller terminal original source consumption is incomplete')
-        for name, raw in self._captured.items():
+        for name, raw in self._physical.items():
             if (self._root / name).read_bytes() != raw:
                 raise ValueError('caller terminal captured bytes changed: ' + name)
         self._finished = True
@@ -420,7 +435,9 @@ class _CapturedAdmission:
                 'ordered_consumed_original_sources': list(self._consumed),
                 'reviewed_test_source_adjustments': dict(self._allowed),
                 'reviewed_diagnostic_source_adjustments': dict(self._diagnostics),
-                'captured_files': {name: _pin(raw) for name, raw in self._captured.items()},
+                'captured_files': {name: _pin(raw) for name, raw in self._physical.items()},
+                'installed_distribution_predecessors': {name: _pin(raw) for name, raw in self._captured.items()
+                                                       if raw != self._physical[name]},
                 'terminal_reread_identical': True,
                 'production_composition_source_count': 13,
                 'production_source_exceptions': [],

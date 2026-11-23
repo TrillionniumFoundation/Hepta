@@ -65,9 +65,14 @@ def admit_separate_inventory(*, with_source_admission=False):
             or [row['module'] for row in value['modules']] != names
             or [row['test_count'] for row in value['modules']] != [21, 25, 15]):
         raise ValueError('complete separate original module identity differs')
+    from tests.hia_installed_distribution_history import journal_preparation_source, predecessor
+    installed_predecessors = {}
     for record in value['modules']:
-        raw = (ROOT / record['path']).read_bytes()
-        captured[record['path']] = raw
+        physical = (ROOT / record['path']).read_bytes()
+        captured[record['path']] = physical
+        raw = predecessor(record['path'], physical)
+        if raw != physical:
+            installed_predecessors[record['path']] = _source_pin(raw)
         if len(raw) != record['bytes'] or sha256(raw).hexdigest() != record['sha256']:
             if record['path'] != _JOURNAL_CALLER:
                 raise ValueError('complete original caller source differs: ' + record['path'])
@@ -77,11 +82,12 @@ def admit_separate_inventory(*, with_source_admission=False):
             from tests import hia_journal_installed_preparation as journal
             if Path(journal.__file__).read_bytes() != helper:
                 raise ValueError('transaction imported a different Journal admission')
-            proof = journal.admit_source(ROOT, record['path'], raw,
-                                         {key: record[key] for key in ('bytes', 'sha256')})
+            proof = journal_preparation_source(ROOT, physical,
+                                               {key: record[key] for key in ('bytes', 'sha256')})
             for name, expected in proof['captured_files'].items():
                 consumed = (ROOT / name).read_bytes()
-                if (_source_pin(consumed) != expected
+                checked = predecessor(name, consumed) if name == _JOURNAL_CALLER else consumed
+                if (_source_pin(checked) != expected
                         or name in captured and captured[name] != consumed):
                     raise ValueError('transaction Journal source changed after admission: ' + name)
                 captured[name] = consumed
@@ -100,6 +106,7 @@ def admit_separate_inventory(*, with_source_admission=False):
         'original_ordered_ids': list(value['ordered_ids']), 'original_count': 61,
         'original_module_counts': [21, 25, 15], 'original_outer_seconds': DEADLINE_SECONDS,
         'reviewed_journal_installed_preparation_source_adjustments': adjustments,
+        'installed_distribution_predecessors': installed_predecessors,
         'captured_files': {name: _source_pin(source) for name, source in captured.items()},
         'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
         'production_source_exceptions': [], 'whole_native': False,

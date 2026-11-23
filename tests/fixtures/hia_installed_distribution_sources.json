@@ -54,6 +54,73 @@
         }
       ]
     },
+    "tests/hia_caller_terminal_admission.py": {
+      "current": {
+        "bytes": 24784,
+        "sha256": "0fd50297b4048ed22719d2918e8098d29ce8732dbe9cb20e63b40768859e378d"
+      },
+      "original": {
+        "bytes": 23695,
+        "sha256": "fb0c4be8fc93e0a1658c4672f2110ab1298f5cfde85c72988843a449477a56a8"
+      },
+      "splices": [
+        {
+          "after": "        self._physical = {}\n",
+          "before": "",
+          "offset": 7661
+        },
+        {
+          "after": "        self._accepted_distribution = set()\n",
+          "before": "",
+          "offset": 7720
+        },
+        {
+          "after": "        from tests.hia_installed_distribution_history import predecessor\n",
+          "before": "",
+          "offset": 8896
+        },
+        {
+          "after": "            self._physical[name] = (self._root / name).read_bytes()\n            self._captured[name] = predecessor(name, self._physical[name])\n",
+          "before": "            self._captured[name] = (self._root / name).read_bytes()\n",
+          "offset": 8935
+        },
+        {
+          "after": "        return self._physical[name]\n",
+          "before": "        return self._captured[name]\n",
+          "offset": 21027
+        },
+        {
+          "after": "                or type(raw) is not bytes or raw != self._physical[name]\n",
+          "before": "                or type(raw) is not bytes or raw != self._captured[name]\n",
+          "offset": 21172
+        },
+        {
+          "after": "        previous = self._captured[name]\n        if raw != previous and _pin(previous)['sha256'] == expected_sha256:\n            if name in self._accepted_distribution:\n                raise ValueError('duplicate installed distribution caller admission')\n            self._accepted_distribution.add(name)\n            return True\n        raw = previous\n",
+          "before": "",
+          "offset": 21400
+        },
+        {
+          "after": "        required_distribution = {name for name, digest in self._records.items()\n                                 if self._physical[name] != self._captured[name]\n                                 and _pin(self._captured[name])['sha256'] == digest}\n",
+          "before": "",
+          "offset": 22196
+        },
+        {
+          "after": "                or self._accepted_distribution != required_distribution\n",
+          "before": "",
+          "offset": 22329
+        },
+        {
+          "after": "        for name, raw in self._physical.items():\n",
+          "before": "        for name, raw in self._captured.items():\n",
+          "offset": 22549
+        },
+        {
+          "after": "                'captured_files': {name: _pin(raw) for name, raw in self._physical.items()},\n                'installed_distribution_predecessors': {name: _pin(raw) for name, raw in self._captured.items()\n                                                       if raw != self._physical[name]},\n",
+          "before": "                'captured_files': {name: _pin(raw) for name, raw in self._captured.items()},\n",
+          "offset": 23254
+        }
+      ]
+    },
     "tests/hia_native_delivery_cases.py": {
       "current": {
         "bytes": 44241,
@@ -764,6 +831,28 @@
         }
       ]
     },
+    "tests/test_hia_cost_context_caller_delivery_source.py": {
+      "current": {
+        "bytes": 18676,
+        "sha256": "6a8a52f6a4222ad67e360e85733b300436ddf3f5f9c004e03d5bb276874f5a26"
+      },
+      "original": {
+        "bytes": 18584,
+        "sha256": "9529934cbd663c27b90f5a55f0aa0ebb8b9ddbba0a51b4a394525d914a9ea600"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_installed_distribution_history import predecessor\n",
+          "before": "",
+          "offset": 3844
+        },
+        {
+          "after": "            raw = predecessor(name, cls.sources[name])\n",
+          "before": "            raw = cls.sources[name]\n",
+          "offset": 3894
+        }
+      ]
+    },
     "tests/test_hia_cost_ledger_native.py": {
       "current": {
         "bytes": 26206,
@@ -778,6 +867,60 @@
           "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        run(['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',self.case/'wheels',ordinary_wheel(staging)])\n",
           "before": "        run(['-m','pip','wheel','--no-deps','--no-build-isolation','--no-index','--wheel-dir',self.case/'wheels',staging])\n",
           "offset": 21464
+        }
+      ]
+    },
+    "tests/test_hia_delivery_diagnostic_sources.py": {
+      "current": {
+        "bytes": 25162,
+        "sha256": "f8c993362dccdec1658f43f9ca81f7f7f661664810fbc238ab7b060fc063d489"
+      },
+      "original": {
+        "bytes": 24883,
+        "sha256": "00764fc8606c78acd70806d738ea90747c03fce5d5bad74580d9ef463009ac69"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_installed_distribution_history import predecessor\n",
+          "before": "",
+          "offset": 6631
+        },
+        {
+          "after": "            raw = predecessor(name, cls.source_raw[name])\n",
+          "before": "            raw = cls.source_raw[name]\n",
+          "offset": 6681
+        },
+        {
+          "after": "            current = predecessor(name, cls.source_raw[name])\n",
+          "before": "            current = cls.source_raw[name]\n",
+          "offset": 7358
+        },
+        {
+          "after": "                from tests.hia_installed_distribution_history import predecessor\n                reviewed_input = predecessor(name, self.source_raw[name])\n                self.assertEqual(pin(reviewed_input), {'bytes': update['new_bytes'], 'sha256': update['new_sha256']})\n",
+          "before": "                self.assertEqual(active, {'bytes': update['new_bytes'], 'sha256': update['new_sha256']})\n",
+          "offset": 13883
+        }
+      ]
+    },
+    "tests/test_hia_delivery_journal_preparation.py": {
+      "current": {
+        "bytes": 10783,
+        "sha256": "a4c223eed405174f2843e186525fbd33755b41bd5679bb8766d1b9b50c51ec99"
+      },
+      "original": {
+        "bytes": 10691,
+        "sha256": "6f9c5077052e95909ed7400936519c2974a4e098a6cb384fdff65e5d94dac73f"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_installed_distribution_history import predecessor\n",
+          "before": "",
+          "offset": 2721
+        },
+        {
+          "after": "            raw = predecessor(name, cls.sources[name])\n",
+          "before": "            raw = cls.sources[name]\n",
+          "offset": 2771
         }
       ]
     },
@@ -1082,6 +1225,28 @@
         }
       ]
     },
+    "tests/test_hia_native_transport_failures.py": {
+      "current": {
+        "bytes": 39878,
+        "sha256": "6a796f3dcaaa17a778d51caa84f0630e9c37780361b24fdca4414e7e8a53733d"
+      },
+      "original": {
+        "bytes": 39786,
+        "sha256": "3b0510f0285f29d2dab2db4e27ea320484a4bc2f71d0c5debeeb9b9dfd329715"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_installed_distribution_history import predecessor\n",
+          "before": "",
+          "offset": 6758
+        },
+        {
+          "after": "            raw = predecessor(name, (ROOT / name).read_bytes())\n",
+          "before": "            raw = (ROOT / name).read_bytes()\n",
+          "offset": 6817
+        }
+      ]
+    },
     "tests/test_hia_program_selfhost.py": {
       "current": {
         "bytes": 25098,
@@ -1204,6 +1369,28 @@
           "after": "            raw = installed_wheel_path(installed, name).read_bytes()\n",
           "before": "            raw = (installed / name).read_bytes()\n",
           "offset": 33629
+        }
+      ]
+    },
+    "tests/test_hia_service_bootstrap_journal_preparation.py": {
+      "current": {
+        "bytes": 18934,
+        "sha256": "5859a18ae259dfdc015273a3282e0982f95f3b4cc70900de55d83c28b3af57e2"
+      },
+      "original": {
+        "bytes": 18789,
+        "sha256": "aca6bdf45314adbe2b0e0c7057158f24b53a43a35f8e303eb09f6b9fae517419"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_installed_distribution_history import predecessor\n",
+          "before": "",
+          "offset": 2039
+        },
+        {
+          "after": "        cls.inputs[JOURNAL] = predecessor(JOURNAL, cls.inputs[JOURNAL])\n",
+          "before": "",
+          "offset": 2121
         }
       ]
     },
@@ -1341,6 +1528,28 @@
           "after": "        from tests.hia_distribution_fixture import ordinary_wheel\n        run(['-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, ordinary_wheel(source)])\n",
           "before": "        run(['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--wheel-dir', wheels, source])\n",
           "offset": 32831
+        }
+      ]
+    },
+    "tests/test_hia_store_native_delivery.py": {
+      "current": {
+        "bytes": 16789,
+        "sha256": "0aa787ba9533def4d49224aed1a4545f24a64874e4e8f14e6652ce41e0a2fbe5"
+      },
+      "original": {
+        "bytes": 16697,
+        "sha256": "f1d6605a2dfaba8b949f81e213d19a187779fe251258e73fa58b26fe6fecfb1c"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_installed_distribution_history import predecessor\n",
+          "before": "",
+          "offset": 8178
+        },
+        {
+          "after": "            raw = predecessor(name, (ROOT / name).read_bytes())\n",
+          "before": "            raw = (ROOT / name).read_bytes()\n",
+          "offset": 8251
         }
       ]
     },
@@ -1486,6 +1695,33 @@
         }
       ]
     },
+    "tools/qualify_hia_evaluation_callers.py": {
+      "current": {
+        "bytes": 15126,
+        "sha256": "7943e4d26b8ee83c65982f84e317579c1d687216e5fd7151259a67a617b11d6b"
+      },
+      "original": {
+        "bytes": 14808,
+        "sha256": "4ff2b72e17ff08e0016379cd5242b6293344ba644eb607ea490c85f3a4c1a339"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_installed_distribution_history import predecessor\n    installed_predecessors = {}\n",
+          "before": "",
+          "offset": 2805
+        },
+        {
+          "after": "        physical = capture(name)\n        raw = predecessor(name, physical)\n        if raw != physical:\n            installed_predecessors[name] = sha256(raw).hexdigest()\n",
+          "before": "        raw = capture(name)\n",
+          "offset": 2846
+        },
+        {
+          "after": "            'installed_distribution_predecessors': installed_predecessors,\n",
+          "before": "",
+          "offset": 6496
+        }
+      ]
+    },
     "tools/qualify_hia_slot_mechanical_installed.py": {
       "current": {
         "bytes": 10703,
@@ -1510,6 +1746,43 @@
           "after": "        # This fixture exercises the separately selected CPython mechanical extension.\n        # Build the same Python import-library component used by the release builder.\n        wheels = args.evidence / 'wheels'\n        wheels.mkdir()\n        run('wheel', [sys.executable, '-B', '-c',\n                      'from setuptools.build_meta import build_wheel; import sys; print(build_wheel(sys.argv[1]))',\n                      str(wheels.resolve())], cwd=staging)\n",
           "before": "        run('wheel', [sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps',\n            '--no-build-isolation', '--no-index', '--wheel-dir', str(args.evidence / 'wheels'), str(staging)])\n",
           "offset": 3191
+        }
+      ]
+    },
+    "tools/qualify_hia_store_transaction.py": {
+      "current": {
+        "bytes": 21627,
+        "sha256": "9fed26aab23818aee9ed9934cb58febc5b0792b213e2075ea1968b43826efeb8"
+      },
+      "original": {
+        "bytes": 21172,
+        "sha256": "e0464a03cce722afd98b1057a779a09c62f365933d7bc9dbc64fc14e83ae0937"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_installed_distribution_history import journal_preparation_source, predecessor\n    installed_predecessors = {}\n",
+          "before": "",
+          "offset": 2586
+        },
+        {
+          "after": "        physical = (ROOT / record['path']).read_bytes()\n        captured[record['path']] = physical\n        raw = predecessor(record['path'], physical)\n        if raw != physical:\n            installed_predecessors[record['path']] = _source_pin(raw)\n",
+          "before": "        raw = (ROOT / record['path']).read_bytes()\n        captured[record['path']] = raw\n",
+          "offset": 2622
+        },
+        {
+          "after": "            proof = journal_preparation_source(ROOT, physical,\n                                               {key: record[key] for key in ('bytes', 'sha256')})\n",
+          "before": "            proof = journal.admit_source(ROOT, record['path'], raw,\n                                         {key: record[key] for key in ('bytes', 'sha256')})\n",
+          "offset": 3369
+        },
+        {
+          "after": "                checked = predecessor(name, consumed) if name == _JOURNAL_CALLER else consumed\n                if (_source_pin(checked) != expected\n",
+          "before": "                if (_source_pin(consumed) != expected\n",
+          "offset": 3650
+        },
+        {
+          "after": "        'installed_distribution_predecessors': installed_predecessors,\n",
+          "before": "",
+          "offset": 4956
         }
       ]
     }

@@ -155,8 +155,9 @@ class StoreNativeDeliverySourceTests(unittest.TestCase):
 
     def test_shared_api_custody_and_new_controls_are_component_inputs(self):
         value = admit_originals()
+        from tests.hia_installed_distribution_history import predecessor
         for name, expected in value['shared_dependency_review'].items():
-            raw = (ROOT / name).read_bytes()
+            raw = predecessor(name, (ROOT / name).read_bytes())
             self.assertEqual({'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}, expected, name)
         from tools.build_hia_store_artifact_profile import INPUTS
         for name in NEW_INPUTS:

@@ -134,6 +134,8 @@ def _reverse_sqlite_boundary(path, raw, fixed, predecessor, previous_fixture, pr
     """Restore a fixed test-only predecessor before replaying its own inverse."""
     from tests.hia_store_delivery_successor import reverse_exact
 
+    from tests.hia_installed_distribution_history import predecessor as installed_predecessor
+    raw = installed_predecessor(path, raw)
     if _pin(fixed) != SQLITE_BOUNDARY_FIXTURE_PIN:
         raise ValueError('transport SQLite boundary provenance changed')
     value = json.loads(fixed)
@@ -231,8 +233,9 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
                 or value['files'][TRANSPORT]['definition'] != '_child_store_worker'
                 or value['files'][DELIVERY]['definition'] != 'admit_originals'):
             raise ValueError('transport successor changes its exact reviewed scope')
+        from tests.hia_installed_distribution_history import predecessor
         for name in PATHS:
-            current = captured[name]
+            current = predecessor(name, captured[name])
             if name == TRANSPORT and _pin(current) == SQLITE_BOUNDARY_SOURCES[TRANSPORT]:
                 boundary = (ROOT / SQLITE_BOUNDARY_FIXTURE).read_bytes()
                 current = _reverse_sqlite_boundary(
@@ -562,8 +565,10 @@ QUALIFIER_STORE_CURRENT = {'bytes': 22723, 'sha256': '85f92bf60694e2d7950ced55e3
 
 
 def _admit_qualifier_dependency(raw, capture):
+    from tests.hia_installed_distribution_history import predecessor
     actual = _pin(raw)
-    sql_successor = actual['sha256'] == 'fb0c4be8fc93e0a1658c4672f2110ab1298f5cfde85c72988843a449477a56a8'
+    raw = predecessor(QUALIFIER_DEPENDENCY_PATH, raw)
+    sql_successor = _pin(raw)['sha256'] == 'fb0c4be8fc93e0a1658c4672f2110ab1298f5cfde85c72988843a449477a56a8'
     if sql_successor:
         raw = restore_sql_source(QUALIFIER_DEPENDENCY_PATH, raw, capture, {'bytes': 23506, 'sha256': '44b53db9a34ffe236652473d02ab45697d3612ba9b7ec556b0ea4e96d0568893'})
     build_successor = _pin(raw)['sha256'] == '44b53db9a34ffe236652473d02ab45697d3612ba9b7ec556b0ea4e96d0568893'
@@ -983,13 +988,14 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
     for path in DIAGNOSTIC_PATHS:
         raw, record = capture(path), value['files'][path]
         expected = DIAGNOSTIC_RECORDS[path]
-        reviewed = raw
+        from tests.hia_installed_distribution_history import predecessor
+        reviewed = predecessor(path, raw)
         caller_update = (path == 'tools/qualify_hia_evaluation_callers.py'
-                         and sha256(raw).hexdigest() == '4ff2b72e17ff08e0016379cd5242b6293344ba644eb607ea490c85f3a4c1a339')
+                         and sha256(reviewed).hexdigest() == '4ff2b72e17ff08e0016379cd5242b6293344ba644eb607ea490c85f3a4c1a339')
         if caller_update:
             from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, evaluate_records, reverse_exact
             update = evaluate_records(capture(EVALUATE_FIXTURE))['evaluation_qualifier']
-            reviewed = reverse_exact(raw, update, expected['new'])
+            reviewed = reverse_exact(reviewed, update, expected['new'])
         boundary = _pin(raw) == SQLITE_BOUNDARY_SOURCES.get(path)
         if boundary:
             reviewed = _reverse_sqlite_boundary(path, raw, capture(SQLITE_BOUNDARY_FIXTURE),

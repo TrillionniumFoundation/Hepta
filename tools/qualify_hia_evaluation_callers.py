@@ -62,8 +62,13 @@ def admit_original_sources(root, records, *, source_proof=None):
     reviewed_paths = {'tests/test_hia_agent_native_machine_validation.py',
                       'tests/test_hia_cost_ledger_native.py', 'tests/test_hia_worker_native_helpers.py'}
     reviewed = {}
+    from tests.hia_installed_distribution_history import predecessor
+    installed_predecessors = {}
     for name, digest in records.items():
-        raw = capture(name)
+        physical = capture(name)
+        raw = predecessor(name, physical)
+        if raw != physical:
+            installed_predecessors[name] = sha256(raw).hexdigest()
         actual = sha256(raw).hexdigest()
         if actual == digest:
             continue
@@ -118,6 +123,7 @@ def admit_original_sources(root, records, *, source_proof=None):
             'registry_count_assertion_adjustments': list(adjustments),
             'reviewed_diagnostic_source_adjustments': diagnostic_adjustments,
             'reviewed_historical_callers': reviewed,
+            'installed_distribution_predecessors': installed_predecessors,
             'terminal_reread_identical': True, 'production_source_exceptions': []})
     return adjustments
 

@@ -46,7 +46,9 @@ class ServiceBootstrapJournalPreparationTests(unittest.TestCase):
                  DIAGNOSTIC_HELPER, DIAGNOSTIC_FIXTURE}
         for scope in cls.scopes.values():
             paths.update(scope['files'])
+        from tests.hia_installed_distribution_history import predecessor
         cls.inputs = {name: (ROOT / name).read_bytes() for name in sorted(paths)}
+        cls.inputs[JOURNAL] = predecessor(JOURNAL, cls.inputs[JOURNAL])
         fixed = {
             HELPER: {'bytes': 15935, 'sha256': '8938ae45ca0342ab5b67dd2eabb615d4b39d7e55b554513b5aa39a7463e59797'},
             FIXTURE: {'bytes': 14729, 'sha256': '81914ecb2bef21e9c641282dc8530158146ecadd4b86e8e4e6b3f83e71b73e7b'},
