@@ -57,7 +57,7 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
 
     for name in ('source_build',
                  'supplied_safe_core_proof',
-                 'owned_reference_cli', 'nominal_constructor'):
+                 'nominal_constructor',):
         component(name)
 
     with TemporaryDirectory(prefix='standalone-', dir=work) as tmp:
@@ -168,6 +168,47 @@ def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
         image_path = work / image_name
         image_path.write_bytes(image)
         publish(image_path, expected=expected['image_sha256'])
+
+
+def _stage_owned_reference(work, seed, compile_sources, call, compiler, admitted, publish):
+    """Link a native compiler that reports the private executor entry for this source."""
+    from tools.generate_hia_native_filter import elf_header, read_adapter_binding, verify_adapter
+    from tools.generate_hia_owned_reference import ADAPTER_PATH, PACKER_PATH, SOURCE_PATH
+
+    policy = 'source_owned_reference.hepta'
+    kit, kit_images, _ = compile_sources({
+        'source_build_policy.hepta': policy, 'selfhost.hepta': 'selfhost.hepta',
+        'source_build_packer.hepta': 'source_build_packer.hepta',
+    })
+    if kit_images['selfhost.hepta'] != compiler:
+        raise ValueError('owned reference requires the admitted cold compiler')
+    composer = call(seed, 'pack', kit)
+    packer = Path(PACKER_PATH).name
+    owned = Path(SOURCE_PATH).name
+    components = (policy, 'selfhost.hepta', 'owned_reference_entry_wrapper.hepta',
+                  'owned_reference_entry_stub.hepta', packer)
+    _, images, sources = compile_sources({name: name for name in (*components, owned)})
+    pieces = [piece for name in components for piece in (sources[name], images[name])]
+    frame = struct.pack('<8s10Q', b'HIAOCM01', *map(len, pieces)) + b''.join(pieces)
+    assembler = call(composer, 'build', frame)
+    source = sources[owned]
+    product = call(assembler, 'build', struct.pack('<8sQ', b'HIAORUN1', len(source)) + source)
+
+    adapter = (ROOT / ADAPTER_PATH).read_bytes()
+    if sha256(adapter).hexdigest() != admitted.get(ADAPTER_PATH):
+        raise ValueError('owned reference adapter differs from cold admission')
+    binding = read_adapter_binding(sources[packer], adapter, calls=2)
+    _, adapter_size, (_, hole) = binding
+    header = len(elf_header())
+    if len(product) != header + adapter_size + len(images[owned]):
+        raise ValueError('owned reference length differs from its admitted components')
+    entry = hole + 4 + struct.unpack_from('<i', product, header + hole)[0] - adapter_size
+    if entry < 0 or images[owned][entry:entry + 4] != bytes.fromhex('554889e5'):
+        raise ValueError('owned reference private entry lacks the compiled function prologue')
+    verify_adapter(product, images[owned], binding, entries=(0, entry))
+    path = work / 'hia-owned-reference-wire'
+    path.write_bytes(product)
+    publish(path, expected=sha256(product).hexdigest())
 
 
 def _stage_read_carrier(work, seed, compile_sources, call, admitted, publish):
@@ -663,6 +704,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, compile_sources, call, admitted, publish)
+    _stage_owned_reference(work, seed, compile_sources, call, compiler_bytes, admitted, publish)
     sqlite_tools = _sqlite_build_tools(seed, captured('hia-elf-link'), compile_sources, call, admitted)
     linked = _stage_sqlite_units(work, compile_sources, admitted, publish, sqlite_tools)
     _stage_sqlite_migrations(work, compile_sources, admitted, publish, sqlite_tools, linked,

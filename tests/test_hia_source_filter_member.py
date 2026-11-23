@@ -325,6 +325,60 @@ class InstalledSourceMemberTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             embed(b'HIAMGEL1', 18, artifact, sha256(artifact).digest())
 
+    def test_owned_reference_relocates_the_private_entry_when_source_layout_changes(self):
+        import struct
+        from tools import build_hia_native_store_release as release
+        from tools.build_hia_source_build import _compiled_sources, _run_captured
+        from tools.generate_hia_owned_reference import ADAPTER_PATH, PACKER_PATH, SOURCE_PATH
+        from tools.generate_hia_native_filter import elf_header, read_adapter_binding, verify_adapter
+
+        adapter = (ROOT / ADAPTER_PATH).read_bytes()
+        admitted = {ADAPTER_PATH: sha256(adapter).hexdigest()}
+        binding = read_adapter_binding((ROOT / PACKER_PATH).read_bytes(), adapter, calls=2)
+        source = self.sources / Path(SOURCE_PATH).name
+        original = source.read_bytes()
+        start = original.index(b'\nfn ') + 1
+        end = original.index(b'\nfn ', start) + 1
+        signature = original[start:end].splitlines()[:2]
+        self.assertTrue(signature[0].startswith(b'fn f0') and signature[1].startswith(b'block b0'))
+        # Preserve the public planner signature and every later function, including the executor.
+        reduced = b'\n'.join([*signature, b'  v3:u32 = const() {"value":0}', b'  ret(v3)', b'end', b''])
+        variant = self.work / source.name
+        variant.write_bytes(original[:start] + reduced + original[end:])
+        compiler = self.invoke([self.seed, 'compile'], (self.sources / 'selfhost.hepta').read_bytes())
+        entries = []
+
+        def call(program, mode, wire):
+            result = _run_captured(program, mode, wire, self.work)
+            self.assertEqual((result.returncode, result.stderr), (0, b''))
+            return result.stdout
+
+        for input_source in (source, variant):
+            def compile_sources(named):
+                paths = {name: input_source if path == source.name else self.sources / path
+                         for name, path in named.items()}
+                captures = {name: path.read_bytes() for name, path in paths.items()}
+                group = self.source_images(self.work / 'owned-inputs', paths)
+                return group, _compiled_sources(group, captures), captures
+
+            def publish(path, *, expected):
+                product = path.read_bytes()
+                self.assertEqual(path.name, 'hia-owned-reference-wire')
+                self.assertEqual(sha256(product).hexdigest(), expected)
+                image = self.invoke([self.seed, 'compile'], input_source.read_bytes())
+                _, adapter_size, (_, hole) = binding
+                delta, = struct.unpack_from('<i', product, len(elf_header()) + hole)
+                entry = hole + 4 + delta - adapter_size
+                verify_adapter(product, image, binding, entries=(0, entry))
+                self.assertEqual(image[entry:entry + 4], bytes.fromhex('554889e5'))
+                if input_source == source:
+                    self.assertEqual(product, (self.release / path.name).read_bytes())
+                entries.append(entry)
+
+            release._stage_owned_reference(self.work, self.seed.read_bytes(), compile_sources, call,
+                                           compiler, admitted, publish)
+        self.assertEqual(len(set(entries)), 2)
+
     def test_read_carrier_rebuilds_all_four_native_flows(self):
         from tools import build_hia_native_store_release as release
         from tools.build_hia_source_build import _compiled_sources, _run_captured
