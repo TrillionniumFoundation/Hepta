@@ -1005,36 +1005,22 @@ def _capture_release_tool(stage, name, members):
     return image
 
 
-def _verify_installed_members(installed, members, publisher, work):
-    """Compare the native installer's files with every source-side member digest."""
-    directory = os.open(installed, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-    try:
-        if set(os.listdir(directory)) != members.keys():
-            raise ValueError('installed native Store names differ from their source-built members')
-        for name, digest in members.items():
-            descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
-            with os.fdopen(descriptor, 'rb') as stream:
-                info = os.fstat(descriptor)
-                if not stat.S_ISREG(info.st_mode):
-                    raise ValueError('installed native Store member is not an ordinary file: ' + name)
-                if info.st_size:
-                    # Both names must still resolve to the same installed inode. The
-                    # inherited input descriptor supplies independently opened exact bytes.
-                    action = ('verify', installed / name, f'/proc/self/fd/{directory}/{name}')
-                else:
-                    # The generic hard-link verifier requires nonempty input. The
-                    # native Store hash operation admits the empty payload as well.
-                    action = ('store-hash', installed, '-')
-                result = _run_captured(publisher, action, None, work, stdin=stream, pass_fds=(directory,))
-                result.check_returncode()
-                if result.stderr or json.loads(result.stdout) != {'sha256': digest, 'bytes': info.st_size}:
-                    raise ValueError('installed native Store member differs from its source: ' + name)
-                if not os.path.samestat(info, os.stat(name, dir_fd=directory, follow_symlinks=False)):
-                    raise ValueError('installed native Store member identity changed: ' + name)
-        if set(os.listdir(directory)) != members.keys():
-            raise ValueError('installed native Store names changed during verification')
-    finally:
-        os.close(directory)
+def _source_inventory_packet(package, members):
+    """Frame the captured package and independent digests for HIA release attestation.
+
+    Each row has a one-byte name length, ASCII name and 32-byte SHA-256, in the
+    directory packer's lexical order. The footer locates the original package.
+    """
+    inventory = bytearray()
+    for name, digest in sorted(members.items()):
+        encoded = name.encode('ascii')
+        raw_digest = bytes.fromhex(digest)
+        if not 1 <= len(encoded) <= 127 or len(raw_digest) != 32 or raw_digest.hex() != digest:
+            raise ValueError('invalid source Store member identity: ' + name)
+        inventory.append(len(encoded))
+        inventory.extend(encoded)
+        inventory.extend(raw_digest)
+    return b''.join((package, inventory, struct.pack('<Q8s', len(package), b'HIAATT01')))
 
 
 def _pack_and_verify(work, stage, members):
@@ -1053,14 +1039,17 @@ def _pack_and_verify(work, stage, members):
     digest = packed.stderr[:-1].decode('ascii')
     depot = work / 'verified'
     depot.mkdir(mode=0o700)
-    for action in ('install', 'verify'):
-        checked = _run_captured(installer, (action, depot, digest), expected, work)
+    for action in ('install', 'attest'):
+        payload = expected if action == 'install' else _source_inventory_packet(expected, members)
+        checked = _run_captured(installer, (action, depot, digest), payload, work)
         checked.check_returncode()
-        receipt = json.loads(checked.stdout)
-        if checked.stderr or receipt['sha256'] != digest or receipt['files'] != len(members):
+        receipt = {'schema': 'hepta.hia.release-install.v1', 'sha256': digest, 'bytes': len(expected),
+                   'files': len(members), 'published': action == 'install'}
+        if action == 'attest':
+            receipt['source_attested'] = True
+        if checked.stderr or json.loads(checked.stdout) != receipt:
             raise ValueError('native Store installation receipt differs from its built inventory')
     publisher = _capture_release_tool(stage, 'hia-artifact', members)
-    _verify_installed_members(depot / digest, members, publisher, work)
     return package, expected, digest, publisher, identity
 
 

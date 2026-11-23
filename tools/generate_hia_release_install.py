@@ -38,6 +38,34 @@ POLICY_SOURCE = '''def policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 return 11
             i = i + 1
         return 0
+    if phase == 21:
+        if directory(w, 560) == 0 or get(w, 584) & 18 != 0:
+            return 10
+        if get(w, 416) != get(w, 560) or get(w, 424) != get(w, 568):
+            return 12
+        return 0
+    if phase == 18:
+        if length(s) < 40 or uint(s, length(s) - 8, 8) != INVENTORY_MAGIC:
+            return 16
+        size = uint(s, length(s) - 16, 8)
+        if size < 24 or size > RELEASE_WIRE_LIMIT or size > length(s) - 16:
+            return 16
+        if length(s) - 16 - size > 65536:
+            return 16
+        put(w, 136, size)
+        return 0
+    if phase == 19:
+        return source_inventory(s, w)
+    if phase == 20:
+        index = get(w, 32)
+        if length(s) != 32 or index >= get(w, 24) or index >= MAX_RELEASE_MEMBERS:
+            return 16
+        i = 0
+        while i < 32:
+            if byte(s, i) != byte(w, SOURCE_DIGEST_BASE + index * 32 + i):
+                return 11
+            i = i + 1
+        return 0
     if phase == 2:
         return package(s, w)
     if phase == 4:
@@ -133,6 +161,8 @@ def arguments(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         op = 1
     if a == 6 and uint(s, 24, 6) == 133476589827702:
         op = 2
+    if a == 6 and uint(s, 24, 6) == ATTEST_OPERATION:
+        op = 3
     if op == 0:
         return 16
     root = 24 + a
@@ -237,6 +267,41 @@ def package(s:readbuf, w:mutbuf) -> u32:
         return 16
     put(w, 16, length(s))
     put(w, 24, count)
+    return 0
+
+def source_inventory(s:readbuf, w:mutbuf) -> u32:
+    size = get(w, 136)
+    count = get(w, 24)
+    if length(s) < 16 or size != get(w, 16) or size > length(s) - 16 or count > MAX_RELEASE_MEMBERS:
+        return 16
+    at = size
+    end = length(s) - 16
+    index = 0
+    while index < count:
+        if at >= end:
+            return 16
+        name_size = byte(s, at)
+        at = at + 1
+        row = 4096 + index * 96
+        name = get(w, row)
+        if name_size != get(w, row + 8) or name_size > end - at:
+            return 16
+        i = 0
+        while i < name_size:
+            if byte(s, at + i) != byte(s, name + i):
+                return 11
+            i = i + 1
+        at = at + name_size
+        if end - at < 32:
+            return 16
+        i = 0
+        while i < 32:
+            store(w, SOURCE_DIGEST_BASE + index * 32 + i, byte(s, at + i))
+            i = i + 1
+        at = at + 32
+        index = index + 1
+    if at != end:
+        return 16
     return 0
 
 def select(s:readbuf, w:mutbuf) -> u32:
@@ -364,6 +429,8 @@ def receipt(o:mutbuf, w:mutbuf) -> u32:
         at = append(o, at, 1702195828, 4)
     else:
         at = append(o, at, 435728179558, 5)
+    if get(w, 8) == 3:
+        SOURCE_RECEIPT
     at = append(o, at, 2685, 2)
     return at
 
@@ -455,6 +522,14 @@ def policy_source():
     for token, value in (('RELEASE_WIRE_LIMIT', WIRE_LIMIT), ('EXTENDED_BUNDLE_MAGIC', EXTENDED_BUNDLE_MAGIC),
                          ('V1_WIRE_LIMIT', V1_WIRE_LIMIT), ('MAX_RELEASE_MEMBERS', MAX_RELEASE_MEMBERS)):
         source = source.replace(token, str(value))
+    # The admitted package table starts at 4096 and occupies 96 bytes per member.
+    source = source.replace('SOURCE_DIGEST_BASE', str(4096 + MAX_RELEASE_MEMBERS * 96))
+    source = source.replace('INVENTORY_MAGIC', str(int.from_bytes(b'HIAATT01', 'little')))
+    source = source.replace('ATTEST_OPERATION', str(int.from_bytes(b'attest', 'little')))
+    extra = b',"source_attested":true'
+    source = source.replace('SOURCE_RECEIPT', '\n        '.join(
+        f'at = append(o, at, {int.from_bytes(extra[i:i+8], "little")}, {len(extra[i:i+8])})'
+        for i in range(0, len(extra), 8)))
     source = source.replace('133476589827702', str(int.from_bytes(b'verify', 'little')))
     source = source.replace('3544407730921556296', str(BUNDLE_MAGIC))
     source = source.replace('7022071303105570862', str(int.from_bytes(b'.hia-sta', 'little')))
