@@ -16,8 +16,8 @@ from .hia_program import (HIAProgramRejected, OWNERS, RESOURCES, SCALARS, WIDTHS
                           integer_range, scalar_value_valid, verify_program)
 from .hia_bounded_memory import fill_bytes, move_bytes
 from .hia_schema import supports_feature
-from .hia_execution_ledger_native import SELECTOR as LEDGER_SELECTOR, installed_execution_ledger
-from .hia_opcodes import ExecutionObservationRejected, WORD_LOADS, WORD_STORES, validate_execution_observation
+from .hia_execution_ledger_native import vm_execution_ledger_validator
+from .hia_opcodes import ExecutionObservationRejected, WORD_LOADS, WORD_STORES
 from .hia_scalar_reference_native import (OPCODES as NATIVE_SCALAR_OPCODES, OWNER_RECORD_BYTES,
                                           selected_scalar_reference)
 
@@ -632,12 +632,7 @@ class _Machine:
             raise HIAProgramRejected("invalid external runtime roots", "E_HIA_RUNTIME_INVARIANT")
         resources = self.resources()
         try:
-            validator = validate_execution_observation
-            selected = os.environ.get(LEDGER_SELECTOR)
-            if selected is not None:
-                if not selected:
-                    raise ValueError('native execution ledger selector must not be empty')
-                validator = installed_execution_ledger(selected).validate
+            validator = vm_execution_ledger_validator()
             validator(status, resources, steps=self.steps,
                 max_steps=self.max_steps, max_heap_bytes=self.max_heap_bytes,
                 error_code=error.code if error is not None else None,

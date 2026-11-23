@@ -25,6 +25,7 @@ if __package__ in {None, ''}:
 
 from hepta.hia_default_native import (BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
                                      CORE_WIRE_OWNER, INTEGER_BUNDLE_RESOURCE, INTEGER_OWNER,
+                                     LEDGER_BUNDLE_RESOURCE, LEDGER_OWNER,
                                      PIN_RESOURCE, PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
                                      TARGET, render_pin, render_pin_data)
 from tools.build_hia_json_preflight import admit_cold_build, build_batch, current_sources
@@ -267,13 +268,13 @@ def build(output, compiler, cold_report=None, *, development=False):
     proof_owners = (*CORE_PROOF_OWNERS, CORE_WIRE_OWNER)
     proof_selectors = {selector for selector, _ in proof_owners}
     if not development:
-        cold_owners = (*CORE_ELF_OWNERS, *proof_owners, INTEGER_OWNER)
+        cold_owners = (*CORE_ELF_OWNERS, *proof_owners, INTEGER_OWNER, LEDGER_OWNER)
         native_manifests = build_batch(output / 'core-elf', compiler, cold_report,
                                        candidates=[candidate for _, candidate in cold_owners])
         owners.extend((selector, candidate + '/', native_manifests[candidate])
                       for selector, candidate in cold_owners)
     owner_members, manifests, proof_manifests, owner_inputs = {}, [], [], {}
-    integer_manifests = []
+    vm_manifests = {INTEGER_OWNER[0]: [], LEDGER_OWNER[0]: []}
     for selector, directory, path in owners:
         manifest_raw = path.read_bytes()
         manifest = json.loads(manifest_raw)
@@ -286,8 +287,7 @@ def build(output, compiler, cold_report=None, *, development=False):
         owner_members[PACKAGE_DIRECTORY + '/' + relative_path] = manifest_raw
         owner_members[PACKAGE_DIRECTORY + '/' + directory + image_path.name] = image_raw
         inventory = proof_manifests if selector in proof_selectors else manifests
-        if selector == INTEGER_OWNER[0]:
-            inventory = integer_manifests
+        inventory = vm_manifests.get(selector, inventory)
         inventory.append({'selector': selector, 'manifest_path': relative_path,
                           'manifest_sha256': sha256(manifest_raw).hexdigest()})
     component_path = manifest_path.parent / 'build.json'
@@ -313,9 +313,11 @@ def build(output, compiler, cold_report=None, *, development=False):
         native_binder = executable.read_bytes()
         owner_inputs[executable] = native_binder
         owner_members['hepta/' + BINDER_RESOURCE] = native_binder
-        integer_bundle = encoded({**bundle_header, 'helpers': integer_manifests})
-        owner_members['hepta/' + INTEGER_BUNDLE_RESOURCE] = integer_bundle
-        pin += (sha256(native_binder).hexdigest(), sha256(integer_bundle).hexdigest())
+        pin += (sha256(native_binder).hexdigest(),)
+        for owner, resource in ((INTEGER_OWNER, INTEGER_BUNDLE_RESOURCE), (LEDGER_OWNER, LEDGER_BUNDLE_RESOURCE)):
+            vm_bundle = encoded({**bundle_header, 'helpers': vm_manifests[owner[0]]})
+            owner_members['hepta/' + resource] = vm_bundle
+            pin += (sha256(vm_bundle).hexdigest(),)
     pin_raw = render_pin_data(pin)
     staging = output / 'source'
     staging.mkdir(mode=0o700)

@@ -1,9 +1,10 @@
 """Exact byte transport for execution reports produced by the HIA VM."""
 
+import os
 import struct
 
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
-from .hia_opcodes import ExecutionObservationRejected
+from .hia_opcodes import ExecutionObservationRejected, validate_execution_observation
 
 SELECTOR = 'HEPTA_HIA_EXECUTION_LEDGER_MANIFEST'
 SOURCE = _source_resource_path('examples/hia_bootstrap/execution_ledger.hepta')
@@ -46,6 +47,14 @@ def _word(value, fallback=0):
 
 
 class NativeExecutionLedger(NativeHiaJsonImage):
+    def package_validate(self, *args, **kwargs):
+        binding = self._default_package_binding
+        binding.check_files()
+        try:
+            return self.validate(*args, **kwargs)
+        finally:
+            binding.check_files()
+
     def validate(self, status, ledger, *, steps, max_steps, max_heap_bytes, error_code=None,
                  with_chains=False, allow_host_memory=False, live_external_roots=0):
         chained = with_chains is True
@@ -73,6 +82,22 @@ class NativeExecutionLedger(NativeHiaJsonImage):
         if 1 <= result <= len(REJECTIONS):
             raise ExecutionObservationRejected('E_HIA_EXECUTION_CONTRACT: ' + REJECTIONS[result - 1])
         raise ValueError('invalid native execution ledger response')
+
+
+def vm_execution_ledger_validator():
+    """Resolve the report validator with the VM's explicit selectors taking precedence."""
+    selected = os.environ.get(SELECTOR)
+    if selected is not None:
+        if not selected:
+            raise ValueError('native execution ledger selector must not be empty')
+        return installed_execution_ledger(selected).validate
+    from .hia_execution_observation_selection import SELECTOR as observation_selector, active_execution_observation
+    if observation_selector not in os.environ and active_execution_observation() is None:
+        from .hia_default_native import default_execution_ledger_image
+        image = default_execution_ledger_image()
+        if image is not None:
+            return image.package_validate
+    return validate_execution_observation
 
 
 def installed_execution_ledger(path):
