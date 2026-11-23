@@ -2,9 +2,10 @@
 
 This test compiles the *verified typed HIA Core* `x86.tlb.invlpg(u64)`
 program through `emit_program_machine` and links its original ELF64 object
-into a throwaway 32-bit Multiboot envelope. It does not patch or rewrite the
-original `.text`; its complete source-derived text is compared byte-for-byte
-against both the linked ELF64 and the QEMU-facing ELF32 wrapper.
+into a throwaway 32-bit Multiboot envelope. The original HIA machine text is preserved except for independently
+enumerated `R_X86_64_PLT32` linker relocations (checked internal wrapper call
+and unreachable abort failure sink). Every other source-derived instruction
+byte is compared against the linked ELF64 and QEMU-facing ELF32 wrapper.
 
 The visible **NON-HIA fixture**
 `tests/fixtures/hia_kernel_invlpg_qemu_boot.S` supplies the Multiboot entry,
@@ -22,9 +23,11 @@ On independent PC and Q35 QEMU TCG guest configurations:
 3. Require CPU #PF on a read from that same address, with CR2 exactly 4 MiB,
    saved RIP exactly the read instruction, and P/W/U error bits all clear.
 4. Replace the native encoder's INVLPG with a malicious NOP (same verified
-   source), and separately invoke the genuine function with an unrelated VA:
-   both must **not** produce the requested #PF and must exit through the
-   normal-read negative-control path.
+   source); it **must not** produce the requested #PF and must exit through
+   the normal-read negative-control path. Also invoke the genuine HIA function
+   on an unrelated VA, but classify the P/N outcome as **diagnostic only**:
+   x86 permits INVLPG to invalidate more TLB entries than one requested VA,
+   and QEMU TCG may over-invalidate. Address selectivity is not claimed.
 5. Restore the PDE, invalidate its translation again through the genuine HIA
    function, then demand successful read rather than treating any fault as
    proof of success.
