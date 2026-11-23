@@ -81,9 +81,9 @@ def circuit_search_plan(source:readbuf, result:mutbuf) -> u32:
     restarts = read64(source, 24)
     if count > CIRCUIT_NODES or size != 32 + 16 * count or remaining == 0 or guarded > 1 or restarts > 1:
         return INVALID
-    rate = 100 + guarded * 900
-    steps = choose(remaining < 2000, remaining, 2000) * rate
     learning = 0
+    wide_select = False
+    wide_carry = False
     node = 0
     while node < count:
         operation = read64(source, 32 + 16 * node)
@@ -91,8 +91,15 @@ def circuit_search_plan(source:readbuf, result:mutbuf) -> u32:
         # Carry clauses need learned restarts; nonlinear clauses benefit
         # from conflict learning even if only a fault predicate survives.
         learning = choose(operation >= WORD_UNSIGNED_DIV and operation <= WORD_PRODUCT_EXCEEDS, 1, learning)
-        restarts = choose(operation >= 9 and operation <= 10 and width > 8, 1, restarts)
+        carry = operation >= 9 and operation <= 10 and width > 8
+        wide_carry = wide_carry or carry
+        wide_select = wide_select or (operation == 11 and width > 8)
+        restarts = choose(carry, 1, restarts)
         node = node + 1
+    # Conditional wide arithmetic shares carry clauses across result bits.
+    # Give the restarted solver the guarded search rate under the same deadline.
+    rate = choose(guarded != 0 or (wide_select and wide_carry), 1000, 100)
+    steps = choose(remaining < 2000, remaining, 2000) * rate
     write64(result, 0, SEARCH_PLAN_REQUEST)
     write64(result, 8, steps)
     write64(result, 16, learning)

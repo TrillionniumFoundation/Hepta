@@ -146,6 +146,21 @@ class CnfStandaloneTests(unittest.TestCase):
             completed = self.invoke(wire)
             self.assertEqual((completed.returncode, completed.stdout, completed.stderr), (2, b'', b''))
 
+    def test_wide_conditional_arithmetic_search_respects_available_time(self):
+        from hepta.hia_cnf_native import SEARCH_PLAN_REQUEST
+
+        for remaining, words, steps, restart in (
+                (2000, (9, 64, 11, 64), 2_000_000, 1),
+                (151, (11, 32, 10, 32), 151_000, 1),
+                (2001, (11, 32, 10, 32), 2_000_000, 1),
+                (2000, (11, 64, 10, 8), 200_000, 0),
+                (2000, (11, 8, 10, 64), 200_000, 1)):
+            with self.subTest(remaining=remaining, words=words):
+                wire = struct.pack('<8Q', SEARCH_PLAN_REQUEST, remaining, 0, 0, *words)
+                result = self.invoke(wire)
+                self.assertEqual((result.returncode, result.stdout, result.stderr),
+                                 (0, struct.pack('<4Q', SEARCH_PLAN_REQUEST, steps, 0, restart), b''))
+
     def test_malformed_frames_and_options_never_return_proof_bytes(self):
         normal = packet(1, [(1, 0)], 10)
         for wire in (b'', normal[:-1], normal + b'\0', packet(65, [], 1)):
