@@ -74,6 +74,54 @@ class InstalledSourceMemberTests(unittest.TestCase):
         builder.chmod(0o500)
         return builder
 
+    def test_transaction_programs_match_original_placement_and_migration_receipts(self):
+        from tools import build_hia_native_store_release as release
+        from tools.build_hia_agent_batch_commit import VARIANTS
+        from tools.build_hia_source_build import _compiled_sources
+        from tools.build_hia_sqlite_migrate import read_component
+        from tools.build_hia_sqlite_migration_publish import read_dependency
+
+        programs = {v[0]: (k, v) for k, v in VARIANTS.items()}
+        compiler = self.invoke([self.seed, 'compile'], (self.sources / 'selfhost.hepta').read_bytes())
+        report = b'captured cold report for the receipt-consumer test'
+        for name, packer, inputs in release._source_transaction_recipes():
+            kind, variant = programs[name]
+            with self.subTest(name=name):
+                builder = self.member_builder(self.work / kind, packer)
+                source = {alias: self.sources / path for alias, path in inputs.items()}
+                group = self.source_images(self.work / name, source)
+                compiled = _compiled_sources(group, {alias: path.read_bytes() for alias, path in source.items()})
+                original = (self.release / name).read_bytes()
+                program = self.invoke([builder, 'build'], group)
+                self.assertEqual(program, original)
+                self.invoke([builder, 'build'], group[:-1], refused=True)
+                admitted = {p: sha256((ROOT / p).read_bytes()).hexdigest() for p in
+                            (variant[2], variant[3], *('examples/hia_bootstrap/' + v for v in inputs.values()))}
+                damaged = program[:-1] + bytes([program[-1] ^ 1])
+                with self.assertRaises(ValueError):
+                    release._bind_transaction_program(self.work, kind, variant, inputs, compiled, damaged,
+                                                      admitted, compiler, report)
+                folder = release._bind_transaction_program(self.work, kind, variant, inputs, compiled, program,
+                                                           admitted, compiler, report)
+                if folder is None:
+                    self.assertEqual(kind, 'sealed')
+                    continue
+                cf, cr = sha256(compiler).hexdigest(), sha256(report).hexdigest()
+                if kind == 'batch':
+                    actual, *_ = read_dependency(folder, name, 'hepta.hia.agent-batch-commit-build.v1', cf, cr, admitted)
+                else:
+                    actual, _ = read_component(folder, 'initializer', name, 'hepta.hia.agent-store-init-build.v1',
+                                               cf, cr, admitted)
+                self.assertEqual(actual, original)
+                if kind == 'batch':
+                    parts = dict(reversed(tuple(source.items())))
+                    self.assertEqual(self.invoke([builder, 'build'], self.source_images(self.work / 'reordered', parts)),
+                                     original)
+                    for absent in source:
+                        partial = {key: path for key, path in source.items() if key != absent}
+                        packet = self.source_images(self.work / 'incomplete', partial)
+                        self.invoke([builder, 'build'], packet, refused=True)
+
     def test_artifact_capture_from_admitted_native_adapters_and_source(self):
         import struct
         from tools.build_hia_sqlite_components import CAPTURE_ADAPTERS

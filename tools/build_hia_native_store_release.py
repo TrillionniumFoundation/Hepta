@@ -76,10 +76,7 @@ def _stage_sqlite(work, compiler, cold_report, publish, linked_components):
         return path.parent
 
     artifacts = component('artifact_publication')
-    batches = {}
-    for kind in ('batch', 'sealed', 'initialize'):
-        batches[kind] = component('agent_batch_commit', label='commit-' + kind, kind=kind)
-    (components, selected), (pager, pager_record) = linked_components
+    ((components, selected), (pager, pager_record)), batches = linked_components
     cold_identity = {'compiler_sha256': sha256(compiler.read_bytes()).hexdigest(),
                      'cold_report_sha256': sha256(cold_report.read_bytes()).hexdigest()}
     pager_receipt = {'schema': 'hepta.hia.sqlite-pager-build.v1', **cold_identity, **pager_record}
@@ -333,6 +330,49 @@ def _source_tool_recipes():
     yield 'hia-reference-wire', Path(REFERENCE_CLI_PACKER).name, {'hia-reference-wire.hepta': 'scalar_reference.hepta'}
 
 
+def _source_transaction_recipes():
+    from tools.build_hia_agent_batch_commit import PARTS, VARIANTS
+
+    for name, _tag, packer, _adapter, roles in VARIANTS.values():
+        sources = {}
+        for index, label in enumerate(roles):
+            source = PARTS[label].removeprefix('examples/hia_bootstrap/')
+            alias = name + '.hepta' if index == 0 else Path(source).name
+            sources[alias] = source
+        yield name, packer.removeprefix('examples/hia_bootstrap/'), sources
+
+
+def _bind_transaction_program(work, kind, variant, source_map, images, program, admitted, compiler, report):
+    from tools.build_hia_agent_batch_commit import verify_placement
+    from tools.generate_hia_native_filter import read_adapter_binding
+    from tools.qualify_hia_selfhost_cli import inspect_executable
+
+    name, _tag, packer, adapter, calls = variant
+    packer_source = (ROOT / packer).read_bytes()
+    adapter_source = (ROOT / adapter).read_bytes()
+    if (sha256(packer_source).hexdigest() != admitted.get(packer) or
+            sha256(adapter_source).hexdigest() != admitted.get(adapter)):
+        raise ValueError('transaction adapter source differs from the cold admission: ' + name)
+    binding = read_adapter_binding(packer_source, adapter_source, calls=len(calls))
+    parts = {label: images[alias] for label, alias in zip(calls, source_map, strict=True)}
+    verify_placement(program, binding, parts)
+    if kind == 'sealed':
+        return None
+    # The migration publisher consumes the batch writer. Its coordinator opens
+    # the initializer independently and validates its executable and cold pins.
+    folder = work / ('native-transaction-' + kind)
+    folder.mkdir(mode=0o700)
+    (folder / name).write_bytes(program)
+    sources = (packer, adapter, *('examples/hia_bootstrap/' + value for value in source_map.values()))
+    schema = ('hepta.hia.agent-store-init-build.v1' if kind == 'initialize'
+              else 'hepta.hia.agent-batch-commit-build.v1')
+    receipt = {'schema': schema, 'executable_path': name, 'executable_sha256': sha256(program).hexdigest(),
+               'executable': inspect_executable(program), 'source_sha256': {path: admitted[path] for path in sources},
+               'compiler_sha256': sha256(compiler).hexdigest(), 'cold_report_sha256': sha256(report).hexdigest()}
+    (folder / 'build.json').write_text(json.dumps(receipt, indent=2, sort_keys=True) + '\n')
+    return folder
+
+
 def _source_request_recipes():
     stdio = 'mcp_stdio_packer.hepta'
     for suffix in ('admit', 'terminal', 'data', 'response', 'journal-call'):
@@ -405,6 +445,7 @@ def _source_member_recipes():
     yield from _source_worker_recipes()
     yield from _source_tool_recipes()
     yield from _source_request_recipes()
+    yield from _source_transaction_recipes()
     yield from _source_release_recipes()
 
 
@@ -424,6 +465,9 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
 
     # These products bind their non-relocated syscall adapter and image entry
     # separately as part of the original build contract.
+    from tools.build_hia_agent_batch_commit import VARIANTS as transaction_variants
+    transaction_members = {values[0]: (kind, values) for kind, values in transaction_variants.items()}
+    transactions = {}
     from tools.build_hia_direct_call import ROLES as direct_roles
     from tools.generate_hia_native_filter import REFERENCE_CLI_ADAPTER, read_adapter_binding, verify_adapter
     adapter_files = {'hia-' + role: info[2] for role, info in direct_roles.items()}
@@ -479,6 +523,12 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         else:
             group, images, _ = compile_sources(sources)
         product = call(builders[packer], 'build', group)
+        if name in transaction_members:
+            kind, variant = transaction_members[name]
+            folder = _bind_transaction_program(work, kind, variant, sources, images, product,
+                                               admitted, compiler_bytes, report_bytes)
+            if folder is not None:
+                transactions[kind] = folder
         if name in adapter_files:
             adapter_file = adapter_files[name]
             packer_file = 'examples/hia_bootstrap/' + packer
@@ -525,7 +575,8 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
     _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, compile_sources, call, admitted, publish)
-    return _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
+    linked = _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
+    return linked, transactions
 
 
 def _pack_and_verify(work, stage, members):
