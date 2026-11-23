@@ -264,16 +264,18 @@ def budget_returned(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
     if state == 15:
         ms = read_word(s,32)
         start = get(w,GATE_MOMENT)
-        if ms == 0 or ms > 3600000 or start > MAX - 1000000 * ms:
+        if ms > 3600000 or start > MAX - 1000000 * ms:
             return 0
         bound = start + 1000000 * ms
         if bound > get(w,GLOBAL_DEADLINE):
             bound = get(w,GLOBAL_DEADLINE)
-        if get(w,CLOCK) >= bound:
-            return 0
-        put(w,DEADLINE,bound)
         put(w,GATE_BEGAN,get(w,CLOCK))
         put(w,GATE_OPEN,get(w,GATE_ARM)+1)
+        if ms == 0 or get(w,CLOCK) >= bound:
+            # The real session granted a token, but no child was launched.
+            # Return the token with the observed zero cost before settlement.
+            return finish(o,w,2)
+        put(w,DEADLINE,bound)
     else:
         put(w,GATE_OPEN,0)
         put(w,DEADLINE,get(w,GLOBAL_DEADLINE))

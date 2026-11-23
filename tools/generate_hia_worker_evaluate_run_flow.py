@@ -135,6 +135,7 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,BUDGET_SEQ,next)
         put(w,AUTH_ACTION,input_word(s,80))
         put(w,AUTH_PHASE,input_word(s,104))
+        put(w,GRANT_MS,input_word(s,96))
         observe_slot(s,w,RECEIPT_SLOT)
         if get(w,MODE) == 2:
             return send_pair_reply(o,w)
@@ -383,7 +384,7 @@ def program():
     constants.update({name: 2000 + i for i, name in enumerate(states)})
     fields = ('ENTERED EXPIRES MAX_MS MEMORY INDEX SAMPLE_MONO DEADLINE_AT EPOCH MODE BUDGET_SEQ '
               'AUTH_ACTION AUTH_PHASE STORE_ORD PAIR_BEGAN CURRENT_GATE NOW ARCHIVE_HEAD ARCHIVE_BYTES '
-              'ARCHIVE_COUNT ROW_KIND ROW_LENGTH').split()
+              'ARCHIVE_COUNT ROW_KIND ROW_LENGTH GRANT_MS').split()
     constants.update({name: 2304 + 8*i for i,name in enumerate(fields)})
     constants.update(SPANS=2560, IDENTITY=2720, TOKENS=2832, MAX_INPUT=67108864,
                      ROLE_COUNT=len(ROLES), ENTRY_BYTES=376+40*len(ROLES), MAX=(1<<64)-1,
@@ -401,6 +402,14 @@ def program():
             entries.append(function(policy, name))
     source = '\n'.join(entries)
     source = source.replace('seq > 160','seq > 4096')
+    source = source.replace('        put(o, 152, DEFAULT_CHILD_LEASE)',
+        '        lease = DEFAULT_CHILD_LEASE\n'
+        '        if next == PAIR_TAG and get(w,AUTH_ACTION) == 7:\n'
+        '            available = get(w,GRANT_MS)\n'
+        '            if available > 3600000:\n'
+        '                return BAD\n'
+        '            lease = lease+1000000*available\n'
+        '        put(o,152,lease)')
     entry, helpers = reachable_policy(source, 'execute')
     return flow_source(entry, helpers, constants)
 

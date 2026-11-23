@@ -28,6 +28,7 @@
 .equ BASE_CORE,352
 .equ OTHER_CORE,368
 .equ EVENT_FD,384
+.equ GATE_RESPONSE_DEADLINE,392
 _start:
     mov r14,rsp
     sub rsp,4824
@@ -251,6 +252,12 @@ pair_call_hole: .long 0
     xor edi,edi
     jmp exit
 gate_event:
+    /* Bound the control round trip independently of the execution grant. */
+    call clock_now
+    mov rcx,10000000000
+    add rax,rcx
+    jc refuse
+    mov [rbp+GATE_RESPONSE_DEADLINE],rax
     mov edi,1
     mov rsi,[rbp+OUTPUT]
     mov edx,64
@@ -272,8 +279,7 @@ gate_event:
     mov rdx,[rbp+OUTPUT]
     mov ecx,OUT
     jmp enter_hia
-/* Wait only within the original frozen context window. EOF, interruption
- * beyond the deadline and short receipts never authorize another arm. */
+/* EOF, a missing acknowledgement, or a short receipt never grants an arm. */
 
 unsigned_decimal:
     xor eax,eax
@@ -302,7 +308,7 @@ read_gate:
     mov r13,rdx
 gate_read_more:
     call clock_now
-    mov rcx,[r15+408]
+    mov rcx,[rbp+GATE_RESPONSE_DEADLINE]
     cmp rax,rcx
     jae refuse
     sub rcx,rax

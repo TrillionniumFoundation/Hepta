@@ -513,10 +513,7 @@ block b103(v1398:readbuf,v1399:mutbuf,v1400:mutbuf,v1409:u64,v1412:u64,v1415:u64
   v1492:u64 = const() {"value":7}
   v1493:bool = compare.eq(v1409,v1492)
   v1494:bool = bool.and(v1491,v1493)
-  v1495:u64 = const() {"value":0}
-  v1496:bool = compare.gt(v1415,v1495)
-  v1497:bool = bool.and(v1494,v1496)
-  branch v1497 b107(v1398,v1399,v1400,v1415) b108(v1398,v1399,v1400)
+  branch v1494 b107(v1398,v1399,v1400,v1415) b108(v1398,v1399,v1400)
 block b104(v1424:readbuf,v1425:mutbuf,v1426:mutbuf,v1439:u64,v1440:u64)
   v1464:u64 = int.sub.wrap(v1440,v1439)
   v1465:u64 = call(v1464) {"function":"f1"}
@@ -527,24 +524,24 @@ block b106(v1466:readbuf,v1467:mutbuf,v1468:mutbuf,v1485:u64)
   v1488:u64 = const() {"value":128}
   v1489:u32 = int.cast(v1488) {"mode":"wrap"}
   ret(v1489)
-block b107(v1498:readbuf,v1499:mutbuf,v1500:mutbuf,v1515:u64)
-  v1536:u64 = const() {"value":8}
-  v1537:u64 = const() {"value":6}
-  v1538:u64 = call(v1499,v1536,v1537) {"function":"f15"}
-  v1539:u64 = const() {"value":32}
-  v1540:u64 = const() {"value":1}
-  v1541:u64 = call(v1499,v1539,v1540) {"function":"f15"}
-  v1542:u64 = const() {"value":128}
-  v1543:u64 = call(v1499,v1542,v1515) {"function":"f11"}
-  v1544:u64 = const() {"value":40}
-  v1545:u64 = int.sub.wrap(v1543,v1542)
-  v1546:u64 = call(v1499,v1544,v1545) {"function":"f15"}
-  v1547:u32 = int.cast(v1543) {"mode":"wrap"}
-  ret(v1547)
-block b108(v1517:readbuf,v1518:mutbuf,v1519:mutbuf)
-  v1548:u64 = const() {"value":4294967293}
-  v1549:u32 = int.cast(v1548) {"mode":"wrap"}
-  ret(v1549)
+block b107(v1495:readbuf,v1496:mutbuf,v1497:mutbuf,v1512:u64)
+  v1533:u64 = const() {"value":8}
+  v1534:u64 = const() {"value":6}
+  v1535:u64 = call(v1496,v1533,v1534) {"function":"f15"}
+  v1536:u64 = const() {"value":32}
+  v1537:u64 = const() {"value":1}
+  v1538:u64 = call(v1496,v1536,v1537) {"function":"f15"}
+  v1539:u64 = const() {"value":128}
+  v1540:u64 = call(v1496,v1539,v1512) {"function":"f11"}
+  v1541:u64 = const() {"value":40}
+  v1542:u64 = int.sub.wrap(v1540,v1539)
+  v1543:u64 = call(v1496,v1541,v1542) {"function":"f15"}
+  v1544:u32 = int.cast(v1540) {"mode":"wrap"}
+  ret(v1544)
+block b108(v1514:readbuf,v1515:mutbuf,v1516:mutbuf)
+  v1545:u64 = const() {"value":4294967293}
+  v1546:u32 = int.cast(v1545) {"mode":"wrap"}
+  ret(v1546)
 end
 fn f1(v0:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:u64)

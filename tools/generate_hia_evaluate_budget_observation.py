@@ -91,7 +91,7 @@ def observation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             remaining = div_million(deadline-now)
         put(o,32,remaining)
         return 128
-    if operation == 6 and action == 7 and elapsed > 0:
+    if operation == 6 and action == 7:
         put(o,8,6)
         put(o,32,1)
         end = decimal(o,128,elapsed)
