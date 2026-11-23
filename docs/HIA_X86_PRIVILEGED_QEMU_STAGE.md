@@ -17,6 +17,12 @@ and stale-old controls must trap at the emitted UD2 and leave the original
 the independent observer; it is a negative-control fixture, not a HIA source.
 Both PC and Q35 run at 64 MiB, one CPU, and are isolated from the host kernel.
 
+QEMU's Multiboot `-kernel` loader requires an ELF32 container. The test
+first links ELF64 to resolve the x86-64 code, then converts its **container**
+to ELF32 with objcopy. Every instruction byte in the two final .text sections
+must be identical and the executable's ELF32 identity is checked before boot.
+This conversion is test-only and is not HIA compilation.
+
 The build extracts the final ELF .text section and compares its embedded
 effect bytes to the exact output of the source emitter before running QEMU.
 The independently obtained GNU-as byte comparison in the parent draft remains

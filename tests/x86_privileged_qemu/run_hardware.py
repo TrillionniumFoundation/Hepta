@@ -62,6 +62,12 @@ def build(case: str, directory: Path) -> dict:
              "-o", "guest.elf", "boot.o"], directory)
     checked(["objcopy", "--dump-section", ".text=text.bin",
              "guest.elf"], directory)
+    # The multiboot -kernel loader rejects ELF64 even for a 32-bit entry.
+    # Convert the fully resolved ELF64 into a 32-bit container; the machine
+    # bytes themselves must be byte-identical in both final linked images.
+    checked(["objcopy", "-O", "elf32-i386", "guest.elf", "guest32.elf"], directory)
+    checked(["objcopy", "--dump-section", ".text=text32.bin",
+             "guest32.elf"], directory)
     raw_symbols = checked(["nm", "-n", "guest.elf"], directory).splitlines()
     symbols = {}
     for line in raw_symbols:
@@ -75,12 +81,18 @@ def build(case: str, directory: Path) -> dict:
     start = symbols["effect_start"] - symbols["__text_begin"]
     end = symbols["effect_end"] - symbols["__text_begin"]
     final = (directory / "text.bin").read_bytes()
-    if final[start:end] != effect:
-        raise AssertionError("final ELF .text differs from staged encoder bytes")
+    final32 = (directory / "text32.bin").read_bytes()
+    if final != final32 or final[start:end] != effect:
+        raise AssertionError("ELF64/ELF32 final machine bytes differ from staged encoder")
+    executable32 = (directory / "guest32.elf").read_bytes()
+    if (executable32[:5] != b"\x7fELF\x01" or
+            executable32[18:20] != b"\x03\x00"):
+        raise AssertionError("QEMU multiboot final ELF32 identity mismatch")
     return {
         "case": case, "byte_identity": True, "effect_bytes": len(effect),
         "effect_sha256": sha256(effect).hexdigest(),
-        "image_sha256": sha256((directory / "guest.elf").read_bytes()).hexdigest(),
+        "elf64_sha256": sha256((directory / "guest.elf").read_bytes()).hexdigest(),
+        "image_sha256": sha256(executable32).hexdigest(),
         "test_assembly_sha256": sha256((HERE / "boot.S").read_bytes()).hexdigest(),
         "linker_sha256": sha256((HERE / "layout.ld").read_bytes()).hexdigest(),
         "implementation": "unpromoted-staged-PrivilegedCode-not-HIA-selfhost",
@@ -141,7 +153,7 @@ def main() -> int:
                         observations.append({"machine": machine, "status": "NOT_RUN"})
                 else:
                     for machine in ("pc", "q35"):
-                        observations.append(execute_guest(directory / "guest.elf",
+                        observations.append(execute_guest(directory / "guest32.elf",
                                                           machine, expected))
                 item["observations"] = observations
                 item["status"] = ("NOT_RUN" if args.build_only else
