@@ -63,8 +63,6 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
 
     with TemporaryDirectory(prefix='standalone-', dir=work) as tmp:
         directory = Path(tmp)
-        manifest = _compile(directory, 'nominal_json', compiler, cold_report, standalone=True)
-        publish(manifest.parent / 'hia-nominal-packet')
         owner = _compile(directory, 'agent_store', compiler, cold_report)
         publish(owner)
         metadata = json.loads((owner.parent / 'build.json').read_bytes())
@@ -131,6 +129,7 @@ def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
 def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, publish):
     """Build the installed SQLite units through sealed HIA source, embedding and linking stages."""
     from tools.build_hia_agent_artifact_capture import UNIT as CAPTURE_UNIT
+    from tools.build_hia_nominal_json import SOURCE_NAME as NOMINAL_SOURCE, STDIO, STDIO_TEMPLATE
     from tools.build_hia_sqlite_components import (
         CAPTURE_ADAPTERS, COMPONENT_TEMPLATES, INPUT, PROJECTION_ADAPTER, PROJECTION_ROLES, START,
     )
@@ -146,19 +145,23 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
 
     adapters = owner('sqlite_component_adapters.hepta')
     embedder = owner('elf_embed_image.hepta')
-    objects = []
-    for ordinal, name in enumerate((START, INPUT, *CAPTURE_ADAPTERS, PROJECTION_ADAPTER)):
+    def adapter_object(program, ordinal, name):
         source = (ROOT / name).read_bytes()
         if sha256(source).hexdigest() != admitted.get(name):
             raise ValueError('SQLite adapter source differs from cold admission: ' + name)
         frame = struct.pack('<8sQQ', b'HIASQAD1', ordinal, len(source)) + source
-        objects.append(call(adapters, 'build', frame))
+        return call(program, 'build', frame)
 
+    objects = [adapter_object(adapters, ordinal, name)
+               for ordinal, name in enumerate((START, INPUT, *CAPTURE_ADAPTERS, PROJECTION_ADAPTER))]
+    nominal_adapter = adapter_object(owner(Path(STDIO_TEMPLATE).name), 0, STDIO)
     recipes = [(unit, b'HIASQUN1', ordinal, objects[:2]) for ordinal, unit in enumerate(UNITS, 1)]
     recipes.append((CAPTURE_UNIT, b'HIASQCP1', 32, objects[2:4]))
+    recipes.append(('nominal-packet', b'HIANMPK1', 33, [nominal_adapter]))
     projection_units = (PROJECTION, *PROJECTION_ROLES)
     source_names = {unit: unit.replace('-', '_') + '.hepta'
                     for unit in (*[row[0] for row in recipes], *projection_units)}
+    source_names['nominal-packet'] = Path(NOMINAL_SOURCE).name
     _, images, sources = compile_sources({name: name for name in source_names.values()})
 
     def embed(unit, kind, ordinal):
@@ -171,7 +174,8 @@ def _stage_sqlite_units(work, seed, linker, compile_sources, call, admitted, pub
         return call(linker, None, call(embedder, 'build', request))
 
     for unit, kind, ordinal, adapter_objects in recipes:
-        executable = link(b'HIASQLK1', (*adapter_objects, embed(unit, kind, ordinal)))
+        link_kind = b'HIANMLK1' if unit == 'nominal-packet' else b'HIASQLK1'
+        executable = link(link_kind, (*adapter_objects, embed(unit, kind, ordinal)))
         verify_executable(executable, images[source_names[unit]])
         path = work / ('hia-' + unit)
         path.write_bytes(executable)
