@@ -41,6 +41,7 @@ def source_pins():
     from tools.hia_selfhost_contract import file_digests
     return {**file_digests(), **{name: sha256((ROOT / name).read_bytes()).hexdigest()
         for name in ('tests/test_hia_native_delivery.py', 'tests/hia_native_delivery_cases.py',
+                     'tests/hia_native_delivery_sql.py',
                      'tests/fixtures/native_delivery_original_9c46166.json',
                      'tools/qualify_hia_native_delivery.py')}}
 
@@ -91,10 +92,12 @@ class NativeDeliverySourceTests(unittest.TestCase):
 
     def test_sql_calls_keep_original_method_binding_and_argument_order(self):
         value = admit_originals()
+        from tests.hia_native_delivery_sql import check_store_delegation, delivery_sql_calls
+        check_store_delegation(self)
         for name, expected in value['sql_call_asts'].items():
             tree = ast.parse((ROOT / name).read_bytes())
             calls = []
-            for node in ast.walk(tree):
+            for node in delivery_sql_calls(tree, name, ROOT):
                 if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                         and node.func.attr in ('execute', '_execute')):
                     for index, arg in enumerate(node.args):

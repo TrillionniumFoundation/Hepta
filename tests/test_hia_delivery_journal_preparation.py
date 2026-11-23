@@ -54,9 +54,13 @@ class DeliveryJournalPreparationSourceTests(unittest.TestCase):
             names.add(name)
             names.update(cls.originals[kind]['unchanged_files'])
             names.update(cls.originals[kind].get('shared_dependency_review', {}))
+        names.update((subject.SQL_SOURCE_FIXTURE, subject.SQL_EFFECT_TEST))
         cls.sources = {name: (ROOT / name).read_bytes() for name in sorted(names)}
         for name, expected in OUTER_PINS.items():
-            if pin(cls.sources[name]) != expected:
+            raw = cls.sources[name]
+            if name == subject.DELIVERY and pin(raw) != expected:
+                raw = subject.restore_sql_source(name, raw, cls.sources.__getitem__, expected)
+            if pin(raw) != expected:
                 raise AssertionError('complete original Delivery test was changed')
         if pin(cls.sources[journal.ARCHIVE]) != journal.ORIGINAL:
             raise AssertionError('complete retained Journal original changed')

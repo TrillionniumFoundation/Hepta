@@ -220,6 +220,8 @@ class _CapturedAdmission:
                     raw = delivery._reverse_sqlite_boundary(name, raw,
                         self._capture(delivery.SQLITE_BOUNDARY_FIXTURE), FIXTURE, frozen,
                         pair['files'][name]['new'])
+                if name == DELIVERY and _pin(raw) != pair['files'][name]['new']:
+                    raw = delivery.restore_sql_source(name, raw, self._capture, pair['files'][name]['new'])
                 reverse_one(raw, pair['files'][name], OLD[name])
             self._state = 'EXACT_TERMINAL_V2_PAIR'
             self._allowed[TRANSPORT] = self._adjustment(

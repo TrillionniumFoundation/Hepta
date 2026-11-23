@@ -813,6 +813,8 @@ SOURCE_FILES = (
     'tests/test_hia_delivery_integration.py',
     'tests/test_hia_context_protocol.py',
     'tests/hia_native_delivery_cases.py',
+    'tests/hia_native_delivery_sql.py',
+    'tests/fixtures/delivery_typed_sql_source.json',
     'tests/fixtures/native_delivery_original_9c46166.json',
     'tools/qualify_hia_native_delivery.py',
     'docs/HIA_NATIVE_DELIVERY_CAUSALITY.md',

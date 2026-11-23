@@ -170,6 +170,25 @@ def restore_evaluation_store(raw, fixture):
     return reverse_exact(raw, record, EVALUATION_NEW)
 
 
+SQL_SOURCE_FIXTURE = 'tests/fixtures/delivery_typed_sql_source.json'
+SQL_SOURCE_FIXTURE_PIN = {'bytes': 2329, 'sha256': 'ca2e446dfbe9b38e6df4bb06f99cac7279df7ca0462fb35116c6ff2bf6b971e9'}
+SQL_EFFECT_TEST = 'tests/hia_native_delivery_sql.py'
+
+
+def restore_sql_source(name, raw, capture, expected):
+    from tests.hia_store_delivery_successor import reverse_exact
+
+    authority = capture(SQL_SOURCE_FIXTURE)
+    if _pin(authority) != SQL_SOURCE_FIXTURE_PIN:
+        raise ValueError('typed delivery SQL source authority differs')
+    data = json.loads(authority)
+    if (data['schema'] != 'hepta.hia.delivery-typed-sql-source.v1'
+            or set(data['files']) != {DELIVERY, QUALIFIER_DEPENDENCY_PATH}
+            or data['helper'] != {'path': SQL_EFFECT_TEST, **_pin(capture(SQL_EFFECT_TEST))}):
+        raise ValueError('typed delivery SQL proof or scope changed')
+    return reverse_exact(raw, data['files'][name], expected)
+
+
 def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
     if type(original_kind) is not str or original_kind not in ORIGINALS:
         raise ValueError('transport successor original authority differs')
@@ -187,6 +206,11 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
                != _canonical(OLD[DELIVERY])):
         raise ValueError('transport successor independent original source pins differ')
     captured = {name: (ROOT / name).read_bytes() for name in PATHS}
+    sql_sources = {}
+    def capture_sql(path):
+        if path not in sql_sources:
+            sql_sources[path] = (ROOT / path).read_bytes()
+        return sql_sources[path]
     unchanged = all(_pin(captured[name]) == OLD[name] for name in PATHS)
     frozen = None
     boundary = None
@@ -211,6 +235,8 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
                 boundary = (ROOT / SQLITE_BOUNDARY_FIXTURE).read_bytes()
                 current = _reverse_sqlite_boundary(
                     name, current, boundary, FIXTURE, frozen, value['files'][name]['new'])
+            if name == DELIVERY and _pin(current) != value['files'][name]['new']:
+                current = restore_sql_source(name, current, capture_sql, value['files'][name]['new'])
             reverse_one(current, value['files'][name], OLD[name])
     evaluation_raw = (ROOT / EVALUATION).read_bytes()
     if any(_canonical(parsed[kind]['unchanged_files'][EVALUATION])
@@ -254,6 +280,7 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
     if (any((ROOT / item[0]).read_bytes() != authorities[kind]
             for kind, item in ORIGINALS.items())
             or any((ROOT / name).read_bytes() != captured[name] for name in PATHS)
+            or any((ROOT / name).read_bytes() != raw for name, raw in sql_sources.items())
             or (frozen is not None and (ROOT / FIXTURE).read_bytes() != frozen)
             or (boundary is not None and (ROOT / SQLITE_BOUNDARY_FIXTURE).read_bytes() != boundary)
             or (ROOT / EVALUATION).read_bytes() != evaluation_raw
@@ -279,6 +306,11 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
     } for name in PATHS}
     shared = ({DELIVERY: dict(value['files'][DELIVERY]['new'])}
               if original_kind == 'store' else {})
+    if sql_sources and shared:
+        shared[DELIVERY] = _pin(captured[DELIVERY])
+        adjustments[DELIVERY].update(current_bytes=shared[DELIVERY]['bytes'],
+            current_sha256=shared[DELIVERY]['sha256'], all_original_test_methods_unchanged=False,
+            all_original_test_method_ids_preserved=True, typed_sql_authority=dict(SQL_SOURCE_FIXTURE_PIN))
     result = {'schema': 'hepta.hia.native-transport-terminal-admission.v2',
             'state': 'EXACT_TERMINAL_V2_PAIR',
             'source_adjustments': {TRANSPORT: adjustments[TRANSPORT]},
@@ -529,7 +561,10 @@ QUALIFIER_STORE_CURRENT = {'bytes': 22723, 'sha256': '85f92bf60694e2d7950ced55e3
 
 def _admit_qualifier_dependency(raw, capture):
     actual = _pin(raw)
-    build_successor = actual['sha256'] == '44b53db9a34ffe236652473d02ab45697d3612ba9b7ec556b0ea4e96d0568893'
+    sql_successor = actual['sha256'] == 'fb0c4be8fc93e0a1658c4672f2110ab1298f5cfde85c72988843a449477a56a8'
+    if sql_successor:
+        raw = restore_sql_source(QUALIFIER_DEPENDENCY_PATH, raw, capture, {'bytes': 23506, 'sha256': '44b53db9a34ffe236652473d02ab45697d3612ba9b7ec556b0ea4e96d0568893'})
+    build_successor = _pin(raw)['sha256'] == '44b53db9a34ffe236652473d02ab45697d3612ba9b7ec556b0ea4e96d0568893'
     if build_successor:
         from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, evaluate_records, reverse_exact
         record = evaluate_records(capture(EVALUATE_FIXTURE))['build_qualifier']
@@ -586,6 +621,8 @@ def _admit_qualifier_dependency(raw, capture):
             'exact_splice_count': 6, 'complete_original_inverse_verified': True,
             'complete_current_forward_replay_verified': True,
             'original_qualifier_authority_unchanged': True, 'production_source_exception': False}
+    if sql_successor:
+        proof['typed_delivery_sql'] = {'path': SQL_SOURCE_FIXTURE, **SQL_SOURCE_FIXTURE_PIN}
     if build_successor:
         proof['build_shared_worker_source'] = {'path': EVALUATE_FIXTURE, 'sha256': EVALUATE_FIXTURE_SHA256}
     if emission_successor:
@@ -658,6 +695,8 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
         if path == TRANSPORT and 'sqlite_boundary_successor' in prior['source_adjustments'].get(path, {}):
             raw = _reverse_sqlite_boundary(path, raw, capture(SQLITE_BOUNDARY_FIXTURE),
                                            FIXTURE, capture(FIXTURE), expected)
+        if path == DELIVERY and _pin(raw) != expected:
+            raw = restore_sql_source(path, raw, capture, expected)
         if path == EVALUATION and 'typed_store_test_successor' in prior['source_adjustments'].get(path, {}):
             raw = restore_evaluation_store(raw, capture(EVALUATION_STORE_FIXTURE))
         if _pin(raw) != expected:

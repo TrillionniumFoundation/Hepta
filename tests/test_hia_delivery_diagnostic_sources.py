@@ -132,10 +132,14 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
             names.add(name)
             names.update(cls.values[kind]['unchanged_files'])
             names.update(cls.values[kind].get('shared_dependency_review', {}))
+        names.update((subject.SQL_SOURCE_FIXTURE, subject.SQL_EFFECT_TEST))
         cls.source_raw = {name: (ROOT / name).read_bytes() for name in sorted(names)}
         cls.source_names = tuple(sorted(names))
         for name, expected in OUTER_PINS.items():
-            if pin(cls.source_raw[name]) != expected:
+            raw = cls.source_raw[name]
+            if name == subject.DELIVERY and pin(raw) != expected:
+                raw = subject.restore_sql_source(name, raw, cls.source_raw.__getitem__, expected)
+            if pin(raw) != expected:
                 raise AssertionError('original outer Delivery test file was changed')
         if pin(cls.source_raw[AUTHORITY]) != AUTHORITY_PIN:
             raise AssertionError('fixed Delivery diagnostic source authority changed')
