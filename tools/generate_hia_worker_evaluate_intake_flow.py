@@ -226,8 +226,12 @@ def publish_intake(o:mutbuf, w:mutbuf) -> u64:
     put(o, HEADER + 56, slot_bytes(w, INTAKE_PACKET))
     put(o, HEADER + 64, get(w, BASE_REFERENCE + 16))
     put(o, HEADER + 72, get(w, CANDIDATE_REFERENCE + 16))
+    i = 0
+    while i < 4:
+        put(o, HEADER + 80 + 8 * i, get(w, REFERENCE_CLOCKS + 8 * i))
+        i = i + 1
     whole_slot(w, o, COMBINED, 0)
-    return action(o, w, INTAKE_PUBLISHED, PUBLISH, 0, 0, 1, 80)
+    return action(o, w, INTAKE_PUBLISHED, PUBLISH, 0, 0, 1, 112)
 '''
 
 
@@ -367,9 +371,23 @@ def runtime_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     if state == REFERENCE_WINDOW:
         if length(s) != 72 or size != 8:
             return BAD
-        return reference_batch(o, w, input_word(s, 64))
+        put(w, REFERENCE_UTC, input_word(s, 64))
+        return clock_sample(o, w, REFERENCE_STARTED, 0)
+    if state == REFERENCE_STARTED:
+        if length(s) != 72 or size != 8:
+            return BAD
+        arm = get(w, REFERENCE_ARM)
+        stamp = input_word(s, 64)
+        if arm > 1 or stamp == 0 or (arm == 1 and stamp < get(w, REFERENCE_CLOCKS + 8)):
+            return BAD
+        put(w, REFERENCE_CLOCKS + 16 * arm, stamp)
+        return reference_batch(o, w, get(w, REFERENCE_UTC))
     if state == REFERENCE_RETURNED:
         return reference_returned(s, o, w)
+    if state == REFERENCE_REAPED:
+        if length(s) != 72 or size != 8:
+            return BAD
+        return reaped_reference(o, w, input_word(s, 64))
     if state == COMBINED_MADE:
         if size != slot_bytes(w, INTAKE_PACKET) + get(w, BASE_REFERENCE + 16) + get(w, CANDIDATE_REFERENCE + 16):
             return BAD
@@ -409,12 +427,21 @@ def reference_returned(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if get(w, REFERENCE_ARM) == 0:
         put(w, CASE_COUNT, requested)
         hold(w, BASE_REFERENCE, input_word(s, 32), 0, size)
-        put(w, REFERENCE_ARM, 1)
-        return clock_sample(o, w, REFERENCE_WINDOW, 1)
+        return clock_sample(o, w, REFERENCE_REAPED, 0)
     if requested != get(w, CASE_COUNT):
         return BAD
     hold(w, CANDIDATE_REFERENCE, input_word(s, 32), 0, size)
-    total = 80 + slot_bytes(w, ORIGINAL) + slot_bytes(w, INTAKE_PACKET) + get(w, BASE_REFERENCE + 16) + size
+    return clock_sample(o, w, REFERENCE_REAPED, 0)
+
+def reaped_reference(o:mutbuf, w:mutbuf, now:u64) -> u64:
+    arm = get(w, REFERENCE_ARM)
+    if arm > 1 or now < get(w, REFERENCE_CLOCKS + 16 * arm):
+        return BAD
+    put(w, REFERENCE_CLOCKS + 16 * arm + 8, now)
+    if arm == 0:
+        put(w, REFERENCE_ARM, 1)
+        return clock_sample(o, w, REFERENCE_WINDOW, 1)
+    total = 112 + slot_bytes(w, ORIGINAL) + slot_bytes(w, INTAKE_PACKET) + get(w, BASE_REFERENCE + 16) + get(w, CANDIDATE_REFERENCE + 16)
     if total > 67108864:
         return BAD
     whole_slot(w, o, INTAKE_PACKET, 0)
@@ -431,15 +458,15 @@ def program():
                      CREATION=2896, CANONICAL=2920, EXPECTED_SHA=2944, LIMIT_WALL=3008,
                      LIMIT_NATIVE=3016, LIMIT_MEMORY=3024, UTC_DEADLINE=3032, WINDOW_UTC=3040,
                      CANONICAL_FDS=3048, WORKLOAD_FD=3064, REFERENCE_ARM=3072, CASE_COUNT=3080,
-                     BASE_REFERENCE=3088, CANDIDATE_REFERENCE=3112, COMBINED_BYTES=3136, COMBINED=22,
+                     BASE_REFERENCE=3088, CANDIDATE_REFERENCE=3112, COMBINED_BYTES=3136, REFERENCE_CLOCKS=3160, REFERENCE_UTC=3192, COMBINED=22,
                      BIND_PREFIX=19, RUNTIME_SELECTION=20, RAW_BODY=21, INTAKE_PACKET=18, OPEN_INTAKE=50, CTX_ROW=51, ART_ROW=52,
                      CLOSE_INTAKE=53, CLOSE_REFUSED=54)
     states = ('REQUEST_SPANS','CTX_REFERENCE','CTX_QUERY','CTX_OBSERVED','ART_QUERY','ART_OBSERVED',
               'ART_AUTH','ART_BODY','ROW_MADE','ROW_JOINED','INTAKE_PUBLISHED','PREFIX_MADE','DOCUMENT_BOUND',
               'RUNTIME_BOUND','CREATION_OBSERVED','WINDOW_SAMPLED','CORE_NOMINAL','CORE_HASHED','CORE_HASH_FRAME','CORE_COMPARED',
-              'CORE_FILE_MADE','REFERENCE_WINDOW','REFERENCE_RETURNED','COMBINED_MADE','ORIGINAL_JOINED')
+              'CORE_FILE_MADE','REFERENCE_WINDOW','REFERENCE_RETURNED','COMBINED_MADE','ORIGINAL_JOINED','REFERENCE_STARTED','REFERENCE_REAPED')
     constants.update({name: i for i, name in enumerate(states, 60)})
-    tags = dict(REQUEST_LAYOUT=b'HIAEVQ01', INTAKE=b'HIAEFI03', REFERENCE_RESULT=b'HIAEBT01', BIND_RESULT=b'HIAEFB02', NOMINAL_PACKET=b'HIAVCF01',
+    tags = dict(REQUEST_LAYOUT=b'HIAEVQ01', INTAKE=b'HIAEFI04', REFERENCE_RESULT=b'HIAEBT01', BIND_RESULT=b'HIAEFB02', NOMINAL_PACKET=b'HIAVCF01',
                 SHA_JSON=b'"sha256"', STORE_HASH=b'store-ha', STORE_HASH_END=b'sh', CONTEXT_REFERENCE_TAG=b'HIACTRL1',
                 CONTEXT_QUERY_TAG=b'HIACTL01', CONTEXT_OBSERVE_TAG=b'HIACTO01', CONTEXT_OBSERVED_TAG=b'HIACTO02',
                 RETAINED_QUERY=b'HIARFG01', RETAINED_OBSERVED=b'HIARFG02', RETAINED_AUTHORITY=b'HIARFO02',
