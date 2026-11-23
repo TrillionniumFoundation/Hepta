@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import struct
+import subprocess
 import time
 import unittest
 
@@ -98,6 +99,67 @@ class ReportFlowTests(unittest.TestCase):
                 _,record=self.validate(self.specimen(metric))
                 self.assertEqual(json.loads(record)['metric'],metric)
                 self.assertEqual(json.loads(record)['observations'][0]['baseline_native']['values'],[7])
+
+    def test_native_groups_initialized_when_reference_deadline_precedes_any_arm(self):
+        doc=m(f('test',[],['u64'],[],[b('entry',[],[c('out','u64',7)],ret('out'))]))
+        cases=[dict(function='test',arguments=[])]
+        frames=self.specimen('latency_ns')
+        inputs=self.measure.pair.fixture(doc,cases,double=True,deadline=1)
+        frames[1]=self.measure.direct.archive(inputs)
+        self.assertEqual(struct.unpack_from('<Q',frames[1],24)[0],0)
+        _,record=self.validate(frames)
+        expected={'normal':None,'traps':[],'total_native_ns':'0'}
+        self.assertEqual(json.loads(record)['native_runs'],{'baseline':expected,'candidate':expected})
+        self.assertEqual(json.loads(record)['outcome'],'budget_exceeded')
+
+    def test_partial_normal_group_preserves_real_charge_and_credits_no_latency(self):
+        from unittest.mock import patch
+        from hepta.hia_program import verify_program
+        from hepta.hia_program_native import emit_program_machine
+        from tests.test_hia_program import branch,jump
+        parameters=[('stop','bool')]
+        good=m(f('test',parameters,['u32'],[],[b('entry',parameters,[c('v','u32',7)],ret('v'))]))
+        cases=[dict(function='test',arguments=[False]),dict(function='test',arguments=[True])]
+        for failed in ('timeout','abort'):
+            with self.subTest(failed=failed):
+                stop=jump('stop') if failed=='timeout' else dict(op='trap',code='user')
+                bad=m(f('test',parameters,['u32'],['trap'] if failed=='abort' else [],[
+                    b('entry',parameters,[],branch('stop',('stop',),('value',))),
+                    b('stop',[],[],stop),b('value',[],[c('v','u32',7)],ret('v'))]))
+                artifact=self.measure.pair.linker.link(emit_program_machine(verify_program(bad)).object_bytes)
+                obtain=self.measure.pair.fixture
+                def mismatched_artifact(*args,**kwargs):
+                    inputs=obtain(*args,**kwargs)
+                    inputs[2]=artifact
+                    inputs[5]=struct.pack('<8s2Q',b'HIAEPL02',64<<20,time.monotonic_ns()+400_000_000)
+                    return inputs
+                start=time.monotonic_ns()
+                with patch.object(self.measure.pair,'fixture',mismatched_artifact):
+                    fresh,archive,paid,direct,owned=self.measure.specimen(good,good,cases,'latency_ns')
+                self.addCleanup(self.measure.doCleanups)
+                self.assertGreater(struct.unpack_from('<Q',archive,72)[0],0)
+                claim=envelope(fresh,paid)
+                inputs=self.parts(claim,archive,paid,direct,owned,start)
+                rc,out,err=run_pair(self.exe,inputs)
+                self.assertEqual((rc,err),(0,b''))
+                _,terms,decision,rendered=unpack(out)
+                rec=json.loads(rendered)
+                self.assertGreater(int(rec['baseline_value']),0)
+                self.assertEqual(rec['candidate_value'],'0')
+                self.assertEqual(rec['native_runs']['candidate']['total_native_ns'],'0')
+                self.assertIsNone(rec['native_runs']['candidate']['normal']['report'])
+                self.assertEqual(struct.unpack_from('<Q',decision,32)[0],0)
+                self.assertEqual(terms[-len(paid):],paid)
+                if failed=='timeout':
+                    self.assertEqual(terms[310:318],b'HIAEPM02')
+                    width=struct.unpack_from('<Q',terms,40)[0]
+                    event=310+width-96
+                    self.assertEqual(terms[event:event+8],b'HIAEEV01')
+                    drift=bytearray(terms)
+                    struct.pack_into('<Q',drift,event+40,1)
+                    r=subprocess.run([self.measure.settle],input=drift,capture_output=True,timeout=8)
+                    self.assertEqual((r.returncode,r.stdout,r.stderr),(2,b'',b''))
+                self.assertTrue(all('candidate_native' not in case for case in rec['observations']))
 
     def test_rejects_crossed_and_incomplete_authorities_before_any_output(self):
         base=self.specimen()

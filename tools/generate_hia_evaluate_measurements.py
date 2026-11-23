@@ -26,7 +26,7 @@ MAGIC=int.from_bytes(b'HIAEMP01','little')
 FIELDS=('arguments','baseline_artifact','candidate_artifact','context','objective','workload','metric','cases',
         'function','report','observations','artifact_sha256','completed_cases','planned_cases','status','complete',
         'wall_ns','stdout_sha256','baseline','candidate','normal','traps','total_native_ns',
-        'baseline_native','candidate_native','termination_confirmed')
+        'baseline_native','candidate_native','termination_confirmed','artifact_bytes','latency_ns')
 POLICY=r'''
 def measurements(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s) < 512 or read_word(s,0) != REQUEST:
@@ -120,6 +120,13 @@ def fresh(s:readbuf,o:mutbuf,w:mutbuf) -> bool:
         elif i == count-2:
             if same(s,ref,get(w,OBJECTIVE),176) == False or parse(s,o,w,at+m,n,6) == False or keep(o,w,METRIC,node_field(o,64,K_metric)) == False:
                 return False
+            field = node_field(o,64,K_metric)
+            if get(o,field) != 4:
+                return False
+            metric = key_id(o,get(o,field+24),get(o,field+32))
+            if metric != K_artifact_bytes and metric != K_latency_ns:
+                return False
+            put(w,FACT+64,metric)
         elif i == count-1:
             if same(s,ref,get(w,WORK),176) == False or parse(s,o,w,at+m,n,6) == False or case_rows(o,w) == False:
                 return False
@@ -233,7 +240,14 @@ def native(s:readbuf,o:mutbuf,w:mutbuf) -> bool:
 def arm_run(s:readbuf,o:mutbuf,w:mutbuf,arm:u64) -> bool:
     row = node_field(o,64,choose(arm == 0,K_baseline,K_candidate))
     if row == MAX:
-        return True
+        return False
+    d = get(w,SECTIONS+16)
+    value = read_word(s,d+24+8*arm)
+    if get(w,FACT+64) == K_artifact_bytes:
+        if value != get(w,FACT+40+8*arm):
+            return False
+    elif field_number(s,o,w,node_field(o,row,K_total_native_ns),value,True) == False:
+        return False
     normal = node_field(o,row,K_normal)
     traps = node_field(o,row,K_traps)
     if normal == MAX or traps == MAX or get(o,traps) != 5:

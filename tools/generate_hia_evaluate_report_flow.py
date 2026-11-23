@@ -66,6 +66,8 @@ def flow(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         p = read_word(s,8)
         if p < 80 or p > length(s)-32 or read_word(s,16) != length(s)-32-p:
             return BAD
+        if terminal_event(s,w,p) == False:
+            return BAD
         put(w,D+200,p)
         return reference_job(o,w,0)
     if stage == 4 or stage == 5:
@@ -199,6 +201,39 @@ def objective(s:readbuf,o:mutbuf,w:mutbuf,at:u64,n:u64) -> bool:
     put(w,D+176,get(w,length(w)-192))
     return True
 
+def terminal_event(s:readbuf,w:mutbuf,p:u64) -> bool:
+    status = read_word(s,40)
+    if status < 2 or status > 4 or read_word(s,104) > 1:
+        return True
+    at = 32+p
+    latest = 0
+    while at < length(s):
+        if length(s)-at < 96 or read_word(s,at) != BEGIN:
+            return False
+        kind = read_word(s,at+8)
+        n = 0
+        if kind == 1:
+            latest = at
+        elif kind == 2:
+            out = read_word(s,at+72)
+            err = read_word(s,at+80)
+            if out > 2097152 or err > 65536:
+                return False
+            n = out+err
+        elif kind == 3:
+            n = read_word(s,at+56)
+        elif kind != 4:
+            return False
+        if n > length(s)-at-96:
+            return False
+        at = at+96+n
+    if latest == 0:
+        return read_word(s,64) == 0 and read_word(s,72) == 0
+    if read_word(s,latest+16) != read_word(s,96) or read_word(s,latest+24) != read_word(s,104) or read_word(s,latest+40) > 1:
+        return False
+    put(w,D+208,latest)
+    return True
+
 def reference_job(o:mutbuf,w:mutbuf,arm:u64) -> u64:
     store(o,1024,91)
     store(o,1025,44)
@@ -238,7 +273,7 @@ def settle_job(o:mutbuf,w:mutbuf,dest:u64,save:u64) -> u64:
     put(o,1040,get(w,ART+24))
     put(o,1048,get(w,D+168))
     put(o,1056,get(w,D+176))
-    put(o,1064,get(w,D+200))
+    put(o,1064,get(w,D+200)+choose(get(w,D+208) == 0,0,96))
     put(o,1072,get(w,SIZES+40))
     put(o,1080,0)
     put(o,1088,get(w,D+184))
@@ -248,9 +283,16 @@ def settle_job(o:mutbuf,w:mutbuf,dest:u64,save:u64) -> u64:
     fragment(o,2,5,get(w,D+192),64)
     fragment(o,3,3,192,64)
     fragment(o,4,3,256,66)
-    fragment(o,5,4,32,get(w,D+200))
-    whole(o,w,6,5)
-    return job(o,w,10,dest,7,save)
+    if get(w,D+208) == 0:
+        fragment(o,5,4,32,get(w,D+200))
+        whole(o,w,6,5)
+        return job(o,w,10,dest,7,save)
+    put(o,1104,EXTENDED_PAIR)
+    fragment(o,5,0,1104,8)
+    fragment(o,6,4,40,get(w,D+200)-8)
+    fragment(o,7,4,get(w,D+208),96)
+    whole(o,w,8,5)
+    return job(o,w,10,dest,9,save)
 
 def measure_job(o:mutbuf,w:mutbuf) -> u64:
     put(o,1024,MEASURE_REQUEST)
@@ -287,7 +329,7 @@ def finish(o:mutbuf,w:mutbuf) -> u64:
 def program():
     state = 34 << 20
     values = {k:int.from_bytes(v,'little') for k,v in dict(CLOCK=b'HIAEMC01',CLAIM=b'HIAEJC01',
-        FRESH=b'HIAEFI04',MUTATION=b'HIAJMO01',COMMIT=b'HIASTCP1',PAID=b'HIAEBRS1',JOURNAL=b'HIAJRN02',ARCHIVE=b'HIAEMT01',PAIR=b'HIAEPM01',
+        FRESH=b'HIAEFI04',MUTATION=b'HIAJMO01',COMMIT=b'HIASTCP1',PAID=b'HIAEBRS1',JOURNAL=b'HIAJRN02',ARCHIVE=b'HIAEMT01',PAIR=b'HIAEPM01',EXTENDED_PAIR=b'HIAEPM02',BEGIN=b'HIAEEV01',
         REFERENCE_REQUEST=b'HIAERJ02',NATIVE_REQUEST=b'HIAENJ01',SETTLE_REQUEST=b'HIAEST01',
         MEASURE_REQUEST=b'HIAEMJ01',DECISION=b'HIAESD01',NATIVE=b'HIAENR01',RESULT=b'HIAEMF01',
         REPORT=b'{"report',MEASURE_START=b'{"baseli').items()}

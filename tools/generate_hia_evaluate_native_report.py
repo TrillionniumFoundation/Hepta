@@ -183,19 +183,15 @@ def render(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     at = 24
     at = literal('{')
     arm = 0
-    seen = 0
     while arm < 2:
-        if select_all(s,w,arm) != 0:
-            if seen != 0:
-                at = literal(',')
-            if arm == 0:
-                at = literal('"baseline":')
-            else:
-                at = literal('"candidate":')
-            at = render_arm(s,o,w,at,arm)
-            if at == BAD:
-                return BAD
-            seen = seen+1
+        select_all(s,w,arm)
+        if arm == 0:
+            at = literal('"baseline":')
+        else:
+            at = literal(',"candidate":')
+        at = render_arm(s,o,w,at,arm)
+        if at == BAD:
+            return BAD
         arm = arm+1
     at = literal('}')
     width = at-24

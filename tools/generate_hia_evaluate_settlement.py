@@ -51,7 +51,7 @@ def settle(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     n = read_word(s,40)
     budget = read_word(s,48)
     issued = read_word(s,56)
-    if n < 80 or n > 65616 or budget > 13312 or n > length(s)-310 or budget > length(s)-310-n or issued != length(s)-310-n-budget:
+    if n < 80 or n > 65712 or budget > 13312 or n > length(s)-310 or budget > length(s)-310-n or issued != length(s)-310-n-budget:
         return BAD
     sample = 310
     if check_pair(s,w,sample,n) == False:
@@ -63,8 +63,8 @@ def settle(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return refused(s,o,w,read_word(s,sample+64))
     if budget < 128 or closed_budget(s,w,sample+n,budget) == False:
         return BAD
-    before = choose(metric == 1,read_word(s,8),read_word(s,sample+32))
-    after = choose(metric == 1,read_word(s,16),read_word(s,sample+40))
+    before = choose(metric == 1,read_word(s,8),get(w,1024))
+    after = choose(metric == 1,read_word(s,16),get(w,1032))
     complete = get(w,16) != 0
     traps = get(w,24) != 0
     flags = choose(status == 2,1,0) | choose(status == 0,2,0) | choose(complete,4,0)
@@ -90,12 +90,13 @@ def settle(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return publish(s,o,w,sample+n+budget,issued)
 
 def check_pair(s:readbuf, w:mutbuf, at:u64, size:u64) -> bool:
-    if read_word(s,at) != PAIR:
+    extension = choose(read_word(s,at) == EXTENDED_PAIR,96,0)
+    if extension == 0 and read_word(s,at) != PAIR:
         return False
     status = read_word(s,at+8)
     count = read_word(s,at+16)
     rows = read_word(s,at+24)
-    if status > 5 or count == 0 or count > 512 or rows > 2*count or size != 80+64*rows:
+    if status > 5 or count == 0 or count > 512 or rows > 2*count or size != 80+64*rows+extension:
         return False
     if status == 5 and (rows != 0 or read_word(s,at+72) != 2 or read_word(s,at+64) >= count):
         return False
@@ -124,6 +125,7 @@ def check_pair(s:readbuf, w:mutbuf, at:u64, size:u64) -> bool:
             put(w,24,1)
         if expected == 0 and code != 0:
             normal_reports_returned = False
+            put(w,1040+8*arm,1)
         if expected == 0 and code == 0:
             duration = read_word(s,row+40)
             if duration > MAX-get(w,totals+8*arm):
@@ -132,6 +134,24 @@ def check_pair(s:readbuf, w:mutbuf, at:u64, size:u64) -> bool:
         i = i+1
     if get(w,totals) != read_word(s,at+32) or get(w,totals+8) != read_word(s,at+40):
         return False
+    if extension != 0:
+        event = at+80+64*rows
+        arm = read_word(s,at+72)
+        which = read_word(s,at+64)
+        phase = read_word(s,event+40)
+        mismatched = (read_word(s,event) ^ BEGIN) | (read_word(s,event+8) ^ 1)
+        mismatched = mismatched | (read_word(s,event+16) ^ which) | (read_word(s,event+24) ^ arm)
+        if status < 2 or status > 4 or (arm | phase) > 1 or mismatched != 0 or read_word(s,event+32) == 0:
+            return False
+        original = get(w,4096+8*(arm*512+which))
+        if original == 0 and arm == 1:
+            original = get(w,4096+8*which)
+        if original != 0 and (read_word(s,original+16) != 0) != (phase != 0):
+            return False
+        if phase == 0:
+            put(w,1040+8*arm,1)
+    put(w,totals,get(w,totals)*(1-get(w,1040)))
+    put(w,totals+8,get(w,totals+8)*(1-get(w,1048)))
     complete = (status == 0 or status == 1) and rows == 2*count and normal_reports_returned
     if status == 0 and complete == False:
         return False
@@ -733,7 +753,22 @@ STATE = 32 << 20
 
 
 def hia_literals():
-    lines = []
+    # Keep literal tails within their declared span. Share the short byte loop
+    # across all documents to preserve the cold compiler's operation bound.
+    lines = ['''def literal_store(o:mutbuf,at:u64,n:u64,value:u64) -> u64:
+    i = 0
+    while i < n:
+        store(o,at+i,value & 255)
+        value = value >> 8
+        i = i+1
+    return at+n
+
+def literal_read(s:readbuf,at:u64,n:u64) -> u64:
+    value = 0
+    while n != 0:
+        n = n-1
+        value = (value << 8) | widen(byte(s,at+n))
+    return value''']
     def write(name, value):
         raw = value.encode()
         lines.append(f'def {name}(o:mutbuf, at:u64) -> u64:')
@@ -742,7 +777,7 @@ def hia_literals():
             if len(part) == 8:
                 lines.append(f'    put(o,at+{i},{int.from_bytes(part,"little")})')
             else:
-                lines.extend(f'    store(o,at+{i+j},{ch})' for j,ch in enumerate(part))
+                lines.append(f'    literal_store(o,at+{i},{len(part)},{int.from_bytes(part,"little")})')
         lines.append(f'    return at+{len(raw)}')
     def check(name, raw):
         parts = []
@@ -751,7 +786,7 @@ def hia_literals():
             if len(block) == 8:
                 parts.append(f'(read_word(s,at+{i}) ^ {int.from_bytes(block,"little")})')
             else:
-                parts.extend(f'(byte(s,at+{i+j}) ^ {ch})' for j,ch in enumerate(block))
+                parts.append(f'(literal_read(s,at+{i},{len(block)}) ^ {int.from_bytes(block,"little")})')
         lines.extend((f'def {name}(s:readbuf, at:u64) -> bool:', '    return ('+' | '.join(parts)+') == 0'))
     from tools.generate_hia_agent_identity import EVALUATION_RECORD
     parts = EVALUATION_RECORD.split('{}')
@@ -763,7 +798,7 @@ def hia_literals():
             if len(cell)==8:
                 lines.append(f'    put(o,p+{j},{int.from_bytes(cell,"little")})')
             else:
-                lines.extend(f'    store(o,p+{j+k},{v})' for k,v in enumerate(cell))
+                lines.append(f'    literal_store(o,p+{j},{len(cell)},{int.from_bytes(cell,"little")})')
         lines.append(f'    p = p+{len(raw)}')
     # Invoke the exact published identity template with spans derived from
     # the admitted Store rows and the settled decision.
@@ -903,7 +938,7 @@ def program():
     judge=judge.replace('if length(s) != 48:',f'if length(w) < {STATE+176}:')
     judge=re.sub(r'read_word\(s, (\d+)\)',lambda m:f'get(w,{STATE+128+int(m[1])})',judge)
     constants={name:int.from_bytes(raw,'little') for name,raw in dict(
-        REQUEST=b'HIAEST01',ISSUE=b'HIAEPR01',FRESH=b'HIAEFI04',BATCH=b'HIAEBT01',PAIR=b'HIAEPM01',BUDGET=b'HIAEBRS1',DECISION=b'HIAESD01',
+        REQUEST=b'HIAEST01',ISSUE=b'HIAEPR01',FRESH=b'HIAEFI04',BATCH=b'HIAEBT01',PAIR=b'HIAEPM01',EXTENDED_PAIR=b'HIAEPM02',BEGIN=b'HIAEEV01',BUDGET=b'HIAEBRS1',DECISION=b'HIAESD01',
         CLAIM=b'HIAEJC01',JOURNAL=b'HIAJRN02',ROUTE=b'HIAJMO01',COMMIT_ACK=b'HIASTCP1',
         TERMINAL=b'HIAESTR1',SIDEBAND=b'HIAIND01',UPDATE=b'HIAUPB01',CTX=b'ctx-').items()}
     constants.update(MAX=(1<<64)-1,BAD=4294967293,S_RECEIPT=7,S_LEDGER=8,S_MEASURE=9,S_BYTES=10,S_LATENCY=11)
