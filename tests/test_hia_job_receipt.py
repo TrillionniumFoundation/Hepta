@@ -64,6 +64,31 @@ class JobReceiptExecutableTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(struct.unpack('<8sQq', result.stderr), (b'HIAJRW01', phase, status))
 
+    def test_owner_markers_observe_only_original_directory_entries(self):
+        names = ('owner-intent.json', 'started.json', 'exit.json', 'exit.witness.json', 'exit.witness.json.tmp')
+        state = self.root.stat()
+        frame = struct.pack('<8s4Q', b'HIAJMK01', os.getpid(), state.st_dev, state.st_ino, 0)
+        for mask in range(32):
+            for index, name in enumerate(names):
+                path = self.root / name
+                path.unlink(missing_ok=True)
+                if mask & (1 << index):
+                    if index % 2:
+                        path.symlink_to('missing-target')
+                    else:
+                        path.touch()
+            self.check_receipt(self.invoke(frame), 3, mask)
+        for altered in (frame[:-1], frame + b'x',
+                        struct.pack('<8s4Q', b'HIAJMK01', os.getppid(), state.st_dev, state.st_ino, 0),
+                        struct.pack('<8s4Q', b'HIAJMK01', os.getpid(), state.st_dev, state.st_ino + 1, 0)):
+            refused = self.invoke(altered)
+            self.assertEqual((refused.returncode, refused.stderr), (65, b''))
+        refused = self.invoke(frame, sealed=False)
+        self.assertEqual((refused.returncode, refused.stderr), (65, b''))
+        self.root.chmod(0o750)
+        refused = self.invoke(frame)
+        self.assertEqual((refused.returncode, refused.stderr), (65, b''))
+
     def acquire_owner_lock(self, descriptor, *, parent=None, device=None, inode=None, sealed=True):
         state = os.fstat(descriptor)
         caller = os.getpid() if parent is None else parent

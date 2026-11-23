@@ -207,6 +207,25 @@ def _verify_terminal_publisher(writer, scratch):
             raise ValueError('installed HIA terminal publisher did not preserve the complete witness bytes')
 
 
+def _job_writer_has_owner_markers(writer, scratch):
+    with TemporaryDirectory(prefix='owner-marker-probe-', dir=scratch) as temp:
+        directory = Path(temp)
+        state = directory.stat()
+        frame = struct.pack('<8s4Q', b'HIAJMK01', os.getpid(), state.st_dev, state.st_ino, 0)
+        for expected in (0, 5, 21):
+            if expected == 5:
+                (directory / 'owner-intent.json').touch()
+                (directory / 'exit.json').touch()
+            elif expected == 21:
+                (directory / 'exit.witness.json.tmp').symlink_to('absent-original')
+            result = _run_job_writer(writer, frame, directory)
+            if expected == 0 and (result.returncode, result.stderr) == (65, b''):
+                return False
+            if (result.returncode, result.stderr) != (0, struct.pack('<8sQq', b'HIAJRW01', 3, expected)):
+                raise ValueError('installed HIA owner marker observation changed the durable entry mask')
+    return True
+
+
 def _job_writer_has_owner_file_lock(writer, scratch):
     import fcntl
 
@@ -533,6 +552,8 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v21'
     if schema == 'hepta.hia.mcp.controller.v21' and _job_writer_has_owner_file_lock(receipt_writer, scratch):
         schema = 'hepta.hia.mcp.controller.v22'
+    if schema == 'hepta.hia.mcp.controller.v22' and _job_writer_has_owner_markers(receipt_writer, scratch):
+        schema = 'hepta.hia.mcp.controller.v23'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

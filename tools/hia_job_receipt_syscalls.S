@@ -98,6 +98,8 @@ policy_call_hole:
  je observe_owner_fd
  cmp eax,15
  je acquire_owner_fd
+ cmp eax,16
+ je observe_owner_marker
  jmp refusal
 
 stage:
@@ -242,9 +244,8 @@ observed:
  mov [rbp+152],rax
  jmp next
 
-/* fd 1 shares the original supervisor's open file description. HIA checks
- * its identity, type, sharing mode, uid and link count before requesting
- * the nonblocking flock on this same description. */
+/* Observe fd 1. HIA checks the expected private lock or registry directory
+ * before selecting its next kernel operation. */
 observe_owner_fd:
  mov edi,1
  mov rsi,rbp
@@ -275,6 +276,17 @@ acquire_owner_fd:
  syscall
  cmp rax,-4
  je acquire_owner_fd
+ jmp observed
+
+observe_owner_marker:
+ mov edi,1                    /* pinned private registry directory */
+ lea rsi,[rbp+384]            /* fixed name constructed by HIA */
+ mov rdx,rbp
+ mov r10d,256                 /* AT_SYMLINK_NOFOLLOW */
+ mov eax,262                   /* newfstatat */
+ syscall
+ cmp rax,-4
+ je observe_owner_marker
  jmp observed
 
 emit:
