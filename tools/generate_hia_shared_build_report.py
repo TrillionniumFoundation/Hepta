@@ -471,9 +471,9 @@ def simd_build_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = word_load(w, 64)
     offset = word_load(s, 48)
     span = word_load(s, 56)
-    if word_load(s, 8) != 1 or isa != 1 or kind < 1 or kind > 3 or n < 1 or n > 128 or path > 4095:
+    if word_load(s, 8) != 1 or isa < 1 or isa > 3 or kind < 1 or kind > 3 or n < 1 or n > 128 or path > 4095:
         return 0
-    if word_load(w, 72) != kind or word_load(w, 80) != isa or word_load(s, 32) != 16 or word_load(s, 40) != 4:
+    if word_load(w, 72) != kind or word_load(w, 80) != isa or word_load(s, 32) != (8 << isa) or word_load(s, 40) != 4:
         return 0
     if word_load(s, 72) != 0 or span == 0 or offset > size or span > size - offset:
         return 0
@@ -507,11 +507,19 @@ def simd_build_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             store(o, at, ch)
             at = at + 1
         i = i + 1
-    LIT('","schema":"hepta.hia.verified-simd-build.v1","selected_strategy":"simd","simd_isa":"sse2","simd_unroll":4,')
+    LIT('","schema":"hepta.hia.verified-simd-build.v1","selected_strategy":"simd","simd_isa":"')
+    at = simd_isa(o, at, isa)
+    LIT('","simd_unroll":4,')
     if kind == 3:
-        LIT('"simd_copy_tail":"byte","simd_reduce_tail":null,')
+        if isa == 1:
+            LIT('"simd_copy_tail":"byte","simd_reduce_tail":null,')
+        else:
+            LIT('"simd_copy_tail":"endpoints-fast","simd_reduce_tail":null,')
     else:
-        LIT('"simd_copy_tail":null,"simd_reduce_tail":"byte",')
+        if isa == 1:
+            LIT('"simd_copy_tail":null,"simd_reduce_tail":"byte",')
+        else:
+            LIT('"simd_copy_tail":null,"simd_reduce_tail":"bounded",')
     LIT('"runtime_solver_calls":0,"status":"validated_not_executed","exports":["')
     at = copy(s, o, 208, 208 + n, at)
     LIT('"],"source_identity":{"core_sha256":"')
@@ -520,7 +528,22 @@ def simd_build_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     at = simd_mut_digest(o, w, at, 88)
     LIT('"},"toolchain":{"mode":"hia","sha256":"')
     at = simd_mut_digest(o, w, at, 32)
-    LIT('","role":"link_generated_object_only"},"validation":{"ok":true,"complete":true,"target_isa":"sse2","required_cpu_features":["sse2"],"required_xcr0_mask":0,"kind":"')
+    LIT('","role":"link_generated_object_only"},"validation":{"ok":true,"complete":true,"target_isa":"')
+    at = simd_isa(o, at, isa)
+    LIT('","required_cpu_features":[')
+    if isa == 1:
+        LIT('"sse2"')
+    else:
+        LIT('"avx"')
+        if kind != 3:
+            LIT(',"avx2"')
+        if isa == 3:
+            if kind == 1:
+                LIT(',"avx512bw"')
+            LIT(',"avx512f"')
+    LIT('],"required_xcr0_mask":')
+    at = decimal(o, at, choose(isa == 1, 0, choose(isa == 2, 6, 230)))
+    LIT(',"kind":"')
     if kind == 1:
         LIT('sum_u8')
     elif kind == 2:
@@ -532,6 +555,15 @@ def simd_build_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     LIT(',"function_text_bytes":')
     at = decimal(o, at, span)
     LIT('}}}\n')
+    return at
+
+def simd_isa(o:mutbuf, at:u64, isa:u64) -> u64:
+    if isa == 1:
+        LIT('sse2')
+    elif isa == 2:
+        LIT('avx2')
+    else:
+        LIT('avx512')
     return at
 
 def simd_mut_digest(o:mutbuf, w:mutbuf, at:u64, offset:u64) -> u64:

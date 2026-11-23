@@ -354,9 +354,7 @@ core_verified:
  call require_native_zero
  cmp QWORD PTR [rbp+SHARED_MODE],2
  jne scalar_build_plan
- cmp QWORD PTR [rbp+VERIFIED_TARGET_ISA],1
- jne scalar_build_plan
- call try_verified_sse2
+ call try_verified_simd
  test rax,rax
  jnz publish_artifact
 scalar_build_plan:
@@ -1739,7 +1737,7 @@ proof_child:
 
 # The whole Core has already passed admission. Only the independently described
 # borrowed-byte recurrence enters this ISA-specific path.
-try_verified_sse2:
+try_verified_simd:
  sub rsp,8
  mov esi,65536
  call allocate
@@ -1760,11 +1758,16 @@ try_verified_sse2:
  call release
  mov rax,[rbp+SIMD_SUBJECT_BYTES]
  test rax,rax
- jz no_verified_sse2_match
+ jz no_verified_simd_match
  cmp rax,25
  jb invalid
  cmp rax,152
  ja invalid
+ cmp QWORD PTR [rbp+VERIFIED_TARGET_ISA],0
+ jne verified_target_selected
+ call select_verified_native_target
+verified_target_selected:
+ mov rax,[rbp+SIMD_SUBJECT_BYTES]
  mov rbx,[rbp+SIMD_SUBJECT_PTR]
  mov rcx,[rbp+VERIFIED_TARGET_ISA]
  mov [rbx+rax],rcx
@@ -1875,12 +1878,152 @@ try_verified_sse2:
  mov eax,1
  add rsp,8
  ret
-no_verified_sse2_match:
+no_verified_simd_match:
  mov rdi,[rbp+SIMD_SUBJECT_PTR]
  mov esi,65536
  call release
  xor eax,eax
  add rsp,8
+ ret
+
+# Capture CPUID and OS-enabled XCR0 on each allowed CPU. The source-owned HIA
+# selector evaluates the intersection after the original affinity is restored.
+# The current process is a private build child and executes no emitted kernel.
+select_verified_native_target:
+ push rbx
+ push r12
+ push r13
+ push r14
+ push r15
+ sub rsp,35968
+ mov r12,rsp                      # original affinity
+ lea r13,[rsp+1024]               # requested singleton
+ lea r14,[rsp+2048]               # observed affinity
+ mov eax,204
+ xor edi,edi
+ mov esi,1024
+ mov rdx,r12
+ syscall
+ test eax,eax
+ jle io_failure
+ cmp eax,1024
+ ja io_failure
+ mov [rsp+35872],rax              # observed cpuset extent
+ lea rdi,[rsp+3072]               # wire header and up to 1024 observations
+ movabs rax,0x3155504349414948    # HIAICPU1
+ stosq
+ xor eax,eax
+ stosq
+ mov rdi,r13
+ mov ecx,128
+ rep stosq
+ xor r15d,r15d
+native_target_next_cpu:
+ mov rcx,[rsp+35872]
+ shl rcx,3
+ cmp r15,rcx
+ jae native_target_restore
+ bt QWORD PTR [r12],r15
+ jnc native_target_advance
+ bts QWORD PTR [r13],r15
+ mov eax,203
+ xor edi,edi
+ mov rsi,[rsp+35872]
+ mov rdx,r13
+ syscall
+ test eax,eax
+ jne io_failure
+ mov eax,204
+ xor edi,edi
+ mov esi,1024
+ mov rdx,r14
+ syscall
+ cmp rax,[rsp+35872]
+ jne io_failure
+ mov rcx,rax
+ mov rsi,r13
+ mov rdi,r14
+ repe cmpsb
+ jne io_failure
+ mov r8,[rsp+3080]
+ cmp r8,1024
+ jae io_failure
+ inc QWORD PTR [rsp+3080]
+ shl r8,5
+ lea r8,[rsp+r8+3088]
+ xor eax,eax
+ cpuid
+ mov [r8],rax                     # max_basic
+ mov QWORD PTR [r8+8],0
+ mov QWORD PTR [r8+16],0
+ mov QWORD PTR [r8+24],0
+ test eax,eax
+ jz native_target_cpu_captured
+ mov eax,1
+ cpuid
+ mov [r8+8],rcx                   # CPUID.1:ECX
+ bt ecx,27
+ jnc native_target_leaf7
+ xor ecx,ecx
+ xgetbv
+ shl rdx,32
+ or rax,rdx
+ mov [r8+16],rax                  # XCR0
+native_target_leaf7:
+ cmp QWORD PTR [r8],7
+ jb native_target_cpu_captured
+ mov eax,7
+ xor ecx,ecx
+ cpuid
+ mov [r8+24],rbx                  # CPUID.7.0:EBX
+native_target_cpu_captured:
+ btr QWORD PTR [r13],r15
+native_target_advance:
+ inc r15
+ jmp native_target_next_cpu
+native_target_restore:
+ mov eax,203
+ xor edi,edi
+ mov rsi,[rsp+35872]
+ mov rdx,r12
+ syscall
+ test eax,eax
+ jne io_failure
+ mov eax,204
+ xor edi,edi
+ mov esi,1024
+ mov rdx,r14
+ syscall
+ cmp rax,[rsp+35872]
+ jne io_failure
+ mov rcx,rax
+ mov rsi,r12
+ mov rdi,r14
+ repe cmpsb
+ jne io_failure
+ mov rsi,[rsp+3080]
+ shl rsi,5
+ add rsi,16
+ lea rdi,[rsp+3072]
+ lea rdx,[rsp+35880]
+ mov ecx,16
+ lea r8,[rsp+35896]
+ mov r9d,8
+ call build_simd_object_start
+ cmp eax,8
+ jne io_failure
+ mov rax,[rsp+35880]
+ cmp rax,1
+ jb io_failure
+ cmp rax,3
+ ja io_failure
+ mov [rbp+VERIFIED_TARGET_ISA],rax
+ add rsp,35968
+ pop r15
+ pop r14
+ pop r13
+ pop r12
+ pop rbx
  ret
 
 simd_supplied_report:

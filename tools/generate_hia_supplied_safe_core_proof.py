@@ -98,7 +98,7 @@ def admit(s:readbuf, w:mutbuf) -> u64:
     obj = uint(s, 32, 8)
     final = uint(s, 40, 8)
     if magic == SIMD_REQUEST:
-        if profile != 1:
+        if profile < 1 or profile > 3:
             return 0
         put(w, SIMD_ISA_SLOT, profile)
     if profile > 6 or budget < 100 or budget > 60000:
@@ -202,13 +202,20 @@ def observe_machine(o:mutbuf, w:mutbuf) -> u64:
     if get(w, SIMD_ISA_SLOT) != 0:
         shape = get(w, SIMD_KIND_SLOT)
         put(w, BINDING - 8, shape)
-        if simd_validate(w) != 32:
+        isa = get(w, SIMD_ISA_SLOT)
+        if isa == 1:
+            checked = simd_validate(w)
+        elif isa == 2:
+            checked = avx2_validate(w)
+        else:
+            checked = avx512_validate(w)
+        if checked != 32 or get(w, OBSERVATION + 8) != shape or get(w, OBSERVATION + 16) != isa or get(w, OBSERVATION + 24) != get(w, 248):
             return 0
         put(o, 0, SIMD_RECEIPT)
         put(o, 8, 1)
         put(o, 16, get(w, SIMD_ISA_SLOT))
         put(o, 24, shape)
-        put(o, 32, 16)
+        put(o, 32, 8 << isa)
         put(o, 40, 4)
         put(o, 48, get(w, 240))
         put(o, 56, get(w, 248))
@@ -344,11 +351,15 @@ def document():
     from tools.generate_hia_safe_core_binder import shared_transport
 
     from tools.generate_hia_verified_simd_sse2_check import embedded_source
+    from tools.generate_hia_verified_simd_avx2_check import source_program as avx2_checker
+    from tools.generate_hia_verified_simd_avx512_check import source_program as avx512_checker
 
     helpers = shared_transport()
     helpers = helpers[helpers.index('\ndef copy_work('):helpers.index('\ndef next(')]
     constants = {name: value for name, value in globals().items() if name.isupper() and type(value) is int}
     machine = embedded_source(BINDING, OBLIGATION, OBSERVATION)
+    for prefix,checker in [('avx2_',avx2_checker),('avx512_',avx512_checker)]:
+        machine += '\n' + embedded_source(BINDING, OBLIGATION, OBSERVATION, source_factory=checker, prefix=prefix)
     return transport_document(SOURCE + helpers + '\n' + machine, module='supplied_safe_core_proof', extra=constants)
 
 

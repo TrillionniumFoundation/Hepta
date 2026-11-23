@@ -1,4 +1,4 @@
-"""Author the HIA SSE2 object producer for the three closed byte recurrences.
+"""Author the HIA SSE2/AVX2/AVX512 object producer for the three closed byte recurrences.
 
 The runtime builds each instruction, resolves branches between named stages,
 and writes one ELF relocation for the external abort call.
@@ -6,31 +6,41 @@ and writes one ELF relocation for the external abort call.
 from pathlib import Path
 import re
 
+from tools.hia_verified_simd_wide_object_spec import WIDE, WIDE_LABELS
+
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_elf_linker import SOURCE as ELF
 from tools.generate_hia_shared_linker import document, SOURCE as SHARED
 from tools.generate_hia_elf_verified_linker import _shared_function
 
 MOD = 'verified_simd_sse2_object'
-LABELS = ('bulk', 'vector', 'merge', 'horizontal', 'tail', 'done', 'abort', 'admitted')
+LABELS = ('bulk', 'vector', 'merge', 'horizontal', 'tail', 'done', 'abort', 'admitted') + WIDE_LABELS
 SOURCE = """
 def produce(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) >= 8 and uint(s, 0, 8) == 3554835730800920904:
+        return host_target(s, o)
     if length(s) < 33 or length(s) > 160 or length(o) < 2048 or length(w) < 2048:
         return 0
     n = uint(s, 16, 8)
     shape = uint(s, 8, 8)
-    if uint(s, 0, 8) != SUBJECT or n < 1 or n > 128 or length(s) != n + 32 or uint(s, 24 + n, 8) != 1:
+    if uint(s, 0, 8) != SUBJECT or n < 1 or n > 128 or length(s) != n + 32:
         return 0
-    if shape < 1 or shape > 3 or symbol(s, n) == 0:
+    isa = uint(s, 24 + n, 8)
+    if isa < 1 or isa > 3 or shape < 1 or shape > 3 or symbol(s, n) == 0:
         return 0
     zero(o, 2048)
     put(w, 0, 64)
     put(w, 8, 0)
-    if shape == 3:
-        copy_guards(o, w)
+    if isa == 1:
+        if shape == 3:
+            copy_guards(o, w)
+        else:
+            reduce_guards(o, w, shape)
+        loops(o, w, shape)
+    elif shape == 3:
+        wide_copy(o, w, choose(isa == 2, 32, 64))
     else:
-        reduce_guards(o, w, shape)
-    loops(o, w, shape)
+        wide_reduction(o, w, shape, choose(isa == 2, 32, 64))
     label(w, DONE)
     if shape == 2:
         emit(o, w, '48 85 c0 b8 00 00 00 00')
@@ -42,7 +52,7 @@ def produce(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     emit(o, w, '00 00 00 00 0f 0b')
     i = 0
     while i < get(w, 8):
-        row = 128 + i * 16
+        row = 512 + i * 16
         at = get(w, row)
         to = get(w, 32 + get(w, row + 8) * 8)
         write(o, at, to - at - 4, 4)
@@ -178,8 +188,8 @@ def jump(o:mutbuf, w:mutbuf, destination:u64) -> u64:
 
 def fixup(o:mutbuf, w:mutbuf, destination:u64) -> u64:
     count = get(w, 8)
-    put(w, 128 + count * 16, get(w, 0))
-    put(w, 136 + count * 16, destination)
+    put(w, 512 + count * 16, get(w, 0))
+    put(w, 520 + count * 16, destination)
     put(w, 8, count + 1)
     return append(o, w, 0, 4)
 
@@ -254,7 +264,7 @@ def program():
         data = bytes.fromhex(match[1])
         assert 1 <= len(data) <= 8
         return f'append(o, w, {int.from_bytes(data, "little")}, {len(data)})'
-    policy = re.sub(r"emit\(o, w, '([a-f0-9 ]+)'\)", emit, SOURCE)
+    policy = re.sub(r"emit\(o, w, '([a-f0-9 ]+)'\)", emit, SOURCE + WIDE)
     names = b'\0.text\0.rela.text\0.symtab\0.strtab\0.shstrtab\0.note.GNU-stack\0'
     for token, value in {'SUBJECT': int.from_bytes(b'HIASIMC1','little'),
                          'SECTION_BYTES':len(names), 'ABORT_NAME':int.from_bytes(b'abort','little'),

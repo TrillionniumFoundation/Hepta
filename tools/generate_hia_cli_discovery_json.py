@@ -701,8 +701,13 @@ def standalone_capabilities_source():
     build = capabilities['build']
     build['selfhost']['hosted_cli_and_publication'] = False
     shared = build['auto_shared']
-    shared['selection'] = 'admitted scalar Core or an explicitly selected SIMD kernel'
-    shared['simd_target_isas'] = ['sse2']
+    shared['selection'] = 'admitted scalar Core or a supported SIMD kernel'
+    shared['simd_target_isas'] = ['sse2', 'avx2', 'avx512']
+    shared['simd_native_selection'] = {
+        'applies_to': ['implicit', 'native'],
+        'preference': ['avx512', 'avx2', 'sse2'],
+        'scope': 'features and OS vector state enabled on every CPU in the current affinity mask',
+    }
     shared['simd_kernels'] = ['sum_u8', 'all_zero_u8', 'copy_u8']
     build['native_shared'] = 'ordinary linked native ABI; ABI inventory checked, no machine verification claim'
     wire = (json.dumps(capabilities, indent=2, ensure_ascii=False, sort_keys=True) + '\n').encode()

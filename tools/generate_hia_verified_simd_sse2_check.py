@@ -338,10 +338,10 @@ def source_program():
 
 
 
-def embedded_source(binding, scratch, result):
+def embedded_source(binding, scratch, result, source_factory=source_program, prefix='simd_'):
     """Read the already bound text in the supplied verifier's private arena."""
     import ast
-    nodes = ast.parse(source_program()).body
+    nodes = ast.parse(source_factory()).body
     names = {n.name for n in nodes}
     def ref(name):
         return ast.Name(id=name, ctx=ast.Load())
@@ -359,9 +359,9 @@ def embedded_source(binding, scratch, result):
             args = [self.visit(arg) for arg in node.args]
             if name in names:
                 args = [arg for arg in args if not (isinstance(arg,ast.Name) and arg.id in {'s','o'})]
-                return call('simd_' + name, *args)
+                return call(prefix + name, *args)
             if name in ('uint','byte') and isinstance(args[0],ast.Name) and args[0].id == 's':
-                return call('simd_read' if name=='uint' else 'byte',ref('w'),add(binding-8,args[1]),*args[2:])
+                return call(prefix + 'read' if name=='uint' else 'byte',ref('w'),add(binding-8,args[1]),*args[2:])
             if name in ('get','put'):
                 base = result if args[0].id == 'o' else scratch
                 return call(name,ref('w'),add(base,args[1]),*args[2:])
@@ -369,12 +369,12 @@ def embedded_source(binding, scratch, result):
         def visit_FunctionDef(self, node):
             if node.name == 'validate':
                 node.returns.id = 'u64'
-            node.name = 'simd_' + node.name
+            node.name = prefix + node.name
             node.args.args = [arg for arg in node.args.args if arg.arg not in {'s','o'}]
             return self.generic_visit(node)
     transformed=ast.fix_missing_locations(Arena().visit(ast.Module(nodes,[])))
-    return ast.unparse(transformed) + '''
-def simd_read(w:mutbuf, at:u64, n:u64) -> u64:
+    return ast.unparse(transformed) + f'''
+def {prefix}read(w:mutbuf, at:u64, n:u64) -> u64:
     result = 0
     i = 0
     while i < n:
