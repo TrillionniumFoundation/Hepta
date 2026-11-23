@@ -423,6 +423,32 @@ class PrivilegedCode(Code):
         # ECX selects the MSR; EDX:EAX supplies its value; invalid writes #GP.
         self.emit(b"\x0f\x30")
 
+    def lock_cmpxchg64(self, base, replacement, disp=0):
+        """Atomically compare RAX with a 64-bit memory word; write replacement.
+
+        On success ZF=1; on failure ZF=0 and RAX receives the actual old
+        word.  This is only a machine-code primitive, not a HIA resource/
+        memory-order proof.  A complete kernel path must check the resulting
+        ZF and separately coordinate TLB, DMA and all CPUs.
+        """
+        b, s = self._reg(base), self._reg(replacement)
+        _s32(disp)
+        if base == "rax" or replacement == "rax" or base == replacement:
+            raise MachineEncodingError("CMPXCHG requires distinct address/replacement registers excluding implicit RAX")
+        if disp == 0 and (b & 7) != 5:
+            mod, displacement = 0, b""
+        elif -128 <= disp <= 127:
+            mod, displacement = 1, struct.pack("<b", disp)
+        else:
+            mod, displacement = 2, _s32(disp)
+        # LOCK + REX.W + 0F B1 /r; ModRM.reg = replacement, r/m = base.
+        # rsp/r12 use a mandatory SIB; rbp/r13 cannot use mod=00 without disp.
+        rex = 0x48 | ((s >> 3) << 2) | (b >> 3)
+        modrm = (mod << 6) | ((s & 7) << 3) | (b & 7)
+        sib = b"\x24" if (b & 7) == 4 else b""
+        self.emit(b"\xf0" + bytes([rex]) + b"\x0f\xb1" +
+                  bytes([modrm]) + sib + displacement)
+
     def iretq(self):
         # Long-mode 64-bit interrupt return, not a normal function return.
         self.emit(b"\x48\xcf")
