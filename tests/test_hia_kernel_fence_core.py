@@ -56,6 +56,11 @@ class KernelFenceCoreTests(unittest.TestCase):
         self.assertEqual(len(fence_rows), 1)
         self.assertEqual(fence_rows[0]["effects"], ("atomic",))
         self.assertNotIn("x86.fence.mfence", [row["name"] for row in opcode_catalog()["instructions"]])
+        legacy_decl = deepcopy(doc)
+        legacy_decl["schema"] = "hepta.hia.program.v8"
+        legacy_decl["functions"][0]["blocks"][0]["ops"] = []
+        with self.assertRaises(HIAProgramRejected):
+            verify_program(legacy_decl)
         for variant in ("missing_effect", "legacy", "unknown", "operand", "attribute", "output"):
             altered = deepcopy(doc)
             op = altered["functions"][0]["blocks"][0]["ops"][0]
