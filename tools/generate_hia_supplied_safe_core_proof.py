@@ -31,6 +31,11 @@ TYPED_REQUEST_SLOT = 256
 SIMD_ISA_SLOT = 264
 SIMD_KIND_SLOT = 272
 SIMD_REQUEST = int.from_bytes(b'HIASP001', 'little')
+SIMD_DETAIL_REQUEST = int.from_bytes(b'HIASP002', 'little')
+SIMD_DETAIL_RECEIPT = int.from_bytes(b'HIASIMR2', 'little')
+SIMD_DETAIL_SLOT = 512
+SIMD_DELTA_SLOT = 520
+SIMD_ORDINAL_SLOT = 528
 SIMD_SUBJECT = int.from_bytes(b'HIASIMC1', 'little')
 SIMD_RECEIPT = int.from_bytes(b'HIASIMR1', 'little')
 REQUEST_HEAD = 48
@@ -84,20 +89,23 @@ def proof_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
         return first_obligation(w)
     if phase == 9:
         return receive_obligation(o, w)
+    if phase == 10:
+        return receive_simd_induction(o, w)
     return 0
 
 def admit(s:readbuf, w:mutbuf) -> u64:
     if length(s) < REQUEST_HEAD:
         return 0
     magic = uint(s, 0, 8)
-    if magic != REQUEST_MAGIC and magic != TYPED_REQUEST_MAGIC and magic != SIMD_REQUEST:
+    if magic != REQUEST_MAGIC and magic != TYPED_REQUEST_MAGIC and magic != SIMD_REQUEST and magic != SIMD_DETAIL_REQUEST:
         return 0
     profile = uint(s, 8, 8)
     budget = uint(s, 16, 8)
     core = uint(s, 24, 8)
     obj = uint(s, 32, 8)
     final = uint(s, 40, 8)
-    if magic == SIMD_REQUEST:
+    if magic == SIMD_REQUEST or magic == SIMD_DETAIL_REQUEST:
+        put(w, SIMD_DETAIL_SLOT, choose(magic == SIMD_DETAIL_REQUEST, 1, 0))
         if profile < 1 or profile > 3:
             return 0
         put(w, SIMD_ISA_SLOT, profile)
@@ -211,16 +219,7 @@ def observe_machine(o:mutbuf, w:mutbuf) -> u64:
             checked = avx512_validate(w)
         if checked != 32 or get(w, OBSERVATION + 8) != shape or get(w, OBSERVATION + 16) != isa or get(w, OBSERVATION + 24) != get(w, 248):
             return 0
-        put(o, 0, SIMD_RECEIPT)
-        put(o, 8, 1)
-        put(o, 16, get(w, SIMD_ISA_SLOT))
-        put(o, 24, shape)
-        put(o, 32, 8 << isa)
-        put(o, 40, 4)
-        put(o, 48, get(w, 240))
-        put(o, 56, get(w, 248))
-        put(o, 72, 0)
-        return RECEIPT_HEAD
+        return start_simd_induction(w)
     profile = get(w, 160)
     flags = 0
     if profile > 2:
@@ -230,6 +229,97 @@ def observe_machine(o:mutbuf, w:mutbuf) -> u64:
     put(w, HEADER + 16, flags)
     return dispatch(w, 7, 3, WORK_OFFSET + HEADER, 24, MACHINE, MACHINE_CAP + 16,
                     WORK_OFFSET + BINDING, get(w, 192))
+
+def start_simd_induction(w:mutbuf) -> u64:
+    span = get(w, 248)
+    text = BINDING + 80
+    # One binder-owned abort relocation. Relocation offset addresses the call's
+    # displacement. Read the subtraction operand from the linked text itself.
+    rel = get(w, text + span + 24)
+    if rel < 5 or rel + 4 > span:
+        return 0
+    if byte(w, text + rel - 5) != 72 or byte(w, text + rel - 4) != 131:
+        return 0
+    if byte(w, text + rel - 3) != 236 or byte(w, text + rel - 1) != 232:
+        return 0
+    delta = byte(w, text + rel - 2)
+    if delta >= 128:
+        return 0
+    put(w, SIMD_DELTA_SLOT, delta)
+    put(w, SIMD_ORDINAL_SLOT, 1)
+    put(w, 224, RECEIPT_HEAD)
+    return send_simd_induction(w)
+
+def send_simd_induction(w:mutbuf) -> u64:
+    role = get(w, SIMD_ORDINAL_SLOT)
+    budget = (get(w, 128) - now(w)) // 1000000
+    if budget < 100:
+        return 0
+    delta = get(w, SIMD_DELTA_SLOT)
+    if role == 1:
+        if get(w, SIMD_KIND_SLOT) == 3:
+            extent = simd_copy_caller(w, delta)
+        else:
+            extent = simd_read_caller(w, delta)
+    elif role == 2:
+        extent = simd_abort_stack(w, delta)
+    elif role == 3 and get(w, SIMD_ISA_SLOT) == 1:
+        extent = simd_scalar_tail_exit(w, delta)
+    else:
+        return 0
+    put(w, HEADER, OBLIGATION_MAGIC)
+    put(w, HEADER + 8, 3)
+    put(w, HEADER + 16, budget)
+    return dispatch(w, 10, 5, WORK_OFFSET + HEADER, 24, OBLIGATION, OBLIGATION_CAP,
+                    WORK_OFFSET + FRAME, extent)
+
+def receive_simd_induction(o:mutbuf, w:mutbuf) -> u64:
+    size = get(w, 64)
+    if size < 120 or size > OBLIGATION_CAP or get(w, OBLIGATION) != OBLIGATION_REPLY:
+        return 0
+    if get(w, OBLIGATION + 8) != 3:
+        return 0
+    verdict = get(w, OBLIGATION + 16)
+    if verdict != SAT and verdict != UNSAT:
+        return 0
+    formula = get(w, OBLIGATION + 48)
+    witness = get(w, OBLIGATION + 56)
+    table = get(w, OBLIGATION + 64)
+    if formula < 40 or formula > size - 80 or witness > size - 80 - formula or table != size - 80 - formula - witness:
+        return 0
+    role = get(w, SIMD_ORDINAL_SLOT)
+    detail = get(w, SIMD_DETAIL_SLOT)
+    expected = choose(role == 1, SAT, UNSAT)
+    cursor = get(w, 224)
+    if detail == 1:
+        if cursor + 16 + size > length(o):
+            return 0
+        put(o, cursor, role)
+        put(o, cursor + 8, size)
+        copy_output(o, w, OBLIGATION, cursor + 16, size)
+        put(w, 224, cursor + 16 + size)
+    if verdict != expected:
+        if detail == 0:
+            return 0
+        return finish_simd_receipt(o, w, 2)
+    if role == choose(get(w, SIMD_ISA_SLOT) == 1, 3, 2):
+        return finish_simd_receipt(o, w, 1)
+    put(w, SIMD_ORDINAL_SLOT, role + 1)
+    return send_simd_induction(w)
+
+def finish_simd_receipt(o:mutbuf, w:mutbuf, status:u64) -> u64:
+    detail = get(w, SIMD_DETAIL_SLOT)
+    isa = get(w, SIMD_ISA_SLOT)
+    put(o, 0, choose(detail == 1, SIMD_DETAIL_RECEIPT, SIMD_RECEIPT))
+    put(o, 8, status)
+    put(o, 16, isa)
+    put(o, 24, get(w, SIMD_KIND_SLOT))
+    put(o, 32, 8 << isa)
+    put(o, 40, 4)
+    put(o, 48, get(w, 240))
+    put(o, 56, get(w, 248))
+    put(o, 72, choose(detail == 1, get(w, SIMD_ORDINAL_SLOT), 0))
+    return get(w, 224)
 
 def join_observations(w:mutbuf) -> u64:
     size = get(w, 64)
@@ -354,13 +444,15 @@ def document():
     from tools.generate_hia_verified_simd_avx2_check import source_program as avx2_checker
     from tools.generate_hia_verified_simd_avx512_check import source_program as avx512_checker
 
+    from tools.hia_verified_simd_induction import source as induction_source
+
     helpers = shared_transport()
     helpers = helpers[helpers.index('\ndef copy_work('):helpers.index('\ndef next(')]
     constants = {name: value for name, value in globals().items() if name.isupper() and type(value) is int}
     machine = embedded_source(BINDING, OBLIGATION, OBSERVATION)
     for prefix,checker in [('avx2_',avx2_checker),('avx512_',avx512_checker)]:
         machine += '\n' + embedded_source(BINDING, OBLIGATION, OBSERVATION, source_factory=checker, prefix=prefix)
-    return transport_document(SOURCE + helpers + '\n' + machine, module='supplied_safe_core_proof', extra=constants)
+    return transport_document(SOURCE + induction_source() + helpers + '\n' + machine, module='supplied_safe_core_proof', extra=constants)
 
 
 if __name__ == '__main__':
