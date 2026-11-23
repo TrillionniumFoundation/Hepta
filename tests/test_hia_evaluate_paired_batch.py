@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import struct
+import subprocess
 import tempfile
 import time
 import unittest
@@ -303,6 +304,91 @@ class PairedMeasurementTests(unittest.TestCase):
         h, rows = self.result(args)
         self.assertEqual(h[1:4],(0,1,2))
         self.assertEqual([(r[3],r[4],r[7]) for r in rows],[(0,0,8)]*2)
+
+    def test_live_budget_receipts_gate_both_physical_arms(self):
+        from tests.test_hia_execution_budget_native import CONTEXT, OWNER, VM, decoded, packet, row_packet
+
+        parameters = [('x', 'u64')]
+        program = m(f('id', parameters, ['u64'], [], [b('entry', parameters, [], ret('x'))]))
+        cases = [{'function': 'id', 'arguments': [7]}, {'function': 'id', 'arguments': [8]}]
+        inputs = self.fixture(program, cases, double=True)
+        for fault in (None, 'stale-candidate', 'foreign-first'):
+            with self.subTest(fault=fault), ExitStack() as stack:
+                engine = VM()
+                sequence = 0
+
+                def submit(message):
+                    nonlocal sequence
+                    result = engine.call(message)
+                    fields, values = decoded(result)
+                    self.assertEqual(fields[1], 0)
+                    sequence = fields[6]
+                    return result[1], fields, values
+
+                def command(event, values=(), *, payload=b'', now=0):
+                    return submit(packet(event, sequence, values, payload=payload, now=now))
+
+                started = time.monotonic_ns()
+                command(0, (1, 10000, started, len(CONTEXT), len(OWNER)), payload=CONTEXT + OWNER)
+                command(1, (1,))
+                submit(row_packet(sequence, b'0', None))
+                command(3, (1,))
+                submit(row_packet(sequence, b'0', OWNER))
+                claimed, fields, _ = command(4, (1,))
+                self.assertEqual((fields[2], fields[5]), (0, 7))
+                deadline = started + 8_000_000_000
+                inputs[5] = struct.pack('<8sQQ', b'HIAEPL04', 64 << 20, deadline) + claimed
+                fds = [stack.enter_context(sealed_reference_bytes(raw)) for raw in inputs]
+                process = subprocess.Popen([self.pair, *map(str, fds)], pass_fds=fds,
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stack.enter_context(process)
+                stack.callback(process.kill)
+
+                def read_event():
+                    start = process.stdout.read(8)
+                    if start != b'HIAEPGT1':
+                        return start, None
+                    return start, struct.unpack('<7Q', process.stdout.read(56))
+
+                seen, charges, grants = [], [], []
+                while True:
+                    tag, event = read_event()
+                    if event is None:
+                        break
+                    operation, arm, previous, now, limit, elapsed, cumulative = event
+                    self.assertEqual((previous, limit), (sequence, deadline))
+                    seen.append((operation, arm))
+                    if operation == 5:
+                        reply, fields, _ = command(5, ((limit - now) // 1_000_000,), now=now)
+                        self.assertEqual(fields[2], 7)
+                        grants.append(reply)
+                        if fault == 'stale-candidate' and arm == 1:
+                            reply = grants[0]
+                        if fault == 'foreign-first' and arm == 0:
+                            reply = reply.replace(OWNER, b'b' * 64)
+                    else:
+                        self.assertEqual(operation, 6)
+                        self.assertGreater(elapsed, 0)
+                        charges.append(elapsed)
+                        charge = str(elapsed).encode()
+                        reply, _, values = command(6, (1, len(charge)), payload=charge)
+                        self.assertEqual(int(values[4]), cumulative)
+                        self.assertEqual(cumulative, sum(charges))
+                    process.stdin.write(struct.pack('<Q', len(reply)) + reply)
+                    process.stdin.flush()
+                expected = [(5, 0), (6, 0), (5, 1), (6, 1)]
+                if fault:
+                    self.assertEqual((tag, process.wait(3)), (b'', 2))
+                    self.assertEqual(seen, expected[:3 if fault == 'stale-candidate' else 1])
+                else:
+                    self.assertEqual(tag, b'HIAEMT01')
+                    pair_len, event_len, _ = struct.unpack('<3Q', process.stdout.read(24))
+                    pair = process.stdout.read(pair_len)
+                    self.assertEqual(struct.unpack_from('<8s3Q', pair), (b'HIAEPM01', 0, 2, 4))
+                    self.assertEqual(len(process.stdout.read(event_len)), event_len)
+                    self.assertEqual(process.wait(3), 0)
+                    self.assertEqual(seen, expected)
+                self.assertEqual(process.stderr.read(), b'')
 
     def test_supervisor_stops_and_reaps_running_candidate_at_real_deadline(self):
         params = [('x','u64')]

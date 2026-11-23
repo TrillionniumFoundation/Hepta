@@ -5,6 +5,12 @@ direct-call supervisor, the baseline reference batch, and the limits packet.
 HIAEPL02 also requires the candidate reference batch on fd 9 and the two
 canonical Core files on fds 10 and 11. HIAEPL03 requests the same checks and
 a physical observation archive. HIAEPL01 accepts one agreed reference.
+HIAEPL04 appends a committed active HIAEBRS1 to the limits packet and
+requires a live grant and charge acknowledgement for each native arm. The
+worker reads each 64-byte HIAEPGT1 event from stdout and sends an eight-byte
+little-endian size and the original next HIAEBRS1 to stdin. Both identities
+and the receipt sequence must match. A final archive follows the last charge.
+All nine source descriptors can also be supplied as decimal argv entries.
 
 HIAEMT01 contains four little-endian words (magic, pair length, event bytes,
 event count), the ordinary HIAEPM01, then consecutive physical HIAEEV01
@@ -95,7 +101,10 @@ STATE_FIELDS = {
     'EVENT_SIZE': 376,
     'EVENT_COUNT': 384,
     'AFTER_CASE': 392,
-    'CASE_MISMATCH': 400,
+    'GATED': 400, 'GLOBAL_DEADLINE': 408, 'GATE_SEQUENCE': 416, 'GATE_OPEN': 424,
+    'GATE_BEGAN': 432, 'GATE_ARM': 440, 'GATE_MOMENT': 448, 'GATE_CHARGED': 456,
+    'GATE_FINISH': 464, 'GATE_USED': 472, 'GATE_BINDING': 11000,
+    'CASE_MISMATCH': 480,
 }
 
 # File descriptors 3..8 carry [ABI, workload], baseline, candidate, native
@@ -106,7 +115,14 @@ POLICY = '''
 def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     state = get(w, STATE)
     if state == 0:
-        if length(s) != 24 or (read_word(s,0) != CONTROL and read_word(s,0) != BOTH_CONTROL and read_word(s,0) != ARCHIVE_CONTROL):
+        if length(s) < 24:
+            return 0
+        if read_word(s,0) == GATED_CONTROL:
+            if valid_gate_receipt(s,24,w,0,True) == False:
+                return 0
+            put(w,GATED,1)
+            put(w,GLOBAL_DEADLINE,read_word(s,16))
+        elif length(s) != 24 or (read_word(s,0) != CONTROL and read_word(s,0) != BOTH_CONTROL and read_word(s,0) != ARCHIVE_CONTROL):
             return 0
         m = read_word(s, 8)
         d = read_word(s, 16)
@@ -117,7 +133,10 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, MEMORY_LIMIT, m)
         put(w, DEADLINE, d)
         if read_word(s,0) != CONTROL:
-            put(w,DOUBLE_REFERENCE,choose(read_word(s,0) == ARCHIVE_CONTROL,2,1))
+            mode = 1
+            if read_word(s,0) == GATED_CONTROL or read_word(s,0) == ARCHIVE_CONTROL:
+                mode = 2
+            put(w,DOUBLE_REFERENCE,mode)
             put(w,STATE,8)
             return 8
         put(w, STATE, 1)
@@ -143,6 +162,8 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if get(w,DOUBLE_REFERENCE) == 2:
             return archive_owner(o,w)
         return observe(s, o, w)
+    if state == 15 or state == 16:
+        return budget_returned(s,o,w,state)
     if state == 13:
         return observe(s,o,w)
     if state == 14:
@@ -164,6 +185,102 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if state == 12:
         return compare_one(s,o,w)
     return 0
+
+def valid_gate_receipt(s:readbuf, at:u64, w:mutbuf, action:u64, initial:bool) -> bool:
+    if at > length(s) or length(s) - at < 228 or read_word(s,at) != BUDGET_RESULT:
+        return False
+    if read_word(s,at+8) != 0 or read_word(s,at+16) != action or read_word(s,at+40) != 7 or read_word(s,at+56) != 1:
+        return False
+    sequence = read_word(s,at+48)
+    if sequence == 0 or read_word(s,at+24) != sequence or read_word(s,at+64) != 36 or read_word(s,at+80) != 64 or read_word(s,at+88) != 0:
+        return False
+    if read_word(s,at+104) != 1 or read_word(s,at+112) != 1 or read_word(s,at+120) != 0:
+        return False
+    used = read_word(s,at+72)
+    charged = read_word(s,at+96)
+    if used == 0 or used > 4096 or charged == 0 or charged > 20 or length(s)-at != 228 + used + charged:
+        return False
+    if initial == False and (sequence != get(w,GATE_SEQUENCE) + 1 or used != get(w,GATE_USED)):
+        return False
+    body = at+128
+    i = 0
+    while i < 100 + used:
+        c = byte(s,body+i)
+        if i < 4:
+            if c != ((762868835 >> (8*i)) & 255):
+                return False
+        elif i < 36 or i >= 36+used:
+            if (c < 48 or c > 57) and (c < 97 or c > 102):
+                return False
+        elif c < 48 or c > 57 or (i == 36 and used > 1 and c == 48):
+            return False
+        if initial:
+            store(w,GATE_BINDING+i,c)
+        elif byte(w,GATE_BINDING+i) != c:
+            return False
+        i = i+1
+    value = 0
+    i = 0
+    while i < charged:
+        c = byte(s,body+100+used+i)
+        if c < 48 or c > 57 or (i == 0 and charged > 1 and c == 48) or value > 1844674407370955161 or (value == 1844674407370955161 and c > 53):
+            return False
+        value = 10*value+c-48
+        i = i+1
+    if value != get(w,GATE_CHARGED):
+        return False
+    if initial:
+        put(w,GATE_USED,used)
+    put(w,GATE_SEQUENCE,sequence)
+    return True
+
+def budget_event(o:mutbuf,w:mutbuf,operation:u64,arm:u64) -> u64:
+    now = get(w,CLOCK)
+    if arm > 1 or now == 0:
+        return 0
+    elapsed = 0
+    if operation == 6:
+        start = get(w,GATE_BEGAN)
+        if now < start or now-start > MAX-get(w,GATE_CHARGED):
+            return 0
+        elapsed = now-start
+        put(w,GATE_CHARGED,get(w,GATE_CHARGED)+elapsed)
+    put(o,0,BUDGET_EVENT)
+    put(o,8,operation)
+    put(o,16,arm)
+    put(o,24,get(w,GATE_SEQUENCE))
+    put(o,32,now)
+    put(o,40,get(w,GLOBAL_DEADLINE))
+    put(o,48,elapsed)
+    put(o,56,get(w,GATE_CHARGED))
+    put(w,GATE_MOMENT,now)
+    put(w,GATE_ARM,arm)
+    put(w,STATE,choose(operation==5,15,16))
+    return 14
+
+def budget_returned(s:readbuf,o:mutbuf,w:mutbuf,state:u64) -> u64:
+    if valid_gate_receipt(s,0,w,choose(state==15,7,0),False) == False:
+        return 0
+    if state == 15:
+        ms = read_word(s,32)
+        start = get(w,GATE_MOMENT)
+        if ms == 0 or ms > 3600000 or start > MAX - 1000000 * ms:
+            return 0
+        bound = start + 1000000 * ms
+        if bound > get(w,GLOBAL_DEADLINE):
+            bound = get(w,GLOBAL_DEADLINE)
+        if get(w,CLOCK) >= bound:
+            return 0
+        put(w,DEADLINE,bound)
+        put(w,GATE_BEGAN,get(w,CLOCK))
+        put(w,GATE_OPEN,get(w,GATE_ARM)+1)
+    else:
+        put(w,GATE_OPEN,0)
+        put(w,DEADLINE,get(w,GLOBAL_DEADLINE))
+        if get(w,GATE_FINISH) != 0:
+            return finish(o,w,get(w,GATE_FINISH)-1)
+    put(w,STATE,3)
+    return 1
 
 def retain_shapes(s:readbuf, o:mutbuf, w:mutbuf, count:u64) -> u64:
     signatures = first(w, 64)
@@ -449,6 +566,10 @@ def measure_next(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             put(w, CASE_INDEX, index)
             put(w, ARM, arm)
             put(w, TRAP_PHASE, traps)
+            if get(w,GATED) == 1 and get(w,GATE_OPEN) != arm + 1:
+                if get(w,GATE_OPEN) != 0:
+                    return budget_event(o,w,6,get(w,GATE_OPEN)-1)
+                return budget_event(o,w,5,arm)
             return prepare_case(s, o, w, index)
         else:
             index = index + 1
@@ -756,6 +877,9 @@ def mismatch(w:mutbuf) -> u64:
     return 0
 
 def finish(o:mutbuf, w:mutbuf, status:u64) -> u64:
+    if get(w,GATED) == 1 and get(w,GATE_OPEN) != 0:
+        put(w,GATE_FINISH,status+1)
+        return budget_event(o,w,6,get(w,GATE_OPEN)-1)
     if status == 0 and get(w,MISMATCH) != 0:
         status = 1
         put(w,CASE_INDEX,get(w,FIRST_CASE))
@@ -803,7 +927,7 @@ def snapshot_hash():
 
 
 def program():
-    magic = dict(CONTROL=b'HIAEPL01', BOTH_CONTROL=b'HIAEPL02', ARCHIVE_CONTROL=b'HIAEPL03', ARCHIVE=b'HIAEMT01', EVENT=b'HIAEEV01', WORKLOAD=b'HIAEVW01', BATCH=b'HIAEBT01', REFERENCE=b'HIASPR01',
+    magic = dict(CONTROL=b'HIAEPL01', BOTH_CONTROL=b'HIAEPL02', ARCHIVE_CONTROL=b'HIAEPL03', GATED_CONTROL=b'HIAEPL04', BUDGET_RESULT=b'HIAEBRS1', BUDGET_EVENT=b'HIAEPGT1', ARCHIVE=b'HIAEMT01', EVENT=b'HIAEEV01', WORKLOAD=b'HIAEVW01', BATCH=b'HIAEBT01', REFERENCE=b'HIASPR01',
                  PLAN=b'HIAEVC01', SUPERVISE=b'HIADRS01', RUN=b'HIADRX02', TERMINAL=b'HIADRT01',
                  RECEIPT=b'HIADRR02', PAIR=b'HIAEPM01')
     values = {name: int.from_bytes(value, 'little') for name, value in magic.items()}
@@ -823,6 +947,48 @@ def program():
     return '\n'.join((policy,case,schema,*literals,snapshot_hash()))
 
 
+def pair_document():
+    """Share identical constant returns so the full checked policy fits the bootstrap CFG."""
+    from hepta.hia_program import verify_program
+
+    result = document(program(), SOURCE.stem)
+    for fn in result['functions']:
+        targets, duplicates = {}, {}
+        for block in fn['blocks']:
+            ops, term = block['ops'], block['term']
+            if block['id'] == fn['entry'] or term['op'] != 'ret' or len(ops) not in (1, 2):
+                continue
+            first = ops[0]
+            if first['op'] != 'const' or first['args'] or len(first['out']) != 1:
+                continue
+            value = first['out'][0]
+            cast = None
+            if len(ops) == 2:
+                conversion = ops[1]
+                if (conversion['op'] != 'int.cast' or conversion['attrs'] != {'mode': 'wrap'}
+                        or conversion['args'] != [value['name']] or len(conversion['out']) != 1):
+                    continue
+                value = conversion['out'][0]
+                cast = value['type']
+            if term['values'] != [value['name']]:
+                continue
+            # The target has the same resource/argument types and executes
+            # the same operations. Every incoming edge retains all arguments.
+            key = (tuple(p['type'] for p in block['params']), first['out'][0]['type'],
+                   first['attrs']['value'], cast)
+            previous = targets.setdefault(key, block['id'])
+            if previous != block['id']:
+                duplicates[block['id']] = previous
+        for block in fn['blocks']:
+            term = block['term']
+            edges = [term] if term['op'] == 'jump' else [term['then'], term['else']] if term['op'] == 'branch' else []
+            for edge in edges:
+                edge['target'] = duplicates.get(edge['target'], edge['target'])
+        fn['blocks'] = [block for block in fn['blocks'] if block['id'] not in duplicates]
+    verify_program(result)
+    return result
+
+
 def packer_document():
     from tools.build_hia_agent_batch_commit import adapter_layout
     from tools.generate_hia_native_filter import bind_adapter, document as packer, elf_header
@@ -837,5 +1003,5 @@ def packer_document():
 
 
 if __name__ == '__main__':
-    SOURCE.write_text(render_assembly(document(program(), SOURCE.stem)), encoding='utf-8')
+    SOURCE.write_text(render_assembly(pair_document()), encoding='utf-8')
     PACKER.write_text(render_assembly(packer_document()), encoding='utf-8')

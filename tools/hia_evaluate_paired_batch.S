@@ -1,6 +1,8 @@
 /* Six already admitted immutable fds: [ABI,workload], baseline ELF, candidate
  * ELF, direct-call supervisor, baseline HIA reference batch, memory/deadline.
  * HIAEPL02 additionally opens fds 9..11 for the other reference and both Core files.
+ * A nine-descriptor argv vector is retained before assignment to these slots.
+ * HIAEPL04 obtains and charges one live budget grant per actual arm.
  * The ports below perform only bounded transport. HIA drives progress,
  * owns comparison, trap policy, warmups and report order, and emits the report. */
 .intel_syntax noprefix
@@ -27,10 +29,52 @@
 .equ OTHER_CORE,368
 .equ EVENT_FD,384
 _start:
-    cmp QWORD PTR [rsp],1
-    jne refuse
-    sub rsp,400
+    mov r14,rsp
+    sub rsp,4824
     mov rbp,rsp
+    cmp QWORD PTR [r14],1
+    je inputs_ready
+    cmp QWORD PTR [r14],10
+    jne refuse
+    xor r13d,r13d
+retain_descriptor:
+    mov rsi,[r14+r13*8+16]
+    call unsigned_decimal
+    cmp rax,3
+    jb refuse
+    cmp rax,2147483647
+    ja refuse
+    mov edi,eax
+    mov esi,1030
+    mov edx,32
+    mov eax,72
+    syscall
+    test rax,rax
+    js refuse
+    mov [rbp+r13*8+400],rax
+    inc r13d
+    cmp r13d,9
+    jne retain_descriptor
+    xor r13d,r13d
+normalize_descriptor:
+    mov edi,[rbp+r13*8+400]
+    lea esi,[r13+3]
+    xor edx,edx
+    mov eax,292
+    syscall
+    cmp eax,esi
+    jne refuse
+    inc r13d
+    cmp r13d,9
+    jne normalize_descriptor
+    mov edi,12
+    mov esi,-1
+    xor edx,edx
+    mov eax,436
+    syscall
+    test rax,rax
+    jne refuse
+inputs_ready:
     mov QWORD PTR [rbp+SECOND_REF],0
     lea rdi,[rbp+FRAME]
     mov ecx,4
@@ -84,7 +128,7 @@ check_seals:
     mov [rbp+REF],rax
     mov [rbp+REF+8],rsi
     mov edi,8
-    mov esi,24
+    mov esi,4424
     call map_input
     mov [rbp+CONFIG],rax
     mov [rbp+CONFIG+8],rsi
@@ -194,6 +238,8 @@ pair_call_hole: .long 0
     je event_loan
     cmp eax,13
     je publish_archive
+    cmp eax,14
+    je gate_event
     cmp eax,6
     jne refuse
     mov edi,1
@@ -204,6 +250,98 @@ pair_call_hole: .long 0
     call write_all
     xor edi,edi
     jmp exit
+gate_event:
+    mov edi,1
+    mov rsi,[rbp+OUTPUT]
+    mov edx,64
+    call write_all
+    lea rsi,[rbp+FRAME]
+    mov edx,8
+    call read_gate
+    mov r12,[rbp+FRAME]
+    cmp r12,228
+    jb refuse
+    cmp r12,4400
+    ja refuse
+    lea rsi,[rbp+400]
+    mov rdx,r12
+    call read_gate
+    call clock_now
+    lea rdi,[rbp+400]
+    mov rsi,r12
+    mov rdx,[rbp+OUTPUT]
+    mov ecx,OUT
+    jmp enter_hia
+/* Wait only within the original frozen context window. EOF, interruption
+ * beyond the deadline and short receipts never authorize another arm. */
+
+unsigned_decimal:
+    xor eax,eax
+    cmp BYTE PTR [rsi],49
+    jb refuse
+decimal_digit:
+    movzx edx,BYTE PTR [rsi]
+    cmp edx,48
+    jb refuse
+    cmp edx,57
+    ja refuse
+    imul rax,rax,10
+    jo refuse
+    sub edx,48
+    add rax,rdx
+    jo refuse
+    inc rsi
+    cmp BYTE PTR [rsi],0
+    jne decimal_digit
+    ret
+
+read_gate:
+    push r12
+    push r13
+    mov r12,rsi
+    mov r13,rdx
+gate_read_more:
+    call clock_now
+    mov rcx,[r15+408]
+    cmp rax,rcx
+    jae refuse
+    sub rcx,rax
+    mov rax,rcx
+    xor edx,edx
+    mov ecx,1000000
+    div rcx
+    test rdx,rdx
+    jz gate_poll
+    inc rax
+gate_poll:
+    cmp rax,86400000
+    ja refuse
+    mov edx,eax
+    mov QWORD PTR [rbp+WHEN],0
+    mov WORD PTR [rbp+WHEN+4],1
+    lea rdi,[rbp+WHEN]
+    mov esi,1
+    mov eax,7
+    syscall
+    cmp rax,-4
+    je gate_read_more
+    cmp rax,1
+    jne refuse
+    xor edi,edi
+    mov rsi,r12
+    mov rdx,r13
+    xor eax,eax
+    syscall
+    cmp rax,-4
+    je gate_read_more
+    test rax,rax
+    jle refuse
+    add r12,rax
+    sub r13,rax
+    jne gate_read_more
+    pop r13
+    pop r12
+    ret
 event_file:
     cmp QWORD PTR [rbp+EVENT_FD],-1
     jne event_ready
