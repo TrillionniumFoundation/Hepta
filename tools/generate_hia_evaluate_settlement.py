@@ -7,6 +7,10 @@ settlement, and applies the existing HIA measurement policy. Optional issuance
 material is five Store-issued refs followed by read-back measurement, cost and
 evaluation documents. Their SHA-256 and relevant public fields are checked
 before emitting the public response, Journal command or cost sideband.
+
+HIAEPR01 uses the same settled header with five refs (baseline, candidate,
+build receipt, ledger, measurements), and length-prefixed ledger, measurements,
+and HIAEFI04 evidence. It issues original public evaluation-receipt JSON.
 """
 
 from pathlib import Path
@@ -29,7 +33,7 @@ MAGIC = int.from_bytes(b'HIAESP01', 'little')
 # public request, at 36/64/64/66 bytes. Remaining sections are length-delimited.
 POLICY = '''
 def settle(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 390 or read_word(s,0) != REQUEST:
+    if length(s) < 390 or (read_word(s,0) != REQUEST and read_word(s,0) != ISSUE):
         return BAD
     if read_word(s,8) == 0 or read_word(s,8) > 67108864 or read_word(s,16) == 0 or read_word(s,16) > 67108864:
         return BAD
@@ -53,7 +57,7 @@ def settle(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return BAD
     status = read_word(s,sample+8)
     if status == 5:
-        if budget != 0 or issued != 0:
+        if budget != 0 or issued != 0 or read_word(s,0) != REQUEST:
             return BAD
         return refused(s,o,w,read_word(s,sample+64))
     if budget < 128 or closed_budget(s,w,sample+n,budget) == False:
@@ -78,6 +82,8 @@ def settle(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w,40,ratio)
     put(w,48,before)
     put(w,56,after)
+    if read_word(s,0) == ISSUE:
+        return issue_receipt(s,o,w,sample+n+budget,issued)
     if issued == 0:
         return decision_record(s,o,w)
     return publish(s,o,w,sample+n+budget,issued)
@@ -350,6 +356,155 @@ def hexchar(x:u64) -> u64:
     return choose(x < 10,x+48,x+87)
 '''
 
+ISSUE = '''
+# The private issue input replaces the evaluation receipt ref with the
+# original build receipt ref. Two issued Store documents and the original
+# HIAEFI04 then follow, each with an unsigned word length.
+def issue_receipt(s:readbuf,o:mutbuf,w:mutbuf,refs:u64,n:u64) -> u64:
+    if n < 1020:
+        return BAD
+    i = 0
+    while i < 5:
+        if checked_ref(s,refs+176*i) == False:
+            return BAD
+        i = i+1
+    cursor = refs+880
+    i = 1
+    while i <= 2:
+        if length(s)-cursor < 8:
+            return BAD
+        width = read_word(s,cursor)
+        cursor = cursor+8
+        if width < 2 or width > 8388608 or width > length(s)-cursor:
+            return BAD
+        ref = refs+176*(2+i)
+        if widen(pair_hash_sha256(s,w,cursor,width)) != 32 or digest_matches(s,w,ref+53) == False:
+            return BAD
+        if fields(s,o,w,cursor,width) == False:
+            return BAD
+        if i == 1:
+            # All documents must bind precisely the same typed Context.
+            put(w,256,get(w,2048+16*K_context))
+        if document_matches(s,o,w,refs,i) == False:
+            return BAD
+        if i == 2:
+            if get(w,2056+16*K_workload) != 176 or get(w,2056+16*K_objective) != 176:
+                return BAD
+            put(w,20048,get(w,2048+16*K_objective))
+            put(w,20056,get(w,2048+16*K_workload))
+        cursor = cursor+width
+        i = i+1
+    if length(s)-cursor < 120 or read_word(s,cursor) != length(s)-cursor-8:
+        return BAD
+    start = cursor+8
+    if fresh_facts(s,o,w,refs,start) == False:
+        return BAD
+    return issue_json(s,o,w,refs)
+
+def fresh_facts(s:readbuf,o:mutbuf,w:mutbuf,refs:u64,start:u64) -> bool:
+    if read_word(s,start) != FRESH:
+        return False
+    count = read_word(s,start+8)
+    if count < 9 or count > 1024:
+        return False
+    first = read_word(s,start+80)
+    last = read_word(s,start+104)
+    if first == 0 or read_word(s,start+88) < first or read_word(s,start+96) < read_word(s,start+88) or last < read_word(s,start+96) or last-first != read_word(s,64):
+        return False
+    req = read_word(s,start+48)
+    rows = read_word(s,start+56)
+    left = read_word(s,start+64)
+    right = read_word(s,start+72)
+    at = start+112
+    if req < 2 or req > length(s)-at or rows > length(s)-at-req:
+        return False
+    if left > length(s)-at-req-rows or right != length(s)-at-req-rows-left or left < 24 or right < 24:
+        return False
+    if read_word(s,at+req+rows) != BATCH or read_word(s,at+req+rows+left) != BATCH:
+        return False
+    if read_word(s,at+req+rows+8) != read_word(s,326) or read_word(s,at+req+rows+left+8) != read_word(s,326):
+        return False
+    if fields(s,o,w,at,req) == False:
+        return False
+    id = get(w,2048+16*K_request_sha256)
+    if get(w,2056+16*K_request_sha256) != 66 or same(s,id+1,246,64) == False:
+        return False
+    arg = get(w,2048+16*K_arguments)
+    width = get(w,2056+16*K_arguments)
+    if width == 0 or fields(s,o,w,arg,width) == False:
+        return False
+    if ref_field(s,w,K_baseline_artifact,refs) == False or ref_field(s,w,K_candidate_artifact,refs+176) == False or ref_field(s,w,K_build_receipt,refs+352) == False or ref_field_len(s,w,K_context,get(w,256),121) == False:
+        return False
+    vr = get(w,2048+16*K_verification_receipts)
+    num = count-9
+    if get(w,2056+16*K_verification_receipts) != choose(num==0,2,1+177*num) or byte(s,vr) != 91:
+        return False
+    put(w,20000,vr)
+    put(w,20008,get(w,2056+16*K_verification_receipts))
+    at = at+req
+    stop = at+rows
+    i = 0
+    while i < count:
+        if at > stop or stop-at < 208 or read_word(s,at) != i:
+            return False
+        kind = read_word(s,at+8)
+        meta = read_word(s,at+16)
+        size = read_word(s,at+24)
+        ref = at+32
+        at = at+208
+        if meta > stop-at or size > stop-at-meta or checked_ref(s,ref) == False:
+            return False
+        if i == 0:
+            if kind != 3 or same(s,ref+53,get(w,256)+55,64) == False or fields(s,o,w,at+meta,size) == False:
+                return False
+            if ref_field(s,w,K_objective,get(w,20048)) == False or ref_field(s,w,K_workload,get(w,20056)) == False:
+                return False
+            install = get(w,2048+16*K_installation)
+            install_width = get(w,2056+16*K_installation)
+            if install_width < 2 or byte(s,install) != 123:
+                return False
+            put(w,20016,install)
+            put(w,20024,install_width)
+        elif i <= 2:
+            if kind != 7 or same(s,ref,refs+176*(i-1),176) == False or size != read_word(s,8*i):
+                return False
+            if fields(s,o,w,at,meta) == False or ref_field_len(s,w,K_installation,get(w,20016),get(w,20024)) == False or ref_field_len(s,w,K_context,get(w,256),121) == False:
+                return False
+            digest = get(w,2048+16*K_core_sha256)
+            if get(w,2056+16*K_core_sha256) != 66 or hexadecimal(s,digest+1,64) == False:
+                return False
+            put(w,20032+8*(i-1),digest)
+        elif i == 3:
+            if kind != 5 or same(s,ref,refs+352,176) == False:
+                return False
+        elif i < count-5:
+            if kind != 8 or same(s,ref,vr+1+177*(i-4),176) == False:
+                return False
+        elif i < count-3:
+            digest = get(w,20032+8*(i-(count-5)))
+            if kind != 0 or widen(pair_hash_sha256(s,w,at,meta)) != 32 or digest_matches(s,w,digest+1) == False:
+                return False
+        elif (i == count-3 and kind != 6) or (i > count-3 and kind != 0):
+            return False
+        if i == count-2:
+            if same(s,ref,get(w,20048),176) == False or fields(s,o,w,at+meta,size) == False or string_field(s,w,K_metric,choose(read_word(s,24)==1,S_BYTES,S_LATENCY)) == False:
+                return False
+            threshold = get(w,2048+16*K_min_improvement_ratio)
+            width = get(w,2056+16*K_min_improvement_ratio)
+            if width == 0 or widen(decimal_convert(s,w,threshold,width)) != 8 or exact_ratio(w) != read_word(s,32):
+                return False
+        if i == count-1 and same(s,ref,get(w,20056),176) == False:
+            return False
+        if widen(pair_hash_sha256(s,w,at+meta,size)) != 32 or digest_matches(s,w,ref+53) == False:
+            return False
+        at = at+meta+size
+        i = i+1
+    return at == stop
+
+def ref_field_len(s:readbuf,w:mutbuf,key:u64,at:u64,n:u64) -> bool:
+    return get(w,2056+16*key) == n and same(s,get(w,2048+16*key),at,n)
+'''
+
 MATCH = '''
 def document_matches(s:readbuf, o:mutbuf, w:mutbuf, refs:u64, order:u64) -> bool:
     context = get(w,2048+16*K_context)
@@ -491,7 +646,7 @@ FIELDS = ('schema','outcome','baseline_artifact','candidate_artifact','full_cost
           'metric','baseline_value','candidate_value','planned_cases','planned_workload_complete','report_complete',
           'termination_confirmed','adopted','reference_wall_ns','native_child_wall_ns','evaluation_wall_ns_through_report','context','improvement_ratio','observations','native_runs',
           'reference_runs','baseline','candidate','index','elapsed_ns','baseline_vm','candidate_vm','baseline_native',
-          'candidate_native','total_native_ns')
+          'candidate_native','total_native_ns','arguments','request_sha256','build_receipt','verification_receipts','installation','core_sha256','objective','workload','min_improvement_ratio')
 OUTCOMES = ('budget_exceeded','incorrect','inconclusive','improved','regressed','unchanged')
 NAMES = (*OUTCOMES, 'hepta.hia.agent.evaluation.v1','hepta.hia.agent.cost-ledger.v1',
          'hepta.hia.agent.measurements.v1','artifact_bytes','latency_ns')
@@ -531,10 +686,39 @@ def hia_literals():
         for i in range(0,len(raw),8):
             block = raw[i:i+8]
             if len(block) == 8:
-                parts.append(f'read_word(s,at+{i}) == {int.from_bytes(block,"little")}')
+                parts.append(f'(read_word(s,at+{i}) ^ {int.from_bytes(block,"little")})')
             else:
-                parts.extend(f'byte(s,at+{i+j}) == {ch}' for j,ch in enumerate(block))
-        lines.extend((f'def {name}(s:readbuf, at:u64) -> bool:', '    return '+' and '.join(parts)))
+                parts.extend(f'(widen(byte(s,at+{i+j})) ^ {ch})' for j,ch in enumerate(block))
+        lines.extend((f'def {name}(s:readbuf, at:u64) -> bool:', '    return ('+' | '.join(parts)+') == 0'))
+    from tools.generate_hia_agent_identity import EVALUATION_RECORD
+    parts = EVALUATION_RECORD.split('{}')
+    assert len(parts) == 13
+    def insert_part(i):
+        raw=parts[i].encode()
+        for j in range(0,len(raw),8):
+            cell=raw[j:j+8]
+            if len(cell)==8:
+                lines.append(f'    put(o,p+{j},{int.from_bytes(cell,"little")})')
+            else:
+                lines.extend(f'    store(o,p+{j+k},{v})' for k,v in enumerate(cell))
+        lines.append(f'    p = p+{len(raw)}')
+    # Invoke the exact published identity template with spans derived from
+    # the admitted Store rows and the settled decision.
+    lines += ['def issue_json(s:readbuf,o:mutbuf,w:mutbuf,refs:u64) -> u64:', '    p = 0']
+    spans = (('refs','176'),(f'get(w,{STATE+20032})','66'),('refs+352','176'),
+             ('refs+176','176'),(f'get(w,{STATE+20040})','66'),(f'get(w,{STATE+256})','121'),
+             ('refs+528','176'),(f'get(w,{STATE+20016})',f'get(w,{STATE+20024})'),('refs+704','176'))
+    for i,(at,width) in enumerate(spans):
+        insert_part(i)
+        lines.append(f'    p = copy_wire(s,o,{at},p,{width})')
+    insert_part(9)
+    lines.append(f'    p = outcome_name(o,p,get(w,{STATE+32}))')
+    insert_part(10)
+    lines.append(f'    p = boolean(o,p,get(w,{STATE+16}))')
+    insert_part(11)
+    lines.append(f'    p = copy_wire(s,o,get(w,{STATE+20000}),p,get(w,{STATE+20008}))')
+    insert_part(12)
+    lines.append('    return p')
     for name, value in LITERALS.items():
         write(name,value)
     for name, value in CHECKS.items():
@@ -638,12 +822,12 @@ def program():
     judge=judge.replace('if length(s) != 48:',f'if length(w) < {STATE+176}:')
     judge=re.sub(r'read_word\(s, (\d+)\)',lambda m:f'get(w,{STATE+128+int(m[1])})',judge)
     constants={name:int.from_bytes(raw,'little') for name,raw in dict(
-        REQUEST=b'HIAEST01',PAIR=b'HIAEPM01',BUDGET=b'HIAEBRS1',DECISION=b'HIAESD01',
+        REQUEST=b'HIAEST01',ISSUE=b'HIAEPR01',FRESH=b'HIAEFI04',BATCH=b'HIAEBT01',PAIR=b'HIAEPM01',BUDGET=b'HIAEBRS1',DECISION=b'HIAESD01',
         TERMINAL=b'HIAESTR1',SIDEBAND=b'HIAIND01',UPDATE=b'HIAUPB01',CTX=b'ctx-').items()}
     constants.update(MAX=(1<<64)-1,BAD=4294967293,S_RECEIPT=7,S_LEDGER=8,S_MEASURE=9,S_BYTES=10,S_LATENCY=11)
     constants.update({'K_'+k:i for i,k in enumerate(FIELDS,1)})
     policy=POLICY.replace('fields(s,w,at,width)', 'fields(s,o,w,at,width)')
-    policy=relocated(policy+'\n'+MATCH)
+    policy=relocated(policy+'\n'+MATCH+'\n'+ISSUE)
     policy=re.sub(r'\b('+'|'.join(constants)+r')\b',lambda m:str(constants[m[0]]),policy)
     from tools.generate_hia_worker_request import decimal_program
     case=case_source()
@@ -655,7 +839,7 @@ def program():
 
 def packer_document():
     from tools.generate_hia_native_filter import document as packer, elf_header, template
-    frame=template(wire_bytes=32<<20,output_bytes=32<<20,workspace_bytes=48<<20)
+    frame=template(wire_bytes=512<<20,output_bytes=32<<20,workspace_bytes=48<<20)
     return packer(magic=MAGIC,module=PACKER.stem,image_template=frame)
 
 

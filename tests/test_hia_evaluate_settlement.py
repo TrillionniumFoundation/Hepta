@@ -134,6 +134,106 @@ class SettlementTests(unittest.TestCase):
         result=self.identity.evaluation_result(args,receipt,measure,ledger,outcome,complete)
         return issued,result
 
+    def issuer_proof(self, *, physical=None):
+        tmp=tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        store=AgentStore(Path(tmp.name)/'store')
+        self.addCleanup(store.close)
+        if physical is None:
+            typed=[]
+            def retain(kind,body,meta=b''):
+                ref=store.put(body,'issue-input')
+                typed.append(struct.pack('<4Q',len(typed),kind,len(meta),len(body))+wire(ref)+meta+body)
+                return ref
+            installation={'backend_sha256':'2'*64,'worker_sha256':'3'*64}
+            objective_body=wire({'metric':'artifact_bytes','min_improvement_ratio':.1})
+            workload_body=wire({'cases':[{'function':'answer','arguments':[7]}]})
+            ctxbody=wire({'installation':installation,'objective':store.put(objective_body,'issue-input'),
+                          'workload':store.put(workload_body,'issue-input')})
+            retain(3,ctxbody)
+            ctx={'id':CONTEXT.decode(),'sha256':sha256(ctxbody).hexdigest()}
+            args={'context':ctx}
+            canonical=[wire({'module':k}) for k in ('baseline','candidate')]
+            for arm,size,core in zip(('baseline','candidate'),(100,80),canonical,strict=True):
+                args[arm+'_artifact']=retain(7,(arm.encode()*13)[:size].ljust(size,b'!'),
+                    wire({'core_sha256':sha256(core).hexdigest(),'installation':installation,'context':ctx}))
+            args['build_receipt']=retain(5,wire({'input':'build'}))
+            args['verification_receipts']=[retain(8,wire({'input':'first'})),retain(8,wire({'input':'second'}))]
+            for raw in canonical:
+                retain(0,raw,raw)
+            retain(6,b'object')
+            retain(0,objective_body)
+            retain(0,workload_body)
+            whole=wire({'arguments':args,'request_sha256':REQUEST[2:].decode()})
+            rows=b''.join(typed)
+            batch=struct.pack('<8s2Q',b'HIAEBT01',1,1)
+            physical=(struct.pack('<8s13Q',b'HIAEFI04',len(typed),999,1999,4000,1<<26,
+                                  len(whole),len(rows),len(batch),len(batch),100,180,181,877)
+                      +whole+rows+batch+batch)
+        h=struct.unpack_from('<8s13Q',physical)
+        at=112
+        req=json.loads(physical[at:at+h[6]])
+        args=req['arguments']; key=b'r-'+req['request_sha256'].encode()
+        ctx=args['context']; at+=h[6]; facts=[]
+        for i in range(h[1]):
+            index,kind,m,n=struct.unpack_from('<4Q',physical,at)
+            self.assertEqual(i,index)
+            at+=32
+            ref=json.loads(physical[at:at+176]);at+=176
+            meta=physical[at:at+m];at+=m
+            body=physical[at:at+n];at+=n
+            facts.append((ref,meta,body))
+        installation=json.loads(facts[0][2])['installation']
+        coredig=[sha256(row[1]).hexdigest() for row in facts[-5:-3]]
+        before,after=(len(row[2]) for row in facts[1:3])
+        reference=h[13]-h[10]
+        elapsed=max(reference+1,10_000_000)
+        threshold=json.loads(facts[-2][2])['min_improvement_ratio']
+        ratio,outcome=self.identity.evaluation_measurement(before,after,threshold,budget_exceeded=False,correct=True,
+                                           complete=True,latency=False,trapping=False)
+        engine=Machine(self.owner)
+        steps=witnesses(Machine(self.owner))
+        for original,_state in steps:
+            # Parameterize independent admitted HIA state-machine traffic with
+            # the actual Context and budget identity, leaving events unchanged.
+            n,terminal,_=engine.call(original.replace(CONTEXT,ctx['id'].encode()))
+        pair=observation()
+        cases=json.loads(facts[-1][2])['cases'];case=cases[0]
+        rows=[{'index':0,'function':case['function'],'arguments':case['arguments'],
+               'baseline_vm':{'status':'returned','values':[7]},'candidate_vm':{'status':'returned','values':[7]},
+               'baseline_native':{'status':'returned','values':[7],'elapsed_ns':'20'},
+               'candidate_native':{'status':'returned','values':[7],'elapsed_ns':'21'}}]
+        meas=self.identity.measurement_record(args,{'workload':facts[-1][0],'objective':facts[-2][0]},
+                  before=before,after=after,ratio=ratio,scope='physical observations',metric='artifact_bytes',
+                  native_runs={'baseline':{'total_native_ns':'20'},'candidate':{'total_native_ns':'21'}},
+                  observations=rows,outcome=outcome,planned_cases=1,complete=True,
+                  reference_runs={'baseline':{},'candidate':{}},reference_ns=reference)
+        measure=store.put(meas,'measurements')
+        policy={'external_costs':{'discovery_wall_ns':None,'model_tokens':None,'model_wall_ns':None},
+                'external_costs_complete':False,'expected_invocations':'0'}
+        cost=self.identity.cost_ledger_record(ctx,0,policy,(0,0),elapsed,8888888,[])
+        ledger=store.put(cost,'cost-ledger')
+        issued=b''.join(wire(x) for x in (args['baseline_artifact'],args['candidate_artifact'],args['build_receipt'],ledger,measure))
+        issued+=b''.join(struct.pack('<Q',len(x))+x for x in (store.get(ledger,kind='cost-ledger')[0],
+                                                                store.get(measure,kind='measurements')[0],physical))
+        request=(struct.pack('<8s3Qd5Q',b'HIAEPR01',before,after,1,threshold,len(pair),len(terminal),len(issued),
+                            reference,elapsed)+ctx['id'].encode()+OWNER+KEY+key+pair+terminal+issued)
+        expected=self.identity.evaluation_record(args,*coredig,installation,measure,ledger,outcome,True)
+        return request,expected
+
+    def test_issue_public_evaluation_receipt_from_typed_original(self):
+        raw,expected=self.issuer_proof()
+        self.assertEqual(self.invoke(raw),(0,expected))
+        for broken in (raw[:-1],raw.replace(b'{"module":"candidate"}',b'{"module":"candidatz"}',1),
+                       raw.replace(b'HIAEFI04',b'HIAEFI03'),raw.replace(b'"native_child_wall_ns":"8888888"',
+                       b'"native_child_wall_ns":"8888889"')):
+            self.assertEqual(self.invoke(broken),(2,b''))
+
+    @unittest.skipUnless(os.environ.get('HIA_TEST_FRESH_HANDOFF'),'physical HIAEFI04 input required')
+    def test_issue_from_real_public_fresh_intake(self):
+        raw,expected=self.issuer_proof(physical=Path(os.environ['HIA_TEST_FRESH_HANDOFF']).read_bytes())
+        self.assertEqual(self.invoke(raw),(0,expected))
+
     def check_terminal(self,raw,status,payload):
         magic,state,n,side,command,reserved=struct.unpack_from('<8s5Q',raw)
         self.assertEqual((magic,state,reserved),(b'HIAESTR1',status,0))
