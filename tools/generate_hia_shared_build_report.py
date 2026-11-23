@@ -7,10 +7,12 @@ import set. They are never inferred from the earlier relocatable artifact.
 from __future__ import annotations
 
 import ast
+from hashlib import sha256
 from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import compact_authoring_cfg, total_scalar_functions
+from tools import generate_hia_verified_register_report as register
 from tools.generate_hia_worker_request import WorkerRequestBuilder
 
 SOURCE_PATH = 'examples/hia_bootstrap/core_cli/shared_build_report.hepta'
@@ -64,7 +66,11 @@ def shared_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return input_error_end(o, at)
     if magic == PLAN_QUALIFIED_INPUT_MAGIC or magic == PLAN_NORMALIZED_INPUT_MAGIC or magic == PLAN_REGISTER_INPUT_MAGIC:
         return planned_report(s, o, choose(magic == PLAN_QUALIFIED_INPUT_MAGIC, 80, 144))
+    if magic == REGISTER_BUILD_INPUT:
+        return register_build_report(s, o, w)
     if magic == ELF_INPUT_MAGIC:
+        if length(w) == 8 and word_load(w, 0) == REGISTER_OBJECT_INPUT:
+            return register_object(s, o)
         return linked_import_mask(s, w)
     if magic == SIMD_PROOF_INPUT_MAGIC:
         return simd_build_report(s, o, w)
@@ -201,6 +207,8 @@ def shared_fields(s:readbuf, o:mutbuf, w:mutbuf, at:u64, n:u64, proven:bool, out
 @SIMD_REPORT@
 
 @CHECKED_REPORT@
+
+@REGISTER_REPORT@
 
 def planned_report(s:readbuf, o:mutbuf, prefix:u64) -> u64:
     n = length(s)
@@ -571,7 +579,7 @@ def match_function(name, literal):
 
 SIMD_REPORT = r'''
 def simd_build_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) != 464 or length(w) != 8192 or length(o) < 32768:
+    if length(s) != 464 or length(w) != 65536 or length(o) < 32768:
         return 0
     isa = word_load(s, 16)
     kind = word_load(s, 24)
@@ -591,8 +599,9 @@ def simd_build_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if byte(s, 144 + i) != byte(w, i):
             return 0
         i = i + 1
-    at = 0
-    LIT('{"artifact_bytes":')
+    at = simd_observed_fields(w, o, 0, kind, isa)
+    if at == 0:
+        return 0
     at = decimal(o, at, size)
     LIT(',"artifact_sha256":"')
     at = digest(s, o, at, 144)
@@ -664,6 +673,118 @@ def simd_build_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     LIT(',"function_text_bytes":')
     at = decimal(o, at, span)
     LIT('}}}\n')
+    return at
+
+def simd_observed_fields(w:mutbuf, o:mutbuf, at:u64, kind:u64, isa:u64) -> u64:
+    count = word_load(w, 4224)
+    duration = word_load(w, 4232)
+    reason = word_load(w, 4240)
+    if count < 1 or count > 1024 or duration == 0 or reason < 1 or reason > 12:
+        return 0
+    if length(o) < 32768 + count * 200:
+        return 0
+    common = 127
+    xcr0 = 18446744073709551615
+    previous = 0
+    i = 0
+    while i < count:
+        row = 4352 + i * 40
+        cpu = word_load(w, row)
+        if cpu >= 8192 or (i != 0 and cpu <= previous):
+            return 0
+        features = simd_cpu_features(w, row)
+        if features == 0:
+            return 0
+        common = common & features
+        xcr0 = xcr0 & word_load(w, row + 24)
+        previous = cpu
+        i = i + 1
+    if isa >= 2 and ((common & 1) == 0 or (kind != 3 and (common & 2) == 0)):
+        return 0
+    if isa == 3 and ((common & 16) == 0 or (kind == 1 and (common & 4) == 0)):
+        return 0
+    LIT('{"cpu_admission":')
+    at = simd_cpu_admission(w, o, at, count, common, xcr0)
+    LIT(',"elapsed_seconds":')
+    at = simd_seconds(o, at, duration)
+    LIT(',"selection_refusals":[{"strategy":"scalar","reason":"E_HIA_VERIFIED_SCALAR: E_HIA_SAFE_CORE: borrowed range requires an exact extent and the u32 packed-result ABI"}],"artifact_bytes":')
+    return at
+
+def simd_cpu_features(w:mutbuf, row:u64) -> u64:
+    maximum = word_load(w, row + 8)
+    ecx = word_load(w, row + 16)
+    xcr0 = word_load(w, row + 24)
+    ebx = word_load(w, row + 32)
+    if (maximum | ecx | ebx) > 4294967295:
+        return 0
+    features = 64
+    if maximum >= 1 and (ecx & 469762048) == 469762048 and (xcr0 & 6) == 6:
+        features = 65
+        if maximum >= 7:
+            features = features | (((ebx >> 5) & 1) << 1)
+            if (xcr0 & 230) == 230 and (ebx & 65536) != 0:
+                features = features | 16 | (((ebx >> 30) & 1) << 2) | (((ebx >> 17) & 1) << 3) | (((ebx >> 31) & 1) << 5)
+    return features
+
+def simd_seconds(o:mutbuf, at:u64, ns:u64) -> u64:
+    at = decimal(o, at, ns // 1000000000)
+    store(o, at, 46)
+    at = at + 1
+    frac = ns % 1000000000
+    divisor = 100000000
+    while divisor != 0:
+        store(o, at, 48 + frac // divisor)
+        at = at + 1
+        frac = frac % divisor
+        divisor = divisor // 10
+    return at
+
+def simd_cpu_admission(w:mutbuf, o:mutbuf, at:u64, n:u64, common:u64, xcr0:u64) -> u64:
+    LIT('{"schema":"hepta.hia.fresh-x86-probe.v1","scope":"fresh observations for every CPU in the calling thread\\u0027s current affinity","probe_sha256":"')
+    at = simd_mut_digest(o, w, at, 4248)
+    LIT('","source_sha256":"SIMD_CAPTURE_SOURCE_SHA","affinity":[')
+    i = 0
+    while i < n:
+        if i != 0:
+            LIT(',')
+        at = decimal(o, at, word_load(w, 4352 + i * 40))
+        i = i + 1
+    LIT('],"common_features":[')
+    if (common & 1) != 0:
+        LIT('"avx",')
+    if (common & 2) != 0:
+        LIT('"avx2",')
+    if (common & 4) != 0:
+        LIT('"avx512bw",')
+    if (common & 8) != 0:
+        LIT('"avx512dq",')
+    if (common & 16) != 0:
+        LIT('"avx512f",')
+    if (common & 32) != 0:
+        LIT('"avx512vl",')
+    LIT('"sse2"],"common_xcr0":')
+    at = decimal(o, at, xcr0)
+    LIT(',"cpus":[')
+    i = 0
+    while i < n:
+        if i != 0:
+            LIT(',')
+        row = 4352 + i * 40
+        LIT('{"cpu":')
+        at = decimal(o, at, word_load(w, row))
+        LIT(',"raw":{"max_basic":')
+        at = decimal(o, at, word_load(w, row + 8))
+        LIT(',"leaf1_ecx":')
+        at = decimal(o, at, word_load(w, row + 16))
+        LIT(',"leaf7_ebx":')
+        at = decimal(o, at, word_load(w, row + 32))
+        LIT(',"xcr0_hi":')
+        at = decimal(o, at, word_load(w, row + 24) >> 32)
+        LIT(',"xcr0_lo":')
+        at = decimal(o, at, word_load(w, row + 24) & 4294967295)
+        LIT('}}')
+        i = i + 1
+    LIT(']}')
     return at
 
 def simd_isa(o:mutbuf, at:u64, isa:u64) -> u64:
@@ -778,8 +899,13 @@ def report_literals(template):
 
 
 def source_program():
-    source = (SOURCE.replace('@SIMD_REPORT@', report_literals(SIMD_REPORT))
+    capture = Path(__file__).with_name('hia_core_edit_build_object.S').read_bytes()
+    hardware_report = SIMD_REPORT.replace('SIMD_CAPTURE_SOURCE_SHA', sha256(capture).hexdigest())
+    source = (SOURCE.replace('@SIMD_REPORT@', report_literals(hardware_report))
               .replace('@CHECKED_REPORT@', report_literals(CHECKED_REPORT))
+              .replace('@REGISTER_REPORT@', report_literals(register.source_program()))
+              .replace('REGISTER_BUILD_INPUT', str(int.from_bytes(register.REPORT_MAGIC, 'little')))
+              .replace('REGISTER_OBJECT_INPUT', str(int.from_bytes(register.OBJECT_REQUEST, 'little')))
               .replace('CHECKED_INPUT_MAGIC', str(int.from_bytes(CHECKED_MAGIC, 'little')))
               .replace('SIMD_PROOF_INPUT_MAGIC', str(int.from_bytes(b'HIASIMR1', 'little')))
               .replace('REPORT_MAGIC', str(int.from_bytes(MAGIC, 'little')))

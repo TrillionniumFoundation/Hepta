@@ -3,6 +3,9 @@
 from hepta.hia_cnf_native import CIRCUIT_REQUEST
 
 
+WIDTHS = (1, 2, 3, 4, 5, 7, 8, 16, 32, 64)
+
+
 class WordCircuit:
     """A word node has an operation, width, two producer indices and an immediate."""
 
@@ -31,12 +34,24 @@ class WordCircuit:
 
     def function(self, name, predicate):
         false = self.constant(0, 1)
-        count = len(self.nodes)
-        lines = [f'def {name}(w:mutbuf, delta:u64) -> u64:']
+        encoded = []
+        overrides = []
         for index, (operation, width, left, right, immediate) in enumerate(self.nodes):
-            descriptor = operation | (width << 8) | (left << 16) | (right << 24)
-            lines.append(f'    simd_word_node(w, {index}, {descriptor}, {immediate})')
-        lines.append(f'    return simd_miter(w, {count}, {predicate}, {false})')
+            slot = operation - (11 if operation >= 26 else 1)
+            if slot < 0 or operation not in (*range(1, 16), *range(26, 33)):
+                raise ValueError('unsupported SIMD proof word operation')
+            tag = 10 * slot + WIDTHS.index(width)
+            if type(immediate) is not int or not 0 <= immediate < 256:
+                overrides.append((index, immediate))
+                immediate = 0
+            encoded.append(tag | (left << 8) | (right << 16) | (immediate << 24))
+        lines = [f'def {name}(w:mutbuf, delta:u64) -> u64:']
+        for i in range(0, len(encoded), 2):
+            upper = encoded[i + 1] if i + 1 < len(encoded) else 0xffffffff
+            lines.append(f'    simd_word_pair(w, {i}, {encoded[i] | (upper << 32)})')
+        for index, value in overrides:
+            lines.append(f'    put(w, FRAME + {64 + 40 * index}, {value})')
+        lines.append(f'    return simd_miter(w, {len(encoded)}, {predicate}, {false})')
         return '\n'.join(lines)
 
 
@@ -217,6 +232,137 @@ def endpoint_geometry_source():
     return '\n'.join((*lines, '    return 0'))
 
 
+def prefix_suffix_partition():
+    g = WordCircuit()
+    rank_n, rank_i, rank_q = (g.node(1, 2) for _ in range(3))
+    nbit, ibit, qbit, borrow = (g.node(1, 1) for _ in range(4))
+    diff = g.node(5, 1, g.node(5, 1, nbit, ibit), borrow)
+    next_borrow = g.either(g.both(g.node(6, 1, nbit), g.either(ibit, borrow)), g.both(ibit, borrow))
+    restored = g.node(5, 1, g.node(5, 1, ibit, diff), borrow)
+    carry = g.either(g.both(ibit, diff), g.both(ibit, borrow), g.both(diff, borrow))
+    # Start both chains at zero. At each bit the carry equals the borrow
+    # and the restored bit equals count. Hence index + (count-index) = count.
+    violations = [g.node(8, 1, restored, nbit), g.node(8, 1, carry, next_borrow)]
+    count, index, point = (g.node(27, 3, r, b) for r, b in
+                           ((rank_n, nbit), (rank_i, ibit), (rank_q, qbit)))
+    # Three ordered prefixes have at most three distinct ranks. Replacing each
+    # by its rank preserves every relevant comparison, including equality.
+    # Appending a bit orders by rank first, then by that bit. This quotient is
+    # exact at every width; all equal ranks represent the initial empty words.
+    for a, b, abit, bbit, appended_a, appended_b in (
+            (rank_q, rank_i, qbit, ibit, point, index),
+            (rank_i, rank_n, ibit, nbit, index, count),
+            (rank_q, rank_n, qbit, nbit, point, count)):
+        less = g.either(g.node(12, 1, a, b),
+                        g.both(g.node(7, 1, a, b), g.node(6, 1, abit), bbit))
+        violations.append(g.node(8, 1, less, g.node(12, 1, appended_a, appended_b)))
+    left = g.node(12, 1, point, count)
+    right = g.either(g.node(12, 1, point, index), g.both(g.node(15, 1, point, index), left))
+    violations.append(g.both(g.node(13, 1, index, count), g.node(8, 1, left, right)))
+    return g.function('simd_prefix_suffix_partition', g.either(*violations))
+
+
+def branch_condition(g, opcode_offset, carry, zero):
+    code = g.constant(f'byte(w, BINDING + {81 + opcode_offset}) & 15', 4)
+    # This terminal grammar admits JB, JE, JBE and JA. Their carry/zero
+    # truth tables are applied to the condition byte read from the final ELF.
+    conditions = [(2, carry), (4, zero), (6, g.either(carry, zero)),
+                  (7, g.node(6, 1, g.either(carry, zero)))]
+    return g.either(*(g.both(g.node(7, 1, code, g.constant(cc, 4)), take) for cc, take in conditions))
+
+
+def entry_guards(copy):
+    g = WordCircuit()
+    # All possible CMP flags are covered. Impossible combinations may add
+    # cases to this miter, which preserves an UNSAT implication.
+    names = ('extent_lt', 'extent_eq', 'empty', 'null', 'wrap', 'sum_zero',
+             'dest_lt', 'dest_eq', 'other_null', 'other_wrap', 'other_zero',
+             'before_lt', 'before_eq', 'after_lt', 'after_eq', 'left_bit', 'right_bit', 'carry')
+    v = {name: g.node(1, 1) for name in names}
+    false = g.constant(0, 1)
+    not_ = lambda a: g.node(6, 1, a)
+    def condition(at, cf, zf):
+        return branch_condition(g, at, cf, zf)
+    fits = g.either(v['extent_lt'], v['extent_eq'])
+    failed = condition(6 if copy else 8, v['extent_lt'], v['extent_eq'])
+    if copy:
+        fits = g.both(fits, g.either(v['dest_lt'], v['dest_eq']))
+        failed = g.either(failed, condition(15, v['dest_lt'], v['dest_eq']))
+    empty = condition(24 if copy else 17, false, v['empty'])
+    done = g.both(not_(failed), empty)
+    live = g.both(not_(failed), not_(empty))
+    guard = g.either(condition(33 if copy else 26, false, v['null']),
+                     condition(45 if copy else 38, v['wrap'], v['sum_zero']))
+    allowed = g.both(not_(v['null']), not_(v['wrap']))
+    if copy:
+        guard = g.either(guard, condition(54, false, v['other_null']),
+                         condition(66, v['other_wrap'], v['other_zero']))
+        first = condition(75, v['before_lt'], v['before_eq'])
+        last = condition(84, v['after_lt'], v['after_eq'])
+        guard = g.either(guard, g.both(not_(first), last))
+        allowed = g.both(allowed, not_(v['other_null']), not_(v['other_wrap']),
+                         g.either(v['before_lt'], v['before_eq'], v['after_lt'], v['after_eq']))
+    valid = g.both(fits, g.either(v['empty'], allowed))
+    abort = g.either(failed, g.both(live, guard))
+    entered = g.both(live, not_(guard))
+    faults = [g.node(8, 1, abort, not_(valid)), g.node(8, 1, done, g.both(valid, v['empty'])),
+              g.node(8, 1, entered, g.both(valid, not_(v['empty'])))]
+    # A word addition wraps iff its unsigned result is less than its first
+    # operand. At bit zero both carry and prior comparison are false. Appending
+    # each next bit to the two low prefixes preserves their carry/ULT invariant.
+    a, b, carry = (v[k] for k in ('left_bit', 'right_bit', 'carry'))
+    out = g.node(5, 1, g.node(5, 1, a, b), carry)
+    next_carry = g.either(g.both(a, b), g.both(a, carry), g.both(b, carry))
+    next_lt = g.either(g.both(not_(out), a), g.both(g.node(7, 1, out, a), carry))
+    faults.append(g.node(8, 1, next_carry, next_lt))
+    return g.function('simd_copy_guards' if copy else 'simd_read_guards', g.either(*faults))
+
+
+def short_entry():
+    g = WordCircuit()
+    count, admitted = g.node(1, 64), g.node(1, 1)
+    width = g.constant('delta')
+    threshold = g.constant('byte(w, BINDING + 130)')
+    cf, zf = g.node(12, 1, count, threshold), g.node(7, 1, count, threshold)
+    branch = branch_condition(g, 51, cf, zf)
+    short = g.node(12, 1, count, width)
+    # The preceding nonzero admitted path is separately proved by entry_guards.
+    path = g.both(admitted, g.node(8, 1, count, g.constant(0)))
+    bad = g.either(g.node(8, 1, g.both(path, branch), g.both(path, short)),
+                   g.node(8, 1, g.both(path, g.node(6, 1, branch)),
+                          g.both(path, g.node(15, 1, count, width))))
+    return g.function('simd_short_entry', bad)
+
+
+def loop_initiation(copy):
+    g = WordCircuit()
+    # One arbitrary bit from each input register suffices for register moves:
+    # full-width MOV transfers all bit positions identically. For MOV EAX,imm
+    # include the entire 32-bit immediate in the zero-result check.
+    registers = [g.node(1, 1) for _ in range(16)]
+    before = list(registers)
+    zero = g.constant(0, 1)
+    def move(slot, checked):
+        src = g.constant(f'get(w, {slot}) & 15', 4)
+        dst = g.constant(f'(get(w, {slot}) >> 4) & 15', 4)
+        value = registers[0]
+        for i in range(1, 16):
+            value = g.node(11, 1, g.node(7, 1, src, g.constant(i, 4)), registers[i], value)
+        for i in checked:
+            registers[i] = g.node(11, 1, g.node(7, 1, dst, g.constant(i, 4)), value, registers[i])
+    faults = []
+    if copy:
+        move('SIMD_RESULT_MOVE_SLOT', (0, 2, 7, 8, 10))
+    else:
+        faults.append(g.node(8, 1, g.constant('get(w, SIMD_RESULT_MOVE_SLOT)', 32), g.constant(0, 32)))
+        registers[0] = zero
+    move('SIMD_COUNT_MOVE_SLOT', (0, 2, 7, 10))
+    expected = before[8 if copy else 2]
+    faults += [g.node(8, 1, registers[10], expected), g.node(8, 1, registers[0], expected if copy else zero),
+               g.node(8, 1, registers[7], before[7]), g.node(8, 1, registers[2], before[2])]
+    return g.function('simd_copy_init' if copy else 'simd_read_init', g.either(*faults))
+
+
 def scalar_tail_exit():
     g = WordCircuit()
     count, index = g.node(1, 64), g.node(1, 64)
@@ -227,13 +373,25 @@ def scalar_tail_exit():
 
 
 TRANSPORT = '''
-def simd_word_node(w:mutbuf, index:u64, descriptor:u64, immediate:u64) -> u64:
+def simd_word_pair(w:mutbuf, index:u64, pair:u64) -> u64:
+    simd_packed_word(w, index, pair & 4294967295)
+    upper = pair >> 32
+    if upper != 4294967295:
+        simd_packed_word(w, index + 1, upper)
+    return 0
+
+def simd_packed_word(w:mutbuf, index:u64, packed:u64) -> u64:
+    tag = packed & 255
+    slot = tag // 10
+    code = tag % 10
+    widths = PACKED_WIDTHS
+    width = choose(code < 8, (widths >> ((code & 7) * 8)) & 255, choose(code == 8, 32, 64))
     at = FRAME + 32 + 40 * index
-    put(w, at, descriptor & 255)
-    put(w, at + 8, (descriptor >> 8) & 255)
-    put(w, at + 16, (descriptor >> 16) & 255)
-    put(w, at + 24, (descriptor >> 24) & 255)
-    put(w, at + 32, immediate)
+    put(w, at, slot + choose(slot >= 15, 11, 1))
+    put(w, at + 8, width)
+    put(w, at + 16, (packed >> 8) & 255)
+    put(w, at + 24, (packed >> 16) & 255)
+    put(w, at + 32, packed >> 24)
     return 0
 
 def simd_miter(w:mutbuf, nodes:u64, predicate:u64, false:u64) -> u64:
@@ -252,7 +410,9 @@ def simd_miter(w:mutbuf, nodes:u64, predicate:u64, false:u64) -> u64:
 
 
 def source():
-    return '\n\n'.join((TRANSPORT.replace('CIRCUIT_MAGIC', str(CIRCUIT_REQUEST)),
+    return '\n\n'.join((TRANSPORT.replace('CIRCUIT_MAGIC', str(CIRCUIT_REQUEST)).replace(
+                            'PACKED_WIDTHS', str(int.from_bytes(bytes(WIDTHS[:8]), 'little'))),
                         caller_contract(False), caller_contract(True), abort_stack(), scalar_tail_exit(), interval_step(),
                         endpoint_dispatch(), endpoint_query(False), endpoint_query(True), bounded_word_partition(),
-                        endpoint_geometry_source()))
+                        endpoint_geometry_source(), prefix_suffix_partition(), entry_guards(False),
+                        entry_guards(True), loop_initiation(False), loop_initiation(True), short_entry()))

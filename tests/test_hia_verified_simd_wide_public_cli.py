@@ -36,8 +36,34 @@ class PublicWideSIMDTests(unittest.TestCase):
                         out = root / (kind+'-'+requested+'.so')
                         result = subprocess.run([cli,'build',source,'-o',out,'--kind','shared','--backend','auto',
                                                  '--target-isa',requested],capture_output=True,env={'PATH':''},timeout=90)
+                        required = {'sse2'} if isa == 'sse2' else {'avx'}
+                        mask = 0 if isa == 'sse2' else 6
+                        if isa != 'sse2' and shape != 3:
+                            required.add('avx2')
+                        if isa == 'avx512':
+                            required.add('avx512f')
+                            mask = 230
+                            if shape == 1:
+                                required.add('avx512bw')
+                        if (not required.issubset(host['common_features'])
+                                or host['common_xcr0'] & mask != mask):
+                            self.assertNotEqual(result.returncode, 0)
+                            self.assertFalse(out.exists())
+                            continue
                         self.assertEqual((result.returncode,result.stderr),(0,b''))
                         row = json.loads(result.stdout)
+                        self.assertGreater(row['elapsed_seconds'], 0)
+                        self.assertEqual(row['selection_refusals'], [{
+                            'strategy': 'scalar',
+                            'reason': 'E_HIA_VERIFIED_SCALAR: E_HIA_SAFE_CORE: borrowed range requires an exact extent and the u32 packed-result ABI',
+                        }])
+                        observation = row['cpu_admission']
+                        for key in ('schema', 'scope', 'affinity', 'cpus', 'common_features', 'common_xcr0'):
+                            self.assertEqual(observation[key], host[key], key)
+                        adapter = Path(__file__).resolve().parents[1] / 'tools/hia_core_edit_build_object.S'
+                        self.assertEqual(observation['source_sha256'], sha256(adapter.read_bytes()).hexdigest())
+                        self.assertEqual(len(bytes.fromhex(observation['probe_sha256'])), 32)
+                        self.assertNotEqual(int(observation['probe_sha256'], 16), 0)
                         elf = out.read_bytes()
                         obj = emit_verified_simd(core,isa=isa).object_bytes
                         self.assertEqual((row['simd_isa'],row['selected_strategy']),(isa,'simd'))

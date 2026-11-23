@@ -1,7 +1,7 @@
 """Author the sealed supplied-artifact Safe Core verifier's HIA coordinator."""
 from pathlib import Path
 
-from hepta.hia_agent_assembly import render_assembly
+from hepta.hia_agent_assembly import _parse_assembly_document, render_assembly
 from hepta.hia_safe_core_elf_inventory_native import REFUSAL_IDS
 from tools.generate_hia_core_proof_wire import SUBJECT_HEADER, SUBJECT_MAGIC
 from tools.generate_hia_safe_core_binder import (
@@ -22,6 +22,10 @@ SOURCE_PATH = 'examples/hia_bootstrap/supplied_safe_core_proof.hepta'
 REQUEST_MAGIC = int.from_bytes(b'HIAPRF01', 'little')
 TYPED_REQUEST_MAGIC = int.from_bytes(b'HIAPRF02', 'little')
 RECEIPT_MAGIC = int.from_bytes(b'HIAPRR01', 'little')
+REGISTER_REQUEST = int.from_bytes(b'HIAPRF03', 'little')
+REGISTER_RECEIPT = int.from_bytes(b'HIAPRR03', 'little')
+REGISTER_MODE_SLOT = 1024
+REGISTER_DEPTH_SLOT = 1032
 FAILURE_MAGIC = int.from_bytes(b'HIAPRX01', 'little')
 LOADER_SECTION_REFUSAL = REFUSAL_IDS['loader_section_unreviewed']
 DEADLINE = 3
@@ -41,6 +45,8 @@ SIMD_ADVANCE_SLOT = 544
 SIMD_OTHER_ADVANCE_SLOT = 552
 SIMD_DECREMENT_SLOT = 560
 SIMD_COUNT_SLOT = 568
+SIMD_RESULT_MOVE_SLOT = 576
+SIMD_COUNT_MOVE_SLOT = 584
 SIMD_SUBJECT = int.from_bytes(b'HIASIMC1', 'little')
 SIMD_RECEIPT = int.from_bytes(b'HIASIMR1', 'little')
 REQUEST_HEAD = 48
@@ -65,6 +71,10 @@ SUBJECT_CAP = SUBJECT_HEADER + PROJECTION_INPUT_LIMIT
 
 SOURCE = '''
 def prove(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(w) == 33554432 and length(o) == 16777216:
+        put(w, 48, 262144)
+        put(w, 56, 64)
+        return canonical_wire(s, o, w)
     if length(o) != OUTPUT_LIMIT or length(w) != WORK_LIMIT:
         return 0
     phase = get(w, 0)
@@ -95,6 +105,23 @@ def proof_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 9:
         return receive_obligation(o, w)
     if phase == 10:
+        end = get(w, 224)
+        span = get(w, 248)
+        obj = get(w, 144)
+        if get(w, REGISTER_MODE_SLOT) != 1 or get(w, 64) != 32 or end > length(o) - 72:
+            return 0
+        if obj < 64 or span > obj - 64:
+            return 0
+        put(o, end, get(w, 152))
+        copy_output(o, w, DIGEST, end + 40, 32)
+        return dispatch(w, 11, 6, REQUEST_HEAD + get(w, 136) + 64, span, DIGEST, 32, DIGEST_WORK, 1088)
+    if phase == 11:
+        end = get(w, 224)
+        if get(w, 64) != 32 or end > length(o) - 72:
+            return 0
+        copy_output(o, w, DIGEST, end + 8, 32)
+        return end + 72
+    if phase == 12:
         return receive_simd_induction(o, w)
     return 0
 
@@ -102,7 +129,7 @@ def admit(s:readbuf, w:mutbuf) -> u64:
     if length(s) < REQUEST_HEAD:
         return 0
     magic = uint(s, 0, 8)
-    if magic != REQUEST_MAGIC and magic != TYPED_REQUEST_MAGIC and magic != SIMD_REQUEST and magic != SIMD_DETAIL_REQUEST:
+    if magic != REQUEST_MAGIC and magic != TYPED_REQUEST_MAGIC and magic != SIMD_REQUEST and magic != SIMD_DETAIL_REQUEST and magic != REGISTER_REQUEST:
         return 0
     profile = uint(s, 8, 8)
     budget = uint(s, 16, 8)
@@ -125,7 +152,8 @@ def admit(s:readbuf, w:mutbuf) -> u64:
     put(w, 144, obj)
     put(w, 152, final)
     put(w, 160, profile)
-    put(w, TYPED_REQUEST_SLOT, choose(magic == TYPED_REQUEST_MAGIC, 1, 0))
+    put(w, TYPED_REQUEST_SLOT, choose(magic == TYPED_REQUEST_MAGIC or magic == REGISTER_REQUEST, 1, 0))
+    put(w, REGISTER_MODE_SLOT, choose(magic == REGISTER_REQUEST, 1, 0))
     return dispatch(w, 1, 6, REQUEST_HEAD, core, DIGEST, 32, DIGEST_WORK, 1088)
 
 def digest_inputs(o:mutbuf, w:mutbuf, phase:u64) -> u64:
@@ -332,6 +360,32 @@ def simd_endpoint_obligation(w:mutbuf, role:u64) -> u64:
         return simd_endpoint_bounds(w, width)
     return simd_endpoint_effects(w, width)
 
+def simd_register_move(w:mutbuf, at:u64) -> u64:
+    rex = byte(w, at)
+    modrm = byte(w, at + 2)
+    if (rex & 248) != 72 or byte(w, at + 1) != 137 or (modrm >> 6) != 3:
+        return 256
+    src = ((rex & 4) << 1) | ((modrm >> 3) & 7)
+    dest = ((rex & 1) << 3) | (modrm & 7)
+    return (dest << 4) | src
+
+def simd_initial_registers(w:mutbuf, copy:bool) -> u64:
+    at = BINDING + 80
+    count = simd_register_move(w, at + choose(copy, 90, 44))
+    if count > 255:
+        return 0
+    put(w, SIMD_COUNT_MOVE_SLOT, count)
+    if copy:
+        result = simd_register_move(w, at)
+        if result > 255:
+            return 0
+        put(w, SIMD_RESULT_MOVE_SLOT, result)
+        return simd_copy_init(w, 0)
+    if byte(w, at) != 184:
+        return 0
+    put(w, SIMD_RESULT_MOVE_SLOT, get(w, at + 1) & 4294967295)
+    return simd_read_init(w, 0)
+
 def next_simd_ordinal(w:mutbuf, role:u64) -> u64:
     isa = get(w, SIMD_ISA_SLOT)
     copy = get(w, SIMD_KIND_SLOT) == 3
@@ -344,16 +398,20 @@ def next_simd_ordinal(w:mutbuf, role:u64) -> u64:
             return 7
         return 6
     if role == 6:
-        return choose(isa == 1, 0, 9)
+        return choose(isa == 1, 31, 9)
     if role == 7:
         return 16
     if role == 9:
-        return 0
+        return 30
     if role >= 16 and role <= 21:
         return role + 8
     if role >= 24 and role <= 29:
         widest = choose(isa == 2, 28, 29)
-        return choose(role == widest, 0, role - 7)
+        return choose(role == widest, 30, role - 7)
+    if role == 30 or role == 31:
+        return role + 1
+    if role == 32:
+        return choose(isa == 1, 0, choose(copy, 0, 33))
     return 0
 
 def send_simd_induction(w:mutbuf) -> u64:
@@ -381,6 +439,17 @@ def send_simd_induction(w:mutbuf) -> u64:
         extent = simd_bounded_partition(w, 0)
     elif role >= 16 and role <= 29:
         extent = simd_endpoint_obligation(w, role)
+    elif role == 30:
+        extent = simd_prefix_suffix_partition(w, 0)
+    elif role == 31:
+        if get(w, SIMD_KIND_SLOT) == 3:
+            extent = simd_copy_guards(w, 0)
+        else:
+            extent = simd_read_guards(w, 0)
+    elif role == 32:
+        extent = simd_initial_registers(w, get(w, SIMD_KIND_SLOT) == 3)
+    elif role == 33:
+        extent = simd_short_entry(w, 8 << get(w, SIMD_ISA_SLOT))
     else:
         return 0
     if extent == 0:
@@ -388,7 +457,7 @@ def send_simd_induction(w:mutbuf) -> u64:
     put(w, HEADER, OBLIGATION_MAGIC)
     put(w, HEADER + 8, 3)
     put(w, HEADER + 16, budget)
-    return dispatch(w, 10, 5, WORK_OFFSET + HEADER, 24, OBLIGATION, OBLIGATION_CAP,
+    return dispatch(w, 12, 5, WORK_OFFSET + HEADER, 24, OBLIGATION, OBLIGATION_CAP,
                     WORK_OFFSET + FRAME, extent)
 
 def receive_simd_induction(o:mutbuf, w:mutbuf) -> u64:
@@ -445,6 +514,8 @@ def join_observations(w:mutbuf) -> u64:
     size = get(w, 64)
     if size < 72 or size > MACHINE_CAP + 16 or get(w, MACHINE) != MACHINE_REPLY:
         return 0
+    # The child validated this graph and its maximum depth before returning it.
+    put(w, REGISTER_DEPTH_SLOT, get(w, MACHINE + 48))
     graph = get(w, 168)
     put(w, FRAME, JOIN_REQUEST)
     put(w, FRAME + 8, graph)
@@ -502,7 +573,7 @@ def receive_obligation(o:mutbuf, w:mutbuf) -> u64:
     return send_obligation(w)
 
 def finish(o:mutbuf, w:mutbuf, role:u64, exact:bool) -> u64:
-    put(o, 0, RECEIPT_MAGIC)
+    put(o, 0, choose(get(w, REGISTER_MODE_SLOT) == 1, REGISTER_RECEIPT, RECEIPT_MAGIC))
     put(o, 8, choose(exact, 1, 2))
     put(o, 16, get(w, 160))
     put(o, 24, get(w, 176))
@@ -510,8 +581,14 @@ def finish(o:mutbuf, w:mutbuf, role:u64, exact:bool) -> u64:
     put(o, 40, role + 1)
     put(o, 48, get(w, 240))
     put(o, 56, get(w, 248))
-    put(o, 72, 0)
+    put(o, 72, choose(get(w, REGISTER_MODE_SLOT) == 1, get(w, REGISTER_DEPTH_SLOT), 0))
+    if exact and role == 4 and get(w, REGISTER_MODE_SLOT) == 1:
+        return dispatch(w, 10, 7, REQUEST_HEAD, get(w, 136), DIGEST, 32, DIGEST_WORK, 1088)
     return get(w, 224)
+
+def canonical_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    # Authoring links this entry to the same complete canonicalizer used by verify.
+    return 0
 
 def failure(o:mutbuf, w:mutbuf, phase:u64, status:u64, reason:u64) -> u64:
     # A typed result is admissible only after hashing all three inputs.
@@ -572,7 +649,25 @@ def document():
     machine = embedded_source(BINDING, OBLIGATION, OBSERVATION)
     for prefix,checker in [('avx2_',avx2_checker),('avx512_',avx512_checker)]:
         machine += '\n' + embedded_source(BINDING, OBLIGATION, OBSERVATION, source_factory=checker, prefix=prefix)
-    return transport_document(SOURCE + induction_source() + helpers + '\n' + machine, module='supplied_safe_core_proof', extra=constants)
+    import ast
+
+    policy = transport_document(SOURCE + induction_source() + helpers + '\n' + machine, module='supplied_safe_core_proof', extra=constants)
+    slot = next(i for i, function in enumerate(ast.parse(SOURCE).body) if function.name == 'canonical_wire')
+    root = Path(__file__).resolve().parents[1]
+    source = (root / 'examples/hia_bootstrap/json_canonical.hepta').read_bytes()
+    canonicalizer = _parse_assembly_document(source)['functions']
+    placement = {function['name']: f'f{slot if i == 0 else len(policy["functions"]) + i - 1}'
+                 for i, function in enumerate(canonicalizer)}
+    for function in canonicalizer:
+        function['name'] = placement[function['name']]
+        for block in function['blocks']:
+            for instruction in block['ops']:
+                if instruction['op'] == 'call':
+                    attrs = instruction['attrs']
+                    attrs['function'] = placement[attrs['function']]
+    policy['functions'][slot] = canonicalizer[0]
+    policy['functions'].extend(canonicalizer[1:])
+    return policy
 
 
 if __name__ == '__main__':
