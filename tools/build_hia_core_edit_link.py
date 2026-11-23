@@ -10,6 +10,7 @@ from tools.build_hia_sqlite_pager import verify_executable
 
 BOOTSTRAP = 'examples/hia_bootstrap/'
 POLICY = 'source_core_edit_link.hepta'
+PACKED_POLICY = 'source_core_packed_assets.hepta'
 
 
 def source_linker(native_tools):
@@ -22,7 +23,7 @@ def source_linker(native_tools):
     return call(owner, 'build', packet)
 
 
-def build_implementations(native_tools, admitted, prover=None):
+def build_implementations(native_tools, admitted, prover=None, *, codec=None):
     """Return each role's actual linked executable and object/link identity."""
     from tools import build_hia_core_edit as core
 
@@ -80,9 +81,22 @@ def build_implementations(native_tools, admitted, prover=None):
         header = struct.pack('<8sQQ', b'HIACELK1', role, len(parts))
         request = header + struct.pack('<' + 'Q' * len(parts), *map(len, parts)) + b''.join(parts)
         wire = call(templates[template], 'build', request)
+        packed = {}
+        if kind == 'build_object':
+            from tools.build_hia_core_static import ReleaseCodec
+
+            if codec is None:
+                codec = ReleaseCodec(native_tools)
+            for source in core.PACKED_BUILD_IMAGES:
+                raw = images[source]
+                compressed = codec.compress(raw, 1 << 20)
+                packed[source] = struct.pack('<QQ32s', len(raw), len(compressed), sha256(raw).digest()) + compressed
+            owner = policy_builder(native_tools, PACKED_POLICY, core.PACKER)
+            frame = struct.pack('<8sQ', b'HIACPA01', len(wire)) + wire + b''.join(packed.values())
+            wire = call(owner, 'build', frame)
         executable = call(linker, None, wire)
-        for path in payloads:
-            verify_executable(executable, images[path])
+        for source in payloads:
+            verify_executable(executable, packed.get(source, images[source]))
         if kind == 'build_object':
             for label in ('build_shared_linker', 'build_verified_linker'):
                 path = next(path for path, image_label in payloads.items() if image_label == label)

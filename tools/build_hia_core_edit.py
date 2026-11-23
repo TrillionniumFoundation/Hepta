@@ -79,10 +79,16 @@ REGISTER_IMAGES = {
     BOOTSTRAP + 'worker_register_schedule.hepta': 'register_schedule',
     BOOTSTRAP + 'worker_register_layout.hepta': 'register_layout',
 }
-OBJECT_BUILD_IMAGES = {
-    CORE_ADMISSION: 'build_core',
+PACKED_BUILD_IMAGES = {
     BOOTSTRAP + 'verified_simd_core.hepta': 'build_simd_subject',
     BOOTSTRAP + 'verified_simd_sse2_object.hepta': 'build_simd_object',
+    BOOTSTRAP + 'verified_scalar_subject.hepta': 'build_scalar_subject',
+    BOOTSTRAP + 'verified_scalar_object.hepta': 'build_scalar_object',
+}
+OBJECT_BUILD_IMAGES = {
+    CORE_ADMISSION: 'build_core',
+    **PACKED_BUILD_IMAGES,
+    CLI + 'release_fixed_inflate.hepta': 'build_release_inflate',
     EDIT + 'publication_frontend.hepta': 'build_frontend',
     CLI + 'build_codegen.hepta': 'build_codegen',
     CLI + 'build_backend.hepta': 'build_backend',
@@ -329,7 +335,7 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
     adapters = {kind: 'tools/hia_core_edit_' + kind + '.S' for kind in programs}
     assembly_images = (*ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)
     source_files = {PACKER, *STATIC_ADAPTERS, *NOMINAL_TEMPLATE_GROUPS, DISPATCH, ARGUMENT_PARSER, ARGUMENT_FORMATTER,
-                    RELEASE_DEFLATE, BOOTSTRAP + core_link.POLICY,
+                    RELEASE_DEFLATE, BOOTSTRAP + core_link.POLICY, BOOTSTRAP + core_link.PACKED_POLICY,
                     *assembly_images, *SELFHOST_CORE_SOURCES, *adapters.values(),
                     NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE,
                     REGISTER_RELAY, *NOMINAL_BUILD_SOURCES.values(),
@@ -371,7 +377,7 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
 
     compressor = core_static.ReleaseCodec(native_tools)
     products = core_static.build_products(native_tools, admitted, compressor=compressor, release_only=release_only)
-    implementations = core_link.build_implementations(native_tools, admitted, prover=prover_bytes)
+    implementations = core_link.build_implementations(native_tools, admitted, prover=prover_bytes, codec=compressor)
     adapter_sha256 = {}
     for kind, (implementation, details) in implementations.items():
         name = programs[kind][0]

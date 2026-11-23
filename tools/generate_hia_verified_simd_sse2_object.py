@@ -198,15 +198,18 @@ def append(o:mutbuf, w:mutbuf, value:u64, n:u64) -> u64:
     write(o, at, value, n)
     return put(w, 0, at + n)
 
+"""
+
+OBJECT_LAYOUT = """
 def symbol(s:readbuf, n:u64) -> u64:
     i = 0
     while i < n:
-        ch = byte(s, 24 + i)
+        ch = byte(s, EXPORT_AT + i)
         if ch != 95 and (ch < 65 or ch > 90) and (ch < 97 or ch > 122):
             if i == 0 or ch < 48 or ch > 57:
                 return 0
         i = i + 1
-    if n == 5 and uint(s, 24, 5) == ABORT_NAME:
+    if n == 5 and uint(s, EXPORT_AT, 5) == ABORT_NAME:
         return 0
     return 1
 
@@ -221,7 +224,7 @@ def obj(s:readbuf, o:mutbuf, n:u64, text:u64, reloc:u64) -> u32:
     before = 0
     i = 0
     while i < 5 and i < n:
-        a = byte(s, 24 + i)
+        a = byte(s, EXPORT_AT + i)
         b = (ABORT_NAME >> (i * 8)) & 255
         if a != b:
             before = choose(a > b, 1, 0)
@@ -233,7 +236,7 @@ def obj(s:readbuf, o:mutbuf, n:u64, text:u64, reloc:u64) -> u32:
     if before == 1:
         abort = 1
         name = 7
-    copy_bytes(s, o, 24, strings + name, n)
+    copy_bytes(s, o, EXPORT_AT, strings + name, n)
     write(o, strings + abort, ABORT_NAME, 5)
     put(o, 0, 282584257676671)
     put(o, 16, 4299030529)
@@ -264,11 +267,17 @@ def program():
         data = bytes.fromhex(match[1])
         assert 1 <= len(data) <= 8
         return f'append(o, w, {int.from_bytes(data, "little")}, {len(data)})'
-    policy = re.sub(r"emit\(o, w, '([a-f0-9 ]+)'\)", emit, SOURCE + WIDE)
+    policy = re.sub(r"emit\(o, w, '([a-f0-9 ]+)'\)", emit, SOURCE + OBJECT_LAYOUT + WIDE)
+    tokens = {'SUBJECT': int.from_bytes(b'HIASIMC1','little'),
+              **{label.upper():i for i,label in enumerate(LABELS)}}
+    return object_program(policy, MOD, 24, tokens)
+
+
+def object_program(policy, module, export_at, tokens=None):
+    """Share the HIA ELF layout for one exported function and its abort relocation."""
     names = b'\0.text\0.rela.text\0.symtab\0.strtab\0.shstrtab\0.note.GNU-stack\0'
-    for token, value in {'SUBJECT': int.from_bytes(b'HIASIMC1','little'),
-                         'SECTION_BYTES':len(names), 'ABORT_NAME':int.from_bytes(b'abort','little'),
-                         **{label.upper():i for i,label in enumerate(LABELS)}}.items():
+    for token, value in {**(tokens or {}), 'EXPORT_AT': export_at, 'SECTION_BYTES': len(names),
+                         'ABORT_NAME': int.from_bytes(b'abort','little')}.items():
         policy = re.sub(r'\b' + token + r'\b', str(value), policy)
     policy += '\ndef names(o:mutbuf, at:u64) -> u64:\n'
     for i in range(0, len(names), 8):
@@ -278,7 +287,7 @@ def program():
     section = _shared_function('section', 'section_names').replace(
         '    if flags != 0:\n        put(o, at + 16, offset)\n','')
     helpers = ELF[ELF.index('def uint('):]
-    return document(policy + section + '\ndef zero(' + SHARED.split('\ndef zero(', 1)[1] + '\n' + helpers, MOD)
+    return document(policy + section + '\ndef zero(' + SHARED.split('\ndef zero(', 1)[1] + '\n' + helpers, module)
 
 
 if __name__ == '__main__':

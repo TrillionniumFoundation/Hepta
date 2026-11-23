@@ -9,7 +9,7 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_elf_linker import SOURCE as LINK_SOURCE
 
 
-def render_objects(group, roles, record_slice=slice(None), *, read_source=None):
+def render_objects(group, roles, record_slice=slice(None), *, read_source=None, zero_fill=False):
     selector = [
         'def materialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:',
         '    if length(s) != 8:',
@@ -31,17 +31,35 @@ def render_objects(group, roles, record_slice=slice(None), *, read_source=None):
             selector.extend((f'    if role == {role}:', f'        return adapter_{role}(o)'))
             functions.extend(('', f'def adapter_{role}(o:mutbuf) -> u32:',
                               f'    if length(o) < {len(record)}:', '        return 0'))
+            if zero_fill:
+                functions.extend(('    i = 0', f'    while i < {len(record)}:',
+                                  '        store(o, i, 0)', '        i = i + 1'))
             chunks = []
             for start in range(0, len(record), 1024):
                 chunk = f'copy_{role}_{start}'
                 functions.append(f'    {chunk}(o)')
                 chunks.extend(('', f'def {chunk}(o:mutbuf) -> u64:'))
-                for at in range(start, min(start + 1024, len(record)), 8):
+                stop = min(start + 1024, len(record))
+                at = start
+                while at < stop:
                     part = record[at:at + 8]
-                    chunks.append(f'    write(o, {at}, {int.from_bytes(part, "little")}, {len(part)})')
+                    word = int.from_bytes(part, 'little')
+                    next_part = record[at + 8:min(at + 16, stop)]
+                    if zero_fill and word and len(next_part) == 8 and any(next_part):
+                        # Adjacent literals share a single position in the HIA instruction stream.
+                        other = int.from_bytes(next_part, 'little')
+                        chunks.append(f'    write_pair(o, {at}, {word}, {other})')
+                        at += 16
+                    else:
+                        if word or not zero_fill:
+                            chunks.append(f'    write(o, {at}, {word}, {len(part)})')
+                        at += len(part)
                 chunks.append('    return 0')
             functions.append(f'    return {len(record)}')
             functions.extend(chunks)
     selector.append('    return 0')
+    if zero_fill:
+        functions.extend(('', 'def write_pair(o:mutbuf, at:u64, first:u64, second:u64) -> u64:',
+                          '    write(o, at, first, 8)', '    write(o, at + 8, second, 8)', '    return 0'))
     helpers = LINK_SOURCE[LINK_SOURCE.index('\ndef uint('):]
     return render_assembly(document('\n'.join(selector + functions) + helpers, Path(group).stem))

@@ -69,8 +69,25 @@
 .equ SIMD_WORK_PTR,3944
 .equ SIMD_REPORT_CONTEXT,3952
 .equ SIMD_SHAPE,3960
+.equ SIMD_REPORT_BYTES,65536
+.equ SIMD_CPU_COUNT,4224
+.equ SIMD_ELAPSED_NS,4232
+.equ SIMD_SCALAR_REASON,4240
+.equ SIMD_PROBE_DIGEST,4248
+.equ SIMD_CPU_ROWS,4352
+.equ SIMD_AFFINITY_WIDTH,4280
+.equ SIMD_AFFINITY_MASK,45568
+.equ BUILD_STARTED,4064
 .equ CHECKED_SELECTION,3968
 .equ CHECKED_SCALAR_REFUSAL,3976
+.equ REGISTER_SELECTED,3984
+.equ REGISTER_OBJECT_INFO,3992
+.equ REGISTER_PROFILE,4000
+.equ REGISTER_HOT_BYTES,4008
+.equ DRIVER_ERROR_BUF,4016
+# These slots are free once the successful build report reaches publication.
+.equ PUBLICATION_ENTRY_STATUS,DRIVER_ERROR_BUF
+.equ PUBLICATION_LINK_STATUS,REGISTER_OBJECT_INFO
 _start:
  # The static linker calls this entry. The adapter itself never returns.
  add rsp,8
@@ -78,6 +95,12 @@ _start:
  mov esi,4096
  call allocate
  mov rbp,rax
+ mov edi,1                         # CLOCK_MONOTONIC
+ lea rsi,[rbp+BUILD_STARTED]
+ mov eax,228
+ syscall
+ test eax,eax
+ jne io_failure
  mov QWORD PTR [rbp+REPORT_CAPACITY],262144
  cmp QWORD PTR [rsp],1
  je inspect_shared_args
@@ -353,12 +376,22 @@ check_core:
  cmp QWORD PTR [rbp+NOMINAL_PRESENT],0
  je lower_nominal
 core_verified:
+ test rax,rax
+ jz core_acceptance_ready
+ cmp QWORD PTR [rbp+SHARED_MODE],2
+ jne core_acceptance_ready
+ call try_core_driver_error
+core_acceptance_ready:
  call require_native_zero
  cmp QWORD PTR [rbp+SHARED_MODE],2
  jne scalar_build_plan
+ call try_verified_register
+ test rax,rax
+ jnz publish_artifact
  call try_verified_simd
  test rax,rax
  jnz publish_artifact
+ call try_checked_driver_error
 scalar_build_plan:
  movabs rax,0x3330515645414948    # HIAEVQ03
  cmp [rbp+PLAN_PREFIX],rax
@@ -922,6 +955,8 @@ attach_plan_identity:
  je publish_artifact
  call bind_plan_report
 publish_artifact:
+ mov QWORD PTR [rbp+PUBLICATION_ENTRY_STATUS],0
+ mov QWORD PTR [rbp+PUBLICATION_LINK_STATUS],0
  # Native HIA owns filesystem state and all exact-byte/identity decisions.
  mov esi,1048576
  call allocate
@@ -1006,6 +1041,27 @@ argument_ready:
  inc edx
  cmp edx,6
  jb translate_argument
+ cmp QWORD PTR [rsp+48],265      # linkat is the single no-replace publication.
+ jne perform_publication_syscall
+ cmp QWORD PTR [rbp+SHARED_MODE],2
+ jne perform_publication_syscall
+ sub rsp,144
+observe_publication_entry:
+ mov edi,-100
+ mov rsi,[rsp+144+24]
+ mov rdx,rsp
+ mov r10d,256                   # AT_SYMLINK_NOFOLLOW includes dangling entries.
+ mov eax,262
+ syscall
+ cmp rax,-4
+ je observe_publication_entry
+ add rsp,144
+ mov [rbp+PUBLICATION_ENTRY_STATUS],rax
+ test rax,rax
+ jnz perform_publication_syscall
+ mov rax,-17                    # Return EEXIST to the HIA owner for cleanup.
+ jmp record_publication_link
+perform_publication_syscall:
  mov rax,[rsp+48]
  mov rdi,[rsp]
  mov rsi,[rsp+8]
@@ -1014,6 +1070,13 @@ argument_ready:
  mov r8,[rsp+32]
  mov r9,[rsp+40]
  syscall
+ cmp QWORD PTR [rsp+48],265
+ jne publication_syscall_finished
+ cmp QWORD PTR [rbp+SHARED_MODE],2
+ jne publication_syscall_finished
+record_publication_link:
+ mov [rbp+PUBLICATION_LINK_STATUS],rax
+publication_syscall_finished:
  add rsp,64
  mov [r13+32],rax
  mov rax,[r12+8]
@@ -1025,7 +1088,38 @@ argument_ready:
 publication_complete:
  mov rdi,[r12+24]
  test rdi,rdi
- jnz exit
+ jz publication_succeeded
+ cmp edi,4
+ jne exit
+ cmp QWORD PTR [rbp+PUBLICATION_LINK_STATUS],0
+ jns exit
+ # The filesystem owner has finished cleanup. Render the recorded failure now.
+ sub rsp,24
+ movabs rax,0x3144425550414948    # HIAPUBD1
+ mov [rsp],rax
+ mov rax,[rbp+PUBLICATION_ENTRY_STATUS]
+ mov [rsp+8],rax
+ mov rax,[rbp+PUBLICATION_LINK_STATUS]
+ mov [rsp+16],rax
+ mov esi,4096
+ call allocate
+ mov rbx,rax
+ mov rdi,r12
+ mov esi,96
+ mov rdx,rbx
+ mov ecx,4096
+ mov r8,rsp
+ mov r9d,24
+ lea rax,[rip+build_scalar_subject_start]
+ call call_verified_component
+ cmp rax,64
+ jb io_failure
+ cmp rax,4096
+ ja io_failure
+ mov rsi,rbx
+ mov rdx,rax
+ jmp write_source_diagnostic
+publication_succeeded:
  mov rdi,r12
  mov esi,1048576
  call release
@@ -1119,6 +1213,11 @@ link_shared_artifact:
  # Keep the direct object immutable; do not publish until the independent
  # inventory confirms that the linked ELF exposes exactly its admitted exports.
  sub rsp,8
+ cmp QWORD PTR [rbp+SHARED_MODE],2
+ jne ordinary_output_selected
+ mov edi,3
+ call check_verified_output_path
+ordinary_output_selected:
  mov esi,ART_N
  call allocate
  mov [rbp+SHARED_ARTIFACT],rax
@@ -1568,6 +1667,9 @@ prove_shared_artifact:
  call new_proof_file
  mov [rbp+PROOF_INPUT],rax
  lea rsi,[rbp+PROOF_REQUEST]
+ movabs rax,0x3330465250414948    # HIAPRF03
+ cmp QWORD PTR [rbp+REGISTER_SELECTED],0
+ jne proof_request_selected
  movabs rax,0x3130465250414948    # HIAPRF01
  cmp QWORD PTR [rbp+SIMD_SHAPE],0
  je proof_request_selected
@@ -1656,6 +1758,8 @@ wait_proof:
  mov edi,[rbp+PROOF_OUTPUT]
  call close_proof_file
 
+ cmp QWORD PTR [rbp+REGISTER_SELECTED],0
+ jne register_supplied_report
  cmp QWORD PTR [rbp+SIMD_SHAPE],0
  jne simd_supplied_report
  # HIA admits only a positive receipt for these exact immutable final bytes.
@@ -1757,6 +1861,362 @@ proof_child:
 
 # The whole Core has already passed admission. Only the independently described
 # borrowed-byte recurrence enters this ISA-specific path.
+# Invoke an admitted HIA image held in a source-verified DEFLATE record.
+# rax names the record. The ordinary six HIA call arguments stay intact.
+call_verified_component:
+ push rbx
+ push r12
+ push r13
+ mov rbx,rax
+ push r9
+ push r8
+ push rcx
+ push rdx
+ push rsi
+ push rdi
+ mov rdi,rbx
+ call map_verified_component
+ mov r12,rax
+ pop rdi
+ pop rsi
+ pop rdx
+ pop rcx
+ pop r8
+ pop r9
+ call r12
+ mov r13,rax
+ mov rdi,r12
+ mov rsi,[rbx]
+ call release
+ mov rax,r13
+ pop r13
+ pop r12
+ pop rbx
+ ret
+
+# Decode into private writable pages, verify their entire digest, then
+# grant execute permission to those pages for exactly one HIA call.
+map_verified_component:
+ push rbx
+ push r12
+ push r13
+ push r14
+ push r15
+ mov rbx,rdi
+ mov rsi,[rbx]
+ sub rsi,1
+ cmp rsi,1048575
+ ja invalid
+ inc rsi
+ mov rcx,[rbx+8]
+ sub rcx,1
+ cmp rcx,1048575
+ ja invalid
+ call allocate
+ mov r14,rax
+ mov esi,4096
+ call allocate
+ mov r15,rax
+ lea rdi,[rbx+48]
+ mov rsi,[rbx+8]
+ mov rdx,r14
+ mov rcx,[rbx]
+ mov r8,r15
+ mov r9d,4096
+ call build_release_inflate_start
+ cmp rax,[rbx]
+ jne invalid
+ mov rdi,r15
+ mov esi,4096
+ call release
+ mov r12,r14
+ mov r13,[rbx]
+ call hash_bytes
+ lea rdi,[rbx+16]
+ lea rsi,[rbp+SHARED_DIGEST]
+ mov ecx,4
+ cld
+ repe cmpsq
+ jne invalid
+ mov rdi,r14
+ mov rsi,[rbx]
+ mov edx,5
+ call protect
+ mov rax,r14
+ pop r15
+ pop r14
+ pop r13
+ pop r12
+ pop rbx
+ ret
+
+# The whole-Core HIA image already owns the exact diagnostic bytes and status.
+# Bind its immutable trailer to the original source length before formatting.
+# HIA derives the parent of the admitted absolute path and interprets the two
+# kernel observations. The final publisher still enforces no-replace atomically.
+check_verified_output_path:
+ push rbx
+ push r12
+ push r13
+ push r14
+ push r15
+ sub rsp,192
+ mov [rsp+8],rdi
+ movabs rax,0x313054554f414948    # HIAOUT01
+ mov [rsp],rax
+ xor eax,eax
+ mov [rsp+16],rax
+ mov [rsp+24],rax
+ mov [rsp+32],rax
+ mov [rsp+40],rax
+ mov r12,[r15+40]
+ mov r13,[r15+48]
+ lea rdi,[rip+build_scalar_subject_start]
+ call map_verified_component
+ mov r14,rax
+ mov esi,4096
+ call allocate
+ mov rbx,rax
+ mov rdi,r12
+ mov rsi,r13
+ mov rdx,rbx
+ mov ecx,4096
+ mov r8,rsp
+ mov r9d,48
+ call r14
+ cmp rax,2
+ jb invalid
+ cmp rax,4096
+ ja invalid
+path_destination_stat:
+ mov edi,-100
+ mov rsi,r12
+ lea rdx,[rsp+48]
+ mov r10d,256                  # AT_SYMLINK_NOFOLLOW observes dangling entries.
+ mov eax,262                   # newfstatat
+ syscall
+ cmp rax,-4
+ je path_destination_stat
+ mov [rsp+24],rax
+path_parent_stat:
+ mov edi,-100
+ mov rsi,rbx
+ lea rdx,[rsp+48]
+ xor r10d,r10d
+ mov eax,262
+ syscall
+ cmp rax,-4
+ je path_parent_stat
+ mov [rsp+32],rax
+ test rax,rax
+ jnz path_observations_ready
+ mov eax,[rsp+48+24]           # st_mode on Linux x86-64.
+ mov [rsp+40],rax
+path_observations_ready:
+ mov QWORD PTR [rsp+16],1
+ mov rdi,r12
+ mov rsi,r13
+ mov rdx,rbx
+ mov ecx,4096
+ mov r8,rsp
+ mov r9d,48
+ call r14
+ cmp rax,1
+ je verified_output_available
+ cmp rax,64
+ jb invalid
+ cmp rax,4096
+ ja invalid
+ mov rsi,rbx
+ mov rdx,rax
+ jmp write_source_diagnostic
+verified_output_available:
+ mov rdi,rbx
+ mov esi,4096
+ call release
+ mov rdi,r14
+ mov rsi,[rip+build_scalar_subject_start]
+ call release
+ add rsp,192
+ pop r15
+ pop r14
+ pop r13
+ pop r12
+ pop rbx
+ ret
+
+try_core_driver_error:
+ sub rsp,24
+ movabs rax,0x3130474443414948     # HIACDG01
+ mov [rsp],rax
+ mov rax,[rbp+88]
+ mov [rsp+8],rax
+ mov rax,[rbp+1112]
+ mov [rsp+16],rax
+ mov esi,CORE_N
+ call allocate
+ mov [rbp+DRIVER_ERROR_BUF],rax
+ mov rdi,r13
+ mov esi,CORE_N
+ mov rdx,rax
+ mov ecx,CORE_N
+ mov r8,rsp
+ mov r9d,24
+ lea rax,[rip+build_scalar_subject_start]
+ call call_verified_component
+ test rax,rax
+ jz core_driver_error_unavailable
+ cmp rax,CORE_N
+ ja invalid
+ mov rdx,rax
+ mov rsi,[rbp+DRIVER_ERROR_BUF]
+ jmp write_source_diagnostic
+core_driver_error_unavailable:
+ mov rdi,[rbp+DRIVER_ERROR_BUF]
+ mov esi,CORE_N
+ call release
+ mov rax,[rbp+1112]
+ add rsp,24
+ ret
+
+# This runs only after the scalar and SIMD source choices have declined.
+# Reuse the native source decoder to observe the checked profile in order.
+try_checked_driver_error:
+ sub rsp,8
+ mov esi,65536
+ call allocate
+ mov [rbp+DRIVER_ERROR_BUF],rax
+ mov esi,16<<20
+ call allocate
+ mov [rbp+SIMD_WORK_PTR],rax
+ movabs rcx,0x3230474443414948     # HIACDG02
+ mov [rax],rcx
+ mov rcx,[rbp+CHECKED_SCALAR_REFUSAL]
+ mov [rax+8],rcx
+ mov rdi,[rbp]
+ mov rsi,[rbp+88]
+ mov rdx,[rbp+DRIVER_ERROR_BUF]
+ mov ecx,65536
+ mov r8,rax
+ mov r9d,16<<20
+ lea rax,[rip+build_scalar_subject_start]
+ call call_verified_component
+ test rax,rax
+ jz checked_driver_error_unavailable
+ cmp rax,65536
+ ja invalid
+ mov rdx,rax
+ mov rsi,[rbp+DRIVER_ERROR_BUF]
+ jmp write_source_diagnostic
+checked_driver_error_unavailable:
+ mov rdi,[rbp+DRIVER_ERROR_BUF]
+ mov esi,65536
+ call release
+ mov rdi,[rbp+SIMD_WORK_PTR]
+ mov esi,16<<20
+ call release
+ add rsp,8
+ ret
+
+try_verified_register:
+ sub rsp,8
+ mov esi,65536
+ call allocate
+ mov [rbp+SIMD_SUBJECT_PTR],rax
+ mov esi,16<<20
+ call allocate
+ mov [rbp+SIMD_WORK_PTR],rax
+ mov rdi,[rbp]
+ mov rsi,[rbp+88]
+ mov rdx,[rbp+SIMD_SUBJECT_PTR]
+ mov ecx,65536
+ mov r8,rax
+ mov r9d,16<<20
+ lea rax,[rip+build_scalar_subject_start]
+ call call_verified_component
+ mov [rbp+SIMD_SUBJECT_BYTES],rax
+ mov rdi,[rbp+SIMD_WORK_PTR]
+ mov esi,16<<20
+ call release
+ mov rax,[rbp+SIMD_SUBJECT_BYTES]
+ mov rdi,[rbp+SIMD_SUBJECT_PTR]
+ cmp rax,16
+ je register_subject_refused
+ cmp rax,16
+ jb invalid
+ cmp rax,65536
+ ja invalid
+ movabs rcx,0x3130454c53414948    # HIASLE01
+ cmp [rdi],rcx
+ jne invalid
+ mov esi,65536
+ call protect_readonly
+ mov esi,ART_N
+ call allocate
+ mov [rbp+48],rax
+ mov esi,8192
+ call allocate
+ mov [rbp+SIMD_WORK_PTR],rax
+ mov rdi,[rbp+SIMD_SUBJECT_PTR]
+ mov rsi,[rbp+SIMD_SUBJECT_BYTES]
+ mov rdx,[rbp+48]
+ mov ecx,16384
+ mov r8,rax
+ mov r9d,8192
+ lea rax,[rip+build_scalar_object_start]
+ call call_verified_component
+ mov [rbp+56],rax
+ mov rdi,[rbp+SIMD_WORK_PTR]
+ test rax,rax
+ jz register_allocation_refused
+ cmp rax,64
+ jb invalid
+ cmp rax,16384
+ ja invalid
+ cmp QWORD PTR [rdi+64],0
+ jne invalid
+ mov rax,[rdi+56]
+ mov [rbp+REGISTER_PROFILE],rax
+ mov rax,[rdi+48]
+ mov [rbp+REGISTER_HOT_BYTES],rax
+ mov esi,8192
+ call release
+ mov rdi,[rbp+48]
+ mov esi,ART_N
+ call protect_readonly
+ mov rdi,[rbp+SIMD_SUBJECT_PTR]
+ mov esi,65536
+ call release
+ mov QWORD PTR [rbp+REGISTER_SELECTED],1
+ jmp link_verified_object
+register_allocation_refused:
+ mov rax,[rdi+64]
+ mov [rbp+CHECKED_SCALAR_REFUSAL],rax
+ mov esi,8192
+ call release
+ mov rdi,[rbp+48]
+ mov esi,ART_N
+ call release
+ mov QWORD PTR [rbp+48],0
+ jmp register_refusal_ready
+register_subject_refused:
+ movabs rcx,0x3130524c53414948    # HIASLR01
+ cmp [rdi],rcx
+ jne invalid
+ mov rax,[rdi+8]
+ mov [rbp+CHECKED_SCALAR_REFUSAL],rax
+register_refusal_ready:
+ mov rax,[rbp+CHECKED_SCALAR_REFUSAL]
+ dec rax
+ cmp rax,11
+ ja invalid
+ mov rdi,[rbp+SIMD_SUBJECT_PTR]
+ mov esi,65536
+ call release
+ xor eax,eax
+ add rsp,8
+ ret
+
 try_verified_simd:
  sub rsp,8
  mov esi,65536
@@ -1771,7 +2231,8 @@ try_verified_simd:
  mov ecx,65536
  mov r8,rax
  mov r9d,16<<20
- call build_simd_subject_start
+ lea rax,[rip+build_simd_subject_start]
+ call call_verified_component
  mov [rbp+SIMD_SUBJECT_BYTES],rax
  mov rdi,[rbp+SIMD_WORK_PTR]
  mov esi,16<<20
@@ -1783,10 +2244,7 @@ try_verified_simd:
  jb invalid
  cmp rax,152
  ja invalid
- cmp QWORD PTR [rbp+VERIFIED_TARGET_ISA],0
- jne verified_target_selected
  call select_verified_native_target
-verified_target_selected:
  mov rax,[rbp+SIMD_SUBJECT_BYTES]
  mov rbx,[rbp+SIMD_SUBJECT_PTR]
  mov rcx,[rbp+VERIFIED_TARGET_ISA]
@@ -1809,7 +2267,8 @@ verified_target_selected:
  mov ecx,ART_N
  mov r8,rax
  mov r9d,2048
- call build_simd_object_start
+ lea rax,[rip+build_simd_object_start]
+ call call_verified_component
  cmp rax,64
  jb invalid
  cmp rax,VERIFIED_OBJECT_LIMIT
@@ -1824,6 +2283,13 @@ verified_target_selected:
  mov rdi,[rbp+SIMD_SUBJECT_PTR]
  mov esi,65536
  call release
+link_verified_object:
+ mov edi,2
+ cmp QWORD PTR [rbp+REGISTER_SELECTED],0
+ je verified_output_selected
+ mov edi,1
+verified_output_selected:
+ call check_verified_output_path
  mov esi,ART_N
  call allocate
  mov [rbp+SHARED_ARTIFACT],rax
@@ -1851,10 +2317,9 @@ verified_target_selected:
  mov r12,[rbp+SHARED_ARTIFACT]
  mov r13,[rbp+SHARED_EXTENT]
  call hash_bytes
- mov esi,8192
- call allocate
- mov [rbp+SIMD_REPORT_CONTEXT],rax
- mov rdi,rax
+ cmp QWORD PTR [rbp+REGISTER_SELECTED],0
+ jne register_report_context
+ mov rdi,[rbp+SIMD_REPORT_CONTEXT]
  lea rsi,[rbp+SHARED_DIGEST]
  cld
  mov ecx,4
@@ -1878,9 +2343,7 @@ verified_target_selected:
  mov rcx,rax
  mov rsi,[r15+40]
  rep movsb
- mov rdi,[rbp+SIMD_REPORT_CONTEXT]
- mov esi,8192
- call protect_readonly
+verified_context_ready:
  call prove_shared_artifact
  mov rdi,[rbp+48]
  mov esi,ART_N
@@ -1922,6 +2385,9 @@ select_verified_native_target:
  push r14
  push r15
  sub rsp,35968
+ mov esi,SIMD_REPORT_BYTES
+ call allocate
+ mov [rbp+SIMD_REPORT_CONTEXT],rax
  mov r12,rsp                      # original affinity
  lea r13,[rsp+1024]               # requested singleton
  lea r14,[rsp+2048]               # observed affinity
@@ -2003,6 +2469,17 @@ native_target_leaf7:
  cpuid
  mov [r8+24],rbx                  # CPUID.7.0:EBX
 native_target_cpu_captured:
+ mov r9,[rsp+3080]
+ dec r9
+ imul r9,r9,40
+ mov rdi,[rbp+SIMD_REPORT_CONTEXT]
+ lea rdi,[rdi+r9+SIMD_CPU_ROWS]
+ mov [rdi],r15
+ add rdi,8
+ mov rsi,r8
+ mov ecx,4
+ cld
+ rep movsq
  btr QWORD PTR [r13],r15
 native_target_advance:
  inc r15
@@ -2035,7 +2512,8 @@ native_target_restore:
  mov ecx,16
  lea r8,[rsp+35896]
  mov r9d,8
- call build_simd_object_start
+ lea rax,[rip+build_simd_object_start]
+ call call_verified_component
  cmp eax,8
  jne io_failure
  mov rax,[rsp+35880]
@@ -2043,7 +2521,31 @@ native_target_restore:
  jb io_failure
  cmp rax,3
  ja io_failure
+ cmp QWORD PTR [rbp+VERIFIED_TARGET_ISA],0
+ jne native_keep_requested_isa
  mov [rbp+VERIFIED_TARGET_ISA],rax
+native_keep_requested_isa:
+ mov rdi,[rbp+SIMD_REPORT_CONTEXT]
+ mov rcx,[rsp+35872]
+ mov [rdi+SIMD_AFFINITY_WIDTH],rcx
+ lea rdi,[rdi+SIMD_AFFINITY_MASK]
+ mov rsi,r12
+ cld
+ rep movsb
+ mov rdi,[rbp+SIMD_REPORT_CONTEXT]
+ mov rcx,[rsp+3080]
+ mov [rdi+SIMD_CPU_COUNT],rcx
+ mov rcx,[rbp+CHECKED_SCALAR_REFUSAL]
+ mov [rdi+SIMD_SCALAR_REASON],rcx
+ lea r12,[rip+select_verified_native_target]
+ lea r13,[rip+native_target_probe_end]
+ sub r13,r12
+ call hash_bytes
+ mov rdi,[rbp+SIMD_REPORT_CONTEXT]
+ add rdi,SIMD_PROBE_DIGEST
+ lea rsi,[rbp+SHARED_DIGEST]
+ mov ecx,4
+ rep movsq
  add rsp,35968
  pop r15
  pop r14
@@ -2051,10 +2553,196 @@ native_target_restore:
  pop r12
  pop rbx
  ret
+native_target_probe_end:
+
+# The independent report image extracts the actual ET_REL section and export.
+# The source emitter's hot extent must agree with this physical observation.
+register_report_context:
+ mov esi,8192
+ call allocate
+ mov [rbp+SHARED_FRAME],rax
+ mov rdi,rax
+ lea rsi,[rbp+SHARED_DIGEST]
+ add rdi,24
+ mov ecx,4
+ cld
+ rep movsq
+ mov rbx,[rbp+SHARED_FRAME]
+ movabs rax,0x3130525352414948    # HIARSR01
+ mov [rbx],rax
+ mov rax,[rbp+SHARED_EXTENT]
+ mov [rbx+8],rax
+ mov rax,[r15+48]
+ dec rax
+ cmp rax,4094
+ ja invalid
+ inc rax
+ mov [rbx+16],rax
+ mov esi,4096
+ call allocate
+ mov [rbp+REGISTER_OBJECT_INFO],rax
+ mov rdi,[rbp+48]
+ mov rsi,[rbp+56]
+ mov rdx,rax
+ mov ecx,4096
+ lea r8,[rip+register_metadata_mode]
+ mov r9d,8
+ call build_shared_report_start
+ cmp rax,33
+ jb invalid
+ cmp rax,288
+ ja invalid
+ mov rdx,[rbp+REGISTER_OBJECT_INFO]
+ sub rax,32
+ cmp rax,[rdx+24]
+ jne invalid
+ mov rax,[rdx+16]
+ cmp rax,[rbp+REGISTER_HOT_BYTES]
+ jne invalid
+ mov r12,[rbp+48]
+ add r12,[rdx]
+ mov r13,[rdx+8]
+ call hash_bytes
+ lea rdi,[rbx+56]
+ lea rsi,[rbp+SHARED_DIGEST]
+ mov ecx,4
+ cld
+ rep movsq
+ lea rsi,[rip+build_scalar_object_start+16]
+ mov ecx,4
+ rep movsq
+ lea rsi,[rip+build_verified_linker_identity_start]
+ mov ecx,4
+ rep movsq
+ lea rsi,[rip+build_prover_identity_start+8]
+ mov ecx,4
+ rep movsq
+ mov rsi,[rbp+REGISTER_OBJECT_INFO]
+ add rsi,8
+ mov ecx,3                    # .text extent, hot extent and export length.
+ rep movsq
+ mov rcx,[rbx+200]
+ rep movsb
+ mov rsi,[r15+40]
+ mov rcx,[rbx+16]
+ rep movsb
+ sub rdi,rbx
+ mov [rbp+SHARED_FRAME_EXTENT],rdi
+ mov rdi,[rbp+REGISTER_OBJECT_INFO]
+ mov esi,4096
+ call release
+ jmp verified_context_ready
+register_metadata_mode:
+ .ascii "HIASRO01"
+
+register_supplied_report:
+ cmp QWORD PTR [rbp+PROOF_SIZE],1176
+ jb invalid
+ mov rsi,[rbp+PROOF_REPORT]
+ movabs rax,0x3330525250414948    # HIAPRR03
+ cmp [rsi],rax
+ jne invalid
+ cmp QWORD PTR [rsi+8],1
+ jne invalid
+ mov rax,[rbp+REGISTER_PROFILE]
+ cmp rax,[rsi+16]
+ jne invalid
+ mov r12,rsi
+ mov r13,[rbp+PROOF_SIZE]
+ call hash_bytes
+ mov rbx,[rbp+SHARED_FRAME]
+ add rbx,[rbp+SHARED_FRAME_EXTENT]
+ mov rdi,rbx
+ lea rsi,[rbp+SHARED_DIGEST]
+ mov ecx,4
+ cld
+ rep movsq
+ mov rax,[rbp+REGISTER_PROFILE]
+ stosq
+ xor eax,eax                   # A selected register leaf has no prior refusals.
+ stosq
+ mov rsi,[rbp+PROOF_REPORT]
+ mov rax,[rsi+24]
+ stosq
+ mov rax,[rsi+32]
+ stosq
+ add rsi,80
+ mov ecx,8                    # Raw source and object identities.
+ rep movsq
+ add rsi,32
+ mov ecx,4                    # Independently observed linked text.
+ rep movsq
+ mov rsi,[rbp+PROOF_REPORT]
+ add rsi,[rbp+PROOF_SIZE]
+ sub rsi,32
+ mov ecx,4                    # Verified canonical Core identity.
+ rep movsq
+ add QWORD PTR [rbp+SHARED_FRAME_EXTENT],192
+ mov rdi,[rbp+SHARED_FRAME]
+ mov esi,8192
+ call protect_readonly
+ mov esi,262144
+ call allocate
+ mov [r15+24],rax
+ mov rdi,[rbp+SHARED_FRAME]
+ mov rsi,[rbp+SHARED_FRAME_EXTENT]
+ mov rdx,rax
+ mov ecx,262144
+ mov r8,[rbp+PROOF_REPORT]
+ mov r9,[rbp+PROOF_SIZE]
+ call build_shared_report_start
+ cmp rax,64
+ jb invalid
+ cmp rax,262144
+ ja invalid
+ mov [r15+32],rax
+ mov rdi,[r15+24]
+ mov esi,262144
+ call protect_readonly
+ mov rdi,[rbp+SHARED_FRAME]
+ mov esi,8192
+ call release
+ jmp release_proof_report
 
 simd_supplied_report:
  cmp QWORD PTR [rbp+PROOF_SIZE],464
  jne invalid
+ # Ensure proof completion still refers to the caller's captured CPU affinity.
+ sub rsp,1024
+ mov eax,204
+ xor edi,edi
+ mov esi,1024
+ mov rdx,rsp
+ syscall
+ mov rdi,[rbp+SIMD_REPORT_CONTEXT]
+ cmp rax,[rdi+SIMD_AFFINITY_WIDTH]
+ jne invalid
+ mov rcx,rax
+ lea rdi,[rdi+SIMD_AFFINITY_MASK]
+ mov rsi,rsp
+ cld
+ repe cmpsb
+ jne invalid
+ add rsp,1024
+ sub rsp,16
+ mov edi,1
+ mov rsi,rsp
+ mov eax,228
+ syscall
+ test eax,eax
+ jne io_failure
+ mov rax,[rsp]
+ sub rax,[rbp+BUILD_STARTED]
+ imul rax,rax,1000000000
+ add rax,[rsp+8]
+ sub rax,[rbp+BUILD_STARTED+8]
+ add rsp,16
+ test rax,rax
+ jle io_failure
+ mov rdi,[rbp+SIMD_REPORT_CONTEXT]
+ mov [rdi+SIMD_ELAPSED_NS],rax
+ mov esi,SIMD_REPORT_BYTES
+ call protect_readonly
  mov esi,262144
  call allocate
  mov [r15+24],rax
@@ -2063,7 +2751,7 @@ simd_supplied_report:
  mov rdx,rax
  mov ecx,262144
  mov r8,[rbp+SIMD_REPORT_CONTEXT]
- mov r9d,8192
+ mov r9d,SIMD_REPORT_BYTES
  call build_shared_report_start
  cmp rax,64
  jb invalid
@@ -2074,7 +2762,7 @@ simd_supplied_report:
  mov esi,262144
  call protect_readonly
  mov rdi,[rbp+SIMD_REPORT_CONTEXT]
- mov esi,8192
+ mov esi,SIMD_REPORT_BYTES
  call release
  jmp release_proof_report
 

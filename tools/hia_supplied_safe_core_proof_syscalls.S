@@ -69,9 +69,7 @@ _start:
     mov ecx, output_limit
     mov r8, r14
     mov r9d, work_limit
-    .byte 0xe8
-proof_policy_hole:
-    .long 0
+    call .run_policy
     cmp rax, 1
     jne .answer
     inc r15
@@ -90,6 +88,8 @@ proof_policy_hole:
     ja .invalid
 
     mov rax, [r14 + 8]
+    cmp rax, 7
+    je .canonical_hash
     cmp rax, 6
     je .hash
     cmp rax, 1
@@ -111,6 +111,58 @@ proof_policy_hole:
     mov [r14 + 352], rdx
     jmp .launch
 
+.run_policy:
+    sub rsp, 8
+    .byte 0xe8
+proof_policy_hole:
+    .long 0
+    add rsp, 8
+    ret
+
+# Only the register proof requests canonical Core identity. The HIA parser
+# and SHA use the same frozen input as the other five binding/solver roles.
+.canonical_hash:
+    mov rbx, rsi
+    mov rbp, rdx
+    xor edi, edi
+    mov esi, 50331648
+    mov edx, 3
+    mov r10d, 0x22
+    mov r8, -1
+    xor r9d, r9d
+    mov eax, 9
+    syscall
+    cmp rax, -4095
+    jae .io
+    mov [r14 + 1056], rax
+    mov rdi, rbx
+    mov rsi, rbp
+    mov rdx, rax
+    mov ecx, 16777216
+    lea r8, [rax + 16777216]
+    mov r9d, 33554432
+    call .run_policy
+    test rax, rax
+    jz .invalid
+    cmp rax, rbp
+    ja .invalid
+    mov rbx, rax
+    mov rdi, [r14 + 1056]
+    mov esi, 16777216
+    mov edx, 1
+    mov eax, 10
+    syscall
+    test rax, rax
+    jnz .io
+    mov rdi, [r14 + 1056]
+    add rdi, 16777216
+    mov esi, 33554432
+    mov eax, 11
+    syscall
+    test rax, rax
+    jnz .io
+    mov rsi, [r14 + 1056]
+    mov rdx, rbx
 .hash:
     mov rdi, rsi
     mov rsi, rdx
