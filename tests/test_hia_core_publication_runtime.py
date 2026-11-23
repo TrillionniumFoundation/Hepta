@@ -8,8 +8,10 @@ from hashlib import sha256
 from io import StringIO
 import json
 import os
+import shutil
 from pathlib import Path
 import stat
+import struct
 import subprocess
 import sys
 import tempfile
@@ -218,11 +220,44 @@ def check_verified_shared_build(release, directory):
     function['blocks'][0]['ops'][0]['op'] = 'int.mul.checked'
     function['effects'] = ['trap']
     source.write_bytes(wire(primitive))
+    # Checked multiplication now has an independently verified register implementation.
+    # Exercise the same source with an intact proof companion and with its archive damaged.
+    isolated = directory / 'proof-companion'
+    isolated.mkdir()
+    for role in ('hia', 'hia-build-object'):
+        shutil.copy2(release / role, isolated / role)
+    proved = directory / 'multiply.so'
+
+    def build_multiply(target):
+        return subprocess.run([isolated / 'hia', 'build', source, '--kind', 'shared', '-o', target],
+                              capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+
+    good = build_multiply(proved)
+    assert good.returncode == 0 and not good.stderr
+    verified = json.loads(good.stdout)
+    assert verified['artifact_sha256'] == sha256(proved.read_bytes()).hexdigest()
+    assert verified['validation']['complete'] and verified['validation']['ok']
+    assert verified['machine_proof']['receipt_sha256'] == verified['validation']['checker']['receipt_sha256']
+    multiply = ctypes.CDLL(str(proved)).increment
+    multiply.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    multiply.restype = ctypes.c_uint32
+    assert multiply(6, 7) == 42
+
+    launcher = isolated / 'hia-build-object'
+    payload = launcher.read_bytes()
+    marker = b'HIAECP01'
+    companion = payload.rfind(marker)
+    assert companion > payload.find(marker) >= 0
+    assert struct.unpack_from('<Q', payload, companion + len(marker))[0] == (release / 'hia-safe-core-prove').stat().st_size
+    launcher.chmod(0o700)
+    with launcher.open('r+b') as stream:
+        stream.seek(companion)
+        stream.write(b'HIAECP00')
+    launcher.chmod(0o500)
     unproved = directory / 'unproved.so'
-    result = subprocess.run([release / 'hia', 'build', source, '--kind', 'shared', '-o', unproved],
-                            capture_output=True, env={'PATH': ''}, timeout=20, check=False)
+    result = build_multiply(unproved)
     assert result.returncode > 0 and not result.stdout and not result.stderr and not unproved.exists()
-    return 3
+    return 4
 
 
 def check_v9_edits(release, directory):

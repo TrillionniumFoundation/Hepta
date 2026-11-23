@@ -233,10 +233,7 @@ def _stage_safe_proof(work, seed, compile_sources, call, admitted, publish):
             raise ValueError('nested proof adapter differs from cold admission: ' + name)
         return data
 
-    def owner(packer):
-        kit, _, _ = compile_sources({'source_build_policy.hepta': 'source_safe_proof.hepta',
-                                     'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
-        return call(seed, 'pack', kit)
+    builds = release_sources(seed, compile_sources, call)
 
     def record(source, image, *, embedded=False):
         header = struct.pack('<QQ', len(source), len(image))
@@ -253,7 +250,8 @@ def _stage_safe_proof(work, seed, compile_sources, call, admitted, publish):
     final_packer = Path(FINAL_PACKER).name
     names = {*packers, *outer, final_packer, *(name for group in recipes for name in group)}
     _, images, sources = compile_sources({name: name for name in sorted(names)})
-    controllers = {name: owner(name) for name in dict.fromkeys((*packers, 'native_filter_packer.hepta'))}
+    controllers = {name: builds.kit('source_safe_proof.hepta', name)
+                   for name in dict.fromkeys((*packers, 'native_filter_packer.hepta'))}
     final_rows = [record(sources[name], images[name]) for name in outer]
     children = []
     for role, (names, packer) in enumerate(zip(recipes, packers, strict=True), 1):
@@ -344,12 +342,10 @@ def _stage_read_carrier(work, seed, compile_sources, call, admitted, publish):
             raise ValueError('native Read carrier dependency differs from cold admission: ' + name)
         return raw
 
+    builds = release_sources(seed, compile_sources, call)
+
     def builder(packer):
-        kit, _, _ = compile_sources({
-            'source_build_policy.hepta': 'source_read_carrier.hepta',
-            'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': Path(packer).name,
-        })
-        return call(seed, 'pack', kit)
+        return builds.kit('source_read_carrier.hepta', Path(packer).name)
 
     source_names = [Path(PROGRAMS[role][0]).name for role in ENTRIES]
     _, images, sources = compile_sources({name: name for name in source_names})
@@ -382,14 +378,11 @@ def _sqlite_build_tools(seed, linker, compile_sources, call, admitted):
     """Bind source admission, object generation and sealed native linking to one build."""
     from functools import cache
 
+    builds = release_sources(seed, compile_sources, call)
+
     @cache
     def owner(application):
-        kit, _, _ = compile_sources({
-            'source_build_policy.hepta': 'source_sqlite_unit.hepta',
-            'selfhost.hepta': 'selfhost.hepta',
-            'source_build_packer.hepta': application,
-        })
-        return call(seed, 'pack', kit)
+        return builds.kit('source_sqlite_unit.hepta', application)
 
     def adapter(template, ordinal, name, *, continuation=None):
         source = (ROOT / name).read_bytes()
@@ -522,12 +515,8 @@ def _stage_agent_stdio(work, seed, catalog_program, compile_sources, call, compi
     _, images, sources = compile_sources({name: name for name in core})
     if images['selfhost.hepta'] != compiler_bytes:
         raise ValueError('Agent stdio selfhost differs from the cold compiler')
-    kit, _, _ = compile_sources({
-        'source_build_policy.hepta': 'source_agent_stdio.hepta',
-        'selfhost.hepta': 'selfhost.hepta',
-        'source_build_packer.hepta': 'agent_stdio_packer.hepta',
-    })
-    author = call(seed, 'pack', kit)
+    builds = release_sources(seed, compile_sources, call)
+    author = builds.kit('source_agent_stdio.hepta', 'agent_stdio_packer.hepta')
     # Nine ordered catalogs belong to the published Agent stdio v2 protocol.
     catalogs = [call(catalog_program, ('--schema', f'hepta.hia.program.v{version}'), b'')
                 for version in range(1, 10)]
@@ -654,6 +643,39 @@ def _named_source_request(sources, *, tag=b'HIANAM01'):
         frame.extend(encoded)
         frame.extend(raw)
     return bytes(frame)
+
+
+def _kit_sources(policy, packer):
+    return {'source_build_policy.hepta': policy, 'selfhost.hepta': 'selfhost.hepta',
+            'source_build_packer.hepta': packer}
+
+
+class NativeReleaseSources:
+    """Share one HIA kit composer with every consumer of the captured source compiler."""
+
+    def __init__(self, seed, compile_sources, capture_sources, call):
+        self.compile_sources = compile_sources
+        self.capture_sources = capture_sources
+        self.call = call
+        group, _, _ = compile_sources(_kit_sources('source_release_kit.hepta', 'source_build_packer.hepta'))
+        self.composer = call(seed, 'pack', group)
+
+    def __call__(self, named):
+        return self.compile_sources(named)
+
+    def kit_from_sources(self, sources):
+        return self.call(self.composer, 'build', _named_source_request(sources, tag=b'HIAKIT01'))
+
+    def kit(self, policy, packer):
+        return self.kit_from_sources(self.capture_sources(_kit_sources(policy, packer)))
+
+
+def release_sources(seed, compile_sources, call):
+    if isinstance(compile_sources, NativeReleaseSources):
+        return compile_sources
+    # Independent callers supply their own admission callback. Its third result
+    # is the exact source snapshot authenticated by that caller.
+    return NativeReleaseSources(seed, compile_sources, lambda named: compile_sources(named)[2], call)
 
 
 def _member_with_object(frame):
@@ -878,23 +900,13 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
 
     # Bootstrap once. The kit composer binds all three freshly compiled objects
     # and the complete executable template before returning a private builder.
-    composer_bundle, _, _ = compile_sources({
-        'source_build_policy.hepta': 'source_release_kit.hepta',
-        'selfhost.hepta': 'selfhost.hepta',
-        'source_build_packer.hepta': 'source_build_packer.hepta',
-    })
-    composer = call(seed, 'pack', composer_bundle)
+    builds = NativeReleaseSources(seed, compile_sources, capture_sources, call)
 
     def planned_members():
         directory = _source_directory_recipe()
         yield directory, 0
         # Its successor is built with the admitted seed and the new directory packer.
-        bundle, _, _ = compile_sources({
-            'source_build_policy.hepta': 'source_release_member_plan.hepta',
-            'selfhost.hepta': 'selfhost.hepta',
-            'source_build_packer.hepta': 'source_build_packer.hepta',
-        })
-        planner = call(seed, 'pack', bundle)
+        planner = builds.kit('source_release_member_plan.hepta', 'source_build_packer.hepta')
         relative = 'examples/hia_bootstrap/release_member_sources.tsv'
         source = (ROOT / relative).read_bytes()
         if sha256(source).hexdigest() != admitted.get(relative):
@@ -909,12 +921,10 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         if pack_directory is None and name != 'hia-directory-package-build':
             raise ValueError('the first native release member must bootstrap its directory packer')
         if owner == index:
-            kit_sources = capture_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
-                                           'selfhost.hepta': 'selfhost.hepta',
-                                           'source_build_packer.hepta': packer})
+            kit_sources = capture_sources(_kit_sources('source_filter_member.hepta', packer))
             if pack_directory is None:
                 bootstrap_packets.append((len(kit_sources), capture_packet(kit_sources)[0]))
-            builders[owner] = call(composer, 'build', _named_source_request(kit_sources, tag=b'HIAKIT01'))
+            builders[owner] = builds.kit_from_sources(kit_sources)
             if packer == 'core_json_cli_packer.hepta':
                 compiler_packer = call(seed, 'compile', kit_sources['source_build_packer.hepta'])
         attach_image = len(sources) == 1 and (name in adapter_files or name in transaction_members)
@@ -966,12 +976,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         if name == 'hia-core-json':
             # The manifest owner independently recompiles the three sources, repacks the
             # exact selected ELF and hashes all nine raw inputs before its first write.
-            author_sources = {
-                'source_build_policy.hepta': 'source_compiler_manifest.hepta',
-                'selfhost.hepta': 'selfhost.hepta',
-                'source_build_packer.hepta': 'core_json_cli_packer.hepta',
-            }
-            author = call(seed, 'pack', compile_sources(author_sources)[0])
+            author = builds.kit('source_compiler_manifest.hepta', 'core_json_cli_packer.hepta')
             parts = (report_bytes, compiler_bytes, captured(name), images[name + '.hepta'],
                      compiler_packer, captured('HIA_SELFHOST_CORE_SUPPORT.json'),
                      captured('core_json_cli_packer.hepta'), captured('core_json_frontend.hepta'),
@@ -984,11 +989,11 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
 
     if bootstrap_packets:
         raise ValueError('release member plan did not verify its bootstrap packets')
-    sqlite_tools = _sqlite_build_tools(seed, captured('hia-elf-link'), compile_sources, call, admitted)
-    _stage_safe_proof(work, seed, compile_sources, call, admitted, publish)
+    sqlite_tools = _sqlite_build_tools(seed, captured('hia-elf-link'), builds, call, admitted)
+    _stage_safe_proof(work, seed, builds, call, admitted, publish)
     constructor = _stage_nominal_constructor(work, compile_sources, publish, sqlite_tools)
     with TemporaryDirectory(prefix='core-edit-', dir=work) as tmp:
-        output = _compile(Path(tmp), 'core_edit', *core_inputs, native_tools=(seed, compile_sources, call),
+        output = _compile(Path(tmp), 'core_edit', *core_inputs, native_tools=(seed, builds, call),
                           constructor=constructor, prover_bytes=captured('hia-safe-core-prove'))
         for name, _ in CORE_EDIT_PROGRAMS.values():
             publish(output / name)
@@ -996,8 +1001,8 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
 
     _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
     _stage_agent_store(work, seed, compile_sources, call, compiler_bytes, admitted, publish)
-    _stage_agent_stdio(work, seed, captured('hia-catalog'), compile_sources, call, compiler_bytes, publish)
-    _stage_read_carrier(work, seed, compile_sources, call, admitted, publish)
+    _stage_agent_stdio(work, seed, captured('hia-catalog'), builds, call, compiler_bytes, publish)
+    _stage_read_carrier(work, seed, builds, call, admitted, publish)
     _stage_owned_reference(work, seed, compile_sources, call, compiler_bytes, admitted, publish)
     linked = _stage_sqlite_units(work, compile_sources, admitted, publish, sqlite_tools)
     _stage_sqlite_migrations(work, compile_sources, admitted, publish, sqlite_tools, linked,
