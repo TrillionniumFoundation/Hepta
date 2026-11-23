@@ -38,6 +38,35 @@ class Sha256HiaSourceTests(unittest.TestCase):
             self.assertEqual(output.hex(),expected)
 
 
+
+    def test_public_worker_authenticates_complete_roles_with_checked_words(self):
+        import struct
+        from hepta.hia_agent_assembly import assemble_program, render_assembly
+        from tests.test_hia_sha256_stream_transition_equivalence import vm_frame
+        from tools.generate_hia_cli_discovery_json import document as word_document
+        from tools.generate_hia_readonly_worker_capsule import FULL_SOURCE, source_program
+
+        source = ROOT / FULL_SOURCE
+        generated = word_document(source_program(artifact=True, evaluate_full=True),
+                                  module=source.stem, word_memory=True)
+        self.assertEqual(source.read_text(), render_assembly(generated))
+        authority = assemble_program(source.read_bytes())
+        elf = bytearray(range(128))
+        elf[:6] = b'\x7fELF\x02\x01'
+        elf[18:20] = b'\x3e\x00'
+        for size in (64, 119, 120, 128):
+            payload = bytes(elf[:size])
+            expected = sha256(payload).digest()
+            for pin, status in [(expected, 1), (bytes(32), 0)]:
+                record = bytes(32) + pin + struct.pack('<3Q', 2, 1, size)
+                code, original, output, state = vm_frame(authority, payload, record, bytes(1088))
+                self.assertEqual((code, original, output), (status, payload, expected + record[32:]))
+            record = bytes(32) + expected + struct.pack('<3Q', 2, 1, size)
+            short_state = bytes([39]) * 1087
+            self.assertEqual(vm_frame(authority, payload, record, short_state),
+                             (0, payload, record, short_state))
+
+
 class Sha256HiaNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

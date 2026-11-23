@@ -273,7 +273,12 @@ if __name__ == '__main__':
     from tools.generate_hia_worker_flow_packer import FULL_LAUNCHER_POLICY
     from tools.generate_hia_worker_launcher_flow import program
 
-    policies = ((Path(FULL_SOURCE), source_program(artifact=True, evaluate_full=True)),
-                (Path(FULL_LAUNCHER_POLICY), program(evaluate_full=True)))
-    for path, source in policies:
-        path.write_text(render_assembly(document(source, path.stem)), encoding='utf-8')
+    from tools.generate_hia_cli_discovery_json import document as word_document
+
+    capsule = Path(FULL_SOURCE)
+    authority = word_document(source_program(artifact=True, evaluate_full=True),
+                              module=capsule.stem, word_memory=True)
+    capsule.write_text(render_assembly(authority), encoding='utf-8')
+    launcher = Path(FULL_LAUNCHER_POLICY)
+    launcher.write_text(render_assembly(document(program(evaluate_full=True), launcher.stem)),
+                        encoding='utf-8')

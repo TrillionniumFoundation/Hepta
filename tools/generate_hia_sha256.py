@@ -99,7 +99,10 @@ def put(w:mutbuf, index:u64, value:u64) -> u64:
 '''
 
 
-def source_program():
+def source_program(*, word_memory=False):
+    # All word accesses in SHA-256 target the validated 1088-byte schedule and
+    # chaining state. The public Worker also reads three complete control words
+    # from its separately checked 88-byte output record.
     source = 'def sha256(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n'
     source += '    if length(s) > 8388608 or length(o) < 32 or length(w) < 1088:\n        return 4294967293\n'
     for i, value in enumerate(ROUND):
@@ -120,6 +123,15 @@ def source_program():
         i = i + 1
     return 32
 '''
+    if word_memory:
+        helpers = HELPERS[:HELPERS.index('def get(')] + """def get(w:mutbuf, index:u64) -> u64:
+    return word_load(w, index)
+
+def put(w:mutbuf, index:u64, value:u64) -> u64:
+    word_store(w, index, value)
+    return 0
+"""
+        return source + helpers
     return source + HELPERS
 
 

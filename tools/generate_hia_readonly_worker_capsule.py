@@ -460,7 +460,7 @@ def source_program(*, artifact=False, evaluate_replay=False, evaluate_intake=Fal
     source = native_policy() if artifact else POLICY
     for name, value in constants.items():
         source = re.sub(rf'\b{name}\b', str(value), source)
-    return source + routing(artifact=artifact, evaluate_replay=evaluate_replay or evaluate_intake or evaluate_full) + '\n' + sha256_program()
+    return source + routing(artifact=artifact, evaluate_replay=evaluate_replay or evaluate_intake or evaluate_full) + '\n' + sha256_program(word_memory=evaluate_full)
 
 
 if __name__ == '__main__':
