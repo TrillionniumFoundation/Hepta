@@ -94,6 +94,10 @@ policy_call_hole:
  je read_group_status
  cmp eax,13
  je signal_original_group
+ cmp eax,14
+ je observe_owner_fd
+ cmp eax,15
+ je acquire_owner_fd
  jmp refusal
 
 stage:
@@ -237,6 +241,41 @@ signal_original_group:
 observed:
  mov [rbp+152],rax
  jmp next
+
+/* fd 1 shares the original supervisor's open file description. HIA checks
+ * its identity, type, sharing mode, uid and link count before requesting
+ * the nonblocking flock on this same description. */
+observe_owner_fd:
+ mov edi,1
+ mov rsi,rbp
+ mov eax,5                    /* fstat */
+ syscall
+ test rax,rax
+ js observed
+ mov rax,[rbp]
+ mov [rbp+168],rax             /* device */
+ mov rax,[rbp+8]
+ mov [rbp+176],rax             /* inode */
+ mov eax,[rbp+24]
+ mov [rbp+184],rax             /* mode */
+ mov rax,[rbp+16]
+ mov [rbp+192],rax             /* link count */
+ mov eax,[rbp+28]
+ mov [rbp+200],rax             /* owner uid */
+ mov eax,107                   /* geteuid */
+ syscall
+ mov [rbp+208],rax
+ xor eax,eax
+ jmp observed
+
+acquire_owner_fd:
+ mov edi,1
+ mov esi,6                    /* LOCK_EX | LOCK_NB */
+ mov eax,73                   /* flock */
+ syscall
+ cmp rax,-4
+ je acquire_owner_fd
+ jmp observed
 
 emit:
  lea rbx,[rbp+192]

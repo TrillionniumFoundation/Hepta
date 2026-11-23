@@ -119,3 +119,24 @@ Four payloads follow, in order, with no separators.
 A successful reply contains one ASCII JSON object, formatted in the historical
 sorted field order with spaces after commas and colons and no trailing newline.
 Malformed observations return exit status 2 before either record is submitted.
+
+## Installed owner lifetime lock
+
+Controller v22 binds the installed HIA receipt writer to the original
+supervisor's open file description. Descriptor 0 supplies a sealed
+`HIAJLF01` request. Descriptor 1 receives the supervisor's open lock file.
+The writer returns a 24-byte `HIAJRW01` receipt on descriptor 2.
+
+The request contains four little-endian 64-bit integers after the magic:
+the direct parent PID, the expected file device, inode and a zero reserved
+word. The HIA program checks the direct parent and the descriptor's kernel
+identity. It requires one link, a regular file owned by the effective UID,
+and no group or other permission bits. It selects a nonblocking exclusive
+flock on that same description. A phase-two receipt reports success or the
+kernel error, including contention. A phase-one receipt reports a failed
+descriptor observation.
+
+When the writer exits, the original supervisor still holds its file
+description. Another independent open remains excluded until the last
+holder of the original description closes it. The installer exercises both
+exclusion and release before publishing a v22 controller manifest.

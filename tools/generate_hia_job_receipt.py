@@ -28,6 +28,7 @@ PROCESS_IDENTITY_MAGIC = int.from_bytes(b'HIAJPI01', 'little')
 CAPTURE_CHUNK_BYTES = 65536
 ISOLATED_OUTPUT_BYTES = 16 * 1024 * 1024
 CANCEL_MAGIC = int.from_bytes(b'HIAJRC01', 'little')
+OWNER_LOCK_MAGIC = int.from_bytes(b'HIAJLF01', 'little')
 GROUP_SIGNAL_MAGIC = int.from_bytes(b'HIASGQ01', 'little')
 RESULT_MAGIC = int.from_bytes(b'HIAJRW01', 'little')
 
@@ -39,6 +40,8 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return workload_spawn_plan(s, o)
     if length(s) == 48 and uint(s, 0, 8) == {CAPTURE_MAGIC}:
         return capture_output_chunk(s, o)
+    if length(s) == 40 and uint(s, 0, 8) == {OWNER_LOCK_MAGIC}:
+        return advance_owner_lock(s, o, w)
     if length(s) == 40 and uint(s, 0, 8) == {GROUP_SIGNAL_MAGIC}:
         return advance_group_signal(s, o, w)
     if length(s) >= 35 and uint(s, 0, 8) == {OWNER_MAGIC}:
@@ -478,6 +481,30 @@ def put(o:mutbuf, start:u64, value:u64, size:u64) -> u64:
         store(o, start + index, (value >> (index * 8)) & 255)
         index = index + 1
     return 0
+
+def advance_owner_lock(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    phase = observed(w, 0)
+    result = observed(w, 8)
+    if phase == 0:
+        parent = uint(s, 8, 8)
+        if parent < 2 or parent > 2147483647 or parent != observed(w, 16) or uint(s, 32, 8) != 0:
+            return 0
+        put(w, 0, 1, 8)
+        return 14
+    if result >> 63 != 0 or phase == 2:
+        return acknowledge(o, phase, result)
+    if phase != 1:
+        return 0
+    if uint(s, 16, 8) != observed(w, 24) or uint(s, 24, 8) != observed(w, 32):
+        return 0
+    mode = observed(w, 40)
+    if mode & 61440 != 32768 or mode & 63 != 0:
+        return 0
+    if observed(o, 0) != 1 or observed(o, 8) != observed(o, 16):
+        return 0
+    put(w, 0, 2, 8)
+    return 15
+
 '''
 
 
