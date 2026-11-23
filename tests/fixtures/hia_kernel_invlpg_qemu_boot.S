@@ -142,38 +142,11 @@ debug_exit64:
     cli
 3:  hlt
     jmp 3b
-/* The direct verified Core backend emits an unreachable abort callsite.
- * Resolve it only to this NON-HIA test-only failure observer, never libc. */
+/* Generated unreachable abort callsite: explicit NON-HIA guest-only sink. */
 .global abort
 abort:
     movw $0xe9, %dx
-    movb 
-.balign 8
-gdt:
-    .quad 0
-    .quad 0x00cf9a000000ffff
-    .quad 0x00cf92000000ffff
-    .quad 0x00af9a000000ffff
-gdt_end:
-gdt_ptr:
-    .word gdt_end-gdt-1
-    .long gdt
-idtr:
-    .word 4096-1
-    .quad idt
-.section .bss,"aw",@nobits
-.balign 4096
-pml4: .skip 4096
-pdpt: .skip 4096
-pd0: .skip 4096
-.balign 16
-stack32: .skip 4096
-stack32_top:
-stack64: .skip 8192
-stack64_top:
-.balign 16
-idt: .skip 4096
-A', %al
+    movb $0x41, %al
     outb %al, %dx
     movw $0xf4, %dx
     movl $0x12, %eax
