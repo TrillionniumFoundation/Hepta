@@ -34,7 +34,7 @@ from tools.build_hia_native_build_admission import build as build_build_admissio
 from tools.build_hia_native_continuation import build as build_scheduler
 from tools.build_hia_native_filter import (
     build_evaluate_paired_batch, build_evaluate_projector, build_evaluate_reference_batch,
-    build_evaluate_budget_observation, build_evaluate_budget_store, build_evaluate_measurements, build_evaluate_native_report, build_evaluate_reference_report, build_evaluate_report_flow, build_evaluate_settlement, build_execution_budget_session,
+    build_evaluate_budget_observation, build_evaluate_budget_store, build_evaluate_cost_ledger, build_evaluate_measurements, build_evaluate_native_report, build_evaluate_reference_report, build_evaluate_report_flow, build_evaluate_settlement, build_execution_budget_session,
 )
 from tools.build_hia_release_install import build as build_installer
 from tools.build_hia_scalar_reference_cli import build as build_reference_executable
@@ -640,6 +640,11 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
             expected = build_evaluate_native_report(scratch / 'evaluate-native-report', compiler, cold_report)
             if native_report.read_bytes() != expected.read_bytes():
                 raise ValueError('Store release Evaluate native execution report differs from the cold-built HIA role')
+        cost_ledger = release / 'hia-evaluate-cost-ledger'
+        if cost_ledger.is_file():
+            expected = build_evaluate_cost_ledger(scratch / 'evaluate-cost-ledger', compiler, cold_report)
+            if cost_ledger.read_bytes() != expected.read_bytes():
+                raise ValueError('Store release Evaluate cost ledger differs from the cold-built HIA role')
         measurements = release / 'hia-evaluate-measurements'
         if measurements.is_file():
             expected = build_evaluate_measurements(scratch / 'evaluate-measurements', compiler, cold_report)

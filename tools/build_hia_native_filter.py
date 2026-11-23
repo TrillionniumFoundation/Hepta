@@ -20,8 +20,8 @@ PACKER = 'native-filter'
 
 def build_filter(output: Path, compiler: Path, cold_report: Path, *,
                  application: str, filename: str, schema: str,
-                 packer=PACKER, magic=MAGIC, adapter=None, adapter_dependencies=(), adapter_source=None) -> Path:
-    roles = application, packer
+                 packer=PACKER, magic=MAGIC, adapter=None, adapter_dependencies=(), adapter_source=None, canonical_output=False) -> Path:
+    roles = (application, 'worker-request', packer) if canonical_output else (application, packer)
     sources = tuple(ROOT / 'examples/hia_bootstrap' / (CANDIDATES[role][0] + '.hepta') for role in roles)
     if adapter is not None:
         sources += tuple(ROOT / name for name in (adapter, *adapter_dependencies))
@@ -46,6 +46,10 @@ def build_filter(output: Path, compiler: Path, cold_report: Path, *,
     application_bytes = pins[applications[application][0]]
     packer_image = applications[packer][0]
     frame = struct.pack('<2Q', magic, len(application_bytes)) + application_bytes
+    if canonical_output:
+        canonical_bytes = pins[applications['worker-request'][0]]
+        frame = (struct.pack('<3Q', magic, len(application_bytes), len(canonical_bytes))
+                 + application_bytes + canonical_bytes)
     receipt, packed = invoke(output, 'native-pack', packer_image, frame)
     executable_bytes = _check_pack_output(receipt, packed, artifact=pins[packer_image], source=frame)
     inspection = inspect_executable(executable_bytes)
@@ -117,6 +121,13 @@ def build_evaluate_budget_observation(output: Path, compiler: Path, cold_report:
 
 
 
+def build_evaluate_cost_ledger(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.generate_hia_evaluate_cost_ledger import PACK_MAGIC
+    return build_filter(output, compiler, cold_report, application='evaluate-cost-ledger',
+                        packer='evaluate-cost-ledger-packer', magic=PACK_MAGIC, canonical_output=True,
+                        filename='hia-evaluate-cost-ledger', schema='hepta.hia.evaluate-cost-ledger-build.v1')
+
+
 def build_evaluate_budget_store(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.generate_hia_evaluate_budget_store import PACK_MAGIC
 
@@ -175,7 +186,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--application', choices=('safe-core-elf-inventory', 'evaluate-reference-wire',
                                                   'evaluate-reference-batch', 'evaluate-paired-batch', 'evaluate-settlement', 'evaluate-report-flow', 'evaluate-measurements', 'evaluate-native-report', 'evaluate-reference-report',
-                                                  'execution-budget-session', 'evaluate-budget-store', 'evaluate-budget-observation'),
+                                                  'execution-budget-session', 'evaluate-cost-ledger', 'evaluate-budget-store', 'evaluate-budget-observation'),
                         default='safe-core-elf-inventory')
     for flag in ('output', 'compiler', 'cold-report'):
         parser.add_argument('--' + flag, type=Path, required=True)
@@ -183,6 +194,9 @@ def main():
     output, compiler, cold_report = args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()
     if args.application == 'evaluate-budget-observation':
         print(build_evaluate_budget_observation(output, compiler, cold_report))
+        return
+    if args.application == 'evaluate-cost-ledger':
+        print(build_evaluate_cost_ledger(output, compiler, cold_report))
         return
     if args.application == 'evaluate-budget-store':
         print(build_evaluate_budget_store(output, compiler, cold_report))

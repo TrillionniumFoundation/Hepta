@@ -41,7 +41,8 @@ CORE_REPORT_MODE = int.from_bytes(b'HIACRPT1', 'little')
 
 
 def template(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES,
-             formatter=False, suite=False, object_files=False, worker_request=False, final_loader=False):
+             formatter=False, suite=False, object_files=False, worker_request=False, final_loader=False,
+             canonical_render_tag=None):
     output_offset = wire_bytes + 4096
     workspace_offset=output_offset+output_bytes
     mapping_bytes=workspace_offset+workspace_bytes
@@ -186,6 +187,21 @@ def template(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_byte
         emit('49 8d 74 24 08 49 8d bc 24');word(workspace_offset + FINAL_LOADER_NAME)
         emit('b9');word(256);emit('fc f3 a4')
     calls.append(call_image())
+    if canonical_render_tag is not None:
+        # The first HIA section emits a Store command plan or a ledger. The
+        # second is the original Worker ordinary-data canonical JSON section.
+        # Reuse the consumed input mapping for its disjoint output.
+        emit('3d');word(output_bytes);branch('0f 87','invalid')
+        emit('49 ba');code.extend(struct.pack('<Q',canonical_render_tag))
+        emit('4d 39 14 24');branch('0f 85','check_output')
+        emit('89 c6 49 8d bc 24');word(output_offset)
+        emit('4c 89 e2 b9');word(output_bytes)
+        emit('4d 8d 84 24');word(workspace_offset)
+        emit('41 b9');word(workspace_bytes)
+        emit('49 c7 00 00 00 00 00 49 c7 40 08');word(4300)
+        emit('e8');calls.append(len(code));word(0)
+        emit('3d');word(output_bytes);branch('0f 87','invalid')
+        emit('41 89 c6 4d 89 e7');branch('e9','write')
     if worker_request:
         emit('83 f8 fd');branch('0f 84','io')
     if formatter or suite:
@@ -383,12 +399,12 @@ def source_program(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspac
 
 def document(*, wire_bytes=WIRE_BYTES, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC,
              module='native_filter_packer', formatter=False, object_files=False, worker_request=False,
-             image_template=None, private_entry=False):
+             image_template=None, private_entry=False, separate_sections=False):
     nodes=ast.parse(source_program(wire_bytes=wire_bytes, output_bytes=output_bytes,
                                    workspace_bytes=workspace_bytes,
                                    magic=magic,formatter=formatter,object_files=object_files,
                                    worker_request=worker_request, image_template=image_template,
-                                   private_entry=private_entry)).body
+                                   private_entry=private_entry, separate_sections=separate_sections)).body
     names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
     fns=[]

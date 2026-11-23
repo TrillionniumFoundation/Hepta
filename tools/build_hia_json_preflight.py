@@ -228,6 +228,8 @@ CANDIDATES = {
     'evaluate-paired-batch': ('evaluate_paired_batch', 'evaluate-paired-batch'),
     'evaluate-budget-observation': ('evaluate_budget_observation', 'evaluate-budget-observation'),
     'evaluate-budget-observation-packer': ('evaluate_budget_observation_packer', 'evaluate-budget-observation-packer'),
+    'evaluate-cost-ledger': ('evaluate_cost_ledger', 'evaluate-cost-ledger'),
+    'evaluate-cost-ledger-packer': ('evaluate_cost_ledger_packer', 'evaluate-cost-ledger-packer'),
     'evaluate-budget-store': ('evaluate_budget_store', 'evaluate-budget-store'),
     'evaluate-budget-store-packer': ('evaluate_budget_store_packer', 'evaluate-budget-store-packer'),
     'evaluate-reference-report': ('evaluate_reference_report', 'evaluate-reference-report'),
