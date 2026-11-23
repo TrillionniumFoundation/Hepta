@@ -54,7 +54,7 @@ def format_cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 199
     if get(w, 0) != RESULT_MAGIC or get(w, 88) != argc or get(w, 104) != length(s):
         return 199
-    if read64(s, 24) != get(w, 128) or (get(w, 128) != 312 and get(w, 128) != 314 and get(w, 128) != 31410):
+    if read64(s, 24) != get(w, 128) or (get(w, 128) != 312 and get(w, 128) != 3123 and get(w, 128) != 314 and get(w, 128) != 31410):
         return 199
     if get(w, 24) > 15 or get(w, 8) < 1 or get(w, 8) > 3 or get(w, 80) > argc:
         return 199
@@ -85,7 +85,7 @@ def format_cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         index = index + 1
     settings(s, w)
     expand_printable(w)
-    row = choose(get(w, 128) == 312, 0, 16) + get(w, 24)
+    row = choose(get(w, 128) == 312 or get(w, 128) == 3123, 0, 16) + get(w, 24)
     put(w, F_USAGE_ROW, F_USAGE_ROWS + row * 8)
     put(w, F_HELP_ROW, F_HELP_ROWS + row * 8)
     kind = get(w, 8)
@@ -231,7 +231,7 @@ def columns(s:readbuf, w:mutbuf) -> u64:
     return value
 
 def color_choice(s:readbuf, w:mutbuf) -> u64:
-    if get(w, 128) == 312:
+    if get(w, 128) == 312 or get(w, 128) == 3123:
         return 0
     if read64(s, 40) == 0 and env_equal(s, w, 1, L_ZERO):
         return 0
@@ -249,7 +249,7 @@ def observation_request(s:readbuf, w:mutbuf) -> u32:
     if length(s) < 192 or read64(s, 8) != 4:
         return 199
     profile = read64(s, 24)
-    if profile != 312 and profile != 314 and profile != 31410:
+    if profile != 312 and profile != 3123 and profile != 314 and profile != 31410:
         return 199
     if read64(s, 40) > 1 or read64(s, 48) > 1 or read64(s, 72) > 63:
         return 199
@@ -593,7 +593,7 @@ def printable(w:mutbuf, character:u64) -> bool:
             if character > upper:
                 low = middle + 1
             else:
-                mask = choose(get(w, 128) == 312, 1, 2)
+                mask = choose(get(w, 128) == 312 or get(w, 128) == 3123, 1, 2)
                 return ((value >> 42) & mask) != 0
     return False
 
@@ -722,10 +722,10 @@ def error_message(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         while index < count:
             if index != 0:
                 literal(o, w, L_COMMA_SPACE)
-            if get(w, 128) == 31410:
+            if get(w, 128) == 31410 or get(w, 128) == 3123:
                 point(o, w, 39)
             literal(o, w, choice_literal(field, index))
-            if get(w, 128) == 31410:
+            if get(w, 128) == 31410 or get(w, 128) == 3123:
                 point(o, w, 39)
             index = index + 1
         point(o, w, 41)

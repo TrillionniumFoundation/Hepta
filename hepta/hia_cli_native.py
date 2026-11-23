@@ -6,7 +6,7 @@ adapter transports strings/handles and performs requested effects. Existing
 semantic bodies, read_bounded policy, publication and successful pretty JSON
 remain named foreign owners; this is not a whole-native CLI delivery claim.
 
-The presentation profiles are ordinary English CPython 3.12.14, 3.14.4 and 3.14.10,
+The presentation profiles are ordinary English CPython 3.12.3, 3.12.14, 3.14.4 and 3.14.10,
 with the default 3.14 color theme. Arbitrary Python argument objects, custom
 argparse subclasses/themes, and concurrent mutation of environment or streams
 during parser construction are outside this explicit selected profile.
@@ -32,7 +32,7 @@ SCHEMA = "hepta.hia.cli-native-bundle.v1"
 DISCOVERY_BUNDLE_SCHEMA = "hepta.hia.cli-native-bundle.v2"
 CONTROL_SCHEMA = "hepta.hia.cli-control-native.v1"
 FORMAT_SCHEMA = "hepta.hia.cli-format-native.v1"
-RUNTIME_PROFILES = {(3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}
+RUNTIME_PROFILES = {(3, 12, 3): 3123, (3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}
 SOURCES = {
     "control": _source_resource_path("examples/hia_bootstrap/cli_control.hepta"),
     "format": _source_resource_path("examples/hia_bootstrap/cli_format.hepta"),
@@ -101,7 +101,7 @@ def native_cli_profile():
 def _runtime_profile():
     profile = native_cli_profile()
     if profile is None:
-        raise RuntimeError("selected native CLI requires its pinned CPython 3.12.14, 3.14.4 or 3.14.10 profile")
+        raise RuntimeError("selected native CLI requires its pinned CPython 3.12.3, 3.12.14, 3.14.4 or 3.14.10 profile")
     return profile
 
 
@@ -229,6 +229,10 @@ class NativeCli:
         return _text(text)
 
     def run(self, argv, cli):
+        if native_cli_profile() == 3123 and SELECTOR not in os.environ:
+            argv = sys.argv[1:] if argv is None else list(argv)
+            if any(type(argument) is not str for argument in argv):
+                return cli._reference_hia_main(argv, package_discovery=True)
         session = self.prepare(argv, cli)
         if session.kind:
             first, second = self.format_result(session)

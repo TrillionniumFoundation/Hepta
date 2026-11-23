@@ -96,3 +96,26 @@ The HIA executable decides admission. The supervisor opens and locks the
 descriptor, gathers the observations and acts on the decision. Qualification
 of the complete service also requires exercising its supervisor, transport,
 output handling, cancellation and original-child receipts.
+
+## Installed owner record encoding
+
+Controller v21 uses the installed `hia-worker-prepare` to encode the same bytes for
+`owner-intent.json` and `started.json`. The existing receipt writer stages and
+syncs both records before the original child launches. Capability detection
+compares output against historical JSON bytes and exercises a malformed frame.
+
+The request starts with `HIAJBE01` and six little-endian unsigned 64-bit
+integers. They give Unix time in milliseconds, supervisor PID, effective UID,
+job name length, kernel process identity length and invocation character count.
+Four payloads follow, in order, with no separators.
+
+| Payload | Encoding |
+| --- | --- |
+| Job ID | 1–128 bytes in the existing job-name alphabet |
+| Launch nonce | 32 lowercase hexadecimal bytes |
+| Process identity | A lowercase boot UUID, a colon and 1–20 decimal start-tick digits |
+| Invocation ID | Little-endian 32-bit Unicode code points. The all-ones count represents a missing value with zero payload bytes. A zero count represents an empty string. |
+
+A successful reply contains one ASCII JSON object, formatted in the historical
+sorted field order with spaces after commas and colons and no trailing newline.
+Malformed observations return exit status 2 before either record is submitted.

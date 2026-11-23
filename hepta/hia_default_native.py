@@ -226,8 +226,22 @@ def _package_cli():
 def default_cli():
     from .hia_cli_native import native_cli_profile
 
-    if native_cli_profile() is None:
+    profile = native_cli_profile()
+    if profile is None:
         return None
+    if profile == 3123:
+        import argparse
+        import gettext
+        from . import hia_native_helpers as helpers
+
+        # This interpreter's packaged parser owns ordinary English argv. A
+        # worker must keep its own images, and argparse owns translated text.
+        if helpers._SCOPE_OWNER is not None:
+            return None
+        domain = gettext.textdomain()
+        if (argparse._ is not gettext.gettext or argparse.ngettext is not gettext.ngettext
+                or gettext.find(domain, gettext.bindtextdomain(domain)) is not None):
+            return None
     return _package_cli()
 
 
