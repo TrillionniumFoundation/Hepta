@@ -207,11 +207,9 @@ def capture_default_bundle():
     return directory / BUNDLE_RESOURCE, value[3], pins
 
 
-def default_cli():
-    from .hia_cli_native import installed_cli, native_cli_profile
+def _package_cli():
+    from .hia_cli_native import installed_cli
 
-    if native_cli_profile() is None:
-        return None
     captured = _capture_package()
     if captured is None:
         return None
@@ -223,6 +221,25 @@ def default_cli():
     if any(_read(snapshot.path, limit) != snapshot for snapshot, limit in pins):
         raise ValueError('installed native CLI default changed during admission')
     return selected
+
+
+def default_cli():
+    from .hia_cli_native import native_cli_profile
+
+    if native_cli_profile() is None:
+        return None
+    return _package_cli()
+
+
+def default_cli_discovery():
+    """Admit wheel-owned discovery independently of the CPython argparse profile."""
+    import sys
+    from . import hia_native_helpers as helpers
+
+    if sys.implementation.name != 'cpython' or helpers._SCOPE_OWNER is not None:
+        return None
+    bundle = _package_cli()
+    return bundle.discovery if bundle is not None else None
 
 
 def default_image(selector):

@@ -23,7 +23,7 @@ class DiscoveryJsonBytes:
             raise ValueError('native discovery must return newline-terminated UTF-8 JSON bytes')
 
 
-def selected_json(operation, schema=None, *, package_owner=None):
+def selected_json(operation, schema=None, *, package_owner=None, package_default=False):
     """Prefer explicit admission, then a package owner, then the retained API.
 
     The explicit profile uses the immutable metadata in the selected source.
@@ -32,7 +32,11 @@ def selected_json(operation, schema=None, *, package_owner=None):
     """
     selected = os.environ.get(SELECTOR)
     if selected is None and package_owner is None:
-        return None
+        if package_default:
+            from .hia_default_native import default_cli_discovery
+            package_owner = default_cli_discovery()
+        if package_owner is None:
+            return None
     if selected == '':
         raise ValueError('selected CLI discovery JSON manifest must not be empty')
     if schema is not None and type(schema) is not str:

@@ -69,7 +69,7 @@ def publish_json_view(value, destination):
     return {"schema": "hepta.hia.json-view-output.v1", "ok": True,
             "output": str(target), "view_schema": value["schema"], "publication": receipt}
 
-def _reference_hia_main(argv=None):
+def _reference_hia_main(argv=None, *, package_discovery=False):
     parser = argparse.ArgumentParser(prog="hia", description="HIA Core Agent interface")
     parser.add_argument("--version", action="version", version="hia " + __version__)
     actions = parser.add_subparsers(dest="hia_action", required=True)
@@ -118,7 +118,7 @@ def _reference_hia_main(argv=None):
     try:
         if args.hia_action=="capabilities":
             from .hia_cli_discovery_selection import selected_json
-            selected = selected_json(1)
+            selected = selected_json(1, package_default=package_discovery)
             output_json(agent_capabilities() if selected is None else selected)
             return 0
         from .hia_program import verify_program
@@ -126,7 +126,7 @@ def _reference_hia_main(argv=None):
         if args.hia_action == 'catalog':
             from .hia_opcodes import opcode_catalog
             from .hia_cli_discovery_selection import selected_json
-            selected = selected_json(2, args.schema)
+            selected = selected_json(2, args.schema, package_default=package_discovery)
             output_json(opcode_catalog(args.schema) if selected is None else selected)
             return 0
         if args.hia_action in {'import-assembly', 'render-assembly', 'check-assembly'}:
@@ -246,6 +246,6 @@ def hia_main(argv=None):
     owner = default_cli()
     if owner is not None:
         return owner.run(argv, sys.modules[__name__])
-    return _reference_hia_main(argv)
+    return _reference_hia_main(argv, package_discovery=True)
 
 main = hia_main

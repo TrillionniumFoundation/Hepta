@@ -164,6 +164,17 @@ def before_default_cli(name, current):
     row = fixture['files'].get(name)
     if row is None:
         return current
+    if name == 'hepta/cli.py' and sha256(current.encode()).hexdigest() == 'fbd72fd381d7eae7ca9ddff790809815aa34f24b86a8ae7fe24a33adea24517d':
+        # Reconstruct the already pinned parser oracle from the package-discovery opt-in.
+        for active, original in (
+            ('def _reference_hia_main(argv=None, *, package_discovery=False):', 'def _reference_hia_main(argv=None):'),
+            ('selected_json(1, package_default=package_discovery)', 'selected_json(1)'),
+            ('selected_json(2, args.schema, package_default=package_discovery)', 'selected_json(2, args.schema)'),
+            ('return _reference_hia_main(argv, package_discovery=True)', 'return _reference_hia_main(argv)'),
+        ):
+            if current.count(active) != 1:
+                raise ValueError('invalid package discovery parser inverse')
+            current = current.replace(active, original)
     if name == 'tests/test_hia_cli_native.py' and sha256(current.encode()).hexdigest() != row['current_sha256']:
         record = WHEEL_TEST_SUCCESSOR.read_bytes()
         if sha256(record).hexdigest() != WHEEL_TEST_SUCCESSOR_SHA256:
