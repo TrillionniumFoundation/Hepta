@@ -10,8 +10,8 @@ HIAEMT01 contains four little-endian words (magic, pair length, event bytes,
 event count), the ordinary HIAEPM01, then consecutive physical HIAEEV01
 events. Each event has twelve words: magic, type, case, arm, monotonic time,
 and seven type-specific fields. Types are begin (phase, warmups, repetitions,
-loan count), owner (reaped time, raw HIADRT01 magic, code, stopped, stdout
-length, stderr length), loan (argument, loan kind, logical length), and end.
+loan count, scalar return ABI role), owner (reaped time, raw HIADRT01 magic, code, stopped, stdout
+length, stderr length), loan (argument, loan kind, logical length), and end (case-local value or post-exit byte disagreement).
 The owner is followed by its exact stdout and stderr. Each loan is followed
 by the exact logical bytes in the parent-owned backing file after reaping.
 
@@ -95,6 +95,7 @@ STATE_FIELDS = {
     'EVENT_SIZE': 376,
     'EVENT_COUNT': 384,
     'AFTER_CASE': 392,
+    'CASE_MISMATCH': 400,
 }
 
 # File descriptors 3..8 carry [ABI, workload], baseline, candidate, native
@@ -470,6 +471,7 @@ def prepare_case(s:readbuf, o:mutbuf, w:mutbuf, index:u64) -> u64:
     put(w, EXPECTED_SNAPSHOT, get(w, row)+144+choose(has_value, 8, 0))
     put(w, ARGUMENT_INDEX, 0)
     put(w, LOAN_INDEX, 0)
+    put(w,CASE_MISMATCH,0)
     put(w, STATE, 4)
     if get(w,DOUBLE_REFERENCE) == 2:
         if event_header(o,w,1,get(w,CLOCK),0) == False:
@@ -479,6 +481,7 @@ def prepare_case(s:readbuf, o:mutbuf, w:mutbuf, index:u64) -> u64:
         put(o,48,choose(traps == 0,get(w,WARMUPS),0))
         put(o,56,choose(traps == 0,get(w,REPETITIONS),1))
         put(o,64,get(w,P+40))
+        put(o,72,get(w,P+24))
         return 10
     return prepare_files(s, o, w)
 
@@ -668,6 +671,7 @@ def read_files(o:mutbuf, w:mutbuf) -> u64:
     if get(w,DOUBLE_REFERENCE) == 2:
         if event_header(o,w,4,get(w,CLOCK),0) == False:
             return 0
+        put(o,40,get(w,CASE_MISMATCH))
         put(w,STATE,14)
         return 10
     put(w,CASE_INDEX,get(w,CASE_INDEX)+1)
@@ -736,12 +740,15 @@ def terminal_case(o:mutbuf,w:mutbuf,status:u64) -> u64:
     if get(w,DOUBLE_REFERENCE) != 2:
         return finish(o,w,status)
     put(w,AFTER_CASE,status)
+    if status == 1:
+        put(w,CASE_MISMATCH,1)
     put(w,ARGUMENT_INDEX,0)
     put(w,LOAN_INDEX,0)
     put(w,STATE,6)
     return read_files(o,w)
 
 def mismatch(w:mutbuf) -> u64:
+    put(w,CASE_MISMATCH,1)
     if get(w,MISMATCH) == 0:
         put(w,MISMATCH,1)
         put(w,FIRST_CASE,get(w,CASE_INDEX))

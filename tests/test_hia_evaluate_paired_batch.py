@@ -159,6 +159,8 @@ class PairedMeasurementTests(unittest.TestCase):
             self.assertEqual(owner[7:9],(sample[3],0))
             self.assertEqual(owner[10],0)
             self.assertEqual(loan[5:8],(0,2,len(expected)))
+            self.assertEqual(begin[0][9],256)
+            self.assertEqual(end[0][5],int(n == 2))
             self.assertEqual(snapshot,expected)
             actual = b'' if sample[3] else struct.pack('<8s3Q',b'HIADRR02',*sample[4:7])
             self.assertEqual((owner[9],payload),(len(actual),actual))

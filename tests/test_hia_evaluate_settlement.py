@@ -297,6 +297,22 @@ class SettlementTests(unittest.TestCase):
             self.assertEqual((len(rows),receipts,rows[0][3]),(1,0,'completed'))
             self.assertEqual(rows[0][4].encode(),raw[48:48+struct.unpack_from('<Q',raw,16)[0]])
 
+    def test_normal_aborting_in_final_candidate_does_not_complete_public_rows(self):
+        from tests.test_hia_evaluate_paired_batch import PairedMeasurementTests
+        from tests.test_hia_program import b,c,f,m,ret
+        PairedMeasurementTests.setUpClass()
+        self.addCleanup(PairedMeasurementTests.doClassCleanups)
+        paired=PairedMeasurementTests()
+        baseline=m(f('entry',[],['u32'],[],[b('here',[],[c('answer','u32',7)],ret('answer'))]))
+        wrong=m(f('entry',[],['u32'],['trap'],[b('here',[],[],{'op':'trap','code':'user'})]))
+        fixture=paired.fixture(baseline,[{'function':'entry','arguments':[]}],other=wrong,double=True)
+        summary,rows,events=paired.archived(fixture)
+        self.assertEqual((summary[1:4],rows[-1][2:4]),((1,1,2),(0,2**64-6)))
+        self.assertEqual(events[-1][0][5],1)
+        raw=struct.pack('<8s9Q',*summary)+b''.join(struct.pack('<8Q',*row) for row in rows)
+        code,decision=self.invoke(request(raw,self.budget))
+        self.assertEqual((code,struct.unpack_from('<8s2Q',decision)),(0,(b'HIAESD01',2,0)))
+
     def test_original_declared_expectation_refusal(self):
         code,raw=self.invoke(request(observation(5),b''))
         self.assertEqual(code,0)

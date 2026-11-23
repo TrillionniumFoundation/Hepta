@@ -101,6 +101,7 @@ def check_pair(s:readbuf, w:mutbuf, at:u64, size:u64) -> bool:
     if status != 0 and (read_word(s,at+64) >= count or read_word(s,at+72) > 2):
         return False
     totals = 1024
+    normal_reports_returned = True
     i = 0
     while i < rows:
         row = at+80+64*i
@@ -120,6 +121,8 @@ def check_pair(s:readbuf, w:mutbuf, at:u64, size:u64) -> bool:
             return False
         if expected != 0:
             put(w,24,1)
+        if expected == 0 and code != 0:
+            normal_reports_returned = False
         if expected == 0 and code == 0:
             duration = read_word(s,row+40)
             if duration > MAX-get(w,totals+8*arm):
@@ -128,7 +131,7 @@ def check_pair(s:readbuf, w:mutbuf, at:u64, size:u64) -> bool:
         i = i+1
     if get(w,totals) != read_word(s,at+32) or get(w,totals+8) != read_word(s,at+40):
         return False
-    complete = (status == 0 or status == 1) and rows == 2*count
+    complete = (status == 0 or status == 1) and rows == 2*count and normal_reports_returned
     if status == 0 and complete == False:
         return False
     put(w,16,choose(complete,1,0))
