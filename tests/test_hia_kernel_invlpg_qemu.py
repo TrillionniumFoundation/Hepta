@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 from unittest.mock import patch
 
-from hepta.hia_machine_x64 import Code
+from hepta.hia_machine_x64 import KernelCode as Code
 from hepta.hia_program import verify_program
 from hepta.hia_program_native import emit_program_machine
 from tests.test_hia_kernel_invlpg_core import sample
