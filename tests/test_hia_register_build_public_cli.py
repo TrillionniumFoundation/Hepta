@@ -4,6 +4,8 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+
+from hepta.elf_shared_abi import inspect_owned_shared_elf
 import subprocess
 from tempfile import TemporaryDirectory
 import unittest
@@ -71,6 +73,12 @@ class RegisterBuildReceiptTests(unittest.TestCase):
                 self.assertEqual([row['result'] for row in validation['obligations']], ['sat'] + ['unsat'] * 4)
                 self.assertEqual(report['toolchain']['sha256'], report['source_identity']['verified_linker_sha256'])
                 self.assertTrue(validation['ok'] and validation['complete'])
+                inventory = inspect_owned_shared_elf(elf, (report['export'],))
+                inventory['claims']['backend_refinement_proven'] = validation['ok'] and validation['complete']
+                self.assertEqual(report['binary_inventory'], inventory)
+                self.assertEqual(report['machine_proof']['obligations_proven'], len(validation['obligations']))
+                self.assertEqual(report['machine_proof']['profile'], report['core_profile_version'])
+                self.assertEqual(report['machine_proof']['receipt_sha256'], validation['checker']['receipt_sha256'])
                 self.assertFalse(report['claims']['serialized_receipt_authorizes_execution'])
 
     def test_rejected_source_preserves_original_driver_output_and_existing_artifact(self):
