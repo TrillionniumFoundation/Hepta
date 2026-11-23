@@ -16,7 +16,8 @@ ROLES = (*REPLAY_ROLES,
          ('PLAN', 'hia-agent-worker-evaluate-request'), ('CONTEXT', 'hia-agent-context-request'),
          ('CONTEXT_STORE', 'hia-agent-context-store'), ('PROFILE', 'hia-agent-artifact-authority'),
          ('PUBLISHER', 'hia-artifact'), ('BINDING', 'hia-agent-worker-evaluate-input-binding'),
-         ('NOMINAL', 'hia-nominal-constructor'))
+         ('NOMINAL', 'hia-nominal-constructor'), ('REFERENCE_BATCH', 'hia-evaluate-reference-batch'),
+         ('PROJECTOR', 'hia-evaluate-projector'), ('OWNED', 'hia-owned-reference-wire'))
 
 POLICY = r'''
 # A novel key is eligible for reversible intake. The request is not reserved
@@ -26,7 +27,7 @@ def closed_store(o:mutbuf, w:mutbuf) -> u64:
     if purpose == CLOSED_LOOKUP and get(w, JOURNAL_NEXT) == 2:
         return project_artifact(o, w, ARGUMENT_PROJECTED, ARGUMENT, ARGUMENT_ROLE)
     if purpose == CLOSE_INTAKE:
-        return publish_intake(o, w)
+        return clock_sample(o, w, REFERENCE_WINDOW, 1)
     return BAD
 
 def intake(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
@@ -93,6 +94,8 @@ def intake(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             keep(w, RAW_BODY, fd, size)
             fragment(o, 0, fd, 0, size)
             return action(o, w, CORE_NOMINAL, RUN, NOMINAL_ROLE, 0, 1, 0)
+        if index == retained + 4:
+            put(w, WORKLOAD_FD, fd)
         return retain_body(o, w, fd, size)
     if state == ROW_MADE:
         if size != get(w, RECORD_SIZE):
@@ -219,8 +222,12 @@ def publish_intake(o:mutbuf, w:mutbuf) -> u64:
     put(o, HEADER + 24, get(w, UTC_DEADLINE))
     put(o, HEADER + 32, get(w, LIMIT_NATIVE))
     put(o, HEADER + 40, get(w, LIMIT_MEMORY))
-    whole_slot(w, o, INTAKE_PACKET, 0)
-    return action(o, w, INTAKE_PUBLISHED, PUBLISH, 0, 0, 1, 48)
+    put(o, HEADER + 48, slot_bytes(w, ORIGINAL))
+    put(o, HEADER + 56, slot_bytes(w, INTAKE_PACKET))
+    put(o, HEADER + 64, get(w, BASE_REFERENCE + 16))
+    put(o, HEADER + 72, get(w, CANDIDATE_REFERENCE + 16))
+    whole_slot(w, o, COMBINED, 0)
+    return action(o, w, INTAKE_PUBLISHED, PUBLISH, 0, 0, 1, 80)
 '''
 
 
@@ -337,7 +344,14 @@ def runtime_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             if byte(s, 64 + i) != byte(w, EXPECTED_SHA + i):
                 return close_store(o, w, CLOSE_REFUSED)
             i = i + 1
-        hold(w, METADATA_SPAN, get(w, CANONICAL), get(w, CANONICAL + 8), get(w, CANONICAL + 16))
+        use_span(w, o, CANONICAL, 0)
+        return action(o, w, CORE_FILE_MADE, MAKE, 0, 0, 1, 0)
+    if state == CORE_FILE_MADE:
+        if size != get(w, CANONICAL + 16):
+            return close_store(o, w, CLOSE_REFUSED)
+        arm = get(w, SELECTOR) - 4 - get(w, RECEIPT_COUNT)
+        put(w, CANONICAL_FDS + 8 * arm, fd)
+        hold(w, METADATA_SPAN, fd, 0, size)
         return retain_body(o, w, slot_fd(w, RAW_BODY), slot_bytes(w, RAW_BODY))
     if state == CREATION_OBSERVED:
         return sample_budget(s, o, w)
@@ -350,7 +364,63 @@ def runtime_state(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
             return close_store(o, w, CLOSE_REFUSED)
         put(w, WINDOW_UTC, now)
         return close_store(o, w, CLOSE_INTAKE)
+    if state == REFERENCE_WINDOW:
+        if length(s) != 72 or size != 8:
+            return BAD
+        return reference_batch(o, w, input_word(s, 64))
+    if state == REFERENCE_RETURNED:
+        return reference_returned(s, o, w)
+    if state == COMBINED_MADE:
+        if size != slot_bytes(w, INTAKE_PACKET) + get(w, BASE_REFERENCE + 16) + get(w, CANDIDATE_REFERENCE + 16):
+            return BAD
+        whole_slot(w, o, ORIGINAL, 0)
+        fragment(o, 1, fd, 0, size)
+        put(w, COMBINED_BYTES, size + slot_bytes(w, ORIGINAL))
+        return action(o, w, ORIGINAL_JOINED, MAKE, 0, 0, 2, 0)
+    if state == ORIGINAL_JOINED:
+        if size != get(w, COMBINED_BYTES):
+            return BAD
+        observe_slot(s, w, COMBINED)
+        return publish_intake(o, w)
     return BAD
+
+def reference_batch(o:mutbuf, w:mutbuf, now:u64) -> u64:
+    deadline = get(w, UTC_DEADLINE)
+    arm = get(w, REFERENCE_ARM)
+    if arm > 1 or now < get(w, WINDOW_UTC) or now >= deadline or deadline - now < 1000000:
+        return BAD
+    remaining = deadline - now
+    argv(o, 0, FD_ARG, get(w, CANONICAL_FDS + 8 * arm))
+    argv(o, 1, FD_ARG, get(w, WORKLOAD_FD))
+    argv(o, 2, FD_ARG, get(w, ROLE_BASE + 8 * PROJECTOR_ROLE))
+    argv(o, 3, FD_ARG, get(w, ROLE_BASE + 8 * OWNED_ROLE))
+    argv(o, 4, DECIMAL_ARG, get(w, LIMIT_MEMORY))
+    argv(o, 5, DECIMAL_ARG, remaining)
+    count = action(o, w, REFERENCE_RETURNED, RUN, REFERENCE_BATCH_ROLE, 6, 0, 0)
+    put(o, 152, remaining)
+    return count
+
+def reference_returned(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    size = input_word(s, 40)
+    requested = input_word(s, 72)
+    done = input_word(s, 80)
+    if length(s) < 88 or size < 40 or input_word(s, 64) != REFERENCE_RESULT or requested < 1 or requested > 512 or done == 0 or done > requested:
+        return BAD
+    if get(w, REFERENCE_ARM) == 0:
+        put(w, CASE_COUNT, requested)
+        hold(w, BASE_REFERENCE, input_word(s, 32), 0, size)
+        put(w, REFERENCE_ARM, 1)
+        return clock_sample(o, w, REFERENCE_WINDOW, 1)
+    if requested != get(w, CASE_COUNT):
+        return BAD
+    hold(w, CANDIDATE_REFERENCE, input_word(s, 32), 0, size)
+    total = 80 + slot_bytes(w, ORIGINAL) + slot_bytes(w, INTAKE_PACKET) + get(w, BASE_REFERENCE + 16) + size
+    if total > 67108864:
+        return BAD
+    whole_slot(w, o, INTAKE_PACKET, 0)
+    use_span(w, o, BASE_REFERENCE, 1)
+    use_span(w, o, CANDIDATE_REFERENCE, 2)
+    return action(o, w, COMBINED_MADE, MAKE, 0, 0, 3, 0)
 '''
 
 
@@ -360,13 +430,16 @@ def program():
                      RECORD_SIZE=2328, SELECTORS=2368, ACTIVE_REFERENCE=2848, METADATA_SPAN=2872,
                      CREATION=2896, CANONICAL=2920, EXPECTED_SHA=2944, LIMIT_WALL=3008,
                      LIMIT_NATIVE=3016, LIMIT_MEMORY=3024, UTC_DEADLINE=3032, WINDOW_UTC=3040,
+                     CANONICAL_FDS=3048, WORKLOAD_FD=3064, REFERENCE_ARM=3072, CASE_COUNT=3080,
+                     BASE_REFERENCE=3088, CANDIDATE_REFERENCE=3112, COMBINED_BYTES=3136, COMBINED=22,
                      BIND_PREFIX=19, RUNTIME_SELECTION=20, RAW_BODY=21, INTAKE_PACKET=18, OPEN_INTAKE=50, CTX_ROW=51, ART_ROW=52,
                      CLOSE_INTAKE=53, CLOSE_REFUSED=54)
     states = ('REQUEST_SPANS','CTX_REFERENCE','CTX_QUERY','CTX_OBSERVED','ART_QUERY','ART_OBSERVED',
               'ART_AUTH','ART_BODY','ROW_MADE','ROW_JOINED','INTAKE_PUBLISHED','PREFIX_MADE','DOCUMENT_BOUND',
-              'RUNTIME_BOUND','CREATION_OBSERVED','WINDOW_SAMPLED','CORE_NOMINAL','CORE_HASHED','CORE_HASH_FRAME','CORE_COMPARED')
+              'RUNTIME_BOUND','CREATION_OBSERVED','WINDOW_SAMPLED','CORE_NOMINAL','CORE_HASHED','CORE_HASH_FRAME','CORE_COMPARED',
+              'CORE_FILE_MADE','REFERENCE_WINDOW','REFERENCE_RETURNED','COMBINED_MADE','ORIGINAL_JOINED')
     constants.update({name: i for i, name in enumerate(states, 60)})
-    tags = dict(REQUEST_LAYOUT=b'HIAEVQ01', INTAKE=b'HIAEFI02', BIND_RESULT=b'HIAEFB02', NOMINAL_PACKET=b'HIAVCF01',
+    tags = dict(REQUEST_LAYOUT=b'HIAEVQ01', INTAKE=b'HIAEFI03', REFERENCE_RESULT=b'HIAEBT01', BIND_RESULT=b'HIAEFB02', NOMINAL_PACKET=b'HIAVCF01',
                 SHA_JSON=b'"sha256"', STORE_HASH=b'store-ha', STORE_HASH_END=b'sh', CONTEXT_REFERENCE_TAG=b'HIACTRL1',
                 CONTEXT_QUERY_TAG=b'HIACTL01', CONTEXT_OBSERVE_TAG=b'HIACTO01', CONTEXT_OBSERVED_TAG=b'HIACTO02',
                 RETAINED_QUERY=b'HIARFG01', RETAINED_OBSERVED=b'HIARFG02', RETAINED_AUTHORITY=b'HIARFO02',
