@@ -60,6 +60,13 @@ class StoreReleaseBuildTests(unittest.TestCase):
                          ['core_workspace_json.hepta', 'core_admission.hepta',
                           'core_json_frontend.hepta', 'selfhost.hepta'])
 
+    def test_native_directory_packer_is_the_first_source_member(self):
+        first = next(release._source_member_recipes())
+        self.assertEqual(first, release._source_directory_recipe())
+        name, packer, sources = first
+        self.assertEqual((name, packer), ('hia-directory-package-build', 'release_directory_packer.hepta'))
+        self.assertEqual(list(sources.values()), ['release_directory_policy.hepta', 'sha256_stream.hepta'])
+
     def test_source_member_admission_checks_the_staged_elf_and_captured_hia_sources(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)

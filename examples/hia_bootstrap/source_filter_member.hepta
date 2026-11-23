@@ -7245,7 +7245,7 @@ block release21(rel_src21:readbuf,rel_name21:u64,rel_n21:u64,rel_pos21:u64,rel_z
   rel_name21v6:u64 = const() {"value":0}
   rel_name21v7:u64 = const() {"value":0}
   rel_name_match21:bool = call(rel_src21,rel_name21,rel_n21,rel_name21v0,rel_name21v1,rel_name21v2,rel_name21v3,rel_name21v4,rel_name21v5,rel_name21v6,rel_name21v7) {"function":"is_name"}
-  branch rel_name_match21 rel_match21(rel_src21,rel_pos21,rel_z21) unknown(rel_src21)
+  branch rel_name_match21 rel_match21(rel_src21,rel_pos21,rel_z21) release22(rel_src21,rel_name21,rel_n21,rel_pos21,rel_z21)
 block rel_match21(relbody21:readbuf,reloff21:u64,relext21:u64)
   rel_module21v0:u64 = const() {"value":18}
   rel_module21v1:u64 = const() {"value":8030879518488162147}
@@ -7260,6 +7260,31 @@ block rel_match21(relbody21:readbuf,reloff21:u64,relext21:u64)
   no_value21:u64 = const() {"value":0}
   rel_out21:u64 = select(rel_module21,role_value21,no_value21)
   ret(rel_out21)
+block release22(rel_src22:readbuf,rel_name22:u64,rel_n22:u64,rel_pos22:u64,rel_z22:u64)
+  rel_name22v0:u64 = const() {"value":33}
+  rel_name22v1:u64 = const() {"value":7310021024154741096}
+  rel_name22v2:u64 = const() {"value":7021161818704802915}
+  rel_name22v3:u64 = const() {"value":8458372963704597347}
+  rel_name22v4:u64 = const() {"value":8390317603920571497}
+  rel_name22v5:u64 = const() {"value":97}
+  rel_name22v6:u64 = const() {"value":0}
+  rel_name22v7:u64 = const() {"value":0}
+  rel_name_match22:bool = call(rel_src22,rel_name22,rel_n22,rel_name22v0,rel_name22v1,rel_name22v2,rel_name22v3,rel_name22v4,rel_name22v5,rel_name22v6,rel_name22v7) {"function":"is_name"}
+  branch rel_name_match22 rel_match22(rel_src22,rel_pos22,rel_z22) unknown(rel_src22)
+block rel_match22(relbody22:readbuf,reloff22:u64,relext22:u64)
+  rel_module22v0:u64 = const() {"value":24}
+  rel_module22v1:u64 = const() {"value":6874027268401554802}
+  rel_module22v2:u64 = const() {"value":8245937412991248740}
+  rel_module22v3:u64 = const() {"value":8746950815730655097}
+  rel_module22v4:u64 = const() {"value":0}
+  rel_module22v5:u64 = const() {"value":0}
+  rel_module22v6:u64 = const() {"value":0}
+  rel_module22v7:u64 = const() {"value":0}
+  rel_module22:bool = call(relbody22,reloff22,relext22,rel_module22v0,rel_module22v1,rel_module22v2,rel_module22v3,rel_module22v4,rel_module22v5,rel_module22v6,rel_module22v7) {"function":"is_module"}
+  role_value22:u64 = const() {"value":196609}
+  no_value22:u64 = const() {"value":0}
+  rel_out22:u64 = select(rel_module22,role_value22,no_value22)
+  ret(rel_out22)
 block unknown(unknown_input:readbuf)
   missing:u64 = const() {"value":0}
   ret(missing)

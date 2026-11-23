@@ -16,7 +16,7 @@ import tarfile
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from tools.build_hia_core_edit import PROGRAMS as CORE_EDIT_PROGRAMS
-from tools.build_hia_source_build import _compiled_sources, _run_captured
+from tools.build_hia_source_build import _compiled_sources, _run_captured, _source_bundle
 from tools.build_hia_json_preflight import CANDIDATES, ROOT, _image_manifest, admit_cold_build, current_sources
 from tools.build_hia_sqlite_components import PROJECTION, UNITS
 from tools.build_hia_worker_release import AGENT_STDIO_ROLES, INSTALLED_HELPERS
@@ -55,7 +55,6 @@ def _stage_component_outputs(work, compiler, cold_report, publish):
             publish(output / name)
         publish(output / 'hia-worker-scalar-implementation')
 
-    component('release_install', kind='directory')
     for name in ('agent_artifact_capture', 'worker_read_release',
                  'source_build',
                  'supplied_safe_core_proof',
@@ -242,8 +241,18 @@ def _source_release_recipes():
         yield recipe(name, packer, inputs)
 
 
+def _source_directory_recipe():
+    from tools.build_hia_release_install import DIRECTORY_SOURCES
+
+    policy, packer, hasher = (Path(path).name for path in DIRECTORY_SOURCES[:3])
+    name = 'hia-directory-package-build'
+    return name, packer, {name + '.hepta': policy, hasher: hasher}
+
+
 def _source_member_recipes():
     """Map published names to checked-in HIA inputs. Framing and modes belong to HIA."""
+    # The qualified source seed is sufficient to bootstrap the directory packer.
+    yield _source_directory_recipe()
     for role in STDIO_ROLES:
         name = 'hia-agent-' + role
         sources = {name + '.hepta': AGENT_STDIO_ROLES[role][0] + '.hepta'}
@@ -282,7 +291,8 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         return data
 
     seed = captured('hia-source-build')
-    pack_directory = captured('hia-directory-package-build')
+    pack_directory = None
+    bootstrap_packets = []
     builders = {}
     compiler_packer = None
 
@@ -299,29 +309,39 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             raise ValueError(f'native release member {operation} failed ({result.returncode})')
         return result.stdout
 
-    def compile_sources(named):
-        pinned = {}
+    def native_directory_packet(program, pinned):
         with TemporaryDirectory(prefix='member-sources-', dir=work) as staging:
             directory = Path(staging)
-            for name, source in named.items():
-                relative = 'examples/hia_bootstrap/' + source
-                data = (ROOT / relative).read_bytes()
-                if admitted.get(relative) != sha256(data).hexdigest():
-                    raise ValueError('release member source differs from cold admission: ' + relative)
-                pinned[name] = data
+            for name, data in pinned.items():
                 with (directory / name).open('xb') as stream:
                     stream.write(data)
                     os.fchmod(stream.fileno(), 0o400)
-            packed = _run_captured(pack_directory, directory, b'', work)
+            packed = _run_captured(program, directory, b'', work)
             if packed.returncode or packed.stderr != (sha256(packed.stdout).hexdigest() + '\n').encode():
                 raise ValueError('native source directory receipt differs from its bytes')
-        compiled = call(seed, 'build', packed.stdout)
-        # Authenticate the actual source copies read by both native programs.
+            return packed.stdout
+
+    def compile_sources(named):
+        pinned = {}
+        for name, source in sorted(named.items()):
+            relative = 'examples/hia_bootstrap/' + source
+            data = (ROOT / relative).read_bytes()
+            if admitted.get(relative) != sha256(data).hexdigest():
+                raise ValueError('release member source differs from cold admission: ' + relative)
+            pinned[name] = data
+        if pack_directory is None:
+            # Before the directory packer exists only a source byte transport is
+            # needed. Its two packets must subsequently match the HIA program.
+            wire = _source_bundle(pinned.values(), names=pinned)
+            bootstrap_packets.append((pinned, wire))
+        else:
+            wire = native_directory_packet(pack_directory, pinned)
+        compiled = call(seed, 'build', wire)
         return compiled, _compiled_sources(compiled, pinned), pinned
 
-    _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
-
     for name, packer, sources in _source_member_recipes():
+        if pack_directory is None and name != 'hia-directory-package-build':
+            raise ValueError('the first native release member must bootstrap its directory packer')
         if packer not in builders:
             kit, kit_images, _ = compile_sources({'source_build_policy.hepta': 'source_filter_member.hepta',
                                       'selfhost.hepta': 'selfhost.hepta', 'source_build_packer.hepta': packer})
@@ -349,6 +369,12 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             stream.write(product)
             stream.flush()
             publish(Path(stream.name), name, expected=sha256(product).hexdigest())
+        if name == 'hia-directory-package-build':
+            pack_directory = captured(name)
+            for pinned, wire in bootstrap_packets:
+                if native_directory_packet(pack_directory, pinned) != wire:
+                    raise ValueError('source-built directory packer differs from its bootstrap packet')
+            bootstrap_packets.clear()
         if 'selfhost.hepta' in images and images['selfhost.hepta'] != compiler_bytes:
             raise ValueError('source-built selfhost differs from the admitted cold compiler')
         if name == 'hia-core-json':
@@ -370,6 +396,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             path.write_bytes(manifest)
             publish(path)
 
+    _stage_helper_images(work, seed, compile_sources, call, compiler_bytes, publish)
     _stage_sqlite_units(work, seed, captured('hia-elf-link'), compile_sources, call, admitted, publish)
 
 

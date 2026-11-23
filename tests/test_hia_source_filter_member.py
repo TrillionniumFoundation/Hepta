@@ -243,9 +243,9 @@ class InstalledSourceMemberTests(unittest.TestCase):
                 self.invoke([builders[packer], 'build'], mismatch, refused=True)
 
     def test_build_core_and_release_tools_against_independent_installation(self):
-        from tools.build_hia_native_store_release import _source_release_recipes
+        from tools.build_hia_native_store_release import _source_directory_recipe, _source_release_recipes
 
-        for name, packer, sources in _source_release_recipes():
+        for name, packer, sources in (_source_directory_recipe(), *_source_release_recipes()):
             with self.subTest(name=name):
                 builder = self.member_builder(self.work / packer, packer)
                 inputs = {alias: self.sources / source for alias, source in sources.items()}
