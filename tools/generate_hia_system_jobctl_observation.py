@@ -13,7 +13,7 @@ def observation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) != 128 or length(w) != STATE_BYTES:
         return 0
     action = dispatch(s, o, w)
-    if action == zero_action() and get(w, SUBOP) == 3:
+    if get(w, SUBOP) == 3 and (action == zero_action() or (get(w, 0) >= 2060 and get(w, 0) < 2070)):
         return go(w, 238)
     return action
 
@@ -44,6 +44,8 @@ def dispatch(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def operation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 200:
         put(w, PROBE_ERROR, 0)
+        put(w, PROBE_ERROR_KIND, 0)
+        put(w, PROBE_ERROR_DETAIL, 0)
         put(w, SCRATCH_SIZE, 0)
         put(w, RETAINED, 0)
         put(w, ATOMIC_FAILURE_NEXT, 0)
@@ -61,25 +63,27 @@ def operation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         if get(w, START_REUSED) == 1:
             return record_ready(o, w)
         record_path(w)
-        return begin_file(o, w, 202, PATH, FILE_RAW, 1048576)
+        return begin_io(o, w, 202, FILE_RAW, 1048577, 1048576)
     if phase == 202:
-        if get(w, SUBOP) == 3 and get(w, IO_ERROR) != 0:
-            return 0
-        if get(w, SUBOP) == 3:
-            return record_call(o, w, 203, 0, FILE_RAW, get(w, IO_USED))
-        return record_call(o, w, 203, 0, FILE_RAW, get(w, 288))
+        if get(w, IO_ERROR) != 0:
+            return io_diagnostic(w, L_ERROR_UNKNOWN_JOB)
+        return record_call(o, w, 203, 0, FILE_RAW, get(w, IO_USED))
     if phase == 203:
-        if result != 1 or retained_identity(w) == 0:
-            return 0
+        if result != 1:
+            return typed_diagnostic(o, w, 212, 2, 1, FILE_RAW, get(w, IO_USED), L_ERROR_UNKNOWN_JOB)
+        if retained_identity(w) == 0:
+            return observation_error(w, L_ERROR_JOB_IDENTITY)
         return record_ready(o, w)
     if phase == 204:
         if get(w, OBS_KIND) != 0:
             return render_status(o, w)
         terminated(w, text_boot(w, PATH))
-        return begin_file(o, w, 205, PATH, FILE_RAW, 1048576)
+        return begin_io(o, w, 205, FILE_RAW, 1048577, 1048576)
     if phase == 205:
-        if kernel_text(w, FILE_RAW, get(w, 288)) == 0:
-            return 0
+        if get(w, IO_ERROR) != 0:
+            return io_diagnostic(w, NONE)
+        if kernel_text(w, FILE_RAW, get(w, IO_USED)) == 0:
+            return observation_error(w, L_ERROR_UTF8)
         if equal(w, get(w, RECORD_FIELDS + 48), get(w, RECORD_FIELDS + 56), get(w, SCAN_NEXT), get(w, SCAN_SIZE)) == 0:
             return begin_terminal(o, w, 206)
         return begin_properties(o, w, 207)
@@ -98,7 +102,7 @@ def operation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         if get(w, OBS_KIND) != 0:
             return render_status(o, w)
         if get(w, PROBE_ERROR) != 0:
-            return 0
+            return probe_diagnostic(w)
         state = 3
         if record_state(w) == 5:
             state = 4
@@ -124,20 +128,19 @@ def operation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         return read_start(o, w)
     if phase == 211:
         return read_start(o, w)
+    if phase >= 212 and phase <= 214:
+        return typed_diagnostic_ready(w, result)
     if phase == 220:
-        size = get(w, 288)
-        if get(w, SUBOP) == 3:
-            if get(w, IO_ERROR) != 0:
-                return 0
-            size = get(w, IO_USED)
-        if kernel_text(w, FILE_RAW, size) == 0:
-            return 0
+        if get(w, IO_ERROR) != 0:
+            return io_diagnostic(w, NONE)
+        if kernel_text(w, FILE_RAW, get(w, IO_USED)) == 0:
+            return observation_error(w, L_ERROR_UTF8)
         if equal(w, get(w, RECORD_FIELDS + 48), get(w, RECORD_FIELDS + 56), get(w, SCAN_NEXT), get(w, SCAN_SIZE)) == 0:
-            return 0
+            return observation_error(w, L_ERROR_REBOOT_CANCEL)
         return begin_properties(o, w, 221)
     if phase == 221:
         if get(w, PROBE_ERROR) != 0:
-            return 0
+            return probe_diagnostic(w)
         active = property_state(w)
         if get(w, PROBE_PRESENT) == 0 or active < 1 or active > 3:
             return cancel_result(o, w, 0)
@@ -151,13 +154,28 @@ def operation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 222:
         put(w, PROPERTY_FD, get(w, PROCESS_FDS))
         put(w, PROPERTY_ERROR_FD, get(w, PROCESS_FDS + 8))
+        if get(w, SUBOP) != 3 and get(w, PROCESS_FAILURE) == 0 and get(w, PROCESS_ERRNO) == 0 and get(w, PROCESS_STATUS) != 0:
+            put(w, STOP_ERROR_FD, get(w, PROPERTY_ERROR_FD))
+            put(w, STOP_ERROR_SIZE, get(w, PROCESS_ERR_BYTES))
+            put(w, PROPERTY_ERROR_FD, NONE)
+            put(w, PROPERTY_CLOSE_NEXT, 226)
+            return property_close(o, w)
         put(w, PROPERTY_CLOSE_NEXT, 225)
         return property_close(o, w)
     if phase == 225:
-        if get(w, PROCESS_FAILURE) != 0 or get(w, PROCESS_ERRNO) != 0 or get(w, PROCESS_STATUS) != 0:
+        if get(w, PROCESS_FAILURE) != 0:
+            return diagnostic_errno(w, 0 - get(w, PROCESS_FAILURE))
+        if get(w, PROCESS_ERRNO) != 0:
+            return diagnostic_errno(w, 0 - get(w, PROCESS_ERRNO))
+        if get(w, PROCESS_STATUS) != 0:
             return 0
         field(w, 6, 57400, lit(w, L_CANCELLED_RAW, 57400) - 57400)
         return record_call(o, w, 223, 1, FILE_RAW, 0)
+    if phase == 226:
+        end = lit(w, L_ERROR_STOP_PREFIX, ERROR_TEXT)
+        fd = get(w, STOP_ERROR_FD)
+        put(w, STOP_ERROR_FD, NONE)
+        return diagnostic_stderr(w, fd, get(w, STOP_ERROR_SIZE), ERROR_TEXT, end - ERROR_TEXT)
     if phase == 223:
         if result != 1:
             return 0
@@ -168,7 +186,7 @@ def operation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         return cancel_result(o, w, 1)
     if phase == 230:
         if get(w, PROBE_ERROR) != 0:
-            return 0
+            return probe_diagnostic(w)
         put(w, 0, get(w, SUBOP_NEXT))
         return 8
     if phase == 238:
@@ -183,7 +201,7 @@ def operation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
 
 def record_ready(o:mutbuf, w:mutbuf) -> u32:
     if retained_identity(w) == 0:
-        return 0
+        return observation_error(w, L_ERROR_JOB_IDENTITY)
     at = lit(w, L_DATA_PREFIX, DATA_DIR)
     copy(w, at, JOB_ID, get(w, 48))
     at = at + get(w, 48)
@@ -192,14 +210,60 @@ def record_ready(o:mutbuf, w:mutbuf) -> u32:
     put(w, RENDER_KIND, 0)
     if get(w, 40) == 5:
         terminated(w, text_boot(w, PATH))
-        if get(w, SUBOP) == 3:
-            return begin_io(o, w, 220, FILE_RAW, 1048576, 1048576)
-        return begin_file(o, w, 220, PATH, FILE_RAW, 1048576)
+        return begin_io(o, w, 220, FILE_RAW, 1048577, 1048576)
     return begin_terminal(o, w, choose(get(w, 40) == 4, 210, 204))
 
 def go(w:mutbuf, phase:u64) -> u32:
     put(w, 0, phase)
     return 8
+
+def observation_error(w:mutbuf, reason:u64) -> u32:
+    end = lit(w, reason, ERROR_TEXT)
+    return diagnostic(w, ERROR_TEXT, end - ERROR_TEXT)
+
+def io_diagnostic(w:mutbuf, context:u64) -> u32:
+    at = ERROR_TEXT
+    if context != NONE:
+        at = lit(w, context, at)
+    if get(w, IO_REASON) == 1:
+        at = lit(w, L_ERROR_BOUNDED_JSON, at)
+        return diagnostic(w, ERROR_TEXT, at - ERROR_TEXT)
+    if context == NONE:
+        return diagnostic_errno(w, get(w, IO_ERROR))
+    return diagnostic_context_errno(w, ERROR_TEXT, at - ERROR_TEXT, get(w, IO_ERROR))
+
+def probe_diagnostic(w:mutbuf) -> u32:
+    if get(w, PROBE_ERROR_KIND) == 1:
+        return diagnostic_errno(w, get(w, PROBE_ERROR_DETAIL))
+    if get(w, PROBE_ERROR_KIND) == 2:
+        return observation_error(w, get(w, PROBE_ERROR_DETAIL))
+    return 0
+
+def typed_diagnostic(o:mutbuf, w:mutbuf, next:u64, schema:u64, reader:u64, source:u64, size:u64, context:u64) -> u32:
+    put(w, TYPE_ERROR_CONTEXT, context)
+    put(w, TYPE_ERROR_OUT, schema)
+    put(w, TYPE_ERROR_OUT + 8, reader)
+    put(w, 0, next)
+    put(o, 0, source)
+    put(o, 8, size)
+    put(o, 16, TYPE_ERROR_OUT)
+    put(o, 24, TYPE_ERROR_CAP)
+    put(o, 32, TYPE_ERROR_WORK)
+    put(o, 40, TYPE_ERROR_WORK_BYTES)
+    return 26
+
+def typed_diagnostic_ready(w:mutbuf, result:u64) -> u32:
+    if result == 0 or result >= 4294967280 or result > TYPE_ERROR_CAP:
+        return 0
+    if get(w, 67616) != TYPE_ERROR_OUT or get(w, 67624) != result:
+        return 0
+    context = get(w, TYPE_ERROR_CONTEXT)
+    if context == NONE:
+        return diagnostic(w, TYPE_ERROR_OUT, result)
+    size = lit(w, context, ERROR_TEXT) - ERROR_TEXT
+    start = TYPE_ERROR_OUT - size
+    copy(w, start, ERROR_TEXT, size)
+    return diagnostic(w, start, size + result)
 
 def internal_mkdir(o:mutbuf, w:mutbuf) -> u32:
     step = get(w, INTERNAL_STEP)
@@ -282,21 +346,29 @@ def terminal_observation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         if result == NEG2:
             return terminal_done(w, 0, 0)
         if result != 0:
-            return 0
+            return diagnostic_errno(w, result)
         return begin_io(o, w, 452, EXIT_RAW, 1048577, 1048576)
     if phase == 452:
         if get(w, IO_ERROR) != 0 or get(w, IO_USED) > 1048576:
+            if get(w, RECORD_PROTOCOL) == 0:
+                if get(w, IO_ERROR) != 0:
+                    return io_diagnostic(w, NONE)
+                return observation_error(w, L_ERROR_GROWN_JSON)
             return terminal_invalid(w, 1)
         put(w, EXIT_SIZE, get(w, IO_USED))
         return terminal_call(o, w, 453, 0, EXIT_RAW, get(w, EXIT_SIZE))
     if phase == 453:
         if result != 1:
+            if get(w, RECORD_PROTOCOL) == 0:
+                return typed_diagnostic(o, w, 213, 4, 0, EXIT_RAW, get(w, EXIT_SIZE), NONE)
             return terminal_invalid(w, 2)
         if get(w, T_SCRATCH) != NONE:
             return canonical_value(o, w, 454, EXIT_RAW + get(w, T_SCRATCH), get(w, T_SCRATCH_SIZE))
         return exit_identity(o, w)
     if phase == 454:
         if result > SCRATCH_CAP:
+            if get(w, RECORD_PROTOCOL) == 0:
+                return typed_diagnostic(o, w, 213, 4, 0, EXIT_RAW, get(w, EXIT_SIZE), NONE)
             return terminal_invalid(w, 2)
         copy(w, SCRATCH_VALUE, CANON_RESULT, result)
         put(w, SCRATCH_SIZE, result)
@@ -346,7 +418,7 @@ def terminal_observation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
 
 def exit_identity(o:mutbuf, w:mutbuf) -> u32:
     if equal(w, get(w, EXIT_VALUES), get(w, EXIT_VALUES + 8), get(w, RECORD_FIELDS), get(w, RECORD_FIELDS + 8)) == 0 or equal(w, get(w, EXIT_VALUES + 16), get(w, EXIT_VALUES + 24), get(w, RECORD_FIELDS + 64), get(w, RECORD_FIELDS + 72)) == 0:
-        return 0
+        return observation_error(w, L_ERROR_EXIT_IDENTITY)
     if get(w, RECORD_PROTOCOL) != 0 and get(w, RECORD_PROTOCOL) != get(w, T_PROTOCOL):
         return terminal_done(w, 1, 3)
     return terminal_call(o, w, 455, 2, EXIT_RAW, 0)
@@ -382,6 +454,7 @@ def canonical_value(o:mutbuf, w:mutbuf, next:u64, source:u64, size:u64) -> u32:
 def begin_io(o:mutbuf, w:mutbuf, next:u64, target:u64, limit:u64, metadata_limit:u64) -> u32:
     put(w, IO_NEXT, next)
     put(w, IO_ERROR, 0)
+    put(w, IO_REASON, 0)
     put(w, IO_FD, NONE)
     put(w, IO_TARGET, target)
     put(w, IO_LIMIT, limit)
@@ -391,6 +464,8 @@ def begin_io(o:mutbuf, w:mutbuf, next:u64, target:u64, limit:u64, metadata_limit
 
 def recoverable_file(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 600:
+        if result == NEG4:
+            return call(o, w, 600, 257, NEG100, PATH, 657408, 0, 0, 0, 12)
         if failed(result):
             put(w, IO_ERROR, result)
             return go(w, get(w, IO_NEXT))
@@ -398,6 +473,8 @@ def recoverable_file(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         return call(o, w, 601, 5, result, STAT, 0, 0, 0, 0, 12)
     if phase == 601:
         if result != 0 or getn(w, STAT + 24, 4) & 61440 != 32768 or get(w, STAT + 48) > get(w, IO_META_LIMIT):
+            if result == 0:
+                put(w, IO_REASON, 1)
             put(w, IO_ERROR, choose(result == 0, NEG22, result))
             return io_close(o, w)
         return io_read(o, w)
@@ -412,6 +489,7 @@ def recoverable_file(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
             return io_close(o, w)
         return io_read(o, w)
     if phase == 603:
+        put(w, IO_FD, NONE)
         return go(w, get(w, IO_NEXT))
     return 0
 
@@ -433,17 +511,17 @@ def retained_scratch(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         if get(w, IO_ERROR) == NEG2:
             return go(w, get(w, RETAIN_NEXT))
         if get(w, IO_ERROR) != 0:
-            return 0
+            return io_diagnostic(w, L_ERROR_RETAINED_CONTEXT)
         return canonical_value(o, w, 501, RETAIN_RAW, get(w, IO_USED))
     if phase == 501:
         if result > SCRATCH_CAP:
-            return 0
+            return typed_diagnostic(o, w, 214, 8, 1, RETAIN_RAW, get(w, IO_USED), L_ERROR_RETAINED_CONTEXT)
         copy(w, SCRATCH_VALUE, CANON_RESULT, result)
         put(w, SCRATCH_SIZE, result)
         return terminal_call(o, w, 502, 3, SCRATCH_VALUE, result)
     if phase == 502:
         if result != 1 or retained_valid(w) == 0:
-            return 0
+            return observation_error(w, L_ERROR_RETAINED_INVALID)
         put(w, RETAINED, 1)
         return go(w, get(w, RETAIN_NEXT))
     return 0
@@ -486,6 +564,8 @@ def uint_text(w:mutbuf, source:u64, size:u64) -> u64:
 def begin_properties(o:mutbuf, w:mutbuf, next:u64) -> u32:
     put(w, PROBE_NEXT, next)
     put(w, PROBE_ERROR, 0)
+    put(w, PROBE_ERROR_KIND, 0)
+    put(w, PROBE_ERROR_DETAIL, 0)
     put(w, PROBE_PRESENT, 0)
     put(w, INVOCATION_PRESENT, 0)
     put(w, INVOCATION_AT, NONE)
@@ -519,6 +599,16 @@ def property_failure(o:mutbuf, w:mutbuf) -> u32:
     put(w, PROPERTY_CLOSE_NEXT, get(w, PROBE_NEXT))
     return property_close(o, w)
 
+def property_errno(o:mutbuf, w:mutbuf, raw:u64) -> u32:
+    put(w, PROBE_ERROR_KIND, 1)
+    put(w, PROBE_ERROR_DETAIL, raw)
+    return property_failure(o, w)
+
+def property_error(o:mutbuf, w:mutbuf, reason:u64) -> u32:
+    put(w, PROBE_ERROR_KIND, 2)
+    put(w, PROBE_ERROR_DETAIL, reason)
+    return property_failure(o, w)
+
 def property_close(o:mutbuf, w:mutbuf) -> u32:
     if get(w, PROPERTY_FD) != NONE:
         fd = get(w, PROPERTY_FD)
@@ -534,8 +624,10 @@ def properties(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 400:
         put(w, PROPERTY_FD, get(w, PROCESS_FDS))
         put(w, PROPERTY_ERROR_FD, get(w, PROCESS_FDS + 8))
-        if get(w, PROCESS_FAILURE) != 0 or get(w, PROCESS_ERRNO) != 0:
-            return property_failure(o, w)
+        if get(w, PROCESS_FAILURE) != 0:
+            return property_errno(o, w, 0 - get(w, PROCESS_FAILURE))
+        if get(w, PROCESS_ERRNO) != 0:
+            return property_errno(o, w, 0 - get(w, PROCESS_ERRNO))
         put(w, PROPERTY_BYTES, get(w, PROCESS_OUT_BYTES))
         put(w, PROPERTY_READ, 0)
         if get(w, PROPERTY_BYTES) > PROP_CAP:
@@ -544,7 +636,9 @@ def properties(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 401:
         if result == NEG4:
             return property_read(o, w)
-        if failed(result) or result > get(w, PROPERTY_BYTES) - get(w, PROPERTY_READ) or (result == 0 and get(w, PROPERTY_READ) != get(w, PROPERTY_BYTES)):
+        if failed(result):
+            return property_errno(o, w, result)
+        if result > get(w, PROPERTY_BYTES) - get(w, PROPERTY_READ) or (result == 0 and get(w, PROPERTY_READ) != get(w, PROPERTY_BYTES)):
             return property_failure(o, w)
         put(w, PROPERTY_READ, get(w, PROPERTY_READ) + result)
         if get(w, PROPERTY_READ) < get(w, PROPERTY_BYTES):
@@ -574,7 +668,9 @@ def properties(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         return begin_atomic(o, w, 405, 1, RECORD_OUT, get(w, RECORD_SIZE))
     if phase == 405:
         if get(w, ATOMIC_ERROR) != 0:
-            return property_failure(o, w)
+            if get(w, ATOMIC_WRITE_ZERO) != 0:
+                return property_error(o, w, L_ERROR_WRITE_ZERO)
+            return property_errno(o, w, get(w, ATOMIC_RAW_ERROR))
         put(w, PROBE_PRESENT, 1)
         return go(w, get(w, PROBE_NEXT))
     if phase == 406:
@@ -649,12 +745,14 @@ def bind_invocation(o:mutbuf, w:mutbuf) -> u32:
     store(w, at, 32)
     copy(w, at + 1, get(w, RECORD_FIELDS + 64), get(w, RECORD_FIELDS + 72))
     at = at + 1 + get(w, RECORD_FIELDS + 72)
-    if row == NONE or equal(w, get(w, row + 16), get(w, row + 24), EXIT_RAW, at - EXIT_RAW) == 0 or get(w, INVOCATION_PRESENT) == 0:
-        return property_failure(o, w)
+    if row == NONE or equal(w, get(w, row + 16), get(w, row + 24), EXIT_RAW, at - EXIT_RAW) == 0:
+        return property_error(o, w, L_ERROR_UNIT_OWNER)
+    if get(w, INVOCATION_PRESENT) == 0:
+        return property_error(o, w, L_ERROR_UNIT_INVOCATION)
     existing = get(w, RECORD_FIELDS + 80)
     if existing != NONE:
         if equal(w, existing, get(w, RECORD_FIELDS + 88), get(w, INVOCATION_AT), get(w, INVOCATION_SIZE)) == 0:
-            return property_failure(o, w)
+            return property_error(o, w, L_ERROR_UNIT_INCARNATION)
         put(w, PROBE_PRESENT, 1)
         return go(w, get(w, PROBE_NEXT))
     at = RECORD_DATA
@@ -720,6 +818,7 @@ def page_start(o:mutbuf, w:mutbuf) -> u32:
     put(w, PAGE_SIZE, 0)
     put(w, PAGE_EXPECTED, NONE)
     put(w, PAGE_PRESENT, 0)
+    put(w, PAGE_FD, NONE)
     if get(w, OBS_KIND) == 2 and get(w, T_CAPTURE) == 1:
         put(w, PAGE_EXPECTED, get(w, STREAM_VALUES + side * 160 + 16))
     data_path(w, choose(side == 0, L_STDOUT_LOG, L_STDERR_LOG))
@@ -729,30 +828,40 @@ def read_page(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 560:
         if result == NEG2 and get(w, PAGE_EXPECTED) == NONE and get(w, PAGE_OFFSET) == 0:
             return page_ready(o, w)
+        if result == NEG4:
+            return call(o, w, 560, 257, NEG100, PATH, 657408, 0, 0, 0, 12)
+        if result == NEG2:
+            return observation_error(w, choose(get(w, PAGE_EXPECTED) != NONE, L_ERROR_LOG_MISSING, L_ERROR_ABSENT_CURSOR))
         if failed(result):
-            return 0
+            return diagnostic_errno(w, result)
         put(w, PAGE_PRESENT, 1)
         put(w, PAGE_FD, result)
         return call(o, w, 561, 5, result, STAT, 0, 0, 0, 0, 12)
     if phase == 561:
-        if result != 0 or getn(w, STAT + 24, 4) & 61440 != 32768:
-            return 0
+        if result != 0:
+            return page_failure(o, w, 1, result)
+        if getn(w, STAT + 24, 4) & 61440 != 32768:
+            return page_failure(o, w, 2, L_ERROR_LOG_REGULAR)
         size = get(w, STAT + 48)
         put(w, PAGE_SIZE, size)
         if get(w, PAGE_EXPECTED) != NONE and get(w, PAGE_EXPECTED) != size:
-            return 0
+            return page_failure(o, w, 2, L_ERROR_LOG_LENGTH)
         if get(w, PAGE_OFFSET) > size:
-            return 0
+            return page_failure(o, w, 2, L_ERROR_LOG_CURSOR)
         return call(o, w, 562, 8, get(w, PAGE_FD), get(w, PAGE_OFFSET), 0, 0, 0, 0, 0)
     if phase == 562:
-        if failed(result) or result != get(w, PAGE_OFFSET):
+        if failed(result):
+            return page_failure(o, w, 1, result)
+        if result != get(w, PAGE_OFFSET):
             return 0
         return page_read(o, w)
     if phase == 563:
         if result == NEG4:
             return page_read(o, w)
         limit = page_limit(w)
-        if failed(result) or result > limit - get(w, PAGE_USED):
+        if failed(result):
+            return page_failure(o, w, 1, result)
+        if result > limit - get(w, PAGE_USED):
             return 0
         put(w, PAGE_USED, get(w, PAGE_USED) + result)
         if result != 0 and get(w, PAGE_USED) < limit:
@@ -763,12 +872,25 @@ def read_page(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 564:
         remaining = get(w, PAGE_SIZE) - get(w, PAGE_OFFSET)
         expected = choose(remaining < page_limit(w), remaining, page_limit(w))
-        if result != 0 or get(w, STAT + 48) != get(w, PAGE_SIZE) or get(w, PAGE_USED) != expected:
-            return 0
+        if result != 0:
+            return page_failure(o, w, 1, result)
+        if get(w, STAT + 48) != get(w, PAGE_SIZE) or get(w, PAGE_USED) != expected:
+            return page_failure(o, w, 2, L_ERROR_LOG_CHANGED)
         return page_close(o, w)
     if phase == 565:
+        put(w, PAGE_FD, NONE)
         return page_ready(o, w)
+    if phase == 566:
+        put(w, PAGE_FD, NONE)
+        if get(w, PAGE_ERROR_KIND) == 1:
+            return diagnostic_errno(w, get(w, PAGE_ERROR_DETAIL))
+        return observation_error(w, get(w, PAGE_ERROR_DETAIL))
     return 0
+
+def page_failure(o:mutbuf, w:mutbuf, kind:u64, detail:u64) -> u32:
+    put(w, PAGE_ERROR_KIND, kind)
+    put(w, PAGE_ERROR_DETAIL, detail)
+    return call(o, w, 566, 3, get(w, PAGE_FD), 0, 0, 0, 0, 0, 0)
 
 def page_limit(w:mutbuf) -> u64:
     value = get(w, 88)
@@ -813,9 +935,14 @@ def output_finish(o:mutbuf, w:mutbuf, at:u64) -> u32:
     return output_bytes(o, w)
 
 def output_bytes(o:mutbuf, w:mutbuf) -> u32:
+    if get(w, SUBOP) == 0 and get(w, OUT_USED) == 0 and get(w, 368) != NONE:
+        put(w, 68500, 684)
+        return go(w, 2080)
     return call(o, w, 680, 1, 1, OUTPUT + get(w, OUT_USED), get(w, OUT_SIZE) - get(w, OUT_USED), 0, 0, 0, 12)
 
 def output_write(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
+    if phase == 684:
+        return output_bytes(o, w)
     if phase == 680:
         if result == NEG4:
             return output_bytes(o, w)
