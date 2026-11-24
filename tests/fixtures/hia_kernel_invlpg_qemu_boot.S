@@ -80,6 +80,46 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#if defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE)
+    /* Mask both PICs before changing IF; no APIC source is armed. */
+    cli
+    movb $0xff, %al
+    outb %al, $0x21
+    outb %al, $0xa1
+#ifdef HIA_TEST_IRQ_DISABLE
+    sti
+    nop
+#define IRQ_INITIAL 0x200
+#define IRQ_FINAL 0
+#else
+#define IRQ_INITIAL 0
+#define IRQ_FINAL 0x200
+#endif
+    pushfq
+    popq %rcx
+    andq $0x200, %rcx
+    cmpq $IRQ_INITIAL, %rcx
+    jne abort
+    movq $0x12345678, %rdi
+    call f0
+    pushfq
+    popq %rcx
+    cli
+    cmpq $0x12345678, %rax
+    jne abort
+    andq $0x200, %rcx
+    cmpq $IRQ_FINAL, %rcx
+    je irq_if_pass
+    cmpq $IRQ_INITIAL, %rcx
+    jne abort
+    movb $'N', %bl
+    jmp debug_exit64
+irq_if_pass:
+    movb $'P', %bl
+    jmp debug_exit64
+#undef IRQ_INITIAL
+#undef IRQ_FINAL
+#endif
 #if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE)
     /* Test-only initial-state provisioning. All subsequent transitions
      * on the success path must be performed by the HIA subject. */
@@ -322,7 +362,7 @@ fail64:
     movb $'N', %bl
     jmp debug_exit64
 pf_handler:
-#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE)
+#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE)
     jmp abort /* A fault must not masquerade as the write NOP control. */
 #endif
 #ifdef HIA_TEST_CR2_READ

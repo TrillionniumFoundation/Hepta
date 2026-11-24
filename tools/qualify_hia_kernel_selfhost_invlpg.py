@@ -38,14 +38,14 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read"):
+    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
-    # The eight experimental opcodes occupy a contiguous token interval.
+    # The ten experimental opcodes occupy a contiguous token interval.
     # Keep the native compiler within its fixed 1536-block capacity.
     if [words[name] - words["x86.tlb.invlpg"] for name in
-            ("x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read")] != list(range(8)):
+            ("x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable")] != list(range(10)):
         raise ValueError("kernel token interval changed")
     source = gen.SOURCE
     source = replace_once(source,
@@ -77,12 +77,23 @@ def candidate_source():
                 flag = 2 << (token - @read@)""")
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op >= @x86.tlb.invlpg@ and op <= @x86.cr4.read@:
+    if op >= @x86.tlb.invlpg@ and op <= @x86.irq.enable@:
         return 16""")
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
         owned_instruction(o, w, op, n, a, at)""",
-        """    if op >= @x86.cr0.read@ and op <= @x86.cr4.read@:
+        """    if op >= @x86.irq.disable@ and op <= @x86.irq.enable@:
+        if get(w, 200) != 1:
+            fail(w, 65)
+        if (n | t | get(w, 288)) != 0:
+            fail(w, 65)
+        expect(s, w, 10)
+        if get(w, 40) != 0:
+            return 0
+        # CLI/STI, explicit privilege effect, not an authority proof.
+        emit(o, w, 250 + op - @x86.irq.disable@)
+        return 0
+    if op >= @x86.cr0.read@ and op <= @x86.cr4.read@:
         if get(w, 200) != 1 or n != 0 or t != 1 or get(w, 288) != 1 or get(w, 256) != 0:
             return fail(w, 65)
         expect(s, w, 10)
@@ -336,6 +347,36 @@ def run(output):
     compile_cli(exe, write_source.replace(b"x86.cr3.write", b"x86.cr2.write"),
                 output, "cr2-write-unavailable", expected=2)
 
+    irq = {}
+    for action, mnemonic, hexcode in (("disable", "cli", "fa"), ("enable", "sti", "fb")):
+        label = "irq-" + action
+        instruction = "x86.irq." + action
+        operation = "  _ = " + instruction + "()\n"
+        subject = program(op=operation)
+        obj = compile_cli(exe, subject, output, label + "-1")
+        if obj != compile_cli(exe, subject, output, label + "-2") or not obj.startswith(b"\x7fELF"):
+            raise AssertionError(label + " native ELF repeat failed")
+        obj_text = text_bytes(output, label, obj)
+        asm = output / (label + "-oracle.s")
+        asm.write_text(".text\n " + mnemonic + "\n")
+        oracle_object = output / (label + "-oracle.o")
+        subprocess.run(["as", "--64", "-o", str(oracle_object), str(asm)], check=True)
+        irq_oracle = text_bytes(output, label + "-oracle-copy", oracle_object.read_bytes())
+        if irq_oracle != bytes.fromhex(hexcode) or obj_text.count(irq_oracle) != 1:
+            raise AssertionError(label + " GNU as oracle mismatch")
+        bad = {
+            "no-effect": program(effect="", op=operation),
+            "legacy": program(profile=LEGACY, effect="", op=operation),
+            "operand": program(op="  _ = " + instruction + "(v0)\n"),
+            "result": program(op="  v1:u64 = " + instruction + "()\n"),
+            "attribute": program(op=operation.rstrip() + ' {"trust_me":true}\n'),
+            "wrong-module": program(module="selfhost", op=operation),
+        }
+        for key, malformed in bad.items():
+            compile_cli(exe, malformed, output, label + "-" + key, expected=2)
+        irq[label] = {"elf_sha256": digest(obj), "text_sha256": digest(obj_text),
+            "oracle_hex": irq_oracle.hex(), "refusals": list(bad), "source_sha256": digest(subject)}
+
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -357,6 +398,7 @@ def run(output):
                      "source_sha256": digest(cr2_source)},
         **extra_reads,
         **extra_writes,
+        "irq": irq,
         "unsupported_cr2_write_refused": True,
         "shape": shape, "guest_execution": "NOT_RUN", "full_linux_acceptance": "HOLD",
         "locked_compiler_changed": False, "privilege_authority_proved": False}

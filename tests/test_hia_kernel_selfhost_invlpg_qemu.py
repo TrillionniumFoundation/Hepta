@@ -254,6 +254,35 @@ def run(output):
         extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
                               (output / (label + ".text"), entry["text_sha256"])))
         hardware[reg + "_write_subject_source_sha256"] = entry["source_sha256"]
+    for action, expected_hex in (("disable", "fa"), ("enable", "fb")):
+        label = "irq-" + action
+        obj = output / (label + ".o")
+        src = output / (label + "-1.input")
+        raw = output / (label + ".text")
+        entry = report["irq"][label]
+        irq_native = obj.read_bytes()
+        irq_text = raw.read_bytes()
+        opcode = bytes.fromhex(entry["oracle_hex"])
+        if (digest(irq_native) != entry["elf_sha256"] or digest(irq_text) != entry["text_sha256"]
+                or digest(src.read_bytes()) != entry["source_sha256"]
+                or set(entry["refusals"]) != {"no-effect", "legacy", "operand", "result", "attribute", "wrong-module"}
+                or opcode != bytes.fromhex(expected_hex) or irq_text.count(opcode) != 1
+                or dump_text(obj, output / (label + "-original-readback.text")) != irq_text):
+            raise AssertionError(label + " native custody or opcode failure")
+        irq_bad = irq_text.replace(opcode, b"\x90", 1)
+        mutation = output / (label + "-dishonest.text")
+        mutation.write_bytes(irq_bad)
+        bad_irq_obj = output / (label + "-dishonest.o")
+        invoke(["objcopy", "--update-section", ".text=" + str(mutation), str(obj), str(bad_irq_obj)])
+        if (dump_text(bad_irq_obj, output / (label + "-dishonest-readback.text")) != irq_bad
+                or symbol(obj, "f0") != symbol(bad_irq_obj, "f0")):
+            raise AssertionError(label + " mutation readback failure")
+        macros = ("HIA_TEST_IRQ_" + action.upper(),)
+        extra_cases.extend(((label + "-if-transition", irq_native, irq_text, macros, 33, "P"),
+                            (label + "-nop", bad_irq_obj.read_bytes(), irq_bad, macros, 35, "N")))
+        extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
+                              (raw, entry["text_sha256"])))
+        hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
     path = output / "hardware"
     path.mkdir()
     try:
