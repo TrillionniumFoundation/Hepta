@@ -139,6 +139,15 @@ def unpack_chunk(w:mutbuf, encoded:u64) -> u64:
     return size
 
 def copy_forward(w:mutbuf, to:u64, source:u64, size:u64, distance:u64) -> u64:
+    if distance != 0 and to >= source and to-source == distance and to <= length(w) and size <= length(w)-to:
+        first = choose(distance < size,distance,size)
+        copyw(w,to,source,first)
+        written = first
+        while written < size:
+            amount = choose(written < size-written,written,size-written)
+            copyw(w,to+written,to,amount)
+            written = written+amount
+        return 0
     i = 0
     if distance >= 8:
         while i + 8 <= size:
