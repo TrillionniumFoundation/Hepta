@@ -74,3 +74,29 @@ or Linux completion. No privileged instruction is executed in a host process.
 ## Integrated 2 MiB private scratch candidate (2026-11-24)
 
 This separate draft combines the typed MSR/MMIO/atomic candidate and compact 16-byte private relocation records with the independently exercised 2 MiB workspace layout and 192-function admission from #949. The historical 1 MiB source/output and 128 export limits remain. Candidate tests must exercise 192 functions, 2048 blocks, 10000 operations, 16000 private relocation slots, old and one-byte-short workspace refusals, source over-limit refusal, dense and external relocation witnesses and all prior guest scenarios. The original 60 s store and 5 s ordinary native lifecycle gates remain unchanged. Neither parent's PASS establishes the merged candidate's qualification; this is not the production compiler or full Linux acceptance.
+
+
+## Native IDTR continuation
+
+The experimental scalar-ELF profile now admits `x86.idtr.load(u64)`
+and `x86.idtr.store(u64)`, with no result, explicit privilege/trap and
+read or write effects respectively. Both lower to one real 10-byte
+descriptor access (LIDT/SIDT), guarded by a 16-byte alignment test.
+The guard is a deliberate experimental restriction, not an x86 alignment
+requirement; it does not prove canonicality, mapping, ownership, descriptor
+contents, interrupt quiescence or memory safety. The ordinary Core v8
+compiler and production lock remain unchanged.
+
+The independent QEMU observer creates two IDTs with different limits,
+different handlers, and different 64-bit bases (including a mapped
+supervisor high-half alias). LIDT must actually change delivery of INT
+0x40 and must restore the original IDT through the same HIA subject.
+SIDT must store exactly ten bytes in each state, leaving every other
+byte of the 32-byte canary buffer unchanged. No-access mutations must
+produce the unchanged state. A separately assembled exact #UD witness
+checks the aligned-access guard and unchanged state; deleting the guard
+must actually perform the unaligned access in the isolated guest.
+The handler and IRETQ remain explicitly non-HIA observer code. No native
+interrupt entry, return, cross-CPU synchronization or resource authority
+claim is made. All existing selfhost generation, byte-custody, malformed
+input, capacity and guest regressions remain mandatory.

@@ -450,6 +450,49 @@ def run(output):
                               (raw, entry["text_sha256"])))
         hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
     hardware["msr_authority_proved"] = False
+    for action, encoding in (("load", "0f011a"), ("store", "0f010a")):
+        label = "idtr-" + action
+        entry = report["idtr"][label]
+        obj = output / (label + ".o")
+        src = output / (label + "-1.input")
+        raw = output / (label + ".text")
+        native_idtr, text_idtr = obj.read_bytes(), raw.read_bytes()
+        opcode = bytes.fromhex(encoding)
+        guard = bytes.fromhex("f6c20f74020f0b")
+        if (entry["oracle_hex"] != encoding or entry["guard_hex"] != guard.hex()
+                or text_idtr.count(guard + opcode) != 1
+                or digest(native_idtr) != entry["elf_sha256"]
+                or digest(text_idtr) != entry["text_sha256"]
+                or digest(src.read_bytes()) != entry["source_sha256"]
+                or dump_text(obj, output / (label + "-original-readback.text")) != text_idtr):
+            raise AssertionError(label + " original native custody failed")
+        def idtr_mutant(suffix, needle):
+            assert text_idtr.count(needle) == 1
+            changed = text_idtr.replace(needle, b"\x90" * len(needle), 1)
+            mutation = output / (label + suffix + ".text")
+            mutation.write_bytes(changed)
+            mutant = output / (label + suffix + ".o")
+            invoke(["objcopy", "--update-section", ".text=" + str(mutation), str(obj), str(mutant)])
+            if (dump_text(mutant, output / (label + suffix + "-readback.text")) != changed
+                    or symbol(obj, "f0") != symbol(mutant, "f0")):
+                raise AssertionError(label + " mutation readback failed")
+            return mutant.read_bytes(), changed
+        noaccess, noaccess_text = idtr_mutant("-noaccess", opcode)
+        bypass, bypass_text = idtr_mutant("-noalign", guard)
+        delta = text_idtr.index(guard) + 5 - symbol(obj, "f0")
+        macros = ("HIA_TEST_IDTR_" + action.upper(),)
+        alignment = macros + ("HIA_TEST_IDTR_ALIGN", "HIA_IDTR_TRAP_DELTA=" + str(delta))
+        extra_cases.extend((
+            (label + "-two-tables", native_idtr, text_idtr, macros, 33, "P"),
+            (label + "-noaccess", noaccess, noaccess_text, macros + ("HIA_TEST_IDTR_NOACCESS",), 35, "N"),
+            (label + "-unaligned-exact-ud", native_idtr, text_idtr, alignment, 33, "P"),
+            (label + "-unaligned-guard-bypass", bypass, bypass_text,
+             alignment + ("HIA_TEST_IDTR_GUARD_BYPASS",), 35, "N")))
+        extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
+                              (raw, entry["text_sha256"])))
+        hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
+    hardware["idtr_authority_proved"] = False
+    hardware["interrupt_entry_iretq_owner"] = "NON_HIA_ISOLATED_OBSERVER"
     path = output / "hardware"
     path.mkdir()
     try:
