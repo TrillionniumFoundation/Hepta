@@ -7,7 +7,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_read_capsule import ROLES
 from tools.generate_hia_worker_describe_flow import POLICY, program as worker_program
-from tools.generate_hia_worker_describe_reactor import POLICY as ENTRY_POLICY
+from tools.generate_hia_worker_describe_reactor import POLICY as ENTRY_POLICY, program as entry_program
 from tools.generate_hia_worker_inspection_effect import function
 
 SOURCE = Path('examples/hia_bootstrap/worker_read_flow.hepta')
@@ -38,6 +38,32 @@ def admit_entry(s:readbuf, o:mutbuf) -> u64:
 
 READ = r'''
 def discovery_flow(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
+    if state == AFTER_RESOURCE_PLAN:
+        size = input_word(s, 40)
+        if size < 242 or size > 624 or length(s) < 80 or input_word(s, 64) != PLAN_MAGIC or input_word(s, 72) != 5:
+            return BAD
+        observe_slot(s, w, PLAN_FD)
+        return launch_effect(o, w)
+    if state == AFTER_RESOURCE_RESOLVE:
+        size = input_word(s, 40)
+        if size >= 128 and size <= 2048 and length(s) >= 80 and input_word(s, 64) == PLAN_MAGIC:
+            if input_word(s, 72) != 1:
+                return BAD
+            observe_slot(s, w, PLAN_FD)
+            put(w, 144, 2)
+            put(o, HEADER, RESOURCE_ARGUMENTS)
+            whole_slot(w, o, PLAN_FD, 0)
+            return issue(o, w, AFTER_ARGUMENT, RUN, 10, 0, 1, 8)
+        if size < 48 or length(s) < 112 or input_word(s, 64) != EFFECT_MAGIC or input_word(s, 72) == 0:
+            return BAD
+        put(o, HEADER, READ_ERROR)
+        fragment(o, 0, input_word(s, 32), 0, size)
+        return issue(o, w, AFTER_REFUSAL, RUN, 4, 0, 1, 8)
+    if state == AFTER_RESOURCE_PIN:
+        if length(s) != 128 or input_word(s, 40) != slot_bytes(w, PLAN_FD):
+            return BAD
+        copy_span(s, w, 64, PLAN_PIN, 64)
+        return next_journal(o, w, 4)
     if state == AFTER_PLAN:
         size = input_word(s, 40)
         if size < 128 or size > 8192 or length(s) < 72 or input_word(s, 64) != PLAN_MAGIC:
@@ -90,7 +116,8 @@ def launch_effect(o:mutbuf, w:mutbuf) -> u64:
     while role < 8:
         role_argument(w, o, 3 + role, 7 + role)
         role = role + 1
-    return issue(o, w, AFTER_QUERY, RUN, 6, 11, 1, 0)
+    next = choose(get(w, 144) == 1, AFTER_RESOURCE_RESOLVE, AFTER_QUERY)
+    return issue(o, w, next, RUN, 6, 11, 1, 0)
 '''
 
 
@@ -98,16 +125,40 @@ def program():
     variants = {name: int.from_bytes(value, 'little') for name, value in {
         'PLAN_MAGIC': b'HIAARD01', 'EFFECT_MAGIC': b'HIAFDO01', 'READ_ERROR': b'HIAJWE01',
         'OWN_STORE_PREFIX': b'--own-st', 'OWN_STORE_SUFFIX': b'ore',
+        'RESOURCE_ARGUMENTS': b'HIAURJ01',
     }.items()}
     variants.update(ROLE_COUNT=len(ROLES), DESCRIPTOR_BYTES=40, ELF_MAGIC=0x464c457f,
-                    PLAN_PIN=768, AFTER_PLAN_PIN=7, SCHEMA_ROLE=3, EFFECT_PREFIX=48)
+                    PLAN_PIN=768, AFTER_PLAN_PIN=7, SCHEMA_ROLE=3, EFFECT_PREFIX=48,
+                    AFTER_RESOURCE_PLAN=27, AFTER_RESOURCE_RESOLVE=28, AFTER_RESOURCE_PIN=29)
     read_functions = {'discovery_flow', 'journal_binding', 'launch_effect'}
     retained = re.split(r'(?=\ndef )', POLICY)
     policy = '\n'.join(block for block in retained
                        if not any(block.startswith('\ndef ' + name + '(')
                                   for name in (*read_functions, 'observe_discovery'))) + READ
+    policy = policy.replace('    if state <= AFTER_CHECK_ARGUMENT:',
+                            '    if state >= AFTER_RESOURCE_PLAN and state <= AFTER_RESOURCE_PIN:\n'
+                            '        return discovery_flow(s, o, w, state)\n'
+                            '    if state <= AFTER_CHECK_ARGUMENT:')
+    policy = policy.replace('    whole_slot(w, o, ADMITTED_FD, 0)\n'
+                            '    return issue(o, w, AFTER_PLAN, RUN, 10, 0, 1, 0)',
+                            '    if get(w, 144) == 2:\n'
+                            '        return read_span(o, w, AFTER_RESOURCE_PIN, slot_fd(w, PLAN_FD), 64, 64)\n'
+                            '    whole_slot(w, o, ADMITTED_FD, 0)\n'
+                            '    return issue(o, w, AFTER_PLAN, RUN, 10, 0, 1, 0)')
+    policy = policy.replace('    if next == 11:\n',
+                            '    if next == 19:\n'
+                            '        put(w, 144, 1)\n'
+                            '        whole_slot(w, o, ADMITTED_FD, 0)\n'
+                            '        return issue(o, w, AFTER_RESOURCE_PLAN, RUN, 10, 0, 1, 0)\n'
+                            '    if next == 11 and get(w, 144) == 2:\n'
+                            '        return next_journal(o, w, 11)\n'
+                            '    if next == 11:\n')
+    edges = function(entry_program(), 'stage_edge')
+    edges = edges.replace('return choice == 11', 'return choice == 11 or choice == 19', 1)
+    edges = edges.replace('    if stage == 11:', '    if stage == 4:\n        return choice == 11\n    if stage == 11:', 1)
     return worker_program(policy=policy, variants=variants, control_overrides={
         'admit_entry': ENTRY,
+        'stage_edge': edges,
         'trusted_descriptors': function(ENTRY_POLICY, 'trusted_descriptors'),
     })
 
