@@ -61,7 +61,7 @@ Standard input is four little-endian words followed by the complete bound SO:
 | 0 | eight bytes `HIACAO01` |
 | 8 | image length, 1 through 4 MiB |
 | 16 | allocation failure index, 0 through 10,000 |
-| 24 | explicit inherited auxiliary FD, 3 through 31 |
+| 24 | explicit inherited auxiliary FD, 3 through INT_MAX |
 | 32 | SO image bytes |
 
 The auxiliary regular file must have **exactly 1,048,712 bytes**. Offsets 0..7 are
