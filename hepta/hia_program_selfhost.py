@@ -1,4 +1,4 @@
-"""Explicit, pinned native HIA compilation for bounded Core and nominal v4.
+"""Explicit, pinned native HIA compilation for bounded Core and canonical nominal inputs.
 
 The selected syscall-only executable owns representation lowering, semantic
 checking, machine code and ELF emission. This Python adapter still owns public
@@ -374,7 +374,7 @@ def _run(fd, wire, timeout_seconds, cwd):
 def _verify_selfhost_input(document):
     """Retain public Core checks and require HIA owners for nominal lowering."""
     from .hia_program import VerifiedProgram, _decode, _reject as reject_core, verify_program
-    from .hia_schema import COMPOSITE_SCHEMAS, COMPOSITE_SCHEMA_V4
+    from .hia_schema import COMPOSITE_SCHEMAS
 
     original = document.structured_bytes if isinstance(document, VerifiedProgram) else None
     if original is not None and type(original) is not bytes:
@@ -383,8 +383,6 @@ def _verify_selfhost_input(document):
     if (type(value) is not dict or type(value.get("schema")) is not str
             or value["schema"] not in COMPOSITE_SCHEMAS):
         return verify_program(document), None
-    if value["schema"] != COMPOSITE_SCHEMA_V4:
-        _reject("E_HIA_SELFHOST_PROFILE", "native nominal selfhost input requires composite v4")
     from .hia_program_composite import elaborate_program_native
     core = verify_program(elaborate_program_native(value))
     if original is not None and (raw != original or core.canonical_bytes != document.canonical_bytes):
@@ -395,7 +393,7 @@ def _verify_selfhost_input(document):
 def build_program_selfhost(document, output, *, manifest, manifest_sha256,
                            timeout_seconds=30, target=TARGET, kind="object",
                            machine_plan=None, foreign_buffer_exports=()):
-    """Compile bounded Core or native-lowered nominal v4 without the Python emitter."""
+    """Compile bounded Core or native-lowered nominal inputs without the Python emitter."""
     if (target != TARGET or kind != "object" or machine_plan is not None
             or foreign_buffer_exports):
         _reject("E_HIA_SELFHOST_PROFILE", "selfhost supports canonical scalar ELF objects only")
@@ -409,8 +407,9 @@ def build_program_selfhost(document, output, *, manifest, manifest_sha256,
     from .hia_program import SCALARS
     program, nominal_schema = _verify_selfhost_input(document)
     value = program.as_dict()
-    if value["schema"] not in {"hepta.hia.program.v8", "hepta.hia.program.v9"}:
-        _reject("E_HIA_SELFHOST_PROFILE", "selfhost accepts primitive Core v8/v9 or native-lowered nominal v4")
+    if value["schema"] not in {"hepta.hia.program.v6", "hepta.hia.program.v7",
+                               "hepta.hia.program.v8", "hepta.hia.program.v9"}:
+        _reject("E_HIA_SELFHOST_PROFILE", "selfhost accepts primitive Core v6-v9 or native-lowered canonical nominal input")
     exports = sorted(program.scalar_entrypoints)
     functions = {function["name"]: function for function in value["functions"]}
     if not 1 <= len(exports) <= 128:

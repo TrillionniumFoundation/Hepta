@@ -162,7 +162,11 @@ def _reference_hia_main(argv=None, *, package_discovery=False):
             else:
                 print(text, end='')
             return 0
-        program = verify_program(read_bounded(args.input))
+        if args.hia_action == 'build' and args.backend == 'selfhost':
+            from .hia_program_selfhost import _verify_selfhost_input
+            program, _nominal_schema = _verify_selfhost_input(read_bounded(args.input))
+        else:
+            program = verify_program(read_bounded(args.input))
         if args.hia_action == 'edit-batch-query':
             from .hia_edit_batch import prepare_batch
             query = prepare_batch(program, decode_json(read_bounded(args.selections)))
