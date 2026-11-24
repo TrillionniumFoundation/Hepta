@@ -1,33 +1,19 @@
 # Direct borrowed bytes and real HIA bootstrap components
 
-This candidate adds an **explicit direct-machine byte ABI** and two toolchain
-components whose executable implementations are written in HIA. It does **not**
-complete compiler self-hosting. In particular, the small HIA compiler rejects
-its own larger source as unsupported; B1 whole-toolchain, B2 and B3 remain open.
+The borrowed-byte ABI is used by native HIA toolchain components. This document
+also describes the narrow `components.hepta` lexer and constant compiler; those
+finite components are distinct from the complete bounded self-host compiler.
+Whole-source and release acceptance belong to
+[HIA_SELF_HOSTING_CORE.md](HIA_SELF_HOSTING_CORE.md) and the actual current
+source-bound evidence.
 
 ## Direct byte boundary
 
-The ordinary direct backend and eleven Agent tools keep their scalar invocation
-contract. Research code opts into the separate byte profile explicitly:
-
-```python
-from hepta.hia_agent_assembly import assemble_program
-from hepta.hia_program_native import emit_program_machine, compile_program_machine
-
-program = assemble_program(source_bytes)
-image = emit_program_machine(
-    program, foreign_buffer_exports=(("compile_constant", 1048576),)
-)
-receipt = compile_program_machine(
-    image, program=program, output="/tmp/new-components.so", linker="ld"
-)
-```
-
-The direct emitter generates the instructions and ELF object itself. GNU `ld`
-links that existing object. Neither an external assembler nor LLVM generates
-these instructions. Publication independently re-emits the original Core and
-the exact immutable export manifest, so changing the bound or wrapper bytes
-cannot reuse the old machine image.
+The ordinary scalar invocation contract remains separate. A caller opts into
+the direct borrowed-byte profile with an immutable export manifest. HIA emits
+the instruction bytes and ELF object; the native linker constructs the final
+image. Publication rederives the original Core and exact manifest, so changing
+an extent or wrapper cannot reuse an old image or receipt.
 
 The profile name is
 `hepta.hia.program.direct-linux-x86_64-borrowed-bytes.v1`. Its manifest is an
@@ -63,34 +49,19 @@ allocated size and liveness cannot be inferred from integer pointer checks.
 Native callers must supply live storage for the whole synchronous call, exclusive
 mutable ranges and no concurrent mutation of read-only ranges.
 
-Unlike the separate acyclic LLVM foreign-buffer experiment, this explicitly named
-direct profile permits existing verified Core loops and internal calls. Internal
+This explicitly named direct profile permits existing verified Core loops and internal calls. Internal
 type, effect, bounds, ownership and loan checks remain required. The profile does
 not prove termination or implement interpreter step/heap/call quotas. A later
 Core trap can follow earlier writes; there is no general transactional rollback.
 
 ## Source-verified disposable invocation
 
-`hepta.hia_native_byte_runner.invoke_byte_program` accepts HIA Core and bytes,
-builds that Core through the direct backend, and runs it in a disposable Linux
-process. It accepts no caller-supplied native pointer or arbitrary executable.
-All ranges are separate owned copies; the parent receives mutable bytes as
-explicit results and its original bytearrays remain unchanged.
-
-```python
-from pathlib import Path
-from hepta.hia_agent_assembly import assemble_program
-from hepta.hia_native_byte_runner import invoke_byte_program
-
-program = assemble_program(
-    Path("examples/hia_bootstrap/components.hepta").read_bytes()
-)
-result = invoke_byte_program(
-    program, "lex_assembly",
-    [b"result:u64 = const() {\"value\":42}\n", bytearray(4096)],
-    timeout_ms=30000,
-)
-```
+The native source-bound invocation path accepts admitted Core and captured
+bytes. It builds the selected Core through the direct backend and runs the
+captured image in a disposable process under the native owner. Caller-supplied
+pointers and replaceable executable names are not invocation authority. The
+runner creates separate owned allocations; mutable observations are returned
+explicitly rather than exposing reusable process pointers.
 
 The child uses a wall deadline, CPU and address-space limits, process ownership,
 parent-death termination and exact opened-artifact identity. Real abort and
@@ -107,9 +78,8 @@ source of 31 HIA functions. Its first function `compile_flat` implements the
 standard flat-image three-buffer ABI and delegates to the same
 `compile_constant` HIA function. The installed self-host compiler can assemble
 this exact source. This does not change the original named lexer and compiler
-calls or the finite input language `compile_constant` accepts. The Python
-authoring script can reproduce the source but does not participate in these
-native lexer/parser/emitter calls.
+calls or the finite input language `compile_constant` accepts. Its checked-in HIA bytes are the compilation input. No source generator
+participates in the native lexer, parser or emitter calls.
 
 ### ASCII assembly lexer
 
@@ -158,9 +128,9 @@ The Core result is 11 on success, `0xffffffff` for invalid/unsupported source or
 `0xfffffffe` for insufficient output capacity. Rejection leaves output unchanged.
 Changing the input literal changes the emitted immediate and the observed native
 return value. No precomputed output program is embedded or copied as a substitute
-for parsing. The test harness packages these HIA-produced instruction bytes with
-the existing Python ELF writer and GNU linker, then executes them independently.
-That packaging remains an explicit host dependency.
+for parsing. Qualification must package these actual HIA-produced instruction bytes with
+the admitted native packer and execute the result independently. A historical
+hosted packaging receipt does not qualify that current path.
 
 ## Finite-component scope and later self-hosting
 
@@ -173,7 +143,7 @@ The finite-component qualifier intentionally retains its narrower claims.
 
 | Stage | Finite-component state |
 | --- | --- |
-| B0 seed | Python parses/checks the component HIA source and emits its native implementation |
+| Initial component image | The admitted native source builder compiles the exact component HIA source |
 | HIA component execution | HIA performs real own-source lexing and finite source parsing/validation/instruction generation |
 | B1 complete toolchain | **Not achieved:** the finite parser cannot compile its own full source |
 | B2 / B3 | **Not achieved:** no HIA-built whole-toolchain generation exists to rebuild the next generation |
@@ -184,19 +154,19 @@ semantic validator and machine encoder that process their own implementations.
 The separate self-hosting path emits position-independent flat machine images,
 so successors need no object writer or linker. Future generations must actually
 execute these HIA implementations, and source modifications must propagate into
-a rebuilt toolchain. Calling the Python seed repeatedly, copying a known image,
+a rebuilt toolchain. Calling an initial seed repeatedly, copying a known image,
 or tokenizing one's own source does not satisfy that gate.
 
-## Reproduction
+## Current qualification boundary
 
-```sh
-python -B -m unittest tests.test_hia_native_byte_abi tests.test_hia_bootstrap_components -v
-python -B tools/qualify_hia_bootstrap_components.py --output /tmp/new-bootstrap-result.json
-```
+The source-bound qualification retains exact input bytes, the complete declared
+case inventory, native observations and expected own-source refusal of the
+finite compiler. A missing or skipped case cannot qualify a component. Its
+checks can pass while whole-toolchain self-hosting remains unestablished by
+that component alone. The independent seed and complete B0/B1/B2/B3/M1/M2/M3
+chain have separate inputs, receipts and obligations.
 
-The qualifier records source hashes, complete test inventory, actual native
-observations, unsupported own-source compilation and open bootstrap stages.
-Missing/skipped tests cannot qualify it. Its component checks can pass while
-`self_hosted` and whole-toolchain B1/B2/B3 remain false. No universal correctness,
-performance improvement, production connector deployment or self-hosting claim
-follows from this delivery.
+The final source contract and [CURRENT.md](CURRENT.md) select actual current
+evidence. Earlier hosted component observations remain historical provenance.
+Neither component tests nor source identity establish a universal compiler
+theorem, arbitrary native-code safety or execution authority.

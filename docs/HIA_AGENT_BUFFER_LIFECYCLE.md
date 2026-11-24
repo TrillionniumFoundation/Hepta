@@ -76,7 +76,7 @@ and resource observations. A timeout or unknown termination never becomes a
 successful native observation. A wrapper's nonzero ABI status cannot masquerade
 as the Core's u32 return.
 
-Call latency retains the existing ctypes/FFI boundary. Input reset, mapping,
+Call latency measures the declared native call boundary. Input reset, mapping,
 complete-byte hashing and process startup lie outside that narrow call timer
 and inside the recorded subprocess wall cost. A call-time improvement does not
 establish a total-cost improvement.
@@ -89,13 +89,11 @@ frozen objective must be satisfied by exact receipts. Generation and epoch
 checks, replay ownership, old-generation retention, leases and future-call-only
 rollback continue to apply.
 
-The authorized consumer API accepts the same snapshot values:
-
-~~~python
-lease = service.acquire_slot("nonproduction/compiler")
-result = service.invoke_lease(lease, "f0", arguments)
-service.release_slot(lease)
-~~~
+The authorized consumer protocol acquires a lease for an admitted slot,
+invokes the named function with these same immutable snapshot values, and
+releases that lease. Acquisition binds the selected generation; invocation
+cannot replace it by naming a different executable or mutable pointer. Use the
+discovered consumer wire contract and the installation's actual role identities.
 
 A completed invocation returns each exact external byte snapshot as a retained
 invocation-buffer artifact, together with its digest, size and argument index.
@@ -120,30 +118,24 @@ new observation under this new service profile. It does not recover missing
 provider interactions, bills or original task timings, and it does not make a
 live production deployment or a remote MCP endpoint qualified.
 
-## Reproduce
+## Qualification and recovery evidence
 
-~~~sh
-python -B -m unittest tests.test_hia_agent_buffer_lifecycle -v
-python -B tools/qualify_hia_agent_buffer_lifecycle.py \
-  --compiler-source examples/hia_bootstrap/selfhost.hepta \
-  --expected-source-sha256 ACTUAL_COMPILER_SHA256 \
-  --output /tmp/new-compiler-lifecycle
-~~~
+The lifecycle qualification must retain the actual fixed-command Worker
+requests and responses, immutable artifacts, complete compiler workload and
+the dedicated slot's generation transitions. It records an unsupported
+independent machine-refinement result separately. A consumer must compile and
+execute an actual returned image; checking only its source or receipt is
+insufficient. A same-compiler baseline is an activation check, not evidence of
+a compiler optimization or an unfamiliar-agent study.
 
-The qualification uses the actual pinned fixed-command worker protocol in fresh
-processes, preserves request/response records and retained artifacts, runs the
-whole declared compiler workload, and exercises a dedicated nonproduction slot.
-It records the unsupported independent machine-refinement result separately.
-The consumer compiles and runs a new dynamic-select program using actual output
-bytes. A same-compiler baseline is explicitly an activation qualification;
-it is not a measured compiler optimization or a new unfamiliar-agent study.
+Restart controls reopen the same durable state. A lease acquired before
+rollback must continue to identify its retained generation after its client
+exits; a later acquisition must observe the selected generation; a released
+lease must remain refused after another process opens that state. Request,
+response and failure evidence remain part of the result. These observations
+establish only the tested local recovery boundary, not cross-host recovery,
+power-loss durability or deployment of a remote endpoint.
 
-Every consumer acquisition, invocation and release in this qualification runs
-in a fresh Python process that reopens the original service database. The
-database is never copied. A generation-1 lease acquired before rollback is
-invoked after its owning client process has exited; a later acquisition observes
-generation 0, and a released lease remains rejected after another process opens
-the same state. Exact consumer requests, responses and stderr are retained
-alongside the existing tool transcript. This qualifies process restart on the
-same local state; it does not establish cross-host recovery, power-loss
-durability or activation through the remote MCP endpoint.
+Use the current source-bound release and installed-interface evidence indexed
+by [CURRENT.md](CURRENT.md). Earlier hosted lifecycle observations remain
+historical provenance and cannot qualify a changed native implementation.
