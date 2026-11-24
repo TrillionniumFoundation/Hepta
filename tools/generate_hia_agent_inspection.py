@@ -239,11 +239,11 @@ def equal_bytes(w:mutbuf, left:u64, right:u64, size:u64) -> u64:
 '''
 
 
-def reachable_source(source):
-    """Keep only the functions reached by the Agent entry and its modes."""
+def reachable_source(source, entry="inspect_agent"):
+    """Keep only the functions reached from the selected native entry."""
     tree = ast.parse(source)
     functions = {node.name: node for node in tree.body}
-    pending = ['inspect_agent']
+    pending = [entry]
     reached = set(pending)
     while pending:
         for node in ast.walk(functions[pending.pop()]):

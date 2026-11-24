@@ -1,0 +1,313 @@
+"""Pinned complete nominal admission through one syscall-only HIA executable.
+
+The process owns constructor, type, function, helper and outer continuations,
+canonicalization and primitive admission. This adapter handles immutable byte
+custody, bounded process lifetime and the two public result envelopes only.
+"""
+from __future__ import annotations
+
+import base64
+import csv
+import ctypes
+from hashlib import sha256
+import io
+import json
+import math
+import os
+from pathlib import Path
+import struct
+import sys
+import tempfile
+import time
+
+SCHEMA = "hepta.hia.nominal-program-selection.v1"
+PROFILE = "hepta.hia.nominal.complete-linux-x86_64.v1"
+SELECTOR = "HEPTA_HIA_NOMINAL_PROGRAM_MANIFEST"
+PIN_SELECTOR = "HEPTA_HIA_NOMINAL_PROGRAM_MANIFEST_SHA256"
+MAX_EXECUTABLE_BYTES = 8 << 20
+MAX_INPUT_BYTES = 8 << 20
+MAX_RESULT_BYTES = 64 + 2 * MAX_INPUT_BYTES
+MAX_MANIFEST_BYTES = 32768
+FRAME = struct.Struct("<8s7Q")
+CONTRACT = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
+SOURCE_FILES = tuple("examples/hia_bootstrap/" + name + ".hepta" for name in (
+    "nominal_json", "composite_constructor_owner", "composite_constructor_render",
+    "composite_types", "composite_function_admit", "composite_function_records",
+    "composite_function_terms", "composite_function_advanced", "composite_function_render",
+    "task_helpers", "composite_outer_owner", "composite_outer_render",
+    "core_admission", "json_canonical", "core_nominal_report_json",
+    "core_edit/publication_frontend", "core_edit/publication_program",
+    "core_edit/publication_policy", "core_edit/publication_render",
+    "core_edit/publication_assembly", "elf_static_linker",
+    "nominal_constructor_transport_adapters", "nominal_constructor_transport_tail",
+    "nominal_constructor_publication_adapters",
+)) + (CONTRACT,)
+
+
+# Additional checked-in sources required by the complete installed program.
+# The remaining SOURCE_FILES are already in the explicit Agent resource list.
+PACKAGE_RESOURCES = (
+    "examples/hia_bootstrap/core_nominal_report_json.hepta",
+    "examples/hia_bootstrap/core_edit/publication_frontend.hepta",
+    "examples/hia_bootstrap/core_edit/publication_program.hepta",
+    "examples/hia_bootstrap/core_edit/publication_policy.hepta",
+    "examples/hia_bootstrap/core_edit/publication_render.hepta",
+    "examples/hia_bootstrap/core_edit/publication_assembly.hepta",
+    "examples/hia_bootstrap/elf_static_linker.hepta",
+    "examples/hia_bootstrap/nominal_constructor_transport_adapters.hepta",
+    "examples/hia_bootstrap/nominal_constructor_transport_tail.hepta",
+    "examples/hia_bootstrap/nominal_constructor_publication_adapters.hepta",
+)
+
+
+def _reject(message):
+    from .hia_program_selfhost import _reject as reject
+    reject("E_HIA_SELFHOST_NOMINAL", message)
+
+
+def _inspect_executable(raw):
+    """Admit a closed Linux ELF layout; exact pins select its trusted code."""
+    if (not 176 < len(raw) <= MAX_EXECUTABLE_BYTES
+            or raw[:16] != b"\x7fELF\x02\x01\x01" + bytes(9)):
+        _reject("complete nominal program is not a bounded ELF64 executable")
+    header = struct.unpack_from("<HHIQQQIHHHHHH", raw, 16)
+    kind, machine, version, entry, phoff, _shoff, flags, ehsize, phsize, count, *_ = header
+    if (kind != 2 or machine != 62 or version != 1 or flags or ehsize != 64
+            or phoff != 64 or phsize != 56 or not 1 <= count <= 4
+            or phoff + phsize * count > len(raw)):
+        _reject("complete nominal executable has an unsupported ELF header")
+    executable_entry = False
+    for index in range(count):
+        typ, mode, offset, address, physical, size, memory, alignment = struct.unpack_from(
+            "<IIQQQQQQ", raw, phoff + index * phsize)
+        if typ == 0x6474e551:
+            if (mode != 6 or offset or address or physical or size or memory or alignment != 16):
+                _reject("complete nominal executable has an invalid stack segment")
+        elif typ == 1:
+            if (mode not in (4, 5, 6) or physical != address or size > memory
+                    or offset + size > len(raw) or alignment != 4096
+                    or offset % alignment != address % alignment):
+                _reject("complete nominal executable has an invalid load segment")
+            executable_entry |= mode == 5 and address <= entry < address + size
+        else:
+            _reject("complete nominal executable requires a runtime loader")
+    if not executable_entry:
+        _reject("complete nominal entry is outside executable bytes")
+
+
+def manifest_value(executable, *, compiler_sha256, source_sha256, cold_report_sha256):
+    """Describe actual bytes; a null cold digest is an explicit development build."""
+    raw = Path(executable).read_bytes()
+    _inspect_executable(raw)
+    return {"schema": SCHEMA, "profile": PROFILE, "executable_path": Path(executable).name,
+            "executable_sha256": sha256(raw).hexdigest(), "executable_bytes": len(raw),
+            "compiler_sha256": compiler_sha256, "source_sha256": source_sha256,
+            "cold_report_sha256": cold_report_sha256}
+
+
+class _Selection:
+    def __init__(self, path, expected_sha256):
+        from .hia_json_preflight_native import _source_resource_path
+        from .hia_program_selfhost import _decode, _digest, _read
+
+        if not _digest(expected_sha256):
+            _reject("an exact complete nominal manifest SHA256 is required")
+        manifest = _read(path, MAX_MANIFEST_BYTES)
+        if sha256(manifest.raw).hexdigest() != expected_sha256:
+            _reject("complete nominal manifest differs from the operator pin")
+        value = _decode(manifest.raw)
+        fields = {"schema", "profile", "executable_path", "executable_sha256",
+                  "executable_bytes", "compiler_sha256", "source_sha256", "cold_report_sha256"}
+        if (type(value) is not dict or set(value) != fields
+                or value["schema"] != SCHEMA or value["profile"] != PROFILE
+                or type(value["executable_path"]) is not str
+                or Path(value["executable_path"]).name != value["executable_path"]
+                or value["executable_path"] in ("", ".", "..")
+                or any(not _digest(value[key]) for key in ("executable_sha256", "compiler_sha256"))
+                or type(value["executable_bytes"]) is not int
+                or not 176 < value["executable_bytes"] <= MAX_EXECUTABLE_BYTES
+                or type(value["source_sha256"]) is not dict
+                or set(value["source_sha256"]) != set(SOURCE_FILES)
+                or any(not _digest(digest) for digest in value["source_sha256"].values())
+                or value["cold_report_sha256"] is not None and not _digest(value["cold_report_sha256"])):
+            _reject("unsupported complete nominal selection contract")
+        self.snapshots = [(manifest, MAX_MANIFEST_BYTES, _read)]
+        for name in SOURCE_FILES:
+            source = _read(_source_resource_path(name), 4 << 20)
+            if sha256(source.raw).hexdigest() != value["source_sha256"][name]:
+                _reject("installed complete nominal source differs: " + name)
+            self.snapshots.append((source, 4 << 20, _read))
+        executable = _read(manifest.path.parent / value["executable_path"], MAX_EXECUTABLE_BYTES)
+        if (len(executable.raw) != value["executable_bytes"]
+                or sha256(executable.raw).hexdigest() != value["executable_sha256"]):
+            _reject("complete nominal executable differs from its operator pin")
+        _inspect_executable(executable.raw)
+        self.snapshots.append((executable, MAX_EXECUTABLE_BYTES, _read))
+        self.executable, self.value, self.sha256 = executable.raw, value, expected_sha256
+        self.origin = "operator-pinned-complete-program"
+        self.check()
+
+    @classmethod
+    def package(cls):
+        from . import hia_native_helpers as helpers
+        from .hia_default_native import _capture_package
+        from .hia_json_preflight_native import _source_resource_path
+        from .hia_program_selfhost import _digest, _read
+
+        helpers._check_scope_owner()
+        if helpers._ACTIVE is not None or helpers._SCOPE_OWNER is not None or helpers._selectors():
+            _reject("an active request bundle must explicitly select its complete nominal program")
+        captured = _capture_package()
+        if captured is None:
+            _reject("select a pinned complete nominal program or install its matching-source wheel")
+        directory, pin, snapshots = captured
+        if len(pin) < 9:
+            _reject("installed package does not own a complete native CLI")
+        records = [snapshot for snapshot, _ in snapshots if snapshot.path.name == "RECORD"]
+        if len(records) != 1:
+            _reject("installed complete nominal program lacks one wheel inventory")
+        record = records[0]
+        rows = []
+        for row in csv.reader(io.StringIO(record.raw.decode("utf-8"))):
+            if len(row) != 3:
+                _reject("invalid installed complete nominal inventory")
+            if Path(row[0]).name == "hia-nominal-constructor":
+                rows.append(row)
+        if len(rows) != 1:
+            _reject("installed complete nominal executable inventory is ambiguous")
+        member, expected, extent = rows[0]
+        relative = Path(member)
+        if (relative.is_absolute() or "\0" in member or "\\" in member
+                or any(part not in ("..", "bin", "hia-nominal-constructor") for part in relative.parts)):
+            _reject("invalid installed complete nominal script location")
+        # pip --target moves scripts to target/bin but retains the installer
+        # scheme's relative RECORD name. Bind either location to the same exact
+        # recorded bytes; never search PATH or follow a filesystem symlink.
+        candidates = [directory.parent / "bin" / "hia-nominal-constructor",
+                      Path(os.path.abspath(record.path.parent.parent / relative))]
+        executable = None
+        for candidate in dict.fromkeys(candidates):
+            try:
+                found = _read(candidate, MAX_EXECUTABLE_BYTES)
+            except FileNotFoundError:
+                continue
+            encoded = "sha256=" + base64.urlsafe_b64encode(sha256(found.raw).digest()).rstrip(b"=").decode("ascii")
+            if expected != encoded or extent != str(len(found.raw)):
+                _reject("installed complete nominal executable differs from wheel RECORD")
+            executable = found
+            break
+        if executable is None:
+            _reject("installed complete nominal executable is missing")
+        _inspect_executable(executable.raw)
+        selection = cls.__new__(cls)
+        selection.snapshots = [(snapshot, limit, helpers._read) for snapshot, limit in snapshots]
+        selection.snapshots.append((executable, MAX_EXECUTABLE_BYTES, _read))
+        contract = _read(_source_resource_path(CONTRACT), 4 << 20)
+        value = json.loads(contract.raw)
+        identities = value["source_identity"]["files"]
+        cold = _read(directory / "_data/native/default/full_cost/cold-report.json", 4 << 20)
+        if sha256(cold.raw).hexdigest() != pin[5]:
+            _reject("installed complete nominal cold report differs from its package pin")
+        evidence = json.loads(cold.raw)
+        generations = evidence.get("generation_sha256")
+        if (evidence.get("status") != "COLD_SELFHOST_REPLAY_PASS"
+                or evidence.get("profile") != value["profile"]
+                or type(generations) is not list or len(generations) != 3
+                or any(not _digest(digest) for digest in generations)
+                or len(set(generations)) != 1):
+            _reject("installed complete nominal compiler identity lacks a qualified fixed point")
+        selection.snapshots.append((cold, 4 << 20, _read))
+        source_hashes = {}
+        for name in SOURCE_FILES:
+            source = contract if name == CONTRACT else _read(_source_resource_path(name), 4 << 20)
+            digest = sha256(source.raw).hexdigest()
+            if name != CONTRACT and identities.get(name) != digest:
+                _reject("installed complete nominal source differs: " + name)
+            source_hashes[name] = digest
+            selection.snapshots.append((source, 4 << 20, _read))
+        selection.value = {"executable_sha256": sha256(executable.raw).hexdigest(),
+                           "compiler_sha256": generations[-1], "cold_report_sha256": pin[5],
+                           "source_sha256": source_hashes}
+        selection.executable = executable.raw
+        selection.sha256 = sha256(record.raw).hexdigest()
+        selection.origin = "matching-source-wheel-record"
+        selection.check()
+        return selection
+
+    def check(self):
+        for snapshot, limit, reader in self.snapshots:
+            if reader(snapshot.path, limit) != snapshot:
+                _reject("complete nominal selection changed during admission")
+
+
+def lower_nominal(raw, *, timeout_seconds=30):
+    """Return native original/Core bytes and a mechanical capture; never fall back."""
+    from .hia_program import HIAProgramRejected
+    from .hia_program_selfhost import _run, _sealed_executable
+
+    if (sys.platform != "linux" or os.uname().machine not in ("x86_64", "amd64")
+            or sys.byteorder != "little" or ctypes.sizeof(ctypes.c_void_p) != 8
+            or not hasattr(os, "memfd_create")):
+        _reject("complete nominal execution requires Linux x86-64 LP64")
+    if (type(timeout_seconds) not in (int, float) or not math.isfinite(timeout_seconds)
+            or not 0 < timeout_seconds <= 3600):
+        _reject("complete nominal deadline must be finite and in (0,3600] seconds")
+    if type(raw) is not bytes or not 0 < len(raw) <= MAX_INPUT_BYTES:
+        _reject("complete nominal input must be immutable bytes within 8 MiB")
+    path, expected = os.environ.get(SELECTOR), os.environ.get(PIN_SELECTOR)
+    if bool(path) != bool(expected):
+        _reject("complete nominal manifest and SHA256 must be supplied together")
+    selection = _Selection(path, expected) if path else _Selection.package()
+    fd, seals = _sealed_executable(selection.executable)
+    started = time.monotonic()
+    try:
+        with tempfile.TemporaryDirectory(prefix="hia-nominal-") as directory:
+            result, capture = _run(fd, raw, timeout_seconds, directory,
+                argv0="hia-admit-agent-json", stdout_limit=MAX_RESULT_BYTES, accepted_statuses=(0, 2, 3))
+            if capture["returncode"] != 0:
+                remaining = timeout_seconds - (time.monotonic() - started)
+                if remaining <= 0:
+                    _reject("complete nominal diagnostic exceeded its deadline")
+                diagnostic, diagnostic_capture = _run(fd, raw, remaining, directory,
+                    argv0="hia-verify-core-json", stdout_limit=65536, accepted_statuses=(2,))
+                selection.check()
+                try:
+                    from .hia_program_selfhost import _decode
+                    value = _decode(diagnostic)
+                    rows = value["diagnostics"]
+                    if (set(value) != {"diagnostics", "ok", "status"} or value["ok"] is not False
+                            or value["status"] != "error" or type(rows) is not list or len(rows) != 1
+                            or set(rows[0]) != {"code", "phase", "message"}
+                            or rows[0]["code"] != "E_DRIVER" or rows[0]["phase"] != "driver"):
+                        raise ValueError("invalid diagnostic envelope")
+                    message = rows[0]["message"]
+                    code, separator, detail = message.partition(": ")
+                    if (not separator or not code.startswith("E_HIA_") or len(message) > 4096):
+                        raise ValueError("invalid semantic diagnostic")
+                except (ValueError, TypeError, KeyError, AttributeError, UnicodeError) as error:
+                    _reject("complete nominal program returned an unsupported refusal: " + str(error))
+                rejection = HIAProgramRejected(detail, code)
+                rejection.capture = {"admission": capture, "diagnostic": diagnostic_capture,
+                                     "executable_sha256": selection.value["executable_sha256"]}
+                raise rejection
+        if len(result) < FRAME.size:
+            _reject("complete nominal program omitted its result header")
+        magic, action, error, profile, original_size, core_size, spare1, spare2 = FRAME.unpack_from(result)
+        if (magic != b"HIAVCF01" or action or error or spare1 or spare2 or not 1 <= profile <= 4
+                or not 0 < original_size <= MAX_INPUT_BYTES or not 0 < core_size <= MAX_INPUT_BYTES
+                or len(result) != FRAME.size + original_size + core_size):
+            _reject("complete nominal program returned an invalid result frame")
+        end = FRAME.size + original_size
+        receipt = {"selection_origin": selection.origin, "selection_sha256": selection.sha256,
+                   "executable_sha256": selection.value["executable_sha256"],
+                   "source_sha256": selection.value["source_sha256"],
+                   "compiler_sha256": selection.value["compiler_sha256"],
+                   "cold_report_sha256": selection.value["cold_report_sha256"],
+                   "kernel_executable_seals": seals, "native_orchestration": True,
+                   "host_semantic_fallback": False, "capture": capture}
+        return result[FRAME.size:end], result[end:], profile, receipt
+    finally:
+        try:
+            selection.check()
+        finally:
+            os.close(fd)

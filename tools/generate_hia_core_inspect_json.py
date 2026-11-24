@@ -9,6 +9,7 @@ from hepta.hia_json_preflight_native import SYNTAX_REASONS
 from hepta.hia_composite_constructor_errors import ERRORS as CONSTRUCTOR_DIAGNOSTICS
 from hepta.hia_composite_functions_errors import ERRORS as FUNCTION_DIAGNOSTICS
 from hepta.hia_composite_types_native import ERRORS as TYPE_DIAGNOSTICS
+from hepta.hia_task_helpers_native import ERRORS as HELPER_DIAGNOSTICS
 from hepta.hia_schema import COMPOSITE_PROFILES, PRIMITIVE_PROFILES
 from tools.generate_hia_artifact_publication import document as publication_document
 from tools.generate_hia_core_json_frontend import KEYS, FRONTEND, packed
@@ -17,6 +18,8 @@ from tools.generate_hia_json_decode import source_program as decoder
 from tools.generate_hia_native_filter import CORE_REPORT_MODE
 from tools.generate_hia_program_shape import PUBLIC_DIAGNOSTICS
 from tools.generate_hia_sha256 import source_program as sha_source
+from tools.generate_hia_composite_types import NAME_CONTEXTS as TYPE_NAME_CONTEXTS
+from tools.generate_hia_composite_types import FORMAT_CONTEXTS as TYPE_FORMAT_CONTEXTS
 
 
 def document(source, module):
@@ -618,14 +621,50 @@ def source_program(*, nominal=False, compact=False, entry=''):
 '''
         for code, message in PUBLIC_DIAGNOSTICS.values():
             profile += f'    if status == {code}:\n        lit(o, w, {message!r})\n        return 1\n'
-        for base, table, codes in (
-                (65568, CONSTRUCTOR_DIAGNOSTICS, tuple(CONSTRUCTOR_DIAGNOSTICS)),
-                (65600, TYPE_DIAGNOSTICS, (4, 7)),
-                (65700, FUNCTION_DIAGNOSTICS, (15,))):
-            for code in codes:
-                key, detail = table[code]
+        nominal_tables = (
+            ('constructor', 65568, CONSTRUCTOR_DIAGNOSTICS),
+            ('types', 65600, TYPE_DIAGNOSTICS),
+            ('function', 65700, FUNCTION_DIAGNOSTICS),
+            ('helper', 66000, HELPER_DIAGNOSTICS),
+            ('type_format', 66300, {key: ('E_HIA_FORMAT', text)
+                                    for key, text in TYPE_FORMAT_CONTEXTS.items()}),
+        )
+        # Partition the literal tables into ordinary HIA functions; both
+        # block and SSA counts stay within the unchanged compiler bounds.
+        nominal_tables = tuple((name + '_' + str(start // 40), base,
+                                dict(list(table.items())[start:start + 40]))
+                               for name, base, table in nominal_tables
+                               for start in range(0, len(table), 40))
+        for name, _base, _table in nominal_tables:
+            profile += f'    if nominal_{name}_detail(o, w, status) != 0:\n        return 1\n'
+        profile += '    if nominal_type_name_detail(o, w, status) != 0:\n        return 1\n'
+        profile += '    return 0\n'
+        for name, base, table in nominal_tables:
+            profile += f'def nominal_{name}_detail(o:mutbuf, w:mutbuf, status:u64) -> u64:\n'
+            for code, (key, detail) in table.items():
                 message = key + ': ' + detail
                 profile += f'    if status == {base + code}:\n        lit(o, w, {message!r})\n        return 1\n'
+            profile += '    return 0\n'
+        profile += f"""def nominal_type_name_detail(o:mutbuf, w:mutbuf, status:u64) -> u64:
+    if status <= 66100 or status > {66132 + len(TYPE_NAME_CONTEXTS)}:
+        return 0
+    context = status - 66100
+    elaborator = context >= 32
+    if elaborator:
+        context = context - 32
+    if context == 0 or context > {len(TYPE_NAME_CONTEXTS)}:
+        return 0
+    lit(o, w, 'E_HIA_NAME: ')
+    nominal_type_name_label(o, w, context)
+    if elaborator:
+        lit(o, w, ': identifier uses the elaborator namespace')
+    else:
+        lit(o, w, ': invalid/reserved ASCII identifier')
+    return 1
+def nominal_type_name_label(o:mutbuf, w:mutbuf, context:u64) -> u64:
+"""
+        for context, label in TYPE_NAME_CONTEXTS.items():
+            profile += f'    if context == {context}:\n        lit(o, w, {label!r})\n        return 0\n'
         profile += '    return 0\n'
         profile += 'def core_driver_code(o:mutbuf, w:mutbuf, status:u64) -> u64:\n'
         for code, label in sorted(CORE_ERRORS.items()):

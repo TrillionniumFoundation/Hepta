@@ -69,8 +69,9 @@ NOMINAL_BUILD_IMAGES = {
     'public-presentation': 'public_presentation',
 }
 NOMINAL_BUILD_SOURCES = {
-    key: NOMINAL_COMPONENTS[key]
-    for key in (*NOMINAL_BUILD_IMAGES, 'owner', 'render', 'nominal-json', 'linker')
+    **{key: NOMINAL_COMPONENTS[key]
+       for key in (*NOMINAL_BUILD_IMAGES, 'owner', 'render', 'nominal-json', 'linker')},
+    'public-presentation': BOOTSTRAP + 'core_nominal_build_hash.hepta',
 }
 REGISTER_RELAY = 'tools/hia_core_edit_register_relay.inc'
 REGISTER_RELAY_INCLUDE = b'.include "hia_core_edit_register_relay.inc"\n'

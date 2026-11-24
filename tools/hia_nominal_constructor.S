@@ -80,6 +80,11 @@
 .equ PRESENTATION_CONSTRUCTOR_DETAIL, 65568
 .equ PRESENTATION_TYPE_DETAIL, 65600
 .equ PRESENTATION_FUNCTION_DETAIL, 65700
+.equ PRESENTATION_HELPER_DETAIL, 66000
+.equ PRESENTATION_TYPE_NAME_DETAIL, 66100
+.equ TYPE_NAME_CONTEXT, 100663488
+.equ PRESENTATION_TYPE_FORMAT_DETAIL, 66300
+.equ TYPE_FORMAT_CONTEXT, 100663496
 .equ RENDER_ASSEMBLY, 11
 
 /* All regions supplied to a component as disjoint slices stay disjoint. */
@@ -484,6 +489,32 @@ type_call:
  cmp rax,50
  ja io_failure
  mov [rip+delegate_status],rax
+ mov QWORD PTR [rip+delegate_name_context],0
+ mov QWORD PTR [rip+delegate_format_context],0
+ cmp eax,1
+ je capture_type_format_context
+ cmp eax,5
+ je capture_type_name_context
+ cmp eax,6
+ jne type_name_context_ready
+capture_type_name_context:
+ mov rcx,[rip+type_work]
+ mov rcx,[rcx+TYPE_NAME_CONTEXT]
+ dec rcx
+ cmp rcx,12
+ ja io_failure
+ inc rcx
+ mov [rip+delegate_name_context],rcx
+ jmp type_name_context_ready
+capture_type_format_context:
+ mov rcx,[rip+type_work]
+ mov rcx,[rcx+TYPE_FORMAT_CONTEXT]
+ dec rcx
+ cmp rcx,8
+ ja io_failure
+ inc rcx
+ mov [rip+delegate_format_context],rcx
+type_name_context_ready:
  mov rdi,[rip+type_output]
  mov rax,TYPE_REPLY
  cmp [rdi],rax
@@ -762,13 +793,36 @@ public_constructor_refusal:
  lea eax,[r15+PRESENTATION_CONSTRUCTOR_DETAIL]
  jmp public_driver_refusal
 public_nominal_type_refusal:
- cmp rax,4
- je render_type_refusal
- cmp rax,7
- jne stdio_rejected
-render_type_refusal:
- add eax,PRESENTATION_TYPE_DETAIL
+ /* The selected type owner has fifty explicit refusal statuses. */
+ cmp rax,1
+ jb stdio_rejected
+ cmp rax,50
+ ja stdio_rejected
+ call type_presentation_code
+ mov eax,ecx
  jmp public_driver_refusal
+
+/* Present the native owner's retained location; no source is reinterpreted. */
+type_presentation_code:
+ lea rcx,[rax+PRESENTATION_TYPE_DETAIL]
+ cmp eax,1
+ je public_type_format_code
+ cmp eax,5
+ je public_type_name_code
+ cmp eax,6
+ jne type_presentation_ready
+public_type_name_code:
+ mov rcx,[rip+delegate_name_context]
+ add ecx,PRESENTATION_TYPE_NAME_DETAIL
+ cmp eax,6
+ jne type_presentation_ready
+ add ecx,32
+type_presentation_ready:
+ ret
+public_type_format_code:
+ mov rcx,[rip+delegate_format_context]
+ add ecx,PRESENTATION_TYPE_FORMAT_DETAIL
+ ret
 
 handoff:
  lea rdi,[rip+pack_command]
@@ -1073,12 +1127,27 @@ bind_outer_function:
  jmp next_outer
 
 reject_outer_function:
- /* Preserve the component's exact refusal while the outer owner closes. */
- cmp r15,15
- jne pack_outer_function_refusal
+ /* Preserve the actual semantic owner's refusal while the outer closes.
+    BODY_FINAL's delegate status remains unchanged on the raw wire. */
  test rax,rax
- jne pack_outer_function_refusal
- mov QWORD PTR [rip+public_function_refusal],PRESENTATION_FUNCTION_DETAIL+15
+ jne public_delegated_function_refusal
+ cmp r15,999
+ je pack_outer_function_refusal
+ lea rcx,[r15+PRESENTATION_FUNCTION_DETAIL]
+ jmp retain_public_function_refusal
+public_delegated_function_refusal:
+ cmp rax,50
+ jbe public_delegated_type_refusal
+ cmp rax,65
+ jb pack_outer_function_refusal
+ cmp rax,67
+ ja pack_outer_function_refusal
+ lea rcx,[rax+PRESENTATION_HELPER_DETAIL-64]
+ jmp retain_public_function_refusal
+public_delegated_type_refusal:
+ call type_presentation_code
+retain_public_function_refusal:
+ mov [rip+public_function_refusal],rcx
 pack_outer_function_refusal:
  mov [r12+56],rax
  mov rax,BODY_FINAL
@@ -1490,8 +1559,13 @@ verify_assembled_core:
  call public_core_start
  mov edi,3
  test eax,eax
- jne verified_refusal
-
+ je assembled_core_admitted
+ cmp QWORD PTR [rip+stdio_mode],0
+ je verified_refusal
+ /* Ordinary nominal calls use the same exact HIA diagnostic trailer as
+    primitive calls.  Raw handoff frames retain their original wire ABI. */
+ jmp primitive_stdin_refusal
+assembled_core_admitted:
  mov rdi,[rip+public_core_arena]
  mov esi,PUBLIC_CORE_ARENA
  call discard
@@ -2040,6 +2114,8 @@ type_work: .skip 8
 type_output: .skip 8
 last_request: .skip 8
 delegate_status: .skip 8
+delegate_name_context: .skip 8
+delegate_format_context: .skip 8
 handoff_role: .skip 8
 function_mode: .skip 8
 function_work: .skip 8

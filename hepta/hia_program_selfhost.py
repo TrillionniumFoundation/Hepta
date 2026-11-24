@@ -273,7 +273,8 @@ def _sealed_executable(raw):
         raise
 
 
-def _run(fd, wire, timeout_seconds, cwd):
+def _run(fd, wire, timeout_seconds, cwd, *, argv0=None,
+         stdout_limit=MAX_OBJECT_BYTES, accepted_statuses=(0,)):
     """Bound all streams and retain leader ownership through group cleanup.
 
     The admitted compiler has no fork/clone operation. This is lifetime control
@@ -282,7 +283,8 @@ def _run(fd, wire, timeout_seconds, cwd):
     _require_posix_ownership()
     started = time.monotonic()
     deadline = started + timeout_seconds
-    proc = subprocess.Popen(["/proc/self/fd/" + str(fd)], pass_fds=(fd,),
+    executable = "/proc/self/fd/" + str(fd)
+    proc = subprocess.Popen([argv0 or executable], executable=executable, pass_fds=(fd,),
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             env={"PATH": ""}, cwd=cwd, start_new_session=True, close_fds=True)
     captured = {"stdout": bytearray(), "stderr": bytearray()}
@@ -316,7 +318,7 @@ def _run(fd, wire, timeout_seconds, cwd):
                             selector.unregister(stream)
                             stream.close()
                     else:
-                        limit = MAX_OBJECT_BYTES if name == "stdout" else MAX_STDERR_BYTES
+                        limit = stdout_limit if name == "stdout" else MAX_STDERR_BYTES
                         try:
                             chunk = os.read(stream.fileno(), min(65536, limit + 1 - len(captured[name])))
                         except BlockingIOError:
@@ -363,7 +365,7 @@ def _run(fd, wire, timeout_seconds, cwd):
                "stdout_complete": "stdout" in eof, "stderr_complete": "stderr" in eof,
                "leader_reaped": proc.returncode is not None,
                "execution": "sealed-memfd-exec", "runtime_executable_dependencies": []}
-    if proc.returncode != 0 or stderr or eof != {"stdout", "stderr"} or written != len(wire):
+    if proc.returncode not in accepted_statuses or stderr or eof != {"stdout", "stderr"} or written != len(wire):
         error = SelfhostBuildRejected("E_HIA_SELFHOST_COMPILE",
             "native compiler refused input or failed (exit %s)" % proc.returncode)
         error.capture = receipt
@@ -371,8 +373,8 @@ def _run(fd, wire, timeout_seconds, cwd):
     return stdout, receipt
 
 
-def _verify_selfhost_input(document):
-    """Retain public Core checks and require HIA owners for nominal lowering."""
+def _verify_selfhost_input(document, *, capture=None, timeout_seconds=30):
+    """Retain public Core checks after the complete native nominal process."""
     from .hia_program import VerifiedProgram, _decode, _reject as reject_core, verify_program
     from .hia_schema import COMPOSITE_SCHEMAS
 
@@ -383,8 +385,15 @@ def _verify_selfhost_input(document):
     if (type(value) is not dict or type(value.get("schema")) is not str
             or value["schema"] not in COMPOSITE_SCHEMAS):
         return verify_program(document), None
-    from .hia_program_composite import elaborate_program_native
-    core = verify_program(elaborate_program_native(value))
+    from .hia_nominal_program_native import lower_nominal
+    native_original, native_core, profile, receipt = lower_nominal(raw, timeout_seconds=timeout_seconds)
+    if native_original != raw or profile != int(value["schema"][-1]):
+        reject_core("complete native nominal input identity differs", "E_HIA_CORE")
+    core = verify_program(native_core)
+    if core.canonical_bytes != native_core:
+        reject_core("complete native nominal Core is not canonical", "E_HIA_CORE")
+    if capture is not None:
+        capture.update(receipt)
     if original is not None and (raw != original or core.canonical_bytes != document.canonical_bytes):
         reject_core("structured input and executable core differ", "E_HIA_CORE")
     return VerifiedProgram(core.canonical_bytes, raw), value["schema"]
@@ -405,7 +414,9 @@ def build_program_selfhost(document, output, *, manifest, manifest_sha256,
             or destination.parent.resolve() != destination.parent):
         _reject("E_HIA_SELFHOST_OUTPUT", "output must be a new path under an existing nonsymlink directory")
     from .hia_program import SCALARS
-    program, nominal_schema = _verify_selfhost_input(document)
+    nominal_capture = {}
+    program, nominal_schema = _verify_selfhost_input(document, capture=nominal_capture,
+                                                     timeout_seconds=timeout_seconds)
     value = program.as_dict()
     if value["schema"] not in {"hepta.hia.program.v6", "hepta.hia.program.v7",
                                "hepta.hia.program.v8", "hepta.hia.program.v9"}:
@@ -428,6 +439,12 @@ def build_program_selfhost(document, output, *, manifest, manifest_sha256,
     directory = _OutputDirectory(destination.parent)
     try:
         selection = _Selection(manifest, manifest_sha256)
+        if nominal_capture:
+            if nominal_capture["compiler_sha256"] != selection.value["compiler_sha256"]:
+                _reject("E_HIA_SELFHOST_NOMINAL", "nominal and compiler selections differ: compiler_sha256")
+            contract = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
+            if nominal_capture["source_sha256"][contract] != selection.value["source_sha256"][contract]:
+                _reject("E_HIA_SELFHOST_NOMINAL", "nominal and compiler source contracts differ")
         fd, seals = _sealed_executable(selection.executable)
         try:
             directory.check()
@@ -480,6 +497,7 @@ def build_program_selfhost(document, output, *, manifest, manifest_sha256,
                 "whole_native_delivery_qualified": False, "production_activated": False}}
 
     if nominal_schema is not None:
+        report["nominal_capture"] = nominal_capture
         report["nominal_lowering"] = {
             "input_schema": nominal_schema, "core_schema": value["schema"],
             "semantic_owners": "selected-complete-HIA", "host_semantic_fallback": False,

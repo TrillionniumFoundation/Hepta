@@ -114,6 +114,11 @@ def build(output: Path, compiler: Path, cold: Path) -> Path:
               'image_sha256': {name: digest(raw) for name, raw in images.items()},
               'link_receipt': link_receipt, 'whole_nominal_elaboration': False}
     write_new(output / 'build.json', (json.dumps(report, indent=2, sort_keys=True) + '\n').encode())
+    from hepta.hia_nominal_program_native import SOURCE_FILES, manifest_value
+    selection = manifest_value(executable, compiler_sha256=digest(compiler_body),
+        source_sha256={name: admitted[name] for name in SOURCE_FILES},
+        cold_report_sha256=digest(cold_body))
+    write_new(output / 'program-manifest.json', (json.dumps(selection, indent=2, sort_keys=True) + '\n').encode())
     return executable
 
 
