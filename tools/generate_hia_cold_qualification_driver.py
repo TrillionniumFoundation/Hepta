@@ -15,7 +15,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_cold_document import bulk_document as document
 from tools.generate_hia_native_filter import LINK_SOURCE
 from tools.generate_hia_release_owner import POLICY as RELEASE_HELPERS
-from tools.generate_hia_cold_qualification_codec import CODEC
+from tools.generate_hia_cold_qualification_codec_lz import CODEC
 from tools.hia_cold_byte_loops import accelerate
 
 ROOT = Path(__file__).resolve().parents[1]
