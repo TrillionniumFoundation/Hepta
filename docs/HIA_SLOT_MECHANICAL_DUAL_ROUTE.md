@@ -69,13 +69,19 @@ No old method/input/fixture/assertion/budget was edited.
 
 ## Build, source and administrator custody
 
-The fixed eleven-file C compile/source closure is unchanged as a set. Five of
+This routing successor retained its fixed eleven-file C compile/source closure. Five of
 its source bytes change here: C, loader, descriptor, Frame and native helpers.
 All five are explicitly rebound by a fresh compile receipt and v5 administrator
 bundle before a linker load. A previous receipt/bundle cannot authorize these
 bytes. The live C export list also includes the counter getter. Source-based
 installation identity remains the existing source/wheel contract; actual .so
 bytes and ABI remain in the separately expected administrator v5 digest.
+
+The later host-primitive extraction adds `hepta/hia_native_host_support.py`,
+so the current compile receipt and v5 capsule pin twelve source files. The
+exact existing lookup and regular-file read bodies are shared without eagerly
+importing the complete emission or store-lifecycle providers. Every source,
+receipt and bundle must be regenerated for that actual closure.
 
 No helper key is added: the current 50 keys and their order remain exact.
 The route control and reader already belong to Slot INPUTS and SOURCE_FILES.

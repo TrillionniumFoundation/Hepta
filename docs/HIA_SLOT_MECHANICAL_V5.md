@@ -22,7 +22,7 @@ The existing worker options --native-helpers-manifest and
 It contains one explicitly pinned closed v1 helper bundle and exactly one
 slot-mechanical record. The v5 record pins the canonical installed package
 directory, complete paths and bytes/SHA256 of the compile receipt, executable
-and eleven declared sources, and the runtime/ABI profile. The v1 helper
+and twelve declared sources, and the runtime/ABI profile. The v1 helper
 factories remain statically registered. The current 50-entry registry and its existing helper order are retained.
 
 The operator supplies the complete expected capsule digest. Neither production
@@ -33,7 +33,7 @@ OPERATOR_MUST_PIN_THIS_DIGEST. A receipt by itself is not authorization.
 
 Before any linker call on the selected production path, v5 checks its external
 digest, captures all declared v1 manifests/source/image bytes, captures the
-bridge receipt, eleven source files and exact executable, and rereads them.
+bridge receipt, twelve source files and exact executable, and rereads them.
 The actual expected physical package/source/receipt/executable paths must
 match, so a byte-identical different package or basename is not an authority.
 Only the exact exclusive constructor receives a temporary pre-ACTIVE bridge
@@ -108,12 +108,17 @@ That path is inside the original wheel staging's copied hepta tree and is
 explicit package data. The hook never imports product policy or a runtime tools
 module. The superseded tools-only staging failure remains in the historical evidence.
 
-All eleven sources, actual compiler argv/executable bytes and output .so bytes
+All twelve sources, actual compiler argv/executable bytes and output .so bytes
 are recorded by a forced actual build. The supported selected ABI is explicit:
 GIL CPython 3.11–3.14 on Linux x86_64 with eight-byte pointers. It does not widen
 the package's declared Python version claim and is not proof on all those
 versions. Root must compile and run each supported profile before qualification.
 Compiler receipt identity does not claim a hermetic sysroot or compiler proof.
+
+The shared host support module carries the existing global lookup and bounded
+regular-file read primitives without importing unrelated provider owners. Their
+function bodies are unchanged; old module names retain the imported helpers.
+This adds one explicitly pinned file to the current twelve-source closure.
 
 The source-based installation_manifest contract remains unchanged. New Python
 source files and package data enter the real wheel. The .so and compile receipt

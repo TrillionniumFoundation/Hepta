@@ -19,7 +19,7 @@ import sqlite3
 import struct
 import types
 
-from .hia_emission_native import _global_value
+from .hia_native_host_support import _global_value, _regular_bytes
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
 from .hia_native_delivery import DeliveryRecord
 from .hia_slot_operation_series import OperationSeries
@@ -28,7 +28,6 @@ from .hia_slot_operation_series import OperationSeries
 # These private mechanical primitives are independent of the original module's
 # explicitly replaceable namespace values.
 _PROTOCOL_ITER, _PROTOCOL_NEXT, _PROTOCOL_STOP = iter, next, StopIteration
-from .hia_store_lifecycle_native import _regular_bytes
 from .hia_slot_operations_protocol import (
     SELECTOR, SCHEMA, SOURCE_NAME, REQUEST_MAGIC, RESULT_MAGIC, STATE_MAGIC,
     REQUEST_BYTES, OUTPUT_BYTES, STATE_BYTES, INITIALIZE, CLAIM, SUCCEEDED,
