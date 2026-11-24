@@ -17,7 +17,8 @@ TEXT=dict(
  stdin=',"nice":0,"stdin":',timeout=',"timeout_seconds":',
  expected_open='{"arguments":',backend=',"backend_sha256":',catalog=',"catalog_sha256":',
  helpers=',"native_helpers_sha256":',profile=',"profile_sha256":',request=',"request_sha256":',
- tool=',"tool":',worker=',"worker_sha256":')
+ tool=',"tool":',worker=',"worker_sha256":',
+ default_entry='/usr/local/libexec/hepta-runtime-job-entry')
 
 SOURCE=r'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -152,8 +153,11 @@ def profile(w:mutbuf) -> u64:
     return 1
 
 def host(w:mutbuf) -> u64:
-    if str_is(w, field(w, F_PLATFORM), 12) == False or str_is(w, field(w, F_EXECUTION_MODE), 13) == False or boolean(w, field(w, F_ALLOW_EXECUTE), 1) == False or boolean(w, field(w, F_ALLOW_WRITE), 1) == False:
+    isolated = str_is(w, field(w, F_EXECUTION_MODE), 18)
+    if str_is(w, field(w, F_PLATFORM), 12) == False or (str_is(w, field(w, F_EXECUTION_MODE), 13) == False and isolated == False) or boolean(w, field(w, F_ALLOW_EXECUTE), 1) == False or boolean(w, field(w, F_ALLOW_WRITE), 1) == False:
         return 0
+    put(w, HOST_ISOLATED, choose(isolated, 1, 0))
+    put(w, SYSTEM_JOBCTL, choose(isolated, 1, 0))
     if freeze_string(w, field(w, F_SSH_TARGET), S_SSH_TARGET) == False or get(w, S_SSH_TARGET + 8) == 0 or get(w, S_SSH_TARGET + 8) > 1024:
         return 0
     if freeze_string(w, field(w, F_REMOTE_STATE_DIR), S_REMOTE_STATE) == False or get(w, S_REMOTE_STATE + 8) == 0 or byte(w, get(w, S_REMOTE_STATE)) != 47:
@@ -167,6 +171,14 @@ def host(w:mutbuf) -> u64:
     if freeze_raw(w, field(w, F_ALLOW_JOB_NETWORK), S_ALLOW_NETWORK) == False or freeze_raw(w, field(w, F_ALLOW_DETACHED_FALLBACK), S_ALLOW_FALLBACK) == False:
         return 0
     native = field(w, F_NATIVE_JOBS)
+    if native == NONE or is_null(w, native):
+        put(w, NATIVE_JOBS_CONFIGURED, 0)
+        start = get(w, 64)
+        at = text_default_entry(w, start)
+        bind(w, S_ENTRY_PATH, start, at - start)
+        put(w, 64, at)
+        return 1
+    put(w, NATIVE_JOBS_CONFIGURED, 1)
     entry = lookup(w, native, F_ENTRY)
     if freeze_string(w, lookup(w, entry, F_EXECUTABLE), S_ENTRY_PATH) == False or path_ok(w, get(w, S_ENTRY_PATH), get(w, S_ENTRY_PATH + 8)) == False:
         return 0
@@ -291,4 +303,4 @@ def source():
       'WORKER_MAGIC':int.from_bytes(b'HIAWPO01','little'),
       'IDENTITY_MAGIC':int.from_bytes(b'HIAJID01','little'),
       'BINDING_MAGIC':int.from_bytes(b'HIAJDO01','little'),
-      '_checks':TOOLS+('linux','operator','submit','observation','cancel','launcher')})
+      '_checks':TOOLS+('linux','operator','submit','observation','cancel','launcher','isolated')})

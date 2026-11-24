@@ -18,6 +18,7 @@ TEXT=dict(
  launched='launched',launch_failed='launch_failed',pending='pending',cancelled='cancelled',unknown='launch_unknown',
  state=',"launch_state":',error=',"launch_error":',error_unknown='"Remote launch outcome unavailable"',
  error_state='"Remote launch state unavailable"',
+ jobctl_command='sudo -n /usr/local/libexec/hepta-runtime-jobctl',
 )
 SOURCE=r'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -25,7 +26,10 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     result = get(w, 8)
     if phase == 0:
         if get(w, S_REMOTE_COMMAND + 8) == 0:
-            at = shell_quote(w, get(w, 64), get(w, S_ENTRY_PATH), get(w, S_ENTRY_PATH + 8))
+            if get(w, SYSTEM_JOBCTL) != 0:
+                at = text_jobctl_command(w, get(w, 64))
+            else:
+                at = shell_quote(w, get(w, 64), get(w, S_ENTRY_PATH), get(w, S_ENTRY_PATH + 8))
             bind(w, S_REMOTE_COMMAND, get(w, 64), at - get(w, 64))
             put(w, 64, at)
         put(w, CHILD_IN, OPERATION_MAGIC)
@@ -130,6 +134,13 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             put(w, 2200, choose(get(w, 1904) == 3, 10, choose(get(w, 1904) == 2, 6, 1)))
             put(w, 2208, 1)
             return enter(w, 5, 700)
+        if get(w, SYSTEM_JOBCTL) != 0:
+            if get(w, NATIVE_JOBS_CONFIGURED) != 0:
+                put(w, 600, 65 << 8)
+                put(w, 608, 3)
+                put(w, 624, 0)
+                return enter(w, 3, 203)
+            return enter(w, 12, 10)
         return outer(o, w, 5, 2, 202)
     if phase == 202:
         return observation(o, w)
@@ -152,6 +163,10 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return 0
 
 def submit(o:mutbuf, w:mutbuf) -> u32:
+    if get(w, SYSTEM_JOBCTL) != 0:
+        if get(w, NATIVE_JOBS_CONFIGURED) != 0:
+            return 0
+        return enter(w, 12, 0)
     if get(w, 4104) > 1048576 or get(w, 4168) > 1048576 or get(w, 4552) > 1048576 or get(w, 4488) > 1048576:
         return 0
     at = metadata(w)
@@ -281,6 +296,7 @@ def launch_ack(o:mutbuf, w:mutbuf) -> u32:
     status = field(w, F_STATUS)
     reported = lookup(w, status, F_JOB_ID)
     flags = choose(boolean(w, field(w, F_OK), 1), 1, 0)
+    flags = flags | choose(get(w, SYSTEM_JOBCTL) * get(w, HOST_ISOLATED) != 0, 2, 0)
     flags = flags | choose(boolean(w, field(w, F_REUSED_REMOTE), 1), 4, 0)
     flags = flags | choose(reported != NONE, 8, 0)
     put(w, CHILD_IN + 8, flags)

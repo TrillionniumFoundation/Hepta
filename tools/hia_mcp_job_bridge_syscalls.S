@@ -5,7 +5,7 @@
 .intel_syntax noprefix
 .text
 .global _start, mcp_job_bridge_bootstrap_hole, mcp_job_bridge_provider_hole, mcp_job_bridge_registry_hole, mcp_job_bridge_process_hole, mcp_job_bridge_transport_hole, mcp_job_bridge_result_hole, mcp_job_bridge_fence_hole, mcp_job_bridge_files_hole, mcp_job_bridge_audit_hole, mcp_job_bridge_json_hole, mcp_job_bridge_sha_hole, mcp_job_bridge_status_hole, mcp_job_bridge_pages_hole, mcp_job_bridge_terminal_hole, mcp_job_bridge_canonical_hole
-.global mcp_job_bridge_replay_hole
+.global mcp_job_bridge_replay_hole, mcp_job_bridge_compat_hole
 .equ STATE_BYTES,268435456
 .equ PLAN_BYTES,128
 .equ INPUT_BYTES,4194304
@@ -107,7 +107,13 @@ advance:
     je module_pages
     cmp QWORD PTR [r15+16],11
     je module_replay
+    cmp QWORD PTR [r15+16],12
+    je module_compat
     jmp invalid
+module_compat:
+    .byte 0xe8
+mcp_job_bridge_compat_hole: .long 0
+    jmp returned
 module_bootstrap:
     .byte 0xe8
 mcp_job_bridge_bootstrap_hole: .long 0

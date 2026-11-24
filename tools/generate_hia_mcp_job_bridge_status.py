@@ -21,6 +21,8 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if phase == 1:
         if result >= 4294967292 or get(w, ARENA + 64) != 6 or string_eq(w, field(w, F_JOB_ID), S_JOB_ID) == False:
             return unavailable(w)
+        if get(w, SYSTEM_JOBCTL) != 0:
+            return system_status(w)
         terminal = field(w, F__HIA_TERMINAL)
         if terminal != NONE:
             return terminal_frame(o, w, terminal)
@@ -129,6 +131,23 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return enter(w, 5, 700)
         return nonterminal(w)
     return 0
+
+def system_status(w:mutbuf) -> u32:
+    # The fixed root Jobctl has already performed its own typed receipt,
+    # witness and capture checks. Preserve its public status Value; operator
+    # envelope fields are unrelated data on this transport.
+    state = field(w, F_STATE)
+    if state == NONE or get(w, state) != 4:
+        return unavailable(w)
+    flags = choose(str_is(w, field(w, F_EFFECT_OUTCOME), 0), 1, 0) | choose(str_is(w, field(w, F_OUTCOME), 0), 2, 0)
+    put(w, 2360, flags)
+    code = state_code(w, state)
+    put(w, 2304, code)
+    put(w, 2312, choose(boolean(w, field(w, F_TERMINAL_PUBLICATION_CONFIRMED), 1), 1, 0))
+    put(w, 2320, 0)
+    if code >= 2 and code <= 5 and boolean(w, field(w, F_STATUS_AUTHORITATIVE), 0) == False and flags == 0:
+        return enter(w, 5, 0)
+    return nonterminal(w)
 
 def unavailable(w:mutbuf) -> u32:
     if get(w, 1904) == 0:

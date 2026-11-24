@@ -13,6 +13,7 @@ NONE = (1 << 64) - 1
 # Independent, bounded custody regions. JSON node/string storage never aliases
 # the original MCJB request, retained Worker stdin or frozen output proof.
 C = dict(STATE_BYTES=STATE_BYTES, INPUT_BYTES=INPUT_BYTES, NONE=NONE,
+         HOST_ISOLATED=816, NATIVE_JOBS_CONFIGURED=824, SYSTEM_JOBCTL=832,
          NEG100=(1<<64)-100, NEG4=(1<<64)-4, NEG11=(1<<64)-11,
          NEG2=(1<<64)-2, NEG17=(1<<64)-17,
          CACHE=262144, CACHE_END=1048576,

@@ -8,7 +8,7 @@ RECORD_FIELDS=(
  'request_fingerprint','request_digest','launch_state','launch_error')
 TEXT=dict(owner_lock='controller.owner.lock',legacy_lock='controller.lock',jobs='/jobs',
           pending='pending',launched='launched',operator='"operator"',isolated='"isolated"',
-          record_open='{"execution_mode":"operator","system_jobctl":false,"id":',
+          record_open='{"execution_mode":',system=',"system_jobctl":',id=',"id":',
           host=',"host":',ssh=',"ssh_target":',unit=',"unit":',remote=',"remote_job_dir":',
           executable=',"executable":',args=',"args":',cwd=',"cwd":',
           env_keys=',"env_keys":["HIA_TRANSPORT_ARGUMENTS_SHA256","LC_ALL"],"created_unix_ms":',
@@ -129,6 +129,8 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if immutable_record(w) == 0 or string_eq(w, field(w, F_HOST), S_HOST) == False or string_eq(w, field(w, F_IDEMPOTENCY_KEY), S_JOB_KEY) == False:
             return recheck_error(w)
         if string_eq(w, field(w, F_UNIT), S_UNIT) == False or string_eq(w, field(w, F_REMOTE_JOB_DIR), S_JOB_DIRECTORY) == False:
+            return recheck_error(w)
+        if choose(boolean(w, field(w, F_SYSTEM_JOBCTL), 1), 1, 0) != get(w, SYSTEM_JOBCTL):
             return recheck_error(w)
         put(w, 1552, 1)
         return enter(w, get(w, 1536), get(w, 1544))
@@ -539,10 +541,9 @@ def immutable_record(w:mutbuf) -> u64:
     if string_eq(w, field(w, F_SSH_TARGET), S_SSH_TARGET) == False or string_eq(w, field(w, F_EXECUTABLE), S_EXECUTABLE) == False or string_eq(w, field(w, F_CWD), S_CWD) == False:
         return 0
     mode = field(w, F_EXECUTION_MODE)
-    if mode == NONE or str_is(w, mode, 0) == False:
+    if mode == NONE and get(w, HOST_ISOLATED) == 0:
         return 0
-    system = field(w, F_SYSTEM_JOBCTL)
-    if system != NONE and boolean(w, system, 0) == False:
+    if mode != NONE and str_is(w, mode, get(w, HOST_ISOLATED)) == False:
         return 0
     id = field(w, F_ID)
     if name_ok(w, ARENA + get(w, id + 24), get(w, id + 32)) == False:
@@ -562,6 +563,7 @@ def immutable_record(w:mutbuf) -> u64:
 def select_record(w:mutbuf) -> u64:
     if immutable_record(w) == 0:
         return 0
+    put(w, SYSTEM_JOBCTL, choose(boolean(w, field(w, F_SYSTEM_JOBCTL), 1), 1, 0))
     id = field(w, F_ID)
     # Reuse fixed cache positions on every scan. A retry must not grow the
     # retained string arena merely because it revalidates the same record.
@@ -625,6 +627,13 @@ def fresh(w:mutbuf) -> u64:
     bind(w, S_LAUNCH_STATE, get(w, 64), at - get(w, 64))
     put(w, 64, at)
     at = text_record_open(w, RECORD)
+    at = cp(w, S_EXECUTION_MODE, at)
+    at = text_system(w, at)
+    if get(w, SYSTEM_JOBCTL) != 0:
+        at = text_true(w, at)
+    else:
+        at = text_false(w, at)
+    at = text_id(w, at)
     at = qslot(w, at, S_JOB_ID)
     at = text_host(w, at)
     at = qslot(w, at, S_HOST)

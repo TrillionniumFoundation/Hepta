@@ -1,7 +1,7 @@
 # Native HIA durable MCP job bridge
 
 The `mcp_job_bridge_*.hepta` policies implement the durable scheduling portion
-of the Linux Operator HIA provider. They preserve the original Worker request,
+of the Linux HIA provider in its Operator and Isolated modes. They preserve the original Worker request,
 transport digest, fixed profile argv, durable job key, observation flow and
 typed pending/terminal responses. The bridge executes existing admitted HIA
 job owners; it does not independently recreate their job metadata protocols.
@@ -13,9 +13,32 @@ existing admissions and supplies both canonical original arguments and the
 canonical normalized arguments. It also owns MCP request-audit begin/finish.
 The bridge retains the original durable-job audit events.
 
-The current native job routing profile is Linux Operator with `native_jobs`.
-It does not implement the legacy Isolated `system_jobctl` transport. That
-remaining interface must not be described as replaced by this component.
+The original optional `HostConfig.native_jobs` remains optional. No capability
+is inserted into the canonical host or profile, and choosing a transport does
+not change the Worker request, profile hash, transport digest or durable key.
+The original stored `system_jobctl` flag selects observation of an existing job.
+
+| Configuration and stored route | Native transport |
+|---|---|
+| Operator with explicit `native_jobs` | Original explicit entry path and admitted role pins |
+| Operator with absent or null `native_jobs` | Fixed administrator-installed `/usr/local/libexec/hepta-runtime-job-entry` |
+| Isolated with absent or null `native_jobs` and `system_jobctl=true` | Original fixed `sudo -n /usr/local/libexec/hepta-runtime-jobctl` |
+| Explicit `native_jobs` with `system_jobctl=true` | Original refusal; no alternate submission |
+
+The `compat` HIA policy serializes the original Jobctl START, STATUS and READ
+requests as one JSON line. The installed HIA Jobctl owns privilege, systemd,
+process custody, terminal publication and Scratch cleanup. The bridge consumes
+its original public status and page values. Operator None uses the existing
+sealed HIA Job Entry/Submit/Observation roles in place of the former Python
+transport helpers. Those Python helpers remain only an external comparison
+oracle for this component's qualification, not a dispatch fallback.
+
+The fixed entry must be visible to the actual user systemd manager. A mount
+visible only to the SSH process does not establish that installation fact.
+The original CPUQuota=100 and profile MemoryMax remain requested; consequently
+systemd unavailability cannot silently select an unbounded detached backend.
+Missing or non-executable fixed entries preserve the original uncertain job;
+restoring the entry does not authorize relaunch of that job.
 
 ## Executable contract
 
@@ -26,7 +49,7 @@ typed domain JSON response of at most 524,288 bytes, and emits no stderr.
 with empty stdout. The parent must not turn refusal, timeout or a lost reply
 into a new request key or a second effect submission.
 
-The bridge image is a static ELF containing sixteen exact HIA flat images and
+The bridge image is a static ELF containing seventeen exact HIA flat images and
 a fixed Linux syscall adapter. The adapter only gathers bounded input and
 environment bytes, translates buffer offsets and executes policy-selected
 syscalls/companions. `sha256_stream`, `job_terminal_receipt` and
@@ -148,8 +171,8 @@ launch acknowledgement never triggers a replacement job.
 Registry records use the original typed serde semantics, including duplicate
 known-field refusal and the original defaults: omitted `execution_mode` is
 `isolated`, omitted `system_jobctl` is false, and omitted `launch_state` is
-`launched`. An omitted mode consequently cannot match the current Operator
-binding. Unknown fields pass through a separate iterative `IgnoredAny` lexer
+`launched`. An omitted mode matches only an Isolated binding; it cannot match an Operator
+binding. The stored system-jobctl flag is preserved independently of that mode. Unknown fields pass through a separate iterative `IgnoredAny` lexer
 before known fields are decoded. This preserves serde's handling of ignored
 isolated Unicode escapes, ignored invalid UTF-8 bytes, large numeric tokens,
 and deeply nested unknown values. Known strings and root field names retain
@@ -163,9 +186,10 @@ nonoverlapping bounded byte stack and their own strict known-field decoder.
 This helper is compiled into the registry policy, with no additional runtime
 role or host-language parser.
 
-Remote calls use existing `HIAJEX01`, `HIAJSB01` and `HIAJOBQ1` owners. Each
-call keeps its original budget: START 20 seconds, zero-wait STATUS 10 seconds,
-READ 15 seconds. The profile timeout belongs to the Worker workload, not to
+Operator remote calls use existing `HIAJEX01`, `HIAJSB01` and `HIAJOBQ1`
+owners. Each call keeps its original budget: START 20 seconds, zero-wait
+STATUS 10 seconds, READ 15 seconds. The original fixed system Jobctl calls
+retain their separate 20-second budget and 16 KiB page limit. The profile timeout belongs to the Worker workload, not to
 the bridge as a whole. There is no invented 15-second total provider deadline.
 
 Terminal output requires the same publication witness, lifecycle/owner facts,
@@ -206,3 +230,32 @@ The original eleven-tool client campaign and the parent service's complete
 stdio integration have independent recorded outcomes. A release must name
 the exact successful evidence rather than treating compilation as service
 qualification.
+
+## Optional-route qualification
+
+The v95 source compiler with SHA256
+`494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af`
+compiles the seventeen-component bridge to 2,304,109 ELF bytes with SHA256
+`77fa2e20d397d4ce708d64ba59c0b4f10c2b41436fffbb11ceaf60cdc19a849a`.
+The outer twelve-role and HIAOWN02 contracts remain unchanged.
+
+`tools/qualify_hia_mcp_job_bridge_optional.py` consumes a prepared private
+real-SSH fixture. It uses the frozen Rust provider as an external oracle and
+requires a matching complete native Worker installation. Its ten actual user
+systemd cases cover fresh None execution, null/absent equivalence, explicit
+Some observation, both directions of original/native job creation and
+observation, and missing/non-executable entry recovery without relaunch.
+The fault entry must resolve inside the explicit QA directory; the qualifier
+does not modify the host installation.
+
+Independent Isolated composition cases use real OpenSSH and the fixed sudo
+Jobctl path, both original and HIA Jobctl images, and an actual native Worker
+report. Their systemd command results and terminal publication are explicit
+external fixtures, so they do not establish a real DynamicUser/system-systemd
+end-to-end result. They compare original root request digests, None/null,
+Some refusal, complete report pages, corrupt witness/nonce/capture, inverse
+original-created job observation, and fixed-entry failure recovery. A
+separate five-page fixture appends 65,536 legal JSON whitespace bytes to the
+actual report; it is explicitly attributed to the publication fixture, not
+to the Worker process's stdout. The unchanged 61 descriptor/lease refusals
+and seven predecessor-cache/concurrency cases also pass on this bridge.
