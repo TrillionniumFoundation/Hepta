@@ -7,11 +7,12 @@
 .text
 .global _start, policy_hole, sha_hole
 .equ INPUT_CAP, 1048576
+.equ FILE_CAP, 67108864
 .equ OUTPUT_AT, 2097152
 .equ OUTPUT_CAP, 67108864
 .equ WORK_AT, 69206016
-.equ WORK_CAP, 2097152
-.equ MAP_BYTES, 71303168
+.equ WORK_CAP, 68157440
+.equ MAP_BYTES, 137363456
 .equ PATH_AT, 512
 .equ STAT_AT, 4608
 .equ AFTER_AT, 4752
@@ -156,12 +157,12 @@ read_source:
  cmp rdi,[rsp]
  jne invalid
  mov rcx,[r14+80]
- cmp rcx,INPUT_CAP
+ cmp rcx,FILE_CAP
  ja invalid
  mov rdx,[r14+144]
  test rdx,rdx
  jz invalid
- mov eax,INPUT_CAP+1
+ mov eax,FILE_CAP+1
  sub rax,rcx
  cmp rdx,rax
  ja invalid
@@ -188,7 +189,7 @@ hash_not_initial:
  jne hash_final
  mov BYTE PTR [r14+FILE_AT],1
  mov rsi,[r14+72]
- cmp rsi,INPUT_CAP
+ cmp rsi,FILE_CAP
  ja invalid
  inc rsi
  jmp hash_call

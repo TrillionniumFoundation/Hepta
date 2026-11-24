@@ -977,9 +977,16 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
             verify_adapter(product, images[name + '.hepta'], binding, entries=(0,))
         if not product.startswith(b'\x7fELF'):
             raise ValueError('native source member returned an invalid release program: ' + name)
-        if name in members or name in products:
+        if name in products:
             raise ValueError('duplicate compiled Store member: ' + name)
-        products[name] = product
+        if name in members:
+            # The bootstrap capture tool is also rebuilt by the ordinary native
+            # member plan. Its captured bytes must agree before the same staged
+            # identity can be reused; every other repeated product is refused.
+            if name != 'hia-source-capture' or product != captured(name):
+                raise ValueError('duplicate compiled Store member: ' + name)
+        else:
+            products[name] = product
         if name == 'hia-directory-package-build':
             pack_directory = captured(name)
         if name == 'hia-release':

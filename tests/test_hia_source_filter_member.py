@@ -432,7 +432,7 @@ class InstalledSourceMemberTests(unittest.TestCase):
                     for bad in (frame[:-1], frame + b'x', frame[-24:]):
                         with self.assertRaises(ValueError):
                             _member_with_objects(bad, submitted)
-        self.assertEqual(groups, 22)
+        self.assertEqual(groups, 26)
 
     def test_native_release_plan_preserves_role_and_input_order(self):
         from tools.build_hia_native_store_release import _decode_member_plan
@@ -440,9 +440,27 @@ class InstalledSourceMemberTests(unittest.TestCase):
         planner = self.release_planner()
         table = (self.sources / 'release_member_sources.tsv').read_bytes()
         wire = self.invoke([planner, 'build'], table)
-        # Frozen from the independently built 191-role release, including relocation input order.
-        self.assertEqual(sha256(wire).hexdigest(), '5d0dadcfb23371b82e7ff0c3aaa8d55b63a175b690216fe895825e33cd0e181b')
-        self.assertEqual(len(_decode_member_plan(wire)), 191)
+        # Preserve the independently qualified 191-role projection, including
+        # relocation input order, while adding the five native lifecycle tools.
+        lifecycle = {
+            'hia-subprocess': ('subprocess_packer.hepta', {'hia-subprocess.hepta': 'subprocess.hepta'}),
+            'hia-source-capture': ('source_capture_packer.hepta', {
+                'hia-source-capture.hepta': 'source_capture.hepta', 'sha256_stream.hepta': 'sha256_stream.hepta'}),
+            'hia-release-finalize': ('release_finalize_packer.hepta', {
+                'hia-release-finalize.hepta': 'release_finalize.hepta', 'sha256_stream.hepta': 'sha256_stream.hepta'}),
+            'hia-job-supervisor': ('job_supervisor_packer.hepta', {
+                'hia-job-supervisor.hepta': 'job_supervisor.hepta', 'sha256_stream.hepta': 'sha256_stream.hepta'}),
+            'hia-release-owner': ('release_owner_packer.hepta', {
+                'hia-release-owner.hepta': 'release_owner.hepta', 'release_dag.hepta': 'release_dag.hepta',
+                'sha256_stream.hepta': 'sha256_stream.hepta'}),
+        }
+        rows = _decode_member_plan(wire)
+        self.assertEqual(len(rows), 196)
+        self.assertEqual({name: (packer, sources) for name, packer, sources in rows if name in lifecycle}, lifecycle)
+        original = [line for line in table.splitlines(keepends=True)[1:]
+                    if line.split(b'\t', 1)[0].decode('ascii') not in lifecycle]
+        old_wire = self.invoke([planner, 'build'], b'members\t191\n' + b''.join(original))
+        self.assertEqual(sha256(old_wire).hexdigest(), '5d0dadcfb23371b82e7ff0c3aaa8d55b63a175b690216fe895825e33cd0e181b')
         from tools.build_hia_native_store_release import _release_packer_schedule
         first = {}
         schedule = _release_packer_schedule(wire, lambda data: self.invoke([planner, 'build'], data))
