@@ -110,7 +110,7 @@ def decoded_key_equal(w:mutbuf, left:u64, right:u64) -> u64:
 '''
 
 
-def source_program(*, maximum_nodes=262144, maximum_depth=127):
+def source_program(*, maximum_nodes=262144, maximum_depth=127, sdk_validation=True):
     if type(maximum_nodes) is not int or not 1 <= maximum_nodes <= 1048576:
         raise ValueError('invalid native Value node workspace')
     if type(maximum_depth) is not int or not 1 <= maximum_depth <= 127:
@@ -129,10 +129,11 @@ def source_program(*, maximum_nodes=262144, maximum_depth=127):
         'if same_key(s, item & 4294967295, start) == 1:\n                return 0')
     serializer = replace_once(canonical_program(), '                sort_object(w, node)',
                               '                sort_object_last_wins(w, node)')
-    entry = ENTRY.replace('WORKSPACE_CAP', str(64 + maximum_nodes * 56 + LIMIT + 16384))
+    selected_entry = ENTRY if sdk_validation else ENTRY.replace('    if length(o) == 8388609:\n        if length(w) != WORKSPACE_CAP:\n            return 4294967293\n        return sdk_value(s, w)\n', '')
+    entry = selected_entry.replace('WORKSPACE_CAP', str(64 + maximum_nodes * 56 + LIMIT + 16384))
     entry = entry.replace('MAXIMUM_NODES', str(maximum_nodes)).replace('MAXIMUM_DEPTH', str(maximum_depth))
     value = '\n'.join((entry,
-                       serializer, LAST_WINS, decoder, decimal_program(), formatter, SDK_VALUE))
+                       serializer, LAST_WINS, decoder, decimal_program(), formatter, SDK_VALUE if sdk_validation else ''))
     return value
 
 
