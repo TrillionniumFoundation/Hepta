@@ -770,6 +770,14 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_mcp_uri.py',
     'examples/hia_bootstrap/mcp_resource_uri.hepta',
 )
+NATIVE_WORKER_MANIFEST_FILES = (
+    'docs/HIA_WORKER_MANIFEST.md',
+    'docs/HIA_WORKER_MANIFEST_RECORDS.json',
+    'examples/hia_bootstrap/source_worker_manifest.hepta',
+    'examples/hia_bootstrap/worker_manifest_tables.hiastd',
+    'tools/generate_hia_worker_manifest.py',
+    'tools/qualify_hia_worker_manifest.py',
+)
 NATIVE_RELEASE_LIFECYCLE_FILES = (
     'docs/HIA_RELEASE_BUILD_ENTRY.md',
     'examples/hia_bootstrap/release_build_entry.hepta',
@@ -826,6 +834,7 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    *NATIVE_WORKER_MANIFEST_FILES,
     *NATIVE_RELEASE_LIFECYCLE_FILES,
     *MCP_WIRE_SDIST_FILES,
     *SQLITE_SNAPSHOT_SDIST_FILES,
