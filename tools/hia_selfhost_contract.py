@@ -770,6 +770,14 @@ MCP_WIRE_SDIST_FILES = (
     'tools/generate_hia_mcp_uri.py',
     'examples/hia_bootstrap/mcp_resource_uri.hepta',
 )
+NATIVE_CONTROLLER_INSTALL_FILES = (
+    'docs/hia_controller_install_native.md',
+    'examples/hia_bootstrap/controller_install.hepta',
+    'examples/hia_bootstrap/controller_install_packer.hepta',
+    'examples/hia_bootstrap/controller_probe.hepta',
+    'tools/generate_hia_controller_install.py',
+    'tools/hia_controller_install_syscalls.S',
+)
 NATIVE_WORKER_MANIFEST_FILES = (
     'docs/HIA_WORKER_MANIFEST.md',
     'docs/HIA_WORKER_MANIFEST_RECORDS.json',
@@ -834,6 +842,7 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    *NATIVE_CONTROLLER_INSTALL_FILES,
     *NATIVE_WORKER_MANIFEST_FILES,
     *NATIVE_RELEASE_LIFECYCLE_FILES,
     *MCP_WIRE_SDIST_FILES,
