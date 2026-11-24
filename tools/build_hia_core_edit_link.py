@@ -32,9 +32,8 @@ def build_implementations(native_tools, admitted, prover=None, *, codec=None):
     kinds = [kind for kind in core.NOMINAL_CLI_IMAGES if kind != 'build_object']
     if prover is not None:
         kinds.append('build_object')
-    common = {core.NOMINAL_BUILD_SOURCES[key]: label
-              for key, label in {**core.NOMINAL_IMAGE_LABELS, **core.NOMINAL_BUILD_IMAGES}.items()}
-    files = sorted(set(common).union(*(core.NOMINAL_CLI_IMAGES[kind] for kind in kinds)))
+    payloads_by_kind = {kind: core.nominal_cli_payloads(kind) for kind in kinds}
+    files = sorted(set().union(*(payloads_by_kind[kind] for kind in kinds)))
     sources, images = {}, {}
     for offset in range(0, len(files), 12):
         chunk = files[offset:offset + 12]
@@ -74,7 +73,7 @@ def build_implementations(native_tools, admitted, prover=None, *, codec=None):
             adapters.append(core.EDIT_RESPONSE)
         if kind in ('batch_apply', 'publish_batch'):
             adapters.append(core.BATCH_CAPTURE)
-        payloads = {**common, **core.NOMINAL_CLI_IMAGES[kind]}
+        payloads = payloads_by_kind[kind]
         parts = [*(objects[path] for path in adapters), *(sources[path] for path in payloads)]
         if kind == 'build_object':
             parts.append(prover)

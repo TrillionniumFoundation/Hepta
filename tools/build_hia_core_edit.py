@@ -68,11 +68,13 @@ NOMINAL_BUILD_IMAGES = {
     'outer-render': 'outer_render', 'public-canonical': 'public_canonical',
     'public-presentation': 'public_presentation',
 }
+# Shared adapters issue syntax and refusal-presentation operations as well as
+# canonical-input hashes. Keep the complete owner in this common linker slot.
 NOMINAL_BUILD_SOURCES = {
-    **{key: NOMINAL_COMPONENTS[key]
-       for key in (*NOMINAL_BUILD_IMAGES, 'owner', 'render', 'nominal-json', 'linker')},
-    'public-presentation': BOOTSTRAP + 'core_nominal_build_hash.hepta',
+    key: NOMINAL_COMPONENTS[key]
+    for key in (*NOMINAL_BUILD_IMAGES, 'owner', 'render', 'nominal-json', 'linker')
 }
+NOMINAL_BUILD_PRESENTATION = BOOTSTRAP + 'core_nominal_build_hash.hepta'
 REGISTER_RELAY = 'tools/hia_core_edit_register_relay.inc'
 REGISTER_RELAY_INCLUDE = b'.include "hia_core_edit_register_relay.inc"\n'
 REGISTER_IMAGES = {
@@ -194,6 +196,17 @@ NOMINAL_CLI_IMAGES = {
     'batch_apply': BATCH_APPLY_IMAGES,
     'publish_batch': PUBLISHED_BATCH_APPLY_IMAGES,
 }
+def nominal_cli_payloads(kind):
+    # The private object builder calls canonical hashing and driver refusals.
+    # Editing also calls syntax presentation and keeps the complete public owner.
+    selected = NOMINAL_BUILD_SOURCES
+    if kind == 'build_object':
+        selected = {**selected, 'public-presentation': NOMINAL_BUILD_PRESENTATION}
+    common = {selected[key]: label
+              for key, label in {**NOMINAL_IMAGE_LABELS, **NOMINAL_BUILD_IMAGES}.items()}
+    return {**common, **NOMINAL_CLI_IMAGES[kind]}
+
+
 EDIT_ENVELOPE_ROLES = ('query', 'publish_query', 'patch_core_json', 'publish_patch', 'impact',
                        'batch_query', 'publish_batch_query', 'apply', 'publish_edit',
                        'batch_apply', 'publish_batch')
@@ -340,7 +353,7 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
                     RELEASE_DEFLATE, BOOTSTRAP + core_link.POLICY, BOOTSTRAP + core_link.PACKED_POLICY,
                     *assembly_images, *SELFHOST_CORE_SOURCES, *adapters.values(),
                     NOMINAL_ADAPTER, EXEC_LAUNCHER, EDIT_ENVELOPE, EDIT_RESPONSE, BATCH_CAPTURE,
-                    REGISTER_RELAY, *NOMINAL_BUILD_SOURCES.values(),
+                    REGISTER_RELAY, *(path for kind in NOMINAL_CLI_IMAGES for path in nominal_cli_payloads(kind)),
                     *(path for _name, roles in programs.values() for path, _calls in roles
                       if path not in (DISPATCH_ARCHIVE, ARGUMENT_ARCHIVE, ASSEMBLY_PRESENTATION,
                                       SELFHOST_CORE_ARCHIVE))}

@@ -22,6 +22,11 @@ def historical_caller_dependencies(root, sources, expected):
     from tests.hia_installed_distribution_history import predecessor
     for name, raw in sources.items():
         sources[name] = predecessor(name, raw)
+    ndu = 'tests/test_hia_ndu_bridge.py'
+    if ndu in expected and diagnostics.pin(sources[ndu])['sha256'] != expected[ndu]:
+        from tests.hia_store_delivery_successor import final_source_predecessor
+        sources[ndu], _relation = final_source_predecessor(
+            ndu, sources[ndu], original_sha256=expected[ndu])
     machine = delivery.MACHINE_RECEIPT_CALLER
     if machine in expected and diagnostics.pin(sources[machine])['sha256'] != expected[machine]:
         authority = (root / delivery.MACHINE_RECEIPT_FIXTURE).read_bytes()

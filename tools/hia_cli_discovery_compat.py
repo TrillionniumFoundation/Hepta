@@ -156,6 +156,9 @@ def legacy_catalog_owner():
 
 def before_default_cli(name, current):
     """Undo only the pinned installed-owner and wheel fixture changes."""
+    from tests.hia_installed_distribution_history import reference_predecessor
+
+    current = reference_predecessor(name, current.encode()).decode()
     raw = DEFAULT_SUCCESSOR.read_bytes()
     if sha256(raw).hexdigest() != DEFAULT_SUCCESSOR_SHA256:
         raise ValueError('default CLI successor fixture changed')

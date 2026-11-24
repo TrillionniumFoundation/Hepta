@@ -60,6 +60,31 @@ COMPANION_ORIGINALS = {WORKER_REPORT_PATH: {
 PATHS = ORIGINAL_SOURCE_PATHS + SHARED_PATHS + (ADAPTER_PATH, WORKER_PATH) + tuple(COMPANION_ORIGINALS)
 LATER_SHARED_PATHS = ('hepta/hia_cost_ledger_native.py', 'hepta/hia_evaluation_native.py',
                       'hepta/hia_service_context_native.py', 'tools/build_hia_evaluation.py')
+FINAL_SOURCE_HELPER = 'tests/hia_final_source_successor.py'
+FINAL_SOURCE_HELPER_PIN = {'bytes': 7012, 'sha256': '68ffd7b27fbd492915221a5894c7c1eb4f0101001b9fd400481e19cdf19744f7'}
+FINITE_PROOF_SHA256 = 'd85ded0610fc7ee3443340f5892e705f24768492100ee1f69af05eb336f8a8c5'
+FINAL_COMPOSITION_SHA256 = {'hepta/hia_agent_service.py': 'd85ded0610fc7ee3443340f5892e705f24768492100ee1f69af05eb336f8a8c5', 'hepta/hia_store_lifecycle_native.py': 'c800f2d9701698147b4702401908dc37625cdea1ee21d550b5154ea10c9806f1', 'hepta/hia_emission_native.py': '2dffce808cccef4f5632d10c63dbb22b523aeed867142d64a142e44b2d4a86ba'}
+
+
+def final_source_predecessor(name, raw, captured=None, original_sha256=None):
+    """Bind one fixed final relation and reread every source it actually uses."""
+    from tests import hia_final_source_successor as final
+
+    captured = {} if captured is None else captured
+    def capture(path):
+        data = (ROOT / path).read_bytes()
+        if path in captured and captured[path] != data:
+            raise ValueError('final source changed between captures: ' + path)
+        captured[path] = data
+        return data
+    helper = capture(FINAL_SOURCE_HELPER)
+    if (final.pin(helper) != FINAL_SOURCE_HELPER_PIN
+            or Path(final.__file__).read_bytes() != helper):
+        raise ValueError('final source admission helper changed')
+    restored, relation = final.admit(capture, name, raw, original_sha256)
+    if any((ROOT / path).read_bytes() != data for path, data in captured.items()):
+        raise ValueError('final source changed during admission')
+    return restored, relation
 
 
 def _bytes(value):
@@ -132,6 +157,10 @@ def retained_bootstrap_service(raw):
                json.loads(captures[RETAINED_READ])['patch'],
                checked['files'][SERVICE_PATH], *checked['service_followups']]
     restored = raw
+    if sha256(restored).hexdigest() == FINITE_PROOF_SHA256:
+        final_captures = {}
+        restored, _relation = final_source_predecessor(SERVICE_PATH, restored, final_captures)
+        captures.update({ROOT / path: value for path, value in final_captures.items()})
     for record in reversed(records):
         restored = reverse_exact(restored, record, {
             'bytes': record['old_bytes'], 'sha256': record['old_sha256']})
@@ -196,6 +225,11 @@ def _restore_composition_successor(captured, approved, shared):
     for name in LATER_SHARED_PATHS:
         captured[name] = (ROOT / name).read_bytes()
     source = dict(captured)
+    final_relations = {}
+    for name, expected in FINAL_COMPOSITION_SHA256.items():
+        if sha256(source[name]).hexdigest() == expected:
+            source[name], final_relations[name] = final_source_predecessor(
+                name, source[name], captured)
     evaluate_fixture = None
     evaluate_current = {}
     if sha256(source[EVALUATION_PATH]).hexdigest() == EVALUATION_PLANNER_SHA256:
@@ -236,7 +270,10 @@ def _restore_composition_successor(captured, approved, shared):
         reverse_exact(source[name], record, shared[name])
         current[name] = record
     current.update(evaluate_current)
-    return restored, current, fixture, extensions, evaluate_fixture
+    for name, relation in final_relations.items():
+        current[name] = {'new_bytes': relation['current']['bytes'],
+                         'new_sha256': relation['current']['sha256']}
+    return restored, current, fixture, extensions, evaluate_fixture, final_relations
 
 
 def _restore_extension(path, raw, predecessor):
@@ -303,10 +340,11 @@ def admit_composition(original_value):
     approved = current = value['files']
     predecessor = captured
     later_fixture = evaluate_fixture = None
+    final_relations = {}
     extensions = {}
     if any((len(captured[path]), sha256(captured[path]).hexdigest()) !=
            (approved[path]['new_bytes'], approved[path]['new_sha256']) for path in PATHS):
-        predecessor, current, later_fixture, extensions, evaluate_fixture = _restore_composition_successor(
+        predecessor, current, later_fixture, extensions, evaluate_fixture, final_relations = _restore_composition_successor(
             captured, approved, inventory['shared_dependency_review'])
     restored = {path: reverse_exact(predecessor[path], approved[path], originals[path])
                 for path in PATHS}
@@ -332,6 +370,11 @@ def admit_composition(original_value):
         service['preceding_patch_fixture_sha256'] = service['reversible_patch_fixture_sha256']
         service['reversible_patch_fixture_sha256'] = EVALUATE_FIXTURE_SHA256
         service['scope'] += ', installed Evaluate planning, Artifact and Emission providers and reviewed Inspect, Cost, Read and native build dispatch'
+    for name, relation in final_relations.items():
+        adjustment = adjustments[name]
+        adjustment['preceding_patch_fixture_sha256'] = adjustment['reversible_patch_fixture_sha256']
+        adjustment['reversible_patch_fixture_sha256'] = relation['provenance_sha256']
+        adjustment['scope'] += ', ' + relation['scope']
     shared = dict(inventory['shared_dependency_review'])
     for path in SHARED_PATHS:
         # Return the fixed, independently reviewed literal pins only after
@@ -340,6 +383,19 @@ def admit_composition(original_value):
     if later_fixture is not None:
         for path in LATER_SHARED_PATHS:
             shared[path] = {'bytes': current[path]['new_bytes'], 'sha256': current[path]['new_sha256']}
+    if final_relations:
+        from tests import hia_final_source_successor as final
+        additions = {FINAL_SOURCE_HELPER: FINAL_SOURCE_HELPER_PIN,
+            final.FIXTURE: {'bytes': 14940, 'sha256': final.FIXTURE_SHA256}}
+        for relation in final_relations.values():
+            for path, expected in relation['dependencies'].items():
+                if path in additions and additions[path] != expected:
+                    raise ValueError('final source dependency authorities disagree: ' + path)
+                additions[path] = expected
+        for path, expected in additions.items():
+            if path in shared and shared[path] != expected:
+                raise ValueError('final source changes an earlier shared source authority: ' + path)
+            shared[path] = expected
     return {'source_adjustments': {path: adjustments[path] for path in SOURCE_PATHS},
             'shared_adjustments': {path: adjustments[path] for path in SHARED_PATHS},
             'shared_dependency_review': shared,

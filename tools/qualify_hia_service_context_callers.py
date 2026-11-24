@@ -71,7 +71,15 @@ def admit_original_callers(root):
         from tests import hia_caller_diagnostics_admission as diagnostic
         if Path(diagnostic.__file__).read_bytes() != helper:
             raise ValueError('context caller imported a different diagnostic admission')
-        diagnostics[name] = diagnostic.admit(name, raw, digest, authority)
+        if _source_pin(raw) != diagnostic.CURRENT:
+            from tests import hia_final_source_successor as final
+            final_source = capture('tests/hia_final_source_successor.py')
+            if (_source_pin(final_source) != {'bytes': 7012, 'sha256': '68ffd7b27fbd492915221a5894c7c1eb4f0101001b9fd400481e19cdf19744f7'}
+                    or Path(final.__file__).read_bytes() != final_source):
+                raise ValueError('complete context diagnostic source helper changed')
+            diagnostics[name] = final.admit_diagnostics(capture, name, raw, digest, authority, diagnostic)
+        else:
+            diagnostics[name] = diagnostic.admit(name, raw, digest, authority)
     for name, raw in captured.items():
         if (root / name).read_bytes() != raw:
             raise ValueError('context caller captured bytes changed: ' + name)

@@ -56,6 +56,13 @@ def setup_predecessor(raw, expected):
     """Recover the exact package policy for the original 196-resource controls."""
     if pin(raw) == expected:
         return raw
+    if sha256(raw).hexdigest() == 'd8f6e3b151820d5077b619172ba86a57cc0b24f0581a0728a32f076ddebbb7c1':
+        # Unwrap only the complete reviewed nominal source-resource addition.
+        # The original 196-resource package authority remains unchanged.
+        start = raw.index(b'def nominal_program_resources(existing):\n')
+        end = raw.index(b'class AgentResourceBuild(build_py):\n', start)
+        raw = (raw[:start] + raw[end:]).replace(
+            b' + nominal_program_resources(names)', b'', 1)
     if sha256(raw).hexdigest() != '90b0d5f089c0180a51f6df4e1706d7236cab458f5f69d8948cf8aeb4b0f5b559':
         raise ValueError('the installed Journal setup source changed')
     start = raw.index(b'class ColdSourceDistribution(sdist):')

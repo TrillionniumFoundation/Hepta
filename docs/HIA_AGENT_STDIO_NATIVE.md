@@ -157,3 +157,21 @@ and old `hepta` CLI entry are removed; no compatibility entry is packaged. Nativ
 durable recovery, Core modules/build, production runtime/library, clean-machine
 native-only installation, final artifact lifecycle or whole-product retirement.
 No production/default/release lock or service is changed by this component.
+
+## Catalog version continuity
+
+The original v8 catalog qualification is retained as a byte-pinned historical
+fixture in tests/fixtures/hia_agent_stdio_catalog_v8.json, from commit
+699f0607118b56af57abbefe22f341c84f9d024d. Its unchanged catalog method runs
+against archived native HIA dispatch, frontend and packer sources, with all
+19 original calls, the v8 default, the explicit v9 refusal, and the original
+20-second call budget. Its three VM output/canary/refusal controls run before
+the historical native components.
+
+The current stdio catalog qualification covers every v1-v9 profile and the
+documented v9 default, and refuses v10 as the first unsupported profile.
+Every v1-v8 catalog is compared in full to the independently restored original
+schema/opcode owner. Historical v8 observations are a separate compatibility
+baseline; they do not qualify the current default or provide a production
+fallback. All other malformed-argument assertions and parser bounds remain
+unchanged.

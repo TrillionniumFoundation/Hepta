@@ -1270,6 +1270,8 @@ ORDINARY_CALLER_DEPENDENCIES = {'tests/fixtures/caller_deadline_diagnostics_v1.j
 ORDINARY_CALLER_COUNTS = {'tools/qualify_hia_cost_ledger_callers.py': 81, 'tools/qualify_hia_service_context_callers.py': 50}
 ORDINARY_CALLER_CAPTURE_PATHS = (ORDINARY_CALLER_FIXTURE, *ORDINARY_CALLER_PATHS,
                                 *ORDINARY_CALLER_DEPENDENCIES)
+FINAL_CALLER_HISTORY = 'tests/hia_installed_distribution_history.py'
+FINAL_CALLER_HISTORY_PIN = {'bytes': 7262, 'sha256': '58986a6a6d9f86fc3ee53d740229d3fab5ed120156d80e8ba3ac2bd245a0c0a6'}
 
 
 def _ordinary_caller_transform(raw, record, path, *, reverse):
@@ -1359,6 +1361,18 @@ def _admit_ordinary_caller_sources(original_value, original_kind, prior, frozen)
     restored, states, adjustments = {}, {}, {}
     for path in ORDINARY_CALLER_PATHS:
         source, expected, record = capture(path), ORDINARY_CALLER_RECORDS[path], value['files'][path]
+        physical = source
+        final_relation = None
+        if _pin(source) not in (expected['old'], expected['new']):
+            from tests import hia_installed_distribution_history as history
+            helper = capture(FINAL_CALLER_HISTORY)
+            if (_pin(helper) != FINAL_CALLER_HISTORY_PIN
+                    or Path(history.__file__).read_bytes() != helper):
+                raise ValueError('final caller source history helper changed')
+            source = history.caller_predecessor(path, source)
+            if source == physical:
+                raise ValueError('ordinary caller full fixed source or scope differs')
+            final_relation = history.CALLER_SOURCE_SUCCESSORS[path]
         if _pin(source) == expected['old']:
             preview = _ordinary_caller_transform(source, record, path, reverse=False)
             restored[path] = reverse_ordinary_caller(preview, record, path)
@@ -1377,6 +1391,14 @@ def _admit_ordinary_caller_sources(original_value, original_kind, prior, frozen)
                 'complete_original_inverse_verified': True,
                 'complete_current_forward_replay_verified': True, 'production_source_exception': False,
             }
+            if final_relation is not None:
+                adjustment = adjustments[path]
+                adjustment['preceding_current_source'] = dict(expected['new'])
+                adjustment['current_bytes'] = final_relation['current']['bytes']
+                adjustment['current_sha256'] = final_relation['current']['sha256']
+                adjustment['additional_source_authority'] = {
+                    'path': FINAL_CALLER_HISTORY, **FINAL_CALLER_HISTORY_PIN}
+                adjustment['scope'] += '; exact final diagnostic source successor routing'
     if not adjustments:
         for path, raw in captured.items():
             if (ROOT / path).read_bytes() != raw:

@@ -9,6 +9,15 @@ from tools.qualify_hia_release_owner import inventory
 ROOT = Path(__file__).resolve().parents[1]
 BOOT = ROOT / 'examples/hia_bootstrap'
 
+# Independent stage inventory before the six complete-controller publications.
+# Frozen Git source: 35068b189a0f9042c64cd7e1cb45d0c0933e9b93
+# release_stage_sources.tsv SHA256: 0b63fe4c2f1171d75a5807e4bbeeb54425e86ef4092a1a34caca2909412696cb
+LEGACY_STAGE_OUTPUTS = {'safe': ('hia-safe-core-prove',), 'constructor': ('hia-nominal-constructor',), 'core': ('hia', 'hia-selfhost-component', 'hia-normalize-core', 'hia-verify-core-json', 'hia-inspect-core-json', 'hia-patch-core-json', 'hia-catalog', 'hia-import-assembly', 'hia-render-assembly', 'hia-capabilities', 'hia-emit-object', 'hia-build-object', 'hia-publish-program', 'hia-publish-assembly', 'hia-publish-patch', 'hia-publish-edit', 'hia-publish-query', 'hia-publish-batch-query', 'hia-publish-batch', 'hia-impact-core-json', 'hia-prepare-edit-query', 'hia-prepare-edit-batch', 'hia-apply-edit', 'hia-apply-edit-batch', 'hia-worker-scalar-implementation'), 'additional': ('agent-schema-manifest.json', 'agent-schema.image.bin', 'agent-response-schema-manifest.json', 'agent-response-schema.image.bin', 'agent-verify-response-schema-manifest.json', 'agent-verify-response-schema.image.bin', 'agent-discovery-manifest.json', 'agent-discovery.image.bin', 'agent-inspection-manifest.json', 'agent-inspection.image.bin', 'agent-identity-manifest.json', 'agent-identity.image.bin', 'elf-shared-linker-manifest.json', 'elf-shared-linker.image.bin', 'scalar-reference-manifest.json', 'scalar-reference.image.bin', 'module-0.bin', 'module-1.bin', 'module-2.bin', 'module-3.bin', 'hia-agent-store', 'hia-native', 'hia-agent-read-carrier', 'hia-owned-reference-wire', 'hia-sqlite-rowid-lookup', 'hia-sqlite-table-walk', 'hia-sqlite-record-layout', 'hia-sqlite-agent-row-import', 'hia-sqlite-agent-catalog', 'hia-sqlite-agent-import-batch', 'hia-sqlite-agent-cost-sequence', 'hia-sqlite-agent-artifact-catalog', 'hia-sqlite-migration-plan', 'hia-agent-artifact-capture', 'hia-nominal-packet', 'hia-sqlite-migration-projection', 'hia-sqlite-pager', 'hia-sqlite-migration-publish', 'hia-sqlite-migrate')}
+CONTROLLER_OUTPUTS = (
+    'hia-mcp-request-audit', 'hia-mcp-job-bridge', 'hia-mcp-service',
+    'hia-ndu-scalar', 'hepta-runtime-jobctl', 'hia-source-contract',
+)
+
 
 def decode_dag(raw):
     magic, count, expected = struct.unpack_from('<8s2Q', raw)
@@ -64,7 +73,9 @@ class NativeReleaseOwnerSourceTests(unittest.TestCase):
                 outputs.setdefault(int(fields[1]), []).append(fields[2])
         expected = {
             'safe': outputs[1], 'constructor': outputs[2], 'core': outputs[3],
-            'additional': [name for stage in range(4, 11) for name in outputs[stage]],
+            'additional': [name for stage in range(4, 11) for name in outputs[stage]
+                           if name not in CONTROLLER_OUTPUTS],
+            'controller': list(CONTROLLER_OUTPUTS),
         }
         all_names = []
         for kind, names in expected.items():
@@ -73,8 +84,49 @@ class NativeReleaseOwnerSourceTests(unittest.TestCase):
                 self.assertEqual(actual, names)
                 self.assertIn(10, operations)
                 all_names.extend(actual)
+        self.assertEqual(set(outputs), set(range(1, 11)))
+        self.assertEqual(len(all_names), 72)
+        self.assertEqual(len(set(all_names)), 72)
+        self.assertEqual(all_names, [name for stage in range(1, 11) for name in outputs[stage]])
+
+    def test_original_66_publications_remain_exact_against_frozen_stage_inventory(self):
+        all_names = []
+        for kind, names in LEGACY_STAGE_OUTPUTS.items():
+            with self.subTest(kind=kind):
+                actual, operations = decode_dag((BOOT / f'release_stage_{kind}.hiastd').read_bytes())
+                self.assertEqual(actual, list(names))
+                self.assertIn(10, operations)
+                all_names.extend(actual)
         self.assertEqual(len(all_names), 66)
         self.assertEqual(len(set(all_names)), 66)
+
+    def test_current_72_stage_outputs_are_part_of_the_complete_289_member_package(self):
+        from tools.build_hia_json_preflight import current_sources
+        from tools.build_hia_native_distribution_package import expected_member_names, MANDATORY_PROGRAMS
+        from tools.generate_hia_release_owner import DAG_KINDS
+        self.assertEqual(DAG_KINDS, ('safe', 'constructor', 'core', 'additional', 'controller'))
+        stage_names = []
+        for kind in DAG_KINDS:
+            names, unused = decode_dag((BOOT / f'release_stage_{kind}.hiastd').read_bytes())
+            stage_names.extend(names)
+        declared = expected_member_names(current_sources())
+        self.assertEqual(len(declared), 289)
+        self.assertEqual(len(stage_names), 72)
+        self.assertTrue(set(stage_names) <= declared)
+        self.assertTrue(set(MANDATORY_PROGRAMS) <= declared)
+        self.assertTrue(set(CONTROLLER_OUTPUTS) <= declared)
+
+    def test_worker_owner_and_dag_are_current_generated_release_compositions(self):
+        from hepta.hia_agent_assembly import render_assembly
+        from tools.generate_hia_artifact_publication import document
+        from tools.generate_hia_worker_install_owner import policy_source, packer_source
+        for name, source in (
+                ('worker_install_owner', policy_source()),
+                ('worker_install_dag', policy_source(stage=True)),
+                ('worker_install_owner_packer', packer_source())):
+            with self.subTest(name=name):
+                self.assertEqual(render_assembly(document(source, name)).encode(),
+                                 (BOOT / (name + '.hepta')).read_bytes())
 
     def test_core_graph_retains_dynamic_codec_roundtrips_and_exact_tail_checks(self):
         _, operations = decode_dag((BOOT / 'release_stage_core.hiastd').read_bytes())

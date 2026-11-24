@@ -169,9 +169,8 @@ class CoreRecipe(Recipe):
 
     def linked_implementations(self, prover):
         kinds = [kind for kind in core.NOMINAL_CLI_IMAGES if kind != 'build_object'] + ['build_object']
-        common = {core.NOMINAL_BUILD_SOURCES[key]: label
-                  for key, label in {**core.NOMINAL_IMAGE_LABELS, **core.NOMINAL_BUILD_IMAGES}.items()}
-        paths = set(common).union(*(core.NOMINAL_CLI_IMAGES[kind] for kind in kinds))
+        payloads_by_kind = {kind: core.nominal_cli_payloads(kind) for kind in kinds}
+        paths = set().union(*(payloads_by_kind[kind] for kind in kinds))
         self.compile_paths(paths)
         templates, objects = {}, {}
         for path, (template, role) in core.NOMINAL_ADAPTER_ROLES.items():
@@ -196,7 +195,7 @@ class CoreRecipe(Recipe):
                 adapters.append(core.EDIT_RESPONSE)
             if kind in ('batch_apply', 'publish_batch'):
                 adapters.append(core.BATCH_CAPTURE)
-            payloads = {**common, **core.NOMINAL_CLI_IMAGES[kind]}
+            payloads = payloads_by_kind[kind]
             parts = [*(objects[path] for path in adapters), *(self.source_views[path] for path in payloads)]
             if kind == 'build_object':
                 parts.append(prover)

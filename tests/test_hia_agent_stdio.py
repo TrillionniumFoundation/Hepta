@@ -249,22 +249,37 @@ class AgentStdioNativeTests(unittest.TestCase):
 
     def test_catalog_matches_all_hosted_versions_under_empty_path(self):
         from hepta.hia_opcodes import opcode_catalog
+        from tests.hia_agent_stdio_catalog_history import run_catalog_v8_baseline
+        from tools.hia_cli_discovery_compat import legacy_catalog_owner
+
+        destination = os.environ.get('HEPTA_HIA_AGENT_STDIO_CATALOG_HISTORY_EVIDENCE')
+        if destination == '':
+            raise ValueError('empty historical catalog evidence destination')
+        history = run_catalog_v8_baseline(
+            Path(destination) if destination is not None else self.root / 'catalog-v8-baseline',
+            self.compiler)
+        self.assertEqual(history['status'], 'ORIGINAL_V8_CATALOG_PASS')
+        self.assertEqual(history['original_native_calls'], 19)
+        original = legacy_catalog_owner()
+        for version in range(1, 9):
+            schema = f'hepta.hia.program.v{version}'
+            self.assertEqual(opcode_catalog(schema), original.opcode_catalog(schema))
 
         def expected(version):
             schema=f'hepta.hia.program.v{version}'
             return (json.dumps(opcode_catalog(schema),ensure_ascii=False,indent=2,sort_keys=True)+'\n').encode()
 
-        for version in range(1,9):
+        for version in range(1,10):
             with self.subTest(version=version):
                 p=self.invoke(['catalog','--schema',f'hepta.hia.program.v{version}'],b'ignored')
                 self.assertEqual((p.returncode,p.stdout,p.stderr),(0,expected(version),b''))
         for profile in ('elf','exec'):
             p=self.invoke(['catalog'],profile=profile)
-            self.assertEqual((p.returncode,p.stdout,p.stderr),(0,expected(8),b''))
+            self.assertEqual((p.returncode,p.stdout,p.stderr),(0,expected(9),b''))
         p=self.invoke(['catalog','--s=hepta.hia.program.v2','--schem','hepta.hia.program.v5'])
         self.assertEqual((p.returncode,p.stdout,p.stderr),(0,expected(5),b''))
         for extra in (['--schema'],['--schema='],['schema'],['--schema-extra'],
-                      ['--schema','hepta.hia.program.v9'],['--schema','hepta.hia.program.v80'],
+                      ['--schema','hepta.hia.program.v10'],['--schema','hepta.hia.program.v80'],
                       ['--schema=hepta.hia.program.v0','--schema=hepta.hia.program.v8'],['x'*64]):
             with self.subTest(extra=extra):
                 p=self.invoke(['catalog',*extra])

@@ -2500,6 +2500,7 @@ jobs:
           installed="$package/reinstalled/$digest"
           export HEPTA_HIA_DIRECT_SHARED_LINKER_EXECUTABLE="$installed/hia-elf-link-direct-shared"
           export HEPTA_HIA_DIRECT_SHARED_CORE_CLI="$installed/hia"
+          export HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST="$installed/elf-shared-linker-manifest.json"
           python -B - <<'PYTEST'
           import unittest
           names = (

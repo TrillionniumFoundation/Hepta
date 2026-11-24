@@ -79,6 +79,7 @@ class CostContextCallerDeliverySourceTests(unittest.TestCase):
             names.update(cls.originals[kind].get('shared_dependency_review', {}))
         names.update((subject.SQL_SOURCE_FIXTURE, subject.SQL_EFFECT_TEST))
         cls.sources = {name: (ROOT / name).read_bytes() for name in sorted(names)}
+        cls.live_sources = dict(cls.sources)
         from tests.hia_installed_distribution_history import predecessor
         for name, expected in OUTER_PINS.items():
             raw = predecessor(name, cls.sources[name])
@@ -91,6 +92,11 @@ class CostContextCallerDeliverySourceTests(unittest.TestCase):
             raise AssertionError('fixed Cost/Context caller source authority changed')
         cls.authority = json.loads(frozen)
         cls.records = cls.authority['files']
+        # Preserve the original Source controls as a view of their exact reviewed
+        # qualifier bytes; current physical qualifiers have separate live admission.
+        from tests.hia_installed_distribution_history import caller_predecessor
+        for path in subject.ORDINARY_CALLER_PATHS:
+            cls.sources[path] = caller_predecessor(path, cls.sources[path])
         cls.old_sources = {path: independent_inverse(cls.sources[path], cls.records[path])
                            for path in subject.ORDINARY_CALLER_PATHS}
         for path, old in cls.old_sources.items():
@@ -103,7 +109,7 @@ class CostContextCallerDeliverySourceTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if cls.sources != {name: (ROOT / name).read_bytes() for name in cls.sources}:
+        if cls.live_sources != {name: (ROOT / name).read_bytes() for name in cls.live_sources}:
             raise AssertionError('ordinary caller Delivery Source inputs changed')
 
     @contextmanager
