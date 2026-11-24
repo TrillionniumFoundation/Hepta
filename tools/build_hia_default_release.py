@@ -8,22 +8,23 @@ inputs. Explicit development construction is reported separately throughout.
 from __future__ import annotations
 
 import argparse
-import base64
-import csv
+import ctypes
 from hashlib import sha256
-import io
 import json
 import os
 from pathlib import Path
+import struct
 import subprocess
+from tempfile import TemporaryDirectory
 import sys
 import zipfile
+import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_default_native import (ADMISSION_BUNDLE_RESOURCE, ADMISSION_OWNER, BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
+from hepta.hia_default_native import (ADMISSION_BUNDLE_RESOURCE, ADMISSION_OWNER, ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE, BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
                                      CORE_WIRE_OWNER, INTEGER_BUNDLE_RESOURCE, INTEGER_OWNER,
                                      LEDGER_BUNDLE_RESOURCE, LEDGER_OWNER, GRAPH_BUNDLE_RESOURCE, GRAPH_OWNER, OWNED_VM_RESOURCE,
                                      PIN_RESOURCE, PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
@@ -135,13 +136,14 @@ def _slot_wheel_members(files, captured, tag):
     return {path, SLOT_RECEIPT}, tag
 
 
-def _wheel_contents(path, sources, captured):
+def _wheel_contents(path, sources, captured, images):
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
         if (len(names) != len(set(names))
                 or any(Path(name).is_absolute() or '..' in Path(name).parts for name in names)):
             raise ValueError('invalid ordinary wheel member inventory')
-        files = {name: archive.read(name) for name in names}
+        workspace = ctypes.create_string_buffer(2048)
+        files = {name: _wheel_member(archive, name, images, workspace) for name in names}
     records = [name for name in files if name.endswith('.dist-info/RECORD')]
     if len(records) != 1:
         raise ValueError('one wheel distribution inventory is required')
@@ -169,7 +171,16 @@ def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sourc
     from hepta.hia_program_selfhost import SOURCE_FILES
     from tools.build_hia_core_edit import DISPATCH_ROLES, PROGRAMS, build as build_core
 
-    build_core(directory, compiler, cold_report, release_only=True, wheel_layout=True)
+    applications = {
+        'examples/hia_bootstrap/core_cli/assembly_render.hepta': ('hia-render-assembly', ASSEMBLY_RENDER_RESOURCE),
+        'examples/hia_bootstrap/core_cli/assembly_syntax_diagnostics.hepta': ('hia-import-assembly', ASSEMBLY_SYNTAX_RESOURCE),
+        'examples/hia_bootstrap/core_cli/assembly_diagnostic_report.hepta': ('hia-import-assembly', ASSEMBLY_DIAGNOSTIC_RESOURCE),
+    }
+    captured = {}
+    def retain(source, image):
+        if source in applications:
+            captured[source] = image
+    build_core(directory, compiler, cold_report, release_only=True, wheel_layout=True, retain_compiled_image=retain)
     receipt = json.loads((directory / 'build.json').read_bytes())
     paths = {name: directory / name for kind, (name, _) in PROGRAMS.items() if kind != 'emit_object'}
     paths['hia-nominal-constructor'] = directory / 'nominal-constructor/hia-nominal-constructor'
@@ -188,30 +199,184 @@ def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sourc
             raise ValueError(f'selfhost CLI resource differs from cold source {relative}')
         members[scripts + path.name] = raw
         binaries[path] = raw
-    return members, binaries
+    assembly_images = {}
+    for source, (role, resource) in applications.items():
+        raw = captured[source]
+        compiled = receipt['compile_receipts'][source]
+        linked = receipt['executables'][role]['native_image_sha256'][Path(source).name]
+        if (compiled['source_sha256'] != sources[source] or compiled['compiler_sha256'] != receipt['compiler_sha256']
+                or compiled['produced_bytes'] != len(raw) or compiled['produced_sha256'] != linked
+                or sha256(raw).hexdigest() != linked or binaries[paths[role]].count(raw) != 1):
+            raise ValueError('public assembly role differs from its source-bound HIA image: ' + source)
+        assembly_images[resource] = raw
+    return members, binaries, assembly_images
 
 
-def _write_wheel(path, files, distribution):
-    record = distribution + '/RECORD'
-    entries = io.StringIO(newline='')
-    writer = csv.writer(entries, lineterminator='\n')
+def _wheel_record_images(directory, compiler, sources, cold_bytes):
+    """Compile and bind the HIA programs for the wheel inventory and ZIP directory."""
+    from hepta.hia_json_preflight_native import NativeHiaJsonImage
+    from hepta.hia_sha256_stream_native import NativeSha256Stream
+    from tools.build_hia_source_build import _check_compile_receipt
+    from tools.qualify_hia_selfhost import compile_stage
+    from tools.replay_hia_selfhost_cold import cold_compiler_observer
+
+    observer = None if cold_bytes is None else cold_compiler_observer(cold_bytes)
+    compiler_raw = compiler.read_bytes()
+    directory.mkdir(mode=0o700)
+    images = []
+    programs = (('sha256_stream', NativeSha256Stream), ('wheel_record_row', NativeHiaJsonImage),
+                ('wheel_zip_directory', NativeHiaJsonImage), ('wheel_inflate', NativeHiaJsonImage),
+                ('wheel_zip_local', NativeHiaJsonImage))
+    for name, image_type in programs:
+        relative = 'examples/hia_bootstrap/' + name + '.hepta'
+        path = ROOT / relative
+        raw = path.read_bytes()
+        if sha256(raw).hexdigest() != sources.get(relative):
+            raise ValueError('wheel record source differs from its admitted identity: ' + name)
+        image, receipt = compile_stage(directory, name, compiler, raw, flat_observer=observer)
+        compiled = image.read_bytes()
+        _check_compile_receipt(receipt, compiler=compiler_raw, source=raw, produced=compiled)
+        if path.read_bytes() != raw or compiler.read_bytes() != compiler_raw:
+            raise ValueError('wheel record compiler inputs changed')
+        images.append(image_type(compiled, receipt['produced_sha256']))
+    return tuple(images)
+
+
+def _wheel_record_row(encoder, name, size, digest=None):
+    path = name.encode('utf-8')
+    if len(path) > 65535 or (digest is not None and len(digest) != 32):
+        raise ValueError('invalid wheel record member')
+    wire = struct.pack('<8s3Q', b'HIAWROW1', int(digest is None), len(path), size) + path + (digest or b'')
+    source = ctypes.create_string_buffer(wire, len(wire))
+    output = ctypes.create_string_buffer(2 * len(path) + 80)
+    used = encoder._entry(source, len(wire), output, len(output), None, 0)
+    if not 0 < used <= len(output):
+        raise ValueError('HIA refused a wheel inventory row')
+    return output.raw[:used]
+
+
+ZIP_LOCAL_MEMBER, ZIP_CENTRAL_MEMBER, ZIP_END_DIRECTORY, ZIP_CRC_UPDATE = range(4)
+
+
+def _zip_frame(encoder, action, *, size, compressed=0, offset=0, crc=0, executable=False,
+               name=b'', payload=b'', workspace=None):
+    prefix = struct.pack('<8s7Q', b'HIAWZIP1', action, size, compressed, offset, crc, int(executable), len(name))
+    wire = prefix + name + payload
+    source = ctypes.create_string_buffer(wire, len(wire))
+    output = ctypes.create_string_buffer(4 if workspace is not None else len(name) + 128)
+    work_size = len(workspace) if workspace is not None else 0
+    used = encoder._entry(source, len(wire), output, len(output), workspace, work_size)
+    if not 0 < used <= len(output) or (action == ZIP_CRC_UPDATE and used != 4):
+        raise ValueError('HIA refused the wheel ZIP frame')
+    return output.raw[:used]
+
+
+def _wheel_crc(encoder, raw, workspace):
+    crc = 0
+    chunk_bytes = 1 << 20
+    for start in range(0, len(raw), chunk_bytes):
+        chunk = raw[start:start + chunk_bytes]
+        encoded = _zip_frame(encoder, ZIP_CRC_UPDATE, size=len(chunk), crc=crc, payload=chunk, workspace=workspace)
+        crc = int.from_bytes(encoded, 'little')
+    return crc
+
+
+def _inflate_wheel_member(image, compressed, size):
+    """Walk the entire stream and check its extent before allocating from the ZIP metadata."""
+    source = ctypes.create_string_buffer(compressed, max(1, len(compressed)))
+    measurement = ctypes.create_string_buffer(4112)
+    measurement[4096:] = struct.pack('<8sQ', b'HIACOUNT', size)
+    length = ctypes.create_string_buffer(8)
+    if (image._entry(source, len(compressed), length, 8, measurement, len(measurement)) != 0
+            or int.from_bytes(length.raw, 'little') != size):
+        raise zipfile.BadZipFile('invalid DEFLATE stream or declared wheel member size')
+    output = ctypes.create_string_buffer(size)
+    workspace = ctypes.create_string_buffer(4096)
+    if image._entry(source, len(compressed), output, size, workspace, len(workspace)) != 0:
+        raise zipfile.BadZipFile('invalid wheel DEFLATE payload')
+    return output.raw
+
+
+def _wheel_member(archive, name, images, crc_workspace):
+    _, _, zipper, inflater, locator = images
+    info = archive.getinfo(name)
+    limit = getattr(info, '_end_offset', None)
+    # Preserve optional codec, encryption and duplicate-offset behavior of the supplied ZipFile.
+    if (info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED) or info.flag_bits & 0x61
+            or limit is None or limit == info.header_offset):
+        return archive.read(info)
+    stream = archive.fp
+    stream.seek(info.header_offset)
+    header = stream.read(30)
+    if len(header) != 30:
+        raise zipfile.BadZipFile('Truncated file header')
+    request = struct.pack('<8s3Q', b'HIAZLOC1', info.header_offset, info.compress_size, limit) + header
+    source = ctypes.create_string_buffer(request, len(request))
+    extent = ctypes.create_string_buffer(32)
+    status = locator._entry(source, len(request), extent, len(extent), None, 0)
+    if status == 2:
+        raise zipfile.BadZipFile('Bad magic number for file header')
+    if status == 3:
+        raise zipfile.BadZipFile('Overlapped entries: %r (possible zip bomb)' % info.orig_filename)
+    if status:
+        raise zipfile.BadZipFile('invalid HIA wheel local header')
+    flags, name_size, start, end = struct.unpack('<4Q', extent.raw)
+    filename = stream.read(name_size)
+    encoding = 'utf-8' if flags & 0x800 else archive.metadata_encoding or 'cp437'
+    if filename.decode(encoding) != info.orig_filename:
+        raise zipfile.BadZipFile('File name in directory %r and header %r differ.' % (info.orig_filename, filename))
+    stream.seek(start)
+    compressed = stream.read(end - start)
+    if len(compressed) != info.compress_size:
+        raise zipfile.BadZipFile('truncated wheel member')
+    raw = compressed if info.compress_type == zipfile.ZIP_STORED else _inflate_wheel_member(
+        inflater, compressed, info.file_size)
+    if len(raw) != info.file_size or _wheel_crc(zipper, raw, crc_workspace) != info.CRC:
+        raise zipfile.BadZipFile('wheel member length or CRC differs')
+    return raw
+
+
+def _write_zip(stream, files, distribution, encoder):
+    directory = bytearray()
+    prefix = distribution.removesuffix('.dist-info') + '.data/scripts/'
+    workspace = ctypes.create_string_buffer(2048)
     for name, raw in sorted(files.items()):
-        if name == record:
-            continue
-        digest = base64.urlsafe_b64encode(sha256(raw).digest()).rstrip(b'=').decode('ascii')
-        writer.writerow((name, 'sha256=' + digest, str(len(raw))))
-    writer.writerow((record, '', ''))
-    files = {**files, record: entries.getvalue().encode()}
-    with zipfile.ZipFile(path, 'x', compression=zipfile.ZIP_DEFLATED) as archive:
-        for name, raw in sorted(files.items()):
-            item = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
-            item.create_system = 3
-            is_program = (name.startswith(distribution.removesuffix('.dist-info') + '.data/scripts/')
-                          and raw.startswith(b'\x7fELF'))
-            item.external_attr = (0o100755 if is_program else 0o100644) << 16
-            item.compress_type = zipfile.ZIP_DEFLATED
-            archive.writestr(item, raw)
-    return {name: sha256(raw).hexdigest() for name, raw in sorted(files.items())}
+        crc = _wheel_crc(encoder, raw, workspace)
+        compressor = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION, zlib.DEFLATED, -15)
+        compressed = compressor.compress(raw) + compressor.flush()
+        metadata = dict(name=name.partition('\0')[0].encode('utf-8'), size=len(raw),
+                        compressed=len(compressed), crc=crc, offset=stream.tell(),
+                        executable=name.startswith(prefix) and raw.startswith(b'\x7fELF'))
+        stream.write(_zip_frame(encoder, ZIP_LOCAL_MEMBER, **metadata))
+        stream.write(compressed)
+        directory.extend(_zip_frame(encoder, ZIP_CENTRAL_MEMBER, **metadata))
+    offset = stream.tell()
+    stream.write(directory)
+    stream.write(_zip_frame(encoder, ZIP_END_DIRECTORY, size=len(files), compressed=len(directory), offset=offset))
+
+
+def _write_wheel(path, files, distribution, record_images):
+    if os.path.lexists(path):
+        raise FileExistsError(path)
+    hasher, encoder, zipper = record_images[:3]
+    record = distribution + '/RECORD'
+    entries = bytearray()
+    digests = {}
+    for name, raw in sorted(files.items()):
+        if name != record:
+            digest = hasher.digest(raw)
+            digests[name] = digest.hex()
+            entries.extend(_wheel_record_row(encoder, name, len(raw), digest))
+    entries.extend(_wheel_record_row(encoder, record, 0))
+    record_bytes = bytes(entries)
+    digests[record] = hasher.digest(record_bytes).hex()
+    files = {**files, record: record_bytes}
+    with TemporaryDirectory(prefix='.hia-wheel-', dir=path.parent) as folder:
+        staged = Path(folder) / path.name
+        with staged.open('xb') as stream:
+            _write_zip(stream, files, distribution, zipper)
+        os.link(staged, path)
+    return {name: digests[name] for name in sorted(files)}
 
 
 def _cli_package_members(output, compiler, cold_report):
@@ -328,14 +493,25 @@ def build(output, compiler, cold_report=None, *, development=False):
         pin += tuple(sha256(owner_members['hepta/' + resource]).hexdigest() for resource in (
             INTEGER_BUNDLE_RESOURCE, LEDGER_BUNDLE_RESOURCE, GRAPH_BUNDLE_RESOURCE,
             OWNED_VM_RESOURCE, ADMISSION_BUNDLE_RESOURCE))
-    pin_raw = render_pin_data(pin)
     staging = output / 'source'
     staging.mkdir(mode=0o700)
     base_wheel, command = _base_wheel(staging, output / 'base-wheel', captured, native_store_only=not development)
-    files, distribution, wheel_tag = _wheel_contents(base_wheel, sources, captured)
+    record_images = _wheel_record_images(output / 'wheel-record', compiler, sources, cold_bytes)
+    files, distribution, wheel_tag = _wheel_contents(base_wheel, sources, captured, record_images)
     if (files.get('hepta/_data/examples/hia_bootstrap/full_cost.hepta')
             != captured['examples/hia_bootstrap/full_cost.hepta']):
         raise ValueError('native candidate wheel does not own its exact HIA source')
+    if not development:
+        cli_scripts, cli_inputs, assembly_images = _native_cli_scripts(
+            output / 'native-cli', compiler, cold_report, distribution, sources=sources)
+        owner_members.update(cli_scripts)
+        owner_inputs.update(cli_inputs)
+        for resource in (ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE):
+            raw = assembly_images[resource]
+            owner_members['hepta/' + resource] = raw
+            pin += (sha256(raw).hexdigest(),)
+        owner_members[PACKAGE_DIRECTORY + '/cold-report.json'] = cold_bytes
+    pin_raw = render_pin_data(pin)
     build_tag = '1hiafullcostdev' if development else '1hiafullcostcold'
     wheel_meta = ('Wheel-Version: 1.0\nGenerator: hepta.default-native-candidate.v1\n'
                   'Root-Is-Purelib: false\nBuild: ' + build_tag + '\nTag: ' + wheel_tag + '\n').encode()
@@ -353,11 +529,6 @@ def build(output, compiler, cold_report=None, *, development=False):
         PACKAGE_DIRECTORY + '/component-build.json': component_report,
         PACKAGE_DIRECTORY + '/provenance.json': provenance,
         distribution + '/WHEEL': wheel_meta}
-    if not development:
-        cli_scripts, cli_inputs = _native_cli_scripts(output / 'native-cli', compiler, cold_report, distribution, sources=sources)
-        derived.update(cli_scripts)
-        owner_inputs.update(cli_inputs)
-        derived[PACKAGE_DIRECTORY + '/cold-report.json'] = cold_bytes
     files.update(derived)
     prefix = base_wheel.name.removesuffix('.whl').rsplit('-', 3)[0]
     wheel = output / (prefix + '-' + build_tag + '-' + wheel_tag + '.whl')
@@ -366,7 +537,7 @@ def build(output, compiler, cold_report=None, *, development=False):
             or any((ROOT / name).read_bytes() != raw for name, raw in captured.items())
             or any(path.read_bytes() != raw for path, raw in owner_inputs.items())):
         raise ValueError('default candidate inputs changed before wheel publication')
-    members = _write_wheel(wheel, files, distribution)
+    members = _write_wheel(wheel, files, distribution, record_images)
     report = {'schema': SCHEMA, 'scope': scope, 'target': TARGET, 'wheel_tag': wheel_tag,
         'wheel': str(wheel), 'wheel_sha256': sha256(wheel.read_bytes()).hexdigest(),
         'base_wheel_sha256': sha256(base_wheel.read_bytes()).hexdigest(),

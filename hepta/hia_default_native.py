@@ -26,6 +26,9 @@ OWNED_VM_RESOURCE = '_data/native/default/full_cost/hia-owned-reference-wire'
 PROOF_BUNDLE_RESOURCE = '_data/native/default/full_cost/proof-bundle.json'
 BINDER_RESOURCE = '_data/native/default/full_cost/hia-safe-core-bind'
 CLI_BUNDLE_RESOURCE = '_data/native/default/cli/manifest.json'
+ASSEMBLY_RENDER_RESOURCE = '_data/native/default/cli/assembly-render.bin'
+ASSEMBLY_SYNTAX_RESOURCE = '_data/native/default/cli/assembly-syntax.bin'
+ASSEMBLY_DIAGNOSTIC_RESOURCE = '_data/native/default/cli/assembly-diagnostic.bin'
 SELECTOR = 'HEPTA_HIA_FULL_COST_MANIFEST'
 CORE_ELF_OWNERS = (
     ('HEPTA_HIA_ELF_SHARED_LINKER_MANIFEST', 'elf-shared-linker'),
@@ -61,7 +64,7 @@ def _verify_data_resources(directory, value):
 
     from .hia_native_helpers import _read
 
-    if len(value) not in ((10, 11, 12, 14, 15) if value[4] == SCOPES[0] else (7,)):
+    if len(value) not in ((10, 11, 12, 14, 15, 16, 18) if value[4] == SCOPES[0] else (7,)):
         raise ValueError('incomplete native-default data pin')
     contract_name = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
     contract = _read(directory / '_data' / contract_name, 4 << 20)
@@ -81,11 +84,17 @@ def _verify_data_resources(directory, value):
         resources.append((LEDGER_BUNDLE_RESOURCE, value[11]))
     if len(value) >= 14:
         resources.extend(((GRAPH_BUNDLE_RESOURCE, value[12]), (OWNED_VM_RESOURCE, value[13])))
-    if len(value) == 15:
+    if len(value) >= 15:
         resources.append((ADMISSION_BUNDLE_RESOURCE, value[14]))
+    if len(value) >= 16:
+        resources.append((ASSEMBLY_RENDER_RESOURCE, value[15]))
+    if len(value) >= 18:
+        resources.extend(((ASSEMBLY_SYNTAX_RESOURCE, value[16]), (ASSEMBLY_DIAGNOSTIC_RESOURCE, value[17])))
     for path, expected in resources:
         raw = _read(directory / path, 16 << 20).raw
         if sha256(raw).hexdigest() != expected:
+            if path == BINDER_RESOURCE:
+                raise ValueError('native-default binder identity mismatch')
             raise ValueError('native-default pin differs from package resource ' + str(path))
 
 
@@ -167,7 +176,7 @@ def _capture_package():
                 or (pin_path.parent / BUNDLE_RESOURCE).parent.exists()):
             raise ValueError('portable native-default pin bytes changed')
         return None
-    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12, 14, 15)
+    if (type(value) is not tuple or len(value) not in (7, 8, 9, 10, 11, 12, 14, 15, 16, 18)
             or any(type(item) is not str for item in value)
             or value[:3] != (PIN_SCHEMA, TARGET, BUNDLE_RESOURCE)
             or value[4] not in SCOPES
@@ -243,6 +252,55 @@ def default_cli():
                 or gettext.find(domain, gettext.bindtextdomain(domain)) is not None):
             return None
     return _package_cli()
+
+
+def default_assembly_text(canonical):
+    from .hia_agent_assembly import _native_assembly_text
+    return _package_assembly(_native_assembly_text, canonical, ((ASSEMBLY_RENDER_RESOURCE, 15),))
+
+
+def default_assembly_document(source):
+    from . import hia_agent_assembly as assembly
+
+    limits = (assembly.MAX_FUNCTIONS, assembly.MAX_BLOCKS, assembly.MAX_OPERATIONS)
+    if any(type(value) is not int or not 0 <= value <= maximum
+           for value, maximum in zip(limits, (256, 4096, 16384), strict=True)):
+        return None
+    if (assembly.MAX_SOURCE_BYTES, assembly.MAX_LINES, assembly.MAX_LINE_BYTES, assembly.MAX_LIST_ITEMS,
+            assembly.MAX_ATTRIBUTE_NODES, assembly.MAX_ATTRIBUTE_DEPTH) != (1 << 20, 16384, 16384, 256, 2048, 16):
+        return None
+    return _package_assembly(assembly._native_assembly_document, source,
+                             ((ASSEMBLY_SYNTAX_RESOURCE, 16), (ASSEMBLY_DIAGNOSTIC_RESOURCE, 17)))
+
+
+def _package_assembly(operation, argument, resources):
+    """Use the exact images linked into the wheel's public assembly tools."""
+    from hashlib import sha256
+    from . import hia_native_helpers as helpers
+    from .hia_json_preflight_native import MAX_IMAGE_BYTES, NativeHiaJsonImage
+
+    helpers._check_scope_owner()
+    if helpers._SCOPE_OWNER is not None:
+        return None
+    captured = _capture_package()
+    if captured is None:
+        return None
+    directory, value, pins = captured
+    if len(value) <= resources[-1][1]:
+        return None
+    snapshots = list(pins)
+    images = []
+    for resource, index in resources:
+        item = helpers._read(directory / resource, MAX_IMAGE_BYTES)
+        if sha256(item.raw).hexdigest() != value[index]:
+            raise ValueError('installed assembly image differs from its package pin: ' + resource)
+        snapshots.append((item, MAX_IMAGE_BYTES))
+        images.append(NativeHiaJsonImage(item.raw, value[index]))
+    try:
+        return operation(*images, argument)
+    finally:
+        if any(helpers._read(item.path, limit) != item for item, limit in snapshots):
+            raise ValueError('installed assembly image changed during the operation')
 
 
 def default_cli_discovery():

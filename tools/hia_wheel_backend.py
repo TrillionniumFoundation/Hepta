@@ -1,4 +1,5 @@
 """PEP 517 entry points for the ordinary Linux x86-64 HIA distribution."""
+import ctypes
 from pathlib import Path
 from shutil import copyfile
 from tempfile import TemporaryDirectory
@@ -33,20 +34,22 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     """Keep the Python API editable and install the same physical public ELF programs."""
-    from tools.build_hia_default_release import WHEEL_TAG, _native_cli_scripts, _write_wheel
+    from tools.build_hia_default_release import WHEEL_TAG, _native_cli_scripts, _wheel_member, _wheel_record_images, _write_wheel
     from tools.build_hia_json_preflight import admit_cold_build
 
     destination = Path(wheel_directory).resolve()
     with TemporaryDirectory(prefix='hia-editable-') as tmp:
         work = Path(tmp).resolve()
         base = work / build_python_editable(str(work), config_settings, metadata_directory)
-        with zipfile.ZipFile(base) as archive:
-            files = {name: archive.read(name) for name in archive.namelist()}
-        record, = (name for name in files if name.endswith('.dist-info/RECORD'))
-        distribution = record.removesuffix('/RECORD')
         compiler, report = _cold_inputs(work)
         sources = admit_cold_build(compiler.read_bytes(), report.read_bytes())
-        programs, _ = _native_cli_scripts(work / 'cli', compiler, report, distribution, sources=sources)
+        record_images = _wheel_record_images(work / 'wheel-record', compiler, sources, report.read_bytes())
+        with zipfile.ZipFile(base) as archive:
+            workspace = ctypes.create_string_buffer(2048)
+            files = {name: _wheel_member(archive, name, record_images, workspace) for name in archive.namelist()}
+        record, = (name for name in files if name.endswith('.dist-info/RECORD'))
+        distribution = record.removesuffix('/RECORD')
+        programs, _, _ = _native_cli_scripts(work / 'cli', compiler, report, distribution, sources=sources)
         files.update(programs)
         current = base.name.removesuffix('.whl').rsplit('-', 3)
         tag = '-'.join(current[1:])
@@ -56,5 +59,5 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
             files[meta] = files[meta].replace(b'Root-Is-Purelib: true', b'Root-Is-Purelib: false').replace(
                 b'Tag: py3-none-any', b'Tag: ' + WHEEL_TAG.encode())
             wheel_name = current[0] + '-' + WHEEL_TAG + '.whl'
-        _write_wheel(destination / wheel_name, files, distribution)
+        _write_wheel(destination / wheel_name, files, distribution, record_images)
         return wheel_name
