@@ -100,3 +100,41 @@ The handler and IRETQ remain explicitly non-HIA observer code. No native
 interrupt entry, return, cross-CPU synchronization or resource authority
 claim is made. All existing selfhost generation, byte-custody, malformed
 input, capacity and guest regressions remain mandatory.
+
+
+## Restricted terminal CPL0-to-CPL3 IRETQ
+
+The experimental native compiler recognizes
+`x86.irq.iretq_user(u64,u16,u64,u64,u16)` with privilege/trap effects.
+It is deliberately not a general call or returning instruction: the
+entire subject must consist of one exported void function, one block,
+five ordered scalar parameters (RIP, CS, RFLAGS, RSP, SS), one operation,
+and an immediate `trap user` sentinel. The native parser checks these
+constraints, including global shape after parsing the whole input.
+Extra instructions, blocks, functions, exports, return values and
+incorrect effects/operands are rejected. The existing verifier for
+ordinary Core programs is not replaced.
+
+The emitted guard requires nonzero lower-half 48-bit canonical RIP/RSP,
+non-null GDT selectors with RPL=3, and a restricted RFLAGS mask 0xad7 with
+bit 1 set. Only after all guards pass does the generated machine code
+push SS, RSP, RFLAGS, CS, RIP and execute IRETQ. The ordinary Core trap
+terminator emits a UD2 sentinel if execution unexpectedly falls through.
+This is a restricted terminal user-entry path, not arbitrary exception
+context restoration. It does not save or restore all registers, prove
+GDT/page/stack ownership, establish current CPL0 or reclaim the
+abandoned supervisor stack. Hardware faults are not recovered here.
+
+A separate NON-HIA observer boots a private guest, provisions user RX
+and RW/NX mappings, GDT and a SYSCALL observation path. It contains no
+IRETQ. Two different user RIP/RSP/RFLAGS frames must actually enter CPL3;
+the observer verifies real selectors, RIP/RSP and RFLAGS via CPU
+SYSCALL state and user markers. Six malformed frames must trap at the
+exact emitted guard instruction, and a deleted IRETQ must hit the
+terminal sentinel. Deleting only the mandatory RFLAGS bit-1 guard is
+an additional discriminating control: hardware then normalizes bit 1
+and enters the user code. All tests run on PC and Q35, with exact ELF
+and section custody; all previous IDTR, atomic, MMIO, MSR, port I/O
+and capacity regressions are retained. Neither native interrupt entry,
+arbitrary context return, SMP, resource authority nor full Linux
+acceptance is claimed.
