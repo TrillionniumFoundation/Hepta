@@ -107,6 +107,19 @@ The complete cold qualification uses exactly:
 hia-cold --source ABS_SOURCE --output NEW_ABS_OUTPUT --toolchain ABS_TOOLCHAIN --bundle ABS_DESCRIPTOR
 ```
 
+The post-cold source bootstrap uses exactly:
+
+```
+hia-source-bootstrap --source ABS_SOURCE --cold ABS_COLD --bootstrap ABS_BOOTSTRAP --output NEW_ABS_OUTPUT
+```
+
+Its native entry consumes the captured `final-cold.json` and
+`qualification/base/B3.flat` below the admitted cold directory. The post recipe
+first performs strict report and source admission, then builds using that actual
+qualified successor. This public entry replaces the development script as the
+production source-bootstrap invocation; it does not create an independent
+reference compiler or report the full workflow qualified before execution.
+
 These are separate operations. Constructing the toolchain does not report that
 the full cold qualification passed. The latter retains its original execution,
 cleanup and replay budgets and its complete current-input native reference

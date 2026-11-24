@@ -778,6 +778,48 @@
       "old_canonical_sha256": "a4eee3d210421e7dbe7527f6ce08d87c2b4903272b0ae0fb8fab4d59b686da66",
       "operation": "replace",
       "reason": "dynamic inventory slot filled only by native source-contract producer from actual captured HIASPI01 pins"
+    },
+    {
+      "metadata_pointer": [
+        "native_source_bootstrap"
+      ],
+      "new_value": {
+        "cold_report_relative_path": "final-cold.json",
+        "command": "hia-source-bootstrap --source ABS_SOURCE --cold ABS_COLD --bootstrap ABS_BOOTSTRAP --output NEW_ABS_OUTPUT",
+        "entry": "examples/hia_bootstrap/cold_source_bootstrap_entry.hepta",
+        "packer": "examples/hia_bootstrap/cold_source_bootstrap_entry_packer.hepta",
+        "qualified_successor_relative_path": "qualification/base/B3.flat",
+        "sequence": [
+          "strictly admit the captured cold report against the captured source",
+          "execute the admitted post-cold recipe using the actual qualified successor",
+          "publish the source-bound bootstrap output"
+        ],
+        "whole_native_delivery_qualified": false
+      },
+      "old_canonical_sha256": null,
+      "operation": "add",
+      "reason": "public post-cold source bootstrap entry; implementation c02f8c16042cd5e3ca045bed8bbe8219e733d62a, component qualified, whole workflow still pending"
+    },
+    {
+      "metadata_pointer": [
+        "required_replay",
+        "source_bootstrap_command"
+      ],
+      "new_value": "hia-source-bootstrap --source ABS_SOURCE --cold ABS_COLD --bootstrap ABS_BOOTSTRAP --output NEW_ABS_OUTPUT",
+      "old_canonical_sha256": null,
+      "operation": "add",
+      "reason": "public post-cold source bootstrap entry; implementation c02f8c16042cd5e3ca045bed8bbe8219e733d62a, component qualified, whole workflow still pending"
+    },
+    {
+      "metadata_pointer": [
+        "source_identity",
+        "roles",
+        "source_bootstrap"
+      ],
+      "new_value": "examples/hia_bootstrap/cold_source_bootstrap_entry.hepta",
+      "old_canonical_sha256": null,
+      "operation": "add",
+      "reason": "public post-cold source bootstrap entry; implementation c02f8c16042cd5e3ca045bed8bbe8219e733d62a, component qualified, whole workflow still pending"
     }
   ],
   "fixed_point_and_mutation_equations_unchanged": true,
@@ -787,6 +829,7 @@
   "original_boolean_leaves_preserved": 427,
   "original_numeric_leaves_preserved": 346,
   "production_bindings_replaced": 26,
+  "public_source_bootstrap_entry_commit": "c02f8c16042cd5e3ca045bed8bbe8219e733d62a",
   "schema": "hepta.hia.native-selfhost-metadata-migration.v1",
   "semantic_budget_subtrees_unchanged": [
     "limits",
