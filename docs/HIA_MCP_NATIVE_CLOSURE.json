@@ -39,9 +39,11 @@
       "passed": true
     },
     "native_process_owner_69": {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/mcp-service-owner-full-v13/owner-qualification/qualification.json",
-      "sha256": "ec01c32021b3566bff955f09aab0f2f4e89574e2707a04e4e21c1824be6724e2",
-      "passed": true
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/mcp-service-owner-full-v15/owner-qualification/qualification.json",
+      "sha256": "a1f66d4648c2a0fbb45a9eb61ddfb6813a1f50a9ddbfa92304c5fe01b5aa5d31",
+      "passed": true,
+      "count": 69,
+      "service_sha256": "52eb707783ba0f30959d6692f8047a0a20caf62f5560f9d7bcbf7a18d203931f"
     },
     "native_cooperative_cancellation": {
       "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/mcp-sdk-cancellation-v3/qualification.json",
@@ -49,9 +51,11 @@
       "passed": true
     },
     "worker_resource_native_and_same_job_rust": {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/mcp-resources-audit-v10/qualification.json",
-      "sha256": "fe828266b0b9d495b49d66bae6eadac1b20e19c63d2545e234506605f6da53ee",
-      "passed": true
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/mcp-resources-audit-v14/qualification.json",
+      "sha256": "7091cb38884bc78cbbcb123e79744c86d90655152e11726972bc21408eee5871",
+      "passed": true,
+      "count": null,
+      "service_sha256": "8497a2adcdaa7d76c6717876446fc1d499c2f80d9a1c98755d50ac1c0a2a6536"
     },
     "sdk_default_controls_512_models_934_stdio_frames": {
       "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/recursion/sdk-default-controls-v1/checkpoint.json",
@@ -238,13 +242,39 @@
         "cancellation": "Unchanged: actual RoleServer inherits ServiceRole.peer_cancels_subscriptions=false; the modern override belongs exclusively to RoleClient. No cancellation guard or peer-state mutation was added.",
         "integration": "Apply authors.patch to the same parent base, regenerate both production HIA assembly files, compile using the pinned matching-v95 seed and check the two component hashes before parent whole-service qualification."
       }
+    },
+    "typed_configuration_128": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/config-sequence-v15/qualification.json",
+      "sha256": "0b8864ef41a736f057358c8f525fef42dce59ebef455c74107fbc283bfa03bf1",
+      "passed": true,
+      "count": 128,
+      "service_sha256": null
+    },
+    "actual_sdk_lifecycle_38": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/mcp-sdk-lifecycle-native-v14/qualification.json",
+      "sha256": "eeb816ddd5dc921de94eff52d6202400c60cbd8c97bf064a9477e6d56b9a1c39",
+      "passed": true,
+      "count": 38,
+      "service_sha256": "8497a2adcdaa7d76c6717876446fc1d499c2f80d9a1c98755d50ac1c0a2a6536"
+    },
+    "actual_sdk_stdio_63": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/mcp-sdk-stdio-native-v14/qualification.json",
+      "sha256": "0352364ee5029e72a6d6fc140792e250b3c681f197f3e8ed4e8b33a385265c01",
+      "passed": true,
+      "count": 63,
+      "service_sha256": "8497a2adcdaa7d76c6717876446fc1d499c2f80d9a1c98755d50ac1c0a2a6536"
     }
   },
   "pending": [
-    "rebuild the composite bridge from this exact shared canonical source",
-    "repeat complete parent config, lifecycle, framing and resources qualification after final component integration",
+    "complete same-job optional-transports verification through the parent service",
     "register MCP and full Jobctl in the native final source release",
     "remove superseded production sources and qualify the resulting native-only repository"
   ],
-  "whole_release_qualified": false
+  "whole_release_qualified": false,
+  "final_parent_checkpoint": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/mcp-service-owner-full-v15/hia-mcp-service",
+    "bytes": 8163154,
+    "sha256": "52eb707783ba0f30959d6692f8047a0a20caf62f5560f9d7bcbf7a18d203931f",
+    "changed_from_v14": "only setup optional native_jobs retention; all other component bytes identical"
+  }
 }
