@@ -9,7 +9,7 @@ import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
-import shutil
+from tempfile import TemporaryDirectory
 
 from tests.test_hia_kernel_invlpg_qemu import BOOT, LINKER, invoke, qemu
 
@@ -17,7 +17,17 @@ def digest(data):
     return sha256(data).hexdigest()
 
 def dump_text(path, destination):
-    invoke(["objcopy", "--dump-section", ".text=" + str(destination), str(path)])
+    # GNU objcopy with no output object rewrites its input even for
+    # --dump-section. Never let the observer normalize the subject ELF.
+    if path.resolve() == destination.resolve() or (
+            destination.exists() and path.samefile(destination)):
+        raise AssertionError("section destination aliases input ELF")
+    before = path.read_bytes()
+    with TemporaryDirectory(prefix="hia-section-readback-") as scratch:
+        invoke(["objcopy", "--dump-section", ".text=" + str(destination),
+                str(path), str(Path(scratch) / "discard.o")])
+    if path.read_bytes() != before:
+        raise AssertionError("section extraction modified input ELF")
     return destination.read_bytes()
 
 def symbol(path, name):
@@ -78,6 +88,25 @@ def run(output):
         raise AssertionError("native bootstrap artifact custody failed")
     if dump_text(original, output / "original-readback.text") != expected:
         raise AssertionError("original object readback changed")
+    # Noncanonical trailing bytes distinguish an immutable readback from
+    # an objcopy in-place rewrite even when the section bytes are identical.
+    with TemporaryDirectory(prefix="hia-custody-control-") as scratch:
+        control = Path(scratch) / "control.o"
+        control_bytes = native + b"HIA-CUSTODY-TRAILER"
+        control.write_bytes(control_bytes)
+        if dump_text(control, Path(scratch) / "control.text") != expected:
+            raise AssertionError("custody control text differs")
+        if control.read_bytes() != control_bytes:
+            raise AssertionError("custody control was normalized")
+        alias = Path(scratch) / "alias.o"
+        alias.hardlink_to(control)
+        try:
+            dump_text(control, alias)
+        except AssertionError as exc:
+            if str(exc) != "section destination aliases input ELF":
+                raise
+        else:
+            raise AssertionError("hard-linked destination accepted")
     oracle = bytes.fromhex(report["oracle_hex"])
     if oracle != bytes.fromhex("0f0138") or expected.count(oracle) != 1:
         raise AssertionError("missing exact INVLPG")
@@ -94,7 +123,7 @@ def run(output):
         "subject_source_sha256": digest(source.read_bytes()), "observer_sha256": digest(BOOT.read_bytes()),
         "linker_sha256": digest(LINKER.read_bytes()), "cases": [],
         "locked_compiler_changed": False, "privilege_authority_proved": False,
-        "full_linux_acceptance": "HOLD"}
+        "full_linux_acceptance": "HOLD", "artifact_custody": "NOT_CONFIRMED"}
     path = output / "hardware"
     path.mkdir()
     try:
@@ -112,12 +141,19 @@ def run(output):
                                               "status": "FAIL", "error": str(exc), **binding})
                     raise
                 hardware["cases"].append({**observed, **binding, "status": "PASS"})
+        if (original.read_bytes() != native
+                or (output / "invlpg.text").read_bytes() != expected
+                or digest((output / "candidate.hepta").read_bytes()) != report["source_sha256"]
+                or digest((output / "compiler-rebuilt-2").read_bytes()) != report["compiler_sha256"]):
+            raise AssertionError("original HIA artifact changed during guest tests")
+        hardware["artifact_custody"] = "PASS"
         hardware["status"] = "PASS"
+    except Exception as exc:
+        hardware["error"] = str(exc)
+        raise
     finally:
         (output / "hardware-report.json").write_text(json.dumps(hardware, indent=2, sort_keys=True) + "\n")
         print(json.dumps(hardware, sort_keys=True))
-    if original.read_bytes() != native or (output / "invlpg.text").read_bytes() != expected:
-        raise AssertionError("original HIA artifact changed during guest tests")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
