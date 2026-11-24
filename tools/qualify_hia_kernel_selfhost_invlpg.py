@@ -88,7 +88,7 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64"):
+    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64", "x86.mmio.read32", "x86.mmio.write32"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
@@ -172,6 +172,10 @@ def candidate_source():
         """def instruction_effects(op:u64) -> u64:
     if op == @x86.fence.mfence@:
         return 32
+    if op == @x86.mmio.read32@:
+        return 26
+    if op == @x86.mmio.write32@:
+        return 28
     if op == @x86.atomic.cmpxchg64@:
         return 62
     if op >= @x86.tlb.invlpg@ and op <= @x86.io.out32@:
@@ -179,7 +183,32 @@ def candidate_source():
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
         owned_instruction(o, w, op, n, a, at)""",
-        """    if op == @x86.fence.mfence@:
+        """    if op == @x86.mmio.read32@ or op == @x86.mmio.write32@:
+        if get(w, 200) != 1 or at != 1:
+            return fail(w, 65)
+        if op == @x86.mmio.read32@:
+            if n != 1 or t != 3 or get(w, 288) != 1:
+                return fail(w, 65)
+            define(w, v, t)
+        else:
+            if n != 2 or bt != 3 or t != 0 or get(w, 288) != 0:
+                return fail(w, 65)
+        expect(s, w, 10)
+        if get(w, 40) != 0:
+            return 0
+        # Raw MMIO address: live device ownership and UC mapping remain
+        # caller obligations. Exactly one aligned dword access, in emitted
+        # program order. No implicit posted-write flush or DMA ordering.
+        load_var(o, w, 2, a, 0)
+        emit_bytes(o, w, 3112727954572022, 7)
+        if op == @x86.mmio.read32@:
+            emit_bytes(o, w, 651, 2)
+            store_var(o, w, v, 0)
+        else:
+            load_var(o, w, 0, b, 0)
+            emit_bytes(o, w, 649, 2)
+        return 0
+    if op == @x86.fence.mfence@:
         if get(w, 200) != 1 or (n | t | get(w, 288)) != 0:
             return fail(w, 65)
         expect(s, w, 10)
@@ -730,6 +759,88 @@ def qualify_atomic(exe, output):
     return out
 
 
+
+MMIO_GUARD = bytes.fromhex("f6c20374020f0b")
+MMIO_EFFECTS = {"read32": ("privilege","read","trap"),
+                "write32": ("privilege","write","trap")}
+
+def mmio_program(action, *, profile=PROFILE, effects=None, address="u64",
+                 value="u32", op=None, module="selfhost_elf"):
+    if action not in MMIO_EFFECTS:
+        raise ValueError(action)
+    if effects is None:
+        effects = MMIO_EFFECTS[action]
+    if action == "read32":
+        args, ret_type, ret = f"v0:{address}", "u32", "v1"
+        operation = "  v1:u32 = x86.mmio.read32(v0)\n"
+    else:
+        args, ret_type, ret = f"v0:{address},v1:{value}", address, "v0"
+        operation = "  _ = x86.mmio.write32(v0,v1)\n"
+    return (f"hia-asm.v1 {profile} {module}\nexports(f0)\n"
+            f"fn f0({args}) -> ({ret_type}) effects({','.join(effects)}) entry(b0)\n"
+            f"block b0({args})\n" + (operation if op is None else op) +
+            f"  ret({ret})\nend\n").encode()
+
+def qualify_mmio(exe, output):
+    """Exact native lowering; actual device/guard controls run in CPL0 QEMU."""
+    guard_s = output / "mmio-guard-oracle.s"
+    guard_s.write_text(".text\n testb $3,%dl\n jz 1f\n ud2\n1:\n")
+    guard_o = output / "mmio-guard-oracle.o"
+    subprocess.run(["as","--64","-o",str(guard_o),str(guard_s)],check=True)
+    if text_bytes(output,"mmio-guard-oracle-copy",guard_o.read_bytes()) != MMIO_GUARD:
+        raise AssertionError("MMIO GNU as guard mismatch")
+    out = {}
+    for action, mnemonic, opcode in (
+            ("read32","movl (%rdx),%eax",bytes.fromhex("8b02")),
+            ("write32","movl %eax,(%rdx)",bytes.fromhex("8902"))):
+        label = "mmio-"+action
+        subject = mmio_program(action)
+        obj = compile_cli(exe,subject,output,label+"-1")
+        if obj != compile_cli(exe,subject,output,label+"-2") or not obj.startswith(b"\x7fELF"):
+            raise AssertionError(label+" repeated ELF differs")
+        machine = text_bytes(output,label,obj)
+        asm = output/(label+"-oracle.s")
+        asm.write_text(".text\n "+mnemonic+"\n")
+        oracle_o = output/(label+"-oracle.o")
+        subprocess.run(["as","--64","-o",str(oracle_o),str(asm)],check=True)
+        if (text_bytes(output,label+"-oracle-copy",oracle_o.read_bytes()) != opcode
+                or machine.count(opcode) != 1 or machine.count(MMIO_GUARD) != 1
+                or machine.index(MMIO_GUARD) >= machine.index(opcode)):
+            raise AssertionError(label+" independent encoding/order mismatch")
+        bad = {
+            "legacy": mmio_program(action,profile=LEGACY,effects=()),
+            "legacy-effect": mmio_program(action,profile=LEGACY),
+            "wrong-module": mmio_program(action,module="selfhost"),
+            "wrong-address": mmio_program(action,address="u32"),
+            "duplicate-effect": mmio_program(action,effects=(*MMIO_EFFECTS[action],"privilege")),
+        }
+        for effect in MMIO_EFFECTS[action]:
+            bad["missing-"+effect] = mmio_program(action,effects=tuple(e for e in MMIO_EFFECTS[action] if e != effect))
+        if action == "read32":
+            bad.update({
+                "zero-operand": mmio_program(action,op="  v1:u32 = x86.mmio.read32()\n"),
+                "extra-operand": mmio_program(action,op="  v1:u32 = x86.mmio.read32(v0,v0)\n"),
+                "wrong-result": mmio_program(action,op="  v1:u64 = x86.mmio.read32(v0)\n").replace(b"-> (u32)",b"-> (u64)"),
+                "no-result": mmio_program(action,op="  _ = x86.mmio.read32(v0)\n").replace(b"-> (u32)",b"-> (u64)").replace(b"ret(v1)",b"ret(v0)"),
+                "attribute": mmio_program(action,op='  v1:u32 = x86.mmio.read32(v0) {"trust_me":true}\n'),
+            })
+        else:
+            bad.update({
+                "zero-operand": mmio_program(action,op="  _ = x86.mmio.write32()\n"),
+                "one-operand": mmio_program(action,op="  _ = x86.mmio.write32(v0)\n"),
+                "extra-operand": mmio_program(action,op="  _ = x86.mmio.write32(v0,v1,v1)\n"),
+                "wrong-value": mmio_program(action,value="u64"),
+                "result": mmio_program(action,op="  v2:u32 = x86.mmio.write32(v0,v1)\n"),
+                "attribute": mmio_program(action,op='  _ = x86.mmio.write32(v0,v1) {"trust_me":true}\n'),
+            })
+        for key, malformed in bad.items():
+            compile_cli(exe,malformed,output,label+"-"+key,expected=2)
+        out[label] = {"elf_sha256":digest(obj),"text_sha256":digest(machine),
+                      "source_sha256":digest(subject),"oracle_hex":opcode.hex(),
+                      "guard_hex":MMIO_GUARD.hex(),"refusals":sorted(bad)}
+    return out
+
+
 def run(output):
     output.mkdir(parents=True, exist_ok=False)
     source, shape = candidate_source()
@@ -971,6 +1082,7 @@ def run(output):
             "oracle_hex": io_oracle.hex(), "refusals": list(bad), "source_sha256": digest(subject)}
 
     atomic = qualify_atomic(exe, output)
+    mmio = qualify_mmio(exe, output)
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -995,6 +1107,8 @@ def run(output):
         "irq": irq,
         "port_io": port_io,
         "atomic": atomic,
+        "mmio": mmio,
+        "mmio_authority_proved": False,
         "memory_order_proved": False,
         "capacity": capacity,
         "unsupported_cr2_write_refused": True,

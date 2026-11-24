@@ -1,5 +1,8 @@
 /* Explicit NON-HIA, isolated Multiboot-v1 hardware observer.
  * Only linked f0 is compiled from verified typed HIA Core. Never install on host. */
+#if defined(HIA_TEST_MMIO_READ32) || defined(HIA_TEST_MMIO_WRITE32)
+#define HIA_TEST_MMIO32
+#endif
 .set MB_MAGIC, 0x1badb002
 .set MB_FLAGS, 0x00000003
 .section .multiboot,"a",@progbits
@@ -40,6 +43,18 @@ protected32:
     addl $0x200000, %eax
     addl $8, %edi
     loop 1b
+#ifdef HIA_TEST_MMIO32
+    /* Independent, temporary guest UC mapping of the standard IOAPIC.
+     * The subject owns accesses only, not address-space setup. */
+    xorl %eax, %eax
+    movl $pdmmio, %edi
+    movl $1024, %ecx
+    rep stosl
+    movl $pdmmio, %eax
+    orl $3, %eax
+    movl %eax, pdpt+24
+    movl $0xfec0009b, pdmmio+502*8
+#endif
     movl %cr4, %eax
     orl $0x20, %eax
     movl %eax, %cr4
@@ -80,6 +95,121 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#ifdef HIA_TEST_MMIO32
+#ifdef HIA_TEST_MMIO_ALIGN
+    /* Alignment tests use private RAM, not undefined unaligned device I/O. */
+    leaq mmio_ud_handler(%rip), %rax
+    leaq idt+6*16(%rip), %rdi
+    movw %ax, (%rdi)
+    movw $0x18, 2(%rdi)
+    movb $0, 4(%rdi)
+    movb $0x8e, 5(%rdi)
+    shrq $16, %rax
+    movw %ax, 6(%rdi)
+    shrq $16, %rax
+    movl %eax, 8(%rdi)
+    movl $0, 12(%rdi)
+    movabsq $0x1122334455667788, %rax
+    movq %rax, mmio_guard_cell(%rip)
+    leaq mmio_guard_cell+1(%rip), %rdi
+    movl $0xa1b2c3d4, %esi
+    call f0
+#ifndef HIA_TEST_MMIO_GUARD_BYPASS
+    jmp abort
+#else
+#ifdef HIA_TEST_MMIO_READ32
+    cmpq $0x44556677, %rax
+    jne abort
+    movabsq $0x1122334455667788, %rcx
+#else
+    leaq mmio_guard_cell+1(%rip), %rcx
+    cmpq %rcx, %rax
+    jne abort
+    movabsq $0x112233a1b2c3d488, %rcx
+#endif
+    cmpq %rcx, mmio_guard_cell(%rip)
+    jne abort
+    movb $'N', %bl
+    jmp debug_exit64
+#endif
+#else
+    /* Verify the selected PAT slot is UC before using the device mapping.
+     * Do not modify APIC configuration/interrupt routing: only IOREGSEL. */
+    movl $1, %eax
+    cpuid
+    testl $0x10000, %edx
+    jz abort
+    movl $0x277, %ecx
+    rdmsr
+    shrl $24, %eax
+    testl %eax, %eax
+    jne abort
+    movl $0xfec00000, %r12d
+    movl (%r12), %r14d
+    xorl %r15d, %r15d
+    .macro mmio_probe initial, target
+    movl $\initial, (%r12)
+    cmpl $\initial, (%r12)
+    jne abort
+    movq %r12, %rdi
+#ifdef HIA_TEST_MMIO_READ32
+    call f0
+    cmpq $\initial, %rax
+    je mmio_positive\@
+    testq %rax, %rax
+    jne abort
+#else
+    movl $\target, %esi
+    call f0
+    cmpq %r12, %rax
+    jne abort
+    cmpl $\target, (%r12)
+    je mmio_positive\@
+    cmpl $\initial, (%r12)
+    jne abort
+#endif
+    orl $2, %r15d
+    jmp mmio_done\@
+mmio_positive\@:
+    orl $1, %r15d
+mmio_done\@:
+    .endm
+    mmio_probe 1, 2
+    mmio_probe 2, 1
+#ifdef HIA_TEST_MMIO_READ32
+    /* A second address: independently read the IOAPIC version window. */
+    movl $1, (%r12)
+    movl 16(%r12), %r13d
+    testl %r13d, %r13d
+    jz abort
+    cmpl $-1, %r13d
+    je abort
+    leaq 16(%r12), %rdi
+    call f0
+    cmpq %r13, %rax
+    je mmio_version_positive
+    testq %rax, %rax
+    jne abort
+    orl $2, %r15d
+    jmp mmio_version_done
+mmio_version_positive:
+    orl $1, %r15d
+mmio_version_done:
+#endif
+    movl %r14d, (%r12)
+    cmpl %r14d, (%r12)
+    jne abort
+    cmpl $1, %r15d
+    je mmio_device_pass
+    cmpl $2, %r15d
+    jne abort
+    movb $'N', %bl
+    jmp debug_exit64
+mmio_device_pass:
+    movb $'P', %bl
+    jmp debug_exit64
+#endif
+#endif
 #ifdef HIA_TEST_CAS64
     /* Aligned guest RAM, deliberately high 64-bit values. */
     leaq cas_cell(%rip), %rdi
@@ -628,8 +758,26 @@ probe_read:
 fail64:
     movb $'N', %bl
     jmp debug_exit64
+#if defined(HIA_TEST_MMIO32) && defined(HIA_TEST_MMIO_ALIGN)
+mmio_ud_handler:
+#ifdef HIA_TEST_MMIO_GUARD_BYPASS
+    jmp abort
+#else
+    leaq f0(%rip), %rax
+    addq $HIA_MMIO_TRAP_DELTA, %rax
+    cmpq %rax, (%rsp)
+    jne abort
+    cmpw $0x18, 8(%rsp)
+    jne abort
+    movabsq $0x1122334455667788, %rcx
+    cmpq %rcx, mmio_guard_cell(%rip)
+    jne abort
+    movb $'P', %bl
+    jmp debug_exit64
+#endif
+#endif
 pf_handler:
-#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32) || defined(HIA_TEST_CAS64)
+#if defined(HIA_TEST_MMIO32) || defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32) || defined(HIA_TEST_CAS64)
     jmp abort /* A fault must not masquerade as the write NOP control. */
 #endif
 #ifdef HIA_TEST_CR2_READ
@@ -726,6 +874,9 @@ idtr:
 pml4: .skip 4096
 pdpt: .skip 4096
 pd0: .skip 4096
+#ifdef HIA_TEST_MMIO32
+pdmmio: .skip 4096
+#endif
 #if defined(HIA_TEST_CR3_READ) || defined(HIA_TEST_CR3_WRITE)
 pml4_second: .skip 4096
 #endif
@@ -740,6 +891,10 @@ stack64: .skip 8192
 stack64_top:
 .balign 16
 idt: .skip 4096
+#if defined(HIA_TEST_MMIO32) && defined(HIA_TEST_MMIO_ALIGN)
+.balign 8
+mmio_guard_cell: .skip 8
+#endif
 #ifdef HIA_TEST_CAS64
 .balign 8
 cas_cell: .skip 8

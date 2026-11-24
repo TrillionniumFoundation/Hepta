@@ -364,6 +364,55 @@ def run(output):
                           (cas_raw, cas_entry["text_sha256"]), (cas_bad_obj, cas_entry["nop_elf_sha256"])))
     hardware["cas64_subject_source_sha256"] = cas_entry["source_sha256"]
     hardware["smp_memory_model_proved"] = False
+    for action, opcode_hex, replacement in (
+            ("read32", "8b02", "31c0"),
+            ("write32", "8902", "9090")):
+        label = "mmio-" + action
+        entry = report["mmio"][label]
+        obj = output / (label + ".o")
+        src = output / (label + "-1.input")
+        raw = output / (label + ".text")
+        native_mmio, text_mmio = obj.read_bytes(), raw.read_bytes()
+        opcode, guard = bytes.fromhex(opcode_hex), bytes.fromhex("f6c20374020f0b")
+        if (entry["oracle_hex"] != opcode.hex() or entry["guard_hex"] != guard.hex()
+                or text_mmio.count(opcode) != 1 or text_mmio.count(guard) != 1
+                or text_mmio.index(guard) >= text_mmio.index(opcode)
+                or digest(native_mmio) != entry["elf_sha256"]
+                or digest(text_mmio) != entry["text_sha256"]
+                or digest(src.read_bytes()) != entry["source_sha256"]
+                or dump_text(obj, output / (label + "-original-readback.text")) != text_mmio):
+            raise AssertionError(label + " original native custody failed")
+
+        def mmio_mutant(suffix, needle, change):
+            mutated = text_mmio.replace(needle, change, 1)
+            if mutated == text_mmio or len(mutated) != len(text_mmio):
+                raise AssertionError(label + " invalid mutation")
+            mutation = output / (label + suffix + ".text")
+            mutation.write_bytes(mutated)
+            mutant = output / (label + suffix + ".o")
+            invoke(["objcopy", "--update-section", ".text=" + str(mutation), str(obj), str(mutant)])
+            if (dump_text(mutant, output / (label + suffix + "-readback.text")) != mutated
+                    or symbol(obj, "f0") != symbol(mutant, "f0")):
+                raise AssertionError(label + " mutation readback failed")
+            return mutant.read_bytes(), mutated
+
+        noaccess, noaccess_text = mmio_mutant("-noaccess", opcode, bytes.fromhex(replacement))
+        bypass, bypass_text = mmio_mutant("-noalign", guard, b"\x90" * len(guard))
+        delta = text_mmio.index(guard) + 5 - symbol(obj, "f0")
+        macros = ("HIA_TEST_MMIO_" + action.upper(),)
+        alignment = macros + ("HIA_TEST_MMIO_ALIGN", "HIA_MMIO_TRAP_DELTA=" + str(delta))
+        extra_cases.extend((
+            (label + "-ioapic", native_mmio, text_mmio, macros, 33, "P"),
+            (label + "-ioapic-noaccess", noaccess, noaccess_text, macros, 35, "N"),
+            (label + "-unaligned-exact-ud", native_mmio, text_mmio, alignment, 33, "P"),
+            (label + "-unaligned-guard-bypass", bypass, bypass_text,
+             alignment + ("HIA_TEST_MMIO_GUARD_BYPASS",), 35, "N")))
+        extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
+                              (raw, entry["text_sha256"])))
+        hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
+    hardware["mmio_authority_proved"] = False
+    hardware["mmio_device_mapping_owner"] = "NON_HIA_ISOLATED_OBSERVER"
+    hardware["mmio_posted_write_order_proved"] = False
     path = output / "hardware"
     path.mkdir()
     try:
