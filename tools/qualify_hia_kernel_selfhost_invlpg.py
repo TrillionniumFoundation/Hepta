@@ -126,6 +126,15 @@ def candidate_source():
         kind = at >> 32
         at = at & 4294967295
         target = get(w, FIXBASE + i * 16 + 8)""")
+    # External ELF relocation emission has its own reader (kind 3).
+    # Keep the emitted RELA record 24 bytes; compact only private scratch.
+    source = replace_once(source,
+        """            if get(w, FIXBASE + i * 24 + 8) == 3:
+                emit8(o, w, get(w, FIXBASE + i * 24) - 64)
+                emit8(o, w, ((get(w, FIXBASE + i * 24 + 16) + symbol_base) << 32) | 4)""",
+        """            if (get(w, FIXBASE + i * 16) >> 32) == 3:
+                emit8(o, w, (get(w, FIXBASE + i * 16) & 4294967295) - 64)
+                emit8(o, w, ((get(w, FIXBASE + i * 16 + 8) + symbol_base) << 32) | 4)""")
     if any("FIXBASE" in line and "* 24" in line for line in source.splitlines()):
         raise ValueError("unconverted relocation-table access")
     for old, new in names.items():
@@ -494,6 +503,43 @@ for i, deltas in enumerate(json.loads(sys.argv[2]), 1):
             "source_sha256":digest(subject), "flat_cli_object_identity":True}
 
 
+def qualify_external_relocations(exe, output, flat):
+    """Legacy owned-buffer ELF must still emit real calloc/free RELA records."""
+    from tools.hia_selfhost_owned_elf_cases import allocation_case
+    results = []
+    for optional in (False, True):
+        label = "relocation-owned-" + ("try" if optional else "new")
+        subject = allocation_case(8, optional=optional)
+        receipt, raw = invoke(output, label+"-flat", flat, subject)
+        if (receipt.get("status") != "returned" or receipt.get("abi_status") != 0
+                or receipt.get("source_unchanged") is not True
+                or receipt.get("forbidden_compiler_modules_loaded") != []
+                or receipt.get("workspace_header", {}).get("40") != 0
+                or not 0 < receipt.get("core_u32", 0) <= len(raw)):
+            raise AssertionError((label, receipt))
+        obj = compile_cli(exe, subject, output, label+"-1")
+        if obj != raw[:receipt["core_u32"]] or obj != compile_cli(exe, subject, output, label+"-2"):
+            raise AssertionError(label+" flat/CLI object differs")
+        text_bytes(output, label, obj)
+        relocs = subprocess.run(["readelf","-Wr",str(output/(label+".o"))],
+                                check=True,capture_output=True,text=True).stdout
+        (output/(label+"-relocs.txt")).write_text(relocs)
+        entries = [line for line in relocs.splitlines() if "R_X86_64_PLT32" in line]
+        for symbol in ("calloc","free"):
+            if not any(symbol in line.split() for line in entries):
+                raise AssertionError((label, symbol, relocs))
+        lib = output/(label+".so")
+        subprocess.run(["cc","-shared","-Wl,-z,noexecstack","-o",str(lib),str(output/(label+".o"))],check=True)
+        observed, payload = invoke(output,label+"-native",lib,b"",
+                                   image_format="linked-selfhost",capacity=8,workspace_size=0)
+        if (observed.get("status") != "returned" or observed.get("abi_status") != 0
+                or observed.get("core_u32") != 8 or payload != b"\0"*8
+                or observed.get("source_unchanged") is not True):
+            raise AssertionError((label,"native result",observed,payload.hex()))
+        results.append({"case":label,"object_sha256":digest(obj),
+                        "plt32_relocations":len(entries),"native_calls":1})
+    return {"status":"PASS","cases":results}
+
 def qualify_capacity(exe, output, flat):
     _, _, intervals, bound = candidate_layout()
     subject, expected = capacity_subject(CANDIDATE_BLOCKS, CANDIDATE_INSTRUCTIONS)
@@ -559,6 +605,7 @@ for i, delta in enumerate(expected):
             "relocation_upper_bound": bound, "relocation_capacity": CANDIDATE_RELOCATIONS,
             "relocation_record_bytes": RELOCATION_RECORD_BYTES,
             "dense_relocations": qualify_dense_relocations(exe, output, flat),
+            "external_relocations": qualify_external_relocations(exe, output, flat),
             "source_sha256": digest(subject),
             "object_sha256": digest(obj), "native_calls": len(expected) * 3,
             "over_limit_refusals": 2, "native_refusal_codes": refusal_codes,
