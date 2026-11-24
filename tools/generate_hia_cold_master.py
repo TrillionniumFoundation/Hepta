@@ -316,9 +316,9 @@ def counts(s:readbuf,w:mutbuf) -> u64:
         status = get(w,row)
         if status == 1 or status == 2:
             running = running+1
-        if status == 3:
+        if status == 3 or status == 5:
             pending = pending+1
-        if status >= 1 and status <= 3:
+        if (status >= 1 and status <= 3) or status == 5:
             unsealed = unsealed+1
         if status == 3 and get(w,row+88) != 0:
             archived = archived+1
@@ -388,6 +388,8 @@ def schedule(s:readbuf,o:mutbuf,w:mutbuf,p:u64,r:u64) -> u32:
                 if get(w,row) == 3 and get(w,row+88) == r:
                     put(w,2024,i)
                     put(w,row+112,get(w,2120))
+                    put(w,row+88,0)
+                    put(w,row,5)
                     return resume(s,o,w,700)
                 i = i+1
             return finish(o,w,74)
@@ -646,6 +648,13 @@ def prepare_archive(s:readbuf,o:mutbuf,w:mutbuf,p:u64,r:u64) -> u32:
         put(w,row+88,r)
         if counts(s,w) == 0:
             return finish(o,w,74)
+        if get(w,2304) != 0:
+            put(w,2024,get(w,2304)-1)
+            put(w,2304,0)
+            previous = active(w)
+            if get(w,previous) != 5 or get(w,previous+88) != 0:
+                return finish(o,w,74)
+            return hash_view(o,w,get(w,previous+56),0,get(w,previous+208),706)
         return resume(s,o,w,300)
     return finish(o,w,65)
 
@@ -673,6 +682,25 @@ def collect_archive(s:readbuf,o:mutbuf,w:mutbuf,p:u64,r:u64) -> u32:
     if p == 705:
         if getn(w,1224,4) & 61440 != 32768 or getn(w,1224,4) & 511 != 256 or get(w,1248) != get(w,row+208):
             return finish(o,w,74)
+        if get(w,row) != 5 or get(w,row+88) != 0 or get(w,2304) != 0 or counts(s,w) == 0 or get(w,2064) != 0:
+            return finish(o,w,74)
+        if get(w,2048) < 2:
+            i = 0
+            queued = 0
+            while i < uint(s,40,8) and queued == 0:
+                if get(w,state(i)) == 2:
+                    put(w,state(i),3)
+                    queued = 1
+                i = i+1
+        if counts(s,w) == 0:
+            return finish(o,w,74)
+        i = 0
+        while i < uint(s,40,8):
+            if get(w,state(i)) == 3 and get(w,state(i)+88) == 0:
+                put(w,2304,get(w,2024)+1)
+                put(w,2024,i)
+                return resume(s,o,w,600)
+            i = i+1
         return hash_view(o,w,get(w,row+56),0,get(w,row+208),706)
     if p == 706:
         if same(w,4096,row+288,32) == 0:

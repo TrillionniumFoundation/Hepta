@@ -108,15 +108,15 @@ the admitted descriptor are preserved beside the phase archives.
 
 ## Evidence for this checkpoint
 
-Independent master ELF: 341236 bytes,
-`a690f7a5fb3f777e35c49b86494d1b3d0f1d558758126a33cb0715c159158cfe`.
+Independent master ELF: 351993 bytes,
+`79c4f28f3d700df05fade9178ff17a6f1a17b00228304cd122a8fe4781d5fc4d`.
 Generic CLI flat: 391068 bytes,
 `cbbcde45e38e7a4d36baab60be8151dbf6d8b1bac7e1dee3873733c098661b9a`.
 Native CLI packer: 25708 bytes,
 `b6babfa26de48991ce0581ad30c9fc77375b08872584564e1e38d5dc31eecb9f`.
 
-The complete 41-phase component CLI ran with PATH empty in 2.52 s: nested 1.902 s,
-cleanup 64.03 ms, actual peaks 2/1/2/4, all archives and report bytes checked.
+The complete 41-phase component CLI ran with PATH empty in 2.74 s: nested 2.048 s,
+cleanup 50.73 ms, actual peaks 2/1/2/4, all archives and report bytes checked.
 Twenty-two refusal/fault gates include actual origin/export changes after phase
 execution started, extra export content, symlink substitution, SIGKILL of the
 live master and live archive worker, wrong pins, an ancestor Git identity,
@@ -134,3 +134,28 @@ after the driver completes. Image bytes, seals, hashes and the fast/cold identit
 checks are unchanged. The component fixture exercises both a repeated static
 root and a repeated sealed-phase output, followed by all 38 qualifications. It
 passes the same 22 custody and live-cancellation controls.
+
+
+### Archive verification overlaps the next queued archive
+
+After the kernel wait reaps an archive process, its phase enters a separate
+verification state. It still occupies one pending archive and one unsealed
+phase; it cannot release dependencies. The scheduler may launch the next
+already-queued archive, then resumes the previous archive's complete pre-SHA,
+sealed output extraction, and complete post-SHA. The next archive is the only
+archive subprocess running. No configured worker or queue limit changes.
+
+The original 41-phase and 22-refusal component controls pass with this schedule.
+An independent process-tree observer measured two phase workers and one archive
+worker, and the final receipt still records the complete 2/1/2/4 peaks. Two live
+failure controls damaged the previous 0400 archive after the next native archive
+had started, and separately killed that next native archive. Both refused without
+a report or PASS; the original outer owner proved empty cleanup and ECHILD in
+20.32 ms and 20.41 ms respectively.
+
+The first complete 60-phase production attempt remains a recorded failure at
+the original 180 s deadline: 18 independent reference archives sealed and base
+not started; cleanup completed in 20.68 ms. Its actual journals locate 102.48 s
+in serial archival and 45.09 s between archives, mostly the two master SHA passes
+with queued producers. This component change removes that avoidable serialization;
+the full corpus must still pass its own unchanged deadline and source-bound gate.
