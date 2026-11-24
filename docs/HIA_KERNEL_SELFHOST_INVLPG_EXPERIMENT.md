@@ -138,3 +138,29 @@ and section custody; all previous IDTR, atomic, MMIO, MSR, port I/O
 and capacity regressions are retained. Neither native interrupt entry,
 arbitrary context return, SMP, resource authority nor full Linux
 acceptance is claimed.
+
+
+## Integrated IDTR, terminal IRETQ, and task-register candidate
+
+This isolated descendant of #955 incorporates the actual typed LTR/STR
+implementation and independent hardware tests from #954 exact
+`145da3c8aa8bfa830ff68d6929910e8a15fec16c`. Opcode dispatch is extended after the IDTR/IRETQ
+helpers; each existing verifier and terminal-function constraint is retained.
+The assembly observers are combined without changing the independent
+IDTR, MSR, IRETQ, TSS busy-bit, selector, fault and instruction-deletion
+assertions. The overlapping insertion points in the observers were resolved
+by retaining both complete test branches. The source and test files are
+candidate-bound; earlier branch success does not qualify this integration.
+
+Local isolated development regenerated the compiler with 130 functions,
+1774 blocks and 9171 operations inside the prior 2 MiB workspace profile.
+The three native generations, two empty-PATH self-rebuilds, original
+capacity and relocation witnesses, 22 task-register source refusals and
+27 terminal-IRETQ source refusals passed. The common PC/Q35 hardware
+matrix passed 126/126, with the separate terminal-IRETQ matrix 20/20.
+Independent exact-head CI remains mandatory. No native exception entry,
+arbitrary context restoration, GDT/TSS ownership, stack reclamation, SMP
+or full Linux closure is claimed. The public legacy profile and production
+toolchain lock are unchanged. The earlier original 5-second lifecycle
+failure remains a separate release blocker; this patch does not change
+the 3s/5s/60s gates.

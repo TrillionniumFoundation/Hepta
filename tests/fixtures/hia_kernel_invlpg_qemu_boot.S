@@ -95,6 +95,148 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#if defined(HIA_TEST_TR_LOAD) || defined(HIA_TEST_TR_READ)
+    /* NON-HIA GDT/TSS provisioning; only f0 owns the measured LTR/STR.
+     * Preserve the four existing code/data descriptors and add three
+     * independent available 64-bit TSS descriptors. No task switch occurs. */
+    leaq gdt(%rip),%rsi
+    leaq tr_gdt(%rip),%rdi
+    movl $4,%ecx
+    rep movsq
+    .macro tr_descriptor off, target
+    leaq \target(%rip),%rax
+    leaq tr_gdt+\off(%rip),%rdi
+    movw $103,(%rdi)
+    movw %ax,2(%rdi)
+    shrq $16,%rax
+    movb %al,4(%rdi)
+    movb $0x89,5(%rdi)
+    movb $0,6(%rdi)
+    movb %ah,7(%rdi)
+    shrq $16,%rax
+    movl %eax,8(%rdi)
+    movl $0,12(%rdi)
+    .endm
+    tr_descriptor 32, tr_tss_a
+    tr_descriptor 48, tr_tss_b
+    tr_descriptor 64, tr_tss_c
+    lgdt tr_gdtr(%rip)
+    movw $0x20,%ax
+    ltr %ax
+    str %cx
+    cmpw $0x20,%cx
+    jne abort
+    cmpb $0x8b,tr_gdt+37(%rip)
+    jne abort
+    cmpb $0x89,tr_gdt+53(%rip)
+    jne abort
+    cmpb $0x89,tr_gdt+69(%rip)
+    jne abort
+#ifdef HIA_TEST_TR_BUSY
+    /* Install #GP only for the exact busy-descriptor hardware witness. */
+    leaq tr_gp_handler(%rip),%rax
+    leaq idt+13*16(%rip),%rdi
+    movw %ax,(%rdi)
+    movw $0x18,2(%rdi)
+    movb $0,4(%rdi)
+    movb $0x8e,5(%rdi)
+    shrq $16,%rax
+    movw %ax,6(%rdi)
+    shrq $16,%rax
+    movl %eax,8(%rdi)
+    movl $0,12(%rdi)
+    movl $0x20,%edi
+    call f0
+    jmp abort
+#elif defined(HIA_TEST_TR_LOAD)
+    movl $0x30,%edi
+    call f0
+    cmpq $0x30,%rax
+    jne abort
+    str %cx
+    cmpw $0x30,%cx
+    je tr_first_loaded
+    cmpw $0x20,%cx
+    jne abort
+    cmpb $0x89,tr_gdt+53(%rip)
+    jne abort
+    movl $0x40,%edi
+    call f0
+    cmpq $0x40,%rax
+    jne abort
+    str %cx
+    cmpw $0x20,%cx
+    jne abort
+    cmpb $0x89,tr_gdt+69(%rip)
+    jne abort
+    cmpb $0x8b,tr_gdt+37(%rip)
+    jne abort
+    movb $'N',%bl
+    jmp debug_exit64
+tr_first_loaded:
+    cmpb $0x8b,tr_gdt+53(%rip)
+    jne abort
+    cmpb $0x8b,tr_gdt+37(%rip)
+    jne abort
+    movl $0x40,%edi
+    call f0
+    cmpq $0x40,%rax
+    jne abort
+    str %cx
+    cmpw $0x40,%cx
+    jne abort
+    cmpb $0x8b,tr_gdt+69(%rip)
+    jne abort
+    cmpb $0x8b,tr_gdt+53(%rip)
+    jne abort
+    movb $'P',%bl
+#else
+    xorl %r15d,%r15d
+    .macro tr_probe selector
+    movl $0xabcd,%edi
+    call f0
+    cmpq $\selector,%rax
+    je tr_good\@
+    testq %rax,%rax
+    jne abort
+    orl $2,%r15d
+    jmp tr_done\@
+tr_good\@:
+    orl $1,%r15d
+tr_done\@:
+    str %cx
+    cmpw $\selector,%cx
+    jne abort
+    .endm
+    tr_probe 0x20
+    movw $0x30,%ax
+    ltr %ax
+    cmpb $0x8b,tr_gdt+53(%rip)
+    jne abort
+    tr_probe 0x30
+    cmpl $1,%r15d
+    je tr_read_positive
+    cmpl $2,%r15d
+    jne abort
+    movb $'N',%bl
+    jmp tr_restore
+tr_read_positive:
+    movb $'P',%bl
+#endif
+#ifndef HIA_TEST_TR_BUSY
+tr_restore:
+    /* Restore observer-created baseline only after TR points elsewhere. */
+    movb $0x89,tr_gdt+37(%rip)
+    movw $0x20,%ax
+    ltr %ax
+    str %cx
+    cmpw $0x20,%cx
+    jne abort
+    cmpb $0x8b,tr_gdt+37(%rip)
+    jne abort
+    jmp debug_exit64
+#endif
+#endif
 #if defined(HIA_TEST_IDTR_LOAD) || defined(HIA_TEST_IDTR_STORE)
     /* Independent hardware observer: two IDTs, including a high-half
      * alias with a distinct limit. Only f0 executes the subject op. */
@@ -1096,8 +1238,30 @@ idtr_ud_handler:
     jmp abort
 #endif
 #endif
+#if defined(HIA_TEST_TR_LOAD) && defined(HIA_TEST_TR_BUSY)
+tr_gp_handler:
+    cmpq $0x20,(%rsp)
+    jne abort
+    leaq f0(%rip),%rax
+    addq $HIA_TR_FAULT_DELTA,%rax
+    cmpq %rax,8(%rsp)
+    jne abort
+    cmpw $0x18,16(%rsp)
+    jne abort
+    str %cx
+    cmpw $0x20,%cx
+    jne abort
+    cmpb $0x8b,tr_gdt+37(%rip)
+    jne abort
+    cmpb $0x89,tr_gdt+53(%rip)
+    jne abort
+    cmpb $0x89,tr_gdt+69(%rip)
+    jne abort
+    movb $'P',%bl
+    jmp debug_exit64
+#endif
 pf_handler:
-#if defined(HIA_TEST_IDTR_LOAD) || defined(HIA_TEST_IDTR_STORE) || defined(HIA_TEST_MSR_READ) || defined(HIA_TEST_MSR_WRITE) || defined(HIA_TEST_MMIO32) || defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32) || defined(HIA_TEST_CAS64)
+#if defined(HIA_TEST_TR_LOAD) || defined(HIA_TEST_TR_READ) || defined(HIA_TEST_IDTR_LOAD) || defined(HIA_TEST_IDTR_STORE) || defined(HIA_TEST_MSR_READ) || defined(HIA_TEST_MSR_WRITE) || defined(HIA_TEST_MMIO32) || defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32) || defined(HIA_TEST_CAS64)
     jmp abort /* A fault must not masquerade as the write NOP control. */
 #endif
 #ifdef HIA_TEST_CR2_READ
@@ -1189,6 +1353,11 @@ gdt_ptr:
 idtr:
     .word 4096-1
     .quad idt
+#if defined(HIA_TEST_TR_LOAD) || defined(HIA_TEST_TR_READ)
+tr_gdtr:
+    .word 79
+    .quad tr_gdt
+#endif
 .section .bss,"aw",@nobits
 .balign 4096
 pml4: .skip 4096
@@ -1211,6 +1380,15 @@ stack64: .skip 8192
 stack64_top:
 .balign 16
 idt: .skip 4096
+#if defined(HIA_TEST_TR_LOAD) || defined(HIA_TEST_TR_READ)
+.balign 16
+tr_gdt: .skip 80
+tr_tss_a: .skip 104
+.balign 16
+tr_tss_b: .skip 104
+.balign 16
+tr_tss_c: .skip 104
+#endif
 #if defined(HIA_TEST_MMIO32) && defined(HIA_TEST_MMIO_ALIGN)
 .balign 8
 mmio_guard_cell: .skip 8

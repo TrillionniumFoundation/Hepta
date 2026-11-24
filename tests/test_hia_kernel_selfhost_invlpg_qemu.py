@@ -493,6 +493,48 @@ def run(output):
         hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
     hardware["idtr_authority_proved"] = False
     hardware["interrupt_entry_iretq_owner"] = "NON_HIA_ISOLATED_OBSERVER"
+    for action, code_hex, mutation_hex in (
+            ("load", "0f00d8", "909090"),
+            ("read", "660f00c80fb7c0", "31c09090909090")):
+        label = "tr-" + action
+        entry = report["tr"][label]
+        obj = output / (label + ".o")
+        src = output / (label + "-1.input")
+        raw = output / (label + ".text")
+        native_tr, text_tr = obj.read_bytes(), raw.read_bytes()
+        opcode = bytes.fromhex(code_hex)
+        if (entry["oracle_hex"] != code_hex or text_tr.count(opcode) != 1
+                or digest(native_tr) != entry["elf_sha256"]
+                or digest(text_tr) != entry["text_sha256"]
+                or digest(src.read_bytes()) != entry["source_sha256"]
+                or dump_text(obj, output / (label + "-original-readback.text")) != text_tr):
+            raise AssertionError(label + " native custody failed")
+        macros = ("HIA_TEST_TR_" + action.upper(),)
+        extra_cases.append((label + "-two-selectors", native_tr, text_tr, macros, 33, "P"))
+        mutated = text_tr.replace(opcode, bytes.fromhex(mutation_hex), 1)
+        if len(mutated) != len(text_tr) or mutated == text_tr:
+            raise AssertionError(label + " invalid mutation")
+        raw_mutant = output / (label + "-nop.text")
+        raw_mutant.write_bytes(mutated)
+        mutant = output / (label + "-nop.o")
+        invoke(["objcopy", "--update-section", ".text=" + str(raw_mutant), str(obj), str(mutant)])
+        if (dump_text(mutant, output / (label + "-nop-readback.text")) != mutated
+                or symbol(obj, "f0") != symbol(mutant, "f0")):
+            raise AssertionError(label + " mutation readback failed")
+        extra_cases.append((label + "-missing-instruction", mutant.read_bytes(), mutated,
+                            macros, 35, "N"))
+        if action == "load":
+            # LTR on an already busy TSS must fault at the exact subject
+            # instruction, with the actual selector encoded in #GP error.
+            delta = text_tr.index(opcode) - symbol(obj, "f0")
+            extra_cases.append(("tr-load-busy-exact-gp", native_tr, text_tr,
+                                macros + ("HIA_TEST_TR_BUSY", "HIA_TR_FAULT_DELTA=" + str(delta)),
+                                33, "P"))
+        extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
+                              (raw, entry["text_sha256"])))
+        hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
+    hardware["tr_authority_proved"] = False
+    hardware["native_tss_context_switch_proved"] = False
     path = output / "hardware"
     path.mkdir()
     try:
