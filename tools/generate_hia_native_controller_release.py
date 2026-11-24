@@ -284,7 +284,22 @@ class ControllerRecipe(CoreRecipe):
         builder = self.wide_builder if wide else self.small_builder
         wire = self.concat(self.literal(FILTER_WIRE + struct.pack('<Q', 2 if wide else 1)), self.length(image), image)
         executable = self.run(builder, wire)
-        self.check_image(executable, image)
+        # HIASTC01 kind 1 is the retained three-segment SQLite pager check.
+        # Native filters have a closed two-segment template. Construct its
+        # complete expected bytes with native DAG operations instead of
+        # widening that older verifier or executing a candidate to trust it.
+        ceiling = 67108864 if wide else 8388608
+        prefix, sites = filters.template(wire_bytes=ceiling, output_bytes=ceiling,
+                                         workspace_bytes=16777216)
+        assert len(sites) == 1 and prefix[96:112] == bytes(16)
+        prefix = bytearray(prefix)
+        site = sites[0]
+        assert 112 <= site < len(prefix) - 4 and prefix[site - 1] == 0xe8
+        struct.pack_into('<I', prefix, site, len(prefix) - site - 4)
+        extent = self.length(executable)
+        expected = self.concat(self.literal(prefix[:96]), extent, extent,
+                               self.literal(prefix[112:]), image)
+        self.node(8, (expected, executable))
         return executable
 
     def verify_delivery(self, mode, wire, executable):
