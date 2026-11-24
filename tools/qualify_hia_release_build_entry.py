@@ -37,6 +37,10 @@ reading:
     movabs rax,0x31304e574f414948
     cmp [rip+payload],rax
     jne bad
+    mov eax,110
+    syscall
+    cmp rax,[rip+payload+8]
+    jne bad
     lea rsi,[rip+payload]
     mov rdx,r13
     call write_all
@@ -232,4 +236,141 @@ for case_name in valid+negative:
   outcome(case_name,True,rc=r.returncode,request_bytes=size,files=count,seconds=time.monotonic()-start)
  except BaseException:
   outcome(case_name,False,rc=r.returncode,stdout_bytes=len(r.stdout),stderr=r.stderr.decode(errors='replace'),error=traceback.format_exc())
+
+# These test owners are controlled mechanical Linux fixtures, not release
+# implementations. They exercise the public CLI's response to terminal failures.
+if not args.case:
+ import signal,ctypes
+ fault_modes=('reject','replacement','nonempty','signal','parent-death')
+ marker='    lea rsi,[rip+payload]\n    mov rdx,r13\n    call write_all\n'
+ exit_bad='    mov eax,60\n    mov edi,65\n    syscall\n'
+ for mode in fault_modes:
+  case=D/('owner-'+mode);case.mkdir(mode=0o700)
+  assembly=''
+  if mode=='replacement':
+   assembly='''    lea r12,[rip+payload]
+    mov r12,[r12+88]
+    mov eax,264
+    mov rdi,r12
+    lea rsi,[rip+fault_out]
+    mov rdx,r12
+    lea r10,[rip+fault_moved]
+    syscall
+    test rax,rax
+    jne bad
+    mov eax,258
+    mov rdi,r12
+    lea rsi,[rip+fault_out]
+    mov edx,448
+    syscall
+    test rax,rax
+    jne bad
+'''+exit_bad
+  elif mode=='nonempty':
+   assembly='''    lea r12,[rip+payload]
+    mov rdi,[r12+96]
+    mov eax,257
+    lea rsi,[rip+fault_keep]
+    mov edx,131266
+    mov r10d,384
+    syscall
+    test rax,rax
+    js bad
+    mov rdi,rax
+    mov eax,3
+    syscall
+'''+exit_bad
+  elif mode=='signal':
+   assembly='''    mov eax,39
+    syscall
+    mov rdi,rax
+    mov eax,62
+    mov esi,15
+    syscall
+    jmp bad
+'''
+  elif mode=='parent-death':
+   assembly='''    mov eax,39
+    syscall
+    mov [rip+status],rax
+    lea r12,[rip+payload]
+    mov rdi,[r12+88]
+    mov eax,257
+    lea rsi,[rip+fault_started]
+    mov edx,131266
+    mov r10d,384
+    syscall
+    test rax,rax
+    js bad
+    mov r12,rax
+    mov eax,1
+    mov rdi,r12
+    lea rsi,[rip+status]
+    mov edx,8
+    syscall
+    cmp rax,8
+    jne bad
+    mov eax,3
+    mov rdi,r12
+    syscall
+fault_wait:
+    mov eax,34
+    syscall
+    jmp fault_wait
+'''
+  else:assembly=exit_bad
+  native_source=FIXTURE_OWNER.replace(marker,assembly,1)+'''\n.section .rodata
+fault_out: .asciz "out"
+fault_moved: .asciz "moved"
+fault_keep: .asciz "keep"
+fault_started: .asciz "started"
+'''
+  asm=case/'owner.S';obj=case/'owner.o';exe=case/'owner';asm.write_text(native_source)
+  subprocess.run(['/usr/bin/as','--64',str(asm),'-o',str(obj)],check=True,capture_output=True)
+  subprocess.run(['/usr/bin/ld','-static','-nostdlib','-z','noexecstack','-o',str(exe),str(obj)],check=True,capture_output=True)
+  owner_raw=exe.read_bytes();fault_pins=sha256(owner_raw).digest()+pins[32:]
+  bind=subprocess.run([str(binder),'build'],input=b'HIAENBD1'+fault_pins+unbound,capture_output=True,env={'PATH':''},timeout=30)
+  assert bind.returncode==0 and len(bind.stdout)==len(unbound)
+  inst=case/'install';actual_entry=install(inst,modify=('hia-release-owner',lambda old:owner_raw),raw_entry=bind.stdout)
+  source=case/'source';source.mkdir(mode=0o700);(source/'source.hepta').write_bytes(b'current')
+  cold=case/'cold.json';cold.write_text(json.dumps({'source_manifest':{'source.hepta':sha256(b'current').hexdigest()}}))
+  out=case/'out';cmd=[str(actual_entry),'--output',str(out),'--compiler',str(compiler),'--cold-report',str(cold),'--source',str(source)]
+  if mode!='parent-death':
+   r=subprocess.run(cmd,capture_output=True,env={'PATH':''},timeout=30)
+   if mode=='replacement':ok=r.returncode==65 and out.is_dir() and (case/'moved').is_dir()
+   elif mode=='nonempty':ok=r.returncode==74 and (out/'keep').is_file()
+   else:ok=r.returncode==(143 if mode=='signal' else 65) and not out.exists()
+   outcome('owner-'+mode,ok and r.stdout==b'' and r.stderr==b'',rc=r.returncode,output_exists=out.exists())
+  else:
+   libc=ctypes.CDLL(None,use_errno=True);old_subreaper=ctypes.c_int()
+   assert libc.prctl(37,ctypes.byref(old_subreaper),0,0,0)==0
+   assert libc.prctl(36,1,0,0,0)==0
+   child_pid=None;reaped=False;p=None
+   try:
+    p=subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':''})
+    deadline=time.monotonic()+5
+    while time.monotonic()<deadline:
+     started=case/'started'
+     if started.exists() and started.stat().st_size==8:
+      child_pid=struct.unpack('<Q',started.read_bytes())[0];break
+     if p.poll() is not None:break
+     time.sleep(0.01)
+    assert child_pid and child_pid!=p.pid
+    p.terminate();stdout,stderr=p.communicate(timeout=5)
+    deadline=time.monotonic()+3;status=None
+    while time.monotonic()<deadline:
+     got,status=os.waitpid(child_pid,os.WNOHANG)
+     if got==child_pid:reaped=True;break
+     time.sleep(0.01)
+    ok=p.returncode==-signal.SIGTERM and reaped and os.WIFSIGNALED(status) and os.WTERMSIG(status)==signal.SIGTERM and stdout==b'' and stderr==b''
+    outcome('owner-parent-death',ok,frontend_rc=p.returncode,owned_child_reaped=reaped,child_wait_status=status)
+   finally:
+    if p is not None and p.poll() is None:p.kill();p.wait()
+    if child_pid and not reaped:
+     try:os.kill(child_pid,signal.SIGKILL)
+     except ProcessLookupError:pass
+     try:os.waitpid(child_pid,0)
+     except ChildProcessError:pass
+    libc.prctl(36,old_subreaper.value,0,0,0)
+
 record['passed']=True;record['case_count']=len(results);save();(D/'run.rc').write_text('0\n');print('ENTRY_COMPONENT_PASSED',len(results),flush=True)

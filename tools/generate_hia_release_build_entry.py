@@ -6,92 +6,13 @@ from tools.generate_hia_direct_load_plan import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
 from hepta.hia_agent_assembly import render_assembly
 ROOT=Path(__file__).resolve().parents[1]
-POLICY_SOURCE = r'''
-def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+POLICY_SOURCE = r'''def advance(s: readbuf, o: mutbuf, w: mutbuf) -> u32:
     if length(s) != 67108864 or length(o) != 67108864 or length(w) != 8388608:
         return 0
     phase = get(w, 0)
     r = get(w, 8)
-    if phase == 0:
-        entry_constants(w)
-        constants(w)
-        result = arguments(s, w)
-        if result == 2:
-            return call(o, w, 900, 1, 1, 2097152 + 48000, 118, 0, 0, 0, 12)
-        if result == 0:
-            return finish(o, w, 64)
-        return call(o, w, 700, 436, 3, 4294967295, 4, 0, 0, 0, 0)
-    if phase == 700:
-        if failed(r):
-            return finish(o, w, 74)
-        return call(o, w, 1, 107, 0, 0, 0, 0, 0, 0, 0)
-    if phase == 1:
-        put(w, 2097152, r)
-        return call(o, w, 2, 110, 0, 0, 0, 0, 0, 0, 0)
-    if phase == 2:
-        if r < 2 or r > 2147483647:
-            return finish(o, w, 65)
-        put(w, 2097152 + 8, r)
-        return call(o, w, 3, 157, 1, 15, 0, 0, 0, 0, 0)
-    if phase == 3:
-        if failed(r):
-            return finish(o, w, 74)
-        return call(o, w, 4, 110, 0, 0, 0, 0, 0, 0, 0)
-    if phase == 4:
-        if r != get(w, 2097152 + 8):
-            return finish(o, w, 65)
-        return call(o, w, 5, 95, 63, 0, 0, 0, 0, 0, 0)
-    if phase == 5:
-        put(w, 6448, 1)
-        return call(o, w, 6, 13, 13, 6448, 0, 8, 0, 0, 12)
-    if phase == 6:
-        if failed(r):
-            return finish(o, w, 74)
-        return call(o, w, 7, 228, 1, 2097152 + 12288, 0, 0, 0, 0, 12)
-    if phase == 7:
-        if failed(r) or get(w, 2097152 + 12296) >= 1000000000:
-            return finish(o, w, 74)
-        deadline = get(w, 2097152 + 12288) * 1000000000 + get(w, 2097152 + 12296) + get(w, 2097152 + 224) * 1000000000
-        if deadline >> 63 != 0:
-            return finish(o, w, 65)
-        put(w, 2097152 + 16, deadline)
-        return call(o, w, 8, 267, 18446744073709551516, 2097152 + 45056, 2097152 + 32768, 4095, 0, 0, 60)
-    if phase == 8:
-        if failed(r) or r == 0 or r >= 4095:
-            return finish(o, w, 65)
-        if r >= 7 and getn(w, 2097152 + 32768, 7) == 16435939734023471:
-            if byte(w, 2097152 + 53248) != 47 or dirname(w, 2097152 + 53248, get(w, 2097152 + 264), 2097152 + 32768) == 0:
-                return finish(o, w, 65)
-        else:
-            if dirname(w, 2097152 + 32768, r, 2097152 + 32768) == 0:
-                return finish(o, w, 65)
-        return open_directory(o, w, 9, 18446744073709551516, 2097152 + 32768)
-    if phase == 9:
-        if failed(r) or r < 3:
-            return finish(o, w, 65)
-        put(w, 2097152 + 64, r)
-        return call(o, w, 10, 5, r, 1200, 0, 0, 0, 0, 12)
-    if phase == 10:
-        if failed(r) or getn(w, 1224, 4) & 61440 != 16384 or getn(w, 1224, 4) & 18 != 0:
-            return finish(o, w, 65)
-        if getn(w, 1228, 4) != get(w, 2097152) and getn(w, 1228, 4) != 0:
-            return finish(o, w, 65)
-        return open_directory(o, w, 11, 18446744073709551516, 2097152 + 20480)
-    if phase == 11:
-        if failed(r) or r < 3:
-            return finish(o, w, 65)
-        put(w, 2097152 + 24, r)
-        return open_directory(o, w, 12, 18446744073709551516, 2097152 + 36864)
-    if phase == 12:
-        if failed(r) or r < 3:
-            return finish(o, w, 65)
-        put(w, 2097152 + 48, r)
-        return call(o, w, 13, 262, r, 2097152 + 40960, 1200, 256, 0, 0, 60)
-    if phase == 13:
-        if r != 18446744073709551614:
-            return finish(o, w, 65)
-        put(w, 2097152 + 176, 0)
-        return open_input(o, w)
+    if phase < 20 or phase == 700 or phase == 701 or (phase == 702):
+        return entry_start(s, o, w, phase, r)
     if phase >= 20 and phase <= 33:
         return input_phase(s, o, w, phase, r)
     if phase == 35:
@@ -157,6 +78,11 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if failed(r) or r < 3:
             return finish(o, w, 74)
         put(w, 2097152 + 56, r)
+        return call(o, w, 49, 5, r, 2097152 + 11000, 0, 0, 0, 0, 12)
+    if phase == 49:
+        if failed(r) or getn(w, 2097152 + 11024, 4) & 61440 != 16384 or getn(w, 2097152 + 11028, 4) != get(w, 2097152):
+            return finish(o, w, 74)
+        put(w, 2097152 + 304, 1)
         if request(o, w) == 0:
             return finish(o, w, 65)
         return call(o, w, 50, 319, 2097152 + 45824, 3, 0, 0, 0, 0, 3)
@@ -209,12 +135,141 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if phase == 58:
         if r != 0:
             return finish(o, w, 74)
+        return call(o, w, 59, 57, 0, 0, 0, 0, 0, 0, 0)
+    if phase == 59:
+        if failed(r):
+            return finish(o, w, 74)
+        if r == 0:
+            return call(o, w, 703, 157, 1, 15, 0, 0, 0, 0, 0)
+        put(w, 2097152 + 280, r)
+        return wait_owner(o, w)
+    if phase == 703:
+        if failed(r):
+            return finish(o, w, 74)
+        return call(o, w, 704, 110, 0, 0, 0, 0, 0, 0, 0)
+    if phase == 704:
+        if r != get(w, 2097152 + 272):
+            return finish(o, w, 65)
         return call(o, w, 999, 322, get(w, 2097152 + 80), 2097152 + 45952, 2097152 + 49216, 2097152 + 49232, 4096, 0, 252)
+    if phase == 60:
+        if r == 18446744073709551612:
+            return wait_owner(o, w)
+        if r != get(w, 2097152 + 280):
+            return finish(o, w, 74)
+        status = getn(w, 2097152 + 12288, 4)
+        if status & 127 == 0:
+            return finish(o, w, status >> 8 & 255)
+        return finish(o, w, 128 + (status & 127))
+    if phase == 61:
+        if r == 18446744073709551614:
+            return finish(o, w, get(w, 2097152 + 288))
+        if failed(r):
+            return finish(o, w, 74)
+        if same_bytes(w, 1200, 2097152 + 11000, 16) == 0:
+            return finish(o, w, get(w, 2097152 + 288))
+        if getn(w, 1224, 4) & 61440 != 16384 or getn(w, 1228, 4) != get(w, 2097152):
+            return finish(o, w, 74)
+        return call(o, w, 62, 263, get(w, 2097152 + 48), 2097152 + 40960, 512, 0, 0, 0, 12)
+    if phase == 62:
+        if r != 0 and r != 18446744073709551614:
+            return finish(o, w, 74)
+        return finish(o, w, get(w, 2097152 + 288))
     if phase == 900:
         return finish(o, w, choose(failed(r), 74, 0))
     return finish(o, w, 74)
 
-def input_phase(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
+def entry_start(s: readbuf, o: mutbuf, w: mutbuf, phase: u64, r: u64) -> u32:
+    if phase == 0:
+        entry_constants(w)
+        constants(w)
+        result = arguments(s, w)
+        if result == 2:
+            return call(o, w, 900, 1, 1, 2097152 + 48000, 118, 0, 0, 0, 12)
+        if result == 0:
+            return finish(o, w, 64)
+        return call(o, w, 700, 436, 3, 4294967295, 4, 0, 0, 0, 0)
+    if phase == 700:
+        if failed(r):
+            return finish(o, w, 74)
+        return call(o, w, 1, 107, 0, 0, 0, 0, 0, 0, 0)
+    if phase == 1:
+        put(w, 2097152, r)
+        return call(o, w, 2, 110, 0, 0, 0, 0, 0, 0, 0)
+    if phase == 2:
+        if r < 2 or r > 2147483647:
+            return finish(o, w, 65)
+        put(w, 2097152 + 8, r)
+        return call(o, w, 3, 157, 1, 15, 0, 0, 0, 0, 0)
+    if phase == 3:
+        if failed(r):
+            return finish(o, w, 74)
+        return call(o, w, 4, 110, 0, 0, 0, 0, 0, 0, 0)
+    if phase == 4:
+        if r != get(w, 2097152 + 8):
+            return finish(o, w, 65)
+        return call(o, w, 701, 39, 0, 0, 0, 0, 0, 0, 0)
+    if phase == 701:
+        if r < 2 or r > 2147483647:
+            return finish(o, w, 74)
+        put(w, 2097152 + 272, r)
+        return call(o, w, 5, 95, 63, 0, 0, 0, 0, 0, 0)
+    if phase == 5:
+        put(w, 6448, 1)
+        return call(o, w, 6, 13, 13, 6448, 0, 8, 0, 0, 12)
+    if phase == 6:
+        if failed(r):
+            return finish(o, w, 74)
+        return call(o, w, 702, 13, 17, 6480, 0, 8, 0, 0, 12)
+    if phase == 702:
+        if failed(r):
+            return finish(o, w, 74)
+        return call(o, w, 7, 228, 1, 2097152 + 12288, 0, 0, 0, 0, 12)
+    if phase == 7:
+        if failed(r) or get(w, 2097152 + 12296) >= 1000000000:
+            return finish(o, w, 74)
+        deadline = get(w, 2097152 + 12288) * 1000000000 + get(w, 2097152 + 12296) + get(w, 2097152 + 224) * 1000000000
+        if deadline >> 63 != 0:
+            return finish(o, w, 65)
+        put(w, 2097152 + 16, deadline)
+        return call(o, w, 8, 267, 18446744073709551516, 2097152 + 45056, 2097152 + 32768, 4095, 0, 0, 60)
+    if phase == 8:
+        if failed(r) or r == 0 or r >= 4095:
+            return finish(o, w, 65)
+        if r >= 7 and getn(w, 2097152 + 32768, 7) == 16435939734023471:
+            if byte(w, 2097152 + 53248) != 47 or dirname(w, 2097152 + 53248, get(w, 2097152 + 264), 2097152 + 32768) == 0:
+                return finish(o, w, 65)
+        elif dirname(w, 2097152 + 32768, r, 2097152 + 32768) == 0:
+            return finish(o, w, 65)
+        return open_directory(o, w, 9, 18446744073709551516, 2097152 + 32768)
+    if phase == 9:
+        if failed(r) or r < 3:
+            return finish(o, w, 65)
+        put(w, 2097152 + 64, r)
+        return call(o, w, 10, 5, r, 1200, 0, 0, 0, 0, 12)
+    if phase == 10:
+        if failed(r) or getn(w, 1224, 4) & 61440 != 16384 or getn(w, 1224, 4) & 18 != 0:
+            return finish(o, w, 65)
+        if getn(w, 1228, 4) != get(w, 2097152) and getn(w, 1228, 4) != 0:
+            return finish(o, w, 65)
+        return open_directory(o, w, 11, 18446744073709551516, 2097152 + 20480)
+    if phase == 11:
+        if failed(r) or r < 3:
+            return finish(o, w, 65)
+        put(w, 2097152 + 24, r)
+        return open_directory(o, w, 12, 18446744073709551516, 2097152 + 36864)
+    if phase == 12:
+        if failed(r) or r < 3:
+            return finish(o, w, 65)
+        put(w, 2097152 + 48, r)
+        return call(o, w, 13, 262, r, 2097152 + 40960, 1200, 256, 0, 0, 60)
+    if phase == 13:
+        if r != 18446744073709551614:
+            return finish(o, w, 65)
+        put(w, 2097152 + 176, 0)
+        return open_input(o, w)
+    return finish(o, w, 74)
+
+def input_phase(s: readbuf, o: mutbuf, w: mutbuf, phase: u64, r: u64) -> u32:
     if phase == 20:
         if failed(r) or r < 3:
             return finish(o, w, 65)
@@ -303,13 +358,13 @@ def input_phase(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         return read_cold(o, w)
     return finish(o, w, 74)
 
-def open_directory(o:mutbuf, w:mutbuf, phase:u64, directory:u64, path:u64) -> u32:
+def open_directory(o: mutbuf, w: mutbuf, phase: u64, directory: u64, path: u64) -> u32:
     put(w, 2097152 + 8192, 720896)
     put(w, 2097152 + 8200, 0)
     put(w, 2097152 + 8208, 6)
     return call(o, w, phase, 437, directory, path, 2097152 + 8192, 24, 0, 0, 60)
 
-def open_input(o:mutbuf, w:mutbuf) -> u32:
+def open_input(o: mutbuf, w: mutbuf) -> u32:
     index = get(w, 2097152 + 176)
     directory = get(w, 2097152 + 64)
     path = 2097152 + 45120 + index * 64
@@ -324,24 +379,24 @@ def open_input(o:mutbuf, w:mutbuf) -> u32:
     put(w, 2097152 + 8208, 6)
     return call(o, w, 20, 437, directory, path, 2097152 + 8192, 24, 0, 0, 60)
 
-def read_input(o:mutbuf, w:mutbuf) -> u32:
+def read_input(o: mutbuf, w: mutbuf) -> u32:
     return call(o, w, 25, 17, get(w, 2097152 + 136), 65537, 65536, get(w, 2097152 + 160), 0, 0, 12)
 
-def write_input(o:mutbuf, w:mutbuf) -> u32:
+def write_input(o: mutbuf, w: mutbuf) -> u32:
     return call(o, w, 26, 1, get(w, 2097152 + 144), 65537 + get(w, 2097152 + 248), get(w, 2097152 + 240) - get(w, 2097152 + 248), 0, 0, 0, 12)
 
-def read_cold(o:mutbuf, w:mutbuf) -> u32:
+def read_cold(o: mutbuf, w: mutbuf) -> u32:
     return call(o, w, 35, 17, get(w, 2097152 + 120), get(w, 2097152 + 160), get(w, 2097152 + 208) - get(w, 2097152 + 160), get(w, 2097152 + 160), 0, 0, 4)
 
-def write_request(o:mutbuf, w:mutbuf) -> u32:
+def write_request(o: mutbuf, w: mutbuf) -> u32:
     return call(o, w, 52, 1, get(w, 2097152 + 128), 33554432 + get(w, 2097152 + 160), get(w, 2097152 + 192) - get(w, 2097152 + 160), 0, 0, 0, 8)
 
-def inherit(o:mutbuf, w:mutbuf) -> u32:
+def inherit(o: mutbuf, w: mutbuf) -> u32:
     index = get(w, 2097152 + 176)
     descriptor = get(o, 33554432 + 24 + index * 8)
     return call(o, w, 56, 72, descriptor, 2, 0, 0, 0, 0, 0)
 
-def arguments(s:readbuf, w:mutbuf) -> u64:
+def arguments(s: readbuf, w: mutbuf) -> u64:
     if uint(s, 0, 8) != 3544411325348268360:
         return 0
     count = uint(s, 8, 8)
@@ -359,7 +414,7 @@ def arguments(s:readbuf, w:mutbuf) -> u64:
         size = uint(s, at, 8)
         if argument_equal(s, w, at + 8, size, 2097152 + 46400, 6) != 0:
             return 2
-    if count < 7 or (count & 1) == 0:
+    if count < 7 or count & 1 == 0:
         return 0
     mask = 0
     index = 1
@@ -428,7 +483,7 @@ def arguments(s:readbuf, w:mutbuf) -> u64:
     copy(s, w, 2097152 + 512, 16, 128)
     return 1
 
-def argument_equal(s:readbuf, w:mutbuf, at:u64, count:u64, text:u64, size:u64) -> u64:
+def argument_equal(s: readbuf, w: mutbuf, at: u64, count: u64, text: u64, size: u64) -> u64:
     if count != size:
         return 0
     i = 0
@@ -438,7 +493,7 @@ def argument_equal(s:readbuf, w:mutbuf, at:u64, count:u64, text:u64, size:u64) -
         i = i + 1
     return 1
 
-def dirname(w:mutbuf, at:u64, count:u64, target:u64) -> u64:
+def dirname(w: mutbuf, at: u64, count: u64, target: u64) -> u64:
     last = 0
     found = 0
     i = 0
@@ -459,7 +514,7 @@ def dirname(w:mutbuf, at:u64, count:u64, target:u64) -> u64:
     store(w, target + last, 0)
     return last
 
-def split_output(w:mutbuf) -> u64:
+def split_output(w: mutbuf) -> u64:
     at = 2097152 + 16384
     size = 0
     name = 0
@@ -472,7 +527,7 @@ def split_output(w:mutbuf) -> u64:
         return 0
     if count == 1 and byte(w, at + name) == 46:
         return 0
-    if count == 2 and byte(w, at + name) == 46 and byte(w, at + name + 1) == 46:
+    if count == 2 and byte(w, at + name) == 46 and (byte(w, at + name + 1) == 46):
         return 0
     i = 0
     while i < count:
@@ -485,7 +540,7 @@ def split_output(w:mutbuf) -> u64:
     put(w, 2097152 + 216, count)
     return choose(dirname(w, at, size, 2097152 + 36864) != 0, 1, 0)
 
-def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+def inventory(s: readbuf, o: mutbuf, w: mutbuf) -> u64:
     put(w, 128, 1)
     root = json_parse(s, o, w, 0, get(w, 2097152 + 208))
     node = field(s, o, w, root, 6)
@@ -523,7 +578,7 @@ def inventory(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         previous = best
     return 0
 
-def decode_path(s:readbuf, o:mutbuf, node:u64, target:u64) -> u64:
+def decode_path(s: readbuf, o: mutbuf, node: u64, target: u64) -> u64:
     if kind(o, node) != 2:
         return 0
     source = token_start(o, node) + 1
@@ -536,7 +591,7 @@ def decode_path(s:readbuf, o:mutbuf, node:u64, target:u64) -> u64:
         if cp == 1114112:
             done = 1
         else:
-            if cp == 1114113 or count >= 4095 or cp > 127 or cp == 0:
+            if cp == 1114113 or count >= 4095 or cp > 127 or (cp == 0):
                 return 0
             store(o, target + count, cp)
             count = count + 1
@@ -554,16 +609,15 @@ def decode_path(s:readbuf, o:mutbuf, node:u64, target:u64) -> u64:
                 return 0
             if length == 1 and byte(o, target + start) == 46:
                 return 0
-            if length == 2 and byte(o, target + start) == 46 and byte(o, target + start + 1) == 46:
+            if length == 2 and byte(o, target + start) == 46 and (byte(o, target + start + 1) == 46):
                 return 0
             start = i + 1
-        else:
-            if (ch < 48 or ch > 57) and (ch < 65 or ch > 90) and (ch < 97 or ch > 122) and ch != 46 and ch != 45 and ch != 95:
-                return 0
+        elif (ch < 48 or ch > 57) and (ch < 65 or ch > 90) and (ch < 97 or ch > 122) and (ch != 46) and (ch != 45) and (ch != 95):
+            return 0
         i = i + 1
     return count
 
-def decode_pin(s:readbuf, o:mutbuf, node:u64, target:u64) -> u64:
+def decode_pin(s: readbuf, o: mutbuf, node: u64, target: u64) -> u64:
     if kind(o, node) != 2:
         return 0
     source = token_start(o, node) + 1
@@ -582,9 +636,9 @@ def decode_pin(s:readbuf, o:mutbuf, node:u64, target:u64) -> u64:
             store(o, target + (i >> 1), value + digit)
         i = i + 1
     unit = decoded(s, source)
-    return choose((unit & 4294967295) == 1114112, 1, 0)
+    return choose(unit & 4294967295 == 1114112, 1, 0)
 
-def request(o:mutbuf, w:mutbuf) -> u64:
+def request(o: mutbuf, w: mutbuf) -> u64:
     at = 33554432
     namesize = get(w, 2097152 + 216)
     inventorysize = get(w, 2097152 + 200)
@@ -592,7 +646,7 @@ def request(o:mutbuf, w:mutbuf) -> u64:
     if size > 1048576:
         return 0
     put(o, at, 3544419043639380296)
-    put(o, at + 8, get(w, 2097152 + 8))
+    put(o, at + 8, get(w, 2097152 + 272))
     put(o, at + 16, get(w, 2097152 + 16))
     put(o, at + 24, get(w, 2097152 + 24))
     put(o, at + 32, get(w, 2097152 + 32))
@@ -613,14 +667,14 @@ def request(o:mutbuf, w:mutbuf) -> u64:
     put(w, 2097152 + 192, size)
     return 1
 
-def copy_between(source:mutbuf, target:mutbuf, to:u64, at:u64, count:u64) -> u64:
+def copy_between(source: mutbuf, target: mutbuf, to: u64, at: u64, count: u64) -> u64:
     i = 0
     while i < count:
         store(target, to + i, byte(source, at + i))
         i = i + 1
     return 0
 
-def same_bytes(w:mutbuf, a:u64, b:u64, count:u64) -> u64:
+def same_bytes(w: mutbuf, a: u64, b: u64, count: u64) -> u64:
     i = 0
     while i < count:
         if byte(w, a + i) != byte(w, b + i):
@@ -628,12 +682,22 @@ def same_bytes(w:mutbuf, a:u64, b:u64, count:u64) -> u64:
         i = i + 1
     return 1
 
-def same_stat(w:mutbuf, a:u64, b:u64) -> u64:
+def same_stat(w: mutbuf, a: u64, b: u64) -> u64:
     if same_bytes(w, a, b, 40) == 0:
         return 0
     if same_bytes(w, a + 48, b + 48, 8) == 0:
         return 0
     return same_bytes(w, a + 88, b + 88, 32)
+
+def wait_owner(o: mutbuf, w: mutbuf) -> u32:
+    return call(o, w, 60, 61, get(w, 2097152 + 280), 2097152 + 12288, 0, 0, 0, 0, 12)
+
+def finish(o: mutbuf, w: mutbuf, code: u64) -> u32:
+    if code != 0 and get(w, 2097152 + 304) != 0 and (get(w, 2097152 + 296) == 0):
+        put(w, 2097152 + 288, code)
+        put(w, 2097152 + 296, 1)
+        return call(o, w, 61, 262, get(w, 2097152 + 48), 2097152 + 40960, 1200, 256, 0, 0, 60)
+    return call(o, w, 999, 60, code, 0, 0, 0, 0, 0, 0)
 def json_parse(s: readbuf, o: mutbuf, w: mutbuf, start: u64, limit: u64) -> u64:
     root = get(w, 128)
     put(w, 256, start)
@@ -1035,9 +1099,6 @@ def call(o:mutbuf, w:mutbuf, phase:u64, number:u64, a:u64, b:u64, c:u64, d:u64, 
     put(o, 48, f)
     put(o, 56, pointers)
     return 1
-
-def finish(o:mutbuf, w:mutbuf, code:u64) -> u32:
-    return call(o, w, 999, 60, code, 0, 0, 0, 0, 0, 0)
 
 def failed(value:u64) -> bool:
     return value >> 63 != 0

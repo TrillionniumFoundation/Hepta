@@ -13,10 +13,21 @@ already exist. The parent directory must already exist. The CLI creates a
 private output directory and a private randomly named sibling workspace with
 separate stage and work directories.
 
-The command prepares descriptor capabilities, then executes the native owner
-in the same process. Successful stdout and exit status are the final owner's
-publication receipt and status. An entry component fixture that substitutes a
-mechanical descriptor inspector for the owner is not a completed release build.
+The command prepares descriptor capabilities, then forks and supervises the
+native owner. The owner request names the front end as its exact parent. The
+child installs a parent-death signal and rechecks that parent before executing
+the sealed owner image. The front end waits for and reaps its child, forwards
+normal exit status, and maps signal termination to 128 plus the signal number.
+Successful stdout is the final owner's publication receipt. An entry component
+fixture that substitutes a mechanical descriptor inspector for the owner is
+not a completed release build.
+
+On failure, the front end checks whether the output name still identifies the
+empty directory it created. It removes that directory so a refused build can
+be retried. It preserves a replacement directory or an output containing files;
+an unexpected nonempty output returns an I/O failure. It never recursively
+deletes output contents. The private workspace remains available for custody
+and diagnostic inspection until release cleanup.
 
 ## Immutable dependencies
 
@@ -121,7 +132,9 @@ received request and the real descriptor types, permissions, seals and open
 descriptor bitmap. The component matrix covers exact binding, malformed
 binding, direct and sealed execution, default source root, sorted inventory,
 descriptor closure, all four helper pin failures, occupied output, symlinks,
-invalid JSON and unsafe paths, and command-line refusals.
+invalid JSON and unsafe paths, and command-line refusals. Terminal fixtures
+also check owner rejection, a replaced output directory, unexpected output
+contents, signal termination, and parent death with independent child reaping.
 
 These fixtures validate native entry custody. Full source replay, normal
 owner construction, final publication, clean installation and public tool
