@@ -28,7 +28,7 @@ class _ManifestOwner:
 
     def __init__(self, path, image=None):
         from .hia_slot_operations_native import installed_slot_operations, NativeSlotOperations, SOURCE
-        from .hia_store_lifecycle_native import _regular_bytes
+        from .hia_native_host_support import _regular_bytes
         from .hia_json_preflight_native import _unique_manifest_pairs
         selected = installed_slot_operations(path)
         self.path = Path(path).resolve(strict=True)
@@ -49,7 +49,7 @@ class _ManifestOwner:
         self.check()
 
     def check(self):
-        from .hia_store_lifecycle_native import _regular_bytes
+        from .hia_native_host_support import _regular_bytes
         from .hia_slot_operations_native import SlotOperationsUnknown
         if (_regular_bytes(self.path, 16384) != self.manifest
                 or _regular_bytes(self.source_path, 8 << 20) != self.source
