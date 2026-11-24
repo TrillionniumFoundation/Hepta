@@ -1,8 +1,9 @@
-"""Qualify the native Worker owner member from independently compiled sources.
+"""Qualify native Worker owner and configuration members from source.
 
-The fixture drives native programs with an empty PATH and compares the member's
-embedded and retained images with separate source compiler results. It qualifies
-source-role assembly; full source/cold release and Worker installation are separate.
+The fixture drives native programs with an empty PATH and compares embedded and
+retained images with separate source compiler results. Named source roles must
+remain order independent and reject missing, extra or mismatched companions.
+Full source/cold release and Worker installation are qualified separately.
 """
 from __future__ import annotations
 
@@ -40,75 +41,93 @@ def qualify(source: Path, seed: Path, kit: Path, output: Path):
                       'stdout_bytes': len(result.stdout), 'stderr_bytes': len(result.stderr)})
         return result
 
-    parts = {
-        'hia-worker-install-owner.hepta': read(bootstrap / 'worker_install_owner.hepta'),
-        'worker_install_dag.hepta': read(bootstrap / 'worker_install_dag.hepta'),
-        'sha256_stream.hepta': read(bootstrap / 'sha256_stream.hepta'),
-    }
-    independent = {}
-    for name, raw in parts.items():
-        result = call('independent-' + name, seed, 'compile', raw)
-        if result.returncode or result.stderr or not result.stdout:
-            raise ValueError('independent source compilation failed: ' + name)
-        independent[name] = result.stdout
-        (output / (name + '.image.bin')).write_bytes(result.stdout)
+    members = {}
+    specifications = (
+        ('hia-worker-install-owner', 'worker_install_owner', 'worker_install_dag'),
+        ('hia-worker-config-bind', 'worker_config_bind', 'worker_config_json'),
+    )
+    for product, primary, companion in specifications:
+        directory = output / product
+        directory.mkdir(mode=0o700)
+        primary_alias = product + '.hepta'
+        companion_alias = companion + '.hepta'
+        parts = {
+            primary_alias: read(bootstrap / (primary + '.hepta')),
+            companion_alias: read(bootstrap / companion_alias),
+            'sha256_stream.hepta': read(bootstrap / 'sha256_stream.hepta'),
+        }
+        independent = {}
+        for name, raw in parts.items():
+            result = call(product + '/independent-' + name, seed, 'compile', raw)
+            if result.returncode or result.stderr or not result.stdout:
+                raise ValueError('independent source compilation failed: ' + name)
+            independent[name] = result.stdout
+            (directory / (name + '.image.bin')).write_bytes(result.stdout)
 
-    builder_sources = {
-        'source_build_policy.hepta': read(bootstrap / 'source_filter_member.hepta'),
-        'selfhost.hepta': read(bootstrap / 'selfhost.hepta'),
-        'source_build_packer.hepta': read(bootstrap / 'worker_install_owner_packer.hepta'),
-    }
-    result = call('member-kit', kit, 'build',
-                  _named_source_request(builder_sources, tag=b'HIAKIT01'))
-    if result.returncode or result.stderr or not result.stdout.startswith(b'\x7fELF'):
-        raise ValueError('native Worker member kit construction failed')
-    builder = output / 'member-builder'
-    builder.write_bytes(result.stdout)
-    builder.chmod(0o500)
-    read(builder)
+        builder_sources = {
+            'source_build_policy.hepta': read(bootstrap / 'source_filter_member.hepta'),
+            'selfhost.hepta': read(bootstrap / 'selfhost.hepta'),
+            'source_build_packer.hepta': read(bootstrap / (primary + '_packer.hepta')),
+        }
+        result = call(product + '/member-kit', kit, 'build',
+                      _named_source_request(builder_sources, tag=b'HIAKIT01'))
+        if result.returncode or result.stderr or not result.stdout.startswith(b'\x7fELF'):
+            raise ValueError('native member kit construction failed: ' + product)
+        builder = directory / 'member-builder'
+        builder.write_bytes(result.stdout)
+        builder.chmod(0o500)
+        read(builder)
 
-    result = call('member', builder, 'build', _named_source_request(parts, tag=b'HIAMUL01'))
-    if result.returncode or result.stderr:
-        raise ValueError('native Worker member construction failed')
-    image, retained = _member_with_objects(result.stdout, parts)
-    ordered = b''.join(independent.values())
-    if (retained != independent or not image.startswith(b'\x7fELF') or
-            image[-len(ordered):] != ordered):
-        raise ValueError('Worker member does not contain its independently compiled images')
-    program = output / 'hia-worker-install-owner'
-    program.write_bytes(image)
-    program.chmod(0o500)
+        result = call(product + '/member', builder, 'build',
+                      _named_source_request(parts, tag=b'HIAMUL01'))
+        if result.returncode or result.stderr:
+            raise ValueError('native member construction failed: ' + product)
+        image, retained = _member_with_objects(result.stdout, parts)
+        ordered = b''.join(independent.values())
+        if (retained != independent or not image.startswith(b'\x7fELF') or
+                image[-len(ordered):] != ordered):
+            raise ValueError('member differs from independently compiled images: ' + product)
+        program = directory / product
+        program.write_bytes(image)
+        program.chmod(0o500)
 
-    reordered = dict(reversed(tuple(parts.items())))
-    result = call('member-reordered', builder, 'build',
-                  _named_source_request(reordered, tag=b'HIAMUL01'))
-    if result.returncode or result.stderr:
-        raise ValueError('native Worker member rejected reordered named sources')
-    other, other_images = _member_with_objects(result.stdout, reordered)
-    if other != image or other_images != independent:
-        raise ValueError('named source order changed the Worker executable')
+        reordered = dict(reversed(tuple(parts.items())))
+        result = call(product + '/member-reordered', builder, 'build',
+                      _named_source_request(reordered, tag=b'HIAMUL01'))
+        if result.returncode or result.stderr:
+            raise ValueError('native member rejected reordered named sources: ' + product)
+        other, other_images = _member_with_objects(result.stdout, reordered)
+        if other != image or other_images != independent:
+            raise ValueError('named source order changed executable: ' + product)
 
-    bad = [
-        ('missing-dag', {k: v for k, v in parts.items() if k != 'worker_install_dag.hepta'}),
-        ('wrong-primary-module', {**parts, 'hia-worker-install-owner.hepta': parts['sha256_stream.hepta']}),
-        ('wrong-dag-module', {**parts, 'worker_install_dag.hepta': parts['sha256_stream.hepta']}),
-        ('wrong-hash-module', {**parts, 'sha256_stream.hepta': parts['worker_install_dag.hepta']}),
-        ('extra-source', {**parts, 'unrelated.hepta': parts['sha256_stream.hepta']}),
-        ('unknown-primary-alias', {('wrong.hepta' if k == 'hia-worker-install-owner.hepta' else k): v
-                                   for k, v in parts.items()}),
-    ]
-    for name, values in bad:
-        result = call(name, builder, 'build', _named_source_request(values, tag=b'HIAMUL01'))
-        if result.returncode == 0 or result.stdout or result.stderr:
-            raise ValueError('native Worker source refusal differs: ' + name)
+        bad = [
+            ('missing-companion', {k: v for k, v in parts.items() if k != companion_alias}),
+            ('missing-hash', {k: v for k, v in parts.items() if k != 'sha256_stream.hepta'}),
+            ('wrong-primary-module', {**parts, primary_alias: parts['sha256_stream.hepta']}),
+            ('wrong-companion-module', {**parts, companion_alias: parts['sha256_stream.hepta']}),
+            ('wrong-hash-module', {**parts, 'sha256_stream.hepta': parts[companion_alias]}),
+            ('extra-source', {**parts, 'unrelated.hepta': parts['sha256_stream.hepta']}),
+            ('unknown-primary-alias', {('wrong.hepta' if k == primary_alias else k): v
+                                       for k, v in parts.items()}),
+        ]
+        for name, values in bad:
+            result = call(product + '/' + name, builder, 'build',
+                          _named_source_request(values, tag=b'HIAMUL01'))
+            if result.returncode == 0 or result.stdout or result.stderr:
+                raise ValueError('native source refusal differs: ' + product + '/' + name)
+        members[product] = {
+            'elf_bytes': len(image), 'elf_sha256': sha256(image).hexdigest(),
+            'independent_images_equal': True, 'source_order_independent': True,
+            'refusal_cases': len(bad),
+            'image_sha256': {name: sha256(raw).hexdigest() for name, raw in independent.items()},
+        }
 
     if any(sha256(Path(name).read_bytes()).hexdigest() != pin for name, pin in captured.items()):
         raise ValueError('qualification input changed')
-    report = {'schema': 'hepta.hia.worker-install-source-qualification.v1',
-              'scope': 'NATIVE_WORKER_OWNER_MEMBER_COMPONENT', 'status': 'passed',
-              'elf_bytes': len(image), 'elf_sha256': sha256(image).hexdigest(),
-              'independent_images_equal': True, 'source_order_independent': True,
-              'refusal_cases': len(bad), 'source_and_tool_sha256': captured, 'calls': calls}
+    report = {'schema': 'hepta.hia.worker-install-source-qualification.v2',
+              'scope': 'NATIVE_WORKER_INSTALLATION_MEMBER_COMPONENTS', 'status': 'passed',
+              'members': members, 'refusal_cases': sum(row['refusal_cases'] for row in members.values()),
+              'source_and_tool_sha256': captured, 'calls': calls}
     (output / 'qualification.json').write_text(json.dumps(report, indent=2) + '\n')
     return report
 

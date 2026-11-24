@@ -5799,7 +5799,32 @@ block b5(v89:readbuf,v90:u64,v91:u64,v92:u64,v93:u64,v94:u64,v95:u64,v96:u64,v97
   v104:u64 = int.add.wrap(v99,v103)
   jump b1(v89,v90,v91,v92,v93,v94,v95,v96,v97,v98,v104)
 end
-fn worker_aux(ia0:readbuf,in0:u64,iz0:u64,is0:u64,ix0:u64) -> (u64) effects(read,write,trap) entry(install_aux0)
+fn worker_aux(ci:readbuf,cn:u64,cz:u64,cs:u64,cx:u64) -> (u64) effects(read,write,trap) entry(config_aux)
+block config_aux(ci:readbuf,cn:u64,cz:u64,cs:u64,cx:u64)
+  config_name0:u64 = const() {"value":24}
+  config_name1:u64 = const() {"value":7160567712462303095}
+  config_name2:u64 = const() {"value":8316564559647633007}
+  config_name3:u64 = const() {"value":7022361299819327087}
+  config_name4:u64 = const() {"value":0}
+  config_name5:u64 = const() {"value":0}
+  config_name6:u64 = const() {"value":0}
+  config_name7:u64 = const() {"value":0}
+  config_named:bool = call(ci,cn,cz,config_name0,config_name1,config_name2,config_name3,config_name4,config_name5,config_name6,config_name7) {"function":"is_name"}
+  branch config_named config_module(ci,cs,cx) install_aux0(ci,cn,cz,cs,cx)
+block config_module(mi:readbuf,ms:u64,mz:u64)
+  config_module0:u64 = const() {"value":18}
+  config_module1:u64 = const() {"value":7160567712462303095}
+  config_module2:u64 = const() {"value":8316564559647633007}
+  config_module3:u64 = const() {"value":28271}
+  config_module4:u64 = const() {"value":0}
+  config_module5:u64 = const() {"value":0}
+  config_module6:u64 = const() {"value":0}
+  config_module7:u64 = const() {"value":0}
+  config_valid:bool = call(mi,ms,mz,config_module0,config_module1,config_module2,config_module3,config_module4,config_module5,config_module6,config_module7) {"function":"is_module"}
+  config_role:u64 = const() {"value":29}
+  config_zero:u64 = const() {"value":0}
+  config_result:u64 = select(config_valid,config_role,config_zero)
+  ret(config_result)
 block install_aux0(ia0:readbuf,in0:u64,iz0:u64,is0:u64,ix0:u64)
   aux_name0_0:u64 = const() {"value":22}
   aux_name0_1:u64 = const() {"value":7812741990951317347}
@@ -7707,7 +7732,11 @@ block entry(mode:u64,default_value:u64)
   is_worker_install_owner:bool = compare.eq(mode,worker_install_owner)
   worker_install_companions:u64 = const() {"value":3868}
   with_worker_install_owner:u64 = select(is_worker_install_owner,worker_install_companions,with_controller_install)
-  ret(with_worker_install_owner)
+  worker_config_bind:u64 = const() {"value":3552005588105906504}
+  is_worker_config_bind:bool = compare.eq(mode,worker_config_bind)
+  worker_config_companions:u64 = const() {"value":3869}
+  with_worker_config_bind:u64 = select(is_worker_config_bind,worker_config_companions,with_worker_install_owner)
+  ret(with_worker_config_bind)
 end
 fn transaction_span(v0:mutbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64)
@@ -9033,7 +9062,7 @@ block candidate9(input9:readbuf,name9:u64,size9:u64,body9:u64,extent9:u64)
   nameword9_6:u64 = const() {"value":0}
   nameword9_7:u64 = const() {"value":0}
   named9:bool = call(input9,name9,size9,nameword9_0,nameword9_1,nameword9_2,nameword9_3,nameword9_4,nameword9_5,nameword9_6,nameword9_7) {"function":"is_name"}
-  branch named9 matched9(input9,body9,extent9) absent(input9)
+  branch named9 matched9(input9,body9,extent9) candidate10(input9,name9,size9,body9,extent9)
 block matched9(source9:readbuf,at9:u64,length9:u64)
   moduleword9_0:u64 = const() {"value":29}
   moduleword9_1:u64 = const() {"value":7308335461136821865}
@@ -9048,6 +9077,31 @@ block matched9(source9:readbuf,at9:u64,length9:u64)
   zero9:u64 = const() {"value":0}
   role9:u64 = select(module9,magic9,zero9)
   ret(role9)
+block candidate10(input10:readbuf,name10:u64,size10:u64,body10:u64,extent10:u64)
+  nameword10_0:u64 = const() {"value":28}
+  nameword10_1:u64 = const() {"value":7742373267056453992}
+  nameword10_2:u64 = const() {"value":7594879246291268197}
+  nameword10_3:u64 = const() {"value":7507048054250417511}
+  nameword10_4:u64 = const() {"value":1635020901}
+  nameword10_5:u64 = const() {"value":0}
+  nameword10_6:u64 = const() {"value":0}
+  nameword10_7:u64 = const() {"value":0}
+  named10:bool = call(input10,name10,size10,nameword10_0,nameword10_1,nameword10_2,nameword10_3,nameword10_4,nameword10_5,nameword10_6,nameword10_7) {"function":"is_name"}
+  branch named10 matched10(input10,body10,extent10) absent(input10)
+block matched10(source10:readbuf,at10:u64,length10:u64)
+  moduleword10_0:u64 = const() {"value":18}
+  moduleword10_1:u64 = const() {"value":7160567712462303095}
+  moduleword10_2:u64 = const() {"value":7593736819454668399}
+  moduleword10_3:u64 = const() {"value":25710}
+  moduleword10_4:u64 = const() {"value":0}
+  moduleword10_5:u64 = const() {"value":0}
+  moduleword10_6:u64 = const() {"value":0}
+  moduleword10_7:u64 = const() {"value":0}
+  module10:bool = call(source10,at10,length10,moduleword10_0,moduleword10_1,moduleword10_2,moduleword10_3,moduleword10_4,moduleword10_5,moduleword10_6,moduleword10_7) {"function":"is_module"}
+  magic10:u64 = const() {"value":3552005588105906504}
+  zero10:u64 = const() {"value":0}
+  role10:u64 = select(module10,magic10,zero10)
+  ret(role10)
 block absent(missing_input:readbuf)
   none:u64 = const() {"value":0}
   ret(none)

@@ -37,11 +37,15 @@ artifact roots before construction and binds the supplied configuration to
 the resulting installed profile afterward. Missing members or source roles
 refuse the build before publication.
 
-`tools/qualify_hia_worker_install_sources.py` independently compiles the three
-HIA policies, checks their exact embedded and retained images in the
-constructed member, and exercises reordered, missing, extra and mismatched
-named sources. The full owner, ordinary command, installed rebuild and
-Worker installation qualifications exercise their complete integration.
+`tools/qualify_hia_worker_install_sources.py` independently compiles the owner
+and configuration members. Each has exactly three named HIA sources. The
+configuration member requires `hia-worker-config-bind.hepta`,
+`worker_config_json.hepta` and `sha256_stream.hepta`, with exact module names;
+its `HIAWCBK1` frame orders the configuration policy, JSON parser and digest
+policy. The fixture checks exact embedded and retained images, reversed
+source order, and fourteen missing, extra, wrong-module or unknown-alias
+refusals across both members. The full owner, ordinary command, installed
+rebuild and Worker installation qualifications exercise their integration.
 
 ## Capability request
 
