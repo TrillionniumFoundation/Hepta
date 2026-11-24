@@ -73,13 +73,17 @@ The binary input is little-endian and includes no implicit padding:
 
 | Field | Encoding |
 | --- | --- |
-| Magic | Eight bytes `HIAREL01` |
-| Entry count | u64, 1 through 256 inclusive |
+| Magic | Eight bytes `HIAREL01` or `HIAREL02`, as selected below |
+| Entry count | u64, 1 through 384 inclusive |
 | Reserved | u64 zero |
 | Each entry | u64 name length, u64 mode, u64 payload length, exact name bytes, exact payload bytes |
 
-The entire package is at most 64 MiB, inclusive. The transport reads an extra
-byte solely to reject oversize input. Entry names are 1–127 ASCII bytes matching
+The entire package is at most 256 MiB, inclusive. The format uses `HIAREL01`
+when the package has at most 256 entries and is at most 128 MiB. It uses
+`HIAREL02` when either bound is exceeded, up to 384 entries and 256 MiB. The
+installer rejects a magic that does not match this exact selection; both
+versions use the same record layout. The transport reads an extra byte solely
+to reject oversize input. Entry names are 1–127 ASCII bytes matching
 `[A-Za-z0-9][A-Za-z0-9._-]*`, unique across the package. Names are single path
 components. Mode is exactly `0400` for data/source or `0500` for an executable;
 there are no ownership/set-id/ACL/xattr instructions. Empty files are allowed.
@@ -136,7 +140,7 @@ durable release. Never interpret missing receipt bytes as proof of no effect.
 | 14 | Stage creation or no-replace publication failed |
 | 15 | Mapping, descriptor, synchronization or receipt I/O failure |
 | 16 | Argument, package or internal policy-state refusal |
-| 17 | Input exceeds 64 MiB |
+| 17 | Input exceeds 256 MiB |
 | 64 | Wrong argument count |
 
 No failure recursively removes a stage. A failure or SIGKILL before publication
