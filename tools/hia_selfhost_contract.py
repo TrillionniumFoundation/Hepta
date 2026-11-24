@@ -10,11 +10,11 @@ import ast
 import json
 from pathlib import Path
 from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
-    MAX_FUNCTIONS, MAX_BLOCKS, MAX_RESULTS, MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND)
+    MAX_FUNCTIONS, MAX_BLOCKS, MAX_RESULTS, MAX_CALL_DEPTH, MAX_CALL_STACK_BYTES, MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND)
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v94-six-results'
+PROFILE = 'selfhost-core-linux-x86_64-v95-bounded-recursion'
 SQLITE_SNAPSHOT_SDIST_FILES = (
     'tools/build_hia_agent_batch_commit.py',
     'tools/build_hia_agent_store.py',
@@ -1906,6 +1906,7 @@ SOURCE_FILES = (
     'tools/qualify_hia_selfhost_chain_elf.py',
     'tools/hia_selfhost_select.py',
     'tools/hia_selfhost_tailcalls.py',
+    'tools/hia_selfhost_recursion.py',
     'tools/hia_selfhost_limits.py',
     'tools/hia_selfhost_capacity.py',
     'tools/qualify_hia_selfhost.py',
@@ -1924,6 +1925,7 @@ SOURCE_FILES = (
     'tests/test_hia_selfhost_language_coverage.py',
     'tests/test_hia_selfhost_multi_results.py',
     'tests/test_hia_selfhost_returned_loans.py',
+    'tests/test_hia_selfhost_recursion.py',
     'docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json',
     'README.md',
     'docs/HIA_CORE_ONLY_SCOPE.md',
@@ -4362,7 +4364,7 @@ def support_contract(root=ROOT):
             "whole_stack_cli_replaced": False,
         },
         "compiler_symbols": {"entry": "f0", "mutation_wrapper": "f13",
-                             "call_graph_checker": "f12"},
+                             "exact_tail_lookahead": "f12"},
         "limits": {
             "source_bytes": 1048576, "output_capacity_bytes": 1048576,
             "workspace_required_bytes": 1048576, "functions": MAX_FUNCTIONS,
@@ -4377,6 +4379,10 @@ def support_contract(root=ROOT):
             "instructions": MAX_INSTRUCTIONS, "core_structural_nodes": MAX_CORE_NODES,
             "relative_relocations": MAX_RELOCATIONS,
             "acyclic_call_depth_max": 128,
+            "recursive_live_frames_max": MAX_CALL_DEPTH,
+            "private_call_frame_bytes_max": MAX_CALL_STACK_BYTES,
+            "private_call_budget_rbp_offset": -16,
+            "result_name_workspace_bytes": [858368, 858464],
             "tail_self_call_additional_frames": 0,
             "resource_graph_parse_rounds_max": 1,
             "resource_graph_queued_replays_per_block_max": 1,
@@ -4471,13 +4477,18 @@ def support_contract(root=ROOT):
                        "exact structural-node accounting for declared effects"]},
             {"area": "calls", "status": "bounded_subset",
              "items": ["zero to six scalar, owned or parameter-bound borrowed results", "exact signatures", "forward direct calls",
-                       "backward direct calls", "HIA-checked non-self acyclic call graph"]},
+                       "backward direct calls", "signature-checked direct and mutual recursion"]},
             {"area": "recursion", "status": "bounded_subset",
              "items": ["direct self call immediately returning its exact zero-to-six scalar/owner/loan result tuple in order",
                        "parallel argument staging and same-frame entry jump",
-                       "non-tail self calls and mutual recursion rejected",
-                       "non-tail cycles in non-entry-reachable functions rejected"],
+                       "non-tail self calls and mutual recursion use independent frames",
+                       "non-entry-reachable recursive functions are checked and emitted",
+                       "private per-invocation depth and stack-byte guards before callee effects",
+                       "budget exhaustion emits UD2/SIGILL, not a VM exception report"],
              "limits": {"additional_frames_per_self_tail_call": 0,
+                        "live_frames": MAX_CALL_DEPTH, "private_frame_bytes": MAX_CALL_STACK_BYTES,
+                        "frame_charge": "generated frame allocation plus 16 bytes for saved rbp and return address",
+                        "budget_report_equivalence": False,
                         "runtime_termination_proved": False,
                         "iteration_bound": "external CPU/wall budget, as for accepted loops",
                         "pending_result_workspace_offset": 256}},

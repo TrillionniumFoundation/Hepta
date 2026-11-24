@@ -24,6 +24,8 @@ def owned_read_outputs(s:readbuf, w:mutbuf) -> u64:
         if count >= MAX_RESULTS:
             return fail(w, 66)
         v = expect(s, w, 256)
+        put(w, RESULT_NAMES + count * 16, get(w, 456))
+        put(w, RESULT_NAMES + count * 16 + 8, get(w, 464))
         expect(s, w, 58)
         t = read_type(s, w)
         put(w, RESULT_OUTPUTS + count * 16, v)

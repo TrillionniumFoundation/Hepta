@@ -12,8 +12,9 @@ class SelfhostMultiResultSourceTests(unittest.TestCase):
         cls.reference = independent_reference()
 
     def test_tuple_values_match_independent_full_width_core_vm_observations(self):
-        self.assertEqual(len(self.reference["cases"]), 144)
-        self.assertEqual(len({case["program"] for case in self.reference["cases"]}), 48)
+        self.assertEqual(len(self.reference["cases"]), 166)
+        self.assertEqual(len({case["program"] for case in self.reference["cases"]}), 52)
+        self.assertEqual(sum(not row["program"].startswith("recursion-promoted-") for row in self.reference["cases"]), 144)
         for case in self.reference["cases"]:
             self.assertEqual(case["reference_result"]["status"], "returned")
             expected = ([case["expected_result"], *bytes.fromhex(case["expected_hex"])] if case["reference_entry"] == "reference_entry"
@@ -39,7 +40,7 @@ class SelfhostMultiResultSourceTests(unittest.TestCase):
         self.assertEqual(len(void), 20)
         self.assertEqual({case["program"] for case in void}, {
             "void-empty", "void-write", "void-backward", "void-branch", "void-loop", "void-tail", "void-owned"})
-        old = [case for case in self.reference["cases"] if not case["program"].startswith(("void-", "owner-", "loan-", "extended-"))]
+        old = [case for case in self.reference["cases"] if not case["program"].startswith(("void-", "owner-", "loan-", "extended-", "recursion-promoted-"))]
         self.assertEqual(len(old), 43)
         negatives = {case["id"]: case for case in self.reference["refusals"]}
         self.assertEqual(negatives["call-discarded-results"]["reference_result"]["status"], "rejected")
@@ -94,10 +95,16 @@ class SelfhostMultiResultSourceTests(unittest.TestCase):
     def test_invalid_core_and_valid_outside_profile_remain_distinct(self):
         self.assertEqual(len(self.reference["refusals"]), len(refusals()))
         outside = {case["id"] for case in self.reference["refusals"]
-                   if case["reference_result"]["status"] == "accepted"}
-        self.assertEqual(outside, {"entry-multiple-results", "seven-scalar-results", "tail-results-reordered",
-                                  "tail-result-replaced", "tail-result-then-operation",
-                                  "void-entry", "void-tail-not-immediate", "owner-return-flat-output"})
+                   if case["reference_result"]["status"] == "accepted" and case["native_profile_expected"] == "rejected"}
+        self.assertEqual(outside, {"entry-multiple-results", "seven-scalar-results",
+                                  "void-entry", "owner-return-flat-output"})
+        from tools.hia_selfhost_recursion import MULTI_PROMOTIONS
+        self.assertEqual({row["id"] for row in self.reference["refusals"]
+            if row["native_profile_expected"] == "compiled"}, MULTI_PROMOTIONS)
+        promoted = [row for row in self.reference["cases"] if "historical_refusal_id" in row]
+        self.assertEqual(len(promoted), 22)
+        frozen = {row["id"]: row["source"] for row in refusals()}
+        self.assertTrue(all(row["source"] == frozen[row["historical_refusal_id"]] for row in promoted))
         for case in self.reference["refusals"]:
             self.assertEqual(case["reference_result"]["status"], case["general_core_expected"])
 

@@ -308,8 +308,8 @@ def source_owned_reference(seed, compile_sources, call, compiler, admitted):
     if len(product) != header + adapter_size + len(images[owned]):
         raise ValueError('owned reference length differs from its admitted components')
     entry = hole + 4 + struct.unpack_from('<i', product, header + hole)[0] - adapter_size
-    if entry < 0 or images[owned][entry:entry + 4] != bytes.fromhex('554889e5'):
-        raise ValueError('owned reference private entry lacks the compiled function prologue')
+    if entry < 0 or images[owned][entry:entry + 8] != bytes.fromhex('f7c2ff0100007409'):
+        raise ValueError('owned reference private entry lacks the bounded-recursion guard')
     verify_adapter(product, images[owned], binding, entries=(0, entry))
     return product
 

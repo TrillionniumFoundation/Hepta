@@ -23,24 +23,25 @@ def echo_source():
         '  v5:u32 = const() {"value":1}\n  ret(v5)\nend\n').encode()
 
 
-def output_capacity_source():
-    """Ordinary valid Core, bounded source/SSA/op counts, >1 MiB native code."""
+def output_capacity_source(argument_count=12):
+    """The 12-argument witness exceeds 1 MiB; width 8 retains its predecessor."""
     from tools.hia_selfhost_cases import HEADER
     source = HEADER
-    for i in range(8):
+    for i in range(argument_count):
         source += f'  v{i+3}:u64 = const() {{"value":{i}}}\n'
-    source += '  v11:u64 = call(v3,v4,v5,v6,v7,v8,v9,v10) {"function":"f1"}\n'
-    source += '  v12:u32 = const() {"value":0}\n  ret(v12)\nend\n'
-    params = ",".join(f"v{i}:u64" for i in range(8))
-    argv = ",".join(f"v{i}" for i in range(8))
+    actuals = ','.join(f'v{i+3}' for i in range(argument_count))
+    source += f'  v{argument_count+3}:u64 = call({actuals}) {{"function":"f1"}}\n'
+    source += f'  v{argument_count+4}:u32 = const() {{"value":0}}\n  ret(v{argument_count+4})\nend\n'
+    params = ",".join(f"v{i}:u64" for i in range(argument_count))
+    argv = ",".join(f"v{i}" for i in range(argument_count))
     for fn in range(1, 121):
         source += f"fn f{fn}({params}) -> (u64) effects() entry(b0)\nblock b0({params})\n"
         if fn == 120:
             source += "  ret(v0)\nend\n"
         else:
             for i in range(60):
-                source += f'  v{i+8}:u64 = call({argv}) {{"function":"f120"}}\n'
-            source += "  ret(v67)\nend\n"
+                source += f'  v{i+argument_count}:u64 = call({argv}) {{"function":"f120"}}\n'
+            source += f"  ret(v{argument_count+59})\nend\n"
     return source.encode()
 
 
@@ -106,7 +107,7 @@ def padded_source(source):
 
 def independent_reference():
     from hepta.hia_agent_assembly import assemble_program
-    from hepta.hia_program import execute_program
+    from hepta.hia_program import execute_program, verify_core
     from tools.hia_selfhost_loans import reference_source
     source = echo_source()
     rows = []
@@ -123,11 +124,25 @@ def independent_reference():
     if len(large) >= CAPACITY:
         raise AssertionError("capacity control exceeds source bound")
     checked_large = assemble_program(large)
+    previous = output_capacity_source(8)
+    checked_previous = assemble_program(previous)
+    # The original root's three borrowed arguments are unused. Elide only
+    # that entry plumbing for the independent zero-argument VM observation.
+    reference_document = checked_previous.as_dict()
+    reference_document["functions"][0]["params"] = []
+    reference_document["functions"][0]["blocks"][0]["params"] = []
+    previous_reference = execute_program(verify_core(reference_document), "f0", [])
+    if previous_reference["status"] != "returned" or previous_reference["values"] != [0]:
+        raise AssertionError(previous_reference)
     padded = padded_source(limit_source())
     checked_padded = assemble_program(padded)
     return {"before_B0": True, "echo_source": source.decode(), "echo": rows,
         "padded_core_sha256": checked_padded.sha256, "limit_source": limit_source().decode(),
         "output_capacity_source": large.decode(), "output_capacity_core_sha256": checked_large.sha256,
+        "pre_compaction_output_capacity_source": previous.decode(),
+        "pre_compaction_output_capacity_sha256": sha256(previous).hexdigest(),
+        "pre_compaction_output_capacity_core_sha256": checked_previous.sha256,
+        "pre_compaction_output_capacity_reference": previous_reference,
         "all_input_correctness_proved": False, "whole_stack_rewrite_complete": False}
 
 
@@ -229,6 +244,13 @@ def qualify(directory, compiler, compiler_source, checks, reference, label):
     observe("closed-stdin", executable, echo, status=4, expected=b"", mode="closed-stdin")
     observe("full-stdout", executable, echo, status=4, expected=b"", mode="full-stdout")
     observe("mmap-failure", executable, echo, status=4, expected=b"", mode="mmap-failure")
+    previous = reference["pre_compaction_output_capacity_source"].encode()
+    retained, built = compile_stage(directory, label + "-cli-compacted-original", compiler, previous)
+    result, _ = invoke(directory, label + "-cli-compacted-original-run", retained, b"", capacity=0, workspace_size=0)
+    checks[label + "-cli-compacted-original-execution"] = bool(result.get("status") == "returned"
+        and result.get("core_u32") == reference["pre_compaction_output_capacity_reference"]["values"][0])
+    observations += [built, result]
+    observe("compacted-original", executable, previous, expected=retained.read_bytes())
     large = reference["output_capacity_source"].encode()
     returned, output = invoke(directory, label + "-cli-output-capacity-flat", compiler,
         large, capacity=CAPACITY)

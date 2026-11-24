@@ -482,6 +482,28 @@ class SelfhostBuildNativeTests(unittest.TestCase):
         value["functions"][0]["blocks"][0]["ops"].insert(0,
             {"op": "call", "args": ["x"], "out": [{"name": "recursive", "type": "u32"}],
              "attrs": {"function": "calculate"}})
+        # Preserve the original recursive input bytes: this profile now admits
+        # them and the actual scalar-export entry enforces its private budget.
+        recursive_output = self.root / "recursive-admitted.o"
+        with patch("hepta.hia_program_native.emit_program_machine", side_effect=AssertionError("fallback")):
+            admitted = self.build(value, output=recursive_output)
+        self.assertTrue(admitted["ok"])
+        recursive_library = self.root / "recursive-admitted.so"
+        subprocess.run(["cc", "-shared", str(recursive_output), "-Wl,-z,defs,-z,noexecstack", "-o", str(recursive_library)],
+                       check=True, capture_output=True, timeout=20)
+        child = "import ctypes,sys; f=ctypes.CDLL(sys.argv[1]).calculate; f.argtypes=[ctypes.c_uint32]; f.restype=ctypes.c_uint32; f(0)"
+        exhausted = subprocess.run([sys.executable, "-I", "-S", "-c", child, str(recursive_library)],
+                                   capture_output=True, timeout=5)
+        self.assertEqual(exhausted.returncode, -4)
+        _write_json(self.root / "recursive-admitted.receipt.json", admitted)
+        value = copy.deepcopy(self.program)
+        # Keep the seven-result helper private so the native compiler, not
+        # the scalar public ABI precheck, owns this unchanged result limit.
+        value["exports"] = [function["name"] for function in value["functions"]]
+        value["functions"].append({"name": "wide_returns", "params": [{"name": "x", "type": "u32"}],
+            "returns": ["u32"] * 7, "effects": [], "entry": "b0", "blocks": [{"id": "b0",
+                "params": [{"name": "x", "type": "u32"}], "ops": [],
+                "term": {"op": "ret", "values": ["x"] * 7}}]})
         with patch("hepta.hia_program_native.emit_program_machine", side_effect=AssertionError("fallback")):
             with self.assertRaises(native.SelfhostBuildRejected) as caught:
                 self.build(value)
@@ -489,7 +511,8 @@ class SelfhostBuildNativeTests(unittest.TestCase):
         self.assertEqual(caught.exception.capture["returncode"], 2)
         self.assertFalse((self.root / "result.o").exists())
 
-    def test_primitive_v6_v7_execute_and_earlier_schemas_refuse(self):
+    def test_primitive_old_schema_does_not_claim_native_v8_support(self):
+        # Keep the original test ID; v6/v7 now execute while v1-v5 still refuse.
         import ctypes
         from hepta.hia_program import verify_program
         for version in (6, 7):

@@ -1,4 +1,9 @@
-"""Native graph convergence preserves the previous bounded graph verifier."""
+"""Preserve exact predecessor DAG controls after native recursive admission.
+
+These original IDs and full-buffer observations compare the two historical DAG
+algorithms. Current recursion is exercised by hia_selfhost_recursion qualification.
+The production compiler does not run either historical graph classifier.
+"""
 import ast
 import ctypes
 from hashlib import sha256
@@ -11,6 +16,8 @@ from hepta.hia_agent_assembly import render_assembly, assemble_program
 
 # Exact pre-optimization Core authoring routine; not a new graph oracle.
 PREVIOUS = 'def check_calls(w:mutbuf) -> u64:\n    n = get(w, 64)\n    step = 0\n    f = 0\n    target = 0\n    ready = 0\n    while step < n:\n        f = 0\n        while f < n:\n            ready = 1\n            target = 0\n            while target < 128:\n                if byte(w, CBASE + f * 128 + target) != 0:\n                    if target >= n:\n                        return fail(w, 55)\n                    if get(w, CSTATE + target * 8) == 0:\n                        ready = 0\n                target = target + 1\n            if ready == 1:\n                put(w, CSTATE + f * 8, 1)\n            f = f + 1\n        step = step + 1\n    f = 0\n    while f < n:\n        if get(w, CSTATE + f * 8) == 0:\n            return fail(w, 56)\n        f = f + 1\n    return 0\n\n'
+CONVERGED_PREDECESSOR = 'def check_calls(w:mutbuf) -> u64:\n    n = get(w, 64)\n    step = 0\n    f = 0\n    target = 0\n    ready = 0\n    pending = 0\n    while step < n:\n        f = 0\n        pending = 0\n        while f < n:\n            # First scan every row, including already marked rows: malformed\n            # targets must never be hidden by caller-supplied readiness bytes.\n            # Thereafter this immutable graph cannot gain an invalid target,\n            # and readiness only changes from zero to one.\n            if step == 0 or get(w, CSTATE + f * 8) == 0:\n                ready = 1\n                target = 0\n                while target < 128:\n                    if byte(w, CBASE + f * 128 + target) != 0:\n                        if target >= n:\n                            return fail(w, 55)\n                        if get(w, CSTATE + target * 8) == 0:\n                            ready = 0\n                    target = target + 1\n                if ready == 1:\n                    put(w, CSTATE + f * 8, 1)\n            if get(w, CSTATE + f * 8) == 0:\n                pending = pending + 1\n            f = f + 1\n        if pending == 0:\n            return 0\n        step = step + 1\n    f = 0\n    while f < n:\n        if get(w, CSTATE + f * 8) == 0:\n            return fail(w, 56)\n        f = f + 1\n    return 0\n\n'
+CONVERGED_PREDECESSOR_SHA256 = '2a908effc6a8067ee162b886fe3ab71b6e10ab0b78555923f1b92f3c2ec713a3'
 CBASE, CSTATE, WORKSPACE = 858368, 874752, 1 << 20
 
 
@@ -19,9 +26,15 @@ def sources():
     nodes = {n.name:n for n in ast.parse(text).body}
     previous = PREVIOUS.replace('CBASE',str(CBASE)).replace('CSTATE',str(CSTATE))
     previous = previous.replace('get(w, 64)', 'byte(w, 64)')
+    if sha256(CONVERGED_PREDECESSOR.encode()).hexdigest() != CONVERGED_PREDECESSOR_SHA256:
+        raise AssertionError("historical converged DAG source changed")
+    if "check_calls" in nodes or "tail_self_call" not in nodes:
+        raise AssertionError("production recursion must use exact tail lookahead, not the predecessor DAG")
+    converged = CONVERGED_PREDECESSOR.replace("CBASE",str(CBASE)).replace("CSTATE",str(CSTATE))
+    converged = converged.replace("get(w, 64)", "byte(w, 64)")
     result = {}
     entry = ast.parse('def probe(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n    check_calls(w)\n    return 0\n').body[0]
-    for label, graph in [('previous',ast.parse(previous).body[0]), ('candidate',nodes['check_calls'])]:
+    for label, graph in [('previous',ast.parse(previous).body[0]), ('candidate',ast.parse(converged).body[0])]:
         selected = [entry,graph] + [nodes[n] for n in ('get','put','fail','state_get32','state_put32')]
         names={n.name:'f'+str(i) for i,n in enumerate(selected)}
         signatures={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in selected}

@@ -103,8 +103,8 @@ claim a deadline for public verification, source custody or publication.
 
 Explicit exports retain their exact set. If the input omits exports, the
 existing public verifier's scalar entrypoints are used. Internal owned and
-borrowed resources remain subject to the native compiler's limits. Non-tail
-self recursion, mutual recursion, primitive v1–v5 schemas, machine-plan overrides, foreign-buffer public exports, other targets,
+borrowed resources remain subject to the native compiler's limits. Primitive
+v1–v5 schemas, machine-plan overrides, foreign-buffer public exports, other targets,
 and other output kinds are outside this route. Such inputs are refused; they
 are not retried with the direct Python backend. Public Core admission can
 succeed for a program that the narrower selfhost compiler subsequently refuses.
@@ -215,3 +215,66 @@ objects, linked images, execution observations, receipts and refusal captures.
 No implicit seed bootstrap is selected by this test module. Full native
 delivery still requires the separate product-wide owner migration and its
 source-matched qualification gates.
+
+## Bounded native recursive calls
+
+Native selfhost compilation admits non-tail direct calls, mutual recursion and
+checked recursive functions unreachable from the public entry. All ordinary
+signature, target, type, effect, ownership and loan checks still run before
+output publication. The original malformed-call and compile-capacity witnesses
+remain rejections. Previously refused valid recursive source bytes remain in
+their original fixtures and now have actual compilation and execution records.
+
+Only an immediate return of the exact call-result names, in order, selects the
+existing direct self-tail optimization. A read-only lexical lookahead compares
+all identifier bytes without interning or defining any name. Every token is
+then reparsed by ordinary semantic admission. Other continuations, return
+permutations, discarded void continuations and mutual calls use independent
+native frames. Parallel argument staging and six-result descriptor transfer
+are unchanged.
+
+Each public invocation starts a private budget of 256 simultaneously live Core
+frames and 6 MiB of generated private frame bytes. Each ordinary call charges
+its generated local/argument/result frame plus 16 bytes for saved frame pointer
+and return address. The small public ABI wrapper is outside that private-frame
+charge. A packed budget travels through a private caller register and is saved
+at `rbp-16` in every frame. External allocator calls may clobber registers;
+subsequent Core calls reload the saved budget. Separate public invocations do
+not share a counter. Exact tail self calls retain the same frame and budget.
+
+Before stack allocation, stack probes or any callee effect, an exhausted budget
+executes `UD2`, observed as `SIGILL` in the isolated native runner. This is a
+specified native boundary, not a successful result and not the VM's
+`HIAProgramBudgetExceeded` exception/report. Ordinary finite results are compared
+with the independent VM. The VM's 256-frame call budget and the native depth
+boundary agree for the finite depth witnesses, but the native 6 MiB byte budget
+is additional: a valid VM program with 2048 live SSA slots per recursive frame
+can hit it before 256 calls. The qualification records that difference
+explicitly. Native consumers require sufficient host stack for the declared
+profile; no claim is made for an arbitrarily small foreign-thread stack.
+
+The source/output/workspace limits remain 1 MiB, with 128 functions, 1536 total
+blocks, 256 blocks per function, 2048 distinct SSA names per function, 16 call
+arguments and 8192 instructions. The compiler's HIA source remains within those
+original bounds. The existing million-step exact tail recurrence still uses a
+constant number of frames; general recursive termination is not proved.
+
+The standalone owned-reference private entry uses the same v95 call budget.
+Its syscall adapter initializes `edx` to `0xc0000100`; its source-owned linker
+checks the 62-byte public wrapper and the private recursion-guard prefix.
+All branch displacements, embedded adapter bytes and complete source pins are
+regenerated together; the predecessor 78-byte-wrapper contract is not reused.
+
+The x86 memory emitter uses a signed 8-bit displacement only when the exact
+u64 displacement denotes -128 through 127; other operands retain the original
+32-bit encoding. MOV and LEA addresses and effects are unchanged. This keeps
+the enlarged native release within its original 8 MiB static-link wire bound.
+
+The earlier 8-argument output-overflow witness (source SHA-256
+`47ed45b537831c4353e7a735e2d9c51d63785fa78e331a3a3c7d4acb1947cec9`)
+now compiles to 930,331 bytes with compact displacements. Its exact source is
+retained and executed against an independent Core VM observation. The output
+capacity refusal gate now also uses a 12-argument, 121-function valid Core
+witness (571,398 source bytes), which still exceeds the unchanged 1 MiB native
+output bound. The old overflow-refusal predicates are recorded as failing
+under this profile; they are not reported as an unchanged predecessor pass.

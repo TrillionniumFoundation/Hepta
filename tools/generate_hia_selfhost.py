@@ -13,7 +13,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from hepta.hia_agent_assembly import render_assembly
-from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS, MAX_RESULTS
+from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS, MAX_RESULTS, MAX_CALL_DEPTH, MAX_CALL_STACK_BYTES
 from tools.hia_selfhost_owned_elf import SOURCE as OWNED_ELF_SOURCE
 from tools.hia_selfhost_chain_elf import SOURCE as CHAIN_ELF_SOURCE
 from tools.hia_selfhost_effects import source as effect_source
@@ -39,11 +39,12 @@ WORDS += ["buffer.load.u64.le", "buffer.load.u64.be",
           "buffer.store.u64.le", "buffer.store.u64.be"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
-# argument vector; relative relocation records; bounded call graph and marks.
-# All are ordinary borrowed bytes. The graph occupies previously unused scratch
-# after the complete relocation table, so this profile keeps the 1 MiB limit.
+# argument vector; relative relocation records; exact pending result names.
+# All are ordinary borrowed bytes. Six name slices occupy the former graph
+# area after relocations, preserving the 1 MiB workspace limit.
 FBASE, FSTRIDE, BBASE, BSTRIDE, VBASE, ARGS, FIXBASE = 4096, 320, 45056, 320, 536576, 569344, 570368
-CBASE, CSTATE = 858368, 874752
+RESULT_NAMES = 858368
+CALL_BUDGET = (MAX_CALL_STACK_BYTES << 9) | MAX_CALL_DEPTH
 # Six output name/type pairs and return identities use disjoint private header
 # space. They must not alias externals (344) or the ELF/profile words (432+).
 RESULT_OUTPUTS, RESULT_RETURNED = 1088, 1184
@@ -71,7 +72,6 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967295
     if length(o) > 1048576:
         return 4294967294
-    fill_range(w, CBASE, 17408, 0)
     fill_range(w, KBASE, 1536, 0)
     put(w, 432, 1)
     while phase < 3:
@@ -124,10 +124,6 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967295
         if phase == 0:
             put(w, 1024, get(w, 64))
-            if get(w, 432) == 0:
-                check_calls(w)
-                if get(w, 40) != 0:
-                    return 4294967295
         validate_exports(s, w)
         if get(w, 40) != 0:
             return 4294967295
@@ -472,12 +468,8 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             if x >= 128:
                 fail(w, 23)
             else:
-                if get(w, 432) == 0:
-                    if x == get(w, 72):
-                        put(w, 256, v + 1)
-                    else:
-                        if get(w, 48) == 0:
-                            store(w, CBASE + get(w, 72) * 128 + x, 1)
+                if get(w, 432) == 0 and x == get(w, 72):
+                    put(w, 256, tail_self_call(s, w))
             if get(w, 48) > 0:
                 if x >= get(w, 1024):
                     fail(w, 23)
@@ -495,7 +487,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                         fail(w, 25)
                     copy_argument(o, w, av, i, typ)
                     i = i + 1
-                if x == get(w, 72):
+                if get(w, 256) != 0:
                     # All arguments were staged before overwriting any entry
                     # parameter. Keep the frame and original result pointer;
                     # The declared entry begins after the prologue, including
@@ -513,13 +505,12 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 else:
                     mem(o, w, 141, 7, 5, 0 - frame(w))
                     mem(o, w, 141, 6, 5, 0 - frame(w) + 512)
+                    mem(o, w, 139, 2, 5, 18446744073709551600)
                     emit(o, w, 232)
                     relocation(o, w, 1, x)
             owner_call_consume(w, n)
             call_results(o, w, x)
             expect(s, w, 10)
-            if get(w, 256) != 0 and get(w, 8) != @ret@:
-                fail(w, 59)
             return 0
         else:
             if op == @int.cast@:
@@ -563,8 +554,6 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if op != @buffer.store@ and op != @buffer.swap@ and op != @loan.end@ and (op < @buffer.fill@ or op > @buffer.move_within@) and op != @buffer.store.u64.le@ and op != @buffer.store.u64.be@:
             fail(w, 27)
     expect(s, w, 10)
-    if get(w, 256) != 0 and get(w, 8) != @ret@:
-        fail(w, 59)
     return 0
 
 # Adjacent literal encoding bytes share emit_bytes; phase-1 sizing still
@@ -768,45 +757,45 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         i = i + 1
     return 0
 
-def check_calls(w:mutbuf) -> u64:
-    n = get(w, 64)
-    step = 0
-    f = 0
-    target = 0
-    ready = 0
-    pending = 0
-    while step < n:
-        f = 0
-        pending = 0
-        while f < n:
-            # First scan every row, including already marked rows: malformed
-            # targets must never be hidden by caller-supplied readiness bytes.
-            # Thereafter this immutable graph cannot gain an invalid target,
-            # and readiness only changes from zero to one.
-            if step == 0 or get(w, CSTATE + f * 8) == 0:
-                ready = 1
-                target = 0
-                while target < 128:
-                    if byte(w, CBASE + f * 128 + target) != 0:
-                        if target >= n:
-                            return fail(w, 55)
-                        if get(w, CSTATE + target * 8) == 0:
-                            ready = 0
-                    target = target + 1
-                if ready == 1:
-                    put(w, CSTATE + f * 8, 1)
-            if get(w, CSTATE + f * 8) == 0:
-                pending = pending + 1
-            f = f + 1
-        if pending == 0:
-            return 0
-        step = step + 1
-    f = 0
-    while f < n:
-        if get(w, CSTATE + f * 8) == 0:
-            return fail(w, 56)
-        f = f + 1
-    return 0
+# Read-only exact-name lookahead. Ordinary admission reparses every token.
+# No SSA name is interned here; mismatch selects a real independent call frame.
+def tail_self_call(s:readbuf, w:mutbuf) -> u64:
+    pos = get(w, 0)
+    token = get(w, 8)
+    value = get(w, 16)
+    begin = get(w, 24)
+    quoted = get(w, 32)
+    previous = get(w, 120)
+    error = get(w, 40)
+    result = 0
+    count = 0
+    matches = 1
+    if token == 10:
+        next_token(s, w)
+        if get(w, 8) == @ret@ and instruction_ahead(s, w) == 0:
+            next_token(s, w)
+            expect(s, w, 40)
+            while count < get(w, 288) and matches == 1 and get(w, 40) == 0:
+                identifier(s, w)
+                if get(w, 32) != 0:
+                    matches = 0
+                if same_identifier(s, w, RESULT_NAMES + count * 16) != 1:
+                    matches = 0
+                next_token(s, w)
+                count = count + 1
+                if count < get(w, 288):
+                    expect(s, w, 44)
+            if matches == 1 and count == get(w, 288) and get(w, 8) == 41 and get(w, 40) == 0:
+                result = 1
+    put(w, 0, pos)
+    put(w, 8, token)
+    put(w, 16, value)
+    put(w, 24, begin)
+    put(w, 32, quoted)
+    put(w, 120, previous)
+    put(w, 40, error)
+    return result
+
 
 def wrapper(o:mutbuf, w:mutbuf) -> u64:
     emit(o, w, 85)
@@ -831,6 +820,8 @@ def wrapper(o:mutbuf, w:mutbuf) -> u64:
     emit4(o, w, 18446744073709551592)
     mem(o, w, 141, 7, 5, 18446744073709551552)
     mem(o, w, 141, 6, 5, 18446744073709551608)
+    emit_bytes(o, w, 186, 1)
+    emit4(o, w, CALL_BUDGET)
     emit(o, w, 232)
     relocation(o, w, 1, 0)
     mem(o, w, 139, 0, 5, 18446744073709551608)
@@ -843,6 +834,15 @@ def function_start(o:mutbuf, w:mutbuf) -> u64:
         return 0
     fb = FBASE + get(w, 72) * FSTRIDE
     put(w, fb, get(w, 56))
+    # test edx,511; jz UD2; cmp rdx,cost; jae past UD2; sub rdx,cost.
+    # Low nine bits are remaining depth, high bits are private stack bytes.
+    # Guard before stack probes or callee effects; rbp-16 retains each budget.
+    emit_bytes(o, w, 681169443673326327, 8)
+    emit_bytes(o, w, 16417096, 3)
+    emit4(o, w, (frame(w) + 16) * 512 + 1)
+    emit_bytes(o, w, 185533043, 4)
+    emit_bytes(o, w, 15368520, 3)
+    emit4(o, w, (frame(w) + 16) * 512 + 1)
     emit(o, w, 85)
     emit(o, w, 72)
     emit(o, w, 137)
@@ -862,6 +862,7 @@ def function_start(o:mutbuf, w:mutbuf) -> u64:
         emit(o, w, 4)
         emit(o, w, 36)
         remain = remain - amount
+    mem(o, w, 137, 2, 5, 18446744073709551600)
     mem(o, w, 137, 6, 5, 18446744073709551608)
     i = 0
     t = 0
@@ -929,10 +930,17 @@ def normalize(o:mutbuf, w:mutbuf, t:u64) -> u64:
     return 0
 
 def mem(o:mutbuf, w:mutbuf, opcode:u64, reg:u64, base:u64, disp:u64) -> u64:
+    short = disp + 128 < 256
+    mode = 128
+    if short:
+        mode = 64
     emit(o, w, 72)
     emit(o, w, opcode)
-    emit(o, w, 128 + reg * 8 + base)
-    emit4(o, w, disp)
+    emit(o, w, mode + reg * 8 + base)
+    if short:
+        emit(o, w, disp)
+    else:
+        emit4(o, w, disp)
     return 0
 
 def relocation(o:mutbuf, w:mutbuf, kind:u64, target:u64) -> u64:
@@ -1796,6 +1804,8 @@ def result_offset(slot:u64) -> u64:
 
 
 def source_program():
+    if not 1 <= MAX_CALL_DEPTH < 512 or not 0 < CALL_BUDGET <= 0xffffffff:
+        raise ValueError("recursive call budget does not fit its private packed ABI")
     # The scanner shortcut excludes only these exact first two ASCII bytes.
     # Fail authoring if future keywords would make that exclusion unsound.
     for word in W:
@@ -1803,8 +1813,8 @@ def source_program():
             raise ValueError('numeric identifier prefix conflicts with keyword: ' + word)
     text = SOURCE.replace('KEYWORD_FUNCTION', keyword_source(W))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
-    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE','ORIGINBASE','BLOCKORIGIN',
-                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS', 'MAX_RESULTS', 'RESULT_OUTPUTS', 'RESULT_RETURNED', 'SCHEMA_STATE', 'CONST_VALUES', 'CONST_FLAGS']:
+    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','RESULT_NAMES','CAPBASE','KBASE','CAPTMP','QBASE','ORIGINBASE','BLOCKORIGIN',
+                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS', 'MAX_RESULTS', 'CALL_BUDGET', 'RESULT_OUTPUTS', 'RESULT_RETURNED', 'SCHEMA_STATE', 'CONST_VALUES', 'CONST_FLAGS']:
         text = text.replace(key, str(globals()[key]))
     # These private header words are cleared in full before each semantic
     # pass. Their only writes are quote0/1, phase0..2, function counts0..128,
@@ -2270,10 +2280,9 @@ def document(*, compact=True):
     nodes=ast.parse(source_program()).body
     strip_redundant_store_masks(nodes)
     fold_authoring_literals(nodes)
-    # Source order deliberately contains backward direct calls. The HIA
-    # compiler's call-graph checker, not author-time topological numbering,
-    # admits its non-self DAG and checked direct tail self calls. General
-    # recursive cycles remain outside the native fixed profile.
+    # Source order deliberately contains backward calls. Native signatures
+    # admit cycles; private frames enforce the declared runtime budgets.
+    # Exact direct tail calls reuse the frame after parallel argument staging.
     ordered=nodes
     names = _source_function_names(ordered)
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in ordered}

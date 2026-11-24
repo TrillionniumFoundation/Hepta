@@ -7,6 +7,8 @@ Native successor compilers do not import this module or consult Python state.
 MAX_INSTRUCTIONS = 8192
 MAX_CORE_NODES = 262144
 MAX_RESULTS = 6
+MAX_CALL_DEPTH = 256
+MAX_CALL_STACK_BYTES = 6 << 20
 
 # An instruction creates at most one relative call; each block creates at most
 # two relative edge records. Each public scalar wrapper adds one call; the single

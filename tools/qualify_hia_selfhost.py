@@ -414,8 +414,8 @@ def invalid_sources(sample):
 def independent_call_reference(sample):
     """Record the general Core's distinct acceptance and scalar-execution view.
 
-    Called before B0. The non-tail/mutual fixtures are legal general Core but
-    refused by this native profile; never label that as Core invalidity.
+    Called before B0. Original non-tail/mutual bytes remain valid general Core.
+    They now compile and execute under the separately recorded native frame budgets.
     """
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import HIAProgramRejected, execute_program
@@ -442,7 +442,7 @@ def independent_call_reference(sample):
         checked = assemble_program(source)
         refusals.append({"case": label, "source_sha256": digest(source),
                          "general_core": "accepted", "core_sha256": checked.sha256,
-                         "selfhost_profile_expected": "rejected: acyclic call graph required"})
+                         "selfhost_profile_expected": "compiled; actual execution is in the bounded recursion family"})
     return {"general_core_observations": observations, "admission_differences": refusals}
 
 
@@ -546,8 +546,18 @@ def qualify_elf_outputs(directory, compilers, sample, checks):
             checks[case + "_short_output_transactional"] = (result.get("status") == "returned"
                 and result.get("core_u32") == NO_SPACE and result.get("output_unchanged"))
             observations.append(result)
-        rejected = {"bad-call": call_graph_invalid_sources(sample)["backward-signature"],
-                    "recursive": recursion_refusals()["mutual-recursion"]}
+        recursive = object_source(recursion_refusals()["mutual-recursion"])
+        obj, compilation = compile_stage(directory, label + "-elf-recursive", compiler, recursive, output_extension=".o")
+        linked = directory / (label + "-elf-recursive.so")
+        tool = observe_native_tool(directory, label + "-elf-recursive-link", "ld", [
+            "-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack", obj, "-o", linked])
+        if tool["returncode"]:
+            raise AssertionError(tool)
+        result, _ = invoke(directory, label + "-elf-recursive-run", linked, b"",
+            image_format="linked-selfhost", capacity=0, workspace_size=0, observe_trap_writes=True)
+        checks[label + "_elf_recursive_budget_trap"] = result.get("status") == "child_failed" and result.get("returncode") == -4
+        observations.extend([compilation, tool, result])
+        rejected = {"bad-call": call_graph_invalid_sources(sample)["backward-signature"]}
         for name, bad in rejected.items():
             result, _ = invoke(directory, label + "-elf-reject-" + name, compiler, object_source(bad))
             checks[label + "_elf_reject_" + name] = (result.get("status") == "returned"
@@ -1050,7 +1060,7 @@ def qualify(output, *, native_transport=False):
         checks[label + "_128_function_backward_chain"] = (
             result.get("status") == "returned" and result.get("core_u32") == 127)
         call_observations.append(result)
-        for case, bad in {**call_graph_invalid_sources(sample), **recursion_refusals()}.items():
+        for case, bad in call_graph_invalid_sources(sample).items():
             result, _ = invoke(directory, label + "-reject-" + case, compiler, bad)
             checks[label + "_reject_" + case] = (result.get("status") == "returned"
                 and result.get("core_u32") == INVALID and result.get("output_unchanged")
