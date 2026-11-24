@@ -42,7 +42,7 @@ def policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         descriptor = uint(s, 24)
         if image == 0 or image > 4194304 or length(s) != 32 + image or fail > 10000:
             return finish(o, 2)
-        if descriptor < 3 or descriptor >= 32:
+        if descriptor < 3 or descriptor > 2147483647:
             return finish(o, 2)
         put(w, 64, image)
         put(w, 72, fail)
