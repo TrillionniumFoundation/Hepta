@@ -368,7 +368,6 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if sha256(captured.raw).hexdigest() != expected_sha256:
             raise ValueError("native helper bundle identity mismatch")
         record = _decode(captured.raw)
-        from .hia_worker_store_profile import SCHEMAS as STORE_SCHEMAS, NativeWorkerStoreBinding
         schema = record.get('schema') if type(record) is dict else None
         abi = record.get('abi') if type(record) is dict else None
         # The two independently shipped v4/v5 profiles use disjoint ABIs.
@@ -381,10 +380,15 @@ def native_helpers_scope(path=None, expected_sha256=None):
         elif schema == 'hepta.hia.native-helpers.v4' and abi == 'hia-worker-artifact-delivery-v1':
             from .hia_artifact_delivery_worker import NativeArtifactWorkerBinding
             binding = NativeArtifactWorkerBinding(captured, expected_sha256)
-        elif schema in STORE_SCHEMAS:
-            binding = NativeWorkerStoreBinding(captured, expected_sha256, record)
         else:
-            binding = _base_binding(captured, expected_sha256, record)
+            # Load store-profile support only when a store/base profile can
+            # actually be selected. The closed v5 Slot and artifact profiles
+            # have already selected their own independently admitted owner.
+            from .hia_worker_store_profile import SCHEMAS as STORE_SCHEMAS, NativeWorkerStoreBinding
+            if schema in STORE_SCHEMAS:
+                binding = NativeWorkerStoreBinding(captured, expected_sha256, record)
+            else:
+                binding = _base_binding(captured, expected_sha256, record)
         if package_pin is not None:
             binding.snapshots.extend(package_pin)
             binding.check_files()
