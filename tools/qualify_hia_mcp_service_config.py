@@ -74,8 +74,9 @@ def main():
     workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
     cases = []
 
-    def invoke(name, value, refusal=False):
-        raw = json.dumps(value, ensure_ascii=True, indent=1).encode()
+    def invoke(name, value, refusal=False, raw=None):
+        if raw is None:
+            raw = json.dumps(value, ensure_ascii=True, indent=1).encode()
         buf = ctypes.create_string_buffer(raw)
         result = entry(buf, len(raw), output, OUTPUT_BYTES, workspace, WORKSPACE_BYTES)
         row = {'name': name, 'input_sha256': sha256(raw).hexdigest(), 'status': result}
@@ -90,6 +91,11 @@ def main():
 
     invoke('complete-operator-profile', fixture())
     value = fixture()
+    config_wire = json.dumps(value['configuration'], separators=(',', ':')).encode()
+    wrapped = (b'{"configuration":' + b' ' * ((8 << 20) - len(config_wire)) + config_wire
+               + b',"default_state_dir":"/tmp/mcp-private","catalog_sha256":"' + b'c' * 64 + b'"}')
+    invoke('exact-eight-mib-configuration-plus-private-fields', value, raw=wrapped)
+    value = fixture()
     for key in ('artifact_roots', 'native_helpers_manifest', 'native_helpers_sha256'):
         del value['configuration']['hia_worker'][key]
     invoke('serde-profile-defaults', value)
@@ -97,6 +103,14 @@ def main():
     value['configuration']['state_dir'] = '/tmp/explicit-controller'
     value['configuration']['hia_worker'].update(timeout_seconds=3600, memory_max_bytes=17179869184)
     invoke('explicit-state-and-upper-limits', value)
+    value = fixture()
+    value['configuration']['state_dir'] = '/tmp/explicit-controller'
+    value['default_state_dir'] = None
+    invoke('explicit-state-does-not-evaluate-unused-default', value)
+    value = fixture()
+    value['configuration']['state_dir'] = '/tmp/controller\nstate'
+    value['configuration']['hosts']['rog']['remote_state_dir'] = '/srv/remote\nstate'
+    invoke('absolute-state-paths-retain-original-lexical-domain', value)
     value = fixture()
     value['configuration']['hia_worker'].update(timeout_seconds=1, memory_max_bytes=67108864)
     invoke('resource-lower-limits', value)

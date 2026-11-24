@@ -13,7 +13,7 @@ from tools.generate_hia_mcp_request import WIRE_HELPERS, comparison_table
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = 'examples/hia_bootstrap/mcp_service_config.hepta'
-LIMIT = 8 << 20
+LIMIT = 9 << 20
 OUTPUT_BYTES = 4 << 20
 WORKSPACE_BYTES = 64 + 262144 * 72 + LIMIT
 KEYS = (
@@ -45,7 +45,7 @@ def configuration(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     config = lookup(w, 64, K_CONFIGURATION)
     default_state = lookup(w, 64, K_DEFAULT_STATE_DIR)
     catalog = lookup(w, 64, K_CATALOG_SHA256)
-    if object(w, config) == False or normal_path(w, default_state, 0) == False or pin(w, catalog) == False:
+    if object(w, config) == False or pin(w, catalog) == False:
         return REFUSAL
     hosts = lookup(w, config, K_HOSTS)
     profile = lookup(w, config, K_HIA_WORKER)
@@ -316,7 +316,7 @@ def normal_path(w:mutbuf, node:u64, strict:u64) -> bool:
             start = index + 1
         else:
             ch = byte(w, at + index)
-            if ch == 0 or ch == 10 or ch == 13 or (strict == 2 and (ch < 32 or ch == 127)):
+            if ch == 0 or (strict != 0 and (ch == 10 or ch == 13)) or (strict == 2 and (ch < 32 or ch == 127)):
                 return False
             if strict == 2 and ch == 194 and index + 1 < size and byte(w, at + index + 1) >= 128 and byte(w, at + index + 1) <= 159:
                 return False
@@ -539,7 +539,10 @@ def source_program():
     source += '\n' + key_table()
     source += '\n' + comparison_table('value_id', ('linux', 'operator', 'isolated', 'hia-job-entry',
                            'hia-job-submit', 'hia-job-observation', 'hia-job-cancel', 'hia-job-launch'))
-    return source + '\n' + decoder(wire_spans=True)
+    json_source = decoder(wire_spans=True)
+    if json_source.count('length(s) > 8388608') != 2:
+        raise ValueError('configuration decoder private input bounds changed')
+    return source + '\n' + json_source.replace('length(s) > 8388608', 'length(s) > ' + str(LIMIT))
 
 
 def render():
