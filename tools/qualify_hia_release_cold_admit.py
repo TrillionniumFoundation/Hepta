@@ -54,6 +54,10 @@ def add(name,edit=None,contract_edit=None,inventory_edit=None,cold_text=None,con
  except (ValueError,TypeError,KeyError):ok=False
  cases.append((name,wire,ok))
 add('valid-current-snapshot')
+add('valid-cold-utf8-bom',cold_text=lambda raw,q:bytes.fromhex('efbbbf')+raw)
+add('invalid-cold-double-bom',cold_text=lambda raw,q:bytes.fromhex('efbbbfefbbbf')+raw)
+add('invalid-cold-partial-bom',cold_text=lambda raw,q:bytes.fromhex('efbb')+raw)
+add('invalid-cold-bom-after-space',cold_text=lambda raw,q:b' '+bytes.fromhex('efbbbf')+raw)
 def reverse(value):
  if isinstance(value,dict):return {k:reverse(value[k]) for k in reversed(list(value))}
  if isinstance(value,list):return [reverse(x) for x in value]

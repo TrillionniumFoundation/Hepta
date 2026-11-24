@@ -51,6 +51,8 @@ entire inventory.
 
 ## Admission
 
+An optional UTF-8 BOM is accepted only at the beginning of the cold report, as in the original byte-level JSON reader. The sealed report bytes are not rewritten.
+
 The report must have the original cold replay schema and current profile,
 status `COLD_SELFHOST_REPLAY_PASS`, an integer zero return code, exactly the
 original eleven check names with literal true values, and exactly three compiler
