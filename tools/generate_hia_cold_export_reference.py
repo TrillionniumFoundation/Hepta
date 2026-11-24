@@ -22,7 +22,9 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     depth = uint(s,48)
     heap = uint(s,56)
     failure = uint(s,64)
-    if mode > 2 or projection < 72 or projection > 33554432 or arguments > 16 or snapshot > 33554432:
+    if mode > 2 or projection < 72 or projection > 33554432 or arguments > 524288 or snapshot > 33554432:
+        return 4294967295
+    if mode != 2 and arguments > 16:
         return 4294967295
     if steps == 0 or steps > 10000000 or depth == 0 or depth > 256 or heap > 1073741824 or failure > 10000000 or uint(s,72) != 0:
         return 4294967295
@@ -37,7 +39,7 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     returns = uint(s,base+32)
     if registers == 0 or bounce == 0 or registers + bounce > 524288 or arguments > registers:
         return 4294967295
-    if end < 72 or (end & 7) != 0 or returns > 16 or projection != end + returns * 8:
+    if end < 72 or (end & 7) != 0 or returns > bounce or projection != end + returns * 8:
         return 4294967295
     if uint(s,base+40) > 1 or uint(s,base+48) != 0 or uint(s,base+56) != 0:
         return 4294967295
