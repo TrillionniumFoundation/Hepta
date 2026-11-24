@@ -1956,6 +1956,19 @@
     "source": "examples/hia_bootstrap/slot_ledger.hepta",
     "whole_service_and_SQLite_replaced": false
   },
+  "native_source_bootstrap": {
+    "cold_report_relative_path": "final-cold.json",
+    "command": "hia-source-bootstrap --source ABS_SOURCE --cold ABS_COLD --bootstrap ABS_BOOTSTRAP --output NEW_ABS_OUTPUT",
+    "entry": "examples/hia_bootstrap/cold_source_bootstrap_entry.hepta",
+    "packer": "examples/hia_bootstrap/cold_source_bootstrap_entry_packer.hepta",
+    "qualified_successor_relative_path": "qualification/base/B3.flat",
+    "sequence": [
+      "strictly admit the captured cold report against the captured source",
+      "execute the admitted post-cold recipe using the actual qualified successor",
+      "publish the source-bound bootstrap output"
+    ],
+    "whole_native_delivery_qualified": false
+  },
   "native_static_budget": {
     "adapter": "examples/hia_bootstrap/static_budget.hepta",
     "event_magnitude_capacity_bytes": 4096,
@@ -2233,6 +2246,7 @@
       "M2",
       "M3"
     ],
+    "source_bootstrap_command": "hia-source-bootstrap --source ABS_SOURCE --cold ABS_COLD --bootstrap ABS_BOOTSTRAP --output NEW_ABS_OUTPUT",
     "source_modification": "HIA wrapper reservation 64 -> 80 bytes",
     "toolchain_build_command": "hia-cold-build --source ABS --bootstrap ABS --output NEW_ABS"
   },
@@ -2298,6 +2312,7 @@
       "qualification": "examples/hia_bootstrap/cold_master.hepta",
       "seed_entry": "examples/hia_bootstrap/seed_backend.hepta",
       "seed_package": "docs/HIA_NATIVE_SOURCE_AUTHORITY.json",
+      "source_bootstrap": "examples/hia_bootstrap/cold_source_bootstrap_entry.hepta",
       "successor_loader": "examples/hia_bootstrap/native_observer_packer.hepta"
     },
     "seed_external_dependencies": [
