@@ -9,7 +9,7 @@ both relative jumps from actual supplied flat extents without a host linker.
 """
 from pathlib import Path
 import ast,struct,subprocess,tempfile
-from tools.generate_hia_cold_sha256_stream import source_program as original_source,Builder
+from tools.generate_hia_cold_sha256_stream import source_program as original_source,Builder as WordBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
 from hepta.hia_agent_assembly import render_assembly
 
@@ -53,6 +53,67 @@ class LowWordAlgebra(ast.NodeTransformer):
             self.removed+=1
         return node
 
+class Builder(WordBuilder):
+    def expr(self,node):
+        if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=='word_load_be':
+            args=[self.expr(v) for v in node.args]
+            return self.op('buffer.load.u64.be',[args[0],self.cast(args[1],'usize')],'u64')
+        return super().expr(node)
+
+class BooleanAlgebra(ast.NodeTransformer):
+    def visit_Assign(self,node):
+        node=self.generic_visit(node)
+        if len(node.targets)==1 and isinstance(node.targets[0],ast.Name):
+            name=node.targets[0].id
+            if name=='choose_bits':node.value=ast.parse('g ^ (e & (f ^ g))',mode='eval').body
+            elif name=='majority':node.value=ast.parse('(a & b) | (c & (a | b))',mode='eval').body
+        return node
+
+def offset(base,delta):
+    return base if delta==0 else f'{base} + {delta}' if delta>0 else f'{base} - {-delta}'
+
+def addbody(loop,source):loop.body=ast.parse(source).body
+
+def replace_be(loop):
+    source='source_at = 1112 + i * 4\nschedule_at = 512 + i * 8\n'
+    for j in range(0,4,2):
+        source+=f'cold_input_word = word_load_be(w, {offset("source_at",j*4)})\n'
+        source+=f'word_store(w, {offset("schedule_at",j*8)}, cold_input_word >> 32)\n'
+        source+=f'word_store(w, {offset("schedule_at",j*8+8)}, cold_input_word & 4294967295)\n'
+    source+='i = i + 4\n';addbody(loop,source)
+
+def hoist_schedule(loop,count):
+    source='schedule_at = 512 + i * 8\n'
+    for j in range(count):
+        source+=f'''x = word_load(w, {offset('schedule_at',(j-15)*8)})
+y = word_load(w, {offset('schedule_at',(j-2)*8)})
+sx = ((x >> 7) | (x << 25)) ^ ((x >> 18) | (x << 14)) ^ (x >> 3)
+sy = ((y >> 17) | (y << 15)) ^ ((y >> 19) | (y << 13)) ^ (y >> 10)
+value = (word_load(w, {offset('schedule_at',(j-16)*8)}) + sx + word_load(w, {offset('schedule_at',(j-7)*8)}) + sy) & 4294967295
+word_store(w, {offset('schedule_at',j*8)}, value)
+'''
+    source+=f'i = i + {count}\n';addbody(loop,source)
+
+def hoist_round(loop,count):
+    source='round_at = i * 8\n'
+    for j in range(count):
+        source+=f'''s1 = ((e >> 6) | (e << 26)) ^ ((e >> 11) | (e << 21)) ^ ((e >> 25) | (e << 7))
+choose_bits = g ^ (e & (f ^ g))
+t1 = h + s1 + choose_bits + word_load(w, {offset('round_at',j*8)}) + word_load(w, {offset('round_at',512+j*8)})
+s0 = ((a >> 2) | (a << 30)) ^ ((a >> 13) | (a << 19)) ^ ((a >> 22) | (a << 10))
+majority = (a & b) | (c & (a | b))
+t2 = s0 + majority
+h = g
+g = f
+f = e
+e = (d + t1) & 4294967295
+d = c
+c = b
+b = a
+a = (t1 + t2) & 4294967295
+'''
+    source+=f'i = i + {count}\n';addbody(loop,source)
+
 def nonalias_source():
     module=ast.parse(original_source())
     compression=next(n for n in module.body if isinstance(n,ast.FunctionDef) and n.name=='compress')
@@ -66,6 +127,12 @@ def nonalias_source():
     for index in range(8):
         body+=f'cold_transfer = word_load(s, i + {index*8})\nword_store(w, {1112+index*8}, cold_transfer)\n'
     fast.body=ast.parse(body+'compress(w)\ni = i + 64\n').body
+    BooleanAlgebra().visit(compression)
+    loops = [n for n in compression.body if isinstance(n, ast.While)]
+    assert len(loops) == 3
+    replace_be(loops[0])
+    hoist_schedule(loops[1], 4)
+    hoist_round(loops[2], 4)
     return ast.unparse(ast.fix_missing_locations(module))+'\n'
 
 def packer_source():
