@@ -5,7 +5,7 @@ separate run. It does not manufacture a source-matched cold qualification.
 """
 from __future__ import annotations
 
-from contextlib import redirect_stderr
+from contextlib import ExitStack, redirect_stderr
 import copy
 from hashlib import sha256
 import io
@@ -224,6 +224,136 @@ class SelfhostBuildNativeTests(unittest.TestCase):
                        check=True, capture_output=True, timeout=20)
         result = subprocess.run([str(executable)], capture_output=True, timeout=5)
         self.assertEqual((result.returncode, result.stdout, result.stderr), (0, b"", b""))
+
+    def _nominal_selection(self):
+        from tests.hia_composite_function_fixture import (
+            COLD_KEYS, composite_function_fixture, configuration)
+        scope, paths = configuration()
+        if self.cold_report is not None:
+            if scope == "DEVELOPMENT_ONLY":
+                raise ValueError("development nominal owners cannot override source-build cold qualification")
+            if scope == "MATCHING_SOURCE_COLD_BUILD" and Path(paths[0]) != self.cold_report.resolve():
+                raise ValueError("nominal and source-build owners require the same cold report")
+            with patch.dict(os.environ, {COLD_KEYS[0]: str(self.cold_report)}):
+                return composite_function_fixture()
+        if scope == "BOOTSTRAP_DEVELOPMENT_ONLY":
+            raise ValueError("nominal source-build tests require all five explicit development owner manifests")
+        return composite_function_fixture()
+
+    def _native_nominal_scope(self, fixture):
+        from hepta import hia_program_composite as composite
+        from tests.test_hia_composite_outer_integration import HOST, forbidden
+        stack = ExitStack()
+        stack.enter_context(patch.dict(os.environ, fixture.complete_environment))
+        stack.enter_context(patch.object(composite, "_Types", new=forbidden))
+        stack.enter_context(patch.object(composite, "elaborate_program", new=forbidden))
+        for name in (*HOST, "__init__", "lower"):
+            stack.enter_context(patch.object(composite._Elaborator, name, new=forbidden))
+        stack.enter_context(patch("hepta.hia_program_native._Emitter.render", side_effect=forbidden))
+        stack.enter_context(patch("hepta.hia_machine_elf.write_elf_object", side_effect=forbidden))
+        return stack
+
+    def _save_nominal_evidence(self, label):
+        destination = os.environ.get("HEPTA_HIA_SELFHOST_NOMINAL_EVIDENCE")
+        if destination:
+            shutil.copytree(self.root, Path(destination) / label)
+
+    def test_native_nominal_v4_original_loan_cases_build_and_execute_without_host_owners(self):
+        import ctypes
+        from hepta.hia_program import execute_program, verify_program
+        from tests import test_hia_composite_returned_loans as loans
+        selection = self._nominal_selection()
+        rows = []
+        cases = [("pair-read", loans.pair_program("read"), "probe",
+                  [(3, byte, choose) for choose in (False, True) for byte in (0, 37, 250, 255)]),
+                 ("pair-mut", loans.pair_program("mut"), "probe",
+                  [(3, byte, choose) for choose in (False, True) for byte in (0, 37, 250, 255)]),
+                 ("read-child", loans.direct_downgrade_program(), "entry_read_child",
+                  [(3, byte) for byte in (0, 37, 250, 255)])]
+        scalar_types = {"usize": ctypes.c_uint64, "u64": ctypes.c_uint64,
+                        "u32": ctypes.c_uint32, "u8": ctypes.c_uint8, "bool": ctypes.c_bool}
+        for label, source, function, arguments in cases:
+            with self.subTest(case=label), patch.dict(os.environ, selection.reference_environment):
+                expected = verify_program(source)
+                answers = [execute_program(expected, function, list(args)) for args in arguments]
+                self.assertTrue(all(row["status"] == "returned" for row in answers))
+            submitted = expected if label == "pair-mut" else (
+                json.dumps(source).encode() if label == "read-child" else source)
+            output = self.root / (label + ".o")
+            with self._native_nominal_scope(selection):
+                receipt = self.build(submitted, output=output)
+            self.assertEqual(receipt["input_sha256"], expected.input_sha256)
+            self.assertEqual(receipt["core_sha256"], expected.sha256)
+            self.assertEqual(receipt["exports"], [function])
+            self.assertEqual(receipt["nominal_lowering"], {
+                "input_schema": "hepta.hia.composite.v4", "core_schema": "hepta.hia.program.v8",
+                "semantic_owners": "selected-complete-HIA", "host_semantic_fallback": False,
+                "primitive_core_reverified": True, "nominal_public_abi_promoted": False})
+            library_path = self.root / (label + ".so")
+            subprocess.run(["cc", "-shared", str(output), "-Wl,-z,defs,-z,noexecstack", "-o", str(library_path)],
+                           check=True, capture_output=True, timeout=20)
+            library = ctypes.CDLL(str(library_path))
+            entry = getattr(library, function)
+            fn = next(row for row in expected.as_dict()["functions"] if row["name"] == function)
+            entry.argtypes = [scalar_types[row["type"]] for row in fn["params"]]
+            entry.restype = scalar_types[fn["returns"][0]]
+            actual = [entry(*args) for args in arguments]
+            self.assertEqual(actual, [row["values"][0] for row in answers])
+            rows.append({"case": label, "arguments": arguments, "expected": [row["values"][0] for row in answers],
+                         "actual": actual, "object_sha256": sha256(output.read_bytes()).hexdigest(),
+                         "linked_sha256": sha256(library_path.read_bytes()).hexdigest()})
+            (self.root / (label + ".nominal.json")).write_text(json.dumps(source, sort_keys=True) + "\n")
+            (self.root / (label + ".core.json")).write_bytes(expected.canonical_bytes)
+            _write_json(self.root / (label + ".receipt.json"), receipt)
+        selection.check_custody()
+        _write_json(self.root / "native-nominal-execution.json", rows)
+        self._save_nominal_evidence("native-nominal-execution")
+
+    def test_native_nominal_missing_owners_forged_core_and_wide_results_refuse(self):
+        from hepta.hia_program import HIAProgramRejected, VerifiedProgram, verify_program
+        from tests import test_hia_composite_returned_loans as loans
+        from tests.test_hia_partial_record import roundtrip_program
+        selection = self._nominal_selection()
+        source = loans.pair_program()
+        with patch.dict(os.environ, selection.reference_environment):
+            expected = verify_program(source)
+            wide = verify_program(loans.task_program())
+            old = roundtrip_program()
+            verify_program(old)
+        self.assertGreater(max(len(fn["returns"]) for fn in wide.as_dict()["functions"]), 3)
+        failures = []
+        selectors = [name for name, value in selection.complete_environment.items()
+                     if value and name.endswith("_MANIFEST")]
+        self.assertEqual(len(selectors), 5)
+        for index, selector in enumerate(selectors):
+            output = self.root / ("missing-" + str(index) + ".o")
+            with self.subTest(selector=selector), self._native_nominal_scope(selection), \
+                    patch.dict(os.environ, {selector: ""}), \
+                    patch("subprocess.Popen", side_effect=AssertionError("refused input executed compiler")):
+                with self.assertRaises(HIAProgramRejected) as caught:
+                    self.build(source, output=output)
+            self.assertFalse(output.exists())
+            failures.append({"case": selector, "error": str(caught.exception), "published": False})
+        forged = VerifiedProgram(expected.canonical_bytes + b" ", expected.structured_bytes)
+        with self._native_nominal_scope(selection), \
+                patch("subprocess.Popen", side_effect=AssertionError("forged Core executed compiler")):
+            with self.assertRaisesRegex(HIAProgramRejected, "structured input and executable core differ"):
+                self.build(forged)
+            with self.assertRaises(native.SelfhostBuildRejected) as caught:
+                self.build(old)
+            self.assertEqual(caught.exception.code, "E_HIA_SELFHOST_PROFILE")
+        self.assertFalse((self.root / "result.o").exists())
+        with self._native_nominal_scope(selection):
+            with self.assertRaises(native.SelfhostBuildRejected) as caught:
+                self.build(loans.task_program())
+        self.assertEqual(caught.exception.code, "E_HIA_SELFHOST_COMPILE")
+        self.assertIsNotNone(caught.exception.capture)
+        self.assertFalse((self.root / "result.o").exists())
+        failures.append({"case": "six-result-task", "error": str(caught.exception),
+                         "capture": caught.exception.capture, "published": False})
+        selection.check_custody()
+        _write_json(self.root / "native-nominal-refusals.json", failures)
+        self._save_nominal_evidence("native-nominal-refusals")
 
     def test_explicit_export_subset_and_new_path_publication(self):
         value = {**self.program, "exports": ["calculate"]}

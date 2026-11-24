@@ -1251,3 +1251,37 @@ def elaborate_program(document, *, legacy=False):
             types = getattr(owner, 'native_types', None)
             if types is not None:
                 types.close()
+
+
+def elaborate_program_native(document, *, legacy=False):
+    """Use the complete selected HIA owners with no retained-owner fallback.
+
+    Like elaborate_program, this accepts an already bounded detached document
+    and returns untrusted primitive Core for its caller to verify. The native
+    constructor requires native types; the function session requires native
+    task helpers. Holding the three selected owners avoids later optional
+    dispatch through the ordinary elaborator's methods.
+    """
+    from .hia_composite_constructor_native import selected_composite_constructor
+    from .hia_composite_functions_native import selected_composite_functions
+    from .hia_composite_outer_native import selected_composite_outer
+
+    constructor = selected_composite_constructor()
+    functions = selected_composite_functions()
+    outer = selected_composite_outer()
+    if constructor is None or functions is None or outer is None:
+        _reject("native nominal lowering requires complete selected HIA owners", "E_HIA_TYPE")
+    owner = _Elaborator.__new__(_Elaborator)
+    try:
+        constructor.initialize(owner, document, legacy=legacy)
+        owner._native_function_session = functions.session(owner, legacy=legacy)
+        return outer.lower(owner)
+    finally:
+        try:
+            session = getattr(owner, '_native_function_session', None)
+            if session is not None:
+                session.close()
+        finally:
+            types = getattr(owner, 'native_types', None)
+            if types is not None:
+                types.close()
