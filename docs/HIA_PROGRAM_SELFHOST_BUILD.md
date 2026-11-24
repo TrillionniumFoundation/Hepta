@@ -41,9 +41,10 @@ hia build /absolute/program.core.hepta \
   --output /absolute/existing-output-directory/program.o
 ```
 
-The selected backend accepts primitive Core v8 or v9 JSON, with scalar
-exports. Use `hia import-assembly` to convert assembly source to Core JSON
-before building. Native compilation receives canonical Core JSON with the
+The selected executable accepts primitive Core v8 or v9 JSON, with scalar
+exports. The hosted build entry also accepts nominal composite v4 through the
+explicit complete HIA lowering owners described below. Use `hia import-assembly`
+to convert assembly source to Core JSON before building. Native compilation receives canonical Core JSON with the
 exact chosen scalar export list. Output must be a new pathname under an
 existing directory; existing files, dangling symlinks, and parent symlinks are
 refused. No compiler is selected from an environment variable, discovered
@@ -103,7 +104,7 @@ claim a deadline for public verification, source custody or publication.
 Explicit exports retain their exact set. If the input omits exports, the
 existing public verifier's scalar entrypoints are used. Internal owned and
 borrowed resources remain subject to the native compiler's limits. Non-tail
-self recursion, mutual recursion, nominal composite input, older primitive
+self recursion, mutual recursion, nominal composite v1–v3, older primitive
 schemas, machine-plan overrides, foreign-buffer public exports, other targets,
 and other output kinds are outside this route. Such inputs are refused; they
 are not retried with the direct Python backend. Public Core admission can
@@ -128,6 +129,35 @@ after publication withdraws only the link still belonging to this stage.
 The existing optional native artifact publisher composes with this descriptor
 anchor. These are point-in-time consistency checks, not crash recovery or
 protection against later edits by another process with the same authority.
+
+## Selected nominal v4 lowering
+
+The hosted `build_program_selfhost` entry accepts composite v4 when all five
+source-bound nominal owner groups are explicitly selected: types, task helpers,
+constructor, functions and outer lowering. `elaborate_program_native` captures
+the constructor/function/outer objects and invokes them directly. Missing native
+types or task helpers refuse through the existing dependency checks; missing
+constructor, functions or outer selection refuses before retained lowering.
+There is no retry through the Python nominal semantic owners.
+
+The existing public bounded decoder supplies a detached document. The HIA
+owners produce primitive v8; public Core admission rechecks that complete
+result before the selected native JSON frontend/compiler runs. A caller-supplied
+`VerifiedProgram` retains both original nominal bytes and canonical Core bytes;
+the entry repeats HIA elaboration and rejects a mismatching pair. Nominal public
+aggregate or borrowed signatures do not become scalar exports after flattening.
+
+This route retains the current native compiler limits, including at most three
+internal results. The original returned-loan pair and mutable-to-read child
+cases fit that profile. The original cooperative-task case with six flattened
+results remains a real compiler refusal. Composite v1–v3 require their earlier
+Core schemas and remain outside this particular build route.
+
+The standalone compiler executable continues to accept primitive Core JSON.
+This adapter integration does not add the complete nominal object/session
+transport to the syscall-only package. Hosted decoding, mechanical forwarding,
+public Core admission and publication remain explicit boundaries; neither the
+whole-language nor whole-CLI claim is promoted.
 
 ## Receipt and verification scope
 
@@ -162,6 +192,13 @@ The native tests require exactly one explicit setup:
 - `HEPTA_HIA_SELFHOST_BUILD_DEVELOPMENT_COMPILER` supplies a captured compiler
   image for development observations only. Its manifests carry no cold digest.
   It never serves as an automatic fallback from failed cold qualification.
+
+The nominal build tests reuse the same cold report for all eleven HIA images.
+In development mode they additionally require the five complete
+`HEPTA_HIA_COMPOSITE_*_DEVELOPMENT_MANIFEST` / task-helper selections supported
+by the shared nominal fixture. They never bootstrap a missing owner implicitly.
+`HEPTA_HIA_SELFHOST_NOMINAL_EVIDENCE` retains actual input/Core bytes, emitted
+objects, linked images, execution observations, receipts and refusal captures.
 
 No implicit seed bootstrap is selected by this test module. Full native
 delivery still requires the separate product-wide owner migration and its
