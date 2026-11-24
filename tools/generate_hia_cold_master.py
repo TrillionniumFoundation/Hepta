@@ -506,7 +506,8 @@ def prepare_phase(s:readbuf,o:mutbuf,w:mutbuf,p:u64,r:u64) -> u32:
             copy_input(s,w,target+64,b+160,128)
             j = j+1
         put(w,2136,128+uint(s,at+152,8)*192)
-        return call(o,w,406,319,61000,3,0,0,0,0,3)
+        put(w,2296,0)
+        return resume(s,o,w,420)
     if p == 406:
         if r < 3:
             return finish(o,w,74)
@@ -530,6 +531,26 @@ def prepare_phase(s:readbuf,o:mutbuf,w:mutbuf,p:u64,r:u64) -> u32:
         if counts(s,w) == 0:
             return finish(o,w,74)
         return resume(s,o,w,300)
+    if p == 420:
+        i = get(w,2296)
+        if i == uint(s,at+152,8):
+            return call(o,w,406,319,61000,3,0,0,0,0,3)
+        fd = get(w,500128+i*192)
+        j = 0
+        while j < i:
+            if get(w,500128+j*192) == fd:
+                return call(o,w,421,72,fd,1030,3,0,0,0,0)
+            j = j+1
+        put(w,2296,i+1)
+        return resume(s,o,w,420)
+    if p == 421:
+        if r < 3:
+            return finish(o,w,74)
+        i = get(w,2296)
+        put(w,500128+i*192,r)
+        put(w,600000+get(w,2024)*512+i*8,r)
+        put(w,2296,i+1)
+        return resume(s,o,w,420)
     return finish(o,w,65)
 
 def collect_phase(s:readbuf,o:mutbuf,w:mutbuf,p:u64,r:u64) -> u32:
@@ -552,8 +573,21 @@ def collect_phase(s:readbuf,o:mutbuf,w:mutbuf,p:u64,r:u64) -> u32:
         at = phaserow(s,get(w,2024))
         if get(w,row+128) != @DRIVER_OK@ or get(w,row+136) != uint(s,at+104,8) or get(w,row+144) != uint(s,at+96,8) or get(w,row+152) == 0:
             return finish(o,w,74)
-        put(w,row,2)
-        return resume(s,o,w,300)
+        put(w,2296,0)
+        return resume(s,o,w,505)
+    if p == 505:
+        if get(w,2296) == uint(s,phaserow(s,get(w,2024))+152,8):
+            put(w,row,2)
+            return resume(s,o,w,300)
+        where = 600000+get(w,2024)*512+get(w,2296)*8
+        fd = get(w,where)
+        put(w,where,0)
+        put(w,2296,get(w,2296)+1)
+        if fd != 0:
+            return call(o,w,506,3,fd,0,0,0,0,0,0)
+        return resume(s,o,w,505)
+    if p == 506:
+        return resume(s,o,w,505)
     return finish(o,w,65)
 '''
 SOURCE+=r'''
