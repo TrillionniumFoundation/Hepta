@@ -138,3 +138,7 @@ and section custody; all previous IDTR, atomic, MMIO, MSR, port I/O
 and capacity regressions are retained. Neither native interrupt entry,
 arbitrary context return, SMP, resource authority nor full Linux
 acceptance is claimed.
+
+## Combined task-register, IDTR and terminal user IRETQ candidate
+
+This isolated candidate combines #954 exact 145da3c8aa8bfa830ff68d6929910e8a15fec16c with #955 exact bd0e2bcbfca8dcae9bf95fe292502935ffa8d47b (parent #952). The TR opcode words are inserted between the MSR and IDTR words; the contiguous dispatch range is extended successively by TR, IDTR and terminal IRETQ. The original TR helper and its full hardware fixture are retained as independent files. The original five TR scenarios (ten PC/Q35 cases) use the combined compiler, with exact source/object/text binding, two selectors, busy TSS #GP and independent instruction deletion. Existing 116 general hardware and 20 IRETQ cases remain unchanged. Total 146 hardware cases planned, plus all existing source refusals, B1/B2/B3, empty-PATH and capacity checks. Full Core-only still requires original budgets; no parent PASS qualifies the combined candidate. The original failed lifecycle timing runs remain evidence. This is not general IRQ/context restoration or full Linux acceptance; the production lock and main remain unchanged.

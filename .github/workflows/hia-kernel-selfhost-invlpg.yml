@@ -4,6 +4,9 @@ on:
     paths:
       - 'tools/qualify_hia_kernel_selfhost_invlpg.py'
       - 'tools/hia_kernel_selfhost_msr.py'
+      - 'tools/hia_kernel_selfhost_tr.py'
+      - 'tests/test_hia_kernel_tr_qemu.py'
+      - 'tests/fixtures/hia_kernel_tr_qemu_boot.S'
       - 'tools/hia_kernel_selfhost_idtr.py'
       - 'tools/hia_kernel_selfhost_iretq.py'
       - 'tests/test_hia_kernel_iretq_user_qemu.py'
@@ -16,6 +19,9 @@ on:
     paths:
       - 'tools/qualify_hia_kernel_selfhost_invlpg.py'
       - 'tools/hia_kernel_selfhost_msr.py'
+      - 'tools/hia_kernel_selfhost_tr.py'
+      - 'tests/test_hia_kernel_tr_qemu.py'
+      - 'tests/fixtures/hia_kernel_tr_qemu_boot.S'
       - 'tools/hia_kernel_selfhost_idtr.py'
       - 'tools/hia_kernel_selfhost_iretq.py'
       - 'tests/test_hia_kernel_iretq_user_qemu.py'
@@ -43,6 +49,8 @@ jobs:
         run: python -B -m tests.test_hia_kernel_selfhost_invlpg_qemu --output "$RUNNER_TEMP/kernel-selfhost"
       - name: Execute exact terminal HIA IRETQ in two distinct user frames
         run: python -B -m tests.test_hia_kernel_iretq_user_qemu --output "$RUNNER_TEMP/kernel-selfhost"
+      - name: Execute exact native LTR and STR with busy-TSS and deletion controls
+        run: python -B -m tests.test_hia_kernel_tr_qemu --output "$RUNNER_TEMP/kernel-selfhost"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

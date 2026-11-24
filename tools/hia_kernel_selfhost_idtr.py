@@ -23,7 +23,7 @@ def extend_source(source, replace_once):
     if op == @x86.idtr.store@:
         return 28""")
     source = replace_once(source,
-        "    if op >= @x86.mmio.read32@ and op <= @x86.msr.write@:",
+        "    if op >= @x86.mmio.read32@ and op <= @x86.tr.read@:",
         "    if op >= @x86.mmio.read32@ and op <= @x86.idtr.store@:")
     signature = ("def mmio_instruction(s:readbuf, o:mutbuf, w:mutbuf, op:u64, n:u64, "
                  "at:u64, t:u64, v:u64, bt:u64, a:u64, b:u64) -> u64:")
