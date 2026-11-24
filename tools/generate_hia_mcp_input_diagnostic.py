@@ -2,7 +2,8 @@
 
 The frozen catalog is compiled into immutable HIA word stores. Runtime schema
 decisions, error priority, path construction and JSON rendering execute in HIA.
-The input is the parent's compact, key-sorted serde-compatible Value encoding.
+The canonical input retains its original ABI. An explicit raw selector accepts
+parent-admitted JSON and restores serde Value object order and numeric kinds.
 """
 from __future__ import annotations
 import ast
@@ -182,10 +183,10 @@ class Tables:
                 for at in range(0,len(self.data),8) if any(self.data[at:at+8])]
         code='\ndef initialize(w:mutbuf) -> u64:\n    base = database(w)\n    index = 0\n    while index < 65536:\n        word_store(w, base + index, 0)\n        index = index + 8\n'
         helpers=''
-        for bank,start in enumerate(range(0,len(stores),64)):
+        for bank,start in enumerate(range(0,len(stores),256)):
             code+=f'    table_{bank}(w, base)\n'
             helpers+=f'\ndef table_{bank}(w:mutbuf, base:u64) -> u64:\n'
-            rows=stores[start:start+64]
+            rows=stores[start:start+256]
             # Reuse literal values and strides in each bounded bank. These are
             # ordinary HIA locals, keeping constant-table emission within the
             # existing 8192-operation compiler budget.
@@ -211,8 +212,10 @@ POLICY = r'''
 def diagnose(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) > 8388608 or length(w) < 33554432 or length(o) < 8389120:
         return 4294967293
-    role = get(w, 0)
-    if pinned_catalog(w, 8, 64) == 0 or role < 1 or role > 11:
+    selected = get(w, 0)
+    raw = selected >> 32
+    role = selected & 4294967295
+    if raw > 1 or pinned_catalog(w, 8, 64) == 0 or role < 1 or role > 11:
         return 4294967293
     put(o, 48, 262144)
     put(o, 56, 128)
@@ -221,15 +224,110 @@ def diagnose(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return size
     if size > database(w):
         return 4294967293
+    if raw == 1:
+        prepare_raw(s, w)
     initialize(w)
     root = get(w, database(w) + (role - 1) * 8)
     base = database(w)
     copy_memory(w, base + get(w, base + 464), path(w), get(w, base + 472))
     if check(s, w, root, 64, 9, 0) != 0:
-        if length(s) <= 524288:
+        if raw == 1 or length(s) <= 524288:
             return 0
         refuse(w, 18, 0)
     return render_error(w, o)
+
+def raw_key_before(w:mutbuf, left:u64, right:u64) -> bool:
+    a = 64 + left * 56
+    b = 64 + right * 56
+    alen = get(w, a + 48)
+    blen = get(w, b + 48)
+    ap = get(w, a + 40)
+    bp = get(w, b + 40)
+    index = 0
+    while index < alen and index < blen:
+        x = byte(w, ap + index)
+        y = byte(w, bp + index)
+        if x != y:
+            return x < y
+        index = index + 1
+    return alen <= blen
+
+def raw_merge(w:mutbuf, head:u64, width:u64) -> u64:
+    result = 18446744073709551615
+    tail = 18446744073709551615
+    cursor = head
+    while cursor != 18446744073709551615:
+        left = cursor
+        right = cursor
+        left_count = 0
+        while left_count < width and right != 18446744073709551615:
+            right = get(w, 80 + right * 56)
+            left_count = left_count + 1
+        right_count = width
+        while left_count != 0 or right_count != 0 and right != 18446744073709551615:
+            choose_left = False
+            if left_count != 0:
+                if right_count == 0 or right == 18446744073709551615:
+                    choose_left = True
+                else:
+                    choose_left = raw_key_before(w, left, right)
+            if choose_left:
+                item = left
+                left = get(w, 80 + left * 56)
+                left_count = left_count - 1
+            else:
+                item = right
+                right = get(w, 80 + right * 56)
+                right_count = right_count - 1
+            if tail == 18446744073709551615:
+                result = item
+            else:
+                word_store(w, 80 + tail * 56, item)
+            tail = item
+        cursor = right
+    if tail != 18446744073709551615:
+        word_store(w, 80 + tail * 56, 18446744073709551615)
+    return result
+
+def raw_number_kind(s:readbuf, w:mutbuf, node:u64) -> u64:
+    start = get(w, node + 24)
+    size = get(w, node + 32)
+    negative = byte(s, start) == 45
+    limit = 18446744073709551615
+    if negative:
+        limit = 9223372036854775808
+        start = start + 1
+        size = size - 1
+    maximum = limit // 10
+    last = limit % 10
+    value = 0
+    index = 0
+    while index < size:
+        digit = byte(s, start + index) - 48
+        if value > maximum or value == maximum and digit > last:
+            return 7
+        value = value * 10 + digit
+        index = index + 1
+    return choose(negative and value == 0, 7, 3)
+
+def prepare_raw(s:readbuf, w:mutbuf) -> u64:
+    count = get(w, 8)
+    index = 0
+    while index < count:
+        node = 64 + index * 56
+        kind = get(w, node)
+        if kind == 6:
+            size = get(w, node + 32)
+            head = get(w, node + 24)
+            width = 1
+            while width < size:
+                head = raw_merge(w, head, width)
+                width = width * 2
+            word_store(w, node + 24, head)
+        elif kind == 3:
+            word_store(w, node, raw_number_kind(s, w, node))
+        index = index + 1
+    return 0
 
 def schema_word(w:mutbuf, at:u64) -> u64:
     return word_load(w, at) & 4294967295

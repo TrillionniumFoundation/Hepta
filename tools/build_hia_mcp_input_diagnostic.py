@@ -30,7 +30,8 @@ def native(compiler,output):
         Path(inspect.getfile(document)),Path(inspect.getfile(data_source)),
         Path(inspect.getfile(decimal_program)),Path(inspect.getfile(render_assembly)),
         ROOT/'tools/qualify_hia_mcp_input_diagnostic.py',
-        ROOT/'tests/hia_mcp_input_diagnostic_cases.py'}
+        ROOT/'tests/hia_mcp_input_diagnostic_cases.py',
+        ROOT/'tests/hia_mcp_input_diagnostic_raw_cases.py'}
     captured={p:p.read_bytes() for p in dependencies}
     selected=compiler.read_bytes()
     authored=source_program(captured[CATALOG])

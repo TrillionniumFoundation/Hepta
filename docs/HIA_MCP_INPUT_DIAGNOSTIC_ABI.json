@@ -1,19 +1,35 @@
 {
   "calling_convention": "ordinary HIA six-machine-argument flat buffer ABI",
   "catalog_sha256": "b6b8054ce46ae9ceac260e99a3d1beaf5d6c9343bc4c6e5d96281eedd3c3edfd",
-  "input": "compact key-sorted serde-compatible arguments Value JSON",
+  "input": {
+    "mode_0": "compact key-sorted serde-compatible arguments Value JSON; original canonical ABI",
+    "mode_1": "raw arguments JSON accepted by the original whole-message HIA route gate"
+  },
   "input_max_bytes": 8388608,
-  "ordering": "durable audit begin, input diagnostic, provider admission; 512KiB bound after schema success",
+  "ordering": "raw route admission; durable audit begin; raw schema diagnostic; canonical Value and 512KiB serialized bound; provider admission",
   "output_min_bytes": 8389120,
+  "raw_preconditions": {
+    "duplicate_keys": "refused by parent original route gate and component parser",
+    "numbers": "finite serde_json Value admitted by parent numeric gate",
+    "whole_message_max_bytes": 8388608,
+    "whole_message_max_depth": 128,
+    "whole_message_max_nodes": 262144
+  },
+  "raw_semantics": [
+    "sort each decoded object by UTF-8 key bytes",
+    "classify -0 and integer overflow as serde floating-number variants",
+    "preserve all original schema check priorities",
+    "return schema success before parent serialized bound"
+  ],
   "return": {
-    "0": "valid arguments; output unspecified",
+    "0": "mode 0: complete canonical input validation succeeds; mode 1: schema phase succeeds, caller must canonicalize and apply 512KiB bound; output unspecified",
     "0xfffffffc..0xffffffff": "invocation/parser refusal; never output size",
     "1..output_capacity": "complete original RPC error JSON"
   },
-  "schema": "hepta.hia.mcp-input-diagnostic-abi.v1",
+  "schema": "hepta.hia.mcp-input-diagnostic-abi.v2",
   "workspace_input": {
     "0": {
-      "meaning": "tool ordinal 1..11",
+      "meaning": "u64le selector (mode << 32) | tool_ordinal; mode 0 or 1 only; tool ordinal 1..11",
       "type": "u64le"
     },
     "8": {
