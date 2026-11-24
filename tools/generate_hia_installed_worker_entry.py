@@ -15,6 +15,10 @@ CONFIG_MAGIC = int.from_bytes(b'HIAWEC01', 'little')
 # borrowed buffers. Only the caller-selected state root passes to the Worker.
 POLICY = '''
 def admit(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
+    if length(o) == 16:
+        return anchor_selector(s,o)
+    if length(o) == 24:
+        return anchor_metadata(s)
     if length(w) < 104 or length(s) < 10 or length(o) != 8:
         return 0
     if get(w,0) != CONFIG_MAGIC or get(w,8) != length(w):
@@ -109,6 +113,8 @@ def match(s:readbuf,w:mutbuf,p:u64,slot:u64) -> bool:
     return True
 '''
 
+POLICY += '\ndef anchor_selector(s:readbuf,o:mutbuf) -> u32:\n    if length(s) > 65536:\n        return 0\n    at = 0\n    index = 0\n    selected = 0\n    descriptor = 0\n    while at < length(s):\n        first = at\n        while at < length(s) and byte(s,at) != 0:\n            at = at+1\n        if at == length(s):\n            return 0\n        if anchor_prefix(s,first,at-first):\n            if selected != 0:\n                return 0\n            number = first+30\n            if number == at or at-number > 10:\n                return 0\n            while number < at:\n                digit = byte(s,number)\n                if digit < 48 or digit > 57:\n                    return 0\n                descriptor = descriptor*10+digit-48\n                if descriptor > 2147483647:\n                    return 0\n                number = number+1\n            if descriptor < 3:\n                return 0\n            selected = index+1\n        at = at+1\n        index = index+1\n    put(o,0,descriptor)\n    put(o,8,selected)\n    return 1\n\ndef anchor_metadata(s:readbuf) -> u32:\n    if length(s) != 168:\n        return 0\n    mode = read_word(s,24) & 4294967295\n    owner = read_word(s,28) & 4294967295\n    if mode & 61440 != 32768 or mode & 18 != 0 or read_word(s,16) != 1:\n        return 0\n    if owner != 0 and owner != read_word(s,144):\n        return 0\n    size = read_word(s,48)\n    if size < 104 or size > 1048576 or size != read_word(s,152) or read_word(s,160) & 3 != 0:\n        return 0\n    return 1\n\ndef anchor_prefix(s:readbuf,at:u64,size:u64) -> bool:\n    if size < 30:\n        return False\n    if byte(s,at+0) != 72:\n        return False\n    if byte(s,at+1) != 69:\n        return False\n    if byte(s,at+2) != 80:\n        return False\n    if byte(s,at+3) != 84:\n        return False\n    if byte(s,at+4) != 65:\n        return False\n    if byte(s,at+5) != 95:\n        return False\n    if byte(s,at+6) != 82:\n        return False\n    if byte(s,at+7) != 85:\n        return False\n    if byte(s,at+8) != 78:\n        return False\n    if byte(s,at+9) != 84:\n        return False\n    if byte(s,at+10) != 73:\n        return False\n    if byte(s,at+11) != 77:\n        return False\n    if byte(s,at+12) != 69:\n        return False\n    if byte(s,at+13) != 95:\n        return False\n    if byte(s,at+14) != 87:\n        return False\n    if byte(s,at+15) != 79:\n        return False\n    if byte(s,at+16) != 82:\n        return False\n    if byte(s,at+17) != 75:\n        return False\n    if byte(s,at+18) != 69:\n        return False\n    if byte(s,at+19) != 82:\n        return False\n    if byte(s,at+20) != 95:\n        return False\n    if byte(s,at+21) != 69:\n        return False\n    if byte(s,at+22) != 78:\n        return False\n    if byte(s,at+23) != 84:\n        return False\n    if byte(s,at+24) != 82:\n        return False\n    if byte(s,at+25) != 89:\n        return False\n    if byte(s,at+26) != 95:\n        return False\n    if byte(s,at+27) != 70:\n        return False\n    if byte(s,at+28) != 68:\n        return False\n    if byte(s,at+29) != 61:\n        return False\n    return True\n'
+
 def source_document():
     from tools.generate_hia_worker_evaluate_case import source_program
     from tools.generate_hia_evaluate_settlement import function
@@ -118,12 +124,15 @@ def source_document():
 def packer_document():
     raw = Path(ADAPTER).read_bytes()
     with TemporaryDirectory(prefix='hia-worker-entry-') as directory:
-        adapter, loc, _ = adapter_layout(Path(directory), ADAPTER, raw, {'entry':'worker_entry_call_hole'})
+        adapter, loc, _ = adapter_layout(Path(directory), ADAPTER, raw, {'entry':'worker_entry_call_hole','anchor':'worker_entry_anchor_hole','metadata':'worker_entry_anchor_metadata_hole'})
     prefix = elf_header()
-    hole = loc['entry']
-    policy = packer_source(magic=MAGIC, image_template=(prefix+adapter, (len(prefix)+hole,)),
+    holes = tuple(loc[key] for key in ('entry','anchor','metadata'))
+    policy = packer_source(magic=MAGIC, image_template=(prefix+adapter, tuple(len(prefix)+hole for hole in holes)),
                            pack_limit=1 << 20)
-    return bind_adapter(document(policy, 'installed_worker_entry_packer'), raw, adapter, (hole,))
+    for extra in holes[1:]:
+        write = f'    write(o, {len(prefix)+extra}, {len(adapter)-extra-4}, 4)\n'
+        policy = policy.replace('    copy_bytes(s, o,', write+'    copy_bytes(s, o,', 1)
+    return bind_adapter(document(policy, 'installed_worker_entry_packer'), raw, adapter, holes)
 
 if __name__ == '__main__':
     Path(SOURCE).write_text(render_assembly(source_document()))

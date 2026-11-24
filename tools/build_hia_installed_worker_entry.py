@@ -66,7 +66,7 @@ def build(target, scratch, compiler, cold_report, *, profile, release, capsule, 
               'tools/build_hia_installed_worker_entry.py')}
     if any(admitted.get(p)!=sha256(raw).hexdigest() for p,raw in sources.items()):
         raise ValueError('installed Worker source differs from cold replay')
-    binding=read_adapter_binding(sources[PACKER],sources[ADAPTER],calls=1)
+    binding=read_adapter_binding(sources[PACKER],sources[ADAPTER],calls=3)
     launcher=_read(release/'hia-agent-evaluate-full-launcher',LAUNCHER_LIMIT).raw
     if launcher!=expected_launcher.read_bytes():
         raise ValueError('public Worker launcher differs from the cold build')
@@ -82,7 +82,7 @@ def build(target, scratch, compiler, cold_report, *, profile, release, capsule, 
     packet=struct.pack('<2Q',MAGIC,len(code))+code
     receipt,output=invoke(scratch,'pack-executable',packer,packet,capacity=ENTRY_LIMIT)
     executable=_check_pack_output(receipt,output,artifact=packer_bytes,source=packet,capacity=ENTRY_LIMIT)
-    verify_adapter(executable,code,binding,entries=(0,))
+    verify_adapter(executable,code,binding,entries=(0,0,0))
     if current_sources()!=admitted or compiler.read_bytes()!=compiler_bytes or cold_report.read_bytes()!=report_bytes:
         raise ValueError('installed Worker cold authority changed during build')
     if configuration(profile,release,capsule,capsule_pin,_read(release/'hia-agent-evaluate-full-launcher',LAUNCHER_LIMIT).raw,identities,artifact_roots,target.parent)!=config:

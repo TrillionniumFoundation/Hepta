@@ -543,6 +543,75 @@ def _request_classifier_has_resource_uri(classifier):
     return True
 
 
+def _verify_native_job_owner(supervisor, prepare, scratch):
+    """Require an actual native child, synchronized logs and a bound witness."""
+    from contextlib import ExitStack
+    import fcntl
+    import os
+    import struct
+    import tempfile
+    import time
+
+    executable = prepare.read_bytes()
+    sample = b'native-job-owner-admission-probe'
+    reference = subprocess.run([prepare], input=sample, env={}, capture_output=True, timeout=5)
+    if reference.returncode < 0:
+        raise ValueError('native owner reference workload failed before admission')
+    with ExitStack() as stack:
+        folder = Path(stack.enter_context(tempfile.TemporaryDirectory(dir=scratch, prefix='job-owner-')))
+        directory = os.open(folder, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+        stack.callback(os.close, directory)
+        def sealed(name, raw, mode=0o400):
+            fd = os.memfd_create(name, os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+            stack.callback(os.close, fd)
+            offset = 0
+            while offset < len(raw):
+                size = os.write(fd, raw[offset:])
+                if size <= 0:
+                    raise OSError('native owner probe input write made no progress')
+                offset += size
+            os.fchmod(fd, mode)
+            fcntl.fcntl(fd, fcntl.F_ADD_SEALS, 15)
+            os.lseek(fd, 0, os.SEEK_SET)
+            return fd
+        def output(name):
+            fd = os.open(folder/name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC, 0o600)
+            stack.callback(os.close, fd)
+            return fd
+        workload = sealed('native-owner-workload', executable, 0o500)
+        source = sealed('native-owner-input', sample)
+        stdout, stderr, receipt = [output(name) for name in ('stdout.log','stderr.log','native-exit.bin')]
+        job_id, nonce, argv = b'native-owner-admission', b'5'*32, b'hia-worker-prepare'
+        frame = struct.pack('<8s15Q', b'HIAJOB01', 0, time.monotonic_ns()+3_000_000_000,
+                            workload, source, stdout, stderr, directory, receipt, 1, 0,
+                            1 << 20, 1 << 20, 100_000_000, 0, 0)
+        frame += struct.pack('<QQ32sQ32s', directory, len(job_id), nonce, 0, bytes(32)) + job_id
+        frame += struct.pack('<Q', len(argv)) + argv + b'\0'
+        request = sealed('native-owner-request', frame)
+        observed = subprocess.run([supervisor], stdin=request, env={}, capture_output=True,
+                                  pass_fds=(workload,source,stdout,stderr,directory,receipt), timeout=5)
+        if observed.returncode != reference.returncode or observed.stdout or observed.stderr:
+            raise ValueError('native job owner did not preserve the reference workload terminal')
+        encoded = (folder/'exit.json').read_bytes()
+        terminal = json.loads(encoded)
+        witness = json.loads((folder/'exit.witness.json').read_bytes())
+        owner = json.loads((folder/'started.json').read_bytes())
+        child = json.loads((folder/'child.json').read_bytes())
+        expected = {'exit_sha256':sha256(encoded).hexdigest(), 'job_id':job_id.decode(),
+                    'launch_nonce':nonce.decode(), 'terminal_publication_protocol':1}
+        if (witness != expected or terminal['exit_code'] != reference.returncode or
+                not terminal['output_complete'] or not terminal['output_durable'] or
+                (folder/'owner-intent.json').read_bytes() != (folder/'started.json').read_bytes() or
+                owner['job_id'] != job_id.decode() or owner['launch_nonce'] != nonce.decode() or
+                child['pid'] <= 1 or child['pid'] == owner['supervisor_pid'] or
+                os.pread(stdout, 1 << 20, 0) != reference.stdout or
+                os.pread(stderr, 1 << 20, 0) != reference.stderr or
+                len(os.pread(receipt, 129, 0)) != 128):
+            raise ValueError('native job owner did not publish its exact durable observation')
+        if prepare.read_bytes() != executable:
+            raise ValueError('native owner reference workload changed during admission')
+
+
 def _install_controller(output, scratch, release, installer):
     # The earlier verified packages without a complete controller keep their
     # original Worker-only contract. Never create a partially bound controller.
@@ -607,6 +676,13 @@ def _install_controller(output, scratch, release, installer):
         schema = 'hepta.hia.mcp.controller.v23'
     if schema == 'hepta.hia.mcp.controller.v23' and _job_writer_has_owner_custody(receipt_writer, scratch):
         schema = 'hepta.hia.mcp.controller.v24'
+    native_job_owner = release / 'hia-job-supervisor'
+    if native_job_owner.exists():
+        if schema != 'hepta.hia.mcp.controller.v24':
+            raise ValueError('native job owner requires the complete bound controller')
+        _verify_native_job_owner(native_job_owner, release / 'hia-worker-prepare', scratch)
+        files.append(native_job_owner)
+        schema = 'hepta.hia.mcp.controller.v25'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

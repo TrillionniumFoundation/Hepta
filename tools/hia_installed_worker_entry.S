@@ -4,7 +4,7 @@
 .intel_syntax noprefix
 .text
 .global _start
-.global worker_entry_call_hole
+.global worker_entry_call_hole, worker_entry_anchor_hole, worker_entry_anchor_metadata_hole
 _start:
     mov r12,rsp
     mov rax,[r12]
@@ -12,7 +12,7 @@ _start:
     ja failed
     cmp rax,2
     jb failed
-    sub rsp,300000
+    sub rsp,370000
     and rsp,-16
     mov r15,rsp
     lea rdi,[rsp+512]
@@ -48,12 +48,150 @@ got_args:
     ja failed
     sub rbx,8
     sub rbx,r14
-    /* Read the running file's own directory, never cwd or argv[0]. */
+    /* HIA admits the optional descriptor locator. The supplied descriptor
+       must contain these exact running ELF bytes before it can name a root. */
+    mov rax,[r12]
+    lea rsi,[r12+rax*8+16]
+    lea rdi,[r15+300000]
+    lea r11,[rdi+65536]
+anchor_environment:
+    mov r8,[rsi]
+    add rsi,8
+    test r8,r8
+    jz anchor_environment_done
+anchor_environment_string:
+    cmp rdi,r11
+    jae failed
+    mov al,[r8]
+    mov [rdi],al
+    inc r8
+    inc rdi
+    test al,al
+    jnz anchor_environment_string
+    jmp anchor_environment
+anchor_environment_done:
+    lea rsi,[r15+300000]
+    sub rdi,rsi
+    mov rsi,rdi
+    lea rdi,[r15+300000]
+    lea rdx,[r15+40]
+    mov ecx,16
+    mov r8,rbx
+    mov r9,r14
+    .byte 0xe8
+worker_entry_anchor_hole: .long 0
+    cmp eax,1
+    jne failed
+    cmp qword ptr [r15+48],0
+    je own_physical_path
+    mov ebp,[r15+40]
+    mov edi,ebp
+    lea rsi,[r15+128]
+    mov eax,5
+    syscall
+    test eax,eax
+    js failed
+    mov eax,107
+    syscall
+    mov [r15+272],rax
+    mov eax,0x400000
+    mov rax,[rax+96]
+    mov [r15+280],rax
+    mov edi,ebp
+    mov esi,3
+    mov eax,72
+    syscall
+    test eax,eax
+    js failed
+    mov [r15+288],rax
+    lea rdi,[r15+128]
+    mov esi,168
+    lea rdx,[r15+40]
+    mov ecx,24
+    mov r8,rbx
+    mov r9,r14
+    .byte 0xe8
+worker_entry_anchor_metadata_hole: .long 0
+    cmp eax,1
+    jne failed
+    xor r13d,r13d
+anchor_exact_bytes:
+    mov rdx,[r15+280]
+    sub rdx,r13
+    jz anchor_exact_verified
+    cmp rdx,4096
+    jbe anchor_read_bounded
+    mov edx,4096
+anchor_read_bounded:
+    mov edi,ebp
+    lea rsi,[r15+300000]
+    mov r10,r13
+    mov eax,17
+    syscall
+    cmp rax,-4
+    je anchor_exact_bytes
+    test rax,rax
+    jle failed
+    mov rcx,rax
+    lea rdi,[r13+0x400000]
+    repe cmpsb
+    jne failed
+    add r13,rax
+    jmp anchor_exact_bytes
+anchor_exact_verified:
+    /* Remove only the HIA-selected bootstrap selector from the inherited env. */
+    mov rax,[r12]
+    lea rdi,[r12+rax*8+16]
+    mov rcx,[r15+48]
+    dec rcx
+    lea rdi,[rdi+rcx*8]
+anchor_remove_environment:
+    mov rax,[rdi+8]
+    mov [rdi],rax
+    add rdi,8
+    test rax,rax
+    jnz anchor_remove_environment
+    lea rdi,[r15+294000]
+    lea rsi,[rip+anchor_fd_prefix]
+    mov ecx,14
+    rep movsb
+    lea r8,[r15+294128]
+    mov eax,ebp
+    mov r9d,10
+    xor ecx,ecx
+anchor_decimal:
+    xor edx,edx
+    div r9
+    add dl,48
+    dec r8
+    mov [r8],dl
+    inc ecx
+    test rax,rax
+    jnz anchor_decimal
+    mov rsi,r8
+    rep movsb
+    mov byte ptr [rdi],0
+    lea rdi,[r15+294000]
+    lea rsi,[r15+285000]
+    mov edx,4096
+    mov eax,89
+    syscall
+    mov [r15+24],rax
+    mov edi,ebp
+    mov eax,3
+    syscall
+    test eax,eax
+    js failed
+    mov rax,[r15+24]
+    jmp physical_path_read
+own_physical_path:
+    /* Ordinary launches retain their original kernel-resolved installation. */
     lea rdi,[rip+self_exe]
     lea rsi,[r15+285000]
     mov edx,4096
     mov eax,89
     syscall
+physical_path_read:
     cmp rax,0
     jle failed
     cmp rax,4096
@@ -286,4 +424,5 @@ written:
     ret
 child_label: .asciz "hia-agent-evaluate-full-launcher"
 self_exe: .asciz "/proc/self/exe"
+anchor_fd_prefix: .asciz "/proc/self/fd/"
 empty: .byte 0
