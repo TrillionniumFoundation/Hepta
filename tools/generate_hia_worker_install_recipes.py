@@ -129,7 +129,15 @@ def identity(r,m):
     identity_table=r.source('examples/hia_bootstrap/worker_install_identity_paths.hiastd')
     worker_pin=r.identity(1,r.inventory(),identity_table)
     parts=[]
-    for name in backend_sources():parts.extend((r.literal(name.encode()+b'\0'),r.source('hepta/'+name),r.literal(b'\0')))
+    if 'native_source_authority' in m:
+        from tools.hia_native_worker_source_authority import BACKEND_DOMAIN
+        # The complete admitted source map binds every native source byte via
+        # its captured digest; do not retain a parallel host-language source hash.
+        # The existing machine-plan, ABI, unit source/image and continuation
+        # binding terms below are intentionally preserved.
+        parts.extend((r.literal(BACKEND_DOMAIN),worker_pin,r.literal(b'\0')))
+    else:
+        for name in backend_sources():parts.extend((r.literal(name.encode()+b'\0'),r.source('hepta/'+name),r.literal(b'\0')))
     # The complete 37-helper profile deliberately has no machine-encoding selector.
     parts.append(r.literal(b'native-machine-encoding\0\0'))
     plan=r.concat(r.hexdigest(r.source('examples/hia_bootstrap/machine_plan.hepta')),r.literal(b':'),r.hexdigest(r.import_product('machine-plan/machine-plan.image.bin')))
@@ -184,8 +192,8 @@ def entry(r,m):
     r.node(10,(2,3,elf,code,packer,adapter,r.q(0,0,0),instructions))
     r.publish('hia-agent-worker',elf,0o500)
 
-def recipes():
-    m=model(ROOT);result={}
+def recipes(native_source_authority=None):
+    m=model(ROOT,native_source_authority);result={}
     for kind in STAGES:
         r=WorkerRecipe()
         if kind=='helpers':helpers(r,m)
@@ -201,8 +209,8 @@ def recipes():
     return result
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');a=p.parse_args();records=[]
-    for kind,r in recipes().items():
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');p.add_argument('--native-source-authority',type=Path);a=p.parse_args();records=[]
+    for kind,r in recipes(a.native_source_authority).items():
         raw=r.binary();target=ROOT/BOOT/('worker_install_'+kind+'.hiastd')
         if a.check:
             if target.read_bytes()!=raw:raise SystemExit(kind+' differs')

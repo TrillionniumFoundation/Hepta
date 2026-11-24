@@ -6,6 +6,7 @@ from tools.generate_hia_worker_install_bind import SOURCE as HELPERS,sha_functio
 from tools.generate_hia_direct_load_plan import LinkerBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
 from hepta.hia_agent_assembly import render_assembly
+from tools.hia_native_worker_source_authority import load_native_source_authority, path_table, table_count
 ROOT=Path(__file__).resolve().parents[1]
 TABLE='examples/hia_bootstrap/worker_install_identity_paths.hiastd'
 SOURCE=r'''def entry(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -138,18 +139,23 @@ def compare(s:readbuf, a:u64, an:u64, b:u64, bn:u64) -> u64:
         i = i + 1
     return choose(an == bn, 0, choose(an < bn, 1, 2))
 '''
-def paths():
+def paths(native_source_authority=None):
+    if native_source_authority is not None:
+        return load_native_source_authority(native_source_authority)
     from hepta import hia_agent_contract as c
     result={str(p.relative_to(ROOT)) for p in (ROOT/'hepta').rglob('*.py') if p.relative_to(ROOT/'hepta').parts[0]!='_data'}
     result.update('docs/'+n for n in c.DISCOVERY_FILES)
     for key in ('NATIVE_SOURCE_FILES','SOURCE_BUILD_FILES','COMPILER_BUILD_FILES','PUBLICATION_BUILD_FILES','BACKEND_BUILD_FILES','EMITTER_BUILD_FILES','BYTE_WRAPPER_BUILD_FILES','MACHINE_OBJECT_BUILD_FILES','EXECUTION_OBSERVATION_BUILD_FILES','CONTINUATION_BUILD_FILES'):result.update(getattr(c,key))
     return tuple(sorted(result))
-def table_bytes():
-    names=paths();return b'HIAWIS01'+struct.pack('<Q',len(names))+b''.join(struct.pack('<Q',len(p.encode()))+p.encode() for p in names)
+def table_bytes(native_source_authority=None):
+    names=paths(native_source_authority)
+    if native_source_authority is not None:
+        return path_table(names)
+    return b'HIAWIS01'+struct.pack('<Q',len(names))+b''.join(struct.pack('<Q',len(p.encode()))+p.encode() for p in names)
 def policy_source(raw):
     names=('put','get','uint','uintn','copy','emit','output_byte','hex_input','hex_digit','same')
     helpers='\n'.join(ast.get_source_segment(HELPERS,n) for n in ast.parse(HELPERS).body if n.name in names)
-    s=SOURCE.replace('TABLE_BYTES',str(len(raw))).replace('TABLE_COUNT',str(len(paths()))).replace('SPI_MAGIC',str(int.from_bytes(b'HIASPI01','little'))).replace('MAGIC',str(int.from_bytes(b'HIAWID01','little')))
+    s=SOURCE.replace('TABLE_BYTES',str(len(raw))).replace('TABLE_COUNT',str(table_count(raw))).replace('SPI_MAGIC',str(int.from_bytes(b'HIASPI01','little'))).replace('MAGIC',str(int.from_bytes(b'HIAWID01','little')))
     s+='\n'+helpers+'\n'+sha_functions()+'\ndef constants(w:mutbuf) -> u64:\n'
     pin=sha256(raw).digest()
     for i in range(0,32,8):s+='    put(w, %d, %d)\n'%(16384+i,int.from_bytes(pin[i:i+8],'little'))
@@ -160,7 +166,7 @@ def document(source,module):
         b=LinkerBuilder(n,names,sigs,total);b.statements(n.body);fns.append({'name':names[n.name],'params':[b.param(a) for a in b.params],'returns':[b.returns],'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
     return compact_authoring_cfg({'schema':'hepta.hia.program.v9','module':module,'functions':fns})
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');a=p.parse_args();raw=table_bytes();doc=document(policy_source(raw),'source_worker_install_identity');source=render_assembly(doc).encode()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--check',action='store_true');p.add_argument('--native-source-authority',type=Path);a=p.parse_args();raw=table_bytes(a.native_source_authority);doc=document(policy_source(raw),'source_worker_install_identity');source=render_assembly(doc).encode()
     for name,value in ((TABLE,raw),('examples/hia_bootstrap/source_worker_install_identity.hepta',source)):
         target=ROOT/name
         if a.check:

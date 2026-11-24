@@ -27,6 +27,7 @@ SOURCE_PATH = 'examples/hia_bootstrap/source_worker_manifest.hepta'
 TABLE_PATH = 'examples/hia_bootstrap/worker_manifest_tables.hiastd'
 MODEL_PATH = 'docs/HIA_WORKER_MANIFEST_RECORDS.json'
 MASK = re.compile(r'__HIA_WMF_SLOT_([0-9]+)__')
+SUBSTITUTION = re.compile(r'__HIA_WMF_SLOT_([0-9]+)__|__HIA_WMF_SOURCE_([0-9]+)_([0-9a-f]+)__')
 
 
 @dataclass
@@ -55,6 +56,12 @@ class Recipe:
     def source_pin(self, piece: int, path: str) -> str:
         return self.slot(3, piece, path.encode('ascii'))
 
+    def streamed_source_pin(self, piece: int, path: str) -> str:
+        # The native authority can have more paths than the unchanged 512
+        # temporary slots. Read each pin from the admitted inventory at render
+        # time instead of storing another copy in a per-field temporary slot.
+        return '__HIA_WMF_SOURCE_' + str(piece) + '_' + path.encode('ascii').hex() + '__'
+
     def bounds(self, piece: int, low: int, high: int) -> None:
         self.validators.append((1, piece, low, high, b''))
 
@@ -76,10 +83,13 @@ class Recipe:
     def json(self, value: dict) -> None:
         source = json.dumps(value, sort_keys=True, indent=2) + '\n'
         position = 0
-        for match in MASK.finditer(source):
+        for match in SUBSTITUTION.finditer(source):
             if match.start() != position:
                 self.operations.append((0, source[position:match.start()].encode()))
-            self.operations.append((1, int(match[1])))
+            if match[1] is not None:
+                self.operations.append((1, int(match[1])))
+            else:
+                self.operations.append((4, struct.pack('<Q', int(match[2])) + bytes.fromhex(match[3])))
             position = match.end()
         if position != len(source):
             self.operations.append((0, source[position:].encode()))
@@ -89,7 +99,7 @@ class Recipe:
                          for kind, piece, extra in self.slots)
         operations = b''
         for kind, value in self.operations:
-            if kind == 0:
+            if kind in (0, 4):
                 assert isinstance(value, bytes) and value
                 operations += struct.pack('<2Q', kind, len(value)) + value
             else:
@@ -103,7 +113,7 @@ class Recipe:
                            64 + len(body), flags) + body
 
 
-def model(root: Path) -> dict:
+def model(root: Path, native_source_authority=None) -> dict:
     from tools.build_hia_worker_release import INSTALLED_HELPERS, ADDITIONAL_HELPERS
     from tools.build_hia_json_preflight import CANDIDATES
     from hepta import hia_native_helpers as authority
@@ -136,7 +146,7 @@ def model(root: Path) -> dict:
             abi_source=selected.ABI_SOURCE, abi_sha256=sha256(raw).hexdigest(),
             schema=selected.SCHEMA, unit_schema=selected.UNIT_SCHEMA,
             units=units, abi=abi))
-    return dict(helpers=helpers, families=families,
+    result = dict(helpers=helpers, families=families,
         helpers_schema=authority.SCHEMA, target=authority.TARGET, abi=authority.ABI,
         continuation_resources=list(CONTINUATION_BUILD_FILES),
         continuation_runtime=['hepta/hia_native_continuation.py',
@@ -144,6 +154,10 @@ def model(root: Path) -> dict:
             'hepta/hia_native_continuation_inprocess.py',
             'hepta/hia_native_helpers.py', 'hepta/hia_core_lowering_native.py'],
         runtime_files=sorted('hepta/' + p.name for p in (root / 'hepta').glob('*.py')))
+    if native_source_authority is not None:
+        from tools.hia_native_worker_source_authority import native_model
+        return native_model(result, native_source_authority)
+    return result
 
 
 def image_recipe(mode: int, role: int, schema: str, image: str, output: str) -> Recipe:
@@ -253,7 +267,7 @@ def recipes(m: dict) -> list[Recipe]:
             r.same_compiler(i, 1)
     value = dict(schema='hepta.hia.native-helpers.v3', target=m['target'], abi=m['abi'],
         base_bundle='report.json', base_bundle_sha256=r.digest(0),
-        runtime_sha256={p: r.source_pin(6, p) for p in m['runtime_files']},
+        runtime_sha256={p: (r.streamed_source_pin(6, p) if 'native_source_authority' in m else r.source_pin(6, p)) for p in m['runtime_files']},
         schedulers=[dict(kind=f['name'], manifest_path=f['name'] + '/inprocess-manifest.json',
             manifest_sha256=r.digest(i)) for i, f in enumerate(m['families'], 1)])
     r.json(value)
@@ -351,13 +365,78 @@ def digest(s:readbuf, o:mutbuf, w:mutbuf, start:u64, count:u64) -> u64:
 '''
 
 
-def render(root: Path):
-    m = model(root)
+def native_source_policy(source: str) -> str:
+    """Add an inventory-backed pin output operation without changing budgets.
+
+    The existing child-manifest shape validator intentionally retains its
+    original accepted operation set. The source-map stream is only the final
+    mode-9 schedulers output, never an unvalidated child-manifest passthrough.
+    """
+    layout_old = '''        elif kind == 2 or kind == 3:
+            if value >= uint(s, record + 16, 8):
+                return 0
+        else:
+            return 0'''
+    layout_new = '''        elif kind == 2 or kind == 3:
+            if value >= uint(s, record + 16, 8):
+                return 0
+        elif kind == 4:
+            if value < 9 or value > 4103 or value > limit - cursor:
+                return 0
+            if uint(s, cursor, 8) >= uint(s, record + 16, 8) or relative(s, cursor + 8, value - 8) == 0:
+                return 0
+            cursor = cursor + value
+        else:
+            return 0'''
+    render_old = '''        elif kind == 2:
+            n = piece_size(w, value)
+            if n > length(o) - out:
+                return 0
+            copy(s, o, out, piece(w, value), n)
+            out = out + n
+        else:
+            if 8 > length(o) - out:'''
+    render_new = '''        elif kind == 2:
+            n = piece_size(w, value)
+            if n > length(o) - out:
+                return 0
+            copy(s, o, out, piece(w, value), n)
+            out = out + n
+        elif kind == 4:
+            pin = source_pin(s, w, uint(s, cursor, 8), cursor + 8, value - 8)
+            if pin == 0 or 64 > length(o) - out:
+                return 0
+            j = 0
+            while j < 32:
+                ch = byte(s, pin + j)
+                store(o, out + j * 2, hex_digit(ch >> 4))
+                store(o, out + j * 2 + 1, hex_digit(ch & 15))
+                j = j + 1
+            out = out + 64
+            cursor = cursor + value
+        else:
+            if 8 > length(o) - out:'''
+    for old, new in ((layout_old, layout_new), (render_old, render_new)):
+        if source.count(old) != 1:
+            raise ValueError('native source stream transformation does not match the frozen manifest owner')
+        source = source.replace(old, new)
+    return source
+
+
+def render(root: Path, native_source_authority=None):
+    m = model(root, native_source_authority)
     entries = recipes(m)
+    if native_source_authority is not None:
+        for recipe in entries:
+            if (len(recipe.slots) > 512 or not 1 <= len(recipe.operations) <= 4096
+                    or len(recipe.validators) > 512):
+                raise ValueError('native source authority exceeds the unchanged manifest recipe budget')
     payload = b''.join(r.encode() for r in entries)
     table = struct.pack('<8s3Q', b'HIAWMT01', 1, len(entries), 32 + len(payload)) + payload
+    if len(table) > 1048576:
+        raise ValueError('Worker manifest table exceeds the original 1 MiB budget')
     pin = sha256(table).digest()
-    source = POLICY_SOURCE
+    source = POLICY_SOURCE if native_source_authority is None else native_source_policy(POLICY_SOURCE)
     for name, value in dict(MAGIC_REQUEST=b'HIAWMF01', MAGIC_TABLE=b'HIAWMT01',
                             MAGIC_SPI=b'HIASPI01', MAGIC_INPROCESS=b'HIAINP01').items():
         source = source.replace(name, str(int.from_bytes(value, 'little')))
@@ -396,8 +475,9 @@ def render(root: Path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--native-source-authority', type=Path)
     args = parser.parse_args()
-    source, table, spec, stats = render(ROOT)
+    source, table, spec, stats = render(ROOT, args.native_source_authority)
     products = {SOURCE_PATH: source.encode(), TABLE_PATH: table,
                 MODEL_PATH: (json.dumps(spec, sort_keys=True, indent=2) + '\n').encode()}
     for name, data in products.items():
