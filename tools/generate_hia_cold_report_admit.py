@@ -11,6 +11,7 @@ import copy
 import inspect
 import json
 import re
+from hashlib import sha256
 from pathlib import Path
 
 from tools import generate_hia_source_release_cold_admit as legacy
@@ -244,7 +245,36 @@ def validate_catalog(catalog):
 
 def metadata(root,catalog):
     catalog=validate_catalog(catalog)
-    contract=legacy.support_contract(root)
+    root=Path(root)
+    manifest_path=root/'docs/HIA_COLD_NATIVE_SOURCE_FILES.json'
+    manifest=json.loads(manifest_path.read_text()) if manifest_path.exists() else None
+    if manifest is not None:
+        if (set(manifest)!={'schema','mode','files'}
+                or manifest['schema']!='hepta.hia.native-source-files.v1'
+                or manifest['mode'] not in ('augment','native_only')):
+            raise ValueError('invalid explicit native source inventory')
+        paths=manifest['files']
+        if (not isinstance(paths,list) or not 1<=len(paths)<=4095
+                or not all(isinstance(path,str) for path in paths)
+                or paths!=sorted(set(paths)) or legacy.CONTRACT_PATH in paths):
+            raise ValueError('native source paths must be unique, sorted and exclude the contract self-entry')
+        for path in paths:
+            if (not isinstance(path,str) or path.startswith('/')
+                    or any(part in ('','.','..','.git','__pycache__') for part in path.split('/'))
+                    or len(path.encode())>4095 or (root/path).is_symlink()
+                    or not (root/path).is_file()):
+                raise ValueError('native source inventory path is invalid: '+repr(path))
+    if manifest is not None and manifest['mode']=='native_only':
+        contract=json.loads((root/legacy.CONTRACT_PATH).read_text())
+        files={}
+    else:
+        contract=legacy.support_contract(root)
+        files=dict(contract['source_identity']['files'])
+    if manifest is not None:
+        files.update({path:sha256((root/path).read_bytes()).hexdigest() for path in manifest['files']})
+    if not 1<=len(files)<=4095:
+        raise ValueError('native contract exceeds the original source inventory domain')
+    contract['source_identity']['files']=dict(sorted(files.items()))
     contract['native_cold_qualification']={'schema':'hepta.hia.selfhost-cold-replay.v2',
         'runtime':'native HIA with explicit mechanical syscall and ELF ABI capsules',
         'phase_plan_catalog':catalog,'checks':CHECKS,
