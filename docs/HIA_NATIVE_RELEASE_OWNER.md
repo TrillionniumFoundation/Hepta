@@ -21,6 +21,28 @@ siblings against the pins in its immutable executable before preparing the
 capability request. The capability API below is also available to a native
 caller that already holds the input and directory capabilities.
 
+## Worker installation member
+
+The ordinary recipe includes `hia-worker-install-owner`, assembled from the
+Worker owner, its installation DAG, and streaming SHA-256 policies. The
+bound `hia-worker-install` front end is produced only after that exact
+member, the subprocess runner, source seed and source capture program exist
+in the current invocation's registry. Its four embedded pins bind those
+actual programs.
+
+The Worker owner captures its source resources from the same closed source
+inventory. Its helper, continuation, identity, profile and six Worker DAGs
+remain explicit release inputs. The native configuration owner derives
+artifact roots before construction and binds the supplied configuration to
+the resulting installed profile afterward. Missing members or source roles
+refuse the build before publication.
+
+`tools/qualify_hia_worker_install_sources.py` independently compiles the three
+HIA policies, checks their exact embedded and retained images in the
+constructed member, and exercises reordered, missing, extra and mismatched
+named sources. The full owner, ordinary command, installed rebuild and
+Worker installation qualifications exercise their complete integration.
+
 ## Capability request
 
 The executable takes no arguments. Descriptor 0 is a regular memfd with all
