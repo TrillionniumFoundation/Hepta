@@ -1,0 +1,7 @@
+# Native cold reference execution order
+
+The 21 reference phases are independent: every actual import is a static, pinned root and every reference dependency mask is zero. They execute in descending duration observed in the preserved v3 failure timeline. This starts the longest jobs first within the existing two-worker scheduler. All reference phases still complete and seal before the unique base phase can construct B0.
+
+The recipe preserves all 60 plans, 479,882 nodes and 907 bindings. Every phase-output binding and dependency bit is remapped by stable phase identity. Normalizing the old and new graphs by identity produces exactly the same graph. The 38 qualification phases keep their original order, input identities and original/modified compiler bindings. No observation or result is cached or omitted.
+
+The descriptor composer independently checks the reordered recipe against actual native inventories of all 60 source plans and actual captured source/tool manifests. The source contract and report admission must be regenerated for this exact catalog before a whole replay. Worker, archive and outstanding-artifact limits remain 2/1/2/4, with 180 seconds for qualification and three seconds for cleanup. The adjacent JSON records the graph equality and exact order; it is not evidence of a successful whole replay.
