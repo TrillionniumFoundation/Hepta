@@ -17,6 +17,7 @@ from tools.generate_hia_native_filter import LINK_SOURCE
 from tools.generate_hia_release_owner import POLICY as RELEASE_HELPERS
 from tools.generate_hia_cold_qualification_codec_lz import CODEC
 from tools.hia_cold_byte_loops import accelerate
+from tools.hia_cold_journal_backrefs import HELPERS as BACKREF_HELPERS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -46,6 +47,7 @@ def admit_step(s:readbuf, o:mutbuf, w:mutbuf, p:u64, r:u64) -> u32:
         constants(w)
         if request(s, w) == 0:
             return finish(o, w, 65)
+        fill_range(w, 3342336, 524288, 0)
         return call(o, w, 1, 110, 0, 0, 0, 0, 0, 0, 0)
     if failed(r):
         return finish(o, w, 74)
@@ -841,9 +843,51 @@ def archive_step(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         if amount == 0 or unpack_chunk(w, amount) != get(w, 1500288) or chunk_equal(w, get(w, 1500288)) == 0:
             return finish(o, w, 74)
         put(w, 1500296, amount)
-        if get(w, 1500248) == 0:
-            return sha(o, w, 1110, 0, 1)
-        return archive_hash(o, w)
+        put(w, 1501104, 0)
+        if amount >= 64:
+            put(w, 1501112, chunk_fingerprint(w, 800000, amount))
+            put(w, 1501104, 1)
+            return sha(o, w, 1120, 0, 1)
+        return archive_ready(o, w)
+    if phase == 1120:
+        if r != 0:
+            return finish(o, w, 74)
+        copyw(w, 65537, 800000, get(w, 1500296))
+        return sha(o, w, 1121, 1, get(w, 1500296) + 1)
+    if phase == 1121:
+        if r != 0:
+            return finish(o, w, 74)
+        return sha(o, w, 1122, 2, 1)
+    if phase == 1122:
+        if r != 32:
+            return finish(o, w, 74)
+        copyw(w, 1501160, 4096, 32)
+        fingerprint = get(w, 1501112)
+        slot = chunk_cache_slot(fingerprint)
+        amount = get(w, 1500296)
+        offset = get(w, slot + 8)
+        if offset != 0 and get(w, slot) == fingerprint and get(w, slot + 16) == amount:
+            if same(w, slot + 24, 1501160, 32) == 1:
+                offset = offset - 1
+                if offset < get(w, 1500128) and amount <= get(w, 1500128) - offset:
+                    put(w, 1501120, offset)
+                    return reading(o, w, uint(s, 56), 3866624, amount, offset, 1111)
+        return archive_ready(o, w)
+    if phase == 1111:
+        amount = get(w, 1500296)
+        if same(w, 800000, 3866624, amount) == 0:
+            return finish(o, w, 74)
+        copyw(w, 800000, 3866624, amount)
+        if unpack_chunk(w, amount) != get(w, 1500288) or chunk_equal(w, get(w, 1500288)) == 0:
+            return finish(o, w, 74)
+        put(w, 800000, MAGIC_BACKREF)
+        put(w, 800008, get(w, 1500288))
+        put(w, 800016, 8)
+        put(w, 800024, 3)
+        put(w, 800032, get(w, 1501120))
+        put(w, 1500296, 40)
+        put(w, 1501104, 0)
+        return archive_ready(o, w)
     if phase == 1110:
         if r != 0:
             return finish(o, w, 74)
@@ -856,6 +900,9 @@ def archive_step(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         copyw(w, 1008000, 4160, 1184)
         return writing_at(o, w, uint(s, 56), 800000, get(w, 1500296), get(w, 1500128), 1104)
     if phase == 1104:
+        if get(w, 1501104) != 0:
+            chunk_cache_store(w, get(w, 1501112), get(w, 1500128), get(w, 1500296))
+            copyw(w, chunk_cache_slot(get(w, 1501112)) + 24, 1501160, 32)
         amount = get(w, 1500288)
         put(w, 1500240, get(w, 1500240) + amount)
         put(w, 1500128, get(w, 1500128) + get(w, 1500296))
@@ -863,6 +910,11 @@ def archive_step(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         put(w, 1500272, get(w, 1500272) - amount)
         return resume(s, o, w, 1100)
     return finish(o, w, 65)
+
+def archive_ready(o:mutbuf, w:mutbuf) -> u32:
+    if get(w, 1500248) == 0:
+        return sha(o, w, 1110, 0, 1)
+    return archive_hash(o, w)
 
 def archive_hash(o:mutbuf, w:mutbuf) -> u32:
     copyw(w, 4160, 1008000, 1184)
@@ -896,7 +948,7 @@ def policy_source():
     helpers = helpers.replace('put(w, 3072, r)\n        return writing(o, w, r, get(w, 3112), get(w, 3120), 1601)',
         'put(w, 3072, r)\n        return call(o, w, 1607, 91, r, 384, 0, 0, 0, 0, 0)\n    if phase == 1607:\n        return writing(o, w, get(w, 3072), get(w, 3112), get(w, 3120), 1601)')
     helpers = helpers.replace('return getn(w, at, 8)', 'return word_load(w, at)')
-    text = accelerate(SOURCE + '\n' + CODEC + '\n' + helpers, bulk=True)
+    text = accelerate(SOURCE + '\n' + CODEC + '\n' + BACKREF_HELPERS + '\n' + helpers, bulk=True)
     words={};writes=[];cursor=600000
     for name,raw in {'MEMFD':b'hia-cold-plan','CHILD':b'hia-cold-child','EMPTY':b'',
                      'ENV_PATH':b'PATH=','ENV_LANG':b'LANG=C.UTF-8','ENV_LC':b'LC_ALL=C.UTF-8','ENV_TZ':b'TZ=UTC'}.items():
@@ -905,7 +957,7 @@ def policy_source():
             writes.append(f'    put(w, {cursor+i}, {int.from_bytes((raw+b"\0")[i:i+8].ljust(8,b"\0"),"little")})')
         cursor=(cursor+len(raw)+16)&~7
     for name,raw in {'REQUEST':b'HIAQDR01','PLAN':b'HIAQPL01','RESULT':b'HIAQRR01','JOURNAL':b'HIAQJL01','SUCCESS':b'HIAQOK01',
-                     'SUB':b'HIASUB01','SUBRECEIPT':b'HIASBR01','PASS':b'HIAPFD01','COLD':b'HIACOW01','COLDRECEIPT':b'HIACOR01'}.items():
+                     'BACKREF':b'HIAQAZ03','SUB':b'HIASUB01','SUBRECEIPT':b'HIASBR01','PASS':b'HIAPFD01','COLD':b'HIACOW01','COLDRECEIPT':b'HIACOR01'}.items():
         words['MAGIC_'+name]=int.from_bytes(raw,'little')
     for key,value in words.items():text=re.sub(r'\b'+key+r'\b',str(value),text)
     unresolved=re.findall(r'\b(?:C|L|MAGIC)_[A-Z_]+\b',text)
