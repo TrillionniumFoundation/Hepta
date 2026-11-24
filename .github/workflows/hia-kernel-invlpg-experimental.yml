@@ -1,0 +1,33 @@
+name: Experimental typed HIA Core INVLPG (not Linux acceptance)
+on:
+  push:
+    branches:
+      - 'automation/hia-core-kernel-tlb-*'
+  pull_request:
+    paths:
+      - 'hepta/hia_schema.py'
+      - 'hepta/hia_opcodes.py'
+      - 'hepta/hia_program.py'
+      - 'hepta/hia_program_native.py'
+      - 'hepta/hia_program_runtime.py'
+      - 'hepta/hia_machine_x64.py'
+      - 'tests/test_hia_kernel_invlpg_core.py'
+      - '.github/workflows/hia-kernel-invlpg-experimental.yml'
+  workflow_dispatch:
+jobs:
+  native-invlpg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Core verifier, machine-byte oracle and malicious NOP control
+        run: python -B -m unittest tests.test_hia_kernel_fence_core tests.test_hia_kernel_invlpg_core -v
+      - name: Fail closed on Linux closure claim
+        run: |
+          python - <<'PY'
+          from hepta.hia_schema import KERNEL_TLB_SCHEMA
+          assert KERNEL_TLB_SCHEMA == 'hepta.hia.program.kernel-tlb.v1'
+          print('HIA_KERNEL_TLB_EXPERIMENT: PASS; FULL_LINUX_REWRITE: HOLD')
+          PY
