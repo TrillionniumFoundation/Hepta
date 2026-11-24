@@ -217,6 +217,12 @@ class _Machine:
         outputs = ins["out"]
         typ = outputs[0]["type"] if outputs else None
         result = []
+        if op == "x86.tlb.invlpg":
+            raise HIAProgramRejected("x86 INVLPG requires native CPL0 execution", "E_HIA_RUNTIME_UNSUPPORTED")
+        if op == "x86.fence.mfence":
+            # A sequential Python interpreter cannot implement the hardware ordering
+            # contract. Refuse instead of reporting a successful fence execution.
+            raise HIAProgramRejected("x86 MFENCE requires native execution", "E_HIA_RUNTIME_UNSUPPORTED")
         if op == "const":
             result = [attrs["value"]]
         elif op in {f"int.{a}.{m}" for a in ("add", "sub", "mul") for m in ("checked", "wrap")}:
