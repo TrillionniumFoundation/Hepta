@@ -1,0 +1,1427 @@
+{
+  "schema": "hepta.hia.cold-owned-chain-source-cases.v1",
+  "original_fixture_contracts": true,
+  "scope": "actual fixture sources, declared assertions, and raw original acceptance categories; complete VM/native references are regenerated during each cold replay",
+  "families": {
+    "owned": [
+      {
+        "id": "new-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  v5:usize = buffer.len(v4)\n  v6:readbuf = borrow.read(v4)\n  v7:usize = const() {\"value\":8}\n  v8:bool = compare.lt(v5,v7)\n  v9:usize = select(v8,v5,v7)\n  _ = buffer.copy(v1,v6,v9)\n  _ = loan.end(v6)\n  _ = owner.drop(v4)\n  v10:u32 = int.cast(v5) {\"mode\":\"wrap\"}\n  ret(v10)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "new-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":1}\n  v4:buffer = buffer.new(v3)\n  v5:usize = buffer.len(v4)\n  v6:readbuf = borrow.read(v4)\n  v7:usize = const() {\"value\":8}\n  v8:bool = compare.lt(v5,v7)\n  v9:usize = select(v8,v5,v7)\n  _ = buffer.copy(v1,v6,v9)\n  _ = loan.end(v6)\n  _ = owner.drop(v4)\n  v10:u32 = int.cast(v5) {\"mode\":\"wrap\"}\n  ret(v10)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "00a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "new-8",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:usize = buffer.len(v4)\n  v6:readbuf = borrow.read(v4)\n  v7:usize = const() {\"value\":8}\n  v8:bool = compare.lt(v5,v7)\n  v9:usize = select(v8,v5,v7)\n  _ = buffer.copy(v1,v6,v9)\n  _ = loan.end(v6)\n  _ = owner.drop(v4)\n  v10:u32 = int.cast(v5) {\"mode\":\"wrap\"}\n  ret(v10)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "0000000000000000"
+      },
+      {
+        "id": "new-4096",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4096}\n  v4:buffer = buffer.new(v3)\n  v5:usize = buffer.len(v4)\n  v6:readbuf = borrow.read(v4)\n  v7:usize = const() {\"value\":8}\n  v8:bool = compare.lt(v5,v7)\n  v9:usize = select(v8,v5,v7)\n  _ = buffer.copy(v1,v6,v9)\n  _ = loan.end(v6)\n  _ = owner.drop(v4)\n  v10:u32 = int.cast(v5) {\"mode\":\"wrap\"}\n  ret(v10)\nend\n",
+        "expected_result": 4096,
+        "expected_output_hex": "0000000000000000"
+      },
+      {
+        "id": "new-2097169",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":2097169}\n  v4:buffer = buffer.new(v3)\n  v5:usize = buffer.len(v4)\n  v6:readbuf = borrow.read(v4)\n  v7:usize = const() {\"value\":8}\n  v8:bool = compare.lt(v5,v7)\n  v9:usize = select(v8,v5,v7)\n  _ = buffer.copy(v1,v6,v9)\n  _ = loan.end(v6)\n  _ = owner.drop(v4)\n  v10:u32 = int.cast(v5) {\"mode\":\"wrap\"}\n  ret(v10)\nend\n",
+        "expected_result": 2097169,
+        "expected_output_hex": "0000000000000000"
+      },
+      {
+        "id": "try-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "try-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":1}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "00a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "try-8",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "0000000000000000"
+      },
+      {
+        "id": "try-4096",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4096}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 4096,
+        "expected_output_hex": "0000000000000000"
+      },
+      {
+        "id": "try-2097169",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":2097169}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 2097169,
+        "expected_output_hex": "0000000000000000"
+      },
+      {
+        "id": "try-failure-9223372036854775808",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":9223372036854775808}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 4294967295,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "vm_budget_expected": false
+      },
+      {
+        "id": "try-failure-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":18446744073709551615}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 4294967295,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "vm_budget_expected": false
+      },
+      {
+        "id": "try-failure-4611686018427387904",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4611686018427387904}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 4294967295,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "vm_budget_expected": true
+      },
+      {
+        "id": "new-allocation-trap-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":9223372036854775808}\n  v4:buffer = buffer.new(v3)\n  v5:usize = buffer.len(v4)\n  v6:readbuf = borrow.read(v4)\n  v7:usize = const() {\"value\":8}\n  v8:bool = compare.lt(v5,v7)\n  v9:usize = select(v8,v5,v7)\n  _ = buffer.copy(v1,v6,v9)\n  _ = loan.end(v6)\n  _ = owner.drop(v4)\n  v10:u32 = int.cast(v5) {\"mode\":\"wrap\"}\n  ret(v10)\nend\n",
+        "expected_trap": "allocation",
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "new-allocation-trap-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:u8 = const() {\"value\":99}\n  _ = buffer.store(v1,v3,v4)\n  v5:usize = const() {\"value\":9223372036854775808}\n  v6:buffer = buffer.new(v5)\n  v7:usize = buffer.len(v6)\n  v8:readbuf = borrow.read(v6)\n  v9:usize = const() {\"value\":8}\n  v10:bool = compare.lt(v7,v9)\n  v11:usize = select(v10,v7,v9)\n  _ = buffer.copy(v1,v8,v11)\n  _ = loan.end(v8)\n  _ = owner.drop(v6)\n  v12:u32 = int.cast(v7) {\"mode\":\"wrap\"}\n  ret(v12)\nend\n",
+        "expected_trap": "allocation",
+        "expected_output_hex": "63a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "move-nested-loan-and-drop",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:buffer = owner.move(v4)\n  v6:mutbuf = borrow.mut(v5)\n  v7:u8 = const() {\"value\":173}\n  _ = buffer.fill(v6,v7)\n  _ = loan.end(v6)\n  v8:readbuf = borrow.read(v5)\n  _ = buffer.copy(v1,v8,v3)\n  _ = loan.end(v8)\n  _ = owner.drop(v5)\n  v9:u32 = const() {\"value\":173}\n  ret(v9)\nend\n",
+        "expected_result": 173,
+        "expected_output_hex": "adadadadadadadad"
+      },
+      {
+        "id": "owned-call-consumes-input",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":23}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = call(v4) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v0:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer)\n  v1:usize = buffer.len(v0)\n  _ = owner.drop(v0)\n  v2:u32 = int.cast(v1) {\"mode\":\"wrap\"}\n  ret(v2)\nend\n",
+        "expected_result": 23,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "flow-repeated-move-rebind-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  v5:buffer = owner.move(v4)\n  v6:buffer = owner.move(v5)\n  v7:buffer = owner.move(v6)\n  v8:buffer = owner.move(v7)\n  v9:mutbuf = borrow.mut(v8)\n  v10:u8 = const() {\"value\":107}\n  _ = buffer.fill(v9,v10)\n  _ = loan.end(v9)\n  v11:readbuf = borrow.read(v8)\n  _ = buffer.copy(v1,v11,v3)\n  _ = loan.end(v11)\n  _ = owner.drop(v8)\n  v12:u32 = const() {\"value\":0}\n  ret(v12)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "flow-repeated-move-rebind-8",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:buffer = owner.move(v4)\n  v6:buffer = owner.move(v5)\n  v7:buffer = owner.move(v6)\n  v8:buffer = owner.move(v7)\n  v9:mutbuf = borrow.mut(v8)\n  v10:u8 = const() {\"value\":107}\n  _ = buffer.fill(v9,v10)\n  _ = loan.end(v9)\n  v11:readbuf = borrow.read(v8)\n  _ = buffer.copy(v1,v11,v3)\n  _ = loan.end(v11)\n  _ = owner.drop(v8)\n  v12:u32 = const() {\"value\":8}\n  ret(v12)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "6b6b6b6b6b6b6b6b"
+      },
+      {
+        "id": "flow-call-two-distinct-owners",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":5}\n  v4:buffer = buffer.new(v3)\n  v5:usize = const() {\"value\":7}\n  v6:buffer = buffer.new(v5)\n  v7:u32 = call(v6,v4) {\"function\":\"f1\"}\n  ret(v7)\nend\nfn f1(v0:buffer,v1:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer,v1:buffer)\n  v2:usize = buffer.len(v0)\n  v3:usize = buffer.len(v1)\n  v4:usize = int.add.wrap(v2,v3)\n  _ = owner.drop(v1)\n  _ = owner.drop(v0)\n  v5:u32 = int.cast(v4) {\"mode\":\"wrap\"}\n  ret(v5)\nend\n",
+        "expected_result": 12,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "flow-forward-owner-through-two-calls",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":19}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = call(v4) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v0:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer)\n  v1:buffer = owner.move(v0)\n  v2:u32 = call(v1) {\"function\":\"f2\"}\n  ret(v2)\nend\nfn f2(v0:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer)\n  v1:usize = buffer.len(v0)\n  _ = owner.drop(v0)\n  v2:u32 = int.cast(v1) {\"mode\":\"wrap\"}\n  ret(v2)\nend\n",
+        "expected_result": 19,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "flow-tail-self-owner-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":13}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = const() {\"value\":0}\n  v6:u32 = call(v4,v5) {\"function\":\"f1\"}\n  ret(v6)\nend\nfn f1(v0:buffer,v1:u32) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer,v1:u32)\n  v2:u32 = const() {\"value\":0}\n  v3:bool = compare.eq(v1,v2)\n  branch v3 b1(v0) b2(v0,v1)\nblock b1(v4:buffer)\n  v5:usize = buffer.len(v4)\n  _ = owner.drop(v4)\n  v6:u32 = int.cast(v5) {\"mode\":\"wrap\"}\n  ret(v6)\nblock b2(v7:buffer,v8:u32)\n  v9:u32 = const() {\"value\":1}\n  v10:u32 = int.sub.wrap(v8,v9)\n  v11:u32 = call(v7,v10) {\"function\":\"f1\"}\n  ret(v11)\nend\n",
+        "expected_result": 13,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "flow-tail-self-owner-5",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":13}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = const() {\"value\":5}\n  v6:u32 = call(v4,v5) {\"function\":\"f1\"}\n  ret(v6)\nend\nfn f1(v0:buffer,v1:u32) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer,v1:u32)\n  v2:u32 = const() {\"value\":0}\n  v3:bool = compare.eq(v1,v2)\n  branch v3 b1(v0) b2(v0,v1)\nblock b1(v4:buffer)\n  v5:usize = buffer.len(v4)\n  _ = owner.drop(v4)\n  v6:u32 = int.cast(v5) {\"mode\":\"wrap\"}\n  ret(v6)\nblock b2(v7:buffer,v8:u32)\n  v9:u32 = const() {\"value\":1}\n  v10:u32 = int.sub.wrap(v8,v9)\n  v11:u32 = call(v7,v10) {\"function\":\"f1\"}\n  ret(v11)\nend\n",
+        "expected_result": 13,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "flow-nested-loan-permuted-edge",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:readbuf = borrow.read(v5)\n  jump b1(v6,v4,v5,v1)\nblock b1(v7:readbuf,v8:buffer,v9:mutbuf,v10:mutbuf)\n  v11:usize = const() {\"value\":8}\n  _ = buffer.copy(v10,v7,v11)\n  _ = loan.end(v7)\n  _ = loan.end(v9)\n  _ = owner.drop(v8)\n  v12:u32 = const() {\"value\":8}\n  ret(v12)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "0000000000000000"
+      },
+      {
+        "id": "flow-owner-from-later-source-block",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  jump b2(v1)\nblock b1(v3:buffer,v4:mutbuf,v5:mutbuf)\n  _ = loan.end(v4)\n  v6:readbuf = borrow.read(v3)\n  v7:usize = const() {\"value\":8}\n  _ = buffer.copy(v5,v6,v7)\n  _ = loan.end(v6)\n  _ = owner.drop(v3)\n  v8:u32 = const() {\"value\":67}\n  ret(v8)\nblock b2(v9:mutbuf)\n  v10:usize = const() {\"value\":8}\n  v11:buffer = buffer.new(v10)\n  v12:mutbuf = borrow.mut(v11)\n  v13:u8 = const() {\"value\":67}\n  _ = buffer.fill(v12,v13)\n  jump b1(v11,v12,v9)\nend\n",
+        "expected_result": 67,
+        "expected_output_hex": "4343434343434343"
+      },
+      {
+        "id": "flow-owner-and-loan-loop",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:usize = const() {\"value\":0}\n  jump b1(v4,v5,v1,v6,v3)\nblock b1(v7:buffer,v8:mutbuf,v9:mutbuf,v10:usize,v11:usize)\n  v12:bool = compare.lt(v10,v11)\n  branch v12 b2(v7,v8,v9,v10,v11) b3(v7,v8,v9)\nblock b2(v13:buffer,v14:mutbuf,v15:mutbuf,v16:usize,v17:usize)\n  v18:u8 = int.cast(v16) {\"mode\":\"wrap\"}\n  _ = buffer.store(v14,v16,v18)\n  v19:usize = const() {\"value\":1}\n  v20:usize = int.add.wrap(v16,v19)\n  jump b1(v13,v14,v15,v20,v17)\nblock b3(v21:buffer,v22:mutbuf,v23:mutbuf)\n  _ = loan.end(v22)\n  v24:readbuf = borrow.read(v21)\n  v25:usize = const() {\"value\":4}\n  _ = buffer.copy(v23,v24,v25)\n  _ = loan.end(v24)\n  _ = owner.drop(v21)\n  v26:u32 = const() {\"value\":4}\n  ret(v26)\nend\n",
+        "expected_result": 4,
+        "expected_output_hex": "00010203a5a5a5a5"
+      },
+      {
+        "id": "flow-fresh-owner-join-arm-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:bool = const() {\"value\":false}\n  branch v3 b1() b2()\nblock b1()\n  v4:usize = const() {\"value\":5}\n  v5:buffer = buffer.new(v4)\n  jump b3(v5)\nblock b2()\n  v6:usize = const() {\"value\":7}\n  v7:buffer = buffer.new(v6)\n  jump b3(v7)\nblock b3(v8:buffer)\n  v9:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  v10:u32 = int.cast(v9) {\"mode\":\"wrap\"}\n  ret(v10)\nend\n",
+        "expected_result": 7,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "flow-fresh-owner-join-arm-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:bool = const() {\"value\":true}\n  branch v3 b1() b2()\nblock b1()\n  v4:usize = const() {\"value\":5}\n  v5:buffer = buffer.new(v4)\n  jump b3(v5)\nblock b2()\n  v6:usize = const() {\"value\":7}\n  v7:buffer = buffer.new(v6)\n  jump b3(v7)\nblock b3(v8:buffer)\n  v9:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  v10:u32 = int.cast(v9) {\"mode\":\"wrap\"}\n  ret(v10)\nend\n",
+        "expected_result": 5,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "flow-two-owner-swapped-edge",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":5}\n  v4:usize = const() {\"value\":7}\n  v5:buffer = buffer.new(v3)\n  v6:buffer = buffer.new(v4)\n  jump b1(v6,v5)\nblock b1(v7:buffer,v8:buffer)\n  v9:usize = buffer.len(v7)\n  v10:usize = buffer.len(v8)\n  v11:usize = int.add.wrap(v9,v10)\n  _ = owner.drop(v7)\n  _ = owner.drop(v8)\n  v12:u32 = int.cast(v11) {\"mode\":\"wrap\"}\n  ret(v12)\nend\n",
+        "expected_result": 12,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "flow-two-result-ssa-boundary",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v2047:buffer,v2046:bool = buffer.try_new(v3)\n  v4:readbuf = borrow.read(v2047)\n  _ = buffer.copy(v1,v4,v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v2047)\n  v5:u32 = const() {\"value\":1}\n  v6:u32 = const() {\"value\":0}\n  v7:u32 = select(v2046,v5,v6)\n  ret(v7)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "0000000000000000"
+      },
+      {
+        "id": "flow-optional-failure-then-live-owner",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":9223372036854775808}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  _ = owner.drop(v4)\n  v6:usize = const() {\"value\":8}\n  v7:buffer = buffer.new(v6)\n  v8:readbuf = borrow.read(v7)\n  _ = buffer.copy(v1,v8,v6)\n  _ = loan.end(v8)\n  _ = owner.drop(v7)\n  v9:u32 = const() {\"value\":0}\n  v10:u32 = const() {\"value\":8}\n  v11:u32 = select(v5,v9,v10)\n  ret(v11)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "0000000000000000"
+      },
+      {
+        "id": "out-of-profile-owner-ssa",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v8192:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v8192)\n  v7:readbuf = borrow.read(v8192)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v8192)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "0000000000000000",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "a2d4dff39cdafebf5aac04cc6ce49619a33c5d8949872733fcc6d4fadc356f3e"
+      },
+      {
+        "id": "out-of-profile-bool-ssa",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v8192:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v8192,v11,v12)\n  ret(v13)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "0000000000000000",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "fea87983ee4e9c8b59a58b9738145b12f32ae6676dba37065d7c11019b21e22d"
+      },
+      {
+        "id": "flow-profile-owner-result-ssa-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v2048:buffer,v2046:bool = buffer.try_new(v3)\n  v4:readbuf = borrow.read(v2048)\n  _ = buffer.copy(v1,v4,v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v2048)\n  v5:u32 = const() {\"value\":1}\n  v6:u32 = const() {\"value\":0}\n  v7:u32 = select(v2046,v5,v6)\n  ret(v7)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "0000000000000000",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "ef38069518c0491207a53ac86c6b99f0e58963366af62e28aff757eff8d6c34f"
+      },
+      {
+        "id": "flow-profile-bool-result-ssa-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v2047:buffer,v2048:bool = buffer.try_new(v3)\n  v4:readbuf = borrow.read(v2047)\n  _ = buffer.copy(v1,v4,v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v2047)\n  v5:u32 = const() {\"value\":1}\n  v6:u32 = const() {\"value\":0}\n  v7:u32 = select(v2048,v5,v6)\n  ret(v7)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "0000000000000000",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "98108be4d3e77629e62156332c9d264ee1749726a5b33b700ab36f5a0dd5e5f7"
+      },
+      {
+        "id": "flow-profile-owner-result-ssa-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v8192:buffer,v2046:bool = buffer.try_new(v3)\n  v4:readbuf = borrow.read(v8192)\n  _ = buffer.copy(v1,v4,v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v8192)\n  v5:u32 = const() {\"value\":1}\n  v6:u32 = const() {\"value\":0}\n  v7:u32 = select(v2046,v5,v6)\n  ret(v7)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "0000000000000000",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "c7995bb71314e04c7a30d66d8b171a0f32409eb17b9ef39676c4d877a496a4e1"
+      },
+      {
+        "id": "flow-profile-bool-result-ssa-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v2047:buffer,v8192:bool = buffer.try_new(v3)\n  v4:readbuf = borrow.read(v2047)\n  _ = buffer.copy(v1,v4,v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v2047)\n  v5:u32 = const() {\"value\":1}\n  v6:u32 = const() {\"value\":0}\n  v7:u32 = select(v8192,v5,v6)\n  ret(v7)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "0000000000000000",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "242ee001300cde79e4ff9db44ccc1d6861478dfefed33663352da19d0a2f837d"
+      },
+      {
+        "id": "flow-profile-owner-result-ssa-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v18446744073709551615:buffer,v2046:bool = buffer.try_new(v3)\n  v4:readbuf = borrow.read(v18446744073709551615)\n  _ = buffer.copy(v1,v4,v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v18446744073709551615)\n  v5:u32 = const() {\"value\":1}\n  v6:u32 = const() {\"value\":0}\n  v7:u32 = select(v2046,v5,v6)\n  ret(v7)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "0000000000000000",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "13b12f3c954ec4ae63e217708fec27bc75fc817a285a621ed397a1341690f175"
+      },
+      {
+        "id": "flow-profile-bool-result-ssa-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v2047:buffer,v18446744073709551615:bool = buffer.try_new(v3)\n  v4:readbuf = borrow.read(v2047)\n  _ = buffer.copy(v1,v4,v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v2047)\n  v5:u32 = const() {\"value\":1}\n  v6:u32 = const() {\"value\":0}\n  v7:u32 = select(v18446744073709551615,v5,v6)\n  ret(v7)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "0000000000000000",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "c6b20b88de58b02117feffea97e9dd0cbf7d3fc25d5f1c0787b0af0b52a233f3"
+      }
+    ],
+    "chain": [
+      {
+        "id": "empty-query-and-pop",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:bool = chain.is_empty(v3)\n  v5:chain,v6:buffer,v7:bool = chain.pop(v3)\n  v8:usize = buffer.len(v6)\n  _ = owner.drop(v6)\n  _ = owner.drop(v5)\n  v9:u32 = const() {\"value\":1}\n  v10:u32 = const() {\"value\":0}\n  v11:bool = bool.not(v7)\n  v12:bool = bool.and(v4,v11)\n  v13:u32 = select(v12,v9,v10)\n  ret(v13)\nend\n",
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "expected_result": 1
+      },
+      {
+        "id": "lifo-pop-loop-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:u32 = const() {\"value\":0}\n  v4:u32 = const() {\"value\":0}\n  v5:chain = chain.empty()\n  jump b1(v5,v4,v3,v1)\nblock b1(v6:chain,v7:u32,v8:u32,v9:mutbuf)\n  v10:bool = compare.lt(v7,v8)\n  branch v10 b2(v6,v7,v8,v9) b3(v6,v9)\nblock b2(v11:chain,v12:u32,v13:u32,v14:mutbuf)\n  v15:usize = const() {\"value\":1}\n  v16:buffer = buffer.new(v15)\n  v17:mutbuf = borrow.mut(v16)\n  v18:u8 = int.cast(v12) {\"mode\":\"wrap\"}\n  _ = buffer.fill(v17,v18)\n  _ = loan.end(v17)\n  v19:chain,v20:buffer,v21:bool = chain.try_push(v11,v16)\n  _ = owner.drop(v20)\n  v22:u32 = const() {\"value\":1}\n  v23:u32 = int.add.wrap(v12,v22)\n  jump b1(v19,v23,v13,v14)\nblock b3(v24:chain,v25:mutbuf)\n  v26:u32 = const() {\"value\":5381}\n  jump b4(v24,v26)\nblock b4(v27:chain,v28:u32)\n  v29:bool = chain.is_empty(v27)\n  branch v29 b5(v27,v28) b6(v27,v28)\nblock b5(v30:chain,v31:u32)\n  _ = owner.drop(v30)\n  ret(v31)\nblock b6(v32:chain,v33:u32)\n  v34:chain,v35:buffer,v36:bool = chain.pop(v32)\n  v37:readbuf = borrow.read(v35)\n  v38:usize = const() {\"value\":0}\n  v39:u8 = buffer.load(v37,v38)\n  _ = loan.end(v37)\n  _ = owner.drop(v35)\n  v40:u32 = const() {\"value\":33}\n  v41:u32 = int.mul.wrap(v33,v40)\n  v42:u32 = int.cast(v39) {\"mode\":\"wrap\"}\n  v43:u32 = bit.xor(v41,v42)\n  jump b4(v34,v43)\nend\n",
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "expected_result": 5381
+      },
+      {
+        "id": "lifo-pop-loop-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:u32 = const() {\"value\":1}\n  v4:u32 = const() {\"value\":0}\n  v5:chain = chain.empty()\n  jump b1(v5,v4,v3,v1)\nblock b1(v6:chain,v7:u32,v8:u32,v9:mutbuf)\n  v10:bool = compare.lt(v7,v8)\n  branch v10 b2(v6,v7,v8,v9) b3(v6,v9)\nblock b2(v11:chain,v12:u32,v13:u32,v14:mutbuf)\n  v15:usize = const() {\"value\":1}\n  v16:buffer = buffer.new(v15)\n  v17:mutbuf = borrow.mut(v16)\n  v18:u8 = int.cast(v12) {\"mode\":\"wrap\"}\n  _ = buffer.fill(v17,v18)\n  _ = loan.end(v17)\n  v19:chain,v20:buffer,v21:bool = chain.try_push(v11,v16)\n  _ = owner.drop(v20)\n  v22:u32 = const() {\"value\":1}\n  v23:u32 = int.add.wrap(v12,v22)\n  jump b1(v19,v23,v13,v14)\nblock b3(v24:chain,v25:mutbuf)\n  v26:u32 = const() {\"value\":5381}\n  jump b4(v24,v26)\nblock b4(v27:chain,v28:u32)\n  v29:bool = chain.is_empty(v27)\n  branch v29 b5(v27,v28) b6(v27,v28)\nblock b5(v30:chain,v31:u32)\n  _ = owner.drop(v30)\n  ret(v31)\nblock b6(v32:chain,v33:u32)\n  v34:chain,v35:buffer,v36:bool = chain.pop(v32)\n  v37:readbuf = borrow.read(v35)\n  v38:usize = const() {\"value\":0}\n  v39:u8 = buffer.load(v37,v38)\n  _ = loan.end(v37)\n  _ = owner.drop(v35)\n  v40:u32 = const() {\"value\":33}\n  v41:u32 = int.mul.wrap(v33,v40)\n  v42:u32 = int.cast(v39) {\"mode\":\"wrap\"}\n  v43:u32 = bit.xor(v41,v42)\n  jump b4(v34,v43)\nend\n",
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "expected_result": 177573
+      },
+      {
+        "id": "lifo-pop-loop-17",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:u32 = const() {\"value\":17}\n  v4:u32 = const() {\"value\":0}\n  v5:chain = chain.empty()\n  jump b1(v5,v4,v3,v1)\nblock b1(v6:chain,v7:u32,v8:u32,v9:mutbuf)\n  v10:bool = compare.lt(v7,v8)\n  branch v10 b2(v6,v7,v8,v9) b3(v6,v9)\nblock b2(v11:chain,v12:u32,v13:u32,v14:mutbuf)\n  v15:usize = const() {\"value\":1}\n  v16:buffer = buffer.new(v15)\n  v17:mutbuf = borrow.mut(v16)\n  v18:u8 = int.cast(v12) {\"mode\":\"wrap\"}\n  _ = buffer.fill(v17,v18)\n  _ = loan.end(v17)\n  v19:chain,v20:buffer,v21:bool = chain.try_push(v11,v16)\n  _ = owner.drop(v20)\n  v22:u32 = const() {\"value\":1}\n  v23:u32 = int.add.wrap(v12,v22)\n  jump b1(v19,v23,v13,v14)\nblock b3(v24:chain,v25:mutbuf)\n  v26:u32 = const() {\"value\":5381}\n  jump b4(v24,v26)\nblock b4(v27:chain,v28:u32)\n  v29:bool = chain.is_empty(v27)\n  branch v29 b5(v27,v28) b6(v27,v28)\nblock b5(v30:chain,v31:u32)\n  _ = owner.drop(v30)\n  ret(v31)\nblock b6(v32:chain,v33:u32)\n  v34:chain,v35:buffer,v36:bool = chain.pop(v32)\n  v37:readbuf = borrow.read(v35)\n  v38:usize = const() {\"value\":0}\n  v39:u8 = buffer.load(v37,v38)\n  _ = loan.end(v37)\n  _ = owner.drop(v35)\n  v40:u32 = const() {\"value\":33}\n  v41:u32 = int.mul.wrap(v33,v40)\n  v42:u32 = int.cast(v39) {\"mode\":\"wrap\"}\n  v43:u32 = bit.xor(v41,v42)\n  jump b4(v34,v43)\nend\n",
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "expected_result": 3403600309
+      },
+      {
+        "id": "lifo-pop-loop-5000",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:u32 = const() {\"value\":5000}\n  v4:u32 = const() {\"value\":0}\n  v5:chain = chain.empty()\n  jump b1(v5,v4,v3,v1)\nblock b1(v6:chain,v7:u32,v8:u32,v9:mutbuf)\n  v10:bool = compare.lt(v7,v8)\n  branch v10 b2(v6,v7,v8,v9) b3(v6,v9)\nblock b2(v11:chain,v12:u32,v13:u32,v14:mutbuf)\n  v15:usize = const() {\"value\":1}\n  v16:buffer = buffer.new(v15)\n  v17:mutbuf = borrow.mut(v16)\n  v18:u8 = int.cast(v12) {\"mode\":\"wrap\"}\n  _ = buffer.fill(v17,v18)\n  _ = loan.end(v17)\n  v19:chain,v20:buffer,v21:bool = chain.try_push(v11,v16)\n  _ = owner.drop(v20)\n  v22:u32 = const() {\"value\":1}\n  v23:u32 = int.add.wrap(v12,v22)\n  jump b1(v19,v23,v13,v14)\nblock b3(v24:chain,v25:mutbuf)\n  v26:u32 = const() {\"value\":5381}\n  jump b4(v24,v26)\nblock b4(v27:chain,v28:u32)\n  v29:bool = chain.is_empty(v27)\n  branch v29 b5(v27,v28) b6(v27,v28)\nblock b5(v30:chain,v31:u32)\n  _ = owner.drop(v30)\n  ret(v31)\nblock b6(v32:chain,v33:u32)\n  v34:chain,v35:buffer,v36:bool = chain.pop(v32)\n  v37:readbuf = borrow.read(v35)\n  v38:usize = const() {\"value\":0}\n  v39:u8 = buffer.load(v37,v38)\n  _ = loan.end(v37)\n  _ = owner.drop(v35)\n  v40:u32 = const() {\"value\":33}\n  v41:u32 = int.mul.wrap(v33,v40)\n  v42:u32 = int.cast(v39) {\"mode\":\"wrap\"}\n  v43:u32 = bit.xor(v41,v42)\n  jump b4(v34,v43)\nend\n",
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "expected_result": 1027888901
+      },
+      {
+        "id": "iterative-drop-loop-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:u32 = const() {\"value\":1}\n  v4:u32 = const() {\"value\":0}\n  v5:chain = chain.empty()\n  jump b1(v5,v4,v3,v1)\nblock b1(v6:chain,v7:u32,v8:u32,v9:mutbuf)\n  v10:bool = compare.lt(v7,v8)\n  branch v10 b2(v6,v7,v8,v9) b3(v6,v9)\nblock b2(v11:chain,v12:u32,v13:u32,v14:mutbuf)\n  v15:usize = const() {\"value\":1}\n  v16:buffer = buffer.new(v15)\n  v17:mutbuf = borrow.mut(v16)\n  v18:u8 = int.cast(v12) {\"mode\":\"wrap\"}\n  _ = buffer.fill(v17,v18)\n  _ = loan.end(v17)\n  v19:chain,v20:buffer,v21:bool = chain.try_push(v11,v16)\n  _ = owner.drop(v20)\n  v22:u32 = const() {\"value\":1}\n  v23:u32 = int.add.wrap(v12,v22)\n  jump b1(v19,v23,v13,v14)\nblock b3(v24:chain,v25:mutbuf)\n  v26:mutbuf = chain.head_mut(v24)\n  v27:u8 = const() {\"value\":174}\n  _ = buffer.fill(v26,v27)\n  _ = loan.end(v26)\n  v28:readbuf = chain.head_read(v24)\n  v29:usize = const() {\"value\":1}\n  _ = buffer.copy(v25,v28,v29)\n  _ = loan.end(v28)\n  v30:chain = owner.move(v24)\n  _ = owner.drop(v30)\n  v31:u32 = const() {\"value\":1}\n  ret(v31)\nend\n",
+        "expected_output_hex": "aea5a5a5a5a5a5a5",
+        "expected_result": 1
+      },
+      {
+        "id": "iterative-drop-loop-5000",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:u32 = const() {\"value\":5000}\n  v4:u32 = const() {\"value\":0}\n  v5:chain = chain.empty()\n  jump b1(v5,v4,v3,v1)\nblock b1(v6:chain,v7:u32,v8:u32,v9:mutbuf)\n  v10:bool = compare.lt(v7,v8)\n  branch v10 b2(v6,v7,v8,v9) b3(v6,v9)\nblock b2(v11:chain,v12:u32,v13:u32,v14:mutbuf)\n  v15:usize = const() {\"value\":1}\n  v16:buffer = buffer.new(v15)\n  v17:mutbuf = borrow.mut(v16)\n  v18:u8 = int.cast(v12) {\"mode\":\"wrap\"}\n  _ = buffer.fill(v17,v18)\n  _ = loan.end(v17)\n  v19:chain,v20:buffer,v21:bool = chain.try_push(v11,v16)\n  _ = owner.drop(v20)\n  v22:u32 = const() {\"value\":1}\n  v23:u32 = int.add.wrap(v12,v22)\n  jump b1(v19,v23,v13,v14)\nblock b3(v24:chain,v25:mutbuf)\n  v26:mutbuf = chain.head_mut(v24)\n  v27:u8 = const() {\"value\":174}\n  _ = buffer.fill(v26,v27)\n  _ = loan.end(v26)\n  v28:readbuf = chain.head_read(v24)\n  v29:usize = const() {\"value\":1}\n  _ = buffer.copy(v25,v28,v29)\n  _ = loan.end(v28)\n  v30:chain = owner.move(v24)\n  _ = owner.drop(v30)\n  v31:u32 = const() {\"value\":5000}\n  ret(v31)\nend\n",
+        "expected_output_hex": "aea5a5a5a5a5a5a5",
+        "expected_result": 5000
+      },
+      {
+        "id": "moved-chain-nested-head-and-shared-siblings",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:chain = owner.move(v6)\n  v10:mutbuf = chain.head_mut(v9)\n  v11:u8 = const() {\"value\":93}\n  _ = buffer.fill(v10,v11)\n  v12:bool = chain.is_empty(v9)\n  v13:readbuf = borrow.read(v10)\n  _ = buffer.copy(v1,v13,v3)\n  _ = loan.end(v13)\n  _ = loan.end(v10)\n  v14:readbuf = chain.head_read(v9)\n  v15:readbuf = chain.head_read(v9)\n  _ = loan.end(v15)\n  _ = loan.end(v14)\n  _ = owner.drop(v9)\n  v16:u32 = const() {\"value\":0}\n  v17:u32 = const() {\"value\":93}\n  v18:u32 = select(v12,v16,v17)\n  ret(v18)\nend\n",
+        "expected_output_hex": "5d5d5d5d5d5d5d5d",
+        "expected_result": 93
+      },
+      {
+        "id": "empty-head-read-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:readbuf = chain.head_read(v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v3)\n  v5:u32 = const() {\"value\":0}\n  ret(v5)\nend\n",
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "expected_trap": "bounds"
+      },
+      {
+        "id": "empty-head-read-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:u8 = const() {\"value\":99}\n  _ = buffer.store(v1,v3,v4)\n  v5:chain = chain.empty()\n  v6:readbuf = chain.head_read(v5)\n  _ = loan.end(v6)\n  _ = owner.drop(v5)\n  v7:u32 = const() {\"value\":0}\n  ret(v7)\nend\n",
+        "expected_output_hex": "63a5a5a5a5a5a5a5",
+        "expected_trap": "bounds"
+      },
+      {
+        "id": "empty-head-mut-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:mutbuf = chain.head_mut(v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v3)\n  v5:u32 = const() {\"value\":0}\n  ret(v5)\nend\n",
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "expected_trap": "bounds"
+      },
+      {
+        "id": "empty-head-mut-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:u8 = const() {\"value\":99}\n  _ = buffer.store(v1,v3,v4)\n  v5:chain = chain.empty()\n  v6:mutbuf = chain.head_mut(v5)\n  _ = loan.end(v6)\n  _ = owner.drop(v5)\n  v7:u32 = const() {\"value\":0}\n  ret(v7)\nend\n",
+        "expected_output_hex": "63a5a5a5a5a5a5a5",
+        "expected_trap": "bounds"
+      },
+      {
+        "id": "chain-flow-profile-multiple-call-return-values",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:chain,v5:bool = call(v3) {\"function\":\"f1\"}\n  _ = owner.drop(v4)\n  v6:u32 = const() {\"value\":1}\n  v7:u32 = const() {\"value\":0}\n  v8:u32 = select(v5,v6,v7)\n  ret(v8)\nend\nfn f1(v0:chain) -> (chain,bool) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain)\n  v1:bool = chain.is_empty(v0)\n  ret(v0,v1)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "chain-flow-empty-pop-three-results",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:chain,v5:buffer,v6:bool = chain.pop(v3)\n  v7:usize = buffer.len(v5)\n  v8:bool = chain.is_empty(v4)\n  v9:bool = bool.not(v6)\n  v10:usize = const() {\"value\":0}\n  v11:bool = compare.eq(v7,v10)\n  _ = owner.drop(v5)\n  _ = owner.drop(v4)\n  v12:bool = bool.and(v8,v9)\n  v13:bool = bool.and(v12,v11)\n  v14:u32 = const() {\"value\":1}\n  v15:u32 = const() {\"value\":0}\n  v16:u32 = select(v13,v14,v15)\n  ret(v16)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "chain-flow-successful-push-pop-three-results",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:u8 = const() {\"value\":61}\n  _ = buffer.fill(v5,v6)\n  _ = loan.end(v5)\n  v7:chain = chain.empty()\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v7,v4)\n  v11:bool = chain.is_empty(v8)\n  v12:bool = bool.not(v11)\n  v13:usize = buffer.len(v9)\n  v14:usize = const() {\"value\":0}\n  v15:bool = compare.eq(v13,v14)\n  _ = owner.drop(v9)\n  v16:chain,v17:buffer,v18:bool = chain.pop(v8)\n  v19:bool = chain.is_empty(v16)\n  v20:usize = buffer.len(v17)\n  v21:usize = const() {\"value\":8}\n  v22:bool = compare.eq(v20,v21)\n  v23:readbuf = borrow.read(v17)\n  v24:usize = const() {\"value\":8}\n  _ = buffer.copy(v1,v23,v24)\n  _ = loan.end(v23)\n  _ = owner.drop(v17)\n  _ = owner.drop(v16)\n  v25:bool = bool.and(v10,v12)\n  v26:bool = bool.and(v25,v15)\n  v27:bool = bool.and(v26,v18)\n  v28:bool = bool.and(v27,v19)\n  v29:bool = bool.and(v28,v22)\n  v30:u32 = const() {\"value\":1}\n  v31:u32 = const() {\"value\":0}\n  v32:u32 = select(v29,v30,v31)\n  ret(v32)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "3d3d3d3d3d3d3d3d"
+      },
+      {
+        "id": "chain-flow-moves-shared-head-query",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:u8 = const() {\"value\":43}\n  _ = buffer.fill(v5,v6)\n  _ = loan.end(v5)\n  v7:chain = chain.empty()\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v7,v4)\n  _ = owner.drop(v9)\n  v11:chain = owner.move(v8)\n  v12:chain = owner.move(v11)\n  v13:chain = owner.move(v12)\n  v14:chain = owner.move(v13)\n  v15:readbuf = chain.head_read(v14)\n  v16:readbuf = chain.head_read(v14)\n  v17:bool = chain.is_empty(v14)\n  v18:usize = const() {\"value\":8}\n  _ = buffer.copy(v1,v16,v18)\n  _ = loan.end(v15)\n  _ = loan.end(v16)\n  _ = owner.drop(v14)\n  v19:u32 = const() {\"value\":0}\n  v20:u32 = const() {\"value\":43}\n  v21:u32 = select(v17,v19,v20)\n  ret(v21)\nend\n",
+        "expected_result": 43,
+        "expected_output_hex": "2b2b2b2b2b2b2b2b"
+      },
+      {
+        "id": "chain-flow-nested-head-permuted-edge",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6)\n  v10:u8 = const() {\"value\":109}\n  _ = buffer.fill(v9,v10)\n  v11:readbuf = borrow.read(v9)\n  jump b1(v11,v6,v1,v9)\nblock b1(v12:readbuf,v13:chain,v14:mutbuf,v15:mutbuf)\n  v16:bool = chain.is_empty(v13)\n  v17:usize = const() {\"value\":8}\n  _ = buffer.copy(v14,v12,v17)\n  _ = loan.end(v12)\n  _ = loan.end(v15)\n  _ = owner.drop(v13)\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = const() {\"value\":109}\n  v20:u32 = select(v16,v18,v19)\n  ret(v20)\nend\n",
+        "expected_result": 109,
+        "expected_output_hex": "6d6d6d6d6d6d6d6d"
+      },
+      {
+        "id": "chain-flow-head-loan-loop",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6)\n  v10:usize = const() {\"value\":0}\n  jump b1(v6,v9,v1,v10,v3)\nblock b1(v11:chain,v12:mutbuf,v13:mutbuf,v14:usize,v15:usize)\n  v16:bool = compare.lt(v14,v15)\n  branch v16 b2(v11,v12,v13,v14,v15) b3(v11,v12,v13)\nblock b2(v17:chain,v18:mutbuf,v19:mutbuf,v20:usize,v21:usize)\n  v22:u8 = int.cast(v20) {\"mode\":\"wrap\"}\n  _ = buffer.store(v18,v20,v22)\n  v23:usize = const() {\"value\":1}\n  v24:usize = int.add.wrap(v20,v23)\n  jump b1(v17,v18,v19,v24,v21)\nblock b3(v25:chain,v26:mutbuf,v27:mutbuf)\n  _ = loan.end(v26)\n  v28:readbuf = chain.head_read(v25)\n  v29:usize = const() {\"value\":4}\n  _ = buffer.copy(v27,v28,v29)\n  _ = loan.end(v28)\n  _ = owner.drop(v25)\n  v30:u32 = const() {\"value\":4}\n  ret(v30)\nend\n",
+        "expected_result": 4,
+        "expected_output_hex": "00010203a5a5a5a5"
+      },
+      {
+        "id": "chain-flow-parent-from-later-source-block",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  jump b2(v1)\nblock b1(v3:chain,v4:mutbuf,v5:mutbuf)\n  _ = loan.end(v4)\n  v6:readbuf = chain.head_read(v3)\n  v7:usize = const() {\"value\":8}\n  _ = buffer.copy(v5,v6,v7)\n  _ = loan.end(v6)\n  _ = owner.drop(v3)\n  v8:u32 = const() {\"value\":67}\n  ret(v8)\nblock b2(v9:mutbuf)\n  v10:usize = const() {\"value\":8}\n  v11:buffer = buffer.new(v10)\n  v12:chain = chain.empty()\n  v13:chain,v14:buffer,v15:bool = chain.try_push(v12,v11)\n  _ = owner.drop(v14)\n  v16:mutbuf = chain.head_mut(v13)\n  v17:u8 = const() {\"value\":67}\n  _ = buffer.fill(v16,v17)\n  jump b1(v13,v16,v9)\nend\n",
+        "expected_result": 67,
+        "expected_output_hex": "4343434343434343"
+      },
+      {
+        "id": "chain-flow-fresh-chain-join-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:bool = const() {\"value\":false}\n  branch v3 b1() b2()\nblock b1()\n  v4:usize = const() {\"value\":5}\n  v5:buffer = buffer.new(v4)\n  v6:chain = chain.empty()\n  v7:chain,v8:buffer,v9:bool = chain.try_push(v6,v5)\n  _ = owner.drop(v8)\n  jump b3(v7)\nblock b2()\n  v10:usize = const() {\"value\":7}\n  v11:buffer = buffer.new(v10)\n  v12:chain = chain.empty()\n  v13:chain,v14:buffer,v15:bool = chain.try_push(v12,v11)\n  _ = owner.drop(v14)\n  jump b3(v13)\nblock b3(v16:chain)\n  v17:readbuf = chain.head_read(v16)\n  v18:usize = buffer.len(v17)\n  _ = loan.end(v17)\n  _ = owner.drop(v16)\n  v19:u32 = int.cast(v18) {\"mode\":\"wrap\"}\n  ret(v19)\nend\n",
+        "expected_result": 7,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "chain-flow-fresh-chain-join-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:bool = const() {\"value\":true}\n  branch v3 b1() b2()\nblock b1()\n  v4:usize = const() {\"value\":5}\n  v5:buffer = buffer.new(v4)\n  v6:chain = chain.empty()\n  v7:chain,v8:buffer,v9:bool = chain.try_push(v6,v5)\n  _ = owner.drop(v8)\n  jump b3(v7)\nblock b2()\n  v10:usize = const() {\"value\":7}\n  v11:buffer = buffer.new(v10)\n  v12:chain = chain.empty()\n  v13:chain,v14:buffer,v15:bool = chain.try_push(v12,v11)\n  _ = owner.drop(v14)\n  jump b3(v13)\nblock b3(v16:chain)\n  v17:readbuf = chain.head_read(v16)\n  v18:usize = buffer.len(v17)\n  _ = loan.end(v17)\n  _ = owner.drop(v16)\n  v19:u32 = int.cast(v18) {\"mode\":\"wrap\"}\n  ret(v19)\nend\n",
+        "expected_result": 5,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "chain-flow-forward-chain-through-two-calls",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:u8 = const() {\"value\":73}\n  _ = buffer.fill(v5,v6)\n  _ = loan.end(v5)\n  v7:chain = chain.empty()\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v7,v4)\n  _ = owner.drop(v9)\n  v11:u32 = call(v8,v1) {\"function\":\"f1\"}\n  ret(v11)\nend\nfn f1(v0:chain,v1:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain,v1:mutbuf)\n  v2:chain = owner.move(v0)\n  v3:u32 = call(v2,v1) {\"function\":\"f2\"}\n  ret(v3)\nend\nfn f2(v0:chain,v1:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain,v1:mutbuf)\n  v2:readbuf = chain.head_read(v0)\n  v3:usize = buffer.len(v2)\n  _ = buffer.copy(v1,v2,v3)\n  _ = loan.end(v2)\n  _ = owner.drop(v0)\n  v4:u32 = int.cast(v3) {\"mode\":\"wrap\"}\n  ret(v4)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "4949494949494949"
+      },
+      {
+        "id": "chain-flow-two-distinct-chains-permuted-call",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":5}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:u8 = const() {\"value\":1}\n  _ = buffer.fill(v5,v6)\n  _ = loan.end(v5)\n  v7:chain = chain.empty()\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v7,v4)\n  _ = owner.drop(v9)\n  v11:usize = const() {\"value\":7}\n  v12:buffer = buffer.new(v11)\n  v13:mutbuf = borrow.mut(v12)\n  v14:u8 = const() {\"value\":2}\n  _ = buffer.fill(v13,v14)\n  _ = loan.end(v13)\n  v15:chain = chain.empty()\n  v16:chain,v17:buffer,v18:bool = chain.try_push(v15,v12)\n  _ = owner.drop(v17)\n  v19:u32 = call(v16,v8) {\"function\":\"f1\"}\n  ret(v19)\nend\nfn f1(v0:chain,v1:chain) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain,v1:chain)\n  v2:readbuf = chain.head_read(v0)\n  v3:readbuf = chain.head_read(v1)\n  v4:usize = buffer.len(v2)\n  v5:usize = buffer.len(v3)\n  _ = loan.end(v2)\n  _ = loan.end(v3)\n  _ = owner.drop(v0)\n  _ = owner.drop(v1)\n  v6:usize = const() {\"value\":100}\n  v7:usize = int.mul.wrap(v4,v6)\n  v8:usize = int.add.wrap(v7,v5)\n  v9:u32 = int.cast(v8) {\"mode\":\"wrap\"}\n  ret(v9)\nend\n",
+        "expected_result": 705,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "chain-flow-tail-self-chain-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":13}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:u8 = const() {\"value\":7}\n  _ = buffer.fill(v5,v6)\n  _ = loan.end(v5)\n  v7:chain = chain.empty()\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v7,v4)\n  _ = owner.drop(v9)\n  v11:u32 = const() {\"value\":0}\n  v12:u32 = call(v8,v11) {\"function\":\"f1\"}\n  ret(v12)\nend\nfn f1(v0:chain,v1:u32) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain,v1:u32)\n  v2:u32 = const() {\"value\":0}\n  v3:bool = compare.eq(v1,v2)\n  branch v3 b1(v0) b2(v0,v1)\nblock b1(v4:chain)\n  v5:readbuf = chain.head_read(v4)\n  v6:usize = buffer.len(v5)\n  _ = loan.end(v5)\n  _ = owner.drop(v4)\n  v7:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  ret(v7)\nblock b2(v8:chain,v9:u32)\n  v10:u32 = const() {\"value\":1}\n  v11:u32 = int.sub.wrap(v9,v10)\n  v12:u32 = call(v8,v11) {\"function\":\"f1\"}\n  ret(v12)\nend\n",
+        "expected_result": 13,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "chain-flow-tail-self-chain-9",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":13}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:u8 = const() {\"value\":7}\n  _ = buffer.fill(v5,v6)\n  _ = loan.end(v5)\n  v7:chain = chain.empty()\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v7,v4)\n  _ = owner.drop(v9)\n  v11:u32 = const() {\"value\":9}\n  v12:u32 = call(v8,v11) {\"function\":\"f1\"}\n  ret(v12)\nend\nfn f1(v0:chain,v1:u32) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain,v1:u32)\n  v2:u32 = const() {\"value\":0}\n  v3:bool = compare.eq(v1,v2)\n  branch v3 b1(v0) b2(v0,v1)\nblock b1(v4:chain)\n  v5:readbuf = chain.head_read(v4)\n  v6:usize = buffer.len(v5)\n  _ = loan.end(v5)\n  _ = owner.drop(v4)\n  v7:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  ret(v7)\nblock b2(v8:chain,v9:u32)\n  v10:u32 = const() {\"value\":1}\n  v11:u32 = int.sub.wrap(v9,v10)\n  v12:u32 = call(v8,v11) {\"function\":\"f1\"}\n  ret(v12)\nend\n",
+        "expected_result": 13,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "chain-flow-three-result-ssa-boundary",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "parameter-boundary-readbuf-2047",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  jump b1(v0)\nblock b1(v2047:readbuf)\n  v20:usize = buffer.len(v2047)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "parameter-boundary-mutbuf-2047",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  jump b1(v1)\nblock b1(v2047:mutbuf)\n  v20:u8 = const() {\"value\":41}\n  _ = buffer.fill(v2047,v20)\n  v21:usize = buffer.len(v2047)\n  v22:u32 = int.cast(v21) {\"mode\":\"wrap\"}\n  ret(v22)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "2929292929292929"
+      },
+      {
+        "id": "parameter-boundary-buffer-2047",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  jump b1(v4)\nblock b1(v2047:buffer)\n  v20:usize = buffer.len(v2047)\n  _ = owner.drop(v2047)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 4,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "parameter-boundary-chain-2047",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  jump b1(v3)\nblock b1(v2047:chain)\n  v20:bool = chain.is_empty(v2047)\n  _ = owner.drop(v2047)\n  v21:u32 = const() {\"value\":1}\n  v22:u32 = const() {\"value\":0}\n  v23:u32 = select(v20,v21,v22)\n  ret(v23)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5"
+      },
+      {
+        "id": "chain-flow-profile-head-read-ssa-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v8192:readbuf = chain.head_read(v6)\n  _ = loan.end(v8192)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "c8f527b8ab5b8983dd221e61f98884f8d441a3ef9fa25488dbd616f4aad1593c"
+      },
+      {
+        "id": "chain-flow-profile-head-mut-ssa-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v8192:mutbuf = chain.head_mut(v6)\n  _ = loan.end(v8192)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "27c9d9a4f6b8021ce5d1aad05e479920fbf338dbb50eeea7b7e5f16a0af2286e"
+      },
+      {
+        "id": "chain-flow-profile-chain-result-ssa-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2048:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2048)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "31900d7cf15aadbd586fc0d9cd33c11c0a0e0c87d8e49fada18bc3e00eb24d23"
+      },
+      {
+        "id": "chain-flow-profile-payload-result-ssa-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2048:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2048)\n  _ = owner.drop(v2048)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "b341801693c9585b18535c0ab92bf3e80d348fd0e7a450bcb099e83f07c3187b"
+      },
+      {
+        "id": "chain-flow-profile-bool-result-ssa-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2048:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2048,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "913421ff96e8a3ffa9b9874b88e3569aa2eac39e2091492b531364f88bd74961"
+      },
+      {
+        "id": "chain-flow-profile-pop-bool-result-ssa-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v2048:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v2048)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "ca102ffaef3fc2c2fd0d28ee3ec3e441e2442ad65629e2cfca7a15f4afa8cc0f"
+      },
+      {
+        "id": "chain-flow-profile-chain-result-ssa-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v8192:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v8192)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "9521b28cfc2d98a137468c18182f4fe3fcee7f13a80a05c7ffce5713e245fdd1"
+      },
+      {
+        "id": "chain-flow-profile-payload-result-ssa-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v8192:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v8192)\n  _ = owner.drop(v8192)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "68e12f33d1ef9e4e09441a5ae16b595f84d2693d27eb41cca6944451edf8304a"
+      },
+      {
+        "id": "chain-flow-profile-bool-result-ssa-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v8192:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v8192,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "28d013e177e123579a8b87999ec3a5f65f973f186a949315c0f24dd56b86d889"
+      },
+      {
+        "id": "chain-flow-profile-pop-bool-result-ssa-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v8192:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v8192)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "3386649340361c1ac716bc5af794787f7c955689a3d890a7d23ec93fa08d3cfe"
+      },
+      {
+        "id": "chain-flow-profile-chain-result-ssa-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v18446744073709551615:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v18446744073709551615)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "f641c627ccd50a7e7cab94cf293c1feb4e3b4e33b4536ef5fd54c5e8e315fbe3"
+      },
+      {
+        "id": "chain-flow-profile-payload-result-ssa-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v18446744073709551615:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v18446744073709551615)\n  _ = owner.drop(v18446744073709551615)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "089ae59bc6364179d17cc1b4cff73da803b3e49587fc457bdf58b6eef5129b47"
+      },
+      {
+        "id": "chain-flow-profile-bool-result-ssa-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v18446744073709551615:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v18446744073709551615,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "63a0c1b3551eac3efee520664d4c9fb35f916f29bdf7eefe67968b9a064986a3"
+      },
+      {
+        "id": "chain-flow-profile-pop-bool-result-ssa-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v18446744073709551615:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v18446744073709551615)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "91d312c36289f418cb2035599c48aa2994a074e4999b822c597f2f68e09c3f19"
+      },
+      {
+        "id": "chain-flow-profile-head-result-ssa-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:u8 = const() {\"value\":43}\n  _ = buffer.fill(v5,v6)\n  _ = loan.end(v5)\n  v7:chain = chain.empty()\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v7,v4)\n  _ = owner.drop(v9)\n  v11:chain = owner.move(v8)\n  v12:chain = owner.move(v11)\n  v13:chain = owner.move(v12)\n  v14:chain = owner.move(v13)\n  v8192:readbuf = chain.head_read(v14)\n  v16:readbuf = chain.head_read(v14)\n  v17:bool = chain.is_empty(v14)\n  v18:usize = const() {\"value\":8}\n  _ = buffer.copy(v1,v16,v18)\n  _ = loan.end(v8192)\n  _ = loan.end(v16)\n  _ = owner.drop(v14)\n  v19:u32 = const() {\"value\":0}\n  v20:u32 = const() {\"value\":43}\n  v21:u32 = select(v17,v19,v20)\n  ret(v21)\nend\n",
+        "expected_result": 43,
+        "expected_output_hex": "2b2b2b2b2b2b2b2b",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "788ba8a0aa3c21371ba6c0d9123c21ae7d759bdf703af2197314b7ff0be0eddd"
+      },
+      {
+        "id": "parameter-profile-block-readbuf-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  jump b1(v0)\nblock b1(v2048:readbuf)\n  v20:usize = buffer.len(v2048)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "479bb0028b2aeae4d1825f564819b4e9e9d3788dac8945cd6a7f0921b663117b"
+      },
+      {
+        "id": "parameter-profile-block-readbuf-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  jump b1(v0)\nblock b1(v8192:readbuf)\n  v20:usize = buffer.len(v8192)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "7d644ac98bd029c7ae58ed9e49b8a59b54fdd055803c405af69ce9d49d294bd4"
+      },
+      {
+        "id": "parameter-profile-block-readbuf-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  jump b1(v0)\nblock b1(v18446744073709551615:readbuf)\n  v20:usize = buffer.len(v18446744073709551615)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "f4a4d929c7ac8b5560bbee4f8dcf5ea99012e5bb8422d393238d15f47e463d13"
+      },
+      {
+        "id": "parameter-profile-block-mutbuf-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  jump b1(v1)\nblock b1(v2048:mutbuf)\n  v20:u8 = const() {\"value\":41}\n  _ = buffer.fill(v2048,v20)\n  v21:usize = buffer.len(v2048)\n  v22:u32 = int.cast(v21) {\"mode\":\"wrap\"}\n  ret(v22)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "2929292929292929",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "5539fd97fecec3435ee8420bae02292b1f1445487f1e2f80af261decbbf3ec56"
+      },
+      {
+        "id": "parameter-profile-block-mutbuf-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  jump b1(v1)\nblock b1(v8192:mutbuf)\n  v20:u8 = const() {\"value\":41}\n  _ = buffer.fill(v8192,v20)\n  v21:usize = buffer.len(v8192)\n  v22:u32 = int.cast(v21) {\"mode\":\"wrap\"}\n  ret(v22)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "2929292929292929",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "23f23366185545fa00984c97eb31b0d78ec5587d70a4bfa9a60801a039034d8d"
+      },
+      {
+        "id": "parameter-profile-block-mutbuf-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  jump b1(v1)\nblock b1(v18446744073709551615:mutbuf)\n  v20:u8 = const() {\"value\":41}\n  _ = buffer.fill(v18446744073709551615,v20)\n  v21:usize = buffer.len(v18446744073709551615)\n  v22:u32 = int.cast(v21) {\"mode\":\"wrap\"}\n  ret(v22)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "2929292929292929",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "2b01a0a7d8980e10dc8d443178b34f2ea2b27cc4fdcb09a9c9be3ab7c84ddfed"
+      },
+      {
+        "id": "parameter-profile-block-buffer-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  jump b1(v4)\nblock b1(v2048:buffer)\n  v20:usize = buffer.len(v2048)\n  _ = owner.drop(v2048)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 4,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "6aceb10b4a39729913acc52c0cd05e4a0d31cdba809371b2b9c84152c826c7e4"
+      },
+      {
+        "id": "parameter-profile-block-buffer-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  jump b1(v4)\nblock b1(v8192:buffer)\n  v20:usize = buffer.len(v8192)\n  _ = owner.drop(v8192)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 4,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "ac4d715b6f550137b5e9accda6c9c7c89ec8a5db1de9360cc6326363b5e1bed8"
+      },
+      {
+        "id": "parameter-profile-block-buffer-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  jump b1(v4)\nblock b1(v18446744073709551615:buffer)\n  v20:usize = buffer.len(v18446744073709551615)\n  _ = owner.drop(v18446744073709551615)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 4,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "2190eed5eaf08ff2e92bac6561301ad5b0e92ef7d8fbe2b1f4e7f49fe39b361b"
+      },
+      {
+        "id": "parameter-profile-block-chain-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  jump b1(v3)\nblock b1(v2048:chain)\n  v20:bool = chain.is_empty(v2048)\n  _ = owner.drop(v2048)\n  v21:u32 = const() {\"value\":1}\n  v22:u32 = const() {\"value\":0}\n  v23:u32 = select(v20,v21,v22)\n  ret(v23)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "70e650ffc8e7d9ec5ea36045bf052207ccf677e71060ad1cc10d8687bb62eaac"
+      },
+      {
+        "id": "parameter-profile-block-chain-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  jump b1(v3)\nblock b1(v8192:chain)\n  v20:bool = chain.is_empty(v8192)\n  _ = owner.drop(v8192)\n  v21:u32 = const() {\"value\":1}\n  v22:u32 = const() {\"value\":0}\n  v23:u32 = select(v20,v21,v22)\n  ret(v23)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "622b1991ea7c5d78cec79223be7e32f373c434de0df07575f6e370dd5b942e07"
+      },
+      {
+        "id": "parameter-profile-block-chain-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  jump b1(v3)\nblock b1(v18446744073709551615:chain)\n  v20:bool = chain.is_empty(v18446744073709551615)\n  _ = owner.drop(v18446744073709551615)\n  v21:u32 = const() {\"value\":1}\n  v22:u32 = const() {\"value\":0}\n  v23:u32 = select(v20,v21,v22)\n  ret(v23)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "02ba48a1e6c46297be07178aa83090e37fe3c3be667454e59155214d380d994d"
+      },
+      {
+        "id": "parameter-profile-function-readbuf-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  v5:u32 = call(v0) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v2048:readbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v2048:readbuf)\n  v20:usize = buffer.len(v2048)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "212c44e68a42b97843a171e299a793121b63b2c23380c6a3c886b463590faec4"
+      },
+      {
+        "id": "parameter-profile-function-readbuf-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  v5:u32 = call(v0) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v8192:readbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v8192:readbuf)\n  v20:usize = buffer.len(v8192)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "097d0b8a4cb9ad761b9a774e7f11ade94f8e929c9cd76589b9606aa4dfa8efe4"
+      },
+      {
+        "id": "parameter-profile-function-readbuf-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  v5:u32 = call(v0) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v18446744073709551615:readbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v18446744073709551615:readbuf)\n  v20:usize = buffer.len(v18446744073709551615)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 0,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "404b3f466a3bc4b4645af6ce5ed3b87442f0e17038a2cf44c486d72110230f90"
+      },
+      {
+        "id": "parameter-profile-function-mutbuf-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  v5:u32 = call(v1) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v2048:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v2048:mutbuf)\n  v20:u8 = const() {\"value\":41}\n  _ = buffer.fill(v2048,v20)\n  v21:usize = buffer.len(v2048)\n  v22:u32 = int.cast(v21) {\"mode\":\"wrap\"}\n  ret(v22)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "2929292929292929",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "fa934318154115d5f5aa8d99749dad94d4ab9480c870bce33bfe1c44518b9f58"
+      },
+      {
+        "id": "parameter-profile-function-mutbuf-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  v5:u32 = call(v1) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v8192:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v8192:mutbuf)\n  v20:u8 = const() {\"value\":41}\n  _ = buffer.fill(v8192,v20)\n  v21:usize = buffer.len(v8192)\n  v22:u32 = int.cast(v21) {\"mode\":\"wrap\"}\n  ret(v22)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "2929292929292929",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "29b36e4007385c9955c2bee503bc878afa909859fd18aa1ff110d149534d02f1"
+      },
+      {
+        "id": "parameter-profile-function-mutbuf-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  v5:u32 = call(v1) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v18446744073709551615:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v18446744073709551615:mutbuf)\n  v20:u8 = const() {\"value\":41}\n  _ = buffer.fill(v18446744073709551615,v20)\n  v21:usize = buffer.len(v18446744073709551615)\n  v22:u32 = int.cast(v21) {\"mode\":\"wrap\"}\n  ret(v22)\nend\n",
+        "expected_result": 8,
+        "expected_output_hex": "2929292929292929",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "2391c652c439650110eff7d038a6421e7a1cb4f6f46a202345f84bc92c111804"
+      },
+      {
+        "id": "parameter-profile-function-buffer-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = call(v4) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v2048:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v2048:buffer)\n  v20:usize = buffer.len(v2048)\n  _ = owner.drop(v2048)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 4,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "03d8aabd5ed447e521218f093cf28905c1cf6aeb9bdafa182f74bc829a66f553"
+      },
+      {
+        "id": "parameter-profile-function-buffer-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = call(v4) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v8192:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v8192:buffer)\n  v20:usize = buffer.len(v8192)\n  _ = owner.drop(v8192)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 4,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "1bd0f7c7bb31b612f03d66de74b721a9c60ea7bdeed53a65704c231c61390bb4"
+      },
+      {
+        "id": "parameter-profile-function-buffer-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = call(v4) {\"function\":\"f1\"}\n  ret(v5)\nend\nfn f1(v18446744073709551615:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v18446744073709551615:buffer)\n  v20:usize = buffer.len(v18446744073709551615)\n  _ = owner.drop(v18446744073709551615)\n  v21:u32 = int.cast(v20) {\"mode\":\"wrap\"}\n  ret(v21)\nend\n",
+        "expected_result": 4,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "4d3dd5b1610b6a4b263b48bc1250112ebdfa33b78c5a30ff2edbd95102fdf6c1"
+      },
+      {
+        "id": "parameter-profile-function-chain-2048",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:u32 = call(v3) {\"function\":\"f1\"}\n  ret(v4)\nend\nfn f1(v2048:chain) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v2048:chain)\n  v20:bool = chain.is_empty(v2048)\n  _ = owner.drop(v2048)\n  v21:u32 = const() {\"value\":1}\n  v22:u32 = const() {\"value\":0}\n  v23:u32 = select(v20,v21,v22)\n  ret(v23)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "01027c3a48cf21bf8416d0fce173acfb66445a00ad3c0f60ac452e46460086b4"
+      },
+      {
+        "id": "parameter-profile-function-chain-8192",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:u32 = call(v3) {\"function\":\"f1\"}\n  ret(v4)\nend\nfn f1(v8192:chain) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v8192:chain)\n  v20:bool = chain.is_empty(v8192)\n  _ = owner.drop(v8192)\n  v21:u32 = const() {\"value\":1}\n  v22:u32 = const() {\"value\":0}\n  v23:u32 = select(v20,v21,v22)\n  ret(v23)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "ba8a540da46728d4c75a9fbaec77846470efd0115a26a78f0ce7c5ea266bbbd7"
+      },
+      {
+        "id": "parameter-profile-function-chain-18446744073709551615",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:u32 = call(v3) {\"function\":\"f1\"}\n  ret(v4)\nend\nfn f1(v18446744073709551615:chain) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v18446744073709551615:chain)\n  v20:bool = chain.is_empty(v18446744073709551615)\n  _ = owner.drop(v18446744073709551615)\n  v21:u32 = const() {\"value\":1}\n  v22:u32 = const() {\"value\":0}\n  v23:u32 = select(v20,v21,v22)\n  ret(v23)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "retained_former_profile_refusal": true,
+        "core_sha256": "aadfaa03246edf669e48cc5afc7a56c2a0256d7c8af94b08d89ad3be427a2673"
+      }
+    ],
+    "allocator": [
+      {
+        "id": "chain-allocator-empty-node-null-and-retry",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:usize = const() {\"value\":4}\n  v5:buffer = buffer.new(v4)\n  v6:mutbuf = borrow.mut(v5)\n  v7:u8 = const() {\"value\":31}\n  _ = buffer.fill(v6,v7)\n  _ = loan.end(v6)\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v3,v5)\n  v11:bool = bool.not(v10)\n  v12:usize = buffer.len(v9)\n  v13:usize = const() {\"value\":4}\n  v14:bool = compare.eq(v12,v13)\n  v15:bool = chain.is_empty(v8)\n  v16:readbuf = borrow.read(v9)\n  v17:usize = const() {\"value\":4}\n  _ = buffer.copy(v1,v16,v17)\n  _ = loan.end(v16)\n  v18:chain,v19:buffer,v20:bool = chain.try_push(v8,v9)\n  v21:usize = buffer.len(v19)\n  v22:usize = const() {\"value\":0}\n  v23:bool = compare.eq(v21,v22)\n  _ = owner.drop(v19)\n  v24:chain,v25:buffer,v26:bool = chain.pop(v18)\n  v27:usize = buffer.len(v25)\n  v28:usize = const() {\"value\":4}\n  v29:bool = compare.eq(v27,v28)\n  v30:bool = chain.is_empty(v24)\n  _ = owner.drop(v25)\n  _ = owner.drop(v24)\n  v31:bool = bool.and(v11,v14)\n  v32:bool = bool.and(v31,v15)\n  v33:bool = bool.and(v32,v20)\n  v34:bool = bool.and(v33,v23)\n  v35:bool = bool.and(v34,v26)\n  v36:bool = bool.and(v35,v29)\n  v37:bool = bool.and(v36,v30)\n  v38:u32 = const() {\"value\":1}\n  v39:u32 = const() {\"value\":0}\n  v40:u32 = select(v37,v38,v39)\n  ret(v40)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "1f1f1f1fa5a5a5a5",
+        "allocation_fail_at": 2,
+        "expected_allocation_attempts": 3,
+        "expected_allocations": 2,
+        "expected_frees": 2,
+        "expected_failed_allocations": 1
+      },
+      {
+        "id": "chain-allocator-nonempty-node-null-and-retry",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:u8 = const() {\"value\":70}\n  _ = buffer.fill(v5,v6)\n  _ = loan.end(v5)\n  v7:chain = chain.empty()\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v7,v4)\n  _ = owner.drop(v9)\n  v11:usize = const() {\"value\":4}\n  v12:buffer = buffer.new(v11)\n  v13:mutbuf = borrow.mut(v12)\n  v14:u8 = const() {\"value\":31}\n  _ = buffer.fill(v13,v14)\n  _ = loan.end(v13)\n  v15:chain,v16:buffer,v17:bool = chain.try_push(v8,v12)\n  v18:bool = bool.not(v17)\n  v19:usize = buffer.len(v16)\n  v20:usize = const() {\"value\":4}\n  v21:bool = compare.eq(v19,v20)\n  v22:bool = chain.is_empty(v15)\n  v23:bool = bool.not(v22)\n  v24:readbuf = borrow.read(v16)\n  v25:usize = const() {\"value\":4}\n  _ = buffer.copy(v1,v24,v25)\n  _ = loan.end(v24)\n  v26:readbuf = chain.head_read(v15)\n  v27:usize = const() {\"value\":0}\n  v28:u8 = buffer.load(v26,v27)\n  v29:u8 = const() {\"value\":70}\n  v30:bool = compare.eq(v28,v29)\n  _ = loan.end(v26)\n  v31:chain,v32:buffer,v33:bool = chain.try_push(v15,v16)\n  v34:usize = buffer.len(v32)\n  v35:usize = const() {\"value\":0}\n  v36:bool = compare.eq(v34,v35)\n  _ = owner.drop(v32)\n  v37:chain,v38:buffer,v39:bool = chain.pop(v31)\n  v40:usize = buffer.len(v38)\n  v41:usize = const() {\"value\":4}\n  v42:bool = compare.eq(v40,v41)\n  v43:bool = chain.is_empty(v37)\n  v44:bool = bool.not(v43)\n  _ = owner.drop(v38)\n  _ = owner.drop(v37)\n  v45:bool = bool.and(v18,v21)\n  v46:bool = bool.and(v45,v23)\n  v47:bool = bool.and(v46,v30)\n  v48:bool = bool.and(v47,v33)\n  v49:bool = bool.and(v48,v36)\n  v50:bool = bool.and(v49,v39)\n  v51:bool = bool.and(v50,v42)\n  v52:bool = bool.and(v51,v44)\n  v53:u32 = const() {\"value\":1}\n  v54:u32 = const() {\"value\":0}\n  v55:u32 = select(v52,v53,v54)\n  ret(v55)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "1f1f1f1fa5a5a5a5",
+        "allocation_fail_at": 4,
+        "expected_allocation_attempts": 5,
+        "expected_allocations": 4,
+        "expected_frees": 4,
+        "expected_failed_allocations": 1
+      },
+      {
+        "id": "chain-allocator-empty-zero-payload-node-null-and-retry",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:chain = chain.empty()\n  v4:usize = const() {\"value\":0}\n  v5:buffer = buffer.new(v4)\n  v6:mutbuf = borrow.mut(v5)\n  v7:u8 = const() {\"value\":31}\n  _ = buffer.fill(v6,v7)\n  _ = loan.end(v6)\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v3,v5)\n  v11:bool = bool.not(v10)\n  v12:usize = buffer.len(v9)\n  v13:usize = const() {\"value\":0}\n  v14:bool = compare.eq(v12,v13)\n  v15:bool = chain.is_empty(v8)\n  v16:chain,v17:buffer,v18:bool = chain.try_push(v8,v9)\n  v19:usize = buffer.len(v17)\n  v20:usize = const() {\"value\":0}\n  v21:bool = compare.eq(v19,v20)\n  _ = owner.drop(v17)\n  v22:chain,v23:buffer,v24:bool = chain.pop(v16)\n  v25:usize = buffer.len(v23)\n  v26:usize = const() {\"value\":0}\n  v27:bool = compare.eq(v25,v26)\n  v28:bool = chain.is_empty(v22)\n  _ = owner.drop(v23)\n  _ = owner.drop(v22)\n  v29:bool = bool.and(v11,v14)\n  v30:bool = bool.and(v29,v15)\n  v31:bool = bool.and(v30,v18)\n  v32:bool = bool.and(v31,v21)\n  v33:bool = bool.and(v32,v24)\n  v34:bool = bool.and(v33,v27)\n  v35:bool = bool.and(v34,v28)\n  v36:u32 = const() {\"value\":1}\n  v37:u32 = const() {\"value\":0}\n  v38:u32 = select(v35,v36,v37)\n  ret(v38)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "allocation_fail_at": 1,
+        "expected_allocation_attempts": 2,
+        "expected_allocations": 1,
+        "expected_frees": 1,
+        "expected_failed_allocations": 1
+      },
+      {
+        "id": "chain-allocator-payload-null-empty-owner-can-be-pushed",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:bool = bool.not(v5)\n  v7:chain = chain.empty()\n  v8:chain,v9:buffer,v10:bool = chain.try_push(v7,v4)\n  v11:usize = buffer.len(v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v11,v12)\n  _ = owner.drop(v9)\n  v14:readbuf = chain.head_read(v8)\n  v15:usize = buffer.len(v14)\n  v16:usize = const() {\"value\":0}\n  v17:bool = compare.eq(v15,v16)\n  _ = loan.end(v14)\n  v18:chain,v19:buffer,v20:bool = chain.pop(v8)\n  v21:bool = chain.is_empty(v18)\n  _ = owner.drop(v19)\n  _ = owner.drop(v18)\n  v22:bool = bool.and(v6,v10)\n  v23:bool = bool.and(v22,v13)\n  v24:bool = bool.and(v23,v17)\n  v25:bool = bool.and(v24,v20)\n  v26:bool = bool.and(v25,v21)\n  v27:u32 = const() {\"value\":1}\n  v28:u32 = const() {\"value\":0}\n  v29:u32 = select(v26,v27,v28)\n  ret(v29)\nend\n",
+        "expected_result": 1,
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "allocation_fail_at": 1,
+        "expected_allocation_attempts": 2,
+        "expected_allocations": 1,
+        "expected_frees": 1,
+        "expected_failed_allocations": 1
+      },
+      {
+        "id": "chain-allocator-required-payload-null-trap-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  v5:u32 = const() {\"value\":0}\n  ret(v5)\nend\n",
+        "expected_trap": "allocation",
+        "expected_output_hex": "a5a5a5a5a5a5a5a5",
+        "allocation_fail_at": 1,
+        "expected_allocation_attempts": 1,
+        "expected_allocations": 0,
+        "expected_frees": 0,
+        "expected_failed_allocations": 1
+      },
+      {
+        "id": "chain-allocator-required-payload-null-trap-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":0}\n  v4:u8 = const() {\"value\":99}\n  _ = buffer.store(v1,v3,v4)\n  v5:usize = const() {\"value\":8}\n  v6:buffer = buffer.new(v5)\n  _ = owner.drop(v6)\n  v7:u32 = const() {\"value\":0}\n  ret(v7)\nend\n",
+        "expected_trap": "allocation",
+        "expected_output_hex": "63a5a5a5a5a5a5a5",
+        "allocation_fail_at": 1,
+        "expected_allocation_attempts": 1,
+        "expected_allocations": 0,
+        "expected_frees": 0,
+        "expected_failed_allocations": 1
+      },
+      {
+        "id": "chain-allocator-5000-node-drop-conservation",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:u32 = const() {\"value\":5000}\n  v4:u32 = const() {\"value\":0}\n  v5:chain = chain.empty()\n  jump b1(v5,v4,v3,v1)\nblock b1(v6:chain,v7:u32,v8:u32,v9:mutbuf)\n  v10:bool = compare.lt(v7,v8)\n  branch v10 b2(v6,v7,v8,v9) b3(v6,v9)\nblock b2(v11:chain,v12:u32,v13:u32,v14:mutbuf)\n  v15:usize = const() {\"value\":1}\n  v16:buffer = buffer.new(v15)\n  v17:mutbuf = borrow.mut(v16)\n  v18:u8 = int.cast(v12) {\"mode\":\"wrap\"}\n  _ = buffer.fill(v17,v18)\n  _ = loan.end(v17)\n  v19:chain,v20:buffer,v21:bool = chain.try_push(v11,v16)\n  _ = owner.drop(v20)\n  v22:u32 = const() {\"value\":1}\n  v23:u32 = int.add.wrap(v12,v22)\n  jump b1(v19,v23,v13,v14)\nblock b3(v24:chain,v25:mutbuf)\n  v26:mutbuf = chain.head_mut(v24)\n  v27:u8 = const() {\"value\":174}\n  _ = buffer.fill(v26,v27)\n  _ = loan.end(v26)\n  v28:readbuf = chain.head_read(v24)\n  v29:usize = const() {\"value\":1}\n  _ = buffer.copy(v25,v28,v29)\n  _ = loan.end(v28)\n  v30:chain = owner.move(v24)\n  _ = owner.drop(v30)\n  v31:u32 = const() {\"value\":5000}\n  ret(v31)\nend\n",
+        "expected_result": 5000,
+        "expected_output_hex": "aea5a5a5a5a5a5a5",
+        "allocation_fail_at": 0,
+        "expected_allocation_attempts": 10000,
+        "expected_allocations": 10000,
+        "expected_frees": 10000,
+        "expected_failed_allocations": 0
+      }
+    ]
+  },
+  "refusals": {
+    "owned": [
+      {
+        "id": "flat-allocator-imports-refused",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "general_accepts": true,
+        "original_error_code": null
+      },
+      {
+        "id": "missing-alloc-effect",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_EFFECT"
+      },
+      {
+        "id": "missing-try-result",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "swapped-try-result-types",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:bool,v5:buffer = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "duplicate-try-result",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v4:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_SSA"
+      },
+      {
+        "id": "leaked-owner",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "duplicate-owner-drop",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "drop-with-live-loan",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v7,v10)\n  _ = owner.drop(v4)\n  _ = loan.end(v7)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "direct-owner-memory-access",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer,v5:bool = buffer.try_new(v3)\n  v6:usize = buffer.len(v4)\n  v7:readbuf = borrow.read(v4)\n  v8:usize = const() {\"value\":8}\n  v9:bool = compare.lt(v6,v8)\n  v10:usize = select(v9,v6,v8)\n  _ = buffer.copy(v1,v4,v10)\n  _ = loan.end(v7)\n  _ = owner.drop(v4)\n  v11:u32 = int.cast(v6) {\"mode\":\"wrap\"}\n  v12:u32 = const() {\"value\":4294967295}\n  v13:u32 = select(v5,v11,v12)\n  ret(v13)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-move-consumed-source",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:buffer = owner.move(v4)\n  v6:usize = buffer.len(v4)\n  _ = owner.drop(v5)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-drop-consumed-source",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  v5:usize = buffer.len(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-owner-loan-end",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  _ = loan.end(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-owner-direct-load",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:usize = const() {\"value\":0}\n  v6:u8 = buffer.load(v4,v5)\n  _ = owner.drop(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-move-live-read",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:readbuf = borrow.read(v4)\n  v6:buffer = owner.move(v4)\n  _ = loan.end(v5)\n  _ = owner.drop(v6)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "flow-drop-nested-loan",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:readbuf = borrow.read(v5)\n  _ = owner.drop(v4)\n  _ = loan.end(v6)\n  _ = loan.end(v5)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "flow-owner-edge-leak",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  jump b1()\nblock b1()\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-owner-edge-duplicate",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  jump b1(v4,v4)\nblock b1(v5:buffer,v6:buffer)\n  _ = owner.drop(v5)\n  _ = owner.drop(v6)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-owner-edge-missing-parent",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:readbuf = borrow.read(v4)\n  jump b1(v5)\nblock b1(v6:readbuf)\n  _ = loan.end(v6)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-owner-edge-missing-child",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:readbuf = borrow.read(v4)\n  jump b1(v4)\nblock b1(v6:buffer)\n  _ = owner.drop(v6)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-call-then-owner-use",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = call(v4) {\"function\":\"f1\"}\n  v6:usize = buffer.len(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\nfn f1(v0:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer)\n  _ = owner.drop(v0)\n  v1:u32 = const() {\"value\":0}\n  ret(v1)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-call-then-owner-drop",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = call(v4) {\"function\":\"f1\"}\n  _ = owner.drop(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\nfn f1(v0:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer)\n  _ = owner.drop(v0)\n  v1:u32 = const() {\"value\":0}\n  ret(v1)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-call-with-live-loan",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v6:readbuf = borrow.read(v4)\n  v5:u32 = call(v4) {\"function\":\"f1\"}\n  _ = loan.end(v6)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\nfn f1(v0:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer)\n  _ = owner.drop(v0)\n  v1:u32 = const() {\"value\":0}\n  ret(v1)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "flow-call-duplicate-owner",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = call(v4,v4) {\"function\":\"f1\"}\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\nfn f1(v0:buffer,v2:buffer) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:buffer,v2:buffer)\n  _ = owner.drop(v0)\n  _ = owner.drop(v2)\n  v1:u32 = const() {\"value\":0}\n  ret(v1)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-join-mismatched-owner-root",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:bool = const() {\"value\":true}\n  branch v3 b1() b2()\nblock b1()\n  v4:usize = const() {\"value\":1}\n  v5:buffer = buffer.new(v4)\n  v6:buffer = buffer.new(v4)\n  v7:readbuf = borrow.read(v5)\n  jump b3(v5,v6,v7)\nblock b2()\n  v8:usize = const() {\"value\":1}\n  v9:buffer = buffer.new(v8)\n  v10:buffer = buffer.new(v8)\n  v11:readbuf = borrow.read(v10)\n  jump b3(v9,v10,v11)\nblock b3(v12:buffer,v13:buffer,v14:readbuf)\n  _ = loan.end(v14)\n  _ = owner.drop(v12)\n  _ = owner.drop(v13)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "flow-loop-backedge-consumed-root",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":4}\n  v4:buffer = buffer.new(v3)\n  v5:mutbuf = borrow.mut(v4)\n  v6:usize = const() {\"value\":0}\n  jump b1(v4,v5,v1,v6,v3)\nblock b1(v7:buffer,v8:mutbuf,v9:mutbuf,v10:usize,v11:usize)\n  v12:bool = compare.lt(v10,v11)\n  branch v12 b2(v7,v8,v9,v10,v11) b3(v7,v8,v9)\nblock b2(v13:buffer,v14:mutbuf,v15:mutbuf,v16:usize,v17:usize)\n  v18:u8 = int.cast(v16) {\"mode\":\"wrap\"}\n  _ = buffer.store(v14,v16,v18)\n  v19:usize = const() {\"value\":1}\n  v20:usize = int.add.wrap(v16,v19)\n  _ = loan.end(v14)\n  _ = owner.drop(v13)\n  jump b1(v13,v14,v15,v20,v17)\nblock b3(v21:buffer,v22:mutbuf,v23:mutbuf)\n  _ = loan.end(v22)\n  v24:readbuf = borrow.read(v21)\n  v25:usize = const() {\"value\":4}\n  _ = buffer.copy(v23,v24,v25)\n  _ = loan.end(v24)\n  _ = owner.drop(v21)\n  v26:u32 = const() {\"value\":4}\n  ret(v26)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "flow-new-missing-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new()\n  _ = owner.drop(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-new-extra-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3,v3)\n  _ = owner.drop(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-new-wrong-size-type",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:u64 = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-new-unexpected-attribute",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3) {\"value\":0}\n  _ = owner.drop(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_FORMAT"
+      },
+      {
+        "id": "flow-drop-extra-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4,v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-drop-unexpected-result",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:u32 = owner.drop(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-drop-unexpected-attribute",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  _ = owner.drop(v4) {\"value\":0}\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_FORMAT"
+      },
+      {
+        "id": "flow-move-unexpected-result-type",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:readbuf = owner.move(v4)\n  _ = loan.end(v5)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-move-missing-result",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  _ = owner.move(v4)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "flow-try-too-many-results",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v2047:buffer,v2046:bool,v5:u32 = buffer.try_new(v3)\n  v4:readbuf = borrow.read(v2047)\n  _ = buffer.copy(v1,v4,v3)\n  _ = loan.end(v4)\n  _ = owner.drop(v2047)\n  v5:u32 = const() {\"value\":1}\n  v6:u32 = const() {\"value\":0}\n  v7:u32 = select(v2046,v5,v6)\n  ret(v7)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_SSA"
+      },
+      {
+        "id": "flow-profile-flat-dormant-owner-parameter",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\nfn f1(v0:buffer) -> (u32) effects(read,write,trap) entry(b0)\nblock b0(v0:buffer)\n  jump b1(v0)\nblock b1(v1:buffer)\n  jump b1(v1)\nend\n",
+        "general_accepts": true,
+        "original_error_code": null
+      },
+      {
+        "id": "flow-profile-flat-dormant-owner-tail",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v90:u32 = const() {\"value\":0}\n  ret(v90)\nend\nfn f1(v0:buffer) -> (u32) effects(read,write,trap) entry(b0)\nblock b0(v0:buffer)\n  v1:u32 = call(v0) {\"function\":\"f1\"}\n  ret(v1)\nend\n",
+        "general_accepts": true,
+        "original_error_code": null
+      }
+    ],
+    "chain": [
+      {
+        "id": "chain-flow-drop-with-head-read",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6)\n  _ = owner.drop(v6)\n  _ = loan.end(v9)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-move-with-head-read",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6)\n  v10:chain = owner.move(v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v10)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-pop-with-head-read",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6)\n  v10:chain,v11:buffer,v12:bool = chain.pop(v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v10)\n  _ = owner.drop(v11)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-call-with-head-read",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6)\n  v10:u32 = call(v6) {\"function\":\"f1\"}\n  _ = loan.end(v9)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\nfn f1(v0:chain) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain)\n  _ = owner.drop(v0)\n  v1:u32 = const() {\"value\":0}\n  ret(v1)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-push-with-head-read",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6)\n  v10:buffer = buffer.new(v3)\n  v11:chain,v12:buffer,v13:bool = chain.try_push(v6,v10)\n  _ = loan.end(v9)\n  _ = owner.drop(v11)\n  _ = owner.drop(v12)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-drop-with-head-mut",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6)\n  _ = owner.drop(v6)\n  _ = loan.end(v9)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-move-with-head-mut",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6)\n  v10:chain = owner.move(v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v10)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-pop-with-head-mut",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6)\n  v10:chain,v11:buffer,v12:bool = chain.pop(v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v10)\n  _ = owner.drop(v11)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-call-with-head-mut",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6)\n  v10:u32 = call(v6) {\"function\":\"f1\"}\n  _ = loan.end(v9)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\nfn f1(v0:chain) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain)\n  _ = owner.drop(v0)\n  v1:u32 = const() {\"value\":0}\n  ret(v1)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-push-with-head-mut",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6)\n  v10:buffer = buffer.new(v3)\n  v11:chain,v12:buffer,v13:bool = chain.try_push(v6,v10)\n  _ = loan.end(v9)\n  _ = owner.drop(v11)\n  _ = owner.drop(v12)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-push-with-payload-loan",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:buffer = buffer.new(v3)\n  v10:readbuf = borrow.read(v9)\n  v11:chain,v12:buffer,v13:bool = chain.try_push(v6,v9)\n  _ = loan.end(v10)\n  _ = owner.drop(v11)\n  _ = owner.drop(v12)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-query-consumed-push-input",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:bool = chain.is_empty(v5)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "chain-flow-reuse-consumed-payload",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:usize = buffer.len(v4)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "chain-flow-pop-then-reuse-chain",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:chain,v10:buffer,v11:bool = chain.pop(v6)\n  v12:bool = chain.is_empty(v6)\n  _ = owner.drop(v9)\n  _ = owner.drop(v10)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "chain-flow-chain-as-buffer-len",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:usize = buffer.len(v6)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-chain-as-ordinary-borrow-0",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = borrow.read(v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-chain-as-ordinary-borrow-1",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = borrow.mut(v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-chain-as-byte-source",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  _ = buffer.copy(v1,v6,v3)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-head-mut-with-shared-sibling",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6)\n  v10:mutbuf = chain.head_mut(v6)\n  _ = loan.end(v10)\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-head-read-with-mutable-sibling",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6)\n  v10:readbuf = chain.head_read(v6)\n  _ = loan.end(v10)\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-end-parent-before-child",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6)\n  v10:readbuf = borrow.read(v9)\n  _ = loan.end(v9)\n  _ = loan.end(v10)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      },
+      {
+        "id": "chain-flow-edge-missing-chain-parent",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6)\n  jump b1(v9)\nblock b1(v10:readbuf)\n  _ = loan.end(v10)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "chain-flow-edge-missing-head-child",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6)\n  jump b1(v6)\nblock b1(v10:chain)\n  _ = owner.drop(v10)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "chain-flow-edge-duplicate-chain",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  jump b1(v6,v6)\nblock b1(v9:chain,v10:chain)\n  _ = owner.drop(v9)\n  _ = owner.drop(v10)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "chain-flow-call-then-reuse-chain",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:u32 = call(v6) {\"function\":\"f1\"}\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\nfn f1(v0:chain) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain)\n  _ = owner.drop(v0)\n  v1:u32 = const() {\"value\":0}\n  ret(v1)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "chain-flow-duplicate-chain-call",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:u32 = call(v6,v6) {\"function\":\"f1\"}\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\nfn f1(v0:chain,v2:chain) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:chain,v2:chain)\n  _ = owner.drop(v0)\n  _ = owner.drop(v2)\n  v1:u32 = const() {\"value\":0}\n  ret(v1)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_RESOURCE"
+      },
+      {
+        "id": "chain-flow-push-missing-third-result",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-push-extra-result",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool,v9:u32 = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-push-wrong-result-order",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:bool,v8:buffer = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-push-duplicate-result",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v7:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_SSA"
+      },
+      {
+        "id": "chain-flow-push-result-redefines-consumed-input",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v5:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_SSA"
+      },
+      {
+        "id": "chain-flow-push-missing-payload",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-push-extra-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4,v4)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-push-unexpected-attribute",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4) {\"value\":0}\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_FORMAT"
+      },
+      {
+        "id": "chain-flow-empty-extra-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty(v3)\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-empty-wrong-result-type",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:buffer = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-is-empty-missing-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:bool = chain.is_empty()\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-is-empty-extra-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:bool = chain.is_empty(v6,v6)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-is-empty-scalar-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:bool = chain.is_empty(v3)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-is-empty-wrong-output-type",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:u32 = chain.is_empty(v6)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-is-empty-unexpected-attribute",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:bool = chain.is_empty(v6) {\"value\":0}\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_FORMAT"
+      },
+      {
+        "id": "chain-flow-empty-unexpected-attribute",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty() {\"value\":0}\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:bool = chain.is_empty(v6)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_FORMAT"
+      },
+      {
+        "id": "chain-flow-head-read-missing-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read()\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-head-read-extra-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6,v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-head-read-wrong-output-type",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_read(v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-head-read-unexpected-attribute",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_read(v6) {\"value\":0}\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_FORMAT"
+      },
+      {
+        "id": "chain-flow-head-mut-missing-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut()\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-head-mut-extra-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6,v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-head-mut-wrong-output-type",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:readbuf = chain.head_mut(v6)\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-head-mut-unexpected-attribute",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  v9:mutbuf = chain.head_mut(v6) {\"value\":0}\n  _ = loan.end(v9)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_FORMAT"
+      },
+      {
+        "id": "chain-flow-pop-missing-third-result",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-pop-wrong-result-type",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:u32 = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-pop-duplicate-result",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v8:bool = chain.pop(v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_SSA"
+      },
+      {
+        "id": "chain-flow-pop-extra-argument",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2045,v2045)\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_TYPE"
+      },
+      {
+        "id": "chain-flow-pop-unexpected-attribute",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v2045:chain,v2046:buffer,v2047:bool = chain.try_push(v5,v4)\n  v6:usize = buffer.len(v2046)\n  _ = owner.drop(v2046)\n  v7:chain,v8:buffer,v9:bool = chain.pop(v2045) {\"value\":0}\n  v10:usize = buffer.len(v8)\n  _ = owner.drop(v8)\n  _ = owner.drop(v7)\n  v11:bool = bool.and(v2047,v9)\n  v12:usize = const() {\"value\":0}\n  v13:bool = compare.eq(v6,v12)\n  v14:bool = compare.eq(v10,v3)\n  v15:bool = bool.and(v11,v13)\n  v16:bool = bool.and(v15,v14)\n  v17:u32 = const() {\"value\":1}\n  v18:u32 = const() {\"value\":0}\n  v19:u32 = select(v16,v17,v18)\n  ret(v19)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_FORMAT"
+      },
+      {
+        "id": "chain-flow-profile-flat-chain-op",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:usize = const() {\"value\":8}\n  v4:buffer = buffer.new(v3)\n  v5:chain = chain.empty()\n  v6:chain,v7:buffer,v8:bool = chain.try_push(v5,v4)\n  _ = owner.drop(v7)\n  _ = owner.drop(v6)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": true,
+        "original_error_code": null
+      },
+      {
+        "id": "chain-flow-profile-flat-dormant-chain-loop",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\nfn f1(v0:chain) -> (u32) effects(read,write,trap) entry(b0)\nblock b0(v0:chain)\n  jump b1(v0)\nblock b1(v1:chain)\n  jump b1(v1)\nend\n",
+        "general_accepts": true,
+        "original_error_code": null
+      },
+      {
+        "id": "chain-flow-profile-flat-dormant-chain-tail",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\nfn f1(v0:chain) -> (u32) effects(read,write,trap) entry(b0)\nblock b0(v0:chain)\n  v1:u32 = call(v0) {\"function\":\"f1\"}\n  ret(v1)\nend\n",
+        "general_accepts": true,
+        "original_error_code": null
+      },
+      {
+        "id": "chain-flow-join-mismatched-chain-parent",
+        "source": "hia-asm.v1 hepta.hia.program.v8 selfhost_elf\nfn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)\nblock b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  v3:bool = const() {\"value\":true}\n  branch v3 b1() b2()\nblock b1()\n  v4:usize = const() {\"value\":1}\n  v5:buffer = buffer.new(v4)\n  v6:buffer = buffer.new(v4)\n  v7:chain = chain.empty()\n  v8:chain = chain.empty()\n  v9:chain,v10:buffer,v11:bool = chain.try_push(v7,v5)\n  _ = owner.drop(v10)\n  v12:chain,v13:buffer,v14:bool = chain.try_push(v8,v6)\n  _ = owner.drop(v13)\n  v15:readbuf = chain.head_read(v9)\n  jump b3(v9,v12,v15)\nblock b2()\n  v16:usize = const() {\"value\":1}\n  v17:buffer = buffer.new(v16)\n  v18:buffer = buffer.new(v16)\n  v19:chain = chain.empty()\n  v20:chain = chain.empty()\n  v21:chain,v22:buffer,v23:bool = chain.try_push(v19,v17)\n  _ = owner.drop(v22)\n  v24:chain,v25:buffer,v26:bool = chain.try_push(v20,v18)\n  _ = owner.drop(v25)\n  v27:readbuf = chain.head_read(v24)\n  jump b3(v21,v24,v27)\nblock b3(v28:chain,v29:chain,v30:readbuf)\n  _ = loan.end(v30)\n  _ = owner.drop(v28)\n  _ = owner.drop(v29)\n  v100:u32 = const() {\"value\":0}\n  ret(v100)\nend\n",
+        "general_accepts": false,
+        "original_error_code": "E_HIA_LOAN"
+      }
+    ]
+  },
+  "source_sha256": {
+    "tools/hia_selfhost_owned_elf_cases.py": "f2835c0d8bb938f2c9a4462b0de1aa24a1b60c481bac02fda00d5beaefd3431a",
+    "tools/hia_selfhost_owned_flow_cases.py": "1abe0bc7af741771dc49c4f629586b48d4096f1090daf4404edfc990273cbd98",
+    "tools/hia_selfhost_chain_cases.py": "aff3fdfb756bd5d340ad3363b0a0e59ec1280be0fd8aa6557a34d9f192b1fe6a",
+    "tools/hia_selfhost_chain_flow_cases.py": "0ed415974f7fad2fab7012454a68ae5a1ef191ed0800fcceb63681fcf333a43b",
+    "tools/hia_selfhost_parameter_cases.py": "c649d4893df199160eb06db8c3f6c839d8fa4027074b82756456c7bcc277f27b",
+    "tools/qualify_hia_selfhost_chain_flow.py": "99f1de10aaf7a2585a9721d172acddd38da3d0a10fd2314065efe3738ab7dba9",
+    "tools/qualify_hia_selfhost_owned_elf.py": "4010f4b1f4473a432eb4c1df2e733f8a38d4d7575ac4cdcdca8dae81e6be4972",
+    "tools/qualify_hia_selfhost_chain_elf.py": "ba5d963236bf970c53cd54eb974276319d1fec65ac488b38ddd557b0ae1e4d4f"
+  }
+}
