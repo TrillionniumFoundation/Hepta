@@ -125,7 +125,11 @@ def _policy():
             "owners": sorted(opcodes.OWNERS), "byte_resources": sorted(opcodes.BYTE_RESOURCES),
             "resources": sorted(opcodes.RESOURCES), "types": sorted(opcodes.TYPES),
             "effects": sorted(opcodes.EFFECTS), "traps": sorted(opcodes.TRAP_CODES),
-            "profiles": dict(opcodes.PRIMITIVE_PROFILES),
+            "profiles": list(opcodes.PRIMITIVE_PROFILES.items()),
+            # Opcode version admission uses the insertion order of the actual
+            # expanded registry, not the public historical discovery catalog.
+            "all_profiles": list(opcodes.ALL_PRIMITIVE_PROFILES.items()),
+            "core_all_profiles": list(core.ALL_PRIMITIVE_PROFILES.items()),
         },
     })
     imported_helpers = tuple(_callable_policy(helper)

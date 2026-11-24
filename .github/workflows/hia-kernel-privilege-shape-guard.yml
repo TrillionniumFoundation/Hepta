@@ -1,0 +1,28 @@
+name: Experimental kernel privilege function-shape guard (not Linux acceptance)
+on:
+  push:
+    branches:
+      - 'automation/hia-core-privilege-shape-guard-*'
+  pull_request:
+    paths:
+      - 'hepta/hia_program.py'
+      - 'tests/test_hia_kernel_privilege_shape_guard.py'
+      - '.github/workflows/hia-kernel-privilege-shape-guard.yml'
+  workflow_dispatch:
+jobs:
+  exact-shape-rejection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Hostile containers, original v8 regression and typed INVLPG
+        run: |
+          python -B -m unittest \
+            tests.test_hia_kernel_privilege_shape_guard \
+            tests.test_hia_program.CanonicalInputAndCFGTests.test_wrong_json_container_at_each_schema_position_is_rejected \
+            tests.test_hia_kernel_invlpg_core -v
+      - name: Preserve full Linux acceptance HOLD
+        run: |
+          echo 'KERNEL_PRIVILEGE_SHAPE: checked; FULL_LINUX_REWRITE: HOLD'
