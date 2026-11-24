@@ -80,7 +80,7 @@ class StoreReleaseBuildTests(unittest.TestCase):
     def test_source_member_admission_checks_the_staged_elf_and_captured_hia_sources(self):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
-            names = ('hia-source-build', 'hia-directory-package-build')
+            names = ('hia-source-build', 'hia-directory-package-build', 'hia-source-capture')
             tools = {}
             for name in names:
                 data = name.encode()
@@ -91,6 +91,11 @@ class StoreReleaseBuildTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'source differs from cold admission'):
                     release._stage_source_members(work, work, {}, tools, published.append,
                                                   compiler_bytes=b'', report_bytes=b'', core_inputs=(None, None))
+                (work / 'hia-source-capture').write_bytes(b'changed')
+                with self.assertRaisesRegex(ValueError, 'tool differs from its staged identity'):
+                    release._stage_source_members(work, work, {}, tools, published.append,
+                                                  compiler_bytes=b'', report_bytes=b'', core_inputs=(None, None))
+                (work / 'hia-source-capture').write_bytes(b'hia-source-capture')
                 (work / names[0]).write_bytes(b'changed')
                 with self.assertRaisesRegex(ValueError, 'tool differs from its staged identity'):
                     release._stage_source_members(work, work, {}, tools, published.append,

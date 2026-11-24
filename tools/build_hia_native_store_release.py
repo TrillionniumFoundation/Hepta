@@ -46,6 +46,8 @@ def _compile(work, component, compiler, cold_report, *args, label=None, **option
 def _stage_component_outputs(work, compiler, cold_report, publish):
     with TemporaryDirectory(prefix='source-build-', dir=work) as tmp:
         publish(_compile(Path(tmp), 'source_build', compiler, cold_report))
+    with TemporaryDirectory(prefix='source-capture-', dir=work) as tmp:
+        publish(_compile(Path(tmp), 'source_capture', compiler, cold_report))
 
 
 def _stage_agent_store(work, seed, compile_sources, call, compiler, admitted, publish):
@@ -872,15 +874,12 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
                         or packed.stderr != (digest + '\n').encode('ascii')):
                     raise ValueError('source-built directory packer differs from its bootstrap packet')
 
+    source_capture = captured('hia-source-capture')
+
     def capture_sources(named):
-        pinned = {}
-        for name, source in named.items():
-            relative = 'examples/hia_bootstrap/' + source
-            data = (ROOT / relative).read_bytes()
-            if admitted.get(relative) != sha256(data).hexdigest():
-                raise ValueError('release member source differs from cold admission: ' + relative)
-            pinned[name] = data
-        return pinned
+        from tools.build_hia_source_capture import capture_named_sources
+
+        return capture_named_sources(source_capture, ROOT, named, admitted, work)
 
     policy_sources = capture_sources({
         'selfhost.hepta': 'selfhost.hepta',
