@@ -52,7 +52,7 @@ python -B tools/verify_hia_retained_evidence.py \
   --git-revision 5c3741da1d36e8c1f79ec728ec325b8d973c899e
 ```
 
-The [recorded actual replay](../review-evidence/hia-native-cleanup-20261111/retained-history-verification.json)
+The [recorded actual replay](https://github.com/TrillionniumFoundation/Hepta/blob/3f29ee2ab931950751880d62a28e3a1ae6753cfa/review-evidence/hia-native-cleanup-20261111/retained-history-verification.json)
 read **611/611 original files and 26,120,286 bytes**, with no size or SHA-256
 mismatch. This closes access to that historical byte collection without adding
 574 old paths to the current source tree. It does not confer native product

@@ -90,5 +90,5 @@ The superseded recovery narrative, including original failed argv comparisons
 and lost-executor observations, remains at its
 [exact published revision](https://github.com/TrillionniumFoundation/Hepta/blob/ad352eeb77d804c14d7407713e23d37e7f037cf1/docs/HIA_NATIVE_CLI_CONTROL_RECOVERY_20261111.md).
 Its original size, Git blob and SHA-256 are in the
-[process-document ledger](../review-evidence/hia-native-cleanup-20261111/retired-process-documents.json).
+[process-document ledger](https://github.com/TrillionniumFoundation/Hepta/blob/3f29ee2ab931950751880d62a28e3a1ae6753cfa/review-evidence/hia-native-cleanup-20261111/retired-process-documents.json).
 Historical failures and unknown outcomes retain their original meaning.

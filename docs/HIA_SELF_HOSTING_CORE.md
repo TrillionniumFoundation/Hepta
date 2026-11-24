@@ -104,7 +104,7 @@ with children in separate sessions, exhausted cleanup, and invalid-platform
 admission. Their finite observations are separate from actual HIA qualification.
 Current source-specific run results are indexed in [CURRENT.md](CURRENT.md).
 The two superseded November 8 process narratives remain recoverable through
-the [published-object ledger](../review-evidence/hia-native-cleanup-20261111/retired-process-documents.json);
+the [published-object ledger](https://github.com/TrillionniumFoundation/Hepta/blob/3f29ee2ab931950751880d62a28e3a1ae6753cfa/review-evidence/hia-native-cleanup-20261111/retired-process-documents.json);
 their historical failures and successful controls are not current run receipts.
 
 ## Fixed seed and actual generation chain

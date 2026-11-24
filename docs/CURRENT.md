@@ -428,10 +428,10 @@ Numbered HIA units may compose one current program. Build output and isolated
 development attempts stay outside the product tree.
 
 Retired process narratives remain recoverable from fixed Git objects through
-the existing [process-document ledger](../review-evidence/hia-native-cleanup-20261111/retired-process-documents.json).
-The [development-version](../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json),
-[historical-bundle](../review-evidence/hia-native-cleanup-20261111/retired-historical-bundles.json)
-and [rewrite-observation](../review-evidence/hia-native-cleanup-20261111/retired-rewrite-observations.json)
+the existing [process-document ledger](https://github.com/TrillionniumFoundation/Hepta/blob/3f29ee2ab931950751880d62a28e3a1ae6753cfa/review-evidence/hia-native-cleanup-20261111/retired-process-documents.json).
+The [development-version](https://github.com/TrillionniumFoundation/Hepta/blob/3f29ee2ab931950751880d62a28e3a1ae6753cfa/review-evidence/hia-native-cleanup-20261111/retired-development-versions.json),
+[historical-bundle](https://github.com/TrillionniumFoundation/Hepta/blob/3f29ee2ab931950751880d62a28e3a1ae6753cfa/review-evidence/hia-native-cleanup-20261111/retired-historical-bundles.json)
+and [rewrite-observation](https://github.com/TrillionniumFoundation/Hepta/blob/3f29ee2ab931950751880d62a28e3a1ae6753cfa/review-evidence/hia-native-cleanup-20261111/retired-rewrite-observations.json)
 ledgers retain their actual completed retirements.
 
 Active Python modules and qualification supervisors remain until replacement,
