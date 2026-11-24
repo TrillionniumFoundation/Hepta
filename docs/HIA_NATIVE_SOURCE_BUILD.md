@@ -69,7 +69,7 @@ An actual valid JSON Core `.hepta` fixture is checked by the Core verifier and
 then supplied to this builder in the tests: the assembly compiler refuses it
 with exit 18, with no partial result even after an earlier member compiled.
 
-`tools/qualify_hia_selfhost.py::compile_stage` uses a 1 MiB output and a 1 MiB
+The qualified compiler contract uses a 1 MiB output and a 1 MiB
 workspace. This standalone transport uses the same sizes and clears the entire
 compiler workspace before each call. The input package becomes read-only after
 EOF. Compiler output occupies a separate 1 MiB region inside the policy arena;
@@ -113,84 +113,56 @@ the final byte stream is being written can expose a prefix to the output device;
 callers needing atomic filesystem publication should use the existing native
 release installer's staged publication protocol.
 
-`tools/build_hia_source_build.py` is an explicit hosted bootstrap and code-custody
-tool. It requires the actual current complete cold qualification before creating
-its output directory. It compiles the policy and packer with a captured compiler
-image, checks actual call receipts including the compiler/image identity, source
-hash/size, strict integer return/produced sizes, produced hash, unchanged source
-and empty forbidden-module list, then rechecks the complete cold/source/image
-inputs before publishing the final executable. Its native source-kit checks run
-from a sealed executable descriptor, preventing a temporary pathname replacement
-from selecting another program. Final publication writes captured executable
-bytes to an `O_TMPFILE` anonymous inode and links that retained descriptor into a
-captured destination directory without replacing an existing entry. It never
-selects code by a replaceable staging pathname. The native-produced source kit is also passed as captured bytes to this
-publication function. It receives its own retained anonymous descriptor and
-`0400` no-replace link. The success receipt is emitted after both published
-files have been read back through their descriptors; it records each actual
-device, inode, mode, size and hash. The executable remains `0500`. Publication/receipt failure withdraws only entries still
-bound to the invocation's own inode. This bootstrap publication requires Linux
-`O_TMPFILE` support on the output filesystem and fails closed without it.
-The published source kit is produced by the native builder, and native repacking
-must reproduce the captured executable.
+The native public bootstrap entry is:
 
-A successful cold replay records the HIA-emitted flat-call observer in
-`native_flat_observer_hex`. The source-seed builder and single-helper builder
-run this captured ELF from sealed descriptors to compile and pack their input.
-The cold report and B3 compiler can be moved together. For a report predating
-the embedded observer, the bootstrap recovers its bytes by executing the
-checked-in HIA packer in the independent reference VM. A damaged embedded
-observer fails admission before either builder creates its output.
+```sh
+hia-source-bootstrap --source ABS_SOURCE --cold ABS_COLD --bootstrap ABS_BOOTSTRAP --output NEW_ABS_OUTPUT
+```
 
-The bootstrap's Python generator, assembler, cold gate and receipt checks remain
-declared host boundaries. The generated ELF has no Python, libc, source-generator,
-assembler, external compiler, import path, current-directory or executable-name
-dependency. This component closes native compilation of a supplied assembly
-source bundle and native self-repacking. It does not establish whole-project
-native delivery, rewrite the public frontend, replace the remaining nominal
-normalization bridges, or justify removal of the retained reference tools.
+Its source authority and production recipe are captured with the admitted
+bootstrap roots. The cold input contains the actual `qualification/base/B3.flat`
+and `final-cold.json`. The recipe's first admission step binds the strict
+complete cold report, current source inventory, support contract and exact B3
+digest. B3 is executed only after that step returns the required admission
+record. A named file, a report-shaped object or an old success receipt cannot
+substitute for the actual complete cold run.
+
+The HIA production plan constructs the source builder, builds and repacks its
+source kit through two actual generations, checks complete source-kit and
+executable byte identity, and independently rebuilds B3. It then constructs the
+ordinary build capabilities and their exact entry binding. The public owner
+captures and seals its inputs, retains child results, confirms process cleanup,
+rechecks the original source, tool, B3 and report observations, and reads back
+every installed file before publishing success. Changed bytes and change-then-
+restore identity races cannot gain a final success receipt.
+
+The source builder's installed evidence includes `cold-inputs.receipt` with
+`HIASBIN1`, the actual B3 digest, actual cold-report digest and the strict
+`HIAADC01` admission record. This binds cold inputs into the installed tool
+manifest. The public `HIASBOK1` receipt separately binds source and tool
+manifests. See [the bootstrap entry contract](HIA_COLD_SOURCE_BOOTSTRAP_ENTRY.md)
+for exact transport, publication and refusal rules.
 
 ## Validation and integration
 
-The normal Core/Store release includes the native source builder and its three
-HIA sources. From installed bytes the release job packs a source-only bundle,
-recompiles it, uses the compiled sources and images to reproduce the installed
-builder byte for byte, then repeats the build with that reproduced executable.
-Both generations must emit an identical source kit. This checks the retained
-assembly compiler and its bundle transport, not the rest of the product's
-source build.
+The ordinary release contains the native source builder and its three HIA
+sources. From installed bytes, source-only build and source/image repack must
+reproduce the executable, and a second rebuilt generation must emit the same
+source kit. These checks cover the assembly compiler and its transport. The
+ordinary whole-project build, package installation, Worker installation and
+installed whole-source rebuild remain separately required acceptance stages.
 
-`tests.test_hia_source_build` contains complete source regeneration checks,
-independent HIA VM policy/ELF byte oracles, strict receipt refusal controls, actual
-B0/B1/B2/B3 development compilation, actual native two-round self-rebuilds,
-changed-compiler-source causality (`M1 != M2 == M3`), source/image mismatch
-refusals, max-name/member/source/image boundaries, a real late output-capacity
-failure after many successful compilations, copied-executable/empty-PATH and
-syscall observations, real private-path substitution at the publication syscall,
-publication collision/receipt rollback, malformed input and kernel I/O failures.
-The write-failure controls separately exercise `/dev/full` before any output and
-an actual pipe receiver that reads a prefix then closes, with strace confirming
-the following `EPIPE` and authoritative exit 15.
+Required refusal controls cover malformed envelopes, names, modes, phase and
+capacity boundaries, rejected source, changed source/image pairs, late output
+capacity failure and kernel I/O failure. The final write may encounter a full
+device or a reader that closes after receiving a prefix; that is a transport
+failure, not an atomic successful publication. Product publication uses the
+native owner's retained descriptors and final readback checks.
 
-`HEPTA_HIA_SOURCE_BUILD_COLD_REPORT` selects the real strict builder and a new
-independent output directory. It always takes precedence over any development
-manifest. A development manifest must bind current exact source bytes and the
-exact standalone ELF image composition; it is explicitly recorded as development
-evidence and cannot substitute for cold qualification.
-
-These new files are developed in an isolated worktree based on suffix migration
-commit `20838a0a3e35493f4d96c74c3fca7ef86e4c529a`. Public source manifests, the
-source contract, inventories and CI registrations are intentionally integrated
-by the main development task, followed by a new complete cold qualification.
-Earlier lost-worktree results are not evidence for this implementation.
-
-The v67 integration additionally validates a normal captured sourcekit/executable
-publication: it reads the two actual files and receipt, checks their inode, mode,
-size and complete hashes, and uses the published executable to repack the
-published kit back to identical ELF bytes. This is a positive product-integrity
-control. It does not claim an observed sourcekit substitution counterexample.
-The private publisher retains its original three positional arguments; the
-sourcekit is an optional keyword for existing executable-only test callers.
+All reports must name their actual source, installed bytes and executed scope.
+A development component result or historical build cannot stand in for the
+complete current cold and installed release gates. [CURRENT.md](CURRENT.md)
+indexes that acceptance evidence.
 
 ## Building native filter release members from the installed seed
 
@@ -224,7 +196,7 @@ For budget-observation, budget-store, cost-ledger, cost-ledger-flow, measurement
 | `hia-execution-budget-session` | `execution_budget.hepta` | `execution_budget_session_packer.hepta` |
 | `hia-safe-core-loader` | `safe_core_elf_inventory.hepta` | `safe_core_loader_filter_packer.hepta` |
 
-`HIA_TEST_NATIVE_FILTER_RELEASE` selects an installation for the full source-to-ELF comparison in `tests.test_hia_source_filter_member`. The test accepts an explicitly selected matching source directory in `HIA_TEST_NATIVE_FILTER_SOURCES`.
+Member qualification compares the complete source-produced ELF with the exact admitted installation using the matching source authority. A different source directory requires fresh identity and execution evidence.
 
 ## Building installed Agent stdio roles
 
@@ -236,7 +208,7 @@ For a tool with a separately checked syscall adapter or transaction layout, the 
 
 For recipes with two to four sources, the release uses `HIAMUL01` followed by the source count and the same length-prefixed filename and source for each input. The member builder checks the declared module of every input and matches the required companion identities. It compiles each source once and saves up to four 1 MiB objects outside the live compiler output region. It passes the objects to the packer in the order required by the primary module and compares their bytes in the finished ELF. The response contains the ELF and each compiled object in request order. Its footer holds the ELF length, one length per object, and the object count as little-endian 64-bit integers, followed by `HIAOBJS1`. The source-less Worker port retains its existing `HIAWPRT1` request.
 
-The builder also accepts the source-and-image packet produced by the installed seed. Stage the role's HIA application under the public release name plus `.hepta`. For example, `hia-agent-read-page` takes `agent_read_page.hepta` under the name `hia-agent-read-page.hepta`. The kernel selects the wire mode from the exact public filename and checks the source's declared HIA module. It recompiles the sources and verifies that the original application and optional codec bytes occur at their expected positions in the finished ELF. The directory, compiler and `member-builder build` stages use the same commands as the filter example above. The `VARIANTS` data in `tools/build_hia_agent_read_page.py` identifies the original source basename for every existing public role.
+The builder also accepts the source-and-image packet produced by the installed seed. Stage the role's HIA application under the public release name plus `.hepta`. For example, `hia-agent-read-page` takes `agent_read_page.hepta` under the name `hia-agent-read-page.hepta`. The kernel selects the wire mode from the exact public filename and checks the source's declared HIA module. It recompiles the sources and verifies that the original application and optional codec bytes occur at their expected positions in the finished ELF. The directory, compiler and `member-builder build` stages use the same commands as the filter example above. The HIA member policy and source-bound ordinary recipe identify the admitted source basename and companions for each public role.
 
 ## Building Worker carriers and launchers
 
@@ -293,9 +265,9 @@ before any output is published. The shared persisted-metadata authoring helper
 is compiled into each HIA policy; it is not a separately executable runtime
 component or an additional packing image.
 
-`tools/qualify_hia_job_sources.py` drives the native source kit with an empty
-`PATH`, compares every retained and embedded image with separate source
-compilations, reverses named-source order, and exercises role refusals. Full
+Native job qualification drives the source kit with an empty `PATH`,
+compares retained and embedded images with independent source compilations,
+reverses named-source order, and exercises role refusals. Full
 cold qualification, ordinary source release, installation and public job
 routing remain separate gates. Including these two programs in the release
 does not itself establish that a running MCP service uses them.

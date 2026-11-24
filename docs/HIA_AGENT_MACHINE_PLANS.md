@@ -1,8 +1,5 @@
 # Explicit HIA machine plans
 
-> Historical finite Core/native observations; removed harnesses are not
-> delivered product entry points or current-source qualification.
-
 The Agent selects a plan. The direct backend validates and realizes it without
 running a profitability search. Core remains the immutable semantic anchor;
 an accepted plan cannot change ownership, ordered effects, traps or the public
@@ -103,13 +100,10 @@ refinement remain outside this profile.
 these two registers, and an empty canonical v4 plan retains canonical bytes.
 The backend does not select a plan or replace the default lowering.
 
-The new class is motivated by actual RIP sampling of the complete Selfhost-Core
-compiler on its own source. The bounded follow-up records 1,018 dynamic samples
-from three exact native compilations, with every produced compiler byte checked.
-The byte-word helpers `get` and `put` account for 335 and 229 samples respectively.
-This observation chooses the functions to investigate; a static symbol table
-is used only to attribute those sampled addresses. The performance qualification
-then compares explicit plans on the same complete compiler workload.
+Caller-clobbered leaf assignments are explicit choices under the v4 tag.
+Selecting them does not assert that they improve this workload. Performance
+must be measured for the exact emitted image, including the surrounding
+validation, build and invocation costs.
 
 The independent checker applies these additional rules to the **whole function**
 whenever any value uses `r8` or `r9`:
@@ -171,42 +165,27 @@ is a finite preservation check relative to the
 canonical lowering and encoder. The receipt explicitly keeps universal
 Core-to-machine refinement unproved.
 
-`retired harness qualify-hia-machine-choices --out /absolute/new-directory` emits five
-arms: canonical, scratch registers, instruction selection, function layout and
-their combination. Each arm retains complete objects/images, exact build
-receipts, all correctness cases, emission/rederivation/link/publication costs,
-and interleaved native timing batches. Shared setup is identified separately.
-Python/ctypes dispatch is included in those timings.
+Current qualification must bind every plan to the exact Core and installed
+implementation, retain the complete object and final image, and compare the
+whole frozen workload with the independent reference. Required controls cover
+overlapping live intervals, resource assignments, ABI-register assignments,
+parallel edge copies, nested calls, multiple results, dirty incoming argument
+bits, stack arguments, callee saves and pre-write traps. A failed or incomplete
+arm remains in the result.
 
-For the v3 surface, run:
+Emission, rederivation, linking, publication, fresh-process application and
+call time are separate measured costs. Resetting input, hashing all output
+bytes or starting a process cannot disappear from total cost because a narrow
+call timer excludes it. Interleaved timing observations remain specific to the
+measured host, workload and exact plans.
 
-```sh
-python -m unittest tests.test_hia_machine_registers tests.test_hia_machine_plan \
-  tests.test_hia_machine_x64 tests.test_hia_agent_native_machine_choices -v
-python tools/qualify_hia_machine_registers.py --out /absolute/new-directory
-```
+Historical campaigns and their hosted timing boundaries are retained in the
+single [qualification provenance](HIA_HISTORICAL_QUALIFICATION_PROVENANCE.json).
+They do not qualify current native bytes. Source-bound and installed-interface
+results are indexed by [CURRENT.md](CURRENT.md).
 
-The v3 campaign freezes one nine-function fixture with loops, parallel copies,
-register reuse, nested calls, multiple results, recursion and libc memory calls.
-It compares canonical, scalar registers, scalar CMOV, layout and combined arms
-against the existing independently implemented Core interpreter. It also runs
-three expected rejections for overlapping lifetimes, a resource assignment and
-an ABI-register assignment. Every attempt is checkpointed before execution and
-retains success/failure status, diagnostics, commands and phase wall/CPU costs.
-A failed arm leaves a failed complete report instead of disappearing from the
-denominator. The native observation runs in a bounded disposable child; exit,
-timeout and captured output remain visible. All five native timing arms run in
-interleaved order inside that child.
-
-Complete `.o` and `.so` files, Core, plans, per-case outputs, exact source hashes,
-frame maps and full-image/text/object byte counts remain in the output directory.
-Separate tests use an independent ABI caller to check callee-saved registers,
-dirty upper argument bits and stack arguments, and a C memory observer to check
-that invalid indices trap before a partial write. The encoder tests exercise
-register-only CMOV over every admitted general-register pair and both true and
-false signed/unsigned/equality conditions.
-
-This fixture is synthetic. Model, discovery and failed Agent-search costs are
-unknown, so full-search economics and real-task strategy benefit stay open even
-when a planned image is smaller. The NDU macro-controller uses a separate
-same-Agent, same-budget real-task gate; this experiment cannot close it.
+A smaller image or faster synthetic call does not establish full search
+economics, model effectiveness or task benefit. Unknown model, discovery,
+failed-search and future-use costs remain unknown. The separate
+[planning and cost contract](HIA_AGENT_MACRO_POLICY.md) requires the original
+budget and actual task evidence.

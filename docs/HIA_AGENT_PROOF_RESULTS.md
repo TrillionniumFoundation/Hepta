@@ -19,7 +19,7 @@ an artifact. An operation's top-level `completed` means the request ended.
 | `profile` | Validation profile ID and content hash; the compatibility field `validator` has the same value |
 | `domain` | The checker's concrete quantified or bounded domain and its result-specific diagnostic |
 | `assumptions` | Explicit premises with stable IDs; an assumption is not a proved obligation |
-| `checker` | Method and entry point, installed worker/backend/catalog hashes, Python implementation/version, and actual SMT checker/binding/library hashes when used |
+| `checker` | Method and entry point, installed Worker/backend/catalog hashes, exact native checker and solver identities, and the source inventory for those bytes |
 | `unproved_obligations` | Properties left open by this method, distinguishing model-level machine obligations that were checked from complete hardware ISA refinement, caller/loader validity, resources and side channels that remain open |
 | `evidence_artifact` | Retained checker evidence, including a complete binding to this result's scope and conclusion |
 | `assumptions_artifact` | Retained copy of the exact subject, property, profile, checker and assumptions |
@@ -27,8 +27,8 @@ an artifact. An operation's top-level `completed` means the request ended.
 
 The worker hash identifies the actual installed source inventory, including the
 proof contract implementation. It is not a claim that the checkout is clean.
-The optional SMT identity names the library and Python binding actually used,
-not merely a requested solver version.
+The solver identity names the actually admitted native solver and query
+format, not merely a requested algorithm or a historical dependency version.
 
 ## What each existing method establishes
 
@@ -69,9 +69,9 @@ It never invokes the emitter or linker to manufacture replacement proof inputs.
 Object-only output and Core/ELF/instruction shapes outside the model are
 `unsupported`; missing or mismatched retained build identities are rejected.
 
-The retained evidence includes the raw validator report, actual solver
-binding/library identities, the independent consumer's source inventory and
-digest, and immutable SMT query artifacts. A proof requires the exact five
+The retained evidence includes the raw validator report, actual native checker
+and solver identities, the independent consumer's source inventory and digest,
+and immutable query artifacts. A proof requires the exact five
 ordered obligations: caller-contract nonvacuity must be `sat`; memory bounds,
 SysV state, terminal outcome coverage and Core-to-final return/abort/caller-byte
 refinement must each be `unsat`. A concrete violation `sat` produces `refuted`;
@@ -110,9 +110,9 @@ obligations. None can satisfy a required proof. Even a complete `proved` record
 is one input to the existing context, workload, resource and conditional
 generation/epoch gates.
 
-## Public scalar validator results
+## Scalar validator properties
 
-The direct Python APIs `validate_translation`, `validate_scalar_calls`,
+The property families `validate_translation`, `validate_scalar_calls`,
 `validate_bounded_translation`, `validate_scalar_totality` and
 `validate_scalar_call_totality` use the same six mandatory concepts:
 `subject`, `property`, `profile`, `assumptions`, `checker` and
@@ -124,7 +124,7 @@ shape, missing solver and exhausted proof budget. Unavailable identities are
 explicitly null; an unknown result is not evidence that its requested property
 holds.
 
-| Direct API | Exact property and selected subject |
+| Property family | Exact property and selected subject |
 | --- | --- |
 | `validate_translation` | All typed arguments preserve return values or the first specified Core trap for the selected before/after functions. |
 | `validate_scalar_calls` | The same property for the independently traversed bounded direct-call closures, including the identities of both complete Core programs. |
@@ -140,21 +140,24 @@ qualified Core v1-v7 scalar semantics merely because another Core version parses
 Equivalence of a program that traps remains possible and leaves normal-return
 totality open.
 
-`checker` names the actual Python entry point, the enumerated source-file hashes,
-the Python implementation/version, and the actual solver binding and loaded
-image identities (HIA or Z3). The source inventory is observed before checking and
-rechecked before publishing a proof or counterexample. Missing or changed
-identity leaves `unknown` and clears proof claims. This remains a trusted
-executable checker; the source inventory does not attest imported memory or
-prove the implementation sound. Execution of those bytes and the
-absence of concurrent tampering remain explicit assumptions.
+`checker` names the actual native entry, its enumerated source and executable
+hashes, and the admitted solver identity. The native Core proof wire, obligation
+builder and CNF solver own the current checking path. The source inventory is
+observed before checking and rechecked before publication. Missing or changed
+identity leaves `unknown` and clears proof claims. A source inventory does not
+attest loaded memory or prove the checker sound. Execution of the admitted bytes
+and absence of concurrent tampering remain explicit assumptions.
+
+The property names above identify the preserved proof contracts; they are not
+instructions to import a retired hosted module. Use the discovered native
+operation and its complete scoped result.
 
 These Core queries leave compiler-to-machine refinement, ABI/FFI/loading,
 physical resources, other public exports and concurrency outside their
 conclusion. They never grant execution authority. Finite workloads and host
 checks do not acquire this SMT proof label.
 
-`verify_translation_receipt` and `verify_bounded_translation_receipt` reconstruct
+Translation and bounded-translation receipt consumers reconstruct
 the required query from the current verified programs and require the recomputed
 scope. Receipts with missing, broadened or changed scope are rejected, including
 changes to the bounded result's nested equivalence scope. Rerun the validator to
