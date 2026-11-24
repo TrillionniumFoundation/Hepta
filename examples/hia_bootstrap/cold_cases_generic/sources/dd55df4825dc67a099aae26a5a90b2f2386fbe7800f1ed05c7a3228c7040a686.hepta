@@ -1,0 +1,25 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:u8 = const() {"value":3}
+  v4:readbuf = call(v0,v3) {"function":"f1"}
+  v5:usize = const() {"value":0}
+  v6:u8 = buffer.load(v4,v5)
+  _ = loan.end(v4)
+  _ = buffer.store(v1,v5,v6)
+  v7:u32 = const() {"value":0}
+  ret(v7)
+end
+fn f1(v0:readbuf,v1:u8) -> (readbuf) effects(read,write,trap) entry(b0) return_loans(["v0"])
+block b0(v0:readbuf,v1:u8)
+  v2:u8 = const() {"value":0}
+  v3:bool = compare.eq(v1,v2)
+  branch v3 b1(v0) b2(v0,v1)
+block b1(v4:readbuf)
+  ret(v4)
+block b2(v5:readbuf,v6:u8)
+  v7:u8 = const() {"value":1}
+  v8:u8 = int.sub.wrap(v6,v7)
+  v9:readbuf = call(v5,v8) {"function":"f1"}
+  ret(v9)
+end

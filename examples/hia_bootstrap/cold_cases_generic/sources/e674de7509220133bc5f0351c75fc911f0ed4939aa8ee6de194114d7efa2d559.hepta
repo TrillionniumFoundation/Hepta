@@ -1,0 +1,92 @@
+hia-asm.v1 hepta.hia.program.v8 loan_reference
+fn reference_entry() -> (u32,u8,u8,u8,u8,u8,u8,u8,u8) effects(alloc,read,write,trap) entry(b0)
+block b0()
+  v0:usize = const() {"value":8}
+  v1:buffer = buffer.new(v0)
+  v2:mutbuf = borrow.mut(v1)
+  v3:usize = const() {"value":0}
+  v4:u8 = const() {"value":11}
+  _ = buffer.store(v2,v3,v4)
+  v5:usize = const() {"value":1}
+  v6:u8 = const() {"value":22}
+  _ = buffer.store(v2,v5,v6)
+  v7:usize = const() {"value":2}
+  v8:u8 = const() {"value":33}
+  _ = buffer.store(v2,v7,v8)
+  v9:usize = const() {"value":3}
+  v10:u8 = const() {"value":44}
+  _ = buffer.store(v2,v9,v10)
+  v11:usize = const() {"value":4}
+  v12:u8 = const() {"value":55}
+  _ = buffer.store(v2,v11,v12)
+  v13:usize = const() {"value":5}
+  v14:u8 = const() {"value":66}
+  _ = buffer.store(v2,v13,v14)
+  v15:usize = const() {"value":6}
+  v16:u8 = const() {"value":77}
+  _ = buffer.store(v2,v15,v16)
+  v17:usize = const() {"value":7}
+  v18:u8 = const() {"value":88}
+  _ = buffer.store(v2,v17,v18)
+  v19:usize = const() {"value":8}
+  v20:buffer = buffer.new(v19)
+  v21:mutbuf = borrow.mut(v20)
+  v22:usize = const() {"value":1}
+  v23:u8 = const() {"value":1}
+  _ = buffer.store(v21,v22,v23)
+  v24:usize = const() {"value":2}
+  v25:u8 = const() {"value":2}
+  _ = buffer.store(v21,v24,v25)
+  v26:usize = const() {"value":3}
+  v27:u8 = const() {"value":3}
+  _ = buffer.store(v21,v26,v27)
+  v28:usize = const() {"value":4}
+  v29:u8 = const() {"value":4}
+  _ = buffer.store(v21,v28,v29)
+  v30:usize = const() {"value":5}
+  v31:u8 = const() {"value":5}
+  _ = buffer.store(v21,v30,v31)
+  v32:usize = const() {"value":6}
+  v33:u8 = const() {"value":6}
+  _ = buffer.store(v21,v32,v33)
+  v34:usize = const() {"value":7}
+  v35:u8 = const() {"value":7}
+  _ = buffer.store(v21,v34,v35)
+  v36:usize = const() {"value":0}
+  v37:buffer = buffer.new(v36)
+  v38:mutbuf = borrow.mut(v37)
+  _ = loan.end(v2)
+  v39:readbuf = borrow.read(v1)
+  v40:u32 = call(v39,v21,v38) {"function":"f0"}
+  v41:usize = const() {"value":0}
+  v42:u8 = buffer.load(v21,v41)
+  v43:usize = const() {"value":1}
+  v44:u8 = buffer.load(v21,v43)
+  v45:usize = const() {"value":2}
+  v46:u8 = buffer.load(v21,v45)
+  v47:usize = const() {"value":3}
+  v48:u8 = buffer.load(v21,v47)
+  v49:usize = const() {"value":4}
+  v50:u8 = buffer.load(v21,v49)
+  v51:usize = const() {"value":5}
+  v52:u8 = buffer.load(v21,v51)
+  v53:usize = const() {"value":6}
+  v54:u8 = buffer.load(v21,v53)
+  v55:usize = const() {"value":7}
+  v56:u8 = buffer.load(v21,v55)
+  _ = loan.end(v39)
+  _ = loan.end(v21)
+  _ = loan.end(v38)
+  _ = owner.drop(v1)
+  _ = owner.drop(v20)
+  _ = owner.drop(v37)
+  ret(v40,v42,v44,v46,v48,v50,v52,v54,v56)
+end
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:u64 = const() {"value":7}
+  v4:u64 = const() {"value":4}
+  v5:u64 = int.add.checked(v3,v4)
+  v6:u32 = int.cast(v5) {"mode":"wrap"}
+  ret(v6)
+end

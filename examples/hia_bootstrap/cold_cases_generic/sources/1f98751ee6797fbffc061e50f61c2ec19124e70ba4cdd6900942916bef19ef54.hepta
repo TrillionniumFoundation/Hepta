@@ -1,0 +1,14 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost_elf
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:u32,v4:buffer = call() {"function":"f1"}
+  _ = owner.drop(v4)
+  ret(v3)
+end
+fn f1() -> (u32,buffer) effects(alloc,read,write,trap) entry(b0)
+block b0()
+  v0:usize = const() {"value":8}
+  v1:buffer = buffer.new(v0)
+  v2:u32 = const() {"value":17}
+  ret(v2,v1)
+end

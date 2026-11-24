@@ -1,0 +1,9 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects() entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:u64 = const() {"value":7}
+  v4:u64 = const() {"value":4}
+  v5:u64 = int.mul.checked(v3,v4)
+  v6:u32 = int.cast(v5) {"mode":"wrap"}
+  ret(v6)
+end

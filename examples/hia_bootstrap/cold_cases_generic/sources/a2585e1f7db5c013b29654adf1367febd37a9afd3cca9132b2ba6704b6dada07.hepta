@@ -1,0 +1,10 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:usize = const() {"value":0}
+  v4:usize = const() {"value":8}
+  v5:u32 = const() {"value":255}
+  _ = buffer.fill_range(v1,v3,v4,v5)
+  v6:u32 = const() {"value":0}
+  ret(v6)
+end

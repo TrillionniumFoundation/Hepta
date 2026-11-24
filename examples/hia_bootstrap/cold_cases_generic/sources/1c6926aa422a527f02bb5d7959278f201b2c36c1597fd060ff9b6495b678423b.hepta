@@ -1,0 +1,96 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:usize,v4:u8 = call(v0) {"function":"f1"}
+  v5:u64 = int.cast(v3) {"mode":"wrap"}
+  v6:u64 = const() {"value":0}
+  v7:u64 = int.shr.checked(v5,v6)
+  v8:u8 = int.cast(v7) {"mode":"wrap"}
+  v9:usize = const() {"value":0}
+  _ = buffer.store(v1,v9,v8)
+  v10:u64 = const() {"value":8}
+  v11:u64 = int.shr.checked(v5,v10)
+  v12:u8 = int.cast(v11) {"mode":"wrap"}
+  v13:usize = const() {"value":1}
+  _ = buffer.store(v1,v13,v12)
+  v14:u64 = const() {"value":16}
+  v15:u64 = int.shr.checked(v5,v14)
+  v16:u8 = int.cast(v15) {"mode":"wrap"}
+  v17:usize = const() {"value":2}
+  _ = buffer.store(v1,v17,v16)
+  v18:u64 = const() {"value":24}
+  v19:u64 = int.shr.checked(v5,v18)
+  v20:u8 = int.cast(v19) {"mode":"wrap"}
+  v21:usize = const() {"value":3}
+  _ = buffer.store(v1,v21,v20)
+  v22:u64 = const() {"value":32}
+  v23:u64 = int.shr.checked(v5,v22)
+  v24:u8 = int.cast(v23) {"mode":"wrap"}
+  v25:usize = const() {"value":4}
+  _ = buffer.store(v1,v25,v24)
+  v26:u64 = const() {"value":40}
+  v27:u64 = int.shr.checked(v5,v26)
+  v28:u8 = int.cast(v27) {"mode":"wrap"}
+  v29:usize = const() {"value":5}
+  _ = buffer.store(v1,v29,v28)
+  v30:u64 = const() {"value":48}
+  v31:u64 = int.shr.checked(v5,v30)
+  v32:u8 = int.cast(v31) {"mode":"wrap"}
+  v33:usize = const() {"value":6}
+  _ = buffer.store(v1,v33,v32)
+  v34:u64 = const() {"value":56}
+  v35:u64 = int.shr.checked(v5,v34)
+  v36:u8 = int.cast(v35) {"mode":"wrap"}
+  v37:usize = const() {"value":7}
+  _ = buffer.store(v1,v37,v36)
+  v38:u64 = int.cast(v4) {"mode":"wrap"}
+  v39:u64 = const() {"value":0}
+  v40:u64 = int.shr.checked(v38,v39)
+  v41:u8 = int.cast(v40) {"mode":"wrap"}
+  v42:usize = const() {"value":8}
+  _ = buffer.store(v1,v42,v41)
+  v43:u64 = const() {"value":8}
+  v44:u64 = int.shr.checked(v38,v43)
+  v45:u8 = int.cast(v44) {"mode":"wrap"}
+  v46:usize = const() {"value":9}
+  _ = buffer.store(v1,v46,v45)
+  v47:u64 = const() {"value":16}
+  v48:u64 = int.shr.checked(v38,v47)
+  v49:u8 = int.cast(v48) {"mode":"wrap"}
+  v50:usize = const() {"value":10}
+  _ = buffer.store(v1,v50,v49)
+  v51:u64 = const() {"value":24}
+  v52:u64 = int.shr.checked(v38,v51)
+  v53:u8 = int.cast(v52) {"mode":"wrap"}
+  v54:usize = const() {"value":11}
+  _ = buffer.store(v1,v54,v53)
+  v55:u64 = const() {"value":32}
+  v56:u64 = int.shr.checked(v38,v55)
+  v57:u8 = int.cast(v56) {"mode":"wrap"}
+  v58:usize = const() {"value":12}
+  _ = buffer.store(v1,v58,v57)
+  v59:u64 = const() {"value":40}
+  v60:u64 = int.shr.checked(v38,v59)
+  v61:u8 = int.cast(v60) {"mode":"wrap"}
+  v62:usize = const() {"value":13}
+  _ = buffer.store(v1,v62,v61)
+  v63:u64 = const() {"value":48}
+  v64:u64 = int.shr.checked(v38,v63)
+  v65:u8 = int.cast(v64) {"mode":"wrap"}
+  v66:usize = const() {"value":14}
+  _ = buffer.store(v1,v66,v65)
+  v67:u64 = const() {"value":56}
+  v68:u64 = int.shr.checked(v38,v67)
+  v69:u8 = int.cast(v68) {"mode":"wrap"}
+  v70:usize = const() {"value":15}
+  _ = buffer.store(v1,v70,v69)
+  v71:u32 = const() {"value":0}
+  ret(v71)
+end
+fn f1(v0:readbuf) -> (usize,u8) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf)
+  v1:usize = buffer.len(v0)
+  v2:usize = const() {"value":0}
+  v3:u8 = buffer.load(v0,v2)
+  ret(v1,v3)
+end

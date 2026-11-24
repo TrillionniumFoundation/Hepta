@@ -1,0 +1,33 @@
+hia-asm.v1 hepta.hia.program.v8 bulk_reference
+fn reference_entry() -> (u32) effects(alloc,read,write,trap) entry(b0)
+block b0()
+  v0:usize = const() {"value":0}
+  v1:buffer = buffer.new(v0)
+  v2:mutbuf = borrow.mut(v1)
+  v3:usize = const() {"value":0}
+  v4:buffer = buffer.new(v3)
+  v5:mutbuf = borrow.mut(v4)
+  v6:usize = const() {"value":0}
+  v7:buffer = buffer.new(v6)
+  v8:mutbuf = borrow.mut(v7)
+  _ = loan.end(v2)
+  v9:readbuf = borrow.read(v1)
+  v10:u32 = call(v9,v5,v8) {"function":"f0"}
+  v11:u32 = const() {"value":0}
+  _ = loan.end(v9)
+  _ = loan.end(v5)
+  _ = loan.end(v8)
+  _ = owner.drop(v1)
+  _ = owner.drop(v4)
+  _ = owner.drop(v7)
+  ret(v11)
+end
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:usize = const() {"value":0}
+  v4:usize = const() {"value":0}
+  v5:usize = const() {"value":0}
+  _ = buffer.copy_range(v1,v0,v3,v4,v5)
+  v6:u32 = const() {"value":0}
+  ret(v6)
+end

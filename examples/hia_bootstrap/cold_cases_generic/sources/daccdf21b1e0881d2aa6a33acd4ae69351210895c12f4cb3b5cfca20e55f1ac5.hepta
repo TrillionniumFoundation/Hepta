@@ -1,0 +1,13 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:usize = const() {"value":0}
+  v4:u8 = const() {"value":99}
+  _ = buffer.store(v1,v3,v4)
+  v5:usize = const() {"value":7}
+  v6:usize = const() {"value":7}
+  v7:usize = const() {"value":2}
+  _ = buffer.move_within(v1,v5,v6,v7)
+  v8:u32 = const() {"value":0}
+  ret(v8)
+end
