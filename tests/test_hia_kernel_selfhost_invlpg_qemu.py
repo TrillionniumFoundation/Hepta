@@ -83,6 +83,7 @@ def run(output):
     native = original.read_bytes()
     expected = (output / "invlpg.text").read_bytes()
     if (digest(native) != report["elf_sha256"] or digest(expected) != report["text_sha256"]
+        or digest(source.read_bytes()) != report["subject_source_sha256"]
         or digest((output / "candidate.hepta").read_bytes()) != report["source_sha256"]
         or digest((output / "compiler-rebuilt-2").read_bytes()) != report["compiler_sha256"]):
         raise AssertionError("native bootstrap artifact custody failed")
@@ -110,6 +111,10 @@ def run(output):
     oracle = bytes.fromhex(report["oracle_hex"])
     if oracle != bytes.fromhex("0f0138") or expected.count(oracle) != 1:
         raise AssertionError("missing exact INVLPG")
+    if set(report["refusals"]) != {"missing-effect", "legacy-profile", "legacy-opcode",
+            "legacy-declaration", "wrong-type", "zero-operand", "extra-operand",
+            "result", "attribute", "duplicate-effect", "flat-profile", "missing-exports"}:
+        raise AssertionError("INVLPG refusal manifest is not bound to INVLPG")
     bad_text = expected.replace(oracle, b"\x90"*3, 1)
     mutation = output / "qemu-dishonest.text"
     mutation.write_bytes(bad_text)
@@ -128,9 +133,11 @@ def run(output):
     cr3_native = cr3_obj.read_bytes()
     cr3_text = (output / "cr3.text").read_bytes()
     cr3_report = report["cr3_read"]
+    cr3_source = output / "cr3-1.input"
     cr3_opcode = bytes.fromhex(cr3_report["oracle_hex"])
     if (digest(cr3_native) != cr3_report["elf_sha256"]
             or digest(cr3_text) != cr3_report["text_sha256"]
+            or digest(cr3_source.read_bytes()) != cr3_report["source_sha256"]
             or cr3_opcode != bytes.fromhex("0f20d8")
             or cr3_text.count(cr3_opcode) != 1
             or dump_text(cr3_obj, output / "cr3-original-readback.text") != cr3_text):
@@ -254,6 +261,8 @@ def run(output):
                 or write_obj.read_bytes() != write_native
                 or (output / "cr3-write.text").read_bytes() != write_text
                 or digest(write_source.read_bytes()) != write_report["source_sha256"]
+                or digest(source.read_bytes()) != report["subject_source_sha256"]
+                or digest(cr3_source.read_bytes()) != cr3_report["source_sha256"]
                 or cr3_obj.read_bytes() != cr3_native
                 or (output / "cr3.text").read_bytes() != cr3_text
                 or (output / "invlpg.text").read_bytes() != expected

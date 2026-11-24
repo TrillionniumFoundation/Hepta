@@ -300,25 +300,29 @@ def run(output):
         asm.write_text(".text\n movq %" + reg + ", %rax\n")
         oracle_object = output / (reg + "-oracle.o")
         subprocess.run(["as", "--64", "-o", str(oracle_object), str(asm)], check=True)
-        oracle = text_bytes(output, reg + "-oracle-copy", oracle_object.read_bytes())
-        if oracle != bytes.fromhex(expected_hex) or native_text.count(oracle) != 1:
+        reg_oracle = text_bytes(output, reg + "-oracle-copy", oracle_object.read_bytes())
+        if reg_oracle != bytes.fromhex(expected_hex) or native_text.count(reg_oracle) != 1:
             raise AssertionError(reg + " GNU as oracle mismatch")
-        refusals = {label.replace("cr3-", reg + "-"): bad.replace(b"x86.cr3.read", opcode)
+        reg_refusals = {label.replace("cr3-", reg + "-"): bad.replace(b"x86.cr3.read", opcode)
                     for label, bad in cr3_refusals.items()}
-        for label, bad in refusals.items():
+        for label, bad in reg_refusals.items():
             compile_cli(exe, bad, output, label, expected=2)
         extra_reads[reg + "_read"] = {"elf_sha256": digest(native), "text_sha256": digest(native_text),
-            "oracle_hex": oracle.hex(), "refusals": list(refusals), "source_sha256": digest(subject)}
+            "oracle_hex": reg_oracle.hex(), "refusals": list(reg_refusals), "source_sha256": digest(subject)}
 
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
+    if oracle != bytes.fromhex("0f0138") or machine.count(oracle) != 1 or len(refusals) != 12:
+        raise AssertionError("INVLPG report binding changed while qualifying other opcodes")
     report = {"status": "PASS", "source_sha256": digest(source),
         "compiler_sha256": digest(exe.read_bytes()), "elf_sha256": digest(first),
         "text_sha256": digest(machine), "oracle_hex": oracle.hex(),
+        "subject_source_sha256": digest(program()),
         "native_generations": 3, "empty_path_rebuilds": 2, "refusals": list(refusals),
         "cr3_read": {"elf_sha256": digest(cr3), "text_sha256": digest(cr3_text),
-                     "oracle_hex": cr3_oracle.hex(), "refusals": list(cr3_refusals)},
+                     "oracle_hex": cr3_oracle.hex(), "refusals": list(cr3_refusals),
+                     "source_sha256": digest(cr3_program())},
         "cr3_write": {"elf_sha256": digest(write), "text_sha256": digest(write_text),
                       "oracle_hex": write_oracle.hex(), "refusals": list(write_refusals),
                       "source_sha256": digest(write_source)},
