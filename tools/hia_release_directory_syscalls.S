@@ -79,6 +79,8 @@ policy_initial_hole: .long 0
  mov eax,107
  syscall
  mov [rbp+WORK+64],rax
+ cmp QWORD PTR [rbp+WORK+3104],0
+ jne capability_directory
  mov edi,-100
  lea rsi,[rip+slash]
  mov edx,0xb0000
@@ -115,6 +117,16 @@ walkskip:
 walknext:
  inc rbx
  jmp walk
+capability_directory:
+ mov rdi,[rbp+WORK+3104]
+ lea rsi,[rip+dot]
+ mov edx,0xb0000
+ xor r10d,r10d
+ mov eax,257
+ retry clone_directory
+ test rax,rax
+ js io_exit
+ mov r12,rax
 walked:
  statfd r12
  gate 1
@@ -331,3 +343,4 @@ exit:
  syscall
  ud2
 slash: .asciz "/"
+dot: .asciz "."

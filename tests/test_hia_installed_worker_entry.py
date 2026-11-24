@@ -2,6 +2,8 @@
 from hashlib import sha256
 from pathlib import Path
 import struct
+import os
+import fcntl
 import json
 import subprocess
 import tempfile
@@ -30,7 +32,8 @@ class InstalledWorkerEntryTests(unittest.TestCase):
         program = b'''#include <stdio.h>
 #include <stdlib.h>
 int main(int argc, char **argv) {
-    if (argc != 5 || !getenv("HIA_TRANSPORT_ARGUMENTS_SHA256")) return 1;
+    if (argc != 5 || !getenv("HIA_TRANSPORT_ARGUMENTS_SHA256") ||
+        getenv("HEPTA_RUNTIME_WORKER_ENTRY_FD")) return 1;
     for (int i=1; i<argc; i++) puts(argv[i]);
     puts(getenv("HIA_TRANSPORT_ARGUMENTS_SHA256"));
     int c;
@@ -142,4 +145,69 @@ int main(int argc, char **argv) {
         self.profile.write_bytes(b'{"test":"profila"}')
         self.profile.chmod(0o400)
         self.assertEqual(self.run_worker(self.argv),(2,b'',b''))
+        self.assertFalse(self.state.exists())
+
+    def run_sealed_worker(self, args, anchor=None, selector=None):
+        """Execute immutable bytes while retaining only explicit location authority."""
+        image = os.memfd_create('installed-entry-test', os.MFD_ALLOW_SEALING | os.MFD_CLOEXEC)
+        try:
+            payload = self.exe.read_bytes()
+            self.assertEqual(os.write(image, payload), len(payload))
+            fcntl.fcntl(image, fcntl.F_ADD_SEALS, 15)
+            environment = {'PATH':'', 'HIA_TRANSPORT_ARGUMENTS_SHA256':'preserved'}
+            descriptors = [image]
+            if anchor is not None:
+                descriptors.append(anchor)
+                environment['HEPTA_RUNTIME_WORKER_ENTRY_FD'] = str(anchor)
+            if selector is not None:
+                environment['HEPTA_RUNTIME_WORKER_ENTRY_FD'] = selector
+            child = subprocess.run([f'/proc/self/fd/{image}', *args],
+                                   input=b'original public stdin', env=environment,
+                                   pass_fds=descriptors, capture_output=True, timeout=5)
+            return child.returncode, child.stdout, child.stderr
+        finally:
+            os.close(image)
+
+    def test_sealed_execution_preserves_installed_identity_and_public_input(self):
+        descriptor = os.open(self.exe, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            expected = '\n'.join(map(str, (self.state, self.release, self.capsule,
+                                          self.pin, 'preserved'))).encode() + b'\noriginal public stdin'
+            self.assertEqual(self.run_sealed_worker(self.argv, descriptor), (0, expected, b''))
+            self.assertEqual(self.run_sealed_worker(['--installation-manifest'], descriptor),
+                             (0, wire(self.identities) + b'\n', b''))
+        finally:
+            os.close(descriptor)
+        self.assertFalse(self.state.exists())
+
+    def test_sealed_entry_rejects_missing_and_invalid_location_authority(self):
+        self.assertEqual(self.run_sealed_worker(self.argv), (2, b'', b''))
+        for value in ('0', '-1', '3x', '2147483648', '999999'):
+            with self.subTest(selector=value):
+                self.assertEqual(self.run_sealed_worker(self.argv, selector=value), (2, b'', b''))
+        self.assertFalse(self.state.exists())
+
+    def test_sealed_entry_rejects_changed_bytes_writable_fd_and_hardlink(self):
+        other = self.exe.parent / 'different-entry.elf'
+        changed = bytearray(self.exe.read_bytes())
+        changed[len(changed)//2] ^= 1
+        other.write_bytes(changed)
+        other.chmod(0o500)
+        descriptor = os.open(other, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            self.assertEqual(self.run_sealed_worker(self.argv, descriptor), (2, b'', b''))
+        finally:
+            os.close(descriptor)
+        self.exe.chmod(0o700)
+        descriptor = os.open(self.exe, os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            self.assertEqual(self.run_sealed_worker(self.argv, descriptor), (2, b'', b''))
+        finally:
+            os.close(descriptor)
+        os.link(self.exe, self.exe.parent / 'entry-hardlink')
+        descriptor = os.open(self.exe, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            self.assertEqual(self.run_sealed_worker(self.argv, descriptor), (2, b'', b''))
+        finally:
+            os.close(descriptor)
         self.assertFalse(self.state.exists())

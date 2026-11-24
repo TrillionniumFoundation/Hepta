@@ -166,6 +166,42 @@ def arguments(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if op == 0:
         return 16
     root = 24 + a
+    if root_arguments(s, o, w, root, b) != 0:
+        return 16
+    i = 0
+    while i < 64:
+        v = byte(s, root + b + i)
+        if unhex(v) > 15:
+            return 16
+        store(w, 768 + i, v)
+        i = i + 1
+    store(w, 832, 0)
+    put(w, 8, op)
+    put(w, 88, b)
+    return op
+
+def root_arguments(s:readbuf, o:mutbuf, w:mutbuf, root:u64, b:u64) -> u64:
+    put(w, 160, 0)
+    put(w, 168, 0)
+    if b >= 3 and uint(s, root, 3) == 3826790:
+        if b < 4 or b > 13 or byte(s, root + 3) == 48:
+            return 16
+        descriptor = 0
+        i = 3
+        while i < b:
+            digit = byte(s, root + i)
+            if digit < 48 or digit > 57:
+                return 16
+            descriptor = descriptor * 10 + digit - 48
+            if descriptor > 2147483647:
+                return 16
+            i = i + 1
+        if descriptor < 3:
+            return 16
+        put(w, 160, 1)
+        put(w, 168, descriptor)
+        store(o, 0, 0)
+        return 0
     if byte(s, root) != 47:
         return 16
     store(o, 0, 0)
@@ -187,17 +223,7 @@ def arguments(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if component(s, root + begin, b - begin) == 0:
             return 16
     store(o, b, 0)
-    i = 0
-    while i < 64:
-        v = byte(s, root + b + i)
-        if unhex(v) > 15:
-            return 16
-        store(w, 768 + i, v)
-        i = i + 1
-    store(w, 832, 0)
-    put(w, 8, op)
-    put(w, 88, b)
-    return op
+    return 0
 
 def component(s:readbuf, at:u64, size:u64) -> u64:
     if size == 0 or size > 255:
