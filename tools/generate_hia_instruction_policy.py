@@ -268,6 +268,10 @@ def rules(values):
 def source_program():
     dispatch=[]
     for spec in OPCODES.values():
+        # The installed policy encodes only original v1-v8 signatures/effects.
+        # Experimental kernel profiles must never be smuggled into its 4-bit effect ABI.
+        if spec.since > 8:
+            continue
         assert len(spec.attributes)<=1 and (spec.operands is None or len(spec.operands)<=5)
         a=rules(spec.operands) | ((1<<48) if spec.name in {'borrow.read','borrow.mut'} else 0)
         r=rules(spec.results)

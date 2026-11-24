@@ -11,7 +11,7 @@ from hashlib import sha256
 import json
 from types import MappingProxyType
 
-from .hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES
+from .hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES, ALL_PRIMITIVE_PROFILES
 
 WIDTHS = MappingProxyType({**{f"{s}{n}": n for s in ("i", "u") for n in (8, 16, 32, 64)},
                           "isize": 64, "usize": 64})
@@ -20,7 +20,7 @@ OWNERS = frozenset({"buffer", "chain"})
 BYTE_RESOURCES = frozenset({"buffer", "readbuf", "mutbuf"})
 RESOURCES = BYTE_RESOURCES | OWNERS
 TYPES = SCALARS | RESOURCES
-EFFECTS = frozenset({"alloc", "read", "write", "trap"})
+EFFECTS = frozenset({"alloc", "read", "write", "trap", "atomic", "privilege"})
 TRAP_CODES = frozenset({"user", "overflow", "division_by_zero", "bounds", "allocation"})
 EXECUTION_RESOURCE_FIELDS = frozenset({
     "allocations", "frees", "allocation_attempts", "owners_created", "owners_dropped",
@@ -198,18 +198,33 @@ def _table():
 
 
 OPCODES = _table()
+# Keep the original 50-opcode source ABI immutable. Experimental instruction
+# admission is selected by the explicit kernel schema, never inserted into the
+# historical catalog used by the native HIA instruction-policy implementation.
+KERNEL_OPCODES = MappingProxyType({
+    **OPCODES,
+    "x86.fence.mfence": OpcodeSpec(
+        "x86.fence.mfence", (), (), effects=("atomic",), since=9,
+        semantic_rule="x86_local_load_store_fence_no_device_or_intercpu_ack"),
+    "x86.tlb.invlpg": OpcodeSpec(
+        "x86.tlb.invlpg", ("u64",), (), effects=("privilege",), since=10,
+        semantic_rule="x86_local_linear_address_tlb_invalidate_requires_cpl0"),
+})
 # Terminator structure is consumed by the same parser as instruction attributes.
 TERMINATORS = MappingProxyType({"ret": ("op", "values"), "jump": ("op", "target", "args"),
                                "branch": ("op", "cond", "then", "else"), "trap": ("op", "code")})
 
 
 def opcode_spec(name: str, schema: str = LATEST_CORE_SCHEMA) -> OpcodeSpec:
-    if schema not in PRIMITIVE_PROFILES:
+    if schema not in ALL_PRIMITIVE_PROFILES:
         raise OpcodeRejected("unknown primitive schema; legacy/composite input requires an explicit adapter")
-    spec = OPCODES.get(name)
+    spec = (KERNEL_OPCODES if schema in {
+        "hepta.hia.program.kernel-fence.v1",
+        "hepta.hia.program.kernel-tlb.v1",
+    } else OPCODES).get(name)
     if spec is None:
         raise OpcodeRejected(f"unsupported opcode {name}")
-    if list(PRIMITIVE_PROFILES).index(schema) + 1 < spec.since:
+    if list(ALL_PRIMITIVE_PROFILES).index(schema) + 1 < spec.since:
         raise OpcodeRejected(f"{name} requires HIA program v{spec.since}")
     return spec
 
@@ -254,13 +269,14 @@ def check_instruction(spec: OpcodeSpec, operands, results, attributes) -> frozen
 def opcode_catalog(schema: str | None = None) -> dict:
     """Detached complete catalog; hashes bind metadata, never grant admission."""
     schema = LATEST_CORE_SCHEMA if schema is None else schema
-    if schema not in PRIMITIVE_PROFILES:
+    if schema not in ALL_PRIMITIVE_PROFILES:
         raise OpcodeRejected("catalog requires an exact primitive schema")
-    version = list(PRIMITIVE_PROFILES).index(schema) + 1
-    rows = [asdict(spec) for spec in OPCODES.values() if spec.since <= version]
+    version = list(ALL_PRIMITIVE_PROFILES).index(schema) + 1
+    selected = KERNEL_OPCODES if version > 8 else OPCODES
+    rows = [asdict(spec) for spec in selected.values() if spec.since <= version]
     visible_types = TYPES - ({"chain"} if version < 7 else set())
     result = {"schema": "hepta.hia.opcode-catalog.v1", "core_schema": schema,
-        "profile": PRIMITIVE_PROFILES[schema], "word_bits": 64,
+        "profile": ALL_PRIMITIVE_PROFILES[schema], "word_bits": 64,
         "types": sorted(visible_types),
         "type_groups": {k: sorted(v & visible_types) for k, v in _GROUPS.items()},
         "signature_rules": {"=N": "same type as zero-based operand N", "declared:T": "explicit result type in group T",
