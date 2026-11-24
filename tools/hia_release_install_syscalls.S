@@ -219,6 +219,13 @@ source_inventory_ready:
  mov eax,107
  syscall
  mov [rbp+WORK+64],rax
+ /* HIA admits a numeric directory capability; clone it without closing the
+  * borrowed descriptor. The clone gets an independent open file description. */
+ cmp QWORD PTR [rbp+WORK+160],1
+ jne root_path
+ mov r14,[rbp+WORK+168]
+ jmp root_done
+root_path:
  /* Traverse the operator path one component at a time, refusing all symlinks. */
  mov edi,-100
  lea rsi,[rip+slash]
@@ -267,11 +274,14 @@ root_done:
  test rax,rax
  js identity_exit
  mov [rbp+WORK+120],rax
+ cmp QWORD PTR [rbp+WORK+160],1
+ je root_cloned
  mov rdi,r14
  mov eax,3
  syscall
  test rax,rax
  js io_exit
+root_cloned:
  mov r14,[rbp+WORK+120]
  stat_current r14d
  gate 5
@@ -442,9 +452,17 @@ published_verify:
  .ifdef SOURCE_ATTEST
  cmp QWORD PTR [rbp+WORK+8],3
  jne source_directory_ready
- /* The public depot pathname must still name the directory used for all member reads. */
+ /* The supplied root authority must still name the directory used for all
+  * member reads. A capability is checked independently of its owned clone. */
+ cmp QWORD PTR [rbp+WORK+160],1
+ jne source_depot_path
+ mov rdi,[rbp+WORK+168]
+ lea rsi,[rip+dot]
+ jmp source_depot_stat
+source_depot_path:
  mov edi,-100
  mov rsi,[r15+24]
+source_depot_stat:
  lea rdx,[rbp+WORK+560]
  mov r10d,256
  mov eax,262
