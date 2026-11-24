@@ -160,6 +160,13 @@ def host_policy(s:readbuf, w:mutbuf, host:u64) -> bool:
     return True
 
 def profile_policy(s:readbuf, w:mutbuf, profile:u64, host:u64, catalog:u64) -> bool:
+    child = get(w, profile + 24)
+    while child != NONE:
+        row = 64 + child * 72
+        key = key_id(w, get(w, row + 40), get(w, row + 48))
+        if key == 0 or (PROFILE_FIELDS >> key) & 1 == 0:
+            return False
+        child = get(w, row + 16)
     selected = lookup(w, profile, K_CATALOG_SHA256)
     if pin(w, selected) == False or same(w, get(w, selected + 24), get(w, catalog + 24), 64) == False:
         return False
@@ -527,6 +534,8 @@ def source_program():
             ('denied_executables', 1), ('allowed_dangerous_executables', 1), ('native_jobs', 0)]
     values = {'INPUT_CAP': LIMIT, 'OUTPUT_CAP': OUTPUT_BYTES, 'WORKSPACE_CAP': WORKSPACE_BYTES,
               'REFUSAL': 4294967280, 'NONE': (1 << 64) - 1,
+              'PROFILE_FIELDS': sum(1 << FIELD[key] for key, _ in profile)
+                  | (1 << FIELD['native_helpers_manifest']) | (1 << FIELD['native_helpers_sha256']),
               **{'K_' + key.upper(): index for key, index in FIELD.items()}}
     parts = [POLICY, WIRE_HELPERS, object_renderer('render_profile', profile,
              ('native_helpers_manifest', 'native_helpers_sha256')), object_renderer('render_host', host)]

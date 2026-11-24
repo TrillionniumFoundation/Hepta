@@ -132,9 +132,11 @@ def main():
     value['configuration']['hosts']['rog']['allowed_read_path_prefixes'] = ['/srv/./hia//', '/srv/artifacts/']
     invoke('original-linux-path-components', value)
     value = fixture()
-    value['configuration']['hia_worker'].update(native_helpers_manifest=None, native_helpers_sha256=None,
-                                               unrelated_ignored_field={'number': 1.5})
-    invoke('optional-null-and-ignored-profile-field', value)
+    value['configuration']['hia_worker'].update(native_helpers_manifest=None, native_helpers_sha256=None)
+    invoke('optional-null-profile-fields', value)
+    value = fixture()
+    value['configuration']['hia_worker']['unrelated_ignored_field'] = {'number': 1.5}
+    invoke('original-serde-profile-denies-unknown-fields', value, True)
 
     def mutate(name, path, replacement, missing=False):
         value = fixture()

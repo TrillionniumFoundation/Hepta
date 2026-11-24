@@ -127,6 +127,18 @@ def main():
         invoke('inline-' + method, request(method, params={'_meta': meta}), action=action, modern=1)
     invoke('inline-resource-read', request('resources/read', params={'_meta': meta, 'uri': 'hia://artifacts/a'}),
            action=5, tool=12, modern=1, arguments=b'"hia://artifacts/a"')
+    for value in ('pending', 0, -9223372036854775808, 9223372036854775807):
+        invoke('cancellation-' + str(value), {'jsonrpc': '2.0', 'method': 'notifications/cancelled',
+               'params': {'requestId': value, 'reason': 'caller stopped waiting'}},
+               action=6, tool=0, identifier=json.dumps(value, separators=(',', ':')).encode())
+    invoke('cancellation-preserves-escaped-id',
+           b'{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"\\u4e2d\\n"}}',
+           action=6, tool=0, identifier=b'"\\u4e2d\\n"')
+    for value in (None, False, [], {}, 1.5, 9223372036854775808, -9223372036854775809):
+        invoke('invalid-cancellation-' + str(value), {'jsonrpc': '2.0', 'method': 'notifications/cancelled',
+               'params': {'requestId': value}}, notification=True)
+    invoke('missing-cancellation-target', {'jsonrpc': '2.0', 'method': 'notifications/cancelled',
+           'params': {}}, notification=True)
     invoke('inline-did-not-ready-legacy', request('tools/list'), error=-32002)
     wrong = {**meta, 'io.modelcontextprotocol/protocolVersion': '2099-01-01'}
     invoke('unsupported-inline', request('tools/call', params={'_meta': wrong, 'name': 'hia_describe'}), error=-32022)

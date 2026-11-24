@@ -1,0 +1,199 @@
+"""Author MCP discovery, request admission and the exact native bridge frame."""
+from tools.generate_hia_mcp_service_owner_common import authored
+from tools.generate_hia_mcp_request import tool_names
+
+SOURCE = r'''
+def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    phase = get(w, 0)
+    result = get(w, 8)
+    if phase == 0:
+        if descriptor(w) == False:
+            return 0
+        action = get(w, 256)
+        if action == 1:
+            bind(w, S_RESPONSE, get(w, S_CATALOG_RESULT), get(w, S_CATALOG_RESULT + 8))
+            put(w, 280, 1)
+            return enter(w, 5, 0)
+        if action == 3 or action == 4:
+            if action == 3:
+                end = text_resources(w, PURE_OUTPUT)
+            else:
+                end = text_templates(w, PURE_OUTPUT)
+            bind(w, S_RESPONSE, PURE_OUTPUT, end - PURE_OUTPUT)
+            put(w, 280, 1)
+            return enter(w, 5, 0)
+        if action != 2 and action != 5:
+            return 0
+        if action == 5:
+            at = text_resource_prefix(w, PURE_INPUT)
+            at = cp(w, S_URI, at)
+            at = text_resource_suffix(w, at)
+            return pure(o, w, 1, P_CANONICAL, PURE_INPUT, at - PURE_INPUT, PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
+        if get(w, 296) == 0:
+            end = text_empty_object(w, PURE_INPUT)
+            return pure(o, w, 1, P_CANONICAL, PURE_INPUT, end - PURE_INPUT, PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
+        return pure(o, w, 1, P_CANONICAL, get(w, 288), get(w, 296), PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
+    if phase == 1:
+        if result == 0 or result > 8388608:
+            return rpc_error(w, 1)
+        if result > 524288:
+            if get(w, 264) == 12:
+                return rpc_error(w, 2)
+            copy_state(w, PURE_OUTPUT, CHILD_IN, result)
+            bind(w, S_ORIGINAL, CHILD_IN, result)
+            put(w, 288, 4)
+            return enter(w, 5, 100)
+        copy_state(w, PURE_OUTPUT, ORIGINAL_ARGS, result)
+        bind(w, S_ORIGINAL, ORIGINAL_ARGS, result)
+        if get(w, 264) == 12:
+            return admission(o, w)
+        put(w, PURE_WORK, get(w, 264))
+        cp(w, S_CATALOG_PIN, PURE_WORK + 8)
+        return pure(o, w, 2, P_INPUT_SCHEMA, ORIGINAL_ARGS, result, PURE_OUTPUT, 1048576, PURE_WORK, 33554432)
+    if phase == 2:
+        if result != 0:
+            put(w, 288, 1)
+            return enter(w, 5, 100)
+        return admission(o, w)
+    if phase == 3:
+        if result == 0 or result > 524288:
+            if get(w, 264) == 12:
+                return rpc_error(w, 2)
+            put(w, 288, choose(result == 4294967265, 2, choose(result == 4294967266, 3, 1)))
+            return enter(w, 5, 100)
+        copy_state(w, PURE_OUTPUT, NORMAL_ARGS, result)
+        bind(w, S_ARGUMENTS, NORMAL_ARGS, result)
+        size = bridge_frame(w)
+        if size == 0:
+            return 0
+        return child(w, 3, 4, 20, size, 524288, 262144, 0, NONE)
+    if phase == 4:
+        if child_ok(w) == False or get(w, 616) != 0 or get(w, 624) == 0:
+            return rpc_error(w, 3)
+        return pure(o, w, 5, P_CANONICAL, CHILD_OUT, get(w, 624), PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
+    if phase == 5:
+        if result == 0 or result > 524288:
+            return rpc_error(w, 3)
+        bind(w, S_RESPONSE, PURE_OUTPUT, result)
+        put(w, 280, choose(get(w, 264) == 12, 4, 2))
+        return enter(w, 5, 0)
+    return 0
+
+def descriptor(w:mutbuf) -> bool:
+    if get(w, SESSION_OUT + 80) != 0 or get(w, SESSION_OUT + 88) != 0 or get(w, SESSION_OUT + 56) > 1:
+        return False
+    at = get(w, SESSION_OUT + 16)
+    size = get(w, SESSION_OUT + 24)
+    if at > get(w, 200) or size > get(w, 200) - at or size == 0:
+        return False
+    bind(w, S_REQUEST_ID, REQUEST + at, size)
+    put(w, 256, get(w, SESSION_OUT + 8))
+    put(w, 264, get(w, SESSION_OUT + 32))
+    put(w, 272, get(w, SESSION_OUT + 56))
+    at = get(w, SESSION_OUT + 40)
+    size = get(w, SESSION_OUT + 48)
+    if at > get(w, 200) or size > get(w, 200) - at:
+        return False
+    put(w, 288, REQUEST + at)
+    put(w, 296, size)
+    bind(w, S_URI, REQUEST + at, choose(get(w, 256) == 5, size, 0))
+    if get(w, 256) == 2 or get(w, 256) == 5:
+        if get(w, 264) < 1 or get(w, 264) > 12:
+            return False
+        start = get(w, 64)
+        end = tool_json(w, get(w, 264), start)
+        bind(w, S_TOOL, start, end - start)
+        put(w, 64, end)
+    return True
+
+def admission(o:mutbuf, w:mutbuf) -> u32:
+    at = text_context(w, PURE_INPUT)
+    at = cp(w, S_CONTEXT, at)
+    at = text_arguments(w, at)
+    at = cp(w, S_ORIGINAL, at)
+    at = text_tool(w, at)
+    at = decimal(w, at, get(w, 264))
+    at = text_close(w, at)
+    return pure(o, w, 3, P_ADMISSION, PURE_INPUT, at - PURE_INPUT, PURE_OUTPUT, 524288, PURE_WORK, W_ADMISSION)
+
+def bridge_frame(w:mutbuf) -> u64:
+    start = CHILD_IN
+    put(w, start, BRIDGE_MAGIC)
+    put(w, start + 16, get(w, 32))
+    put(w, start + 24, get(w, 48))
+    put(w, start + 32, 12)
+    put(w, start + 40, get(w, S_FENCE_ROOT + 8))
+    put(w, start + 48, get(w, S_SELF_OWNER + 8))
+    put(w, start + 56, get(w, 136) | 6)
+    index = 0
+    while index < 12:
+        row = start + 64 + index * 64
+        role = role_record(bridge_role(index))
+        put(w, row, index + 1)
+        put(w, row + 8, get(w, role))
+        put(w, row + 16, get(w, role + 8))
+        copy_state(w, role + 16, row + 24, 32)
+        put(w, row + 56, 0)
+        index = index + 1
+    put(w, start + 832, LEASE_MAGIC)
+    put(w, start + 840, get(w, 384))
+    put(w, start + 848, get(w, 392))
+    put(w, start + 856, get(w, 400))
+    put(w, start + 864, get(w, 408))
+    at = cp(w, S_FENCE_ROOT, start + 872)
+    at = cp(w, S_SELF_OWNER, at)
+    body = at
+    put(w, body, BUSINESS_MAGIC)
+    put(w, body + 8, get(w, S_PROFILE + 8))
+    put(w, body + 16, get(w, S_HOST_CONFIG + 8))
+    put(w, body + 24, get(w, S_ORIGINAL + 8))
+    put(w, body + 32, get(w, S_ARGUMENTS + 8))
+    put(w, body + 40, get(w, S_TOOL + 8))
+    put(w, body + 48, get(w, S_STATE_ROOT + 8))
+    put(w, body + 56, 64)
+    put(w, body + 64, 0)
+    at = cp(w, S_PROFILE, body + 72)
+    at = cp(w, S_HOST_CONFIG, at)
+    at = cp(w, S_ORIGINAL, at)
+    at = cp(w, S_ARGUMENTS, at)
+    at = cp(w, S_TOOL, at)
+    at = cp(w, S_STATE_ROOT, at)
+    at = cp(w, S_CATALOG_PIN, at)
+    put(w, start + 8, at - body)
+    if at - start > 4194304:
+        return 0
+    return at - start
+
+def rpc_error(w:mutbuf, kind:u64) -> u32:
+    if kind == 1:
+        end = text_invalid_params(w, PURE_OUTPUT)
+    elif kind == 2:
+        end = text_invalid_uri(w, PURE_OUTPUT)
+    else:
+        end = text_bridge_error(w, PURE_OUTPUT)
+    bind(w, S_RESPONSE, PURE_OUTPUT, end - PURE_OUTPUT)
+    put(w, 280, 3)
+    return enter(w, 5, 0)
+'''
+
+
+def source():
+    text = {'resources': '{"resources":[]}', 'templates': '{"resourceTemplates":[]}',
+        'resource_prefix': '{"max_bytes":65536,"uri":', 'resource_suffix': '}',
+        'empty_object': '{}', 'context': '{"context":', 'arguments': ',"arguments":',
+        'tool': ',"tool":', 'invalid_params': '{"code":-32602,"message":"Invalid params"}',
+        'invalid_uri': '{"code":-32602,"message":"Invalid HIA artifact URI"}',
+        'bridge_error': '{"code":-32603,"message":"HIA native job bridge unavailable; repeat the identical request to observe its original binding"}'}
+    code = SOURCE + '\ndef tool_json(w:mutbuf, role:u64, at:u64) -> u64:\n'
+    for index, name in enumerate((*tool_names(), 'hia_resource_read'), 1):
+        text['tool_' + str(index)] = '"' + name + '"'
+        code += f'    if role == {index}:\n        return text_tool_{index}(w, at)\n'
+    code += '    return at\n\ndef bridge_role(index:u64) -> u64:\n'
+    for i, role in enumerate((16,17,0,1,2,3,4,18,9,14,19,15)):
+        code += f'    if index == {i}:\n        return {role}\n'
+    code += '    return NONE\n'
+    return authored(code, text=text, extra={
+        'BRIDGE_MAGIC': int.from_bytes(b'HIAMBI01', 'little'),
+        'BUSINESS_MAGIC': int.from_bytes(b'HIAMJB01', 'little'),
+        'LEASE_MAGIC': int.from_bytes(b'HIAOWN02', 'little'),
+    })

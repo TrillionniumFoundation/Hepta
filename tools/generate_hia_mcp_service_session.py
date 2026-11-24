@@ -40,6 +40,8 @@ def service_session(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if kind == 0:
         if role == 2 and phase == 1 and get(o, 80) == 0:
             put(w, SESSION_OFFSET, 2)
+        if role == 9:
+            return cancellation(s, o, w)
         return 0
     start = get(o, 24)
     size = get(o, 32)
@@ -114,6 +116,39 @@ def service_session(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         store(o, offset + index, byte(s, start + index))
         index = index + 1
     return emit(o, offset + size, response, version)
+
+def cancellation(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    params = lookup(w, 64, 4)
+    if is_kind(w, params, 6) == 0:
+        return 0
+    target = lookup(w, params, 15)
+    if target == NONE:
+        return 0
+    if get(w, target) == 4:
+        at = get(w, target + 56)
+        size = get(w, target + 64)
+    elif get(w, target) == 3:
+        at = get(w, target + 24)
+        size = get(w, target + 32)
+        if signed_id(s, at, size) == 0:
+            return 0
+    else:
+        return 0
+    params_at = get(o, 40)
+    params_size = get(o, 48)
+    put(o, 0, SERVICE_MAGIC)
+    put(o, 8, 6)
+    put(o, 16, at)
+    put(o, 24, size)
+    put(o, 32, 0)
+    put(o, 40, 0)
+    put(o, 48, 0)
+    put(o, 56, 0)
+    put(o, 64, params_at)
+    put(o, 72, params_size)
+    put(o, 80, 0)
+    put(o, 88, 0)
+    return SERVICE_DISPATCH
 
 def service_action(w:mutbuf, role:u64, params:u64, arguments:u64) -> u64:
     if role == 5:
@@ -232,7 +267,7 @@ def render():
     source = '\n'.join((policy, static_prefix, '\n'.join(version), *helpers, negotiation,
                         comparison_table('protocol_version', VERSIONS),
                         source_program(methods=METHODS_WITH_DISCOVERY,
-                                       keys=(*KEYS, *_EXTRA_KEYS, 'cursor'), capture_resource_uri=True)))
+                                       keys=(*KEYS, *_EXTRA_KEYS, 'cursor', 'requestId'), capture_resource_uri=True)))
     return render_assembly(document(source, 'mcp_service_session'))
 
 
