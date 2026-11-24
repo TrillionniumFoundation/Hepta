@@ -44,7 +44,7 @@ _SEALED = None
 _LOADER_CUSTODY = []
 _BROKEN_LOAD = False
 _EXPORTED = ()
-_EXPORT_NAMES = ('execution_counters', 'bind', 'run_frame', 'start', 'begin', 'ack', 'returned', 'propagating', 'failed', 'pending', 'bad_port', 'sql_prepare', 'sql_borrow', 'sql_arguments', 'and_true', 'keep_rhs', 'and_done', 'lease_open', 'lease_opcode', 'iteration_open', 'iteration_item', 'iteration_end', 'unwind')
+_EXPORT_NAMES = ('admission_files', 'admission_check', 'execution_counters', 'bind', 'run_frame', 'start', 'begin', 'ack', 'returned', 'propagating', 'failed', 'pending', 'bad_port', 'sql_prepare', 'sql_borrow', 'sql_arguments', 'and_true', 'keep_rhs', 'and_done', 'lease_open', 'lease_opcode', 'iteration_open', 'iteration_item', 'iteration_end', 'unwind')
 _LOCK = threading.RLock()
 # A fork never inherits a locked loader lock or an in-progress admission.
 _EPOCH = object()
@@ -271,17 +271,20 @@ def _load_sealed(captured):
 def extension():
     global _EXTENSION, _CAPTURED, _LOADING, _SEALED, _BROKEN_LOAD, _EXPORTED
     with _LOCK:
-        captured = _bundle()
-        _require_authority(captured)
         if _EXTENSION is not None:
-            if captured != _CAPTURED:
-                raise ValueError("selected Slot mechanical authority changed")
+            # The admitted immutable capsule retains the exact schema, profile,
+            # source and executable observations.  Its native file capability
+            # repeats fresh byte/stat checks; no receipt is parsed again.
+            captured = _CAPTURED
+            _require_authority(captured)
             fd, seals = _SEALED
             if (fcntl.fcntl(fd, fcntl.F_GET_SEALS) != seals
                     or _os.pread(fd, len(captured["binary"]) + 1, 0) != captured["binary"]):
                 raise ValueError("loaded mechanical executable custody changed")
             _check_exports(_EXTENSION)
             return _EXTENSION
+        captured = _bundle()
+        _require_authority(captured)
         if _LOADING or _BROKEN_LOAD:
             raise RuntimeError("recursive or previously incomplete mechanical linker admission")
         _LOADING = True
@@ -322,9 +325,8 @@ def preload_if_present():
 
 def admit_runtime():
     loaded = extension()
-    actual = _bundle()
-    _require_authority(actual)
-    if actual != _CAPTURED or loaded is not _EXTENSION:
+    _require_authority(_CAPTURED)
+    if loaded is not _EXTENSION:
         raise ValueError("selected Slot mechanical authority changed")
     return None
 

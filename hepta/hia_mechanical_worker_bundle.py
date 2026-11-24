@@ -115,11 +115,15 @@ class NativeMechanicalWorkerBinding:
                 str(base.path), value["helpers_bundle_sha256"])
             self.images = dict(self.legacy.images)
             self.selections = dict(self.legacy.selections)
+            loaded = mechanical.extension()
+            self._runtime_exports = (loaded.admission_files, loaded.admission_check)
             self.check_files()
         finally:
             authority._MECHANICAL_BUILD = None
 
     def capture(self, path, limit, digest):
+        if getattr(self, "_runtime_files", None) is not None:
+            raise RuntimeError("mechanical file custody is already sealed")
         snapshot = authority._read(path, limit)
         if not authority._digest(digest) or sha256(snapshot.raw).hexdigest() != digest:
             raise ValueError("mechanical capsule input identity mismatch")
@@ -176,11 +180,51 @@ class NativeMechanicalWorkerBinding:
                 or authority._SCOPE_OWNER != self.owner):
             raise ValueError("mechanical capsule belongs to its original process and thread")
 
+    def seal_runtime_files(self):
+        """Transfer complete immutable observations after default package pins.
+
+        Source/digest/schema admission and the real linker load precede this
+        transfer.  The native tables own only immutable paths/bytes/stat data;
+        worker, bridge, image, entry and creator checks retain their owners.
+        """
+        if getattr(self, "_runtime_files", None) is not None:
+            raise RuntimeError("mechanical file custody is already sealed")
+        self.check_files()
+        from . import hia_slot_mechanical as mechanical
+        captured = self.bridge_owner.captured
+        content_errors = {
+            str(captured["path"]): "Slot mechanical executable changed",
+            **{str(mechanical._source_path(name)): "Slot mechanical source changed: " + name
+               for name in captured["sources"]},
+        }
+        canonical = set(content_errors)
+        canonical.add(str(mechanical._PACKAGE / "_slot_mechanical_build.json"))
+        changed = "mechanical capsule changed; observe the original operation"
+        legacy_changed = "native helper inputs changed; observe the original operation"
+        rows = tuple((str(original.path), original.raw, original.identity, limit,
+                      int(str(original.path) in canonical),
+                      content_errors.get(str(original.path), changed), changed)
+                     for original, limit in self.snapshots)
+        legacy_rows = tuple((str(original.path), original.raw, original.identity, limit,
+                             0, legacy_changed, legacy_changed)
+                            for original, limit in self.legacy.snapshots)
+        capture, check = self._runtime_exports
+        runtime, legacy_runtime = capture(rows), capture(legacy_rows)
+        self._runtime_check = self.legacy._runtime_check = check
+        self._runtime_files, self.legacy._runtime_files = runtime, legacy_runtime
+        self.snapshots = self.legacy.snapshots = ()
+        del self._runtime_exports
+        self.check_files()
+
     def check_files(self):
         self.check_owner()
-        for original, limit in self.snapshots:
-            if authority._read(original.path, limit) != original:
-                raise ValueError("mechanical capsule changed; observe the original operation")
+        runtime = getattr(self, "_runtime_files", None)
+        if runtime is not None:
+            self._runtime_check(runtime)
+        else:
+            for original, limit in self.snapshots:
+                if authority._read(original.path, limit) != original:
+                    raise ValueError("mechanical capsule changed; observe the original operation")
         legacy = getattr(self, "legacy", None)
         if legacy is not None:
             legacy.check_files()

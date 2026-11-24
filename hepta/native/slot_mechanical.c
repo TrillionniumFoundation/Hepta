@@ -17,6 +17,10 @@
 #include <limits.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 #if PY_VERSION_HEX < 0x030b0000 || PY_VERSION_HEX >= 0x030f0000
 #error "Slot mechanical transport currently supports CPython 3.11 through 3.14"
@@ -32,6 +36,289 @@ enum { AND_OPEN=28, AND_KEYS=29, AND_FALSE=30, AND_UNWIND=37,
        ITER_OPEN=74, ITER_NEXT=75, ITER_FOLD=76, ITER_DONE=77, ITER_UNWIND=83,
        LEASE_OPEN=127, LEASE_TRUTH=128, LEASE_RELEASE=129,
        LEASE_CHECK=130, LEASE_UNWIND=132 };
+
+
+/* Revalidate immutable, already admitted file observations.  The caller owns
+ * schema/digest admission and the live authority scope.  This primitive neither
+ * decodes a manifest nor manufactures authority; it repeats the actual POSIX
+ * reads and exact byte/stat comparisons without rebuilding Python snapshots.
+ * Only exact immutable str/bytes are retained, never a provider or scope. */
+#define ADMISSION_FILES_NAME "hepta.slot.mechanical.file-observations.v1"
+typedef struct {
+    PyObject *path, *encoded, *raw, *content_error, *identity_error;
+    struct stat expected;
+    Py_ssize_t limit;
+    int canonical;
+} AdmissionFile;
+typedef struct {
+    PyInterpreterState *interpreter; /* identity only; no owning Python edge */
+    Py_ssize_t count;
+    AdmissionFile *files;
+} AdmissionFiles;
+static void admission_files_free(AdmissionFiles *files) {
+    if (files == NULL) return;
+    for (Py_ssize_t i=0;i<files->count;i++) {
+        AdmissionFile *f=&files->files[i];
+        Py_XDECREF(f->path); Py_XDECREF(f->encoded);
+        Py_XDECREF(f->raw); Py_XDECREF(f->content_error); Py_XDECREF(f->identity_error);
+    }
+    PyMem_Free(files->files); PyMem_Free(files);
+}
+static void admission_files_destroy(PyObject *capsule) {
+    AdmissionFiles *files=PyCapsule_GetPointer(capsule,ADMISSION_FILES_NAME);
+    if (files != NULL) admission_files_free(files);
+    else PyErr_WriteUnraisable(capsule);
+}
+static int admission_changed(AdmissionFile *f) {
+    PyErr_SetObject(PyExc_ValueError,f->identity_error); return -1;
+}
+static int admission_content_changed(AdmissionFile *f) {
+    PyErr_SetObject(PyExc_ValueError,f->content_error); return -1;
+}
+static int admission_stat_equal(const struct stat *a,const struct stat *b) {
+    return a->st_dev==b->st_dev && a->st_ino==b->st_ino &&
+        a->st_size==b->st_size && a->st_mtim.tv_sec==b->st_mtim.tv_sec &&
+        a->st_mtim.tv_nsec==b->st_mtim.tv_nsec &&
+        a->st_ctim.tv_sec==b->st_ctim.tv_sec &&
+        a->st_ctim.tv_nsec==b->st_ctim.tv_nsec && a->st_mode==b->st_mode &&
+        a->st_uid==b->st_uid && a->st_nlink==b->st_nlink;
+}
+/* Match POSIX builtin I/O: other threads can run during filesystem calls.
+ * The immutable observation table survives reentry; no descriptor is cached. */
+static int admission_open(const char *path) {
+    int result,saved_errno;
+    Py_BEGIN_ALLOW_THREADS
+    result=open(path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW|O_NONBLOCK); saved_errno=errno;
+    Py_END_ALLOW_THREADS
+    errno=saved_errno; return result;
+}
+static int admission_fstat(int fd,struct stat *value) {
+    int result,saved_errno;
+    Py_BEGIN_ALLOW_THREADS
+    result=fstat(fd,value); saved_errno=errno;
+    Py_END_ALLOW_THREADS
+    errno=saved_errno; return result;
+}
+static int admission_lstat(const char *path,struct stat *value) {
+    int result,saved_errno;
+    Py_BEGIN_ALLOW_THREADS
+    result=lstat(path,value); saved_errno=errno;
+    Py_END_ALLOW_THREADS
+    errno=saved_errno; return result;
+}
+static ssize_t admission_read(int fd,char *buffer,size_t count) {
+    ssize_t result; int saved_errno;
+    Py_BEGIN_ALLOW_THREADS
+    result=read(fd,buffer,count); saved_errno=errno;
+    Py_END_ALLOW_THREADS
+    errno=saved_errno; return result;
+}
+static int admission_close(int fd) {
+    int result,saved_errno;
+    Py_BEGIN_ALLOW_THREADS
+    result=close(fd); saved_errno=errno;
+    Py_END_ALLOW_THREADS
+    errno=saved_errno; return result;
+}
+static int admission_canonical(AdmissionFile *f) {
+    const char *path=PyBytes_AS_STRING(f->encoded);
+    char *resolved; int same,saved_errno;
+    Py_BEGIN_ALLOW_THREADS
+    resolved=realpath(path,NULL); saved_errno=errno;
+    Py_END_ALLOW_THREADS
+    errno=saved_errno;
+    if (resolved == NULL) {
+        PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,f->path); return -1;
+    }
+    same=strcmp(path,resolved)==0; free(resolved);
+    if (!same) {
+        PyErr_SetString(PyExc_ValueError,
+                       "Slot authority must use its exact canonical package path");
+        return -1;
+    }
+    return 0;
+}
+static int admission_file_check(AdmissionFile *f) {
+    const char *path=PyBytes_AS_STRING(f->encoded),*expected=PyBytes_AS_STRING(f->raw);
+    Py_ssize_t length=PyBytes_GET_SIZE(f->raw),position=0;
+    struct stat before,after,path_before,path_after;
+    char buffer[65536]; int fd=-1,result=-1;
+    if (f->canonical) {
+        if (admission_canonical(f)<0) return -1;
+        if (admission_lstat(path,&path_before)<0) {
+            PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,f->path); return -1;
+        }
+    }
+    do { fd=admission_open(path); }
+    while (fd<0 && errno==EINTR && PyErr_CheckSignals()==0);
+    if (fd<0) {
+        if (!PyErr_Occurred()) PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,f->path);
+        return -1;
+    }
+    if (admission_fstat(fd,&before)<0) {
+        PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,f->path); goto done;
+    }
+    if (!S_ISREG(before.st_mode) || before.st_nlink!=1 ||
+        (before.st_uid!=0 && before.st_uid!=getuid()) ||
+        (before.st_mode & 0022) || before.st_size<=0 || before.st_size>f->limit) {
+        PyErr_SetString(PyExc_ValueError,
+                       "native helper input must be an owned bounded ordinary file");
+        goto done;
+    }
+    if (f->canonical && (before.st_dev!=path_before.st_dev || before.st_ino!=path_before.st_ino)) {
+        admission_changed(f); goto done;
+    }
+    if (before.st_size!=length) { admission_content_changed(f); goto done; }
+    while (position<length) {
+        size_t wanted=(size_t)(length-position);
+        ssize_t count;
+        if (wanted>sizeof(buffer)) wanted=sizeof(buffer);
+        count=admission_read(fd,buffer,wanted);
+        if (count<0) {
+            if (errno==EINTR && PyErr_CheckSignals()==0) continue;
+            if (!PyErr_Occurred()) PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,f->path);
+            goto done;
+        }
+        if (PyErr_CheckSignals()<0) goto done;
+        if (count==0 || memcmp(buffer,expected+position,(size_t)count)!=0) {
+            admission_content_changed(f); goto done;
+        }
+        position+=count;
+    }
+    for (;;) {
+        ssize_t count=admission_read(fd,buffer,1);
+        if (count<0) {
+            if (errno==EINTR && PyErr_CheckSignals()==0) continue;
+            if (!PyErr_Occurred()) PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,f->path);
+            goto done;
+        }
+        if (count!=0) { admission_content_changed(f); goto done; }
+        break;
+    }
+    if (admission_fstat(fd,&after)<0) {
+        PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,f->path); goto done;
+    }
+    if (!admission_stat_equal(&before,&after) ||
+        !admission_stat_equal(&before,&f->expected)) {
+        admission_changed(f); goto done;
+    }
+    if (f->canonical) {
+        if (admission_lstat(path,&path_after)<0) {
+            PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,f->path); goto done;
+        }
+        if (!admission_stat_equal(&after,&path_after)) { admission_changed(f); goto done; }
+        if (admission_canonical(f)<0) goto done;
+    }
+    result=0;
+done:
+    /* A descriptor close is attempted exactly once, including EINTR. */
+    if (admission_close(fd)<0) {
+        PyErr_SetFromErrnoWithFilenameObject(PyExc_OSError,f->path); result=-1;
+    }
+    return result;
+}
+static int admission_files_check(AdmissionFiles *files) {
+    if (files->interpreter!=PyThreadState_GetInterpreter(PyThreadState_Get())) {
+        PyErr_SetString(PyExc_ValueError,"file observations belong to their original interpreter");
+        return -1;
+    }
+    for (Py_ssize_t i=0;i<files->count;i++)
+        if (PyErr_CheckSignals()<0 || admission_file_check(&files->files[i])<0) return -1;
+    return PyErr_CheckSignals();
+}
+static int admission_time(PyObject *value,struct timespec *result) {
+    PyObject *scale=PyLong_FromLong(1000000000),*pair;
+    long long seconds; long nanos;
+    if (scale==NULL) return -1;
+    pair=PyNumber_Divmod(value,scale); Py_DECREF(scale);
+    if (pair==NULL) return -1;
+    seconds=PyLong_AsLongLong(PyTuple_GET_ITEM(pair,0));
+    nanos=PyLong_AsLong(PyTuple_GET_ITEM(pair,1)); Py_DECREF(pair);
+    if (PyErr_Occurred()) return -1;
+    result->tv_sec=(time_t)seconds; result->tv_nsec=nanos;
+    return 0;
+}
+static int admission_stat(PyObject *values,struct stat *s) {
+    unsigned long long fields[8]={0};
+    if (!PyTuple_CheckExact(values) || PyTuple_GET_SIZE(values)!=8) {
+        PyErr_SetString(PyExc_TypeError,"file observations require eight exact stat fields"); return -1;
+    }
+    for (int i=0;i<8;i++) {
+        PyObject *value=PyTuple_GET_ITEM(values,i);
+        if (!PyLong_CheckExact(value)) {
+            PyErr_SetString(PyExc_TypeError,"file observation stat fields must be exact integers"); return -1;
+        }
+        if (i==3 || i==4) continue;
+        fields[i]=PyLong_AsUnsignedLongLong(value);
+        if (PyErr_Occurred()) return -1;
+    }
+    if (admission_time(PyTuple_GET_ITEM(values,3),&s->st_mtim)<0 ||
+        admission_time(PyTuple_GET_ITEM(values,4),&s->st_ctim)<0) return -1;
+    s->st_dev=(dev_t)fields[0]; s->st_ino=(ino_t)fields[1]; s->st_size=(off_t)fields[2];
+    s->st_mode=(mode_t)fields[5]; s->st_uid=(uid_t)fields[6]; s->st_nlink=(nlink_t)fields[7];
+    if ((unsigned long long)s->st_dev!=fields[0] || (unsigned long long)s->st_ino!=fields[1] ||
+        s->st_size<0 || (unsigned long long)s->st_size!=fields[2] ||
+        (unsigned long long)s->st_mode!=fields[5] || (unsigned long long)s->st_uid!=fields[6] ||
+        (unsigned long long)s->st_nlink!=fields[7]) {
+        PyErr_SetString(PyExc_OverflowError,"file observation stat field exceeds its native type"); return -1;
+    }
+    return 0;
+}
+static PyObject *admission_files(PyObject *module,PyObject *rows) {
+    AdmissionFiles *files=NULL; Py_ssize_t count; PyObject *capsule;
+    (void)module;
+    if (!PyTuple_CheckExact(rows) || (count=PyTuple_GET_SIZE(rows))<1) {
+        PyErr_SetString(PyExc_TypeError,"file observations require a nonempty exact tuple"); return NULL;
+    }
+    if ((size_t)count>SIZE_MAX/sizeof(AdmissionFile)) return PyErr_NoMemory();
+    files=PyMem_Calloc(1,sizeof(*files));
+    if (files==NULL) return PyErr_NoMemory();
+    files->files=PyMem_Calloc((size_t)count,sizeof(AdmissionFile));
+    if (files->files==NULL) { PyMem_Free(files); return PyErr_NoMemory(); }
+    files->count=count; files->interpreter=PyThreadState_GetInterpreter(PyThreadState_Get());
+    for (Py_ssize_t i=0;i<count;i++) {
+        PyObject *row=PyTuple_GET_ITEM(rows,i),*path,*raw,*limit,*canonical,*message,*identity_message;
+        AdmissionFile *f=&files->files[i]; long flag;
+        if (!PyTuple_CheckExact(row) || PyTuple_GET_SIZE(row)!=7) {
+            PyErr_SetString(PyExc_TypeError,"file observation rows require seven exact fields"); goto fail;
+        }
+        path=PyTuple_GET_ITEM(row,0); raw=PyTuple_GET_ITEM(row,1);
+        limit=PyTuple_GET_ITEM(row,3); canonical=PyTuple_GET_ITEM(row,4); message=PyTuple_GET_ITEM(row,5);
+        identity_message=PyTuple_GET_ITEM(row,6);
+        if (!PyUnicode_CheckExact(path) || !PyBytes_CheckExact(raw) ||
+            !PyLong_CheckExact(limit) || !PyLong_CheckExact(canonical) ||
+            !PyUnicode_CheckExact(message) || !PyUnicode_CheckExact(identity_message)) {
+            PyErr_SetString(PyExc_TypeError,"file observations accept only exact immutable fields"); goto fail;
+        }
+        f->path=Py_NewRef(path); f->raw=Py_NewRef(raw); f->content_error=Py_NewRef(message);
+        f->identity_error=Py_NewRef(identity_message);
+        f->encoded=PyUnicode_EncodeFSDefault(path);
+        if (f->encoded==NULL) goto fail;
+        if (PyBytes_GET_SIZE(f->encoded)==0 ||
+            strlen(PyBytes_AS_STRING(f->encoded))!=(size_t)PyBytes_GET_SIZE(f->encoded)) {
+            PyErr_SetString(PyExc_ValueError,"file observation path must be nonempty and NUL-free"); goto fail;
+        }
+        f->limit=PyLong_AsSsize_t(limit); flag=PyLong_AsLong(canonical);
+        if (PyErr_Occurred()) goto fail;
+        if (f->limit<1 || PyBytes_GET_SIZE(raw)<1 || PyBytes_GET_SIZE(raw)>f->limit || (flag!=0 && flag!=1)) {
+            PyErr_SetString(PyExc_ValueError,"file observation extent or canonical flag differs"); goto fail;
+        }
+        f->canonical=(int)flag;
+        if (admission_stat(PyTuple_GET_ITEM(row,2),&f->expected)<0) goto fail;
+    }
+    if (admission_files_check(files)<0) goto fail;
+    capsule=PyCapsule_New(files,ADMISSION_FILES_NAME,admission_files_destroy);
+    if (capsule==NULL) goto fail;
+    return capsule;
+fail:
+    admission_files_free(files); return NULL;
+}
+static PyObject *admission_check(PyObject *module,PyObject *capsule) {
+    AdmissionFiles *files; (void)module;
+    files=PyCapsule_GetPointer(capsule,ADMISSION_FILES_NAME);
+    if (files==NULL || admission_files_check(files)<0) return NULL;
+    Py_RETURN_NONE;
+}
 
 typedef struct {
     PyObject *session_type, *method_type, *iterator_type, *current, *loss_name;
@@ -1144,6 +1431,8 @@ static PyObject *unwind(PyObject *module,PyObject *unused) {
 }
 
 static PyMethodDef methods[]={
+    {"admission_files",admission_files,METH_O,NULL},
+    {"admission_check",admission_check,METH_O,NULL},
     {"execution_counters",execution_counters,METH_NOARGS,NULL},
     {"bind",bind_method,METH_VARARGS,NULL},
     {"run_frame",run_frame,METH_VARARGS,NULL},

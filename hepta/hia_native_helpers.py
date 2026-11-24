@@ -310,6 +310,10 @@ class NativeHelpersBinding:
 
     def check_files(self):
         self.check_owner()
+        runtime = getattr(self, "_runtime_files", None)
+        if runtime is not None:
+            self._runtime_check(runtime)
+            return
         for original, limit in self.snapshots:
             if _read(original.path, limit) != original:
                 raise ValueError("native helper inputs changed; observe the original operation")
@@ -384,6 +388,10 @@ def native_helpers_scope(path=None, expected_sha256=None):
         if package_pin is not None:
             binding.snapshots.extend(package_pin)
             binding.check_files()
+        if _MECHANICAL_SCOPE is binding:
+            # Include installed/default package pins before transferring their
+            # immutable observations to the already admitted C capability.
+            binding.seal_runtime_files()
         _ACTIVE = binding
         os.environ.update(binding.selections)
         binding.check()

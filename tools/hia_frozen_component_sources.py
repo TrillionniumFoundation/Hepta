@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 FIXTURE = 'tests/fixtures/hia_frozen_component_source_relations.json'
-FIXTURE_SHA256 = 'ad1b83e1db693e7ebef817781b23116393712f65d23c308209508e4ac65a3bcc'
+FIXTURE_SHA256 = 'acd25ffa7c6bea270fcb56cde74a60d7993899cb2e77173b97a814a3bcce14b9'
 
 
 @lru_cache(maxsize=1)
