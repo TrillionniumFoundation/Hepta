@@ -39,7 +39,15 @@ ROOT=Path(__file__).resolve().parents[1]
 MAX=18446744073709551615
 KEYS=('hia_worker','hosts','host','artifact_roots','worker_sha256','backend_sha256',
       'catalog_sha256','native_helpers_sha256','python_executable','native_helpers_manifest',
-      'capsule','capsule_sha256')
+      'capsule','capsule_sha256','native_jobs','schema','files')
+CONTROLLER_FILES=(
+    'hia-job-entry','hia-job-submit','hia-job-observation','hia-job-cancel','hia-job-launch',
+    'HIA_AGENT_NATIVE_TOOL_CATALOG.json','hia-agent-job-terminal-receipt',
+    'hia-agent-mcp-request','hia-agent-mcp-reply','hia-agent-mcp-terminal',
+    'hia-agent-mcp-negotiation','hia-agent-mcp-catalog','hia-agent-mcp-uri',
+    'hia-agent-mcp-input-schema','hia-agent-mcp-response-schema','hia-agent-mcp-proof-schema',
+    'hia-worker-prepare','hia-job-receipt','hia-job-supervisor')
+KEYS+=CONTROLLER_FILES
 PROGRAM=r'''
 def inspect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 64:
@@ -51,7 +59,7 @@ def inspect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return root_vector(s, o, w)
     if mode == 7:
         return measure(s, o, w)
-    if mode < 2 or mode > 4 or length(s) == 0 or length(w) < 4096:
+    if (mode != 2 and mode != 3 and mode != 4 and mode != 6 and mode != 8) or length(s) == 0 or length(w) < 4096:
         return 65
     if get(w, 24) > 576460752303423483 or length(o) < 128 + (get(w, 24) + 1) * 32:
         return 74
@@ -67,7 +75,9 @@ def inspect(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return pins(s, o, w, first)
     if mode == 4:
         return descriptor(s, o, w, first)
-    return runtime(s, o, w, first)
+    if mode == 6:
+        return controller(s, o, w, first)
+    return runtime(s, o, w, first, choose(mode == 8, 1, 0))
 
 def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) < 32 or length(w) < 96:
@@ -108,7 +118,7 @@ def measure(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def widen(value:u64) -> u64:
     return value
 
-def runtime(s:readbuf, o:mutbuf, w:mutbuf, first:u64) -> u32:
+def runtime(s:readbuf, o:mutbuf, w:mutbuf, first:u64, native:u64) -> u32:
     worker = find_kind(s, w, first, 0)
     hosts = find_kind(s, w, first, 1)
     if worker == 18446744073709551615 or hosts == 18446744073709551615:
@@ -138,6 +148,15 @@ def runtime(s:readbuf, o:mutbuf, w:mutbuf, first:u64) -> u32:
     put(o, 40, skip_value(s, w, worker))
     put(o, 48, count_fields(s, w, worker))
     put(o, 80, length(s))
+    put(o, 320, selected)
+    put(o, 328, skip_value(s, w, selected))
+    put(o, 336, count_fields(s, w, selected))
+    jobs = find_kind(s, w, selected, 12)
+    put(o, 344, jobs)
+    jobs_end = 18446744073709551615
+    if jobs != 18446744073709551615:
+        jobs_end = skip_value(s, w, jobs)
+    put(o, 352, jobs_end)
     field = 0
     mask = 0
     while field < 6:
@@ -153,7 +172,7 @@ def runtime(s:readbuf, o:mutbuf, w:mutbuf, first:u64) -> u32:
     put(o, 56, mask)
     remaining = 0
     if suspect != 0:
-        remaining = remaining_surrogate(s, o, w)
+        remaining = remaining_surrogate(s, o, w, native)
     put(o, 64, remaining)
     roots = find_kind(s, w, worker, 3)
     count = 0
@@ -238,6 +257,28 @@ def descriptor(s:readbuf, o:mutbuf, w:mutbuf, first:u64) -> u32:
         return 65
     put(o, 0, MAGIC_DESC)
     put(w, 32, 40)
+    return 0
+
+def controller(s:readbuf, o:mutbuf, w:mutbuf, first:u64) -> u32:
+    if length(o) < 624 or count_fields(s, w, first) != 2:
+        return 65
+    schema = find_kind(s, w, first, 13)
+    files = find_kind(s, w, first, 14)
+    if schema == 18446744073709551615 or files == 18446744073709551615:
+        return 65
+    if byte(s, schema) != 34 or controller_schema(s, w, schema + 1) == 0:
+        return 65
+    if byte(s, files) != 123 or count_fields(s, w, files) != 19:
+        return 65
+    i = 0
+    while i < 19:
+        value = find_kind(s, w, files, 15 + i)
+        if value == 18446744073709551615 or hex_digest(s, o, w, value, 16 + i * 32) == 0:
+            return 65
+        i = i + 1
+    put(o, 0, MAGIC_JOBS)
+    put(o, 8, 19)
+    put(w, 32, 624)
     return 0
 
 def hex_digest(s:readbuf, o:mutbuf, w:mutbuf, at:u64, target:u64) -> u64:
@@ -375,7 +416,7 @@ def string_end(s:readbuf, w:mutbuf, start:u64) -> u64:
         pos = get(w, 8)
     return pos
 
-def remaining_surrogate(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+def remaining_surrogate(s:readbuf, o:mutbuf, w:mutbuf, native:u64) -> u64:
     pos = 0
     while pos < length(s):
         field = 0
@@ -383,6 +424,8 @@ def remaining_surrogate(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             if pos == get(o, 128 + field * 24):
                 pos = get(o, 136 + field * 24)
             field = field + 1
+        if native == 1 and pos == get(o, 344):
+            pos = get(o, 352)
         if pos < length(s):
             if byte(s, pos) == 34:
                 pos = pos + 1
@@ -478,7 +521,7 @@ def emit_path(o:mutbuf, at:u64, cp:u64, json:u64) -> u64:
         return 18446744073709551615
     return emit_utf8(o, at, cp)
 
-def literal_key(s:readbuf, w:mutbuf, pos:u64, size:u64, a:u64, b:u64, c:u64, d:u64) -> u64:
+def literal_key(s:readbuf, w:mutbuf, pos:u64, size:u64, a:u64, b:u64, c:u64, d:u64, e:u64) -> u64:
     index = 0
     while index < size:
         cp = decoded(s, w, pos)
@@ -490,6 +533,8 @@ def literal_key(s:readbuf, w:mutbuf, pos:u64, size:u64, a:u64, b:u64, c:u64, d:u
             word = c
         if index >= 24:
             word = d
+        if index >= 32:
+            word = e
         expected = (word >> ((index & 7) * 8)) & 255
         if cp != expected:
             return 0
@@ -833,12 +878,14 @@ def put(w:mutbuf, index:u64, value:u64) -> u64:
     code=PROGRAM+'\n'+preflight+'\n'+'\n\n'.join(pool[k] for k in ('whitespace','hex4'))+word_helpers
     code+='\ndef key_kind(s:readbuf, w:mutbuf, pos:u64) -> u64:\n'
     for i,key in enumerate(KEYS):
-        raw=key.encode();words=[int.from_bytes(raw[n:n+8].ljust(8,b'\0'),'little') for n in range(0,32,8)]
+        raw=key.encode();words=[int.from_bytes(raw[n:n+8].ljust(8,b'\0'),'little') for n in range(0,40,8)]
         code+=f'    if literal_key(s, w, pos, {len(raw)}, '+', '.join(map(str,words))+f') == 1:\n        return {i}\n'
     code+='    return 18446744073709551615\n'
-    name=b'evaluate-full-worker-capsule.bin';words=[int.from_bytes(name[n:n+8].ljust(8,b'\0'),'little') for n in range(0,32,8)]
+    name=b'evaluate-full-worker-capsule.bin';words=[int.from_bytes(name[n:n+8].ljust(8,b'\0'),'little') for n in range(0,40,8)]
     code+='\ndef capsule_name(s:readbuf, w:mutbuf, pos:u64) -> u64:\n    return literal_key(s, w, pos, '+str(len(name))+', '+', '.join(map(str,words))+')\n'
-    for symbol,magic in [('MAGIC_META',b'HIAWCM01'),('MAGIC_PINS',b'HIAWCP01'),('MAGIC_DESC',b'HIAWCD01'),('MAGIC_COUNT',b'HIAWCQ01')]:
+    name=b'hepta.hia.mcp.controller.v26';words=[int.from_bytes(name[n:n+8].ljust(8,b'\0'),'little') for n in range(0,40,8)]
+    code+='\ndef controller_schema(s:readbuf, w:mutbuf, pos:u64) -> u64:\n    return literal_key(s, w, pos, '+str(len(name))+', '+', '.join(map(str,words))+')\n'
+    for symbol,magic in [('MAGIC_META',b'HIAWCM01'),('MAGIC_PINS',b'HIAWCP01'),('MAGIC_DESC',b'HIAWCD01'),('MAGIC_COUNT',b'HIAWCQ01'),('MAGIC_JOBS',b'HIAWCJ01')]:
         code=code.replace(symbol,str(int.from_bytes(magic,'little')))
     return code
 

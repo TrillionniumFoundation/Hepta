@@ -38,7 +38,7 @@ def valid_request(s:readbuf) -> u64:
     if length(s) != 192 or uint(s, 0) != MAGIC_REQUEST:
         return 0
     mode = uint(s, 8)
-    if mode != 1 and mode != 2:
+    if mode != 1 and mode != 2 and mode != 3:
         return 0
     if uint(s, 16) == 1 or uint(s, 16) > 2147483647 or uint(s, 24) == 0:
         return 0
@@ -53,7 +53,7 @@ def valid_request(s:readbuf) -> u64:
         if uint(s, i) != 0:
             return 0
         i = i + 8
-    count = choose(mode == 1, 2, 4)
+    count = choose(mode == 1, 2, choose(mode == 3, 5, 4))
     i = 0
     while i < count:
         fd = uint(s, 32 + i * 8)
@@ -208,7 +208,7 @@ def normalize_file(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         if get(w, 152) != get(w, 1600032):
             return finish(o, w, 65)
         put(w, 1600040, get(w, 160))
-        return parse_view(o, w, get(w, 160), get(w, 152), 2, 600)
+        return parse_view(o, w, get(w, 160), get(w, 152), choose(uint(s, 8) == 3, 8, 2), 600)
     return finish(o, w, 65)
 
 def parse_view(o:mutbuf, w:mutbuf, input:u64, size:u64, mode:u64, next:u64) -> u32:
@@ -387,7 +387,7 @@ def derive(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
     if phase == 607:
         return clock_check(o, w, 640)
     if phase == 640:
-        if uint(s, 8) == 2:
+        if uint(s, 8) != 1:
             if get(w, 1800064) != 0:
                 return finish(o, w, 65)
             return resume(s, o, w, 700)
@@ -441,6 +441,8 @@ def derive(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
 def binding(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
     if phase >= 1900:
         return cleanup(s, o, w, phase, r)
+    if phase >= 1200:
+        return native_jobs(s, o, w, phase, r)
     if phase >= 1100:
         return publication(s, o, w, phase, r)
     if phase >= 1000:
@@ -543,11 +545,26 @@ def binding(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
     if phase == 740:
         if prepare_values(w) == 0:
             return finish(o, w, 65)
-        put(w, 3088, 655554)
-        put(w, 3096, 384)
-        put(w, 3104, 14)
-        return call(o, w, 1100, 437, uint(s, 48), C_TEMP, 3088, 24, 0, 0, 60)
+        if uint(s, 8) == 3:
+            return resume(s, o, w, 1200)
+        return open_output(s, o, w)
     return finish(o, w, 65)
+
+def open_output(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    put(w, 3088, 655554)
+    put(w, 3096, 384)
+    put(w, 3104, 14)
+    return call(o, w, 1100, 437, uint(s, 48), C_TEMP, 3088, 24, 0, 0, 60)
+
+def capture_record(index:u64) -> u64:
+    if index < 4:
+        return 1541000 + index * 192
+    return 2700000 + (index - 4) * 192
+
+def capture_digest(index:u64) -> u64:
+    if index < 4:
+        return 1542000 + index * 32
+    return 2702000 + (index - 4) * 32
 
 def capture_start(o:mutbuf, w:mutbuf, dir:u64, index:u64, path:u64, executable:u64, next:u64) -> u32:
     put(w, 1550000, index)
@@ -562,7 +579,7 @@ def capture_start(o:mutbuf, w:mutbuf, dir:u64, index:u64, path:u64, executable:u
 def capture_installed(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
     if failed(r):
         return finish(o, w, 74)
-    record = 1541000 + get(w, 1550000) * 192
+    record = capture_record(get(w, 1550000))
     if phase == 900:
         if r < 3:
             return finish(o, w, 74)
@@ -578,6 +595,11 @@ def capture_installed(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         size = get(w, 1248)
         if size == 0 or size > 9223372036854775807:
             return finish(o, w, 65)
+        if get(w, 1550000) >= 4:
+            if size > job_role_limit(get(w, 1550000) - 4):
+                return finish(o, w, 65)
+            if get(w, 1550000) > 4 and (size < 64 or getn(w, 1224, 4) & 73 == 0):
+                return finish(o, w, 65)
         put(w, record + 16, size)
         copyw(w, record + 32, 1200, 144)
         return call(o, w, 902, 319, C_MEMFD, 2, 0, 0, 0, 0, 3)
@@ -597,7 +619,7 @@ def capture_installed(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
     if phase == 906:
         return hash_view(o, w, get(w, record + 8), 0, get(w, record + 16), 907)
     if phase == 907:
-        copyw(w, 1542000 + get(w, 1550000) * 32, 4096, 32)
+        copyw(w, capture_digest(get(w, 1550000)), 4096, 32)
         return resume(s, o, w, get(w, 1550024))
     return finish(o, w, 65)
 
@@ -788,6 +810,8 @@ def exec_request(s:readbuf, w:mutbuf) -> u64:
     return at + 16 + get(w, 1510064) * 8 - 458752
 
 def next_edit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if uint(s, 8) == 3:
+        return jobs_next_edit(s, o, w)
     selected = 6
     first = 18446744073709551615
     i = 0
@@ -832,7 +856,7 @@ def publication(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         size = get(w, 1570040) - get(w, 1570016)
         put(w, 1570008, get(w, 1570008) + size)
         index = get(w, 1570032)
-        return writing_at(o, w, get(w, 1570000), 2230000 + index * 32768, get(w, 1570100 + index * 8), get(w, 1570008), 1105)
+        return writing_at(o, w, get(w, 1570000), edit_value(index), get(w, 1570100 + index * 8), get(w, 1570008), 1105)
     if phase == 1105:
         index = get(w, 1570032)
         put(w, 1570008, get(w, 1570008) + get(w, 1570100 + index * 8))
@@ -843,6 +867,8 @@ def publication(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         return next_edit(s, o, w)
     if phase == 1110:
         put(w, 1570008, get(w, 1570008) + get(w, 1570040) - get(w, 1570016))
+        if uint(s, 8) == 3:
+            return call(o, w, 1114, 75, get(w, 1570000), 0, 0, 0, 0, 0, 0)
         return writing_at(o, w, get(w, 1570000), 2500000, get(w, 1570080), get(w, 1570008), 1111)
     if phase == 1111:
         put(w, 1570008, get(w, 1570008) + get(w, 1570080))
@@ -860,9 +886,9 @@ def publication(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         return resume(s, o, w, 1120)
     if phase == 1120:
         index = get(w, 1570096)
-        if index == 4:
+        if index == choose(uint(s, 8) == 3, 10, 4):
             return clock_check(o, w, 1130)
-        record = 1541000 + index * 192
+        record = capture_record(index)
         put(w, 3088, 657408)
         put(w, 3096, 0)
         put(w, 3104, 14)
@@ -873,7 +899,7 @@ def publication(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         put(w, 1570340, r)
         return call(o, w, 1122, 5, r, 1200, 0, 0, 0, 0, 12)
     if phase == 1122:
-        record = 1541000 + get(w, 1570096) * 192
+        record = capture_record(get(w, 1570096))
         if same(w, record + 32, 1200, 72) == 0 or same(w, record + 120, 1288, 32) == 0:
             return finish(o, w, 65)
         return call(o, w, 1123, 3, get(w, 1570340), 0, 0, 0, 0, 0, 0)
@@ -909,6 +935,160 @@ def publication(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         return finish(o, w, 0)
     return finish(o, w, 65)
 
+def native_jobs(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
+    if failed(r):
+        return finish(o, w, 74)
+    if phase == 1200:
+        return sealed_view(o, w, uint(s, 64), 1201)
+    if phase == 1201:
+        if get(w, 152) != 96:
+            return finish(o, w, 65)
+        return reading(o, w, uint(s, 64), 2630000, 96, 0, 1202)
+    if phase == 1202:
+        if get(w, 2630000) != MAGIC_CONTROLLER or get(w, 2630008) != 26 or get(w, 2630016) != 20 or get(w, 2630088) != 0:
+            return finish(o, w, 65)
+        if jobs_paths(w) == 0:
+            return finish(o, w, 65)
+        return capture_start(o, w, uint(s, 48), 4, 2600000, 0, 1203)
+    if phase == 1203:
+        if same(w, capture_digest(4), 2630056, 32) == 0:
+            return finish(o, w, 65)
+        row = capture_record(4)
+        return sealed_view(o, w, get(w, row + 8), 1204)
+    if phase == 1204:
+        return parse_view(o, w, get(w, 160), get(w, 152), 6, 1205)
+    if phase == 1205:
+        if get(w, 152) != 624:
+            return finish(o, w, 65)
+        return reading(o, w, get(w, 144), 2630200, 624, 0, 1206)
+    if phase == 1206:
+        if get(w, 2630200) != MAGIC_JOBS or get(w, 2630208) != 19:
+            return finish(o, w, 65)
+        put(w, 2631000, 0)
+        return resume(s, o, w, 1210)
+    if phase == 1210:
+        index = get(w, 2631000)
+        if index == 5:
+            if jobs_values(w) == 0:
+                return finish(o, w, 65)
+            return clock_check(o, w, 1290)
+        return capture_start(o, w, uint(s, 48), index + 5, 2600000 + (index + 1) * 4096, 1, 1211)
+    if phase == 1211:
+        index = get(w, 2631000)
+        if same(w, capture_digest(index + 5), 2630216 + index * 32, 32) == 0:
+            return finish(o, w, 65)
+        row = capture_record(index + 5)
+        return reading(o, w, get(w, row + 8), 2631200, 20, 0, 1212)
+    if phase == 1212:
+        if getn(w, 2631200, 7) != MAGIC_ELF or getn(w, 2631216, 4) != 4063234:
+            return finish(o, w, 65)
+        put(w, 2631000, get(w, 2631000) + 1)
+        return resume(s, o, w, 1210)
+    if phase == 1290:
+        return open_output(s, o, w)
+    return finish(o, w, 65)
+
+def jobs_paths(w:mutbuf) -> u64:
+    index = 0
+    while index < 6:
+        at = 2600000 + index * 4096
+        size = job_role_size(index)
+        if get(w, 1540008) + 77 + size >= 4096:
+            return 0
+        copyw(w, at, C_CONTROLLER, 11)
+        hex_bytes(w, at + 11, 2630024, 32)
+        store(w, at + 75, 47)
+        copyw(w, at + 76, job_role_name(index), size)
+        store(w, at + 76 + size, 0)
+        index = index + 1
+    return 1
+
+def jobs_values(w:mutbuf) -> u64:
+    at = 2800000
+    start = get(w, 1800344)
+    end = get(w, 1800352)
+    if start == 18446744073709551615:
+        start = get(w, 1800328) - 1
+        end = start
+        if get(w, 1800336) != 0:
+            store(w, at, 44)
+            at = at + 1
+        copyw(w, at, C_JOBS_KEY, 15)
+        at = at + 15
+    else:
+        store(w, at, 123)
+        at = at + 1
+    put(w, 1800296, start)
+    put(w, 1800304, end)
+    put(w, 1800312, 7)
+    index = 0
+    while index < 5:
+        if index != 0:
+            store(w, at, 44)
+            at = at + 1
+        size = job_field_size(index)
+        copyw(w, at, job_field_name(index), size)
+        at = at + size
+        root_size = get(w, 1540008)
+        path_size = 76 + job_role_size(index + 1)
+        copyw(w, 2640000, 2200000, root_size)
+        store(w, 2640000 + root_size, 47)
+        copyw(w, 2640001 + root_size, 2600000 + (index + 1) * 4096, path_size)
+        quoted = quote_path(w, 2640000, root_size + 1 + path_size, 2750000)
+        if quoted == 0 or quoted > 32768:
+            return 0
+        copyw(w, at, 2750000, quoted)
+        at = at + quoted
+        copyw(w, at, C_JOBS_SHA, 11)
+        at = at + 11
+        hex_bytes(w, at, 2630216 + index * 32, 32)
+        at = at + 64
+        store(w, at, 34)
+        store(w, at + 1, 125)
+        at = at + 2
+        index = index + 1
+    store(w, at, 125)
+    at = at + 1
+    if at > 3000000:
+        return 0
+    put(w, 1570156, at - 2800000)
+    put(w, 1800272, get(w, 1800040) - 1)
+    put(w, 1800280, get(w, 1800040) - 1)
+    put(w, 1800288, 6)
+    put(w, 1570148, get(w, 1570080))
+    return 1
+
+def edit_value(index:u64) -> u64:
+    if index == 6:
+        return 2500000
+    if index == 7:
+        return 2800000
+    return 2230000 + index * 32768
+
+def jobs_next_edit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    selected = 8
+    first = 18446744073709551615
+    i = 0
+    while i < 8:
+        start = get(w, 1800128 + i * 24)
+        if get(w, 1570024) & (1 << i) == 0 and start < first:
+            selected = i
+            first = start
+        i = i + 1
+    cursor = get(w, 1570016)
+    if selected == 8:
+        if cursor > get(w, 1600032):
+            return finish(o, w, 65)
+        put(w, 1570040, get(w, 1600032))
+        return copying(o, w, get(w, 1600024), get(w, 1570000), cursor, get(w, 1600032) - cursor, 1110)
+    end = get(w, 1800136 + selected * 24)
+    if first < cursor or end < first or end > get(w, 1600032):
+        return finish(o, w, 65)
+    put(w, 1570032, selected)
+    put(w, 1570040, first)
+    put(w, 1570048, end)
+    return copying(o, w, get(w, 1600024), get(w, 1570000), cursor, first - cursor, 1104)
+
 def finish(o:mutbuf, w:mutbuf, code:u64) -> u32:
     if code != 0 and (get(w, 1570056) != 0 or get(w, 1570064) != 0):
         put(w, 1570072, code)
@@ -938,7 +1118,12 @@ def constant_source():
           'C_ANCHOR_ENV':b'HEPTA_RUNTIME_WORKER_ENTRY_FD=',
           'C_B':b'-B\0','C_E':b'-E\0','C_S':b'-s\0','C_M':b'-m\0',
           'C_MODULE':b'hepta.hia_agent_worker\0','C_QUERY':b'--installation-manifest\0',
-          'C_HELPERS':b'--native-helpers-manifest\0','C_EXPECT':b'--expected-native-helpers-sha256\0'}
+          'C_HELPERS':b'--native-helpers-manifest\0','C_EXPECT':b'--expected-native-helpers-sha256\0',
+          'C_CONTROLLER':b'controller/','C_JOBS_KEY':b'"native_jobs":{','C_JOBS_SHA':b',"sha256":"'}
+    roles=('hia-controller.json','hia-job-entry','hia-job-submit','hia-job-observation','hia-job-cancel','hia-job-launch')
+    job_fields=('entry','submit','observation','cancel','launcher')
+    for i,name in enumerate(roles):data['C_JR'+str(i)]=name.encode()
+    for i,name in enumerate(job_fields):data['C_JF'+str(i)]=('"'+name+'":{"executable":').encode()
     fields=('worker_sha256','backend_sha256','catalog_sha256','native_helpers_sha256','python_executable','native_helpers_manifest')
     for i,key in enumerate(fields):data['C_F'+str(i)]=('\"'+key+'\":').encode()
     words={};lines=[];at=600000
@@ -950,11 +1135,17 @@ def constant_source():
     words.update({k:int.from_bytes(v,'little') for k,v in {
       'MAGIC_REQUEST':b'HIAWCB01','MAGIC_META':b'HIAWCM01','MAGIC_COUNT':b'HIAWCQ01',
       'MAGIC_OUTPUT':b'HIAWCO01','MAGIC_ROOTS':b'HIAWCR01','MAGIC_PINS':b'HIAWCP01','MAGIC_DESC':b'HIAWCD01',
-      'MAGIC_SUB':b'HIASUB01','MAGIC_PASS':b'HIAPFD01','MAGIC_SUBRECEIPT':b'HIASBR01'}.items()})
+      'MAGIC_SUB':b'HIASUB01','MAGIC_PASS':b'HIAPFD01','MAGIC_SUBRECEIPT':b'HIASBR01',
+      'MAGIC_CONTROLLER':b'HIACTO01','MAGIC_JOBS':b'HIAWCJ01','MAGIC_ELF':b'\x7fELF\x02\x01\x01'}.items()})
     from tools.generate_hia_readonly_worker_capsule import ARTIFACT_CONFIG
     words['MAGIC_ARTIFACT']=int.from_bytes(ARTIFACT_CONFIG,'little')
     init='def constants(w:mutbuf) -> u64:\n'+'\n'.join(lines)+'\n    return 0\n'
-    for name,values in [('field_name',[words['C_F'+str(i)] for i in range(6)]),('field_name_size',[len(data['C_F'+str(i)]) for i in range(6)])]:
+    for name,values in [('field_name',[words['C_F'+str(i)] for i in range(6)]),('field_name_size',[len(data['C_F'+str(i)]) for i in range(6)]),
+                        ('job_role_name',[words['C_JR'+str(i)] for i in range(6)]),
+                        ('job_role_size',[len(data['C_JR'+str(i)]) for i in range(6)]),
+                        ('job_role_limit',[16384,2097152,4194304,2097152,1048576,1048576]),
+                        ('job_field_name',[words['C_JF'+str(i)] for i in range(5)]),
+                        ('job_field_size',[len(data['C_JF'+str(i)]) for i in range(5)])]:
         init+='\ndef '+name+'(index:u64) -> u64:\n'
         for i,value in enumerate(values):init+='    if index == '+str(i)+':\n        return '+str(value)+'\n'
         init+='    return 0\n'
