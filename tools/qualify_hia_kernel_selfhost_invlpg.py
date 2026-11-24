@@ -38,7 +38,7 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr3.read"):
+    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr3.read", "x86.cr3.write"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
@@ -72,7 +72,7 @@ def candidate_source():
                 flag = 2 << (token - @read@)""")
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op == @x86.tlb.invlpg@ or op == @x86.cr3.read@:
+    if op == @x86.tlb.invlpg@ or op == @x86.cr3.read@ or op == @x86.cr3.write@:
         return 16""")
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
@@ -89,6 +89,18 @@ def candidate_source():
         emit(o, w, 32)
         emit(o, w, 216)
         store_var(o, w, v, 0)
+        return 0
+    if op == @x86.cr3.write@:
+        if get(w, 200) != 1 or n != 1 or at != 1 or t != 0 or get(w, 288) != 0:
+            return fail(w, 65)
+        expect(s, w, 10)
+        if get(w, 40) != 0:
+            return 0
+        load_var(o, w, 0, a, 0)
+        # MOV CR3, RAX. Valid root and CPL0 are caller obligations.
+        emit(o, w, 15)
+        emit(o, w, 34)
+        emit(o, w, 216)
         return 0
     if op == @x86.tlb.invlpg@:
         if get(w, 200) != 1 or n != 1 or at != 1 or t != 0 or get(w, 288) != 0:
@@ -232,6 +244,28 @@ def run(output):
     }
     for label, bad in cr3_refusals.items():
         compile_cli(exe, bad, output, label, expected=2)
+    write_source = program(op="  _ = x86.cr3.write(v0)\n")
+    write = compile_cli(exe, write_source, output, "cr3-write-1")
+    if write != compile_cli(exe, write_source, output, "cr3-write-2") or not write.startswith(b"\x7fELF"):
+        raise AssertionError("CR3 write ELF repeat failed")
+    write_text = text_bytes(output, "cr3-write", write)
+    write_asm = output / "cr3-write-oracle.s"
+    write_asm.write_text(".text\n movq %rax, %cr3\n")
+    subprocess.run(["as", "--64", "-o", str(output / "cr3-write-oracle.o"), str(write_asm)], check=True)
+    write_oracle = text_bytes(output, "cr3-write-oracle-copy", (output / "cr3-write-oracle.o").read_bytes())
+    if write_oracle != bytes.fromhex("0f22d8") or write_text.count(write_oracle) != 1:
+        raise AssertionError("CR3 write GNU as oracle mismatch")
+    write_refusals = {
+        "write-no-effect": program(effect="", op="  _ = x86.cr3.write(v0)\n"),
+        "write-legacy": program(profile=LEGACY, effect="", op="  _ = x86.cr3.write(v0)\n"),
+        "write-zero-operand": program(op="  _ = x86.cr3.write()\n"),
+        "write-extra-operand": program(op="  _ = x86.cr3.write(v0,v0)\n"),
+        "write-wrong-type": program(typ="u32", op="  _ = x86.cr3.write(v0)\n"),
+        "write-result": program(op="  v1:u64 = x86.cr3.write(v0)\n"),
+        "write-attribute": program(op='  _ = x86.cr3.write(v0) {"trust_me":true}\n'),
+    }
+    for label, bad in write_refusals.items():
+        compile_cli(exe, bad, output, label, expected=2)
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -241,6 +275,9 @@ def run(output):
         "native_generations": 3, "empty_path_rebuilds": 2, "refusals": list(refusals),
         "cr3_read": {"elf_sha256": digest(cr3), "text_sha256": digest(cr3_text),
                      "oracle_hex": cr3_oracle.hex(), "refusals": list(cr3_refusals)},
+        "cr3_write": {"elf_sha256": digest(write), "text_sha256": digest(write_text),
+                      "oracle_hex": write_oracle.hex(), "refusals": list(write_refusals),
+                      "source_sha256": digest(write_source)},
         "shape": shape, "guest_execution": "NOT_RUN", "full_linux_acceptance": "HOLD",
         "locked_compiler_changed": False, "privilege_authority_proved": False}
     (output / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")

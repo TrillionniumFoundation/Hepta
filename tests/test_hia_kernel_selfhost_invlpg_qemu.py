@@ -146,6 +146,29 @@ def run(output):
             or symbol(cr3_obj, "f0") != symbol(cr3_bad_obj, "f0")):
         raise AssertionError("CR3 mutation readback failure")
     hardware["cr3_subject_source_sha256"] = digest((output / "cr3-1.input").read_bytes())
+    write_obj = output / "cr3-write.o"
+    write_native = write_obj.read_bytes()
+    write_text = (output / "cr3-write.text").read_bytes()
+    write_source = output / "cr3-write-1.input"
+    write_report = report["cr3_write"]
+    write_opcode = bytes.fromhex(write_report["oracle_hex"])
+    if (digest(write_native) != write_report["elf_sha256"]
+            or digest(write_text) != write_report["text_sha256"]
+            or digest(write_source.read_bytes()) != write_report["source_sha256"]
+            or write_opcode != bytes.fromhex("0f22d8")
+            or write_text.count(write_opcode) != 1
+            or dump_text(write_obj, output / "cr3-write-original-readback.text") != write_text):
+        raise AssertionError("CR3 write native custody or opcode failure")
+    write_bad_text = write_text.replace(write_opcode, b"\x90"*3, 1)
+    write_mutation = output / "cr3-write-dishonest.text"
+    write_mutation.write_bytes(write_bad_text)
+    write_bad_obj = output / "cr3-write-dishonest.o"
+    invoke(["objcopy", "--update-section", ".text=" + str(write_mutation),
+            str(write_obj), str(write_bad_obj)])
+    if (dump_text(write_bad_obj, output / "cr3-write-dishonest-readback.text") != write_bad_text
+            or symbol(write_obj, "f0") != symbol(write_bad_obj, "f0")):
+        raise AssertionError("CR3 write mutation readback failure")
+    hardware["cr3_write_subject_source_sha256"] = digest(write_source.read_bytes())
     path = output / "hardware"
     path.mkdir()
     try:
@@ -156,7 +179,10 @@ def run(output):
             ("wrong-virtual-address", native, expected, ("HIA_TEST_WRONG_VA",), None, None),
             ("cr3-read-two-roots", cr3_native, cr3_text, ("HIA_TEST_CR3_READ",), 33, "P"),
             ("cr3-zero-substitution", cr3_bad_obj.read_bytes(), cr3_bad_text,
-             ("HIA_TEST_CR3_READ",), 35, "N")):
+             ("HIA_TEST_CR3_READ",), 35, "N"),
+            ("cr3-write-two-roots", write_native, write_text, ("HIA_TEST_CR3_WRITE",), 33, "P"),
+            ("cr3-write-nop", write_bad_obj.read_bytes(), write_bad_text,
+             ("HIA_TEST_CR3_WRITE",), 35, "N")):
             guest, binding = build(path, name, binary, text, macros)
             for machine in ("pc", "q35"):
                 try:
@@ -167,6 +193,9 @@ def run(output):
                     raise
                 hardware["cases"].append({**observed, **binding, "status": "PASS"})
         if (original.read_bytes() != native
+                or write_obj.read_bytes() != write_native
+                or (output / "cr3-write.text").read_bytes() != write_text
+                or digest(write_source.read_bytes()) != write_report["source_sha256"]
                 or cr3_obj.read_bytes() != cr3_native
                 or (output / "cr3.text").read_bytes() != cr3_text
                 or (output / "invlpg.text").read_bytes() != expected
