@@ -167,3 +167,69 @@ manifest, SQLite embedding, and Store word-filter consumers. The word-filter
 result must match the declared image size and SHA-256 in the admitted Store
 plan. These tests execute native compilation and consumers; they do not replace
 any complete release qualification.
+
+## Native member verification
+
+The same ELF also accepts `HIASTC01`. Its header is
+`magic, mode, calls, piece_count, reserved_zero`, followed by ordinary
+`length, bytes` pieces. The header is 40 bytes. Empty pieces are permitted
+where the original verification operation permits them. The request is bounded
+to 64 MiB and 128 adapter call sites.
+
+Success produces exactly 32 bytes:
+`HIASTOK1, mode, calls, ELF_byte_count`. Failure produces no receipt. The
+success receipt is a check result, not an executable or a publication receipt.
+
+| Mode | Ordered pieces | Verification |
+| ---: | --- | --- |
+| 1 | ELF, compiled image | Original SQLite/Pager executable contract |
+| 2 | ELF, code, packer source, adapter source, entries, instructions | Original single-code adapter contract |
+| 3 | ELF, packer source, adapter source, instructions, ordered images | Original aligned multi-image placement contract |
+| 4 | ELF, owned-reference image, packer source, adapter source | Owned-reference private-entry and adapter contract |
+
+Mode 1 uses zero calls and two pieces. It checks the complete original ELF
+header, RX/RW/stack program headers, permissions, entry and segment bounds, page
+alignment, and the image's unique non-overlapping occurrence within the RX
+extent. Non-overlapping counting preserves the original `bytes.count`
+behavior, including overlapping candidate matches.
+
+Mode 2 uses one unsigned 64-bit entry offset per call. Instructions are one
+length-prefixed byte string per call, each at most 15 bytes. Ordinary call sites
+supply `e8`; Read entry jumps supply `e9`. The complete 176-byte ELF envelope,
+patched file/memory sizes, entire code extent, instruction bytes and actual
+signed-32-bit displacement encoding must agree.
+
+Mode 3 uses one image per call, in declaration order. HIA derives each entry,
+requires the original zero padding that aligns `adapter_size + code_offset`
+to eight bytes, compares every image, and rejects missing or trailing bytes.
+
+Mode 4 requires two call sites. HIA derives the private entry from the second
+actual displacement, checks its range and `55 48 89 e5` function prologue,
+then verifies both calls and the complete adapter/code envelope.
+
+### Adapter source binding and hashing
+
+Modes 2 through 4 read the exact canonical `adapter_binding` declaration
+emitted by the checked-in HIA assembly renderer. They require the declared
+word names, unsigned constants, single block and empty return, the expected
+number of words, bounded adapter size, and distinct in-range relocation holes.
+The packer source must already be captured, cold-admitted and compiled by the
+coordinator. This parser is for those canonical admitted packers; it does not
+replace the general HIA parser or admit arbitrary reformatted source text.
+
+The first 32 binding bytes must equal SHA-256 of the captured adapter source.
+The following 32 bytes must equal SHA-256 of the actual executable adapter
+after its declared displacement words are treated as zero. Padding, scheduling,
+compression, and digest serialization execute in HIA. The implementation uses
+the existing repository SHA-256 constants and algorithm; it does not call a
+foreign hash routine. No temporary modified copy of a large adapter is needed.
+
+The checker preserves the existing distinction between supplied immutable
+source bytes and the bytes actually placed in an ELF. An opcode, displacement,
+non-relocated adapter byte, image, envelope or bound source change is rejected.
+
+`tests/test_hia_release_member_check.py` compares native accept/reject results
+with the retained Python verification functions. It includes source-hash
+padding boundaries, zeroed relocation hashing, corrupted ELF fields and
+permissions, exact aligned placement, real private-entry extraction, and a
+direct-call member compiled and packed by the actual native source seed.
