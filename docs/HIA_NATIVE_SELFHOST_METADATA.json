@@ -1,0 +1,2696 @@
+{
+  "abi": {
+    "caller_obligations": [
+      "live private source allocation",
+      "live disjoint output and workspace allocations",
+      "no concurrent input modification",
+      "entry buffers do not escape"
+    ],
+    "calling_convention": "SysV AMD64",
+    "core_return": "u32",
+    "core_types": [
+      "readbuf",
+      "mutbuf",
+      "mutbuf"
+    ],
+    "entry": "f0",
+    "insufficient_capacity": 4294967294,
+    "invalid_source": 4294967295,
+    "native_runtime_trap": "UD2 for failed bounds, checked shift, signed/unsigned checked arithmetic/cast, zero divisor or mandatory allocation",
+    "parameters": [
+      "source_ptr",
+      "source_len_u64",
+      "output_ptr",
+      "output_len_u64",
+      "workspace_ptr",
+      "workspace_len_u64"
+    ],
+    "seed_return": "u64: ABI status in high 32 bits, Core u32 in low 32 bits",
+    "source_entry": "first defined function; emitted public symbol stays f0",
+    "success": "positive generated flat-image or ELF object byte count",
+    "successor_return": "zero-extended Core u32"
+  },
+  "agent_binary64_application": {
+    "discarded_nonzero_sticky_bit": true,
+    "foreign_float_boxing_is_hosted": true,
+    "native_decimal_conversion_and_ties_even_rounding": true,
+    "native_float_printing": false,
+    "private_big_integers": "three 128-limb base-2^32 values; 4096-byte private workspace",
+    "selection": "explicit HEPTA_HIA_AGENT_BINARY64_MANIFEST; default unchanged; no fallback",
+    "significant_digits_retained": 800,
+    "source": "examples/hia_bootstrap/agent_binary64.hepta",
+    "whole_native_delivery_qualified": false,
+    "wire_bytes": 8388608
+  },
+  "agent_binary64_format_application": {
+    "JSON_object_traversal_string_integer_encoding_is_hosted": true,
+    "foreign_float_bit_transport_is_hosted": true,
+    "native_Agent_persistence": false,
+    "native_shortest_roundtrip_printing": "exact integer intervals; ties-to-even; full finite IEEE binary64 bit domain",
+    "nonfinite": "refused without output",
+    "selection": "explicit HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST; default unchanged; no fallback",
+    "source": "examples/hia_bootstrap/agent_binary64_format.hepta",
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 8192
+  },
+  "agent_candidate_import": {
+    "diagnostic_owner": "HIA serialization with SHA-256 of original and canonical Core",
+    "hosted_rejection_diagnostic_only_after_native_refusal": true,
+    "issued_result_wire": "agent_identity.hepta role 25; no adoption or equivalence authority",
+    "native_admission": [
+      "whole primitive Core v1\u2013v8",
+      "nominal Core elaboration and independent recheck",
+      "typed assembly v6\u2013v8"
+    ],
+    "refusal_diagnostics": "sealed HIA syntax or Core report; distinct unsupported diagnostics retain reference",
+    "retained_program_reopen_uses_the_same_native_admission": true,
+    "selection": "explicit native worker helper v6 on the sealed release",
+    "store_authority_and_default_service_unchanged": true
+  },
+  "agent_candidate_patch_result": {
+    "candidate_program_executed": false,
+    "command": "hia-patch-result v1|v2 < [BASE, PATCH] JSON envelope",
+    "completed_response_replay_precedes_image_admission": true,
+    "host_payload_decode_verify_interface_diff_or_receipt_construction": false,
+    "maximum_result_bytes": 16777248,
+    "pipeline": [
+      "canonical base extraction",
+      "native full primitive Core base admission",
+      "native patch and complete diagnostics",
+      "native full primitive Core candidate admission"
+    ],
+    "request_ref_metadata_journal_and_publication_are_hosted": true,
+    "result_frame": "HIAPAR01; candidate length; diagnostics length; zero reserved; two opaque JSON payloads",
+    "selection": "explicit HEPTA_HIA_CORE_PATCH_MANIFEST in ordinary hia_candidate patch requests; no fallback",
+    "source": "examples/hia_bootstrap/core_patch.hepta",
+    "standalone_packer": "examples/hia_bootstrap/core_patch_result_cli_packer.hepta",
+    "unfinished_request_intent_remains_unknown": true,
+    "whole_Agent_replaced": false,
+    "whole_native_delivery_qualified": false
+  },
+  "agent_data_json_application": {
+    "Agent_depth": 128,
+    "Agent_nodes": 262144,
+    "Core_integer_JSON_protocol_changed": false,
+    "arena": "HIADATA1; original integer lexemes and distinct fractional/exponent tag 7",
+    "finite_binary64_conversion_and_foreign_objects_are_hosted": true,
+    "native": [
+      "ordinary JSON grammar including fraction/exponent lexemes",
+      "UTF-8 and escaped Unicode",
+      "duplicate object keys",
+      "hierarchy and structural budgets"
+    ],
+    "native_floating_conversion_or_canonical_printing": false,
+    "selection": "explicit HEPTA_HIA_AGENT_DATA_JSON_MANIFEST; default unchanged; no fallback",
+    "source": "examples/hia_bootstrap/agent_data_json.hepta",
+    "whole_native_Agent_persistence": false,
+    "whole_native_delivery_qualified": false,
+    "wire_bytes": 8388608
+  },
+  "agent_discovery": {
+    "default_service_changed": false,
+    "native_owners": [
+      "discovery refusal precedence",
+      "six resource routes",
+      "eight canonical primitive opcode catalogs",
+      "canonical startup schema registry",
+      "seven canonical installation profiles",
+      "canonical discovery manifest"
+    ],
+    "profile_creation_and_resource_authority": "original Store interface",
+    "selection": "explicit HEPTA_HIA_AGENT_DISCOVERY_MANIFEST; no fallback",
+    "source": "examples/hia_bootstrap/agent_discovery.hepta"
+  },
+  "agent_input_schema": {
+    "approved_input_schema_count": 11,
+    "argument_materialization_and_service_methods_remain_hosted": true,
+    "binding": "exact catalog SHA-256 and ordinal",
+    "catalog": "docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json",
+    "default_service_changed": false,
+    "rejection_text_owner": "existing hosted validator on native refusals only",
+    "selection": "explicit HEPTA_HIA_AGENT_SCHEMA_MANIFEST; no acceptance fallback",
+    "source": "examples/hia_bootstrap/agent_schema.hepta"
+  },
+  "agent_inspection": {
+    "lowering_view_and_default_service_unchanged": true,
+    "native_dependency_query": {
+      "hosted_rejection_diagnostic_only_after_native_refusal": true,
+      "retains_distinct_admitted_original_input_digest": true,
+      "selection": "sealed hia-prepare-edit-query pinned in native helpers v5 or v6",
+      "source": "examples/hia_bootstrap/core_edit/query.hepta"
+    },
+    "native_owners": [
+      "canonical summary including the original structured identity",
+      "exact function and block selection",
+      "canonical inspection artifact bytes"
+    ],
+    "request_projection": {
+      "native_owners": [
+        "view dispatch",
+        "cursor refusal",
+        "dependency selector projection"
+      ],
+      "selection": "HEPTA_HIA_INSPECTION_REQUEST_MANIFEST",
+      "source": "examples/hia_bootstrap/worker_inspection_request.hepta"
+    },
+    "selection": "explicit HEPTA_HIA_AGENT_INSPECTION_MANIFEST; no fallback",
+    "source": "examples/hia_bootstrap/agent_inspection.hepta",
+    "whole_program_admission_and_store_issued_authority_retained": true
+  },
+  "agent_mcp_stdio_connection": {
+    "advertised_tool_effects": false,
+    "command": "hia-agent-mcp-connection",
+    "production_endpoint_selected": false,
+    "requires_host_runtime_or_sdk": false,
+    "scope": "standalone legacy MCP initialization and stateless 2026-07-28 discovery, framing and ping",
+    "sources": [
+      "examples/hia_bootstrap/mcp_connection.hepta",
+      "examples/hia_bootstrap/mcp_stdio_packer.hepta"
+    ]
+  },
+  "agent_read_page": {
+    "default_service_changed": false,
+    "installed_payload_custody": "pinned Store streams verified artifact bytes into the sealed pager input; no hosted payload copy",
+    "issued_reference_wire": [
+      "HIAARC01",
+      "HIAARO02"
+    ],
+    "issued_result_wire": "agent_identity.hepta role 24; Store authorization retained",
+    "legacy_wire": [
+      "HIAARP01",
+      "HIAARO01"
+    ],
+    "native_owners": [
+      "text/binary classification",
+      "bounded page encoding",
+      "next byte offset",
+      "canonical SHA-256 cursor"
+    ],
+    "reference_authentication_and_cursor_storage": "original Store interface",
+    "selection": "explicit HEPTA_HIA_AGENT_READ_PAGE_MANIFEST; no fallback",
+    "source": "examples/hia_bootstrap/agent_read_page.hepta"
+  },
+  "agent_request_journal": {
+    "acknowledgements_follow_SQL_success_before_COMMIT": true,
+    "cached_codec_profile_selection": "snapshot at cache consumption; explicit image admission after original codec/size guards",
+    "cached_selected_image_custody": "warm immutable mappings retain their original pin; new image paths require fresh admission",
+    "default_service_changed": false,
+    "foreign_unhashable_tool_diagnostics": "HIA distinguishes direct and tuple-nested kinds; bridge renders actual interpreter wording",
+    "hosted_owners": [
+      "SQLite transaction and durability",
+      "foreign object custody",
+      "schemas, service operations, context and proof authority",
+      "clock observations, installation and deployment"
+    ],
+    "maximum_depth": 128,
+    "maximum_input_bytes": 8388608,
+    "maximum_key_unicode_codepoints": 192,
+    "maximum_nodes": 262144,
+    "native_AgentStore_replaced": false,
+    "native_owners": [
+      "original canonical request and key SHA-256",
+      "tool and Unicode key admission",
+      "conflict, reservation, replay and unknown decisions",
+      "cached JSON grammar, lexical number projection and original syntax positions",
+      "cached BLOB UTF-8 first error span and verification replay route",
+      "atomic effect selection and phase acknowledgements",
+      "canonical terminal response, cost details and write instructions",
+      "sealed transport input framing, sequence, reply lengths and state carry decisions"
+    ],
+    "native_protocol_failure_can_write_terminal_success": false,
+    "response_and_cost_channels_have_separate_byte_budgets": true,
+    "selection": "explicit HEPTA_HIA_AGENT_JOURNAL_MANIFEST; no fallback",
+    "source": "examples/hia_bootstrap/agent_journal.hepta",
+    "standalone_elf_packer_source": "examples/hia_bootstrap/agent_journal_stdio_packer.hepta",
+    "standalone_wire_source": "examples/hia_bootstrap/agent_journal_transport.hepta",
+    "standalone_worker_transport": "v16 pins the journal ELF; v17 and v18 add native direct and reference process ownership",
+    "whole_native_delivery_qualified": false
+  },
+  "agent_response_schema": {
+    "approved_output_schema_count": 11,
+    "binding": "exact catalog SHA-256 and ordinal",
+    "catalog": "docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json",
+    "default_service_changed": false,
+    "rejection_text_owner": "existing hosted validator on native refusals only",
+    "selections": [
+      "HEPTA_HIA_AGENT_RESPONSE_SCHEMA_MANIFEST",
+      "HEPTA_HIA_AGENT_VERIFY_RESPONSE_SCHEMA_MANIFEST"
+    ],
+    "sources": [
+      "examples/hia_bootstrap/agent_response_schema.hepta",
+      "examples/hia_bootstrap/agent_verify_response_schema.hepta"
+    ],
+    "successful_responses_and_verification_replay": true
+  },
+  "agent_snapshot_application": {
+    "admission_and_materialization": "native field inventory, value tags, exact lowercase hex and fill range; no output on refusal",
+    "host_transport": "decoded Python objects and exact type/field tags, bounded UTF-8 representation",
+    "maximum_snapshot_bytes": 1048576,
+    "native_scratch_bytes": 64,
+    "output_header_bytes": 8,
+    "production_activated": false,
+    "selection": "operator HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST; hosted default unchanged",
+    "source": "examples/hia_bootstrap/agent_snapshot.hepta",
+    "whole_agent_editing_and_persistence_replaced": false,
+    "wire_schema": "typed-fields-v1; no paths or addresses"
+  },
+  "agent_snapshot_json_application": {
+    "anonymous_rw_mapping_bytes": 92282880,
+    "atomic_output_publication": false,
+    "host_build_and_custody_driver": true,
+    "interface": "explicit standalone hia-snapshot-json; stdin JSON to admitted stdout bytes",
+    "maximum_depth": 128,
+    "maximum_nodes": 1048576,
+    "maximum_snapshot_bytes": 1048576,
+    "maximum_wire_bytes": 8388608,
+    "native_runtime_foreign_decoder_or_second_executable_required": false,
+    "production_activated": false,
+    "refusal": "private decoded arena may change; standalone stdout remains empty before admission",
+    "sources": [
+      "examples/hia_bootstrap/agent_snapshot_json.hepta",
+      "examples/hia_bootstrap/agent_snapshot_json_packer.hepta"
+    ],
+    "whole_agent_editing_and_persistence_replaced": false
+  },
+  "agent_stdio_application": {
+    "assembly_rendering_requires_native_semantic_compiler_acceptance": true,
+    "commands": [
+      "capabilities",
+      "verify",
+      "compile",
+      "render-assembly",
+      "assemble",
+      "check-assembly",
+      "catalog"
+    ],
+    "compiler_source_schemas": [
+      "hepta.hia.program.v6",
+      "hepta.hia.program.v7",
+      "hepta.hia.program.v8",
+      "hepta.hia.program.v9"
+    ],
+    "core_frontend_source": "examples/hia_bootstrap/core_json_frontend.hepta",
+    "direct_assembly_input_bytes": 1048576,
+    "direct_assembly_preserves_explicit_output_profile": true,
+    "host_build_and_custody_driver": true,
+    "native_runtime_python_required": false,
+    "output_profile_selection": "fixed build-time flat/elf/exec or an explicit invocation option in the portable build; never inferred from payload",
+    "portable_file_input": "explicit ordinary source path with unchanged byte limits, or stdin when no path is supplied",
+    "production_activated": false,
+    "sources": [
+      "examples/hia_bootstrap/agent_stdio_dispatch.hepta",
+      "examples/hia_bootstrap/agent_stdio_packer.hepta"
+    ],
+    "whole_agent_editing_and_persistence_replaced": false
+  },
+  "artifact_publication_application": {
+    "Agent_DB_authority_and_intent": "unchanged hosted SQLite WAL namespace, metadata identity, transactions and request journal; not replaced",
+    "Agent_artifact_file_selection": "HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST; sealed current-source executable; no fallback",
+    "Agent_empty_artifacts_supported": true,
+    "Agent_file_fsync_failure": "no success or DB reference issuance; directory fsync failure can leave immutable content; no automatic replay",
+    "Agent_file_payload_limit_bytes": 67108864,
+    "Agent_file_runtime": "HIA streaming SHA; private owned directory; exact lowercase digest names; UUID4 O_EXCL temporary; no-replace link; full-byte dedup; file then directory fsync before receipt",
+    "Agent_get_runtime": "capture and authenticate entire ordinary file before stdout; one pinned directory descriptor; nofollow/nonblock; identity/size/byte checks",
+    "Agent_put_code_admission": "standalone retains one full admission per public put and same immutable bytes for hash/put; explicit v4 worker additionally rechecks complete current admission at each use; no cross-call metadata-only source cache; selection changes refuse",
+    "artifact_delivery_original_callers": "four unchanged original modules/63 methods plus complete NDU19, assembly18 and native-tools32; 132 methods remain separate from new controls",
+    "artifact_formal_builder_requires_matching_current_cold": true,
+    "artifact_payload_fixed_size_limit": null,
+    "artifact_worker_capsule": "hepta.hia.native-helpers.v4 pins exact v1 helper bundle and separate artifact manifest; artifact is not a six-argument HELPERS entry",
+    "artifact_worker_fresh_admission": "every selected public call and normal terminal identity check repeats the complete current source/installed module inventory and current manifest/image admission against fixed captured public/private bytes",
+    "authority": "nonempty exact expected bytes and same ordinary inode; never prior digest/receipt",
+    "consistency": "point-in-time only; no later-writer immunity",
+    "default_changed": false,
+    "directory_fsync_journal_and_crash_recovery": false,
+    "exact_resource_custody": "identity-only explicit Store association; real native loss retains the exact object and blocks its later owned close; unrelated Store objects and confirmed ordinary refusals remain closable",
+    "expected_storage": "anonymous mmap/mremap growth until OS resource failure",
+    "file_read_chunk_bytes": 65536,
+    "full_Agent_persistence_replaced": false,
+    "host_boundaries": [
+      "authoring with binutils",
+      "build/code custody",
+      "installation",
+      "default Agent persistence"
+    ],
+    "hosted_public_API_selection": "HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST; exact code via sealed memfd; invalid selection has no fallback",
+    "hosted_route_custody_modes": "checkout validates complete actual build source; installed package validates exact owned production modules and explicit build-input assets plus the unchanged full source contract; no checkout/tools fallback",
+    "hosted_route_requires_source_tree": false,
+    "installed_publisher_build_input_assets": "four additional explicit package assets; streaming SHA already enrolled; build tools are data only, never imported as installed runtime modules",
+    "native_link_diagnostic_differs_from_reference_EXISTS": true,
+    "native_only_installed_Agent_qualified": false,
+    "native_runtime_Python_libc_or_child_required": false,
+    "opaque_provider_internals_and_direct_raw_DB_close_owned": false,
+    "operations": [
+      "publish",
+      "verify",
+      "withdraw",
+      "store-put",
+      "store-get",
+      "store-hash"
+    ],
+    "original_D4_successor_provenance": "one exact reversible eight-file composition; other86 whole original files and other18 shared pins retained; twenty original adapter definitions and one explicitly reviewed context-protocol successor; all21 checks retained; DRAFT is not formal admission",
+    "private_delivery_ack_bytes": 128,
+    "private_delivery_ack_owner": "HIA delivery_terminal formats and classifies the whole fixed frame; existing HIA SHA seals its first 104 bytes; original public receipt checks follow complete transport validation",
+    "private_delivery_entry": "fixed note-bound executable; only ELF e_entry differs from public bytes; per-call nonce is a separate stdin prefix, never executable bytes or a public CLI marker",
+    "private_delivery_prefix_bytes": 16,
+    "private_negative_ack": "original refusal is confirmed only by complete matching control receipt; exit 15/16 alone never imply completion; original directory-fsync permitted content residue retained",
+    "publication": "no-replace hard link; post-link full byte and identity recheck; cleanup only original owned inode",
+    "resource_resume_obligation": "pre-reserved foreign body observation is distinct from a native advance; no cross-context token reset or fabricated creator/ancestor",
+    "selection": "explicit standalone hia-artifact; defaults unchanged",
+    "sources": [
+      "examples/hia_bootstrap/artifact_publication_policy.hepta",
+      "examples/hia_bootstrap/artifact_publication_packer.hepta",
+      "examples/hia_bootstrap/sha256_stream.hepta"
+    ],
+    "whole_native_delivery_qualified": false
+  },
+  "audited_empty_native_selectors": {
+    "absent_selector": "original default and public results retained",
+    "all_repository_selectors_strict": false,
+    "compatibility_change": "remove the audited environment key to use its original default",
+    "default_native_selection": false,
+    "entries": [
+      "JSON preflight and both JSON decoder entries",
+      "SHA256 and SHA256 stream",
+      "snapshot size and bytes",
+      "capability renaming",
+      "JSON wire",
+      "identity digest and uint64",
+      "worker report",
+      "artifact publication",
+      "service journal and cached-journal preflight"
+    ],
+    "nonempty_selector_outside_profile_routes_changed": false,
+    "present_empty_selector": "explicit refusal before reference dispatch or foreign effects",
+    "retained_exception": "machine encoding keeps its documented empty-disable contract",
+    "whole_native_delivery_qualified": false
+  },
+  "capability_renaming_application": {
+    "all_input_refinement_proved": false,
+    "host_boundaries": [
+      "verifier-owned object snapshot",
+      "opaque string interning",
+      "buffer allocation and object materialization",
+      "remaining general Core verifier",
+      "build, executable custody and installation"
+    ],
+    "maximum_capabilities": 262144,
+    "maximum_edges": 262144,
+    "maximum_symbols": 2097152,
+    "native_general_Core_verifier": false,
+    "output_on_policy_refusal": false,
+    "policy": [
+      "injective targets",
+      "present sources",
+      "local capability survival",
+      "root and parent closure",
+      "exact type/external/original-parameter transport"
+    ],
+    "production_activated": false,
+    "selected_reference_fallback": false,
+    "selection": "operator HEPTA_HIA_CAPABILITY_RENAMING_MANIFEST; default unchanged",
+    "source": "examples/hia_bootstrap/capability_renaming.hepta"
+  },
+  "capacity_derivation": {
+    "canonical_core_byte_budget": 8388608,
+    "canonical_core_bytes_formula": "1MiB complete assembly payload +1024 fixed header +1024 per function +1024 per block +512 per instruction; ASCII identifiers require no JSON escaping",
+    "canonical_core_bytes_upper_bound": 6947840,
+    "capacity_growth_changes_source_output_workspace_bytes": false,
+    "relative_relocations_formula": "at most 128 public wrapper calls + instructions + two edges per block + one entry jump per function + two calls in the optional shared chain destructor",
+    "relative_relocations_upper_bound": 11522,
+    "structural_node_counter_workspace_offset": 248,
+    "structural_node_gate": "exact Core JSON value/container nodes, checked in each full native source pass; queued block validation preserves the full-pass count"
+  },
+  "claims": {
+    "compiler_correctness_formally_proved": false,
+    "native_execution_is_security_sandboxed": false,
+    "support_declaration_is_execution_evidence": false,
+    "whole_HIA_language_self_hosted": false
+  },
+  "compiler_symbols": {
+    "entry": "f0",
+    "exact_tail_lookahead": "f12",
+    "mutation_wrapper": "f13"
+  },
+  "composite_complete_elaboration": {
+    "compiler_and_qualification_limits_changed": false,
+    "complete_output_size_limit_added": false,
+    "default_changed": false,
+    "diagnostics": "ordered owner refusals and complete Core bytes; existing native type shape/name context differences remain explicit",
+    "fixture_artifacts": "optional exact build/input copies and custody manifest; development receipts do not qualify cold or whole-stack delivery",
+    "host_boundaries": [
+      "public bounded snapshot, source/image custody, fixed typed forwarding and object materialization",
+      "final primitive Core admission and program backend",
+      "build/install/default selection and durable Agent request authority"
+    ],
+    "image_count": 11,
+    "installed_test": "actual sdist to wheel to isolated installed package; all old semantic owners disabled; eleven source paths bound to package resources; all four new source/image assets and both new bundle manifests refuse missing or changed bytes",
+    "native_owners": [
+      "complete type sessions, parameter and task signatures, and returned-loan origins",
+      "complete nominal constructor admission and ordered signature registry",
+      "complete function admission, instruction and terminator lowering",
+      "complete task helper generation and state transitions",
+      "complete expanded module inventories, exports, schema and result assembly"
+    ],
+    "old_host_owners_removed": false,
+    "private_partial_state_preserved": true,
+    "public_program_limits_unchanged": true,
+    "public_session_lifetime": "constructor and outer temporary workspaces are released by their own finally blocks; elaborate_program closes function/types sessions on success or any exception; untransferred constructor types and borrowed outer function buffers are released",
+    "required_test_modules": [
+      "tests.test_hia_composite_types_native",
+      "tests.test_hia_composite_origins_native",
+      "tests.test_hia_composite_signatures_native",
+      "tests.test_hia_task_helpers_native",
+      "tests.test_hia_composite_native_composition",
+      "tests.test_hia_composite_function_tokens",
+      "tests.test_hia_composite_function_admission",
+      "tests.test_hia_composite_function_protocol_audit",
+      "tests.test_hia_composite_function_terms_native",
+      "tests.test_hia_composite_functions_native",
+      "tests.test_hia_composite_public_lifecycle",
+      "tests.test_hia_composite_constructor_native",
+      "tests.test_hia_composite_constructor_integration",
+      "tests.test_hia_composite_outer_native",
+      "tests.test_hia_composite_outer_integration",
+      "tests.test_hia_composite_nominal_lifecycle"
+    ],
+    "selection": "all five explicit source/image-bound owner manifests; default reference route retained; no selected-owner fallback",
+    "selectors": [
+      "HEPTA_HIA_COMPOSITE_TYPES_MANIFEST",
+      "HEPTA_HIA_TASK_HELPERS_MANIFEST",
+      "HEPTA_HIA_COMPOSITE_FUNCTIONS_MANIFEST",
+      "HEPTA_HIA_COMPOSITE_CONSTRUCTOR_MANIFEST",
+      "HEPTA_HIA_COMPOSITE_OUTER_MANIFEST"
+    ],
+    "test_fixture": "one shared eleven-image fixture; complete five-group development selection, matching-source cold report, or explicitly labelled bootstrap development; all source/image/compiler/report pins rechecked on reuse",
+    "whole_language_rewritten_in_hia": false,
+    "whole_native_delivery_qualified": false,
+    "whole_nominal_elaborator_replaced": false,
+    "whole_stack_rewritten_in_hia": false
+  },
+  "composite_constructor_admission": {
+    "continuations": "typed native type initialization, parameters, resolve, origins and task-protocol services; host does not plan or reorder admission",
+    "default_changed": false,
+    "invalid_protocol_poison_is_permanent": true,
+    "native_owners": [
+      "document/profile/module shape and ordered function inventory",
+      "function field/name/duplicate checks and parameter service timing",
+      "ordered return resolution, stored-loan admission, v4 origins and effects",
+      "complete signature registry and unused concrete task checks"
+    ],
+    "output_chunk_bytes": 65536,
+    "partial_state": "stage, committed function registry, returned-loan origins and issued descriptor identities on success or semantic refusal",
+    "private_input_capacity_bytes": 67108864,
+    "private_workspace_bytes": 201326592,
+    "public_program_limits_unchanged": true,
+    "required_test_modules": [
+      "tests.test_hia_composite_constructor_native",
+      "tests.test_hia_composite_constructor_integration"
+    ],
+    "selection": "explicit HEPTA_HIA_COMPOSITE_CONSTRUCTOR_MANIFEST and native types; no fallback",
+    "sources": [
+      "examples/hia_bootstrap/composite_constructor_owner.hepta",
+      "examples/hia_bootstrap/composite_constructor_render.hepta"
+    ],
+    "unpublished_type_session_released_on_failure": true,
+    "whole_native_delivery_qualified": false
+  },
+  "composite_function_lowering": {
+    "complete_output_size_limit_added": false,
+    "constructor_and_outer_in_this_five_kernel_bundle": false,
+    "continuations": "typed requests to the existing native parameter, type, partial-type, task-protocol and helper owners",
+    "default_changed": false,
+    "diagnostics": "complete function error ordering and text; delegated types retain their existing category/order policy",
+    "failed_session_initializers_release_partial_allocations": true,
+    "first_refusal_and_partial_state_preserved": true,
+    "host_boundaries": [
+      "bounded input snapshot, typed service forwarding and object materialization",
+      "nominal constructor and outer module lowering require their separate owner selections",
+      "final primitive admission and backend",
+      "build/install/default selection and durable Agent request authority"
+    ],
+    "invalid_protocol_poison_is_permanent": true,
+    "native_owners": [
+      "complete ordered first-pass block/parameter/SSA admission",
+      "complete scalar, record, partial-record, enum and task instruction lowering",
+      "complete jump/branch/return/trap/match lowering and cleanup",
+      "fresh names, value slots, consumption and helper cache state",
+      "complete Core function construction, including returned-loan origins"
+    ],
+    "output": "HIAFNC01 ordered token chunks with source references and compact array views",
+    "output_chunk_bytes": 65536,
+    "private_input_capacity_bytes": 67108864,
+    "private_replaced_or_mutated_function_member": "custody refusal before native lowering",
+    "private_workspace_bytes": 201326592,
+    "public_program_limits_unchanged": true,
+    "public_session_lifetime": "elaborate_program closes native function/types sessions on success, rejection and constructor failure; private owners retain explicit lifetime and partial state",
+    "required_test_modules": [
+      "tests.test_hia_composite_function_tokens",
+      "tests.test_hia_composite_function_admission",
+      "tests.test_hia_composite_function_protocol_audit",
+      "tests.test_hia_composite_function_terms_native",
+      "tests.test_hia_composite_functions_native",
+      "tests.test_hia_composite_public_lifecycle"
+    ],
+    "scope": "complete functions of the detached, public-admitted nominal document",
+    "selection": "explicit HEPTA_HIA_COMPOSITE_FUNCTIONS_MANIFEST; all five source/image-bound kernels and native types/helpers required; no fallback",
+    "sources": [
+      "examples/hia_bootstrap/composite_function_admit.hepta",
+      "examples/hia_bootstrap/composite_function_records.hepta",
+      "examples/hia_bootstrap/composite_function_advanced.hepta",
+      "examples/hia_bootstrap/composite_function_terms.hepta",
+      "examples/hia_bootstrap/composite_function_render.hepta"
+    ],
+    "whole_native_delivery_qualified": false,
+    "whole_nominal_elaborator_replaced": false
+  },
+  "composite_outer_lowering": {
+    "borrowed_function_buffer_released_on_failure": true,
+    "borrowed_metadata": "same-session completed function IR and issued helper handles; exact real helper frame versus workspace error/serial/name/payload extent/reserved fields before publication",
+    "default_changed": false,
+    "host_payload_semantic_decisions": false,
+    "invalid_protocol_poison_is_permanent": true,
+    "native_owners": [
+      "ordered function lowering requests and complete function/helper inventories",
+      "expanded function/block limits at the original late gate",
+      "export name, membership, privacy, duplicate checks and sorting",
+      "schema choice and complete Core module construction"
+    ],
+    "output_chunk_bytes": 65536,
+    "private_input_capacity_bytes": 67108864,
+    "private_workspace_bytes": 83886080,
+    "public_program_limits_unchanged": true,
+    "required_test_modules": [
+      "tests.test_hia_composite_outer_native",
+      "tests.test_hia_composite_outer_integration",
+      "tests.test_hia_composite_nominal_lifecycle"
+    ],
+    "selection": "explicit HEPTA_HIA_COMPOSITE_OUTER_MANIFEST with native types, functions and helpers; no fallback",
+    "sources": [
+      "examples/hia_bootstrap/composite_outer_owner.hepta",
+      "examples/hia_bootstrap/composite_outer_render.hepta"
+    ],
+    "whole_native_delivery_qualified": false
+  },
+  "composite_type_sessions": {
+    "default_changed": false,
+    "diagnostics": "same categories and first-refusal ordering; native shape/name English context differs",
+    "host_boundaries": [
+      "input snapshot and object transport",
+      "nominal constructor and outer module lowering",
+      "primitive verification",
+      "build/install/default selection",
+      "durable Agent request authority"
+    ],
+    "maximum_private_command_bytes": 8388736,
+    "maximum_result_bytes": 67108864,
+    "native_owners": [
+      "complete nominal declaration/reference/layout/partial-type sessions",
+      "composite-v4 returned-loan formal names, record paths, offsets and permissions",
+      "complete ordered parameter admission and issued nominal identities",
+      "complete task poll/cancel protocol admission against the signature registry"
+    ],
+    "nominal_limits": {
+      "declaration_analysis_steps": 32768,
+      "definitions_and_instantiations": 128,
+      "depth": 32,
+      "fields": 64,
+      "flat_slots": 512,
+      "variants": 32
+    },
+    "origins_extra_public_parameter_limit": null,
+    "parameters_extra_public_parameter_limit": null,
+    "private_origins_frame": "HIALOR01; exact return count; unchanged resolver counters; bounded origins JSON",
+    "private_parameters_frame": "HIAPRM01; ordered descriptors and native type IDs; exact partial state on refusal",
+    "private_session_bytes": 134217728,
+    "public_program_limits_unchanged": true,
+    "schemas": [
+      "hepta.hia.composite.v1",
+      "hepta.hia.composite.v2",
+      "hepta.hia.composite.v3",
+      "hepta.hia.composite.v4"
+    ],
+    "selection": "explicit HEPTA_HIA_COMPOSITE_TYPES_MANIFEST; source/image-bound session; no fallback",
+    "source": "examples/hia_bootstrap/composite_types.hepta",
+    "task_signature_registry_limit": 1024,
+    "whole_native_delivery_qualified": false,
+    "whole_nominal_elaborator_replaced": false
+  },
+  "core_admission_application": {
+    "all_input_refinement_proved": false,
+    "diagnostics": {
+      "host_message_construction_or_reference_replay": false,
+      "maximum_state_bytes": 65450176,
+      "message_capacity": "raw bytes + bounded node count + 4096",
+      "native_owner": "complete semantic error text, function/block/value names, exact first refusal",
+      "private_table_bytes": 8192,
+      "private_trailer_bytes": 64,
+      "public_status_codes_unchanged": true,
+      "standalone_64_MiB_state_unchanged": true,
+      "transport": "one native status call; per-admit input-bound ContextVar sink reset in finally"
+    },
+    "host_boundaries": [
+      "strict bounded snapshot/JSON decoding and canonical transport",
+      "composite normalization",
+      "object and executable custody",
+      "incremental cache and metadata",
+      "allocation"
+    ],
+    "incremental_policy": "whole native body recheck, no claimed body reuse",
+    "input": "complete raw primitive Core JSON v1-v8",
+    "maximum_blocks_per_function": 4096,
+    "maximum_bytes": 8388608,
+    "maximum_depth": 64,
+    "maximum_functions": 1024,
+    "maximum_nodes": 262144,
+    "policy": [
+      "complete native declarations/SSA/CFG/exports",
+      "all 50 local opcode contracts",
+      "callee signatures and effects",
+      "owner/loan liveness and guards",
+      "branch and loop capability graph agreement",
+      "original-formal returned-loan origins",
+      "linear return/edge consumption and function effects"
+    ],
+    "production_activated": false,
+    "selected_reference_fallback": false,
+    "selection": "operator HEPTA_HIA_CORE_ADMISSION_MANIFEST; default unchanged",
+    "source": "examples/hia_bootstrap/core_admission.hepta",
+    "whole_native_delivery_qualified": false
+  },
+  "core_admission_cli": {
+    "all_CLI_commands_replaced": false,
+    "arena_bytes": 33554432,
+    "command": "hia-verify-core < primitive-core.json",
+    "default_changed": false,
+    "exit_codes": {
+      "0": "admitted",
+      "2": "semantic or malformed refusal",
+      "3": "decoder/input budget",
+      "4": "descriptor I/O",
+      "64": "usage"
+    },
+    "host_build_driver": true,
+    "input_bytes": 8388608,
+    "inspect_cli": {
+      "command": "hia-inspect-core < primitive-core.json",
+      "output": "primitive Core inspection and canonical identity as UTF-8 JSON",
+      "output_scratch_bytes": 100663296,
+      "semantic_admission_precedes_formatting": true,
+      "sources": [
+        "examples/hia_bootstrap/core_inspect_cli_packer.hepta",
+        "examples/hia_bootstrap/core_inspect_json.hepta"
+      ]
+    },
+    "kernel_source": "examples/hia_bootstrap/core_admission.hepta",
+    "normalize_cli": {
+      "command": "hia-normalize-core < primitive-core.json",
+      "output": "admitted primitive Core as sorted indented UTF-8 JSON",
+      "output_scratch_bytes": 83886080,
+      "semantic_admission_precedes_formatting": true,
+      "sources": [
+        "examples/hia_bootstrap/core_normalize_cli_packer.hepta",
+        "examples/hia_bootstrap/core_pretty_json.hepta"
+      ]
+    },
+    "profile": "unchanged full primitive v1-v8 admission, not compiler profile",
+    "runtime_host_payload_parser_or_interpreter": false,
+    "source": "examples/hia_bootstrap/core_admission_cli_packer.hepta",
+    "state_bytes": 67108864,
+    "stdout_stderr": "empty",
+    "structural_totality_cli": {
+      "command": "hia-totality-core < primitive-core.json",
+      "machine_refinement_proved": false,
+      "profile": "admitted v6-v9 scalar module; bounded acyclic nontrapping control and direct calls",
+      "semantic_admission_precedes_proof": true,
+      "sources": [
+        "examples/hia_bootstrap/core_totality_cli_packer.hepta",
+        "examples/hia_bootstrap/core_structural_totality.hepta"
+      ],
+      "subject_identity": "SHA-256 of the exact input bytes",
+      "unsupported_valid_core": "unknown; not a negative or execution claim"
+    },
+    "suite": {
+      "command": "hia-core {verify,normalize,inspect,verify-report} [primitive-core.hepta]",
+      "runtime_loader_or_child": false,
+      "shared_admission_kernel": true,
+      "sources": [
+        "examples/hia_bootstrap/core_suite_dispatch.hepta",
+        "examples/hia_bootstrap/core_suite_packer.hepta"
+      ]
+    },
+    "whole_native_delivery_qualified": false
+  },
+  "core_module_graph_application": {
+    "calls": 16384,
+    "exports": 1024,
+    "functions": 1024,
+    "host_boundaries": [
+      "JSON framing",
+      "Core materialization and verification",
+      "filesystem/build/custody",
+      "installation"
+    ],
+    "import_alias_index": "same admitted scratch; exact owner/name comparison; first duplicate precedence",
+    "imports": 4096,
+    "input_bytes": 8388608,
+    "modules": 1024,
+    "nominal_type_linking_complete": false,
+    "original_external_export_names_preserved": true,
+    "policy": "native names/privacy/import/call/entry/cycle/order; no host resolver fallback",
+    "schema": "hepta.hia.core-workspace.v1",
+    "source": "examples/hia_bootstrap/core_module_graph.hepta",
+    "whole_module_build_install_complete": false
+  },
+  "core_patch_application": {
+    "command": "hia-patch-core < [BASE, PATCH] JSON envelope",
+    "host_boundaries": [
+      "authoring and build custody",
+      "installed Python entry and object materialization",
+      "filesystem publication",
+      "Agent metadata/reference authority",
+      "request journal and crash recovery",
+      "nominal/composite normalization"
+    ],
+    "input_component_bytes": 8388608,
+    "input_envelope_bytes": 16777219,
+    "maximum_edits": 64,
+    "operations": [
+      "replace_function",
+      "add_function",
+      "replace_operation",
+      "replace_terminator"
+    ],
+    "policy": [
+      "native canonical base SHA-256 snapshot binding",
+      "exact edit schema and target types",
+      "duplicate and overlap refusal",
+      "v1 preserve and explicit v2 preserve/migrate interface policy",
+      "mandatory native whole primitive Core admission before and after editing"
+    ],
+    "selection": "explicit HEPTA_HIA_CORE_PATCH_MANIFEST; default unchanged; no fallback",
+    "source": "examples/hia_bootstrap/core_patch.hepta",
+    "standalone_packer": "examples/hia_bootstrap/core_patch_cli_packer.hepta",
+    "standalone_runtime_host_payload_parser_or_interpreter": false,
+    "whole_Agent_replaced": false,
+    "whole_native_delivery_qualified": false
+  },
+  "core_workspace_facts_application": {
+    "calls": 16384,
+    "default_changed": false,
+    "exports": 1024,
+    "facts_grant_Core_or_module_policy_admission": false,
+    "functions": 1024,
+    "host_boundaries": [
+      "build/custody",
+      "Core materialization/verification",
+      "installation"
+    ],
+    "imports": 4096,
+    "interface": "explicit standalone hia-workspace-json; stdin JSON to HIAMOD01 module facts",
+    "maximum_depth": 128,
+    "maximum_nodes": 1048576,
+    "maximum_wire_and_fact_bytes": 8388608,
+    "module_policy": "separate mandatory HIA module graph; nominal linking remains OPEN",
+    "modules": 1024,
+    "native_runtime_foreign_decoder_or_encoder_required": false,
+    "private_arena_bytes": 67112960,
+    "private_scratch_bytes": 16785408,
+    "refusal": "private decoded arena/scratch may change; no stdout before successful framing",
+    "sources": [
+      "examples/hia_bootstrap/core_workspace_facts.hepta",
+      "examples/hia_bootstrap/core_workspace_facts_packer.hepta"
+    ],
+    "whole_native_workspace_qualified": false
+  },
+  "core_workspace_json_application": {
+    "calls": 16384,
+    "exports": 1024,
+    "functions": 1024,
+    "graph_relocation_mutable_buffer_parameters": 1,
+    "host_boundaries": [
+      "general Core type/resource verification",
+      "filesystem/build/install custody"
+    ],
+    "host_workspace_materialization_fallback": false,
+    "imports": 4096,
+    "input_bytes": 8388608,
+    "modules": 1024,
+    "native": [
+      "JSON syntax/framing",
+      "fact encoding",
+      "existing mandatory graph policy",
+      "public ABI capture avoidance",
+      "Core JSON materialization"
+    ],
+    "native_general_Core_verifier": false,
+    "production_activated": false,
+    "schema": "hepta.hia.core-workspace.v1",
+    "source": "examples/hia_bootstrap/core_workspace_json.hepta",
+    "whole_module_build_install_complete": false
+  },
+  "core_workspace_json_standalone_application": {
+    "atomic_filesystem_publication": false,
+    "host_build_and_custody_driver": true,
+    "maximum_depth": 128,
+    "maximum_nodes": 1048576,
+    "native_general_Core_verifier": false,
+    "output_requires_general_Core_verification": true,
+    "production_activated": false,
+    "runtime_Python_payload_parser_or_host_materializer": false,
+    "selection": "explicit standalone hia-workspace-json, default unchanged",
+    "source": "examples/hia_bootstrap/core_workspace_json_packer.hepta",
+    "whole_module_build_install_complete": false,
+    "wire_bytes": 8388608
+  },
+  "core_workspace_materialization_application": {
+    "Core_schema": "primitive hepta.hia.program.v8 only; no nominal erasure or older-schema upgrade",
+    "atomic_output_publication": false,
+    "compiler_and_qualification_child_caps_changed": false,
+    "default_changed": false,
+    "host_boundaries": [
+      "authoring/build/custody",
+      "default workspace loader",
+      "general Core/nominal support",
+      "installation"
+    ],
+    "interface": "explicit hia-workspace-elf; workspace JSON through native policy/materialization and mandatory native semantic compiler to ELF object",
+    "maximum_assembly_bytes": 1048576,
+    "maximum_each_embedded_image_bytes": 1048576,
+    "maximum_wire_bytes": 8388608,
+    "native_runtime_foreign_payload_driver_or_second_executable_required": false,
+    "private_arena_bytes": 92274688,
+    "private_scratch_bytes": 16785408,
+    "public_names": "original bytes; private capture avoidance and call rewrites in HIA",
+    "refusal": "private buffers may change; no stdout before successful native semantic compilation",
+    "representation_grants_semantic_admission": false,
+    "sources": [
+      "examples/hia_bootstrap/core_workspace_materialize.hepta",
+      "examples/hia_bootstrap/core_workspace_cli_packer.hepta"
+    ],
+    "trusted_application_bundle_profile_bytes": 2097152,
+    "whole_native_workspace_qualified": false
+  },
+  "core_workspace_pipeline_application": {
+    "Core_profile": "primitive v6-v8 with one explicit version for all modules; older schemas and nominal types refused",
+    "assembly_and_object_bytes": 1048576,
+    "atomic_stdout_publication": false,
+    "existing_compiler_and_qualification_child_caps_changed": false,
+    "host_authoring_build_filesystem_install_custody": true,
+    "host_payload_JSON_decoder_materializer_renderer_and_semantic_checker": false,
+    "hosted_route_executes_sealed_exact_code_descriptor": true,
+    "mandatory_complete_primitive_Core_admission": true,
+    "maximum_each_embedded_image_bytes": 1048576,
+    "output": "ELF64 x86-64 relocatable only; linking remains a separate mandatory step",
+    "production_activated": false,
+    "selection": "explicit standalone hia-workspace-compile or pipeline-manifest; defaults unchanged; no fallback",
+    "source": "examples/hia_bootstrap/core_workspace_pipeline_packer.hepta",
+    "stages": [
+      "current native workspace JSON policy/materialization",
+      "mandatory full primitive native Core admission",
+      "native Core frontend",
+      "mandatory native semantic compiler"
+    ],
+    "trusted_application_bundle_bytes": 4198400,
+    "whole_native_delivery_qualified": false,
+    "wire_and_linked_JSON_bytes": 8388608
+  },
+  "executable_cli": {
+    "anonymous_rw_mapping_bytes": 3145728,
+    "arbitrary_path_opening": false,
+    "atomic_output_publication": false,
+    "exit_codes": {
+      "capacity": 3,
+      "invalid_source": 2,
+      "io_or_mmap_failure": 4,
+      "success": 0,
+      "unexpected_argument": 64
+    },
+    "interface": "no arguments; source from stdin; compiled bytes to stdout",
+    "kernel_dependencies": [
+      "mmap",
+      "read",
+      "write",
+      "exit"
+    ],
+    "output_capacity_bytes": 1048576,
+    "signals": "inherited dispositions; SIGPIPE can terminate closed-pipe writes",
+    "source_capacity_bytes": 1048576,
+    "supported_runtime_resources": "borrowed entry buffers/scalars only; owned/chain libc objects require selfhost_elf",
+    "target": "Linux x86-64 static ET_EXEC, no PT_INTERP or libc",
+    "whole_stack_cli_replaced": false
+  },
+  "fixed_budget_and_journal_word_access": {
+    "all_input_equivalence_proved": false,
+    "catalog_validation_cached_or_shortened": false,
+    "change": "expand exactly eight fixed byte accesses; preserve full-u64 and original access order",
+    "development_differential_is_matching_source_cold_qualification": false,
+    "full_catalog_VM_execution_claimed": false,
+    "independent_controls": [
+      "exact original full assembly hash reconstructed from pinned helpers",
+      "every non-word assembly function unchanged",
+      "reference/current VM and native complete return and buffer comparisons",
+      "high bits, address wrapping, bounds traps and partial writes",
+      "complete catalog and one-byte corruption against independent SHA256"
+    ],
+    "original_budget_seal_word_count": 1696,
+    "original_context_deadline_seconds": 3,
+    "original_fixture": "tests/fixtures/hia_fixed_word_reference_a7710b5.json",
+    "original_revision": "a7710b5727cca43875357f92c6b83308046deb6e",
+    "sources": [
+      "examples/hia_bootstrap/execution_budget.hepta",
+      "examples/hia_bootstrap/agent_journal.hepta"
+    ],
+    "timing_observations_are_acceptance_thresholds": false,
+    "whole_native_delivery_qualified": false
+  },
+  "function_shape_application": {
+    "all_input_refinement_proved": false,
+    "host_boundaries": [
+      "exact bounded caller snapshot and JSON serialization",
+      "allocation and executable custody",
+      "block-map object materialization",
+      "remaining primitive structure and complete body/resource verifier"
+    ],
+    "input": "raw JSON; full primitive function structure, v1-v8 feature flags",
+    "maximum_blocks": 4096,
+    "maximum_bytes": 8388608,
+    "maximum_depth": 64,
+    "maximum_nodes": 262144,
+    "native_general_Core_verifier": false,
+    "policy": [
+      "exact declaration and instruction shapes",
+      "ASCII and reserved identifiers",
+      "closed primitive types",
+      "unique declared effects",
+      "original-parameter return loan permissions",
+      "SSA definition uniqueness",
+      "entry signature",
+      "closed edges and arity",
+      "reachability",
+      "versioned chain declarations"
+    ],
+    "production_activated": false,
+    "selected_reference_fallback": false,
+    "selection": "operator HEPTA_HIA_FUNCTION_SHAPE_MANIFEST; default unchanged",
+    "source": "examples/hia_bootstrap/function_shape.hepta"
+  },
+  "historical_qualification_provenance": {
+    "historical_paths_are_live_dependencies": false,
+    "original_semantic_claims_limits_and_refusal_conditions_preserved": true,
+    "path": "docs/HIA_HISTORICAL_QUALIFICATION_PROVENANCE.json"
+  },
+  "immutable_release_installation": {
+    "activation_worker_migration_and_retirement_implemented": false,
+    "authoring_and_build_custody_are_hosted": true,
+    "directory_builder": {
+      "file_order": "ascending raw ASCII name bytes",
+      "fixed_syscall_adapter": "tools/hia_release_directory_syscalls.S",
+      "outputs": [
+        "package bytes on stdout",
+        "lowercase SHA-256 and LF on stderr on success"
+      ],
+      "packer": "examples/hia_bootstrap/release_directory_packer.hepta",
+      "policy": "examples/hia_bootstrap/release_directory_policy.hepta",
+      "source_root": "effective-UID-owned ordinary directory with mode 0700 or 0500"
+    },
+    "extended_package_magic": "HIAREL02",
+    "file_modes": [
+      256,
+      320
+    ],
+    "fixed_syscall_adapter": "tools/hia_release_install_syscalls.S",
+    "maximum_files": 384,
+    "maximum_name_bytes": 127,
+    "maximum_package_bytes": 268435456,
+    "operator_package_sha256_required": true,
+    "package_magic": "HIAREL01",
+    "packer": "examples/hia_bootstrap/release_install_packer.hepta",
+    "policy": "examples/hia_bootstrap/release_install_policy.hepta",
+    "publication": "renameat2 RENAME_NOREPLACE; complete-directory readback and fsync",
+    "recovery_observation": "explicit read-only verify against the same package identity",
+    "runtime_python_libc_or_child_required": false,
+    "target": "Linux x86-64",
+    "v1_maximum_files": 256,
+    "v1_maximum_package_bytes": 134217728
+  },
+  "json_preflight_diagnostics": {
+    "arena_decoder_value_layout_changed": false,
+    "missing_or_unknown_reason_refuses": true,
+    "reason_owner": "HIA parser; foreign adapter only maps fixed reason IDs to original API text",
+    "selection": "explicit HEPTA_HIA_JSON_PREFLIGHT_MANIFEST; no fallback on native refusal",
+    "source": "examples/hia_bootstrap/json_preflight.hepta",
+    "status_values_unchanged": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "successful_node_count_workspace_offset": 64,
+    "syntax_reason_le_u64_workspace_offset": 32,
+    "unsupported_budget_or_unencodable_Python_str": "existing explicit reference boundary"
+  },
+  "limits": {
+    "acyclic_call_depth_max": 128,
+    "block_entry_must_be_first_in_source": false,
+    "block_name_count_offset": 488,
+    "block_name_discovery": "source-order label discovery before full semantic parsing; forward/backward exact lookup",
+    "block_name_record_stride": 24,
+    "block_name_workspace_bytes": [
+      1004304,
+      1010448
+    ],
+    "blocks_per_function": 256,
+    "blocks_total": 1536,
+    "core_structural_nodes": 262144,
+    "explicit_exports": 128,
+    "export_record_stride": 48,
+    "export_signature": "0..16 non-unit scalar parameters; zero or one scalar/unit result",
+    "export_workspace_bytes": [
+      1010448,
+      1016592
+    ],
+    "formal_origin_block_bytes": [
+      930576,
+      955152
+    ],
+    "formal_origin_value_bytes": [
+      928528,
+      930576
+    ],
+    "function_entry_block_index_record_offset": 264,
+    "function_name_bytes": 128,
+    "function_name_record_offsets": {
+      "bytes": 248,
+      "filter_hash": 256,
+      "source_offset": 240
+    },
+    "function_name_resolution": "bounded 128-entry hash filter plus mandatory length and every-source-byte equality",
+    "function_results": 6,
+    "functions": 128,
+    "identifier_temporary_offsets": [
+      456,
+      464,
+      472
+    ],
+    "input_schema_workspace_bytes": [
+      1016592,
+      1016600
+    ],
+    "instruction_results": 6,
+    "instructions": 8192,
+    "internal_frame_overhead_bytes": 640,
+    "internal_result_area_bytes": 128,
+    "internal_result_descriptor_words": 2,
+    "internal_result_stride_bytes": 16,
+    "output_capacity_bytes": 1048576,
+    "parameters_or_arguments": 16,
+    "private_call_budget_rbp_offset": -16,
+    "private_call_frame_bytes_max": 6291456,
+    "recursive_live_frames_max": 256,
+    "relative_relocations": 12000,
+    "resource_graph_parse_rounds_max": 1,
+    "resource_graph_queue_entries_per_function": 256,
+    "resource_graph_queue_workspace_end_exclusive": 928528,
+    "resource_graph_queue_workspace_start": 926480,
+    "resource_graph_queued_replays_per_block_max": 1,
+    "result_name_workspace_bytes": [
+      858368,
+      858464
+    ],
+    "result_output_workspace_bytes": [
+      1088,
+      1184
+    ],
+    "result_signature_workspace_record_offsets": {
+      "count": 184,
+      "return_loan_origins": [
+        216,
+        224,
+        232,
+        296,
+        304,
+        312
+      ],
+      "types": [
+        192,
+        200,
+        208,
+        272,
+        280,
+        288
+      ]
+    },
+    "returned_identity_workspace_bytes": [
+      1184,
+      1232
+    ],
+    "semantic_call_graph_checked_after_all_names_and_signatures": true,
+    "signature_prepasses": 1,
+    "source_bytes": 1048576,
+    "ssa_index_max": 2047,
+    "ssa_index_max_is_internal_only": true,
+    "ssa_name_count_offset": 480,
+    "ssa_name_lookup": "2048 bounded open-addressing slots; exact source-byte equality, no source-number addressing",
+    "ssa_name_record_stride": 24,
+    "ssa_name_workspace_bytes": [
+      955152,
+      1004304
+    ],
+    "ssa_names_per_function": 2048,
+    "ssa_signature_and_entry_names_match_by_identity": true,
+    "tail_self_call_additional_frames": 0,
+    "workspace_required_bytes": 1048576
+  },
+  "linked_qualification_observer": {
+    "HIA_owned": [
+      "admission",
+      "continuation actions",
+      "limits",
+      "response construction",
+      "snapshot and terminal decisions"
+    ],
+    "adapter": "tools/hia_linked_observer_bridge.S",
+    "independent_reference": "examples/hia_bootstrap/cold_export_reference_vm.hepta",
+    "packer_source": "examples/hia_bootstrap/linked_observer_packer.hepta",
+    "phase_input": "linked_observer",
+    "policy_source": "examples/hia_bootstrap/linked_observer_policy.hepta",
+    "retained_hosted_boundaries": [
+      "libc startup and exit",
+      "system dlopen/dlsym",
+      "independent seed and generation references"
+    ],
+    "scope": "fresh sealed HIA-policy-directed ELF for explicit linked qualification phases",
+    "selector": "NATIVE_LINKED_OBSERVER",
+    "target_loading": "complete sealed shared object through the system dynamic loader",
+    "whole_product_claim": false
+  },
+  "native_assembly_source_build": {
+    "authoring_bootstrap_and_build_custody_are_hosted": true,
+    "bootstrap_publication": "sealed execution descriptors and O_TMPFILE descriptor-bound no-replace executable/sourcekit links; receipt binds both actual published inodes and bytes",
+    "compiler": "examples/hia_bootstrap/selfhost.hepta",
+    "compiler_input_output_workspace_bytes_each": 1048576,
+    "compiler_profile_limits_changed": false,
+    "default_changed": false,
+    "fixed_syscall_adapter": "tools/hia_source_build_syscalls.S",
+    "generated_image_name": "original source name plus .bin",
+    "installed_source_group": "SOURCE_BUILD_FILES: policy, compiler and packer data; no installed Python adapter or default executable",
+    "mapping_bytes": 143732736,
+    "maximum_input_and_output_bytes": 67108864,
+    "maximum_result_entries": 256,
+    "maximum_source_and_image_bytes": 1048576,
+    "maximum_source_name_bytes": 123,
+    "maximum_sources": 128,
+    "operations": [
+      "build",
+      "pack"
+    ],
+    "pack_roles": [
+      "source_build_policy.hepta",
+      "selfhost.hepta",
+      "source_build_packer.hepta"
+    ],
+    "package_magic": "HIAREL01",
+    "packer": "examples/hia_bootstrap/source_build_packer.hepta",
+    "policy": "examples/hia_bootstrap/source_build_policy.hepta",
+    "public_project_build_replaced": false,
+    "publication": "no stdout before complete build or pack; a later kernel write failure may expose a prefix and returns failure",
+    "retained_member_object_bytes": 4194304,
+    "runtime_python_libc_assembler_or_child_required": false,
+    "six_entry_pack": "source plus image for every role; all sources recompiled by the embedded trusted compiler and compared before packing",
+    "source_language": "retained bounded assembly compiler profile; structured Core JSON is not an assembly input",
+    "source_mode": 256,
+    "source_suffix": ".hepta",
+    "target": "Linux x86-64",
+    "three_image_pack": "opaque exact-role images; no source correspondence claim; input images are not executed",
+    "whole_native_delivery_qualified": false
+  },
+  "native_bounded_memory": {
+    "actual_callers": [
+      "hia_bounded_memory.fill_bytes",
+      "hia_bounded_memory.move_bytes",
+      "ordinary VM buffer.fill, buffer.fill_range and buffer.move_within"
+    ],
+    "adapter": "examples/hia_bootstrap/bounded_memory.hepta",
+    "all_input_equivalence_proved": false,
+    "all_original_modules_unfiltered": true,
+    "all_possible_image_constructions_claimed_under_scratch_limit": false,
+    "arbitrary_integer_inputs_narrowed": false,
+    "complete_VM_allocator_object_transport_replaced": false,
+    "default_changed": false,
+    "first_public_call_and_LRU_eviction_controls": true,
+    "hosted_observations": [
+      "exact bytearray kind and extent",
+      "exact int kind, sign and width; original unsigned word only when flags==1, otherwise zero placeholder",
+      "buffer address, export lifetime and GIL custody"
+    ],
+    "image_overflow_readback_bytes": 1048577,
+    "image_read_chunk_bytes": 8192,
+    "manifest_buffer_bytes": 8192,
+    "native_owners": [
+      "original exact-kind and integer range admission order",
+      "fill value and move source bounds refusal",
+      "in-place byte fill and overlapping move"
+    ],
+    "new_input_size_ceiling": null,
+    "original_helper_scratch_limit_bytes": 65536,
+    "original_memory_and_subprocess_limits_unchanged": true,
+    "request_bytes": 80,
+    "schema": "hepta.hia.bounded-memory-native.v1",
+    "selected_reference_fallback": false,
+    "selector": "HEPTA_HIA_BOUNDED_MEMORY_MANIFEST",
+    "shared_image_limit_bytes": 1048576,
+    "shared_manifest_limit_bytes": 16384,
+    "source": "examples/hia_bootstrap/bounded_memory.hepta",
+    "source_identity_rebound_on_every_unpinned_selection": true,
+    "whole_native_delivery_qualified": false
+  },
+  "native_build_admission": {
+    "active_causal_native_loss_propagated": true,
+    "adapter": "examples/hia_bootstrap/native_build_admission.hepta",
+    "additional_frozen_dynamic_and_runtime_case_count": 205,
+    "additional_input_shape_or_integer_limits": false,
+    "all_input_equivalence_proved": false,
+    "baseline_commit": "aac7550ee2e5d5c3d0e42567ee35e2acfa28f759",
+    "complete_original_methods": [
+      "_signatures",
+      "_native",
+      "_build_inputs",
+      "_build_receipt"
+    ],
+    "explicit_foreign_callable_contents_constrained": false,
+    "fixed_frame_count_quota": false,
+    "hosted_boundaries": [
+      "opaque Python object, iterator, comparison and container protocols",
+      "explicit method/global replacements and runtime comprehension protocol facts",
+      "original Core verification and ABI normalization providers",
+      "Store and SQLite effects",
+      "SHA-256",
+      "separate context and proof-policy owners"
+    ],
+    "implicit_retained_body_fallback": false,
+    "original_complete_scope_inventory_count": 240,
+    "original_ordinary_unfiltered_caller_count": 112,
+    "original_separate_scope_caller_count": 128,
+    "original_test_budgets_changed": false,
+    "output_bytes": 96,
+    "owned_policy": [
+      "all original short circuit and iteration order",
+      "original method calls and captured global known-bridge dispatch",
+      "six comprehension entry counts and ordered loop-end releases",
+      "scalar and borrowed-buffer signature selection",
+      "native context, installation, Core and signature admission",
+      "complete receipt metadata and retained object/final byte binding"
+    ],
+    "portable_reference_removed": false,
+    "schema": "hepta.hia.native-build-admission.v1",
+    "selector": "HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST",
+    "source": "examples/hia_bootstrap/native_build_admission.hepta",
+    "unknown_native_effect_retry_or_automatic_completion": false,
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 128
+  },
+  "native_candidate_attempt_budget": {
+    "durable_authority": "original main.contexts.attempts in the original AgentStore WAL",
+    "maximum_candidates": 4096,
+    "native_policy": [
+      "count admission",
+      "increment",
+      "exact readback",
+      "commit acknowledgement"
+    ],
+    "request_replay_owner": "existing ordinary or selected journal v2",
+    "selection": "explicit operator-selected single image; default remains hosted",
+    "source": "examples/hia_bootstrap/candidate_budget.hepta",
+    "transaction_transport": "fixed parameterized SQLite statements on a bound private connection",
+    "whole_service_and_SQLite_replaced": false
+  },
+  "native_cli_discovery_json": {
+    "adapter": "examples/hia_bootstrap/cli_discovery_json.hepta",
+    "cleanup_seconds": 3,
+    "commands": [
+      "capabilities",
+      "catalog"
+    ],
+    "hosted_boundaries": [
+      "argv and effect transport",
+      "immutable image custody",
+      "stdout UTF-8 transport"
+    ],
+    "native_owners": [
+      "primitive schema selection",
+      "metadata filtering and ordering",
+      "complete pretty and canonical JSON",
+      "catalog SHA-256"
+    ],
+    "original_frames": 61,
+    "original_independent_VM_controls": 6,
+    "original_source_commit": "26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d",
+    "original_source_sha256": "8e14590337e501c2315befe8dea1df9f6e7b02dbda28ca82d54b2f20959ed543",
+    "per_compile_seconds": 20,
+    "qualification_seconds": 180,
+    "routes": [
+      "ordinary CLI",
+      "selected native CLI control"
+    ],
+    "selection": "explicit HEPTA_HIA_CLI_DISCOVERY_JSON_MANIFEST; no selected fallback",
+    "source": "examples/hia_bootstrap/cli_discovery_json.hepta",
+    "unregistered_worker_scope_refuses_before_loading": true,
+    "whole_native_delivery_qualified": false,
+    "worker_helper_registered": false
+  },
+  "native_cost_ledger": {
+    "adapter": "examples/hia_bootstrap/cost_ledger.hepta",
+    "additional_integer_magnitude_or_byte_limit": false,
+    "foreign_primitives": [
+      "SQLite query/fetch",
+      "JSON decoding",
+      "Python row/object access, dict/list allocation, int/str conversion"
+    ],
+    "owned_policy": [
+      "ordered 10001-row query prefix and 10000-row cut",
+      "entry/decode iteration before policy and selected-row int conversions",
+      "external incomplete-to-null branch",
+      "context equality, unscoped identity and ordered two-pass signed accumulation"
+    ],
+    "persistent_ledger_writes": false,
+    "portable_reference_removed": false,
+    "schema": "hepta.hia.cost-ledger-native.v1",
+    "selector": "HEPTA_HIA_COST_LEDGER_MANIFEST",
+    "source": "examples/hia_bootstrap/cost_ledger.hepta",
+    "whole_native_delivery_qualified": false
+  },
+  "native_default_release": {
+    "before_and_after_entry_readback": true,
+    "builder": "examples/hia_bootstrap/release_build_entry.hepta",
+    "candidate_default_owner": "HEPTA_HIA_FULL_COST_MANIFEST",
+    "candidate_requires_selector_environment": false,
+    "custody": [
+      "bundle",
+      "child manifest",
+      "source",
+      "image",
+      "pin",
+      "installed RECORD"
+    ],
+    "explicit_administrator_bundle_supplemented": false,
+    "generated_pin_is_cold_source_input": false,
+    "ordinary_source_and_portable_default_changed": false,
+    "original_unfiltered_caller_count": 38,
+    "pin_template": "examples/hia_bootstrap/worker_manifest_tables.hiastd",
+    "production_activated": false,
+    "reference_counted_image_cleanup_without_cyclic_gc": true,
+    "retained_reference_bodies_removed": false,
+    "runtime": "examples/hia_bootstrap/worker_launcher_flow.hepta",
+    "runtime_source_derivation": "captured HIA sources and reviewed mechanical adapters; native immutable Store manifests bind actual executable bytes",
+    "safe_core_final_proof": {
+      "changes_generic_solver_default": false,
+      "host_symbolic_terms_and_unhandled_obligations_retained": true,
+      "selection": "separately pinned cold-wheel decoder and CNF bundle"
+    },
+    "whole_native_delivery_qualified": false,
+    "worker_scope": "fixed package bundle when administrator flags are absent"
+  },
+  "native_delivery_status": {
+    "final_native_only_cold_install_rebuild_and_interface_gates_required": true,
+    "production_activation_claimed": false,
+    "whole_native_qualified": false
+  },
+  "native_direct_call": {
+    "adapter": "tools/hia_direct_call_syscalls.S",
+    "default_changed": false,
+    "host_boundaries": [
+      "process custody and deadline",
+      "case snapshot materialization",
+      "report shaping, post-exit byte hashing and multi-case scheduling with one deadline"
+    ],
+    "input": "sealed exact HIA-linked ELF, frozen SysV argument words, owned snapshot backing files",
+    "loader": "native HIA load plan, closed runtime primitives, RX code and read-only GOT",
+    "packer": "examples/hia_bootstrap/direct_call_packer.hepta",
+    "profile": "v9 single call, v10 native warmups/repetitions, v11 bounded batches of up to 512 synchronous cases",
+    "selection": "pinned native helper v9-v11 + pinned HIA shared linker",
+    "source": "examples/hia_bootstrap/direct_load_plan.hepta",
+    "whole_native_delivery_qualified": false
+  },
+  "native_emission": {
+    "active_causal_native_loss_propagated": true,
+    "adapter": "examples/hia_bootstrap/emission.hepta",
+    "additional_input_shape_or_integer_limits": false,
+    "all_input_equivalence_proved": false,
+    "all_python_versions_tested": false,
+    "baseline_commit": "73f16346e7f84fa13305777a4595e2d1b422dee9",
+    "causal_native_loss_scope": "active same-process same-thread EmissionFrame ancestors",
+    "complete_original_methods": [
+      "_compile",
+      "_hia_emit"
+    ],
+    "cross_owner_native_delivery_loss_tracking_implemented": false,
+    "explicit_foreign_callable_contents_constrained": false,
+    "fixed_frame_count_quota": false,
+    "hosted_boundaries": [
+      "original Core emitter and compiler/linker providers",
+      "filesystem, temporary-directory, Store and SQLite effects",
+      "clock, SHA-256, true division and opaque numeric protocols",
+      "opaque object, iterator, comparison and descriptor protocols",
+      "private actual-runtime with and genexpr protocol facts",
+      "explicit dynamic compile overrides and separate signature owner"
+    ],
+    "implicit_retained_body_fallback": false,
+    "independently_frozen_original_case_count": 954,
+    "original_complete_scope_inventory_count": 240,
+    "original_ordinary_unfiltered_caller_count": 112,
+    "original_separate_scope_caller_count": 128,
+    "original_test_budgets_changed": false,
+    "output_bytes": 96,
+    "owned_policy": [
+      "complete original branch, loop and short circuit order",
+      "deadline-clamp control and repeated kind comparisons",
+      "temporary-directory entry and normal or exceptional exit continuations",
+      "exception suppression, replacement and unbound continuation selection",
+      "plan receipt and generator check iteration control",
+      "dynamic compile dispatch and conditional keyword presence",
+      "ordered build-object, native artifact and build receipt publication"
+    ],
+    "portable_reference_removed": false,
+    "schema": "hepta.hia.emission-native.v1",
+    "selector": "HEPTA_HIA_EMISSION_MANIFEST",
+    "source": "examples/hia_bootstrap/emission.hepta",
+    "unknown_native_effect_retry_or_automatic_cleanup": false,
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 128
+  },
+  "native_evaluation": {
+    "adapter": "examples/hia_bootstrap/evaluation.hepta",
+    "additional_integer_magnitude_or_byte_limit": false,
+    "baseline_commit": "19065d2f97c92d3cf28a4de1fe7387c2d5c66a02",
+    "binary64_ratio_arithmetic_rewritten": false,
+    "hosted_boundaries": [
+      "opaque Python object, iterator and comparison protocols",
+      "binary64 true division and threshold comparison",
+      "schema/claims/buffer providers and _value_observation",
+      "clock, SQLite, original runner and Store effects",
+      "original context, execution-budget and cost-ledger providers"
+    ],
+    "new_frame_count_quota": false,
+    "original_complete_scope_inventory_count": 183,
+    "original_ordinary_unfiltered_caller_count": 81,
+    "original_test_budgets_changed": false,
+    "output_bytes": 112,
+    "owned_policy": [
+      "complete original _hia_evaluate branch and iteration order",
+      "baseline/candidate reference and native workload control",
+      "correct/complete/budget flags and six-outcome precedence",
+      "original claim/complete and three-artifact publication order",
+      "exact-int deadline arithmetic and metric comparisons"
+    ],
+    "portable_reference_removed": false,
+    "schema": "hepta.hia.evaluation-native.v1",
+    "selector": "HEPTA_HIA_EVALUATION_MANIFEST",
+    "source": "examples/hia_bootstrap/evaluation.hepta",
+    "unknown_effect_replay_or_automatic_completion": false,
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 128
+  },
+  "native_execution_budget": {
+    "default_changed": false,
+    "durable_namespace": "original main.execution_budgets in the original SQLite database and WAL",
+    "host_boundaries": [
+      "fixed SQL with exact row counts/readback",
+      "connection/filesystem identity, process execution and confirmed termination"
+    ],
+    "maximum_decimal_digits": 4300,
+    "maximum_result_bytes": 13312,
+    "native_owners": [
+      "bounded decimal cumulative-cost arithmetic and timeout policy",
+      "durable preclaim, one runner invocation and exact completion CAS",
+      "unknown-outcome fencing and read-only observations"
+    ],
+    "old_host_owners_removed": false,
+    "public_program_limits_unchanged": true,
+    "request_journal_compatibility": [
+      "ordinary service request journal",
+      "explicit agent_journal native v2"
+    ],
+    "retained_state_bytes": 13568,
+    "schema_migration_or_owner_reset": false,
+    "selection": "explicit HEPTA_HIA_EXECUTION_BUDGET_MANIFEST pinned for the store lifetime",
+    "source": "examples/hia_bootstrap/execution_budget.hepta",
+    "whole_native_delivery_qualified": false
+  },
+  "native_full_cost": {
+    "adapter": "examples/hia_bootstrap/full_cost.hepta",
+    "hosted_boundaries": [
+      "immutable bounded JSON",
+      "identity and field admission",
+      "report object transport"
+    ],
+    "maximum_arm_total_ns": 100000000000000000,
+    "maximum_trials": 128,
+    "native_owners": [
+      "complete arm sums",
+      "RSS and p99 peaks",
+      "best-control tie ordering",
+      "signed full-cost saving",
+      "exact signed floor ppm",
+      "six ordered refusal reasons"
+    ],
+    "ratio_arithmetic": "128-bit limbs without narrowing the original integer domain",
+    "selection": "explicit HEPTA_HIA_FULL_COST_MANIFEST; no selected fallback",
+    "source": "examples/hia_bootstrap/full_cost.hepta",
+    "whole_native_delivery_qualified": false
+  },
+  "native_generation_retention": {
+    "actual_callers": [
+      "ScalarMultiversionRuntime.lease",
+      "GenerationLease.call and close",
+      "publication, rollback and runtime close retirement",
+      "ScalarMultiversionRuntime._collect and _attempt_cleanup"
+    ],
+    "adapter": "examples/hia_bootstrap/generation_retention.hepta",
+    "all_input_equivalence_proved": false,
+    "arbitrary_python_async_unwind_proved": false,
+    "companion_gate_obligations": "same compiler identity, actual native-return counts, immutable source/bundle pins and forbidden hosted reference policies",
+    "compiler_profile_limits_changed": false,
+    "default_changed": false,
+    "failed_preparation_before_registration": "unchanged original NativeRetirement cleanup; no generation-owner takeover claim",
+    "fallback_after_selection": false,
+    "fenced_read_only_query_restores_effect_authority": false,
+    "generation_and_selection_epoch_in_native_wire": false,
+    "known_no_write_allocation_failure": "original MemoryError identity; remove inactive cell custody, keep existing state/aliases and permit later acquire",
+    "lease_cell_bytes": 64,
+    "live_artifact_limit": "original exact integer 2..64; does not truncate generation, epoch or lease count",
+    "native_owners": [
+      "canonical arbitrary-length nonnegative reference count",
+      "owner-bound lease acquisition and one-close cell transition",
+      "retired state and zero-reference readiness",
+      "one original task claim after actual cleanup-table registration"
+    ],
+    "original_caller_companion_policies": [
+      "scalar_profile",
+      "publication_measurement",
+      "native_mapping"
+    ],
+    "original_caller_count": 99,
+    "original_caller_modules": [
+      "tests.test_hia_multiversion",
+      "tests.test_hia_native_retirement",
+      "tests.test_hia_publication_interruptions",
+      "tests.test_hia_scalar_state",
+      "tests.test_hia_background_optimizer",
+      "tests.test_hia_native_profile_convergence"
+    ],
+    "reference_count_fixed_width": false,
+    "request_bytes": 64,
+    "retained_generation_bytes": "64-byte header plus growable canonical magnitude; previous allocations retained",
+    "retained_hosted_boundaries": [
+      "current generation, public epoch and publication cancellation/CAS",
+      "runtime, writer and per-lease locks",
+      "fresh Core and translation/totality proofs, LLVM compilation and actual loader",
+      "foreign object custody, allocation and exact byte transport",
+      "original NativeRetirement fd/dlclose/path ownership and unknown release semantics"
+    ],
+    "selector": "HEPTA_HIA_GENERATION_RETENTION_MANIFEST",
+    "source": "examples/hia_bootstrap/generation_retention.hepta",
+    "state_owner_scope": "registered generations: retained reference count, lease closure, retirement and task handoff",
+    "uncertain_native_return": "strong process custody and permanent fence; no acquire/close/claim replay",
+    "whole_native_delivery_qualified": false,
+    "whole_stack_rewritten_in_hia": false,
+    "worker_selection": "registered single-image helper; new runtime admission obeys the original pinned process/thread scope"
+  },
+  "native_loaded_mapping": {
+    "adapter": "examples/hia_bootstrap/native_mapping.hepta",
+    "all_input_equivalence_proved": false,
+    "compiler_profile_limits_changed": false,
+    "default_changed": false,
+    "diagnostic_boundary": "HIA identifies the first failing token; Python int or ASCII decode constructs only that token exception cause, without replaying the mapping policy",
+    "fallback_after_selection": false,
+    "helper_loader_uses_this_mapping_admission": false,
+    "integer_policy": "sign, hexadecimal prefix, underscores and arbitrary-size tokens; decimal digit limit captured from the Python interpreter",
+    "maximum_maps_bytes": 16777216,
+    "maximum_response_bytes": 1040,
+    "maximum_symbols": 128,
+    "native_owners": [
+      "streaming kernel mapping fields and numeric grammar",
+      "arbitrary-size interval ordering without truncation",
+      "entry permission, device, inode and file-extent decisions",
+      "unique mapping requirement and first-refusal order"
+    ],
+    "original_git_blob": "539c1c045803e185e925f48d7e9f2b816ea1dccd",
+    "original_sha256": "e85114ea20081dc97ccca299e80a954c3c2165de63d22b776948a1c4001ff010",
+    "public_entry": "hepta.native_mapping_identity.verify_loaded_symbols",
+    "retained_hosted_boundaries": [
+      "Python argument and ctypes function-object admission",
+      "actual fstat, fcntl seals and entry addresses",
+      "single bounded /proc/self/maps capture",
+      "final descriptor and seal readback",
+      "explicit source-bound image selection and anonymous RW-to-RX loader",
+      "public Python result and exception objects"
+    ],
+    "selector": "HEPTA_HIA_NATIVE_MAPPING_MANIFEST",
+    "source": "examples/hia_bootstrap/native_mapping.hepta",
+    "whole_native_delivery_qualified": false,
+    "whole_stack_rewritten_in_hia": false,
+    "worker_selection": "registered single-image helper in the original operator-pinned bundle and process/thread scope",
+    "workspace_bytes": 8192
+  },
+  "native_patch_impact": {
+    "adapter": "examples/hia_bootstrap/patch_impact.hepta",
+    "hosted_boundaries": [
+      "fresh Core and patch verification",
+      "signature and canonical fact transport",
+      "patch receipt authentication",
+      "report object materialization and hashing"
+    ],
+    "maximum_functions_per_program": 1024,
+    "maximum_output_bytes": 278544,
+    "maximum_workspace_bytes": 376896,
+    "native_owners": [
+      "exact function and interface byte comparison",
+      "canonical name ordering",
+      "old and new call graphs",
+      "duplicate edge elimination",
+      "both-graph direct and transitive caller closure"
+    ],
+    "receipt_interface_checks_precede_graph_phase": true,
+    "selection": "explicit HEPTA_HIA_PATCH_IMPACT_MANIFEST; no selected fallback",
+    "source": "examples/hia_bootstrap/patch_impact.hepta",
+    "whole_native_delivery_qualified": false
+  },
+  "native_publication_measurement": {
+    "actual_callers": "ScalarMultiversionRuntime.publish_if_current before preparation and under the original commit lock",
+    "adapter": "examples/hia_bootstrap/publication_measurement.hepta",
+    "all_input_equivalence_proved": false,
+    "compiler_profile_limits_changed": false,
+    "default_changed": false,
+    "fallback_after_selection": false,
+    "input_domain": "original frozen measurement envelope and exact integer preparation time",
+    "measurement_grants_core_or_publication_authority": false,
+    "native_owners": [
+      "paired medians and median absolute deviations",
+      "identity, noise, gain, preparation-cost and recovery decisions",
+      "exact cost projection with intermediate products above u64",
+      "finite projection refusal and original ordered reasons"
+    ],
+    "original_function_sha256": "e705071aba79546ed70c984fd57fbe15b9394909a55382237fad8aa6308f07d1",
+    "original_git_blob": "698cc280566c74ba409f566b654e6ccdfa33eb2d",
+    "preparation_integer_transport": "lossless signed arbitrary-length magnitude; HIA decides finite projection range",
+    "public_entry": "hepta.hia_multiversion._assess_measurement",
+    "response_bytes": 176,
+    "retained_hosted_boundaries": [
+      "strict envelope capture and object admission",
+      "actual monotonic observations and publication locks/cancellation/CAS",
+      "all-input Core proof and fresh LLVM/native build",
+      "loader, generation leases and resource ownership",
+      "explicit source-bound image selection and anonymous RW-to-RX loader",
+      "measurement JSON hashing and public result/exception objects"
+    ],
+    "sample_count": "odd integers from 15 through 63, unchanged",
+    "selector": "HEPTA_HIA_PUBLICATION_MEASUREMENT_MANIFEST",
+    "source": "examples/hia_bootstrap/publication_measurement.hepta",
+    "whole_native_delivery_qualified": false,
+    "whole_stack_rewritten_in_hia": false,
+    "worker_selection": "registered single-image helper in the original operator-pinned process/thread scope",
+    "workspace_bytes": 2048
+  },
+  "native_release_selection": {
+    "authoring_and_build_custody_are_hosted": true,
+    "automatic_staging_cleanup_or_release_retirement": false,
+    "default_cli_cutover": false,
+    "fixed_syscall_adapter": "tools/hia_release_selection_syscalls.S",
+    "live_worker_migrated": false,
+    "lost_receipt_observation": "read-only status; no blind replay with a new precondition",
+    "operations": [
+      "status",
+      "activate",
+      "rollback"
+    ],
+    "packer": "examples/hia_bootstrap/release_selection_packer.hepta",
+    "policy": "examples/hia_bootstrap/release_selection_policy.hepta",
+    "precondition": "exact expected sequence and current release; rollback targets recorded previous release",
+    "runtime_python_libc_or_child_required": false,
+    "selection_record_bytes": 192,
+    "serialization": "kernel flock; descriptor-relative atomic rename and fsync with readback",
+    "target": "Linux x86-64",
+    "target_admission": "actual immutable release installer package/policy/byte verifier",
+    "whole_native_delivery_qualified": false
+  },
+  "native_retirement_state": {
+    "default_changed": false,
+    "durable_recovery_journal": false,
+    "host_boundaries": [
+      "actual foreign handles, loader objects and syscalls",
+      "multiversion generation transfer and pending capacity",
+      "timestamps, exception diagnostics and thread locking"
+    ],
+    "installed_release_garbage_collection": false,
+    "maximum_captured_path_bytes": 4096,
+    "native_owners": [
+      "original identity pin and observation classifications",
+      "single-use observation and effect claims",
+      "at-most-once native and identity release",
+      "identity-checked disk retry and complete predicates"
+    ],
+    "path_profile_limitation": "longer diagnostic-only Python Path values are refused before native effects",
+    "retained_state_bytes": 4608,
+    "selection": "explicit HEPTA_HIA_RETIREMENT_STATE_MANIFEST; pinned per-owner image; no fallback",
+    "source": "examples/hia_bootstrap/retirement_state.hepta",
+    "target": "Linux x86-64; creator-process foreign resource custody",
+    "uncertain_effects": "remain charged and fenced; process-local strong custody and detached diagnostics",
+    "whole_native_delivery_qualified": false
+  },
+  "native_scalar_profile": {
+    "actual_callers": "ScalarMultiversionRuntime constructor, publish and publish_if_current",
+    "adapter": "examples/hia_bootstrap/scalar_profile.hepta",
+    "all_input_equivalence_proved": false,
+    "arbitrary_effectful_python_truth_objects_claimed": false,
+    "compiler_profile_limits_changed": false,
+    "default_changed": false,
+    "fallback_after_selection": false,
+    "input_domain": "freshly verified primitive Core facts; exact Boolean prove_total from the public runtime constructor",
+    "limits": {
+      "blocks_per_function": 64,
+      "functions": 16,
+      "operations_per_function": 2048,
+      "parameters": 16
+    },
+    "metadata_continuation": "HIA rejects schema, function count and explicit export count before host encodes deeper facts",
+    "native_owners": [
+      "qualified primitive v1-v7 and structured-source refusal",
+      "explicit and implicit exported scalar function set",
+      "scalar signatures, effects, operations and wrap cast restrictions",
+      "per-function block and instruction budgets",
+      "ordered block-parameter, instruction and terminator decisions",
+      "whole CFG acyclicity including semantically unreachable cycles",
+      "ASCII function-name ABI sorting"
+    ],
+    "original_function_sha256": "f209aa55c4c990c1e82699c71868c5365749ff424edc440afb52036ee9eb9c09",
+    "original_git_blob": "698cc280566c74ba409f566b654e6ccdfa33eb2d",
+    "profile_grants_totality_or_publication_authority": false,
+    "public_entry": "hepta.hia_multiversion._admit",
+    "response_bytes": 144,
+    "retained_hosted_boundaries": [
+      "fresh Core verification and original exact program/input bytes",
+      "fact serialization without profile, graph or sorting decisions",
+      "original per-export fresh Z3 totality proofs, identity checks and first failure",
+      "public Python ABI and exception materialization",
+      "explicit source-bound image selection and anonymous RW-to-RX loader",
+      "LLVM build, native loading, publication locks, leases and effects"
+    ],
+    "selection_point": "after fresh verify_program and as_dict; before unchanged fresh totality proofs",
+    "selector": "HEPTA_HIA_SCALAR_PROFILE_MANIFEST",
+    "source": "examples/hia_bootstrap/scalar_profile.hepta",
+    "whole_native_delivery_qualified": false,
+    "whole_stack_rewritten_in_hia": false,
+    "worker_selection": "registered single-image helper in the original operator-pinned process/thread scope",
+    "workspace_bytes": 8192
+  },
+  "native_service_artifact": {
+    "actual_public_binding": "HIAAgentService._hia_artifact = _service_artifact_dispatch",
+    "adapter": "examples/hia_bootstrap/service_artifact.hepta",
+    "all_input_equivalence_proved": false,
+    "all_python_versions_tested": false,
+    "complete_original_methods": [
+      "HIAAgentService._hia_artifact"
+    ],
+    "finite_oracle_legacy_observation_status": "HOLD",
+    "finite_oracle_preparation_identity": "hepta.hia.service-artifact-fixed-code-preparation.v2",
+    "fixed_frame_count_quota_or_new_production_deadline": false,
+    "healthy_parent_ACK_releases_pending_resource_observations": true,
+    "hosted_boundaries": [
+      "dynamic profile and capture_path providers",
+      "original path capture, SHA-256, filesystem and SQLite",
+      "opaque object, descriptor, conversion and exception protocols",
+      "separately selected Store artifact/profile owner or explicit dynamic override"
+    ],
+    "implicit_retained_body_fallback": false,
+    "independently_frozen_finite_cases": 146,
+    "original_ordinary_caller_count": 112,
+    "original_separate_scope_inventory_count": 128,
+    "original_source_commit": "5bf69586b890706290c5fbfe93065ec0d3af40b1",
+    "output_bytes": 96,
+    "owned_policy": [
+      "profile before source admission",
+      "UTF-8 or captured-path branch and expected-digest short circuit",
+      "changed-artifact rejection before Store publication",
+      "publication, result construction and terminal local release order"
+    ],
+    "parent_foreign_result_resource_capture": "explicit opt-in; actual child handoff or completed resource scope only",
+    "portable_reference_removed": false,
+    "request_bytes": 80,
+    "resource_fault_control_count": 24,
+    "resource_qualification_established_by_source_declaration": false,
+    "resource_receiver_guessed_or_eagerly_read": false,
+    "retained_original_class_AST_is_not_public_execution": true,
+    "schema": "hepta.hia.service-artifact.v1",
+    "selector": "HEPTA_HIA_SERVICE_ARTIFACT_MANIFEST",
+    "source": "examples/hia_bootstrap/service_artifact.hepta",
+    "two_complete_original_replays_before_candidate_imports": true,
+    "unknown_outcome_cleanup_replay_or_completion": false,
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 128
+  },
+  "native_service_context": {
+    "adapter": "examples/hia_bootstrap/service_context.hepta",
+    "arithmetic_workspace": "three times max signed operand byte width plus eight bytes per limb array",
+    "baseline_commit": "b569c210a807af29a3ad816679f2b9437c5c6875",
+    "baseline_tree": "84b67370cd899f969a7130605f99bb056904af04",
+    "custody": "grow before effects; confirmed terminal releases; unknown held until process exit",
+    "domain": "existing Agent JSON and fixed providers; direct object and time protocols remain foreign",
+    "fixed_integer_width_or_decimal_digit_limit": false,
+    "hosted_boundaries": [
+      "schema and profile providers",
+      "buffer snapshot provider",
+      "object representation and protocols",
+      "SQLite and artifact effects",
+      "clock and execution budget providers",
+      "real Python exception propagation"
+    ],
+    "native_owners": [
+      "complete context effect order",
+      "short-circuit and loop control",
+      "exact arbitrary-width signed integer arithmetic",
+      "deadline comparison and remaining-time floor",
+      "terminal exception permission"
+    ],
+    "new_interpreter_minor_version_restriction": false,
+    "original_candidate_consume_route_preserved": true,
+    "original_test_budgets_changed": false,
+    "original_unfiltered_caller_count": 50,
+    "public_modes": [
+      "HIAAgentService._hia_context",
+      "HIAAgentService._context",
+      "HIAAgentService._budget",
+      "HIAAgentService._remaining_ms"
+    ],
+    "selection": "explicit HEPTA_HIA_SERVICE_CONTEXT_MANIFEST; fresh custody at each operation; no fallback",
+    "source": "examples/hia_bootstrap/service_context.hepta",
+    "unknown_effect_replay_or_automatic_cleanup": false,
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 128
+  },
+  "native_service_read": {
+    "adapter": "examples/hia_bootstrap/service_read.hepta",
+    "additional_independent_original_SQL_expression_cases": 86,
+    "additional_input_shape_integer_frame_or_wall_limits": false,
+    "all_input_equivalence_proved": false,
+    "all_interpreter_execution_histories_proved": false,
+    "complete_original_methods": [
+      "_hia_read"
+    ],
+    "direct_SQL_calls_per_foreign_activation": 1,
+    "direct_SQL_exact_resource_retirement_design_implemented": true,
+    "fixed_foreign_ports": 42,
+    "hosted_boundaries": [
+      "original opaque object and numeric protocols",
+      "decode/base64 codecs and original wire/digest providers",
+      "SQLite methods and opaque provider effects"
+    ],
+    "implicit_retained_body_fallback": false,
+    "independent_opaque_DB_or_dead_resource_custody_claimed": false,
+    "independent_original_base_cases": 86,
+    "independent_original_frozen_fault_cases": 6286,
+    "matching_current_cold_required": true,
+    "original_commit": "91bbd077ce5f7ff7b5236b1b14b7989b6e90a8a6",
+    "original_ordinary_unfiltered_caller_count": 112,
+    "original_separate_scope_caller_count": 128,
+    "original_test_budgets_changed": false,
+    "output_bytes": 96,
+    "owned_policy": [
+      "cursor admission and id/SHA short circuit",
+      "whole-data decode then first UTF8 trim/base64 branch",
+      "wire-budget repeat and later format/trim loop",
+      "conditional cursor digest and SQL publication",
+      "inner/outer exception continuations and ordered local retirement"
+    ],
+    "portable_reference_removed": false,
+    "qualification_evidence_not_inferred_from_contract": true,
+    "read_request_key_or_durable_replay_added": false,
+    "schema": "hepta.hia.service-read-native.v1",
+    "selector": "HEPTA_HIA_SERVICE_READ_MANIFEST",
+    "source": "examples/hia_bootstrap/service_read.hepta",
+    "weak_registered_SQL_qualification_inferred_from_source": false,
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 128
+  },
+  "native_slot_ledger": {
+    "acquire_and_release_transactions": "original local-consumer transactions",
+    "adoption_and_rollback_transaction": "same original connection as the request effect and completed response",
+    "default_native_selection": false,
+    "durable_authority": "original slots, versions and leases tables in the original AgentStore WAL",
+    "history_row_limit_added": false,
+    "host_boundaries": [
+      "SQLite statements and actual durability",
+      "artifact/proof/evaluation admission",
+      "native process invocation and foreign-buffer publication"
+    ],
+    "native_policy": [
+      "canonical u64 decimal fields",
+      "generation and epoch conditional comparison",
+      "streamed retained-generation maximum and successor",
+      "rollback epoch progression",
+      "active lease identity and detached retained descriptor"
+    ],
+    "request_replay_owner": "existing ordinary or selected journal v2",
+    "scalar_multiversion_runtime_replaced": false,
+    "selection": "explicit HEPTA_HIA_SLOT_LEDGER_MANIFEST; no selected fallback",
+    "source": "examples/hia_bootstrap/slot_ledger.hepta",
+    "whole_service_and_SQLite_replaced": false
+  },
+  "native_static_budget": {
+    "adapter": "examples/hia_bootstrap/static_budget.hepta",
+    "event_magnitude_capacity_bytes": 4096,
+    "hosted_boundaries": [
+      "sole Core verifier",
+      "immutable document and primitive schema admission",
+      "policy shape and type validation",
+      "verified fact projection",
+      "independent heap analysis",
+      "JSON report and hashing",
+      "foreign buffer lifetime"
+    ],
+    "maximum_original_blocks_per_function": 4096,
+    "maximum_original_functions": 1024,
+    "maximum_original_structural_nodes": 262144,
+    "native_owners": [
+      "stable Kahn graph order and cycle admission",
+      "exact allocator interactions and VM ticks",
+      "synchronous call depth",
+      "reviewed v7/v8 resource profile",
+      "ordered numerical policy comparisons"
+    ],
+    "original_event_magnitude_upper_bound_bits": 19475,
+    "original_test_budgets_changed": false,
+    "original_unfiltered_caller_count": 77,
+    "policy_integers_narrowed": false,
+    "selection": "explicit HEPTA_HIA_STATIC_BUDGET_MANIFEST; no selected fallback",
+    "source": "examples/hia_bootstrap/static_budget.hepta",
+    "whole_native_delivery_qualified": false
+  },
+  "native_store_artifact_profile": {
+    "adapter": "examples/hia_bootstrap/store_artifact_profile.hepta",
+    "additional_frozen_dynamic_limit_controls": 41,
+    "additional_shape_integer_or_frame_limits": false,
+    "all_input_equivalence_proved": false,
+    "artifact_provider_child_delivery_D5_qualified": false,
+    "complete_original_methods": [
+      "put",
+      "json",
+      "_ref",
+      "get",
+      "get_json",
+      "resolve_uri",
+      "profile",
+      "check_profile"
+    ],
+    "cross_owner_causal_loss_closure_qualified": false,
+    "cross_owner_causal_loss_tracking_implemented": true,
+    "cross_owner_tracking_scope": "actual active same-process same-thread DeliveryRecord calls; all 138 Store ports and ambient finish",
+    "frozen_finite_semantic_cases": 463,
+    "hosted_boundaries": [
+      "actual dynamic Python calls and opaque object protocols",
+      "filesystem and SQLite",
+      "existing hash, JSON and native artifact providers"
+    ],
+    "implicit_retained_body_fallback": false,
+    "independent_worker_finally_close_resource_association_qualified": false,
+    "new_production_wall_cap": false,
+    "opaque_provider_internal_effects_qualified": false,
+    "original_artifact_limit_bytes": 67108864,
+    "original_dynamic_limit_global_binding_and_opaque_comparison_preserved": true,
+    "original_source_commit": "73f16346e7f84fa13305777a4595e2d1b422dee9",
+    "output_bytes": 96,
+    "owned_policy": [
+      "original ordered admission and publication branches",
+      "three-key reference iteration",
+      "argument subcontinuations",
+      "native and fallback artifact choice",
+      "context exit, directory close and temporary unlink order",
+      "identity/kind/profile checks and exact winning-row return"
+    ],
+    "portable_reference_removed": false,
+    "same_owner_active_causal_native_loss_fenced": true,
+    "schema": "hepta.hia.store-artifact-profile.v1",
+    "selector": "HEPTA_HIA_STORE_ARTIFACT_PROFILE_MANIFEST",
+    "source": "examples/hia_bootstrap/store_artifact_profile.hepta",
+    "transaction_context_manager_migrated": true,
+    "transaction_owner_scope": "separate explicitly selected native_store_transaction owner; original retained",
+    "unknown_effect_retry_or_automatic_completion": false,
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 128
+  },
+  "native_store_lifecycle": {
+    "adapter": "examples/hia_bootstrap/store_lifecycle.hepta",
+    "baseline_commit": "ad352eeb77d804c14d7407713e23d37e7f037cf1",
+    "baseline_tree": "9c56113194795c738d3e7804eb1a89f8a1803cbd",
+    "custody": "grow before effects; confirmed terminal releases; unknown held until process exit",
+    "fixed_parallel_store_count_limit": false,
+    "hosted_boundaries": [
+      "Path and OS effects",
+      "object and Boolean protocols",
+      "SQLite effects",
+      "execution budget provider",
+      "CPython exception delivery"
+    ],
+    "native_owners": [
+      "complete lifecycle effect order",
+      "short-circuit and loop control",
+      "original construction cleanup",
+      "nested exception propagation"
+    ],
+    "original_test_budgets_changed": false,
+    "original_unfiltered_caller_count": 50,
+    "output_bytes": 80,
+    "public_modes": [
+      "AgentStore.__init__",
+      "AgentStore.close"
+    ],
+    "selection": "explicit HEPTA_HIA_STORE_LIFECYCLE_MANIFEST, held per Store; no fallback",
+    "source": "examples/hia_bootstrap/store_lifecycle.hepta",
+    "unknown_effect_replay_or_automatic_close": false,
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 128
+  },
+  "native_store_transaction": {
+    "actual_public_binding": "AgentStore.transaction = _store_transaction_dispatch",
+    "adapter": "examples/hia_bootstrap/store_transaction.hepta",
+    "all_input_equivalence_proved": false,
+    "all_python_versions_tested": false,
+    "body_observation_reserved_before_BEGIN": true,
+    "complete_original_methods": [
+      "AgentStore.transaction"
+    ],
+    "confirmed_suspension_can_migrate_without_invented_native_ancestry": true,
+    "each_history_uses_fresh_process_and_runtime_original_before_native": true,
+    "finite_history_groups": [
+      "H0",
+      "H1"
+    ],
+    "fixed_frame_count_quota_or_new_production_deadline": false,
+    "history_cases_or_exception_fields_reset_or_normalized": false,
+    "hosted_boundaries": [
+      "SQLite and arbitrary original DB/lock protocols",
+      "real generator/context-manager ABI and caller body",
+      "actual runtime special binding and active exception state"
+    ],
+    "implicit_retained_body_fallback": false,
+    "independently_frozen_finite_cases": 521,
+    "native_SQLite_or_native_generator_implementation_claimed": false,
+    "native_custody_scope": "fresh record per actual process/thread advance",
+    "original_artifact_130_gate_replaced_by_112": false,
+    "original_ordinary_caller_count": 112,
+    "original_source_commit": "c0195643083e1d4c68679237edfa77143dc7b1c6",
+    "output_bytes": 96,
+    "owned_policy": [
+      "lock entry and original special-method ordering",
+      "BEGIN IMMEDIATE and unique body suspension",
+      "normal COMMIT or dynamically matched exceptional ROLLBACK",
+      "normal/exceptional exit, truth, suppression and replacement",
+      "terminal operand release and original-error propagation"
+    ],
+    "portable_reference_removed": false,
+    "request_bytes": 80,
+    "retained_original_class_AST_is_not_public_execution": true,
+    "schema": "hepta.hia.store-transaction.v1",
+    "selector": "HEPTA_HIA_STORE_TRANSACTION_MANIFEST",
+    "separate_complete_native_caller_count": 61,
+    "shared_explicit_resource_loss_blocks_resume_and_retirement": true,
+    "source": "examples/hia_bootstrap/store_transaction.hepta",
+    "unknown_outcome_cleanup_replay_or_COMMIT": false,
+    "whole_native_delivery_qualified": false,
+    "workspace_bytes": 128
+  },
+  "native_worker_helper_bundle": {
+    "bounded_memory_schema": "hepta.hia.bounded-memory-native.v1",
+    "candidate_budget_schema": "hepta.hia.candidate-budget-native.v1",
+    "cost_ledger_schema": "hepta.hia.cost-ledger-native.v1",
+    "current_journal_schema": "hepta.hia.agent-journal-native.v2",
+    "custody": "whole bundle, child manifests, packaged sources and executable bytes",
+    "default_native_selection": false,
+    "emission_schema": "hepta.hia.emission-native.v1",
+    "evaluation_schema": "hepta.hia.evaluation-native.v1",
+    "execution_budget_schema": "hepta.hia.execution-budget-native.v1",
+    "full_cost_schema": "hepta.hia.full-cost-native.v1",
+    "generation_retention_schema": "hepta.hia.generation-retention-native.v1",
+    "implementation": "examples/hia_bootstrap/source_worker_manifest.hepta",
+    "native_build_admission_schema": "hepta.hia.native-build-admission.v1",
+    "native_mapping_schema": "hepta.hia.native-mapping-native.v1",
+    "ordinary_worker_service_and_SQLite_replaced": false,
+    "patch_impact_schema": "hepta.hia.patch-impact-native.v1",
+    "post_effect_attestation_failure": "observe_original; never repeat the mutation blindly",
+    "publication_measurement_schema": "hepta.hia.publication-measurement-native.v1",
+    "retirement_state_schema": "hepta.hia.retirement-state-native.v1",
+    "scalar_profile_schema": "hepta.hia.scalar-profile-native.v1",
+    "schema": "hepta.hia.native-helpers.v1",
+    "scope": "one request in the original process and thread; exclusive and restored on exit",
+    "selection": "operator-pinned explicit bundle; every nonempty ambient manifest refuses; empty values follow each entry contract",
+    "service_artifact_schema": "hepta.hia.service-artifact.v1",
+    "service_context_schema": "hepta.hia.service-context-native.v1",
+    "slot_ledger_schema": "hepta.hia.slot-ledger-native.v1",
+    "static_budget_schema": "hepta.hia.static-budget-native.v1",
+    "store_artifact_profile_schema": "hepta.hia.store-artifact-profile.v1",
+    "store_lifecycle_schema": "hepta.hia.store-lifecycle-native.v1",
+    "store_transaction_schema": "hepta.hia.store-transaction.v1",
+    "supported_single_image_selectors": 73
+  },
+  "nominal_raw_json_packet": {
+    "constructor_service_and_streamed_output_replaced": false,
+    "constructor_wrapper_extra_bytes_nodes_depth": [
+      41,
+      2,
+      1
+    ],
+    "default_changed": false,
+    "host_payload_parsing_or_typed_materialization_required": false,
+    "hosted_owners": [
+      "opaque byte and executable custody",
+      "fixed scalar ABI and image selection"
+    ],
+    "integer_policy": "zero means unlimited decimal digits; otherwise explicit exact integer from 640 to u64 max; default snapshots interpreter policy",
+    "maximum_source_bytes": 8388608,
+    "maximum_source_depth": 128,
+    "maximum_source_nodes": 262144,
+    "native_owners": [
+      "complete UTF-8 and JSON preflight",
+      "decoded duplicate-key rejection",
+      "source-ordered integer digit policy",
+      "decoded dictionary keys and original insertion order",
+      "typed packet tags, exact node lengths and source offsets",
+      "optional constructor wrapper"
+    ],
+    "negative_integer_zero": "canonical decimal 0",
+    "object_key_wire_nodes_are_charged_separately_from_JSON_source_nodes": true,
+    "public_diagnostic_message_and_span_API_replaced": false,
+    "selection": "explicit installed_nominal_json manifest; public normalizer route unchanged",
+    "source": "examples/hia_bootstrap/nominal_json.hepta",
+    "whole_native_delivery_qualified": false,
+    "whole_nominal_elaborator_replaced": false,
+    "wrapper_reduces_source_budget": false
+  },
+  "profile": "selfhost-core-linux-x86_64-v95-bounded-recursion",
+  "program_shape_application": {
+    "all_input_refinement_proved": false,
+    "host_boundaries": [
+      "exact bounded caller snapshot and JSON serialization",
+      "allocation and executable custody",
+      "function/block-map materialization",
+      "composite normalization",
+      "complete body/type/resource flow verifier"
+    ],
+    "input": "complete raw primitive Core program JSON, v1-v8",
+    "maximum_blocks_per_function": 4096,
+    "maximum_bytes": 8388608,
+    "maximum_depth": 64,
+    "maximum_functions": 1024,
+    "maximum_nodes": 262144,
+    "native_general_Core_verifier": false,
+    "policy": [
+      "exact program fields",
+      "schema features",
+      "module identifier",
+      "complete embedded native function declarations/SSA/CFG",
+      "duplicate function names",
+      "explicit export names and uniqueness",
+      "export existence",
+      "scalar public export signatures"
+    ],
+    "production_activated": false,
+    "selected_reference_fallback": false,
+    "selection": "operator HEPTA_HIA_PROGRAM_SHAPE_MANIFEST; default unchanged",
+    "source": "examples/hia_bootstrap/program_shape.hepta"
+  },
+  "required_replay": {
+    "cold_command": "hia-cold --source ABS_SOURCE --output NEW_ABS_DIRECTORY --toolchain ABS_ROOT --bundle ABS_DESCRIPTOR",
+    "fixed_point": "B1 == B2 == B3 bytes",
+    "generation_order": [
+      "B0",
+      "B1",
+      "B2",
+      "B3"
+    ],
+    "modified_fixed_point": "M1 != M2; M2 == M3; M3 != B3",
+    "modified_order": [
+      "M1",
+      "M2",
+      "M3"
+    ],
+    "source_modification": "HIA wrapper reservation 64 -> 80 bytes",
+    "toolchain_build_command": "hia-cold-build --source ABS --bootstrap ABS --output NEW_ABS"
+  },
+  "schema": "hepta.hia.selfhost-core-support.v1",
+  "sha256_stream_word_access": {
+    "adapter": "examples/hia_bootstrap/sha256_stream.hepta",
+    "all_input_equivalence_proved": false,
+    "change": "expand exactly eight fixed byte accesses in each full-u64 word read/write",
+    "differential_controls": "independent original/candidate VM and full native input/output/state readback",
+    "foreign_alias_stress_broadens_Core_ownership": false,
+    "independent_original": "tests/fixtures/sha256_stream_a7710b5.hepta.txt",
+    "maximum_chunk_bytes": 8388608,
+    "maximum_total_bytes": 2305843009213693951,
+    "original_artifact_store_quota_bytes": 67108864,
+    "original_git_blob": "a6cf0c0dd43a804db8ff74f979cb0d4eff6b51d3",
+    "original_quota_operation_deadline_seconds": 60,
+    "original_reference_is_production_source": false,
+    "original_source_sha256": "5818184f4decbde6a56741238a9d017fda66a3ed41136f9ceb9533a81c552a20",
+    "performance_acceptance_threshold_added": false,
+    "source": "examples/hia_bootstrap/sha256_stream.hepta",
+    "state_bytes": 1184,
+    "unchanged_boundaries": [
+      "state layout and full-width accepted word values",
+      "phase, command, input and output limits",
+      "padding and total-length arithmetic",
+      "byte access order and partial bounds writes"
+    ],
+    "unchanged_functions": [
+      "stream",
+      "compress",
+      "rotate"
+    ],
+    "whole_native_delivery_qualified": false,
+    "word_width_bits": 64
+  },
+  "source_identity": {
+    "allocator_qualification_dependencies": [
+      "source-owned HIA allocator witness, binding owner, observer and event validator",
+      "source-owned HIA object and observer ELF linkers",
+      "system dynamic loader, libc allocation functions and the original explicit failure-injection protocol"
+    ],
+    "executable_trusted_dependencies": [
+      "Linux kernel",
+      "x86-64 hardware",
+      "stdin/stdout descriptor contracts"
+    ],
+    "files": {},
+    "native_reference_construction": {
+      "backend": "examples/hia_bootstrap/seed_vm_backend.hepta",
+      "kernel_linker": "examples/hia_bootstrap/cold_reference_kernel_linker.hepta",
+      "packer": "examples/hia_bootstrap/owned_reference_cli_packer.hepta",
+      "qualified_source": "docs/HIA_COLD_REFERENCE_NATIVE_QUALIFICATION.json",
+      "target_or_successor_compiler_used": false
+    },
+    "owned_object_trusted_dependencies": [
+      "source-owned HIA shared-object linkers with closed ELF admission",
+      "system dynamic loader and libc calloc/malloc/free with their allocation and lifetime contracts"
+    ],
+    "roles": {
+      "authoring_authority": "docs/HIA_NATIVE_SOURCE_AUTHORITY.json",
+      "cold_replay": "examples/hia_bootstrap/cold_cli.hepta",
+      "compiler_source": "examples/hia_bootstrap/selfhost.hepta",
+      "qualification": "examples/hia_bootstrap/cold_master.hepta",
+      "seed_entry": "examples/hia_bootstrap/seed_backend.hepta",
+      "seed_package": "docs/HIA_NATIVE_SOURCE_AUTHORITY.json",
+      "successor_loader": "examples/hia_bootstrap/native_observer_packer.hepta"
+    },
+    "seed_external_dependencies": [
+      "source-bound independent HIA assembly frontend, reference-wire projector, scalar backend and closed filter packer; initial-root provenance and source self-rebuild remain explicit",
+      "Linux x86-64 process, memory and sealed-descriptor primitives"
+    ],
+    "successor_trusted_dependencies": [
+      "source-owned HIA native flat observer and process owner",
+      "Linux kernel",
+      "x86-64 hardware",
+      "caller-owned private buffers"
+    ]
+  },
+  "source_naming": {
+    "assembly_header": "hia-asm.v1",
+    "content_verified_by_core_only_gate": true,
+    "historical_receipt_bytes_rewritten": false,
+    "json_profile_authority": "existing explicit primitive or composite schema",
+    "paired_json_name": "*.core.hepta",
+    "retired_high_level_language_restored": false,
+    "suffix": ".hepta",
+    "whole_native_delivery_qualified": false
+  },
+  "support": [
+    {
+      "alignment": "unaligned byte-buffer offsets accepted",
+      "area": "fixed_width_byte_memory",
+      "bounds": "offset <= length and 8 <= length - offset before pointer arithmetic or any byte access",
+      "compiler_source_uses_word_ops": true,
+      "effects": {
+        "load": [
+          "read",
+          "trap"
+        ],
+        "store": [
+          "write",
+          "trap"
+        ]
+      },
+      "failed_store": "bounds trap before any store byte is written",
+      "input_schema": "hepta.hia.program.v9",
+      "loans": "existing readable / exclusive writable loan guards; no alias or escape relaxation",
+      "native_json_frontends_expanded": true,
+      "offset_type": "usize (unsigned 64-bit Core scalar)",
+      "old_schema": "v8 and earlier reject all four operations",
+      "operations": [
+        "buffer.load.u64.le",
+        "buffer.load.u64.be",
+        "buffer.store.u64.le",
+        "buffer.store.u64.be"
+      ],
+      "optional_selected_core_policies_expanded": true,
+      "selected_core_v9_components": [
+        "instruction_policy",
+        "program_shape",
+        "core_admission",
+        "core_lowering"
+      ],
+      "status": "bounded_subset",
+      "value_type": "u64",
+      "width_bytes": 8,
+      "workspace_json_v9_schema_materialization": true
+    },
+    {
+      "area": "scalar_types",
+      "items": [
+        "u64",
+        "usize",
+        "u32",
+        "u8",
+        "u16",
+        "bool",
+        "i8",
+        "i16",
+        "i32",
+        "i64",
+        "isize",
+        "unit"
+      ],
+      "status": "supported"
+    },
+    {
+      "area": "resources",
+      "items": [
+        "borrowed readbuf/mutbuf parameters",
+        "buffer.len",
+        "buffer.load",
+        "buffer.store",
+        "buffer.swap with both bounds before access",
+        "buffer.fill",
+        "buffer.fill_range",
+        "buffer.copy",
+        "buffer.copy_range",
+        "buffer.move_within with overlap handling",
+        "borrow.read from readbuf/mutbuf",
+        "borrow.mut from mutbuf",
+        "loan.end for live local childless loans",
+        "nested loan parent suspension and shared/exclusive root checks",
+        "exact capability graph joins and closed loop/edge transfers",
+        "linear edge transfers",
+        "readonly call aliases",
+        "mutable alias rejection"
+      ],
+      "status": "bounded_subset"
+    },
+    {
+      "area": "integer_operations",
+      "items": [
+        "const",
+        "int.add.wrap",
+        "int.sub.wrap",
+        "int.mul.wrap",
+        "int.add.checked",
+        "int.sub.checked",
+        "int.mul.checked",
+        "int.div.checked",
+        "int.rem.checked",
+        "int.neg.checked",
+        "bit.not",
+        "bit.and",
+        "bit.or",
+        "bit.xor",
+        "int.shl.checked",
+        "int.shr.checked",
+        "int.cast wrap and checked",
+        "signed and unsigned comparisons",
+        "boolean compare.eq and compare.ne",
+        "bool.and",
+        "bool.or",
+        "bool.not",
+        "select (bool condition, matching scalars including unit)",
+        "signed decimal literals with exact width bounds",
+        "unit null literal"
+      ],
+      "status": "bounded_subset"
+    },
+    {
+      "area": "control_flow",
+      "items": [
+        "typed ret",
+        "typed jump",
+        "typed branch",
+        "loops",
+        "explicit trap with one of the five Core error codes",
+        "block reachability",
+        "no inbound entry edges"
+      ],
+      "status": "supported"
+    },
+    {
+      "area": "effects",
+      "items": [
+        "empty, partial and complete declared effect sets in any order",
+        "duplicate and unknown effect rejection",
+        "every input instruction's required effect mask",
+        "conditional trap effect for checked int.cast",
+        "full callee-declaration subset check at every call",
+        "exact structural-node accounting for declared effects"
+      ],
+      "status": "supported"
+    },
+    {
+      "area": "calls",
+      "items": [
+        "zero to six scalar, owned or parameter-bound borrowed results",
+        "exact signatures",
+        "forward direct calls",
+        "backward direct calls",
+        "signature-checked direct and mutual recursion"
+      ],
+      "status": "bounded_subset"
+    },
+    {
+      "area": "recursion",
+      "items": [
+        "direct self call immediately returning its exact zero-to-six scalar/owner/loan result tuple in order",
+        "parallel argument staging and same-frame entry jump",
+        "non-tail self calls and mutual recursion use independent frames",
+        "non-entry-reachable recursive functions are checked and emitted",
+        "private per-invocation depth and stack-byte guards before callee effects",
+        "budget exhaustion emits UD2/SIGILL, not a VM exception report"
+      ],
+      "limits": {
+        "additional_frames_per_self_tail_call": 0,
+        "budget_report_equivalence": false,
+        "frame_charge": "generated frame allocation plus 16 bytes for saved rbp and return address",
+        "iteration_bound": "external CPU/wall budget, as for accepted loops",
+        "live_frames": 256,
+        "pending_result_workspace_offset": 256,
+        "private_frame_bytes": 6291456,
+        "runtime_termination_proved": false
+      },
+      "status": "bounded_subset"
+    },
+    {
+      "allocation": {
+        "assumptions": [
+          "ordinary libc allocator contract",
+          "Linux SysV AMD64 linkage and loader"
+        ],
+        "drop": "free valid nonnull pointer; empty owner consumed without call",
+        "imports": [
+          "calloc",
+          "free"
+        ],
+        "mandatory_failure": "Core allocation trap represented by UD2",
+        "maximum_size": 9223372036854775807,
+        "try_failure": "live empty owner and false for oversize or null calloc result",
+        "workspace_is_heap": false,
+        "zero_length": "live logical owner with null pointer and zero length; try_new succeeds"
+      },
+      "area": "owned_resources",
+      "chains": {
+        "descriptor": "head pointer with zero spare word",
+        "drop": "single internal iterative helper frees payloads and nodes with constant 16-byte local frame",
+        "head": "shared or exclusive local loan; empty chain traps for bounds",
+        "node_bytes": 24,
+        "pop": "consume chain; nonempty returns tail and owned payload after freeing node; empty returns empty chain, empty buffer, false",
+        "push": "consume chain and buffer; success returns extended chain, empty buffer, true; null allocation returns both inputs in fresh owner names and false",
+        "scratch_is_heap": false
+      },
+      "excluded": [
+        "more than six results"
+      ],
+      "items": [
+        "buffer.new",
+        "buffer.try_new",
+        "owner.move",
+        "owner.drop",
+        "chain.empty",
+        "chain.try_push",
+        "chain.pop",
+        "chain.is_empty",
+        "chain.head_read",
+        "chain.head_mut",
+        "owned buffer and chain parameters and results on internal calls",
+        "owner root and live-descendant checks before move, drop or call",
+        "parameter-bound returned loans: exact formal origin, external/direct-child provenance, descriptor transfer and CFG origin joins",
+        "borrow.read/borrow.mut from owned buffers",
+        "head loans retain chain root and parent across nested loans and exact CFG joins",
+        "linear owner transfers through exact capability graph edges"
+      ],
+      "output_format": "selfhost_elf or explicit scalar-export ELF only",
+      "status": "bounded_subset"
+    },
+    {
+      "area": "general_core_checker",
+      "items": [
+        "unbounded result arities and composite resource-bearing results",
+        "module graph",
+        "general module grammar",
+        "all resource combinations"
+      ],
+      "status": "not_implemented"
+    },
+    {
+      "area": "successor_output",
+      "items": [
+        "flat position-independent x86-64 image",
+        "HIA-written relative call and branch relocations"
+      ],
+      "status": "bounded_subset"
+    },
+    {
+      "area": "successor_object_output",
+      "items": [
+        "HIA-written ELF64 ET_REL",
+        "legacy borrowed f0 SysV entry symbol or explicit exports(name,...) scalar wrappers",
+        "explicit export list selects ELF independently of ordinary module name",
+        "exact-byte export resolution; private functions checked but not published",
+        "SysV register and stack arguments normalized to declared scalar widths",
+        "loader lifecycle-hook and reserved libc-import symbols refused; no empty or duplicate exports",
+        "position-independent .text with resolved internal relocations",
+        "nonexecuting stack note",
+        "legacy object has no external symbols or relocations",
+        "owned object has closed calloc/free imports and R_X86_64_PLT32 call relocations"
+      ],
+      "owned_profile": "hepta.hia.selfhost.elf64-allocator-relocatable.v1",
+      "profile": "hepta.hia.selfhost.elf64-relocatable.v1",
+      "status": "bounded_subset"
+    },
+    {
+      "area": "general_object_linking",
+      "items": [
+        "arbitrary external symbols and relocations",
+        "resource-bearing public signatures",
+        "general linker",
+        "additional ELF targets"
+      ],
+      "status": "not_implemented"
+    }
+  ],
+  "syntax": {
+    "accepted_input_core": [
+      "hepta.hia.program.v8",
+      "hepta.hia.program.v9"
+    ],
+    "block_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 256 declarations per function; declared entry at any source position; Core __hia_ prefix rejected",
+    "compiler_source_core": "hepta.hia.program.v9",
+    "core": "hepta.hia.program.v8",
+    "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
+    "executable_module": "selfhost_exec",
+    "function_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core reserved function names and __hia_ prefix rejected",
+    "function_results": "zero to six scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
+    "header": "hia-asm.v1",
+    "instruction_results": "zero or one; internal calls have zero to six scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
+    "module": "ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core __hia_ prefix rejected; ordinary module labels without explicit exports select flat output",
+    "object_module": "selfhost_elf",
+    "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",
+    "whitespace": "ASCII space and LF; shared assembly adjacency rules"
+  },
+  "target": {
+    "endianness": "little",
+    "isa": "x86-64",
+    "pointer_bits": 64,
+    "system": "Linux",
+    "triple": "x86_64-unknown-linux-gnu"
+  },
+  "task_helper_generation": {
+    "default_changed": false,
+    "generated_name_limit": 8192,
+    "host_boundaries": [
+      "resolved descriptor transport and result object custody",
+      "nominal constructor and outer module lowering",
+      "final primitive admission and program backend",
+      "build/install/default selection"
+    ],
+    "maximum_private_input_bytes": 131072,
+    "maximum_result_bytes": 4194304,
+    "native_owners": [
+      "complete start/poll/cancel/join/close Core function generation",
+      "generated names, control flow, effects, cleanup and padding"
+    ],
+    "partial_refusal_state": "original counter/cache updates preserved without appending an incomplete function",
+    "private_workspace_bytes": 2097152,
+    "public_program_limits_unchanged": true,
+    "result_frame": "HIATHP01; semantic status, first helper name, final counter and complete Core JSON",
+    "selection": "explicit HEPTA_HIA_TASK_HELPERS_MANIFEST; source/image-bound image; no fallback",
+    "source": "examples/hia_bootstrap/task_helpers.hepta",
+    "whole_native_delivery_qualified": false,
+    "whole_nominal_elaborator_replaced": false
+  },
+  "worker_request_admission": {
+    "canonical_budget_applies_to": "five-field digest input, not a reencoded six-field envelope",
+    "default_worker_changed": false,
+    "installed_admission_transport": {
+      "executable": "hia-worker-terminal",
+      "frames": [
+        "HIAWRA02",
+        "HIAWRO02"
+      ],
+      "opens_service_or_store": false,
+      "parsed_refusal_correlation_preserved": true,
+      "worker_release_selection": "hepta.hia.native-helpers.v14/v15; sealed raw request, HIA arena returned"
+    },
+    "installed_terminal_transport": {
+      "elf_packer_source": "examples/hia_bootstrap/mcp_stdio_packer.hepta",
+      "executable": "hia-worker-terminal",
+      "external_assembler_or_linker_required_for_terminal": false,
+      "frame_magic": "HIATRP01",
+      "native_owners": [
+        "admission and terminal frame validation",
+        "request admission",
+        "terminal response JSON shape and canonicalization",
+        "authenticated terminal envelope"
+      ],
+      "opens_service_or_store": false,
+      "worker_release_selection": "hepta.hia.native-helpers.v13/v14/v15; sealed request and terminal executable"
+    },
+    "integer_conversion_limit": "actual trusted host int digit profile; zero means unlimited within wire budget",
+    "maximum_depth": 128,
+    "maximum_input_bytes": 8388608,
+    "maximum_nodes": 262144,
+    "maximum_tool_unicode_codepoints": 128,
+    "native_payload_owners": [
+      "JSON syntax and arena",
+      "finite binary64 parsing and printing",
+      "canonical UTF-8 JSON",
+      "request fields and SHA-256",
+      "catalog and tool admission"
+    ],
+    "request_schema": "hia-agent-worker-request-v1",
+    "selection": "explicit HEPTA_HIA_WORKER_REQUEST_MANIFEST; no fallback",
+    "service_journal_and_foreign_objects_are_hosted": true,
+    "source": "examples/hia_bootstrap/worker_request.hepta",
+    "source_preorder_arena_restored_on_parsed_returns": true
+  },
+  "worker_store_startup": {
+    "backend_selection_serialized_on_state_directory": true,
+    "existing_sqlite_or_retained_artifacts_without_namespace_refuse": true,
+    "initializer": "hia-agent-store-init",
+    "migration_or_public_activation": false,
+    "reinitialize_existing_namespace": false,
+    "selection": "hepta.hia.native-helpers.v15; exact installed initializer pin"
+  }
+}
