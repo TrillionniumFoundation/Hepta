@@ -87,6 +87,25 @@ case('engine-no-adoption',request={'args':['rea-static-worker'],'stdin':engine})
 case('engine-descendant',request={'args':['rea-static-worker'],'stdin':engine},env={'QA_CLAIM':'1','QA_DESCENDANT':'1','QA_DESC_MS':'5000'})
 case('engine-timeout',request={'args':['rea-static-worker'],'stdin':engine,'timeout_seconds':0},env={'QA_SLEEP_MS':'5000'})
 case('engine-cancel',request={'args':['rea-static-worker'],'stdin':engine},env={'QA_CLAIM':'1','QA_SLEEP_MS':'5000'},parent_signal=signal.SIGTERM)
+# Additional whole-entry checks exercise the exact diagnostic facet placement.
+base_spec={'request':{'op':'start','job_id':'qualified-job','executable':'/project/fixture','args':[],'env':{}},'nonce':'nonce-Ω🙂','boot_id':boot,'workspace':'/project'}
+base_raw=json.dumps(base_spec,ensure_ascii=False,separators=(',',':')).encode()
+for i,raw in enumerate([b'',b'null',b'[]',b'{}',b'1e400',b'"x"',b'{"request":{"op":[]}, "nonce":false}',b'{"request":{"op":"start","job_id":"qualified-job"},"nonce":false}',b'{"request":{"op":"start","job_id":"qualified-job"},"nonce":"n","boot_id":"b","workspace":false}']):
+ case('spec-typed-raw-'+str(i),raw_spec=raw)
+sequence=[base_spec[k] for k in ['request','nonce','boot_id','workspace']]+[None]
+for i in range(7):
+ value=sequence[:i] if i<=5 else sequence+[None]
+ case('spec-typed-seq-'+str(i),raw_spec=json.dumps(value,ensure_ascii=False,separators=(',',':')).encode())
+for i,tail in enumerate([b'"unknown":1e400',b'"unknown":"\xff"',b'"unknown":"\\ud800"',b'"unknown":{"deep":[3.5,null,true]}',b'"unknown":?',b'"nonce":null',b'"terminal_protocol":"wrong"',b'"terminal_protocol":{}']):
+ case('spec-typed-tail-'+str(i),raw_spec=base_raw[:-1]+b','+tail+b'}')
+for key in ['CREDENTIALS_DIRECTORY','STATE_DIRECTORY']:
+ case('environment-missing-'+key,outer_env={key:None})
+ for i,value in enumerate([b'\xff',b'/a\xe1\x80',b'/a\xe4\xb8\xad\xff',b'/a\xed\xa0\x80',b'\x80"*\\\xc2\xa0']):
+  case('environment-invalid-'+key+'-'+str(i),outer_env={key:value})
+case('spec-directory',setup='spec-directory')
+case('spec-symlink',setup='spec-symlink')
+case('spec-bound-plus-one',raw_spec=b' '*1048577)
+
 if faults:
  cases=[]
  for selector in ['sync.stdout','sync.stderr','sync.parent.1','sync.parent.2','sync.tmp.1','sync.tmp.2','open.stdout','open.stderr','open.parent','open.tmp.1','open.tmp.2','rename.1','rename.2']:
@@ -134,7 +153,7 @@ def inventory():
   out[key]=item
  return out
 
-r={'phase':'running','cases':[],'scope':'Original unprivileged supervisor under private mount and PID namespaces; real child exec, files, logs, process groups, and durable terminal receipts','error_diagnostics_exact':False}
+r={'phase':'running','cases':[],'scope':'Original unprivileged supervisor under private mount and PID namespaces; real child exec, files, logs, process groups, and durable terminal receipts','error_diagnostics_exact':True,'native_sha256':sha256((D/'jobctl-native').read_bytes()).hexdigest(),'reference_sha256':sha256((D/'jobctl-reference').read_bytes()).hexdigest()}
 rp=D/(('supervisor-faults-v3' if faults else 'supervisor-qualification-v4')+('-'+only if only else '')+'.json')
 def save():rp.write_text(json.dumps(r,indent=2,ensure_ascii=False)+'\n')
 save()
@@ -148,9 +167,11 @@ try:
     if k=='request_job_id':q['job_id']=v
     else:spec[k]=v
    if c.get('sequence'):spec=[spec['request'],spec['nonce'],spec['boot_id'],spec['workspace']]
-   raw=json.dumps(spec,ensure_ascii=False,separators=(',',':')).encode();assert len(raw)<=1048576
+   raw=c.get('raw_spec',json.dumps(spec,ensure_ascii=False,separators=(',',':')).encode());assert len(raw)<=1048577
    (root/'credentials/spec').write_bytes(raw);(root/'credentials/spec').chmod(0o444)
    setup=c.get('setup')
+   if setup=='spec-directory':(root/'credentials/spec').unlink();(root/'credentials/spec').mkdir()
+   if setup=='spec-symlink':(root/'credentials/spec').rename(root/'credentials/original-spec');(root/'credentials/spec').symlink_to('/credentials/original-spec')
    if setup in ['stdout-exists','stderr-exists']:
     p=root/'state'/('stdout.log' if setup=='stdout-exists' else 'stderr.log');p.write_bytes(b'original-file');p.chmod(0o644)
    if setup=='stdout-symlink':(root/'state/stdout.log').symlink_to('/workspace/denied')
@@ -162,7 +183,11 @@ try:
     argv=['/qa/fault-tracer',*c['fault'],'/tmp/fault-fired',*argv]
    if c.get('trace') and name=='jobctl-native':
     trace=root/'tmp/captured-empty.trace';argv=['/usr/bin/strace','-f','-qq','-s','180','-e','trace=execve,execveat,wait4,waitid,fsync,rename,openat,close,kill','-o','/tmp/captured-empty.trace',*argv]
-   begin=time.monotonic();process=subprocess.Popen(argv,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'CREDENTIALS_DIRECTORY':'/credentials','STATE_DIRECTORY':'/state'},preexec_fn=child_setup,start_new_session=True)
+   outer_env={'CREDENTIALS_DIRECTORY':'/credentials','STATE_DIRECTORY':'/state'}
+   for key,value in c.get('outer_env',{}).items():
+    if value is None:outer_env.pop(key,None)
+    else:outer_env[key]=value
+   begin=time.monotonic();process=subprocess.Popen(argv,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=outer_env,preexec_fn=child_setup,start_new_session=True)
    try:
     if 'parent_signal' in c:
      for _ in range(5000):
@@ -186,7 +211,7 @@ try:
      if pid==0:break
     except ChildProcessError:break
   expected,actual=samples
-  compared=['rc','stdout_hex','inventory']
+  compared=['rc','stdout_hex','stderr_hex','inventory']
   # Interactive stderr is workload output; unsuccessful supervisor diagnostics
   # remain a separately disclosed qualification dimension.
   if c.get('interactive') and expected['rc']==0:compared.append('stderr_hex')

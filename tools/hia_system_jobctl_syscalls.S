@@ -137,6 +137,8 @@ action_dispatch:
     je vectors_action
     cmp eax,25
     je control_action
+    cmp eax,26
+    je diagnostic_json_action
     jmp invalid
 syscall_action:
     xor ebx,ebx
@@ -527,3 +529,35 @@ exiting:
     mov eax,60
     syscall
     ud2
+
+
+.global diagnostic_json_hole
+diagnostic_json_action:
+    xor ebx,ebx
+diagnostic_json_buffer:
+    mov rax,[r14+rbx]
+    mov rdx,[r14+rbx+8]
+    cmp rax,STATE_BYTES
+    jae invalid
+    add rdx,rax
+    jc invalid
+    cmp rdx,STATE_BYTES
+    ja invalid
+    add rax,r15
+    mov [rsp+rbx],rax
+    add ebx,16
+    cmp ebx,48
+    jb diagnostic_json_buffer
+    mov rdi,[rsp]
+    mov rsi,[r14+8]
+    mov rdx,[rsp+16]
+    mov rcx,[r14+24]
+    mov r8,[rsp+32]
+    mov r9,[r14+40]
+    .byte 0xe8
+diagnostic_json_hole: .long 0
+    mov [r15+8],rax
+    mov [r15+67624],rax
+    mov rax,[r14+16]
+    mov [r15+67616],rax
+    jmp advance

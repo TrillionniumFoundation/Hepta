@@ -111,11 +111,11 @@ for c in cases:
   counts={n:(probe/(n+'-count')).stat().st_size if (probe/(n+'-count')).exists() else 0 for n in ['launch','show','stop']}
   samples.append({'rc':process.returncode,'response':parsed,'prefix_sha256':sha256(prefix).hexdigest(),'inventory':inv,'argv_hex':argv.hex(),'counts':counts,'stderr_hex':stderr.hex(),'seconds':time.monotonic()-started})
  expected,actual=samples
- compared=['rc','response','prefix_sha256','inventory','argv_hex','counts']
+ compared=['rc','response','prefix_sha256','inventory','argv_hex','counts','stderr_hex']
  passed=all(expected[k]==actual[k] for k in compared)
  row={'case':c['name'],'passed':passed,'reference':expected,'native':actual};rows.append(row)
  print(json.dumps(row,ensure_ascii=False),flush=True)
- (D/'qualification.json').write_text(json.dumps({'status':'running' if passed else 'failed','cases':rows,'error_diagnostics_exact':False,'scope':'Complete START/PTY control, argv, process, binding, cancellation, and persistent registry under private fixed external command fixtures'},indent=2)+'\n')
+ (D/'qualification.json').write_text(json.dumps({'status':'running' if passed else 'failed','cases':rows,'error_diagnostics_exact':True,'scope':'Complete START/PTY control, argv, process, binding, cancellation, and persistent registry under private fixed external command fixtures'},indent=2)+'\n')
  if not passed:raise SystemExit(1)
-(D/'qualification.json').write_text(json.dumps({'status':'passed','cases':rows,'error_diagnostics_exact':False,'scope':'Complete START/PTY control, argv, process, binding, cancellation, and persistent registry under private fixed external command fixtures; actual systemd and DynamicUser supervisor remain separate'},indent=2)+'\n')
+(D/'qualification.json').write_text(json.dumps({'status':'passed','cases':rows,'error_diagnostics_exact':True,'scope':'Complete START/PTY control, argv, process, binding, cancellation, and persistent registry under private fixed external command fixtures; actual systemd and DynamicUser supervisor remain separate'},indent=2)+'\n')
 print(json.dumps({'status':'passed','cases':len(rows)}),flush=True)

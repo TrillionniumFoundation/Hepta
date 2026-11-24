@@ -123,7 +123,8 @@ def request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, REQUEST_SIZE, at + 1 - REQUEST_OUT)
     return 1
 
-def validate_start(w:mutbuf) -> u64:
+def validate_arguments(w:mutbuf) -> u64:
+    put(w, ERROR, 1)
     child = get(w, TABLE + 16)
     if child == NONE or node(w, child, 32) == 0:
         return 0
@@ -141,6 +142,12 @@ def validate_start(w:mutbuf) -> u64:
             child = node(w, child, 16)
     if get(w, ENV_COUNT) > 64:
         return 0
+    return 1
+
+def validate_start(w:mutbuf) -> u64:
+    if validate_arguments(w) == 0:
+        return 0
+    put(w, ERROR, 2)
     index = 0
     while index < get(w, ENV_COUNT):
         child = get(w, ENV_INDEX + index * 8)
@@ -157,6 +164,7 @@ def validate_start(w:mutbuf) -> u64:
         if reserved_environment(w, start, size) == 1 or clean_string(w, child, 65536) == 0:
             return 0
         index = index + 1
+    put(w, ERROR, 3)
     timeout = get(w, 2072)
     if present(w, 7) == 1:
         timeout = get(w, VALUES + 56)
@@ -168,6 +176,7 @@ def validate_start(w:mutbuf) -> u64:
         return 0
     if present(w, 8) == 1 and get(w, VALUES + 64) > 19:
         return 0
+    put(w, ERROR, 0)
     put(w, OVERRIDE_TIMEOUT, timeout)
     put(w, OVERRIDE_MASK, get(w, OVERRIDE_MASK) | 2)
     return 1

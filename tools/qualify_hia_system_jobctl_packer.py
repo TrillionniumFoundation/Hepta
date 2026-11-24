@@ -1,4 +1,4 @@
-"""Compile every Jobctl owner and exercise the native twenty-part ELF packer."""
+"""Compile every Jobctl owner and exercise the exact native ELF packer."""
 from __future__ import annotations
 import argparse,ctypes,datetime,json,mmap,struct,subprocess,sys
 from hashlib import sha256
@@ -34,13 +34,13 @@ def main():
     code=mmap.mmap(-1,len(raw),prot=mmap.PROT_READ|mmap.PROT_WRITE|mmap.PROT_EXEC);code.write(raw)
     prototype=ctypes.CFUNCTYPE(ctypes.c_uint32,ctypes.c_void_p,ctypes.c_uint64,ctypes.c_void_p,ctypes.c_uint64,ctypes.c_void_p,ctypes.c_uint64)
     pack=prototype(ctypes.addressof(ctypes.c_char.from_buffer(code)))
-    def invoke(wire,capacity=MAXIMUM_IMAGE,workspace=160):
+    def invoke(wire,capacity=MAXIMUM_IMAGE,workspace=8*len(MODULES)):
         inp=ctypes.create_string_buffer(wire);out=ctypes.create_string_buffer(capacity);work=ctypes.create_string_buffer(max(workspace,1))
         got=pack(ctypes.addressof(inp),len(wire),ctypes.addressof(out),capacity,ctypes.addressof(work),workspace)
         return got,bytes(out[:got]) if got<=capacity else None
     parts=[flats[module+'.hepta'] for _,module in MODULES]
     sizes=list(map(len,parts));header=8+8*len(parts)
-    wire=MAGIC+struct.pack('<20Q',*sizes)+b''.join(parts)
+    wire=MAGIC+struct.pack('<'+str(len(parts))+'Q',*sizes)+b''.join(parts)
     got,image=invoke(wire)
     prefix,holes=template();expected=bytearray(prefix);total=len(prefix)+sum(sizes)
     struct.pack_into('<QQ',expected,96,total,total)
@@ -50,11 +50,11 @@ def main():
     expected.extend(b''.join(parts))
     assert got==total and image==expected
     program=output/'jobctl-native';program.write_bytes(image);program.chmod(0o500)
-    report['cases'].append({'case':'twenty-real-owners','result':'passed'})
+    report['cases'].append({'case':'all-'+str(len(MODULES))+'-real-owners','result':'passed'})
     report.update(native_bytes=len(image),native_sha256=sha256(image).hexdigest(),adapter_sha256=sha256((source/'tools/hia_system_jobctl_syscalls.S').read_bytes()).hexdigest())
-    negatives=[('empty',b'',4294967295),('magic',b'BADJCT01'+wire[8:],4294967295),('trailing',wire+b'x',4294967295)]
+    negatives=[('empty',b'',4294967295),('magic',b'BADJCT01'+wire[8:],4294967295),('old-twenty-role-envelope',b'HIAJCT01'+wire[8:],4294967295),('trailing',wire+b'x',4294967295)]
     for length in [1,7,8,15,header-1,header,header+1,len(wire)-1]:negatives.append(('truncated-'+str(length),wire[:length],4294967295))
-    for index in range(20):
+    for index in range(len(MODULES)):
         for size in [0,1048577,(1<<64)-1]:
             bad=bytearray(wire);struct.pack_into('<Q',bad,8+index*8,size);negatives.append((f'component-{index}-size-{size}',bytes(bad),4294967295))
     for name,bad,want in negatives:
@@ -62,14 +62,14 @@ def main():
         report['cases'].append({'case':name,'result':'passed'})
     actual,_=invoke(wire,capacity=len(image)-1);assert actual==4294967294
     report['cases'].append({'case':'short-output','result':'passed'})
-    actual,_=invoke(wire,workspace=159);assert actual==4294967294
+    actual,_=invoke(wire,workspace=8*len(MODULES)-1);assert actual==4294967294
     report['cases'].append({'case':'short-workspace','result':'passed'})
     remaining=MAXIMUM_IMAGE-len(image);assert remaining>0 and sizes[-1]+remaining<=1048576
     boundary=parts.copy();boundary[-1]+=bytes(remaining)
-    at_limit=MAGIC+struct.pack('<20Q',*map(len,boundary))+b''.join(boundary)
+    at_limit=MAGIC+struct.pack('<'+str(len(MODULES))+'Q',*map(len,boundary))+b''.join(boundary)
     actual,maximum=invoke(at_limit);assert actual==MAXIMUM_IMAGE and maximum is not None
     report['cases'].append({'case':'exact-four-MiB-image','result':'passed'})
-    boundary[-1]+=b'x';over=MAGIC+struct.pack('<20Q',*map(len,boundary))+b''.join(boundary)
+    boundary[-1]+=b'x';over=MAGIC+struct.pack('<'+str(len(MODULES))+'Q',*map(len,boundary))+b''.join(boundary)
     actual,_=invoke(over);assert actual==4294967294
     report['cases'].append({'case':'four-MiB-plus-one-image','result':'passed'})
     assert all((source/'examples/hia_bootstrap'/name).read_bytes()==raw for name,raw in snapshots.items())
