@@ -2391,6 +2391,8 @@ SOURCE_FILES = (
     'tests/hia_slot_mechanical_installed_probe.py',
     'tests/hia_slot_mechanical_worker_probe.py',
     'tests/test_hia_slot_mechanical_native.py',
+    'tests/test_hia_slot_mechanical_heap_ownership.py',
+    'tests/test_hia_slot_mechanical_file_observations.py',
     'tools/build_hia_slot_mechanical.py',
     'tools/build_hia_slot_mechanical_bundle.py',
     'tools/qualify_hia_slot_mechanical_admission.py',
