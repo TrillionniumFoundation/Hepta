@@ -1,4 +1,4 @@
-"""Build a direct-call or durable-receipt ELF with a matching cold HIA compiler."""
+"""Build a native call, receipt, or subprocess owner with a matching cold HIA compiler."""
 from __future__ import annotations
 
 import argparse
@@ -15,6 +15,10 @@ from tools.generate_hia_job_receipt import (
     ADAPTER_PATH as RECEIPT_ADAPTER, PACKER_MAGIC as RECEIPT_MAGIC,
     PACKER_PATH as RECEIPT_PACKER, SOURCE_PATH as RECEIPT_SOURCE,
 )
+from tools.generate_hia_subprocess import (
+    ADAPTER_PATH as SUBPROCESS_ADAPTER, PACKER_MAGIC as SUBPROCESS_MAGIC,
+    PACKER_PATH as SUBPROCESS_PACKER, SOURCE_PATH as SUBPROCESS_SOURCE,
+)
 from tools.generate_hia_native_filter import read_adapter_binding, verify_adapter
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -23,6 +27,7 @@ DRIVER = 'tools/build_hia_direct_call.py'
 ROLES = {
     'direct-call': (SOURCE_PATH, PACKER_PATH, ADAPTER_PATH, PACKER_MAGIC, 'direct-load-plan'),
     'job-receipt': (RECEIPT_SOURCE, RECEIPT_PACKER, RECEIPT_ADAPTER, RECEIPT_MAGIC, 'job-receipt'),
+    'subprocess': (SUBPROCESS_SOURCE, SUBPROCESS_PACKER, SUBPROCESS_ADAPTER, SUBPROCESS_MAGIC, 'subprocess'),
 }
 
 

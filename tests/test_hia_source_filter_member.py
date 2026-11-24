@@ -44,6 +44,7 @@ WORKER_MEMBERS = (
 TOOL_MEMBERS = (
     'hia-worker-prepare', 'hia-proof-cnf', 'hia-elf-link', 'hia-elf-link-shared',
     'hia-elf-link-direct-shared', 'hia-direct-call', 'hia-job-receipt', 'hia-reference-wire',
+    'hia-subprocess',
 )
 REQUEST_MEMBERS = (
     'hia-worker-admit', 'hia-worker-terminal', 'hia-worker-data', 'hia-worker-response',

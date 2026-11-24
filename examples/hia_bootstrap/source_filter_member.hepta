@@ -7604,7 +7604,13 @@ block entry(mode:u64,default_value:u64)
   is_publisher:bool = compare.eq(mode,publisher)
   hashing_companion:u64 = const() {"value":15}
   selected_roles:u64 = select(is_publisher,hashing_companion,with_transaction)
-  ret(selected_roles)
+  source_capture:u64 = const() {"value":3552020972343216456}
+  is_capture:bool = compare.eq(mode,source_capture)
+  with_capture:u64 = select(is_capture,hashing_companion,selected_roles)
+  release_finalize:u64 = const() {"value":3552018807730030920}
+  is_finalizer:bool = compare.eq(mode,release_finalize)
+  with_finalizer:u64 = select(is_finalizer,hashing_companion,with_capture)
+  ret(with_finalizer)
 end
 fn transaction_span(v0:mutbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64)
@@ -8195,7 +8201,12 @@ block catalog(c:readbuf,cn:u64,cns:u64,cs:u64,css:u64,cz:u64)
   branch has_stdio known(stdio) tool(c,cn,cns,cs,css)
 block tool(t:readbuf,tn:u64,tns:u64,ts:u64,tss:u64)
   release:u64 = call(t,tn,tns,ts,tss) {"function":"release_tool"}
-  ret(release)
+  no_release:u64 = const() {"value":0}
+  released:bool = compare.ne(release,no_release)
+  branch released known(release) native_process(t,tn,tns,ts,tss)
+block native_process(p:readbuf,pn:u64,pns:u64,ps:u64,pss:u64)
+  process_role:u64 = call(p,pn,pns,ps,pss) {"function":"native_process_role"}
+  ret(process_role)
 block known(result:u64)
   ret(result)
 end
@@ -8688,4 +8699,84 @@ block b18(v162:mutbuf,v163:mutbuf,v165:u64,v166:u64,v168:u64)
   v190:u64 = call(v162,v188,v189) {"function":"put"}
   v191:u64 = int.add.wrap(v166,v168)
   ret(v191)
+end
+fn native_process_role(input0:readbuf,name0:u64,size0:u64,body0:u64,extent0:u64) -> (u64) effects(read,write,trap) entry(candidate0)
+block candidate0(input0:readbuf,name0:u64,size0:u64,body0:u64,extent0:u64)
+  nameword0_0:u64 = const() {"value":20}
+  nameword0_1:u64 = const() {"value":8098164217508620648}
+  nameword0_2:u64 = const() {"value":7507064568332644210}
+  nameword0_3:u64 = const() {"value":1635020901}
+  nameword0_4:u64 = const() {"value":0}
+  nameword0_5:u64 = const() {"value":0}
+  nameword0_6:u64 = const() {"value":0}
+  nameword0_7:u64 = const() {"value":0}
+  named0:bool = call(input0,name0,size0,nameword0_0,nameword0_1,nameword0_2,nameword0_3,nameword0_4,nameword0_5,nameword0_6,nameword0_7) {"function":"is_name"}
+  branch named0 matched0(input0,body0,extent0) candidate1(input0,name0,size0,body0,extent0)
+block matched0(source0:readbuf,at0:u64,length0:u64)
+  moduleword0_0:u64 = const() {"value":10}
+  moduleword0_1:u64 = const() {"value":7305805557827532147}
+  moduleword0_2:u64 = const() {"value":29555}
+  moduleword0_3:u64 = const() {"value":0}
+  moduleword0_4:u64 = const() {"value":0}
+  moduleword0_5:u64 = const() {"value":0}
+  moduleword0_6:u64 = const() {"value":0}
+  moduleword0_7:u64 = const() {"value":0}
+  module0:bool = call(source0,at0,length0,moduleword0_0,moduleword0_1,moduleword0_2,moduleword0_3,moduleword0_4,moduleword0_5,moduleword0_6,moduleword0_7) {"function":"is_module"}
+  magic0:u64 = const() {"value":3552021058510997832}
+  zero0:u64 = const() {"value":0}
+  role0:u64 = select(module0,magic0,zero0)
+  ret(role0)
+block candidate1(input1:readbuf,name1:u64,size1:u64,body1:u64,extent1:u64)
+  nameword1_0:u64 = const() {"value":24}
+  nameword1_1:u64 = const() {"value":8247620833072212328}
+  nameword1_2:u64 = const() {"value":8463513163314062691}
+  nameword1_3:u64 = const() {"value":7022361299819324786}
+  nameword1_4:u64 = const() {"value":0}
+  nameword1_5:u64 = const() {"value":0}
+  nameword1_6:u64 = const() {"value":0}
+  nameword1_7:u64 = const() {"value":0}
+  named1:bool = call(input1,name1,size1,nameword1_0,nameword1_1,nameword1_2,nameword1_3,nameword1_4,nameword1_5,nameword1_6,nameword1_7) {"function":"is_name"}
+  branch named1 matched1(input1,body1,extent1) candidate2(input1,name1,size1,body1,extent1)
+block matched1(source1:readbuf,at1:u64,length1:u64)
+  moduleword1_0:u64 = const() {"value":14}
+  moduleword1_1:u64 = const() {"value":7160553410338844531}
+  moduleword1_2:u64 = const() {"value":111542271242337}
+  moduleword1_3:u64 = const() {"value":0}
+  moduleword1_4:u64 = const() {"value":0}
+  moduleword1_5:u64 = const() {"value":0}
+  moduleword1_6:u64 = const() {"value":0}
+  moduleword1_7:u64 = const() {"value":0}
+  module1:bool = call(source1,at1,length1,moduleword1_0,moduleword1_1,moduleword1_2,moduleword1_3,moduleword1_4,moduleword1_5,moduleword1_6,moduleword1_7) {"function":"is_module"}
+  magic1:u64 = const() {"value":3552020972343216456}
+  zero1:u64 = const() {"value":0}
+  role1:u64 = select(module1,magic1,zero1)
+  ret(role1)
+block candidate2(input2:readbuf,name2:u64,size2:u64,body2:u64,extent2:u64)
+  nameword2_0:u64 = const() {"value":26}
+  nameword2_1:u64 = const() {"value":7308327836377508200}
+  nameword2_2:u64 = const() {"value":7020664756686386017}
+  nameword2_3:u64 = const() {"value":8098994053376010604}
+  nameword2_4:u64 = const() {"value":24948}
+  nameword2_5:u64 = const() {"value":0}
+  nameword2_6:u64 = const() {"value":0}
+  nameword2_7:u64 = const() {"value":0}
+  named2:bool = call(input2,name2,size2,nameword2_0,nameword2_1,nameword2_2,nameword2_3,nameword2_4,nameword2_5,nameword2_6,nameword2_7) {"function":"is_name"}
+  branch named2 matched2(input2,body2,extent2) absent(input2)
+block matched2(source2:readbuf,at2:u64,length2:u64)
+  moduleword2_0:u64 = const() {"value":16}
+  moduleword2_1:u64 = const() {"value":6874027268401554802}
+  moduleword2_2:u64 = const() {"value":7312272859201431910}
+  moduleword2_3:u64 = const() {"value":0}
+  moduleword2_4:u64 = const() {"value":0}
+  moduleword2_5:u64 = const() {"value":0}
+  moduleword2_6:u64 = const() {"value":0}
+  moduleword2_7:u64 = const() {"value":0}
+  module2:bool = call(source2,at2,length2,moduleword2_0,moduleword2_1,moduleword2_2,moduleword2_3,moduleword2_4,moduleword2_5,moduleword2_6,moduleword2_7) {"function":"is_module"}
+  magic2:u64 = const() {"value":3552018807730030920}
+  zero2:u64 = const() {"value":0}
+  role2:u64 = select(module2,magic2,zero2)
+  ret(role2)
+block absent(missing_input:readbuf)
+  none:u64 = const() {"value":0}
+  ret(none)
 end
