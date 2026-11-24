@@ -57,6 +57,8 @@ This catalog generates local checking and agent discovery. The ownership/CFG che
 | `buffer.swap` | v4 | mutbuf, usize, usize | — | — | read, write, trap | write:0 |
 | `buffer.copy_range` | v5 | mutbuf, readbuf, usize, usize, usize | — | — | read, write, trap | write:0, read:1, distinct:0:1 |
 | `buffer.fill_range` | v6 | mutbuf, usize, usize, u8 | — | — | write, trap | write:0 |
+| `x86.fence.mfence` | v9 | — | — | — | atomic | — |
+| `x86.tlb.invlpg` | v10 | u64 | — | — | privilege | — |
 | `call` | v1 | callee interface | callee interface | function | — | callee_interface |
 
 `int.cast` additionally requires `trap` in checked mode. `call` propagates all callee effects. Traps abort; normal/error-as-value returns must balance ownership. VM fuel, call depth, native stack, payload and allocator overhead are separate budgets.
