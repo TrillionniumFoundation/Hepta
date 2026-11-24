@@ -77,7 +77,7 @@ case receives an empty PATH and an exec trace. It must execute only native
 images. The comparison covers child admission, complete workload streams,
 terminal fields, native receipt length, and witness binding.
 
-The first full qualification passed 94 original/native pairs, including:
+The shared metadata qualification passed 98 original/native pairs, including:
 
 - all sixteen authority flags and changed job, directory, nonce, and image pins;
 - arguments and environments at their original count/byte boundaries;
@@ -85,12 +85,13 @@ The first full qualification passed 94 original/native pairs, including:
 - physical-root containment, repeated symlinks, a 48-link chain, and cycles;
 - deadline and cancellation through the actual native supervisor;
 - eight metadata encodings, duplicate keys, nonfinite extra values, and the
-  exact encoded metadata limit;
+  exact encoded metadata limit, 4300-digit integer boundary, 5000-digit float,
+  and 56000-level nonsemantic nesting;
 - the exact 512 MiB stdin and 64 MiB workload limits and their immediate refusals.
 
 The qualified ELF SHA256 was
-`850d0b444e484d2418e6baa893c46bf979aaca6962a37dd4a9622b7707e6c235`
-(589990 bytes). Qualification outputs are external to the source tree.
+`44347a0c7d35ead4d7cfe54763b4c03d19daf00bd5c6a96a00a798aca6e257ac`
+(592126 bytes). Qualification outputs are external to the source tree.
 
 This checkpoint replaces the bound runner component. The remote START
 submission owner, controller integration, ordinary release registration, and

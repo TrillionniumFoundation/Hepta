@@ -235,6 +235,15 @@ def main():
         for encoding in ('utf-8','utf-8-sig','utf-16','utf-16-le','utf-16-be','utf-32','utf-32-le','utf-32-be'):
             compare('metadata-'+encoding,after=encoded_metadata(encoding))
         compare('metadata-nonfinite-unknown',setreq(opaque=[float('nan'),float('inf'),-float('inf')]))
+        def raw_extra(value):
+            def apply(r,b,j,a):
+                path=j/'request.json';raw=path.read_bytes().rstrip()
+                path.write_bytes(raw[:-1]+b',"opaque":'+value+b'}')
+            return apply
+        compare('metadata-integer-4300',after=raw_extra(b'1'*4300))
+        compare('metadata-integer-4301',after=raw_extra(b'1'*4301),expected=False)
+        compare('metadata-float-5000',after=raw_extra(b'1'*5000+b'.0'))
+        compare('metadata-depth-56000',after=raw_extra(b'['*56000+b'0'+b']'*56000))
         def large_metadata(r,b,j,a):
             path=j/'request.json';raw=path.read_bytes().rstrip()
             padding=4194304-len(raw)-7

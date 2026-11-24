@@ -15,7 +15,7 @@ from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_job_supervisor import document
 from tools.generate_hia_job_observation import POLICY as OBSERVATION_POLICY
-from tools.generate_hia_json_decode import source_program as generic_json_source
+from tools.generate_hia_job_metadata import NORMALIZE, metadata_json_source, MAXIMUM_METADATA_DEPTH
 from tools.generate_hia_native_filter import LINK_SOURCE
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1099,89 +1099,6 @@ def sha(o:mutbuf, w:mutbuf, phase:u64, command:u64, size:u64) -> u32:
     put(o, 0, size)
     return 3
 '''
-NORMALIZE = r'''
-def normalize_json(w:mutbuf, source:u64, size:u64) -> u64:
-    if size > 4194304:
-        return NONE
-    width = 1
-    big = 0
-    at = 0
-    if size >= 4 and getn(w, source, 4) == 4294836224:
-        width = 4
-        big = 1
-        at = 4
-    elif size >= 4 and getn(w, source, 4) == 65279:
-        width = 4
-        at = 4
-    elif size >= 3 and getn(w, source, 3) == 12565487:
-        at = 3
-    elif size >= 2 and getn(w, source, 2) == 65534:
-        width = 2
-        big = 1
-        at = 2
-    elif size >= 2 and getn(w, source, 2) == 65279:
-        width = 2
-        at = 2
-    elif size >= 4:
-        if byte(w, source) == 0:
-            width = choose(byte(w, source + 1) == 0, 4, 2)
-            big = 1
-        elif byte(w, source + 1) == 0:
-            width = choose(byte(w, source + 2) == 0 and byte(w, source + 3) == 0, 4, 2)
-    elif size == 2:
-        if byte(w, source) == 0:
-            width = 2
-            big = 1
-        elif byte(w, source + 1) == 0:
-            width = 2
-    if width == 1:
-        copy_bytes(w, RAW_JSON, source + at, size - at)
-        return size - at
-    if (size - at) % width != 0:
-        return NONE
-    written = 0
-    while at < size:
-        cp = encoding_word(w, source + at, width, big)
-        at = at + width
-        if width == 2 and cp >= 55296 and cp <= 56319 and at + 2 <= size:
-            low = encoding_word(w, source + at, 2, big)
-            if low >= 56320 and low <= 57343:
-                cp = 65536 + (cp - 55296) * 1024 + low - 56320
-                at = at + 2
-        if cp > 1114111 or written + 4 > 8388608:
-            return NONE
-        written = put_utf8(w, RAW_JSON + written, cp) - RAW_JSON
-    return written
-
-def encoding_word(w:mutbuf, source:u64, width:u64, big:u64) -> u64:
-    if big == 0:
-        return getn(w, source, width)
-    value = 0
-    index = 0
-    while index < width:
-        value = value * 256 + byte(w, source + index)
-        index = index + 1
-    return value
-
-def put_utf8(w:mutbuf, at:u64, cp:u64) -> u64:
-    if cp < 128:
-        store(w, at, cp)
-        return at + 1
-    if cp < 2048:
-        store(w, at, 192 | (cp >> 6))
-        store(w, at + 1, 128 | (cp & 63))
-        return at + 2
-    if cp < 65536:
-        store(w, at, 224 | (cp >> 12))
-        store(w, at + 1, 128 | ((cp >> 6) & 63))
-        store(w, at + 2, 128 | (cp & 63))
-        return at + 3
-    store(w, at, 240 | (cp >> 18))
-    store(w, at + 1, 128 | ((cp >> 12) & 63))
-    store(w, at + 2, 128 | ((cp >> 6) & 63))
-    store(w, at + 3, 128 | (cp & 63))
-    return at + 4
-'''
 
 
 def policy_source():
@@ -1197,7 +1114,7 @@ def decode(o:mutbuf, w:mutbuf, phase:u64, source:u64, size:u64) -> u32:
     if size == NONE:
         return 0
     put(w, SCRATCH + 48, 2097152)
-    put(w, SCRATCH + 56, 1000)
+    put(w, SCRATCH + 56, MAXIMUM_METADATA_DEPTH)
     put(w, 0, phase)
     put(o, 0, RAW_JSON)
     put(o, 8, size)
@@ -1233,7 +1150,7 @@ def decode(o:mutbuf, w:mutbuf, phase:u64, source:u64, size:u64) -> u32:
             source += f'    store(w, at + {i}, {byte})\n'
         source += f'    return at + {len(value)}\n'
     values = dict(
-        STATE_BYTES=STATE_BYTES, META=2 << 20, ARENA=16 << 20, ARENA_BYTES=160 << 20,
+        STATE_BYTES=STATE_BYTES, MAXIMUM_METADATA_DEPTH=MAXIMUM_METADATA_DEPTH, META=2 << 20, ARENA=16 << 20, ARENA_BYTES=160 << 20,
         SCRATCH=184 << 20, SCRATCH_BYTES=32 << 20, FRAME=6 << 20, RAW_JSON=8 << 20,
         NONE=(1 << 64) - 1, NEG100=(1 << 64) - 100, NEG4=(1 << 64) - 4,
         NEG2=(1 << 64) - 2, NEG20=(1 << 64) - 20,
@@ -1256,59 +1173,6 @@ def decode(o:mutbuf, w:mutbuf, phase:u64, source:u64, size:u64) -> u32:
         source = re.sub(r'\b' + re.escape(name) + r'\b', str(values[name]), source)
     return source
 
-
-def launch_json_source():
-    source = generic_json_source(wire_spans=True)
-    source = source.replace('maximum > 1048576', 'maximum > 2097152')
-    source = source.replace('maximum_depth > 128', 'maximum_depth > 1000')
-    old = 'if same_key(s, item & 4294967295, start) == 1:\n                return 4'
-    if source.count(old) != 1:
-        raise ValueError('metadata duplicate-key admission point changed')
-    source = source.replace(old, old.replace('return 4', 'return 0'))
-    old = '''        if cp >= 55296 and cp <= 56319:
-            if index + 6 > size:
-                return (6 << 32) | 1114113
-            if byte(s, index) != 92 or byte(s, index + 1) != 117:
-                return (6 << 32) | 1114113
-            low = hex4(s, index + 2)
-            if low < 56320 or low > 57343:
-                return (6 << 32) | 1114113
-            cp = 65536 + (cp - 55296) * 1024 + low - 56320
-            index = index + 6
-        else:
-            if cp >= 56320 and cp <= 57343:
-                return (7 << 32) | 1114113'''
-    new = '''        if cp >= 55296 and cp <= 56319 and index + 6 <= size:
-            if byte(s, index) == 92 and byte(s, index + 1) == 117:
-                low = hex4(s, index + 2)
-                if low >= 56320 and low <= 57343:
-                    cp = 65536 + (cp - 55296) * 1024 + low - 56320
-                    index = index + 6'''
-    if source.count(old) != 1:
-        raise ValueError('metadata surrogate admission point changed')
-    source = source.replace(old, new)
-    old = '''    if cp >= 55296 and cp <= 57343:
-        return (20 << 32) | 1114113
-'''
-    if source.count(old) != 1:
-        raise ValueError('metadata surrogatepass decoding point changed')
-    source = source.replace(old, '')
-    old = '''def atom(s:readbuf, index:u64) -> u64:
-    size = length(s)
-'''
-    new = old + '''    if size - index >= 3:
-        if byte(s, index) == 78 and byte(s, index + 1) == 97 and byte(s, index + 2) == 78:
-            return index + 3
-    first = index
-    if byte(s, first) == 45:
-        first = first + 1
-    if size - first >= 8:
-        if byte(s, first) == 73 and byte(s, first + 1) == 110 and byte(s, first + 2) == 102 and byte(s, first + 3) == 105 and byte(s, first + 4) == 110 and byte(s, first + 5) == 105 and byte(s, first + 6) == 116 and byte(s, first + 7) == 121:
-            return first + 8
-'''
-    if source.count(old) != 1:
-        raise ValueError('metadata nonfinite admission point changed')
-    return source.replace(old, new)
 
 
 def template():
@@ -1364,7 +1228,7 @@ def packer_source():
 def main():
     for module, source in (
         ('job_launch', policy_source()),
-        ('job_launch_json', launch_json_source()),
+        ('job_launch_json', metadata_json_source()),
         ('job_launch_packer', packer_source()),
     ):
         path = ROOT / 'examples/hia_bootstrap' / (module + '.hepta')
