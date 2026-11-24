@@ -4,6 +4,7 @@ from hashlib import sha256
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_cold_document import bulk_document as document
 from tools.hia_cold_byte_loops import accelerate
+from tools.hia_cold_journal_backrefs import HELPERS as BACKREF_HELPERS, REF_MAGIC
 from tools.generate_hia_cold_master_common import helpers,packer,DECODER
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=r'''
@@ -98,6 +99,46 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,p:u64,r:u64) -> u32:
     if p == 13:
         if same(w,4096,10032,32) == 0:
             return finish(o,w,74)
+        put(w,61100,116997287372904)
+        return call(o,w,14,319,61100,3,0,0,0,0,3)
+    if p == 14:
+        if r < 3:
+            return finish(o,w,74)
+        put(w,2008,r)
+        return call(o,w,15,91,r,384,0,0,0,0,0)
+    if p == 15:
+        return call(o,w,16,77,get(w,2008),get(w,10024),0,0,0,0,0)
+    if p == 16:
+        put(w,2240,0)
+        return resume(s,o,w,20)
+    if p == 20:
+        if get(w,2240) == get(w,10024):
+            return call(o,w,17,72,get(w,2008),1033,15,0,0,0,0)
+        if get(w,2240) > get(w,10024):
+            return finish(o,w,74)
+        put(w,2248,minimum(65536,get(w,10024)-get(w,2240)))
+        return deadline(s,o,w,21)
+    if p == 21:
+        return reading(o,w,uint(s,32,8),3866624,get(w,2248),get(w,2240),22)
+    if p == 22:
+        return writing_at(o,w,get(w,2008),3866624,get(w,2248),get(w,2240),23)
+    if p == 23:
+        put(w,2240,get(w,2240)+get(w,2248))
+        return resume(s,o,w,20)
+    if p == 17:
+        return call(o,w,18,72,get(w,2008),1034,0,0,0,0,0)
+    if p == 18:
+        if r & 15 != 15:
+            return finish(o,w,74)
+        return call(o,w,19,5,get(w,2008),1200,0,0,0,0,12)
+    if p == 19:
+        if getn(w,1224,4) & 61440 != 32768 or getn(w,1224,4) & 511 != 384 or getn(w,1228,4) != get(w,2000) or get(w,1248) != get(w,10024):
+            return finish(o,w,74)
+        return hash_view(o,w,get(w,2008),0,get(w,10024),24)
+    if p == 24:
+        if same(w,4096,10032,32) == 0:
+            return finish(o,w,74)
+        fill_range(w,3342336,524288,0)
         put(w,2032,0)
         put(w,2040,0)
         put(w,2048,0)
@@ -130,17 +171,53 @@ def journal_scan(s:readbuf,o:mutbuf,w:mutbuf,p:u64,r:u64) -> u32:
             return finish(o,w,74)
         return deadline(s,o,w,501)
     if p == 501:
-        return reading(o,w,uint(s,32,8),800000,32,get(w,2032),502)
+        return reading(o,w,get(w,2008),800000,32,get(w,2032),502)
     if p == 502:
         size = get(w,800016)
+        if get(w,800000) == @BACKREF@:
+            if size != 8 or get(w,800024) != 3 or get(w,800008) == 0 or get(w,800008) > 65504 or get(w,10024)-get(w,2032) < 40:
+                return finish(o,w,74)
+            put(w,2256,get(w,800008))
+            return reading(o,w,get(w,2008),800032,8,get(w,2032)+32,505)
         if size == 0 or size > 65504 or size > get(w,10024)-get(w,2032)-32:
             return finish(o,w,74)
-        return reading(o,w,uint(s,32,8),800032,size,get(w,2032)+32,503)
+        return reading(o,w,get(w,2008),800032,size,get(w,2032)+32,503)
     if p == 503:
-        size = unpack_chunk(w,get(w,800016)+32)
+        encoded = get(w,800016)+32
+        size = unpack_chunk(w,encoded)
         if size == 0 or journal_bytes(w,size) == 0:
             return finish(o,w,74)
-        put(w,2032,get(w,2032)+get(w,800016)+32)
+        if encoded >= 64:
+            fingerprint = chunk_fingerprint(w,800000,encoded)
+            chunk_cache_store(w,fingerprint,get(w,2032),encoded)
+        put(w,2032,get(w,2032)+encoded)
+        return resume(s,o,w,500)
+    if p == 505:
+        prior = get(w,800032)
+        if prior >= get(w,2032) or get(w,2032)-prior < 64:
+            return finish(o,w,74)
+        put(w,2272,prior)
+        return reading(o,w,get(w,2008),800000,32,prior,506)
+    if p == 506:
+        if get(w,800000) != @AZ01@ and get(w,800000) != @AZ02@:
+            return finish(o,w,74)
+        payload = get(w,800016)
+        if payload < 32 or payload > 65504:
+            return finish(o,w,74)
+        encoded = payload+32
+        if encoded > get(w,2032)-get(w,2272) or get(w,800008) != get(w,2256):
+            return finish(o,w,74)
+        put(w,2280,encoded)
+        return reading(o,w,get(w,2008),800032,encoded-32,get(w,2272)+32,507)
+    if p == 507:
+        fingerprint = chunk_fingerprint(w,800000,get(w,2280))
+        slot = chunk_cache_slot(fingerprint)
+        if get(w,slot) != fingerprint or get(w,slot+8) != get(w,2272)+1 or get(w,slot+16) != get(w,2280):
+            return finish(o,w,74)
+        size = unpack_chunk(w,get(w,2280))
+        if size == 0 or size != get(w,2256) or journal_bytes(w,size) == 0:
+            return finish(o,w,74)
+        put(w,2032,get(w,2032)+40)
         return resume(s,o,w,500)
     return finish(o,w,65)
 
@@ -478,8 +555,8 @@ def copy_input(s:readbuf,w:mutbuf,a:u64,b:u64,n:u64) -> u64:
     return 0
 '''
 def source():
- text=SOURCE+'\n'+DECODER+'\n'+helpers()
- for key,raw in [('REQUEST',b'HIAQARQ1'),('DRIVER_OK',b'HIAQOK01'),('JOURNAL',b'HIAQJL01'),('ARCHIVE',b'HIAQAR01'),('SUCCESS',b'HIAQAS01')]:text=text.replace('@'+key+'@',str(int.from_bytes(raw,'little')))
+ text=SOURCE+'\n'+DECODER+'\n'+BACKREF_HELPERS+'\n'+helpers()
+ for key,raw in [('REQUEST',b'HIAQARQ1'),('DRIVER_OK',b'HIAQOK01'),('JOURNAL',b'HIAQJL01'),('ARCHIVE',b'HIAQAR01'),('SUCCESS',b'HIAQAS01'),('BACKREF',b'HIAQAZ03'),('AZ01',b'HIAQAZ01'),('AZ02',b'HIAQAZ02')]:text=text.replace('@'+key+'@',str(int.from_bytes(raw,'little')))
  return accelerate(text,bulk=True)
 
 def main():
