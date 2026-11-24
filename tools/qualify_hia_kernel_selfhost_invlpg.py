@@ -26,10 +26,51 @@ from tools.qualify_hia_selfhost import build_seed, compile_stage
 PROFILE = "hepta.hia.program.kernel-tlb.v1"
 LEGACY = "hepta.hia.program.v8"
 HEADER = b"hia-asm.v1 hepta.hia.program.v8 selfhost\n"
-# Isolated compiler candidate only. Historical 8192 bound remains unchanged
-# in the locked source. Even at 8448 the original relocation table suffices:
-# 128 + 8448 + 2*1536 + 128 + 2 = 11778 <= 12000.
-CANDIDATE_INSTRUCTIONS = 8448
+# Only the isolated candidate changes capacity. Keep the public 1 MiB
+# source/output/scratch envelopes, 128 functions, 256 blocks/function,
+# 2048 SSA names/function, 262144 Core nodes and 12000 relocations.
+CANDIDATE_BLOCKS = 1600
+CANDIDATE_INSTRUCTIONS = 8540
+
+def candidate_layout():
+    # Global block records grow by 64*320; the separate block-origin
+    # table grows by 64*16. Move EVERY downstream region, including the
+    # hardcoded exact-name and export tables. No host runtime allocation.
+    block_delta = (CANDIDATE_BLOCKS - 1536) * gen.BSTRIDE
+    origin_delta = (CANDIDATE_BLOCKS - 1536) * 16
+    moved = ("VBASE", "ARGS", "FIXBASE", "CBASE", "CSTATE", "CAPBASE",
+             "KBASE", "CAPTMP", "QBASE", "ORIGINBASE", "BLOCKORIGIN")
+    layout = {key: getattr(gen, key) + block_delta for key in moved}
+    names = {old: old + block_delta + origin_delta
+             for old in (955152, 1004304, 1010448)}
+    intervals = [
+        ("state", 0, 2048),
+        ("functions", gen.FBASE, gen.FBASE + 128 * gen.FSTRIDE),
+        ("blocks", gen.BBASE, gen.BBASE + CANDIDATE_BLOCKS * gen.BSTRIDE),
+        ("ssa", layout["VBASE"], layout["VBASE"] + 2048 * 16),
+        ("args", layout["ARGS"], layout["ARGS"] + 1024),
+        ("relocations", layout["FIXBASE"], layout["FIXBASE"] + 12000 * 24),
+        ("call_graph", layout["CBASE"], layout["CBASE"] + 128 * 128),
+        ("call_state", layout["CSTATE"], layout["CSTATE"] + 128 * 8),
+        ("capabilities", layout["CAPBASE"], layout["CAPBASE"] + 2048 * 24),
+        ("kind", layout["KBASE"], layout["KBASE"] + 1536),
+        ("cap_tmp", layout["CAPTMP"], layout["CAPTMP"] + 16),
+        ("queue", layout["QBASE"], layout["QBASE"] + 256 * 8),
+        ("origins", layout["ORIGINBASE"], layout["ORIGINBASE"] + 2048),
+        ("block_origins", layout["BLOCKORIGIN"], layout["BLOCKORIGIN"] + CANDIDATE_BLOCKS * 16),
+        ("value_names", names[955152], names[955152] + 2048 * 24),
+        ("block_names", names[1004304], names[1004304] + 256 * 24),
+        ("exports", names[1010448], names[1010448] + 128 * 48),
+    ]
+    previous = 0
+    for label, start, end in intervals:
+        if start < previous or end <= start or end > 1 << 20:
+            raise ValueError(("candidate scratch overlap or overflow", label, start, end))
+        previous = end
+    relocation_bound = 128 + CANDIDATE_INSTRUCTIONS + 2 * CANDIDATE_BLOCKS + 128 + 2
+    if relocation_bound > 12000:
+        raise ValueError("candidate relocation capacity exceeded")
+    return layout, names, intervals, relocation_bound
 
 def replace_once(source, old, new):
     if source.count(old) != 1:
@@ -43,11 +84,22 @@ def candidate_source():
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
     # The ten experimental opcodes occupy a contiguous token interval.
-    # Keep the native compiler within its fixed 1536-block capacity.
+    # Keep the native compiler within its audited candidate capacity.
     if [words[name] - words["x86.tlb.invlpg"] for name in
             ("x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable")] != list(range(10)):
         raise ValueError("kernel token interval changed")
     source = gen.SOURCE
+    layout, names, _, _ = candidate_layout()
+    # These are the two GLOBAL block checks; the 1536-byte kind table
+    # clear and per-function 256-block admission must remain unchanged.
+    source = replace_once(source, "get(w, 80) >= 1536",
+                          f"get(w, 80) >= {CANDIDATE_BLOCKS}")
+    source = replace_once(source, "bid >= 1536",
+                          f"bid >= {CANDIDATE_BLOCKS}")
+    for old, new in names.items():
+        if str(old) not in source:
+            raise ValueError(("missing scratch table anchor", old))
+        source = source.replace(str(old), str(new))
     source = replace_once(source,
         "        expect(s, w, @hepta.hia.program.v8@)",
         """        if get(w, 8) == @hepta.hia.program.kernel-tlb.v1@:
@@ -137,15 +189,13 @@ def candidate_source():
         owned_instruction(o, w, op, n, a, at)""")
     # 200..207 is a dedicated candidate profile word within the existing
     # per-phase 0..255 zeroed header; no existing state field is moved.
-    if 128 + CANDIDATE_INSTRUCTIONS + 2*1536 + 128 + 2 > 12000:
-        raise ValueError("candidate relocation capacity exceeded")
-    with patch.object(gen, "SOURCE", source), patch.object(gen, "W", words), \
-            patch.object(gen, "MAX_INSTRUCTIONS", CANDIDATE_INSTRUCTIONS):
+    with patch.multiple(gen, SOURCE=source, W=words,
+                        MAX_INSTRUCTIONS=CANDIDATE_INSTRUCTIONS, **layout):
         document, _ = gen.document()
     functions = document["functions"]
     blocks = [b for f in functions for b in f["blocks"]]
     ops = sum(len(b["ops"]) for b in blocks)
-    if len(functions) > 128 or len(blocks) > 1536 or ops > CANDIDATE_INSTRUCTIONS:
+    if len(functions) > 128 or len(blocks) > CANDIDATE_BLOCKS or ops > CANDIDATE_INSTRUCTIONS:
         raise ValueError({"functions": len(functions), "blocks": len(blocks), "ops": ops})
     result = render_assembly(document).encode()
     if not result.startswith(HEADER) or len(result) > 1 << 20:
@@ -187,6 +237,86 @@ def text_bytes(output, label, data):
     subprocess.run(["objcopy", "-O", "binary", "--only-section=.text", str(obj), str(raw)], check=True)
     return raw.read_bytes()
 
+def capacity_subject(blocks, instructions):
+    """Exact-sized, independently executable scalar CFG. Every block is live."""
+    sizes = [min(256, blocks - i) for i in range(0, blocks, 256)]
+    adds, extra = divmod(instructions - blocks, blocks)
+    if adds < 1:
+        raise ValueError("capacity fixture needs at least one add per block")
+    rows = [f"hia-asm.v1 {PROFILE} selfhost_elf",
+            "exports(" + ",".join(f"f{i}" for i in range(len(sizes))) + ")"]
+    expected = []
+    ordinal = 0
+    for f, size in enumerate(sizes):
+        rows.append(f"fn f{f}(v0:u64) -> (u64) effects() entry(b0)")
+        v = 0
+        count = 0
+        for b in range(size):
+            rows.append(f"block b{b}(v{v}:u64)")
+            current = v
+            v += 1
+            one = v
+            rows.append(f'  v{one}:u64 = const() {{"value":1}}')
+            for _ in range(adds + int(ordinal < extra)):
+                v += 1
+                rows.append(f"  v{v}:u64 = int.add.wrap(v{current},v{one})")
+                current = v
+                count += 1
+            ordinal += 1
+            if b + 1 < size:
+                v += 1
+                rows.append(f"  jump b{b + 1}(v{current})")
+            else:
+                rows.append(f"  ret(v{current})")
+        rows.append("end")
+        if v >= 2048:
+            raise ValueError("capacity fixture exceeded per-function SSA bound")
+        expected.append(count)
+    if ordinal != blocks or sum(expected) + blocks != instructions:
+        raise AssertionError("fixture shape mismatch")
+    return ("\n".join(rows) + "\n").encode(), expected
+
+def qualify_capacity(exe, output):
+    _, _, intervals, bound = candidate_layout()
+    subject, expected = capacity_subject(CANDIDATE_BLOCKS, CANDIDATE_INSTRUCTIONS)
+    obj = compile_cli(exe, subject, output, "capacity-exact-1")
+    if obj != compile_cli(exe, subject, output, "capacity-exact-2"):
+        raise AssertionError("capacity repeat bytes differ")
+    # Independent native execution, not just acceptance. Each exported
+    # function traverses all of its blocks; compare wraparound and ordinary
+    # inputs against arithmetic derived without the compiler.
+    text_bytes(output, "capacity-exact", obj)
+    lib = output / "capacity-exact.so"
+    subprocess.run(["ld", "-shared", "-o", str(lib),
+                    str(output / "capacity-exact.o")], check=True)
+    runner = """import ctypes, json, sys
+lib = ctypes.CDLL(sys.argv[1])
+expected = json.loads(sys.argv[2])
+for i, delta in enumerate(expected):
+    fn = getattr(lib, "f" + str(i))
+    fn.argtypes = [ctypes.c_uint64]
+    fn.restype = ctypes.c_uint64
+    for x in (0, 123456789, (1 << 64) - 1):
+        assert fn(x) == (x + delta) % (1 << 64), (i, x, delta)
+"""
+    result = subprocess.run([sys.executable, "-I", "-c", runner, str(lib),
+                             json.dumps(expected)], capture_output=True, timeout=30)
+    (output / "capacity-native.stdout").write_bytes(result.stdout)
+    (output / "capacity-native.stderr").write_bytes(result.stderr)
+    if result.returncode != 0 or result.stdout or result.stderr:
+        raise AssertionError(("capacity native execution", result.returncode))
+    for label, b, n in (
+        ("capacity-block-over", CANDIDATE_BLOCKS + 1, CANDIDATE_INSTRUCTIONS),
+        ("capacity-instruction-over", CANDIDATE_BLOCKS, CANDIDATE_INSTRUCTIONS + 1),
+    ):
+        malformed, _ = capacity_subject(b, n)
+        compile_cli(exe, malformed, output, label, expected=2)
+    return {"status": "PASS", "blocks": CANDIDATE_BLOCKS,
+            "instructions": CANDIDATE_INSTRUCTIONS, "scratch_intervals": intervals,
+            "relocation_upper_bound": bound, "source_sha256": digest(subject),
+            "object_sha256": digest(obj), "native_calls": len(expected) * 3,
+            "over_limit_refusals": 2}
+
 def run(output):
     output.mkdir(parents=True, exist_ok=False)
     source, shape = candidate_source()
@@ -209,6 +339,7 @@ def run(output):
         exe.write_bytes(rebuilt)
         exe.chmod(0o755)
 
+    capacity = qualify_capacity(exe, output)
     first = compile_cli(exe, program(), output, "invlpg-1")
     second = compile_cli(exe, program(), output, "invlpg-2")
     if first != second or not first.startswith(b"\x7fELF"):
@@ -399,6 +530,7 @@ def run(output):
         **extra_reads,
         **extra_writes,
         "irq": irq,
+        "capacity": capacity,
         "unsupported_cr2_write_refused": True,
         "shape": shape, "guest_execution": "NOT_RUN", "full_linux_acceptance": "HOLD",
         "locked_compiler_changed": False, "privilege_authority_proved": False}
