@@ -285,7 +285,11 @@ def run(output):
         hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
     for action, expected_hex, replacement in (
             ("in8", "ec0fb6c0", "31c09090"),
-            ("out8", "ee", "90")):
+            ("out8", "ee", "90"),
+            ("in16", "66ed0fb7c0", "31c0909090"),
+            ("out16", "66ef", "9090"),
+            ("in32", "ed", None),
+            ("out32", "ef", "90")):
         label = "io-" + action
         obj = output / (label + ".o")
         src = output / (label + "-1.input")
@@ -296,7 +300,7 @@ def run(output):
         opcode = bytes.fromhex(entry["oracle_hex"])
         expected_refusals = {"no-effect", "legacy", "wrong-port-type", "wrong-module",
                              "zero-operand", "extra-operand", "attribute"}
-        expected_refusals |= ({"wrong-result-type", "no-result"} if action == "in8"
+        expected_refusals |= ({"wrong-result-type", "no-result"} if action.startswith("in")
                               else {"one-operand", "wrong-value-type", "result"})
         if (digest(native_io) != entry["elf_sha256"] or digest(text_io) != entry["text_sha256"]
                 or digest(src.read_bytes()) != entry["source_sha256"]
@@ -304,7 +308,17 @@ def run(output):
                 or opcode != bytes.fromhex(expected_hex) or text_io.count(opcode) != 1
                 or dump_text(obj, output / (label + "-original-readback.text")) != text_io):
             raise AssertionError(label + " native custody or opcode failure")
-        mutated_io = text_io.replace(opcode, bytes.fromhex(replacement), 1)
+        if replacement is None:
+            # IN EAX,DX is only one byte; a one-byte NOP does not force a
+            # known return value. Replace the entry with XOR EAX,EAX; RET
+            # without changing section size, symbol address or caller ABI.
+            entry_offset = symbol(obj, "f0")
+            if not 0 <= entry_offset <= len(text_io) - 3:
+                raise AssertionError("bad fixed-zero control entry")
+            mutated_io = (text_io[:entry_offset] + b"\x31\xc0\xc3"
+                          + text_io[entry_offset + 3:])
+        else:
+            mutated_io = text_io.replace(opcode, bytes.fromhex(replacement), 1)
         if len(mutated_io) != len(text_io) or mutated_io == text_io:
             raise AssertionError(label + " invalid mutation")
         mutation = output / (label + "-dishonest.text")
@@ -315,7 +329,8 @@ def run(output):
                 or symbol(obj, "f0") != symbol(bad_io, "f0")):
             raise AssertionError(label + " mutation readback failure")
         macros = ("HIA_TEST_IO_" + action.upper(),)
-        extra_cases.extend(((label + "-two-ports", native_io, text_io, macros, 33, "P"),
+        positive = "-two-ports" if action in ("in8", "out8", "in16") else "-two-states"
+        extra_cases.extend(((label + positive, native_io, text_io, macros, 33, "P"),
                             (label + "-substitution", bad_io.read_bytes(), mutated_io, macros, 35, "N")))
         extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
                               (raw, entry["text_sha256"])))

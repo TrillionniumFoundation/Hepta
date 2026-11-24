@@ -138,6 +138,170 @@ io_pass:
     movb $'P', %bl
     jmp debug_exit64
 #endif
+#if defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32)
+    /* Independent PCI config-address and host-bridge readback, PC/Q35.
+     * Save and restore the address selector. Never write PCI config data. */
+    cli
+    xorl %r15d, %r15d
+    movw $0xcf8, %dx
+    inl %dx, %eax
+    movl %eax, %r14d
+#ifdef HIA_TEST_IO_IN16
+    movl $0x80000000, %eax
+    outl %eax, %dx
+    inl %dx, %eax
+    cmpl $0x80000000, %eax
+    jne abort
+    .macro pci_word_read port
+    movw $\port, %dx
+    inw %dx, %ax
+    movzwl %ax, %r12d
+    testl %r12d, %r12d
+    jz abort
+    cmpl $0xffff, %r12d
+    je abort
+    movl $\port, %edi
+    call f0
+    cmpq %r12, %rax
+    je pci_word_positive\@
+    testq %rax, %rax
+    jne abort
+    orl $2, %r15d
+    jmp pci_word_done\@
+pci_word_positive\@:
+    orl $1, %r15d
+pci_word_done\@:
+    .endm
+    pci_word_read 0xcfc
+    pci_word_read 0xcfe
+#else
+    .macro pci_dword_probe initial, target
+    movw $0xcf8, %dx
+    movl $\initial, %eax
+    outl %eax, %dx
+    inl %dx, %eax
+    cmpl $\initial, %eax
+    jne abort
+    movl $0xcf8, %edi
+#ifdef HIA_TEST_IO_IN32
+    call f0
+    movl $\initial, %r12d
+    cmpq %r12, %rax
+    je pci_dword_positive\@
+    testq %rax, %rax
+    jne abort
+#else
+    movl $\target, %esi
+    call f0
+    cmpq $0xcf8, %rax
+    jne abort
+    movw $0xcf8, %dx
+    inl %dx, %eax
+    cmpl $\target, %eax
+    je pci_dword_positive\@
+    cmpl $\initial, %eax
+    jne abort
+#endif
+    orl $2, %r15d
+    jmp pci_dword_done\@
+pci_dword_positive\@:
+    orl $1, %r15d
+pci_dword_done\@:
+    .endm
+    pci_dword_probe 0x80000000, 0x80000008
+    pci_dword_probe 0x80000008, 0x80000000
+#endif
+    movw $0xcf8, %dx
+    movl %r14d, %eax
+    outl %eax, %dx
+    inl %dx, %eax
+    cmpl %r14d, %eax
+    jne abort
+    cmpl $1, %r15d
+    je wide_pci_pass
+    cmpl $2, %r15d
+    jne abort
+    movb $'N', %bl
+    jmp debug_exit64
+wide_pci_pass:
+    movb $'P', %bl
+    jmp debug_exit64
+#endif
+#ifdef HIA_TEST_IO_OUT16
+    /* fw_cfg's x86 I/O selector is a 16-bit write at 0x510.
+     * Establish distinct independent first-byte oracles for signature and
+     * ID selectors; reset each read cursor before the subject call.
+     * A no-op must leave the previous selector's first byte unchanged. */
+    cli
+    xorl %r15d, %r15d
+    .macro fw_probe initial, target
+    movw $0x510, %dx
+    movw $\initial, %ax
+    outw %ax, %dx
+    incw %dx
+    inb %dx, %al
+    movzbl %al, %r12d
+    decw %dx
+    movw $\target, %ax
+    outw %ax, %dx
+    incw %dx
+    inb %dx, %al
+    movzbl %al, %r13d
+    cmpl %r12d, %r13d
+    je abort
+    decw %dx
+    movw $\initial, %ax
+    outw %ax, %dx
+    movl $0x510, %edi
+    movl $\target, %esi
+    call f0
+    cmpq $0x510, %rax
+    jne abort
+    movw $0x511, %dx
+    inb %dx, %al
+    cmpb %r13b, %al
+    je fw_positive\@
+    cmpb %r12b, %al
+    jne abort
+    orl $2, %r15d
+    jmp fw_done\@
+fw_positive\@:
+    orl $1, %r15d
+fw_done\@:
+    .endm
+    fw_probe 0, 1
+    fw_probe 1, 0
+    /* Restore the fixture baseline: signature selector at its first byte.
+     * Verify all four signature bytes then reset the selector/cursor. */
+    movw $0x510, %dx
+    xorw %ax, %ax
+    outw %ax, %dx
+    incw %dx
+    inb %dx, %al
+    cmpb $'Q', %al
+    jne abort
+    inb %dx, %al
+    cmpb $'E', %al
+    jne abort
+    inb %dx, %al
+    cmpb $'M', %al
+    jne abort
+    inb %dx, %al
+    cmpb $'U', %al
+    jne abort
+    decw %dx
+    xorw %ax, %ax
+    outw %ax, %dx
+    cmpl $1, %r15d
+    je wide_fw_pass
+    cmpl $2, %r15d
+    jne abort
+    movb $'N', %bl
+    jmp debug_exit64
+wide_fw_pass:
+    movb $'P', %bl
+    jmp debug_exit64
+#endif
 #if defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE)
     /* Mask both PICs before changing IF; no APIC source is armed. */
     cli
@@ -420,7 +584,7 @@ fail64:
     movb $'N', %bl
     jmp debug_exit64
 pf_handler:
-#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8)
+#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32)
     jmp abort /* A fault must not masquerade as the write NOP control. */
 #endif
 #ifdef HIA_TEST_CR2_READ
