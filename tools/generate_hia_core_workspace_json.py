@@ -516,8 +516,12 @@ return 0
     primary = Expand().visit(ast.parse(WORKSPACE)).body
     literal_functions = []
     from hepta.hia_schema import PRIMITIVE_SCHEMAS
+    # This existing workspace importer is frozen to original Core v1-v8.
+    # Experimental and future schemas require a separate, reviewed lowering.
+    core_v8 = sorted(f'hepta.hia.program.v{n}' for n in range(1, 9))
+    assert all(name in PRIMITIVE_SCHEMAS for name in core_v8)
     for name, values in [('is_workspace_schema', ['hepta.hia.core-workspace.v1']),
-                         ('is_core_schema', sorted(PRIMITIVE_SCHEMAS)), ('is_call', ['call'])]:
+                         ('is_core_schema', core_v8), ('is_call', ['call'])]:
         lines = ['def '+name+'(w:mutbuf, node:u64) -> u64:',
                  '    if kind(w, node) != 4:', '        return 0',
                  '    start = get(w, 64 + node * 56 + 24)']
