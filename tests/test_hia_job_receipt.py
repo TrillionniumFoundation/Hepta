@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import socket
 import stat
 import struct
 import subprocess
@@ -63,6 +64,179 @@ class JobReceiptExecutableTests(unittest.TestCase):
     def check_receipt(self, result, phase, status):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(struct.unpack('<8sQq', result.stderr), (b'HIAJRW01', phase, status))
+
+    def test_owner_markers_observe_only_original_directory_entries(self):
+        names = ('owner-intent.json', 'started.json', 'exit.json', 'exit.witness.json', 'exit.witness.json.tmp')
+        state = self.root.stat()
+        frame = struct.pack('<8s4Q', b'HIAJMK01', os.getpid(), state.st_dev, state.st_ino, 0)
+        for mask in range(32):
+            for index, name in enumerate(names):
+                path = self.root / name
+                path.unlink(missing_ok=True)
+                if mask & (1 << index):
+                    if index % 2:
+                        path.symlink_to('missing-target')
+                    else:
+                        path.touch()
+            self.check_receipt(self.invoke(frame), 3, mask)
+        for altered in (frame[:-1], frame + b'x',
+                        struct.pack('<8s4Q', b'HIAJMK01', os.getppid(), state.st_dev, state.st_ino, 0),
+                        struct.pack('<8s4Q', b'HIAJMK01', os.getpid(), state.st_dev, state.st_ino + 1, 0)):
+            refused = self.invoke(altered)
+            self.assertEqual((refused.returncode, refused.stderr), (65, b''))
+        refused = self.invoke(frame, sealed=False)
+        self.assertEqual((refused.returncode, refused.stderr), (65, b''))
+        self.root.chmod(0o750)
+        refused = self.invoke(frame)
+        self.assertEqual((refused.returncode, refused.stderr), (65, b''))
+
+    def request_custody(self, directory, sender, *, state=None, parent=None):
+        status = os.fstat(directory) if state is None else state
+        caller = os.getpid() if parent is None else parent
+        frame = struct.pack('<8s5Q', b'HIAJLH01', caller, status.st_dev, status.st_ino, sender.fileno(), 0)
+        with os.fdopen(os.memfd_create('custody-frame', os.MFD_ALLOW_SEALING), 'wb', buffering=0) as source:
+            source.write(frame)
+            fcntl.fcntl(source, fcntl.F_ADD_SEALS, SEALS)
+            return subprocess.run([self.executable], stdin=source, stdout=directory, stderr=subprocess.PIPE,
+                                  pass_fds=(sender.fileno(),), env={'PATH': ''}, timeout=5)
+
+    def test_native_custody_returns_one_locked_description_with_close_on_exec(self):
+        from array import array
+        from contextlib import ExitStack
+
+        with ExitStack() as stack:
+            directory = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY)
+            stack.callback(os.close, directory)
+            receiver, sender = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
+            stack.enter_context(receiver)
+            stack.enter_context(sender)
+            self.check_receipt(self.request_custody(directory, sender), 12, 0)
+            width = array('i').itemsize
+            tag, ancillary, flags, _ = receiver.recvmsg(1, socket.CMSG_SPACE(width), socket.MSG_CMSG_CLOEXEC)
+            self.assertEqual((tag, flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC)), (b'L', 0))
+            self.assertEqual(len(ancillary), 1)
+            level, kind, data = ancillary[0]
+            self.assertEqual((level, kind, len(data)), (socket.SOL_SOCKET, socket.SCM_RIGHTS, width))
+            held = array('i')
+            held.frombytes(data)
+            received, = held
+            with os.fdopen(received, 'r+b') as owner:
+                self.assertFalse(os.get_inheritable(received))
+                path = self.root / 'owner.lock'
+                self.assertEqual(os.fstat(received).st_ino, path.stat().st_ino)
+                self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+                with path.open('r+b') as other, self.assertRaises(BlockingIOError):
+                    fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                self.check_receipt(self.request_custody(directory, sender), 5, -errno.EWOULDBLOCK)
+            with path.open('r+b') as successor:
+                fcntl.flock(successor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.assertEqual(path.read_bytes(), b'')
+
+    def test_native_custody_refuses_changed_directory_prior_names_and_unsafe_lock(self):
+        from contextlib import ExitStack
+
+        with ExitStack() as stack:
+            directory = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY)
+            stack.callback(os.close, directory)
+            receiver, sender = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
+            stack.enter_context(receiver)
+            stack.enter_context(sender)
+            result = self.request_custody(directory, sender, parent=os.getppid())
+            self.assertEqual((result.returncode, result.stderr), (65, b''))
+            result = self.request_custody(directory, sender, state=self.root.parent.stat())
+            self.assertEqual((result.returncode, result.stderr), (65, b''))
+            lock = self.root / 'owner.lock'
+            self.assertFalse(lock.exists())
+            lock.touch(mode=0o640)
+            lock.chmod(0o640)
+            self.check_receipt(self.request_custody(directory, sender), 20, 0)
+            lock.chmod(0o600)
+            os.link(lock, self.root / 'second')
+            self.check_receipt(self.request_custody(directory, sender), 20, 0)
+            (self.root / 'second').unlink()
+            names = ('owner-intent.json', 'started.json', 'exit.json', 'exit.witness.json', 'exit.witness.json.tmp')
+            for index, name in enumerate(names):
+                (self.root / name).symlink_to('missing')
+                self.check_receipt(self.request_custody(directory, sender), 21, 1 << index)
+                (self.root / name).unlink()
+            receiver.setblocking(False)
+            with self.assertRaises(BlockingIOError):
+                receiver.recv(1)
+            with lock.open('r+b') as independent:
+                fcntl.flock(independent, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    def test_native_custody_checks_socket_creator_before_opening(self):
+        from array import array
+
+        transfer, child_transfer = socket.socketpair()
+        with transfer, child_transfer:
+            child = os.fork()
+            if child == 0:
+                try:
+                    left, right = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
+                    with left, right:
+                        child_transfer.sendmsg([b'P'], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array('i', [right.fileno()]))])
+                finally:
+                    os._exit(0)
+            try:
+                width = array('i').itemsize
+                _, control, _, _ = transfer.recvmsg(1, socket.CMSG_SPACE(width), socket.MSG_CMSG_CLOEXEC)
+                descriptors = array('i')
+                descriptors.frombytes(control[0][2])
+                with socket.socket(fileno=descriptors[0]) as foreign:
+                    directory = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY)
+                    try:
+                        result = self.request_custody(directory, foreign)
+                    finally:
+                        os.close(directory)
+                    self.assertEqual((result.returncode, result.stderr), (65, b''))
+                    self.assertFalse((self.root / 'owner.lock').exists())
+            finally:
+                os.waitpid(child, 0)
+
+    def acquire_owner_lock(self, descriptor, *, parent=None, device=None, inode=None, sealed=True):
+        state = os.fstat(descriptor)
+        caller = os.getpid() if parent is None else parent
+        frame = struct.pack('<8s4Q', b'HIAJLF01', caller, state.st_dev if device is None else device,
+                            state.st_ino if inode is None else inode, 0)
+        with os.fdopen(os.memfd_create('owner-fd-frame', os.MFD_ALLOW_SEALING), 'wb', buffering=0) as source:
+            source.write(frame)
+            if sealed:
+                fcntl.fcntl(source, fcntl.F_ADD_SEALS, SEALS)
+            return subprocess.run([self.executable], stdin=source, stdout=descriptor, stderr=subprocess.PIPE,
+                                  env={'PATH': ''}, timeout=5)
+
+    def test_owner_lock_stays_with_original_open_description(self):
+        path = self.root / 'owner.lock'
+        with path.open('x+b') as owner, path.open('r+b') as competing:
+            path.chmod(0o600)
+            self.check_receipt(self.acquire_owner_lock(owner.fileno()), 2, 0)
+            self.check_receipt(self.acquire_owner_lock(competing.fileno()), 2, -errno.EWOULDBLOCK)
+            with os.fdopen(os.dup(owner.fileno()), 'r+b') as duplicate:
+                owner.close()
+                self.check_receipt(self.acquire_owner_lock(duplicate.fileno()), 2, 0)
+                with self.assertRaises(BlockingIOError):
+                    fcntl.flock(competing, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.check_receipt(self.acquire_owner_lock(competing.fileno()), 2, 0)
+            self.assertEqual(path.read_bytes(), b'')
+
+    def test_owner_lock_requires_sealed_parent_and_exact_private_inode(self):
+        path = self.root / 'owner.lock'
+        with path.open('x+b') as owner, path.open('r+b') as independent:
+            path.chmod(0o600)
+            fd = owner.fileno()
+            for change in ({'parent': os.getppid()}, {'inode': os.fstat(fd).st_ino + 1},
+                           {'device': os.fstat(fd).st_dev + 1}, {'sealed': False}):
+                result = self.acquire_owner_lock(fd, **change)
+                self.assertEqual((result.returncode, result.stderr), (65, b''))
+            path.chmod(0o640)
+            result = self.acquire_owner_lock(fd)
+            self.assertEqual((result.returncode, result.stderr), (65, b''))
+            path.chmod(0o600)
+            os.link(path, self.root / 'second')
+            result = self.acquire_owner_lock(fd)
+            self.assertEqual((result.returncode, result.stderr), (65, b''))
+            fcntl.flock(independent, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
     def group_signal(self, leader, action, *, parent=None):
         caller = os.getpid() if parent is None else parent

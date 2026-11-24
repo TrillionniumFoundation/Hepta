@@ -119,3 +119,64 @@ Four payloads follow, in order, with no separators.
 A successful reply contains one ASCII JSON object, formatted in the historical
 sorted field order with spaces after commas and colons and no trailing newline.
 Malformed observations return exit status 2 before either record is submitted.
+
+## Installed owner lifetime lock
+
+Controller v22 binds the installed HIA receipt writer to the original
+supervisor's open file description. Descriptor 0 supplies a sealed
+`HIAJLF01` request. Descriptor 1 receives the supervisor's open lock file.
+The writer returns a 24-byte `HIAJRW01` receipt on descriptor 2.
+
+The request contains four little-endian 64-bit integers after the magic:
+the direct parent PID, the expected file device, inode and a zero reserved
+word. The HIA program checks the direct parent and the descriptor's kernel
+identity. It requires one link, a regular file owned by the effective UID,
+and no group or other permission bits. It selects a nonblocking exclusive
+flock on that same description. A phase-two receipt reports success or the
+kernel error, including contention. A phase-one receipt reports a failed
+descriptor observation.
+
+When the writer exits, the original supervisor still holds its file
+description. Another independent open remains excluded until the last
+holder of the original description closes it. The installer exercises both
+exclusion and release before publishing a v22 controller manifest.
+
+## Installed owner marker observation
+
+After the original supervisor has obtained the lifetime lock, controller v23
+asks the HIA receipt writer to observe the five ownership and terminal names.
+The writer receives the already pinned job directory as descriptor 1. Its
+sealed `HIAJMK01` request carries the parent PID, expected directory device,
+inode and a zero reserved word as four little-endian unsigned 64-bit integers.
+
+HIA confirms the expected private directory and selects all five lookups.
+Each lookup uses the pinned directory and `AT_SYMLINK_NOFOLLOW`. A dangling
+symbolic link therefore counts as an existing marker. The phase-three
+`HIAJRW01` receipt returns the existing v20 five-bit mask. The file-descriptor
+check and directory lookup errors are reported as negative kernel results in
+phases one and two respectively. Either error prevents a fresh workload
+submission. The installed encoder still applies its post-lock admission rule.
+
+## Installed lifetime descriptor handoff
+
+Controller v24 submits the pinned job directory to the HIA receipt writer.
+The sealed request begins with `HIAJLH01` followed by five little-endian
+unsigned 64-bit integers: the direct parent PID, directory device, directory
+inode, local Unix socket descriptor and a reserved zero word. The supervisor
+creates the socket pair for this launch and passes one endpoint to the writer.
+
+The HIA program verifies the directory and the kernel-reported peer PID and UID
+before opening `owner.lock` relative to the directory. The Linux adapter opens
+the lock with mode 0600 and no symlink following. HIA validates its metadata
+before and after an exclusive nonblocking flock, then checks all five owner and
+terminal names on the pinned directory. A fresh launch transfers the already
+locked file description in one `SCM_RIGHTS` message. Its payload is the byte
+`L`. The original supervisor receives one close-on-exec descriptor and holds
+it until exit. Closing the writer, or closing an additional duplicate in the
+supervisor, leaves the original lock intact.
+
+The `HIAJRW01` receipt uses phase 12 and value zero for a successful transfer,
+phase 20 for an unsafe lock and phase 21 with the nonzero existing-marker mask
+for a replay refusal. A negative result preserves the kernel error and phase.
+The installer checks the resulting inode, close-on-exec flag, contention and
+release before selecting v24.
