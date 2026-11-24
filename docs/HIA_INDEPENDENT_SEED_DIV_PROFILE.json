@@ -1,0 +1,1671 @@
+{
+  "all_original_cold_families_claimed_here": false,
+  "base_profile": "docs/HIA_INDEPENDENT_SEED_PROFILE.json",
+  "base_profile_unchanged": true,
+  "borrowed_resource_operations_unchanged": [
+    3,
+    4,
+    5,
+    7,
+    24
+  ],
+  "constructor": {
+    "elapsed_seconds": 1.038795095984824,
+    "elf_bytes": 152644,
+    "elf_sha256": "4ba57a9b184434e9e929434e65d92a7468e8d03b355181cf19a221fb689a6aef",
+    "passed": true,
+    "runs": [
+      {
+        "execve": 1,
+        "execveat": 0,
+        "input_bytes": 122955,
+        "input_sha256": "c5007153e6c17394986218b804d64007a8f8d3dee492dc040c29281fd2061098",
+        "output_bytes": 315476,
+        "output_sha256": "262d789e6051a3d479b98077c665c808e556ceafa42a52638d86adc6d940a36b",
+        "returncode": 0,
+        "stage": "assembly",
+        "tool_sha256": "a005d4f249ed1bde14db3b94fba85f3178f52f4e5632a14833e9214a65fef424"
+      },
+      {
+        "execve": 1,
+        "execveat": 0,
+        "input_bytes": 315485,
+        "input_sha256": "d12510b3ed875301d8a4cc7d253851a9f5a62a896f990bfe37618ccd6da8a6fa",
+        "output_bytes": 211832,
+        "output_sha256": "cc3861a7508c9246de92c28bf38725e5dde8fe4e1d8017a141796487723513ca",
+        "returncode": 0,
+        "stage": "projector",
+        "tool_sha256": "7d9cba93a9017a8160a255d6141ea627145a21e57c43b9cf3fcf6304ba65f723"
+      },
+      {
+        "execve": 1,
+        "execveat": 0,
+        "input_bytes": 211832,
+        "input_sha256": "cc3861a7508c9246de92c28bf38725e5dde8fe4e1d8017a141796487723513ca",
+        "output_bytes": 152155,
+        "output_sha256": "d7a50c4740c579962e2bb1ce6ad7d1f9af9760aa48c9b6b3356842f9c2e114ff",
+        "returncode": 0,
+        "stage": "compile",
+        "tool_sha256": "d7d02d3dcd889c18e95645857df2b36871319ed11734df2ab4d9a8f42a1b66fb"
+      },
+      {
+        "execve": 1,
+        "execveat": 0,
+        "input_bytes": 152171,
+        "input_sha256": "e3e163050085ffee794a1117657b626a8033cfea15d29169940dc5d7c425d7d9",
+        "output_bytes": 152644,
+        "output_sha256": "4ba57a9b184434e9e929434e65d92a7468e8d03b355181cf19a221fb689a6aef",
+        "returncode": 0,
+        "stage": "pack",
+        "tool_sha256": "036b9b8ed60259efb88b109d3bb0e7ee19b96a9b3d71431fe3b52fa0089f2c29"
+      }
+    ],
+    "source_bytes": 122955,
+    "source_sha256": "c5007153e6c17394986218b804d64007a8f8d3dee492dc040c29281fd2061098",
+    "target_or_successor_used": false
+  },
+  "extended_reference_opcodes": {
+    "7": "unsigned int.div.checked",
+    "8": "unsigned int.rem.checked"
+  },
+  "machine": "test denominator before DIV; clear upper dividend RDX; select RAX quotient or RDX remainder; normalize original unsigned width",
+  "qualification": {
+    "cases": 152,
+    "old_original_B0_exact": true,
+    "original_VM_depth": 256,
+    "original_VM_step_budget": 10000000,
+    "passed": true,
+    "positive_cases": 146,
+    "root_elf_sha256": "4ba57a9b184434e9e929434e65d92a7468e8d03b355181cf19a221fb689a6aef",
+    "rows": [
+      {
+        "mode": 0,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 0,
+        "y": 1
+      },
+      {
+        "mode": 0,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 1,
+        "y": 1
+      },
+      {
+        "mode": 0,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 7,
+        "y": 3
+      },
+      {
+        "mode": 0,
+        "native_u32": 8,
+        "output_hex": "0800000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 8,
+        "x": 255,
+        "y": 13
+      },
+      {
+        "mode": 0,
+        "native_u32": 2,
+        "output_hex": "0200000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2,
+        "x": 9223372036854775808,
+        "y": 3
+      },
+      {
+        "mode": 0,
+        "native_u32": 4294967294,
+        "output_hex": "feffffffffffff7f",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 4294967294,
+        "x": 18446744073709551615,
+        "y": 9223372036854775809
+      },
+      {
+        "mode": 0,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 18446744073709551615,
+        "y": 1
+      },
+      {
+        "mode": 0,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 18446744073709551615,
+        "y": 18446744073709551615
+      },
+      {
+        "mode": 0,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 18446744073709551615,
+        "y": 17
+      },
+      {
+        "mode": 0,
+        "native_u32": 2114000864,
+        "output_hex": "e017017eea5990a7",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2114000864,
+        "x": 12074249464651519968,
+        "y": 14423281098703765512
+      },
+      {
+        "mode": 0,
+        "native_u32": 2548916643,
+        "output_hex": "a361ed97f0c1bf1f",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2548916643,
+        "x": 15471828804498936751,
+        "y": 6592034214843103494
+      },
+      {
+        "mode": 0,
+        "native_u32": 2179877174,
+        "output_hex": "3649ee8172d14c39",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2179877174,
+        "x": 10134993728146475026,
+        "y": 6006088480018218716
+      },
+      {
+        "mode": 0,
+        "native_u32": 528826927,
+        "output_hex": "2f42851f171dd53b",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 528826927,
+        "x": 13183805460359764601,
+        "y": 8872421256932366410
+      },
+      {
+        "mode": 0,
+        "native_u32": 246116244,
+        "output_hex": "946fab0ebbc41139",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 246116244,
+        "x": 4112284242450018196,
+        "y": 9863891476645134171
+      },
+      {
+        "mode": 0,
+        "native_u32": 2030602835,
+        "output_hex": "538a087993f8471e",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2030602835,
+        "x": 2181985856758778451,
+        "y": 2593153657862021572
+      },
+      {
+        "mode": 0,
+        "native_u32": 2698378982,
+        "output_hex": "e6fed5a016be5b47",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2698378982,
+        "x": 5141912403970490086,
+        "y": 12528224222663308719
+      },
+      {
+        "mode": 0,
+        "native_u32": 2775244162,
+        "output_hex": "82dd6aa5bbd90d16",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2775244162,
+        "x": 8121478776872200637,
+        "y": 6532313133383191611
+      },
+      {
+        "mode": 0,
+        "native_u32": 3443186312,
+        "output_hex": "88da3acd6ec6602f",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3443186312,
+        "x": 3413946696738724488,
+        "y": 12709805076514549206
+      },
+      {
+        "mode": 0,
+        "native_u32": 1406773270,
+        "output_hex": "16a8d95392732309",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1406773270,
+        "x": 16036837592377942839,
+        "y": 5126113516514175243
+      },
+      {
+        "mode": 0,
+        "native_u32": 2935044858,
+        "output_hex": "fa3af1ae65525f0f",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2935044858,
+        "x": 1107694630036650746,
+        "y": 12657727589766400649
+      },
+      {
+        "mode": 0,
+        "native_u32": 3190098218,
+        "output_hex": "2a0925bee71cc13d",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3190098218,
+        "x": 8970465687672907073,
+        "y": 4520595999201025047
+      },
+      {
+        "mode": 0,
+        "native_u32": 2932477116,
+        "output_hex": "bc0ccaae05106751",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2932477116,
+        "x": 5865674656266718396,
+        "y": 12937304543010170960
+      },
+      {
+        "mode": 0,
+        "native_u32": 2743652555,
+        "output_hex": "cbd088a3bfdd2610",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2743652555,
+        "x": 8965614222388560475,
+        "y": 3900876426757281992
+      },
+      {
+        "mode": 0,
+        "native_u32": 1339504982,
+        "output_hex": "5639d74fe97afc21",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1339504982,
+        "x": 8986218640118321230,
+        "y": 6537251200250140408
+      },
+      {
+        "mode": 0,
+        "native_u32": 2532970757,
+        "output_hex": "0511fa96c7ee7104",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2532970757,
+        "x": 320299589518889221,
+        "y": 4104820246361421136
+      },
+      {
+        "mode": 0,
+        "native_u32": 4088855088,
+        "output_hex": "30fab6f3f4564199",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 4088855088,
+        "x": 11043203371350030896,
+        "y": 11578667176786822583
+      },
+      {
+        "mode": 0,
+        "native_u32": 3651430737,
+        "output_hex": "5169a4d99a9ba918",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3651430737,
+        "x": 12277146472597638079,
+        "y": 3500007951748189050
+      },
+      {
+        "mode": 0,
+        "native_u32": 2827915794,
+        "output_hex": "12928ea8903a9415",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2827915794,
+        "x": 8949576349700756194,
+        "y": 1848661046343368756
+      },
+      {
+        "mode": 0,
+        "native_u32": 1855099086,
+        "output_hex": "ce90926e5043812d",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1855099086,
+        "x": 17839930991747494153,
+        "y": 14560954975313518651
+      },
+      {
+        "mode": 0,
+        "native_u32": 1163319012,
+        "output_hex": "e4d65645ca48085f",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1163319012,
+        "x": 6847803267000751844,
+        "y": 9522471501743872182
+      },
+      {
+        "mode": 0,
+        "native_u32": 2823529509,
+        "output_hex": "25a44ba8ccec0003",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2823529509,
+        "x": 11682294406399550307,
+        "y": 1146586126054475347
+      },
+      {
+        "mode": 0,
+        "native_u32": 2002427382,
+        "output_hex": "f69d5a77df0ef202",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2002427382,
+        "x": 8371432663035680438,
+        "y": 1631836835530584512
+      },
+      {
+        "mode": 0,
+        "native_u32": 3004549453,
+        "output_hex": "4dc915b3546ac64f",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3004549453,
+        "x": 5748398886399363405,
+        "y": 16372647788200148526
+      },
+      {
+        "mode": 0,
+        "native_u32": 440449928,
+        "output_hex": "88bb401ab6575963",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 440449928,
+        "x": 17954632580459009752,
+        "y": 10795783058140781392
+      },
+      {
+        "mode": 0,
+        "native_u32": 2899619827,
+        "output_hex": "f3afd4aceaf51004",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2899619827,
+        "x": 14150358257312116039,
+        "y": 3464338473315565397
+      },
+      {
+        "mode": 0,
+        "native_u32": 3688968138,
+        "output_hex": "ca2fe1db1b50cf53",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3688968138,
+        "x": 6039133705910431690,
+        "y": 16693317247435356681
+      },
+      {
+        "mode": 0,
+        "native_u32": 2438339377,
+        "output_hex": "311b56913c69ac05",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2438339377,
+        "x": 7259280589487087057,
+        "y": 6850463214445920928
+      },
+      {
+        "mode": 0,
+        "native_u32": 3205694857,
+        "output_hex": "890513bf86dc5b6c",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3205694857,
+        "x": 18094773708426079756,
+        "y": 10286696858159769731
+      },
+      {
+        "mode": 0,
+        "native_u32": 1071832053,
+        "output_hex": "f5dbe23fb7955119",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1071832053,
+        "x": 4778887633505799531,
+        "y": 2954483695160652150
+      },
+      {
+        "mode": 0,
+        "native_u32": 2874638721,
+        "output_hex": "818157ab6feb4100",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2874638721,
+        "x": 14988144051608400414,
+        "y": 21477172615887621
+      },
+      {
+        "mode": 0,
+        "native_u32": 2010755733,
+        "output_hex": "95b2d97749dd7359",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2010755733,
+        "x": 6445738799310418581,
+        "y": 13397205196335150157
+      },
+      {
+        "mode": 0,
+        "native_u32": 615055540,
+        "output_hex": "b400a9249b94850a",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 615055540,
+        "x": 3179997394619912320,
+        "y": 1210910944141109222
+      },
+      {
+        "mode": 0,
+        "native_u32": 231188431,
+        "output_hex": "cfa7c70d8542a09d",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 231188431,
+        "x": 11358151399457662927,
+        "y": 14998587119658305981
+      },
+      {
+        "mode": 0,
+        "native_u32": 1916587827,
+        "output_hex": "33cf3c72a07cde16",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1916587827,
+        "x": 8809679831529337266,
+        "y": 2387262763103985877
+      },
+      {
+        "mode": 0,
+        "native_u32": 2272922521,
+        "output_hex": "990b7a87a7f6052d",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2272922521,
+        "x": 3244270305983204249,
+        "y": 9437921854044632912
+      },
+      {
+        "mode": 0,
+        "native_u32": 1996160388,
+        "output_hex": "84fdfa7678acac06",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1996160388,
+        "x": 11967162100195357236,
+        "y": 717888325411333963
+      },
+      {
+        "mode": 0,
+        "native_u32": 1612472435,
+        "output_hex": "73601c6023f92633",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1612472435,
+        "x": 3685907275380973683,
+        "y": 10627660074919344483
+      },
+      {
+        "mode": 0,
+        "native_u32": 378179006,
+        "output_hex": "be8d8a1647141602",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 378179006,
+        "x": 16637634863795307142,
+        "y": 8243652465339202148
+      },
+      {
+        "mode": 0,
+        "native_u32": 2703971222,
+        "output_hex": "96532ba1b4e70d07",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2703971222,
+        "x": 8856245342693813469,
+        "y": 8347928246746978631
+      },
+      {
+        "mode": 0,
+        "native_u32": 2946062538,
+        "output_hex": "ca5899afa883b630",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2946062538,
+        "x": 8977861304866555688,
+        "y": 5467723584760868446
+      },
+      {
+        "mode": 0,
+        "native_u32": 457700709,
+        "output_hex": "65f5471b76ed2612",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 457700709,
+        "x": 4782953875828005719,
+        "y": 3474960042510673394
+      },
+      {
+        "mode": 0,
+        "native_u32": 2662799509,
+        "output_hex": "9518b79e9028b821",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2662799509,
+        "x": 14070118070930684058,
+        "y": 11640381470361100293
+      },
+      {
+        "mode": 0,
+        "native_u32": 836655713,
+        "output_hex": "615ade31bcded758",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 836655713,
+        "x": 6401830295202323041,
+        "y": 7777039970720333426
+      },
+      {
+        "mode": 0,
+        "native_u32": 1064579796,
+        "output_hex": "d432743fb8e86735",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1064579796,
+        "x": 17201885381525013340,
+        "y": 6676792548438714436
+      },
+      {
+        "mode": 0,
+        "native_u32": 140328059,
+        "output_hex": "7b3c5d08ff57b785",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 140328059,
+        "x": 9635266680651070587,
+        "y": 15830102381399801705
+      },
+      {
+        "mode": 0,
+        "native_u32": 1751328750,
+        "output_hex": "ee27636851e2c638",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1751328750,
+        "x": 4091206150784231406,
+        "y": 7165489254143407129
+      },
+      {
+        "mode": 0,
+        "native_u32": 879455313,
+        "output_hex": "516c6b3490908e35",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 879455313,
+        "x": 16963851426166642725,
+        "y": 13104670546434403284
+      },
+      {
+        "mode": 0,
+        "native_u32": 4023667604,
+        "output_hex": "944bd4ef077c8d07",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 4023667604,
+        "x": 6531966428053478096,
+        "y": 5987738924541497148
+      },
+      {
+        "mode": 0,
+        "native_u32": 1425729503,
+        "output_hex": "dfe7fa5422a0e851",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1425729503,
+        "x": 5902143380984096735,
+        "y": 17605308095009998935
+      },
+      {
+        "mode": 0,
+        "native_u32": 2304042114,
+        "output_hex": "82e45489c2ea3a61",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2304042114,
+        "x": 7006170291576824962,
+        "y": 11346371296010570663
+      },
+      {
+        "mode": 0,
+        "native_u32": 2613247367,
+        "output_hex": "87fdc29b14d63424",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2613247367,
+        "x": 15325880287126759977,
+        "y": 6358467409485731409
+      },
+      {
+        "mode": 0,
+        "native_u32": 2405350078,
+        "output_hex": "beba5e8f81b34c01",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2405350078,
+        "x": 4190007379276349828,
+        "y": 1365453439323636290
+      },
+      {
+        "mode": 0,
+        "native_u32": 4213762183,
+        "output_hex": "87e828fb4086b60a",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 4213762183,
+        "x": 17859667505689100675,
+        "y": 17087715505898690812
+      },
+      {
+        "mode": 0,
+        "native_u32": 2235581014,
+        "output_hex": "5642408527b9f545",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2235581014,
+        "x": 5041138937301582422,
+        "y": 18077093141002649858
+      },
+      {
+        "mode": 0,
+        "native_u32": 3987759263,
+        "output_hex": "9f60b0edeec9e750",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3987759263,
+        "x": 18400834800671380589,
+        "y": 12570984529989825486
+      },
+      {
+        "mode": 0,
+        "native_u32": 2635393912,
+        "output_hex": "78eb149da9e15d71",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2635393912,
+        "x": 8168933417721064312,
+        "y": 12606523280035763367
+      },
+      {
+        "mode": 0,
+        "native_u32": 1405202172,
+        "output_hex": "fcaec1537c1e0a21",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1405202172,
+        "x": 10729740803988352359,
+        "y": 8348991931639643755
+      },
+      {
+        "mode": 0,
+        "native_u32": 2683098474,
+        "output_hex": "6ad5ec9f2306eb65",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2683098474,
+        "x": 7343970367434446186,
+        "y": 17690208157918710374
+      },
+      {
+        "mode": 0,
+        "native_u32": 1083874033,
+        "output_hex": "f19a9a40ee2b2c8b",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1083874033,
+        "x": 10028438772533336817,
+        "y": 10813615774795529300
+      },
+      {
+        "mode": 0,
+        "native_u32": 1378590962,
+        "output_hex": "f2a02b523400a011",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1378590962,
+        "x": 6235751303884524716,
+        "y": 4965735984249154490
+      },
+      {
+        "mode": 0,
+        "native_u32": 1237667723,
+        "output_hex": "8b4fc5490cc1872c",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1237667723,
+        "x": 3208745518046203787,
+        "y": 4891439275536911274
+      },
+      {
+        "mode": 0,
+        "native_u32": 1634955710,
+        "output_hex": "be717361247e2f3d",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1634955710,
+        "x": 4408881254937883070,
+        "y": 10934453246061434011
+      },
+      {
+        "mode": 0,
+        "native_u32": 4189438389,
+        "output_hex": "b5c1b5f997c8df13",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 4189438389,
+        "x": 1432083761582162357,
+        "y": 17286175476978489134
+      },
+      {
+        "mode": 0,
+        "native_signal": 4,
+        "output_unchanged": true,
+        "passed": true,
+        "vm_error": {
+          "class": "HIAProgramTrap",
+          "code": "division_by_zero",
+          "text": "E_HIA_TRAP_DIVISION_BY_ZERO: integer divisor is zero"
+        },
+        "x": 0,
+        "y": 0
+      },
+      {
+        "mode": 0,
+        "native_signal": 4,
+        "output_unchanged": true,
+        "passed": true,
+        "vm_error": {
+          "class": "HIAProgramTrap",
+          "code": "division_by_zero",
+          "text": "E_HIA_TRAP_DIVISION_BY_ZERO: integer divisor is zero"
+        },
+        "x": 1,
+        "y": 0
+      },
+      {
+        "mode": 0,
+        "native_signal": 4,
+        "output_unchanged": true,
+        "passed": true,
+        "vm_error": {
+          "class": "HIAProgramTrap",
+          "code": "division_by_zero",
+          "text": "E_HIA_TRAP_DIVISION_BY_ZERO: integer divisor is zero"
+        },
+        "x": 18446744073709551615,
+        "y": 0
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 0,
+        "y": 1
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 1,
+        "y": 1
+      },
+      {
+        "mode": 1,
+        "native_u32": 2,
+        "output_hex": "0200000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2,
+        "x": 7,
+        "y": 3
+      },
+      {
+        "mode": 1,
+        "native_u32": 19,
+        "output_hex": "1300000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 19,
+        "x": 255,
+        "y": 13
+      },
+      {
+        "mode": 1,
+        "native_u32": 2863311530,
+        "output_hex": "aaaaaaaaaaaaaa2a",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2863311530,
+        "x": 9223372036854775808,
+        "y": 3
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 18446744073709551615,
+        "y": 9223372036854775809
+      },
+      {
+        "mode": 1,
+        "native_u32": 4294967295,
+        "output_hex": "ffffffffffffffff",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 4294967295,
+        "x": 18446744073709551615,
+        "y": 1
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 18446744073709551615,
+        "y": 18446744073709551615
+      },
+      {
+        "mode": 1,
+        "native_u32": 252645135,
+        "output_hex": "0f0f0f0f0f0f0f0f",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 252645135,
+        "x": 18446744073709551615,
+        "y": 17
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 12074249464651519968,
+        "y": 14423281098703765512
+      },
+      {
+        "mode": 1,
+        "native_u32": 2,
+        "output_hex": "0200000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2,
+        "x": 15471828804498936751,
+        "y": 6592034214843103494
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 10134993728146475026,
+        "y": 6006088480018218716
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 13183805460359764601,
+        "y": 8872421256932366410
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 4112284242450018196,
+        "y": 9863891476645134171
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 2181985856758778451,
+        "y": 2593153657862021572
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 5141912403970490086,
+        "y": 12528224222663308719
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 8121478776872200637,
+        "y": 6532313133383191611
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 3413946696738724488,
+        "y": 12709805076514549206
+      },
+      {
+        "mode": 1,
+        "native_u32": 3,
+        "output_hex": "0300000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3,
+        "x": 16036837592377942839,
+        "y": 5126113516514175243
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 1107694630036650746,
+        "y": 12657727589766400649
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 8970465687672907073,
+        "y": 4520595999201025047
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 5865674656266718396,
+        "y": 12937304543010170960
+      },
+      {
+        "mode": 1,
+        "native_u32": 2,
+        "output_hex": "0200000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2,
+        "x": 8965614222388560475,
+        "y": 3900876426757281992
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 8986218640118321230,
+        "y": 6537251200250140408
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 320299589518889221,
+        "y": 4104820246361421136
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 11043203371350030896,
+        "y": 11578667176786822583
+      },
+      {
+        "mode": 1,
+        "native_u32": 3,
+        "output_hex": "0300000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3,
+        "x": 12277146472597638079,
+        "y": 3500007951748189050
+      },
+      {
+        "mode": 1,
+        "native_u32": 4,
+        "output_hex": "0400000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 4,
+        "x": 8949576349700756194,
+        "y": 1848661046343368756
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 17839930991747494153,
+        "y": 14560954975313518651
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 6847803267000751844,
+        "y": 9522471501743872182
+      },
+      {
+        "mode": 1,
+        "native_u32": 10,
+        "output_hex": "0a00000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 10,
+        "x": 11682294406399550307,
+        "y": 1146586126054475347
+      },
+      {
+        "mode": 1,
+        "native_u32": 5,
+        "output_hex": "0500000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 5,
+        "x": 8371432663035680438,
+        "y": 1631836835530584512
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 5748398886399363405,
+        "y": 16372647788200148526
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 17954632580459009752,
+        "y": 10795783058140781392
+      },
+      {
+        "mode": 1,
+        "native_u32": 4,
+        "output_hex": "0400000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 4,
+        "x": 14150358257312116039,
+        "y": 3464338473315565397
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 6039133705910431690,
+        "y": 16693317247435356681
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 7259280589487087057,
+        "y": 6850463214445920928
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 18094773708426079756,
+        "y": 10286696858159769731
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 4778887633505799531,
+        "y": 2954483695160652150
+      },
+      {
+        "mode": 1,
+        "native_u32": 697,
+        "output_hex": "b902000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 697,
+        "x": 14988144051608400414,
+        "y": 21477172615887621
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 6445738799310418581,
+        "y": 13397205196335150157
+      },
+      {
+        "mode": 1,
+        "native_u32": 2,
+        "output_hex": "0200000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2,
+        "x": 3179997394619912320,
+        "y": 1210910944141109222
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 11358151399457662927,
+        "y": 14998587119658305981
+      },
+      {
+        "mode": 1,
+        "native_u32": 3,
+        "output_hex": "0300000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3,
+        "x": 8809679831529337266,
+        "y": 2387262763103985877
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 3244270305983204249,
+        "y": 9437921854044632912
+      },
+      {
+        "mode": 1,
+        "native_u32": 16,
+        "output_hex": "1000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 16,
+        "x": 11967162100195357236,
+        "y": 717888325411333963
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 3685907275380973683,
+        "y": 10627660074919344483
+      },
+      {
+        "mode": 1,
+        "native_u32": 2,
+        "output_hex": "0200000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2,
+        "x": 16637634863795307142,
+        "y": 8243652465339202148
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 8856245342693813469,
+        "y": 8347928246746978631
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 8977861304866555688,
+        "y": 5467723584760868446
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 4782953875828005719,
+        "y": 3474960042510673394
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 14070118070930684058,
+        "y": 11640381470361100293
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 6401830295202323041,
+        "y": 7777039970720333426
+      },
+      {
+        "mode": 1,
+        "native_u32": 2,
+        "output_hex": "0200000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2,
+        "x": 17201885381525013340,
+        "y": 6676792548438714436
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 9635266680651070587,
+        "y": 15830102381399801705
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 4091206150784231406,
+        "y": 7165489254143407129
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 16963851426166642725,
+        "y": 13104670546434403284
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 6531966428053478096,
+        "y": 5987738924541497148
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 5902143380984096735,
+        "y": 17605308095009998935
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 7006170291576824962,
+        "y": 11346371296010570663
+      },
+      {
+        "mode": 1,
+        "native_u32": 2,
+        "output_hex": "0200000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 2,
+        "x": 15325880287126759977,
+        "y": 6358467409485731409
+      },
+      {
+        "mode": 1,
+        "native_u32": 3,
+        "output_hex": "0300000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 3,
+        "x": 4190007379276349828,
+        "y": 1365453439323636290
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 17859667505689100675,
+        "y": 17087715505898690812
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 5041138937301582422,
+        "y": 18077093141002649858
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 18400834800671380589,
+        "y": 12570984529989825486
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 8168933417721064312,
+        "y": 12606523280035763367
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 10729740803988352359,
+        "y": 8348991931639643755
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 7343970367434446186,
+        "y": 17690208157918710374
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 10028438772533336817,
+        "y": 10813615774795529300
+      },
+      {
+        "mode": 1,
+        "native_u32": 1,
+        "output_hex": "0100000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 1,
+        "x": 6235751303884524716,
+        "y": 4965735984249154490
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 3208745518046203787,
+        "y": 4891439275536911274
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 4408881254937883070,
+        "y": 10934453246061434011
+      },
+      {
+        "mode": 1,
+        "native_u32": 0,
+        "output_hex": "0000000000000000",
+        "passed": true,
+        "vm_steps": 383,
+        "vm_u32": 0,
+        "x": 1432083761582162357,
+        "y": 17286175476978489134
+      },
+      {
+        "mode": 1,
+        "native_signal": 4,
+        "output_unchanged": true,
+        "passed": true,
+        "vm_error": {
+          "class": "HIAProgramTrap",
+          "code": "division_by_zero",
+          "text": "E_HIA_TRAP_DIVISION_BY_ZERO: integer divisor is zero"
+        },
+        "x": 0,
+        "y": 0
+      },
+      {
+        "mode": 1,
+        "native_signal": 4,
+        "output_unchanged": true,
+        "passed": true,
+        "vm_error": {
+          "class": "HIAProgramTrap",
+          "code": "division_by_zero",
+          "text": "E_HIA_TRAP_DIVISION_BY_ZERO: integer divisor is zero"
+        },
+        "x": 1,
+        "y": 0
+      },
+      {
+        "mode": 1,
+        "native_signal": 4,
+        "output_unchanged": true,
+        "passed": true,
+        "vm_error": {
+          "class": "HIAProgramTrap",
+          "code": "division_by_zero",
+          "text": "E_HIA_TRAP_DIVISION_BY_ZERO: integer divisor is zero"
+        },
+        "x": 18446744073709551615,
+        "y": 0
+      }
+    ],
+    "seed_self_rebuild_exact": true,
+    "subprocess_flat_bytes": 155004,
+    "subprocess_flat_sha256": "f5b2d570f6a77942ad1614f1ea73dc0991d63fcd8ed5d8d451e73dbb738ef92c",
+    "subprocess_source_bytes": 127249,
+    "subprocess_source_sha256": "a6c187391c717b0564f9956c108d7fc4e77121b4053c7e069fe34126e54bbe81",
+    "zero_division_cases": 6
+  },
+  "schema": "hepta.hia.independent-seed-unsigned-division-profile.v1",
+  "signed_operations_supported": false,
+  "signed_refusal_controls": [
+    {
+      "opcode": 7,
+      "output_unchanged": true,
+      "signed_flags": 1,
+      "status": 4294967295
+    },
+    {
+      "opcode": 7,
+      "output_unchanged": true,
+      "signed_flags": 2,
+      "status": 4294967295
+    },
+    {
+      "opcode": 7,
+      "output_unchanged": true,
+      "signed_flags": 4,
+      "status": 4294967295
+    },
+    {
+      "opcode": 8,
+      "output_unchanged": true,
+      "signed_flags": 1,
+      "status": 4294967295
+    },
+    {
+      "opcode": 8,
+      "output_unchanged": true,
+      "signed_flags": 2,
+      "status": 4294967295
+    },
+    {
+      "opcode": 8,
+      "output_unchanged": true,
+      "signed_flags": 4,
+      "status": 4294967295
+    }
+  ],
+  "source": "examples/hia_bootstrap/seed_div_backend.hepta",
+  "source_bytes": 122955,
+  "source_sha256": "c5007153e6c17394986218b804d64007a8f8d3dee492dc040c29281fd2061098",
+  "zero_divisor": "original VM division_by_zero, native UD2/SIGILL with no output writes"
+}
