@@ -8,7 +8,8 @@ from pathlib import Path
 import ast,copy
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_sha256_stream import source_program as original_source,STATE_BYTES,MAX_CHUNK,MAX_TOTAL,MAGIC
-from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scalar_functions
+from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
+from tools.generate_hia_worker_config_json import ConfigBuilder as Builder
 
 class Compression(ast.NodeTransformer):
     def __init__(self):
@@ -34,13 +35,10 @@ class Compression(ast.NodeTransformer):
             return node
         assert len(call.args)==3 and not call.keywords
         view,index,value=call.args;assert isinstance(view,ast.Name) and view.id=='w'
-        serial=self.puts;self.puts+=1
-        name_i='cold_index_'+str(serial);name_v='cold_value_'+str(serial)
-        out=[ast.Assign(targets=[ast.Name(id=name_i,ctx=ast.Store())],value=index),
-             ast.Assign(targets=[ast.Name(id=name_v,ctx=ast.Store())],value=value)]
-        for offset in range(8):
-            out.extend(ast.parse(f'store(w, {name_i} + {offset}, ({name_v} >> {offset*8}) & 255)').body)
-        return [ast.copy_location(item,node) for item in out]
+        self.puts += 1
+        # Compression is private to the guarded 1184-byte state transition.
+        # Every scheduled/chaining index here has a complete eight-byte range.
+        return ast.copy_location(ast.Expr(value=ast.Call(func=ast.Name(id='word_store', ctx=ast.Load()), args=[view,index,value], keywords=[])), node)
 
 def source_program():
     module=ast.parse(original_source())
@@ -53,6 +51,28 @@ def source_program():
     transformer=Compression();transformer.visit(compress)
     assert transformer.puts==10,transformer.puts
     assert not any(isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id in ('rotate','get','put') for n in ast.walk(compress))
+    # Preserve every memory access and round transition, grouping only loops
+    # whose fixed trip counts are multiples of four. No state word is assumed
+    # canonical; arbitrary full-u64 chaining and round words remain observable.
+    for loop in [n for n in compress.body if isinstance(n, ast.While)]:
+        assert ast.unparse(loop.test) in ('i < 16', 'i < 64')
+        original_body = loop.body
+        loop.body = [copy.deepcopy(n) for _ in range(4) for n in original_body]
+    stream = next(n for n in module.body if isinstance(n, ast.FunctionDef) and n.name == 'stream')
+    update = next(n for n in stream.body if isinstance(n, ast.If) and ast.unparse(n.test) == 'op == 1')
+    loop = next(n for n in update.body if isinstance(n, ast.While))
+    assert ast.unparse(loop.test) == 'i < length(s)'
+    fast = []
+    # Read then write each byte in its original order. This also preserves
+    # foreign pointer aliases with any source/state displacement.
+    for j in range(64):
+        fast.extend(ast.parse(f'store(w, {1112+j}, byte(s, i + {j}))').body)
+    fast.extend(ast.parse('compress(w)\ni = i + 64').body)
+    loop.body = [ast.If(test=ast.parse('used == 0 and length(s) - i >= 64', mode='eval').body,
+                        body=fast, orelse=loop.body)]
+    put_fn = next(n for n in module.body if isinstance(n,ast.FunctionDef) and n.name=='put')
+    guarded = ast.parse('if index <= length(w) and length(w) - index >= 8:\n    word_store(w, index, value)\n    return 0').body[0]
+    put_fn.body.insert(0, guarded)
     module.body=[n for n in module.body if not(isinstance(n,ast.FunctionDef)and n.name=='rotate')]
     return ast.unparse(ast.fix_missing_locations(module))+'\n'
 
