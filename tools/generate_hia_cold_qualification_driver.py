@@ -832,7 +832,7 @@ def archive_step(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         remaining = get(w, 1500272)
         if remaining == 0:
             return resume(s, o, w, get(w, 1500280))
-        count = minimum(65504, remaining)
+        count = minimum(16384, remaining)
         put(w, 1500288, count)
         if get(w, 1500256) == 0:
             copyw(w, 700000, get(w, 1500264), count)
