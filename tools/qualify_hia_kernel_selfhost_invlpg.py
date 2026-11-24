@@ -82,14 +82,14 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable"):
+    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
-    # The ten experimental opcodes occupy a contiguous token interval.
+    # The twelve experimental opcodes occupy a contiguous token interval.
     # Keep the native compiler within its audited candidate capacity.
     if [words[name] - words["x86.tlb.invlpg"] for name in
-            ("x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable")] != list(range(10)):
+            ("x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8")] != list(range(12)):
         raise ValueError("kernel token interval changed")
     source = gen.SOURCE
     layout, names, _, _ = candidate_layout()
@@ -134,12 +134,38 @@ def candidate_source():
                 flag = 2 << (token - @read@)""")
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op >= @x86.tlb.invlpg@ and op <= @x86.irq.enable@:
+    if op >= @x86.tlb.invlpg@ and op <= @x86.io.out8@:
         return 16""")
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
         owned_instruction(o, w, op, n, a, at)""",
-        """    if op >= @x86.irq.disable@ and op <= @x86.irq.enable@:
+        """    if op >= @x86.io.in8@ and op <= @x86.io.out8@:
+        if get(w, 200) != 1 or at != 10:
+            return fail(w, 65)
+        if op == @x86.io.in8@:
+            if n != 1 or t != 1 or get(w, 288) != 1:
+                return fail(w, 65)
+            define(w, v, t)
+        else:
+            if n != 2 or bt != 4 or t != 0 or get(w, 288) != 0:
+                return fail(w, 65)
+        expect(s, w, 10)
+        if get(w, 40) != 0:
+            return 0
+        # The port is a typed u16 in DX; out8 takes a typed u8 in AL.
+        # in8 returns a zero-extended u64, never stale high RAX bits.
+        load_var(o, w, 2, a, 0)
+        if op == @x86.io.in8@:
+            emit(o, w, 236)
+            emit(o, w, 15)
+            emit(o, w, 182)
+            emit(o, w, 192)
+            store_var(o, w, v, 0)
+        else:
+            load_var(o, w, 0, b, 0)
+            emit(o, w, 238)
+        return 0
+    if op >= @x86.irq.disable@ and op <= @x86.irq.enable@:
         if get(w, 200) != 1:
             fail(w, 65)
         if (n | t | get(w, 288)) != 0:
@@ -220,6 +246,26 @@ def cr3_program(profile=PROFILE, effect="privilege",
                 op="  v1:u64 = x86.cr3.read()\n", result="v1"):
     return program(profile=profile, effect=effect, op=op).replace(
         b"  ret(v0)\n", f"  ret({result})\n".encode())
+
+def io_program(action, *, profile=PROFILE, effect="privilege", port="u16",
+               value="u8", op=None, module="selfhost_elf"):
+    if action == "in8":
+        args = f"v0:{port}"
+        result = "u64"
+        operation = "  v1:u64 = x86.io.in8(v0)\n"
+        ret = "v1"
+    elif action == "out8":
+        args = f"v0:{port},v1:{value}"
+        result = port
+        operation = "  _ = x86.io.out8(v0,v1)\n"
+        ret = "v0"
+    else:
+        raise ValueError(action)
+    return (f"hia-asm.v1 {profile} {module}\nexports(f0)\n"
+            f"fn f0({args}) -> ({result}) effects({effect}) entry(b0)\n"
+            f"block b0({args})\n" + (operation if op is None else op) +
+            f"  ret({ret})\nend\n").encode()
+
 
 def compile_cli(compiler, source, output, label, expected=0):
     result = subprocess.run([str(compiler)], input=source, capture_output=True,
@@ -539,6 +585,51 @@ def run(output):
         irq[label] = {"elf_sha256": digest(obj), "text_sha256": digest(obj_text),
             "oracle_hex": irq_oracle.hex(), "refusals": list(bad), "source_sha256": digest(subject)}
 
+    port_io = {}
+    for action, mnemonic, hexcode in (
+            ("in8", "inb %dx, %al\n movzbl %al, %eax", "ec0fb6c0"),
+            ("out8", "outb %al, %dx", "ee")):
+        label = "io-" + action
+        subject = io_program(action)
+        obj = compile_cli(exe, subject, output, label + "-1")
+        if obj != compile_cli(exe, subject, output, label + "-2") or not obj.startswith(b"\x7fELF"):
+            raise AssertionError(label + " native ELF repeat failed")
+        obj_text = text_bytes(output, label, obj)
+        asm = output / (label + "-oracle.s")
+        asm.write_text(".text\n " + mnemonic + "\n")
+        oracle_object = output / (label + "-oracle.o")
+        subprocess.run(["as", "--64", "-o", str(oracle_object), str(asm)], check=True)
+        io_oracle = text_bytes(output, label + "-oracle-copy", oracle_object.read_bytes())
+        if io_oracle != bytes.fromhex(hexcode) or obj_text.count(io_oracle) != 1:
+            raise AssertionError(label + " GNU as oracle mismatch")
+        bad = {
+            "no-effect": io_program(action, effect=""),
+            "legacy": io_program(action, profile=LEGACY, effect=""),
+            "wrong-port-type": io_program(action, port="u64"),
+            "wrong-module": io_program(action, module="selfhost"),
+        }
+        if action == "in8":
+            bad.update({
+                "zero-operand": io_program(action, op="  v1:u64 = x86.io.in8()\n"),
+                "extra-operand": io_program(action, op="  v1:u64 = x86.io.in8(v0,v0)\n"),
+                "attribute": io_program(action, op='  v1:u64 = x86.io.in8(v0) {"trust_me":true}\n'),
+                "wrong-result-type": io_program(action, op="  v1:u8 = x86.io.in8(v0)\n").replace(b"-> (u64)", b"-> (u8)"),
+                "no-result": io_program(action, op="  _ = x86.io.in8(v0)\n").replace(b"-> (u64)", b"-> (u16)").replace(b"ret(v1)", b"ret(v0)"),
+            })
+        else:
+            bad.update({
+                "zero-operand": io_program(action, op="  _ = x86.io.out8()\n"),
+                "one-operand": io_program(action, op="  _ = x86.io.out8(v0)\n"),
+                "extra-operand": io_program(action, op="  _ = x86.io.out8(v0,v1,v1)\n"),
+                "wrong-value-type": io_program(action, value="u64"),
+                "result": io_program(action, op="  v2:u8 = x86.io.out8(v0,v1)\n"),
+                "attribute": io_program(action, op='  _ = x86.io.out8(v0,v1) {"trust_me":true}\n'),
+            })
+        for key, malformed in bad.items():
+            compile_cli(exe, malformed, output, label + "-" + key, expected=2)
+        port_io[label] = {"elf_sha256": digest(obj), "text_sha256": digest(obj_text),
+            "oracle_hex": io_oracle.hex(), "refusals": list(bad), "source_sha256": digest(subject)}
+
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -561,6 +652,7 @@ def run(output):
         **extra_reads,
         **extra_writes,
         "irq": irq,
+        "port_io": port_io,
         "capacity": capacity,
         "unsupported_cr2_write_refused": True,
         "shape": shape, "guest_execution": "NOT_RUN", "full_linux_acceptance": "HOLD",

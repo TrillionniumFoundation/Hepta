@@ -283,6 +283,43 @@ def run(output):
         extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
                               (raw, entry["text_sha256"])))
         hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
+    for action, expected_hex, replacement in (
+            ("in8", "ec0fb6c0", "31c09090"),
+            ("out8", "ee", "90")):
+        label = "io-" + action
+        obj = output / (label + ".o")
+        src = output / (label + "-1.input")
+        raw = output / (label + ".text")
+        entry = report["port_io"][label]
+        native_io = obj.read_bytes()
+        text_io = raw.read_bytes()
+        opcode = bytes.fromhex(entry["oracle_hex"])
+        expected_refusals = {"no-effect", "legacy", "wrong-port-type", "wrong-module",
+                             "zero-operand", "extra-operand", "attribute"}
+        expected_refusals |= ({"wrong-result-type", "no-result"} if action == "in8"
+                              else {"one-operand", "wrong-value-type", "result"})
+        if (digest(native_io) != entry["elf_sha256"] or digest(text_io) != entry["text_sha256"]
+                or digest(src.read_bytes()) != entry["source_sha256"]
+                or set(entry["refusals"]) != expected_refusals
+                or opcode != bytes.fromhex(expected_hex) or text_io.count(opcode) != 1
+                or dump_text(obj, output / (label + "-original-readback.text")) != text_io):
+            raise AssertionError(label + " native custody or opcode failure")
+        mutated_io = text_io.replace(opcode, bytes.fromhex(replacement), 1)
+        if len(mutated_io) != len(text_io) or mutated_io == text_io:
+            raise AssertionError(label + " invalid mutation")
+        mutation = output / (label + "-dishonest.text")
+        mutation.write_bytes(mutated_io)
+        bad_io = output / (label + "-dishonest.o")
+        invoke(["objcopy", "--update-section", ".text=" + str(mutation), str(obj), str(bad_io)])
+        if (dump_text(bad_io, output / (label + "-dishonest-readback.text")) != mutated_io
+                or symbol(obj, "f0") != symbol(bad_io, "f0")):
+            raise AssertionError(label + " mutation readback failure")
+        macros = ("HIA_TEST_IO_" + action.upper(),)
+        extra_cases.extend(((label + "-two-ports", native_io, text_io, macros, 33, "P"),
+                            (label + "-substitution", bad_io.read_bytes(), mutated_io, macros, 35, "N")))
+        extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
+                              (raw, entry["text_sha256"])))
+        hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
     path = output / "hardware"
     path.mkdir()
     try:

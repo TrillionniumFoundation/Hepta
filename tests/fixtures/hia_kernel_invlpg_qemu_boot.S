@@ -80,6 +80,64 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#if defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8)
+    /* PIC IMR registers on PC/Q35, IRQs disabled throughout. The observer
+     * independently establishes and reads each device state and restores
+     * the original masks. Only f0 performs the subject operation. */
+    cli
+    xorl %r15d, %r15d
+    .macro io_probe port, initial, target
+    movw $\port, %dx
+    inb %dx, %al
+    movzbl %al, %r12d
+    movb $\initial, %al
+    outb %al, %dx
+    inb %dx, %al
+    cmpb $\initial, %al
+    jne abort
+    movl $\port, %edi
+#ifdef HIA_TEST_IO_IN8
+    call f0
+    cmpq $\initial, %rax
+    je io_positive\@
+    testq %rax, %rax
+    jne abort
+#else
+    movl $\target, %esi
+    call f0
+    cmpw $\port, %ax
+    jne abort
+    movw $\port, %dx
+    inb %dx, %al
+    cmpb $\target, %al
+    je io_positive\@
+    cmpb $\initial, %al
+    jne abort
+#endif
+    orl $2, %r15d
+    jmp io_restore\@
+io_positive\@:
+    orl $1, %r15d
+io_restore\@:
+    movw $\port, %dx
+    movb %r12b, %al
+    outb %al, %dx
+    inb %dx, %al
+    cmpb %r12b, %al
+    jne abort
+    .endm
+    io_probe 0x21, 0x5a, 0xa5
+    io_probe 0xa1, 0xc3, 0x3c
+    cmpl $1, %r15d
+    je io_pass
+    cmpl $2, %r15d
+    jne abort
+    movb $'N', %bl
+    jmp debug_exit64
+io_pass:
+    movb $'P', %bl
+    jmp debug_exit64
+#endif
 #if defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE)
     /* Mask both PICs before changing IF; no APIC source is armed. */
     cli
@@ -362,7 +420,7 @@ fail64:
     movb $'N', %bl
     jmp debug_exit64
 pf_handler:
-#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE)
+#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8)
     jmp abort /* A fault must not masquerade as the write NOP control. */
 #endif
 #ifdef HIA_TEST_CR2_READ
