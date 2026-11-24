@@ -254,7 +254,11 @@ block b34(v337:readbuf,v338:mutbuf,v339:mutbuf)
   workspace_kind:u64 = const() {"value":196616}
   workspace_ceiling:u64 = const() {"value":4198400}
   workspace_selected:bool = compare.eq(v350,workspace_kind)
-  v362:u64 = select(workspace_selected,workspace_ceiling,retained_limit)
+  workspace_limit:u64 = select(workspace_selected,workspace_ceiling,retained_limit)
+  worker_install_owner_kind:u64 = const() {"value":3552021007038499144}
+  worker_install_owner_selected:bool = compare.eq(v350,worker_install_owner_kind)
+  worker_install_owner_ceiling:u64 = const() {"value":2097152}
+  v362:u64 = select(worker_install_owner_selected,worker_install_owner_ceiling,workspace_limit)
   v363:u64 = const() {"value":131072}
   v364:bool = compare.ge(v350,v363)
   v365:u64 = const() {"value":131200}
