@@ -690,6 +690,10 @@ def source_program():
     text=BODY
     text+='\ndef instruction(s:readbuf, w:mutbuf, o:mutbuf, ins:u64) -> u64:\n    op = field(w, ins, K_op)\n'
     for spec in OPCODES.values():
+        # The installed native admission verifier implements only the v1-v8
+        # four-effect grammar. Kernel experiments are a distinct, fail-closed profile.
+        if spec.since > 8:
+            continue
         a=rules(spec.operands)|((1<<48) if spec.name in {'borrow.read','borrow.mut'} else 0)
         r=rules(spec.results);r=(r&((1<<32)-1))|((r>>56)<<32)
         attr={'value':1,'mode':2,'function':3}.get(spec.attributes[0],0) if spec.attributes else 0
