@@ -131,8 +131,8 @@ def chain_store_transfer(o:mutbuf, w:mutbuf, out:u64, payload:u64, ok:u64) -> u6
 
 def chain_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
     count = get(w, 288)
-    out = get(w, 296)
-    t = get(w, 304)
+    out = get(w, RESULT_OUTPUTS)
+    t = get(w, RESULT_OUTPUTS + 8)
     if op == @chain.empty@:
         if n != 0 or count != 1 or t != 9:
             return fail(w, 67)
@@ -159,7 +159,7 @@ def chain_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
         emit_bytes(o, w, MOV_RAX_RDX, 3)
         store_var(o, w, out, 1)
         return 0
-    if count != 3 or t != 9 or get(w, 320) != 8 or get(w, 336) != 5:
+    if count != 3 or t != 9 or get(w, RESULT_OUTPUTS + 24) != 8 or get(w, RESULT_OUTPUTS + 40) != 5:
         return fail(w, 67)
     require_effects(w, 1)
     owner_free(w, a)
@@ -184,7 +184,7 @@ def chain_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
             return fail(w, 67)
         load_var(o, w, 7, a, 0)
         chain_bytes_pop(o, w)
-    chain_store_transfer(o, w, out, get(w, 312), get(w, 328))
+    chain_store_transfer(o, w, out, get(w, RESULT_OUTPUTS + 16), get(w, RESULT_OUTPUTS + 32))
     owner_consume(w, a)
     return 0
 '''

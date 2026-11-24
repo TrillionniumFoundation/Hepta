@@ -2687,7 +2687,7 @@
         "return_results": "f94"
       },
       "items": [
-        "zero to three scalar, owned or parameter-bound borrowed results",
+        "zero to six scalar, owned or parameter-bound borrowed results",
         "exact signatures",
         "forward direct calls",
         "backward direct calls",
@@ -2714,7 +2714,7 @@
         "return_results": "f94"
       },
       "items": [
-        "direct self call immediately returning its exact zero-to-three scalar/owner/loan result tuple in order",
+        "direct self call immediately returning its exact zero-to-six scalar/owner/loan result tuple in order",
         "parallel argument staging and same-frame entry jump",
         "non-tail self calls and mutual recursion rejected",
         "non-tail cycles in non-entry-reachable functions rejected"
@@ -2760,7 +2760,7 @@
         "scratch_is_heap": false
       },
       "excluded": [
-        "more than three results"
+        "more than six results"
       ],
       "existing_evidence": [
         "tools.qualify_hia_selfhost_owned_elf.qualify",
@@ -3268,7 +3268,10 @@
       0,
       1,
       2,
-      3
+      3,
+      4,
+      5,
+      6
     ],
     "combinations": [
       "forward/backward direct calls",
@@ -3283,7 +3286,7 @@
       "buffer",
       "chain"
     ],
-    "private_result_area_bytes": 64,
+    "private_result_area_bytes": 128,
     "private_result_stride_bytes": 16,
     "public_entry": "unchanged f0(readbuf,mutbuf,mutbuf)->u32",
     "qualification": "tools.hia_selfhost_multi_results.qualify on original B3 and mutated M3",
@@ -3348,7 +3351,7 @@
         "source_offset": 240
       },
       "function_name_resolution": "bounded 128-entry hash filter plus mandatory length and every-source-byte equality",
-      "function_results": 3,
+      "function_results": 6,
       "functions": 128,
       "identifier_temporary_offsets": [
         456,
@@ -3359,10 +3362,10 @@
         1016592,
         1016600
       ],
-      "instruction_results": 3,
+      "instruction_results": 6,
       "instructions": 8192,
-      "internal_frame_overhead_bytes": 576,
-      "internal_result_area_bytes": 64,
+      "internal_frame_overhead_bytes": 640,
+      "internal_result_area_bytes": 128,
       "internal_result_descriptor_words": 2,
       "internal_result_stride_bytes": 16,
       "output_capacity_bytes": 1048576,
@@ -3373,19 +3376,33 @@
       "resource_graph_queue_workspace_end_exclusive": 928528,
       "resource_graph_queue_workspace_start": 926480,
       "resource_graph_queued_replays_per_block_max": 1,
+      "result_output_workspace_bytes": [
+        1088,
+        1184
+      ],
       "result_signature_workspace_record_offsets": {
         "count": 184,
         "return_loan_origins": [
           216,
           224,
-          232
+          232,
+          296,
+          304,
+          312
         ],
         "types": [
           192,
           200,
-          208
+          208,
+          272,
+          280,
+          288
         ]
       },
+      "returned_identity_workspace_bytes": [
+        1184,
+        1232
+      ],
       "semantic_call_graph_checked_after_all_names_and_signatures": true,
       "signature_prepasses": 1,
       "source_bytes": 1048576,
@@ -3439,7 +3456,7 @@
     ],
     "input_schema": "hepta.hia.composite.v4",
     "lowering": "hepta.hia_program_composite.elaborate_program_native",
-    "maximum_internal_results": 3,
+    "maximum_internal_results": 6,
     "public_exports": "original scalar signatures only",
     "qualification": "tests.test_hia_program_selfhost.SelfhostBuildNativeTests",
     "retained_semantic_owner_fallback": false,
@@ -3467,7 +3484,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v93-word-memory64",
+  "profile": "selfhost-core-linux-x86_64-v94-six-results",
   "rejected_inputs": [
     {
       "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
@@ -5507,13 +5524,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "0437e8196c52e3b00a08a793b39e447bf78094778d64febf23c3158813a231f1"
+      "sha256": "cfae4bb053092affb9c004aad30eb007344b62f3dc4681fdc529693e119fa1ac"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hepta",
-      "sha256": "c5279736f0b5933f1864c97591df54d433a44ac36e924290162a12840fff3e41"
+      "sha256": "1890379605e02731eb5ff00ec708db01338e7e4411916f7f6be1d0715521c3b3"
     },
-    "semantic_support_sha256": "c5bb9184a7f45251f06e90ae921b46e18576842c8eddeaaf54fc00821cc5bcfe",
+    "semantic_support_sha256": "7eaf4d4284f3b638679b39823db54261c8137c104a06f73964d857157e45abd8",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -5530,9 +5547,9 @@
       "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
       "executable_module": "selfhost_exec",
       "function_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core reserved function names and __hia_ prefix rejected",
-      "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
+      "function_results": "zero to six scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
       "header": "hia-asm.v1",
-      "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
+      "instruction_results": "zero or one; internal calls have zero to six scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
       "module": "ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core __hia_ prefix rejected; ordinary module labels without explicit exports select flat output",
       "object_module": "selfhost_elf",
       "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",

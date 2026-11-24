@@ -269,7 +269,9 @@ class SelfhostBuildNativeTests(unittest.TestCase):
                  ("pair-mut", loans.pair_program("mut"), "probe",
                   [(3, byte, choose) for choose in (False, True) for byte in (0, 37, 250, 255)]),
                  ("read-child", loans.direct_downgrade_program(), "entry_read_child",
-                  [(3, byte) for byte in (0, 37, 250, 255)])]
+                  [(3, byte) for byte in (0, 37, 250, 255)]),
+                 ("six-result-task", loans.task_program(), "task_probe",
+                  [(size, mode) for size in (0, 1, 7) for mode in (0, 1, 2)])]
         scalar_types = {"usize": ctypes.c_uint64, "u64": ctypes.c_uint64,
                         "u32": ctypes.c_uint32, "u8": ctypes.c_uint8, "bool": ctypes.c_bool}
         for label, source, function, arguments in cases:
@@ -284,7 +286,7 @@ class SelfhostBuildNativeTests(unittest.TestCase):
                 receipt = self.build(submitted, output=output)
             self.assertEqual(receipt["input_sha256"], expected.input_sha256)
             self.assertEqual(receipt["core_sha256"], expected.sha256)
-            self.assertEqual(receipt["exports"], [function])
+            self.assertEqual(receipt["exports"], sorted(expected.scalar_entrypoints))
             self.assertEqual(receipt["nominal_lowering"], {
                 "input_schema": "hepta.hia.composite.v4", "core_schema": "hepta.hia.program.v8",
                 "semantic_owners": "selected-complete-HIA", "host_semantic_fallback": False,
@@ -317,10 +319,17 @@ class SelfhostBuildNativeTests(unittest.TestCase):
         source = loans.pair_program()
         with patch.dict(os.environ, selection.reference_environment):
             expected = verify_program(source)
-            wide = verify_program(loans.task_program())
+            from hepta.hia_agent_assembly import assemble_program
+            from tools.hia_selfhost_multi_results import extended_refusals
+            seven = next(row for row in extended_refusals() if row["id"] == "seven-scalar-results")
+            wide = assemble_program(seven["source"].encode()).as_dict()
+            wide["functions"][0]["params"] = []
+            wide["functions"][0]["blocks"][0]["params"] = []
+            wide["exports"] = ["f0"]
+            wide = verify_program(wide)
             old = roundtrip_program()
             verify_program(old)
-        self.assertGreater(max(len(fn["returns"]) for fn in wide.as_dict()["functions"]), 3)
+        self.assertGreater(max(len(fn["returns"]) for fn in wide.as_dict()["functions"]), 6)
         failures = []
         selectors = [name for name, value in selection.complete_environment.items()
                      if value and name.endswith("_MANIFEST")]
@@ -345,11 +354,11 @@ class SelfhostBuildNativeTests(unittest.TestCase):
         self.assertFalse((self.root / "result.o").exists())
         with self._native_nominal_scope(selection):
             with self.assertRaises(native.SelfhostBuildRejected) as caught:
-                self.build(loans.task_program())
+                self.build(wide)
         self.assertEqual(caught.exception.code, "E_HIA_SELFHOST_COMPILE")
         self.assertIsNotNone(caught.exception.capture)
         self.assertFalse((self.root / "result.o").exists())
-        failures.append({"case": "six-result-task", "error": str(caught.exception),
+        failures.append({"case": "seven-result-core", "error": str(caught.exception),
                          "capture": caught.exception.capture, "published": False})
         selection.check_custody()
         _write_json(self.root / "native-nominal-refusals.json", failures)
