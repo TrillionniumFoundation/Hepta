@@ -194,6 +194,8 @@ def main():
     request += runner[2] + seed[2] + capture[2] + seed[2] + seed[2] + name + inventory
     request_fd = capability('component-request', request, 0o400)[0]
     put(0, 7000, 0)
+    # A retained roots extent must survive the later controller/Worker transitions.
+    put(1800696, 136)
     put(24, os.geteuid())
     put(216, seed[0], capture[0], runner[0])
     put(3000, runner[1], seed[1])
@@ -230,7 +232,7 @@ def main():
     terminal = (out / 'terminal-state.bin').read_bytes()
     assert len(terminal) == 4 << 20
     selected = {name: struct.unpack_from('<Q', terminal, at)[0]
-                for name, at in (('phase', 0), ('sysret', 8), ('callback', 512), ('stored_result', 152))}
+                for name, at in (('phase', 0), ('sysret', 8), ('callback', 512), ('stored_result', 152), ('retained_roots_bytes', 1800696))}
     report = {'scope': 'NATIVE_WORKER_POST_RELEASE_COMPONENT_WITHOUT_COLD_ADMISSION',
               'returncode': result.returncode, 'expected_returncode': args.expect_code,
               'elapsed': time.monotonic() - begin, 'terminal': selected,
@@ -242,6 +244,7 @@ def main():
         parent_flags = list(struct.unpack_from('<4Q', terminal, 61800))
         assert parent_flags == [1, 1, 1, 1], parent_flags
         report['parent_directory_cloexec_preserved'] = True
+        report['retained_roots_extent_preserved'] = selected['retained_roots_bytes'] == 136
         controllers = list((installation / 'controller').glob('*/hia-controller.json'))
         assert len(controllers) == 1
         controller = json.loads(controllers[0].read_bytes())
@@ -253,6 +256,8 @@ def main():
         report['native_store_install_verify_controller_completed'] = True
     (out / 'qualification.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, sort_keys=True))
+    if result.returncode == 0 and not report['retained_roots_extent_preserved']:
+        raise SystemExit('retained roots extent changed across native controller installation')
     if args.expect_callback is not None and selected['callback'] != args.expect_callback:
         raise SystemExit('unexpected native Worker refusal phase')
     if result.returncode != args.expect_code or result.stdout or result.stderr:
