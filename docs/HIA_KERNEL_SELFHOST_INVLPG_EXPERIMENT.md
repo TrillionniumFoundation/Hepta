@@ -48,3 +48,37 @@ The observer re-derives the page-table slot after the call, rather than
 incorrectly assuming the SysV caller-saved r9 is preserved. Wrong-address
 observations remain diagnostics since INVLPG permits over-invalidation.
 No result from the earlier candidate is credited to this continuation.
+
+## Isolated expanded-workspace continuation
+
+The previous atomic64 candidate has 125 functions, 1,597 blocks and 8,657
+operations, with only three global block records and three function records
+available. This continuation changes the private experimental workspace
+to 2 MiB, independently retaining 1 MiB source and output limits. It admits
+192 functions, 2,048 global blocks, 10,000 instructions and 16,000 relocation
+records. Per-function SSA/name/block limits and 128 exported functions
+remain unchanged. The packed interval layout ends at byte 1,326,608; the
+conservative relocation bound is 14,418. The header's byte-sized function
+count is still sufficient. Both graph strides and the graph/mark clearing
+length follow the same function limit.
+
+The actual emitted executable compiler maps 4 MiB: input and output each
+use 1 MiB; the last 2 MiB is scratch, passed at the correct register/length.
+Only the explicitly separate B0 development seed temporarily admits the
+larger borrowed extent. The historical source, default byte ABI, child,
+generator and compiler lock are not edited. A derived, retained observer
+changes only its workspace bound, and its digest is recorded. No release
+qualification for a new public byte ABI is claimed.
+
+The unchanged native generation and empty-PATH self-rebuild controls
+remain mandatory. A native scalar ELF reaches both global block and
+instruction limits; a second ELF exercises a chain through 192 functions
+including high ordinals. The independently checked outputs must match
+arithmetic oracles. Exact source/flat/CLI readback, poisoned scratch,
+one-over function/block/instruction limits, high-ordinal call cycle,
+old and one-byte-short workspace, and oversized input controls supplement
+all existing hardware scenarios. Local cached-source development checks
+matched the exact parent's authored source SHA-256 before rebuilding;
+they do not replace independent exact-head CI. No full Linux gate is
+credited, no SMP/resource authority proof is claimed, and the frozen
+upstream and HeptaKernel main branches and toolchain remain untouched.
