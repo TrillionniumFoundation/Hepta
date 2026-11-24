@@ -777,6 +777,9 @@ NATIVE_CONTROLLER_INSTALL_FILES = (
     'examples/hia_bootstrap/controller_probe.hepta',
     'tools/generate_hia_controller_install.py',
     'tools/hia_controller_install_syscalls.S',
+    'tools/qualify_hia_controller_install.py',
+    'tools/qualify_hia_controller_install_refusals.py',
+    'tools/qualify_hia_controller_install_sources.py',
 )
 NATIVE_WORKER_INSTALL_ENTRY_FILES = (
     'docs/HIA_WORKER_INSTALL_ENTRY.md',

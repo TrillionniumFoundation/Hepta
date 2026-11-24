@@ -103,3 +103,23 @@ That filter preserves the original packer's byte and length checks. The
 installation owner must still validate the exact captured policy,
 configuration, three adapter call sites, and complete emitted extent.
 Packing an image alone does not authorize its installation.
+
+## Portable component qualification
+
+The checked-in external qualification drivers accept explicit component and
+reference paths, so their controls remain reproducible after temporary build
+workspaces are removed. The supplied release must be independently qualified;
+these component checks do not replace the complete Worker installation gate.
+
+```sh
+python3 -B tools/qualify_hia_controller_install.py --release RELEASE --runner RUNNER --component CONTROLLER_ELF --output NEW_EVIDENCE
+python3 -B tools/qualify_hia_controller_install_refusals.py --release RELEASE --runner RUNNER --component CONTROLLER_ELF --output NEW_REFUSALS
+python3 -B tools/qualify_hia_controller_install_sources.py --kit NATIVE_KIT --controller-reference CONTROLLER_ELF --worker-reference ORIGINAL_WORKER_ELF --output NEW_SOURCE_EVIDENCE
+```
+
+All accept `--source ROOT` when the source tree is separate from the script.
+The source driver requires independent qualified controller and original public
+Worker images for its exact-byte comparisons. It preserves the named-source
+refusals, companion checks, order independence, raw pack refusals, and original
+Worker round-trip checks. The installed controller driver retains the complete
+v25 native probe sequence; its refusal driver retains all 13 original cases.
