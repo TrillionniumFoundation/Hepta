@@ -28,9 +28,10 @@ LEGACY = "hepta.hia.program.v8"
 HEADER = b"hia-asm.v1 hepta.hia.program.v8 selfhost\n"
 # Only the isolated candidate changes capacity. Keep the public 1 MiB
 # source/output/scratch envelopes, 128 functions, 256 blocks/function,
-# 2048 SSA names/function, 262144 Core nodes and 12000 relocations.
+# 2048 SSA names/function and 262144 Core nodes. Expand the isolated relocation table.
 CANDIDATE_BLOCKS = 1600
-CANDIDATE_INSTRUCTIONS = 8540
+CANDIDATE_INSTRUCTIONS = 8800
+CANDIDATE_RELOCATIONS = 12300
 
 def candidate_layout():
     # Global block records, one discovery/kind byte per GLOBAL block,
@@ -40,11 +41,14 @@ def candidate_layout():
     block_delta = (CANDIDATE_BLOCKS - 1536) * gen.BSTRIDE
     kind_delta = CANDIDATE_BLOCKS - 1536
     origin_delta = kind_delta * 16
+    relocation_delta = (CANDIDATE_RELOCATIONS - 12000) * 24
     moved = ("VBASE", "ARGS", "FIXBASE", "CBASE", "CSTATE", "CAPBASE", "KBASE")
     layout = {key: getattr(gen, key) + block_delta for key in moved}
+    for key in ("CBASE", "CSTATE", "CAPBASE", "KBASE"):
+        layout[key] += relocation_delta
     for key in ("CAPTMP", "QBASE", "ORIGINBASE", "BLOCKORIGIN"):
-        layout[key] = getattr(gen, key) + block_delta + kind_delta
-    names = {old: old + block_delta + kind_delta + origin_delta
+        layout[key] = getattr(gen, key) + block_delta + relocation_delta + kind_delta
+    names = {old: old + block_delta + relocation_delta + kind_delta + origin_delta
              for old in (955152, 1004304, 1010448)}
     intervals = [
         ("state", 0, 2048),
@@ -52,7 +56,7 @@ def candidate_layout():
         ("blocks", gen.BBASE, gen.BBASE + CANDIDATE_BLOCKS * gen.BSTRIDE),
         ("ssa", layout["VBASE"], layout["VBASE"] + 2048 * 16),
         ("args", layout["ARGS"], layout["ARGS"] + 1024),
-        ("relocations", layout["FIXBASE"], layout["FIXBASE"] + 12000 * 24),
+        ("relocations", layout["FIXBASE"], layout["FIXBASE"] + CANDIDATE_RELOCATIONS * 24),
         ("call_graph", layout["CBASE"], layout["CBASE"] + 128 * 128),
         ("call_state", layout["CSTATE"], layout["CSTATE"] + 128 * 8),
         ("capabilities", layout["CAPBASE"], layout["CAPBASE"] + 2048 * 24),
@@ -71,7 +75,7 @@ def candidate_layout():
             raise ValueError(("candidate scratch overlap or overflow", label, start, end))
         previous = end
     relocation_bound = 128 + CANDIDATE_INSTRUCTIONS + 2 * CANDIDATE_BLOCKS + 128 + 2
-    if relocation_bound > 12000:
+    if relocation_bound > CANDIDATE_RELOCATIONS:
         raise ValueError("candidate relocation capacity exceeded")
     return layout, names, intervals, relocation_bound
 
@@ -82,14 +86,14 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8"):
+    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
-    # The twelve experimental opcodes occupy a contiguous token interval.
+    # The sixteen experimental opcodes occupy a contiguous token interval.
     # Keep the native compiler within its audited candidate capacity.
     if [words[name] - words["x86.tlb.invlpg"] for name in
-            ("x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8")] != list(range(12)):
+            ("x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32")] != list(range(16)):
         raise ValueError("kernel token interval changed")
     source = gen.SOURCE
     layout, names, _, _ = candidate_layout()
@@ -134,36 +138,44 @@ def candidate_source():
                 flag = 2 << (token - @read@)""")
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op >= @x86.tlb.invlpg@ and op <= @x86.io.out8@:
+    if op >= @x86.tlb.invlpg@ and op <= @x86.io.out32@:
         return 16""")
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
         owned_instruction(o, w, op, n, a, at)""",
-        """    if op >= @x86.io.in8@ and op <= @x86.io.out8@:
+        """    if op >= @x86.io.in8@ and op <= @x86.io.out32@:
         if get(w, 200) != 1 or at != 10:
             return fail(w, 65)
-        if op == @x86.io.in8@:
+        direction = (op - @x86.io.in8@) & 1
+        width = (op - @x86.io.in8@) >> 1
+        if direction == 0:
             if n != 1 or t != 1 or get(w, 288) != 1:
                 return fail(w, 65)
             define(w, v, t)
         else:
-            if n != 2 or bt != 4 or t != 0 or get(w, 288) != 0:
+            # Packed scalar type codes: u8=4, u16=10, u32=3.
+            if n != 2 or bt != ((932 >> (4 * width)) & 15) or t != 0 or get(w, 288) != 0:
                 return fail(w, 65)
         expect(s, w, 10)
         if get(w, 40) != 0:
             return 0
-        # The port is a typed u16 in DX; out8 takes a typed u8 in AL.
-        # in8 returns a zero-extended u64, never stale high RAX bits.
         load_var(o, w, 2, a, 0)
-        if op == @x86.io.in8@:
-            emit(o, w, 236)
-            emit(o, w, 15)
-            emit(o, w, 182)
-            emit(o, w, 192)
-            store_var(o, w, v, 0)
-        else:
+        if direction != 0:
             load_var(o, w, 0, b, 0)
-            emit(o, w, 238)
+        # IN/OUT are byte, word (66 prefix), or dword (EAX). EAX writes
+        # zero the upper half of RAX; byte/word input explicitly extends.
+        if width == 1:
+            emit(o, w, 102)
+        opcode = 236 + 2 * direction
+        if width != 0:
+            opcode = opcode + 1
+        emit(o, w, opcode)
+        if direction == 0:
+            if width < 2:
+                emit(o, w, 15)
+                emit(o, w, 182 + width)
+                emit(o, w, 192)
+            store_var(o, w, v, 0)
         return 0
     if op >= @x86.irq.disable@ and op <= @x86.irq.enable@:
         if get(w, 200) != 1:
@@ -221,7 +233,8 @@ def candidate_source():
     # 200..207 is a dedicated candidate profile word within the existing
     # per-phase 0..255 zeroed header; no existing state field is moved.
     with patch.multiple(gen, SOURCE=source, W=words,
-                        MAX_INSTRUCTIONS=CANDIDATE_INSTRUCTIONS, **layout):
+                        MAX_INSTRUCTIONS=CANDIDATE_INSTRUCTIONS,
+                        MAX_RELOCATIONS=CANDIDATE_RELOCATIONS, **layout):
         document, _ = gen.document()
     functions = document["functions"]
     blocks = [b for f in functions for b in f["blocks"]]
@@ -248,16 +261,18 @@ def cr3_program(profile=PROFILE, effect="privilege",
         b"  ret(v0)\n", f"  ret({result})\n".encode())
 
 def io_program(action, *, profile=PROFILE, effect="privilege", port="u16",
-               value="u8", op=None, module="selfhost_elf"):
-    if action == "in8":
+               value=None, op=None, module="selfhost_elf"):
+    if action in ("in8", "in16", "in32"):
         args = f"v0:{port}"
         result = "u64"
-        operation = "  v1:u64 = x86.io.in8(v0)\n"
+        operation = f"  v1:u64 = x86.io.{action}(v0)\n"
         ret = "v1"
-    elif action == "out8":
+    elif action in ("out8", "out16", "out32"):
+        if value is None:
+            value = "u" + action[3:]
         args = f"v0:{port},v1:{value}"
         result = port
-        operation = "  _ = x86.io.out8(v0,v1)\n"
+        operation = f"  _ = x86.io.{action}(v0,v1)\n"
         ret = "v0"
     else:
         raise ValueError(action)
@@ -389,7 +404,8 @@ for i, delta in enumerate(expected):
         compile_cli(exe, malformed, output, label, expected=2)
     return {"status": "PASS", "blocks": CANDIDATE_BLOCKS,
             "instructions": CANDIDATE_INSTRUCTIONS, "scratch_intervals": intervals,
-            "relocation_upper_bound": bound, "source_sha256": digest(subject),
+            "relocation_upper_bound": bound, "relocation_capacity": CANDIDATE_RELOCATIONS,
+            "source_sha256": digest(subject),
             "object_sha256": digest(obj), "native_calls": len(expected) * 3,
             "over_limit_refusals": 2, "native_refusal_codes": refusal_codes,
             "flat_cli_object_identity": True}
@@ -588,7 +604,11 @@ def run(output):
     port_io = {}
     for action, mnemonic, hexcode in (
             ("in8", "inb %dx, %al\n movzbl %al, %eax", "ec0fb6c0"),
-            ("out8", "outb %al, %dx", "ee")):
+            ("out8", "outb %al, %dx", "ee"),
+            ("in16", "inw %dx, %ax\n movzwl %ax, %eax", "66ed0fb7c0"),
+            ("out16", "outw %ax, %dx", "66ef"),
+            ("in32", "inl %dx, %eax", "ed"),
+            ("out32", "outl %eax, %dx", "ef")):
         label = "io-" + action
         subject = io_program(action)
         obj = compile_cli(exe, subject, output, label + "-1")
@@ -608,22 +628,22 @@ def run(output):
             "wrong-port-type": io_program(action, port="u64"),
             "wrong-module": io_program(action, module="selfhost"),
         }
-        if action == "in8":
+        if action.startswith("in"):
             bad.update({
-                "zero-operand": io_program(action, op="  v1:u64 = x86.io.in8()\n"),
-                "extra-operand": io_program(action, op="  v1:u64 = x86.io.in8(v0,v0)\n"),
-                "attribute": io_program(action, op='  v1:u64 = x86.io.in8(v0) {"trust_me":true}\n'),
-                "wrong-result-type": io_program(action, op="  v1:u8 = x86.io.in8(v0)\n").replace(b"-> (u64)", b"-> (u8)"),
-                "no-result": io_program(action, op="  _ = x86.io.in8(v0)\n").replace(b"-> (u64)", b"-> (u16)").replace(b"ret(v1)", b"ret(v0)"),
+                "zero-operand": io_program(action, op=f"  v1:u64 = x86.io.{action}()\n"),
+                "extra-operand": io_program(action, op=f"  v1:u64 = x86.io.{action}(v0,v0)\n"),
+                "attribute": io_program(action, op='  v1:u64 = x86.io.WIDTH(v0) {"trust_me":true}\n'.replace('WIDTH', action)),
+                "wrong-result-type": io_program(action, op=f"  v1:u8 = x86.io.{action}(v0)\n").replace(b"-> (u64)", b"-> (u8)"),
+                "no-result": io_program(action, op=f"  _ = x86.io.{action}(v0)\n").replace(b"-> (u64)", b"-> (u16)").replace(b"ret(v1)", b"ret(v0)"),
             })
         else:
             bad.update({
-                "zero-operand": io_program(action, op="  _ = x86.io.out8()\n"),
-                "one-operand": io_program(action, op="  _ = x86.io.out8(v0)\n"),
-                "extra-operand": io_program(action, op="  _ = x86.io.out8(v0,v1,v1)\n"),
+                "zero-operand": io_program(action, op=f"  _ = x86.io.{action}()\n"),
+                "one-operand": io_program(action, op=f"  _ = x86.io.{action}(v0)\n"),
+                "extra-operand": io_program(action, op=f"  _ = x86.io.{action}(v0,v1,v1)\n"),
                 "wrong-value-type": io_program(action, value="u64"),
-                "result": io_program(action, op="  v2:u8 = x86.io.out8(v0,v1)\n"),
-                "attribute": io_program(action, op='  _ = x86.io.out8(v0,v1) {"trust_me":true}\n'),
+                "result": io_program(action, op=f"  v2:u8 = x86.io.{action}(v0,v1)\n"),
+                "attribute": io_program(action, op='  _ = x86.io.WIDTH(v0,v1) {"trust_me":true}\n'.replace('WIDTH', action)),
             })
         for key, malformed in bad.items():
             compile_cli(exe, malformed, output, label + "-" + key, expected=2)
