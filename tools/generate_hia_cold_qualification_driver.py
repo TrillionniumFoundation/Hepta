@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 
 from hepta.hia_agent_assembly import render_assembly
-from tools.generate_hia_cold_document import document
+from tools.generate_hia_cold_document import bulk_document as document
 from tools.generate_hia_native_filter import LINK_SOURCE
 from tools.generate_hia_release_owner import POLICY as RELEASE_HELPERS
 from tools.generate_hia_cold_qualification_codec import CODEC
@@ -896,7 +896,7 @@ def policy_source():
     helpers = helpers.replace('put(w, 3072, r)\n        return writing(o, w, r, get(w, 3112), get(w, 3120), 1601)',
         'put(w, 3072, r)\n        return call(o, w, 1607, 91, r, 384, 0, 0, 0, 0, 0)\n    if phase == 1607:\n        return writing(o, w, get(w, 3072), get(w, 3112), get(w, 3120), 1601)')
     helpers = helpers.replace('return getn(w, at, 8)', 'return word_load(w, at)')
-    text = accelerate(SOURCE + '\n' + CODEC + '\n' + helpers)
+    text = accelerate(SOURCE + '\n' + CODEC + '\n' + helpers, bulk=True)
     words={};writes=[];cursor=600000
     for name,raw in {'MEMFD':b'hia-cold-plan','CHILD':b'hia-cold-child','EMPTY':b'',
                      'ENV_PATH':b'PATH=','ENV_LANG':b'LANG=C.UTF-8','ENV_LC':b'LC_ALL=C.UTF-8','ENV_TZ':b'TZ=UTC'}.items():

@@ -3062,6 +3062,495 @@
         }
       ],
       "whole_native_cold_replay_closed": false
+    },
+    "driver_bulk_v12": {
+      "scope": "Native immutable qualification-plan executor, independent HIA seed construction; full nineteen-family cold replay remains separate",
+      "products": {
+        "driver": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-native-driver-v12/hia-cold-qualification-driver",
+          "sha256": "b7a6ee2cb4b4db30acc17b278e878f8ceb817425313afbe6160f6a0647267b70",
+          "bytes": 360639
+        },
+        "fast": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-native-driver-v12/hia-independent-subprocess",
+          "sha256": "85d1e1a6b05351a4bc35ec210b69fa86d32ea7f63dfb629c477d93af606ee99b",
+          "bytes": 155730
+        },
+        "hia-cold-flat-check": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-native-driver-v12/hia-cold-flat-check",
+          "sha256": "3a6affae65ab13999de18dc0e44d77f54bd72edd00c39df8047dd6c53985645c",
+          "bytes": 98182
+        },
+        "hia-cold-compiler-mutation": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-native-driver-v12/hia-cold-compiler-mutation",
+          "sha256": "e54f5ef7dd786ca28335fab3e730a8e7a03c105893dd7231a1cd8480c2f90467",
+          "bytes": 25080
+        }
+      },
+      "cases": [
+        {
+          "case": "all-plan-operations",
+          "returncode": 0,
+          "stdout_hex": "484941514f4b30314000000000000000ed0e100000000000f14a000000000000243ceeb0630023cf03a1697ac87d2cbd893306a78ba3df0b0e1c054ec63f1a07",
+          "stderr_hex": "",
+          "elapsed_ns": 341782858,
+          "plan_bytes": 1052397,
+          "nodes": 64,
+          "journal_bytes": 19185,
+          "journal_sha256": "243ceeb0630023cf03a1697ac87d2cbd893306a78ba3df0b0e1c054ec63f1a07",
+          "retained_nodes": 64,
+          "passed": true
+        },
+        {
+          "case": "external-journal-corruption-refused",
+          "returncode": 74,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 333054521,
+          "plan_bytes": 1052397,
+          "nodes": 64,
+          "journal_bytes": 19185,
+          "journal_sha256": "344624038c05efa41b8b19038b9d401464d294aa6c6fbbfd9978da2d36f039ab",
+          "retained_nodes": 0,
+          "passed": true,
+          "external_journal_mutation_detected": true
+        },
+        {
+          "case": "bad-request-magic",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 1065486,
+          "plan_bytes": 1052397,
+          "nodes": 64,
+          "journal_bytes": 0,
+          "journal_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "retained_nodes": 0,
+          "passed": true
+        },
+        {
+          "case": "bad-plan-pin",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 92103060,
+          "plan_bytes": 1052397,
+          "nodes": 64,
+          "journal_bytes": 0,
+          "journal_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "retained_nodes": 0,
+          "passed": true
+        },
+        {
+          "case": "bad-import-pin",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 110387443,
+          "plan_bytes": 1052397,
+          "nodes": 64,
+          "journal_bytes": 0,
+          "journal_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "retained_nodes": 0,
+          "passed": true
+        },
+        {
+          "case": "extra-request-tail",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 1450366,
+          "plan_bytes": 1052397,
+          "nodes": 64,
+          "journal_bytes": 0,
+          "journal_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "retained_nodes": 0,
+          "passed": true
+        },
+        {
+          "case": "unequal-assertion-refused",
+          "returncode": 1,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 31053066,
+          "plan_bytes": 154,
+          "nodes": 3,
+          "journal_bytes": 324,
+          "journal_sha256": "f3b2ee1a6fd116d59e12abb9882ebd85b080fa01f97bd82d2b70cbea9869e7a1",
+          "retained_nodes": 2,
+          "passed": true
+        },
+        {
+          "case": "forged-result-class-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 30022746,
+          "plan_bytes": 128,
+          "nodes": 2,
+          "journal_bytes": 192,
+          "journal_sha256": "7b5ece0e8672af63a35ca21d070e6998969ab845f2c4554a34d1a1ee26d5a8b7",
+          "retained_nodes": 1,
+          "passed": true
+        },
+        {
+          "case": "out-of-view-word-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 30569741,
+          "plan_bytes": 137,
+          "nodes": 2,
+          "journal_bytes": 162,
+          "journal_sha256": "d4fa844e56faca7ad1231cf872a1c31d87a377a31313befab398696a6884852d",
+          "retained_nodes": 1,
+          "passed": true
+        },
+        {
+          "case": "addition-overflow-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 30726985,
+          "plan_bytes": 152,
+          "nodes": 2,
+          "journal_bytes": 176,
+          "journal_sha256": "517f9739f7ba552b8f2fc80b33bc513e0d302483068191d8d281ede2c4258450",
+          "retained_nodes": 1,
+          "passed": true
+        },
+        {
+          "case": "subtraction-underflow-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 30668155,
+          "plan_bytes": 152,
+          "nodes": 2,
+          "journal_bytes": 176,
+          "journal_sha256": "d454065d3da1e1ea303e42820e9cf5478917db921152cecd5e82c4e542a5a8e9",
+          "retained_nodes": 1,
+          "passed": true
+        },
+        {
+          "case": "addition-maximum-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 29410409,
+          "plan_bytes": 152,
+          "nodes": 2,
+          "journal_bytes": 176,
+          "journal_sha256": "a713beba35c237746c53b0d8171e6b25030e21f77bec174b2e75bc713a26f56b",
+          "retained_nodes": 1,
+          "passed": true
+        },
+        {
+          "case": "subtraction-maximum-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 29685936,
+          "plan_bytes": 152,
+          "nodes": 2,
+          "journal_bytes": 176,
+          "journal_sha256": "85189f6b4d3b280054e6406692d728a8639ee14c765bc02c0469f955f4ec87a1",
+          "retained_nodes": 1,
+          "passed": true
+        },
+        {
+          "case": "undersized-snapshot-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 31755862,
+          "plan_bytes": 111,
+          "nodes": 2,
+          "journal_bytes": 174,
+          "journal_sha256": "72385afbbcb29bda002e6728632fff3d9a75aa3aed7b22aaffaf28b337c34cb3",
+          "retained_nodes": 1,
+          "passed": true
+        },
+        {
+          "case": "snapshot-as-output-capability-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 32446245,
+          "plan_bytes": 273,
+          "nodes": 5,
+          "journal_bytes": 783,
+          "journal_sha256": "73c5790d99e7656601db880c791375e16ff4d8b6affba9dae0118b3c8a83cbef",
+          "retained_nodes": 4,
+          "passed": true
+        },
+        {
+          "case": "undersized-allocator-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 144111340,
+          "plan_bytes": 1048895,
+          "nodes": 4,
+          "journal_bytes": 2925,
+          "journal_sha256": "46063e149b3342ec705acabd045d30c088539dc442368bd4d0f63bfa16fedd54",
+          "retained_nodes": 3,
+          "passed": true
+        },
+        {
+          "case": "oversized-allocator-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 145916330,
+          "plan_bytes": 1048897,
+          "nodes": 4,
+          "journal_bytes": 2907,
+          "journal_sha256": "c139372df1e80d82ac622a8e5f0cc5f30826185cad19456dd08807c4547beb49",
+          "retained_nodes": 3,
+          "passed": true
+        },
+        {
+          "case": "allocator-as-output-capability-refused",
+          "returncode": 65,
+          "stdout_hex": "",
+          "stderr_hex": "",
+          "elapsed_ns": 148462879,
+          "plan_bytes": 1049057,
+          "nodes": 7,
+          "journal_bytes": 4263,
+          "journal_sha256": "78c87cdf9845efb804a66f6c1aaafbec2f9d96a0010ea41183cfa6bdf244e049",
+          "retained_nodes": 6,
+          "passed": true
+        }
+      ],
+      "whole_native_cold_replay_closed": false
+    },
+    "byte_loop_bulk_parity": {
+      "scope": "Separate qualified resource-10 seed profile; only completely valid non-overlapping copy ranges use move_within; overlap and invalid views retain original bytewise effects.",
+      "products": {},
+      "cases": [
+        {
+          "case": "actual-old-and-optimized-partial-writes-ABI-parity",
+          "passed": true,
+          "independent_byte_oracle_cases": 1775,
+          "native_invocations": 5325,
+          "overlap_direction_and_distance_preserved": true,
+          "invalid_views_preserve_partial_writes": true
+        }
+      ],
+      "whole_native_cold_replay_closed": false
+    },
+    "archive_bulk": {
+      "scope": "Independent bulk-profile native archive; unchanged full journal/custody/physical SHA readback and original 19 live refusal controls",
+      "products": {
+        "archive": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-native-driver-archive-bulk-v1/hia-cold-master-archive",
+          "sha256": "f74c91329c467887c510149e1efed88f23a014eb811e987119927c6a2f972b7a",
+          "bytes": 223460
+        }
+      },
+      "cases": [
+        {
+          "case": "valid-actual-phase",
+          "passed": true,
+          "returncode": 0,
+          "elapsed_seconds": 0.5301360519370064,
+          "stdout_bytes": 128,
+          "archive_bytes": 1051491
+        },
+        {
+          "case": "parent-identity",
+          "passed": true,
+          "returncode": 65,
+          "elapsed_seconds": 0.0003749419702216983,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "reserved-word",
+          "passed": true,
+          "returncode": 65,
+          "elapsed_seconds": 0.0002450889442116022,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "deadline",
+          "passed": true,
+          "returncode": 124,
+          "elapsed_seconds": 0.09973330097272992,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "plan-pin",
+          "passed": true,
+          "returncode": 65,
+          "elapsed_seconds": 0.1049922889797017,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "receipt-journal-pin",
+          "passed": true,
+          "returncode": 74,
+          "elapsed_seconds": 0.10801018995698541,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "receipt-node-count",
+          "passed": true,
+          "returncode": 65,
+          "elapsed_seconds": 0.00033886509481817484,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "forged-node-count-actual-stream",
+          "passed": true,
+          "returncode": 74,
+          "elapsed_seconds": 0.10076924099121243,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "corrupt-logical-header-rehashed",
+          "passed": true,
+          "returncode": 74,
+          "elapsed_seconds": 0.10501532105263323,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "corrupt-compression-magic-rehashed",
+          "passed": true,
+          "returncode": 74,
+          "elapsed_seconds": 0.09984306700062007,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "truncated-chunk-rehashed",
+          "passed": true,
+          "returncode": 74,
+          "elapsed_seconds": 0.10175373393576592,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "symlink-refused",
+          "passed": true,
+          "returncode": 74,
+          "elapsed_seconds": 0.09219921403564513,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "directory-refused",
+          "passed": true,
+          "returncode": 65,
+          "elapsed_seconds": 0.10223613702692091,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "hardlink-refused",
+          "passed": true,
+          "returncode": 65,
+          "elapsed_seconds": 0.09919086494483054,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "leading-dot-refused",
+          "passed": true,
+          "returncode": 65,
+          "elapsed_seconds": 0.09667378198355436,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "world-readable-refused",
+          "passed": true,
+          "returncode": 65,
+          "elapsed_seconds": 0.10235500999260694,
+          "stdout_bytes": 0,
+          "archive_bytes": 0
+        },
+        {
+          "case": "actual-archive-external-write",
+          "passed": true,
+          "returncode": 74,
+          "elapsed_seconds": 2.5274086779681966,
+          "stdout_bytes": 0,
+          "archive_bytes": 6294547
+        },
+        {
+          "case": "actual-input-external-write",
+          "passed": true,
+          "returncode": 74,
+          "elapsed_seconds": 1.9265214810147882,
+          "stdout_bytes": 0,
+          "archive_bytes": 6291872
+        },
+        {
+          "case": "actual-journal-external-write",
+          "passed": true,
+          "returncode": 74,
+          "elapsed_seconds": 1.8888911049580202,
+          "stdout_bytes": 0,
+          "archive_bytes": 6294547
+        }
+      ],
+      "whole_native_cold_replay_closed": false
+    },
+    "names_bulk_replay": {
+      "scope": "All original names references and exact diagnostic categories before target import; each named program compiled flat and ELF with real dynamic linking, complete observed writes/ABI, alpha and module fixed points and lossless full compilation evidence",
+      "products": {},
+      "cases": [
+        {
+          "case": "names-pre-B0-independent-references",
+          "returncode": 0,
+          "stdout_hex": "484941514f4b30311c20000000000000bf131200000000006a58ca010000000067e8cc3549024d146c165a0cd094beed6f2f9f50d865a2bf5a291d07581f18de",
+          "stderr_hex": "",
+          "elapsed_ns": 27421493101,
+          "plan_bytes": 1184703,
+          "nodes": 8220,
+          "journal_bytes": 30038122,
+          "journal_sha256": "67e8cc3549024d146c165a0cd094beed6f2f9f50d865a2bf5a291d07581f18de",
+          "retained_nodes": 8220,
+          "passed": true
+        },
+        {
+          "case": "original-complete-names-family",
+          "returncode": 0,
+          "stdout_hex": "484941514f4b3031724b00000000000004762a00000000002b1a050a00000000a4a0d7bf9102e4c4b4d0ff97d75583cb0759f4b33e49d55607472ab412d558f6",
+          "stderr_hex": "",
+          "elapsed_ns": 42831732536,
+          "plan_bytes": 2782724,
+          "nodes": 19314,
+          "journal_bytes": 168106539,
+          "journal_sha256": "a4a0d7bf9102e4c4b4d0ff97d75583cb0759f4b33e49d55607472ab412d558f6",
+          "retained_nodes": 19314,
+          "passed": true
+        },
+        {
+          "case": "modified-complete-names-family",
+          "returncode": 0,
+          "stdout_hex": "484941514f4b3031724b00000000000004762a0000000000231a050a00000000b8ba18c2825cf6c82ba3d0b3d95ed5c024e6fce5e8b20fa58e8bf87847aaf091",
+          "stderr_hex": "",
+          "elapsed_ns": 43406950868,
+          "plan_bytes": 2782724,
+          "nodes": 19314,
+          "journal_bytes": 168106531,
+          "journal_sha256": "b8ba18c2825cf6c82ba3d0b3d95ed5c024e6fce5e8b20fa58e8bf87847aaf091",
+          "retained_nodes": 19314,
+          "passed": true
+        }
+      ],
+      "whole_native_cold_replay_closed": false
     }
   }
 }

@@ -16,7 +16,7 @@ def stores(buffer,at,value,indent='    '):
     return '\n'.join(f'{indent}store({buffer}, {at}'+(f' + {i}' if i else '')+f', ({value} >> {i*8}) & 255)' for i in range(8))
 
 
-def accelerate(source):
+def accelerate(source, *, bulk=False):
     definitions={n.name:n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef)}
     if 'put' in definitions:
         source=replace_function(source,'put','def put(w:mutbuf, at:u64, value:u64) -> u64:\n'+stores('w','at','value')+'\n    return 0')
@@ -34,6 +34,17 @@ STORES
         i = i + 1
     return 0'''.replace('STORES',stores('w','out','value','            '))
         source=replace_function(source,'copyw',body)
+        if bulk:
+            source=replace_function(source,'copyw','''def copyw(w:mutbuf, target:u64, source:u64, count:u64) -> u64:
+    if target <= length(w) and source <= length(w) and count <= length(w) - target and count <= length(w) - source:
+        if (target <= source and count <= source - target) or (source <= target and count <= target - source):
+            move_within(w, target, source, count)
+            return 0
+    i = 0
+    while i < count:
+        store(w, target + i, byte(w, source + i))
+        i = i + 1
+    return 0''')
     if 'same' in definitions:
         source=replace_function(source,'same','''def same(w:mutbuf, a:u64, b:u64, count:u64) -> u64:
     i = 0

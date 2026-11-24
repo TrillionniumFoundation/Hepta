@@ -2,7 +2,8 @@
 from pathlib import Path
 from hashlib import sha256
 from hepta.hia_agent_assembly import render_assembly
-from tools.generate_hia_cold_allocator_witness import document
+from tools.generate_hia_cold_document import bulk_document as document
+from tools.hia_cold_byte_loops import accelerate
 from tools.generate_hia_cold_master_common import helpers,packer,DECODER
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=r'''
@@ -479,9 +480,10 @@ def copy_input(s:readbuf,w:mutbuf,a:u64,b:u64,n:u64) -> u64:
 def source():
  text=SOURCE+'\n'+DECODER+'\n'+helpers()
  for key,raw in [('REQUEST',b'HIAQARQ1'),('DRIVER_OK',b'HIAQOK01'),('JOURNAL',b'HIAQJL01'),('ARCHIVE',b'HIAQAR01'),('SUCCESS',b'HIAQAS01')]:text=text.replace('@'+key+'@',str(int.from_bytes(raw,'little')))
- return text
+ return accelerate(text,bulk=True)
 
 def main():
  for name,text in [('cold_master_archive',source()),('cold_master_archive_packer',packer(b'HIAQAP01'))]:
   d=document(text,module=name);out=render_assembly(d).encode();(ROOT/('examples/hia_bootstrap/'+name+'.hepta')).write_bytes(out);print(name,len(out),len(d['functions']),sum(len(f['blocks']) for f in d['functions']),sum(len(b['ops']) for f in d['functions'] for b in f['blocks']),sha256(out).hexdigest())
 if __name__=='__main__':main()
+
