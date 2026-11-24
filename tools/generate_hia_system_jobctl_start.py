@@ -5,6 +5,8 @@ registry flock.  Retained records remain ownership evidence, never free slots.
 No submitted executable image is interpreted or executed by this root owner.
 """
 from __future__ import annotations
+from tools.generate_hia_system_jobctl_diagnostics import HELPERS as DIAGNOSTICS
+from tools.generate_hia_system_jobctl_typed_errors import HELPERS as TYPED_ERRORS
 import argparse, ast, re
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
@@ -28,7 +30,14 @@ CONSTANTS={**control.CONSTANTS,**record.CONSTANTS,
  'BARRIER_ROOT_FD':41656,'BARRIER_PARENT_FD':41664,
  'COMMAND':124<<20,'COMMAND_END':126<<20,'ARGV':126<<20,'COMMAND_COUNT':41672,'COMMAND_CURSOR':41680}
 COMMAND_VALUES=['/usr/bin/systemd-run', '--quiet', '--collect', '--unit', '--pty', '--wait', '--property', 'Description=Hepta Runtime ', 'DynamicUser=yes', 'Slice=hepta-runtime-jobs.slice', 'SupplementaryGroups=hepta-workspace', 'StateDirectory=hepta-job-', 'StateDirectoryMode=0700', 'LoadCredential=spec:', 'BindPaths=', 'WorkingDirectory=/workspace', 'InaccessiblePaths=-/var/lib/hepta-runtime -/etc/hepta-runtime -/run/user -/run/dbus -/run/systemd/private -/run/docker.sock -/run/libvirt', 'ProtectHome=yes', 'ProtectSystem=strict', 'PrivateTmp=yes', 'PrivateDevices=yes', 'NoNewPrivileges=yes', 'CapabilityBoundingSet=', 'RestrictSUIDSGID=yes', 'ProtectKernelTunables=yes', 'ProtectKernelModules=yes', 'ProtectControlGroups=yes', 'RestrictRealtime=yes', 'LockPersonality=yes', 'ProtectProc=invisible', 'KillMode=control-group', 'TimeoutStopSec=3s', 'TasksMax=infinity', 'UMask=0007', 'MemorySwapMax=0', 'CPUQuota=', 'MemoryMax=', 'Nice=', 'RuntimeMaxSec=', ':/workspace', 'PrivateNetwork=yes', 'RestrictAddressFamilies=AF_UNIX AF_NETLINK', '--', '/usr/local/libexec/hepta-runtime-jobctl', 'supervise', 'supervise-pty']
-TEXT={**control.TEXT,
+TEXT={'identity_error':'job identity mismatch','different_request':'job ID already bound to a different request',
+ 'invalid_utf8':'stream did not contain valid UTF-8','bad_nonce':'kernel launch nonce is not 128-bit lowercase hexadecimal',
+ 'launch_failure':'systemd launch failed: ',
+ 'barrier_root_open':'open job registry before dispatch: ',
+ 'barrier_parent_open':'open job registry parent before dispatch: ',
+ 'barrier_root_sync':'sync job registry before dispatch: ',
+ 'barrier_parent_sync':'sync job registry parent before dispatch: ',
+ 'write_zero':'failed to write whole buffer',**control.TEXT,
  'spec_tmp':'/spec.tmp-','record_tmp':'/record.tmp-',
  'pending':'pending','captured':'captured_v1','pty_protocol':'pty_v1',
  'launched':'launched','launch_failed':'launch_failed',
@@ -78,29 +87,33 @@ def start(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if phase == 305:
         return record_call(o, w, 306, 0, FILE_RAW, get(w, 288))
     if phase == 306:
-        if result != 1 or retained_identity(w) == 0:
-            return 0
+        if result != 1:
+            return typed_error(o, w, 258, FILE_RAW, get(w, 288), 317)
+        if retained_identity(w) == 0:
+            return diagnostic(w, DIAG_TEXT, text_identity_error(w, DIAG_TEXT) - DIAG_TEXT)
         if equal(w, get(w, RECORD_FIELDS + 32), get(w, RECORD_FIELDS + 40), DIGEST, 64) == 0:
-            return 0
+            return diagnostic(w, DIAG_TEXT, text_different_request(w, DIAG_TEXT) - DIAG_TEXT)
         put(w, START_REUSED, 1)
         put(w, 0, 200)
         return 8
     if phase == 307:
         if result != 0 and result != NEG17:
-            return 0
+            return diagnostic_errno(w, result)
         return call(o, w, 308, 262, NEG100, REGISTRY, STAT, 0, 0, 0, 60)
     if phase == 308:
-        if result != 0 or getn(w, STAT + 24, 4) & 61440 != 16384:
-            return 0
+        if result != 0:
+            return diagnostic_errno(w, result)
+        if getn(w, STAT + 24, 4) & 61440 != 16384:
+            return diagnostic_errno(w, NEG17)
         return call(o, w, 309, 90, REGISTRY, 448, 0, 0, 0, 0, 3)
     if phase == 309:
         if result != 0:
-            return 0
+            return diagnostic_errno(w, result)
         terminated(w, text_uuid(w, PATH))
         return begin_file(o, w, 310, PATH, FILE_RAW, 1048576)
     if phase == 310:
         if kernel_text(w, FILE_RAW, get(w, 288)) == 0:
-            return 0
+            return diagnostic(w, DIAG_TEXT, text_invalid_utf8(w, DIAG_TEXT) - DIAG_TEXT)
         size = get(w, SCAN_SIZE)
         source = get(w, SCAN_NEXT)
         index = 0
@@ -109,23 +122,24 @@ def start(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             point = byte(w, source + index)
             if point != 45:
                 if used == 32 or ((point < 48 or point > 57) and (point < 97 or point > 102)):
-                    return 0
+                    return diagnostic(w, DIAG_TEXT, text_bad_nonce(w, DIAG_TEXT) - DIAG_TEXT)
                 store(w, NONCE + used, point)
                 used = used + 1
             index = index + 1
         if used != 32:
-            return 0
+            return diagnostic(w, DIAG_TEXT, text_bad_nonce(w, DIAG_TEXT) - DIAG_TEXT)
         terminated(w, text_boot(w, PATH))
         return begin_file(o, w, 311, PATH, FILE_RAW, 1048576)
     if phase == 311:
         if kernel_text(w, FILE_RAW, get(w, 288)) == 0:
-            return 0
+            return diagnostic(w, DIAG_TEXT, text_invalid_utf8(w, DIAG_TEXT) - DIAG_TEXT)
         copy(w, BOOT, get(w, SCAN_NEXT), get(w, SCAN_SIZE))
         field(w, 3, BOOT, get(w, SCAN_SIZE))
         return call(o, w, 312, 228, 0, STAT, 0, 0, 0, 0, 12)
     if phase == 312:
         if result != 0:
-            return 0
+            put(w, STAT, 0)
+            put(w, STAT + 8, 0)
         milliseconds(w)
         field(w, 0, JOB_ID, get(w, 48))
         field(w, 1, UNIT, get(w, 56))
@@ -147,12 +161,16 @@ def start(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return call(o, w, 314, 39, 0, 0, 0, 0, 0, 0, 0)
     if phase == 314:
         if failed(result):
-            return 0
+            return diagnostic_errno(w, result)
         put(w, PID, result)
         return begin_atomic(o, w, 315, 0, SPEC_OUT, get(w, SPEC_SIZE))
     if phase == 315:
         return begin_atomic(o, w, 316, 1, RECORD_OUT, get(w, RECORD_SIZE))
+    if phase == 317:
+        return typed_failure(w, DIAG_TEXT, text_unknown_job(w, DIAG_TEXT) - DIAG_TEXT)
     if phase == 316:
+        put(w, BARRIER_ROOT_FD, NONE)
+        put(w, BARRIER_PARENT_FD, NONE)
         terminated(w, text_root(w, PATH))
         return call(o, w, 320, 257, NEG100, PATH, 524288, 0, 0, 0, 12)
     if phase >= 700 and phase < 800:
@@ -184,8 +202,12 @@ def launched(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 705:
         return launch_process(w)
     if phase == 730:
+        if get(w, 51368) != 0:
+            return diagnostic_errno(w, 0 - get(w, 51368))
         if get(w, 51232) != 0:
-            return 0
+            put(w, 41928, 0 - get(w, 51232))
+            put(w, 0, 745)
+            return 8
         put(w, START_PID, get(w, 51216))
         put(w, START_STATUS, get(w, 51224))
         if get(w, 40) == 2:
@@ -194,12 +216,12 @@ def launched(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         return call(o, w, 731, 3, get(w, 52000), 0, 0, 0, 0, 0, 0)
     if phase == 731:
         put(w, 52000, NONE)
-        return call(o, w, 732, 3, get(w, 52008), 0, 0, 0, 0, 0, 0)
-    if phase == 732:
-        put(w, 52008, NONE)
         if get(w, START_STATUS) != 0:
             field(w, 6, PENDING, text_launch_failed(w, PENDING) - PENDING)
             return record_call(o, w, 740, 1, FILE_RAW, 0)
+        return call(o, w, 732, 3, get(w, 52008), 0, 0, 0, 0, 0, 0)
+    if phase == 732:
+        put(w, 52008, NONE)
         return mark_launched(w)
     if phase == 733:
         put(w, 52800, 0)
@@ -226,7 +248,9 @@ def launched(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
             return 0
         return begin_atomic(o, w, 737, 1, RECORD_OUT, get(w, RECORD_SIZE))
     if phase == 737:
-        return call(o, w, 738, 3, get(w, 368), 0, 0, 0, 0, 0, 0)
+        put(w, 68500, 738)
+        put(w, 0, 2080)
+        return 8
     if phase == 738:
         put(w, 368, NONE)
         if save_start_reply(w) == 0:
@@ -237,14 +261,40 @@ def launched(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 740:
         if result != 1:
             return 0
+        put(w, ATOMIC_FAILURE_NEXT, 742)
         return begin_atomic(o, w, 741, 1, RECORD_OUT, get(w, RECORD_SIZE))
     if phase == 741:
-        return 0
+        fd = get(w, 52008)
+        put(w, 52008, NONE)
+        return diagnostic_stderr(w, fd, get(w, 51248), DIAG_TEXT, text_launch_failure(w, DIAG_TEXT) - DIAG_TEXT)
+    if phase == 742:
+        return call(o, w, 744, 3, get(w, 52008), 0, 0, 0, 0, 0, 0)
+    if phase == 744:
+        put(w, 52008, NONE)
+        if get(w, 68008) == 1:
+            return diagnostic(w, DIAG_TEXT, text_write_zero(w, DIAG_TEXT) - DIAG_TEXT)
+        return diagnostic_errno(w, get(w, 68000))
+    if phase == 745:
+        fd = get(w, 52000)
+        put(w, 52000, NONE)
+        if fd != NONE:
+            return call(o, w, 746, 3, fd, 0, 0, 0, 0, 0, 0)
+        put(w, 0, 746)
+        return 8
+    if phase == 746:
+        fd = get(w, 52008)
+        put(w, 52008, NONE)
+        if fd != NONE:
+            return call(o, w, 747, 3, fd, 0, 0, 0, 0, 0, 0)
+        put(w, 0, 747)
+        return 8
+    if phase == 747:
+        return diagnostic_errno(w, get(w, 41928))
     if phase == 750:
         if result == get(w, START_PID):
             return pty_reply(o, w, getn(w, START_WAIT, 4))
         if result != 0:
-            return 0
+            return diagnostic_errno(w, result)
         if get(w, START_STOP) != 0:
             put(w, 40, 5)
             return observation(w, 754, 3)
@@ -282,6 +332,7 @@ def launched(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
 def launch_process(w:mutbuf) -> u32:
     put(w, 51200, choose(get(w, 40) == 2, 1, 0))
     put(w, 51208, 730)
+    put(w, 51360, 730)
     put(w, 0, 1500)
     return 11
 
@@ -434,34 +485,70 @@ def argument(w:mutbuf, stop:u64) -> u64:
 
 def namespace_barrier(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 320:
+        if result == NEG4:
+            return call(o, w, 320, 257, NEG100, PATH, 524288, 0, 0, 0, 12)
         if failed(result):
-            return 0
+            return barrier_failure(o, w, 1, result)
         put(w, BARRIER_ROOT_FD, result)
         terminated(w, text_varlib(w, PATH))
         return call(o, w, 321, 257, NEG100, PATH, 524288, 0, 0, 0, 12)
     if phase == 321:
+        if result == NEG4:
+            return call(o, w, 321, 257, NEG100, PATH, 524288, 0, 0, 0, 12)
         if failed(result):
-            return 0
+            return barrier_failure(o, w, 2, result)
         put(w, BARRIER_PARENT_FD, result)
         return call(o, w, 322, 74, get(w, BARRIER_ROOT_FD), 0, 0, 0, 0, 0, 0)
     if phase == 322:
         if result == NEG4:
             return call(o, w, 322, 74, get(w, BARRIER_ROOT_FD), 0, 0, 0, 0, 0, 0)
         if result != 0:
-            return 0
+            return barrier_failure(o, w, 3, result)
         return call(o, w, 323, 74, get(w, BARRIER_PARENT_FD), 0, 0, 0, 0, 0, 0)
     if phase == 323:
         if result == NEG4:
             return call(o, w, 323, 74, get(w, BARRIER_PARENT_FD), 0, 0, 0, 0, 0, 0)
         if result != 0:
-            return 0
+            return barrier_failure(o, w, 4, result)
         return call(o, w, 324, 3, get(w, BARRIER_ROOT_FD), 0, 0, 0, 0, 0, 0)
     if phase == 324:
+        put(w, BARRIER_ROOT_FD, NONE)
         return call(o, w, 325, 3, get(w, BARRIER_PARENT_FD), 0, 0, 0, 0, 0, 0)
     if phase == 325:
+        put(w, BARRIER_PARENT_FD, NONE)
         put(w, 0, 700)
         return 8
+    if phase == 326:
+        fd = get(w, BARRIER_ROOT_FD)
+        put(w, BARRIER_ROOT_FD, NONE)
+        if fd != NONE:
+            return call(o, w, 327, 3, fd, 0, 0, 0, 0, 0, 0)
+        put(w, 0, 327)
+        return 8
+    if phase == 327:
+        fd = get(w, BARRIER_PARENT_FD)
+        put(w, BARRIER_PARENT_FD, NONE)
+        if fd != NONE:
+            return call(o, w, 328, 3, fd, 0, 0, 0, 0, 0, 0)
+        put(w, 0, 328)
+        return 8
+    if phase == 328:
+        kind = get(w, 68128)
+        end = text_barrier_root_open(w, DIAG_TEXT)
+        if kind == 2:
+            end = text_barrier_parent_open(w, DIAG_TEXT)
+        elif kind == 3:
+            end = text_barrier_root_sync(w, DIAG_TEXT)
+        elif kind == 4:
+            end = text_barrier_parent_sync(w, DIAG_TEXT)
+        return diagnostic_context_errno(w, DIAG_TEXT, end - DIAG_TEXT, get(w, 68120))
     return 0
+
+def barrier_failure(o:mutbuf, w:mutbuf, kind:u64, result:u64) -> u32:
+    put(w, 68120, result)
+    put(w, 68128, kind)
+    put(w, 0, 326)
+    return 8
 
 def record_path(w:mutbuf) -> u64:
     copy(w, PATH, REGISTRY, get(w, 64))
@@ -527,6 +614,8 @@ def begin_atomic(o:mutbuf, w:mutbuf, next:u64, record_file:u64, source:u64, size
     put(w, ATOMIC_FD, NONE)
     put(w, ATOMIC_PARENT_FD, NONE)
     put(w, ATOMIC_ERROR, 0)
+    put(w, 68000, 0)
+    put(w, 68008, 0)
     store(w, source + size, 10)
     copy(w, PATH, REGISTRY, get(w, 64))
     copy(w, TEMP_PATH, REGISTRY, get(w, 64))
@@ -541,7 +630,10 @@ def begin_atomic(o:mutbuf, w:mutbuf, next:u64, record_file:u64, source:u64, size
 
 def atomic_write(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 1400:
+        if result == NEG4:
+            return call(o, w, 1400, 257, NEG100, TEMP_PATH, 524481, 384, 0, 0, 12)
         if failed(result):
+            put(w, 68000, result)
             return atomic_failure(w)
         put(w, ATOMIC_FD, result)
         return atomic_bytes(o, w)
@@ -565,6 +657,8 @@ def atomic_write(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
             return atomic_cleanup(o, w)
         return call(o, w, 1404, 257, NEG100, REGISTRY, 524288, 0, 0, 0, 12)
     if phase == 1404:
+        if result == NEG4:
+            return call(o, w, 1404, 257, NEG100, REGISTRY, 524288, 0, 0, 0, 12)
         if failed(result):
             return atomic_cleanup(o, w)
         put(w, ATOMIC_PARENT_FD, result)
@@ -600,7 +694,9 @@ def atomic_failure(w:mutbuf) -> u32:
     next = get(w, ATOMIC_FAILURE_NEXT)
     put(w, ATOMIC_FAILURE_NEXT, 0)
     if next == 0:
-        return 0
+        if get(w, 68008) == 1:
+            return diagnostic(w, FILE_RAW, text_write_zero(w, FILE_RAW) - FILE_RAW)
+        return diagnostic_errno(w, get(w, 68000))
     put(w, 0, next)
     return 8
 
@@ -608,6 +704,9 @@ def atomic_bytes(o:mutbuf, w:mutbuf) -> u32:
     return call(o, w, 1401, 1, get(w, ATOMIC_FD), get(w, ATOMIC_DATA) + get(w, ATOMIC_USED), get(w, ATOMIC_SIZE) - get(w, ATOMIC_USED), 0, 0, 0, 12)
 
 def atomic_cleanup(o:mutbuf, w:mutbuf) -> u32:
+    put(w, 68000, get(w, 8))
+    zero = get(w, 0) == 1401 and get(w, 8) == 0
+    put(w, 68008, choose(zero, 1, 0))
     return call(o, w, 1410, 263, NEG100, TEMP_PATH, 0, 0, 0, 0, 12)
 
 def equal(w:mutbuf, left:u64, left_size:u64, right:u64, right_size:u64) -> u64:
@@ -708,7 +807,7 @@ def kernel_text(w:mutbuf, source:u64, size:u64) -> u64:
 '''
 
 def source_program():
-    source=POLICY
+    source=POLICY+"\n"+DIAGNOSTICS+"\n"+TYPED_ERRORS
     available={}
     for body in [request_source(),control.source_program(),record.source_program()]:
         available.update({n.name:ast.get_source_segment(body,n) for n in ast.parse(body).body if isinstance(n,ast.FunctionDef)})

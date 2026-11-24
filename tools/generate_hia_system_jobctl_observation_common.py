@@ -5,6 +5,7 @@ from tools import generate_hia_system_jobctl_control as control
 from tools import generate_hia_system_jobctl_start as start
 from tools import generate_hia_system_jobctl_record as record
 from tools import generate_hia_system_jobctl_terminal as terminal
+from tools.generate_hia_system_jobctl_diagnostics import HELPERS as DIAGNOSTICS
 from tools.generate_hia_system_jobctl_request import POLICY as REQUEST_POLICY
 
 CONSTANTS={**start.CONSTANTS,
@@ -21,6 +22,13 @@ CONSTANTS={**start.CONSTANTS,
  'IO_NEXT':57200,'IO_ERROR':57208,'IO_FD':57216,'IO_TARGET':57224,'IO_LIMIT':57232,'IO_USED':57240,
  'IO_META_LIMIT':57248,'HASH_USED':57300,'HASH_TAKE':57308,
  'INTERNAL_LOCK':57328,'INTERNAL_STEP':57336,
+ 'PROBE_ERROR_KIND':57600,'PROBE_ERROR_DETAIL':57608,
+ 'PAGE_ERROR_KIND':57616,'PAGE_ERROR_DETAIL':57624,'IO_REASON':57632,
+ 'STOP_ERROR_FD':57640,'STOP_ERROR_SIZE':57648,
+ 'TYPE_ERROR_CONTEXT':57656,'TYPE_ERROR_OUT':56<<20,'TYPE_ERROR_CAP':8<<20,
+ 'TYPE_ERROR_WORK':4<<20,'TYPE_ERROR_WORK_BYTES':44<<20,
+ 'ERROR_TEXT':57728,'ERROR_TEXT_END':61824,
+ 'ATOMIC_RAW_ERROR':68000,'ATOMIC_WRITE_ZERO':68008,
  'OUTPUT':80<<20,'OUTPUT_END':88<<20,'PROP_RAW':88<<20,'PROP_TEXT':92<<20,'PROP_CAP':4<<20,
  'EXIT_RAW':96<<20,'WITNESS_RAW':97<<20,'RETAIN_RAW':98<<20,
  'HASH_INPUT':99<<20,'LOG_RAW':99<<20,'LOG_TEXT':(99<<20)+32768,
@@ -60,6 +68,27 @@ TOKENS={
  'systemctl':'/usr/bin/systemctl','show':'show','no_pager':'--no-pager',
  'properties':'--property=LoadState,ActiveState,SubState,Result,InvocationID,Description,ExecMainStatus,ExecMainCode',
  'separator':'--','stop':'stop'}
+TOKENS.update({
+ 'error_unknown_job':'unknown owned job: ',
+ 'error_job_identity':'job identity mismatch',
+ 'error_exit_identity':'exit identity mismatch',
+ 'error_reboot_cancel':'target rebooted: refusing to cancel old job',
+ 'error_bounded_json':'not a bounded regular JSON file',
+ 'error_grown_json':'JSON file grew beyond its bound',
+ 'error_utf8':'stream did not contain valid UTF-8',
+ 'error_unit_owner':'unit ownership mismatch: refusing operation',
+ 'error_unit_invocation':'unit has no invocation identity',
+ 'error_unit_incarnation':'unit incarnation changed: refusing operation',
+ 'error_retained_context':'read retained engine scratch observation: ',
+ 'error_retained_invalid':'invalid retained engine scratch observation',
+ 'error_log_missing':'confirmed capture log is missing',
+ 'error_absent_cursor':'cursor exceeds absent log',
+ 'error_log_regular':'refusing non-regular log',
+ 'error_log_length':'confirmed capture log length differs from saved bytes',
+ 'error_log_cursor':'cursor exceeds log length; refusing silent rewind',
+ 'error_log_changed':'confirmed capture log changed while reading',
+ 'error_write_zero':'failed to write whole buffer',
+ 'error_stop_prefix':'owned unit stop failed: '})
 TOKEN_IDS={name:i for i,name in enumerate(TOKENS)}
 CONSTANTS.update({'L_'+k.upper():v for k,v in TOKEN_IDS.items()})
 CONSTANTS.update({'K_'+name.upper():i for i,name in enumerate(KEYS)})
@@ -68,7 +97,7 @@ def functions(source):
     return {n.name:ast.get_source_segment(source,n) for n in ast.parse(source).body if isinstance(n,ast.FunctionDef)}
 
 def compose(source):
-    helpers={**functions(record.source_program()),**functions(control.source_program()),**functions(start.source_program())}
+    helpers={**functions(record.source_program()),**functions(control.source_program()),**functions(start.source_program()),**functions(DIAGNOSTICS)}
     helpers['quote']=functions(REQUEST_POLICY)['quote'].replace('REQUEST_OUT + REQUEST_CAP','OUTPUT_END')
     helpers['bounded_lossy']=helpers['lossy'].replace('def lossy(w:mutbuf, target:u64, source:u64, size:u64)',
         'def bounded_lossy(w:mutbuf, target:u64, source:u64, size:u64, capacity:u64)').replace(

@@ -221,7 +221,7 @@ def mount(source,target):subprocess.run(['/usr/bin/mount','--bind',str(source),s
 def unmount(target):subprocess.run(['/usr/bin/umount',str(target)],check=True,capture_output=True)
 mount(program,'/usr/bin/systemctl')
 results=[]
-status={'phase':'running','started':datetime.datetime.now(datetime.timezone.utc).isoformat(),'case_count':len(cases),'cases':results,'namespace':namespace,'native_sha256':args.native_sha256,'oracle_sha256':args.oracle_sha256,'original_source_sha256':original_sha,'scope':'STATUS/READ/CANCEL acceptance, JSON values, fixed command observations and persisted Record/tree; exact error text and complete systemd/supervisor qualification are separate'}
+status={'phase':'running','started':datetime.datetime.now(datetime.timezone.utc).isoformat(),'case_count':len(cases),'cases':results,'namespace':namespace,'native_sha256':args.native_sha256,'oracle_sha256':args.oracle_sha256,'original_source_sha256':original_sha,'scope':'STATUS/READ/CANCEL acceptance, JSON values, fixed command observations, persisted Record/tree and exact stderr bytes; complete systemd/supervisor qualification is separate'}
 def save():(Q/'qualification.json').write_text(json.dumps(status,indent=2)+'\n')
 save()
 def run(c,label,exe):
@@ -256,7 +256,7 @@ def run(c,label,exe):
   p=subprocess.CompletedProcess([str(exe)],child.returncode,stdout,stderr)
  finally:unmount('/var/lib')
  (root/'stdout').write_bytes(p.stdout);(root/'stderr').write_bytes(p.stderr)
- q={'rc':p.returncode,'stdout_sha256':sha256(p.stdout).hexdigest(),'stderr':p.stderr.decode(errors='replace'),'calls':[]}
+ q={'stderr_sha256':sha256(p.stderr).hexdigest(),'rc':p.returncode,'stdout_sha256':sha256(p.stdout).hexdigest(),'stderr':p.stderr.decode(errors='replace'),'calls':[]}
  if (root/'calls.jsonl').exists():q['calls']=[json.loads(l) for l in (root/'calls.jsonl').read_text().splitlines()]
  if p.returncode==0:q['value']=json.loads(p.stdout)
  else:assert not p.stdout,(c['name'],label,'partial failure output',p.stdout)
@@ -269,7 +269,7 @@ try:
  for i,c in enumerate(cases):
   o=run(c,'original',oracle);n=run(c,'native',native)
   row={'name':c['name'],'original_rc':o['rc'],'native_rc':n['rc'],'calls':len(o['calls'])}
-  checks={'acceptance':(o['rc']==0)==(n['rc']==0),'response':json.dumps(o.get('value'),sort_keys=True)==json.dumps(n.get('value'),sort_keys=True),'commands':o['calls']==n['calls'],'record':o['record']==n['record'],'retained_files':o['files']==n['files']}
+  checks={'exact_stderr':o['stderr_sha256']==n['stderr_sha256'],'acceptance':(o['rc']==0)==(n['rc']==0),'response':json.dumps(o.get('value'),sort_keys=True)==json.dumps(n.get('value'),sort_keys=True),'commands':o['calls']==n['calls'],'record':o['record']==n['record'],'retained_files':o['files']==n['files']}
   row['checks']=checks;row['pass']=all(checks.values());results.append(row);save()
   if not row['pass']:
    status['phase']='mismatch';save();print('MISMATCH',i,c['name'],checks,str(Q/c['name']),flush=True);raise AssertionError((c['name'],checks))

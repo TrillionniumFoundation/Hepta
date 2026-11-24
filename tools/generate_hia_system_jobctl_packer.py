@@ -1,4 +1,4 @@
-"""Author the fixed twenty-component native system Jobctl ELF packer.
+"""Author the fixed twenty-one-component native system Jobctl ELF packer.
 
 The adapter transports argv, environment, syscalls and calls between HIA owners.
 All request, process, capture, publication and directory policy is HIA.
@@ -10,7 +10,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_system_jobctl_request import document
 
 ROOT=Path(__file__).resolve().parents[1]
-MAGIC=b'HIAJCT01'
+MAGIC=b'HIAJCT02'
 MAXIMUM_IMAGE=4<<20
 MODULES=(
  ('policy','system_jobctl_entry'),('control','system_jobctl_control'),
@@ -23,6 +23,7 @@ MODULES=(
  ('capture','system_jobctl_capture'),('publish','system_jobctl_publish'),
  ('scratch','system_jobctl_scratch'),('scratch_directory','system_jobctl_scratch_directory'),
  ('scratch_group','system_jobctl_scratch_group'),('vectors','system_jobctl_supervisor_vectors'),
+ ('diagnostic_json','system_jobctl_diagnostic_json'),
 )
 
 def template():

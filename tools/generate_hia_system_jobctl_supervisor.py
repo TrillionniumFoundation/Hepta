@@ -4,6 +4,9 @@ import argparse
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_system_jobctl_request import document
+from tools.generate_hia_system_jobctl_diagnostics import HELPERS as DIAGNOSTICS, RENDERER as DIAGNOSTIC_RENDERER
+from tools.generate_hia_system_jobctl_errors import error_source
+from tools.generate_hia_system_jobctl_typed_errors import HELPERS as TYPED_ERRORS
 from tools.generate_hia_system_jobctl_supervisor_common import helpers,literals,substitute
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -13,11 +16,15 @@ def supervisor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 0
     phase = get(w, 0)
     result = get(w, 8)
+    if phase >= 2060 and phase < 2070:
+        return diagnostic_step(o, w, phase, result)
     if phase == 2000:
         return call(o, w, 2001, 107, 0, 0, 0, 0, 0, 0, 0)
     if phase == 2001:
-        if result == 0 or failed(result):
-            return 0
+        if result == 0:
+            return diagnostic(w, SUP_ERROR_TEXT, text_root(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
+        if failed(result):
+            return diagnostic_errno(w, result)
         put(w, 0, 2002)
         return 15
     if phase == 2002:
@@ -40,8 +47,10 @@ def supervisor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         return call(o, w, 2010, 13, 1, SUP_SIGNAL, 0, 8, 0, 0, 12)
     if phase == 2010:
-        if result != 0 or environment_value(s, w, 0, SUP_CREDENTIAL, SUP_CREDENTIAL_SIZE) == 0:
-            return 0
+        if environment_value(s, w, 0, SUP_CREDENTIAL, SUP_CREDENTIAL_SIZE) == 0:
+            if get(w, 68200) == 1:
+                return typed_error(o, w, 10, SUP_CREDENTIAL, get(w, SUP_CREDENTIAL_SIZE), 2071)
+            return diagnostic(w, SUP_ERROR_TEXT, text_environment_missing(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
         end = joined(w, SUP_PATH, SUP_CREDENTIAL, get(w, SUP_CREDENTIAL_SIZE))
         end = text_spec(w, end)
         store(w, end, 0)
@@ -54,35 +63,39 @@ def supervisor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 17
     if phase == 2012:
         if result != 1:
-            return 0
+            return typed_error(o, w, 259, FILE_RAW, get(w, 288), 2071)
         put(w, SUP_REQUEST_SIZE, get(w, SPEC_FIELDS + 8))
         return decode_request(o, w, 2013)
     if phase == 2013 or phase == 2021:
         if result >= 4294967280:
+            if phase == 2013:
+                return typed_error(o, w, 259, FILE_RAW, get(w, 288), 2071)
             return 0
         put(w, OVERRIDE_MASK, 0)
         return request(o, w, choose(phase == 2013, 2014, 2022))
     if phase == 2014:
         if result != 1:
-            return 0
+            return typed_error(o, w, 259, FILE_RAW, get(w, 288), 2071)
         child = get(w, TABLE + 8)
         if equal(w, ARENA + node(w, child, 24), node(w, child, 32), SUP_JOB, get(w, SUP_JOB_SIZE)) == 0:
-            return 0
+            return diagnostic(w, SUP_ERROR_TEXT, text_identity(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
         end = text_boot(w, SUP_PATH)
         store(w, end, 0)
         return begin_file(o, w, 2015, SUP_PATH, FILE_RAW, 1048576)
     if phase == 2015:
         if kernel_text(w, FILE_RAW, get(w, 288)) == 0:
-            return 0
+            return diagnostic(w, SUP_ERROR_TEXT, text_invalid_utf8(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
         if equal(w, get(w, SCAN_NEXT), get(w, SCAN_SIZE), get(w, SPEC_FIELDS + 32), get(w, SPEC_FIELDS + 40)) == 0:
-            return 0
+            return diagnostic(w, SUP_ERROR_TEXT, text_identity(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
         protocol = get(w, SPEC_PROTOCOL)
         expected = choose(get(w, SUP_INTERACTIVE) == 1, 2, 1)
         if protocol != 0 and protocol != expected:
-            return 0
+            return diagnostic(w, SUP_ERROR_TEXT, text_protocol(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
         put(w, SUP_PROTOCOL, expected)
         if environment_value(s, w, 1, SUP_STATE, SUP_STATE_SIZE) == 0:
-            return 0
+            if get(w, 68200) == 1:
+                return typed_error(o, w, 10, SUP_STATE, get(w, SUP_STATE_SIZE), 2071)
+            return diagnostic(w, SUP_ERROR_TEXT, text_environment_missing(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
         put(w, SUP_TIMEOUT, choose(present(w, 7) == 1, get(w, VALUES + 56), 3600))
         put(w, SUP_STDIN_PRESENT, present(w, 6))
         put(w, SUP_STDIN_SIZE, 0)
@@ -116,7 +129,7 @@ def supervisor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 8
     if phase == 2020:
         if get(w, 62144) != 0:
-            return 0
+            return diagnostic(w, get(w, 62176), get(w, 62184))
         put(w, SUP_SCRATCH, get(w, 62192))
         put(w, SUP_BINDING, get(w, 62160))
         put(w, SUP_BINDING_SIZE, get(w, 62168))
@@ -128,7 +141,7 @@ def supervisor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 24
     if phase == 2023:
         if result != 1:
-            return 0
+            return diagnostic(w, SUP_ERROR_TEXT, text_prefix(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
         put(w, SPAWN_FDS + 64, NONE)
         if get(w, SUP_INTERACTIVE) == 1:
             return start_spawn(w)
@@ -140,25 +153,29 @@ def supervisor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if result == NEG4:
             return call(o, w, 2024, 257, NEG100, SUP_PATH, 524865, 438, 0, 0, 12)
         if failed(result):
-            return 0
+            return diagnostic_errno(w, result)
         put(w, SUP_FD, result)
         put(w, SUP_USED, 0)
         return input_write(o, w)
     if phase == 2025:
         if result == NEG4:
             return input_write(o, w)
-        if result == 0 or failed(result) or result > get(w, SUP_STDIN_SIZE) - get(w, SUP_USED):
+        if result == 0 or failed(result):
+            put(w, 68208, result)
+            return call(o, w, 2072, 3, get(w, SUP_FD), 0, 0, 0, 0, 0, 0)
+        if result > get(w, SUP_STDIN_SIZE) - get(w, SUP_USED):
             return 0
         put(w, SUP_USED, get(w, SUP_USED) + result)
         return input_write(o, w)
     if phase == 2026:
+        put(w, SUP_FD, NONE)
         input_path(w)
         return call(o, w, 2027, 257, NEG100, SUP_PATH, 524288, 0, 0, 0, 12)
     if phase == 2027:
         if result == NEG4:
             return call(o, w, 2027, 257, NEG100, SUP_PATH, 524288, 0, 0, 0, 12)
         if failed(result):
-            return 0
+            return diagnostic_errno(w, result)
         put(w, SPAWN_FDS + 64, result)
         return start_spawn(w)
     if phase == 2028:
@@ -174,7 +191,7 @@ def supervisor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if phase == 2050:
         if get(w, SUP_ERROR_SIZE) != 0:
             if get(w, SUP_SCRATCH) == 0:
-                return 0
+                return diagnostic(w, get(w, SUP_ERROR), get(w, SUP_ERROR_SIZE))
             put(w, 62000, 4)
             put(w, 62008, 2052)
             put(w, 62176, get(w, SUP_ERROR))
@@ -184,7 +201,8 @@ def supervisor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return call(o, w, 2053, 228, 0, PUB_TIME, 0, 0, 0, 0, 12)
     if phase == 2053:
         if result != 0:
-            return 0
+            put(w, PUB_TIME, 0)
+            put(w, PUB_TIME + 8, 0)
         put(w, PUB_TIME_READY, 1)
         if get(w, SUP_SCRATCH) == 1:
             put(w, 62000, 3)
@@ -199,15 +217,24 @@ def supervisor(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 8
     if phase == 2051:
         if get(w, 62144) != 0:
-            return 0
+            return diagnostic(w, get(w, 62176), get(w, 62184))
         put(w, SUP_CLEANUP, get(w, 62160))
         put(w, SUP_CLEANUP_SIZE, get(w, 62168))
         put(w, 0, 2500)
         return 8
     if phase == 2052:
-        return 0
+        return diagnostic(w, get(w, SUP_ERROR), get(w, SUP_ERROR_SIZE))
+    if phase == 2071:
+        return typed_failure(w, 0, 0)
+    if phase == 2072:
+        put(w, SUP_FD, NONE)
+        if get(w, 68208) == 0:
+            return diagnostic(w, SUP_ERROR_TEXT, text_write_zero(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
+        return diagnostic_errno(w, get(w, 68208))
     if phase == 2070:
-        return call(o, w, 99999, 231, get(w, SUP_RETURN_ERROR), 0, 0, 0, 0, 0, 0)
+        if get(w, SUP_RETURN_ERROR) != 0:
+            return diagnostic(w, get(w, SUP_ERROR), get(w, SUP_ERROR_SIZE))
+        return call(o, w, 99999, 231, 0, 0, 0, 0, 0, 0, 0)
     return 0
 
 def start_spawn(w:mutbuf) -> u32:
@@ -241,6 +268,7 @@ def joined(w:mutbuf, target:u64, source:u64, size:u64) -> u64:
     return at
 
 def environment_value(s:readbuf, w:mutbuf, kind:u64, target:u64, size_slot:u64) -> u64:
+    put(w, 68200, 0)
     key_size = text_credentials(w, SUP_TEMP) - SUP_TEMP
     if kind == 1:
         key_size = text_state(w, SUP_TEMP) - SUP_TEMP
@@ -268,6 +296,7 @@ def environment_value(s:readbuf, w:mutbuf, kind:u64, target:u64, size_slot:u64) 
                     cursor = cursor + 1
                 store(w, target + value_size, 0)
                 put(w, size_slot, value_size)
+                put(w, 68200, 1)
                 return kernel_text(w, target, value_size)
         at = at + size + 9
         index = index + 1
@@ -276,7 +305,7 @@ def environment_value(s:readbuf, w:mutbuf, kind:u64, target:u64, size_slot:u64) 
 
 def source_program():
     names=['call','get','put','putn','uint','failed','copy','node','present','request','decode','begin_file','kernel_text','equal']
-    return substitute(POLICY+'\n'+helpers(names)+literals({'spec':'spec','input':'stdin.bin','null':'/dev/null','boot':'/proc/sys/kernel/random/boot_id','credentials':'CREDENTIALS_DIRECTORY=','state':'STATE_DIRECTORY='}))
+    return substitute(POLICY+'\n'+TYPED_ERRORS+'\n'+DIAGNOSTICS+'\n'+DIAGNOSTIC_RENDERER+'\n'+error_source()+'\n'+helpers(names)+literals({'environment_missing':'environment variable not found','invalid_utf8':'stream did not contain valid UTF-8','write_zero':'failed to write whole buffer','spec':'spec','input':'stdin.bin','null':'/dev/null','boot':'/proc/sys/kernel/random/boot_id','credentials':'CREDENTIALS_DIRECTORY=','state':'STATE_DIRECTORY=','root':'supervisor must never execute as root','identity':'supervisor identity mismatch','protocol':'supervisor capture protocol mismatch','prefix':'prefix not found'}))
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--check',action='store_true');args=parser.parse_args()

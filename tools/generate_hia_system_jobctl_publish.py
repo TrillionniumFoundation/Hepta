@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_system_jobctl_request import document
+from tools.generate_hia_system_jobctl_diagnostics import HELPERS as DIAGNOSTICS
 from tools.generate_hia_system_jobctl_supervisor_common import helpers,literals,substitute
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -37,7 +38,7 @@ def publish(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if result == NEG4:
             return call(o, w, 2502, 257, NEG100, SUP_STATE, 524288, 0, 0, 0, 12)
         if failed(result):
-            return 0
+            return diagnostic_errno(w, result)
         put(w, PUB_PARENT, result)
         size = render_exit(w)
         if size == NONE or size > 1048576:
@@ -54,7 +55,7 @@ def publish(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if result == NEG4:
             return call(o, w, 2510, 257, NEG100, PUB_TEMP, 524481, 384, 0, 0, 12)
         if failed(result):
-            return 0
+            return fail_atomic(o, w)
         put(w, PUB_CREATED, 1)
         put(w, PUB_FD, result)
         put(w, PUB_USED, 0)
@@ -112,6 +113,8 @@ def publish(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if get(w, SUP_EXIT_CODE) == 0 and get(w, SUP_INTERACTIVE) == 0:
             if get(w, PUB_COMPLETE) != 1 or get(w, PUB_DURABLE) != 1:
                 put(w, SUP_RETURN_ERROR, 1)
+                put(w, SUP_ERROR, SUP_ERROR_TEXT)
+                put(w, SUP_ERROR_SIZE, text_incomplete(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
         put(w, 0, 2070)
         return 8
     if phase == 2580:
@@ -119,10 +122,21 @@ def publish(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             value = get(w, PUB_FD)
             put(w, PUB_FD, NONE)
             return call(o, w, 2581, 3, value, 0, 0, 0, 0, 0, 0)
-        return 0
+        return failure_parent(o, w)
     if phase == 2581:
-        return 0
+        return failure_parent(o, w)
+    if phase == 2582:
+        put(w, 0, 2060)
+        return 8
     return 0
+
+def failure_parent(o:mutbuf, w:mutbuf) -> u32:
+    if get(w, PUB_PARENT) != NONE:
+        value = get(w, PUB_PARENT)
+        put(w, PUB_PARENT, NONE)
+        return call(o, w, 2582, 3, value, 0, 0, 0, 0, 0, 0)
+    put(w, 0, 2060)
+    return 8
 
 def begin_atomic(o:mutbuf, w:mutbuf) -> u32:
     at = state_prefix(w, PUB_PATH)
@@ -156,9 +170,14 @@ def write_bytes(o:mutbuf, w:mutbuf) -> u32:
     return call(o, w, 2511, 1, get(w, PUB_FD), get(w, PUB_DATA) + get(w, PUB_USED), get(w, PUB_SIZE) - get(w, PUB_USED), 0, 0, 0, 12)
 
 def fail_atomic(o:mutbuf, w:mutbuf) -> u32:
+    if get(w, 0) == 2511 and get(w, 8) == 0:
+        diagnostic(w, SUP_ERROR_TEXT, text_write_zero(w, SUP_ERROR_TEXT) - SUP_ERROR_TEXT)
+    else:
+        diagnostic_errno(w, get(w, 8))
     if get(w, PUB_CREATED) != 0:
         return call(o, w, 2580, 263, NEG100, PUB_TEMP, 0, 0, 0, 0, 12)
-    return 0
+    put(w, 0, 2580)
+    return 8
 
 def hash_exit(o:mutbuf, w:mutbuf, next:u64, mode:u64, size:u64) -> u32:
     store(w, PUB_EXIT - 1, mode)
@@ -312,14 +331,14 @@ def maybe_text(w:mutbuf, at:u64, source:u64, size:u64) -> u64:
 '''
 
 def source_program():
-    text={'exit_name':'exit.json','witness_name':'exit.witness','temporary':'exit.tmp-',
+    text={'incomplete':'workload exited with code 0 but output capture was incomplete or not durable; retained original exit, no retry','write_zero':'failed to write whole buffer','exit_name':'exit.json','witness_name':'exit.witness','temporary':'exit.tmp-',
       'job':'{"job_id":','nonce':',"nonce":','exit_code':',"exit_code":','timed_out':',"timed_out":','cancelled':',"cancelled":','timestamp':',"at_unix_ms":','protocol':',"terminal_protocol":','complete':',"output_complete":','durable':',"output_durable":','capture':',"capture":','cleanup':',"scratch_cleanup":',
       'stdout_capture':'{"stdout":','stderr_capture':',"stderr":','captured':'"captured_v1"','pty':'"pty_v1"','true':'true','false':'false','null':'null',
       'seen':'{"seen":','saved':',"saved":','eof':',"eof":','truncated':',"truncated":','drain':',"drain_timeout":','read_error':',"read_error":','write_error':',"write_error":','sync_error':',"sync_error":','synced':',"synced":',
       'digest':',"exit_sha256":"','unavailable':'capture unavailable before workload spawn: ',
       'not_started':'{"seen":0,"saved":0,"eof":false,"truncated":false,"drain_timeout":false,"read_error":',
       'not_started_end':',"write_error":null,"sync_error":null,"synced":false}'}
-    return substitute(POLICY+'\n'+helpers(['get','put','putn','call','failed','copy','quote','hexadecimal','decimal','decimal128'])+literals(text))
+    return substitute(POLICY+'\n'+DIAGNOSTICS+'\n'+helpers(['get','put','putn','call','failed','copy','quote','hexadecimal','decimal','decimal128'])+literals(text))
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--check',action='store_true');args=parser.parse_args()

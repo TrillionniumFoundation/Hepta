@@ -11,13 +11,37 @@ POLICY=r'''
 def entry(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(o) != 128 or length(w) != STATE_BYTES:
         return 0
+    phase = get(w, 0)
     mode = get(w, SUP_ENTRY_MODE)
+    if (phase == 2060 or phase == 2062) and mode == 1 and get(w, 368) != NONE:
+        put(w, 68500, phase)
+        phase = 2080
+    if phase >= 2080 and phase < 2083:
+        if mode != 1:
+            return 0
+        if phase == 2080:
+            fd = get(w, 368)
+            put(w, 368, NONE)
+            put(w, 68508, fd)
+            if fd == NONE:
+                put(w, 0, get(w, 68500))
+                return 8
+            return call(o, w, 2081, 73, fd, 8, 0, 0, 0, 0, 0)
+        if phase == 2081:
+            return call(o, w, 2082, 3, get(w, 68508), 0, 0, 0, 0, 0, 0)
+        put(w, 68508, NONE)
+        put(w, 0, get(w, 68500))
+        return 8
+    if phase >= 2060 and phase < 2070:
+        return 16
     if mode == 0:
+        put(w, 368, NONE)
         if length(s) < 32 or uint(s, 0) != ARG_MAGIC or uint(s, 24) != length(s):
             return 0
         count = uint(s, 8)
         if count != 1 and count != 3:
-            return 0
+            put(w, SUP_ENTRY_MODE, 1)
+            return 25
         index = 0
         at = 32
         while index < count:
@@ -41,7 +65,8 @@ def entry(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 else:
                     end = text_supervise_pty(w, SUP_PATH)
                     if equal(w, target, size, SUP_PATH, end - SUP_PATH) == 0:
-                        return 0
+                        put(w, SUP_ENTRY_MODE, 1)
+                        return 25
                     put(w, SUP_INTERACTIVE, 1)
             if index == 2:
                 put(w, SUP_JOB_SIZE, size)
