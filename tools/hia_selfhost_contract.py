@@ -18,6 +18,7 @@ PROFILE = 'selfhost-core-linux-x86_64-v95-bounded-recursion'
 SQLITE_SNAPSHOT_SDIST_FILES = (
     'tools/build_hia_agent_batch_commit.py',
     'tools/build_hia_agent_store.py',
+    'tools/rebase_hia_agent_store_plan.py',
     'tools/hia_agent_store_syscalls.S',
     'examples/hia_bootstrap/agent_store/artifact_capture.hepta',
     'examples/hia_bootstrap/agent_store/binding_capture.hepta',

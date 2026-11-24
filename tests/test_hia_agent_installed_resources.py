@@ -19,6 +19,7 @@ RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_
 # The two declared native package files also belong in the actual wheel;
 # all other support paths remain absent from its package root.
 SDIST_SUPPORT_FILES=(
+    'tools/rebase_hia_agent_store_plan.py',
     *NATIVE_JOB_LIFECYCLE_FILES,
     *NATIVE_WORKER_INSTALL_OWNER_FILES,
     *NATIVE_WORKER_INSTALL_ENTRY_FILES,
