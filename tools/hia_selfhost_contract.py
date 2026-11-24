@@ -824,6 +824,7 @@ NATIVE_JOB_LIFECYCLE_FILES = (
 
 NATIVE_WORKER_INSTALL_OWNER_FILES = (
     'docs/HIA_WORKER_CONFIG_BIND.md',
+    'docs/HIA_NATIVE_JOB_CONFIG_BIND.md',
     'examples/hia_bootstrap/worker_config_bind.hepta',
     'examples/hia_bootstrap/worker_config_bind_packer.hepta',
     'examples/hia_bootstrap/worker_config_json.hepta',
@@ -831,6 +832,7 @@ NATIVE_WORKER_INSTALL_OWNER_FILES = (
     'tools/generate_hia_worker_config_json.py',
     'tools/hia_worker_config_bind_syscalls.S',
     'tools/qualify_hia_worker_config_bind.py',
+    'tools/qualify_hia_worker_job_config_bind.py',
     'tools/qualify_hia_worker_install_sources.py',
     'tools/qualify_hia_worker_install_launch.py',
     'examples/hia_bootstrap/source_worker_capsule_check_evaluate_full.hepta',

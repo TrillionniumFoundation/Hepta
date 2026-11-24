@@ -1,6 +1,6 @@
-# Native v25 controller installation
+# Native v26 controller installation
 
-`hia-controller-install` assembles and qualifies the v25 MCP controller
+`hia-controller-install` assembles and qualifies the v26 MCP controller
 from an already installed, pinned Store. Its policy and protocol probes are
 HIA programs. The small syscall adapter translates their explicit syscall
 plans and does not select products, interpret protocol responses, or choose
@@ -9,7 +9,7 @@ publication outcomes.
 ## Request and authority
 
 Run the executable with no arguments and a fully sealed regular memfd on
-standard input. The request is exactly 672 bytes, in little endian order.
+standard input. The request is exactly 832 bytes, in little endian order.
 All six capability descriptors must be distinct, open, and at least 3. The
 caller must explicitly pass them through the subprocess runner.
 
@@ -24,10 +24,10 @@ caller must explicitly pass them through the subprocess runner.
 | 48 | Sealed `hia-subprocess` executable FD |
 | 56 | Sealed `hia-directory-package-build` executable FD |
 | 64 | Sealed `hia-release` executable FD |
-| 72 | Role count, exactly 14 |
+| 72 | Role count, exactly 19 |
 | 80 | Six reserved 64-bit zero values |
 | 128 | Three raw 32-byte tool SHA-256 values, in the FD order above |
-| 224 | Fourteen raw 32-byte role SHA-256 values, in the order below |
+| 224 | Nineteen raw 32-byte role SHA-256 values, in the order below |
 
 The three directories must refer to different inodes. Depot and scratch must
 be private directories owned by the caller's effective user. The release
@@ -47,9 +47,18 @@ The role order is bytewise filename order:
 9. `hia-agent-mcp-response-schema`
 10. `hia-agent-mcp-terminal`
 11. `hia-agent-mcp-uri`
-12. `hia-job-receipt`
-13. `hia-job-supervisor`
-14. `hia-worker-prepare`
+12. `hia-job-cancel`
+13. `hia-job-entry`
+14. `hia-job-launch`
+15. `hia-job-observation`
+16. `hia-job-receipt`
+17. `hia-job-submit`
+18. `hia-job-supervisor`
+19. `hia-worker-prepare`
+
+Each original executable is bounded by 1 MiB; the catalog remains bounded by 64 MiB. The new entry and observation owners are bounded by 2 MiB, submit by 4 MiB, and cancel and launcher by 1 MiB. ELF roles require at least 64 bytes. These limits match the v26 runtime admission contract.
+
+The output manifest schema is `hepta.hia.mcp.controller.v26`. The old 672-byte request and 14-role count are rejected. The Worker installation owner passes the sealed 96-byte controller receipt to configuration binder mode 3. That binder verifies the manifest and five native lifecycle images before adding the complete `native_jobs` selection to the chosen host.
 
 ## Qualification and publication
 
@@ -65,7 +74,7 @@ plan because its stdout is a directory or lock capability. Both paths use
 explicit descriptor inheritance and parent-death handling.
 
 Only after these checks does the owner write the canonical controller
-manifest, pack its 15 files, independently check the package digest, and
+manifest, pack its 20 files, independently check the package digest, and
 invoke the pinned directory installer with its FD authority interface.
 Installation and subsequent verification must both succeed. It re-reads
 the installed manifest before returning success.
@@ -74,7 +83,7 @@ Success produces exactly 96 bytes on stdout and no stderr:
 
 ```text
 <8sQQ32s32sQ>
-HIACTO01, 25, 15, package_sha256, manifest_sha256, 0
+HIACTO01, 26, 20, package_sha256, manifest_sha256, 0
 ```
 
 The package directory is named by its SHA-256 beneath the supplied depot.
@@ -122,4 +131,4 @@ The source driver requires independent qualified controller and original public
 Worker images for its exact-byte comparisons. It preserves the named-source
 refusals, companion checks, order independence, raw pack refusals, and original
 Worker round-trip checks. The installed controller driver retains the complete
-v25 native probe sequence; its refusal driver retains all 13 original cases.
+v25 native probe sequence and checks that all five lifecycle owners reject an empty protocol. Their complete behavior campaigns remain separate release gates. The refusal driver retains all 13 original cases and adds legacy/count/extent request refusals plus the exact upper bound of every role.

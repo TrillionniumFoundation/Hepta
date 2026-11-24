@@ -683,6 +683,20 @@ def _install_controller(output, scratch, release, installer):
         _verify_native_job_owner(native_job_owner, release / 'hia-worker-prepare', scratch)
         files.append(native_job_owner)
         schema = 'hepta.hia.mcp.controller.v25'
+    native_job_roles = ('hia-job-entry', 'hia-job-submit', 'hia-job-observation', 'hia-job-cancel', 'hia-job-launch')
+    native_job_paths = tuple(release / name for name in native_job_roles)
+    if any(path.exists() for path in native_job_paths):
+        if schema != 'hepta.hia.mcp.controller.v25' or not all(path.is_file() for path in native_job_paths):
+            raise ValueError('native job transport requires every v26 controller role')
+        limits = (2097152, 4194304, 2097152, 1048576, 1048576)
+        for path, limit in zip(native_job_paths, limits):
+            if path.is_symlink() or not 64 <= path.stat().st_size <= limit:
+                raise ValueError('native job transport role extent is outside its contract: ' + path.name)
+            with path.open('rb') as stream:
+                if stream.read(8) != b'\x7fELF\x02\x01\x01\x00':
+                    raise ValueError('native job transport role is not a supported ELF: ' + path.name)
+        files.extend(native_job_paths)
+        schema = 'hepta.hia.mcp.controller.v26'
     stage = scratch / 'controller-stage'
     stage.mkdir(mode=0o700)
     pins = {}

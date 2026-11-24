@@ -1,4 +1,4 @@
-"""Author the HIA v25 controller installation owner; Python is build-time only."""
+"""Author the HIA v26 controller installation owner; Python is build-time only."""
 from pathlib import Path
 import ast, hashlib, json, re, struct, subprocess, tempfile, sys
 ROOT=Path(__file__).resolve().parents[1]
@@ -12,7 +12,10 @@ ROLES=tuple(sorted(('HIA_AGENT_NATIVE_TOOL_CATALOG.json','hia-worker-prepare',
  'hia-agent-mcp-request','hia-agent-mcp-reply','hia-agent-mcp-terminal',
  'hia-agent-mcp-negotiation','hia-agent-mcp-catalog','hia-agent-mcp-uri',
  'hia-agent-mcp-input-schema','hia-agent-mcp-response-schema','hia-agent-mcp-proof-schema',
- 'hia-job-receipt','hia-agent-job-terminal-receipt','hia-job-supervisor')))
+ 'hia-job-receipt','hia-agent-job-terminal-receipt','hia-job-supervisor',
+ 'hia-job-entry','hia-job-submit','hia-job-observation','hia-job-cancel','hia-job-launch')))
+ROLE_LIMITS={name:(67108864 if name.endswith('.json') else 1048576) for name in ROLES}
+ROLE_LIMITS.update({'hia-job-entry':2097152,'hia-job-submit':4194304,'hia-job-observation':2097152})
 def q(m,*words): return struct.pack('<8s'+'Q'*len(words),m,*words)
 def compact(v): return (json.dumps(v,sort_keys=True,separators=(',',':'))+'\n').encode()
 def spaced(v,newline=True): return (json.dumps(v,sort_keys=True)+('\n' if newline else '')).encode()
@@ -58,6 +61,10 @@ for invocation in (None,'','unit"\u2603'):
 probe(prepare,request[:-1],b'',2)
 # Same reference workload used by the existing native job-owner admission.
 probe(prepare,b'native-job-owner-admission-probe',b'',2)
+# Lifecycle owners must reject an empty protocol without output or side effects.
+# Their complete positive and negative oracle campaigns remain separate release gates.
+for name in ('hia-job-entry','hia-job-submit','hia-job-observation','hia-job-cancel','hia-job-launch'):
+    probe(name,b'',b'',65)
 
 TEXT={'EMPTY':b'','DOT':b'.','MEMFD':b'hia-controller-install','RUNNER':b'hia-subprocess',
       'CHILD':b'hia-controller-probe','ENV':b'PATH=','FD':b'fd:',
@@ -69,8 +76,8 @@ TEXT={'EMPTY':b'','DOT':b'.','MEMFD':b'hia-controller-install','RUNNER':b'hia-su
       'STDOUT':b'stdout.log','STDERR':b'stderr.log','RECEIPT':b'native-exit.bin',
       'JOB_ID':b'native-owner-admission','NONCE':b'5'*32,
       'OWNER_SAMPLE':b'native-job-owner-admission-probe','OWNER_ARG':b'hia-worker-prepare',
-      'MANIFEST_PREFIX':b'{"files":{','MANIFEST_SUFFIX':b'},"schema":"hepta.hia.mcp.controller.v25"}\n',
-      'INSTALL_PREFIX':b'{"bytes":','INSTALL_MIDDLE':b',"files":15,"published":',
+      'MANIFEST_PREFIX':b'{"files":{','MANIFEST_SUFFIX':b'},"schema":"hepta.hia.mcp.controller.v26"}\n',
+      'INSTALL_PREFIX':b'{"bytes":','INSTALL_MIDDLE':b',"files":20,"published":',
       'INSTALL_SUFFIX':b',"schema":"hepta.hia.release-install.v1","sha256":"'}
 MAGICS={'REQUEST':b'HIACTI01','OUTPUT':b'HIACTO01','SUB':b'HIASUB01',
         'SUBRECEIPT':b'HIASBR01','PASS':b'HIAPFD01','JOB':b'HIAJOB01'}
@@ -394,7 +401,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return installation(s, o, w, phase, r)
 
 def admit(s:readbuf) -> u64:
-    if length(s) != 672 or uint(s, 0) != MAGIC_REQUEST or uint(s, 72) != 14:
+    if length(s) != N_REQUEST_BYTES or uint(s, 0) != MAGIC_REQUEST or uint(s, 72) != N_ROLES:
         return 0
     if uint(s, 8) == 1 or uint(s, 8) > 2147483647 or uint(s, 16) == 0:
         return 0
@@ -513,12 +520,21 @@ def open_dir(o:mutbuf, w:mutbuf, dir:u64, path:u64, next:u64) -> u32:
 
 def next_role(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     index = get(w, 1500000)
-    if index == 14:
+    if index == N_ROLES:
         return resume(s, o, w, 2000)
     put(w, 3088, 657408)
     put(w, 3096, 0)
     put(w, 3104, 14)
     return call(o, w, 30, 437, uint(s, 24), role_name(w, index), 3088, 24, 0, 0, 60)
+
+def role_limit(index:u64) -> u64:
+    if index == 0:
+        return 67108864
+    if index == ROLE_ENTRY or index == ROLE_OBSERVATION:
+        return 2097152
+    if index == ROLE_SUBMIT:
+        return 4194304
+    return 1048576
 
 def capture_role(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
     index = get(w, 1500000)
@@ -531,7 +547,7 @@ def capture_role(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         if getn(w, 1224, 4) & 61440 != 32768 or get(w, 1216) != 1 or getn(w, 1224, 4) & 18 != 0:
             return finish(o, w, 65)
         size = get(w, 1248)
-        if size == 0 or size > 67108864:
+        if size == 0 or size > role_limit(index) or (index != 0 and size < 64):
             return finish(o, w, 65)
         put(w, 1500064, size)
         copyw(w, 20000, 1200, 144)
@@ -1438,7 +1454,7 @@ def manifest(w:mutbuf) -> u64:
     copyw(w, at, C_MANIFEST_PREFIX, L_MANIFEST_PREFIX)
     at = at + L_MANIFEST_PREFIX
     i = 0
-    while i < 14:
+    while i < N_ROLES:
         if i != 0:
             store(w, at, 44)
             at = at + 1
@@ -1512,7 +1528,7 @@ def installer_receipt(w:mutbuf, size:u64) -> u64:
         at = whitespace(w, at + 1, end)
         if key == 0 or key == 1:
             at = number(w, at, end)
-            expected = choose(key == 0, get(w, 1500168), 15)
+            expected = choose(key == 0, get(w, 1500168), N_CONTROLLER_FILES)
             if at == 0 or get(w, 1542200) != expected:
                 return 0
         if key == 2:
@@ -1584,9 +1600,9 @@ def cleanup(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         return resume(s, o, w, 1612)
     if phase == 1612:
         index = get(w, 1500300)
-        if index == 15:
+        if index == N_CONTROLLER_FILES:
             return call(o, w, 1614, 3, get(w, 1500016), 0, 0, 0, 0, 0, 0)
-        name = choose(index == 14, C_MANIFEST, role_name(w, index))
+        name = choose(index == N_ROLES, C_MANIFEST, role_name(w, index))
         return call(o, w, 1613, 263, get(w, 1500016), name, 0, 0, 0, 0, 12)
     if phase == 1613:
         put(w, 1500300, get(w, 1500300) + 1)
@@ -1599,8 +1615,8 @@ def cleanup(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         return call(o, w, 1617, 74, uint(s, 32), 0, 0, 0, 0, 0, 0)
     if phase == 1617:
         put(w, 16384, MAGIC_OUTPUT)
-        put(w, 16392, 25)
-        put(w, 16400, 15)
+        put(w, 16392, 26)
+        put(w, 16400, N_CONTROLLER_FILES)
         copyw(w, 16408, 1500184, 32)
         copyw(w, 16440, 1500120, 32)
         put(w, 16472, 0)
@@ -1647,7 +1663,7 @@ OWNER_FILES=('child.json','exit.json','exit.witness.json','native-exit.bin','own
 TEXT.update({'KEY_BYTES':b'bytes','KEY_FILES':b'files','KEY_PUBLISHED':b'published','KEY_SCHEMA':b'schema','KEY_SHA':b'sha256','TRUE':b'true','FALSE':b'false','INSTALL_SCHEMA':b'hepta.hia.release-install.v1'})
 
 def constants():
-    words={}; lines=[]; cursor=600000
+    words={'N_ROLES':len(ROLES),'N_CONTROLLER_FILES':len(ROLES)+1,'N_REQUEST_BYTES':224+len(ROLES)*32}; lines=[]; cursor=600000
     def word(at,value): lines.append(f'    put(w, {at}, {value})')
     def data(name,raw):
         nonlocal cursor
@@ -1713,7 +1729,10 @@ def constants():
     words.update({'MAGIC_'+k:int.from_bytes(v,'little') for k,v in MAGICS.items()})
     words.update({'ROLE_WRITER':ROLES.index('hia-job-receipt'),
                   'ROLE_PREPARE':ROLES.index('hia-worker-prepare'),
-                  'ROLE_OWNER':ROLES.index('hia-job-supervisor')})
+                  'ROLE_OWNER':ROLES.index('hia-job-supervisor'),
+                  'ROLE_ENTRY':ROLES.index('hia-job-entry'),
+                  'ROLE_SUBMIT':ROLES.index('hia-job-submit'),
+                  'ROLE_OBSERVATION':ROLES.index('hia-job-observation')})
     assert cursor<700000,cursor
     groups=[lines[i:i+384] for i in range(0,len(lines),384)]
     init='def constants(w:mutbuf) -> u64:\n'+'\n'.join(f'    constants_{i}(w)' for i in range(len(groups)))+'\n    return 0\n'

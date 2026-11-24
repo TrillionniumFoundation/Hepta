@@ -10,7 +10,7 @@ parser.add_argument('--component',type=Path,required=True)
 parser.add_argument('--output',type=Path,required=True)
 args=parser.parse_args()
 S=args.source.resolve(strict=True);sys.path.insert(0,str(S))
-from tools.generate_hia_controller_install import ROLES
+from tools.generate_hia_controller_install import ROLES,ROLE_LIMITS
 stage=args.release.resolve(strict=True)
 elf=args.component.resolve(strict=True)
 D=args.output.resolve();D.mkdir(mode=0o700,exist_ok=False)
@@ -19,14 +19,17 @@ role_bytes={n:(stage/n).read_bytes() for n in ROLES}
 tool_bytes=[p.read_bytes() for p in tools]
 cases=('unsealed_request','unsealed_runner','wrong_tool_pin','wrong_role_pin','expired_deadline',
        'duplicate_capability','same_directory_inode','nonempty_scratch','missing_role','symlink_role',
-       'writable_role','bound_wrong_protocol','nonzero_reserved')
+       'writable_role','bound_wrong_protocol','nonzero_reserved','legacy_request','wrong_count',
+       'truncated_request','trailing_request')+tuple('oversize_'+name for name in ROLES)
 results=[]
 for case in cases:
  C=D/case;C.mkdir(mode=0o700);depot=C/'controller';depot.mkdir(mode=0o700);scratch=C/'scratch';scratch.mkdir(mode=0o700)
  release=stage;payloads=role_bytes.copy()
- if case in ('missing_role','symlink_role','writable_role','bound_wrong_protocol'):
+ if case in ('missing_role','symlink_role','writable_role','bound_wrong_protocol') or case.startswith('oversize_'):
   release=C/'release';release.mkdir(mode=0o700)
   if case=='bound_wrong_protocol':payloads['hia-worker-prepare']=payloads['hia-agent-mcp-catalog']
+  if case.startswith('oversize_'):
+   name=case.removeprefix('oversize_');payloads[name]=payloads[name].ljust(ROLE_LIMITS[name]+1,b'\0')
   for name,raw in payloads.items():
    if name=='hia-worker-prepare' and case=='missing_role':continue
    if name=='hia-worker-prepare' and case=='symlink_role':
@@ -51,10 +54,14 @@ for case in cases:
   if case=='expired_deadline':deadline=time.monotonic_ns()-1
   reserved=[0]*6
   if case=='nonzero_reserved':reserved[2]=1
-  request=bytearray(struct.pack('<8s15Q',b'HIACTI01',0,deadline,*fields,14,*reserved)+b''.join(sha256(raw).digest() for raw in tool_bytes)+b''.join(rolepins))
+  request=bytearray(struct.pack('<8s15Q',b'HIACTI01',0,deadline,*fields,len(ROLES),*reserved)+b''.join(sha256(raw).digest() for raw in tool_bytes)+b''.join(rolepins))
   if case=='wrong_tool_pin':request[128]^=1
   if case=='wrong_role_pin':request[224]^=1
-  assert len(request)==672
+  assert len(request)==832
+  if case=='legacy_request':request=request[:672];struct.pack_into('<Q',request,72,14)
+  if case=='wrong_count':struct.pack_into('<Q',request,72,18)
+  if case=='truncated_request':request=request[:-1]
+  if case=='trailing_request':request+=b'\0'
   src=sealed('controller-request',request,0o400,case!='unsealed_request')
   executable=sealed('controller-install',elf.read_bytes(),0o500)
   command=[f'/proc/self/fd/{executable}']

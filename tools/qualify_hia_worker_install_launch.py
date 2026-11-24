@@ -248,7 +248,7 @@ def main():
         controllers = list((installation / 'controller').glob('*/hia-controller.json'))
         assert len(controllers) == 1
         controller = json.loads(controllers[0].read_bytes())
-        assert controller['schema'] == 'hepta.hia.mcp.controller.v25' and len(controller['files']) == 14
+        assert controller['schema'] == 'hepta.hia.mcp.controller.v26' and len(controller['files']) == 19
         for role, pin in controller['files'].items():
             assert sha256((controllers[0].parent / role).read_bytes()).hexdigest() == pin
             assert (controllers[0].parent / role).read_bytes() == (installation / 'store' / package_pin / role).read_bytes()
