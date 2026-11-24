@@ -27,57 +27,66 @@ from tools import hia_kernel_selfhost_msr as msr
 PROFILE = "hepta.hia.program.kernel-tlb.v1"
 LEGACY = "hepta.hia.program.v8"
 HEADER = b"hia-asm.v1 hepta.hia.program.v8 selfhost\n"
-# Only the isolated candidate changes capacity. Keep the public 1 MiB
-# source/output/scratch envelopes, 128 functions, 256 blocks/function,
-# 2048 SSA names/function and 262144 Core nodes. Expand the isolated relocation table.
-CANDIDATE_BLOCKS = 1824
-CANDIDATE_INSTRUCTIONS = 9600
-CANDIDATE_RELOCATIONS = 13700
+# The experimental compiler has a separate 2 MiB scratch envelope.
+# Source and output are still independently bounded at the historical 1 MiB.
+# No default Core v8 generator, binary ABI, or source/output limit is changed.
+CANDIDATE_WORKSPACE = 2 << 20
+CANDIDATE_FUNCTIONS = 192
+CANDIDATE_BLOCKS = 2048
+CANDIDATE_INSTRUCTIONS = 10000
+CANDIDATE_RELOCATIONS = 16000
+CANDIDATE_EXPORTS = 128
 RELOCATION_RECORD_BYTES = 16
 
 def candidate_layout():
-    # Global block records, one discovery/kind byte per GLOBAL block,
-    # and the 16-byte block-origin records must all grow together.
-    # KBASE is indexed by global bid in loan_incoming/loan_transfer;
-    # it is NOT a per-function table. Otherwise bid 1536 aliases CAPTMP.
-    block_delta = (CANDIDATE_BLOCKS - 1536) * gen.BSTRIDE
-    kind_delta = CANDIDATE_BLOCKS - 1536
-    origin_delta = kind_delta * 16
-    # Packed offset/kind plus a full-width target. No public ABI grows.
-    relocation_delta = CANDIDATE_RELOCATIONS * RELOCATION_RECORD_BYTES - 12000 * 24
-    moved = ("VBASE", "ARGS", "FIXBASE", "CBASE", "CSTATE", "CAPBASE", "KBASE")
-    layout = {key: getattr(gen, key) + block_delta for key in moved}
-    for key in ("CBASE", "CSTATE", "CAPBASE", "KBASE"):
-        layout[key] += relocation_delta
-    for key in ("CAPTMP", "QBASE", "ORIGINBASE", "BLOCKORIGIN"):
-        layout[key] = getattr(gen, key) + block_delta + relocation_delta + kind_delta
-    names = {old: old + block_delta + relocation_delta + kind_delta + origin_delta
-             for old in (955152, 1004304, 1010448)}
-    intervals = [
-        ("state", 0, 2048),
-        ("functions", gen.FBASE, gen.FBASE + 128 * gen.FSTRIDE),
-        ("blocks", gen.BBASE, gen.BBASE + CANDIDATE_BLOCKS * gen.BSTRIDE),
-        ("ssa", layout["VBASE"], layout["VBASE"] + 2048 * 16),
-        ("args", layout["ARGS"], layout["ARGS"] + 1024),
-        ("relocations", layout["FIXBASE"], layout["FIXBASE"] + CANDIDATE_RELOCATIONS * RELOCATION_RECORD_BYTES),
-        ("call_graph", layout["CBASE"], layout["CBASE"] + 128 * 128),
-        ("call_state", layout["CSTATE"], layout["CSTATE"] + 128 * 8),
-        ("capabilities", layout["CAPBASE"], layout["CAPBASE"] + 2048 * 24),
-        ("kind", layout["KBASE"], layout["KBASE"] + CANDIDATE_BLOCKS),
-        ("cap_tmp", layout["CAPTMP"], layout["CAPTMP"] + 16),
-        ("queue", layout["QBASE"], layout["QBASE"] + 256 * 8),
-        ("origins", layout["ORIGINBASE"], layout["ORIGINBASE"] + 2048),
-        ("block_origins", layout["BLOCKORIGIN"], layout["BLOCKORIGIN"] + CANDIDATE_BLOCKS * 16),
-        ("value_names", names[955152], names[955152] + 2048 * 24),
-        ("block_names", names[1004304], names[1004304] + 256 * 24),
-        ("exports", names[1010448], names[1010448] + 128 * 48),
-    ]
+    # Pack each global table using its actual indexing dimensions. Every
+    # downstream name/origin/export table is relocated, not just the first
+    # overflowed table. Keep the original per-function SSA/block limits.
+    intervals = [("state", 0, 2048)]
+    layout = {}
+    cursor = gen.FBASE
+
+    def reserve(label, size, key=None):
+        nonlocal cursor
+        cursor = (cursor + 15) & ~15
+        base = cursor
+        cursor += size
+        intervals.append((label, base, cursor))
+        if key is not None:
+            layout[key] = base
+        return base
+
+    if reserve("functions", CANDIDATE_FUNCTIONS * gen.FSTRIDE) != gen.FBASE:
+        raise ValueError("function table origin changed")
+    reserve("blocks", CANDIDATE_BLOCKS * gen.BSTRIDE, "BBASE")
+    reserve("ssa", 2048 * 16, "VBASE")
+    reserve("args", 1024, "ARGS")
+    reserve("relocations", CANDIDATE_RELOCATIONS * RELOCATION_RECORD_BYTES, "FIXBASE")
+    reserve("call_graph", CANDIDATE_FUNCTIONS ** 2, "CBASE")
+    reserve("call_state", CANDIDATE_FUNCTIONS * 8, "CSTATE")
+    if layout["CSTATE"] != layout["CBASE"] + CANDIDATE_FUNCTIONS ** 2:
+        raise ValueError("call graph and marks are not contiguous")
+    reserve("capabilities", 2048 * 24, "CAPBASE")
+    reserve("kind", CANDIDATE_BLOCKS, "KBASE")
+    reserve("cap_tmp", 16, "CAPTMP")
+    reserve("queue", 256 * 8, "QBASE")
+    reserve("origins", 2048, "ORIGINBASE")
+    reserve("block_origins", CANDIDATE_BLOCKS * 16, "BLOCKORIGIN")
+    names = {
+        955152: reserve("value_names", 2048 * 24),
+        1004304: reserve("block_names", 256 * 24),
+        1010448: reserve("exports", CANDIDATE_EXPORTS * 48),
+    }
     previous = 0
-    for label, start, end in intervals:
-        if start < previous or end <= start or end > 1 << 20:
-            raise ValueError(("candidate scratch overlap or overflow", label, start, end))
-        previous = end
-    relocation_bound = 128 + CANDIDATE_INSTRUCTIONS + 2 * CANDIDATE_BLOCKS + 128 + 2
+    for label, begin, stop in intervals:
+        if begin < previous or stop <= begin or stop > CANDIDATE_WORKSPACE:
+            raise ValueError(("candidate scratch overlap or overflow", label, begin, stop))
+        previous = stop
+    # Function count is stored in an existing private byte, not a u64.
+    if not 128 < CANDIDATE_FUNCTIONS < 256:
+        raise ValueError("function count exceeds private header representation")
+    relocation_bound = (CANDIDATE_FUNCTIONS + CANDIDATE_INSTRUCTIONS +
+                        2 * CANDIDATE_BLOCKS + CANDIDATE_EXPORTS + 2)
     if relocation_bound > CANDIDATE_RELOCATIONS:
         raise ValueError("candidate relocation capacity exceeded")
     return layout, names, intervals, relocation_bound
@@ -100,6 +109,32 @@ def candidate_source():
         raise ValueError("kernel token interval changed")
     source = gen.SOURCE
     layout, names, _, _ = candidate_layout()
+    # Increase only scratch admission and the actual CLI workspace mapping:
+    # input [0,1 MiB), output [1,2 MiB), workspace [2,4 MiB).
+    source = replace_once(source, "if n < 1048576:",
+                          f"if n < {CANDIDATE_WORKSPACE}:")
+    from tools.hia_selfhost_cli import _bytes
+    mmap_old = ("31 ff be 00 00 30 00 ba 03 00 00 00 41 ba 22 00 00 00"
+                " 49 c7 c0 ff ff ff ff 45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff")
+    source = replace_once(source, _bytes(mmap_old),
+                          _bytes(mmap_old.replace("be 00 00 30 00", "be 00 00 40 00")))
+    call_old = ("4c 89 e7 4c 89 ee 49 8d 94 24 00 00 10 00 b9 00 00 10 00"
+                " 4d 8d 84 24 00 00 20 00 41 b9 00 00 10 00 e8")
+    source = replace_once(source, _bytes(call_old),
+                          _bytes(call_old.replace("41 b9 00 00 10 00", "41 b9 00 00 20 00")))
+    # All function admission sites and both call-graph strides change
+    # together; retain independent name-length and export-count limits.
+    for old, new in (
+        ("f != get(w, 64) or f >= 128", f"f != get(w, 64) or f >= {CANDIDATE_FUNCTIONS}"),
+        ("if f >= 128:", f"if f >= {CANDIDATE_FUNCTIONS}:"),
+        ("if x >= 128:", f"if x >= {CANDIDATE_FUNCTIONS}:"),
+        ("CBASE + get(w, 72) * 128 + x", f"CBASE + get(w, 72) * {CANDIDATE_FUNCTIONS} + x"),
+        ("while target < 128:", f"while target < {CANDIDATE_FUNCTIONS}:"),
+        ("CBASE + f * 128 + target", f"CBASE + f * {CANDIDATE_FUNCTIONS} + target"),
+        ("fill_range(w, CBASE, 17408, 0)",
+         f"fill_range(w, CBASE, {CANDIDATE_FUNCTIONS ** 2 + CANDIDATE_FUNCTIONS * 8}, 0)"),
+    ):
+        source = replace_once(source, old, new)
     # Both global block bounds and the global discovery-table clear grow.
     # The per-function 256-block name/queue admission stays unchanged.
     source = replace_once(source, "fill_range(w, KBASE, 1536, 0)",
@@ -362,12 +397,45 @@ def candidate_source():
         if len(names) > 2048 or len(function["blocks"]) > 256:
             raise ValueError(("per-function native limit", function["name"],
                               len(names), len(function["blocks"])))
-    if len(functions) > 128 or len(blocks) > CANDIDATE_BLOCKS or ops > CANDIDATE_INSTRUCTIONS:
+    if len(functions) > CANDIDATE_FUNCTIONS or len(blocks) > CANDIDATE_BLOCKS or ops > CANDIDATE_INSTRUCTIONS:
         raise ValueError({"functions": len(functions), "blocks": len(blocks), "ops": ops})
     result = render_assembly(document).encode()
     if not result.startswith(HEADER) or len(result) > 1 << 20:
         raise ValueError("candidate source exceeds bootstrap envelope")
     return result, {"functions": len(functions), "blocks": len(blocks), "ops": ops}
+
+def candidate_child(output):
+    # A derived, recorded observer only for this isolated experiment; retain
+    # the default child and its source/output guards byte-for-byte.
+    from tools import qualify_hia_selfhost as qualification
+    original = qualification.CHILD.read_text()
+    old = 'assert type(workspace_size) is int and 0 <= workspace_size <= MAX_BYTES'
+    new = f'assert type(workspace_size) is int and 0 <= workspace_size <= {CANDIDATE_WORKSPACE}'
+    changed = replace_once(original, old, new)
+    child = output / "candidate-workspace-observer.py"
+    child.write_text(changed)
+    return child
+
+def candidate_seed(output, source):
+    # This B0 is a different explicitly bounded development seed, not a
+    # legacy Core borrowed-byte release. Scope the extent adjustment to B0;
+    # the authored HIA entry still checks source/output <= 1 MiB.
+    from tools import qualify_hia_selfhost as qualification
+    from hepta import hia_native_byte_abi as abi
+    with patch.object(qualification, "CAPACITY", CANDIDATE_WORKSPACE), \
+            patch.object(abi, "MAX_EXTENT", CANDIDATE_WORKSPACE):
+        return build_seed(output, source)
+
+def candidate_invoke(output, label, image, source, **kwargs):
+    from tools import qualify_hia_selfhost as qualification
+    kwargs.setdefault("workspace_size", CANDIDATE_WORKSPACE)
+    with patch.object(qualification, "CHILD", output / "candidate-workspace-observer.py"):
+        return invoke(output, label, image, source, **kwargs)
+
+def candidate_compile_stage(output, label, image, source, **kwargs):
+    from tools import qualify_hia_selfhost as qualification
+    with patch.object(qualification, "invoke", candidate_invoke):
+        return compile_stage(output, label, image, source, **kwargs)
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
@@ -526,7 +594,7 @@ def dense_relocation_subject():
 
 def qualify_dense_relocations(exe, output, flat):
     subject, expected, lower = dense_relocation_subject()
-    receipt, raw = invoke(output, "relocation-dense-flat", flat, subject, workspace_fill=0x5a)
+    receipt, raw = candidate_invoke(output, "relocation-dense-flat", flat, subject, workspace_fill=0x5a)
     count = receipt.get("workspace_header", {}).get("224", -1)
     if (receipt.get("status") != "returned" or receipt.get("abi_status") != 0
             or receipt.get("source_unchanged") is not True
@@ -569,7 +637,7 @@ def qualify_external_relocations(exe, output, flat):
     for optional in (False, True):
         label = "relocation-owned-" + ("try" if optional else "new")
         subject = allocation_case(8, optional=optional)
-        receipt, raw = invoke(output, label+"-flat", flat, subject)
+        receipt, raw = candidate_invoke(output, label+"-flat", flat, subject)
         if (receipt.get("status") != "returned" or receipt.get("abi_status") != 0
                 or receipt.get("source_unchanged") is not True
                 or receipt.get("forbidden_compiler_modules_loaded") != []
@@ -589,7 +657,7 @@ def qualify_external_relocations(exe, output, flat):
                 raise AssertionError((label, symbol, relocs))
         lib = output/(label+".so")
         subprocess.run(["cc","-shared","-Wl,-z,noexecstack","-o",str(lib),str(output/(label+".o"))],check=True)
-        observed, payload = invoke(output,label+"-native",lib,b"",
+        observed, payload = candidate_invoke(output,label+"-native",lib,b"",
                                    image_format="linked-selfhost",capacity=8,workspace_size=0)
         if (observed.get("status") != "returned" or observed.get("abi_status") != 0
                 or observed.get("core_u32") != 8 or payload != b"\0"*8
@@ -606,7 +674,7 @@ def qualify_capacity(exe, output, flat):
     # on failure. The stdio wrapper alone intentionally reports only exit 2.
     # This observer executes the same HIA compiler generation, not a Python
     # implementation of subject compilation.
-    flat_receipt, flat_bytes = invoke(output, "capacity-exact-flat", flat, subject)
+    flat_receipt, flat_bytes = candidate_invoke(output, "capacity-exact-flat", flat, subject)
     if (flat_receipt.get("status") != "returned"
             or flat_receipt.get("abi_status") != 0
             or not 0 < flat_receipt.get("core_u32", 0) <= len(flat_bytes)
@@ -648,7 +716,7 @@ for i, delta in enumerate(expected):
         ("capacity-instruction-over", CANDIDATE_BLOCKS, CANDIDATE_INSTRUCTIONS + 1, (54,)),
     ):
         malformed, _ = capacity_subject(b, n)
-        receipt, _ = invoke(output, label + "-flat", flat, malformed)
+        receipt, _ = candidate_invoke(output, label + "-flat", flat, malformed)
         code = receipt.get("workspace_header", {}).get("40")
         if (receipt.get("status") != "returned"
                 or receipt.get("abi_status") != 0
@@ -676,6 +744,87 @@ CAS_EFFECTS = ("privilege", "atomic", "read", "write", "trap")
 CAS_OPCODE = bytes.fromhex("f0480fb10a")
 CAS_GUARD = bytes.fromhex("f6c20774020f0b")
 
+def function_subject(count, cycle=False):
+    # f0 -> f(count-1) -> ... -> f1; all high ordinal functions are
+    # traversed at runtime. A cycle through the high ordinal must refuse.
+    rows = [f"hia-asm.v1 {PROFILE} selfhost_elf", "exports(f0)"]
+    for i in range(count):
+        rows.extend((f"fn f{i}(v0:u64) -> (u64) effects() entry(b0)",
+                     "block b0(v0:u64)"))
+        if i == 1 and not cycle:
+            rows.extend(('  v1:u64 = const() {"value":1}',
+                         '  v2:u64 = int.add.wrap(v0,v1)', "  ret(v2)"))
+        else:
+            target = count - 1 if i == 0 else (0 if i == 1 else i - 1)
+            rows.extend((f'  v1:u64 = call(v0) {{"function":"f{target}"}}',
+                         "  ret(v1)"))
+        rows.append("end")
+    return ("\n".join(rows) + "\n").encode()
+
+def qualify_function_capacity(exe, output, flat):
+    subject = function_subject(CANDIDATE_FUNCTIONS)
+    obj = compile_cli(exe, subject, output, "capacity-functions-exact")
+    if obj != compile_cli(exe, subject, output, "capacity-functions-repeat"):
+        raise AssertionError("function-capacity object bytes differ")
+    # Exercise nonzero scratch initialization and compare the exact object
+    # emitted by the flat compiler and the expanded executable CLI.
+    receipt, flat_bytes = candidate_invoke(output, "capacity-functions-poisoned-flat",
+                                           flat, subject, workspace_fill=0x5a)
+    if (receipt.get("status") != "returned" or receipt.get("abi_status") != 0
+            or receipt.get("core_u32") != len(obj)
+            or receipt.get("source_unchanged") is not True
+            or receipt.get("forbidden_compiler_modules_loaded") != []
+            or flat_bytes[:len(obj)] != obj):
+        raise AssertionError(("function-capacity poisoned workspace", receipt))
+    text_bytes(output, "capacity-functions-exact", obj)
+    lib = output / "capacity-functions-exact.so"
+    subprocess.run(["ld", "-shared", "-o", str(lib),
+                    str(output / "capacity-functions-exact.o")], check=True)
+    runner = """import ctypes, sys
+lib = ctypes.CDLL(sys.argv[1])
+fn = lib.f0
+fn.argtypes = [ctypes.c_uint64]
+fn.restype = ctypes.c_uint64
+for x in (0, 123456789, (1 << 64)-1):
+    if fn(x) != (x+1) % (1 << 64): raise SystemExit(1)
+"""
+    p = subprocess.run([sys.executable, "-I", "-c", runner, str(lib)],
+                       capture_output=True, timeout=30)
+    (output / "capacity-functions-native.stdout").write_bytes(p.stdout)
+    (output / "capacity-functions-native.stderr").write_bytes(p.stderr)
+    if p.returncode or p.stdout or p.stderr:
+        raise AssertionError(("function-capacity native", p.returncode))
+    refusals = {}
+    for label, bad, allowed in (
+        ("capacity-functions-over", function_subject(CANDIDATE_FUNCTIONS + 1), (2,)),
+        ("capacity-functions-cycle", function_subject(CANDIDATE_FUNCTIONS, cycle=True), (56,)),
+    ):
+        receipt, _ = candidate_invoke(output, label + "-flat", flat, bad)
+        code = receipt.get("workspace_header", {}).get("40")
+        if (receipt.get("status") != "returned" or receipt.get("abi_status") != 0
+                or receipt.get("core_u32") != 4294967295 or code not in allowed
+                or receipt.get("source_unchanged") is not True
+                or receipt.get("forbidden_compiler_modules_loaded") != []):
+            raise AssertionError((label, receipt))
+        compile_cli(exe, bad, output, label, expected=2)
+        refusals[label] = code
+    # Distinct source/output/workspace limits: the old 1 MiB scratch and the
+    # new bound minus one must refuse without touching output; exact bound
+    # has already been exercised by all native generations and subjects.
+    for size in (1 << 20, CANDIDATE_WORKSPACE - 1):
+        receipt, _ = candidate_invoke(output, f"capacity-workspace-short-{size}",
+                                      flat, subject, workspace_size=size)
+        if (receipt.get("status") != "returned" or receipt.get("abi_status") != 0
+                or receipt.get("core_u32") != 4294967294
+                or receipt.get("output_unchanged") is not True
+                or receipt.get("source_unchanged") is not True):
+            raise AssertionError(("short candidate workspace", size, receipt))
+    return {"status": "PASS", "functions": CANDIDATE_FUNCTIONS,
+            "native_calls": 3, "native_refusal_codes": refusals,
+            "short_workspace_refusals": 2, "poisoned_workspace_object_identity": True,
+            "object_sha256": digest(obj)}
+
+ATOMIC_OBSERVER = ROOT / "tests/fixtures/hia_kernel_atomic64_observer.c"
 def cas_program(*, profile=PROFILE, effects=CAS_EFFECTS, types=("u64","u64","u64"),
                 op="  v3:u64 = x86.atomic.cmpxchg64(v0,v1,v2)\n", module="selfhost_elf"):
     args = ",".join(f"v{i}:{typ}" for i, typ in enumerate(types))
@@ -876,14 +1025,15 @@ def run(output):
     source, shape = candidate_source()
     (output / "candidate.hepta").write_bytes(source)
     (output / "candidate-shape.json").write_text(json.dumps(shape, sort_keys=True) + "\n")
-    seed, _ = build_seed(output, source)
-    b1, _ = compile_stage(output, "B1", seed, source, image_format="seed-shared")
-    b2, _ = compile_stage(output, "B2", b1, source)
-    b3, _ = compile_stage(output, "B3", b2, source)
+    child = candidate_child(output)
+    seed, _ = candidate_seed(output, source)
+    b1, _ = candidate_compile_stage(output, "B1", seed, source, image_format="seed-shared")
+    b2, _ = candidate_compile_stage(output, "B2", b1, source)
+    b3, _ = candidate_compile_stage(output, "B3", b2, source)
     if not b1.read_bytes() == b2.read_bytes() == b3.read_bytes():
         raise AssertionError("candidate native generations disagree")
     executable_source = HEADER.replace(b"selfhost\n", b"selfhost_exec\n") + source[len(HEADER):]
-    exe, _ = compile_stage(output, "compiler", b3, executable_source, output_extension="")
+    exe, _ = candidate_compile_stage(output, "compiler", b3, executable_source, output_extension="")
     exe.chmod(0o755)
     for i in (1, 2):
         rebuilt = compile_cli(exe, executable_source, output, f"self-rebuild-{i}")
@@ -894,6 +1044,12 @@ def run(output):
         exe.chmod(0o755)
 
     capacity = qualify_capacity(exe, output, b3)
+    capacity["function_capacity"] = qualify_function_capacity(exe, output, b3)
+    capacity["workspace_bytes"] = CANDIDATE_WORKSPACE
+    capacity["workspace_observer_sha256"] = digest(child.read_bytes())
+    compile_cli(exe, b"x" * ((1 << 20) + 1), output, "source-one-byte-over", expected=3)
+    capacity["source_over_limit_refused"] = True
+    capacity["source_and_output_limit_bytes"] = 1 << 20
     first = compile_cli(exe, program(), output, "invlpg-1")
     second = compile_cli(exe, program(), output, "invlpg-2")
     if first != second or not first.startswith(b"\x7fELF"):

@@ -69,3 +69,8 @@ and custody controls remain mandatory. The caller must establish valid
 selector, CPL0 authority, machine capability and suitable register state;
 this is not a general MSR authority proof, syscall dispatch, context switch,
 or Linux completion. No privileged instruction is executed in a host process.
+
+
+## Integrated 2 MiB private scratch candidate (2026-11-24)
+
+This separate draft combines the typed MSR/MMIO/atomic candidate and compact 16-byte private relocation records with the independently exercised 2 MiB workspace layout and 192-function admission from #949. The historical 1 MiB source/output and 128 export limits remain. Candidate tests must exercise 192 functions, 2048 blocks, 10000 operations, 16000 private relocation slots, old and one-byte-short workspace refusals, source over-limit refusal, dense and external relocation witnesses and all prior guest scenarios. The original 60 s store and 5 s ordinary native lifecycle gates remain unchanged. Neither parent's PASS establishes the merged candidate's qualification; this is not the production compiler or full Linux acceptance.
