@@ -49,6 +49,35 @@ def main():
               '{"中":1,"é":2,"😀":3,"z":4,"a":5}',
               '{"escaped":"\\b\\f\\n\\r\\t\\u0000\\u001f\\\\\\\"/"}',
               '[]', '{}', '""']
+    # Value map insertion is last-wins at every object depth. All discarded
+    # values are still parsed, including their UTF-8 and finite-number checks.
+    duplicates = [
+        '{"x":1,"x":2}', '{"a":1,"\\u0061":2}',
+        '{"a":1,"a":null}', '{"a":null,"a":false}',
+        '{"a":[],"a":{}}', '{"a":{},"a":[]}',
+        '{"":1,"":2}', '{"\\u0000":1,"\\u0000":2}',
+        '{"😀":1,"\\ud83d\\ude00":2}',
+        '{"é":1,"\\u00e9":2,"e\\u0301":3}',
+        '{"b":0,"a":1,"b":2,"a":3,"c":4,"b":5}',
+        '{"a":{"x":1,"x":2},"a":{"y":3,"y":4}}',
+        '[{"a":1,"a":2},{"a":3,"a":4}]',
+        '{"arguments":{"nested":{"a":1,"\\u0061":2},"list":[{"x":0,"x":1}]}}',
+        '{"x":1e0,"x":2.0}', '{"x":18446744073709551616,"x":0}',
+        '{"x":-0,"x":0.0}', '{"x":0,"x":-0.0}',
+        '{"x":1e400,"x":0}', '{"x":0,"x":-1e400}',
+        '{"x":{"y":1e400},"x":0}',
+        '{"x":"\\ud800","x":0}', '{"\\ud800":0,"x":1}',
+        '{"x":0,"x":1.}', '{"x":0,"x":NaN}',
+        '{"x":' + '9' * 4301 + ',"x":0}',
+        '{"x":' + '[' * 129 + '0' + ']' * 129 + ',"x":0}',
+    ]
+    values.extend(duplicates)
+    for depth in (1,2,31,63,126,127,128,129):
+        values.append('[' * depth + '0' + ']' * depth)
+    for count in (2,3,8,63,127,1024):
+        values.append('{' + ','.join('"k'+str(i % 17)+'":'+str(i) for i in range(count)) + '}')
+    for count in (2,3,8,63,127,1024):
+        values.append('{' + ','.join(('"a"' if i % 2 else '"\\u0061"')+':'+str(i) for i in range(count)) + '}')
     rng = random.Random(20261124)
     for _ in range(384):
         bits = rng.getrandbits(64)
@@ -83,7 +112,6 @@ def main():
             row['output_sha256'] = sha256(got).hexdigest()
         cases.append(row)
     for name, raw in (
-        ('duplicate-decoded-key', b'{"a":1,"\\u0061":2}'),
         ('invalid-utf8', b'"\xff"'), ('unpaired-surrogate', b'"\\ud800"'),
         ('bad-decimal', b'1.'), ('bad-exponent', b'1e+'), ('nan', b'NaN'),
         ('leading-zero', b'01'), ('extra-value', b'1 2'),
@@ -98,7 +126,8 @@ def main():
     report = {'scope': 'NATIVE_MCP_CANONICAL_COMPONENT', 'passed': True, 'count': len(cases),
               'serde_json_version': '1.0.151', 'serde_float_roundtrip': True,
               'arbitrary_precision': False, 'zmij_version': '1.0.23',
-              'precondition': 'HIA session has admitted duplicate-free JSON and its depth/node bounds',
+              'precondition': 'serde Value semantics within the fixed 8 MiB input/output and 262144-node workspace bounds; typed structs are separate profiles',
+              'duplicate_policy': 'last decoded key wins at every depth; discarded values are still fully validated',
               'flat_sha256': sha256(flat).hexdigest(), 'source_sha256': sha256(source).hexdigest(),
               'oracle_sha256': args.oracle_sha256, 'whole_mcp_server_qualified': False, 'cases': cases}
     (args.output / 'qualification.json').write_text(json.dumps(report, indent=2) + '\n')
