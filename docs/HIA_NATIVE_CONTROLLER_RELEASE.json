@@ -1,0 +1,70 @@
+{
+  "schema": "hepta.hia.native-controller-release.v1",
+  "status": "native-components-and-delivery-guards-qualified-full-release-pending",
+  "stage": 11,
+  "native_recipe": "examples/hia_bootstrap/release_stage_controller.hiastd",
+  "recipe_nodes": 684,
+  "recipe_handles": 497,
+  "recipe_bytes": 49567,
+  "source_compilations": "Every captured production HIA source is independently compiled twice and compared before use; kit policy and application images are compared to these objects.",
+  "delivery_checks": "Complete fixed ELF prefix, all role call relocations, all ordered component bytes, service child lengths and sealed digest bytes. Native DAG SHA-256 produces the child pins.",
+  "preserved_limits": {
+    "functions": 128,
+    "blocks": 1536,
+    "operations": 8192,
+    "source_compile_io_bytes": 1048576,
+    "ordinary_paired_source_count": 4,
+    "source_build_frame_bytes": 3149824,
+    "dag_handles": 2048,
+    "dag_nodes": 8192,
+    "dag_wire_bytes": 67108864,
+    "jobctl_image_bytes": 4194304
+  },
+  "qualification": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-controller-registry-v1/qualification.json",
+    "sha256": "8a57d50bf6040d531325166ffa5b7253348181cb4bacc2c0045fbe972b367618",
+    "count": 76,
+    "passed": true
+  },
+  "products": {
+    "hia-source-contract": {
+      "bytes": 143831,
+      "sha256": "01f9dfc346463bc4c34d0d9d3b2b0ec24cefdb8da16867716cf7bfc0df63e68f",
+      "same_as_independent_component_checkpoint": true
+    },
+    "hia-mcp-job-bridge": {
+      "bytes": 2322308,
+      "sha256": "8a7e99b0b1c58f6eb52d0e4d178edc668c81fd72e403189461fa9f18675bca09",
+      "roles": 17,
+      "source_order_and_entire_prefix_verified": true,
+      "matches_previous_component_checkpoint": true
+    },
+    "hia-mcp-request-audit": {
+      "bytes": 1388969,
+      "sha256": "ffd240a825efe9d05ae3ba519099c9169f94ad0da0af3da1ceb59fb4b6b8ee87",
+      "roles": 16,
+      "source_order_and_entire_prefix_verified": true,
+      "matches_previous_component_checkpoint": true
+    },
+    "hia-system-jobctl": {
+      "bytes": 3387004,
+      "sha256": "fe9ba1c6b6d309e7ddd4ae5da984de328cb86a64cf3c639e2a6c81ac226f0f2e",
+      "roles": 20,
+      "source_order_and_entire_prefix_verified": true,
+      "matches_previous_component_checkpoint": false
+    },
+    "hia-mcp-service": {
+      "bytes": 8163154,
+      "sha256": "52eb707783ba0f30959d6692f8047a0a20caf62f5560f9d7bcbf7a18d203931f",
+      "roles": 24,
+      "source_order_and_entire_prefix_verified": true,
+      "matches_previous_component_checkpoint": true
+    }
+  },
+  "pending": [
+    "upgrade Jobctl registration to final HIAJCT02 diagnostics checkpoint",
+    "complete native cold, complete ordinary release, install and independent installed self-rebuild",
+    "remove development authors and legacy business stack after native-only source closure"
+  ],
+  "whole_release_qualified": false
+}
