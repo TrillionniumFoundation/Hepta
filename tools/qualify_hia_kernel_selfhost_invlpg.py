@@ -21,7 +21,7 @@ if __package__ in (None, ""):
 
 from tools import generate_hia_selfhost as gen
 from hepta.hia_agent_assembly import render_assembly
-from tools.qualify_hia_selfhost import build_seed, compile_stage
+from tools.qualify_hia_selfhost import build_seed, compile_stage, invoke
 
 PROFILE = "hepta.hia.program.kernel-tlb.v1"
 LEGACY = "hepta.hia.program.v8"
@@ -33,15 +33,18 @@ CANDIDATE_BLOCKS = 1600
 CANDIDATE_INSTRUCTIONS = 8540
 
 def candidate_layout():
-    # Global block records grow by 64*320; the separate block-origin
-    # table grows by 64*16. Move EVERY downstream region, including the
-    # hardcoded exact-name and export tables. No host runtime allocation.
+    # Global block records, one discovery/kind byte per GLOBAL block,
+    # and the 16-byte block-origin records must all grow together.
+    # KBASE is indexed by global bid in loan_incoming/loan_transfer;
+    # it is NOT a per-function table. Otherwise bid 1536 aliases CAPTMP.
     block_delta = (CANDIDATE_BLOCKS - 1536) * gen.BSTRIDE
-    origin_delta = (CANDIDATE_BLOCKS - 1536) * 16
-    moved = ("VBASE", "ARGS", "FIXBASE", "CBASE", "CSTATE", "CAPBASE",
-             "KBASE", "CAPTMP", "QBASE", "ORIGINBASE", "BLOCKORIGIN")
+    kind_delta = CANDIDATE_BLOCKS - 1536
+    origin_delta = kind_delta * 16
+    moved = ("VBASE", "ARGS", "FIXBASE", "CBASE", "CSTATE", "CAPBASE", "KBASE")
     layout = {key: getattr(gen, key) + block_delta for key in moved}
-    names = {old: old + block_delta + origin_delta
+    for key in ("CAPTMP", "QBASE", "ORIGINBASE", "BLOCKORIGIN"):
+        layout[key] = getattr(gen, key) + block_delta + kind_delta
+    names = {old: old + block_delta + kind_delta + origin_delta
              for old in (955152, 1004304, 1010448)}
     intervals = [
         ("state", 0, 2048),
@@ -53,7 +56,7 @@ def candidate_layout():
         ("call_graph", layout["CBASE"], layout["CBASE"] + 128 * 128),
         ("call_state", layout["CSTATE"], layout["CSTATE"] + 128 * 8),
         ("capabilities", layout["CAPBASE"], layout["CAPBASE"] + 2048 * 24),
-        ("kind", layout["KBASE"], layout["KBASE"] + 1536),
+        ("kind", layout["KBASE"], layout["KBASE"] + CANDIDATE_BLOCKS),
         ("cap_tmp", layout["CAPTMP"], layout["CAPTMP"] + 16),
         ("queue", layout["QBASE"], layout["QBASE"] + 256 * 8),
         ("origins", layout["ORIGINBASE"], layout["ORIGINBASE"] + 2048),
@@ -90,8 +93,10 @@ def candidate_source():
         raise ValueError("kernel token interval changed")
     source = gen.SOURCE
     layout, names, _, _ = candidate_layout()
-    # These are the two GLOBAL block checks; the 1536-byte kind table
-    # clear and per-function 256-block admission must remain unchanged.
+    # Both global block bounds and the global discovery-table clear grow.
+    # The per-function 256-block name/queue admission stays unchanged.
+    source = replace_once(source, "fill_range(w, KBASE, 1536, 0)",
+                          f"fill_range(w, KBASE, {CANDIDATE_BLOCKS}, 0)")
     source = replace_once(source, "get(w, 80) >= 1536",
                           f"get(w, 80) >= {CANDIDATE_BLOCKS}")
     source = replace_once(source, "bid >= 1536",
@@ -276,10 +281,24 @@ def capacity_subject(blocks, instructions):
         raise AssertionError("fixture shape mismatch")
     return ("\n".join(rows) + "\n").encode(), expected
 
-def qualify_capacity(exe, output):
+def qualify_capacity(exe, output, flat):
     _, _, intervals, bound = candidate_layout()
     subject, expected = capacity_subject(CANDIDATE_BLOCKS, CANDIDATE_INSTRUCTIONS)
+    # Retain the native compiler's actual scratch error code and source offset
+    # on failure. The stdio wrapper alone intentionally reports only exit 2.
+    # This observer executes the same HIA compiler generation, not a Python
+    # implementation of subject compilation.
+    flat_receipt, flat_bytes = invoke(output, "capacity-exact-flat", flat, subject)
+    if (flat_receipt.get("status") != "returned"
+            or flat_receipt.get("abi_status") != 0
+            or not 0 < flat_receipt.get("core_u32", 0) <= len(flat_bytes)
+            or flat_receipt.get("source_unchanged") is not True
+            or flat_receipt.get("forbidden_compiler_modules_loaded") != []
+            or flat_receipt.get("workspace_header", {}).get("40") != 0):
+        raise AssertionError(("capacity-exact-flat", flat_receipt))
     obj = compile_cli(exe, subject, output, "capacity-exact-1")
+    if obj != flat_bytes[:flat_receipt["core_u32"]]:
+        raise AssertionError("capacity flat and CLI objects differ")
     if obj != compile_cli(exe, subject, output, "capacity-exact-2"):
         raise AssertionError("capacity repeat bytes differ")
     # Independent native execution, not just acceptance. Each exported
@@ -305,17 +324,29 @@ for i, delta in enumerate(expected):
     (output / "capacity-native.stderr").write_bytes(result.stderr)
     if result.returncode != 0 or result.stdout or result.stderr:
         raise AssertionError(("capacity native execution", result.returncode))
-    for label, b, n in (
-        ("capacity-block-over", CANDIDATE_BLOCKS + 1, CANDIDATE_INSTRUCTIONS),
-        ("capacity-instruction-over", CANDIDATE_BLOCKS, CANDIDATE_INSTRUCTIONS + 1),
+    refusal_codes = {}
+    for label, b, n, allowed in (
+        ("capacity-block-over", CANDIDATE_BLOCKS + 1, CANDIDATE_INSTRUCTIONS, (11, 18)),
+        ("capacity-instruction-over", CANDIDATE_BLOCKS, CANDIDATE_INSTRUCTIONS + 1, (54,)),
     ):
         malformed, _ = capacity_subject(b, n)
+        receipt, _ = invoke(output, label + "-flat", flat, malformed)
+        code = receipt.get("workspace_header", {}).get("40")
+        if (receipt.get("status") != "returned"
+                or receipt.get("abi_status") != 0
+                or receipt.get("core_u32") != 4294967295
+                or receipt.get("source_unchanged") is not True
+                or receipt.get("forbidden_compiler_modules_loaded") != []
+                or code not in allowed):
+            raise AssertionError((label, "wrong refusal reason", receipt))
+        refusal_codes[label] = code
         compile_cli(exe, malformed, output, label, expected=2)
     return {"status": "PASS", "blocks": CANDIDATE_BLOCKS,
             "instructions": CANDIDATE_INSTRUCTIONS, "scratch_intervals": intervals,
             "relocation_upper_bound": bound, "source_sha256": digest(subject),
             "object_sha256": digest(obj), "native_calls": len(expected) * 3,
-            "over_limit_refusals": 2}
+            "over_limit_refusals": 2, "native_refusal_codes": refusal_codes,
+            "flat_cli_object_identity": True}
 
 def run(output):
     output.mkdir(parents=True, exist_ok=False)
@@ -339,7 +370,7 @@ def run(output):
         exe.write_bytes(rebuilt)
         exe.chmod(0o755)
 
-    capacity = qualify_capacity(exe, output)
+    capacity = qualify_capacity(exe, output, b3)
     first = compile_cli(exe, program(), output, "invlpg-1")
     second = compile_cli(exe, program(), output, "invlpg-2")
     if first != second or not first.startswith(b"\x7fELF"):
