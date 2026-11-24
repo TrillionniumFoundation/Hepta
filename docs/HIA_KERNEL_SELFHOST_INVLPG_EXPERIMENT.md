@@ -48,3 +48,24 @@ The observer re-derives the page-table slot after the call, rather than
 incorrectly assuming the SysV caller-saved r9 is preserved. Wrong-address
 observations remain diagnostics since INVLPG permits over-invalidation.
 No result from the earlier candidate is credited to this continuation.
+
+
+## Experimental native MSR continuation
+
+The isolated compiler now accepts typed x86.msr.read(u32) -> u64 and
+x86.msr.write(u32,u64) -> no result only in the explicit kernel scalar ELF
+profile. Both require privilege and trap effects. The compiler constructs
+RDMSR/WRMSR and the EDX:EAX split/join itself; the external assembler is
+only an independent byte oracle. The helper stays within the existing
+1 MiB candidate workspace and per-function name limit. No historical
+Core v8 source or production toolchain lock is changed.
+
+The PC/Q35 oracle uses actual FS_BASE and GS_BASE MSRs with distinct
+canonical high-half values, independently checks both after each write,
+and restores both original registers before reporting. Separate no-access
+and high-half truncation mutations must be detected by exact readback.
+All original scenarios, compiler byte identity, malformed input refusals
+and custody controls remain mandatory. The caller must establish valid
+selector, CPL0 authority, machine capability and suitable register state;
+this is not a general MSR authority proof, syscall dispatch, context switch,
+or Linux completion. No privileged instruction is executed in a host process.
