@@ -1,0 +1,388 @@
+{
+  "schema": "hepta.hia.native-cold-build-entry-component-qualification.v1",
+  "status": "PASS",
+  "whole_native_selfhost_qualified": false,
+  "whole_native_selfhost_pending": [
+    "seven-stage-production-construction",
+    "matching-sixty-phase-cold-under-180-seconds",
+    "native-install",
+    "installed-whole-rebuild"
+  ],
+  "compiler_counts": {
+    "functions": 95,
+    "blocks": 1514,
+    "ops": 7043,
+    "maximum_function_blocks": 89
+  },
+  "compiler_limits": {
+    "functions": 128,
+    "blocks": 1536,
+    "operations": 8192,
+    "blocks_per_function": 256,
+    "ssa": 2048,
+    "target_source_output_work_bytes": 1048576
+  },
+  "entry_private_workspace_bytes": 8388608,
+  "source_count_limit": 4096,
+  "stages_limit": 64,
+  "bindings_per_stage_limit": 64,
+  "execution_seconds": 180,
+  "cleanup_seconds": 3,
+  "sources": {
+    "examples/hia_bootstrap/cold_build_entry.hepta": {
+      "bytes": 424212,
+      "sha256": "76548da0f8fb84b752c5e43a6b18cb1d732e3276f7d68f855f55b817f08af62e"
+    },
+    "examples/hia_bootstrap/cold_build_entry_packer.hepta": {
+      "bytes": 26815,
+      "sha256": "13fbecda8df44d6baa0524e7cf200ad9d3da9c481f48cbc86c6e26834d428326"
+    },
+    "tools/hia_cold_build_entry_syscalls.S": {
+      "bytes": 3538,
+      "sha256": "a3b5851b8236644c1d32085815774dd032cb4f7e6871f1bf340b653a5e57a44d"
+    }
+  },
+  "native_products": {
+    "cold_build_entry": {
+      "schema": "hepta.hia.independent-seed-development-build.v1",
+      "source_sha256": "76548da0f8fb84b752c5e43a6b18cb1d732e3276f7d68f855f55b817f08af62e",
+      "source_bytes": 424212,
+      "canonical_core_sha256": "e1811efbb846698a1d87beec3169e0e90db37bae4e9a0c72fd2a7e1360776dec",
+      "reference_wire_sha256": "ff0860d3b575c530ace10e0d581541b5ffe60938818949b41c200aedd6e56c92",
+      "reference_wire_bytes": 715968,
+      "reference_registers": 184,
+      "reference_bounce": 12,
+      "seed_elf_sha256": "ffc17746f9d2e47f11746162fee88b6dade303d7af69695ff019a1428b85c38e",
+      "native_returncode": 0,
+      "stderr_bytes": 0,
+      "elapsed_seconds": 0.13978492806199938,
+      "target_or_successor_compiler_used": false,
+      "initial_source_projection": "original independent Core assembler and register-wire encoder, development-only",
+      "production_native_source_projection_status": "separately qualified; not claimed by this API",
+      "produced_sha256": "374ed6e1f708c445252a0e0537614b287c0e758b8b84a6edefc1f993bc824502",
+      "produced_bytes": 503148
+    },
+    "cold_build_entry_packer": {
+      "schema": "hepta.hia.independent-seed-development-build.v1",
+      "source_sha256": "13fbecda8df44d6baa0524e7cf200ad9d3da9c481f48cbc86c6e26834d428326",
+      "source_bytes": 26815,
+      "canonical_core_sha256": "7b94657885baed209e1bde5c7095d65a9270839dfc20e1fcb072ab43d779ff35",
+      "reference_wire_sha256": "f6d0b061e85efc4a762710618af6c903de7b315de6612402cfebd4f847dea1f0",
+      "reference_wire_bytes": 43320,
+      "reference_registers": 398,
+      "reference_bounce": 7,
+      "seed_elf_sha256": "ffc17746f9d2e47f11746162fee88b6dade303d7af69695ff019a1428b85c38e",
+      "native_returncode": 0,
+      "stderr_bytes": 0,
+      "elapsed_seconds": 0.009998740046285093,
+      "target_or_successor_compiler_used": false,
+      "initial_source_projection": "original independent Core assembler and register-wire encoder, development-only",
+      "production_native_source_projection_status": "separately qualified; not claimed by this API",
+      "produced_sha256": "758538bd837adf0895d4490d66717ef73858db02376392387d95224f8d8dd1b7",
+      "produced_bytes": 27339
+    }
+  },
+  "actual_entry_cases": [
+    {
+      "case": "actual-two-stage-native-build",
+      "returncode": 0,
+      "stdout_bytes": 128,
+      "stderr_bytes": 0,
+      "seconds": 0.9592417379608378,
+      "passed": true,
+      "source_manifest_sha256": "153cd6c154a8a6258e78a852709df45afe5c76a4ebd054d0fcb27516e316a8cb",
+      "tool_manifest_sha256": "84c08a35d6097a1ef9c2841ac6dd00db48dcca193f35088c08c1f1932ef287a4",
+      "entry_sha256": "2e8e8a3170204e1d9c123b101231a2a5b24dbf09311b59ed34e696db9e72dd37",
+      "owner_receipt_sha256": "d2326c2229ac13cb9de354644004749dc5ed87b032d21f213c45146dee15f6bc"
+    },
+    {
+      "case": "recipe-version-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0017913120100274682,
+      "passed": true
+    },
+    {
+      "case": "recipe-zero-stages-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.001306628924794495,
+      "passed": true
+    },
+    {
+      "case": "recipe-stage-limit-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0013304440071806312,
+      "passed": true
+    },
+    {
+      "case": "recipe-bindings-limit-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0013993741013109684,
+      "passed": true
+    },
+    {
+      "case": "recipe-pubs-limit-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0014133310178294778,
+      "passed": true
+    },
+    {
+      "case": "recipe-source-count-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.001503920997492969,
+      "passed": true
+    },
+    {
+      "case": "recipe-stage-offset-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0012990650720894337,
+      "passed": true
+    },
+    {
+      "case": "recipe-reserved-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0013370569795370102,
+      "passed": true
+    },
+    {
+      "case": "stage-wrong-id-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.00140276993624866,
+      "passed": true
+    },
+    {
+      "case": "stage-bad-plan-source-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0009364830330014229,
+      "passed": true
+    },
+    {
+      "case": "stage-forward-bind-range-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0013088739942759275,
+      "passed": true
+    },
+    {
+      "case": "stage-one-binding-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.001329011982306838,
+      "passed": true
+    },
+    {
+      "case": "stage-reserved-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0013937440235167742,
+      "passed": true
+    },
+    {
+      "case": "binding-kind-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0018688780255615711,
+      "passed": true
+    },
+    {
+      "case": "binding-forward-pub-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0017241949681192636,
+      "passed": true
+    },
+    {
+      "case": "binding-root-index-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.001105120056308806,
+      "passed": true
+    },
+    {
+      "case": "binding-reserved-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.001706472015939653,
+      "passed": true
+    },
+    {
+      "case": "publication-mode-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0009863961022347212,
+      "passed": true
+    },
+    {
+      "case": "publication-flags-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0013902769424021244,
+      "passed": true
+    },
+    {
+      "case": "publication-size-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.001539607997983694,
+      "passed": true
+    },
+    {
+      "case": "publication-reserved-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0014671219978481531,
+      "passed": true
+    },
+    {
+      "case": "duplicate-alias-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.001722502987831831,
+      "passed": true
+    },
+    {
+      "case": "authority-version-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0006205079844221473,
+      "passed": true
+    },
+    {
+      "case": "authority-tail-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.001068801968358457,
+      "passed": true
+    },
+    {
+      "case": "authority-absolute-path-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0006025539478287101,
+      "passed": true
+    },
+    {
+      "case": "plan-assertion-refused",
+      "returncode": 1,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.5956671410240233,
+      "passed": true
+    },
+    {
+      "case": "plan-magic-refused",
+      "returncode": 1,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.5089762939605862,
+      "passed": true
+    },
+    {
+      "case": "bootstrap-pin-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.14753743004985154,
+      "passed": true
+    },
+    {
+      "case": "source-hardlink-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.20797758304979652,
+      "passed": true
+    },
+    {
+      "case": "source-symlink-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.22320406197104603,
+      "passed": true
+    },
+    {
+      "case": "occupied-output-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 0.0012074520345777273,
+      "passed": true
+    },
+    {
+      "case": "live-source-mutation-refused",
+      "returncode": 74,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 2.534187477082014,
+      "passed": true
+    },
+    {
+      "case": "live-source-aba-mutation-refused",
+      "returncode": 74,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 2.5285213040187955,
+      "passed": true
+    },
+    {
+      "case": "live-installed-mutation-refused",
+      "returncode": 65,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "seconds": 2.542492314008996,
+      "passed": true
+    }
+  ],
+  "native_kernel_checks": {
+    "full_u64_decimal_and_quotient": 291,
+    "actual_owner_positive_and_field_refusals": 34,
+    "capsule_exact_positive_and_atomic_refusals": 20
+  },
+  "evidence": [
+    {
+      "location": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-build-entry-v4/qualification.json",
+      "sha256": "8fc07d413891febedb44664d4a611fe5da281c52e368771d9cf81152905dca02",
+      "bytes": 9589
+    },
+    {
+      "location": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-build-entry-kernels-v3/qualification.json",
+      "sha256": "33e05a2348516a206e8092ae417425389280c05c8cfe0eca8a694d66cb8e2889",
+      "bytes": 1420
+    }
+  ]
+}
