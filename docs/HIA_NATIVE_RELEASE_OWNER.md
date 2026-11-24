@@ -37,15 +37,31 @@ artifact roots before construction and binds the supplied configuration to
 the resulting installed profile afterward. Missing members or source roles
 refuse the build before publication.
 
-`tools/qualify_hia_worker_install_sources.py` independently compiles the owner
-and configuration members. Each has exactly three named HIA sources. The
+`tools/qualify_hia_worker_install_sources.py` independently compiles the owner,
+configuration and controller members. Each has exactly three named HIA sources. The
 configuration member requires `hia-worker-config-bind.hepta`,
 `worker_config_json.hepta` and `sha256_stream.hepta`, with exact module names;
 its `HIAWCBK1` frame orders the configuration policy, JSON parser and digest
 policy. The fixture checks exact embedded and retained images, reversed
-source order, and fourteen missing, extra, wrong-module or unknown-alias
-refusals across both members. The full owner, ordinary command, installed
+source order, and twenty-one missing, extra, wrong-module or unknown-alias
+refusals across the three members. The full owner, ordinary command, installed
 rebuild and Worker installation qualifications exercise their integration.
+
+The ordinary recipe also publishes `hia-controller-install` from its owner,
+controller probe and digest policies. The Worker installer supplies an exact
+`fd:N` argument to the native package installer and verifier; both operations
+receive the complete sealed package. The verifier independently reads the
+published Store before controller construction begins.
+The Worker owner preserves `FD_CLOEXEC` on its own held directories. Its HIA
+child policy clears that bit only on the explicitly forwarded capabilities in
+the forked child before executing the subprocess runner.
+
+`tools/qualify_hia_worker_install_launch.py` executes that post-release chain
+with unchanged compiled HIA images and a component state fixture. It covers
+the Store installer, complete verification and the v25 controller's fourteen
+roles. Its test-only adapter stops before the Worker DAG and does not qualify
+source/cold admission. Full ordinary Worker installation remains a separate
+required qualification.
 
 ## Capability request
 

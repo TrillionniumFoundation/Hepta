@@ -1,4 +1,4 @@
-"""Qualify native Worker owner and configuration members from source.
+"""Qualify native Worker owner, configuration and controller members from source.
 
 The fixture drives native programs with an empty PATH and compares embedded and
 retained images with separate source compiler results. Named source roles must
@@ -45,6 +45,7 @@ def qualify(source: Path, seed: Path, kit: Path, output: Path):
     specifications = (
         ('hia-worker-install-owner', 'worker_install_owner', 'worker_install_dag'),
         ('hia-worker-config-bind', 'worker_config_bind', 'worker_config_json'),
+        ('hia-controller-install', 'controller_install', 'controller_probe'),
     )
     for product, primary, companion in specifications:
         directory = output / product

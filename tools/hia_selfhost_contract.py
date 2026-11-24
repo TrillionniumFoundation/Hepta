@@ -791,6 +791,7 @@ NATIVE_WORKER_INSTALL_OWNER_FILES = (
     'tools/hia_worker_config_bind_syscalls.S',
     'tools/qualify_hia_worker_config_bind.py',
     'tools/qualify_hia_worker_install_sources.py',
+    'tools/qualify_hia_worker_install_launch.py',
     'examples/hia_bootstrap/source_worker_capsule_check_evaluate_full.hepta',
     'examples/hia_bootstrap/source_worker_capsule_check_evaluate_intake.hepta',
     'examples/hia_bootstrap/source_worker_capsule_check_evaluate_replay.hepta',
