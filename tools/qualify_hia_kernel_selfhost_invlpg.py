@@ -86,7 +86,7 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32"):
+    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
@@ -127,10 +127,10 @@ def candidate_source():
             if token < @read@ or token > @trap@:
                 return fail(w, 65)
             flag = 2 << (token - @read@)""",
-        """        if token == @privilege@:
+        """        if token == @privilege@ or token == @atomic@:
             if get(w, 200) != 1:
                 return fail(w, 65)
-            flag = 16
+            flag = 16 << (token - @privilege@)
         else:
             if token != @alloc@:
                 if token < @read@ or token > @trap@:
@@ -138,12 +138,44 @@ def candidate_source():
                 flag = 2 << (token - @read@)""")
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
+    if op == @x86.fence.mfence@:
+        return 32
+    if op == @x86.atomic.cmpxchg64@:
+        return 62
     if op >= @x86.tlb.invlpg@ and op <= @x86.io.out32@:
         return 16""")
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
         owned_instruction(o, w, op, n, a, at)""",
-        """    if op >= @x86.io.in8@ and op <= @x86.io.out32@:
+        """    if op == @x86.fence.mfence@:
+        if get(w, 200) != 1 or (n | t | get(w, 288)) != 0:
+            return fail(w, 65)
+        expect(s, w, 10)
+        if get(w, 40) != 0:
+            return 0
+        emit_bytes(o, w, 15773199, 3)
+        return 0
+    if op == @x86.atomic.cmpxchg64@:
+        if get(w, 200) != 1 or n != 3 or at != 1 or bt != 1 or t != 1 or get(w, 288) != 1:
+            return fail(w, 65)
+        c = get(w, ARGS + 16)
+        if variable(w, c) != 1:
+            return fail(w, 65)
+        expect(s, w, 10)
+        define(w, v, t)
+        if get(w, 40) != 0:
+            return 0
+        # Experimental raw-address operation: caller must establish mapped
+        # coherent WB memory and authority. Check alignment before any access.
+        # RDX=address, RAX=expected, RCX=replacement, RAX returns observed old.
+        load_var(o, w, 2, a, 0)
+        emit_bytes(o, w, 3112727954834166, 7)
+        load_var(o, w, 0, b, 0)
+        load_var(o, w, 1, c, 0)
+        emit_bytes(o, w, 45920241904, 5)
+        store_var(o, w, v, 0)
+        return 0
+    if op >= @x86.io.in8@ and op <= @x86.io.out32@:
         if get(w, 200) != 1 or at != 10:
             return fail(w, 65)
         direction = (op - @x86.io.in8@) & 1
@@ -410,6 +442,125 @@ for i, delta in enumerate(expected):
             "over_limit_refusals": 2, "native_refusal_codes": refusal_codes,
             "flat_cli_object_identity": True}
 
+
+ATOMIC_OBSERVER = ROOT / "tests/fixtures/hia_kernel_atomic64_observer.c"
+CAS_EFFECTS = ("privilege", "atomic", "read", "write", "trap")
+CAS_OPCODE = bytes.fromhex("f0480fb10a")
+CAS_GUARD = bytes.fromhex("f6c20774020f0b")
+
+def cas_program(*, profile=PROFILE, effects=CAS_EFFECTS, types=("u64","u64","u64"),
+                op="  v3:u64 = x86.atomic.cmpxchg64(v0,v1,v2)\n", module="selfhost_elf"):
+    args = ",".join(f"v{i}:{typ}" for i, typ in enumerate(types))
+    return (f"hia-asm.v1 {profile} {module}\nexports(f0)\n"
+            f"fn f0({args}) -> (u64) effects({','.join(effects)}) entry(b0)\n"
+            f"block b0({args})\n" + op + "  ret(v3)\nend\n").encode()
+
+def qualify_atomic(exe, output):
+    """Host-only independent oracle; no privilege authority or full SMP claim."""
+    fence_op = "  _ = x86.fence.mfence()\n"
+    fence = program(effect="atomic", op=fence_op)
+    fence_bad = {
+        "no-effect": program(effect="", op=fence_op),
+        "privilege-only": program(effect="privilege", op=fence_op),
+        "legacy": program(profile=LEGACY, effect="", op=fence_op),
+        "legacy-declaration": program(profile=LEGACY, effect="atomic", op=""),
+        "operand": program(effect="atomic", op="  _ = x86.fence.mfence(v0)\n"),
+        "result": program(effect="atomic", op="  v1:u64 = x86.fence.mfence()\n"),
+        "attribute": program(effect="atomic", op=fence_op.rstrip()+' {"trust_me":true}\n'),
+        "duplicate-effect": program(effect="atomic,atomic", op=fence_op),
+        "wrong-module": program(effect="atomic", module="selfhost", op=fence_op),
+    }
+    callee = ('fn f1(v0:u64) -> (u64) effects(atomic) entry(b0)\n'
+              'block b0(v0:u64)\n' + fence_op + '  ret(v0)\nend\n').encode()
+    caller = program(effect="atomic", op='  v1:u64 = call(v0) {"function":"f1"}\n')
+    caller = caller.replace(b"  ret(v0)\n", b"  ret(v1)\n") + callee
+    compile_cli(exe, caller, output, "mfence-call-propagation")
+    fence_bad["caller-missing-atomic"] = caller.replace(b"effects(atomic)", b"effects()", 1)
+    cas_bad = {
+        "legacy": cas_program(profile=LEGACY, effects=()),
+        "wrong-module": cas_program(module="selfhost"),
+        "zero-operand": cas_program(op="  v3:u64 = x86.atomic.cmpxchg64()\n"),
+        "two-operands": cas_program(op="  v3:u64 = x86.atomic.cmpxchg64(v0,v1)\n"),
+        "extra-operand": cas_program(op="  v3:u64 = x86.atomic.cmpxchg64(v0,v1,v2,v2)\n"),
+        "wrong-result": cas_program(op="  v3:u32 = x86.atomic.cmpxchg64(v0,v1,v2)\n").replace(b"-> (u64)",b"-> (u32)"),
+        "no-result": cas_program(op="  _ = x86.atomic.cmpxchg64(v0,v1,v2)\n").replace(b"ret(v3)",b"ret(v0)"),
+        "attribute": cas_program(op='  v3:u64 = x86.atomic.cmpxchg64(v0,v1,v2) {"trust_me":true}\n'),
+        "duplicate-atomic": cas_program(effects=(*CAS_EFFECTS,"atomic")),
+    }
+    for effect in CAS_EFFECTS:
+        cas_bad["missing-"+effect] = cas_program(effects=tuple(e for e in CAS_EFFECTS if e != effect))
+    for i in range(3):
+        types = ["u64"] * 3
+        types[i] = "u32"
+        cas_bad["wrong-type-"+str(i)] = cas_program(types=types)
+    out = {}
+    for label, subject, mnemonic, opcode, bad in (
+            ("mfence",fence,"mfence",bytes.fromhex("0faef0"),fence_bad),
+            ("cas64",cas_program(),"lock cmpxchgq %rcx,(%rdx)",CAS_OPCODE,cas_bad)):
+        elf = compile_cli(exe,subject,output,label+"-1")
+        if elf != compile_cli(exe,subject,output,label+"-2") or not elf.startswith(b"\x7fELF"):
+            raise AssertionError(label+" repeated ELF differs")
+        machine = text_bytes(output,label,elf)
+        oracle_s = output / (label+"-oracle.s")
+        oracle_s.write_text(".text\n "+mnemonic+"\n")
+        oracle_o = output / (label+"-oracle.o")
+        subprocess.run(["as","--64","-o",str(oracle_o),str(oracle_s)],check=True)
+        if text_bytes(output,label+"-oracle-copy",oracle_o.read_bytes()) != opcode or machine.count(opcode) != 1:
+            raise AssertionError(label+" GNU as oracle mismatch")
+        for key, malformed in bad.items():
+            compile_cli(exe,malformed,output,label+"-"+key,expected=2)
+        original = output / (label+".o")
+        def mutate(name,needle,replacement):
+            if machine.count(needle)!=1 or len(needle)!=len(replacement):
+                raise AssertionError((label,name,"mutation shape"))
+            changed=machine.replace(needle,replacement,1)
+            raw=output/(label+"-"+name+".text")
+            raw.write_bytes(changed)
+            target=output/(label+"-"+name+".o")
+            subprocess.run(["objcopy","--update-section",".text="+str(raw),str(original),str(target)],check=True)
+            if text_bytes(output,label+"-"+name+"-readback",target.read_bytes())!=changed or original.read_bytes()!=elf:
+                raise AssertionError((label,name,"mutation custody"))
+            return target
+        nop=mutate("nop",opcode,b"\x90"*len(opcode))
+        if opcode in (output/(label+"-nop.text")).read_bytes():
+            raise AssertionError(label+" NOP not detected")
+        results={}
+        def execute(name,obj,mode,fence_only=False):
+            runner=output/(label+"-"+name+"-observer")
+            flags=["-DHIA_TEST_FENCE"] if fence_only else []
+            subprocess.run(["cc","-std=c11","-O2","-Wall","-Wextra","-Werror","-pthread","-Wl,-z,noexecstack",*flags,str(ATOMIC_OBSERVER),str(obj),"-o",str(runner)],check=True)
+            proc=subprocess.run([str(runner),mode],capture_output=True,env={"PATH":""},timeout=30)
+            (output/(label+"-"+name+".stdout")).write_bytes(proc.stdout)
+            (output/(label+"-"+name+".stderr")).write_bytes(proc.stderr)
+            if proc.returncode or proc.stderr:
+                raise AssertionError((label,name,proc.returncode,proc.stderr))
+            results[name]=json.loads(proc.stdout)
+            if results[name].get("mode")!=mode or results[name].get("status")!="PASS":
+                raise AssertionError((label,name,"observer status"))
+        if label=="mfence":
+            execute("native",original,"fence",True)
+        else:
+            guard_s=output/"cas64-guard-oracle.s"
+            guard_s.write_text(".text\n testb $7,%dl\n jz 1f\n ud2\n1:\n")
+            guard_o=output/"cas64-guard-oracle.o"
+            subprocess.run(["as","--64","-o",str(guard_o),str(guard_s)],check=True)
+            if text_bytes(output,"cas64-guard-oracle-copy",guard_o.read_bytes())!=CAS_GUARD or machine.count(CAS_GUARD)!=1:
+                raise AssertionError("CAS alignment guard mismatch")
+            guard_nop=mutate("guard-nop",CAS_GUARD,b"\x90"*len(CAS_GUARD))
+            mutate("unlocked",opcode,b"\x90"+opcode[1:])
+            if CAS_OPCODE in (output/"cas64-unlocked.text").read_bytes():
+                raise AssertionError("LOCK deletion not detected")
+            execute("native",original,"cas")
+            execute("nop",nop,"nop")
+            execute("guard-nop",guard_nop,"guard-nop")
+        out[label]={"elf_sha256":digest(elf),"text_sha256":digest(machine),
+                    "source_sha256":digest(subject),"oracle_hex":opcode.hex(),
+                    "refusals":sorted(bad),"host_observer":results,
+                    "nop_elf_sha256":digest(nop.read_bytes()),
+                    "observer_sha256":digest(ATOMIC_OBSERVER.read_bytes())}
+    return out
+
+
 def run(output):
     output.mkdir(parents=True, exist_ok=False)
     source, shape = candidate_source()
@@ -650,6 +801,7 @@ def run(output):
         port_io[label] = {"elf_sha256": digest(obj), "text_sha256": digest(obj_text),
             "oracle_hex": io_oracle.hex(), "refusals": list(bad), "source_sha256": digest(subject)}
 
+    atomic = qualify_atomic(exe, output)
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -673,6 +825,8 @@ def run(output):
         **extra_writes,
         "irq": irq,
         "port_io": port_io,
+        "atomic": atomic,
+        "memory_order_proved": False,
         "capacity": capacity,
         "unsupported_cr2_write_refused": True,
         "shape": shape, "guest_execution": "NOT_RUN", "full_linux_acceptance": "HOLD",

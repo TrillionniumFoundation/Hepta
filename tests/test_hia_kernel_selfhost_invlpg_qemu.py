@@ -335,6 +335,35 @@ def run(output):
         extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
                               (raw, entry["text_sha256"])))
         hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
+    # CAS semantics independently observed again inside CPL0 guests.
+    cas_entry = report["atomic"]["cas64"]
+    cas_obj = output / "cas64.o"
+    cas_src = output / "cas64-1.input"
+    cas_raw = output / "cas64.text"
+    cas_bad_obj = output / "cas64-nop.o"
+    cas_native = cas_obj.read_bytes()
+    cas_text = cas_raw.read_bytes()
+    cas_opcode = bytes.fromhex("f0480fb10a")
+    if (digest(cas_native) != cas_entry["elf_sha256"]
+            or digest(cas_text) != cas_entry["text_sha256"]
+            or digest(cas_src.read_bytes()) != cas_entry["source_sha256"]
+            or cas_entry["oracle_hex"] != cas_opcode.hex()
+            or cas_text.count(cas_opcode) != 1
+            or cas_entry["host_observer"]["native"]["exact_alignment_trap"] is not True
+            or digest(cas_bad_obj.read_bytes()) != cas_entry["nop_elf_sha256"]
+            or dump_text(cas_obj, output / "cas64-original-readback.text") != cas_text):
+        raise AssertionError("CAS native custody or host qualification failure")
+    cas_bad_text = cas_text.replace(cas_opcode, b"\x90" * 5, 1)
+    if (dump_text(cas_bad_obj, output / "cas64-mutated-readback.text") != cas_bad_text
+            or symbol(cas_obj, "f0") != symbol(cas_bad_obj, "f0")):
+        raise AssertionError("CAS mutation readback failure")
+    extra_cases.extend((
+        ("cas64-memory-success-mismatch-restore", cas_native, cas_text, ("HIA_TEST_CAS64",), 33, "P"),
+        ("cas64-nop", cas_bad_obj.read_bytes(), cas_bad_text, ("HIA_TEST_CAS64",), 35, "N")))
+    extra_custody.extend(((cas_obj, cas_entry["elf_sha256"]), (cas_src, cas_entry["source_sha256"]),
+                          (cas_raw, cas_entry["text_sha256"]), (cas_bad_obj, cas_entry["nop_elf_sha256"])))
+    hardware["cas64_subject_source_sha256"] = cas_entry["source_sha256"]
+    hardware["smp_memory_model_proved"] = False
     path = output / "hardware"
     path.mkdir()
     try:

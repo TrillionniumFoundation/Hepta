@@ -80,6 +80,51 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#ifdef HIA_TEST_CAS64
+    /* Aligned guest RAM, deliberately high 64-bit values. */
+    leaq cas_cell(%rip), %rdi
+    movabsq $0xfedcba9876543210, %r12
+    movabsq $0x8765432101234567, %r13
+    movq %r12, (%rdi)
+    movq %r12, %rsi
+    movq %r13, %rdx
+    call f0
+    cmpq %r12, %rax
+    jne abort
+    cmpq %r13, cas_cell(%rip)
+    je cas_success
+    cmpq %r12, cas_cell(%rip)
+    jne abort
+    leaq cas_cell(%rip), %rdi
+    movq %r13, %rsi
+    xorl %edx, %edx
+    call f0
+    cmpq %r13, %rax
+    jne abort
+    cmpq %r12, cas_cell(%rip)
+    jne abort
+    movb $'N', %bl
+    jmp debug_exit64
+cas_success:
+    leaq cas_cell(%rip), %rdi
+    movq %r12, %rsi
+    xorl %edx, %edx
+    call f0
+    cmpq %r13, %rax
+    jne abort
+    cmpq %r13, cas_cell(%rip)
+    jne abort
+    leaq cas_cell(%rip), %rdi
+    movq %r13, %rsi
+    movq %r12, %rdx
+    call f0
+    cmpq %r13, %rax
+    jne abort
+    cmpq %r12, cas_cell(%rip)
+    jne abort
+    movb $'P', %bl
+    jmp debug_exit64
+#endif
 #if defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8)
     /* PIC IMR registers on PC/Q35, IRQs disabled throughout. The observer
      * independently establishes and reads each device state and restores
@@ -584,7 +629,7 @@ fail64:
     movb $'N', %bl
     jmp debug_exit64
 pf_handler:
-#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32)
+#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32) || defined(HIA_TEST_CAS64)
     jmp abort /* A fault must not masquerade as the write NOP control. */
 #endif
 #ifdef HIA_TEST_CR2_READ
@@ -695,3 +740,7 @@ stack64: .skip 8192
 stack64_top:
 .balign 16
 idt: .skip 4096
+#ifdef HIA_TEST_CAS64
+.balign 8
+cas_cell: .skip 8
+#endif
