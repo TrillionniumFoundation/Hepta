@@ -136,7 +136,7 @@ def source_paths(kind, roles):
     from tools.build_hia_core_edit import ASSEMBLY_PRESENTERS, ASSEMBLY_PUBLICATION
     if kind == 'dispatch':
         from tools import build_hia_core_edit as core
-        return (core.DISPATCH, core.NOMINAL_BUILD_SOURCES['public-presentation'], core.SELFHOST_ENTRY,
+        return (core.DISPATCH, core.NOMINAL_COMPONENTS['public-presentation'], core.SELFHOST_ENTRY,
                 core.ARGUMENT_PAYLOAD, core.ARGUMENT_PARSER, core.ARGUMENT_FORMATTER)
     if kind == 'import_assembly':
         return (*(path for path, _ in roles[:3]), *ASSEMBLY_PRESENTERS, *ASSEMBLY_PUBLICATION)

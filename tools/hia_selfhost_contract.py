@@ -121,6 +121,8 @@ CORE_NORMALIZE_SDIST_FILES = (
     'examples/hia_bootstrap/core_pretty_json.hepta',
     'examples/hia_bootstrap/core_inspect_json.hepta',
     'examples/hia_bootstrap/core_nominal_report_json.hepta',
+    'examples/hia_bootstrap/core_nominal_build_hash.hepta',
+    'tools/generate_hia_nominal_build_hash.py',
     'examples/hia_bootstrap/core_inspect_cli_packer.hepta',
     'tools/generate_hia_core_inspect_json.py',
     'examples/hia_bootstrap/core_structural_totality.hepta',
@@ -2090,6 +2092,7 @@ SOURCE_FILES = (
     'docs/HIA_AGENT_INSTALLED_RESOURCES.md',
     'docs/HIA_PROGRAM_SELFHOST_BUILD.md',
     'tests/test_hia_program_selfhost.py',
+    'tests/hia_nominal_program_fixture.py',
     'examples/hia_bootstrap/agent_identity.hepta',
     'examples/hia_bootstrap/elf_shared_linker.hepta',
     'examples/hia_bootstrap/elf_verified_linker.hepta',
@@ -2735,11 +2738,14 @@ def file_digests(root=ROOT):
     # that can omit a transitively imported checker or native ABI dependency.
     # The v9 shadow/resource implementation is separately executed by Cargo;
     # retain its complete Rust source and dependency locks, not just new tests.
+    # Cargo's root target directory holds generated build outputs, including
+    # dependency private.rs files; it is not an input and disappears on cleanup.
     shadow = root / "rust/hia-core-shadow"
     paths = sorted(set(SOURCE_FILES) | {
         p.relative_to(root).as_posix() for p in (root / "hepta").rglob("*.py")
     } | {
         p.relative_to(root).as_posix() for p in shadow.rglob("*.rs")
+        if p.relative_to(shadow).parts[0] != "target"
     } | {
         (shadow / name).relative_to(root).as_posix() for name in ("Cargo.toml", "Cargo.lock")
     })

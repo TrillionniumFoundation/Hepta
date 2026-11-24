@@ -54,6 +54,22 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
             raise ValueError('outer kernel image changed after compilation')
         readback[manifest], readback[image] = raw, image_bytes
         components[name] = manifest.relative_to(output).as_posix()
+    # The five-selector API retains all original owners while selecting one
+    # source-matched HIA process to own their complete continuation graph.
+    from tools.build_hia_nominal_constructor import build as build_program
+    executable = build_program(output / 'complete-program', compiler, cold_report)
+    program_manifest = executable.parent / 'program-manifest.json'
+    program_bytes, executable_bytes = program_manifest.read_bytes(), executable.read_bytes()
+    program_value = json.loads(program_bytes)
+    if (program_value['compiler_sha256'] != sha256(compiler_bytes).hexdigest()
+            or program_value['cold_report_sha256'] != sha256(cold_bytes).hexdigest()
+            or program_value['executable_sha256'] != sha256(executable_bytes).hexdigest()):
+        raise ValueError('complete nominal member has mismatched build identity')
+    for name in KERNELS:
+        component = json.loads(readback[output / components[name]])
+        if program_value['semantic_image_sha256']['outer-' + name] != component['image_sha256']:
+            raise ValueError('complete nominal member differs from selected outer image')
+    readback[program_manifest], readback[executable] = program_bytes, executable_bytes
     if (compiler.read_bytes() != compiler_bytes or cold_report.read_bytes() != cold_bytes
             or current_sources() != sources
             or any((ROOT / paths[name]).read_bytes() != data for name, data in bound.items())
@@ -63,7 +79,9 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
              'types_source_sha256': sha256(bound['types']).hexdigest(),
              'helpers_source_sha256': sha256(bound['helpers']).hexdigest(),
              'function_sources_sha256': {name: sha256(bound['function_' + name]).hexdigest()
-                                        for name in FUNCTION_KERNELS}}
+                                        for name in FUNCTION_KERNELS},
+             'complete_program': {'manifest_path': program_manifest.relative_to(output).as_posix(),
+                                  'manifest_sha256': sha256(program_bytes).hexdigest()}}
     manifest = output / 'manifest.json'
     manifest.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
     (output / 'build.json').write_text(json.dumps({

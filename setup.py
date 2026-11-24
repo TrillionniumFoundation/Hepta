@@ -59,12 +59,28 @@ def executable_capture_resources(existing):
         raise ValueError('invalid or duplicate executable-capture package resources')
     return names
 
+def nominal_program_resources(existing):
+    """Copy the complete nominal program's explicit source custody resources."""
+    tree = ast.parse((ROOT / 'hepta/hia_nominal_program_native.py').read_text())
+    declarations = [node for node in tree.body if isinstance(node, ast.Assign)
+                    and any(isinstance(target, ast.Name) and target.id == 'PACKAGE_RESOURCES'
+                            for target in node.targets)]
+    if len(declarations) != 1:
+        raise ValueError('one complete-nominal package resource tuple is required')
+    names = ast.literal_eval(declarations[0].value)
+    if (type(names) is not tuple or any(type(name) is not str or not name
+            or Path(name).is_absolute() or '..' in Path(name).parts for name in names)
+            or len(names) != len(set(names)) or set(names) & set(existing)):
+        raise ValueError('invalid or duplicate complete-nominal package resources')
+    return names
+
+
 class AgentResourceBuild(build_py):
     def run(self):
         super().run()
         self._agent_outputs=[]
         names = agent_resources()
-        for name in names + executable_capture_resources(names) + VM_INTEGER_DIVREM_RESOURCES + VM_INTEGER_ARITHMETIC_RESOURCES + VM_INTEGER_SCALAR_RESOURCES:
+        for name in names + executable_capture_resources(names) + nominal_program_resources(names) + VM_INTEGER_DIVREM_RESOURCES + VM_INTEGER_ARITHMETIC_RESOURCES + VM_INTEGER_SCALAR_RESOURCES:
             source=ROOT/name
             if not source.is_file():raise ValueError('missing Agent package resource: '+name)
             target=Path(self.build_lib)/'hepta/_data'/name
