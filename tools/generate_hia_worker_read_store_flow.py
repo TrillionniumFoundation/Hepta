@@ -48,7 +48,7 @@ def read_store_flow(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return dispatch_read(s, o, w)
     if state >= UNIQUE_RETURNED and state <= STORE_SETTLED:
         return settle_store(s, o, w, state)
-    if state >= ADMISSION_OBSERVED and state <= PAGE_OBSERVED:
+    if (state >= ADMISSION_OBSERVED and state <= PAGE_OBSERVED) or state == RESOURCE_BOUND:
         return feedback_read(s, o, w, state)
     return close_read(s, o, w, state)
 
@@ -131,7 +131,8 @@ def dispatch_read(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     auxiliary = input_word(s, 104)
     payload = bytes - 48
     if role == 1 or role == 5:
-        if offset != 0 or extent != 0 or payload == 0 or auxiliary != choose(role == 1, 2, 6):
+        selector = choose(role == 1, auxiliary == 2 or auxiliary == 3, auxiliary == 6)
+        if offset != 0 or extent != 0 or payload == 0 or selector == False:
             return BAD
         fragment(o, 0, fd, 48, payload)
         return store_operation(o, w, role, auxiliary, payload)
@@ -169,6 +170,26 @@ def dispatch_read(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return BAD
         fragment(o, 0, slot_fd(w, PAGE), offset, extent)
         return store_operation(o, w, role, auxiliary, extent)
+    if role == 11:
+        if payload < 176 or payload > 672 or extent == 0 or extent > 192:
+            return BAD
+        if good_span(w, ARTIFACT_ROW, offset, extent) == False or good_span(w, ARTIFACT_ROW, auxiliary, 64) == False:
+            return BAD
+        fragment(o, 0, fd, 48, payload)
+        fragment(o, 1, slot_fd(w, ARTIFACT_ROW), offset, extent)
+        fragment(o, 2, slot_fd(w, ARTIFACT_ROW), auxiliary, 64)
+        return action(o, w, RESOURCE_BOUND, RUN, PLAN_ROLE, 0, 3, 0)
+    if role == 12:
+        if offset != 0 or extent != 0 or auxiliary != 0 or payload < 128 or payload > 2048:
+            return BAD
+        if input_word(s, 112) != READ_PLAN or input_word(s, 168) != payload:
+            return BAD
+        put(w, 128, fd)
+        put(w, 136, 48)
+        put(w, 144, payload)
+        put(w, 152, 1)
+        put(o, 176, EFFECT_PEER)
+        return action(o, w, EFFECT_FINISHED, FINISH_PEER, 0, 0, 0, 0)
     if (role == 9 or role == 10) and payload == 0:
         return terminal_plan(o, w, role, offset, extent, auxiliary)
     return BAD
@@ -243,6 +264,11 @@ def settle_store(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
 def feedback_read(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
     size = input_word(s, 40)
     fd = input_word(s, 32)
+    if state == RESOURCE_BOUND:
+        if size < 128 or size > 2048:
+            return BAD
+        fragment(o, 0, fd, 0, size)
+        return send_observation(o, w, 10, size, size, 1)
     if state == ADMISSION_OBSERVED:
         if size != 40:
             return BAD
@@ -289,6 +315,9 @@ def close_read(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         put(o, 176, STORE_PEER)
         return action(o, w, STORE_FINISHED, FINISH_PEER, 0, 0, 0, 0)
     if state == STORE_FINISHED or (state == EFFECT_FINISHED and OWNED_STORE == 0):
+        if get(w, 152) == 1:
+            fragment(o, 0, get(w, 128), get(w, 136), get(w, 144))
+            return action(o, w, RESULT_PUBLISHED, PUBLISH, 0, 0, 1, 0)
         put(o, HEADER, EFFECT_RESULT)
         put(o, HEADER + 8, get(w, 120))
         put(o, HEADER + 16, get(w, 56))
@@ -334,6 +363,7 @@ def program(*, external=False):
         'ENTRY': b'HIADRI01', 'OBSERVATION': b'HIADFO01', 'COMMAND': b'HIADFC01',
         'STORE_ARG': b'store', 'UNIQUE': b'HIASTUP1', 'EFFECT_EVENT': b'HIAFDE01',
         'EFFECT_ACTION': b'HIAFDA01', 'EFFECT_RESULT': b'HIAFDO01',
+        'READ_PLAN': b'HIAARD01',
         'STORE_GET': b'store-ge', 'STORE_GET_END': b't',
         'ARTIFACT_ROOT': b'/artifac', 'ARTIFACT_ROOT_END': b'ts', 'DATA_VALIDATE': b'HIAWDV01',
     }.items()}
@@ -352,7 +382,7 @@ def program(*, external=False):
                                    'OBSERVATION_SENT', 'ACTION_LENGTH', 'ACTION_FRAME', 'UNIQUE_RETURNED',
                                    'STORE_SETTLED', 'ADMISSION_OBSERVED', 'CAPTURE_OBSERVED',
                                    'METADATA_OBSERVED', 'PRELUDE_OBSERVED', 'PAGE_OBSERVED',
-                                   'EFFECT_FINISHED', 'STORE_FINISHED', 'RESULT_PUBLISHED'), 1):
+                                   'EFFECT_FINISHED', 'STORE_FINISHED', 'RESULT_PUBLISHED', 'RESOURCE_BOUND'), 1):
         constants[name] = index
     entry = entry_program()
     controls = (function(COST_POLICY, 'action'), function(ENTRY_POLICY, 'trusted_descriptors'),

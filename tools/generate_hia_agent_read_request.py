@@ -17,6 +17,10 @@ def read_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return advance_read_effect(s, o, w)
     if length(s) >= 24 and input_word(s, 0) == BIND_PAGE:
         return bind_page(s, o)
+    if length(s) >= 48 and input_word(s, 0) == BIND_RESOURCE:
+        return bind_resource(s, o)
+    if length(s) >= 136 and input_word(s, 0) == RESOURCE_ARGUMENTS:
+        return resource_arguments(s, o)
     put(o, 48, 64)
     put(o, 56, 8)
     size = widen(decode_json(s, w, o))
@@ -27,6 +31,8 @@ def read_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         root = admitted_worker_arguments(w)
         if root == NONE:
             return 4294967295
+        if resource_tool(w):
+            return resource_plan(s, o, w, root)
     fields = count(w, root)
     if kind(w, root) != 6 or fields < 2 or fields > 4:
         return 4294967295
@@ -82,7 +88,8 @@ def admitted_worker_arguments(w:mutbuf) -> u64:
     if read_digest(w, catalog) == False or read_digest(w, profile) == False:
         return NONE
     tool_text = get(w, 64 + tool * 56 + 24)
-    if same(w, tool_text, count(w, tool), TOOL_READ_VIEW) == 0:
+    resource = same(w, tool_text, count(w, tool), TOOL_RESOURCE_VIEW) != 0
+    if same(w, tool_text, count(w, tool), TOOL_READ_VIEW) == 0 and resource == False:
         return NONE
     schema_text = get(w, 64 + schema * 56 + 24)
     if count(w, schema) != WORKER_SCHEMA_BYTES:
@@ -91,6 +98,8 @@ def admitted_worker_arguments(w:mutbuf) -> u64:
         return NONE
     if same(w, schema_text + 24, WORKER_SCHEMA_BYTES - 24, WORKER_SCHEMA_REMAINING) == 0:
         return NONE
+    if resource:
+        return arguments
     argument_catalog = field(w, arguments, KEY_catalog_sha256)
     if read_digest(w, argument_catalog) == False:
         return NONE
@@ -102,6 +111,190 @@ def admitted_worker_arguments(w:mutbuf) -> u64:
             return NONE
         at = at + 1
     return arguments
+
+# A resource URI is resolved before the Journal changes tool 12 into tool 3.
+# The original admitted call remains the sole source of its request identity.
+def resource_tool(w:mutbuf) -> bool:
+    tool = field(w, 0, KEY_tool)
+    return same(w, get(w, 64 + tool * 56 + 24), count(w, tool), TOOL_RESOURCE_VIEW) != 0
+
+def resource_plan(s:readbuf, o:mutbuf, w:mutbuf, arguments:u64) -> u64:
+    uri = field(w, arguments, KEY_uri)
+    maximum = field(w, arguments, KEY_max_bytes)
+    fields = count(w, arguments)
+    if fields != choose(maximum == NONE, 1, 2) or valid_identity(w, uri, True) == False:
+        return 4294967295
+    limit = 65536
+    if maximum != NONE:
+        limit = page_limit(s, w, maximum)
+        if limit == 0:
+            return 4294967295
+    at = 0
+    while at < 128:
+        store(o, at, 0)
+        at = at + 1
+    put(o, 0, READ_PLAN)
+    put(o, 8, 5)
+    put(o, 16, limit)
+    copy_text(w, o, field(w, 0, KEY_catalog_sha256), 64)
+    end = lookup(w, o, uri, 128)
+    put(o, 32, end - 128)
+    put(o, end, RESOURCE_ADMISSION)
+    put(o, end + 8, count(w, uri))
+    put(o, end + 16, 0)
+    end = copy_text(w, o, uri, end + 24)
+    put(o, 48, 24 + count(w, uri))
+    put(o, 56, end)
+    return end
+
+def resource_plan_valid(s:readbuf, at:u64, size:u64) -> bool:
+    if size < 242 or size > 624 or input_word(s, at) != READ_PLAN:
+        return False
+    if input_word(s, at + 8) != 5 or input_word(s, at + 24) != 0 or input_word(s, at + 40) != 0:
+        return False
+    limit = input_word(s, at + 16)
+    lookup = input_word(s, at + 32)
+    admission = input_word(s, at + 48)
+    if limit < 512 or limit > 65536 or lookup < 73 or lookup > 264:
+        return False
+    uri = lookup - 56
+    if admission != 24 + uri or size != 128 + lookup + admission or input_word(s, at + 56) != size:
+        return False
+    if canonical_lookup(s, at + 128, lookup) == False:
+        return False
+    tail = at + 128 + lookup
+    if input_word(s, tail) != RESOURCE_ADMISSION or input_word(s, tail + 8) != uri or input_word(s, tail + 16) != 0:
+        return False
+    return bound_identity(s, at + 184, tail + 24, uri)
+
+# Only the independently validated Store row's identity and SHA spans are
+# concatenated with this request's URI; arbitrary row metadata never enters
+# the bounded plan compiler. The Store row remains sealed through settlement.
+def bind_resource(s:readbuf, o:mutbuf) -> u64:
+    plan = input_word(s, 8)
+    identity = input_word(s, 16)
+    if identity == 0 or identity > 192 or input_word(s, 24) != 64:
+        return 4294967295
+    if input_word(s, 32) != 0 or input_word(s, 40) != 0 or length(s) != 48 + plan + identity + 64:
+        return 4294967295
+    if resource_plan_valid(s, 48, plan) == False:
+        return 4294967295
+    id_at = 48 + plan
+    sha_at = id_at + identity
+    uri_at = 232
+    uri = input_word(s, 80) - 56
+    if raw_identity(s, id_at, identity, False) == False or raw_identity(s, uri_at, uri, True) == False:
+        return 4294967295
+    if raw_digest(s, sha_at) == False or raw_digest(s, 112) == False:
+        return 4294967295
+    at = 0
+    while at < 128:
+        store(o, at, 0)
+        at = at + 1
+    put(o, 0, READ_PLAN)
+    put(o, 8, 1)
+    put(o, 16, input_word(s, 64))
+    copy_input(s, o, 112, 64, 64)
+    at = literal(o, 128, REF_ID, 7)
+    at = at + copy_input(s, o, id_at, at, identity)
+    at = literal(o, at, REF_DIGEST_FIRST, 8)
+    at = literal(o, at, REF_DIGEST_LAST, 4)
+    at = at + copy_input(s, o, sha_at, at, 64)
+    at = literal(o, at, REF_URI_FIRST, 8)
+    at = literal(o, at, REF_URI_LAST, 1)
+    at = at + copy_input(s, o, uri_at, at, uri)
+    at = literal(o, at, REF_END, 2)
+    put(o, 24, at - 128)
+    put(o, at, STORE_LOOKUP)
+    put(o, at + 8, 1)
+    put(o, at + 16, 1)
+    put(o, at + 24, 56 + identity)
+    put(o, at + 32, 3)
+    put(o, at + 40, 56)
+    put(o, at + 48, identity)
+    at = at + 56 + copy_input(s, o, id_at, at + 56, identity)
+    put(o, 32, 56 + identity)
+    put(o, at, ARTIFACT_ADMISSION)
+    put(o, at + 8, identity)
+    put(o, at + 16, uri)
+    at = at + 24 + copy_input(s, o, sha_at, at + 24, 64)
+    at = at + copy_input(s, o, id_at, at, identity)
+    at = at + copy_input(s, o, uri_at, at, uri)
+    put(o, 48, 88 + identity + uri)
+    put(o, 56, at)
+    return at
+
+def raw_digest(s:readbuf, at:u64) -> bool:
+    i = 0
+    while i < 64:
+        v = byte(s, at + i)
+        if (v < 48 or v > 57) and (v < 97 or v > 102):
+            return False
+        i = i + 1
+    return True
+
+def raw_identity(s:readbuf, at:u64, size:u64, uri:bool) -> bool:
+    i = 0
+    if uri:
+        if size <= 16 or size > 208 or input_word(s, at) != URI_0 or input_word(s, at + 8) != URI_1:
+            return False
+        i = 16
+    elif size == 0 or size > 192:
+        return False
+    if alpha_numeric(byte(s, at + i)) == False:
+        return False
+    while i < size:
+        ch = byte(s, at + i)
+        other = choose(uri, ch == 126, ch == 47 or ch == 58)
+        if (alpha_numeric(ch) or ch == 45 or ch == 46 or ch == 95 or other) == False:
+            return False
+        i = i + 1
+    return True
+
+# The lowered arguments still pass the ordinary public Read input schema.
+def resource_arguments(s:readbuf, o:mutbuf) -> u64:
+    plan = length(s) - 8
+    reference = input_word(s, 32)
+    limit = input_word(s, 24)
+    if plan < 128 or plan > 8192 or input_word(s, 8) != READ_PLAN or input_word(s, 64) != plan:
+        return 4294967295
+    if input_word(s, 16) != 1 or reference == 0 or reference > 512 or limit < 512 or limit > 65536:
+        return 4294967295
+    if 128 + reference > plan or raw_digest(s, 72) == False:
+        return 4294967295
+    at = literal(o, 8, ARGS_FIRST, 8)
+    at = literal(o, at, ARGS_REST, 4)
+    at = at + copy_input(s, o, 136, at, reference)
+    at = literal(o, at, ARGS_CATALOG_0, 8)
+    at = literal(o, at, ARGS_CATALOG_1, 8)
+    at = literal(o, at, ARGS_CATALOG_2, 3)
+    at = at + copy_input(s, o, 72, at, 64)
+    at = literal(o, at, ARGS_MAX_0, 8)
+    at = literal(o, at, ARGS_MAX_1, 6)
+    place = 10000
+    started = False
+    while place != 0:
+        digit = 0
+        while limit >= place:
+            limit = limit - place
+            digit = digit + 1
+        if digit != 0 or started or place == 1:
+            store(o, at, 48 + digit)
+            at = at + 1
+            started = True
+        if place == 10000:
+            place = 1000
+        elif place == 1000:
+            place = 100
+        elif place == 100:
+            place = 10
+        elif place == 10:
+            place = 1
+        else:
+            place = 0
+    store(o, at, 125)
+    put(o, 0, at + 1 - 8)
+    return at + 1
 
 # A Store result may only supply the cursor row. Keep the limit, identity,
 # canonical reference and cursor key in the plan that admitted the request.
@@ -354,7 +547,11 @@ def advance_read_effect(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if event == 2:
         return read_observe_artifact_row(o, w, body, extent)
     if event == 3:
+        if get(w, FLOW_STATE + 64) == 1:
+            return read_observe_resource_policy(s, o, w, body, extent)
         return read_observe_artifact_policy(s, o, w, body, extent)
+    if event == 10:
+        return read_observe_resource_plan(s, o, w, body, extent)
     if event == 4:
         return read_observe_capture(o, w, body, extent)
     if event == 5:
@@ -381,6 +578,15 @@ def begin_read_effect(s:readbuf, o:mutbuf, w:mutbuf, plan:u64) -> u64:
     lookup = input_word(s, 72)
     cursor = input_word(s, 80)
     admission = input_word(s, 88)
+    if flags == 5 and reference == 0:
+        if resource_plan_valid(s, 40, plan) == False:
+            return 4294967295
+        copy_input(s, w, 40, FLOW_PLAN, plan)
+        put(w, FLOW_STATE + 16, plan)
+        put(w, FLOW_STATE + 64, 1)
+        size = read_flow_action(o, w, 1, 2, 0, 0, 3, lookup)
+        copy_input(s, o, 168, 48, lookup)
+        return size
     if flags > 3 or reference == 0 or reference > 512 or lookup < 57 or lookup > 248:
         return 4294967295
     if cursor > 2104 or admission < 90 or admission > 488:
@@ -400,6 +606,56 @@ def begin_read_effect(s:readbuf, o:mutbuf, w:mutbuf, plan:u64) -> u64:
     put(w, FLOW_STATE + 16, plan)
     size = read_flow_action(o, w, 1, 2, 0, 0, 2, lookup)
     copy_input(s, o, artifact_at, 48, lookup)
+    return size
+
+def read_observe_resource_policy(s:readbuf, o:mutbuf, w:mutbuf, body:u64, extent:u64) -> u64:
+    if body != 40 or extent != 0:
+        return 4294967295
+    decision = input_word(s, 40)
+    identity_at = input_word(s, 48)
+    identity = input_word(s, 56)
+    sha_at = input_word(s, 64)
+    sha = input_word(s, 72)
+    if decision == 1 and identity_at == 0 and identity == 0 and sha_at == 0 and sha == 0:
+        return read_flow_action(o, w, 10, 255, 0, 0, 3, 0)
+    row = get(w, FLOW_STATE + 24)
+    if decision != 0 or identity == 0 or identity > 192 or sha != 64:
+        return 4294967295
+    if identity_at < 176 or identity_at > row or identity > row - identity_at:
+        return 4294967295
+    if sha_at < 176 or sha_at > row or sha > row - sha_at:
+        return 4294967295
+    plan = get(w, FLOW_STATE + 16)
+    size = read_flow_action(o, w, 11, 10, identity_at, identity, sha_at, 48 + plan)
+    put(o, 48, BIND_RESOURCE)
+    put(o, 56, plan)
+    put(o, 64, identity)
+    put(o, 72, 64)
+    put(o, 80, 0)
+    put(o, 88, 0)
+    copy_flow_output(w, o, FLOW_PLAN, 96, plan)
+    return size
+
+def read_observe_resource_plan(s:readbuf, o:mutbuf, w:mutbuf, body:u64, extent:u64) -> u64:
+    if get(w, FLOW_STATE + 64) != 1 or extent != body or body < 128 or body > 2048:
+        return 4294967295
+    if input_word(s, 40) != READ_PLAN or input_word(s, 48) != 1 or input_word(s, 96) != body:
+        return 4294967295
+    if input_word(s, 56) != get(w, FLOW_PLAN + 16) or input_word(s, 80) != 0:
+        return 4294967295
+    at = 0
+    while at < 64:
+        if byte(s, 104 + at) != byte(w, FLOW_PLAN + 64 + at):
+            return 4294967295
+        at = at + 1
+    copy_input(s, w, 40, FLOW_PLAN, body)
+    put(w, FLOW_STATE + 16, body)
+    put(w, FLOW_STATE + 64, 2)
+    admission = get(w, FLOW_PLAN + 48)
+    if admission < 90 or admission > 488 or admission > body - 128:
+        return 4294967295
+    size = read_flow_action(o, w, 2, 3, 0, get(w, FLOW_STATE + 24), 0, admission)
+    copy_flow_output(w, o, FLOW_PLAN + body - admission, 48, admission)
     return size
 
 def read_observe_artifact_row(o:mutbuf, w:mutbuf, body:u64, row:u64) -> u64:
@@ -443,6 +699,11 @@ def read_observe_metadata(o:mutbuf, w:mutbuf, body:u64, status:u64) -> u64:
         if status == 4294967295 or status == 4294967294 or status == 4294967292 or status == 4294967280:
             return read_flow_action(o, w, 10, 255, 0, 0, status, 0)
         return 4294967295
+    if get(w, FLOW_STATE + 64) == 2:
+        plan = get(w, FLOW_STATE + 16)
+        size = read_flow_action(o, w, 12, 255, 0, 0, 0, plan)
+        copy_flow_output(w, o, FLOW_PLAN, 48, plan)
+        return size
     cursor = get(w, FLOW_PLAN + 40)
     if cursor == 0:
         return read_bind_action(o, w, 0)
@@ -514,6 +775,9 @@ VALUES = {
     'NONE': (1 << 64) - 1,
     'READ_PLAN': b'HIAARD01',
     'BIND_PAGE': b'HIAARP02',
+    'BIND_RESOURCE': b'HIAURB01',
+    'RESOURCE_ARGUMENTS': b'HIAURJ01',
+    'RESOURCE_ADMISSION': b'HIAARU01',
     'BOUND_PAGE': b'HIAARB01',
     'STORE_LOOKUP': b'HIAQPA01',
     'ARTIFACT_ADMISSION': b'HIAARR01',
@@ -525,6 +789,13 @@ VALUES = {
     'REF_URI_FIRST': b'","uri":',
     'REF_URI_LAST': b'"',
     'REF_END': b'"}',
+    'ARGS_FIRST': b'{"artifa',
+    'ARGS_REST': b'ct":',
+    'ARGS_CATALOG_0': b',"catalo',
+    'ARGS_CATALOG_1': b'g_sha256',
+    'ARGS_CATALOG_2': b'":"',
+    'ARGS_MAX_0': b'","max_b',
+    'ARGS_MAX_1': b'ytes":',
     'FLOW_EVENT': b'HIAFDE01',
     'FLOW_ACTION': b'HIAFDA01',
     'FLOW_STATE': 23808,
@@ -538,6 +809,7 @@ KEYS = ('artifact', 'catalog_sha256', 'cursor', 'max_bytes', 'id', 'sha256', 'ur
 WORKER_SCHEMA = 'hia-agent-worker-request-v1'
 WORKER_LITERALS = {
     'TOOL_READ_VIEW': packed('hia_read'),
+    'TOOL_RESOURCE_VIEW': packed('hia_resource_read'),
     'WORKER_SCHEMA_BYTES': [len(WORKER_SCHEMA)],
     'WORKER_SCHEMA_INITIAL': packed(WORKER_SCHEMA[:24]),
     'WORKER_SCHEMA_REMAINING': packed(WORKER_SCHEMA[24:]),

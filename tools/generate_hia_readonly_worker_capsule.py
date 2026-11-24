@@ -285,7 +285,7 @@ def routing(*, artifact=False, evaluate_replay=False):
     # canonical serialization guarantees sorted keys and an unescaped tool.
     source = '\ndef route(s:readbuf) -> u32:\n    if byte(s, 0) != 123:\n        return 0\n'
     schema = b',"schema":"hia-agent-worker-request-v1","tool":"'
-    methods = ((1, b'hia_read'), (2, b'hia_describe'))
+    methods = ((1, b'hia_read'), (2, b'hia_describe'), (12, b'hia_resource_read'))
     if artifact:
         methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'),
                     (6, b'hia_candidate'), (7, b'hia_rollback'), (8, b'hia_emit'), (9, b'hia_adopt'),
@@ -295,7 +295,7 @@ def routing(*, artifact=False, evaluate_replay=False):
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'
-        source += f'        return {result}\n'
+        source += f'        return {1 if result == 12 else result}\n'
     source += '    return 0\n'
     if artifact:
         # Check the same canonical suffix without duplicating its fixed prefix
