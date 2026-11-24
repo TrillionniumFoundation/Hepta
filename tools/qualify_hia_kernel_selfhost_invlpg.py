@@ -38,7 +38,7 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "x86.tlb.invlpg"):
+    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr3.read"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
@@ -72,12 +72,25 @@ def candidate_source():
                 flag = 2 << (token - @read@)""")
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op == @x86.tlb.invlpg@:
+    if op == @x86.tlb.invlpg@ or op == @x86.cr3.read@:
         return 16""")
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
         owned_instruction(o, w, op, n, a, at)""",
-        """    if op == @x86.tlb.invlpg@:
+        """    if op == @x86.cr3.read@:
+        if get(w, 200) != 1 or n != 0 or t != 1 or get(w, 288) != 1 or get(w, 256) != 0:
+            return fail(w, 65)
+        expect(s, w, 10)
+        define(w, v, t)
+        if get(w, 40) != 0:
+            return 0
+        # MOV RAX, CR3 (0F 20 /r, mod=11, reg=3, r/m=0).
+        emit(o, w, 15)
+        emit(o, w, 32)
+        emit(o, w, 216)
+        store_var(o, w, v, 0)
+        return 0
+    if op == @x86.tlb.invlpg@:
         if get(w, 200) != 1 or n != 1 or at != 1 or t != 0 or get(w, 288) != 0:
             return fail(w, 65)
         expect(s, w, 10)
@@ -117,6 +130,11 @@ def program(profile=PROFILE, effect="privilege", op="  _ = x86.tlb.invlpg(v0)\n"
     return (f"hia-asm.v1 {profile} {module}\n" + exports +
             f"fn f0(v0:{typ}) -> ({typ}) effects({effect}) entry(b0)\n"
             f"block b0(v0:{typ})\n" + op + "  ret(v0)\nend\n").encode()
+
+def cr3_program(profile=PROFILE, effect="privilege",
+                op="  v1:u64 = x86.cr3.read()\n", result="v1"):
+    return program(profile=profile, effect=effect, op=op).replace(
+        b"  ret(v0)\n", f"  ret({result})\n".encode())
 
 def compile_cli(compiler, source, output, label, expected=0):
     result = subprocess.run([str(compiler)], input=source, capture_output=True,
@@ -193,6 +211,27 @@ def run(output):
     }
     for label, bad in refusals.items():
         compile_cli(exe, bad, output, label, expected=2)
+    cr3 = compile_cli(exe, cr3_program(), output, "cr3-1")
+    if cr3 != compile_cli(exe, cr3_program(), output, "cr3-2") or not cr3.startswith(b"\x7fELF"):
+        raise AssertionError("CR3 native ELF repeat failed")
+    cr3_text = text_bytes(output, "cr3", cr3)
+    cr3_asm = output / "cr3-oracle.s"
+    cr3_asm.write_text(".text\n movq %cr3, %rax\n")
+    subprocess.run(["as", "--64", "-o", str(output / "cr3-oracle.o"), str(cr3_asm)], check=True)
+    cr3_oracle = text_bytes(output, "cr3-oracle-copy", (output / "cr3-oracle.o").read_bytes())
+    if cr3_oracle != bytes.fromhex("0f20d8") or cr3_text.count(cr3_oracle) != 1:
+        raise AssertionError("CR3 GNU as oracle mismatch")
+    cr3_refusals = {
+        "cr3-no-effect": cr3_program(effect=""),
+        "cr3-legacy": cr3_program(profile=LEGACY, effect=""),
+        "cr3-argument": cr3_program(op="  v1:u64 = x86.cr3.read(v0)\n"),
+        "cr3-no-result": cr3_program(op="  _ = x86.cr3.read()\n", result="v0"),
+        "cr3-wrong-result": cr3_program(op="  v1:u32 = x86.cr3.read()\n", result="v0"),
+        "cr3-attribute": cr3_program(op='  v1:u64 = x86.cr3.read() {"trust_me":true}\n'),
+        "cr3-redefine": cr3_program(op="  v0:u64 = x86.cr3.read()\n", result="v0"),
+    }
+    for label, bad in cr3_refusals.items():
+        compile_cli(exe, bad, output, label, expected=2)
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -200,6 +239,8 @@ def run(output):
         "compiler_sha256": digest(exe.read_bytes()), "elf_sha256": digest(first),
         "text_sha256": digest(machine), "oracle_hex": oracle.hex(),
         "native_generations": 3, "empty_path_rebuilds": 2, "refusals": list(refusals),
+        "cr3_read": {"elf_sha256": digest(cr3), "text_sha256": digest(cr3_text),
+                     "oracle_hex": cr3_oracle.hex(), "refusals": list(cr3_refusals)},
         "shape": shape, "guest_execution": "NOT_RUN", "full_linux_acceptance": "HOLD",
         "locked_compiler_changed": False, "privilege_authority_proved": False}
     (output / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")

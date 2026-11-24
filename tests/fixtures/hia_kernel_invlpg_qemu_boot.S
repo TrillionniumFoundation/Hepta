@@ -80,6 +80,35 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#ifdef HIA_TEST_CR3_READ
+    /* Independent observer: compare against both the loaded root symbol and
+     * hardware readback, then switch to an equivalent but distinct root.
+     * Neither root is given to the HIA function as an argument. */
+    movq $0x1234, %rdi
+    call f0
+    leaq pml4(%rip), %rcx
+    cmpq %rcx, %rax
+    jne fail64
+    movq %cr3, %rcx
+    cmpq %rcx, %rax
+    jne fail64
+    leaq pml4(%rip), %rsi
+    leaq pml4_second(%rip), %rdi
+    movl $512, %ecx
+    rep movsq
+    leaq pml4_second(%rip), %rax
+    movq %rax, %cr3
+    movq $0x5678, %rdi
+    call f0
+    leaq pml4_second(%rip), %rcx
+    cmpq %rcx, %rax
+    jne fail64
+    movq %cr3, %rcx
+    cmpq %rcx, %rax
+    jne fail64
+    movb $'P', %bl
+    jmp debug_exit64
+#endif
     /* Warm one of the large-page translations, revoke its PRESENT bit,
      * then invoke the HIA-generated INVLPG through the actual f0 symbol. */
     movq $0x400000, %rbx
@@ -176,6 +205,9 @@ idtr:
 pml4: .skip 4096
 pdpt: .skip 4096
 pd0: .skip 4096
+#ifdef HIA_TEST_CR3_READ
+pml4_second: .skip 4096
+#endif
 .balign 16
 stack32: .skip 4096
 stack32_top:
