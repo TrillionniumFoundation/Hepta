@@ -610,6 +610,8 @@ def business(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         return launch(o, w, get(w, 224), get(w, 144), 0, 1, get(w, 1064))
     if phase >= 6000 and phase < 6100:
         return frontend(s, o, w, phase, r)
+    if phase >= 6100 and phase < 6200:
+        return worker_frontend(s, o, w, phase, r)
     if phase >= 5000 and phase < 6000:
         return 5
     if phase >= 4500 and phase < 4600:
@@ -900,11 +902,102 @@ def frontend(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
     if phase == 6018:
         return call(o, w, 6019, 3, get(w, 1532024), 0, 0, 0, 0, 0, 0)
     if phase == 6019:
-        return call(o, w, 4000, 3, get(w, 1532008), 0, 0, 0, 0, 0, 0)
+        return call(o, w, 6100, 3, get(w, 1532008), 0, 0, 0, 0, 0, 0)
     return finish(o, w, 65)
 
 def frontend_capabilities(w:mutbuf) -> u64:
     owner = find_product(w, C_OWNER_NAME, L_OWNER_NAME)
+    runner = find_product(w, C_RUNNER, L_RUNNER)
+    capture = find_product(w, C_CAPTURE_NAME, L_CAPTURE_NAME)
+    if owner == 0 or runner == 0 or capture == 0:
+        return 0
+    put(w, 1532100, get(w, owner))
+    put(w, 1532108, get(w, owner + 8))
+    put(w, 1532116, get(w, runner))
+    put(w, 1532124, get(w, runner + 8))
+    put(w, 1532132, get(w, 216))
+    put(w, 1532140, get(w, 3008))
+    put(w, 1532148, get(w, capture))
+    put(w, 1532156, get(w, capture + 8))
+    return 1
+
+def worker_frontend(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
+    if phase == 6100:
+        return capture_request(o, w, capture_kit(s, w, C_FILTER_POLICY, L_FILTER_POLICY, C_WORKER_ENTRY_PACKER, L_WORKER_ENTRY_PACKER, MAGIC_KIT), 6101)
+    if phase == 6101:
+        return launch(o, w, get(w, 120), get(w, 144), 3, 0, 6102)
+    if phase == 6102:
+        put(w, 1532000, get(w, 144))
+        return call(o, w, 6103, 91, get(w, 144), 320, 0, 0, 0, 0, 0)
+    if phase == 6103:
+        at = capture_begin(s, w, MAGIC_MULTI, 2)
+        at = capture_relative(s, w, at, C_WORKER_ENTRY_POLICY, L_WORKER_ENTRY_POLICY, C_WORKER_ENTRY_ALIAS, L_WORKER_ENTRY_ALIAS)
+        at = capture_relative(s, w, at, C_SHA_SOURCE, L_SHA_SOURCE, C_SHA_SOURCE, L_SHA_SOURCE)
+        return capture_request(o, w, choose(at == 0, 0, at - 393216), 6104)
+    if phase == 6104:
+        return launch(o, w, get(w, 1532000), get(w, 144), 3, 0, 6105)
+    if phase == 6105:
+        if get(w, 152) < 216:
+            return finish(o, w, 65)
+        put(w, 992, get(w, 144))
+        put(w, 1016, get(w, 152))
+        put(w, 1000, 2)
+        put(w, 176, C_WORKER_ENTRY_NAME)
+        put(w, 184, L_WORKER_ENTRY_NAME)
+        return reading(o, w, get(w, 144), 546816, 40, get(w, 152) - 40, 6106)
+    if phase == 6106:
+        if member_footer(w) == 0:
+            return finish(o, w, 65)
+        return reading(o, w, get(w, 992), 49152, 176, 0, 6107)
+    if phase == 6107:
+        if elf_header(w, get(w, 160)) == 0:
+            return finish(o, w, 65)
+        return extract_code(o, w, get(w, 992), get(w, 160), 6108)
+    if phase == 6108:
+        put(w, 1532008, get(w, 144))
+        put(w, 1532016, get(w, 152))
+        return call(o, w, 6109, 3, get(w, 992), 0, 0, 0, 0, 0, 0)
+    if phase == 6109:
+        return call(o, w, 6110, 3, get(w, 1532000), 0, 0, 0, 0, 0, 0)
+    if phase == 6110:
+        return capture_request(o, w, capture_kit(s, w, C_WORKER_ENTRY_BINDER, L_WORKER_ENTRY_BINDER, C_PACKER_ROLE, L_PACKER_ROLE, MAGIC_KIT), 6111)
+    if phase == 6111:
+        return launch(o, w, get(w, 120), get(w, 144), 3, 0, 6112)
+    if phase == 6112:
+        put(w, 1532024, get(w, 144))
+        if worker_frontend_capabilities(w) == 0:
+            return finish(o, w, 65)
+        put(w, 1532032, 0)
+        put(w, 1532200, MAGIC_ENTRY_BIND)
+        return call(o, w, 6113, 91, get(w, 144), 320, 0, 0, 0, 0, 0)
+    if phase == 6113:
+        index = get(w, 1532032)
+        if index == 4:
+            view(w, 0, get(w, 1532008), 0, get(w, 1532016))
+            return frame(o, w, 1532200, 136, 330000, 1, 6115)
+        row = 1532100 + index * 16
+        return hash_view(o, w, get(w, row), 0, get(w, row + 8), 6114)
+    if phase == 6114:
+        copyw(w, 1532208 + get(w, 1532032) * 32, 4096, 32)
+        put(w, 1532032, get(w, 1532032) + 1)
+        return resume(s, o, w, 6113)
+    if phase == 6115:
+        return launch(o, w, get(w, 1532024), get(w, 144), 3, 0, 6116)
+    if phase == 6116:
+        if get(w, 152) != get(w, 1532016):
+            return finish(o, w, 65)
+        put(w, 1532040, get(w, 144))
+        return publish(o, w, get(w, 144), get(w, 152), C_WORKER_ENTRY_NAME, L_WORKER_ENTRY_NAME, 320, 6117)
+    if phase == 6117:
+        return call(o, w, 6118, 3, get(w, 1532040), 0, 0, 0, 0, 0, 0)
+    if phase == 6118:
+        return call(o, w, 6119, 3, get(w, 1532024), 0, 0, 0, 0, 0, 0)
+    if phase == 6119:
+        return call(o, w, 4000, 3, get(w, 1532008), 0, 0, 0, 0, 0, 0)
+    return finish(o, w, 65)
+
+def worker_frontend_capabilities(w:mutbuf) -> u64:
+    owner = find_product(w, C_WORKER_OWNER_NAME, L_WORKER_OWNER_NAME)
     runner = find_product(w, C_RUNNER, L_RUNNER)
     capture = find_product(w, C_CAPTURE_NAME, L_CAPTURE_NAME)
     if owner == 0 or runner == 0 or capture == 0:
@@ -2408,6 +2501,10 @@ TEXT = {
     'ENTRY_NAME': b'hia-release-build', 'ENTRY_ALIAS': b'hia-release-build.hepta',
     'ENTRY_POLICY': b'release_build_entry.hepta', 'ENTRY_PACKER': b'release_build_entry_packer.hepta',
     'ENTRY_BINDER': b'release_build_entry_bind.hepta', 'SHA_SOURCE': b'sha256_stream.hepta',
+    'WORKER_OWNER_NAME': b'hia-worker-install-owner',
+    'WORKER_ENTRY_NAME': b'hia-worker-install', 'WORKER_ENTRY_ALIAS': b'hia-worker-install.hepta',
+    'WORKER_ENTRY_POLICY': b'worker_install_entry.hepta', 'WORKER_ENTRY_PACKER': b'worker_install_entry_packer.hepta',
+    'WORKER_ENTRY_BINDER': b'worker_install_entry_bind.hepta',
     'CONTRACT_PATH': b'docs/HIA_SELFHOST_CORE_SUPPORT.json',
     'MANIFEST_POLICY': b'source_compiler_manifest.hepta', 'CORE_PACKER': b'core_json_cli_packer.hepta',
     'MANIFEST_NAME': b'compiler-manifest.json', 'ZERO_ENTRIES': bytes(128 * 8),

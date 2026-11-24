@@ -1288,7 +1288,7 @@ def document(source, module):
         functions.append({'name': names[n.name], 'params': [b.param(a) for a in b.params], 'returns': [b.returns], 'effects': ['read', 'write', 'trap'], 'entry': 'b0', 'blocks': b.blocks})
     return compact_authoring_cfg({'schema': 'hepta.hia.program.v9', 'module': module, 'functions': functions})
 
-def _render(directory):
+def _render(directory, *, policy_source=POLICY_SOURCE, module_prefix='release_build_entry', adapter_source=None):
     outputs = {}
 
     def authored(module, source):
@@ -1296,11 +1296,11 @@ def _render(directory):
         text = render_assembly(doc)
         outputs[module] = text
         return {'module': module, 'source_bytes': len(text.encode()), 'functions': len(doc['functions']), 'blocks': sum((len(f['blocks']) for f in doc['functions'])), 'instructions': sum((len(b['ops']) for f in doc['functions'] for b in f['blocks'])), 'max_parameters': max((len(b['params']) for f in doc['functions'] for b in f['blocks']))}
-    records = [authored('release_build_entry', POLICY_SOURCE)]
+    records = [authored(module_prefix, policy_source)]
     D = directory
     obj = D / 'entry.o'
     blob = D / 'entry.bin'
-    subprocess.run(['as', '--64', str(ROOT / 'tools/hia_release_build_entry_syscalls.S'), '-o', str(obj)], check=True, capture_output=True)
+    subprocess.run(['as', '--64', str(adapter_source if adapter_source is not None else ROOT / 'tools/hia_release_build_entry_syscalls.S'), '-o', str(obj)], check=True, capture_output=True)
     subprocess.run(['objcopy', '-O', 'binary', '-j', '.text', str(obj), str(blob)], check=True, capture_output=True)
     symbols = {name: int(address, 16) for address, _, name in (l.split() for l in subprocess.check_output(['nm', '-n', str(obj)], text=True).splitlines())}
     assert symbols['_start'] == 0 and 'R_X86_64' not in subprocess.check_output(['objdump', '-r', str(obj)], text=True)
@@ -1327,7 +1327,7 @@ def _render(directory):
         for i in range(4):
             packer += f'    store(o, {at + i}, (displacement >> {i * 8}) & 255)\n'
     packer += f'    copy(s, o, {len(prefix)}, 24, policy + sha)\n    return size\n' + mini
-    records.append(authored('release_build_entry_packer', packer))
+    records.append(authored(module_prefix + '_packer', packer))
     binder = f"def bind(s:readbuf,o:mutbuf,w:mutbuf) -> u32:\n    if length(w) < 256:\n        return 17\n    phase = uintw(w, 0)\n    mode = uintw(w, 16)\n    if phase == 0 and mode == 0:\n        if length(s) != 21 or uint(s, 0) != 1 or uint(s, 8) != 5 or partial(s, 16, 5) != {int.from_bytes(b'build', 'little')}:\n            return 16\n        put(w, 16, 1)\n        return 0\n    if phase == 2 and mode == 3:\n        return 3\n    if phase != 1 or mode != 1 or length(s) < {136 + len(prefix) + 2} or uint(s, 0) != {int.from_bytes(b'HIAENBD1', 'little')}:\n        return 16\n    size = length(s) - 136\n    if size > 4194304 or size > length(o):\n        return 17\n    policy = uint(s, {136 + metadata + 8})\n    sha = uint(s, {136 + metadata + 16})\n    if policy == 0 or sha == 0 or policy > 1048576 or sha > 1048576 or size != {len(prefix)} + policy + sha:\n        return 16\n    if uint(s, 232) != size or uint(s, 240) != size:\n        return 16\n    if partial(s, {136 + holes['policy_hole']}, 4) != {len(prefix) - holes['policy_hole'] - 4} or partial(s, {136 + holes['sha_hole']}, 4) != {len(prefix) - holes['sha_hole'] - 4} + policy:\n        return 16\n"
     skip = set(range(96, 112)) | set(range(metadata + 8, metadata + 24))
     for at in holes.values():
@@ -1352,7 +1352,7 @@ def _render(directory):
     binder += '    i = 0\n    while i < 4:\n        nonzero = 0\n        j = 0\n        while j < 32:\n            nonzero = nonzero | byte(s, 8 + i * 32 + j)\n            j = j + 1\n        if nonzero == 0:\n            return 16\n        i = i + 1\n    copy(s, o, 0, 136, size)\n'
     binder += f'    copy(s, o, {pins}, 8, 128)\n    put(w, 88, size)\n    put(w, 16, 3)\n    return 0\ndef uintw(w:mutbuf, at:u64) -> u64:\n    return word_load(w, at)\ndef partial(s:readbuf, at:u64, count:u64) -> u64:\n    i = 0\n    value = 0\n    while i < count:\n        value = value | (byte(s, at + i) << (i * 8))\n        i = i + 1\n    return value\n' + mini
     binder += prefix_helpers
-    records.append(authored('release_build_entry_bind', binder))
+    records.append(authored(module_prefix + '_bind', binder))
     return (outputs, {'prefix_bytes': len(prefix), 'pins': pins, 'metadata': metadata, 'holes': holes, 'adapter_sha256': sha256(adapter).hexdigest(), 'records': records})
 
 def render():

@@ -778,6 +778,15 @@ NATIVE_CONTROLLER_INSTALL_FILES = (
     'tools/generate_hia_controller_install.py',
     'tools/hia_controller_install_syscalls.S',
 )
+NATIVE_WORKER_INSTALL_ENTRY_FILES = (
+    'docs/HIA_WORKER_INSTALL_ENTRY.md',
+    'examples/hia_bootstrap/worker_install_entry.hepta',
+    'examples/hia_bootstrap/worker_install_entry_bind.hepta',
+    'examples/hia_bootstrap/worker_install_entry_packer.hepta',
+    'tools/generate_hia_worker_install_entry.py',
+    'tools/hia_worker_install_entry_syscalls.S',
+    'tools/qualify_hia_worker_install_entry.py',
+)
 NATIVE_WORKER_MANIFEST_FILES = (
     'docs/HIA_WORKER_MANIFEST.md',
     'docs/HIA_WORKER_MANIFEST_RECORDS.json',
@@ -842,6 +851,7 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    *NATIVE_WORKER_INSTALL_ENTRY_FILES,
     *NATIVE_CONTROLLER_INSTALL_FILES,
     *NATIVE_WORKER_MANIFEST_FILES,
     *NATIVE_RELEASE_LIFECYCLE_FILES,
