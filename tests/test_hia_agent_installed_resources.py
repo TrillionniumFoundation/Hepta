@@ -7,7 +7,7 @@ from hepta.hia_agent_store import wire
 from tools.hia_selfhost_contract import (
     ARTIFACT_CAPTURE_SDIST_FILES, CORE_EDIT_SDIST_FILES, CORE_NORMALIZE_SDIST_FILES,
     EXECUTION_LEDGER_SDIST_FILES, MCP_WIRE_SDIST_FILES, NATIVE_LINKER_SDIST_FILES,
-    SCALAR_REFERENCE_SDIST_FILES,
+    SCALAR_REFERENCE_SDIST_FILES, NATIVE_RELEASE_LIFECYCLE_FILES,
     SQLITE_SNAPSHOT_SDIST_FILES, WORKER_REQUEST_SDIST_FILES,
 )
 ROOT=Path(__file__).resolve().parents[1]
@@ -16,6 +16,8 @@ RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_
 # The two declared native package files also belong in the actual wheel;
 # all other support paths remain absent from its package root.
 SDIST_SUPPORT_FILES=(
+    *NATIVE_RELEASE_LIFECYCLE_FILES,
+    'tests/test_hia_default_assembly_bridge.py',
     'examples/hia_bootstrap/source_capture.hepta',
     'examples/hia_bootstrap/source_capture_packer.hepta',
     'tools/generate_hia_source_capture.py',

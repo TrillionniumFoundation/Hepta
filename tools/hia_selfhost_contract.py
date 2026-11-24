@@ -2590,6 +2590,7 @@ SOURCE_FILES = (
     'tests/fixtures/cost_context_caller_source_successors_v1.json',
     'tests/test_artifact_publication.py',
     'tests/test_hia_agent_assembly.py',
+    'tests/test_hia_default_assembly_bridge.py',
     'tests/test_hia_cost_artifact_caller_admission.py',
     'tests/test_hia_cost_context_caller_delivery_source.py',
     'tests/test_hia_ndu_bridge.py',
