@@ -161,14 +161,29 @@ class ReleaseMemberNativeChecks(unittest.TestCase):
         self.invoke(3, 2, [bytes(damaged), *pieces[1:]], accepted=False)
 
     def test_private_entry_is_derived_from_the_second_real_displacement(self):
-        code = b'first-entry--' + bytes.fromhex('554889e5') + b'private-entry-body'
+        code = b'first-entry--' + bytes.fromhex('f7c2ff0100007409') + b'private-entry-body'
         fixture = adapter_fixture(code, entries=(0, 13))
         self.assert_adapter_result(adapter_pieces(fixture, entries=(0, 13)), accepted=True)
         self.invoke(4, 2, list(fixture))
-        bad_code = code[:13] + b'FAIL' + code[17:]
+        bad_code = code[:13] + b'FAILURE!' + code[21:]
         bad = adapter_fixture(bad_code, entries=(0, 13))
         self.assert_adapter_result(adapter_pieces(bad, entries=(0, 13)), accepted=True)
         self.invoke(4, 2, list(bad), accepted=False)
+
+    def test_private_entry_requires_every_current_bounded_recursion_guard_byte(self):
+        guard = bytes.fromhex('f7c2ff0100007409')
+        for offset in range(len(guard)):
+            changed = bytearray(guard)
+            changed[offset] ^= 1
+            fixture = adapter_fixture(b'first-entry--' + changed + b'private-entry-body', entries=(0, 13))
+            self.assert_adapter_result(adapter_pieces(fixture, entries=(0, 13)), accepted=True)
+            with self.subTest(guard_offset=offset):
+                self.invoke(4, 2, list(fixture), accepted=False)
+        for prefix in (bytes.fromhex('554889e5'), *[guard[:n] for n in range(8)]):
+            fixture = adapter_fixture(b'first-entry--' + prefix, entries=(0, 13))
+            self.assert_adapter_result(adapter_pieces(fixture, entries=(0, 13)), accepted=True)
+            with self.subTest(stale_or_truncated_guard=prefix.hex()):
+                self.invoke(4, 2, list(fixture), accepted=False)
 
     def test_pager_headers_extents_permissions_and_unique_image_match_original(self):
         binary, image = pager_fixture()
