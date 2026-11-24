@@ -80,6 +80,60 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#ifdef HIA_TEST_CR3_WRITE
+    /* Test-only root provisioning: A maps VA 4MiB to PA 4MiB;
+     * B maps that VA to PA 6MiB. Code and stack mappings are identical.
+     * Check hardware CR3 and the data readback after each native call. */
+    leaq pml4(%rip), %rsi
+    leaq pml4_second(%rip), %rdi
+    movl $512, %ecx
+    rep movsq
+    leaq pdpt(%rip), %rsi
+    leaq pdpt_second(%rip), %rdi
+    movl $512, %ecx
+    rep movsq
+    leaq pd0(%rip), %rsi
+    leaq pd_second(%rip), %rdi
+    movl $512, %ecx
+    rep movsq
+    leaq pdpt_second(%rip), %rax
+    orq $3, %rax
+    movq %rax, pml4_second(%rip)
+    leaq pd_second(%rip), %rax
+    orq $3, %rax
+    movq %rax, pdpt_second(%rip)
+    movq $0x600083, pd_second+16(%rip)
+    movq $0x13579, 0x400000
+    movq $0x2468a, 0x600000
+    cmpq $0x13579, 0x400000
+    jne fail64
+    movq %cr3, %rax
+    leaq pml4(%rip), %rcx
+    cmpq %rcx, %rax
+    jne fail64
+    leaq pml4_second(%rip), %rdi
+    call f0
+    leaq pml4_second(%rip), %rcx
+    cmpq %rcx, %rax
+    jne fail64
+    movq %cr3, %rax
+    cmpq %rcx, %rax
+    jne fail64
+    cmpq $0x2468a, 0x400000
+    jne fail64
+    leaq pml4(%rip), %rdi
+    call f0
+    leaq pml4(%rip), %rcx
+    cmpq %rcx, %rax
+    jne fail64
+    movq %cr3, %rax
+    cmpq %rcx, %rax
+    jne fail64
+    cmpq $0x13579, 0x400000
+    jne fail64
+    movb $'P', %bl
+    jmp debug_exit64
+#endif
 #ifdef HIA_TEST_CR3_READ
     /* Independent observer: compare against both the loaded root symbol and
      * hardware readback, then switch to an equivalent but distinct root.
@@ -205,8 +259,12 @@ idtr:
 pml4: .skip 4096
 pdpt: .skip 4096
 pd0: .skip 4096
-#ifdef HIA_TEST_CR3_READ
+#if defined(HIA_TEST_CR3_READ) || defined(HIA_TEST_CR3_WRITE)
 pml4_second: .skip 4096
+#endif
+#ifdef HIA_TEST_CR3_WRITE
+pdpt_second: .skip 4096
+pd_second: .skip 4096
 #endif
 .balign 16
 stack32: .skip 4096
