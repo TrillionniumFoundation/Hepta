@@ -38,7 +38,7 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr3.read", "x86.cr3.write"):
+    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr3.read", "x86.cr3.write", "x86.cr2.read"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
@@ -72,12 +72,12 @@ def candidate_source():
                 flag = 2 << (token - @read@)""")
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op == @x86.tlb.invlpg@ or op == @x86.cr3.read@ or op == @x86.cr3.write@:
+    if op == @x86.tlb.invlpg@ or op == @x86.cr3.read@ or op == @x86.cr3.write@ or op == @x86.cr2.read@:
         return 16""")
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
         owned_instruction(o, w, op, n, a, at)""",
-        """    if op == @x86.cr3.read@:
+        """    if op == @x86.cr3.read@ or op == @x86.cr2.read@:
         if get(w, 200) != 1 or n != 0 or t != 1 or get(w, 288) != 1 or get(w, 256) != 0:
             return fail(w, 65)
         expect(s, w, 10)
@@ -87,7 +87,10 @@ def candidate_source():
         # MOV RAX, CR3 (0F 20 /r, mod=11, reg=3, r/m=0).
         emit(o, w, 15)
         emit(o, w, 32)
-        emit(o, w, 216)
+        if op == @x86.cr2.read@:
+            emit(o, w, 208)
+        else:
+            emit(o, w, 216)
         store_var(o, w, v, 0)
         return 0
     if op == @x86.cr3.write@:
@@ -266,6 +269,22 @@ def run(output):
     }
     for label, bad in write_refusals.items():
         compile_cli(exe, bad, output, label, expected=2)
+    # CR2 uses the same typed zero-operand contract as CR3 read.
+    cr2_source = cr3_program().replace(b"x86.cr3.read", b"x86.cr2.read")
+    cr2 = compile_cli(exe, cr2_source, output, "cr2-1")
+    if cr2 != compile_cli(exe, cr2_source, output, "cr2-2") or not cr2.startswith(b"\x7fELF"):
+        raise AssertionError("CR2 native ELF repeat failed")
+    cr2_text = text_bytes(output, "cr2", cr2)
+    cr2_asm = output / "cr2-oracle.s"
+    cr2_asm.write_text(".text\n movq %cr2, %rax\n")
+    subprocess.run(["as", "--64", "-o", str(output / "cr2-oracle.o"), str(cr2_asm)], check=True)
+    cr2_oracle = text_bytes(output, "cr2-oracle-copy", (output / "cr2-oracle.o").read_bytes())
+    if cr2_oracle != bytes.fromhex("0f20d0") or cr2_text.count(cr2_oracle) != 1:
+        raise AssertionError("CR2 GNU as oracle mismatch")
+    cr2_refusals = {label.replace("cr3-", "cr2-"): bad.replace(b"x86.cr3.read", b"x86.cr2.read")
+                    for label, bad in cr3_refusals.items()}
+    for label, bad in cr2_refusals.items():
+        compile_cli(exe, bad, output, label, expected=2)
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -278,6 +297,9 @@ def run(output):
         "cr3_write": {"elf_sha256": digest(write), "text_sha256": digest(write_text),
                       "oracle_hex": write_oracle.hex(), "refusals": list(write_refusals),
                       "source_sha256": digest(write_source)},
+        "cr2_read": {"elf_sha256": digest(cr2), "text_sha256": digest(cr2_text),
+                     "oracle_hex": cr2_oracle.hex(), "refusals": list(cr2_refusals),
+                     "source_sha256": digest(cr2_source)},
         "shape": shape, "guest_execution": "NOT_RUN", "full_linux_acceptance": "HOLD",
         "locked_compiler_changed": False, "privilege_authority_proved": False}
     (output / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")

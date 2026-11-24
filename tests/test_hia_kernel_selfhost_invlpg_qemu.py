@@ -169,6 +169,29 @@ def run(output):
             or symbol(write_obj, "f0") != symbol(write_bad_obj, "f0")):
         raise AssertionError("CR3 write mutation readback failure")
     hardware["cr3_write_subject_source_sha256"] = digest(write_source.read_bytes())
+    cr2_obj = output / "cr2.o"
+    cr2_native = cr2_obj.read_bytes()
+    cr2_text = (output / "cr2.text").read_bytes()
+    cr2_source = output / "cr2-1.input"
+    cr2_report = report["cr2_read"]
+    cr2_opcode = bytes.fromhex(cr2_report["oracle_hex"])
+    if (digest(cr2_native) != cr2_report["elf_sha256"]
+            or digest(cr2_text) != cr2_report["text_sha256"]
+            or digest(cr2_source.read_bytes()) != cr2_report["source_sha256"]
+            or cr2_opcode != bytes.fromhex("0f20d0")
+            or cr2_text.count(cr2_opcode) != 1
+            or dump_text(cr2_obj, output / "cr2-original-readback.text") != cr2_text):
+        raise AssertionError("CR2 native custody or opcode failure")
+    cr2_bad_text = cr2_text.replace(cr2_opcode, bytes.fromhex("4831c0"), 1)
+    cr2_mutation = output / "cr2-dishonest.text"
+    cr2_mutation.write_bytes(cr2_bad_text)
+    cr2_bad_obj = output / "cr2-dishonest.o"
+    invoke(["objcopy", "--update-section", ".text=" + str(cr2_mutation),
+            str(cr2_obj), str(cr2_bad_obj)])
+    if (dump_text(cr2_bad_obj, output / "cr2-dishonest-readback.text") != cr2_bad_text
+            or symbol(cr2_obj, "f0") != symbol(cr2_bad_obj, "f0")):
+        raise AssertionError("CR2 mutation readback failure")
+    hardware["cr2_subject_source_sha256"] = digest(cr2_source.read_bytes())
     path = output / "hardware"
     path.mkdir()
     try:
@@ -182,7 +205,10 @@ def run(output):
              ("HIA_TEST_CR3_READ",), 35, "N"),
             ("cr3-write-two-roots", write_native, write_text, ("HIA_TEST_CR3_WRITE",), 33, "P"),
             ("cr3-write-nop", write_bad_obj.read_bytes(), write_bad_text,
-             ("HIA_TEST_CR3_WRITE",), 35, "N")):
+             ("HIA_TEST_CR3_WRITE",), 35, "N"),
+            ("cr2-read-two-faults", cr2_native, cr2_text, ("HIA_TEST_CR2_READ",), 33, "P"),
+            ("cr2-zero-substitution", cr2_bad_obj.read_bytes(), cr2_bad_text,
+             ("HIA_TEST_CR2_READ",), 35, "N")):
             guest, binding = build(path, name, binary, text, macros)
             for machine in ("pc", "q35"):
                 try:
@@ -193,6 +219,9 @@ def run(output):
                     raise
                 hardware["cases"].append({**observed, **binding, "status": "PASS"})
         if (original.read_bytes() != native
+                or cr2_obj.read_bytes() != cr2_native
+                or (output / "cr2.text").read_bytes() != cr2_text
+                or digest(cr2_source.read_bytes()) != cr2_report["source_sha256"]
                 or write_obj.read_bytes() != write_native
                 or (output / "cr3-write.text").read_bytes() != write_text
                 or digest(write_source.read_bytes()) != write_report["source_sha256"]

@@ -80,6 +80,23 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#ifdef HIA_TEST_CR2_READ
+    /* Two genuine supervisor non-present reads, not software writes to CR2.
+     * The observer owns exception entry/IRET; f0 alone reads CR2 in HIA. */
+    andq $-2, pd0+16(%rip)
+    andq $-2, pd0+24(%rip)
+    mfence
+    movq $0x400000, %rax
+    invlpg (%rax)
+    movq $0x600000, %rax
+    invlpg (%rax)
+cr2_probe_a:
+    movq 0x400000, %rax
+    jmp fail64
+cr2_probe_b:
+    movq 0x600000, %rax
+    jmp fail64
+#endif
 #ifdef HIA_TEST_CR3_WRITE
     /* Test-only root provisioning: A maps VA 4MiB to PA 4MiB;
      * B maps that VA to PA 6MiB. Code and stack mappings are identical.
@@ -201,6 +218,42 @@ fail64:
     movb $'N', %bl
     jmp debug_exit64
 pf_handler:
+#ifdef HIA_TEST_CR2_READ
+    /* The fault frame, not the HIA return, selects the expected address.
+     * Do not supply that address as an argument. */
+    cmpq $0, (%rsp)
+    jne fail64
+    leaq cr2_probe_a(%rip), %rax
+    cmpq %rax, 8(%rsp)
+    je cr2_fault_a
+    leaq cr2_probe_b(%rip), %rax
+    cmpq %rax, 8(%rsp)
+    jne fail64
+    movq $0x600000, %r12
+    jmp cr2_check
+cr2_fault_a:
+    movq $0x400000, %r12
+cr2_check:
+    movq %rsp, %r13
+    andq $-16, %rsp
+    movq $0x1234, %rdi
+    call f0
+    movq %r13, %rsp
+    cmpq %r12, %rax
+    jne fail64
+    movq %cr2, %rcx
+    cmpq %r12, %rcx
+    jne fail64
+    cmpq $0x400000, %r12
+    jne cr2_done
+    leaq cr2_probe_b(%rip), %rax
+    movq %rax, 8(%rsp)
+    addq $8, %rsp
+    iretq
+cr2_done:
+    movb $'P', %bl
+    jmp debug_exit64
+#endif
     movq %cr2, %rax
     cmpq $0x400000, %rax
     jne fail64
