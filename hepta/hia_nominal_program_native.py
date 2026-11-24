@@ -28,6 +28,19 @@ MAX_EXECUTABLE_BYTES = 8 << 20
 MAX_INPUT_BYTES = 8 << 20
 MAX_RESULT_BYTES = 64 + 2 * MAX_INPUT_BYTES
 MAX_MANIFEST_BYTES = 32768
+SEMANTIC_SOURCES = {
+    "owner": "composite_constructor_owner", "render": "composite_constructor_render",
+    "types": "composite_types", "admit": "composite_function_admit",
+    "records": "composite_function_records", "terms": "composite_function_terms",
+    "advanced": "composite_function_advanced", "function-render": "composite_function_render",
+    "helpers": "task_helpers", "outer-owner": "composite_outer_owner",
+    "outer-render": "composite_outer_render",
+}
+SEMANTIC_SOURCES = {key: "examples/hia_bootstrap/" + name + ".hepta"
+                    for key, name in SEMANTIC_SOURCES.items()}
+LEGACY_SELECTORS = tuple("HEPTA_HIA_" + name + "_MANIFEST" for name in (
+    "COMPOSITE_CONSTRUCTOR", "COMPOSITE_TYPES", "COMPOSITE_FUNCTIONS",
+    "TASK_HELPERS", "COMPOSITE_OUTER"))
 FRAME = struct.Struct("<8s7Q")
 CONTRACT = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 SOURCE_FILES = tuple("examples/hia_bootstrap/" + name + ".hepta" for name in (
@@ -95,14 +108,28 @@ def _inspect_executable(raw):
         _reject("complete nominal entry is outside executable bytes")
 
 
-def manifest_value(executable, *, compiler_sha256, source_sha256, cold_report_sha256):
+def manifest_value(executable, *, compiler_sha256, source_sha256, cold_report_sha256,
+                   semantic_image_sha256=None):
     """Describe actual bytes; a null cold digest is an explicit development build."""
     raw = Path(executable).read_bytes()
     _inspect_executable(raw)
-    return {"schema": SCHEMA, "profile": PROFILE, "executable_path": Path(executable).name,
+    value = {"schema": SCHEMA, "profile": PROFILE, "executable_path": Path(executable).name,
             "executable_sha256": sha256(raw).hexdigest(), "executable_bytes": len(raw),
             "compiler_sha256": compiler_sha256, "source_sha256": source_sha256,
             "cold_report_sha256": cold_report_sha256}
+    if semantic_image_sha256 is not None:
+        value["semantic_image_sha256"] = dict(semantic_image_sha256)
+    return value
+
+
+def _relative_member(value):
+    if type(value) is not str or value in ("", ".", "..") or "\0" in value or "\\" in value:
+        raise ValueError("invalid complete nominal member path")
+    path = Path(value)
+    if (path.is_absolute() or path.as_posix() != value
+            or any(part in ("", ".", "..") for part in path.parts)):
+        raise ValueError("complete nominal member must stay inside its selected group")
+    return path
 
 
 class _Selection:
@@ -118,7 +145,7 @@ class _Selection:
         value = _decode(manifest.raw)
         fields = {"schema", "profile", "executable_path", "executable_sha256",
                   "executable_bytes", "compiler_sha256", "source_sha256", "cold_report_sha256"}
-        if (type(value) is not dict or set(value) != fields
+        if (type(value) is not dict or set(value) not in (fields, fields | {"semantic_image_sha256"})
                 or value["schema"] != SCHEMA or value["profile"] != PROFILE
                 or type(value["executable_path"]) is not str
                 or Path(value["executable_path"]).name != value["executable_path"]
@@ -131,6 +158,11 @@ class _Selection:
                 or any(not _digest(digest) for digest in value["source_sha256"].values())
                 or value["cold_report_sha256"] is not None and not _digest(value["cold_report_sha256"])):
             _reject("unsupported complete nominal selection contract")
+        if "semantic_image_sha256" in value:
+            images = value["semantic_image_sha256"]
+            if (type(images) is not dict or set(images) != set(SEMANTIC_SOURCES)
+                    or any(not _digest(digest) for digest in images.values())):
+                _reject("invalid complete nominal semantic image inventory")
         self.snapshots = [(manifest, MAX_MANIFEST_BYTES, _read)]
         for name in SOURCE_FILES:
             source = _read(_source_resource_path(name), 4 << 20)
@@ -234,7 +266,110 @@ class _Selection:
         selection.check()
         return selection
 
+    @classmethod
+    def legacy(cls):
+        """Capture the five selected groups and their pinned complete program.
+
+        Group selection remains authoritative: no package lookup, compilation,
+        semantic Python callback or unselected image can fill a missing owner.
+        """
+        from . import hia_native_helpers as helpers
+        from .hia_program import HIAProgramRejected
+        from .hia_program_selfhost import _decode, _digest, _read, SelfhostBuildRejected
+
+        helpers._check_scope_owner()
+        selectors = helpers._selectors()
+        if not any(key in selectors for key in LEGACY_SELECTORS):
+            return None
+        try:
+            if not all(key in selectors for key in LEGACY_SELECTORS):
+                raise ValueError("complete nominal selection requires all five owner groups")
+            active, owner = helpers._ACTIVE, helpers._SCOPE_OWNER
+            if active is not None:
+                active.check()
+            elif owner is not None:
+                raise ValueError("nominal owners are outside the active native helper bundle")
+            snapshots = []
+
+            def capture(path, limit=65536):
+                snapshot = _read(path, limit)
+                snapshots.append((snapshot, limit, _read))
+                return snapshot, _decode(snapshot.raw)
+
+            groups = {key: capture(selectors[key], 16384 if index in (1, 3) else 65536)
+                      for index, key in enumerate(LEGACY_SELECTORS)}
+            outer_snapshot, outer = groups[LEGACY_SELECTORS[4]]
+            member = outer.get("complete_program") if type(outer) is dict else None
+            if (type(member) is not dict or set(member) != {"manifest_path", "manifest_sha256"}
+                    or not _digest(member["manifest_sha256"])):
+                raise ValueError("selected outer group has no pinned complete nominal program")
+            selection = cls(outer_snapshot.path.parent / _relative_member(member["manifest_path"]),
+                            member["manifest_sha256"])
+            image_pins = selection.value.get("semantic_image_sha256")
+            if type(image_pins) is not dict or set(image_pins) != set(SEMANTIC_SOURCES):
+                raise ValueError("complete nominal program lacks its eleven selected image pins")
+            source_pins = selection.value["source_sha256"]
+
+            def image(manifest, record, label, schema):
+                fields = {"schema", "source_sha256", "image_path", "image_sha256", "compiler_sha256"}
+                if (type(record) is not dict or set(record) != fields or record["schema"] != schema
+                        or record["source_sha256"] != source_pins[SEMANTIC_SOURCES[label]]
+                        or record["compiler_sha256"] != selection.value["compiler_sha256"]
+                        or record["image_sha256"] != image_pins[label]):
+                    raise ValueError("selected nominal image identity differs: " + label)
+                captured = _read(manifest.path.parent / _relative_member(record["image_path"]), 1 << 20)
+                snapshots.append((captured, 1 << 20, _read))
+                if sha256(captured.raw).hexdigest() != image_pins[label]:
+                    raise ValueError("selected nominal executable bytes differ: " + label)
+
+            for index, stem, labels, dependencies in (
+                (0, "composite-constructor", {"owner": "owner", "render": "render"},
+                 {"types_source_sha256": source_pins[SEMANTIC_SOURCES["types"]]}),
+                (2, "composite-functions", {key: "function-render" if key == "render" else key
+                    for key in ("admit", "records", "advanced", "terms", "render")},
+                 {"types_source_sha256": source_pins[SEMANTIC_SOURCES["types"]],
+                  "helpers_source_sha256": source_pins[SEMANTIC_SOURCES["helpers"]]}),
+                (4, "composite-outer", {"owner": "outer-owner", "render": "outer-render"},
+                 {"types_source_sha256": source_pins[SEMANTIC_SOURCES["types"]],
+                  "helpers_source_sha256": source_pins[SEMANTIC_SOURCES["helpers"]],
+                  "function_sources_sha256": {key: source_pins[SEMANTIC_SOURCES[
+                      "function-render" if key == "render" else key]]
+                      for key in ("admit", "records", "advanced", "terms", "render")},
+                  "complete_program": member}),
+            ):
+                manifest, record = groups[LEGACY_SELECTORS[index]]
+                if (type(record) is not dict or set(record) != {"schema", "kernels", *dependencies}
+                        or record["schema"] != "hepta.hia." + stem + "-native.v1"
+                        or type(record["kernels"]) is not dict or set(record["kernels"]) != set(labels)
+                        or any(record[key] != expected for key, expected in dependencies.items())):
+                    raise ValueError("selected nominal group contract differs: " + stem)
+                kernel_stem = "composite-function" if index == 2 else stem
+                for key, label in labels.items():
+                    component, value = capture(manifest.path.parent / _relative_member(record["kernels"][key]), 16384)
+                    image(component, value, label, "hepta.hia." + kernel_stem + "-" + key + "-native.v1")
+            for index, label, stem in ((1, "types", "composite-types"), (3, "helpers", "task-helpers")):
+                manifest, record = groups[LEGACY_SELECTORS[index]]
+                image(manifest, record, label, "hepta.hia." + stem + "-native.v1")
+            selection.snapshots.extend(snapshots)
+            selection.legacy_scope = (active, owner, selectors)
+            selection.origin = "five-selected-groups-pinned-complete-program"
+            selection.check()
+            return selection
+        except (ValueError, OSError, UnicodeError, RuntimeError, SelfhostBuildRejected) as error:
+            raise HIAProgramRejected("selected native nominal program refused: " + str(error),
+                                     "E_HIA_TYPE") from error
+
     def check(self):
+        scope = getattr(self, "legacy_scope", None)
+        if scope is not None:
+            from . import hia_native_helpers as helpers
+            helpers._check_scope_owner()
+            active, owner, selectors = scope
+            if (helpers._ACTIVE is not active or helpers._SCOPE_OWNER != owner
+                    or helpers._selectors() != selectors):
+                _reject("selected nominal owner scope changed during admission")
+            if active is not None:
+                active.check()
         for snapshot, limit, reader in self.snapshots:
             if reader(snapshot.path, limit) != snapshot:
                 _reject("complete nominal selection changed during admission")
@@ -257,7 +392,7 @@ def lower_nominal(raw, *, timeout_seconds=30):
     path, expected = os.environ.get(SELECTOR), os.environ.get(PIN_SELECTOR)
     if bool(path) != bool(expected):
         _reject("complete nominal manifest and SHA256 must be supplied together")
-    selection = _Selection(path, expected) if path else _Selection.package()
+    selection = _Selection(path, expected) if path else (_Selection.legacy() or _Selection.package())
     fd, seals = _sealed_executable(selection.executable)
     started = time.monotonic()
     try:

@@ -2642,11 +2642,14 @@ def file_digests(root=ROOT):
     # that can omit a transitively imported checker or native ABI dependency.
     # The v9 shadow/resource implementation is separately executed by Cargo;
     # retain its complete Rust source and dependency locks, not just new tests.
+    # Cargo's root target directory holds generated build outputs, including
+    # dependency private.rs files; it is not an input and disappears on cleanup.
     shadow = root / "rust/hia-core-shadow"
     paths = sorted(set(SOURCE_FILES) | {
         p.relative_to(root).as_posix() for p in (root / "hepta").rglob("*.py")
     } | {
         p.relative_to(root).as_posix() for p in shadow.rglob("*.rs")
+        if p.relative_to(shadow).parts[0] != "target"
     } | {
         (shadow / name).relative_to(root).as_posix() for name in ("Cargo.toml", "Cargo.lock")
     })

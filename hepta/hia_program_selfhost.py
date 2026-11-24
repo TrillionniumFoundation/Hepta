@@ -385,6 +385,15 @@ def _verify_selfhost_input(document, *, capture=None, timeout_seconds=30):
     if (type(value) is not dict or type(value.get("schema")) is not str
             or value["schema"] not in COMPOSITE_SCHEMAS):
         return verify_program(document), None
+    if original is not None:
+        # This is an immutable representation check, before any executable is
+        # launched. The HIA owner still proves correspondence to the nominal
+        # program; a caller-created VerifiedProgram cannot launder extra bytes.
+        if type(document.canonical_bytes) is not bytes:
+            reject_core("structured input and executable core differ", "E_HIA_CORE")
+        _core_value, canonical = _decode(document.canonical_bytes)
+        if raw != original or canonical != document.canonical_bytes:
+            reject_core("structured input and executable core differ", "E_HIA_CORE")
     from .hia_nominal_program_native import lower_nominal
     native_original, native_core, profile, receipt = lower_nominal(raw, timeout_seconds=timeout_seconds)
     if native_original != raw or profile != int(value["schema"][-1]):

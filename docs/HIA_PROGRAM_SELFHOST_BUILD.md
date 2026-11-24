@@ -157,7 +157,22 @@ set. It uses profile `hepta.hia.nominal.complete-linux-x86_64.v1`. A matching-so
 wheel can instead supply its own `hia-nominal-constructor`, bound to the exact
 installed wheel RECORD and native package pin. No PATH lookup selects this
 program. An active explicit request bundle must also select its complete
-program explicitly; the adapter does not supplement it from a package default.
+program; the adapter does not supplement it from a package default.
+
+The original five owner-group selectors remain a complete selection route.
+`build_hia_composite_outer.py` now builds an adjacent complete program with the
+same admitted compiler and cold source bytes. Its outer manifest carries the
+relative `complete_program.manifest_path` and exact `manifest_sha256`. The
+program manifest records all eleven `semantic_image_sha256` entries. Admission
+requires all five original groups, exact dependency-source agreement, the same
+compiler, and byte-for-byte image hashes for constructor, types, functions,
+helpers and outer owners. The complete program, group manifests, component
+manifests, source bytes and images remain in one captured custody check across
+the call. Changed selectors or an active bundle change also refuse. A missing
+or mismatched group cannot be filled from a package or rebuilt at runtime.
+Older outer manifests without this member still serve their original direct
+owner API; use a freshly built, source-matched outer bundle for the complete
+selfhost route. No sixth selector or Python semantic owner is required.
 
 Selections must agree on the actual compiler bytes and complete support-contract
 source identity. Separate source-matched cold runs retain their own report
@@ -179,7 +194,8 @@ v6, v2/v3 produce primitive v7, and v4 produces primitive v8. Public Core
 admission rechecks that complete result before the selected native JSON
 frontend/compiler runs. A caller-supplied
 `VerifiedProgram` retains both original nominal bytes and canonical Core bytes;
-the entry repeats HIA elaboration and rejects a mismatching pair. Nominal public
+the entry rejects noncanonical retained byte strings before any child, then
+repeats HIA elaboration and rejects a mismatching pair. Nominal public
 aggregate or borrowed signatures do not become scalar exports after flattening.
 
 This route supports up to six internal scalar, owner or parameter-bound loan

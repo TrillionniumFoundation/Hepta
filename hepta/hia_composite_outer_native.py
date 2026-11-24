@@ -316,8 +316,10 @@ def installed_composite_outer(path):
     if len(raw) > 65536:
         raise ValueError('outer bundle exceeds fixed framing')
     value = json.loads(raw,object_pairs_hook=_pairs)
-    if (type(value) is not dict or set(value) != {'schema','kernels','types_source_sha256',
-            'helpers_source_sha256','function_sources_sha256'} or value['schema'] != SCHEMA
+    fields = {'schema','kernels','types_source_sha256',
+              'helpers_source_sha256','function_sources_sha256'}
+    if (type(value) is not dict or set(value) not in (fields, fields | {'complete_program'})
+            or value['schema'] != SCHEMA
             or type(value['kernels']) is not dict or set(value['kernels']) != set(KERNELS)
             or type(value['function_sources_sha256']) is not dict
             or set(value['function_sources_sha256']) != set(FUNCTION_SOURCES)):
@@ -325,6 +327,18 @@ def installed_composite_outer(path):
     for digest in (value['types_source_sha256'],value['helpers_source_sha256'],*value['function_sources_sha256'].values()):
         if type(digest) is not str or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
             raise ValueError('invalid outer dependency source identity')
+    if 'complete_program' in value:
+        member = value['complete_program']
+        if (type(member) is not dict or set(member) != {'manifest_path', 'manifest_sha256'}
+                or type(member['manifest_path']) is not str or member['manifest_path'] in ('', '.', '..')
+                or '\0' in member['manifest_path'] or '\\' in member['manifest_path']
+                or type(member['manifest_sha256']) is not str or len(member['manifest_sha256']) != 64
+                or any(c not in '0123456789abcdef' for c in member['manifest_sha256'])):
+            raise ValueError('invalid complete nominal program member')
+        relative = Path(member['manifest_path'])
+        if (relative.is_absolute() or relative.as_posix() != member['manifest_path']
+                or any(part in ('', '.', '..') for part in relative.parts)):
+            raise ValueError('complete nominal program member escapes its selected group')
     images = {}
     for name in KERNELS:
         component = value['kernels'][name]
