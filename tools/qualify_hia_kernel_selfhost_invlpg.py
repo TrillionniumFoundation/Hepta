@@ -29,9 +29,10 @@ HEADER = b"hia-asm.v1 hepta.hia.program.v8 selfhost\n"
 # Only the isolated candidate changes capacity. Keep the public 1 MiB
 # source/output/scratch envelopes, 128 functions, 256 blocks/function,
 # 2048 SSA names/function and 262144 Core nodes. Expand the isolated relocation table.
-CANDIDATE_BLOCKS = 1600
-CANDIDATE_INSTRUCTIONS = 8800
-CANDIDATE_RELOCATIONS = 12300
+CANDIDATE_BLOCKS = 1824
+CANDIDATE_INSTRUCTIONS = 9600
+CANDIDATE_RELOCATIONS = 13700
+RELOCATION_RECORD_BYTES = 16
 
 def candidate_layout():
     # Global block records, one discovery/kind byte per GLOBAL block,
@@ -41,7 +42,8 @@ def candidate_layout():
     block_delta = (CANDIDATE_BLOCKS - 1536) * gen.BSTRIDE
     kind_delta = CANDIDATE_BLOCKS - 1536
     origin_delta = kind_delta * 16
-    relocation_delta = (CANDIDATE_RELOCATIONS - 12000) * 24
+    # Packed offset/kind plus a full-width target. No public ABI grows.
+    relocation_delta = CANDIDATE_RELOCATIONS * RELOCATION_RECORD_BYTES - 12000 * 24
     moved = ("VBASE", "ARGS", "FIXBASE", "CBASE", "CSTATE", "CAPBASE", "KBASE")
     layout = {key: getattr(gen, key) + block_delta for key in moved}
     for key in ("CBASE", "CSTATE", "CAPBASE", "KBASE"):
@@ -56,7 +58,7 @@ def candidate_layout():
         ("blocks", gen.BBASE, gen.BBASE + CANDIDATE_BLOCKS * gen.BSTRIDE),
         ("ssa", layout["VBASE"], layout["VBASE"] + 2048 * 16),
         ("args", layout["ARGS"], layout["ARGS"] + 1024),
-        ("relocations", layout["FIXBASE"], layout["FIXBASE"] + CANDIDATE_RELOCATIONS * 24),
+        ("relocations", layout["FIXBASE"], layout["FIXBASE"] + CANDIDATE_RELOCATIONS * RELOCATION_RECORD_BYTES),
         ("call_graph", layout["CBASE"], layout["CBASE"] + 128 * 128),
         ("call_state", layout["CSTATE"], layout["CSTATE"] + 128 * 8),
         ("capabilities", layout["CAPBASE"], layout["CAPBASE"] + 2048 * 24),
@@ -105,6 +107,27 @@ def candidate_source():
                           f"get(w, 80) >= {CANDIDATE_BLOCKS}")
     source = replace_once(source, "bid >= 1536",
                           f"bid >= {CANDIDATE_BLOCKS}")
+    # The three-phase compiler proves output <= 1 MiB before emission.
+    # Keep a full 64-bit target; pack the bounded offset and kind in one word.
+    # Retain kind 3/4 behavior and every existing relative patch operation.
+    source = replace_once(source,
+        """        put(w, FIXBASE + n * 24, get(w, 56))
+        put(w, FIXBASE + n * 24 + 8, kind)
+        put(w, FIXBASE + n * 24 + 16, target)""",
+        """        if get(w, 56) > 4294967295 or kind > 4294967295:
+            return fail(w, 44)
+        put(w, FIXBASE + n * 16, get(w, 56) | (kind << 32))
+        put(w, FIXBASE + n * 16 + 8, target)""")
+    source = replace_once(source,
+        """        at = get(w, FIXBASE + i * 24)
+        kind = get(w, FIXBASE + i * 24 + 8)
+        target = get(w, FIXBASE + i * 24 + 16)""",
+        """        at = get(w, FIXBASE + i * 16)
+        kind = at >> 32
+        at = at & 4294967295
+        target = get(w, FIXBASE + i * 16 + 8)""")
+    if any("FIXBASE" in line and "* 24" in line for line in source.splitlines()):
+        raise ValueError("unconverted relocation-table access")
     for old, new in names.items():
         if str(old) not in source:
             raise ValueError(("missing scratch table anchor", old))
@@ -374,6 +397,103 @@ def capacity_subject(blocks, instructions):
         raise AssertionError("fixture shape mismatch")
     return ("\n".join(rows) + "\n").encode(), expected
 
+
+def dense_relocation_subject():
+    """Fill exact source ceilings with real call and dual-edge relocations.
+
+    One private helper adds one. Each exported function passes its bool along
+    both edges. True visits every block; false skips alternate blocks. Neither
+    path depends on compiler-produced counts or disassembly.
+    """
+    blocks = CANDIDATE_BLOCKS - 1
+    calls = CANDIDATE_INSTRUCTIONS - 2
+    sizes = [min(256, blocks-i) for i in range(0, blocks, 256)]
+    base, extra = divmod(calls, blocks)
+    rows = [f"hia-asm.v1 {PROFILE} selfhost_elf",
+            "exports(" + ",".join(f"f{i+1}" for i in range(len(sizes))) + ")",
+            "fn f0(v0:u64) -> (u64) effects() entry(b0)",
+            "block b0(v0:u64)",
+            '  v1:u64 = const() {"value":1}',
+            "  v2:u64 = int.add.wrap(v0,v1)",
+            "  ret(v2)", "end"]
+    expected = []
+    ordinal = 0
+    edges = 0
+    for f, size in enumerate(sizes, 1):
+        rows.append(f"fn f{f}(v0:u64,v1:bool) -> (u64) effects() entry(b0)")
+        v = 0
+        counts = []
+        for b in range(size):
+            current, cond = v, v+1
+            rows.append(f"block b{b}(v{current}:u64,v{cond}:bool)")
+            v += 2
+            count = base + int(ordinal < extra)
+            counts.append(count)
+            for _ in range(count):
+                rows.append(f'  v{v}:u64 = call(v{current}) {{"function":"f0"}}')
+                current = v
+                v += 1
+            ordinal += 1
+            if b+2 < size:
+                rows.append(f"  branch v{cond} b{b+1}(v{current},v{cond}) b{b+2}(v{current},v{cond})")
+                edges += 2
+            elif b+1 < size:
+                rows.append(f"  jump b{b+1}(v{current},v{cond})")
+                edges += 1
+            else:
+                rows.append(f"  ret(v{current})")
+        rows.append("end")
+        if v > 2048:
+            raise ValueError("dense relocation fixture exceeded per-function SSA")
+        skipped = sum(counts[::2]) + (counts[-1] if size % 2 == 0 else 0)
+        expected.append([skipped, sum(counts)])
+    if ordinal != blocks or sum(x[1] for x in expected) != calls:
+        raise AssertionError("dense relocation fixture shape mismatch")
+    if calls+edges <= 12300:
+        raise AssertionError("dense witness does not exercise past the former table")
+    subject = ("\n".join(rows)+"\n").encode()
+    if len(subject) > 1 << 20:
+        raise AssertionError("dense relocation fixture exceeded source envelope")
+    return subject, expected, calls+edges
+
+def qualify_dense_relocations(exe, output, flat):
+    subject, expected, lower = dense_relocation_subject()
+    receipt, raw = invoke(output, "relocation-dense-flat", flat, subject, workspace_fill=0x5a)
+    count = receipt.get("workspace_header", {}).get("224", -1)
+    if (receipt.get("status") != "returned" or receipt.get("abi_status") != 0
+            or receipt.get("source_unchanged") is not True
+            or receipt.get("forbidden_compiler_modules_loaded") != []
+            or receipt.get("workspace_header", {}).get("40") != 0
+            or type(count) is not int or not lower <= count <= CANDIDATE_RELOCATIONS
+            or not 0 < receipt.get("core_u32", 0) <= len(raw)):
+        raise AssertionError(("dense relocation receipt", receipt))
+    obj = compile_cli(exe, subject, output, "relocation-dense-1")
+    if obj != raw[:receipt["core_u32"]] or obj != compile_cli(exe, subject, output, "relocation-dense-2"):
+        raise AssertionError("dense flat/CLI or repeated object bytes differ")
+    text_bytes(output, "relocation-dense", obj)
+    lib = output / "relocation-dense.so"
+    subprocess.run(["ld", "-shared", "-o", str(lib), str(output / "relocation-dense.o")], check=True)
+    runner = """import ctypes, json, sys
+lib = ctypes.CDLL(sys.argv[1])
+for i, deltas in enumerate(json.loads(sys.argv[2]), 1):
+    fn = getattr(lib, "f" + str(i))
+    fn.argtypes = [ctypes.c_uint64, ctypes.c_uint64]
+    fn.restype = ctypes.c_uint64
+    for cond in (0, 1):
+        for x in (0, 123456789, (1 << 64)-1):
+            assert fn(x, cond) == (x + deltas[cond]) % (1 << 64), (i, cond, x)
+"""
+    process = subprocess.run([sys.executable, "-I", "-c", runner, str(lib), json.dumps(expected)],
+                             capture_output=True, timeout=30)
+    (output / "relocation-dense-native.stdout").write_bytes(process.stdout)
+    (output / "relocation-dense-native.stderr").write_bytes(process.stderr)
+    if process.returncode or process.stdout or process.stderr:
+        raise AssertionError(("dense native execution", process.returncode))
+    return {"status":"PASS", "native_relocations":count, "required_relocations":lower,
+            "native_calls":len(expected)*6, "object_sha256":digest(obj),
+            "source_sha256":digest(subject), "flat_cli_object_identity":True}
+
+
 def qualify_capacity(exe, output, flat):
     _, _, intervals, bound = candidate_layout()
     subject, expected = capacity_subject(CANDIDATE_BLOCKS, CANDIDATE_INSTRUCTIONS)
@@ -437,6 +557,8 @@ for i, delta in enumerate(expected):
     return {"status": "PASS", "blocks": CANDIDATE_BLOCKS,
             "instructions": CANDIDATE_INSTRUCTIONS, "scratch_intervals": intervals,
             "relocation_upper_bound": bound, "relocation_capacity": CANDIDATE_RELOCATIONS,
+            "relocation_record_bytes": RELOCATION_RECORD_BYTES,
+            "dense_relocations": qualify_dense_relocations(exe, output, flat),
             "source_sha256": digest(subject),
             "object_sha256": digest(obj), "native_calls": len(expected) * 3,
             "over_limit_refusals": 2, "native_refusal_codes": refusal_codes,
