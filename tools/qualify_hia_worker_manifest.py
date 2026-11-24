@@ -51,12 +51,23 @@ def qualify(args):
     from tools.hia_selfhost_contract import file_digests, CONTRACT_PATH
 
     compiler = args.compiler.read_bytes()
-    table = (root / 'examples/hia_bootstrap/worker_manifest_tables.hiastd').read_bytes()
+    generated = args.generated.resolve(strict=True) if getattr(args, 'generated', None) else root
+    native_authority = getattr(args, 'native_source_authority', None)
+    source_pin_file = getattr(args, 'source_pins', None)
+    if bool(native_authority) != bool(source_pin_file):
+        raise ValueError('native source authority and independent captured source pins must be supplied together')
+    native_paths = None
+    if native_authority:
+        from tools.hia_native_worker_source_authority import load_native_source_authority, CONTINUATION_RUNTIME, SOURCE_SUFFIXES
+        native_paths = load_native_source_authority(native_authority)
+    table = (generated / 'examples/hia_bootstrap/worker_manifest_tables.hiastd').read_bytes()
     elf = args.executable.resolve(strict=True)
     builder = args.source_builder.resolve(strict=True)
     pins_before = {str(p): sha256(p.read_bytes()).hexdigest() for p in (elf, builder, args.compiler,
-        root / 'examples/hia_bootstrap/source_worker_manifest.hepta',
-        root / 'examples/hia_bootstrap/worker_manifest_tables.hiastd')}
+        generated / 'examples/hia_bootstrap/source_worker_manifest.hepta',
+        generated / 'examples/hia_bootstrap/worker_manifest_tables.hiastd')}
+    if native_authority:
+        pins_before.update({str(p): sha256(p.read_bytes()).hexdigest() for p in (native_authority, source_pin_file)})
     record = dict(schema='hepta.hia.worker-manifest-qualification.v1',
         scope='Native component framing; full Worker publication is a separate gate',
         source_root=str(root), worker_format_authority=str(worker),
@@ -161,8 +172,15 @@ def qualify(args):
                              report_bundle_sha256=sha256(report).hexdigest())
         wrapped = run('report-wrapper', 5, 0, [helpers, report], encoded(wrapped_value))
 
-        source_pins = file_digests(root)
-        source_pins[CONTRACT_PATH] = sha256((root / CONTRACT_PATH).read_bytes()).hexdigest()
+        if native_paths is None:
+            source_pins = file_digests(root)
+            source_pins[CONTRACT_PATH] = sha256((root / CONTRACT_PATH).read_bytes()).hexdigest()
+        else:
+            source_pins = json.loads(source_pin_file.read_bytes())
+            if (type(source_pins) is not dict or set(source_pins) != set(native_paths)
+                    or any(type(pin) is not str or len(pin) != 64 or pin != bytes.fromhex(pin).hex()
+                           for pin in source_pins.values())):
+                raise ValueError('captured native source pin inventory differs from its explicit authority')
         rows = sorted(source_pins.items())
         inventory = source_inventory(rows)
         record['source_inventory_rows'] = len(rows)
@@ -196,7 +214,8 @@ def qualify(args):
             aggregate_value.update(compiler_sha256=sha256(compiler).hexdigest(),
                                    policy_bundle_sha256=sha256(policy).hexdigest())
             for field in ('resource_sha256', 'runtime_sha256'):
-                aggregate_value[field] = {name: source_pins[name] for name in aggregate_value[field]}
+                selected = CONTINUATION_RUNTIME if native_paths is not None and field == 'runtime_sha256' else aggregate_value[field]
+                aggregate_value[field] = {name: source_pins[name] for name in selected}
             raw = run('aggregate-' + kind, 8, family_role, [policy, compiler, image, inventory],
                       encoded(aggregate_value))
             aggregate_manifests.append(raw)
@@ -205,7 +224,8 @@ def qualify(args):
             save()
         assert unit_role == 72
         scheduled_value = json.loads((worker / 'schedulers.json').read_bytes())
-        runtime_paths = sorted('hepta/' + p.name for p in (root / 'hepta').glob('*.py'))
+        runtime_paths = (sorted('hepta/' + p.name for p in (root / 'hepta').glob('*.py')) if native_paths is None
+                         else [p for p in native_paths if Path(p).suffix in SOURCE_SUFFIXES])
         scheduled_value['runtime_sha256'] = {name: source_pins[name] for name in runtime_paths}
         scheduled_value['base_bundle_sha256'] = sha256(wrapped).hexdigest()
         assert len(scheduled_value['schedulers']) == len(aggregate_manifests) == 5
@@ -246,7 +266,7 @@ def qualify(args):
         for mode in (8, 9):
             role = 1 if mode == 8 else 0
             index = 3 if mode == 8 else 6
-            needed = 'hepta/hia_native_helpers.py'
+            needed = 'hepta/hia_native_helpers.py' if native_paths is None else CONTINUATION_RUNTIME[0]
             mutations = {
                 'missing-source': [(n, p) for n, p in rows if n != needed],
                 'duplicate-source': sorted([*rows, (needed, source_pins[needed])]),
@@ -286,6 +306,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('source', 'worker', 'compiler', 'executable', 'source-builder', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
+    for name in ('generated', 'native-source-authority', 'source-pins'):
+        parser.add_argument('--' + name, type=Path)
     result = qualify(parser.parse_args())
     print(json.dumps({key: result[key] for key in ('success', 'positive_count', 'negative_count',
                                                  'native_compile_count', 'seconds')}, sort_keys=True))
