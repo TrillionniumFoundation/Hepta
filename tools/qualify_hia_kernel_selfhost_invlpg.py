@@ -42,6 +42,11 @@ def candidate_source():
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
+    # The four experimental opcodes occupy a contiguous token interval.
+    # Keep the native compiler within its fixed 1536-block capacity.
+    if [words[name] - words["x86.tlb.invlpg"] for name in
+            ("x86.tlb.invlpg", "x86.cr3.read", "x86.cr3.write", "x86.cr2.read")] != list(range(4)):
+        raise ValueError("kernel token interval changed")
     source = gen.SOURCE
     source = replace_once(source,
         "        expect(s, w, @hepta.hia.program.v8@)",
@@ -72,7 +77,7 @@ def candidate_source():
                 flag = 2 << (token - @read@)""")
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op == @x86.tlb.invlpg@ or op == @x86.cr3.read@ or op == @x86.cr3.write@ or op == @x86.cr2.read@:
+    if op >= @x86.tlb.invlpg@ and op <= @x86.cr2.read@:
         return 16""")
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
@@ -84,13 +89,11 @@ def candidate_source():
         define(w, v, t)
         if get(w, 40) != 0:
             return 0
-        # MOV RAX, CR3 (0F 20 /r, mod=11, reg=3, r/m=0).
+        # MOV RAX, CR3/CR2 (0F 20 /r). The checked token interval
+        # gives delta 0 for CR3 and 2 for CR2; no extra CFG blocks.
         emit(o, w, 15)
         emit(o, w, 32)
-        if op == @x86.cr2.read@:
-            emit(o, w, 208)
-        else:
-            emit(o, w, 216)
+        emit(o, w, 216 - 4 * (op - @x86.cr3.read@))
         store_var(o, w, v, 0)
         return 0
     if op == @x86.cr3.write@:
