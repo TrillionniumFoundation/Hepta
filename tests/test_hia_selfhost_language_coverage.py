@@ -973,7 +973,11 @@ def coverage_manifest():
         "native_nominal_build_scope": {
             "entry": "hepta.hia_program_selfhost.build_program_selfhost",
             "lowering": "hepta.hia_program_composite.elaborate_program_native",
-            "input_schema": "hepta.hia.composite.v4", "core_schema": "hepta.hia.program.v8",
+            "input_core_schemas": {"hepta.hia.composite.v1": "hepta.hia.program.v6",
+                                   "hepta.hia.composite.v2": "hepta.hia.program.v7",
+                                   "hepta.hia.composite.v3": "hepta.hia.program.v7",
+                                   "hepta.hia.composite.v4": "hepta.hia.program.v8"},
+            "hosted_cli_preverification": "same native-only entry; original input/Core identities retained",
             "selection": "five explicit source-bound HIA owner groups; eleven images",
             "public_exports": "original scalar signatures only",
             "maximum_internal_results": 6,

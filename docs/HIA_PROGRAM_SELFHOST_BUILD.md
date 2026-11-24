@@ -41,8 +41,8 @@ hia build /absolute/program.core.hepta \
   --output /absolute/existing-output-directory/program.o
 ```
 
-The selected executable accepts primitive Core v8 or v9 JSON, with scalar
-exports. The hosted build entry also accepts nominal composite v4 through the
+The selected executable accepts primitive Core v6 through v9 JSON, with scalar
+exports. The hosted build entry also accepts canonical composite v1 through v4 through the
 explicit complete HIA lowering owners described below. Use `hia import-assembly`
 to convert assembly source to Core JSON before building. Native compilation receives canonical Core JSON with the
 exact chosen scalar export list. Output must be a new pathname under an
@@ -104,8 +104,7 @@ claim a deadline for public verification, source custody or publication.
 Explicit exports retain their exact set. If the input omits exports, the
 existing public verifier's scalar entrypoints are used. Internal owned and
 borrowed resources remain subject to the native compiler's limits. Non-tail
-self recursion, mutual recursion, nominal composite v1–v3, older primitive
-schemas, machine-plan overrides, foreign-buffer public exports, other targets,
+self recursion, mutual recursion, primitive v1–v5 schemas, machine-plan overrides, foreign-buffer public exports, other targets,
 and other output kinds are outside this route. Such inputs are refused; they
 are not retried with the direct Python backend. Public Core admission can
 succeed for a program that the narrower selfhost compiler subsequently refuses.
@@ -130,19 +129,24 @@ The existing optional native artifact publisher composes with this descriptor
 anchor. These are point-in-time consistency checks, not crash recovery or
 protection against later edits by another process with the same authority.
 
-## Selected nominal v4 lowering
+## Selected canonical nominal lowering
 
-The hosted `build_program_selfhost` entry accepts composite v4 when all five
+The hosted `build_program_selfhost` entry accepts composite v1–v4 when all five
 source-bound nominal owner groups are explicitly selected: types, task helpers,
 constructor, functions and outer lowering. `elaborate_program_native` captures
 the constructor/function/outer objects and invokes them directly. Missing native
 types or task helpers refuse through the existing dependency checks; missing
 constructor, functions or outer selection refuses before retained lowering.
 There is no retry through the Python nominal semantic owners.
+The hosted CLI uses this same native-only verifier for its initial input check,
+so it does not run retained nominal semantics before reaching the build API.
+Input reading and verification still precede output publication checks.
 
 The existing public bounded decoder supplies a detached document. The HIA
-owners produce primitive v8; public Core admission rechecks that complete
-result before the selected native JSON frontend/compiler runs. A caller-supplied
+owners preserve the existing schema mapping: composite v1 produces primitive
+v6, v2/v3 produce primitive v7, and v4 produces primitive v8. Public Core
+admission rechecks that complete result before the selected native JSON
+frontend/compiler runs. A caller-supplied
 `VerifiedProgram` retains both original nominal bytes and canonical Core bytes;
 the entry repeats HIA elaboration and rejects a mismatching pair. Nominal public
 aggregate or borrowed signatures do not become scalar exports after flattening.
@@ -150,8 +154,9 @@ aggregate or borrowed signatures do not become scalar exports after flattening.
 This route supports up to six internal scalar, owner or parameter-bound loan
 results. The original returned-loan pair, mutable-to-read child and cooperative
 task with six flattened results compile and execute against the original Core
-VM cases. A seventh result remains outside this bounded ABI. Composite v1–v3
-require their earlier Core schemas and remain outside this particular build route.
+VM cases. A seventh result remains outside this bounded ABI. The original stored-loan,
+enum, cooperative-task and partial-record programs also retain their original
+canonical Core fingerprints across all four nominal schemas.
 
 The six-result compiler keeps the 1 MiB workspace and the original function,
 block, instruction and source limits. The extra type/loan metadata uses the

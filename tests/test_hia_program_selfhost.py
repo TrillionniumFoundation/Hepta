@@ -5,7 +5,7 @@ separate run. It does not manufacture a source-matched cold qualification.
 """
 from __future__ import annotations
 
-from contextlib import ExitStack, redirect_stderr
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
 import copy
 from hashlib import sha256
 import io
@@ -258,7 +258,7 @@ class SelfhostBuildNativeTests(unittest.TestCase):
         if destination:
             shutil.copytree(self.root, Path(destination) / label)
 
-    def test_native_nominal_v4_original_loan_cases_build_and_execute_without_host_owners(self):
+    def test_native_nominal_original_cases_build_and_execute_without_host_owners(self):
         import ctypes
         from hepta.hia_program import execute_program, verify_program
         from tests import test_hia_composite_returned_loans as loans
@@ -272,6 +272,27 @@ class SelfhostBuildNativeTests(unittest.TestCase):
                   [(3, byte) for byte in (0, 37, 250, 255)]),
                  ("six-result-task", loans.task_program(), "task_probe",
                   [(size, mode) for size in (0, 1, 7) for mode in (0, 1, 2)])]
+        from tests import test_hia_program_composite as original
+        from tests import test_hia_partial_record as partial
+        legacy_cases = [
+            (original.stored_loan_program, "stored", [(False,), (True,)]),
+            (original.enum_owner_program, "choose", [(flag, size) for flag in (False, True) for size in (0, 1, 7)]),
+            (original.task_program, "task_case", [(mode,) for mode in (0, 1, 2)]),
+            (original.scalar_task_program, "scalar_task", [()]),
+            (original.owned_result_task_program, "owned_result", [(size,) for size in (0, 1, 7)]),
+        ]
+        for version in (1, 2):
+            for factory, entry, arguments in legacy_cases:
+                source = factory()
+                source["schema"] = "hepta.hia.composite.v" + str(version)
+                cases.append(("v" + str(version) + "-" + entry, source, entry, arguments))
+        cases.extend([
+            ("v3-roundtrip", partial.roundtrip_program(), "roundtrip",
+             [(size, cancelled) for size in (0, 1, 7) for cancelled in (False, True)]),
+            ("v3-task", partial.task_partial_program(), "partial_task",
+             [(size, mode) for size in (0, 1, 7) for mode in (0, 1, 2)]),
+            ("v3-chain", partial.chain_partial_program(), "chain_case", [()]),
+        ])
         scalar_types = {"usize": ctypes.c_uint64, "u64": ctypes.c_uint64,
                         "u32": ctypes.c_uint32, "u8": ctypes.c_uint8, "bool": ctypes.c_bool}
         for label, source, function, arguments in cases:
@@ -288,7 +309,7 @@ class SelfhostBuildNativeTests(unittest.TestCase):
             self.assertEqual(receipt["core_sha256"], expected.sha256)
             self.assertEqual(receipt["exports"], sorted(expected.scalar_entrypoints))
             self.assertEqual(receipt["nominal_lowering"], {
-                "input_schema": "hepta.hia.composite.v4", "core_schema": "hepta.hia.program.v8",
+                "input_schema": source["schema"], "core_schema": expected.as_dict()["schema"],
                 "semantic_owners": "selected-complete-HIA", "host_semantic_fallback": False,
                 "primitive_core_reverified": True, "nominal_public_abi_promoted": False})
             library_path = self.root / (label + ".so")
@@ -311,10 +332,55 @@ class SelfhostBuildNativeTests(unittest.TestCase):
         _write_json(self.root / "native-nominal-execution.json", rows)
         self._save_nominal_evidence("native-nominal-execution")
 
+    def test_hosted_selfhost_cli_uses_native_nominal_preverification(self):
+        import ctypes
+        from hepta.cli import hia_main
+        from hepta.hia_program import execute_program, verify_program
+        from tests.test_hia_program_composite import scalar_task_program
+        from tests.test_hia_partial_record import chain_partial_program
+        selection = self._nominal_selection()
+        older = scalar_task_program()
+        older["schema"] = "hepta.hia.composite.v1"
+        cases = [("v1-cli", older, "scalar_task"),
+                 ("v3-cli", chain_partial_program(), "chain_case")]
+        rows = []
+        for label, source, function in cases:
+            with patch.dict(os.environ, selection.reference_environment):
+                expected = verify_program(source)
+                answer = execute_program(expected, function, [])
+            self.assertEqual(answer["status"], "returned")
+            source_path = self.root / (label + ".json")
+            _write_json(source_path, source)
+            output = self.root / (label + ".o")
+            captured = io.StringIO()
+            with self._native_nominal_scope(selection), redirect_stdout(captured):
+                status = hia_main(["build", str(source_path), "--backend", "selfhost",
+                    "--selfhost-manifest", str(self.manifest),
+                    "--selfhost-manifest-sha256", self.pin, "-o", str(output)])
+            self.assertEqual(status, 0, captured.getvalue())
+            receipt = json.loads(captured.getvalue())
+            self.assertEqual(receipt["input_sha256"], expected.input_sha256)
+            self.assertEqual(receipt["core_sha256"], expected.sha256)
+            self.assertEqual(receipt["nominal_lowering"]["input_schema"], source["schema"])
+            self.assertFalse(receipt["nominal_lowering"]["host_semantic_fallback"])
+            library_path = output.with_suffix(".so")
+            subprocess.run(["cc", "-shared", str(output), "-Wl,-z,defs,-z,noexecstack", "-o", str(library_path)],
+                           check=True, capture_output=True, timeout=20)
+            library = ctypes.CDLL(str(library_path))
+            entry = getattr(library, function)
+            entry.argtypes, entry.restype = [], ctypes.c_uint32
+            actual = entry()
+            self.assertEqual(actual, answer["values"][0])
+            _write_json(self.root / (label + ".receipt.json"), receipt)
+            rows.append({"case": label, "expected": answer["values"][0], "actual": actual,
+                         "object_sha256": sha256(output.read_bytes()).hexdigest()})
+        selection.check_custody()
+        _write_json(self.root / "native-nominal-cli.json", rows)
+        self._save_nominal_evidence("native-nominal-cli")
+
     def test_native_nominal_missing_owners_forged_core_and_wide_results_refuse(self):
         from hepta.hia_program import HIAProgramRejected, VerifiedProgram, verify_program
         from tests import test_hia_composite_returned_loans as loans
-        from tests.test_hia_partial_record import roundtrip_program
         selection = self._nominal_selection()
         source = loans.pair_program()
         with patch.dict(os.environ, selection.reference_environment):
@@ -327,8 +393,7 @@ class SelfhostBuildNativeTests(unittest.TestCase):
             wide["functions"][0]["blocks"][0]["params"] = []
             wide["exports"] = ["f0"]
             wide = verify_program(wide)
-            old = roundtrip_program()
-            verify_program(old)
+            unsupported = {**source, "schema": "hepta.hia.composite.v5"}
         self.assertGreater(max(len(fn["returns"]) for fn in wide.as_dict()["functions"]), 6)
         failures = []
         selectors = [name for name, value in selection.complete_environment.items()
@@ -348,9 +413,8 @@ class SelfhostBuildNativeTests(unittest.TestCase):
                 patch("subprocess.Popen", side_effect=AssertionError("forged Core executed compiler")):
             with self.assertRaisesRegex(HIAProgramRejected, "structured input and executable core differ"):
                 self.build(forged)
-            with self.assertRaises(native.SelfhostBuildRejected) as caught:
-                self.build(old)
-            self.assertEqual(caught.exception.code, "E_HIA_SELFHOST_PROFILE")
+            with self.assertRaises(HIAProgramRejected):
+                self.build(unsupported)
         self.assertFalse((self.root / "result.o").exists())
         with self._native_nominal_scope(selection):
             with self.assertRaises(native.SelfhostBuildRejected) as caught:
@@ -425,13 +489,34 @@ class SelfhostBuildNativeTests(unittest.TestCase):
         self.assertEqual(caught.exception.capture["returncode"], 2)
         self.assertFalse((self.root / "result.o").exists())
 
-    def test_primitive_old_schema_does_not_claim_native_v8_support(self):
-        old = {**self.program, "schema": "hepta.hia.program.v7"}
-        with patch("subprocess.Popen", side_effect=AssertionError("unexpected child")):
-            with self.assertRaises(native.SelfhostBuildRejected) as caught:
-                self.build(old)
-        self.assertEqual(caught.exception.code, "E_HIA_SELFHOST_PROFILE")
-        self.assertFalse((self.root / "result.o").exists())
+    def test_primitive_v6_v7_execute_and_earlier_schemas_refuse(self):
+        import ctypes
+        from hepta.hia_program import verify_program
+        for version in (6, 7):
+            value = {**self.program, "schema": "hepta.hia.program.v" + str(version)}
+            expected = verify_program(value)
+            output = self.root / ("v" + str(version) + ".o")
+            receipt = self.build(value, output=output)
+            self.assertEqual(receipt["input_sha256"], expected.input_sha256)
+            self.assertEqual(receipt["core_sha256"], expected.sha256)
+            self.assertNotIn("nominal_lowering", receipt)
+            library_path = output.with_suffix(".so")
+            subprocess.run(["cc", "-shared", str(output), "-Wl,-z,defs,-z,noexecstack", "-o", str(library_path)],
+                           check=True, capture_output=True, timeout=20)
+            library = ctypes.CDLL(str(library_path))
+            for function in ("calculate", "caller"):
+                entry = getattr(library, function)
+                entry.argtypes, entry.restype = [ctypes.c_uint32], ctypes.c_uint32
+                for argument in (0, 1, 4294967295):
+                    self.assertEqual(entry(argument), self.expected[function, argument])
+        for version in (1, 2, 3, 4, 5):
+            old = {**self.program, "schema": "hepta.hia.program.v" + str(version)}
+            verify_program(old)
+            with self.subTest(version=version), patch("subprocess.Popen", side_effect=AssertionError("unexpected child")):
+                with self.assertRaises(native.SelfhostBuildRejected) as caught:
+                    self.build(old)
+            self.assertEqual(caught.exception.code, "E_HIA_SELFHOST_PROFILE")
+            self.assertFalse((self.root / "result.o").exists())
 
     def test_selection_mutation_after_execution_prevents_publication(self):
         original = native._run

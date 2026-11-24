@@ -3446,7 +3446,6 @@
   },
   "native_nominal_build_scope": {
     "compiler_kernel_profile_expanded": false,
-    "core_schema": "hepta.hia.program.v8",
     "entry": "hepta.hia_program_selfhost.build_program_selfhost",
     "host_boundaries": [
       "bounded decode",
@@ -3454,7 +3453,13 @@
       "public Core admission",
       "publication"
     ],
-    "input_schema": "hepta.hia.composite.v4",
+    "hosted_cli_preverification": "same native-only entry; original input/Core identities retained",
+    "input_core_schemas": {
+      "hepta.hia.composite.v1": "hepta.hia.program.v6",
+      "hepta.hia.composite.v2": "hepta.hia.program.v7",
+      "hepta.hia.composite.v3": "hepta.hia.program.v7",
+      "hepta.hia.composite.v4": "hepta.hia.program.v8"
+    },
     "lowering": "hepta.hia_program_composite.elaborate_program_native",
     "maximum_internal_results": 6,
     "public_exports": "original scalar signatures only",
