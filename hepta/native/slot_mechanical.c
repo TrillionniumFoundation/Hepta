@@ -35,6 +35,7 @@ enum { AND_OPEN=28, AND_KEYS=29, AND_FALSE=30, AND_UNWIND=37,
 
 typedef struct {
     PyObject *session_type, *method_type, *iterator_type, *current, *loss_name;
+    PyObject *foreign_observed_names, *foreign_ambient_names, *confirmed_names;
     pid_t counter_pid;
     unsigned long long public_calls[16], raw_frame_calls[16];
     unsigned long long initialized_calls[16], final_receipts[16];
@@ -123,11 +124,41 @@ static PyObject *execution_counters(PyObject *module,PyObject *unused) {
     Py_XDECREF(public); Py_XDECREF(raw); Py_XDECREF(init); Py_XDECREF(final);
     return result;
 }
+/* Match an immediate Python method CALL: the receiver and arguments remain
+ * borrowed from their real owners. Generic descriptor lookup is retained,
+ * while ordinary function descriptors need no temporary PyMethod or tuple.
+ * Names and keyword tuples contain no provider objects or captured outcomes. */
+static PyObject *call_named(const char *name,PyObject *const *args,
+                            size_t positional,PyObject *keywords) {
+    PyObject *attribute=PyUnicode_InternFromString(name),*answer;
+    if (attribute == NULL) return NULL;
+    answer=PyObject_VectorcallMethod(attribute,args,
+             positional|PY_VECTORCALL_ARGUMENTS_OFFSET,keywords);
+    Py_DECREF(attribute);
+    return answer;
+}
 static PyObject *call0(PyObject *value, const char *name) {
-    return PyObject_CallMethod(value, name, NULL);
+    if (value == NULL) return PyObject_CallMethod(value,name,NULL);
+    return call_named(name,&value,1,NULL);
 }
 static PyObject *call1(PyObject *value, const char *name, PyObject *arg) {
-    return PyObject_CallMethod(value, name, "(O)", arg);
+    PyObject *args[]={value,arg};
+    if (value == NULL || arg == NULL)
+        return PyObject_CallMethod(value,name,"(O)",arg);
+    return call_named(name,args,2,NULL);
+}
+static PyObject *call2(PyObject *value,const char *name,PyObject *a,PyObject *b) {
+    PyObject *args[]={value,a,b};
+    if (value == NULL || a == NULL || b == NULL)
+        return PyObject_CallMethod(value,name,"OO",a,b);
+    return call_named(name,args,3,NULL);
+}
+static PyObject *call3(PyObject *value,const char *name,
+                       PyObject *a,PyObject *b,PyObject *c) {
+    PyObject *args[]={value,a,b,c};
+    if (value == NULL || a == NULL || b == NULL || c == NULL)
+        return PyObject_CallMethod(value,name,"OOO",a,b,c);
+    return call_named(name,args,4,NULL);
 }
 static int discard(PyObject *value) {
     if (value == NULL) return -1;
@@ -167,24 +198,11 @@ static int unknown(Session *s,const char *message) {
     PyErr_SetString(s->unknown ? s->unknown : PyExc_RuntimeError,message);
     return -1;
 }
-static PyObject *method_kw(PyObject *object,const char *name,
-                           PyObject *args,PyObject *kw) {
-    PyObject *method=PyObject_GetAttrString(object,name), *answer;
-    if (method == NULL) return NULL;
-    answer=PyObject_Call(method,args,kw);
-    Py_DECREF(method);
-    return answer;
-}
 static PyObject *foreign(Session *s,int observed) {
-    PyObject *args=PyTuple_New(0), *kw=NULL, *answer=NULL;
-    if (args == NULL) return NULL;
-    if (observed)
-        kw=Py_BuildValue("{s:O,s:O}","capture_resources",Py_True,
-                        "weak_registered_resources",Py_True);
-    else kw=Py_BuildValue("{s:O}","observation",Py_False);
-    if (kw != NULL) answer=method_kw(s->record,"foreign",args,kw);
-    Py_XDECREF(kw); Py_DECREF(args);
-    return answer;
+    ModuleState *m=state(s->module);
+    PyObject *args[]={s->record,observed ? Py_True : Py_False,Py_True};
+    return call_named("foreign",args,1,
+        observed ? m->foreign_observed_names : m->foreign_ambient_names);
 }
 static int check(Session *s) {
     if (!s->active || s->pid != getpid() ||
@@ -251,9 +269,13 @@ static PyObject *failure(Session *s) {
     return NULL;
 }
 static int native_event(Session *s,int event,int observation) {
-    PyObject *value;
+    PyObject *value=NULL,*event_value,*observation_value;
     if (check(s) < 0) return -1;
-    value=PyObject_CallMethod(s->frame,"call","ii",event,observation);
+    event_value=PyLong_FromLong(event);
+    observation_value=PyLong_FromLong(observation);
+    if (event_value != NULL && observation_value != NULL)
+        value=call2(s->frame,"call",event_value,observation_value);
+    Py_XDECREF(event_value); Py_XDECREF(observation_value);
     return discard(value);
 }
 static int exit_activation(PyObject *exit,PyObject *error) {
@@ -419,8 +441,7 @@ static int abort_session(Session *s,PyObject *error) {
                 Py_DECREF(rejections); return -1;
             }
             {
-                PyObject *answer=PyObject_CallMethod(s->record,"propagate","OOO",
-                                                    error,s->unknown,rejections);
+                PyObject *answer=call3(s->record,"propagate",error,s->unknown,rejections);
                 Py_DECREF(rejections);
                 if (discard(answer) < 0) return -1;
             }
@@ -438,9 +459,8 @@ static int close_scopes(Session *s,PyObject *error) {
     if (s->foreign_open) {
         PyObject *value;
         s->foreign_open=0;
-        value=PyObject_CallMethod(s->frame,"_mechanical_abandon_foreign",
-                                 "OO",s->pending,
-                                 active_error ? active_error : Py_None);
+        value=call2(s->frame,"_mechanical_abandon_foreign",s->pending,
+                    active_error ? active_error : Py_None);
         if (discard(value) < 0) {
             fetch_error(&replacement); failed_exit=1;
             Py_XSETREF(active_error,Py_XNewRef(replacement.error));
@@ -567,10 +587,8 @@ static PyObject *invoke(Method *method,PyObject *const *args,size_t nargsf,
         if (check(s) < 0) {
             Py_CLEAR(answer); clear_error(&error); fetch_error(&error);
         } else {
-            PyObject *empty=PyTuple_New(0),*kw=NULL,*result=NULL;
-            if (empty != NULL) kw=Py_BuildValue("{s:O}","terminal",Py_True);
-            if (kw != NULL) result=method_kw(s->record,"confirmed",empty,kw);
-            Py_XDECREF(empty); Py_XDECREF(kw);
+            PyObject *args[]={s->record,Py_True};
+            PyObject *result=call_named("confirmed",args,1,state(s->module)->confirmed_names);
             if (discard(result) < 0) {
                 Py_CLEAR(answer); clear_error(&error); fetch_error(&error);
             }
@@ -1176,12 +1194,16 @@ static PyType_Spec iteration_spec={
 static int module_traverse(PyObject *module,visitproc visit,void *arg) {
     ModuleState *m=state(module);
     Py_VISIT(m->session_type); Py_VISIT(m->method_type);
-    Py_VISIT(m->iterator_type); Py_VISIT(m->current); Py_VISIT(m->loss_name); return 0;
+    Py_VISIT(m->iterator_type); Py_VISIT(m->current); Py_VISIT(m->loss_name);
+    Py_VISIT(m->foreign_observed_names); Py_VISIT(m->foreign_ambient_names);
+    Py_VISIT(m->confirmed_names); return 0;
 }
 static int module_clear(PyObject *module) {
     ModuleState *m=state(module);
     Py_CLEAR(m->session_type); Py_CLEAR(m->method_type);
-    Py_CLEAR(m->iterator_type); Py_CLEAR(m->current); Py_CLEAR(m->loss_name); return 0;
+    Py_CLEAR(m->iterator_type); Py_CLEAR(m->current); Py_CLEAR(m->loss_name);
+    Py_CLEAR(m->foreign_observed_names); Py_CLEAR(m->foreign_ambient_names);
+    Py_CLEAR(m->confirmed_names); return 0;
 }
 static int module_exec(PyObject *module) {
     ModuleState *m=state(module);
@@ -1190,8 +1212,12 @@ static int module_exec(PyObject *module) {
     m->iterator_type=PyType_FromModuleAndSpec(module,&iteration_spec,NULL);
     m->current=PyContextVar_New("hia.slot.mechanical.actual",NULL);
     m->loss_name=PyUnicode_InternFromString("loss");
+    m->foreign_observed_names=Py_BuildValue("(ss)","capture_resources","weak_registered_resources");
+    m->foreign_ambient_names=Py_BuildValue("(s)","observation");
+    m->confirmed_names=Py_BuildValue("(s)","terminal");
     if (!m->session_type || !m->method_type || !m->iterator_type || !m->current ||
-        !m->loss_name) return -1;
+        !m->loss_name || !m->foreign_observed_names || !m->foreign_ambient_names ||
+        !m->confirmed_names) return -1;
     ((PyTypeObject *)m->method_type)->tp_vectorcall_offset=offsetof(Method,vectorcall);
     ((PyTypeObject *)m->method_type)->tp_flags|=Py_TPFLAGS_HAVE_VECTORCALL;
     PyType_Modified((PyTypeObject *)m->method_type);
