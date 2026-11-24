@@ -108,8 +108,8 @@ the admitted descriptor are preserved beside the phase archives.
 
 ## Evidence for this checkpoint
 
-Independent master ELF: 333741 bytes,
-`b4958c745d0de346cfcae656605673d2684bd5de43d62fe7767e52ac365f38c7`.
+Independent master ELF: 341236 bytes,
+`a690f7a5fb3f777e35c49b86494d1b3d0f1d558758126a33cb0715c159158cfe`.
 Generic CLI flat: 391068 bytes,
 `cbbcde45e38e7a4d36baab60be8151dbf6d8b1bac7e1dee3873733c098661b9a`.
 Native CLI packer: 25708 bytes,
@@ -124,3 +124,13 @@ duplicate families, future dependencies and an initial-root compiler substitutio
 Both kill controls produced no PASS and proved empty cleanup plus ECHILD within
 the original 3 s. The first CLI fixture exposed overlapping launch-state fields;
 its refusal is preserved and the corrected component was rebuilt independently.
+
+### Repeated artifact aliases
+
+The complete production base plan imports one utility image under two names. The
+original driver correctly requires distinct import descriptors. The master now
+uses F_DUPFD_CLOEXEC for repeated per-phase references and closes those extra FDs
+after the driver completes. Image bytes, seals, hashes and the fast/cold identity
+checks are unchanged. The component fixture exercises both a repeated static
+root and a repeated sealed-phase output, followed by all 38 qualifications. It
+passes the same 22 custody and live-cancellation controls.
