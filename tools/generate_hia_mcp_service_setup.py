@@ -149,6 +149,12 @@ def retain_context(w:mutbuf) -> bool:
     if freeze_string(w, lookup(w, profile, F_HOST), S_WORKER_HOST) == False or freeze_string(w, lookup(w, profile, F_WORKING_DIRECTORY), S_WORKING_DIRECTORY) == False or freeze_string(w, lookup(w, profile, F_STATE_ROOT), S_WORKER_STATE) == False:
         return False
     jobs = lookup(w, host, F_NATIVE_JOBS)
+    if jobs == NONE:
+        bind(w, S_ENTRY_PATH, 0, 0)
+        return True
+    if get(w, jobs) == 0:
+        bind(w, S_ENTRY_PATH, 0, 0)
+        return True
     index = 0
     while index < 5:
         role = lookup(w, jobs, F_ENTRY + index)
