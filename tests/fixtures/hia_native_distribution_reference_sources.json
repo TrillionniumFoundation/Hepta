@@ -1,0 +1,80 @@
+{
+  "files": {
+    "tests/test_hia_agent_installed_resources.py": {
+      "current": {
+        "bytes": 75021,
+        "sha256": "51b7d24fc511258a05cb086eea2ff1729d409a0fda21317cc6efdb24057b0015"
+      },
+      "original": {
+        "bytes": 74950,
+        "sha256": "5e0db72475d8aa67bdc94d3e7866f0765d9e712711eaf3df0796416b80181d8f"
+      },
+      "splices": [
+        {
+          "after": "        build('wheel',['-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation',\n                       '--config-settings','hia.reference-wheel=true','--wheel-dir',cls.folder/'wheels',archive])\n",
+          "before": "        build('wheel',['-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation','--wheel-dir',cls.folder/'wheels',archive])\n",
+          "offset": 30592
+        }
+      ]
+    },
+    "tests/test_hia_cli_native.py": {
+      "current": {
+        "bytes": 62585,
+        "sha256": "a56e7a54fe74639637204e4e57e166c49354c9fee545c339c50e75f9ec6df6d4"
+      },
+      "original": {
+        "bytes": 62515,
+        "sha256": "e6505160738a00e3effc7605bc52b244d5a60aed24ad9c7dcdcab297a29b29af"
+      },
+      "splices": [
+        {
+          "after": "                     \"--no-index\", \"--no-build-isolation\", \"--config-settings\", \"hia.reference-wheel=true\",\n                     \"--wheel-dir\", str(wheels), str(source)], \"wheel-build\")\n",
+          "before": "                     \"--no-index\", \"--no-build-isolation\", \"--wheel-dir\", str(wheels), str(source)], \"wheel-build\")\n",
+          "offset": 59351
+        }
+      ]
+    },
+    "tests/test_hia_default_native_release.py": {
+      "current": {
+        "bytes": 52547,
+        "sha256": "ab2ebc50469acc6a1b34fd1b4c3e507c73a6c2719e00b9f00e88f4efaa8c5182"
+      },
+      "original": {
+        "bytes": 52420,
+        "sha256": "747cf400ed4307b93426e4463b53870b44519f4c502fbad319eb0d841aef6ba7"
+      },
+      "splices": [
+        {
+          "after": "        # This suite observes the retained Python API; select its reference artifact explicitly.\n        cls.wheel = build(cls.root / 'build', compiler, cold, development=not bool(cold), reference=bool(cold))\n",
+          "before": "        cls.wheel = build(cls.root / 'build', compiler, cold, development=not bool(cold))\n",
+          "offset": 9029
+        },
+        {
+          "after": "        self.assertFalse(self.report['ordinary_source_default_changed'])\n        self.assertTrue(self.report['reference_only'])\n",
+          "before": "        self.assertEqual(self.report['ordinary_source_default_changed'], self.report['matching_source_cold_component'])\n",
+          "offset": 20848
+        }
+      ]
+    },
+    "tests/test_hia_executable_capture.py": {
+      "current": {
+        "bytes": 21624,
+        "sha256": "ebb91247ce6ff9b85c149ab5a73462ae5398f4a68f5455d03c34185b7859ba8b"
+      },
+      "original": {
+        "bytes": 21560,
+        "sha256": "4304443543045dcfb3680c3035cc576144c1a9dbd4ff6b3ea6468f607b73d9db"
+      },
+      "splices": [
+        {
+          "after": "            \"'--no-deps', '--no-build-isolation', '--config-settings', 'hia.reference-wheel=true', \"\n            \"'--wheel-dir', sys.argv[2]], check=True)\\n\")\n",
+          "before": "            \"'--no-deps', '--no-build-isolation', '--wheel-dir', sys.argv[2]], check=True)\\n\")\n",
+          "offset": 17963
+        }
+      ]
+    }
+  },
+  "original_commit": "f32e51ac6c1e67de6a0f1aef4353b4eb25a218c4",
+  "schema": "hepta.hia.native-distribution-reference-source-relations.v1",
+  "scope": "Explicit reference packaging selection; original semantic controls retained"
+}

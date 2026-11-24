@@ -7,10 +7,11 @@
 
 `hepta.hia_agent_macro_policy.advise_macro` is an explicit **caller-side**
 controller. An Agent supplies its context, a bounded cost ledger and complete
-macro-action plans. The controller calls the existing original native NDU value
-entry point through `hia_ndu_optimizer._native_rank`. That adapter verifies the
-build receipt and executable identity and runs the sealed native image. The
-response binds the exact request and upstream implementation.
+macro-action plans. The controller calls the native HIA scalar NDU evaluator
+through `hia_ndu_optimizer._native_rank`. Admission verifies its matching-source
+cold build receipt and executable identity, then runs the sealed HIA image.
+The response preserves the original upstream wire and digest contract; the
+separate executable identity explicitly reports the HIA implementation.
 
 The available macro actions are `discover`, `propose`, `verify`, `emit`,
 `evaluate`, `adopt`, `use`, `rollback`, `keep_existing`, `no_adopt` and `stop`. The controller recommends only
@@ -141,9 +142,10 @@ python tools/hia_agent_macro_policy.py advise \
   --output /absolute/new-advice.json
 ```
 
-The native executable and receipt follow the existing
-`tools/build_hia_ndu_bridge.py` interface and unchanged upstream pin. Passing no
-native image writes a `native_bridge_unavailable` result and exits 2. Output
+The native executable and receipt come from `tools/build_hia_ndu_scalar.py`,
+as described in [the native profile guide](HIA_NDU_BRIDGES.md). Omitting an
+explicit image selects the package-owned HIA component. If that component is
+absent, advice remains blocked; the old Rust receipt is not a fallback. Output
 creation is exclusive and mode 0600. Advice never triggers its recommended
 action automatically. Installing this sidecar does not deploy a new MCP tool or
 make any tool available in a hosted Agent gateway.

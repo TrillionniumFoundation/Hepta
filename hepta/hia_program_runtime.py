@@ -981,6 +981,20 @@ def execute_program(program, function, arguments, *, max_steps=1_000_000,
     Resource-returning functions remain available as internal core functions.
     """
     checked = verify_program(program)
+    return _execute_verified_program(checked, function, arguments,
+        max_steps=max_steps, max_heap_bytes=max_heap_bytes,
+        allocation_fail_at=allocation_fail_at, max_call_depth=max_call_depth,
+        bounded_resource_limits=bounded_resource_limits)
+
+
+def _execute_verified_program(checked, function, arguments, *, max_steps=1_000_000,
+                              max_heap_bytes=16 * 1024 * 1024, allocation_fail_at=None,
+                              max_call_depth=256, bounded_resource_limits=None):
+    """Execute an internally admitted snapshot with fresh invocation state.
+
+    This private implementation is shared with a locally prepared scalar batch.
+    Public callers still enter execute_program and reverify their actual bytes.
+    """
     if (type(function) is not str or type(arguments) not in (list, tuple)
             or type(max_steps) is not int or not 1 <= max_steps <= 10_000_000
             or type(max_heap_bytes) is not int or not 0 <= max_heap_bytes <= 1024 * 1024 * 1024

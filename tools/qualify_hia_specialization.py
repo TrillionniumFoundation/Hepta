@@ -35,7 +35,8 @@ from hepta.hia_program import SCHEMA, verify_program
 from hepta.hia_program_llvm import TARGET, build_program_native
 from hepta.hia_specialization import propose_guarded_specializations
 from hepta.hia_translation_validation import validate_translation
-from tools.build_hia_ndu_bridge import build as build_ndu
+from tools.build_hia_ndu_scalar import build as build_ndu
+from hepta.hia_ndu_native import SOURCES as NDU_SOURCES, UPSTREAM as NDU_UPSTREAM
 from tools.qualify_hia_ndu_search import _schedule, _summary
 
 MASK = (1 << 32) - 1
@@ -74,9 +75,7 @@ INPUTS = (
     "hepta/hia_program_llvm.py", "hepta/hia_translation_validation.py", "hepta/hia_ndu_optimizer.py",
     "hepta/hia_multiversion.py", "hepta/hia_background_optimizer.py", "hepta/hia_native_differential.py",
     "hepta/elf_shared_abi.py", "hepta/clang_capture.py", "hepta/native_mapping_identity.py", "tools/qualify_hia_specialization.py",
-    "tools/qualify_hia_ndu_search.py", "tools/build_hia_ndu_bridge.py",
-    "rust/hia-ndu-bridge/upstream.json", "rust/hia-ndu-bridge/src/main.rs",
-    "rust/hia-ndu-bridge/Cargo.toml", "rust/hia-ndu-bridge/Cargo.lock",
+    "tools/qualify_hia_ndu_search.py", *NDU_SOURCES,
 )
 
 DRIVER = r'''#define _POSIX_C_SOURCE 200809L
@@ -317,7 +316,7 @@ def episode(arm, profile, repetition, *, directory, baseline, candidates, observ
     return result
 
 
-def run(directory, *, clang, cargo, upstream):
+def run(directory, *, clang, compiler, cold_report):
     directory = Path(directory).resolve()
     directory.mkdir(mode=0o700)
     report = {"schema": "hepta.hia.guarded-specialization-experiment.v1", "protocol": copy.deepcopy(PROTOCOL),
@@ -337,24 +336,20 @@ def run(directory, *, clang, cargo, upstream):
     (directory / "PROTOCOL.json").write_bytes(wire(report) + b"\n")
     ledger = report["shared_ledger"] = []
     try:
-        # Fresh target directory: dependency cache is allowed; executable reuse is not.
-        prior_target = os.environ.get("CARGO_TARGET_DIR")
-        os.environ["CARGO_TARGET_DIR"] = str(directory / "ndu-target")
+        # The compiler and cold receipt must bind this exact source inventory.
         bridge_started = time.perf_counter_ns()
-        report["ndu_cold_build_argv"] = [cargo, "build", "--manifest-path", str(directory / "ndu-build/Cargo.toml"),
-                                         "-p", "hia-ndu-bridge", "--locked"]
+        report["ndu_cold_build_argv"] = [sys.executable, "-m", "tools.build_hia_ndu_scalar",
+            "--output", str(directory / "ndu-build"), "--compiler", str(compiler),
+            "--cold-report", str(cold_report)]
         try:
-            build_ndu(upstream, directory / "ndu-build", cargo=cargo)
+            executable = build_ndu(directory / "ndu-build", compiler, cold_report)
         finally:
             report["ndu_cold_build_wall_ns"] = time.perf_counter_ns() - bridge_started
-            if prior_target is None:
-                os.environ.pop("CARGO_TARGET_DIR", None)
-            else:
-                os.environ["CARGO_TARGET_DIR"] = prior_target
-        bridge = {"binary": directory / "ndu-target/debug/hia-ndu-bridge",
+        bridge = {"binary": executable,
                   "build_receipt": directory / "ndu-build/build-receipt.json"}
         report["bridge"] = {name: {"path": str(path), "sha256": digest(path)} for name, path in bridge.items()}
-        report["bridge_upstream"] = json.loads((ROOT / "rust/hia-ndu-bridge/upstream.json").read_text())
+        report["bridge_implementation"] = "HIA"
+        report["bridge_compatibility_upstream"] = NDU_UPSTREAM
         report["recursive_ndu_used"] = False
         shared_started = time.perf_counter_ns()
         baseline = workload()
@@ -483,11 +478,11 @@ def run(directory, *, clang, cargo, upstream):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--clang", required=True)
-    parser.add_argument("--cargo", required=True)
-    parser.add_argument("--upstream", required=True, type=Path)
+    parser.add_argument("--compiler", required=True, type=Path)
+    parser.add_argument("--cold-report", required=True, type=Path)
     parser.add_argument("--artifacts", required=True, type=Path)
     args = parser.parse_args()
-    report = run(args.artifacts, clang=args.clang, cargo=args.cargo, upstream=args.upstream)
+    report = run(args.artifacts, clang=args.clang, compiler=args.compiler, cold_report=args.cold_report)
     print(json.dumps({"qualified": report["qualified"], "error": report.get("error"),
                       "artifacts": str(args.artifacts), "arm_summary": report.get("arm_summary")}))
     return 0 if report["qualified"] else 1

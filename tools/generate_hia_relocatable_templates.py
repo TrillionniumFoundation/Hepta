@@ -9,7 +9,9 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_elf_linker import SOURCE as LINK_SOURCE
 
 
-def render_objects(group, roles, record_slice=slice(None), *, read_source=None, zero_fill=False):
+def render_objects(group, roles, record_slice=slice(None), *, read_source=None, zero_fill=False, literal_words=2):
+    if literal_words not in (2, 4):
+        raise ValueError("unsupported literal grouping")
     selector = [
         'def materialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:',
         '    if length(s) != 8:',
@@ -45,7 +47,13 @@ def render_objects(group, roles, record_slice=slice(None), *, read_source=None, 
                     part = record[at:at + 8]
                     word = int.from_bytes(part, 'little')
                     next_part = record[at + 8:min(at + 16, stop)]
-                    if zero_fill and word and len(next_part) == 8 and any(next_part):
+                    quartet = record[at:min(at + 32, stop)]
+                    if (zero_fill and literal_words == 4 and len(quartet) == 32
+                            and all(any(quartet[index:index + 8]) for index in range(0, 32, 8))):
+                        words = [int.from_bytes(quartet[index:index + 8], 'little') for index in range(0, 32, 8)]
+                        chunks.append(f'    write_quad(o, {at}, ' + ', '.join(map(str, words)) + ')')
+                        at += 32
+                    elif zero_fill and word and len(next_part) == 8 and any(next_part):
                         # Adjacent literals share a single position in the HIA instruction stream.
                         other = int.from_bytes(next_part, 'little')
                         chunks.append(f'    write_pair(o, {at}, {word}, {other})')
@@ -61,5 +69,9 @@ def render_objects(group, roles, record_slice=slice(None), *, read_source=None, 
     if zero_fill:
         functions.extend(('', 'def write_pair(o:mutbuf, at:u64, first:u64, second:u64) -> u64:',
                           '    write(o, at, first, 8)', '    write(o, at + 8, second, 8)', '    return 0'))
+    if zero_fill and literal_words == 4:
+        functions.extend(('', 'def write_quad(o:mutbuf, at:u64, a:u64, b:u64, c:u64, d:u64) -> u64:',
+                          '    write(o, at, a, 8)', '    write(o, at + 8, b, 8)',
+                          '    write(o, at + 16, c, 8)', '    write(o, at + 24, d, 8)', '    return 0'))
     helpers = LINK_SOURCE[LINK_SOURCE.index('\ndef uint('):]
     return render_assembly(document('\n'.join(selector + functions) + helpers, Path(group).stem))

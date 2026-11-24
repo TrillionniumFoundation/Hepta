@@ -106,10 +106,10 @@ def embed(output, label, name, raw, embedder):
     return obj
 
 
-def verify_executable(elf, pager):
-    if (len(elf) < 232 or elf[:16] != b'\x7fELF\x02\x01\x01' + bytes(9)
-            or elf.count(pager) != 1):
-        raise ValueError('Pager ELF must contain exactly its admitted HIA image')
+def inspect_static_executable(elf):
+    """Inspect the existing static linker's RX/RW/stack executable profile."""
+    if len(elf) < 232 or elf[:16] != b'\x7fELF\x02\x01\x01' + bytes(9):
+        raise ValueError('unexpected Pager ELF header')
     fields = struct.unpack_from('<HHIQQQIHHHHHH', elf, 16)
     entry = fields[3]
     if fields != (2, 62, 1, entry, 64, 0, 0, 64, 56, 3, 0, 0, 0):
@@ -121,11 +121,24 @@ def verify_executable(elf, pager):
     if (rx != (1, 5, 0, 0x400000, 0x400000, rx_size, rx_size, 4096)
             or not 232 <= rx_size <= len(elf)
             or not 0x400000 + 232 <= entry < 0x400000 + rx_size
-            or not 232 <= elf.index(pager) <= rx_size - len(pager)
             or rw_offset != (rx_size + 4095) // 4096 * 4096
             or rw[:5] != (1, 6, rw_offset, 0x400000 + rw_offset, 0x400000 + rw_offset)
             or rw[5] != len(elf) - rw_offset or rw[6] < rw[5] or rw[7] != 4096
             or stack != (0x6474e551, 6, 0, 0, 0, 0, 0, 16)):
+        raise ValueError('unexpected Pager ELF load segment or stack permissions')
+    return {'elf_type': 'ET_EXEC', 'machine': 'EM_X86_64', 'entry': entry,
+            'program_headers': ['PT_LOAD_RX', 'PT_LOAD_RW', 'PT_GNU_STACK_RW'],
+            'interpreter': None, 'dynamic_loader': False,
+            'rx_file_bytes': rx_size, 'rw_file_bytes': rw[5], 'rw_memory_bytes': rw[6],
+            'bytes': len(elf), 'sha256': digest(elf)}
+
+
+def verify_executable(elf, pager):
+    if (len(elf) < 232 or elf[:16] != b'\x7fELF\x02\x01\x01' + bytes(9)
+            or elf.count(pager) != 1):
+        raise ValueError('Pager ELF must contain exactly its admitted HIA image')
+    inspection = inspect_static_executable(elf)
+    if not 232 <= elf.index(pager) <= inspection['rx_file_bytes'] - len(pager):
         raise ValueError('unexpected Pager ELF load segment or stack permissions')
 
 

@@ -1,0 +1,88 @@
+{
+  "reference_initialization_profile": {
+    "protocolVersion": "2025-11-25",
+    "capabilities": {
+      "experimental": {
+        "claude/channel": {}
+      },
+      "resources": {
+        "subscribe": true
+      },
+      "tools": {}
+    },
+    "serverInfo": {
+      "name": "rmcp",
+      "version": "3.9.0"
+    },
+    "instructions": "Filesystem tools. File lines render as `N:hh|content`; `N:hh` is the line id edit tools target, and edit results are diffs with fresh ids, so edits chain without re-viewing files. Reuse returned content and ids; read complete relevant blocks, then act on them. Each response costs a round trip: first decide what you need next, then request every call that doesn't depend on another's result in that one response."
+  },
+  "native_initialization_profile": {
+    "protocolVersion": "2025-11-25",
+    "capabilities": {
+      "tools": {},
+      "resources": {}
+    },
+    "serverInfo": {
+      "name": "hepta-hia",
+      "version": "1"
+    }
+  },
+  "schema": "HIA_MCP_FROZEN_SDK_WIRE_CASES_V1",
+  "count": 1050,
+  "fixture_sha256": "2b0b8b4d0df13384ee99d0809449748ef24c0c26931c9c8636b8892e2ca6b2e8",
+  "case_generator_sha256": "d3d3196f076ee50c4bb38184d349cc3b198e5d6d38cd2f174ede061d59c1d961",
+  "reference_runtime_sha256": "beb253af13ab729bd8c25c96f2d4b80a2c931c905ad33559ef8997f4cabf43c7",
+  "reference_source_commit": "d022649c64b48fb2a43263faf90103a9a8957b94",
+  "rmcp_version": "3.9.0",
+  "comparison": "Exact response envelopes, IDs, values, error content, multiplicity and exit codes. Initialization/discovery identities and capabilities must match their separate frozen profiles. Only explicitly pipelined stdio responses may arrive in any order; their full messages are correlated by identity and original wire order is retained.",
+  "reference_discovery_profile": {
+    "resultType": "complete",
+    "supportedVersions": [
+      "2024-11-05",
+      "2025-03-26",
+      "2025-06-18",
+      "2025-11-25",
+      "2026-07-28"
+    ],
+    "capabilities": {
+      "experimental": {
+        "claude/channel": {}
+      },
+      "resources": {
+        "subscribe": true
+      },
+      "tools": {}
+    },
+    "instructions": "Filesystem tools. File lines render as `N:hh|content`; `N:hh` is the line id edit tools target, and edit results are diffs with fresh ids, so edits chain without re-viewing files. Reuse returned content and ids; read complete relevant blocks, then act on them. Each response costs a round trip: first decide what you need next, then request every call that doesn't depend on another's result in that one response.",
+    "ttlMs": 0,
+    "cacheScope": "private",
+    "_meta": {
+      "io.modelcontextprotocol/serverInfo": {
+        "name": "rmcp",
+        "version": "3.9.0"
+      }
+    }
+  },
+  "native_discovery_profile": {
+    "resultType": "complete",
+    "supportedVersions": [
+      "2024-11-05",
+      "2025-03-26",
+      "2025-06-18",
+      "2025-11-25",
+      "2026-07-28"
+    ],
+    "capabilities": {
+      "tools": {},
+      "resources": {}
+    },
+    "ttlMs": 0,
+    "cacheScope": "private",
+    "_meta": {
+      "io.modelcontextprotocol/serverInfo": {
+        "name": "hepta-hia",
+        "version": "1"
+      }
+    }
+  }
+}

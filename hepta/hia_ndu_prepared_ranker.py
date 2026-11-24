@@ -43,7 +43,7 @@ class PreparedNduRanker:
     an explicit separately charged caller decision, never an automatic retry.
     """
 
-    def __init__(self, bridge, *, max_requests=MAX_REQUESTS):
+    def __init__(self, bridge=None, *, max_requests=MAX_REQUESTS):
         started = time.perf_counter_ns()
         if type(max_requests) is not int or not 1 <= max_requests <= MAX_REQUESTS:
             _reject("max_requests must be an integer in 1..256")

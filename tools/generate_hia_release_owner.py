@@ -1712,7 +1712,7 @@ DAG_POLICY = r'''def dag(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32
     if phase >= 5500:
         return dag_check(s, o, w, phase, r)
     if phase == 5000:
-        if get(w, 1519984) == 4:
+        if get(w, 1519984) == 5:
             return resume(s, o, w, 6000)
         path = C_DAG_PATHS + get(w, 1519984) * 16
         return capture_request(o, w, capture_one(s, w, get(w, path), get(w, path + 8), C_DATA_ALIAS, L_DATA_ALIAS, MAGIC_RAW), 5001)
@@ -2580,7 +2580,7 @@ def policy_source(*, stage=False):
         resource_rows.append((data(f'RESOURCE_PATH_{index}', path), len(path),
                               data(f'RESOURCE_NAME_{index}', name), len(name)))
     dag_rows = []
-    for index, kind in enumerate(('safe', 'constructor', 'core', 'additional')):
+    for index, kind in enumerate(('safe', 'constructor', 'core', 'additional', 'controller')):
         path = ('examples/hia_bootstrap/release_stage_' + kind + '.hiastd').encode()
         dag_rows.append((data(f'DAG_PATH_{index}', path), len(path)))
     words['C_DAG_PATHS'] = cursor

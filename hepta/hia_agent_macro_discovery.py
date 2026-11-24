@@ -21,8 +21,9 @@ def macro_policy_guidance(installation):
         "mcp_tool_registered": False,
         "implicit_compiler_optimization": False,
         "native_profile": {
-            "adapter": "rust/hia-ndu-bridge",
-            "source_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+            "adapter": "examples/hia_bootstrap/ndu_scalar.hepta",
+            "implementation": "HIA",
+            "compatibility_upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
             "entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
             "input_profile": "hepta.hia.ndu-request.v1",
             "utility": "minimize caller-supplied full remaining cost with uncertainty",

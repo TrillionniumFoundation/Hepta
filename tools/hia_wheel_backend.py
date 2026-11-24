@@ -8,7 +8,8 @@ import zipfile
 from setuptools.build_meta import (
     build_editable as build_python_editable,
     build_sdist, get_requires_for_build_editable, get_requires_for_build_sdist,
-    get_requires_for_build_wheel, prepare_metadata_for_build_editable, prepare_metadata_for_build_wheel,
+    get_requires_for_build_wheel, prepare_metadata_for_build_editable,
+    prepare_metadata_for_build_wheel as prepare_python_metadata_for_build_wheel,
 )
 
 
@@ -20,21 +21,48 @@ def _cold_inputs(work):
     return work / 'cold.cold/qualification.evidence/B3.image.bin', report
 
 
+def _reference_distribution(config_settings):
+    """Require explicit selection of the hosted API/oracle wheel."""
+    if config_settings is None or 'hia.reference-wheel' not in config_settings:
+        return False
+    value = config_settings['hia.reference-wheel']
+    if type(value) is list and len(value) == 1:
+        value = value[0]
+    if type(value) is not str or value not in ('true', 'false'):
+        raise ValueError('hia.reference-wheel must be exactly true or false')
+    return value == 'true'
+
+
+def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
+    if _reference_distribution(config_settings):
+        return prepare_python_metadata_for_build_wheel(metadata_directory, config_settings)
+    from tools.build_hia_default_release import ROOT, native_distribution_metadata
+
+    distribution, files = native_distribution_metadata((ROOT / 'pyproject.toml').read_bytes())
+    directory = Path(metadata_directory).resolve()
+    for name, raw in files.items():
+        path = directory / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+    return distribution
+
+
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     from tools.build_hia_default_release import build
 
+    reference = _reference_distribution(config_settings)
     destination = Path(wheel_directory).resolve()
     with TemporaryDirectory(prefix='hia-wheel-') as tmp:
         work = Path(tmp).resolve()
         compiler, report = _cold_inputs(work)
-        wheel = build(work / 'release', compiler, report)
+        wheel = build(work / 'release', compiler, report, reference=reference)
         copyfile(wheel, destination / wheel.name)
         return wheel.name
 
 
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None):
     """Keep the Python API editable and install the same physical public ELF programs."""
-    from tools.build_hia_default_release import WHEEL_TAG, _native_cli_scripts, _wheel_member, _wheel_record_images, _write_wheel
+    from tools.build_hia_default_release import WHEEL_TAG, _native_cli_scripts, _native_ndu_members, _wheel_member, _wheel_record_images, _write_wheel
     from tools.build_hia_json_preflight import admit_cold_build
 
     destination = Path(wheel_directory).resolve()
@@ -51,6 +79,9 @@ def build_editable(wheel_directory, config_settings=None, metadata_directory=Non
         distribution = record.removesuffix('/RECORD')
         programs, _, _ = _native_cli_scripts(work / 'cli', compiler, report, distribution, sources=sources)
         files.update(programs)
+        ndu_members, _ = _native_ndu_members(work / 'ndu', compiler, report, sources=sources,
+                                            distribution=distribution)
+        files.update(ndu_members)
         current = base.name.removesuffix('.whl').rsplit('-', 3)
         tag = '-'.join(current[1:])
         wheel_name = base.name

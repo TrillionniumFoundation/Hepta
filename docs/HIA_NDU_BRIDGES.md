@@ -1,24 +1,29 @@
-# Three explicit native NDU build profiles
+# Explicit native NDU build profiles
 
-The integrated tree retains two advisory wire protocols and three independently
-pinned build profiles. They have separate source identities, environment
-variables and receipts. Each executes the
-original Rust NDU crate APIs. Neither protocol proves HIA program safety or
-authorizes native publication; the HIA consumer must independently revalidate
-the candidate under its declared proof profile.
+The scalar ranking executor is native HIA. Its JSON parsing, integer and ID
+validation, feasibility partition, Pareto selection, digest construction and
+bounded streaming state machine are implemented in
+`examples/hia_bootstrap/ndu_scalar.hepta`. A mechanical syscall adapter performs
+only process I/O. The resulting ELF runs with an empty PATH and has no dynamic
+loader, interpreter or Rust evaluator dependency.
+
+The recursive and finite utility profiles remain separate, explicitly pinned
+reference profiles. They retain their distinct protocols and source receipts.
+NDU advice does not prove HIA program safety or authorize publication; each
+consumer still revalidates the candidate under its declared proof profile.
 
 | Contract | Candidate ranking | Recursive utility |
 | --- | --- | --- |
 | Python consumer | `hepta.hia_ndu_optimizer` | `hepta.hia_ndu.NduBridge` |
-| Builder | `tools/build_hia_ndu_bridge.py` | `tools/build_hia_recursive_ndu_bridge.py` |
-| Original source pin | `d3c2d760eca5065fc966820379c35c6e8d56e855` | `2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b` |
-| Adapter source | Hepta `rust/hia-ndu-bridge` | Original checkout `tools/hia-ndu-bridge` |
+| Builder | `tools/build_hia_ndu_scalar.py` | `tools/build_hia_recursive_ndu_bridge.py` |
+| Compatibility source pin | `d3c2d760eca5065fc966820379c35c6e8d56e855` | `2590c0c94c5bf9a9004caeeb7b75edd6faf3eb8b` |
+| Active implementation | `examples/hia_bootstrap/ndu_scalar.hepta` | Original checkout `tools/hia-ndu-bridge` |
 | Request schema | `hepta.hia.ndu-request.v1` | `hepta.hia.ndu.request.v1` |
-| Build receipt schema | `hepta.hia.ndu-build.v1` | `hepta.hia.ndu.build.v1` |
+| Build receipt schema | `hepta.hia.ndu-scalar-build.v1` | `hepta.hia.ndu.build.v1` |
 | Receipt filename | `build-receipt.json` | `identity.json` |
-| Binary environment | `HEPTA_NDU_BRIDGE` | `HEPTA_RECURSIVE_NDU_BRIDGE` |
+| Explicit test binary environment | `HEPTA_NDU_BRIDGE` | `HEPTA_RECURSIVE_NDU_BRIDGE` |
 | Receipt environment | `HEPTA_NDU_BUILD` is the build directory | `HEPTA_RECURSIVE_NDU_IDENTITY` is the identity file |
-| Source environment for custody tests | `HEPTA_NDU_UPSTREAM` | Explicit builder/collector `--ndu-source` / `--recursive-upstream` |
+| Original Rust oracle custody tests | `HEPTA_NDU_UPSTREAM` (reference rebuild only) | Explicit builder/collector `--ndu-source` / `--recursive-upstream` |
 
 The added finite continuation graph uses the recursive dotted wire schema but
 has its own source pin `4b6391e116949af0c7e59776baead67271856bdb`, Rust
@@ -29,24 +34,57 @@ wire schema nor a ranking/recursive environment variable satisfies that gate.
 
 ## Build independently
 
-Keep all three original source checkouts and output directories separate. Use
-Rust 1.90.0 for the existing ranking and recursive profiles, Rust 1.95.0 for the
-new finite graph profile, and the integrated solver dependency
-`z3-solver==4.15.4.0` for HIA proof tests. The Rust bridge protocols themselves
-do not use the Python SMT solver.
-
-The ranking builder reads its source pin from
-`rust/hia-ndu-bridge/upstream.json`. It extracts that Git object into a new
-isolated production workspace, verifies the copied inputs and adapter, and
-requires the committed isolated lockfile. Its file bytes and existing protocol
-are retained from the bounded-pipeline implementation.
+Build scalar ranking with a compiler and cold receipt belonging to the exact
+current source inventory. The standard cold replay produces the compiler at
+`REPORT.cold/qualification.evidence/B3.image.bin`:
 
 ```sh
-python tools/build_hia_ndu_bridge.py \
+python -m tools.replay_hia_selfhost_cold --output /absolute/cold.json
+python -m tools.build_hia_ndu_scalar \
+  --compiler /absolute/cold.cold/qualification.evidence/B3.image.bin \
+  --cold-report /absolute/cold.json \
+  --output /absolute/new-ranking-build
+/absolute/new-ranking-build/hia-ndu-scalar < /absolute/request.json
+```
+
+Default and editable release assembly publish `hia-ndu-scalar` as a native
+script. The compatibility Python API selects only the package-owned HIA image
+and its source-bound receipt when no explicit bridge is supplied. Development
+receipts and the former Rust build schema are refused by production admission.
+An explicit `--development` build remains available for implementation work and
+does not create a matching-source production receipt.
+
+`tests.test_hia_ndu_scalar_native` checks the original public contracts and 64
+unique frozen Rust request/stdout pairs, including all digest bytes, plus
+framing, budgets and real caller admission. The upstream commit and entrypoint
+strings in the compatibility response remain unchanged; the separate executable
+identity reports `implementation: HIA`.
+
+### Retired scalar Rust oracle
+
+The old `rust/hia-ndu-bridge` production directory is removed. Its exact four
+files remain inside the existing immutable review archive, together with the
+original execution captures. `tools/hia_ndu_reference.py` verifies the archive
+and each file against fixed SHA-256 identities. An explicit reference rebuild
+can materialize those bytes in a temporary adapter directory:
+
+```sh
+python -m tools.build_hia_ndu_bridge --reference-scalar \
   --upstream /path/to/ranking-source \
-  --output /path/to/new-ranking-build \
+  --output /path/to/new-reference-build \
   --cargo /path/to/rust-1.90.0/bin/cargo
 ```
+
+That binary is an independent compatibility oracle and is never admitted by the
+scalar production chooser. Original source-provenance tests still require its
+actual build workspace and the pinned upstream Git checkout. Frozen historical
+campaigns retain their original source identities; replay does not relabel them
+as execution of current HIA source.
+
+Keep reference checkouts and output directories separate. The recursive profile
+uses Rust 1.90.0 and the finite graph profile uses Rust 1.95.0. HIA proof tests
+use the separately pinned optional solver `z3-solver==4.15.4.0`; scalar native
+execution itself has no solver dependency.
 
 The recursive builder is the separately named original bridge builder. Its
 checkout must contain the committed `tools/hia-ndu-bridge` workspace and lockfile
@@ -124,9 +162,10 @@ qualify an upstream NDU implementation; the separate native bridge tests do.
 ## Configure all three profiles in one process
 
 ```sh
-export HEPTA_NDU_BRIDGE=/path/to/ranking-binary
-export HEPTA_NDU_BUILD=/path/to/ranking-build
-export HEPTA_NDU_UPSTREAM=/path/to/ranking-source
+export HEPTA_NDU_BRIDGE=/path/to/hia-ranking-build/hia-ndu-scalar
+export HEPTA_NDU_BUILD=/path/to/hia-ranking-build
+export HEPTA_HIA_NDU_SCALAR="$HEPTA_NDU_BRIDGE"
+export HEPTA_HIA_NDU_BUILD="$HEPTA_NDU_BUILD"
 export HEPTA_RECURSIVE_NDU_BRIDGE=/path/to/recursive-build/target/release/hepta-hia-ndu-bridge
 export HEPTA_RECURSIVE_NDU_IDENTITY=/path/to/recursive-build/identity.json
 export HEPTA_FINITE_NDU_BRIDGE=/path/to/finite-build/native/hepta-hia-ndu-bridge
@@ -134,6 +173,7 @@ export HEPTA_FINITE_NDU_IDENTITY=/path/to/finite-build/identity.json
 
 python -m unittest -v \
   tests.test_hia_ndu_bridge \
+  tests.test_hia_ndu_scalar_native \
   tests.test_hia_ndu \
   tests.test_hia_ndu_bridge_isolation \
   tests.test_hia_ndu_graph \
@@ -174,10 +214,10 @@ they do not qualify the integrated tree. New integration runs write new source-
 bound evidence and keep performance or productivity conclusions separate from
 protocol and regression success.
 
-The full qualification workflow and the existing verified-optimization workflow
-prepare all three profiles before their current test gates. The full workflow keeps
-its existing complete `release_check` discovery; the standalone integrated
-collector is not invoked again in that same job.
+Qualification of the optional recursive/finite integration still requires those
+actual reference binaries and their own source gates. Scalar HIA qualification
+uses its matching cold build; a pass for that component does not close the
+other profiles' prerequisites.
 
 The finite graph collector binds the recursive builder that actually produced
 its executable. Its bounded graph enumerates continuation paths, receives

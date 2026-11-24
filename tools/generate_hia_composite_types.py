@@ -105,6 +105,10 @@ ERRORS = {
     50: ('E_HIA_TYPE', 'task cancellation must consume one state and return no values'),
 }
 
+NAME_CONTEXTS = {1: 'nominal type', 2: 'type parameter', 3: 'variant', 4: 'task poll function', 5: 'task cancellation function', 6: 'field', 7: 'type reference', 8: 'initialized record field', 9: 'generic type name', 10: 'parameter', 11: 'returned-loan parameter', 12: 'returned-loan field', 13: 'function'}
+
+FORMAT_CONTEXTS = {1: 'nominal type: expected exactly fields, kind, name, params', 2: 'nominal type: expected exactly kind, name, params, variants', 3: 'nominal type: expected exactly cancel, kind, name, params, poll, result, state', 4: 'enum variant: expected exactly fields, name', 5: 'nominal field: expected exactly name, type', 6: 'partial record type: expected exactly initialized, partial', 7: 'generic type reference: expected exactly args, name', 8: 'nominal parameter: expected exactly name, type', 9: 'nominal returned-loan origin: expected exactly fields, param'}
+
 CONSTANTS = {
     'N': (1 << 64) - 1, 'MAGIC': MAGIC, 'ORIGINS_MAGIC': ORIGINS_MAGIC, 'STATE_MAGIC': STATE_MAGIC,
     'PARAMETERS_MAGIC': PARAMETERS_MAGIC,
@@ -175,6 +179,8 @@ def types_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if get(w, S) != STATE_MAGIC or get(w, S + 48) != 1:
             return 4294967282
         put(w, S + 8, 0)
+        put(w, S + 192, 0)
+        put(w, S + 200, 0)
         if text_is(w, operation, L_resolve) == 1:
             if shape(w, root, K_op | K_ref) == 0:
                 return 4294967281
@@ -399,15 +405,27 @@ def has_name(w:mutbuf, array:u64, name:u64) -> u64:
         item = next_node(w, item)
     return 0
 
-def name_ok(w:mutbuf, node:u64) -> u64:
+def reject_shape(w:mutbuf, context:u64) -> u64:
+    if error(w) == 0:
+        put(w, S + 200, context)
+    return reject(w, 1)
+
+def reject_name(w:mutbuf, code:u64, context:u64) -> u64:
+    # Retain the first failing source location without changing either
+    # established JSON or constructor type-result wire format.
+    if error(w) == 0:
+        put(w, S + 192, context)
+    return reject(w, code)
+
+def name_ok(w:mutbuf, node:u64, context:u64) -> u64:
     if kind(w, node) != 4 or count(w, node) < 1 or count(w, node) > 128:
-        return reject(w, 5)
+        return reject_name(w, 5, context)
     start = data(w, node)
     n = count(w, node)
     if n >= 6 and same(w, start, 6, L_reserved_core) == 1:
-        return reject(w, 5)
+        return reject_name(w, 5, context)
     if n >= 11 and same(w, start, 11, L_reserved_nominal) == 1:
-        return reject(w, 6)
+        return reject_name(w, 6, context)
     i = 0
     while i < n:
         ch = byte(w, start + i)
@@ -415,7 +433,7 @@ def name_ok(w:mutbuf, node:u64) -> u64:
         if i > 0:
             valid = valid or (ch >= 48 and ch <= 57)
         if valid == False:
-            return reject(w, 5)
+            return reject_name(w, 5, context)
         i = i + 1
     return 1
 
@@ -494,9 +512,9 @@ def register_definition(w:mutbuf, item:u64) -> u64:
     else:
         return reject(w, 4)
     if shape(w, item, fields) == 0:
-        return reject(w, 1)
+        return reject_shape(w, category)
     name = field(w, item, K_name)
-    if name_ok(w, name) == 0:
+    if name_ok(w, name, 1) == 0:
         return 0
     if primitive(w, name) != 0 or definition(w, name) != 0:
         return reject(w, 7)
@@ -505,7 +523,7 @@ def register_definition(w:mutbuf, item:u64) -> u64:
         return reject(w, 8)
     param = child(w, params)
     while param != N:
-        if name_ok(w, param) == 0:
+        if name_ok(w, param, 2) == 0:
             return 0
         if primitive(w, param) != 0 or equal_text(w, param, name) == 1:
             return reject(w, 9)
@@ -546,9 +564,9 @@ def validate_definition(w:mutbuf, identifier:u64) -> u64:
         variant = child(w, variants)
         while variant != N and error(w) == 0:
             if shape(w, variant, K_name | K_fields) == 0:
-                return reject(w, 1)
+                return reject_shape(w, 4)
             name = field(w, variant, K_name)
-            if name_ok(w, name) == 0:
+            if name_ok(w, name, 3) == 0:
                 return 0
             earlier = child(w, variants)
             while earlier != variant:
@@ -562,9 +580,9 @@ def validate_definition(w:mutbuf, identifier:u64) -> u64:
         if error(w) == 0:
             validate_ref(w, field(w, item, K_result), params)
         if error(w) == 0:
-            name_ok(w, field(w, item, K_poll))
+            name_ok(w, field(w, item, K_poll), 4)
         if error(w) == 0:
-            name_ok(w, field(w, item, K_cancel))
+            name_ok(w, field(w, item, K_cancel), 5)
     return 0
 
 def validate_fields(w:mutbuf, fields:u64, params:u64) -> u64:
@@ -573,9 +591,9 @@ def validate_fields(w:mutbuf, fields:u64, params:u64) -> u64:
     item = child(w, fields)
     while item != N and error(w) == 0:
         if shape(w, item, K_name | K_type) == 0:
-            return reject(w, 1)
+            return reject_shape(w, 5)
         name = field(w, item, K_name)
-        if name_ok(w, name) == 0:
+        if name_ok(w, name, 6) == 0:
             return 0
         earlier = child(w, fields)
         while earlier != item:
@@ -609,7 +627,7 @@ def validate_ref(w:mutbuf, root:u64, params:u64) -> u64:
                     target = definition(w, ref)
                     if text_is(w, ref, L_chain) == 1 and get(w, S + 56) == 0 and target == 0:
                         return reject(w, 17)
-                    if name_ok(w, ref) == 0:
+                    if name_ok(w, ref, 7) == 0:
                         return 0
                     if target == 0 or count(w, field(w, def_node(w, target), K_params)) != 0:
                         return reject(w, 18)
@@ -617,13 +635,13 @@ def validate_ref(w:mutbuf, root:u64, params:u64) -> u64:
                 depth = depth - 1
             elif field(w, ref, K_partial) != N:
                 if get(w, S + 64) == 0 or shape(w, ref, K_partial | K_initialized) == 0:
-                    return reject(w, 1)
+                    return reject_shape(w, choose(get(w, S + 64) == 0, 7, 6))
                 initialized = field(w, ref, K_initialized)
                 if kind(w, initialized) != 5 or count(w, initialized) > 64:
                     return reject(w, 19)
                 item = child(w, initialized)
                 while item != N:
-                    if name_ok(w, item) == 0:
+                    if name_ok(w, item, 8) == 0:
                         return 0
                     item = next_node(w, item)
                 if duplicates(w, initialized) == 1:
@@ -635,9 +653,9 @@ def validate_ref(w:mutbuf, root:u64, params:u64) -> u64:
                 depth = depth + 1
             else:
                 if shape(w, ref, K_name | K_args) == 0:
-                    return reject(w, 1)
+                    return reject_shape(w, 7)
                 name = field(w, ref, K_name)
-                if name_ok(w, name) == 0:
+                if name_ok(w, name, 9) == 0:
                     return 0
                 target = definition(w, name)
                 args = field(w, ref, K_args)
@@ -1052,9 +1070,9 @@ def resolve_parameters(w:mutbuf, params:u64) -> u64:
     item = child(w, params)
     while item != N:
         if shape(w, item, K_name | K_type) == 0:
-            return reject(w, 1)
+            return reject_shape(w, 8)
         name = field(w, item, K_name)
-        if name_ok(w, name) == 0:
+        if name_ok(w, name, 10) == 0:
             return 0
         index = text_hash(w, name) & 131071
         while get(w, ORIGIN_HASH + index * 8) != 0:
@@ -1117,7 +1135,7 @@ def task_protocol(s:readbuf, w:mutbuf, root:u64) -> u64:
         if kind(w, item) != 5 or count(w, item) != 3:
             return N
         name = child(w, item)
-        if name_ok(w, name) == 0:
+        if name_ok(w, name, 13) == 0:
             return N
         index = text_hash(w, name) & 131071
         while get(w, ORIGIN_HASH + index * 8) != 0:
@@ -1192,7 +1210,7 @@ def admit_origins(s:readbuf, w:mutbuf, root:u64) -> u64:
         if kind(w, item) != 5 or count(w, item) != 2:
             return 0
         name = child(w, item)
-        if name_ok(w, name) == 0:
+        if name_ok(w, name, 10) == 0:
             return 0
         identifier = input_id(s, w, next_node(w, name))
         if identifier == 0 or identifier > get(w, S + 16) or get(w, type_at(identifier) + 37872) != 1:
@@ -1231,9 +1249,9 @@ def resolve_origin(s:readbuf, w:mutbuf, typ:u64, annotation:u64) -> u64:
             return reject(w, 38)
         return 1
     if shape(w, annotation, K_param | K_fields) == 0:
-        return reject(w, 1)
+        return reject_shape(w, 9)
     name = field(w, annotation, K_param)
-    if name_ok(w, name) == 0:
+    if name_ok(w, name, 11) == 0:
         return 0
     selected = origin_parameter(s, w, name)
     if selected == 0:
@@ -1247,7 +1265,7 @@ def resolve_origin(s:readbuf, w:mutbuf, typ:u64, annotation:u64) -> u64:
     offset = 0
     item = child(w, path)
     while item != N:
-        if name_ok(w, item) == 0:
+        if name_ok(w, item, 12) == 0:
             return 0
         record = type_at(selected)
         if get(w, record) != 1:

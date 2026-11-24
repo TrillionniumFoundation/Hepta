@@ -257,6 +257,7 @@ jobs:
               'tests.test_hia_bounded_memory_native.BoundedMemorySourceTests',
               'tests.test_hia_full_cost_native.FullCostSourceTests',
               'tests.test_hia_default_native_release.DefaultReleaseSourceTests',
+              'tests.test_hia_native_distribution.NativeDistributionSourceTests',
               'tests.test_hia_store_lifecycle_native.StoreLifecycleSourceTests',
               'tests.test_hia_service_context_native.ServiceContextSourceTests',
               'tests.test_hia_cost_ledger_native.CostLedgerSourceTests',
@@ -408,7 +409,7 @@ jobs:
                        result.expectedFailures or result.unexpectedSuccesses)
           raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
           PYTEST
-      - name: Prepared independent VM metadata Source controls
+      - name: Prepared independent VM metadata and finite proof Source controls
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30
         run: |
@@ -419,8 +420,16 @@ jobs:
               'tests.test_hia_program_runtime_prepared.PreparedRuntimeSourceTests.test_changed_bytes_bindings_selectors_and_custom_providers_use_original',
               'tests.test_hia_program_runtime_prepared.PreparedRuntimeSourceTests.test_default_execution_reports_and_stopped_storage_match',
               'tests.test_hia_program_runtime_prepared.PreparedRuntimeSourceTests.test_readonly_snapshot_and_fresh_entry_state',
+              'tests.test_hia_program_runtime_batch.ReferenceExecutionTests.test_changed_source_during_enumeration_cannot_be_proved',
+              'tests.test_hia_program_runtime_batch.ReferenceExecutionTests.test_custom_providers_selectors_and_rebound_decoders_use_public_path',
+              'tests.test_hia_program_runtime_batch.ReferenceExecutionTests.test_forged_and_changed_bytes_require_current_complete_admission',
+              'tests.test_hia_program_runtime_batch.ReferenceExecutionTests.test_full_u8_domain_keeps_original_reports_ticks_and_transcript',
+              'tests.test_hia_program_runtime_batch.ReferenceExecutionTests.test_incomplete_and_expired_observations_remain_unknown',
+              'tests.test_hia_program_runtime_batch.ReferenceExecutionTests.test_public_executor_revalidates_each_call_and_never_accepts_a_plan',
+              'tests.test_hia_program_runtime_batch.ReferenceExecutionTests.test_traps_resources_budgets_and_argument_refusals_are_identical',
           )
-          suite, planned = load_declared_suite(('tests.test_hia_program_runtime_prepared',))
+          suite, planned = load_declared_suite(('tests.test_hia_program_runtime_prepared',
+                                                'tests.test_hia_program_runtime_batch'))
           if planned != expected or suite.countTestCases() != len(expected):
               raise SystemExit('complete prepared VM gate identities differ')
           raise SystemExit(0 if run_suite(suite) else 1)
@@ -2394,11 +2403,16 @@ jobs:
           python -B tools/qualify_hia_full_cost_callers.py
           --cold-report "$RUNNER_TEMP/hia-cold.json"
           --evidence "$RUNNER_TEMP/hia-full-cost-callers"
-      - name: Installed default HIA full-cost package and ordinary worker custody
+      - name: Explicit reference HIA full-cost package and retained worker API custody
         env:
           HEPTA_HIA_DEFAULT_RELEASE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_DEFAULT_RELEASE_EVIDENCE: ${{ runner.temp }}/hia-default-release
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_default_native_release
+      - name: Default native wheel inventory and actual installed HIA commands
+        env:
+          HEPTA_HIA_NATIVE_DISTRIBUTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_DISTRIBUTION_EVIDENCE: ${{ runner.temp }}/hia-native-distribution
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_distribution
       - name: Native patch impact and complete original public graph controls
         env:
           HEPTA_HIA_PATCH_IMPACT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json

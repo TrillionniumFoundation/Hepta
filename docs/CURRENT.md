@@ -2,10 +2,16 @@
 
 HIA uses lowercase `.hepta` source files. **The source naming migration is
 complete; whole-product native implementation and qualification remain incomplete.**
-The ordinary Linux x86-64 wheel and editable build both package the public
-`hia` ELF and its companion executables. The wheel build derives package pins
-from the matching cold report. The source pin template remains `None`, and
-the Python import library retains `hepta.cli.hia_main`.
+The ordinary Linux x86-64 wheel contains the public `hia` ELF, native
+companions and required HIA resources; it contains no Python import library
+or CPython extension. Its builder requires the complete source-attested native
+`store.hiapack`, a matching `hia-release` installer and the original private
+Worker/controller installation. The native release owner builds that package
+from the same complete cold source; arbitrary external packages are refused.
+Public companion bytes are checked against the package, with a recorded HIA
+pip-directory stat adaptation for the public dispatcher. Hosted APIs and their independent controls require an explicit
+reference wheel (`hia.reference-wheel=true`) or editable development build.
+Their source pin template remains `None`.
 The independently installable Core package also supplies a standalone `hia`.
 The durable MCP service, default worker startup and whole-product delivery
 still require their own qualification. `whole_native_delivery_qualified`,

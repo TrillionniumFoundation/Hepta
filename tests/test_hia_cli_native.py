@@ -1043,7 +1043,8 @@ print(json.dumps({"schema":"hepta.hia.cli-installed-execution.v1",
 '''
         try:
             command([packaging_python, "-B", "-m", "pip", "wheel", "--no-cache-dir", "--no-deps",
-                     "--no-index", "--no-build-isolation", "--wheel-dir", str(wheels), str(source)], "wheel-build")
+                     "--no-index", "--no-build-isolation", "--config-settings", "hia.reference-wheel=true",
+                     "--wheel-dir", str(wheels), str(source)], "wheel-build")
             wheel, = wheels.glob("*.whl")
             with zipfile.ZipFile(wheel) as archive:
                 members = archive.namelist()

@@ -204,12 +204,13 @@ def load_source(source):
 
 
 def execution_inputs(source):
-    paths = {Path(__file__).resolve(), source / "tools/build_hia_ndu_bridge.py"}
+    paths = {Path(__file__).resolve(), source / "tools/build_hia_ndu_scalar.py"}
     for module in list(sys.modules.values()):
         filename = getattr(module, "__file__", None)
         if filename and str(filename).endswith(".py") and Path(filename).resolve().is_relative_to(source):
             paths.add(Path(filename).resolve())
-    paths.update(path for path in (source / "rust/hia-ndu-bridge").rglob("*") if path.is_file())
+    from hepta.hia_ndu_native import SOURCES as NDU_SOURCES
+    paths.update(source / name for name in NDU_SOURCES)
     return {str(path): read_bytes(path) for path in sorted(paths)}
 
 

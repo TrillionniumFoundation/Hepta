@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from hepta.hia_ndu_optimizer import _bridge_identity, _bytes
+from hepta.hia_ndu_native import SOURCES as NDU_SOURCES
 from hepta.hia_ndu_prepared_ranker import PreparedNduRanker
 from hepta.hia_ndu_persistent_ranker import PersistentNduRanker, PROFILE
 from hepta.hia_ndu_scalar_selection import resolve_scalar_selection
@@ -32,7 +33,7 @@ MAX_SESSION_LIFETIME_S = 60.0
 SOURCE_PATHS = (
     "hepta/hia_ndu_prepared_ranker.py", "hepta/hia_ndu_persistent_ranker.py",
     "hepta/hia_ndu_optimizer.py", "hepta/hia_ndu_scalar_selection.py",
-    "hepta/hia_rust_crosscheck.py", "tools/build_hia_ndu_bridge.py",
+    "hepta/hia_rust_crosscheck.py", "tools/build_hia_ndu_scalar.py",
     "tools/qualify_hia_ndu_prepared_ranker.py",
     "tools/qualify_hia_ndu_persistent_ranker.py",
     "tools/replay_hia_ndu_persistent_ranker.py",
@@ -51,8 +52,7 @@ def _utc():
 
 def _source_files():
     paths = set(SOURCE_PATHS)
-    paths.update(str(path.relative_to(ROOT)) for path in
-                 (ROOT / "rust/hia-ndu-bridge").rglob("*") if path.is_file())
+    paths.update(NDU_SOURCES)
     return {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in sorted(paths)}
 
 

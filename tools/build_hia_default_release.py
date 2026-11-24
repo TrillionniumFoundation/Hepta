@@ -1,9 +1,8 @@
-"""Construct a platform-tagged wheel with packaged HIA cost and Core ELF owners.
+"""Build the native production distribution or an explicit hosted reference wheel.
 
-The ordinary wheel installs a compiled HIA command and its sibling executables.
-Strict mode requires the complete current cold source identity.
-The data-only pin, image and wheel are derived outputs, never circular cold
-inputs. Explicit development construction is reported separately throughout.
+The ordinary wheel contains HIA ELF commands and required data only. Reference
+and development construction retain the hosted APIs for independent controls.
+Both cold profiles require the complete current cold source identity.
 """
 from __future__ import annotations
 
@@ -36,6 +35,11 @@ PACKAGE_DIRECTORY = 'hepta/' + str(Path(BUNDLE_RESOURCE).parent)
 SCHEMA = 'hepta.hia.default-native-wheel-build.v1'
 WHEEL_TAG = 'py3-none-linux_x86_64'
 SLOT_RECEIPT = 'hepta/_slot_mechanical_build.json'
+NATIVE_BUILD_TAG = '2hianative'
+NATIVE_BUILD_SCHEMA = 'hepta.hia.native-production-wheel-build.v1'
+NATIVE_DISTRIBUTION_SCHEMA = 'hepta.hia.native-runtime-distribution.v1'
+MCP_PROGRAMS = ('hia-mcp-request-audit', 'hia-mcp-job-bridge', 'hia-mcp-service')
+JOBCTL_PROGRAM = 'hepta-runtime-jobctl'
 
 
 def _wheel_tag(path, metadata):
@@ -84,8 +88,8 @@ def _base_wheel(stage, output, captured, *, native_store_only):
     environment['PYTHONDONTWRITEBYTECODE'] = '1'
     if native_store_only:
         environment['HEPTA_HIA_STRICT_NATIVE_STORE_WHEEL'] = '1'
-    # This is the Python import library for the native wheel. Call its packaging
-    # backend directly so it cannot recursively dispatch the public wheel build.
+    # This library exists only in an explicitly requested reference/development
+    # distribution. Its backend must not recursively dispatch production.
     output.mkdir(mode=0o700)
     command = [sys.executable, '-B', '-c',
                'from setuptools.build_meta import build_wheel; import sys; print(build_wheel(sys.argv[1]))',
@@ -166,10 +170,172 @@ def _wheel_contents(path, sources, captured, images):
     return files, distribution, release_tag
 
 
+def _native_ndu_members(directory, compiler, cold_report, *, sources, distribution=None):
+    """Ship the actual HIA scalar evaluator and its exact source/build custody."""
+    from hepta.hia_ndu_native import BINARY_RESOURCE, RECEIPT_RESOURCE, SOURCES
+    from tools.build_hia_ndu_scalar import build as build_ndu
+
+    executable = build_ndu(directory, compiler, cold_report)
+    receipt = directory / 'build-receipt.json'
+    inputs = {path: path.read_bytes() for path in (executable, receipt)}
+    members = {'hepta/' + BINARY_RESOURCE: inputs[executable],
+               'hepta/' + RECEIPT_RESOURCE: inputs[receipt]}
+    if distribution is not None:
+        members[distribution.removesuffix('.dist-info') + '.data/scripts/hia-ndu-scalar'] = inputs[executable]
+    for name in SOURCES:
+        path = ROOT / name
+        raw = path.read_bytes()
+        if sha256(raw).hexdigest() != sources.get(name):
+            raise ValueError('packaged HIA NDU source differs from matching cold inputs')
+        inputs[path] = raw
+        members['hepta/_data/' + name] = raw
+    return members, inputs
+
+
+def _native_mcp_members(directory, compiler, cold_report, distribution, *, sources):
+    """Ship all three source-built MCP programs and their unchanged receipt."""
+    from tools.build_hia_mcp_service import build as build_mcp
+    from tools.generate_hia_mcp_release import PRODUCTS, source_paths
+    from tools.qualify_hia_selfhost_cli import inspect_executable
+
+    if tuple(PRODUCTS) != MCP_PROGRAMS:
+        raise ValueError('native MCP release roles differ from the production distribution')
+    build_mcp(directory, compiler, cold_report)
+    receipt = directory / 'build.json'
+    raw = receipt.read_bytes()
+    report = json.loads(raw)
+    captured = {ROOT / name: (ROOT / name).read_bytes() for name in source_paths()}
+    pins = {str(path.relative_to(ROOT)): sha256(data).hexdigest() for path, data in captured.items()}
+    if (report.get('schema') != 'hepta.hia.mcp-service-source-build.v1'
+            or report.get('matching_source_cold_build') is not True
+            or report.get('source_sha256') != pins
+            or any(sources.get(name) != digest for name, digest in pins.items())
+            or report.get('compiler_sha256') != sha256(Path(compiler).read_bytes()).hexdigest()
+            or report.get('cold_report_sha256') != sha256(Path(cold_report).read_bytes()).hexdigest()
+            or set(report.get('products', {})) != set(MCP_PROGRAMS)):
+        raise ValueError('native MCP build differs from the admitted source and compiler')
+    prefix = distribution.removesuffix('.dist-info') + '.data/scripts/'
+    members = {distribution + '/native-components/mcp-build.json': raw}
+    inputs = {receipt: raw, **captured}
+    for name in MCP_PROGRAMS:
+        path = directory / name
+        data = path.read_bytes()
+        inspect_executable(data)
+        if report['products'][name] != {'bytes': len(data), 'sha256': sha256(data).hexdigest()}:
+            raise ValueError('native MCP program differs from its source build: ' + name)
+        members[prefix + name] = data
+        inputs[path] = data
+    return members, inputs
+
+
+def _native_jobctl_members(directory, compiler, cold_report, distribution, *, sources):
+    """Build the mandatory system job owner from the identical cold source set."""
+    from tools.build_hia_system_jobctl import build as build_jobctl
+    from tools.generate_hia_system_jobctl_release import PRODUCT, source_paths
+    from tools.qualify_hia_selfhost_cli import inspect_executable
+
+    if PRODUCT != JOBCTL_PROGRAM:
+        raise ValueError('native Jobctl role differs from the production distribution')
+    executable = build_jobctl(directory, compiler, cold_report)
+    receipt = directory / 'build.json'
+    raw, binary = receipt.read_bytes(), executable.read_bytes()
+    report = json.loads(raw)
+    captured = {ROOT / name: (ROOT / name).read_bytes() for name in source_paths()}
+    pins = {str(path.relative_to(ROOT)): sha256(data).hexdigest() for path, data in captured.items()}
+    product = {'bytes': len(binary), 'sha256': sha256(binary).hexdigest()}
+    if (executable != directory / JOBCTL_PROGRAM
+            or report.get('schema') != 'hepta.hia.system-jobctl-source-build.v1'
+            or report.get('matching_source_cold_build') is not True
+            or report.get('scope') != 'MATCHING_SOURCE_COLD_COMPONENT'
+            or report.get('source_sha256') != pins
+            or any(sources.get(name) != digest for name, digest in pins.items())
+            or report.get('compiler_sha256') != sha256(Path(compiler).read_bytes()).hexdigest()
+            or report.get('cold_report_sha256') != sha256(Path(cold_report).read_bytes()).hexdigest()
+            or report.get('products') != {JOBCTL_PROGRAM: product}
+            or report.get('executable_path') != JOBCTL_PROGRAM
+            or report.get('executable_sha256') != product['sha256']
+            or report.get('executable') != inspect_executable(binary)
+            or report.get('build_inputs_unchanged') is not True):
+        raise ValueError('native Jobctl build differs from the admitted source and executable')
+    prefix = distribution.removesuffix('.dist-info') + '.data/scripts/'
+    members = {prefix + JOBCTL_PROGRAM: binary,
+               distribution + '/native-components/jobctl-build.json': raw}
+    return members, {receipt: raw, executable: binary, **captured}
+
+
+def _native_package_members(directory, compiler, cold_report, distribution, *, sources, runtime, core_receipt):
+    """Attach the single complete native release and bind every public wheel role."""
+    from tools.build_hia_native_distribution_package import build as build_package, regular_bytes, validate_build
+    from tools.build_hia_core_edit import DISPATCH_ROLES
+
+    package = build_package(directory, compiler, cold_report)
+    package_raw = regular_bytes(package)
+    receipt_path = directory / 'build.json'
+    receipt_raw = regular_bytes(receipt_path)
+    report = json.loads(receipt_raw)
+    original = validate_build(package_raw, report, sources, regular_bytes(compiler), regular_bytes(cold_report))
+    prefix = distribution.removesuffix('.dist-info') + '.data/scripts/'
+    core = json.loads(core_receipt)
+    if (core.get('compiler_sha256') != report['compiler_sha256']
+            or core.get('cold_report_sha256') != report['cold_report_sha256']):
+        raise ValueError('wheel dispatcher and complete native package have different cold inputs')
+    layout = 'examples/hia_bootstrap/source_wheel_layout.hepta'
+    layout_receipt = core.get('compile_receipts', {}).get(layout, {})
+    if (layout_receipt.get('source_sha256') != sources.get(layout)
+            or layout_receipt.get('compiler_sha256') != report['compiler_sha256']):
+        raise ValueError('wheel dispatcher requires the admitted HIA layout owner')
+    roles = {name: sha256(original[name][1]).hexdigest() for name in DISPATCH_ROLES}
+    if core.get('executables', {}).get('hia', {}).get('role_sha256') != roles:
+        raise ValueError('wheel dispatcher roles differ from the single complete native package')
+    bindings = {}
+    for name, raw in runtime.items():
+        if not name.startswith(prefix):
+            continue
+        role = name.removeprefix(prefix)
+        if role not in original:
+            raise ValueError('wheel entry is not supplied by the complete native package: ' + role)
+        original_raw = original[role][1]
+        if role != 'hia' and raw != original_raw:
+            raise ValueError('wheel entry differs from the complete native package: ' + role)
+        binding = {'package_sha256': sha256(original_raw).hexdigest(),
+                   'delivered_sha256': sha256(raw).hexdigest(),
+                   'profile': 'byte-identical-native-package-member'}
+        if role == 'hia':
+            # Both executables authenticate exactly the same public roles. The
+            # HIA author changes only the validated directory/file stat predicates
+            # needed by pip's shared scripts directory; the private package stays intact.
+            binding.update(profile='source-bound-pip-dispatch-layout',
+                           layout_source=layout, layout_source_sha256=sources[layout],
+                           layout_compile_receipt=layout_receipt)
+        bindings[role] = binding
+    installer = original['hia-release'][1]
+    installer_path = prefix + 'hia-release'
+    if installer_path in runtime:
+        raise ValueError('native package installer duplicates another public role')
+    members = {
+        installer_path: installer,
+        distribution.removesuffix('.dist-info') + '.data/data/share/hia/store.hiapack': package_raw,
+        distribution + '/native-components/release-build.json': receipt_raw,
+        distribution + '/native-components/release-finalize.json': regular_bytes(directory / 'native-release.stdout'),
+        distribution + '/native-components/core-build.json': core_receipt,
+        distribution + '/native-package-bindings.json': encoded({
+            'schema': 'hepta.hia.native-wheel-package-bindings.v1',
+            'package': report['package'], 'source_identity_sha256': source_identity(sources),
+            'compiler_sha256': report['compiler_sha256'], 'cold_report_sha256': report['cold_report_sha256'],
+            'public_roles': bindings, 'installer_sha256': sha256(installer).hexdigest(),
+            'worker_and_controller_installation': 'original-private-depot-from-contained-package',
+        }),
+    }
+    inputs = {package: package_raw, receipt_path: receipt_raw,
+              directory / 'native-release.stdout': members[distribution + '/native-components/release-finalize.json']}
+    return members, inputs, report
+
+
 def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sources):
     """Produce pip's scripts directly from the authenticated public Core build."""
     from hepta.hia_program_selfhost import SOURCE_FILES
     from tools.build_hia_core_edit import DISPATCH_ROLES, PROGRAMS, build as build_core
+    from tools.qualify_hia_selfhost_cli import inspect_executable
 
     applications = {
         'examples/hia_bootstrap/core_cli/assembly_render.hepta': ('hia-render-assembly', ASSEMBLY_RENDER_RESOURCE),
@@ -181,15 +347,22 @@ def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sourc
         if source in applications:
             captured[source] = image
     build_core(directory, compiler, cold_report, release_only=True, wheel_layout=True, retain_compiled_image=retain)
-    receipt = json.loads((directory / 'build.json').read_bytes())
+    receipt_raw = (directory / 'build.json').read_bytes()
+    receipt = json.loads(receipt_raw)
     paths = {name: directory / name for kind, (name, _) in PROGRAMS.items() if kind != 'emit_object'}
     paths['hia-nominal-constructor'] = directory / 'nominal-constructor/hia-nominal-constructor'
+    paths['hia-safe-core-prove'] = directory / 'supplied-proof/hia-safe-core-prove'
     binaries = {path: path.read_bytes() for path in paths.values()}
     identities = {name: sha256(binaries[path]).hexdigest() for name, path in paths.items()}
     pins = receipt['executables']['hia']['role_sha256']
-    if (set(pins) != DISPATCH_ROLES or any(identities[role] != value for role, value in pins.items())
+    if (identities['hia-safe-core-prove'] != receipt['supplied_proof_sha256']
+            or set(pins) != DISPATCH_ROLES or any(identities[role] != value for role, value in pins.items())
             or any(not raw.startswith(b'\x7fELF\x02\x01\x01') for raw in binaries.values())):
         raise ValueError('wheel CLI differs from the executables authenticated by its native dispatcher')
+    for kind, (name, _) in PROGRAMS.items():
+        if kind != 'emit_object' and receipt['executables'][name]['elf'] != inspect_executable(binaries[paths[name]]):
+            raise ValueError('wheel CLI executable differs from its complete build receipt: ' + name)
+    binaries[directory / 'build.json'] = receipt_raw
     scripts = distribution.removesuffix('.dist-info') + '.data/scripts/'
     members = {scripts + name: binaries[path] for name, path in paths.items()}
     for relative in SOURCE_FILES:
@@ -412,9 +585,198 @@ def _cli_package_members(output, compiler, cold_report):
 
 
 
-def build(output, compiler, cold_report=None, *, development=False):
-    if type(development) is not bool or development == (cold_report is not None):
-        raise ValueError('choose one matching cold report or explicit development construction')
+def native_distribution_metadata(project_bytes):
+    """Describe the native executable distribution without importing setuptools."""
+    import re
+    import tomllib
+
+    project = tomllib.loads(project_bytes.decode('utf-8'))['project']
+    name, version, summary = (project[key] for key in ('name', 'version', 'description'))
+    if (type(name) is not str or not re.fullmatch(r'[A-Za-z0-9]+(?:[-_.][A-Za-z0-9]+)*', name)
+            or type(version) is not str or not re.fullmatch(r'[0-9]+(?:\.[0-9]+)*', version)
+            or type(summary) is not str or any(c in summary for c in '\r\n\0')):
+        raise ValueError('native distribution needs exact non-injectable project metadata')
+    normalized = re.sub(r'[-_.]+', '_', name)
+    distribution = normalized + '-' + version + '.dist-info'
+    metadata = ('Metadata-Version: 2.3\nName: ' + name + '\nVersion: ' + version
+                + '\nSummary: ' + summary + '\n\n').encode('utf-8')
+    wheel = ('Wheel-Version: 1.0\nGenerator: hepta.native-runtime-distribution.v1\n'
+             'Root-Is-Purelib: false\nBuild: ' + NATIVE_BUILD_TAG + '\nTag: ' + WHEEL_TAG + '\n').encode()
+    return distribution, {distribution + '/METADATA': metadata, distribution + '/WHEEL': wheel}
+
+
+def inspect_native_runtime_executable(role, raw):
+    """Use the producer's exact executable profile for each runtime role."""
+    if role == 'hia-nominal-constructor':
+        from tools.build_hia_sqlite_pager import inspect_static_executable
+        return inspect_static_executable(raw)
+    from tools.qualify_hia_selfhost_cli import inspect_executable
+    return inspect_executable(raw)
+
+
+def native_runtime_members(distribution, cli_members, auxiliary_members):
+    """Keep only the closed native runtime roles; refuse executable substitutions.
+
+    Source custody data for hosted adapters stays in the explicit reference
+    distribution. Public native programs carry their own source-derived pins.
+    """
+    from hepta.hia_program_selfhost import SOURCE_FILES
+    from tools.build_hia_core_edit import PROGRAMS
+    from tools.qualify_hia_selfhost_cli import inspect_executable
+
+    prefix = distribution.removesuffix('.dist-info') + '.data/scripts/'
+    programs = {name for kind, (name, _) in PROGRAMS.items() if kind != 'emit_object'}
+    programs.update(('hia-nominal-constructor', 'hia-safe-core-prove', 'hia-ndu-scalar', *MCP_PROGRAMS, JOBCTL_PROGRAM))
+    resources = {Path(name).name for name in SOURCE_FILES}
+    files = {}
+    for members in (cli_members, auxiliary_members):
+        for name, raw in members.items():
+            if not name.startswith(prefix):
+                continue
+            role = name.removeprefix(prefix)
+            if (Path(role).name != role or role not in programs | resources
+                    or type(raw) is not bytes or not raw or name in files):
+                raise ValueError('unbound, duplicate or invalid native runtime member: ' + name)
+            if role in programs:
+                inspect_native_runtime_executable(role, raw)
+            files[name] = raw
+    if {name.removeprefix(prefix) for name in files} != programs | resources:
+        raise ValueError('native runtime distribution is missing a required program or HIA resource')
+    receipt = auxiliary_members.get('hepta/_hia_ndu_scalar_build.json')
+    if type(receipt) is not bytes:
+        raise ValueError('native NDU runtime requires its source-bound build receipt')
+    ndu = json.loads(receipt)
+    binary = files[prefix + 'hia-ndu-scalar']
+    if (type(ndu) is not dict or ndu.get('implementation') != 'HIA'
+            or ndu.get('scope') != 'MATCHING_SOURCE_COLD_COMPONENT'
+            or ndu.get('executable_path') != 'hia-ndu-scalar'
+            or ndu.get('executable_sha256') != sha256(binary).hexdigest()
+            or ndu.get('executable') != inspect_executable(binary)):
+        raise ValueError('native NDU build receipt does not bind the actual runtime ELF')
+    files[distribution + '/native-components/ndu-build.json'] = receipt
+    mcp_path = distribution + '/native-components/mcp-build.json'
+    mcp_raw = auxiliary_members.get(mcp_path)
+    if type(mcp_raw) is not bytes:
+        raise ValueError('native MCP runtime requires its complete source build receipt')
+    mcp = json.loads(mcp_raw)
+    products = {name: {'bytes': len(files[prefix + name]),
+                       'sha256': sha256(files[prefix + name]).hexdigest()} for name in MCP_PROGRAMS}
+    if (type(mcp) is not dict or mcp.get('schema') != 'hepta.hia.mcp-service-source-build.v1'
+            or mcp.get('matching_source_cold_build') is not True or mcp.get('products') != products):
+        raise ValueError('native MCP receipt does not bind all actual runtime programs')
+    files[mcp_path] = mcp_raw
+    jobctl_path = distribution + '/native-components/jobctl-build.json'
+    jobctl_raw = auxiliary_members.get(jobctl_path)
+    if type(jobctl_raw) is not bytes:
+        raise ValueError('native Jobctl runtime requires its complete source build receipt')
+    jobctl = json.loads(jobctl_raw)
+    binary = files[prefix + JOBCTL_PROGRAM]
+    product = {'bytes': len(binary), 'sha256': sha256(binary).hexdigest()}
+    if (type(jobctl) is not dict or jobctl.get('schema') != 'hepta.hia.system-jobctl-source-build.v1'
+            or jobctl.get('matching_source_cold_build') is not True
+            or jobctl.get('scope') != 'MATCHING_SOURCE_COLD_COMPONENT'
+            or jobctl.get('products') != {JOBCTL_PROGRAM: product}
+            or jobctl.get('executable_path') != JOBCTL_PROGRAM
+            or jobctl.get('executable_sha256') != product['sha256']
+            or jobctl.get('executable') != inspect_executable(binary)
+            or jobctl.get('build_inputs_unchanged') is not True):
+        raise ValueError('native Jobctl receipt does not bind the actual runtime program')
+    files[jobctl_path] = jobctl_raw
+    if any(name.startswith('hepta/') or Path(name).suffix in {'.py', '.pyc', '.pyo', '.pth', '.rs', '.c', '.so', '.sh'}
+           for name in files):
+        raise ValueError('reference or development runtime escaped into the native distribution')
+    return files
+
+
+def _build_native_distribution(output, compiler, cold_report):
+    """Build the ordinary production wheel from native programs and data only."""
+    import platform
+
+    if (platform.system() != 'Linux' or platform.machine() != 'x86_64'
+            or ctypes.sizeof(ctypes.c_void_p) != 8):
+        raise ValueError('native distribution requires Linux x86-64 LP64')
+    output, compiler = Path(output).absolute(), Path(compiler).resolve(strict=True)
+    cold_report = Path(cold_report).resolve(strict=True)
+    compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
+    sources = admit_cold_build(compiler_bytes, cold_bytes)
+    project = (ROOT / 'pyproject.toml').read_bytes()
+    if sha256(project).hexdigest() != sources['pyproject.toml']:
+        raise ValueError('native distribution metadata differs from its admitted source')
+    distribution, metadata = native_distribution_metadata(project)
+    output.mkdir(mode=0o700, parents=False, exist_ok=False)
+    cli, inputs, _ = _native_cli_scripts(output / 'native-cli', compiler, cold_report,
+                                        distribution, sources=sources)
+    # This mandatory native owner is supplied by the NDU closure. No Python or
+    # Rust evaluator may serve as a missing production entry.
+    auxiliary, auxiliary_inputs = _native_ndu_members(output / 'native-ndu', compiler, cold_report,
+                                                      sources=sources, distribution=distribution)
+    inputs.update(auxiliary_inputs)
+    mcp, mcp_inputs = _native_mcp_members(output / 'native-mcp', compiler, cold_report,
+                                         distribution, sources=sources)
+    if set(auxiliary) & set(mcp):
+        raise ValueError('duplicate auxiliary native distribution role')
+    auxiliary.update(mcp)
+    inputs.update(mcp_inputs)
+    jobctl, jobctl_inputs = _native_jobctl_members(output / 'native-jobctl', compiler, cold_report,
+                                                  distribution, sources=sources)
+    if set(auxiliary) & set(jobctl):
+        raise ValueError('duplicate native Jobctl distribution role')
+    auxiliary.update(jobctl)
+    inputs.update(jobctl_inputs)
+    runtime = native_runtime_members(distribution, cli, auxiliary)
+    ndu = json.loads(auxiliary['hepta/_hia_ndu_scalar_build.json'])
+    if (ndu['compiler_sha256'] != sha256(compiler_bytes).hexdigest()
+            or ndu['cold_report_sha256'] != sha256(cold_bytes).hexdigest()
+            or any(sources.get(name) != digest for name, digest in ndu['source_sha256'].items())):
+        raise ValueError('native NDU receipt differs from the admitted compiler, cold report or source')
+    package_members, package_inputs, package_report = _native_package_members(
+        output / 'native-package', compiler, cold_report, distribution, sources=sources,
+        runtime=runtime, core_receipt=inputs[output / 'native-cli/build.json'])
+    if set(runtime) & set(package_members):
+        raise ValueError('native package payload duplicates a distribution member')
+    runtime.update(package_members)
+    inputs.update(package_inputs)
+    inventory = {name: {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+                 for name, raw in sorted(runtime.items())}
+    provenance = {'schema': NATIVE_DISTRIBUTION_SCHEMA, 'distribution_profile': 'native-production',
+        'target': TARGET, 'source_manifest': sources, 'source_identity_sha256': source_identity(sources),
+        'compiler_sha256': sha256(compiler_bytes).hexdigest(), 'cold_report_sha256': sha256(cold_bytes).hexdigest(),
+        'runtime_members': inventory, 'python_runtime_members': [], 'native_entry_required': True,
+        'complete_native_package': package_report['package'],
+        'complete_native_package_member_count': len(package_report['members']),
+        'complete_native_package_source_attested': True,
+        'worker_controller_installer_supplied_by_contained_package': True,
+        'retained_reference_bodies_removed': True, 'whole_native_delivery_qualified': False,
+        'production_activated': False}
+    files = {**metadata, **runtime, distribution + '/native-runtime.json': encoded(provenance)}
+    images = _wheel_record_images(output / 'wheel-record', compiler, sources, cold_bytes)
+    if (current_sources() != sources or compiler.read_bytes() != compiler_bytes
+            or cold_report.read_bytes() != cold_bytes or (ROOT / 'pyproject.toml').read_bytes() != project
+            or any(path.read_bytes() != raw for path, raw in inputs.items())):
+        raise ValueError('native distribution inputs changed before publication')
+    stem = distribution.removesuffix('.dist-info')
+    wheel = output / (stem + '-' + NATIVE_BUILD_TAG + '-' + WHEEL_TAG + '.whl')
+    members = _write_wheel(wheel, files, distribution, images)
+    report = {**provenance, 'schema': NATIVE_BUILD_SCHEMA, 'wheel': str(wheel),
+        'wheel_sha256': sha256(wheel.read_bytes()).hexdigest(), 'wheel_tag': WHEEL_TAG,
+        'members': members, 'public_cli_entry': 'native-elf', 'ordinary_source_default_changed': True,
+        'matching_source_cold_component': True, 'installed_default_qualification_completed': False,
+        'python_library_wheel_command': None}
+    (output / 'build.json').write_bytes(encoded(report))
+    return wheel
+
+
+def build_reference_wheel(output, compiler, cold_report):
+    """Explicit hosted API/oracle distribution, excluded from ordinary production."""
+    return build(output, compiler, cold_report, reference=True)
+
+
+def build(output, compiler, cold_report=None, *, development=False, reference=False):
+    if (type(development) is not bool or type(reference) is not bool
+            or development and reference or development == (cold_report is not None)):
+        raise ValueError('choose one matching cold report, explicit reference wheel, or development construction')
+    if not development and not reference:
+        return _build_native_distribution(output, compiler, cold_report)
     import ctypes
     import platform
     if (platform.system() != 'Linux' or platform.machine() != 'x86_64'
@@ -502,6 +864,10 @@ def build(output, compiler, cold_report=None, *, development=False):
             != captured['examples/hia_bootstrap/full_cost.hepta']):
         raise ValueError('native candidate wheel does not own its exact HIA source')
     if not development:
+        ndu_members, ndu_inputs = _native_ndu_members(
+            output / 'native-ndu', compiler, cold_report, sources=sources, distribution=distribution)
+        owner_members.update(ndu_members)
+        owner_inputs.update(ndu_inputs)
         cli_scripts, cli_inputs, assembly_images = _native_cli_scripts(
             output / 'native-cli', compiler, cold_report, distribution, sources=sources)
         owner_members.update(cli_scripts)
@@ -523,6 +889,8 @@ def build(output, compiler, cold_report=None, *, development=False):
         'default_bundle_sha256': pin[3], 'pin_template_sha256': sha256(captured[PIN_FILE]).hexdigest(),
         'derived_pin_sha256': sha256(pin_raw).hexdigest(),
         'derived_pin_resource': 'hepta/' + PIN_RESOURCE, 'runtime_source_transformations': {},
+        'distribution_profile': 'development-reference' if development else 'reference-only',
+        'reference_only': True,
         'retained_reference_bodies_removed': False, 'whole_native_delivery_qualified': False,
         'production_activated': False})
     derived = {**owner_members, 'hepta/' + PIN_RESOURCE: pin_raw, PACKAGE_DIRECTORY + '/bundle.json': bundle,
@@ -550,7 +918,9 @@ def build(output, compiler, cold_report=None, *, development=False):
         'default_native_cli_control': not development,
         'derived_package_members': sorted(derived),
         'public_cli_entry': None if development else 'native-elf',
-        'ordinary_source_default_changed': not development, 'retained_reference_bodies_removed': False,
+        'ordinary_source_default_changed': False, 'retained_reference_bodies_removed': False,
+        'distribution_profile': 'development-reference' if development else 'reference-only',
+        'reference_only': True,
         'matching_source_cold_component': not development,
         'installed_default_qualification_completed': False,
         'whole_native_delivery_qualified': False, 'production_activated': False}
@@ -565,8 +935,10 @@ def main():
     choice = parser.add_mutually_exclusive_group(required=True)
     choice.add_argument('--cold-report', type=Path)
     choice.add_argument('--development', action='store_true')
+    parser.add_argument('--reference', action='store_true',
+                        help='explicit hosted API/oracle wheel; excluded from ordinary production')
     args = parser.parse_args()
-    print(build(args.output, args.compiler, args.cold_report, development=args.development))
+    print(build(args.output, args.compiler, args.cold_report, development=args.development, reference=args.reference))
 
 
 if __name__ == '__main__':

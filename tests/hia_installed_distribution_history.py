@@ -40,8 +40,24 @@ def _restore(data, record):
     return original
 
 
+REFERENCE_FIXTURE = 'tests/fixtures/hia_native_distribution_reference_sources.json'
+REFERENCE_FIXTURE_SHA256 = 'a8b85794e88413a40e6fcc14d7764856a661b11258bc31a327bcd8eee92bd5f3'
+
+
+def reference_predecessor(name, data):
+    """Restore only exact reviewed reference-profile argument/scope changes."""
+    raw = (Path(__file__).resolve().parents[1] / REFERENCE_FIXTURE).read_bytes()
+    if sha256(raw).hexdigest() != REFERENCE_FIXTURE_SHA256:
+        raise ValueError('the native reference-profile source relation differs')
+    record = json.loads(raw)['files'].get(name)
+    if record is not None and sha256(data).hexdigest() == record['current']['sha256']:
+        return _restore(data, record)
+    return data
+
+
 def predecessor(name, data, reverse=_restore):
     """Unwrap only the exact reviewed file. Prior authorities check their own full bytes."""
+    data = reference_predecessor(name, data)
     record = _records().get(name)
     if record is None or sha256(data).hexdigest() != record['current']['sha256']:
         return data

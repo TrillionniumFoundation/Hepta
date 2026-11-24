@@ -139,20 +139,25 @@ def _signatures_reference(program, foreign_buffer_exports=()):
 
 
 def _vm_observation(program, case, *, steps=1_000_000, heap=16 * 1024 * 1024,
-                    foreign_buffer_exports=()):
+                    foreign_buffer_exports=(), _execute=None):
     from .hia_program_runtime import execute_program, HIAProgramBudgetExceeded, HIAProgramTrap
     if case["function"] in dict(foreign_buffer_exports):
         from .hia_agent_buffers import reference_observation
         return reference_observation(program, case, foreign_buffer_exports,
                                      steps=10_000_000, heap=heap)
     try:
-        result = execute_program(program, case["function"], case["arguments"],
-                                 max_steps=steps, max_heap_bytes=heap)
+        result = (execute_program(program, case["function"], case["arguments"],
+                                  max_steps=steps, max_heap_bytes=heap) if _execute is None else
+                  _execute(case["function"], case["arguments"],
+                           max_steps=steps, max_heap_bytes=heap))
     except HIAProgramTrap as exc:
         return {"status": "trapped", "trap_code": exc.code, "ledger": exc.report}
     except HIAProgramBudgetExceeded as exc:
         return {"status": "budget_exceeded", "budget_code": exc.code, "ledger": exc.report}
     return {"status": "returned", "values": result["values"], "ledger": result}
+
+
+_REFERENCE_VM_OBSERVATION = _vm_observation
 
 
 def _value_observation(observation):
@@ -1438,6 +1443,13 @@ class HIAAgentService:
                 transcript = sha256()
             checked = 0
             deadline = time.monotonic_ns() + min(10000, timeout_ms) * 1_000_000
+            # Prepare only the ordinary reference path. Selected components
+            # retain their existing authority and per-observation effects.
+            before_execute = after_execute = None
+            if native is None and policy is None and not stream and _vm_observation is _REFERENCE_VM_OBSERVATION:
+                from .hia_program_runtime_batch import prepare_reference_execution
+                before_execute = prepare_reference_execution(original)
+                after_execute = prepare_reference_execution(revised)
             for name, (types, required) in domains.items():
                 if native is None:
                     input_domains = [[False, True] if typ == "bool" else
@@ -1452,8 +1464,12 @@ class HIAAgentService:
                         return "unknown", "Pure acyclic scalar finite domain; exhaustive enumeration deadline expired", {
                             "method": "finite_domain", "checked": checked, "required": total, "complete": False}
                     case = {"function": name, "arguments": list(arguments)}
-                    before = _vm_observation(original, case, steps=10000)
-                    after = _vm_observation(revised, case, steps=10000)
+                    before = (_vm_observation(original, case, steps=10000)
+                              if before_execute is None or _vm_observation is not _REFERENCE_VM_OBSERVATION else
+                              _vm_observation(original, case, steps=10000, _execute=before_execute))
+                    after = (_vm_observation(revised, case, steps=10000)
+                             if after_execute is None or _vm_observation is not _REFERENCE_VM_OBSERVATION else
+                             _vm_observation(revised, case, steps=10000, _execute=after_execute))
                     if "budget_exceeded" in {before["status"], after["status"]}:
                         return "unknown", "Pure acyclic scalar finite domain; reference budget prevented completeness", {
                             "method": "finite_domain", "checked": checked, "required": total, "complete": False}
@@ -1468,6 +1484,13 @@ class HIAAgentService:
                         return "refuted", "All scalar inputs in a finite pure acyclic domain; return/first-trap/resource observations", {
                             "method": "finite_domain", "counterexample": case, "before": first, "after": second,
                             "checked": checked, "required": total, "complete": False}
+            if (((before_execute is not None or after_execute is not None) and
+                    _vm_observation is not _REFERENCE_VM_OBSERVATION) or
+                    (before_execute is not None and not before_execute.current()) or
+                    (after_execute is not None and not after_execute.current())):
+                return "unknown", "Core bytes or reference bindings changed during finite-domain observation", {
+                    "method": "finite_domain", "checked": checked, "required": total,
+                    "complete": False, "source_unchanged": False}
             if time.monotonic_ns() > deadline:
                 return "unknown", "Exhaustive scalar enumeration finished after its frozen verification deadline", {
                     "method": "finite_domain", "checked": checked, "required": total,

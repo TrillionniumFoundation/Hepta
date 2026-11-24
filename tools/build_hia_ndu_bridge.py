@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build the HIA transport against exact original NDU Rust source bytes.
+"""Explicit reference builds against exact original NDU Rust source bytes.
+
+The retired scalar oracle is extracted from a digest-pinned review archive only
+with --reference-scalar. Default HIA packaging never invokes this tool. Other
+unconverted profiles must supply their explicit adapter to the shared builder.
 
 The source checkout is read-only. A separate workspace excludes unrelated
 monorepo members and dev-only dependencies; all three production src trees
@@ -15,12 +19,15 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tarfile
+import tempfile
 import time
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
-ADAPTER = ROOT / "rust/hia-ndu-bridge"
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(ROOT))
 
 
 def _quote(value):
@@ -86,7 +93,9 @@ def build(checkout, output, *, cargo="cargo", adapter=None, release=False):
     child_cpu = _children_cpu_ns()
     builder_digest = sha256(Path(__file__).read_bytes()).hexdigest()
     checkout, output = Path(checkout).resolve(), Path(output).resolve()
-    adapter = ADAPTER if adapter is None else Path(adapter).resolve(strict=True)
+    if adapter is None:
+        raise ValueError("Rust scalar production executor is retired; use build_reference for the archived oracle")
+    adapter = Path(adapter).resolve(strict=True)
     if output.exists():
         raise ValueError("build output must be a new directory")
     locked = json.loads((adapter / "upstream.json").read_text())
@@ -237,13 +246,22 @@ def build(checkout, output, *, cargo="cargo", adapter=None, release=False):
     return report
 
 
+def build_reference(checkout, output, *, cargo="cargo", release=False):
+    from tools.hia_ndu_reference import materialize_reference
+    with tempfile.TemporaryDirectory(prefix="hia-ndu-rust-reference-") as temporary:
+        adapter = materialize_reference(Path(temporary) / "adapter")
+        return build(checkout, output, cargo=cargo, adapter=adapter, release=release)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--upstream",required=True,type=Path)
     parser.add_argument("--output",required=True,type=Path)
     parser.add_argument("--cargo",default="cargo")
+    parser.add_argument("--reference-scalar", required=True, action="store_true",
+                        help="explicitly rebuild the archived Rust oracle; never a production evaluator")
     args = parser.parse_args()
-    result = build(args.upstream,args.output,cargo=args.cargo)
+    result = build_reference(args.upstream,args.output,cargo=args.cargo)
     print(json.dumps({key:result[key] for key in ("binary","binary_sha256","original_rust_sources_unchanged")},indent=2))
 
 

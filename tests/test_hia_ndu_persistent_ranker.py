@@ -14,6 +14,8 @@ import threading
 import time
 import unittest
 from unittest.mock import patch
+from tests.hia_ndu_transport_fixture import fixture_receipt, patch_fixture_admission
+from hepta.hia_ndu_native import UPSTREAM
 
 from hepta.hia_ndu_optimizer import ROOT, OptimizationRejected, _bytes
 from hepta.hia_ndu_persistent_ranker import (
@@ -86,7 +88,8 @@ class PersistentRankerTests(unittest.TestCase):
         self.binary = self.root / "bridge"
         self.receipt_file = self.root / "build-receipt.json"
         self.marker = self.root / "calls"
-        self.locked = json.loads((ROOT / "rust/hia-ndu-bridge/upstream.json").read_bytes())
+        self.locked = {"commit": UPSTREAM}
+        patch_fixture_admission(self)
         self.request = {
             "schema": "hepta.hia.ndu-request.v1", "objective_sha256": "1" * 64, "generation": 1,
             "resource_cap_q32": 1, "candidates": [
@@ -112,16 +115,7 @@ class PersistentRankerTests(unittest.TestCase):
         raw = ("#!" + sys.executable + "\n" + source).encode()
         self.binary.write_bytes(raw)
         self.binary.chmod(0o700)
-        adapter = ROOT / "rust/hia-ndu-bridge"
-        inputs = {str(p.relative_to(adapter)): sha256(p.read_bytes()).hexdigest()
-                  for p in sorted(adapter.rglob("*")) if p.is_file()}
-        receipt = {"schema": "hepta.hia.ndu-build.v1", "upstream": self.locked,
-                   "original_rust_sources_unchanged": True, "all_original_non_manifest_inputs_unchanged": True,
-                   "build_inputs_unchanged": True, "locked_dependencies": True,
-                   "isolated_production_manifests": True, "production_activation": False,
-                   "adapter_files": inputs, "cargo_lock_sha256": inputs["Cargo.lock"],
-                   "builder_sha256": sha256((ROOT / "tools/build_hia_ndu_bridge.py").read_bytes()).hexdigest(),
-                   "binary_sha256": sha256(raw).hexdigest(), "build_inputs": {"fixture": True}}
+        receipt = fixture_receipt(raw)
         self.receipt_file.write_bytes(_bytes(receipt))
 
     def owner(self, **kwargs):

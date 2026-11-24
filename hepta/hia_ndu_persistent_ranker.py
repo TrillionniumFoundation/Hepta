@@ -318,7 +318,7 @@ class PersistentNduRanker:
     the caller still owns descriptor/pipe closure and complete outer costing.
     """
 
-    def __init__(self, bridge, *, max_requests=MAX_REQUESTS, lifetime_s=60.0,
+    def __init__(self, bridge=None, *, max_requests=MAX_REQUESTS, lifetime_s=60.0,
                  startup_timeout_s=1.0, observer=None):
         started = time.perf_counter_ns()
         lifetime = _bounded_seconds(lifetime_s, "lifetime")

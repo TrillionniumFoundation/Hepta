@@ -7,7 +7,7 @@ This document records the scope of checkpoint
 `f882b4bb02d39bc1dbe0d2237aac69a51469ae0a`. Its tests and limitations belong to
 that source identity. The subsequent chain/original-type/native lifecycle
 convergence is documented in
-[HIA_BLOCKER_CONVERGENCE_20261028.md](HIA_BLOCKER_CONVERGENCE_20261028.md);
+[the historical blocker convergence report](https://github.com/TrillionniumFoundation/Hepta/blob/3f29ee2ab931950751880d62a28e3a1ae6753cfa/docs/HIA_BLOCKER_CONVERGENCE_20261028.md);
 the earlier chain-execution refusal below is not the current v5 profile.
 
 This increment starts at recovered checkpoint

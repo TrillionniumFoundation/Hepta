@@ -285,7 +285,7 @@ def routing(*, artifact=False, evaluate_replay=False):
     # canonical serialization guarantees sorted keys and an unescaped tool.
     source = '\ndef route(s:readbuf) -> u32:\n    if byte(s, 0) != 123:\n        return 0\n'
     schema = b',"schema":"hia-agent-worker-request-v1","tool":"'
-    methods = ((1, b'hia_read'), (2, b'hia_describe'))
+    methods = ((1, b'hia_read'), (2, b'hia_describe'), (12, b'hia_resource_read'))
     if artifact:
         methods += ((3, b'hia_artifact'), (4, b'hia_context'), (5, b'hia_inspect'),
                     (6, b'hia_candidate'), (7, b'hia_rollback'), (8, b'hia_emit'), (9, b'hia_adopt'),
@@ -295,7 +295,7 @@ def routing(*, artifact=False, evaluate_replay=False):
     for result, method in methods:
         suffix = schema + method + b'"}'
         source += f'    if length(s) > {len(suffix)} and match_{result}(s, length(s) - {len(suffix)}):\n'
-        source += f'        return {result}\n'
+        source += f'        return {1 if result == 12 else result}\n'
     source += '    return 0\n'
     if artifact:
         # Check the same canonical suffix without duplicating its fixed prefix
@@ -464,7 +464,14 @@ def source_program(*, artifact=False, evaluate_replay=False, evaluate_intake=Fal
 
 
 if __name__ == '__main__':
-    Path(SOURCE).write_text(render_assembly(document(source_program(), 'worker_readonly_capsule')),
-                            encoding='utf-8')
-    Path(NATIVE_SOURCE).write_text(render_assembly(document(source_program(artifact=True), 'worker_native_capsule')),
-                                   encoding='utf-8')
+    # Every installed capsule consumer uses this same routing authority.
+    # Keep optional replay/intake packages consistent with the ordinary Worker.
+    for name, options in (
+        (SOURCE, {}),
+        (NATIVE_SOURCE, {'artifact': True}),
+        (REPLAY_SOURCE, {'artifact': True, 'evaluate_replay': True}),
+        (INTAKE_SOURCE, {'artifact': True, 'evaluate_intake': True}),
+    ):
+        path = Path(name)
+        path.write_text(render_assembly(document(source_program(**options), path.stem)),
+                        encoding='utf-8')

@@ -390,7 +390,8 @@ class ExecutableCaptureNativeTests(unittest.TestCase):
         script = (
             "import subprocess, sys\n"
             "subprocess.run([sys.executable, '-I', '-m', 'pip', 'wheel', sys.argv[1], "
-            "'--no-deps', '--no-build-isolation', '--wheel-dir', sys.argv[2]], check=True)\n")
+            "'--no-deps', '--no-build-isolation', '--config-settings', 'hia.reference-wheel=true', "
+            "'--wheel-dir', sys.argv[2]], check=True)\n")
         env = {key: value for key, value in os.environ.items()
                if not key.startswith('HEPTA_') and not key.startswith('PYTHON')}
         child(root, 'wheel', script, arguments=(ROOT, dist), env=env, seconds=60)

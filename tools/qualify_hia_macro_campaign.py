@@ -36,12 +36,20 @@ ARM_ORDER = ("fixed", "greedy", "ordinary", "ndu")
 MAX_OBJECT_BYTES = 8 * 1024 * 1024
 MAX_OBJECTS = 16384
 MAX_BUNDLE_BYTES = 256 * 1024 * 1024
-SOURCE_FILES = ("tools/qualify_hia_macro_campaign.py", "tools/hia_agent_native_qualification.py",
+LEGACY_SOURCE_FILES = ("tools/qualify_hia_macro_campaign.py", "tools/hia_agent_native_qualification.py",
     "hepta/hia_agent_macro_policy.py", "hepta/hia_ndu_optimizer.py",
     "hepta/hia_agent_runner.py", "docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json",
     "tools/build_hia_ndu_bridge.py", "rust/hia-ndu-bridge/Cargo.toml",
     "rust/hia-ndu-bridge/Cargo.lock", "rust/hia-ndu-bridge/upstream.json",
     "rust/hia-ndu-bridge/src/main.rs")
+# Frozen legacy bundles retain their original source inventory for offline
+# replay. New campaigns bind only the HIA evaluator's actual component closure.
+from hepta.hia_ndu_native import SOURCES as NDU_SOURCES, SCHEMA as NDU_SCHEMA, UPSTREAM as NDU_UPSTREAM
+SOURCE_FILES = tuple(dict.fromkeys((
+    "tools/qualify_hia_macro_campaign.py", "tools/hia_agent_native_qualification.py",
+    "hepta/hia_agent_macro_policy.py", "hepta/hia_ndu_optimizer.py",
+    "hepta/hia_agent_runner.py", "docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json", *NDU_SOURCES)))
+
 CONTROL_DESCRIPTIONS = {
     "fixed": "search and evaluate the registered proposal; adopt only when the tool objective permits",
     "greedy": "compare only the observed import cost with incumbent use; ignore the remaining search pipeline",
@@ -463,6 +471,9 @@ def run_campaign(output, *, bridge=None, wall_ns=60_000_000_000, provider=None, 
     _require((provider is None and model_tokens == 0) or (provider is not None and model_tokens > 0),
              "actual provider and positive original model allowance must be supplied together")
     campaign_start = time.monotonic_ns()
+    if bridge is None:
+        from hepta.hia_ndu_native import default_ndu_bridge
+        bridge = default_ndu_bridge()
     evidence = Evidence(output)
     source_before = _source_inventory(evidence)
     worker_before = _worker_sources(evidence)
@@ -605,7 +616,7 @@ def verify_campaign(root):
     _require(scope["real_agent_model_tokens"] is None and scope["real_agent_provider_cost"] is None
         and scope["complete_real_agent_economics"] is False, "unknown external costs cannot become free complete costs")
     for inventory in (manifest["source_before"], manifest["source_after"]):
-        _require(set(inventory) == set(SOURCE_FILES), "source coverage missing")
+        _require(set(inventory) in (set(SOURCE_FILES), set(LEGACY_SOURCE_FILES)), "source coverage missing")
         for identity in inventory.values():
             _require(identity in originals, "source original missing")
     _require(manifest["source_before"] == manifest["source_after"], "source changed during campaign")
@@ -623,13 +634,26 @@ def verify_campaign(root):
         _require(set(native_bridge) == {"binary_sha256", "build_receipt_sha256"}
             and native_bridge["binary_sha256"] in originals, "native executable original missing")
         build_receipt = obj(native_bridge["build_receipt_sha256"])
-        _require(build_receipt["binary_sha256"] == native_bridge["binary_sha256"]
-            and build_receipt["upstream"] == obj(manifest["source_before"]["rust/hia-ndu-bridge/upstream.json"])
-            and build_receipt["builder_sha256"] == manifest["source_before"]["tools/build_hia_ndu_bridge.py"],
-            "native source/build original binding mismatch")
-        for filename, identity in build_receipt["adapter_files"].items():
-            _require(manifest["source_before"].get("rust/hia-ndu-bridge/" + filename) == identity,
-                     "native adapter source original missing")
+        if set(manifest["source_before"]) == set(SOURCE_FILES):
+            _require(build_receipt.get("schema") == NDU_SCHEMA
+                and build_receipt.get("implementation") == "HIA"
+                and build_receipt.get("scope") == "MATCHING_SOURCE_COLD_COMPONENT"
+                and build_receipt.get("compatibility_upstream_commit") == NDU_UPSTREAM
+                and build_receipt.get("executable_sha256") == native_bridge["binary_sha256"]
+                and build_receipt.get("build_inputs_unchanged") is True
+                and build_receipt.get("transport_assembled_during_build") is False
+                and build_receipt.get("source_sha256") == {
+                    name: manifest["source_before"][name] for name in NDU_SOURCES},
+                "HIA native source/build original binding mismatch")
+        else:
+            # Verification of old original bytes grants no execution admission.
+            _require(build_receipt["binary_sha256"] == native_bridge["binary_sha256"]
+                and build_receipt["upstream"] == obj(manifest["source_before"]["rust/hia-ndu-bridge/upstream.json"])
+                and build_receipt["builder_sha256"] == manifest["source_before"]["tools/build_hia_ndu_bridge.py"],
+                "native source/build original binding mismatch")
+            for filename, identity in build_receipt["adapter_files"].items():
+                _require(manifest["source_before"].get("rust/hia-ndu-bridge/" + filename) == identity,
+                         "native adapter source original missing")
     expected_order = []
     for index, task in enumerate(registration["task_inventory"]):
         original = obj(task["input_sha256"])

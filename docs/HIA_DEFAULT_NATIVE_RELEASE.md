@@ -1,6 +1,91 @@
-# Default HIA owner candidate wheel
+# Native production and explicit reference distributions
 
-The explicit candidate builder packages the existing complete `full_cost.hepta`
+
+## Ordinary native production wheel
+
+On Linux x86-64, `python -m pip install .` builds and installs a native
+production wheel. The archive contains the HIA dispatcher, the complete public
+Core command set, the supplied-artifact verifier, native scalar NDU, the three
+native MCP service programs, native system Jobctl, required HIA sources and data,
+and distribution records. It also requires the complete source-attested
+`store.hiapack` and its byte-identical `hia-release` installer. The package also includes `hia-source-contract`, the native source inventory
+contract producer. It validates the supplied metadata and inventory; it does not
+create a cold qualification report. The package contains
+the Worker, controller and every declared release member; the public commands
+and complete service installation therefore come from the same admitted source,
+compiler, cold report and final native package. It does not contain the
+`hepta` Python package, Python scripts, Rust programs or CPython extensions.
+Python is a source packaging prerequisite, not an installed runtime dependency.
+
+The builder admits the complete current cold report before creating its
+output. It binds every native executable and required resource to the actual
+source-derived build, validates complete ELF program headers, and generates
+the wheel hashes, RECORD and directory records through the HIA wheel owners.
+It does not construct a Python base wheel on this production path.
+
+The complete package builder automatically compiles its release bootstrap from
+the current cold source and invokes `hia-release-build` with an empty PATH. That
+HIA owner runs the same release DAG as the standalone product, including the
+native MCP, NDU and Jobctl outputs. The builder accepts no external package
+argument. It checks the exact declared member set, final source attestation,
+all bytes and modes, and an independent native install/verify readback.
+
+The wheel stores the full archive at `share/hia/store.hiapack` under the installation
+prefix. Its distribution records contain `native-components/release-build.json`,
+`native-components/release-finalize.json` and `native-package-bindings.json`.
+Use the recorded package SHA-256 with `hia-release install` and
+`hia-release verify` to create a new private depot from these exact installed
+bytes. The resulting digest directory contains the original `hia-worker-install`
+and controller installer, with their original private-directory rules.
+
+All public companion bytes must equal their corresponding complete-package
+members. The public `hia` dispatcher uses the existing source-bound HIA wheel
+layout owner to admit pip's script-directory modes while binding the exact same
+package role hashes. Its source and compilation receipt are retained separately;
+the complete private package is never patched.
+
+Use a fresh output directory with an already qualified current compiler:
+
+```sh
+python -B tools/build_hia_default_release.py \
+  --compiler /qualified/current/B3.image.bin \
+  --cold-report /qualified/current/cold.json \
+  --output /new/private/native-production
+```
+
+`tests.test_hia_native_distribution` inspects the actual archive, installs it
+through pip, verifies all RECORD entries and executable modes, installs and
+verifies the contained complete package into a private depot, checks every
+original member and mode, and runs the original Core edit, impact, object, checked-build, register-build and NDU
+observations against the installed programs with an empty PATH. Missing
+programs, substituted scripts, changed receipts and missing resources refuse
+the distribution. Source and installed byte inventories are checked again
+after execution.
+
+These package gates do not activate a worker, migrate durable state or qualify
+the entire product. Those final service and adoption gates remain independent.
+
+## Explicit hosted reference and development wheels
+
+The remaining sections describe the retained hosted API artifact. It is
+excluded from the ordinary production wheel and is selected explicitly:
+
+```sh
+python -m pip wheel . --config-settings hia.reference-wheel=true
+python -B tools/build_hia_default_release.py --reference \
+  --compiler /qualified/current/B3.image.bin \
+  --cold-report /qualified/current/cold.json \
+  --output /new/private/reference-api
+```
+
+The reference archive retains the exact original Python APIs and independently
+reproducible controls. Its provenance is `reference-only`, and it does not claim
+that retained reference bodies have been removed. Editable builds likewise
+remain development artifacts. Historical installed-API fixtures now select
+this reference profile explicitly; their results never qualify the production
+archive. The independent original semantic assertions remain unchanged.
+
+The explicit reference builder packages the existing complete `full_cost.hepta`
 owner with its image, child manifest and a fixed helper-bundle digest. Installing
 this Linux x86-64 candidate makes the ordinary `assess_full_cost` call use HIA
 without a native selector in the environment. The ordinary worker likewise
@@ -53,10 +138,10 @@ An incompatible target refuses the candidate; the portable source profile is
 still available unchanged.
 All original full-cost input domains, report fields and refusal ordering remain.
 
-## Construction and bootstrap order
+## Reference construction and bootstrap order
 
 ```sh
-python -B tools/build_hia_default_release.py \
+python -B tools/build_hia_default_release.py --reference \
   --compiler /qualified/current/B3.image.bin \
   --cold-report /qualified/current/cold.json \
   --output /new/private/default-native
@@ -106,7 +191,7 @@ The default resolver never supplements it. If that scope lacks the full-cost
 owner, calling full cost refuses instead of using package or generic-loader code.
 An explicit valid alternate full-cost bundle works through its captured image.
 
-## Acceptance before deleting retained arithmetic
+## Retained reference arithmetic and compatibility controls
 
 The component controls build and install a real candidate outside the checkout,
 forbid both original arithmetic bodies, and check actual HIA calls without
@@ -127,6 +212,6 @@ method is accepted. `full_cost_0daf86d.py.txt` remains the independent frozen or
 
 Deleting `_reference_arm` and `_reference_decision` is a later, explicit default
 transition after matching-current-cold artifact and installed-default gates pass
-and the remaining platform distribution contract is settled. Their 26 lines are
-still production source here; this candidate does not claim their retirement or
-whole-native delivery.
+and the remaining platform distribution contract is settled. Their 26 lines remain in the explicit reference source and distribution;
+the ordinary native production wheel excludes them. This reference candidate
+does not claim whole-native delivery.

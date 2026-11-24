@@ -131,16 +131,62 @@ protection against later edits by another process with the same authority.
 
 ## Selected canonical nominal lowering
 
-The hosted `build_program_selfhost` entry accepts composite v1–v4 when all five
-source-bound nominal owner groups are explicitly selected: types, task helpers,
-constructor, functions and outer lowering. `elaborate_program_native` captures
-the constructor/function/outer objects and invokes them directly. Missing native
-types or task helpers refuse through the existing dependency checks; missing
-constructor, functions or outer selection refuses before retained lowering.
-There is no retry through the Python nominal semantic owners.
-The hosted CLI uses this same native-only verifier for its initial input check,
-so it does not run retained nominal semantics before reaching the build API.
-Input reading and verification still precede output publication checks.
+The hosted `build_program_selfhost` entry accepts composite v1–v4 through one
+complete HIA executable. Constructor, type, function, helper and outer lowering
+run inside that process, including the HIACTR and HIAOTR continuation loops.
+The adapter does not call `elaborate_program_native` or retain a Python loop
+between native semantic owners. The hosted CLI uses the same entry for its
+initial input check. Input reading and verification still precede output
+publication checks.
+
+Build the complete program with the same current-source cold report and B3
+compiler used for the object compiler:
+
+```sh
+python -B tools/build_hia_nominal_constructor.py \
+  --compiler /absolute/qualification/B3.image.bin \
+  --cold-report /absolute/qualification/cold.json \
+  --output /absolute/new-nominal-directory
+```
+
+For an explicit selection, set `HEPTA_HIA_NOMINAL_PROGRAM_MANIFEST` to the
+resulting `program-manifest.json` and set
+`HEPTA_HIA_NOMINAL_PROGRAM_MANIFEST_SHA256` to its exact reviewed SHA256.
+The paired selection pins the executable and its complete packaged HIA source
+set. It uses profile `hepta.hia.nominal.complete-linux-x86_64.v1`. A matching-source
+wheel can instead supply its own `hia-nominal-constructor`, bound to the exact
+installed wheel RECORD and native package pin. No PATH lookup selects this
+program. An active explicit request bundle must also select its complete
+program; the adapter does not supplement it from a package default.
+
+The original five owner-group selectors remain a complete selection route.
+`build_hia_composite_outer.py` now builds an adjacent complete program with the
+same admitted compiler and cold source bytes. Its outer manifest carries the
+relative `complete_program.manifest_path` and exact `manifest_sha256`. The
+program manifest records all eleven `semantic_image_sha256` entries. Admission
+requires all five original groups, exact dependency-source agreement, the same
+compiler, and byte-for-byte image hashes for constructor, types, functions,
+helpers and outer owners. The complete program, group manifests, component
+manifests, source bytes and images remain in one captured custody check across
+the call. Changed selectors or an active bundle change also refuse. A missing
+or mismatched group cannot be filled from a package or rebuilt at runtime.
+Older outer manifests without this member still serve their original direct
+owner API; use a freshly built, source-matched outer bundle for the complete
+selfhost route. No sixth selector or Python semantic owner is required.
+
+Selections must agree on the actual compiler bytes and complete support-contract
+source identity. Separate source-matched cold runs retain their own report
+hashes as distinct provenance; timing-dependent report bytes are not a compiler
+identity.
+
+The selected ELF executes from a sealed memfd with empty PATH. The process
+owns nominal admission, canonicalization, primitive admission and public
+semantic diagnostics. A successful HIAVCF01 frame preserves the original and
+Core byte strings separately. On refusal, the same selected program renders
+the public error code and message, including the original type/name/shape
+location. The second diagnostic invocation shares the admission deadline.
+Every source, inventory, manifest and executable snapshot is rechecked before
+returning either a successful result or a semantic rejection.
 
 The existing public bounded decoder supplies a detached document. The HIA
 owners preserve the existing schema mapping: composite v1 produces primitive
@@ -148,7 +194,8 @@ v6, v2/v3 produce primitive v7, and v4 produces primitive v8. Public Core
 admission rechecks that complete result before the selected native JSON
 frontend/compiler runs. A caller-supplied
 `VerifiedProgram` retains both original nominal bytes and canonical Core bytes;
-the entry repeats HIA elaboration and rejects a mismatching pair. Nominal public
+the entry rejects noncanonical retained byte strings before any child, then
+repeats HIA elaboration and rejects a mismatching pair. Nominal public
 aggregate or borrowed signatures do not become scalar exports after flattening.
 
 This route supports up to six internal scalar, owner or parameter-bound loan
@@ -166,10 +213,13 @@ result stack area preserves both descriptor words without aliasing local values.
 The public scalar-export and borrowed-buffer entry ABIs are unchanged.
 
 The standalone compiler executable continues to accept primitive Core JSON.
-This adapter integration does not add the complete nominal object/session
-transport to the syscall-only package. Hosted decoding, mechanical forwarding,
-public Core admission and publication remain explicit boundaries; neither the
-whole-language nor whole-CLI claim is promoted.
+The complete nominal constructor supplies its native session orchestration to
+both the standalone package and this hosted adapter. Hosted bounded decoding,
+sealed process custody, independent public Core admission and publication
+remain explicit boundaries; neither the whole-language nor whole-CLI claim is
+promoted. The private object-build launcher uses a separate reachability-derived
+canonical-hash component, while public verification retains the full diagnostic
+presenter. Both stay within the original compiler and static-link limits.
 
 ## Receipt and verification scope
 
@@ -205,12 +255,17 @@ The native tests require exactly one explicit setup:
   image for development observations only. Its manifests carry no cold digest.
   It never serves as an automatic fallback from failed cold qualification.
 
-The nominal build tests reuse the same cold report for all eleven HIA images.
-In development mode they additionally require the five complete
-`HEPTA_HIA_COMPOSITE_*_DEVELOPMENT_MANIFEST` / task-helper selections supported
-by the shared nominal fixture. They never bootstrap a missing owner implicitly.
+The nominal build tests build the complete program from all twenty-one HIA
+components and its retained transport templates, using the same selected
+compiler and cold report. Development mode compiles that same complete program
+from its explicitly supplied compiler and records a null cold digest. It does
+not infer cold qualification. Tests prohibit the old Python nominal owners and
+continuation entry, compare exact original errors and Core bytes, and require
+installed default selection to execute the packaged program.
 `HEPTA_HIA_SELFHOST_NOMINAL_EVIDENCE` retains actual input/Core bytes, emitted
 objects, linked images, execution observations, receipts and refusal captures.
+The `nominal_capture` receipt records the complete executable and selection
+identities, source set, kernel seals, process exit and confirmed reaping.
 
 No implicit seed bootstrap is selected by this test module. Full native
 delivery still requires the separate product-wide owner migration and its

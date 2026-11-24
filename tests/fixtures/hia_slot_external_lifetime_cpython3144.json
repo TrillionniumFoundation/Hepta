@@ -1,0 +1,111 @@
+{
+  "schema": "hepta.slot.external-lifetime-layout.v1",
+  "scope": "CPython 3.14.4, Ubuntu 3.14.4-1ubuntu0.2, Linux x86-64, LP64, GIL build; an external test reader, not a runtime requirement.",
+  "python": {
+    "sha256": "52e0a13e60a981d8c4b6478be2ba5176f69da07948a056bf49cf6f077e30cb41",
+    "bytes": 7477160
+  },
+  "gdb": {
+    "sha256": "e5272927fc1b40345748dfa4133ec2a50caeb5f209a44099dd2c48679911c59c",
+    "bytes": 10894536
+  },
+  "layout_validation": "Runtime-matched CPython headers supplied frame/list/tuple/dict offsets; every frozen consumer snapshot is compared against the unmodified original observer serialization, and complete traced raw files against same-lane untraced files. Other runtimes require independent layout verification and a separately pinned profile.",
+  "layouts": {
+    "external-state-layout.json": {
+      "interpreter": 816,
+      "count": [
+        7452,
+        4
+      ],
+      "threshold": [
+        7448,
+        4
+      ],
+      "heap": [
+        7624,
+        8
+      ],
+      "visited_space": [
+        7640,
+        4
+      ],
+      "work_to_do": [
+        7632,
+        8
+      ],
+      "phase": [
+        7644,
+        4
+      ],
+      "gen1_collected": [
+        7560,
+        8
+      ],
+      "gen1_uncollectable": [
+        7568,
+        8
+      ]
+    },
+    "external-heap-types-layout.json": {
+      "lists": [
+        7432,
+        7456,
+        7480,
+        7504
+      ],
+      "gc_head": 16,
+      "object_type": 8,
+      "type_name": 24
+    },
+    "frozen-row-owner-layout.json": {
+      "ma_used": 16,
+      "ma_keys": 32,
+      "dk_log2_index_bytes": 9,
+      "dk_kind": 10,
+      "dk_nentries": 24,
+      "dk_indices": 32,
+      "length": 16,
+      "f_frame": 24,
+      "f_executable": 0,
+      "localsplus": 80,
+      "co_nlocalsplus": 72,
+      "co_localsplusnames": 96,
+      "co_qualname": 128,
+      "ob_item": 32,
+      "ascii_size": 40
+    },
+    "frozen-traceback-layout.json": {
+      "tb_frame": 24,
+      "tb_next": 16,
+      "traceback": 40,
+      "context": 48,
+      "cause": 56
+    },
+    "inline-layout.json": {
+      "ht_cached_keys": 880,
+      "tp_basicsize": 32,
+      "tp_flags": 168,
+      "tp_dictoffset": 288,
+      "inline_values_flag": 4,
+      "managed_dict_flag": 16,
+      "ma_values": 40,
+      "values": 8,
+      "values_valid": 3,
+      "weakref_target": 16,
+      "tstate_current_frame": 72,
+      "frame_previous": 8,
+      "frame_globals": 24,
+      "frame_locals": 40,
+      "frame_stackpointer": 64,
+      "frame_owner": 74,
+      "done": 1
+    },
+    "frame-layout.json": {
+      "interp_threads_head": 7344,
+      "tstate_current_frame": 72,
+      "frame_previous": 8,
+      "frame_globals": 24,
+      "frame_localsplus": 80
+    }
+  }
+}

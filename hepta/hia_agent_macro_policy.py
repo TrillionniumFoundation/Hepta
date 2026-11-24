@@ -285,6 +285,9 @@ def advise_macro(raw, *, bridge=None, timeout_ns=1_000_000_000,
     path and its experimental call-count contract remain unchanged.
     """
     started = time.perf_counter_ns()
+    if bridge is None:
+        from .hia_ndu_native import default_ndu_bridge
+        bridge = default_ndu_bridge()
     data = _decode(raw)
     totals = _state(data)
     _integer(timeout_ns, "native timeout", minimum=1)

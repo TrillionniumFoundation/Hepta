@@ -25,10 +25,59 @@ EXPECTED_SOURCE = {
     "rust/hia-ndu-bridge/src/main.rs", "rust/hia-ndu-bridge/upstream.json",
 }
 
+# Keep this closed compatibility inventory explicit so offline replay remains
+# standard-library-only and never imports or executes the active evaluator.
+NDU_SCHEMA = 'hepta.hia.ndu-scalar-build.v1'
+NDU_UPSTREAM = 'd3c2d760eca5065fc966820379c35c6e8d56e855'
+NDU_SOURCES = (
+    'examples/hia_bootstrap/ndu_scalar.hepta',
+    'examples/hia_bootstrap/ndu_scalar_packer.hepta',
+    'tools/generate_hia_ndu_scalar.py',
+    'tools/generate_hia_ndu_scalar_packer.py',
+    'tools/hia_ndu_scalar_syscalls.S',
+    'tools/build_hia_ndu_scalar.py',
+    'tools/generate_hia_sha256.py',
+    'tools/generate_hia_native_filter.py',
+    'tools/build_hia_default_release.py',
+    'tools/hia_wheel_backend.py',
+    'hepta/hia_ndu_native.py',
+    'hepta/hia_ndu_optimizer.py',
+    'hepta/hia_agent_macro_policy.py',
+    'hepta/hia_ndu_prepared_ranker.py',
+    'hepta/hia_ndu_persistent_ranker.py',
+    'tests/test_hia_ndu_scalar_native.py',
+)
+HIA_EXPECTED_SOURCE = (EXPECTED_SOURCE - {name for name in EXPECTED_SOURCE
+    if name.startswith('rust/hia-ndu-bridge/') or name == 'tools/build_hia_ndu_bridge.py'}) | set(NDU_SOURCES)
+
 
 def require(condition, message):
     if not condition:
         raise ValueError("E_HIA_NDU_PREPARED_REPLAY: " + message)
+
+def verify_hia_build(registration, build, receipt_raw):
+    """Validate retained HIA custody against frozen bytes, without executing it."""
+    identity = registration['native_identity']
+    pins = {name: registration['source_files'].get(name) for name in NDU_SOURCES}
+    require(build.get('schema') == NDU_SCHEMA and build.get('implementation') == 'HIA'
+            and build.get('scope') == 'MATCHING_SOURCE_COLD_COMPONENT'
+            and build.get('compatibility_upstream_commit') == NDU_UPSTREAM
+            and build.get('profile') == 'hia-total-cost-ms-v1'
+            and build.get('build_inputs_unchanged') is True
+            and build.get('transport_assembled_during_build') is False
+            and build.get('source_sha256') == pins
+            and build.get('executable_sha256') == identity['binary_sha256']
+            and identity.get('implementation') == 'HIA'
+            and identity.get('profile') == build['profile']
+            and identity['upstream_commit'] == NDU_UPSTREAM
+            and identity.get('source_attestation') == 'trusted_local_matching_source_cold_hia_build'
+            and sha256(receipt_raw).hexdigest() == identity['build_receipt_sha256']
+            and sha256(wire(pins)).hexdigest() == identity['build_inputs_sha256'],
+            'HIA native build/image and frozen component identity')
+    for key in ('compiler_sha256', 'cold_report_sha256', 'executable_sha256'):
+        value = build.get(key)
+        require(type(value) is str and len(value) == 64
+                and all(c in '0123456789abcdef' for c in value), 'HIA build digest')
 
 
 def wire(value):
@@ -147,7 +196,8 @@ def replay(directory, registration_sha256):
             "explicit registration digest")
     registration = json.loads(registration_raw)
     report = json.loads((root / "result.json").read_bytes())
-    require(set(registration["source_files"]) == EXPECTED_SOURCE, "closed source inventory")
+    source_set = set(registration["source_files"])
+    require(source_set in (EXPECTED_SOURCE, HIA_EXPECTED_SOURCE), "closed frozen-source inventory")
     for name, digest in registration["source_files"].items():
         require(sha256((root / "frozen-source" / name).read_bytes()).hexdigest() == digest,
                 "frozen source bytes: " + name)
@@ -155,8 +205,11 @@ def replay(directory, registration_sha256):
             == registration["original_build_receipt_sha256"], "original build receipt")
     build = json.loads((root / "original-build-receipt.json").read_bytes())
     identity = registration["native_identity"]
-    require(build["binary_sha256"] == identity["binary_sha256"]
-            and build["upstream"]["commit"] == identity["upstream_commit"], "native build identity")
+    if source_set == HIA_EXPECTED_SOURCE:
+        verify_hia_build(registration, build, (root / "original-build-receipt.json").read_bytes())
+    else:
+        require(build["binary_sha256"] == identity["binary_sha256"]
+                and build["upstream"]["commit"] == identity["upstream_commit"], "native build identity")
     require(report["registration_sha256"] == registration_sha256
             and report["source_files"] == registration["source_files"]
             and report["source_git"] == registration["source_git"]
@@ -306,7 +359,7 @@ def replay(directory, registration_sha256):
             "verifier_sha256": sha256(Path(__file__).read_bytes()).hexdigest(),
             "original_native_calls": native_count, "ordinary_calls": ordinary_count,
             "paired_native_responses_byte_identical": pairs, "distinct_observed_pids": len(set(pid_values)),
-            "source_files_rehashed": len(EXPECTED_SOURCE), "cells_replayed": len(cells),
+            "source_files_rehashed": len(registration["source_files"]), "cells_replayed": len(cells),
             "raw_identity_and_cost_arithmetic_consistent": True,
             "reported_analysis_recomputed": True,
             "nested_cost_intervals_reconciled": True,

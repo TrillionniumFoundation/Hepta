@@ -13,7 +13,8 @@ import struct
 ROOT = Path(__file__).resolve().parents[1]
 PROGRAMS = 'examples/hia_bootstrap/'
 U64_MAX = (1 << 64) - 1
-RECIPE_NAMES = ('release_stage_constructor.hiastd', 'release_stage_additional.hiastd')
+RECIPE_NAMES = ('release_stage_constructor.hiastd', 'release_stage_additional.hiastd',
+                'release_stage_controller.hiastd')
 
 
 def stage_rows():
@@ -343,15 +344,69 @@ def migrations(recipe):
         recipe.publish(name, executable)
 
 
+def ndu_scalar(recipe):
+    """Source-compile the NDU policy and its exact bound process adapter."""
+    sources, images = recipe.compile({name: name for name in
+        ('ndu_scalar.hepta', 'ndu_scalar_packer.hepta')})
+    host = recipe.kit('source_mcp_filter.hepta', 'mcp_build_filter_packer.hepta')[0]
+    source, image = sources['ndu_scalar_packer.hepta'], images['ndu_scalar_packer.hepta']
+    frame = recipe.node(16, (recipe.literal(b'HIAMCF01'),
+        recipe.node(17, (source,)), recipe.node(17, (image,)), source, image))
+    packer = recipe.run(host, frame)
+    from tools.generate_hia_mcp_release import check_packer_host
+    check_packer_host(recipe, packer, image)
+    application = images['ndu_scalar.hepta']
+    packet = recipe.node(16, (recipe.literal(b'HIANDU01'),
+        recipe.node(17, (application,)), application))
+    executable = recipe.run(packer, packet, operation=0)
+    recipe.check_adapter(executable, application, source,
+        recipe.source('tools/hia_ndu_scalar_syscalls.S'))
+    recipe.publish('hia-ndu-scalar', executable)
+
+
+def source_contract(recipe):
+    """Deliver the native source-inventory contract owner through the same DAG."""
+    from tools.generate_hia_mcp_release import check_packer_host, check_sequential_layout
+    from tools.generate_hia_native_filter import template
+    sources, images = recipe.compile({name: name for name in
+        ('source_contract_generate.hepta', 'native_filter_packer.hepta')})
+    host = recipe.kit('source_mcp_filter.hepta', 'mcp_build_filter_packer.hepta')[0]
+    source, image = sources['native_filter_packer.hepta'], images['native_filter_packer.hepta']
+    frame = recipe.node(16, (recipe.literal(b'HIAMCF01'),
+        recipe.node(17, (source,)), recipe.node(17, (image,)), source, image))
+    packer = recipe.run(host, frame)
+    check_packer_host(recipe, packer, image)
+    application = images['source_contract_generate.hepta']
+    packet = recipe.node(16, (recipe.literal(b'HIAFLT01'),
+        recipe.node(17, (application,)), application))
+    executable = recipe.run(packer, packet, operation=0)
+    prefix, holes = template()
+    if len(holes) != 1:
+        raise ValueError('source contract filter has an unexpected call layout')
+    check_sequential_layout(recipe, executable, prefix,
+                            {'image': holes[0]}, {'image': application})
+    recipe.publish('hia-source-contract', executable)
+
 def recipes():
-    first, rest = Recipe(), Recipe()
+    first, rest, controller = Recipe(), Recipe(), Recipe()
     constructor(first)
     for stage in (helpers, store, stdio, read_carrier, owned_reference, sqlite_units, migrations):
         stage(rest)
+    # The owner releases a DAG's owned transient descriptors at its boundary.
+    # Keep the final six products in their own graph so complete delivery fits
+    # the ordinary 1024-descriptor limit while retaining published products.
+    from tools.generate_hia_mcp_release import append_recipe
+    append_recipe(controller)
+    ndu_scalar(controller)
+    from tools.generate_hia_system_jobctl_release import append_recipe as system_jobctl_recipe
+    system_jobctl_recipe(controller)
+    source_contract(controller)
     assert first.published == outputs(2)
-    assert rest.published == [name for stage in range(4, 11) for name in outputs(stage)]
-    assert len(first.published) + len(rest.published) == 40
-    return {RECIPE_NAMES[0]: first, RECIPE_NAMES[1]: rest}
+    assert rest.published + controller.published == [
+        name for stage in range(4, 11) for name in outputs(stage)]
+    assert len(first.published) + len(rest.published) + len(controller.published) == 46
+    return {RECIPE_NAMES[0]: first, RECIPE_NAMES[1]: rest,
+            RECIPE_NAMES[2]: controller}
 
 
 def main():

@@ -121,12 +121,13 @@ class ReleaseStageSourceTests(unittest.TestCase):
             6: ['hia-native'], 7: ['hia-agent-read-carrier'], 8: ['hia-owned-reference-wire'],
             9: [*('hia-' + unit for unit in (*UNITS, UNIT, 'nominal-packet')),
                 'hia-' + PROJECTION, 'hia-sqlite-pager'],
-            10: ['hia-sqlite-migration-publish', 'hia-sqlite-migrate'],
+            10: ['hia-sqlite-migration-publish', 'hia-sqlite-migrate',
+                 'hia-mcp-request-audit', 'hia-mcp-job-bridge', 'hia-mcp-service', 'hia-ndu-scalar', 'hepta-runtime-jobctl', 'hia-source-contract'],
         }
         actual = {stage: [r[2] for r in rows() if r[:2] == ['output', str(stage)]]
                   for stage in range(1, 11)}
         self.assertEqual(actual, expected)
-        self.assertEqual(sum(map(len, actual.values())), 66)
+        self.assertEqual(sum(map(len, actual.values())), 72)
 
     def test_declared_ordered_constructor_and_helper_groups(self):
         from tools.build_hia_nominal_constructor import COMPONENTS, CONSTRUCTOR_IMAGES
@@ -161,7 +162,7 @@ class ReleaseStageNativeTests(unittest.TestCase):
 
     def test_complete_native_plan_matches_every_declared_record(self):
         stages, outputs, records = decode_plan(self.invoke(TABLE.read_bytes()))
-        self.assertEqual((stages, outputs), (10, 66))
+        self.assertEqual((stages, outputs), (10, 72))
         expected = [(KINDS[r[0]], int(r[1]), r[2:]) for r in rows()]
         self.assertEqual(records, expected)
 
@@ -171,7 +172,7 @@ class ReleaseStageNativeTests(unittest.TestCase):
         duplicate = next(line for line in lines if line.startswith(b'compile\t2\t'))
         invalid = (
             valid[:-1], valid + b'\0', valid.replace(b'HIASTG01\t', b'HIASTG01x\t', 1),
-            valid.replace(b'\t10\t66\n', b'\t10\t65\n', 1),
+            valid.replace(b'\t10\t72\n', b'\t10\t71\n', 1),
             valid.replace(b'stage\t2\t', b'stage\t3\t', 1),
             valid.replace(b'need\t3\t1\thia-safe-core-prove', b'need\t3\t4\thia-safe-core-prove', 1),
             valid.replace(b'need\t3\t1\thia-safe-core-prove', b'need\t3\t1\thia-missing', 1),

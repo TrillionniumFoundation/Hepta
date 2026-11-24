@@ -1,4 +1,4 @@
-"""Authenticated ordinary distribution inputs for packaging and installed-API tests."""
+"""Authenticated explicit reference distributions for hosted installed-API controls."""
 from __future__ import annotations
 
 import atexit
@@ -124,7 +124,9 @@ def _check_wheel(path, sources):
         provenance = json.loads(wheel.read(PACKAGE_DIRECTORY + '/provenance.json'))
         derived_python_pin(wheel)
         scripts = [name for name in wheel.namelist() if name.endswith('.data/scripts/hia')]
-        if (provenance['scope'] != SCOPES[0] or not provenance['cold_report_sha256']
+        if (provenance.get('reference_only') is not True
+                or provenance.get('distribution_profile') != 'reference-only'
+                or provenance['scope'] != SCOPES[0] or not provenance['cold_report_sha256']
                 or provenance['source_manifest'] != sources
                 or provenance['source_identity_sha256'] != source_identity(sources)
                 or len(scripts) != 1 or not wheel.read(scripts[0]).startswith(b'\x7fELF')):
@@ -132,8 +134,12 @@ def _check_wheel(path, sources):
     return path
 
 
-def ordinary_wheel(source, python=None):
-    """Use one real offline pip build per source identity and packaging interpreter."""
+def reference_wheel(source, python=None):
+    """Build the explicit hosted API/oracle wheel for legacy reference tests.
+
+    This fixture never qualifies the ordinary native production distribution.
+    Native production installation has its own archive and execution gate.
+    """
     source = Path(source)
     python = python or os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
     sources = _sources()
@@ -175,7 +181,8 @@ def ordinary_wheel(source, python=None):
             wheels = work / 'wheels'
             wheels.mkdir()
             command = [str(python), '-B', '-m', 'pip', 'wheel', '--no-index', '--no-deps',
-                       '--no-build-isolation', '--wheel-dir', str(wheels), str(stage)]
+                       '--no-build-isolation', '--config-settings', 'hia.reference-wheel=true',
+                       '--wheel-dir', str(wheels), str(stage)]
             result = subprocess.run(command, cwd=work, capture_output=True)
             if result.returncode:
                 raise RuntimeError('ordinary offline wheel build failed:\n'
@@ -184,6 +191,11 @@ def ordinary_wheel(source, python=None):
         _check_wheel(path, sources)
         _cache[key] = (path, sha256(path.read_bytes()).hexdigest())
         return path
+
+
+# Keep the callable name used by byte-frozen historical test bodies. It names
+# the explicit reference distribution here, never the default pip product.
+ordinary_wheel = reference_wheel
 
 
 # Inject into isolated installed-Python probes, which deliberately have no tests on sys.path.

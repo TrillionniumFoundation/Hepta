@@ -19,7 +19,8 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = json.loads((ROOT / "rust/hia-ndu-bridge/upstream.json").read_text())
+from tools.hia_ndu_reference import reference_files, reference_pin
+PIN = reference_pin()
 BINARY = os.environ.get("HEPTA_NDU_BRIDGE")
 BUILD = os.environ.get("HEPTA_NDU_BUILD")
 UPSTREAM = os.environ.get("HEPTA_NDU_UPSTREAM")
@@ -241,17 +242,16 @@ class NDUBridgeSourceProvenanceTests(unittest.TestCase):
     def test_adapter_sources_binary_and_generated_lock_match_recorded_execution(self):
         for relative in ("src/main.rs", "Cargo.toml", "upstream.json"):
             self.assertEqual((self.build / "hia-ndu-bridge" / relative).read_bytes(),
-                             (ROOT / "rust/hia-ndu-bridge" / relative).read_bytes(), relative)
+                             reference_files()[relative], relative)
         self.assertEqual(sha256(Path(BINARY).read_bytes()).hexdigest(), self.receipt["binary_sha256"])
         self.assertEqual(sha256((self.build / "Cargo.lock").read_bytes()).hexdigest(),
                          self.receipt["cargo_lock_sha256"])
 
     def test_complete_adapter_and_build_input_receipts_are_recomputed_from_actual_files(self):
-        adapter = ROOT / "rust/hia-ndu-bridge"
+        adapter = reference_files()
         self.assertEqual(self.receipt["adapter_files"],
-                         {str(p.relative_to(adapter)): sha256(p.read_bytes()).hexdigest()
-                          for p in adapter.rglob("*") if p.is_file()})
-        self.assertEqual((adapter / "Cargo.lock").read_bytes(), (self.build / "Cargo.lock").read_bytes())
+                         {name: sha256(raw).hexdigest() for name, raw in adapter.items()})
+        self.assertEqual(adapter["Cargo.lock"], (self.build / "Cargo.lock").read_bytes())
         self.assertEqual(self.receipt["builder_sha256"],
                          sha256((ROOT / "tools/build_hia_ndu_bridge.py").read_bytes()).hexdigest())
         self.assertIn("hepta-contracts/fixtures/AUTHBUS_SOURCE_MANIFEST.v1.json", self.receipt["build_inputs"])

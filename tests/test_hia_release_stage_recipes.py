@@ -24,7 +24,7 @@ def decode(raw):
             raise ValueError('short node')
         op, identity, argc, size = struct.unpack_from('<4Q', raw, at)
         at += 32
-        if not 1 <= op <= 15 or argc > 132 or argc * 8 + size > len(raw) - at:
+        if not 1 <= op <= 19 or argc > 132 or argc * 8 + size > len(raw) - at:
             raise ValueError('node extent')
         args = struct.unpack_from('<' + 'Q' * argc, raw, at)
         at += argc * 8
@@ -36,8 +36,12 @@ def decode(raw):
         elif not 1 <= identity <= 2048 or identity in handles:
             raise ValueError('view identity')
         references = ()
-        if op in (2, 3, 4, 9, 13, 14, 15):
+        if op in (2, 3, 4, 9, 13, 14, 15, 17):
             references = args[:1]
+        elif op in (16, 19):
+            references = args
+        elif op == 18:
+            references = args[1:6]
         elif op in (5, 10):
             references = args[4 if op == 5 else 2:]
         elif op == 6:
@@ -71,7 +75,7 @@ class ReleaseStageRecipeSourceTests(unittest.TestCase):
             actual.extend(names)
         expected = [*outputs(2), *(name for stage in range(4, 11) for name in outputs(stage))]
         self.assertEqual(actual, expected)
-        self.assertEqual(len(set(actual)), 40)
+        self.assertEqual(len(set(actual)), 46)
 
     def test_transport_resources_rederive_from_original_flow_sources(self):
         from tools.generate_hia_release_stage_recipes import read_adapters

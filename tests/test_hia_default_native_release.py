@@ -166,7 +166,8 @@ class DefaultReleaseNativeTests(unittest.TestCase):
             code, result = interpreted(program, request)
             if code != native.OUTPUT_BYTES or len(result) != native.OUTPUT_BYTES:
                 raise AssertionError('independent full-cost VM did not admit the original protocol')
-        cls.wheel = build(cls.root / 'build', compiler, cold, development=not bool(cold))
+        # This suite observes the retained Python API; select its reference artifact explicitly.
+        cls.wheel = build(cls.root / 'build', compiler, cold, development=not bool(cold), reference=bool(cold))
         cls.report = json.loads((cls.root / 'build/build.json').read_bytes())
         cls.patch_manifest = build_patch(cls.root / 'other-owner', compiler, cold, development=not bool(cold))
         cls.installed = cls.root / 'installed'
@@ -364,7 +365,8 @@ class DefaultReleaseNativeTests(unittest.TestCase):
                     expected = base64.urlsafe_b64encode(sha256(archive.read(name)).digest()).rstrip(b'=').decode()
                     self.assertEqual(digest, 'sha256=' + expected)
                     self.assertEqual(int(length), len(archive.read(name)))
-        self.assertEqual(self.report['ordinary_source_default_changed'], self.report['matching_source_cold_component'])
+        self.assertFalse(self.report['ordinary_source_default_changed'])
+        self.assertTrue(self.report['reference_only'])
         self.assertFalse(self.report['retained_reference_bodies_removed'])
 
     def test_ordinary_installed_API_needs_no_selector_or_authoring_imports(self):

@@ -17,6 +17,8 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from tests.hia_ndu_transport_fixture import fixture_receipt, patch_fixture_admission
+from hepta.hia_ndu_native import UPSTREAM
 
 from hepta.hia_ndu_optimizer import ROOT, OptimizationRejected, _bytes, _native_rank
 
@@ -24,9 +26,10 @@ from hepta.hia_ndu_optimizer import ROOT, OptimizationRejected, _bytes, _native_
 _READER = r'''
 import json
 import sys
-from hepta.hia_ndu_optimizer import OptimizationRejected, _bridge_identity
+from hepta.hia_ndu_optimizer import OptimizationRejected
+from tests.hia_ndu_transport_fixture import admit_fixture
 try:
-    _bridge_identity(json.loads(sys.argv[1]))
+    admit_fixture(json.loads(sys.argv[1]))
 except OptimizationRejected as error:
     print(str(error))
 else:
@@ -44,7 +47,8 @@ class NDUOptimizerTransportTests(unittest.TestCase):
         self.receipt = self.root / "build-receipt.json"
         self.marker = self.root / "executed-image"
         self.backup = self.root / "admitted-original"
-        self.locked = json.loads((ROOT / "rust/hia-ndu-bridge/upstream.json").read_bytes())
+        self.locked = {"commit": UPSTREAM}
+        patch_fixture_admission(self)
         self.request = {"schema": "hepta.hia.ndu-request.v1", "objective_sha256": "1" * 64,
                         "generation": 1, "candidates": [
                             {"id": "abstain", "hard_violation": False},
@@ -82,17 +86,7 @@ class NDUOptimizerTransportTests(unittest.TestCase):
         raw = self.image_bytes(**kwargs)
         self.binary.write_bytes(raw)
         self.binary.chmod(0o700)
-        adapter = ROOT / "rust/hia-ndu-bridge"
-        inputs = {str(p.relative_to(adapter)): sha256(p.read_bytes()).hexdigest()
-                  for p in sorted(adapter.rglob("*")) if p.is_file()}
-        receipt = {"schema": "hepta.hia.ndu-build.v1", "upstream": self.locked,
-                   "original_rust_sources_unchanged": True,
-                   "all_original_non_manifest_inputs_unchanged": True,
-                   "build_inputs_unchanged": True, "locked_dependencies": True,
-                   "isolated_production_manifests": True, "production_activation": False,
-                   "adapter_files": inputs, "cargo_lock_sha256": inputs["Cargo.lock"],
-                   "builder_sha256": sha256((ROOT / "tools/build_hia_ndu_bridge.py").read_bytes()).hexdigest(),
-                   "binary_sha256": sha256(raw).hexdigest(), "build_inputs": {"fixture": True}}
+        receipt = fixture_receipt(raw)
         self.receipt.write_bytes(_bytes(receipt))
         return raw
 
@@ -139,7 +133,7 @@ class NDUOptimizerTransportTests(unittest.TestCase):
         self.assert_fifo_rejected("build_receipt")
 
     def test_identity_admission_cannot_renew_an_exhausted_process_budget(self):
-        # Real file/receipt verification, with a clock cut after admission.
+        # Real fixture file/hash verification, with a clock cut after admission.
         # No subprocess or sealed copy is needed once the supplied time is gone.
         with patch("hepta.hia_ndu_optimizer.time.perf_counter_ns", side_effect=[0, 20_000_000]), \
                 patch("subprocess.Popen") as launch, \
