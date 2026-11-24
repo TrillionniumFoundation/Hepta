@@ -95,6 +95,185 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#if defined(HIA_TEST_IDTR_LOAD) || defined(HIA_TEST_IDTR_STORE)
+    /* Independent hardware observer: two IDTs, including a high-half
+     * alias with a distinct limit. Only f0 executes the subject op. */
+    .macro idtr_gate table, vector, handler
+    leaq \handler(%rip),%rax
+    leaq \table+\vector*16(%rip),%rdi
+    movw %ax,(%rdi)
+    movw $0x18,2(%rdi)
+    movb $0,4(%rdi)
+    movb $0x8e,5(%rdi)
+    shrq $16,%rax
+    movw %ax,6(%rdi)
+    shrq $16,%rax
+    movl %eax,8(%rdi)
+    movl $0,12(%rdi)
+    .endm
+    .macro idtr_check_current expected
+    sidt idtr_snapshot(%rip)
+    movzwl \expected(%rip),%eax
+    cmpw %ax,idtr_snapshot(%rip)
+    jne abort
+    movq \expected+2(%rip),%rax
+    cmpq %rax,idtr_snapshot+2(%rip)
+    jne abort
+    .endm
+    .macro idtr_deliver expected
+    movb $0,idtr_delivery(%rip)
+    int $0x40
+    cmpb $\expected,idtr_delivery(%rip)
+    jne abort
+    .endm
+    .macro idtr_canaries
+    movabsq $0xa5a5a5a5a5a5a5a5,%rax
+    movq %rax,idtr_buffer(%rip)
+    movq %rax,idtr_buffer+8(%rip)
+    movq %rax,idtr_buffer+16(%rip)
+    movq %rax,idtr_buffer+24(%rip)
+    .endm
+    .macro idtr_all_canaries
+    movabsq $0xa5a5a5a5a5a5a5a5,%rax
+    cmpq %rax,idtr_buffer(%rip)
+    jne abort
+    cmpq %rax,idtr_buffer+8(%rip)
+    jne abort
+    cmpq %rax,idtr_buffer+16(%rip)
+    jne abort
+    cmpq %rax,idtr_buffer+24(%rip)
+    jne abort
+    .endm
+    .macro idtr_check_buffer expected, offset
+    movzwl \expected(%rip),%eax
+    cmpw %ax,idtr_buffer+\offset(%rip)
+    jne abort
+    movq \expected+2(%rip),%rax
+    cmpq %rax,idtr_buffer+\offset+2(%rip)
+    jne abort
+    .if \offset
+    cmpb $0xa5,idtr_buffer(%rip)
+    jne abort
+    .endif
+    leaq idtr_buffer+\offset+10(%rip),%r8
+    movl $(32-\offset-10),%ecx
+1:  cmpb $0xa5,(%r8)
+    jne abort
+    incq %r8
+    loop 1b
+    .endm
+    .macro idtr_call offset
+    leaq idtr_buffer+\offset(%rip),%rdi
+    call f0
+    leaq idtr_buffer+\offset(%rip),%r8
+    cmpq %r8,%rax
+    jne abort
+    .endm
+    idtr_gate idt,64,idtr_handler_a
+    idtr_gate idt,6,idtr_ud_handler
+    idtr_gate idt_alt,64,idtr_handler_b
+    idtr_gate idt_alt,6,idtr_ud_handler
+    idtr_gate idt_alt,14,pf_handler
+    movq pml4(%rip),%rax
+    andq $-5,%rax
+    movq %rax,pml4+256*8(%rip)
+    movq %cr3,%rax
+    movq %rax,%cr3
+    sidt idtr_saved(%rip)
+    cmpw $4095,idtr_saved(%rip)
+    jne abort
+    leaq idt(%rip),%rax
+    cmpq %rax,idtr_saved+2(%rip)
+    jne abort
+    movw $1279,idtr_other(%rip)
+    leaq idt_alt(%rip),%rax
+    movabsq $0xffff800000000000,%rcx
+    orq %rcx,%rax
+    movq %rax,idtr_other+2(%rip)
+    idtr_deliver 1
+    idtr_canaries
+#ifdef HIA_TEST_IDTR_ALIGN
+    /* Unaligned valid descriptor/destination; x86 accepts it without
+     * the experimental guard. The guard mutant must really access RAM. */
+#ifdef HIA_TEST_IDTR_LOAD
+    movw idtr_other(%rip),%ax
+    movw %ax,idtr_buffer+1(%rip)
+    movq idtr_other+2(%rip),%rax
+    movq %rax,idtr_buffer+3(%rip)
+#endif
+    idtr_call 1
+#ifndef HIA_TEST_IDTR_GUARD_BYPASS
+    jmp abort
+#else
+#ifdef HIA_TEST_IDTR_LOAD
+    idtr_check_current idtr_other
+    idtr_deliver 2
+    idtr_check_buffer idtr_other,1
+#else
+    idtr_check_current idtr_saved
+    idtr_check_buffer idtr_saved,1
+    idtr_deliver 1
+#endif
+    lidt idtr_saved(%rip)
+    idtr_check_current idtr_saved
+    idtr_deliver 1
+    movb $'N',%bl
+    jmp debug_exit64
+#endif
+#else
+#ifdef HIA_TEST_IDTR_LOAD
+    movw idtr_other(%rip),%ax
+    movw %ax,idtr_buffer(%rip)
+    movq idtr_other+2(%rip),%rax
+    movq %rax,idtr_buffer+2(%rip)
+    idtr_call 0
+    idtr_check_buffer idtr_other,0
+#ifdef HIA_TEST_IDTR_NOACCESS
+    idtr_check_current idtr_saved
+    idtr_deliver 1
+    movb $'N',%bl
+#else
+    idtr_check_current idtr_other
+    idtr_deliver 2
+    /* Restore using the same actual HIA instruction, not the observer. */
+    movw idtr_saved(%rip),%ax
+    movw %ax,idtr_buffer(%rip)
+    movq idtr_saved+2(%rip),%rax
+    movq %rax,idtr_buffer+2(%rip)
+    idtr_call 0
+    idtr_check_current idtr_saved
+    idtr_check_buffer idtr_saved,0
+    idtr_deliver 1
+    movb $'P',%bl
+#endif
+#else
+    idtr_call 0
+    idtr_check_current idtr_saved
+#ifdef HIA_TEST_IDTR_NOACCESS
+    idtr_all_canaries
+#else
+    idtr_check_buffer idtr_saved,0
+#endif
+    lidt idtr_other(%rip)
+    idtr_check_current idtr_other
+    idtr_deliver 2
+    idtr_canaries
+    idtr_call 0
+    idtr_check_current idtr_other
+#ifdef HIA_TEST_IDTR_NOACCESS
+    idtr_all_canaries
+    movb $'N',%bl
+#else
+    idtr_check_buffer idtr_other,0
+    movb $'P',%bl
+#endif
+    lidt idtr_saved(%rip)
+    idtr_check_current idtr_saved
+    idtr_deliver 1
+#endif
+    jmp debug_exit64
+#endif
+#endif
 #if defined(HIA_TEST_MSR_READ) || defined(HIA_TEST_MSR_WRITE)
     /* Independent guest-only MSR oracle. FS/GS are not used for memory
      * accesses. Both actual registers are saved and restored. */
@@ -890,8 +1069,35 @@ mmio_ud_handler:
     jmp debug_exit64
 #endif
 #endif
+#if defined(HIA_TEST_IDTR_LOAD) || defined(HIA_TEST_IDTR_STORE)
+idtr_handler_a:
+    movb $1,idtr_delivery(%rip)
+    iretq
+idtr_handler_b:
+    movb $2,idtr_delivery(%rip)
+    iretq
+idtr_ud_handler:
+#if defined(HIA_TEST_IDTR_ALIGN) && !defined(HIA_TEST_IDTR_GUARD_BYPASS)
+    leaq f0(%rip),%rax
+    addq $HIA_IDTR_TRAP_DELTA,%rax
+    cmpq %rax,(%rsp)
+    jne abort
+    cmpw $0x18,8(%rsp)
+    jne abort
+    idtr_check_current idtr_saved
+#ifdef HIA_TEST_IDTR_LOAD
+    idtr_check_buffer idtr_other,1
+#else
+    idtr_all_canaries
+#endif
+    movb $'P',%bl
+    jmp debug_exit64
+#else
+    jmp abort
+#endif
+#endif
 pf_handler:
-#if defined(HIA_TEST_MSR_READ) || defined(HIA_TEST_MSR_WRITE) || defined(HIA_TEST_MMIO32) || defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32) || defined(HIA_TEST_CAS64)
+#if defined(HIA_TEST_IDTR_LOAD) || defined(HIA_TEST_IDTR_STORE) || defined(HIA_TEST_MSR_READ) || defined(HIA_TEST_MSR_WRITE) || defined(HIA_TEST_MMIO32) || defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32) || defined(HIA_TEST_CAS64)
     jmp abort /* A fault must not masquerade as the write NOP control. */
 #endif
 #ifdef HIA_TEST_CR2_READ
@@ -1012,4 +1218,15 @@ mmio_guard_cell: .skip 8
 #ifdef HIA_TEST_CAS64
 .balign 8
 cas_cell: .skip 8
+#endif
+
+#if defined(HIA_TEST_IDTR_LOAD) || defined(HIA_TEST_IDTR_STORE)
+.balign 4096
+idt_alt: .skip 4096
+.balign 16
+idtr_saved: .skip 16
+idtr_other: .skip 16
+idtr_snapshot: .skip 16
+idtr_buffer: .skip 32
+idtr_delivery: .skip 1
 #endif
