@@ -6,6 +6,7 @@ Native successor compilers do not import this module or consult Python state.
 
 MAX_INSTRUCTIONS = 8192
 MAX_CORE_NODES = 262144
+MAX_RESULTS = 6
 
 # An instruction creates at most one relative call; each block creates at most
 # two relative edge records. Each public scalar wrapper adds one call; the single
@@ -23,8 +24,8 @@ RELOCATION_UPPER_BOUND = MAX_FUNCTIONS + MAX_INSTRUCTIONS + 2 * MAX_BLOCKS + MAX
 # each named occurrence and literal is already present in the assembly input.
 # Remaining JSON syntax/field names/types fit 1024 bytes per function,1024 per
 # block (at most16params/two16argument edges) and512 per operation (at most
-#16arguments/three outputs/one attribute). Integer magnitudes are at most64bits.
-# Each operation has at most 16 arguments, up to three scalar outputs and one attribute;
+#16arguments/six outputs/one attribute). Integer magnitudes are at most64bits.
+# Each operation has at most 16 arguments, up to six scalar or descriptor outputs and one attribute;
 # buffer.try_new has two results and one argument; chain.try_push/chain.pop
 # have three results, at most two arguments and no attributes. These also fit
 # the same conservative 512-byte per-operation allowance.

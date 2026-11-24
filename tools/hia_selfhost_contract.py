@@ -10,11 +10,11 @@ import ast
 import json
 from pathlib import Path
 from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
-    MAX_FUNCTIONS, MAX_BLOCKS, MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND)
+    MAX_FUNCTIONS, MAX_BLOCKS, MAX_RESULTS, MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND)
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v93-word-memory64'
+PROFILE = 'selfhost-core-linux-x86_64-v94-six-results'
 SQLITE_SNAPSHOT_SDIST_FILES = (
     'tools/build_hia_agent_batch_commit.py',
     'tools/build_hia_agent_store.py',
@@ -4330,8 +4330,8 @@ def support_contract(root=ROOT):
                    "block_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 256 declarations per function; declared entry at any source position; Core __hia_ prefix rejected",
                    "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",
                    "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
-                   "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
-                   "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
+                   "instruction_results": "zero or one; internal calls have zero to six scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
+                   "function_results": "zero to six scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
                    "whitespace": "ASCII space and LF; shared assembly adjacency rules"},
         "abi": {
             "entry": "f0", "source_entry": "first defined function; emitted public symbol stays f0", "calling_convention": "SysV AMD64",
@@ -4368,10 +4368,12 @@ def support_contract(root=ROOT):
             "workspace_required_bytes": 1048576, "functions": MAX_FUNCTIONS,
             "blocks_per_function": 256, "blocks_total": MAX_BLOCKS,
             "parameters_or_arguments": 16, "ssa_index_max": 2047,
-            "instruction_results": 3, "function_results": 3,
-            "internal_result_area_bytes": 64, "internal_result_stride_bytes": 16,
-            "internal_result_descriptor_words": 2, "internal_frame_overhead_bytes": 576,
-            "result_signature_workspace_record_offsets": {"count": 184, "types": [192, 200, 208], "return_loan_origins": [216, 224, 232]},
+            "instruction_results": MAX_RESULTS, "function_results": MAX_RESULTS,
+            "internal_result_area_bytes": 128, "internal_result_stride_bytes": 16,
+            "internal_result_descriptor_words": 2, "internal_frame_overhead_bytes": 640,
+            "result_signature_workspace_record_offsets": {"count": 184, "types": [192, 200, 208, 272, 280, 288], "return_loan_origins": [216, 224, 232, 296, 304, 312]},
+            "result_output_workspace_bytes": [1088, 1184],
+            "returned_identity_workspace_bytes": [1184, 1232],
             "instructions": MAX_INSTRUCTIONS, "core_structural_nodes": MAX_CORE_NODES,
             "relative_relocations": MAX_RELOCATIONS,
             "acyclic_call_depth_max": 128,
@@ -4468,10 +4470,10 @@ def support_contract(root=ROOT):
                        "full callee-declaration subset check at every call",
                        "exact structural-node accounting for declared effects"]},
             {"area": "calls", "status": "bounded_subset",
-             "items": ["zero to three scalar, owned or parameter-bound borrowed results", "exact signatures", "forward direct calls",
+             "items": ["zero to six scalar, owned or parameter-bound borrowed results", "exact signatures", "forward direct calls",
                        "backward direct calls", "HIA-checked non-self acyclic call graph"]},
             {"area": "recursion", "status": "bounded_subset",
-             "items": ["direct self call immediately returning its exact zero-to-three scalar/owner/loan result tuple in order",
+             "items": ["direct self call immediately returning its exact zero-to-six scalar/owner/loan result tuple in order",
                        "parallel argument staging and same-frame entry jump",
                        "non-tail self calls and mutual recursion rejected",
                        "non-tail cycles in non-entry-reachable functions rejected"],
@@ -4489,7 +4491,7 @@ def support_contract(root=ROOT):
                        "borrow.read/borrow.mut from owned buffers",
                        "head loans retain chain root and parent across nested loans and exact CFG joins",
                        "linear owner transfers through exact capability graph edges"],
-             "excluded": ["more than three results"],
+             "excluded": ["more than six results"],
              "chains": {"node_bytes": 24, "descriptor": "head pointer with zero spare word",
                  "push": "consume chain and buffer; success returns extended chain, empty buffer, true; null allocation returns both inputs in fresh owner names and false",
                  "pop": "consume chain; nonempty returns tail and owned payload after freeing node; empty returns empty chain, empty buffer, false",

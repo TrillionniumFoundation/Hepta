@@ -20,7 +20,7 @@ def read_return_loans(s:readbuf, w:mutbuf) -> u64:
         expect(s, w, 91)
     while i < count and get(w, 40) == 0:
         origin = 0
-        t = get(w, base + 192 + i * 8)
+        t = get(w, base + 192 + result_offset(i))
         if present == 1:
             if get(w, 8) == @null@:
                 next_token(s, w)
@@ -35,7 +35,7 @@ def read_return_loans(s:readbuf, w:mutbuf) -> u64:
         if (t == 6 or t == 7) != (origin != 0):
             return fail(w, 62)
         if get(w, 48) == 0:
-            put(w, base + 216 + i * 8, origin)
+            put(w, base + 216 + result_offset(i), origin)
         i = i + 1
         if present == 1 and i < count:
             expect(s, w, 44)
@@ -74,7 +74,7 @@ def returned_consume(w:mutbuf, v:u64, t:u64) -> u64:
 def call_loan(w:mutbuf, base:u64, slot:u64, v:u64, t:u64) -> u64:
     if get(w, 264) == 0:
         return 0
-    origin = get(w, base + 216 + slot * 8)
+    origin = get(w, base + 216 + result_offset(slot))
     if origin == 0 or origin > get(w, base + 24):
         return fail(w, 62)
     a = get(w, ARGS + (origin - 1) * 8)

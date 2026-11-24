@@ -13,7 +13,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from hepta.hia_agent_assembly import render_assembly
-from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS
+from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS, MAX_RESULTS
 from tools.hia_selfhost_owned_elf import SOURCE as OWNED_ELF_SOURCE
 from tools.hia_selfhost_chain_elf import SOURCE as CHAIN_ELF_SOURCE
 from tools.hia_selfhost_effects import source as effect_source
@@ -44,6 +44,9 @@ W = {s: i + 300 for i,s in enumerate(WORDS)}
 # after the complete relocation table, so this profile keeps the 1 MiB limit.
 FBASE, FSTRIDE, BBASE, BSTRIDE, VBASE, ARGS, FIXBASE = 4096, 320, 45056, 320, 536576, 569344, 570368
 CBASE, CSTATE = 858368, 874752
+# Six output name/type pairs and return identities use disjoint private header
+# space. They must not alias externals (344) or the ELF/profile words (432+).
+RESULT_OUTPUTS, RESULT_RETURNED = 1088, 1184
 # The existing block record has sixteen trailing bytes. Each parameter's
 # resource graph fits root-index | parent-index << 4; self/self is external.
 # Current-block capability records use previously unused workspace. No public
@@ -402,8 +405,8 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return fail(w, 54)
     put(w, 112, get(w, 112) + 1)
     owned_read_outputs(s, w)
-    v = get(w, 296)
-    t = get(w, 304)
+    v = get(w, RESULT_OUTPUTS)
+    t = get(w, RESULT_OUTPUTS + 8)
     expect(s, w, 61)
     op = get(w, 8)
     require_effects(w, instruction_effects(op))
@@ -876,7 +879,7 @@ def function_start(o:mutbuf, w:mutbuf) -> u64:
     return 0
 
 def frame(w:mutbuf) -> u64:
-    return (get(w, FBASE + get(w, 72) * FSTRIDE + 40) + 2) * 16 + 576
+    return (get(w, FBASE + get(w, 72) * FSTRIDE + 40) + 2) * 16 + 640
 
 def copy_argument(o:mutbuf, w:mutbuf, v:u64, i:u64, t:u64) -> u64:
     load_var(o, w, 0, v, 0)
@@ -1780,6 +1783,16 @@ def guard_failure(condition:bool, w:mutbuf, code:u64) -> u64:
 SOURCE += NAMES_SOURCE
 SOURCE += EXPORTS_SOURCE
 SOURCE += WORD_MEMORY_SOURCE
+# Keep the first three result type/origin words at their original offsets.
+# Slots 3..5 use the last 48 bytes of each existing 320-byte function record;
+# no table moves, source limits, or public entry ABI changes are required.
+SOURCE += r'''
+
+def result_offset(slot:u64) -> u64:
+    if slot >= 3:
+        return slot * 8 + 56
+    return slot * 8
+'''
 
 
 def source_program():
@@ -1791,7 +1804,7 @@ def source_program():
     text = SOURCE.replace('KEYWORD_FUNCTION', keyword_source(W))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
     for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE','ORIGINBASE','BLOCKORIGIN',
-                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS', 'SCHEMA_STATE', 'CONST_VALUES', 'CONST_FLAGS']:
+                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS', 'MAX_RESULTS', 'RESULT_OUTPUTS', 'RESULT_RETURNED', 'SCHEMA_STATE', 'CONST_VALUES', 'CONST_FLAGS']:
         text = text.replace(key, str(globals()[key]))
     # These private header words are cleared in full before each semantic
     # pass. Their only writes are quote0/1, phase0..2, function counts0..128,

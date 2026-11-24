@@ -58,9 +58,9 @@
     "hosted_rejection_diagnostic_only_after_native_refusal": true,
     "issued_result_wire": "agent_identity.hepta role 25; no adoption or equivalence authority",
     "native_admission": [
-      "whole primitive Core v1–v8",
+      "whole primitive Core v1\u2013v8",
       "nominal Core elaboration and independent recheck",
-      "typed assembly v6–v8"
+      "typed assembly v6\u2013v8"
     ],
     "refusal_diagnostics": "sealed HIA syntax or Core report; distinct unsupported diagnostics retain reference",
     "retained_program_reopen_uses_the_same_native_admission": true,
@@ -1086,7 +1086,7 @@
       "source_offset": 240
     },
     "function_name_resolution": "bounded 128-entry hash filter plus mandatory length and every-source-byte equality",
-    "function_results": 3,
+    "function_results": 6,
     "functions": 128,
     "identifier_temporary_offsets": [
       456,
@@ -1097,10 +1097,10 @@
       1016592,
       1016600
     ],
-    "instruction_results": 3,
+    "instruction_results": 6,
     "instructions": 8192,
-    "internal_frame_overhead_bytes": 576,
-    "internal_result_area_bytes": 64,
+    "internal_frame_overhead_bytes": 640,
+    "internal_result_area_bytes": 128,
     "internal_result_descriptor_words": 2,
     "internal_result_stride_bytes": 16,
     "output_capacity_bytes": 1048576,
@@ -1111,19 +1111,33 @@
     "resource_graph_queue_workspace_end_exclusive": 928528,
     "resource_graph_queue_workspace_start": 926480,
     "resource_graph_queued_replays_per_block_max": 1,
+    "result_output_workspace_bytes": [
+      1088,
+      1184
+    ],
     "result_signature_workspace_record_offsets": {
       "count": 184,
       "return_loan_origins": [
         216,
         224,
-        232
+        232,
+        296,
+        304,
+        312
       ],
       "types": [
         192,
         200,
-        208
+        208,
+        272,
+        280,
+        288
       ]
     },
+    "returned_identity_workspace_bytes": [
+      1184,
+      1232
+    ],
     "semantic_call_graph_checked_after_all_names_and_signatures": true,
     "signature_prepasses": 1,
     "source_bytes": 1048576,
@@ -2186,7 +2200,7 @@
     "whole_nominal_elaborator_replaced": false,
     "wrapper_reduces_source_budget": false
   },
-  "profile": "selfhost-core-linux-x86_64-v93-word-memory64",
+  "profile": "selfhost-core-linux-x86_64-v94-six-results",
   "program_shape_application": {
     "all_input_refinement_proved": false,
     "host_boundaries": [
@@ -2382,7 +2396,7 @@
       "docs/HIA_OPCODE_REFERENCE.md": "d14b2141ca388ebd45dac8ea41bae280e2e48021b9ea7967f36eda8a2ee256a1",
       "docs/HIA_PATCH_IMPACT_NATIVE.md": "a0348a2ad655b270a6f9c554ef25bae70f2682356fea813dce6ea67d80bef9ae",
       "docs/HIA_PROGRAM.md": "083faa1a7b01400bbf11c75936bbeb17cb126412146e562ddb88c8601524fde9",
-      "docs/HIA_PROGRAM_SELFHOST_BUILD.md": "7213354d3637e3027f619d6dff87d925ed5438bf02e8ed7e1444f0f8b5953467",
+      "docs/HIA_PROGRAM_SELFHOST_BUILD.md": "2515dc3501a479239778a3d307829788da9abbe15ea7c2e225718945f2c4b5ad",
       "docs/HIA_PROGRAM_SHAPE_NATIVE.md": "9f6bf08d78ac3cbafa7acfc141395566e892b5b7671b0ee806760c2dbe5c5e6a",
       "docs/HIA_RELEASE_BUILD_ENTRY.md": "18cf8b7a454ae20158b4d116ef44d898a254942fec22940b029e9895e69ae16e",
       "docs/HIA_RELEASE_COLD_ADMISSION.md": "dde7077bd9c0370a13dd96238c36e0263d36b3577529fcb8dba68f953482c8fd",
@@ -2396,7 +2410,7 @@
       "docs/HIA_RETIREMENT_STATE_NATIVE.md": "9084dec48a3aef70faa5e736cf84f1d46ee8422a197c177daad569bd2d7ff183",
       "docs/HIA_RUST_COMPARISON.md": "1ef55fd23b48bb9f3a44b80112c3b734988a1958821479ce3017650c64848ae0",
       "docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md": "5a7d7a830d4085f46eac8d7886e6a97f35ca5e482c94a9901d9c24ba0819a853",
-      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "68e04ec9552546c14fdf8a90550c014b71f292666c0576697f46d98152b02a94",
+      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "45c1f4ef67eeb270284dbf985f01d507132fecd80c5d4226d3d7bfdd8eafee5c",
       "docs/HIA_SELF_HOSTING_CORE.md": "56696aed7925b49fc7302070e97ed9b306cccda65c48b92ce3984bbfe21f43c8",
       "docs/HIA_SERVICE_ARTIFACT_NATIVE.md": "b0292df1f9fa3c5eca36174813d346cd5c129dedbb19b954c7b1ee073db0dd38",
       "docs/HIA_SERVICE_BOOTSTRAP_NATIVE.md": "3fd7df50a0bef50c10c4421c4556efe250b336114478487088589b4c031ad19f",
@@ -2849,7 +2863,7 @@
       "examples/hia_bootstrap/scalar_reference.hepta": "44d8be8654fb415d3426f0d82f4812d8b1d5ceaf1cfaf627a016cab42fd7c999",
       "examples/hia_bootstrap/scalar_reference_cli_packer.hepta": "c788702c8418cdbe94f7d1699e13d0bb3e6f48830ffacaebeaa09b730886aec7",
       "examples/hia_bootstrap/scalar_symbolic.hepta": "2ef9c185388841855d666646e458a5ac8b225bc74c21d9c77d008c85f9f902d2",
-      "examples/hia_bootstrap/selfhost.hepta": "c5279736f0b5933f1864c97591df54d433a44ac36e924290162a12840fff3e41",
+      "examples/hia_bootstrap/selfhost.hepta": "1890379605e02731eb5ff00ec708db01338e7e4411916f7f6be1d0715521c3b3",
       "examples/hia_bootstrap/service_artifact.hepta": "cce535c67f4b0c2ce806864142497a7ae018bc611d8c885e39ae1ec9f7374ff5",
       "examples/hia_bootstrap/service_bootstrap.hepta": "3628657b80d30c8b8f67e445dc47117f55ef52380e3efbdd0ee005646b49c4fd",
       "examples/hia_bootstrap/service_context.hepta": "3a21f7759bff06b90a3e35294088c744e3dddb495a1fa5e1e98db8e22dfa366a",
@@ -4169,7 +4183,7 @@
       "tests/test_hia_program_native.py": "a2ad0811fa1c248326a8b217ae0f4520e5444bb19cd19d2be7e66256b926667b",
       "tests/test_hia_program_runtime_arithmetic.py": "c7ce91bf59f06a13c60994ca0957719adf3efa8623113b70535fbe7e9319c113",
       "tests/test_hia_program_runtime_prepared.py": "ce78a3faac842b6447c390fa2da9ebbceb635a1b60f54decc97d89eb9bb2110b",
-      "tests/test_hia_program_selfhost.py": "12086388fb0389f8b5e292a01b8c1e44145da0930fb8fc58a1381af85630ceaa",
+      "tests/test_hia_program_selfhost.py": "ef840fba1660d29935c44da3a656e5ec14c4f2a4ddf938135a2e39b341b57358",
       "tests/test_hia_program_shape_native.py": "8b3a9e78ec9fb3cf02430bc4355f8f6db09a7c772a62cd634ec1b1897b5887b4",
       "tests/test_hia_program_tools.py": "3f637a36f31b92d014c846e61994741e251011e53b50dd1468e65c212f3482b5",
       "tests/test_hia_publication_interruptions.py": "f13e887d820da1ba77b25c1ec3c04043b440b4b3137411e002dc565dfd5f04f1",
@@ -4216,14 +4230,14 @@
       "tests/test_hia_selfhost_call_graph_efficiency.py": "4b7402e3ba3737323d62903d5694bccbb7e54623630f6134bea3325e6424e8c8",
       "tests/test_hia_selfhost_chain.py": "63ed06fa164d02f24c46c4cb1f3a4c7d0bbaeca514dadc941293d60e27a6d44b",
       "tests/test_hia_selfhost_cli.py": "6f6f32425f85293692d178f10553b958190455495ac3a2e82c35675e5c5741c0",
-      "tests/test_hia_selfhost_contract.py": "5704d1ebde664c2e571d38c70e8a982a608b0e2a96a2bcb42f23946c4f24c5ef",
+      "tests/test_hia_selfhost_contract.py": "c769b620d4a3e1186fdbda243ac76b5b9a1f74269646098561c7649acd5a00be",
       "tests/test_hia_selfhost_emitter_words.py": "707c9d15aa4b3cbab58e3d7755135fad59fdee5dd8239c7f4bbf904794a7432e",
       "tests/test_hia_selfhost_exports.py": "49101a5b955562e8153dd048a50e7986b4d4091876fc4b991bd35401582fb66f",
       "tests/test_hia_selfhost_immediates.py": "b29dfb2c31d5bd969be916bed2b6761e8387221c983d642670a1a67a45b0647d",
       "tests/test_hia_selfhost_keywords.py": "ca3c98bfc99ad26315e81e0eed980fffe733a4067de373368c036610724706db",
-      "tests/test_hia_selfhost_language_coverage.py": "d984228c95b3f66f75887fe27f4cf4a9cb0484fa5c23b0baf48df6069e40f997",
+      "tests/test_hia_selfhost_language_coverage.py": "6e81c5503322afd4e3a7be8d108a5499f75f0e5afeaa80bc8a85c56326164bfa",
       "tests/test_hia_selfhost_linked_observer.py": "b093864e5e5830c724d99d421e22878480f3dcbcac965d31575ba0f2baca86c4",
-      "tests/test_hia_selfhost_multi_results.py": "5ceeb6ce77b3e6340c273c0789dd4781b1dbc79e78a95b9f445cbbdda1ab1ff5",
+      "tests/test_hia_selfhost_multi_results.py": "53b8e149e337962b045f1f90c707337294ff6a8201b039a74ce85c2093010b68",
       "tests/test_hia_selfhost_names.py": "d01652e18c60ce168f2077a5804a50d6ad0cdce191dc5fd8012ce73fd50c164d",
       "tests/test_hia_selfhost_native_observer.py": "abb072533dcde5a042e8e522f881a8b2402fc035dbae61cecc30a8e1850e1d3f",
       "tests/test_hia_selfhost_owned_flow.py": "e9da12c4fd2e40bbb7fd804986801002c4f2e8eecabc4634158064348aa0a520",
@@ -4643,7 +4657,7 @@
       "tools/generate_hia_scalar_profile.py": "944a9cd12f368ac72faf83d760d6eeea6ccdcb38022c534274970afaceea2af3",
       "tools/generate_hia_scalar_reference.py": "11e1941d1ac9d741b50d84b6d618e563dbf314a82b6d460fee780a99300e5d03",
       "tools/generate_hia_scalar_symbolic.py": "93fd5363d24489357466c2da69f054a12d64774ed698e0725fc2c1d164a04b8e",
-      "tools/generate_hia_selfhost.py": "0437e8196c52e3b00a08a793b39e447bf78094778d64febf23c3158813a231f1",
+      "tools/generate_hia_selfhost.py": "cfae4bb053092affb9c004aad30eb007344b62f3dc4681fdc529693e119fa1ac",
       "tools/generate_hia_selfhost_contract.py": "fa752ad75b91575419f6a389049f17a171abbb3647e2a4a0ad0bd334dd7ba980",
       "tools/generate_hia_service_artifact.py": "2faa6fa6017eab08304c62321d3d5f2baaccbbcfde6593da3f707e9fcd4524f1",
       "tools/generate_hia_service_bootstrap.py": "1619a4f38c98bf0cc3039d5b19541b4e8c7010794d285ad2966aaac635488061",
@@ -4920,24 +4934,24 @@
       "tools/hia_selfhost_chain_allocator_child.py": "bf6ffb0727d404531d5d2313d736bfbca151d9a9fb9de8b40530fa0a6dec98a3",
       "tools/hia_selfhost_chain_allocator_witness.c": "1a0476d584c6b87bd88287cb9cdd8f7597ab9749012a861fb50a0d8ff27fc3b2",
       "tools/hia_selfhost_chain_cases.py": "aff3fdfb756bd5d340ad3363b0a0e59ec1280be0fd8aa6557a34d9f192b1fe6a",
-      "tools/hia_selfhost_chain_elf.py": "b928ce29d26ecf24c390b70c924ee57957550f20696e1537657364a084421f00",
+      "tools/hia_selfhost_chain_elf.py": "e160e809606bfd14719ee2f5d1af1528ad79213a5e6a9385d7052e9afa76fd12",
       "tools/hia_selfhost_chain_flow_cases.py": "0ed415974f7fad2fab7012454a68ae5a1ef191ed0800fcceb63681fcf333a43b",
       "tools/hia_selfhost_child.py": "da86d7cb653761cc308feee8581e9e9536db8beb990bab32ecf3e51ce92f3b10",
       "tools/hia_selfhost_cli.py": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f",
       "tools/hia_selfhost_cli_child.py": "46229de9524b795df54d2b4ba49789c4c0a2174ed25318d68d135427d6353289",
-      "tools/hia_selfhost_contract.py": "77bbcb7f54ecaef68681b7d301587bdd0894441180138ec065bbb8264ff9ce6f",
+      "tools/hia_selfhost_contract.py": "1ccb0021a1c91fe441e87c25bd7e0b4ee3ec23838f344b800bf784eb035f9cd9",
       "tools/hia_selfhost_effects.py": "f4b0724bc8aa756e5a2e640bc25e7fd25bd8541512835cef6e161df519bf0a6d",
       "tools/hia_selfhost_exports.py": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382",
       "tools/hia_selfhost_exports_cases.py": "6a243b423e4335bd8ef9ebe04345e30a3abf645e181a507e0a97fdd0f791950d",
       "tools/hia_selfhost_exports_child.py": "d6a96f7bbdbf3f4e73b6476a247280b32b25c1efcbba598610d90b4fb5daa1de",
       "tools/hia_selfhost_keywords.py": "bdf6d9f8747ff0ae037e6b28b59dee38dbab91fedf30c443e2d09ea88f468bd7",
-      "tools/hia_selfhost_limits.py": "e232997b64253b8f8150785b8947f78d91dfe93a0b41537edc54eaeede52a055",
+      "tools/hia_selfhost_limits.py": "0971eea789fff65286de5641331b9d954381fe27260c5f5eecff719b9a3c4c68",
       "tools/hia_selfhost_linked_observer.py": "ff344bc27a9e8dbf68628a27e4435d6a257edcb1298dd0361dee46dbe0cf7f87",
       "tools/hia_selfhost_loans.py": "29f76ed70b35131604719ad32f4ab582834472aea13fc042b917d9cf9a8c6829",
-      "tools/hia_selfhost_multi_results.py": "59163d4a11bc7fdf21ce4cee3bda75ffce5c0de371ac58d1e65fa7f87673274f",
+      "tools/hia_selfhost_multi_results.py": "83f7f68bd6015f719fe3317f8291833e65f8251e76ae06dcdea0c79a23a13a66",
       "tools/hia_selfhost_names.py": "ecd9454125335db64c1f2cd1f17eccc86f4bd622871a9bdf079ddd00e8fbc0c7",
       "tools/hia_selfhost_native_observer.py": "9d5e19b938712079aceefffdcd98d01991962d9c840339adad4ab2af5e39c3f4",
-      "tools/hia_selfhost_owned_elf.py": "7faa48f93664b3804d250d29dd6bd7a7c0b58b13e6c9849445b3ab19ac09f0ff",
+      "tools/hia_selfhost_owned_elf.py": "c72623d4f72894b8f108f0fbe17dc4e931c549acfeb3ad74f1116b1cd03af09b",
       "tools/hia_selfhost_owned_elf_cases.py": "f2835c0d8bb938f2c9a4462b0de1aa24a1b60c481bac02fda00d5beaefd3431a",
       "tools/hia_selfhost_owned_flow_cases.py": "1abe0bc7af741771dc49c4f629586b48d4096f1090daf4404edfc990273cbd98",
       "tools/hia_selfhost_owner_results.py": "faaba1fea1d1bcdb5092de83f89679e1ab83bd3718fe3c84f77f8166a62ff409",
@@ -4945,7 +4959,7 @@
       "tools/hia_selfhost_process_owner.py": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
       "tools/hia_selfhost_references.py": "00cf80c2a9d71503fba95b0a013a5f0e0c5fbf402389d64479997642d80d30fe",
       "tools/hia_selfhost_resources.py": "069eaaf7e077360ac290183c93eca9e7b4263dbeb8ee7a2819805634a8c46388",
-      "tools/hia_selfhost_returned_loans.py": "4549c747a9cea779e9f1400678a739774095c4cdb91224302a046d8f2e3b3272",
+      "tools/hia_selfhost_returned_loans.py": "c32f52286aa1c30baee9904afd7e7bff885363f64259fbe4dbd87d32928c5acf",
       "tools/hia_selfhost_scalar_casts.py": "186a017ced061813e754b8c773aaea809cd3c8af949886adbc9d93e0789b77fc",
       "tools/hia_selfhost_select.py": "875aa66d76527b61c04bdd09287d44325aee0e758e65de1293072c6917c82fef",
       "tools/hia_selfhost_signed.py": "eb3140aed200e975f613b68b9e4d386dd3a8343596439dfa747646e93c40b555",
@@ -5291,7 +5305,7 @@
     {
       "area": "calls",
       "items": [
-        "zero to three scalar, owned or parameter-bound borrowed results",
+        "zero to six scalar, owned or parameter-bound borrowed results",
         "exact signatures",
         "forward direct calls",
         "backward direct calls",
@@ -5302,7 +5316,7 @@
     {
       "area": "recursion",
       "items": [
-        "direct self call immediately returning its exact zero-to-three scalar/owner/loan result tuple in order",
+        "direct self call immediately returning its exact zero-to-six scalar/owner/loan result tuple in order",
         "parallel argument staging and same-frame entry jump",
         "non-tail self calls and mutual recursion rejected",
         "non-tail cycles in non-entry-reachable functions rejected"
@@ -5343,7 +5357,7 @@
         "scratch_is_heap": false
       },
       "excluded": [
-        "more than three results"
+        "more than six results"
       ],
       "items": [
         "buffer.new",
@@ -5424,9 +5438,9 @@
     "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
     "executable_module": "selfhost_exec",
     "function_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core reserved function names and __hia_ prefix rejected",
-    "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
+    "function_results": "zero to six scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
     "header": "hia-asm.v1",
-    "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
+    "instruction_results": "zero or one; internal calls have zero to six scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
     "module": "ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core __hia_ prefix rejected; ordinary module labels without explicit exports select flat output",
     "object_module": "selfhost_elf",
     "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",

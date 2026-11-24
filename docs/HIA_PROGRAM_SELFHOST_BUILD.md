@@ -147,11 +147,18 @@ result before the selected native JSON frontend/compiler runs. A caller-supplied
 the entry repeats HIA elaboration and rejects a mismatching pair. Nominal public
 aggregate or borrowed signatures do not become scalar exports after flattening.
 
-This route retains the current native compiler limits, including at most three
-internal results. The original returned-loan pair and mutable-to-read child
-cases fit that profile. The original cooperative-task case with six flattened
-results remains a real compiler refusal. Composite v1–v3 require their earlier
-Core schemas and remain outside this particular build route.
+This route supports up to six internal scalar, owner or parameter-bound loan
+results. The original returned-loan pair, mutable-to-read child and cooperative
+task with six flattened results compile and execute against the original Core
+VM cases. A seventh result remains outside this bounded ABI. Composite v1–v3
+require their earlier Core schemas and remain outside this particular build route.
+
+The six-result compiler keeps the 1 MiB workspace and the original function,
+block, instruction and source limits. The extra type/loan metadata uses the
+previously unused final 48 bytes of each function record. Separate private
+scratch vectors hold parsed output names and returned identities; a 128-byte
+result stack area preserves both descriptor words without aliasing local values.
+The public scalar-export and borrowed-buffer entry ABIs are unchanged.
 
 The standalone compiler executable continues to accept primitive Core JSON.
 This adapter integration does not add the complete nominal object/session

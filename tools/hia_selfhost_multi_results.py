@@ -1,6 +1,6 @@
 """Bounded scalar and owned-resource tuples in the native selfhost compiler.
 
-Private calls use three 16-byte slots in a 64-byte aligned result area. Scalars
+Private calls use six 16-byte slots in a 128-byte aligned result area. Scalars
 use the first word; owners transfer both descriptor words without freeing them.
 Borrowed-view returns require the exact original-formal provenance contract.
 The public f0 borrowed-buffer entry is unchanged.
@@ -15,7 +15,7 @@ def read_result_types(s:readbuf, w:mutbuf) -> u64:
     first = 0
     t = 0
     while get(w, 8) != 41 and get(w, 40) == 0:
-        if count >= 3:
+        if count >= MAX_RESULTS:
             return fail(w, 3)
         t = read_type(s, w)
         if scalar_type(t) != 1 and resource_type(t) != 1:
@@ -23,7 +23,7 @@ def read_result_types(s:readbuf, w:mutbuf) -> u64:
         if count == 0:
             first = t
         if get(w, 48) == 0:
-            put(w, base + 192 + count * 8, t)
+            put(w, base + 192 + result_offset(count), t)
         count = count + 1
         if get(w, 8) != 41:
             expect(s, w, 44)
@@ -46,15 +46,15 @@ def return_results(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return fail(w, 13)
         v = expect(s, w, 256)
         t = variable(w, v)
-        if t != get(w, base + 192 + count * 8):
+        if t != get(w, base + 192 + result_offset(count)):
             return fail(w, 13)
         if owner_type(t) == 1:
             owner_free(w, v)
         if t == 6 or t == 7:
-            returned_loan(w, v, get(w, base + 216 + count * 8))
-        put(w, 400 + count * 8, v)
+            returned_loan(w, v, get(w, base + 216 + result_offset(count)))
+        put(w, RESULT_RETURNED + count * 8, v)
         if get(w, 256) != 0:
-            if v != get(w, 296 + count * 16):
+            if v != get(w, RESULT_OUTPUTS + count * 16):
                 return fail(w, 59)
         else:
             load_var(o, w, 0, v, 0)
@@ -73,7 +73,7 @@ def return_results(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return fail(w, 13)
     i = 0
     while i < count:
-        returned_consume(w, get(w, 400 + i * 8), get(w, base + 192 + i * 8))
+        returned_consume(w, get(w, RESULT_RETURNED + i * 8), get(w, base + 192 + result_offset(i)))
         i = i + 1
     loan_finish(w)
     account_nodes(w, 3 + count)
@@ -94,12 +94,12 @@ def call_results(o:mutbuf, w:mutbuf, callee:u64) -> u64:
         if count != get(w, base + 184):
             return fail(w, 24)
     while i < count:
-        v = get(w, 296 + i * 16)
-        t = get(w, 304 + i * 16)
+        v = get(w, RESULT_OUTPUTS + i * 16)
+        t = get(w, RESULT_OUTPUTS + 8 + i * 16)
         if scalar_type(t) != 1 and resource_type(t) != 1:
             return fail(w, 24)
         if get(w, 48) > 0:
-            if t != get(w, base + 192 + i * 8):
+            if t != get(w, base + 192 + result_offset(i)):
                 return fail(w, 24)
         define(w, v, t)
         if get(w, 40) != 0:
@@ -271,7 +271,7 @@ def cases():
     from tools.hia_selfhost_void_results import cases as void_cases
     from tools.hia_selfhost_owner_results import cases as owner_cases
     from tools.hia_selfhost_returned_loans import cases as loan_cases
-    return rows + void_cases() + owner_cases() + loan_cases()
+    return rows + void_cases() + owner_cases() + loan_cases() + extended_cases()
 
 
 def refusals():
@@ -296,8 +296,7 @@ def refusals():
     reject("ret-trailing-comma", base.replace("ret(v1,v0)", "ret(v1,v0,)"))
     reject("signature-trailing-comma", base.replace("-> (u16,u32)", "-> (u16,u32,)"))
     reject("entry-multiple-results", base.replace("-> (u32)", "-> (u32,u32)", 1).replace("ret(v6)", "ret(v6,v3)"), "accepted")
-    reject("four-scalar-results", base.replace("v5:u16,v6:u32 = call", "v5:u16,v6:u32,v7:u16,v8:u32 = call")
-        .replace("-> (u16,u32)", "-> (u16,u32,u16,u32)").replace("ret(v1,v0)", "ret(v1,v0,v1,v0)"), "accepted")
+
     tail = next(row["source"] for row in cases() if row["program"] == "pair-tail")
     reject("tail-results-reordered", tail.replace("ret(v12,v13)", "ret(v13,v12)"), "accepted")
     reject("tail-result-replaced", tail.replace("ret(v12,v13)", "ret(v12,v9)"), "accepted")
@@ -314,7 +313,122 @@ def refusals():
     from tools.hia_selfhost_void_results import refusals as void_refusals
     from tools.hia_selfhost_owner_results import refusals as owner_refusals
     from tools.hia_selfhost_returned_loans import refusals as loan_refusals
-    return list(rows.values()) + void_refusals() + owner_refusals() + loan_refusals()
+    return list(rows.values()) + void_refusals() + owner_refusals() + loan_refusals() + extended_refusals()
+
+
+def _previously_refused_four_source():
+    """Preserve the original accepted general-Core four-result witness bytes."""
+    from tools.hia_selfhost_cases import HEADER
+    return (HEADER + '  v3:u32 = const() {"value":5}\n  v4:u16 = const() {"value":12}\n'
+        '  v5:u16,v6:u32,v7:u16,v8:u32 = call(v3,v4) {"function":"f1"}\n  ret(v6)\nend\n'
+        "fn f1(v0:u32,v1:u16) -> (u16,u32,u16,u32) effects(read,write,trap) entry(b0)\n"
+        "block b0(v0:u32,v1:u16)\n  ret(v1,v0,v1,v0)\nend\n")
+
+
+def extended_cases():
+    """Input-dependent fourth through sixth slots, including live descriptors."""
+    from tools.hia_selfhost_bulk import Body
+    from tools.hia_selfhost_cases import HEADER
+    rows = []
+
+    def add(group, source, arguments, expected, *, owned=False, result=0, raw=None):
+        incoming = b''.join(int(x).to_bytes(8, 'little') for x in arguments) if raw is None else raw
+        output = b''.join(int(x).to_bytes(8, 'little') for x in expected)
+        rows.append({'id': group + '-' + str(sum(r['program'] == group for r in rows)),
+            'program': group, 'source': source, 'source_hex': incoming.hex(),
+            'initial_hex': (bytes([0xa5]) * len(output)).hex(), 'expected_hex': output.hex(),
+            'expected_result': result, 'arguments': list(arguments), 'expected_values': list(expected),
+            'owned_elf_only': owned})
+
+    add('extended-four-previously-refused', _previously_refused_four_source(), [], [], result=5)
+    scalar_types = ['u8', 'u16', 'u32', 'u64', 'bool', 'usize']
+    maxima = [255, 65535, (1 << 32) - 1, (1 << 64) - 1, True, (1 << 64) - 1]
+    middle = [128, 32768, 1 << 31, 1 << 63, False, 17]
+    for count in (4, 5, 6):
+        args = scalar_types[:count]
+        returns = list(reversed(args))
+        helper = _function('f1', args, returns, '  ret(' + ','.join('v' + str(i) for i in reversed(range(count))) + ')\n')
+        source = _scalar_program(args, returns, helper)
+        for values in ([0] * count, maxima[:count], middle[:count]):
+            add('extended-' + str(count) + '-mixed', source, values, list(reversed(values)))
+        if count == 6:
+            out = ['v' + str(i + count) for i in range(count)]
+            backward = _function('f2', args, returns,
+                '  ' + ','.join(n + ':' + t for n, t in zip(out, returns))
+                + ' = call(' + ','.join('v' + str(i) for i in range(count))
+                + ') {"function":"f1"}\n  ret(' + ','.join(out) + ')\n')
+            source = _scalar_program(args, returns, helper + backward, callee='f2')
+            for values in ([0] * count, maxima[:count], middle[:count]):
+                add('extended-six-backward', source, values, list(reversed(values)))
+
+    helper = _function('f1', ['u8'] + ['u64'] * 6, ['u64'] * 6,
+        '  v7:u8 = const() {"value":0}\n  v8:bool = compare.eq(v0,v7)\n'
+        '  branch v8 b1(v1,v2,v3,v4,v5,v6) b2(v0,v1,v2,v3,v4,v5,v6)\n'
+        'block b1(v9:u64,v10:u64,v11:u64,v12:u64,v13:u64,v14:u64)\n  ret(v9,v10,v11,v12,v13,v14)\n'
+        'block b2(v15:u8,v16:u64,v17:u64,v18:u64,v19:u64,v20:u64,v21:u64)\n'
+        '  v22:u8 = const() {"value":1}\n  v23:u8 = int.sub.wrap(v15,v22)\n'
+        '  v24:u64,v25:u64,v26:u64,v27:u64,v28:u64,v29:u64 = call(v23,v17,v18,v19,v20,v21,v16) {"function":"f1"}\n'
+        '  ret(v24,v25,v26,v27,v28,v29)\n')
+    source = _scalar_program(['u8'] + ['u64'] * 6, ['u64'] * 6, helper)
+    data = [0, (1 << 64) - 1, 1 << 63, 7, 256, 999]
+    for count in (0, 1, 2, 31):
+        shift = count % 6
+        add('extended-six-tail', source, [count, *data], data[shift:] + data[:shift])
+
+    body = Body()
+    names = _call(body, ['u8', 'u16', 'u32', 'readbuf', 'mutbuf', 'buffer'], ['v0', 'v1'])
+    zero = body.const('usize', 0)
+    incoming = body.value('u8', 'buffer.load', [names[3], zero])
+    local = body.value('mutbuf', 'borrow.mut', [names[5]])
+    length = body.value('usize', 'buffer.len', [local])
+    body.effect('buffer.fill', [local, body.const('u8', 17)])
+    held = body.value('u8', 'buffer.load', [local, zero])
+    values = [names[0], body.value('u8', 'int.cast', [names[1]], {'mode': 'wrap'}),
+              body.value('u8', 'int.cast', [names[2]], {'mode': 'wrap'}), incoming,
+              body.value('u8', 'int.cast', [length], {'mode': 'checked'}), held]
+    for i, value in enumerate(values):
+        body.effect('buffer.store', [names[4], body.const('usize', i), value])
+    body.effect('loan.end', [local])
+    body.effect('loan.end', [names[3]])
+    body.effect('loan.end', [names[4]])
+    body.effect('owner.drop', [names[5]])
+    result = body.const('u32', 0)
+    helper = ('fn f1(v0:readbuf,v1:mutbuf) -> (u8,u16,u32,readbuf,mutbuf,buffer) '
+        'effects(alloc,read,write,trap) entry(b0) return_loans([null,null,null,"v0","v1",null])\n'
+        'block b0(v0:readbuf,v1:mutbuf)\n  v2:usize = const() {"value":3}\n'
+        '  v3:buffer = buffer.new(v2)\n  v4:u8 = const() {"value":8}\n'
+        '  v5:u16 = const() {"value":16}\n  v6:u32 = const() {"value":32}\n'
+        '  ret(v4,v5,v6,v0,v1,v3)\nend\n')
+    source = (HEADER.replace('v8 selfhost\n', 'v8 selfhost_elf\n').replace(
+        'effects(read,write,trap)', 'effects(alloc,read,write,trap)')
+        + body.text() + '  ret(' + result + ')\nend\n' + helper)
+    for byte in (0, 73, 255):
+        expected = bytes([8, 16, 32, byte, 3, 17])
+        add('extended-six-loan-owner', source, [], [], owned=True, raw=bytes([byte]))
+        rows[-1].update(initial_hex='a5' * len(expected), expected_hex=expected.hex())
+    return rows
+
+
+def extended_refusals():
+    four = _previously_refused_four_source()
+    seven = four.replace('v5:u16,v6:u32,v7:u16,v8:u32 = call',
+        'v5:u16,v6:u32,v7:u16,v8:u32,v9:u16,v10:u32,v11:u16 = call').replace(
+        '-> (u16,u32,u16,u32)', '-> (u16,u32,u16,u32,u16,u32,u16)').replace(
+        'ret(v1,v0,v1,v0)', 'ret(v1,v0,v1,v0,v1,v0,v1)')
+    mixed = next(r['source'] for r in extended_cases() if r['program'] == 'extended-six-loan-owner')
+    prefix = mixed[:mixed.index('fn f1(')].replace('call(v0,v1) {"function":"f1"}',
+        'call(v0,v1,v0) {"function":"f1"}')
+    wrong_origin = prefix + ('fn f1(v0:readbuf,v1:mutbuf,v2:readbuf) -> (u8,u16,u32,readbuf,mutbuf,buffer) '
+        'effects(alloc,read,write,trap) entry(b0) return_loans([null,null,null,"v0","v1",null])\n'
+        'block b0(v0:readbuf,v1:mutbuf,v2:readbuf)\n  v3:usize = const() {"value":3}\n'
+        '  v4:buffer = buffer.new(v3)\n  v5:u8 = const() {"value":8}\n'
+        '  v6:u16 = const() {"value":16}\n  v7:u32 = const() {"value":32}\n'
+        '  ret(v5,v6,v7,v2,v1,v4)\nend\n')
+    rows = [('seven-scalar-results', seven, 'accepted'),
+            ('six-fourth-wrong-formal-origin', wrong_origin, 'rejected'),
+            ('six-sixth-wrong-type', mixed.replace('v8:buffer = call', 'v8:u64 = call'), 'rejected')]
+    return [{'id': name, 'source': source, 'general_core_expected': expected}
+            for name, source, expected in rows]
 
 
 def independent_reference():
