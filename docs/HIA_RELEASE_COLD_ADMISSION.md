@@ -107,3 +107,5 @@ rules; and integral, rounded, underflowing and nonfinite numeric boundaries.
 The fixture construction and reference comparison are external test code.
 They are not installed runtime fallbacks, and their synthetic successful
 reports must never be substituted for a completed cold replay.
+
+The native cold-report decoder preserves Python byte-JSON surrogatepass behavior for the report only, including ignored observations containing lone escaped or raw UTF-8 surrogates. Contract JSON remains strict, and schema, checks and source pin comparisons are unchanged.

@@ -64,6 +64,16 @@ def render(root):
             for f in ast.parse(value).body:
                 if f.name in ('decoded', 'hex4'):
                     decoder += '\n' + ast.get_source_segment(value, f) + '\n'
+    # json.loads(bytes) uses surrogatepass for the cold report. Keep the
+    # contract's text decoder strict, and only relax the report's own range.
+    def replace_decoder(old, new, count=1):
+        nonlocal decoder
+        assert decoder.count(old) == count, old
+        decoder = decoder.replace(old, new)
+    replace_decoder('    size = length(s)\n', '    size = length(s)\n    cold_string = 0\n    if index >= 64 and index < 64 + uint(s, 8, 8):\n        cold_string = 1\n')
+    replace_decoder('                return (6 << 32) | 1114113\n', '                if cold_string != 0:\n                    return (index << 32) | cp\n                return (6 << 32) | 1114113\n', 3)
+    replace_decoder('                return (7 << 32) | 1114113\n', '                if cold_string != 0:\n                    return (index << 32) | cp\n                return (7 << 32) | 1114113\n')
+    replace_decoder('    if cp >= 55296 and cp <= 57343:\n        return (20 << 32) | 1114113\n', '    if cp >= 55296 and cp <= 57343 and cold_string == 0:\n        return (20 << 32) | 1114113\n')
     sha_nodes = [n for n in ast.parse(source_program()).body if n.name != 'stream']
     sha_names = {n.name: 'sha_' + n.name for n in sha_nodes}
 
