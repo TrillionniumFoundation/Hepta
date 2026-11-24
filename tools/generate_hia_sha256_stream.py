@@ -101,7 +101,18 @@ def compress(w:mutbuf) -> u64:
     for i, name in enumerate('abcdefgh'):
         source += f'    put(w, {1024 + i * 8}, (get(w, {1024 + i * 8}) + {name}) & 4294967295)\n'
     source += '    return 0\n'
-    return source + HELPERS[HELPERS.index('\ndef rotate'):]
+    # Fixed-width byte assembly avoids the hot eight-iteration helper loops.
+    # The byte offsets, read/write order, and complete u64 representation remain
+    # identical to HELPERS. In particular, metadata words still use all 64 bits.
+    helpers = HELPERS[HELPERS.index('\ndef rotate'):].split('\ndef get', 1)[0]
+    helpers += '\ndef get(w:mutbuf, index:u64) -> u64:\n'
+    helpers += '    return ' + ' | '.join(
+        f'(byte(w, index + {i}) << {i * 8})' for i in range(8)) + '\n'
+    helpers += '\ndef put(w:mutbuf, index:u64, value:u64) -> u64:\n'
+    for i in range(8):
+        helpers += f'    store(w, index + {i}, (value >> {i * 8}) & 255)\n'
+    helpers += '    return 0\n'
+    return source + helpers
 
 
 def document():
