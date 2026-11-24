@@ -258,7 +258,25 @@ block b34(v337:readbuf,v338:mutbuf,v339:mutbuf)
   worker_install_owner_kind:u64 = const() {"value":3552021007038499144}
   worker_install_owner_selected:bool = compare.eq(v350,worker_install_owner_kind)
   worker_install_owner_ceiling:u64 = const() {"value":2097152}
-  v362:u64 = select(worker_install_owner_selected,worker_install_owner_ceiling,workspace_limit)
+  worker_install_owner_limit:u64 = select(worker_install_owner_selected,worker_install_owner_ceiling,workspace_limit)
+  job_launch_kind:u64 = const() {"value":3552018820682041672}
+  job_launch_selected:bool = compare.eq(v350,job_launch_kind)
+  job_launch_ceiling:u64 = const() {"value":4194304}
+  job_launch_limit:u64 = select(job_launch_selected,job_launch_ceiling,worker_install_owner_limit)
+  job_observation_kind:u64 = const() {"value":3544415710660872520}
+  job_observation_selected:bool = compare.eq(v350,job_observation_kind)
+  job_observation_ceiling:u64 = const() {"value":2097152}
+  job_observation_limit:u64 = select(job_observation_selected,job_observation_ceiling,job_launch_limit)
+  job_entry_kind:u64 = const() {"value":3544415667711199560}
+  job_entry_selected:bool = compare.eq(v350,job_entry_kind)
+  job_entry_limit:u64 = select(job_entry_selected,job_observation_ceiling,job_observation_limit)
+  job_cancel_kind:u64 = const() {"value":3616473253159192904}
+  job_cancel_selected:bool = compare.eq(v350,job_cancel_kind)
+  job_cancel_ceiling:u64 = const() {"value":1048576}
+  job_cancel_limit:u64 = select(job_cancel_selected,job_cancel_ceiling,job_entry_limit)
+  job_submit_kind:u64 = const() {"value":3552005656607279432}
+  job_submit_selected:bool = compare.eq(v350,job_submit_kind)
+  v362:u64 = select(job_submit_selected,job_launch_ceiling,job_cancel_limit)
   v363:u64 = const() {"value":131072}
   v364:bool = compare.ge(v350,v363)
   v365:u64 = const() {"value":131200}
@@ -834,11 +852,11 @@ block b58(v685:readbuf,v686:mutbuf,v688:u64,v689:u64,v690:u64,v694:u64,v695:u64,
   v703:u64 = const() {"value":24}
   v704:u64 = int.add.wrap(v695,v703)
   v705:u64 = call(v686,v704,v696) {"function":"put"}
-  v706:u64 = const() {"value":32}
+  v706:u64 = const() {"value":64}
   v707:bool = compare.lt(v694,v706)
   branch v707 b59(v685,v686,v688,v689,v690,v694,v696) b60(v685,v686,v688,v689,v690,v694,v696)
 block b59(v708:readbuf,v709:mutbuf,v711:u64,v712:u64,v713:u64,v717:u64,v719:u64)
-  v734:u64 = const() {"value":512}
+  v734:u64 = const() {"value":2048}
   v735:u64 = const() {"value":16}
   v736:u64 = int.mul.wrap(v717,v735)
   v737:u64 = int.add.wrap(v734,v736)
@@ -928,7 +946,7 @@ block b76(v943:readbuf,v944:mutbuf,v946:u64,v950:u64,v951:u64,v952:u64)
   v956:u64 = const() {"value":16}
   v957:u64 = int.mul.wrap(v951,v956)
   v958:u64 = int.add.wrap(v955,v957)
-  v959:u64 = const() {"value":512}
+  v959:u64 = const() {"value":2048}
   v960:u64 = int.mul.wrap(v952,v956)
   v961:u64 = int.add.wrap(v959,v960)
   v962:u64 = call(v944,v961) {"function":"get"}
@@ -5799,8 +5817,108 @@ block b5(v89:readbuf,v90:u64,v91:u64,v92:u64,v93:u64,v94:u64,v95:u64,v96:u64,v97
   v104:u64 = int.add.wrap(v99,v103)
   jump b1(v89,v90,v91,v92,v93,v94,v95,v96,v97,v98,v104)
 end
-fn worker_aux(ci:readbuf,cn:u64,cz:u64,cs:u64,cx:u64) -> (u64) effects(read,write,trap) entry(config_aux)
-block config_aux(ci:readbuf,cn:u64,cz:u64,cs:u64,cx:u64)
+fn worker_aux(ci:readbuf,cn:u64,cz:u64,cs:u64,cx:u64) -> (u64) effects(read,write,trap) entry(job_aux0)
+block job_aux0(ci:readbuf,cn:u64,cz:u64,cs:u64,cx:u64)
+  job_name0_0:u64 = const() {"value":21}
+  job_name0_1:u64 = const() {"value":7959375034531868522}
+  job_name0_2:u64 = const() {"value":3345734114679416931}
+  job_name0_3:u64 = const() {"value":418565350760}
+  job_name0_4:u64 = const() {"value":0}
+  job_name0_5:u64 = const() {"value":0}
+  job_name0_6:u64 = const() {"value":0}
+  job_name0_7:u64 = const() {"value":0}
+  job_named0:bool = call(ci,cn,cz,job_name0_0,job_name0_1,job_name0_2,job_name0_3,job_name0_4,job_name0_5,job_name0_6,job_name0_7) {"function":"is_name"}
+  branch job_named0 job_module0(ci,cs,cx) job_aux1(ci,cn,cz,cs,cx)
+block job_module0(jm0:readbuf,jms0:u64,jmz0:u64)
+  job_module0_0:u64 = const() {"value":15}
+  job_module0_1:u64 = const() {"value":7959375034531868522}
+  job_module0_2:u64 = const() {"value":31084788934731875}
+  job_module0_3:u64 = const() {"value":0}
+  job_module0_4:u64 = const() {"value":0}
+  job_module0_5:u64 = const() {"value":0}
+  job_module0_6:u64 = const() {"value":0}
+  job_module0_7:u64 = const() {"value":0}
+  job_valid0:bool = call(jm0,jms0,jmz0,job_module0_0,job_module0_1,job_module0_2,job_module0_3,job_module0_4,job_module0_5,job_module0_6,job_module0_7) {"function":"is_module"}
+  job_role0:u64 = const() {"value":30}
+  job_zero0:u64 = const() {"value":0}
+  job_result0:u64 = select(job_valid0,job_role0,job_zero0)
+  ret(job_result0)
+block job_aux1(ji1:readbuf,jn1:u64,jz1:u64,js1:u64,jx1:u64)
+  job_name1_0:u64 = const() {"value":26}
+  job_name1_1:u64 = const() {"value":7310294850633625450}
+  job_name1_2:u64 = const() {"value":6876556179756119666}
+  job_name1_3:u64 = const() {"value":8098994053526287210}
+  job_name1_4:u64 = const() {"value":24948}
+  job_name1_5:u64 = const() {"value":0}
+  job_name1_6:u64 = const() {"value":0}
+  job_name1_7:u64 = const() {"value":0}
+  job_named1:bool = call(ji1,jn1,jz1,job_name1_0,job_name1_1,job_name1_2,job_name1_3,job_name1_4,job_name1_5,job_name1_6,job_name1_7) {"function":"is_name"}
+  branch job_named1 job_module1(ji1,js1,jx1) job_aux2(ji1,jn1,jz1,js1,jx1)
+block job_module1(jm1:readbuf,jms1:u64,jmz1:u64)
+  job_module1_0:u64 = const() {"value":20}
+  job_module1_1:u64 = const() {"value":7310294850633625450}
+  job_module1_2:u64 = const() {"value":6876556179756119666}
+  job_module1_3:u64 = const() {"value":1852797802}
+  job_module1_4:u64 = const() {"value":0}
+  job_module1_5:u64 = const() {"value":0}
+  job_module1_6:u64 = const() {"value":0}
+  job_module1_7:u64 = const() {"value":0}
+  job_valid1:bool = call(jm1,jms1,jmz1,job_module1_0,job_module1_1,job_module1_2,job_module1_3,job_module1_4,job_module1_5,job_module1_6,job_module1_7) {"function":"is_module"}
+  job_role1:u64 = const() {"value":31}
+  job_zero1:u64 = const() {"value":0}
+  job_result1:u64 = select(job_valid1,job_role1,job_zero1)
+  ret(job_result1)
+block job_aux2(ji2:readbuf,jn2:u64,jz2:u64,js2:u64,jx2:u64)
+  job_name2_0:u64 = const() {"value":23}
+  job_name2_1:u64 = const() {"value":7881991436233764714}
+  job_name2_2:u64 = const() {"value":7164793118483510377}
+  job_name2_3:u64 = const() {"value":27431098827419240}
+  job_name2_4:u64 = const() {"value":0}
+  job_name2_5:u64 = const() {"value":0}
+  job_name2_6:u64 = const() {"value":0}
+  job_name2_7:u64 = const() {"value":0}
+  job_named2:bool = call(ji2,jn2,jz2,job_name2_0,job_name2_1,job_name2_2,job_name2_3,job_name2_4,job_name2_5,job_name2_6,job_name2_7) {"function":"is_name"}
+  branch job_named2 job_module2(ji2,js2,jx2) job_aux3(ji2,jn2,jz2,js2,jx2)
+block job_module2(jm2:readbuf,jms2:u64,jmz2:u64)
+  job_module2_0:u64 = const() {"value":17}
+  job_module2_1:u64 = const() {"value":7881991436233764714}
+  job_module2_2:u64 = const() {"value":7164793118483510377}
+  job_module2_3:u64 = const() {"value":104}
+  job_module2_4:u64 = const() {"value":0}
+  job_module2_5:u64 = const() {"value":0}
+  job_module2_6:u64 = const() {"value":0}
+  job_module2_7:u64 = const() {"value":0}
+  job_valid2:bool = call(jm2,jms2,jmz2,job_module2_0,job_module2_1,job_module2_2,job_module2_3,job_module2_4,job_module2_5,job_module2_6,job_module2_7) {"function":"is_module"}
+  job_role2:u64 = const() {"value":32}
+  job_zero2:u64 = const() {"value":0}
+  job_result2:u64 = select(job_valid2,job_role2,job_zero2)
+  ret(job_result2)
+block job_aux3(ji3:readbuf,jn3:u64,jz3:u64,js3:u64,jx3:u64)
+  job_name3_0:u64 = const() {"value":21}
+  job_name3_1:u64 = const() {"value":7881991436233764714}
+  job_name3_2:u64 = const() {"value":3345734114679420009}
+  job_name3_3:u64 = const() {"value":418565350760}
+  job_name3_4:u64 = const() {"value":0}
+  job_name3_5:u64 = const() {"value":0}
+  job_name3_6:u64 = const() {"value":0}
+  job_name3_7:u64 = const() {"value":0}
+  job_named3:bool = call(ji3,jn3,jz3,job_name3_0,job_name3_1,job_name3_2,job_name3_3,job_name3_4,job_name3_5,job_name3_6,job_name3_7) {"function":"is_name"}
+  branch job_named3 job_module3(ji3,js3,jx3) config_aux(ji3,jn3,jz3,js3,jx3)
+block job_module3(jm3:readbuf,jms3:u64,jmz3:u64)
+  job_module3_0:u64 = const() {"value":15}
+  job_module3_1:u64 = const() {"value":7881991436233764714}
+  job_module3_2:u64 = const() {"value":31084788934734953}
+  job_module3_3:u64 = const() {"value":0}
+  job_module3_4:u64 = const() {"value":0}
+  job_module3_5:u64 = const() {"value":0}
+  job_module3_6:u64 = const() {"value":0}
+  job_module3_7:u64 = const() {"value":0}
+  job_valid3:bool = call(jm3,jms3,jmz3,job_module3_0,job_module3_1,job_module3_2,job_module3_3,job_module3_4,job_module3_5,job_module3_6,job_module3_7) {"function":"is_module"}
+  job_role3:u64 = const() {"value":33}
+  job_zero3:u64 = const() {"value":0}
+  job_result3:u64 = select(job_valid3,job_role3,job_zero3)
+  ret(job_result3)
+block config_aux(cfi:readbuf,cfn:u64,cfz:u64,cfs:u64,cfx:u64)
   config_name0:u64 = const() {"value":24}
   config_name1:u64 = const() {"value":7160567712462303095}
   config_name2:u64 = const() {"value":8316564559647633007}
@@ -5809,8 +5927,8 @@ block config_aux(ci:readbuf,cn:u64,cz:u64,cs:u64,cx:u64)
   config_name5:u64 = const() {"value":0}
   config_name6:u64 = const() {"value":0}
   config_name7:u64 = const() {"value":0}
-  config_named:bool = call(ci,cn,cz,config_name0,config_name1,config_name2,config_name3,config_name4,config_name5,config_name6,config_name7) {"function":"is_name"}
-  branch config_named config_module(ci,cs,cx) install_aux0(ci,cn,cz,cs,cx)
+  config_named:bool = call(cfi,cfn,cfz,config_name0,config_name1,config_name2,config_name3,config_name4,config_name5,config_name6,config_name7) {"function":"is_name"}
+  branch config_named config_module(cfi,cfs,cfx) install_aux0(cfi,cfn,cfz,cfs,cfx)
 block config_module(mi:readbuf,ms:u64,mz:u64)
   config_module0:u64 = const() {"value":18}
   config_module1:u64 = const() {"value":7160567712462303095}
@@ -7736,7 +7854,26 @@ block entry(mode:u64,default_value:u64)
   is_worker_config_bind:bool = compare.eq(mode,worker_config_bind)
   worker_config_companions:u64 = const() {"value":3869}
   with_worker_config_bind:u64 = select(is_worker_config_bind,worker_config_companions,with_worker_install_owner)
-  ret(with_worker_config_bind)
+  job_launch:u64 = const() {"value":3552018820682041672}
+  is_job_launch:bool = compare.eq(mode,job_launch)
+  job_launch_companions:u64 = const() {"value":3870}
+  with_job_launch:u64 = select(is_job_launch,job_launch_companions,with_worker_config_bind)
+  job_observation:u64 = const() {"value":3544415710660872520}
+  is_job_observation:bool = compare.eq(mode,job_observation)
+  job_observation_companions:u64 = const() {"value":31}
+  with_job_observation:u64 = select(is_job_observation,job_observation_companions,with_job_launch)
+  job_entry:u64 = const() {"value":3544415667711199560}
+  is_job_entry:bool = compare.eq(mode,job_entry)
+  with_job_entry:u64 = select(is_job_entry,hashing_companion,with_job_observation)
+  job_cancel:u64 = const() {"value":3616473253159192904}
+  is_job_cancel:bool = compare.eq(mode,job_cancel)
+  job_cancel_companions:u64 = const() {"value":3871}
+  with_job_cancel:u64 = select(is_job_cancel,job_cancel_companions,with_job_entry)
+  job_submit:u64 = const() {"value":3552005656607279432}
+  is_job_submit:bool = compare.eq(mode,job_submit)
+  job_submit_companions:u64 = const() {"value":991520}
+  with_job_submit:u64 = select(is_job_submit,job_submit_companions,with_job_cancel)
+  ret(with_job_submit)
 end
 fn transaction_span(v0:mutbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64)
@@ -8283,7 +8420,7 @@ block source(raw:readbuf,mem:mutbuf,bytes:u64,nat:u64,nsize:u64,ssize:u64)
   branch valid_source identify(raw,mem,bytes,nat,nsize,sat,ssize) invalid()
 block identify(packet:readbuf,w:mutbuf,all_bytes:u64,n_at:u64,n_bytes:u64,s_at:u64,s_bytes:u64)
   mode:u64 = call(packet,n_at,n_bytes,s_at,s_bytes) {"function":"member_role"}
-  first_primary:u64 = const() {"value":32}
+  first_primary:u64 = const() {"value":64}
   primary:bool = compare.ge(mode,first_primary)
   required:u64 = call(mode) {"function":"companions"}
   no_companions:u64 = const() {"value":0}
@@ -8454,7 +8591,7 @@ block b24(v217:readbuf,v218:mutbuf)
   v238:u32 = int.cast(v237) {"mode":"wrap"}
   ret(v238)
 block b25(v227:readbuf,v228:mutbuf,v229:u64,v231:u64,v232:u64,v234:u64,v235:u64,v236:u64)
-  v239:u64 = const() {"value":32}
+  v239:u64 = const() {"value":64}
   v240:bool = compare.ge(v236,v239)
   branch v240 b26(v227,v228,v229,v231,v232,v234,v235,v236) b30(v227,v228,v229,v231,v232,v234,v235,v236)
 block b26(v241:readbuf,v242:mutbuf,v243:u64,v245:u64,v246:u64,v248:u64,v249:u64,v250:u64)
@@ -9087,7 +9224,7 @@ block candidate10(input10:readbuf,name10:u64,size10:u64,body10:u64,extent10:u64)
   nameword10_6:u64 = const() {"value":0}
   nameword10_7:u64 = const() {"value":0}
   named10:bool = call(input10,name10,size10,nameword10_0,nameword10_1,nameword10_2,nameword10_3,nameword10_4,nameword10_5,nameword10_6,nameword10_7) {"function":"is_name"}
-  branch named10 matched10(input10,body10,extent10) absent(input10)
+  branch named10 matched10(input10,body10,extent10) candidate11(input10,name10,size10,body10,extent10)
 block matched10(source10:readbuf,at10:u64,length10:u64)
   moduleword10_0:u64 = const() {"value":18}
   moduleword10_1:u64 = const() {"value":7160567712462303095}
@@ -9102,6 +9239,131 @@ block matched10(source10:readbuf,at10:u64,length10:u64)
   zero10:u64 = const() {"value":0}
   role10:u64 = select(module10,magic10,zero10)
   ret(role10)
+block candidate11(input11:readbuf,name11:u64,size11:u64,body11:u64,extent11:u64)
+  nameword11_0:u64 = const() {"value":20}
+  nameword11_1:u64 = const() {"value":3270298781242976616}
+  nameword11_2:u64 = const() {"value":7507052405137432940}
+  nameword11_3:u64 = const() {"value":1635020901}
+  nameword11_4:u64 = const() {"value":0}
+  nameword11_5:u64 = const() {"value":0}
+  nameword11_6:u64 = const() {"value":0}
+  nameword11_7:u64 = const() {"value":0}
+  named11:bool = call(input11,name11,size11,nameword11_0,nameword11_1,nameword11_2,nameword11_3,nameword11_4,nameword11_5,nameword11_6,nameword11_7) {"function":"is_name"}
+  branch named11 matched11(input11,body11,extent11) candidate12(input11,name11,size11,body11,extent11)
+block matched11(source11:readbuf,at11:u64,length11:u64)
+  moduleword11_0:u64 = const() {"value":10}
+  moduleword11_1:u64 = const() {"value":7959375034531868522}
+  moduleword11_2:u64 = const() {"value":26723}
+  moduleword11_3:u64 = const() {"value":0}
+  moduleword11_4:u64 = const() {"value":0}
+  moduleword11_5:u64 = const() {"value":0}
+  moduleword11_6:u64 = const() {"value":0}
+  moduleword11_7:u64 = const() {"value":0}
+  module11:bool = call(source11,at11,length11,moduleword11_0,moduleword11_1,moduleword11_2,moduleword11_3,moduleword11_4,moduleword11_5,moduleword11_6,moduleword11_7) {"function":"is_module"}
+  magic11:u64 = const() {"value":3552018820682041672}
+  zero11:u64 = const() {"value":0}
+  role11:u64 = select(module11,magic11,zero11)
+  ret(role11)
+block candidate12(input12:readbuf,name12:u64,size12:u64,body12:u64,extent12:u64)
+  nameword12_0:u64 = const() {"value":25}
+  nameword12_1:u64 = const() {"value":3270298781242976616}
+  nameword12_2:u64 = const() {"value":8386114214840984175}
+  nameword12_3:u64 = const() {"value":8390317603921227625}
+  nameword12_4:u64 = const() {"value":97}
+  nameword12_5:u64 = const() {"value":0}
+  nameword12_6:u64 = const() {"value":0}
+  nameword12_7:u64 = const() {"value":0}
+  named12:bool = call(input12,name12,size12,nameword12_0,nameword12_1,nameword12_2,nameword12_3,nameword12_4,nameword12_5,nameword12_6,nameword12_7) {"function":"is_name"}
+  branch named12 matched12(input12,body12,extent12) candidate13(input12,name12,size12,body12,extent12)
+block matched12(source12:readbuf,at12:u64,length12:u64)
+  moduleword12_0:u64 = const() {"value":15}
+  moduleword12_1:u64 = const() {"value":7310294850633625450}
+  moduleword12_2:u64 = const() {"value":31084746152965746}
+  moduleword12_3:u64 = const() {"value":0}
+  moduleword12_4:u64 = const() {"value":0}
+  moduleword12_5:u64 = const() {"value":0}
+  moduleword12_6:u64 = const() {"value":0}
+  moduleword12_7:u64 = const() {"value":0}
+  module12:bool = call(source12,at12,length12,moduleword12_0,moduleword12_1,moduleword12_2,moduleword12_3,moduleword12_4,moduleword12_5,moduleword12_6,moduleword12_7) {"function":"is_module"}
+  magic12:u64 = const() {"value":3544415710660872520}
+  zero12:u64 = const() {"value":0}
+  role12:u64 = select(module12,magic12,zero12)
+  ret(role12)
+block candidate13(input13:readbuf,name13:u64,size13:u64,body13:u64,extent13:u64)
+  nameword13_0:u64 = const() {"value":19}
+  nameword13_1:u64 = const() {"value":3270298781242976616}
+  nameword13_2:u64 = const() {"value":7307141494554783333}
+  nameword13_3:u64 = const() {"value":6386800}
+  nameword13_4:u64 = const() {"value":0}
+  nameword13_5:u64 = const() {"value":0}
+  nameword13_6:u64 = const() {"value":0}
+  nameword13_7:u64 = const() {"value":0}
+  named13:bool = call(input13,name13,size13,nameword13_0,nameword13_1,nameword13_2,nameword13_3,nameword13_4,nameword13_5,nameword13_6,nameword13_7) {"function":"is_name"}
+  branch named13 matched13(input13,body13,extent13) candidate14(input13,name13,size13,body13,extent13)
+block matched13(source13:readbuf,at13:u64,length13:u64)
+  moduleword13_0:u64 = const() {"value":9}
+  moduleword13_1:u64 = const() {"value":8247338199293259626}
+  moduleword13_2:u64 = const() {"value":121}
+  moduleword13_3:u64 = const() {"value":0}
+  moduleword13_4:u64 = const() {"value":0}
+  moduleword13_5:u64 = const() {"value":0}
+  moduleword13_6:u64 = const() {"value":0}
+  moduleword13_7:u64 = const() {"value":0}
+  module13:bool = call(source13,at13,length13,moduleword13_0,moduleword13_1,moduleword13_2,moduleword13_3,moduleword13_4,moduleword13_5,moduleword13_6,moduleword13_7) {"function":"is_module"}
+  magic13:u64 = const() {"value":3544415667711199560}
+  zero13:u64 = const() {"value":0}
+  role13:u64 = select(module13,magic13,zero13)
+  ret(role13)
+block candidate14(input14:readbuf,name14:u64,size14:u64,body14:u64,extent14:u64)
+  nameword14_0:u64 = const() {"value":20}
+  nameword14_1:u64 = const() {"value":3270298781242976616}
+  nameword14_2:u64 = const() {"value":7507056811588870499}
+  nameword14_3:u64 = const() {"value":1635020901}
+  nameword14_4:u64 = const() {"value":0}
+  nameword14_5:u64 = const() {"value":0}
+  nameword14_6:u64 = const() {"value":0}
+  nameword14_7:u64 = const() {"value":0}
+  named14:bool = call(input14,name14,size14,nameword14_0,nameword14_1,nameword14_2,nameword14_3,nameword14_4,nameword14_5,nameword14_6,nameword14_7) {"function":"is_name"}
+  branch named14 matched14(input14,body14,extent14) candidate15(input14,name14,size14,body14,extent14)
+block matched14(source14:readbuf,at14:u64,length14:u64)
+  moduleword14_0:u64 = const() {"value":10}
+  moduleword14_1:u64 = const() {"value":7164771136622980970}
+  moduleword14_2:u64 = const() {"value":27749}
+  moduleword14_3:u64 = const() {"value":0}
+  moduleword14_4:u64 = const() {"value":0}
+  moduleword14_5:u64 = const() {"value":0}
+  moduleword14_6:u64 = const() {"value":0}
+  moduleword14_7:u64 = const() {"value":0}
+  module14:bool = call(source14,at14,length14,moduleword14_0,moduleword14_1,moduleword14_2,moduleword14_3,moduleword14_4,moduleword14_5,moduleword14_6,moduleword14_7) {"function":"is_module"}
+  magic14:u64 = const() {"value":3616473253159192904}
+  zero14:u64 = const() {"value":0}
+  role14:u64 = select(module14,magic14,zero14)
+  ret(role14)
+block candidate15(input15:readbuf,name15:u64,size15:u64,body15:u64,extent15:u64)
+  nameword15_0:u64 = const() {"value":20}
+  nameword15_1:u64 = const() {"value":3270298781242976616}
+  nameword15_2:u64 = const() {"value":7507065625028752755}
+  nameword15_3:u64 = const() {"value":1635020901}
+  nameword15_4:u64 = const() {"value":0}
+  nameword15_5:u64 = const() {"value":0}
+  nameword15_6:u64 = const() {"value":0}
+  nameword15_7:u64 = const() {"value":0}
+  named15:bool = call(input15,name15,size15,nameword15_0,nameword15_1,nameword15_2,nameword15_3,nameword15_4,nameword15_5,nameword15_6,nameword15_7) {"function":"is_name"}
+  branch named15 matched15(input15,body15,extent15) absent(input15)
+block matched15(source15:readbuf,at15:u64,length15:u64)
+  moduleword15_0:u64 = const() {"value":10}
+  moduleword15_1:u64 = const() {"value":7881991436233764714}
+  moduleword15_2:u64 = const() {"value":29801}
+  moduleword15_3:u64 = const() {"value":0}
+  moduleword15_4:u64 = const() {"value":0}
+  moduleword15_5:u64 = const() {"value":0}
+  moduleword15_6:u64 = const() {"value":0}
+  moduleword15_7:u64 = const() {"value":0}
+  module15:bool = call(source15,at15,length15,moduleword15_0,moduleword15_1,moduleword15_2,moduleword15_3,moduleword15_4,moduleword15_5,moduleword15_6,moduleword15_7) {"function":"is_module"}
+  magic15:u64 = const() {"value":3552005656607279432}
+  zero15:u64 = const() {"value":0}
+  role15:u64 = select(module15,magic15,zero15)
+  ret(role15)
 block absent(missing_input:readbuf)
   none:u64 = const() {"value":0}
   ret(none)

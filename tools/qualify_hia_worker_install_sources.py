@@ -15,7 +15,10 @@ import subprocess
 import sys
 
 
-def qualify(source: Path, seed: Path, kit: Path, output: Path):
+def qualify(source: Path, seed: Path, kit: Path, output: Path, *,
+            specifications=None,
+            schema='hepta.hia.worker-install-source-qualification.v2',
+            scope='NATIVE_WORKER_INSTALLATION_MEMBER_COMPONENTS'):
     source, seed, kit = (path.resolve(strict=True) for path in (source, seed, kit))
     output = output.resolve()
     output.mkdir(mode=0o700)
@@ -42,21 +45,23 @@ def qualify(source: Path, seed: Path, kit: Path, output: Path):
         return result
 
     members = {}
-    specifications = (
-        ('hia-worker-install-owner', 'worker_install_owner', 'worker_install_dag'),
-        ('hia-worker-config-bind', 'worker_config_bind', 'worker_config_json'),
-        ('hia-controller-install', 'controller_install', 'controller_probe'),
-    )
-    for product, primary, companion in specifications:
+    if specifications is None:
+        specifications = (
+            ('hia-worker-install-owner', 'worker_install_owner', 'worker_install_dag', True),
+            ('hia-worker-config-bind', 'worker_config_bind', 'worker_config_json', True),
+            ('hia-controller-install', 'controller_install', 'controller_probe', True),
+        )
+    for product, primary, companion, include_hash in specifications:
         directory = output / product
         directory.mkdir(mode=0o700)
         primary_alias = product + '.hepta'
-        companion_alias = companion + '.hepta'
-        parts = {
-            primary_alias: read(bootstrap / (primary + '.hepta')),
-            companion_alias: read(bootstrap / companion_alias),
-            'sha256_stream.hepta': read(bootstrap / 'sha256_stream.hepta'),
-        }
+        companions = (companion,) if isinstance(companion, str) else tuple(companion)
+        companion_alias = companions[0] + '.hepta'
+        companion_aliases = [name + '.hepta' for name in companions]
+        parts = {primary_alias: read(bootstrap / (primary + '.hepta'))}
+        parts.update((name, read(bootstrap / name)) for name in companion_aliases)
+        if include_hash:
+            parts['sha256_stream.hepta'] = read(bootstrap / 'sha256_stream.hepta')
         independent = {}
         for name, raw in parts.items():
             result = call(product + '/independent-' + name, seed, 'compile', raw)
@@ -101,16 +106,32 @@ def qualify(source: Path, seed: Path, kit: Path, output: Path):
         if other != image or other_images != independent:
             raise ValueError('named source order changed executable: ' + product)
 
+        substitute = parts.get('sha256_stream.hepta', parts[companion_alias])
         bad = [
             ('missing-companion', {k: v for k, v in parts.items() if k != companion_alias}),
-            ('missing-hash', {k: v for k, v in parts.items() if k != 'sha256_stream.hepta'}),
-            ('wrong-primary-module', {**parts, primary_alias: parts['sha256_stream.hepta']}),
-            ('wrong-companion-module', {**parts, companion_alias: parts['sha256_stream.hepta']}),
-            ('wrong-hash-module', {**parts, 'sha256_stream.hepta': parts[companion_alias]}),
-            ('extra-source', {**parts, 'unrelated.hepta': parts['sha256_stream.hepta']}),
+            ('wrong-primary-module', {**parts, primary_alias: substitute}),
+            ('wrong-companion-module', {**parts, companion_alias: (parts['sha256_stream.hepta']
+                if include_hash else parts[primary_alias])}),
+            ('extra-source', {**parts, 'unrelated.hepta': substitute}),
             ('unknown-primary-alias', {('wrong.hepta' if k == primary_alias else k): v
                                        for k, v in parts.items()}),
         ]
+        for extra in companion_aliases[1:]:
+            bad.extend([
+                ('missing-' + extra, {key: value for key, value in parts.items() if key != extra}),
+                ('wrong-module-' + extra, {**parts, extra: parts[primary_alias]}),
+            ])
+        if include_hash:
+            bad.extend([
+                ('missing-hash', {k: v for k, v in parts.items() if k != 'sha256_stream.hepta'}),
+                ('wrong-hash-module', {**parts, 'sha256_stream.hepta': parts[companion_alias]}),
+            ])
+        elif 'sha256_stream.hepta' not in parts:
+            bad.append(('unexpected-hash', {
+                **parts, 'sha256_stream.hepta': read(bootstrap / 'sha256_stream.hepta')}))
+        else:
+            bad.append(('unexpected-companion', {
+                **parts, 'worker_config_json.hepta': read(bootstrap / 'worker_config_json.hepta')}))
         for name, values in bad:
             result = call(product + '/' + name, builder, 'build',
                           _named_source_request(values, tag=b'HIAMUL01'))
@@ -125,8 +146,7 @@ def qualify(source: Path, seed: Path, kit: Path, output: Path):
 
     if any(sha256(Path(name).read_bytes()).hexdigest() != pin for name, pin in captured.items()):
         raise ValueError('qualification input changed')
-    report = {'schema': 'hepta.hia.worker-install-source-qualification.v2',
-              'scope': 'NATIVE_WORKER_INSTALLATION_MEMBER_COMPONENTS', 'status': 'passed',
+    report = {'schema': schema, 'scope': scope, 'status': 'passed',
               'members': members, 'refusal_cases': sum(row['refusal_cases'] for row in members.values()),
               'source_and_tool_sha256': captured, 'calls': calls}
     (output / 'qualification.json').write_text(json.dumps(report, indent=2) + '\n')

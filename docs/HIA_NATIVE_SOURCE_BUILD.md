@@ -275,3 +275,39 @@ their positions in the packed executable. Source directories can list those
 files in any order. Missing, extra or mismatched source/image pairs prevent
 publication. The Core patch-result packer retains its two-image plus 4 KiB
 output bound.
+
+## Native job release members
+
+The ordinary release recipe includes `hia-job-launch` and
+`hia-job-observation`. Both are rebuilt from named HIA sources with the same
+source-role admission used by the other native release members.
+
+| Program | Primary source alias | Exact companion sources | Packing envelope | ELF ceiling |
+| --- | --- | --- | --- | ---: |
+| `hia-job-launch` | `hia-job-launch.hepta` from `job_launch.hepta` | `job_launch_json.hepta`, `sha256_stream.hepta` | `HIAJLNK1` and three little-endian image lengths | 4 MiB |
+| `hia-job-observation` | `hia-job-observation.hepta` from `job_observation.hepta` | `job_observation_json.hepta` | `HIAJOK01` and two little-endian image lengths | 2 MiB |
+
+The source module names must match each admitted role. Input order does not
+change the emitted executable. Missing, extra or mismatched sources fail
+before any output is published. The shared persisted-metadata authoring helper
+is compiled into each HIA policy; it is not a separately executable runtime
+component or an additional packing image.
+
+`tools/qualify_hia_job_sources.py` drives the native source kit with an empty
+`PATH`, compares every retained and embedded image with separate source
+compilations, reverses named-source order, and exercises role refusals. Full
+cold qualification, ordinary source release, installation and public job
+routing remain separate gates. Including these two programs in the release
+does not itself establish that a running MCP service uses them.
+
+The complete job bundle additionally registers hia-job-entry (SHA companion),
+hia-job-cancel (the exact job_observation_json and SHA companions), and
+hia-job-submit (job_submit_launch, job_submit_json, SHA, in that pack order).
+Auxiliary roles 30 and 31 retain their original launch/observation JSON identities;
+32 and 33 name the two submit companions. Primary-role admission now starts at
+64. The auxiliary source table occupies bytes 2048 through 3071, independently
+of retained-image cursor 1024 and all existing fixed control fields. No compiler,
+source-count, extent, image or negative-control budget is increased by this
+namespace extension. Native member qualification separately compiles all four
+submit sources and verifies source order independence and both new missing or
+mismatched companion refusals.
