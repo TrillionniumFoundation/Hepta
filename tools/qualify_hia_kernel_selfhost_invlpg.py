@@ -38,14 +38,14 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr3.read", "x86.cr3.write", "x86.cr2.read"):
+    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr3.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
-    # The four experimental opcodes occupy a contiguous token interval.
+    # The six experimental opcodes occupy a contiguous token interval.
     # Keep the native compiler within its fixed 1536-block capacity.
     if [words[name] - words["x86.tlb.invlpg"] for name in
-            ("x86.tlb.invlpg", "x86.cr3.read", "x86.cr3.write", "x86.cr2.read")] != list(range(4)):
+            ("x86.tlb.invlpg", "x86.cr3.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read")] != list(range(6)):
         raise ValueError("kernel token interval changed")
     source = gen.SOURCE
     source = replace_once(source,
@@ -77,23 +77,23 @@ def candidate_source():
                 flag = 2 << (token - @read@)""")
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op >= @x86.tlb.invlpg@ and op <= @x86.cr2.read@:
+    if op >= @x86.tlb.invlpg@ and op <= @x86.cr4.read@:
         return 16""")
     source = replace_once(source,
         """    if op >= @buffer.new@ and op <= @chain.head_mut@:
         owned_instruction(o, w, op, n, a, at)""",
-        """    if op == @x86.cr3.read@ or op == @x86.cr2.read@:
+        """    if op >= @x86.cr0.read@ and op <= @x86.cr4.read@:
         if get(w, 200) != 1 or n != 0 or t != 1 or get(w, 288) != 1 or get(w, 256) != 0:
             return fail(w, 65)
         expect(s, w, 10)
         define(w, v, t)
         if get(w, 40) != 0:
             return 0
-        # MOV RAX, CR3/CR2 (0F 20 /r). The checked token interval
-        # gives delta 0 for CR3 and 2 for CR2; no extra CFG blocks.
+        # MOV RAX, CR0/CR2/CR3/CR4 (0F 20 /r). The checked token
+        # interval indexes packed CR numbers 0x4320 (17184), low nibble first.
         emit(o, w, 15)
         emit(o, w, 32)
-        emit(o, w, 216 - 4 * (op - @x86.cr3.read@))
+        emit(o, w, 192 + 8 * ((17184 >> (4 * (op - @x86.cr0.read@))) & 15))
         store_var(o, w, v, 0)
         return 0
     if op == @x86.cr3.write@:
@@ -288,6 +288,28 @@ def run(output):
                     for label, bad in cr3_refusals.items()}
     for label, bad in cr2_refusals.items():
         compile_cli(exe, bad, output, label, expected=2)
+    extra_reads = {}
+    for reg, expected_hex in (("cr0", "0f20c0"), ("cr4", "0f20e0")):
+        opcode = ("x86." + reg + ".read").encode()
+        subject = cr3_program().replace(b"x86.cr3.read", opcode)
+        native = compile_cli(exe, subject, output, reg + "-1")
+        if native != compile_cli(exe, subject, output, reg + "-2") or not native.startswith(b"\x7fELF"):
+            raise AssertionError(reg + " native ELF repeat failed")
+        native_text = text_bytes(output, reg, native)
+        asm = output / (reg + "-oracle.s")
+        asm.write_text(".text\n movq %" + reg + ", %rax\n")
+        oracle_object = output / (reg + "-oracle.o")
+        subprocess.run(["as", "--64", "-o", str(oracle_object), str(asm)], check=True)
+        oracle = text_bytes(output, reg + "-oracle-copy", oracle_object.read_bytes())
+        if oracle != bytes.fromhex(expected_hex) or native_text.count(oracle) != 1:
+            raise AssertionError(reg + " GNU as oracle mismatch")
+        refusals = {label.replace("cr3-", reg + "-"): bad.replace(b"x86.cr3.read", opcode)
+                    for label, bad in cr3_refusals.items()}
+        for label, bad in refusals.items():
+            compile_cli(exe, bad, output, label, expected=2)
+        extra_reads[reg + "_read"] = {"elf_sha256": digest(native), "text_sha256": digest(native_text),
+            "oracle_hex": oracle.hex(), "refusals": list(refusals), "source_sha256": digest(subject)}
+
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -303,6 +325,7 @@ def run(output):
         "cr2_read": {"elf_sha256": digest(cr2), "text_sha256": digest(cr2_text),
                      "oracle_hex": cr2_oracle.hex(), "refusals": list(cr2_refusals),
                      "source_sha256": digest(cr2_source)},
+        **extra_reads,
         "shape": shape, "guest_execution": "NOT_RUN", "full_linux_acceptance": "HOLD",
         "locked_compiler_changed": False, "privilege_authority_proved": False}
     (output / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
