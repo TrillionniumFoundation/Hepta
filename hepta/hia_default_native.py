@@ -95,6 +95,8 @@ def _verify_data_resources(directory, value):
         if sha256(raw).hexdigest() != expected:
             if path == BINDER_RESOURCE:
                 raise ValueError('native-default binder identity mismatch')
+            if path == PROOF_BUNDLE_RESOURCE:
+                raise ValueError('native-default bundle identity mismatch')
             raise ValueError('native-default pin differs from package resource ' + str(path))
 
 
