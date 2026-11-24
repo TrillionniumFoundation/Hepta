@@ -1,0 +1,25 @@
+{
+  "calling_convention": "ordinary HIA six-machine-argument flat buffer ABI",
+  "catalog_sha256": "b6b8054ce46ae9ceac260e99a3d1beaf5d6c9343bc4c6e5d96281eedd3c3edfd",
+  "input": "compact key-sorted serde-compatible arguments Value JSON",
+  "input_max_bytes": 8388608,
+  "ordering": "durable audit begin, input diagnostic, provider admission; 512KiB bound after schema success",
+  "output_min_bytes": 8389120,
+  "return": {
+    "0": "valid arguments; output unspecified",
+    "0xfffffffc..0xffffffff": "invocation/parser refusal; never output size",
+    "1..output_capacity": "complete original RPC error JSON"
+  },
+  "schema": "hepta.hia.mcp-input-diagnostic-abi.v1",
+  "workspace_input": {
+    "0": {
+      "meaning": "tool ordinal 1..11",
+      "type": "u64le"
+    },
+    "8": {
+      "meaning": "exact frozen catalog SHA-256",
+      "type": "ASCII[64]"
+    }
+  },
+  "workspace_min_bytes": 33554432
+}
