@@ -1,0 +1,15 @@
+# Cold SHA with preserved foreign-alias behavior
+
+The public six-word state ABI and every cold hash/custody pass remain unchanged. The composite flat contains the entire previously qualified cold SHA image, followed by a separate HIA implementation for disjoint input/output/state views. An 89-byte mechanical prefix checks only unsigned pointer ranges. Any empty view, overflowing endpoint, or pairwise overlap selects the original entry. It changes no argument register or stack value and performs no input read, copy, or SHA computation.
+
+For disjoint views, the HIA update loop transfers each complete 64-byte block as eight checked little-endian word loads/stores. Its source and destination bounds are already proved by the original stream guards. The compression source removes masks only from rotate left arms before XOR/addition and from temporary t1/t2 before the existing masked a/e assignments. No unmasked result is shifted right before being reduced; all visible schedule/chaining writes and their masks remain. Full-u64 noncanonical state and constants are included in the original differential qualification.
+
+The original 27,043 native/VM/state transitions and 2,000 displaced foreign-alias calls pass with identical complete buffers. Another 5,894 six-word range cases use independently distinguishable branch stubs, including adjacency, all ordering permutations, zero extents, overflowing endpoints and overlap. The native HIA constructor has 51 positive/atomic-refusal cases, including both maximum 1 MiB inputs and undersized outputs. Canary bytes and rejected outputs remain unchanged.
+
+## Native construction
+
+Compile `cold_sha256_stream.hepta` (unchanged fallback), `cold_sha256_nonalias.hepta`, and `cold_sha256_alias_packer.hepta` with the independently qualified word seed. The first two remain ordinary pure HIA flats. The third is the native constructor. Its input is `HIASHA01`, two little-endian u64 lengths, then the fallback flat and nonalias flat. Each flat length is 1 through 1,048,576 bytes; the frame has no trailing data. The constructor returns the mechanical prefix followed by both flats with exact relative jumps. It returns u32 `0xffffffff` for invalid input or `0xfffffffe` for short output, without output writes. The complete public SHA flat is 113,493 bytes. It can be used by all existing SHA companion slots without changing their ABI or limits.
+
+The checked-in HIA packer embeds the exact mechanical template; production construction does not run an assembler or linker. The author uses the adjacent `.S` only to generate and independently compare the fixed template during development. Native assembly, native projection, the explicit independent word backend, and the native packer constructed the tested flat. No target compiler was used.
+
+The adjacent JSON records exact source/flat/constructor pins and original evidence. Initial native throughput is about 48 MiB/s for 1, 4 and 8 MiB messages. Full consumer and 60-phase deadline qualification remain separate and were not claimed by this component checkpoint.
