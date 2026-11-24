@@ -109,3 +109,5 @@ They are not installed runtime fallbacks, and their synthetic successful
 reports must never be substituted for a completed cold replay.
 
 The native cold-report decoder preserves Python byte-JSON surrogatepass behavior for the report only, including ignored observations containing lone escaped or raw UTF-8 surrogates. Contract JSON remains strict, and schema, checks and source pin comparisons are unchanged.
+
+The cold-report parser also accepts UTF-16 LE/BE and UTF-32 LE/BE with or without an initial BOM, according to the original byte-JSON encoding detection. Native tagged logical token offsets remain disjoint from the physical frame, inventory and strict UTF-8 contract; no report bytes are copied or rewritten for admission. Misaligned code units and out-of-range UTF-32 scalars are rejected. The report-only surrogatepass policy is preserved.
