@@ -1,0 +1,428 @@
+HIASTG01	10	66
+stage	1	safe-proof
+need	1	0	hia-source-build
+compile	1	proof	cnf.hepta	cnf.hepta
+compile	1	proof	core_admission.hepta	core_admission.hepta
+compile	1	proof	core_elf_binding_wire.hepta	core_elf_binding_wire.hepta
+compile	1	proof	core_obligation_wire.hepta	core_obligation_wire.hepta
+compile	1	proof	core_proof_subject.hepta	core_proof_subject.hepta
+compile	1	proof	core_proof_subject_cli_packer.hepta	core_proof_subject_cli_packer.hepta
+compile	1	proof	safe_core_artifact_wire.hepta	safe_core_artifact_wire.hepta
+compile	1	proof	safe_core_binder.hepta	safe_core_binder.hepta
+compile	1	proof	safe_core_binder_packer.hepta	safe_core_binder_packer.hepta
+compile	1	proof	safe_core_elf_inventory.hepta	safe_core_elf_inventory.hepta
+compile	1	proof	safe_core_machine_observe.hepta	safe_core_machine_observe.hepta
+compile	1	proof	safe_core_obligation.hepta	safe_core_obligation.hepta
+compile	1	proof	safe_core_obligation_packer.hepta	safe_core_obligation_packer.hepta
+compile	1	proof	safe_core_observations.hepta	safe_core_observations.hepta
+compile	1	proof	safe_core_x64_decode.hepta	safe_core_x64_decode.hepta
+compile	1	proof	sha256.hepta	sha256.hepta
+compile	1	proof	supplied_safe_core_proof.hepta	supplied_safe_core_proof.hepta
+compile	1	proof	supplied_safe_core_proof_packer.hepta	supplied_safe_core_proof_packer.hepta
+kit	1	source_safe_proof.hepta	core_proof_subject_cli_packer.hepta
+kit	1	source_safe_proof.hepta	safe_core_binder_packer.hepta
+kit	1	source_safe_proof.hepta	safe_core_obligation_packer.hepta
+kit	1	source_safe_proof.hepta	native_filter_packer.hepta
+resource	1	tools/hia_safe_core_binder_syscalls.S
+resource	1	tools/hia_supplied_safe_core_proof_syscalls.S
+output	1	hia-safe-core-prove
+framing	1	0	HIASPR01	pending-nested-proof-rows-and-placement
+stage	2	nominal-constructor
+need	2	0	hia-source-build
+need	2	0	hia-elf-link
+compile	2	constructor	composite_constructor_owner.hepta	composite_constructor_owner.hepta
+compile	2	constructor	composite_constructor_render.hepta	composite_constructor_render.hepta
+compile	2	constructor	nominal_json.hepta	nominal_json.hepta
+compile	2	constructor	composite_types.hepta	composite_types.hepta
+compile	2	constructor	composite_function_admit.hepta	composite_function_admit.hepta
+compile	2	constructor	composite_function_records.hepta	composite_function_records.hepta
+compile	2	constructor	composite_function_terms.hepta	composite_function_terms.hepta
+compile	2	constructor	composite_function_advanced.hepta	composite_function_advanced.hepta
+compile	2	constructor	composite_function_render.hepta	composite_function_render.hepta
+compile	2	constructor	task_helpers.hepta	task_helpers.hepta
+compile	2	constructor	composite_outer_owner.hepta	composite_outer_owner.hepta
+compile	2	constructor	composite_outer_render.hepta	composite_outer_render.hepta
+compile	2	constructor	core_admission.hepta	core_admission.hepta
+compile	2	constructor	json_canonical.hepta	json_canonical.hepta
+compile	2	constructor	core_nominal_report_json.hepta	core_nominal_report_json.hepta
+compile	2	constructor	publication_frontend.hepta	core_edit/publication_frontend.hepta
+compile	2	constructor	publication_program.hepta	core_edit/publication_program.hepta
+compile	2	constructor	publication_policy.hepta	core_edit/publication_policy.hepta
+compile	2	constructor	publication_render.hepta	core_edit/publication_render.hepta
+compile	2	constructor	publication_assembly.hepta	core_edit/publication_assembly.hepta
+kit	2	source_sqlite_unit.hepta	nominal_constructor_transport_adapters.hepta
+kit	2	source_sqlite_unit.hepta	nominal_constructor_transport_tail.hepta
+kit	2	source_sqlite_unit.hepta	nominal_constructor_publication_adapters.hepta
+kit	2	source_sqlite_unit.hepta	elf_embed_image.hepta
+resource	2	tools/hia_nominal_constructor.S
+resource	2	tools/hia_core_edit_publish_program.S
+resource	2	tools/hia_core_edit_publish_assembly.S
+output	2	hia-nominal-constructor
+framing	2	1	HIACTPT1	hia-wire-policy-checks-required
+framing	2	2	HIACTAD1	hia-wire-policy-checks-required
+framing	2	3	HIASQAD1	hia-wire-policy-checks-required
+framing	2	4	HIACTIM1	hia-wire-policy-checks-required
+framing	2	5	HIACTLK1	hia-wire-policy-checks-required
+stage	3	core-edit
+need	3	0	hia-source-build
+need	3	1	hia-safe-core-prove
+need	3	2	hia-nominal-constructor
+compile	3	codec	release_deflate.hepta	core_cli/release_deflate.hepta
+compile	3	codec	argument_payload.hepta	core_cli/argument_payload.hepta
+compile	3	codec	packer.hepta	core_edit/packer.hepta
+compile	3	applications	borrowed_export_wire.hepta	borrowed_export_wire.hepta
+compile	3	applications	borrowed_wrapper.hepta	borrowed_wrapper.hepta
+compile	3	applications	cli_discovery_json.hepta	cli_discovery_json.hepta
+compile	3	applications	core_admission.hepta	core_admission.hepta
+compile	3	applications	assembly_diagnostic_report.hepta	core_cli/assembly_diagnostic_report.hepta
+compile	3	applications	assembly_driver.hepta	core_cli/assembly_driver.hepta
+compile	3	applications	assembly_pretty.hepta	core_cli/assembly_pretty.hepta
+compile	3	applications	assembly_render.hepta	core_cli/assembly_render.hepta
+compile	3	applications	assembly_syntax.hepta	core_cli/assembly_syntax.hepta
+compile	3	applications	assembly_syntax_diagnostics.hepta	core_cli/assembly_syntax_diagnostics.hepta
+compile	3	applications	build_backend.hepta	core_cli/build_backend.hepta
+compile	3	applications	build_codegen.hepta	core_cli/build_codegen.hepta
+compile	3	applications	capabilities.hepta	core_cli/capabilities.hepta
+compile	3	applications	inspect.hepta	core_cli/inspect.hepta
+compile	3	applications	normalize_pretty.hepta	core_cli/normalize_pretty.hepta
+compile	3	applications	selfhost_controller.hepta	core_cli/selfhost_controller.hepta
+compile	3	applications	selfhost_selection.hepta	core_cli/selfhost_selection.hepta
+compile	3	applications	selfhost_semantics.hepta	core_cli/selfhost_semantics.hepta
+compile	3	applications	selfhost_wire.hepta	core_cli/selfhost_wire.hepta
+compile	3	applications	verify.hepta	core_cli/verify.hepta
+compile	3	applications	verify_pretty.hepta	core_cli/verify_pretty.hepta
+compile	3	applications	publication_assembly.hepta	core_edit/publication_assembly.hepta
+compile	3	applications	publication_frontend.hepta	core_edit/publication_frontend.hepta
+compile	3	applications	publication_import.hepta	core_edit/publication_import.hepta
+compile	3	applications	publication_policy.hepta	core_edit/publication_policy.hepta
+compile	3	applications	publication_pretty.hepta	core_edit/publication_pretty.hepta
+compile	3	applications	publication_program.hepta	core_edit/publication_program.hepta
+compile	3	applications	publication_render.hepta	core_edit/publication_render.hepta
+compile	3	applications	core_nominal_report_json.hepta	core_nominal_report_json.hepta
+compile	3	applications	json_canonical.hepta	json_canonical.hepta
+compile	3	applications	sha256.hepta	sha256.hepta
+compile	3	applications	worker_register_layout.hepta	worker_register_layout.hepta
+compile	3	applications	worker_register_schedule.hepta	worker_register_schedule.hepta
+compile	3	linker	hia-elf-link.hepta	elf_static_linker.hepta
+compile	3	nominal-0	unit-0.hepta	agent_slice.hepta
+compile	3	nominal-0	unit-1.hepta	composite_constructor_owner.hepta
+compile	3	nominal-0	unit-2.hepta	composite_constructor_render.hepta
+compile	3	nominal-0	unit-3.hepta	composite_function_admit.hepta
+compile	3	nominal-0	unit-4.hepta	composite_function_advanced.hepta
+compile	3	nominal-0	unit-5.hepta	composite_function_records.hepta
+compile	3	nominal-0	unit-6.hepta	composite_function_render.hepta
+compile	3	nominal-0	unit-7.hepta	composite_function_terms.hepta
+compile	3	nominal-0	unit-8.hepta	composite_outer_owner.hepta
+compile	3	nominal-0	unit-9.hepta	composite_outer_render.hepta
+compile	3	nominal-0	unit-10.hepta	composite_types.hepta
+compile	3	nominal-0	unit-11.hepta	core_admission.hepta
+compile	3	nominal-1	unit-0.hepta	core_cli/build_backend.hepta
+compile	3	nominal-1	unit-1.hepta	core_cli/build_codegen.hepta
+compile	3	nominal-1	unit-2.hepta	core_cli/patch.hepta
+compile	3	nominal-1	unit-3.hepta	core_cli/release_fixed_inflate.hepta
+compile	3	nominal-1	unit-4.hepta	core_cli/shared_build_report.hepta
+compile	3	nominal-1	unit-5.hepta	core_edit/apply.hepta
+compile	3	nominal-1	unit-6.hepta	core_edit/batch_apply.hepta
+compile	3	nominal-1	unit-7.hepta	core_edit/batch_capture.hepta
+compile	3	nominal-1	unit-8.hepta	core_edit/batch_normalize.hepta
+compile	3	nominal-1	unit-9.hepta	core_edit/batch_query.hepta
+compile	3	nominal-1	unit-10.hepta	core_edit/impact.hepta
+compile	3	nominal-1	unit-11.hepta	core_edit/impact_json_io.hepta
+compile	3	nominal-2	unit-0.hepta	core_edit/impact_patch.hepta
+compile	3	nominal-2	unit-1.hepta	core_edit/nominal_base_span.hepta
+compile	3	nominal-2	unit-2.hepta	core_edit/patch_word_io.hepta
+compile	3	nominal-2	unit-3.hepta	core_edit/publication_batch_policy.hepta
+compile	3	nominal-2	unit-4.hepta	core_edit/publication_batch_receipt.hepta
+compile	3	nominal-2	unit-5.hepta	core_edit/publication_edit_policy.hepta
+compile	3	nominal-2	unit-6.hepta	core_edit/publication_frontend.hepta
+compile	3	nominal-2	unit-7.hepta	core_edit/publication_json_view.hepta
+compile	3	nominal-2	unit-8.hepta	core_edit/publication_patch.hepta
+compile	3	nominal-2	unit-9.hepta	core_edit/publication_patch_policy.hepta
+compile	3	nominal-2	unit-10.hepta	core_edit/publication_pretty.hepta
+compile	3	nominal-2	unit-11.hepta	core_edit/publication_single_edit.hepta
+compile	3	nominal-3	unit-0.hepta	core_edit/query.hepta
+compile	3	nominal-3	unit-1.hepta	core_nominal_report_json.hepta
+compile	3	nominal-3	unit-2.hepta	core_patch.hepta
+compile	3	nominal-3	unit-3.hepta	elf_shared_linker.hepta
+compile	3	nominal-3	unit-4.hepta	elf_verified_linker.hepta
+compile	3	nominal-3	unit-5.hepta	json_canonical.hepta
+compile	3	nominal-3	unit-6.hepta	nominal_json.hepta
+compile	3	nominal-3	unit-7.hepta	safe_core_elf_inventory.hepta
+compile	3	nominal-3	unit-8.hepta	sha256.hepta
+compile	3	nominal-3	unit-9.hepta	sha256_stream.hepta
+compile	3	nominal-3	unit-10.hepta	task_helpers.hepta
+compile	3	nominal-3	unit-11.hepta	verified_scalar_object.hepta
+compile	3	nominal-4	unit-0.hepta	verified_scalar_subject.hepta
+compile	3	nominal-4	unit-1.hepta	verified_simd_core.hepta
+compile	3	nominal-4	unit-2.hepta	verified_simd_sse2_object.hepta
+compile	3	nominal-4	unit-3.hepta	worker_register_layout.hepta
+compile	3	nominal-4	unit-4.hepta	worker_register_schedule.hepta
+compile	3	dispatch-unbound	core_nominal_report_json.hepta	core_nominal_report_json.hepta
+compile	3	dispatch-unbound	argument_payload.hepta	core_cli/argument_payload.hepta
+compile	3	dispatch-unbound	arguments.hepta	core_cli/arguments.hepta
+compile	3	dispatch-unbound	cli_format.hepta	cli_format.hepta
+kit	3	source_core_codec.hepta	core_edit/source_codec_packer.hepta
+kit	3	source_core_application.hepta	core_edit/packer.hepta
+kit	3	source_core_application.hepta	core_edit/adapter_templates_a.hepta
+kit	3	source_core_application.hepta	core_edit/adapter_templates_b.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_build_adapter.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_b.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_c.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_d.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_e.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_a.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_b.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_c.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_d.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_e.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_a.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_b.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_c.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_d.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_adapters_e.hepta
+kit	3	source_core_edit_link.hepta	core_edit/nominal_constructor_adapter.hepta
+kit	3	source_core_packed_assets.hepta	core_edit/packer.hepta
+kit	3	source_core_pin.hepta	source_build_packer.hepta
+kit	3	source_filter_member.hepta	elf_linker_filter_packer.hepta
+resource	3	tools/hia_core_edit_dispatch.S
+resource	3	tools/hia_core_edit_selfhost_component.S
+resource	3	tools/hia_core_edit_normalize_core.S
+resource	3	tools/hia_core_edit_verify_core_json.S
+resource	3	tools/hia_core_edit_inspect_core_json.S
+resource	3	tools/hia_core_edit_patch_core_json.S
+resource	3	tools/hia_core_edit_catalog.S
+resource	3	tools/hia_core_edit_import_assembly.S
+resource	3	tools/hia_core_edit_render_assembly.S
+resource	3	tools/hia_core_edit_capabilities.S
+resource	3	tools/hia_core_edit_emit_object.S
+resource	3	tools/hia_core_edit_build_object.S
+resource	3	tools/hia_core_edit_publish_program.S
+resource	3	tools/hia_core_edit_publish_assembly.S
+resource	3	tools/hia_core_edit_publish_patch.S
+resource	3	tools/hia_core_edit_publish_edit.S
+resource	3	tools/hia_core_edit_publish_query.S
+resource	3	tools/hia_core_edit_publish_batch_query.S
+resource	3	tools/hia_core_edit_publish_batch.S
+resource	3	tools/hia_core_edit_impact.S
+resource	3	tools/hia_core_edit_query.S
+resource	3	tools/hia_core_edit_batch_query.S
+resource	3	tools/hia_core_edit_apply.S
+resource	3	tools/hia_core_edit_batch_apply.S
+resource	3	tools/hia_nominal_constructor.S
+resource	3	tools/hia_core_edit_packed_exec.S
+resource	3	tools/hia_core_edit_nominal_envelope.S
+resource	3	tools/hia_core_edit_response.S
+resource	3	tools/hia_core_edit_batch_capture.S
+resource	3	tools/hia_core_edit_register_relay.inc
+output	3	hia
+output	3	hia-selfhost-component
+output	3	hia-normalize-core
+output	3	hia-verify-core-json
+output	3	hia-inspect-core-json
+output	3	hia-patch-core-json
+output	3	hia-catalog
+output	3	hia-import-assembly
+output	3	hia-render-assembly
+output	3	hia-capabilities
+output	3	hia-emit-object
+output	3	hia-build-object
+output	3	hia-publish-program
+output	3	hia-publish-assembly
+output	3	hia-publish-patch
+output	3	hia-publish-edit
+output	3	hia-publish-query
+output	3	hia-publish-batch-query
+output	3	hia-publish-batch
+output	3	hia-impact-core-json
+output	3	hia-prepare-edit-query
+output	3	hia-prepare-edit-batch
+output	3	hia-apply-edit
+output	3	hia-apply-edit-batch
+output	3	hia-worker-scalar-implementation
+framing	3	0	HIACSA01	pending-adapter-relocations-codec-nested-images-and-bound-source-recompile
+framing	3	0	HIACELK1	pending-ordered-object-links-child-pins-and-packed-assets
+framing	3	0	HIACPIN1	pending-real-output-pins-and-dispatch-source-overrides
+stage	4	helper-images
+need	4	0	hia-source-build
+compile	4	helpers	agent_schema.hepta	agent_schema.hepta
+compile	4	helpers	agent_response_schema.hepta	agent_response_schema.hepta
+compile	4	helpers	agent_verify_response_schema.hepta	agent_verify_response_schema.hepta
+compile	4	helpers	agent_discovery.hepta	agent_discovery.hepta
+compile	4	helpers	agent_inspection.hepta	agent_inspection.hepta
+compile	4	helpers	agent_identity.hepta	agent_identity.hepta
+compile	4	helpers	elf_shared_linker.hepta	elf_shared_linker.hepta
+compile	4	helpers	scalar_reference.hepta	scalar_reference.hepta
+kit	4	source_helper_manifest.hepta	source_build_packer.hepta
+output	4	agent-schema-manifest.json
+output	4	agent-schema.image.bin
+output	4	agent-response-schema-manifest.json
+output	4	agent-response-schema.image.bin
+output	4	agent-verify-response-schema-manifest.json
+output	4	agent-verify-response-schema.image.bin
+output	4	agent-discovery-manifest.json
+output	4	agent-discovery.image.bin
+output	4	agent-inspection-manifest.json
+output	4	agent-inspection.image.bin
+output	4	agent-identity-manifest.json
+output	4	agent-identity.image.bin
+output	4	elf-shared-linker-manifest.json
+output	4	elf-shared-linker.image.bin
+output	4	scalar-reference-manifest.json
+output	4	scalar-reference.image.bin
+framing	4	1	HIAHLM01	hia-wire-policy-checks-required
+stage	5	agent-store
+need	5	0	hia-source-build
+compile	5	store-units	namespace_opener.hepta	agent_store/namespace_opener.hepta
+compile	5	store-units	copier.hepta	agent_store/copier.hepta
+compile	5	store-units	view_builder.hepta	agent_store/view_builder.hepta
+compile	5	store-units	current_insert_sequence.hepta	agent_store/current_insert_sequence.hepta
+compile	5	store-units	controller.hepta	agent_store/controller.hepta
+compile	5	store-units	unique.hepta	agent_store/unique.hepta
+compile	5	store-units	current_and_cost_history.hepta	agent_store/current_and_cost_history.hepta
+compile	5	store-units	stager.hepta	agent_store/stager.hepta
+compile	5	store-units	rowid.hepta	agent_store/rowid.hepta
+compile	5	store-units	collector.hepta	agent_store/collector.hepta
+compile	5	store-units	rowset.hepta	agent_store/rowset.hepta
+compile	5	store-units	insert.hepta	agent_store/insert.hepta
+compile	5	store-units	update_math.hepta	agent_store/update_math.hepta
+compile	5	store-units	query_coprocessor.hepta	agent_store/query_coprocessor.hepta
+compile	5	store-units	update_format.hepta	agent_store/update_format.hepta
+compile	5	store-units	frontend.hepta	agent_store/frontend.hepta
+compile	5	store-units	writer.hepta	agent_store/writer.hepta
+compile	5	store-units	producer.hepta	agent_store/producer.hepta
+compile	5	store-units	current_update.hepta	agent_store/current_update.hepta
+compile	5	store-units	sequence.hepta	agent_store/sequence.hepta
+compile	5	store-units	binding_capture.hepta	agent_store/binding_capture.hepta
+compile	5	store-units	artifact_capture.hepta	agent_store/artifact_capture.hepta
+compile	5	store-units	loader.hepta	agent_store/loader.hepta
+compile	5	store-units	owner.hepta	agent_store/owner.hepta
+compile	5	store-units	json_hub.hepta	agent_store/json_hub.hepta
+kit	5	source_agent_store.hepta	agent_store/word_filter.hepta
+kit	5	source_agent_store.hepta	agent_store/bundle_packer.hepta
+kit	5	source_agent_store.hepta	agent_store/packer.hepta
+resource	5	examples/hia_bootstrap/agent_store/build-plan.json
+resource	5	tools/hia_agent_store_syscalls.S
+output	5	module-0.bin
+output	5	module-1.bin
+output	5	module-2.bin
+output	5	module-3.bin
+output	5	hia-agent-store
+framing	5	1	HIAAWFL1	hia-wire-policy-checks-required
+framing	5	2	HIAAWBN1	hia-wire-policy-checks-required
+framing	5	3	HIAAWMF1	hia-wire-policy-checks-required
+framing	5	4	HIAAWR01	hia-wire-policy-checks-required
+stage	6	agent-stdio
+need	6	0	hia-source-build
+need	6	3	hia-catalog
+compile	6	stdio	agent_stdio_dispatch.hepta	agent_stdio_dispatch.hepta
+compile	6	stdio	core_json_frontend.hepta	core_json_frontend.hepta
+compile	6	stdio	selfhost.hepta	selfhost.hepta
+kit	6	source_agent_stdio.hepta	agent_stdio_packer.hepta
+output	6	hia-native
+framing	6	1	HIAAGS01	hia-wire-policy-checks-required
+stage	7	read-carrier
+need	7	0	hia-source-build
+compile	7	read-entries	worker_read_flow.hepta	worker_read_flow.hepta
+compile	7	read-entries	worker_read_store_flow.hepta	worker_read_store_flow.hepta
+compile	7	read-entries	worker_cost_flow.hepta	worker_cost_flow.hepta
+compile	7	read-entries	worker_read_external_flow.hepta	worker_read_external_flow.hepta
+kit	7	source_read_carrier.hepta	worker_read_flow_packer.hepta
+kit	7	source_read_carrier.hepta	worker_read_store_flow_packer.hepta
+kit	7	source_read_carrier.hepta	worker_cost_flow_packer.hepta
+kit	7	source_read_carrier.hepta	worker_read_external_flow_packer.hepta
+kit	7	source_read_carrier.hepta	worker_read_release_packer.hepta
+resource	7	tools/hia_worker_flow_syscalls.S
+resource	7	tools/hia_worker_descriptor_ports.S
+resource	7	tools/hia_worker_peer_ports.S
+resource	7	tools/hia_worker_read_entry.S
+output	7	hia-agent-read-carrier
+framing	7	1	HIARDIN1	hia-wire-policy-checks-required
+framing	7	2	HIARDLK1	hia-wire-policy-checks-required
+stage	8	owned-reference
+need	8	0	hia-source-build
+compile	8	owned	source_owned_reference.hepta	source_owned_reference.hepta
+compile	8	owned	selfhost.hepta	selfhost.hepta
+compile	8	owned	owned_reference_entry_wrapper.hepta	owned_reference_entry_wrapper.hepta
+compile	8	owned	owned_reference_entry_stub.hepta	owned_reference_entry_stub.hepta
+compile	8	owned	owned_reference_cli_packer.hepta	owned_reference_cli_packer.hepta
+compile	8	owned	owned_reference.hepta	owned_reference.hepta
+kit	8	source_owned_reference.hepta	source_build_packer.hepta
+resource	8	tools/hia_owned_reference_syscalls.S
+output	8	hia-owned-reference-wire
+framing	8	1	HIAOCM01	hia-wire-policy-checks-required
+framing	8	2	HIAORUN1	hia-wire-policy-checks-required
+stage	9	sqlite-units
+need	9	0	hia-source-build
+need	9	0	hia-elf-link
+compile	9	sqlite	sqlite_rowid_lookup.hepta	sqlite_rowid_lookup.hepta
+compile	9	sqlite	sqlite_table_walk.hepta	sqlite_table_walk.hepta
+compile	9	sqlite	sqlite_record_layout.hepta	sqlite_record_layout.hepta
+compile	9	sqlite	sqlite_agent_row_import.hepta	sqlite_agent_row_import.hepta
+compile	9	sqlite	sqlite_agent_catalog.hepta	sqlite_agent_catalog.hepta
+compile	9	sqlite	sqlite_agent_import_batch.hepta	sqlite_agent_import_batch.hepta
+compile	9	sqlite	sqlite_agent_cost_sequence.hepta	sqlite_agent_cost_sequence.hepta
+compile	9	sqlite	sqlite_agent_artifact_catalog.hepta	sqlite_agent_artifact_catalog.hepta
+compile	9	sqlite	sqlite_migration_plan.hepta	sqlite_migration_plan.hepta
+compile	9	sqlite	agent_artifact_capture.hepta	agent_artifact_capture.hepta
+compile	9	sqlite	nominal_json.hepta	nominal_json.hepta
+compile	9	sqlite	sqlite_migration_projection.hepta	sqlite_migration_projection.hepta
+compile	9	sqlite	sqlite_migration_stage.hepta	sqlite_migration_stage.hepta
+compile	9	sqlite	sqlite_pager_retained.hepta	sqlite_pager_retained.hepta
+compile	9	sqlite	sqlite_pager_stream.hepta	sqlite_pager_stream.hepta
+kit	9	source_sqlite_unit.hepta	sqlite_component_adapters.hepta
+kit	9	source_sqlite_unit.hepta	nominal_packet_adapter.hepta
+kit	9	source_sqlite_unit.hepta	sqlite_pager_adapters.hepta
+kit	9	source_sqlite_unit.hepta	elf_embed_image.hepta
+resource	9	tools/hia_sqlite_component_start.S
+resource	9	tools/hia_sqlite_component_input.S
+resource	9	tools/hia_agent_artifact_capture_start.S
+resource	9	tools/hia_agent_artifact_capture_read.S
+resource	9	tools/hia_sqlite_migration_projection.S
+resource	9	tools/hia_nominal_json_stdio.S
+resource	9	tools/hia_sqlite_pager_start.S
+resource	9	tools/hia_sqlite_pager_os.S
+output	9	hia-sqlite-rowid-lookup
+output	9	hia-sqlite-table-walk
+output	9	hia-sqlite-record-layout
+output	9	hia-sqlite-agent-row-import
+output	9	hia-sqlite-agent-catalog
+output	9	hia-sqlite-agent-import-batch
+output	9	hia-sqlite-agent-cost-sequence
+output	9	hia-sqlite-agent-artifact-catalog
+output	9	hia-sqlite-migration-plan
+output	9	hia-agent-artifact-capture
+output	9	hia-nominal-packet
+output	9	hia-sqlite-migration-projection
+output	9	hia-sqlite-pager
+framing	9	1	HIASQAD1	hia-wire-policy-checks-required
+framing	9	2	HIASQUN1	hia-wire-policy-checks-required
+framing	9	3	HIASQCP1	hia-wire-policy-checks-required
+framing	9	4	HIANMPK1	hia-wire-policy-checks-required
+framing	9	5	HIASQPR1	hia-wire-policy-checks-required
+framing	9	6	HIAPGIM1	hia-wire-policy-checks-required
+framing	9	7	HIASQLK1	hia-wire-policy-checks-required
+framing	9	8	HIANMLK1	hia-wire-policy-checks-required
+framing	9	9	HIASQPL1	hia-wire-policy-checks-required
+framing	9	10	HIAPGLK3	hia-wire-policy-checks-required
+stage	10	sqlite-migrations
+need	10	0	hia-source-build
+need	10	0	hia-elf-link
+need	10	0	hia-artifact
+need	10	0	hia-agent-batch-commit
+need	10	0	hia-agent-store-init
+need	10	9	hia-sqlite-migration-projection
+need	10	9	hia-sqlite-pager
+compile	10	migrations	sqlite_migration_publish.hepta	sqlite_migration_publish.hepta
+compile	10	migrations	sqlite_agent_artifact_catalog.hepta	sqlite_agent_artifact_catalog.hepta
+compile	10	migrations	sqlite_migrate.hepta	sqlite_migrate.hepta
+kit	10	source_sqlite_unit.hepta	sqlite_migration_adapters.hepta
+kit	10	source_sqlite_unit.hepta	elf_embed_image.hepta
+resource	10	tools/hia_sqlite_migrate.S
+resource	10	tools/hia_sqlite_migration_publish.S
+output	10	hia-sqlite-migration-publish
+output	10	hia-sqlite-migrate
+framing	10	1	HIASQAD1	hia-wire-policy-checks-required
+framing	10	2	HIAMGIS1	hia-wire-policy-checks-required
+framing	10	3	HIAMGEL1	hia-wire-policy-checks-required
+framing	10	4	HIAMGPL1	hia-wire-policy-checks-required
+framing	10	5	HIAMGCL1	hia-wire-policy-checks-required
