@@ -122,6 +122,8 @@ def export_wrapper(o:mutbuf, w:mutbuf, record:u64) -> u64:
         i = i + 1
     mem(o, w, 141, 7, 5, 0 - frame_size)
     mem(o, w, 141, 6, 5, 18446744073709551552)
+    emit_bytes(o, w, 186, 1)
+    emit4(o, w, CALL_BUDGET)
     emit(o, w, 232)
     relocation(o, w, 1, f)
     if get(w, fb + 184) == 0:

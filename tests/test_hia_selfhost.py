@@ -771,7 +771,7 @@ def disguised(x:u64) -> u64:
         assemble_program(backward_chain_source())
         for name, source in recursion_refusals().items():
             with self.subTest(case=name):
-                assemble_program(source)  # valid general Core; outside this bounded recursive profile
+                assemble_program(source)  # same original bytes; native completion/budget evidence is checked below
         for name, source in call_graph_invalid_sources(SAMPLE.read_bytes()).items():
             with self.subTest(case=name), self.assertRaises(HIAProgramRejected):
                 assemble_program(source)
@@ -1033,7 +1033,19 @@ class SelfhostNativeTests(unittest.TestCase):
 
     def test_non_tail_recursion_and_bad_backward_signatures_are_transactionally_refused(self):
         results = [row for row in self.report["call_graph_observations"] if "-reject-" in row["case"]]
-        self.assertEqual(len(results), 14)
+        # Preserve this historical test ID and every malformed-source assertion.
+        # The six former recursive rejections now have actual execution receipts.
+        self.assertEqual(len(results), 8)
+        original = {"recursion-" + name for name in recursion_refusals()}
+        promoted = [row for row in self.report["tail_call_observations"] if row["case"] in original]
+        self.assertEqual(len(promoted), 6)
+        for row in promoted:
+            self.assertNotEqual(row["build"]["core_u32"], INVALID)
+            if row["case"] == "recursion-unreachable-cycle":
+                self.assertEqual(row["native"]["core_u32"], 7)
+            else:
+                self.assertTrue(row["native_budget_trap"])
+                self.assertEqual(row["native"]["returncode"], -4)
         for result in results:
             self.assertEqual(result.get("core_u32"), INVALID, result)
             self.assertTrue(result.get("output_unchanged"), result)
@@ -1047,7 +1059,7 @@ class SelfhostNativeTests(unittest.TestCase):
             if "-tail-" in name:
                 self.assertTrue(accepted, name)
         rejections = [r for r in self.report["tail_call_observations"] if "-tail-refuse-" in r["case"]]
-        self.assertEqual(len(rejections), 12)
+        self.assertEqual(len(rejections), 6)
         for result in rejections:
             self.assertEqual(result["core_u32"], INVALID)
             self.assertTrue(result["output_unchanged"])

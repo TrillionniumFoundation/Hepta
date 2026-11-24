@@ -585,8 +585,6 @@ def rejected_fixtures():
         add("existing-" + name, source, "grammar, types, SSA, control and resource admission", "rejected")
     for name, source in call_graph_invalid_sources(SAMPLE.read_bytes()).items():
         add("call-" + name, source, "exact direct-call signature/target", "rejected")
-    for name, source in recursion_refusals().items():
-        add("recursion-" + name, source, "v6 checked tail-self-only recursion", "accepted")
     for name, source in swap_refusals().items():
         add("swap-" + name, source, "mutbuf, usize indices, zero results, exact arity", "rejected")
     from tools.hia_selfhost_bulk import bulk_refusals
@@ -599,8 +597,8 @@ def rejected_fixtures():
         add('loan-profile-' + name, source, 'resource result SSA index at most 2047', 'accepted')
     # Existing tail witnesses are independently classified by their own helper.
     for name, (source, general_core) in tail_refusals().items():
-        add("tail-" + name, source, "immediate exact tail return and mutable arguments",
-            "accepted" if general_core else "rejected")
+        if not general_core:
+            add("tail-" + name, source, "exact call signature and mutable arguments", "rejected")
     selection = (HEADER + '  v3:bool = const() {"value":true}\n'
         '  v4:u32 = const() {"value":1}\n  v5:u32 = const() {"value":2}\n'
         '  v6:u8 = const() {"value":3}\n  v7:bool = const() {"value":false}\n')
@@ -896,6 +894,7 @@ def semantic_contract(contract):
 
 
 def coverage_manifest():
+    from tools.hia_selfhost_recursion import promotion_inventory
     from tools.generate_hia_selfhost import document, WORDS
     from tools.hia_selfhost_contract import support_contract
     from hepta.hia_agent_assembly import render_assembly
@@ -921,9 +920,9 @@ def coverage_manifest():
         "control_flow": (["parse_block", "edge", "check_graph", "explicit_trap"], ["explicit-*", "boolean", "blocks-*", "inbound-entry-edge", "existing-unreachable-block"]),
         "effects": (["parse_effects", "require_effects", "instruction_effects", "instruction"],
                     ["declaration-*", "call-*-missing-*", "*-missing-*", "malformed-*", "int.cast-*"]),
-        "calls": (["instruction", "args", "check_calls", "copy_argument", "read_result_types", "return_results", "call_results"],
+        "calls": (["instruction", "args", "read_function_name", "copy_argument", "read_result_types", "return_results", "call_results"],
                   ["parameters-16", "parameters-17", "call-*", "pair-*", "triple-*"]),
-        "recursion": (["instruction", "parse_block", "check_calls", "return_results"], ["recursion-*", "tail-*", "pair-tail-*"]),
+        "recursion": (["instruction", "parse_block", "tail_self_call", "function_start", "return_results"], ["recursion-*", "tail-*", "pair-tail-*"]),
         "owned_resources": (["read_type", "owned_read_outputs", "owned_instruction",
             "owned_define_outputs", "owner_free", "owner_produce", "owner_consume",
             "owner_call_consume", "loan_incoming", "loan_transfer", "owned_allocate_libc",
@@ -945,7 +944,7 @@ def coverage_manifest():
         "control_flow": ["tools.qualify_hia_selfhost.qualify", "tools.hia_selfhost_traps.qualify"],
         "effects": ["tools.hia_selfhost_effects.qualify"],
         "calls": ["tools.hia_selfhost_cases.backward_chain_source", "tools.qualify_hia_selfhost.qualify", "tools.hia_selfhost_multi_results.qualify"],
-        "recursion": ["tools.hia_selfhost_tailcalls.qualify_tailcalls"],
+        "recursion": ["tools.hia_selfhost_tailcalls.qualify_tailcalls", "tools.hia_selfhost_recursion.qualify"],
         "owned_resources": ["tools.qualify_hia_selfhost_owned_elf.qualify",
                             "tools.qualify_hia_selfhost_chain_elf.qualify",
                             "tools.qualify_hia_selfhost_chain_flow.qualify",
@@ -970,6 +969,14 @@ def coverage_manifest():
                    "whole_HIA_language_self_hosted": False,
                    "compiler_correctness_formally_proved": False,
                    "this_inventory_is_execution_evidence": False},
+        "bounded_recursion_scope": {
+            "former_refusals": promotion_inventory(),
+            "live_frames": 256, "private_frame_bytes": 6291456,
+            "budget_failure": "UD2/SIGILL before callee frame allocation or effects",
+            "vm_exception_report_equivalence": False,
+            "exact_tail_call_additional_frames": 0,
+            "qualification": "tools.hia_selfhost_recursion.qualify and tools.hia_selfhost_multi_results.qualify",
+        },
         "native_nominal_build_scope": {
             "entry": "hepta.hia_program_selfhost.build_program_selfhost",
             "lowering": "hepta.hia_program_composite.elaborate_program_native",
@@ -1372,9 +1379,13 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_rejections_retain_invalid_core_and_valid_outside_profile_distinction(self):
         reference = independent_references()
         rows = {row["id"]: row for row in reference["negative"]}
+        from tools.hia_selfhost_recursion import promotion_inventory
+        promoted = {row["id"]: row for row in promotion_inventory()}
+        self.assertEqual(len(promoted), 10)
         for name in ("recursion-non-tail-direct-recursion", "recursion-mutual-recursion",
                      "recursion-unreachable-cycle"):
-            self.assertEqual(rows[name]["reference_result"]["status"], "accepted")
+            self.assertNotIn(name, rows)
+            self.assertEqual(promoted[name]["native_profile_expected"], "compiled")
         former = next(row for row in positive_fixtures() if row['id'] == 'unsupported-module-name')
         self.assertEqual(former['source'], simple_source().replace(b'v8 selfhost', b'v8 arbitrary'))
         for name in ("integer-op-arity", "unsigned-comparison-type-mismatch", "swap-readonly"):

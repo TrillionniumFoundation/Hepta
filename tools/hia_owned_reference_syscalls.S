@@ -74,6 +74,7 @@ invoke:
     mov QWORD PTR [rsp+RESULT_SIZE],0
     mov rdi,rsp
     lea rsi,[rsp+RESULT_SIZE]
+    mov edx,0xc0000100             /* v95 private ABI: 6 MiB and 256 frames. */
     .byte 0xe8
 owned_run_call_hole: .long 0
     mov rbp,[rsp+RESULT_SIZE]

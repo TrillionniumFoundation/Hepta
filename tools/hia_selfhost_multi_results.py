@@ -53,10 +53,7 @@ def return_results(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if t == 6 or t == 7:
             returned_loan(w, v, get(w, base + 216 + result_offset(count)))
         put(w, RESULT_RETURNED + count * 8, v)
-        if get(w, 256) != 0:
-            if v != get(w, RESULT_OUTPUTS + count * 16):
-                return fail(w, 59)
-        else:
+        if get(w, 256) == 0:
             load_var(o, w, 0, v, 0)
             mem(o, w, 139, 2, 5, 18446744073709551608)
             mem(o, w, 137, 0, 2, count * 16)
@@ -435,15 +432,17 @@ def independent_reference():
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import HIAProgramRejected, execute_program
     from tools.hia_selfhost_loans import reference_source
+    from tools.hia_selfhost_recursion import MULTI_PROMOTIONS, promoted_multi_cases
     accepted, rejected = [], []
-    for case in cases():
+    for case in [*cases(), *promoted_multi_cases()]:
         checked = assemble_program(case["source"].encode())
         wrapper = reference_source(case)
         reference_entry = "reference_entry"
         reference_program = assemble_program(wrapper)
         arguments = []
         expected = [case["expected_result"], *bytes.fromhex(case["expected_hex"])]
-        if case["program"] == "pair-tail" and case["arguments"][0] == 255:
+        if ((case["program"] == "pair-tail" and case["arguments"][0] == 255)
+                or (case["program"].startswith("recursion-promoted-tail-") and case["arguments"][0] == 254)):
             # The VM uses ordinary frames, unlike the native same-frame tail
             # jump. Calling this scalar helper directly fits its unchanged
             # 256-frame limit; an allocation wrapper plus f0 would not.
@@ -464,7 +463,8 @@ def independent_reference():
             result = {"status": "rejected", "code": exc.code, "message": str(exc)}
         if result["status"] != case["general_core_expected"]:
             raise AssertionError({"case": case["id"], "unexpected_reference": result})
-        rejected.append({**case, "reference_result": result})
+        rejected.append({**case, "reference_result": result,
+            "native_profile_expected": "compiled" if case["id"] in MULTI_PROMOTIONS else "rejected"})
     return {"cases": accepted, "refusals": rejected,
         "before_B0": True, "all_input_correctness_proved": False,
         "returned_resources_supported": True, "returned_loans_supported": True, "public_entry_abi_changed": False}
@@ -522,6 +522,11 @@ def qualify(directory, compilers, checks, reference, *, family="multi"):
                 observations.append({"case": case["id"], "native": result, "actual_hex": output.hex(),
                                      "expected_hex": case["expected_hex"]})
         for case in reference["refusals"]:
+            if case.get("native_profile_expected", "rejected") == "compiled":
+                promoted = [r for r in reference["cases"] if r.get("historical_refusal_id") == case["id"]]
+                checks[label + "-" + family + "-retained-promotion-" + case["id"]] = bool(promoted) and all(
+                    row["source"] == case["source"] for row in promoted)
+                continue
             name = label + "-" + family + "-reject-" + case["id"]
             result, output = invoke(directory, name, compiler, case["source"].encode(), capacity=512)
             checks[name] = bool(result.get("status") == "returned" and result.get("core_u32") == INVALID
