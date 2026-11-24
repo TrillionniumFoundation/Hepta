@@ -12,8 +12,8 @@ from __future__ import annotations
 SOURCE = r'''
 def owned_read_outputs(s:readbuf, w:mutbuf) -> u64:
     put(w, 288, 0)
-    put(w, 296, 2048)
-    put(w, 304, 0)
+    put(w, RESULT_OUTPUTS, 2048)
+    put(w, RESULT_OUTPUTS + 8, 0)
     if get(w, 8) == 95 and instruction_ahead(s, w) == 2:
         next_token(s, w)
         return 0
@@ -21,13 +21,15 @@ def owned_read_outputs(s:readbuf, w:mutbuf) -> u64:
     v = 0
     t = 0
     while get(w, 8) != 61 and get(w, 40) == 0:
-        if count >= 3:
+        if count >= MAX_RESULTS:
             return fail(w, 66)
         v = expect(s, w, 256)
+        put(w, RESULT_NAMES + count * 16, get(w, 456))
+        put(w, RESULT_NAMES + count * 16 + 8, get(w, 464))
         expect(s, w, 58)
         t = read_type(s, w)
-        put(w, 296 + count * 16, v)
-        put(w, 304 + count * 16, t)
+        put(w, RESULT_OUTPUTS + count * 16, v)
+        put(w, RESULT_OUTPUTS + 8 + count * 16, t)
         count = count + 1
         if get(w, 8) != 61:
             expect(s, w, 44)
@@ -45,8 +47,8 @@ def owned_define_outputs(w:mutbuf) -> u64:
     if get(w, 40) != 0:
         return 0
     while i < get(w, 288):
-        v = get(w, 296 + i * 16)
-        t = get(w, 304 + i * 16)
+        v = get(w, RESULT_OUTPUTS + i * 16)
+        t = get(w, RESULT_OUTPUTS + 8 + i * 16)
         define(w, v, t)
         if get(w, 40) != 0:
             return 0
@@ -139,8 +141,8 @@ def owned_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
     if op >= @chain.empty@:
         return chain_instruction(o, w, op, n, a, at)
     count = get(w, 288)
-    out = get(w, 296)
-    t = get(w, 304)
+    out = get(w, RESULT_OUTPUTS)
+    t = get(w, RESULT_OUTPUTS + 8)
     if n != 1:
         return fail(w, 63)
     if op == @owner.move@ or op == @owner.drop@:
@@ -167,13 +169,13 @@ def owned_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
         return fail(w, 63)
     require_effects(w, 1)
     trapping = 0
-    ok = get(w, 312)
+    ok = get(w, RESULT_OUTPUTS + 16)
     if op == @buffer.new@:
         if count != 1:
             return fail(w, 63)
         trapping = 1
     else:
-        if op != @buffer.try_new@ or count != 2 or get(w, 320) != 5:
+        if op != @buffer.try_new@ or count != 2 or get(w, RESULT_OUTPUTS + 24) != 5:
             return fail(w, 63)
     owned_allocate_libc(o, w, a, out, ok, trapping)
     return 0

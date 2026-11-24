@@ -204,7 +204,7 @@ requires the original zero padding that aligns `adapter_size + code_offset`
 to eight bytes, compares every image, and rejects missing or trailing bytes.
 
 Mode 4 requires two call sites. HIA derives the private entry from the second
-actual displacement, checks its range and `55 48 89 e5` function prologue,
+actual displacement, checks its range and the current v95 `f7 c2 ff 01 00 00 74 09` bounded-recursion guard,
 then verifies both calls and the complete adapter/code envelope.
 
 ### Adapter source binding and hashing

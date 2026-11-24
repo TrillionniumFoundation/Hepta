@@ -22,6 +22,76 @@
     },
     "successors": "stdlib-only disposable child; all input translation is executed HIA"
   },
+  "bounded_recursion_scope": {
+    "budget_failure": "UD2/SIGILL before callee frame allocation or effects",
+    "exact_tail_call_additional_frames": 0,
+    "former_refusals": [
+      {
+        "family": "scalar",
+        "id": "recursion-non-tail-direct-recursion",
+        "native_profile_expected": "compiled",
+        "source_sha256": "27aecc04ca4f1741a00f177b24bdc24b29104224a105165a2d7bf4bdfd0e4230"
+      },
+      {
+        "family": "scalar",
+        "id": "recursion-mutual-recursion",
+        "native_profile_expected": "compiled",
+        "source_sha256": "80572b027b4a4dbe3329d83aeb5febe0e0d2a06d0e73e9409592e995e3f47141"
+      },
+      {
+        "family": "scalar",
+        "id": "recursion-unreachable-cycle",
+        "native_profile_expected": "compiled",
+        "source_sha256": "189526994763a9c1474195a390a573b675462167a80eef646dbc1f23d9658750"
+      },
+      {
+        "family": "scalar",
+        "id": "tail-returned-other-value",
+        "native_profile_expected": "compiled",
+        "source_sha256": "4df827db912be0dc0f35d18371d55412d60438d168d708ea130b806560238feb"
+      },
+      {
+        "family": "scalar",
+        "id": "tail-instruction-after-call",
+        "native_profile_expected": "compiled",
+        "source_sha256": "ab4b46548a2ccee677432f80095bd2375437e1c02b18be7217b9d45b5ff69433"
+      },
+      {
+        "family": "scalar",
+        "id": "tail-edge-after-call",
+        "native_profile_expected": "compiled",
+        "source_sha256": "37bc772b42d2c4a6566461d10c34490109bd925c3e478b516add8dc01db1d303"
+      },
+      {
+        "family": "multi",
+        "id": "multi-tail-results-reordered",
+        "native_profile_expected": "compiled",
+        "source_sha256": "8aaedb2e81a2bc002221e54b9f316d8410cb14f6fead74a9c210e375769c1138"
+      },
+      {
+        "family": "multi",
+        "id": "multi-tail-result-replaced",
+        "native_profile_expected": "compiled",
+        "source_sha256": "1923143ee4601b0fe2096b2708245f56571bcdf035cc5a2041624d6043789226"
+      },
+      {
+        "family": "multi",
+        "id": "multi-tail-result-then-operation",
+        "native_profile_expected": "compiled",
+        "source_sha256": "a01b1a552acfb6d02c30e1e86017091b617702c92f6a5a7b45ec195d80c82b55"
+      },
+      {
+        "family": "multi",
+        "id": "multi-void-tail-not-immediate",
+        "native_profile_expected": "compiled",
+        "source_sha256": "fee903d2f923914dd730a651fae7e40cfe946f2693a60ca6924231fe36a9e770"
+      }
+    ],
+    "live_frames": 256,
+    "private_frame_bytes": 6291456,
+    "qualification": "tools.hia_selfhost_recursion.qualify and tools.hia_selfhost_multi_results.qualify",
+    "vm_exception_report_equivalence": false
+  },
   "chain_scope": {
     "allocator_qualification": "tools.qualify_hia_selfhost_chain_flow.qualify; explicit ordinary allocator NULL inputs and native event conservation",
     "bounded_scalar_owner_multi_result_call_return_abi_supported": true,
@@ -2680,18 +2750,18 @@
       "hia_functions": {
         "args": "f4",
         "call_results": "f95",
-        "check_calls": "f12",
         "copy_argument": "f16",
         "instruction": "f6",
+        "read_function_name": "f114",
         "read_result_types": "f93",
         "return_results": "f94"
       },
       "items": [
-        "zero to three scalar, owned or parameter-bound borrowed results",
+        "zero to six scalar, owned or parameter-bound borrowed results",
         "exact signatures",
         "forward direct calls",
         "backward direct calls",
-        "HIA-checked non-self acyclic call graph"
+        "signature-checked direct and mutual recursion"
       ],
       "new_witnesses": [
         "parameters-16",
@@ -2705,24 +2775,32 @@
     {
       "area": "recursion",
       "existing_evidence": [
-        "tools.hia_selfhost_tailcalls.qualify_tailcalls"
+        "tools.hia_selfhost_tailcalls.qualify_tailcalls",
+        "tools.hia_selfhost_recursion.qualify"
       ],
       "hia_functions": {
-        "check_calls": "f12",
+        "function_start": "f14",
         "instruction": "f6",
         "parse_block": "f3",
-        "return_results": "f94"
+        "return_results": "f94",
+        "tail_self_call": "f12"
       },
       "items": [
-        "direct self call immediately returning its exact zero-to-three scalar/owner/loan result tuple in order",
+        "direct self call immediately returning its exact zero-to-six scalar/owner/loan result tuple in order",
         "parallel argument staging and same-frame entry jump",
-        "non-tail self calls and mutual recursion rejected",
-        "non-tail cycles in non-entry-reachable functions rejected"
+        "non-tail self calls and mutual recursion use independent frames",
+        "non-entry-reachable recursive functions are checked and emitted",
+        "private per-invocation depth and stack-byte guards before callee effects",
+        "budget exhaustion emits UD2/SIGILL, not a VM exception report"
       ],
       "limits": {
         "additional_frames_per_self_tail_call": 0,
+        "budget_report_equivalence": false,
+        "frame_charge": "generated frame allocation plus 16 bytes for saved rbp and return address",
         "iteration_bound": "external CPU/wall budget, as for accepted loops",
+        "live_frames": 256,
         "pending_result_workspace_offset": 256,
+        "private_frame_bytes": 6291456,
         "runtime_termination_proved": false
       },
       "new_witnesses": [
@@ -2760,7 +2838,7 @@
         "scratch_is_heap": false
       },
       "excluded": [
-        "more than three results"
+        "more than six results"
       ],
       "existing_evidence": [
         "tools.qualify_hia_selfhost_owned_elf.qualify",
@@ -3268,7 +3346,10 @@
       0,
       1,
       2,
-      3
+      3,
+      4,
+      5,
+      6
     ],
     "combinations": [
       "forward/backward direct calls",
@@ -3283,7 +3364,7 @@
       "buffer",
       "chain"
     ],
-    "private_result_area_bytes": 64,
+    "private_result_area_bytes": 128,
     "private_result_stride_bytes": 16,
     "public_entry": "unchanged f0(readbuf,mutbuf,mutbuf)->u32",
     "qualification": "tools.hia_selfhost_multi_results.qualify on original B3 and mutated M3",
@@ -3348,7 +3429,7 @@
         "source_offset": 240
       },
       "function_name_resolution": "bounded 128-entry hash filter plus mandatory length and every-source-byte equality",
-      "function_results": 3,
+      "function_results": 6,
       "functions": 128,
       "identifier_temporary_offsets": [
         456,
@@ -3359,33 +3440,54 @@
         1016592,
         1016600
       ],
-      "instruction_results": 3,
+      "instruction_results": 6,
       "instructions": 8192,
-      "internal_frame_overhead_bytes": 576,
-      "internal_result_area_bytes": 64,
+      "internal_frame_overhead_bytes": 640,
+      "internal_result_area_bytes": 128,
       "internal_result_descriptor_words": 2,
       "internal_result_stride_bytes": 16,
       "output_capacity_bytes": 1048576,
       "parameters_or_arguments": 16,
+      "private_call_budget_rbp_offset": -16,
+      "private_call_frame_bytes_max": 6291456,
+      "recursive_live_frames_max": 256,
       "relative_relocations": 12000,
       "resource_graph_parse_rounds_max": 1,
       "resource_graph_queue_entries_per_function": 256,
       "resource_graph_queue_workspace_end_exclusive": 928528,
       "resource_graph_queue_workspace_start": 926480,
       "resource_graph_queued_replays_per_block_max": 1,
+      "result_name_workspace_bytes": [
+        858368,
+        858464
+      ],
+      "result_output_workspace_bytes": [
+        1088,
+        1184
+      ],
       "result_signature_workspace_record_offsets": {
         "count": 184,
         "return_loan_origins": [
           216,
           224,
-          232
+          232,
+          296,
+          304,
+          312
         ],
         "types": [
           192,
           200,
-          208
+          208,
+          272,
+          280,
+          288
         ]
       },
+      "returned_identity_workspace_bytes": [
+        1184,
+        1232
+      ],
       "semantic_call_graph_checked_after_all_names_and_signatures": true,
       "signature_prepasses": 1,
       "source_bytes": 1048576,
@@ -3427,6 +3529,30 @@
       "derived_maximum_with_other_limits": 11522
     }
   },
+  "native_nominal_build_scope": {
+    "compiler_kernel_profile_expanded": false,
+    "entry": "hepta.hia_program_selfhost.build_program_selfhost",
+    "host_boundaries": [
+      "bounded decode",
+      "mechanical forwarding",
+      "public Core admission",
+      "publication"
+    ],
+    "hosted_cli_preverification": "same native-only entry; original input/Core identities retained",
+    "input_core_schemas": {
+      "hepta.hia.composite.v1": "hepta.hia.program.v6",
+      "hepta.hia.composite.v2": "hepta.hia.program.v7",
+      "hepta.hia.composite.v3": "hepta.hia.program.v7",
+      "hepta.hia.composite.v4": "hepta.hia.program.v8"
+    },
+    "lowering": "hepta.hia_program_composite.elaborate_program_native",
+    "maximum_internal_results": 6,
+    "public_exports": "original scalar signatures only",
+    "qualification": "tests.test_hia_program_selfhost.SelfhostBuildNativeTests",
+    "retained_semantic_owner_fallback": false,
+    "selection": "five explicit source-bound HIA owner groups; eleven images",
+    "standalone_nominal_transport_completed": false
+  },
   "owned_buffer_scope": {
     "allocation_effect": "alloc required for allocation, drop and calls to allocating functions",
     "bounded_scalar_owner_multi_result_call_return_abi_supported": true,
@@ -3448,7 +3574,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v93-word-memory64",
+  "profile": "selfhost-core-linux-x86_64-v95-bounded-recursion",
   "rejected_inputs": [
     {
       "boundary": "v9-only, exact u64/usize borrowed signature, effects and empty attributes",
@@ -3803,24 +3929,6 @@
       "general_core_expected": "rejected",
       "id": "call-overflow-callee",
       "source_sha256": "1da0b0540c29b654816077df65ce2fb5e1df74ea088f22b9c7d1b55baa9b2771"
-    },
-    {
-      "boundary": "v6 checked tail-self-only recursion",
-      "general_core_expected": "accepted",
-      "id": "recursion-non-tail-direct-recursion",
-      "source_sha256": "27aecc04ca4f1741a00f177b24bdc24b29104224a105165a2d7bf4bdfd0e4230"
-    },
-    {
-      "boundary": "v6 checked tail-self-only recursion",
-      "general_core_expected": "accepted",
-      "id": "recursion-mutual-recursion",
-      "source_sha256": "80572b027b4a4dbe3329d83aeb5febe0e0d2a06d0e73e9409592e995e3f47141"
-    },
-    {
-      "boundary": "v6 checked tail-self-only recursion",
-      "general_core_expected": "accepted",
-      "id": "recursion-unreachable-cycle",
-      "source_sha256": "189526994763a9c1474195a390a573b675462167a80eef646dbc1f23d9658750"
     },
     {
       "boundary": "mutbuf, usize indices, zero results, exact arity",
@@ -4291,37 +4399,19 @@
       "source_sha256": "d5efc0431dc73e5fa3abdc1b4fdbda2292054dcd9825f62c97c2bbb38e5f38f3"
     },
     {
-      "boundary": "immediate exact tail return and mutable arguments",
-      "general_core_expected": "accepted",
-      "id": "tail-returned-other-value",
-      "source_sha256": "4df827db912be0dc0f35d18371d55412d60438d168d708ea130b806560238feb"
-    },
-    {
-      "boundary": "immediate exact tail return and mutable arguments",
-      "general_core_expected": "accepted",
-      "id": "tail-instruction-after-call",
-      "source_sha256": "ab4b46548a2ccee677432f80095bd2375437e1c02b18be7217b9d45b5ff69433"
-    },
-    {
-      "boundary": "immediate exact tail return and mutable arguments",
-      "general_core_expected": "accepted",
-      "id": "tail-edge-after-call",
-      "source_sha256": "37bc772b42d2c4a6566461d10c34490109bd925c3e478b516add8dc01db1d303"
-    },
-    {
-      "boundary": "immediate exact tail return and mutable arguments",
+      "boundary": "exact call signature and mutable arguments",
       "general_core_expected": "rejected",
       "id": "tail-missing-argument",
       "source_sha256": "92bd5ec1dc115f0030eb968713e44609dd6f43a6beba5206a1f0f7c8bda23bad"
     },
     {
-      "boundary": "immediate exact tail return and mutable arguments",
+      "boundary": "exact call signature and mutable arguments",
       "general_core_expected": "rejected",
       "id": "tail-wrong-argument-type",
       "source_sha256": "e45e335faff6ef4c810512293b450472bc0c63508342fb040cee6bed8d6508b7"
     },
     {
-      "boundary": "immediate exact tail return and mutable arguments",
+      "boundary": "exact call signature and mutable arguments",
       "general_core_expected": "rejected",
       "id": "tail-mutable-call-alias",
       "source_sha256": "35d1ca0df7fd2e061aa1f3bbbcc9bd65216c3a630607406a4e8d9faca352c5e8"
@@ -5488,13 +5578,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "0437e8196c52e3b00a08a793b39e447bf78094778d64febf23c3158813a231f1"
+      "sha256": "87c9da8680311da05243e62e4652d006f6cbd89d862cf5b5319f0f5b4aff64d1"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hepta",
-      "sha256": "c5279736f0b5933f1864c97591df54d433a44ac36e924290162a12840fff3e41"
+      "sha256": "4280fe2c1b14ee1345e92dd55927b5f4dc2cca35f34da02cca85832151a61359"
     },
-    "semantic_support_sha256": "c5bb9184a7f45251f06e90ae921b46e18576842c8eddeaaf54fc00821cc5bcfe",
+    "semantic_support_sha256": "5e4f3fe1383cddc4fb8cc9fb889736c4769c1bc223fec7b922a2fd017178fc6c",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -5511,9 +5601,9 @@
       "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
       "executable_module": "selfhost_exec",
       "function_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core reserved function names and __hia_ prefix rejected",
-      "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
+      "function_results": "zero to six scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
       "header": "hia-asm.v1",
-      "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
+      "instruction_results": "zero or one; internal calls have zero to six scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
       "module": "ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core __hia_ prefix rejected; ordinary module labels without explicit exports select flat output",
       "object_module": "selfhost_elf",
       "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",

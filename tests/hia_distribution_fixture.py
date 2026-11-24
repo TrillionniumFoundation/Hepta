@@ -84,6 +84,21 @@ def derived_python_pin(archive):
         if graph_bundle not in archive.namelist() or owned not in archive.namelist():
             raise ValueError('the installed Core admission bundle has no graph predecessors')
         values += (digest(admission),)
+    from hepta.hia_default_native import (
+        ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE,
+    )
+    render = 'hepta/' + ASSEMBLY_RENDER_RESOURCE
+    syntax = 'hepta/' + ASSEMBLY_SYNTAX_RESOURCE
+    diagnostic = 'hepta/' + ASSEMBLY_DIAGNOSTIC_RESOURCE
+    if render in archive.namelist():
+        if admission not in archive.namelist():
+            raise ValueError('the installed assembly renderer has no Core admission predecessor')
+        values += (digest(render),)
+    if syntax in archive.namelist() or diagnostic in archive.namelist():
+        if render not in archive.namelist() or not all(
+                resource in archive.namelist() for resource in (syntax, diagnostic)):
+            raise ValueError('the installed assembly ingress requires its renderer and both owners')
+        values += (digest(syntax), digest(diagnostic))
     if provenance.get('derived_pin_resource') is not None:
         resource = PACKAGE_DIRECTORY + '/pin.json'
         data = (json.dumps(values, ensure_ascii=True, separators=(',', ':')) + '\n').encode('ascii')

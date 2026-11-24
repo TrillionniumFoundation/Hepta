@@ -41,9 +41,10 @@ hia build /absolute/program.core.hepta \
   --output /absolute/existing-output-directory/program.o
 ```
 
-The selected backend accepts primitive Core v8 or v9 JSON, with scalar
-exports. Use `hia import-assembly` to convert assembly source to Core JSON
-before building. Native compilation receives canonical Core JSON with the
+The selected executable accepts primitive Core v6 through v9 JSON, with scalar
+exports. The hosted build entry also accepts canonical composite v1 through v4 through the
+explicit complete HIA lowering owners described below. Use `hia import-assembly`
+to convert assembly source to Core JSON before building. Native compilation receives canonical Core JSON with the
 exact chosen scalar export list. Output must be a new pathname under an
 existing directory; existing files, dangling symlinks, and parent symlinks are
 refused. No compiler is selected from an environment variable, discovered
@@ -102,9 +103,8 @@ claim a deadline for public verification, source custody or publication.
 
 Explicit exports retain their exact set. If the input omits exports, the
 existing public verifier's scalar entrypoints are used. Internal owned and
-borrowed resources remain subject to the native compiler's limits. Non-tail
-self recursion, mutual recursion, nominal composite input, older primitive
-schemas, machine-plan overrides, foreign-buffer public exports, other targets,
+borrowed resources remain subject to the native compiler's limits. Primitive
+v1–v5 schemas, machine-plan overrides, foreign-buffer public exports, other targets,
 and other output kinds are outside this route. Such inputs are refused; they
 are not retried with the direct Python backend. Public Core admission can
 succeed for a program that the narrower selfhost compiler subsequently refuses.
@@ -128,6 +128,48 @@ after publication withdraws only the link still belonging to this stage.
 The existing optional native artifact publisher composes with this descriptor
 anchor. These are point-in-time consistency checks, not crash recovery or
 protection against later edits by another process with the same authority.
+
+## Selected canonical nominal lowering
+
+The hosted `build_program_selfhost` entry accepts composite v1–v4 when all five
+source-bound nominal owner groups are explicitly selected: types, task helpers,
+constructor, functions and outer lowering. `elaborate_program_native` captures
+the constructor/function/outer objects and invokes them directly. Missing native
+types or task helpers refuse through the existing dependency checks; missing
+constructor, functions or outer selection refuses before retained lowering.
+There is no retry through the Python nominal semantic owners.
+The hosted CLI uses this same native-only verifier for its initial input check,
+so it does not run retained nominal semantics before reaching the build API.
+Input reading and verification still precede output publication checks.
+
+The existing public bounded decoder supplies a detached document. The HIA
+owners preserve the existing schema mapping: composite v1 produces primitive
+v6, v2/v3 produce primitive v7, and v4 produces primitive v8. Public Core
+admission rechecks that complete result before the selected native JSON
+frontend/compiler runs. A caller-supplied
+`VerifiedProgram` retains both original nominal bytes and canonical Core bytes;
+the entry repeats HIA elaboration and rejects a mismatching pair. Nominal public
+aggregate or borrowed signatures do not become scalar exports after flattening.
+
+This route supports up to six internal scalar, owner or parameter-bound loan
+results. The original returned-loan pair, mutable-to-read child and cooperative
+task with six flattened results compile and execute against the original Core
+VM cases. A seventh result remains outside this bounded ABI. The original stored-loan,
+enum, cooperative-task and partial-record programs also retain their original
+canonical Core fingerprints across all four nominal schemas.
+
+The six-result compiler keeps the 1 MiB workspace and the original function,
+block, instruction and source limits. The extra type/loan metadata uses the
+previously unused final 48 bytes of each function record. Separate private
+scratch vectors hold parsed output names and returned identities; a 128-byte
+result stack area preserves both descriptor words without aliasing local values.
+The public scalar-export and borrowed-buffer entry ABIs are unchanged.
+
+The standalone compiler executable continues to accept primitive Core JSON.
+This adapter integration does not add the complete nominal object/session
+transport to the syscall-only package. Hosted decoding, mechanical forwarding,
+public Core admission and publication remain explicit boundaries; neither the
+whole-language nor whole-CLI claim is promoted.
 
 ## Receipt and verification scope
 
@@ -163,6 +205,76 @@ The native tests require exactly one explicit setup:
   image for development observations only. Its manifests carry no cold digest.
   It never serves as an automatic fallback from failed cold qualification.
 
+The nominal build tests reuse the same cold report for all eleven HIA images.
+In development mode they additionally require the five complete
+`HEPTA_HIA_COMPOSITE_*_DEVELOPMENT_MANIFEST` / task-helper selections supported
+by the shared nominal fixture. They never bootstrap a missing owner implicitly.
+`HEPTA_HIA_SELFHOST_NOMINAL_EVIDENCE` retains actual input/Core bytes, emitted
+objects, linked images, execution observations, receipts and refusal captures.
+
 No implicit seed bootstrap is selected by this test module. Full native
 delivery still requires the separate product-wide owner migration and its
 source-matched qualification gates.
+
+## Bounded native recursive calls
+
+Native selfhost compilation admits non-tail direct calls, mutual recursion and
+checked recursive functions unreachable from the public entry. All ordinary
+signature, target, type, effect, ownership and loan checks still run before
+output publication. The original malformed-call and compile-capacity witnesses
+remain rejections. Previously refused valid recursive source bytes remain in
+their original fixtures and now have actual compilation and execution records.
+
+Only an immediate return of the exact call-result names, in order, selects the
+existing direct self-tail optimization. A read-only lexical lookahead compares
+all identifier bytes without interning or defining any name. Every token is
+then reparsed by ordinary semantic admission. Other continuations, return
+permutations, discarded void continuations and mutual calls use independent
+native frames. Parallel argument staging and six-result descriptor transfer
+are unchanged.
+
+Each public invocation starts a private budget of 256 simultaneously live Core
+frames and 6 MiB of generated private frame bytes. Each ordinary call charges
+its generated local/argument/result frame plus 16 bytes for saved frame pointer
+and return address. The small public ABI wrapper is outside that private-frame
+charge. A packed budget travels through a private caller register and is saved
+at `rbp-16` in every frame. External allocator calls may clobber registers;
+subsequent Core calls reload the saved budget. Separate public invocations do
+not share a counter. Exact tail self calls retain the same frame and budget.
+
+Before stack allocation, stack probes or any callee effect, an exhausted budget
+executes `UD2`, observed as `SIGILL` in the isolated native runner. This is a
+specified native boundary, not a successful result and not the VM's
+`HIAProgramBudgetExceeded` exception/report. Ordinary finite results are compared
+with the independent VM. The VM's 256-frame call budget and the native depth
+boundary agree for the finite depth witnesses, but the native 6 MiB byte budget
+is additional: a valid VM program with 2048 live SSA slots per recursive frame
+can hit it before 256 calls. The qualification records that difference
+explicitly. Native consumers require sufficient host stack for the declared
+profile; no claim is made for an arbitrarily small foreign-thread stack.
+
+The source/output/workspace limits remain 1 MiB, with 128 functions, 1536 total
+blocks, 256 blocks per function, 2048 distinct SSA names per function, 16 call
+arguments and 8192 instructions. The compiler's HIA source remains within those
+original bounds. The existing million-step exact tail recurrence still uses a
+constant number of frames; general recursive termination is not proved.
+
+The standalone owned-reference private entry uses the same v95 call budget.
+Its syscall adapter initializes `edx` to `0xc0000100`; its source-owned linker
+checks the 62-byte public wrapper and the private recursion-guard prefix.
+All branch displacements, embedded adapter bytes and complete source pins are
+regenerated together; the predecessor 78-byte-wrapper contract is not reused.
+
+The x86 memory emitter uses a signed 8-bit displacement only when the exact
+u64 displacement denotes -128 through 127; other operands retain the original
+32-bit encoding. MOV and LEA addresses and effects are unchanged. This keeps
+the enlarged native release within its original 8 MiB static-link wire bound.
+
+The earlier 8-argument output-overflow witness (source SHA-256
+`47ed45b537831c4353e7a735e2d9c51d63785fa78e331a3a3c7d4acb1947cec9`)
+now compiles to 930,331 bytes with compact displacements. Its exact source is
+retained and executed against an independent Core VM observation. The output
+capacity refusal gate now also uses a 12-argument, 121-function valid Core
+witness (571,398 source bytes), which still exceeds the unchanged 1 MiB native
+output bound. The old overflow-refusal predicates are recorded as failing
+under this profile; they are not reported as an unchanged predecessor pass.

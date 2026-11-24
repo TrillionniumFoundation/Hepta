@@ -191,7 +191,9 @@ def independent_tail_reference():
             if not general_accepted:
                 raise AssertionError("general checker admitted invalid tail fixture " + name)
             rejections.append({"case": name, "general_core": "accepted", "core_sha256": checked.sha256})
+    from tools.hia_selfhost_recursion import independent_reference as recursion_reference
     return {"scalar_cases": observations, "buffer_cases": buffers, "rejections": rejections,
+        "recursion": recursion_reference(),
         "deep_case": {"count": 1000001, "source_sha256": sha256(deep).hexdigest(),
             "expected_result": scalar_tail_expected(1000001), "ssa_index_max": 2047,
             "native_frame_bytes": (2047 + 2) * 16 + 544,
@@ -240,10 +242,14 @@ def qualify_tailcalls(directory, compilers, checks, reference):
             and result.get("core_u32") == deep["expected_result"]
             and result.get("limits", {}).get("stack_bytes") == 8 << 20)
         observations += [build, result]
-        for case, (source, _) in tail_refusals().items():
+        for case, (source, general_accepted) in tail_refusals().items():
+            if general_accepted:
+                continue  # exact original bytes execute in the recursion qualification below
             name = label + "-tail-refuse-" + case
             result, _ = invoke(directory, name, compiler, source)
             checks[name] = bool(result.get("status") == "returned" and result.get("core_u32") == INVALID
                 and result.get("source_unchanged") and result.get("output_unchanged"))
             observations.append(result)
+    from tools.hia_selfhost_recursion import qualify as qualify_recursion
+    observations += qualify_recursion(directory, compilers, checks, reference["recursion"])
     return observations

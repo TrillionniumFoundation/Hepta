@@ -21,6 +21,32 @@ def reviewed_source(root, name, raw, *, take=Path.read_bytes):
     if relation is None:
         return raw
     actual = sha256(raw).hexdigest()
+    # f377c5de keeps the v5 owner from importing an unselected store profile.
+    # Reverse only its complete reviewed physical file, then retain the frozen
+    # predecessor relation and original reviewed bytes below unchanged.
+    if (name == 'hepta/hia_native_helpers.py' and actual ==
+            'a692a261bcc86943526f93f2ff5fb76c5351ad6a0ce5683ddf46cbdc132a13a9'):
+        raw = raw.replace(
+            b"        record = _decode(captured.raw)\n",
+            b"        record = _decode(captured.raw)\n"
+            b"        from .hia_worker_store_profile import SCHEMAS as STORE_SCHEMAS, NativeWorkerStoreBinding\n", 1)
+        raw = raw.replace(
+            b"        else:\n"
+            b"            # Load store-profile support only when a store/base profile can\n"
+            b"            # actually be selected. The closed v5 Slot and artifact profiles\n"
+            b"            # have already selected their own independently admitted owner.\n"
+            b"            from .hia_worker_store_profile import SCHEMAS as STORE_SCHEMAS, NativeWorkerStoreBinding\n"
+            b"            if schema in STORE_SCHEMAS:\n"
+            b"                binding = NativeWorkerStoreBinding(captured, expected_sha256, record)\n"
+            b"            else:\n"
+            b"                binding = _base_binding(captured, expected_sha256, record)\n",
+            b"        elif schema in STORE_SCHEMAS:\n"
+            b"            binding = NativeWorkerStoreBinding(captured, expected_sha256, record)\n"
+            b"        else:\n"
+            b"            binding = _base_binding(captured, expected_sha256, record)\n", 1)
+        actual = sha256(raw).hexdigest()
+        if actual != '4ee6a95691db4266c71fbb01543c81ed66fdbf382e9a7ff35797c368a8cb8da1':
+            raise ValueError('Slot deferred-store source predecessor differs')
     if actual == relation['reviewed_sha256']:
         return raw
     if actual != relation['physical_sha256']:

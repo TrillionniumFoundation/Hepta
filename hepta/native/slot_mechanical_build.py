@@ -28,6 +28,7 @@ SOURCES = (
     "hepta/hia_slot_operation_series.py",
     "hepta/hia_native_delivery.py",
     "hepta/hia_native_helpers.py",
+    "hepta/hia_native_host_support.py",
     "hepta/hia_mechanical_worker_bundle.py",
     "hepta/native/slot_mechanical_build.py",
 )

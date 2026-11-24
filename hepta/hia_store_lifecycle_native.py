@@ -20,6 +20,7 @@ import struct
 import threading
 
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path
+from .hia_native_host_support import _regular_bytes
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/store_lifecycle.hepta')
 SCHEMA = 'hepta.hia.store-lifecycle-native.v1'
@@ -78,18 +79,6 @@ def _pairs(items):
     return value
 
 
-def _regular_bytes(path, limit):
-    descriptor = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK)
-    with os.fdopen(descriptor, 'rb', buffering=8192) as stream:
-        before = os.fstat(stream.fileno())
-        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= limit:
-            raise ValueError('store-lifecycle input must be a bounded ordinary file')
-        raw = stream.read(limit + 1)
-        after = os.fstat(stream.fileno())
-    fields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_ctime_ns')
-    if len(raw) != before.st_size or any(getattr(before, key) != getattr(after, key) for key in fields):
-        raise ValueError('store-lifecycle input changed while being read')
-    return raw
 
 
 @lru_cache(maxsize=3)

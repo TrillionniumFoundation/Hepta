@@ -1,4 +1,4 @@
-"""Explicit, pinned native HIA compilation for bounded primitive Core v8/v9.
+"""Explicit, pinned native HIA compilation for bounded Core and canonical nominal inputs.
 
 The selected syscall-only executable owns representation lowering, semantic
 checking, machine code and ELF emission. This Python adapter still owns public
@@ -371,10 +371,29 @@ def _run(fd, wire, timeout_seconds, cwd):
     return stdout, receipt
 
 
+def _verify_selfhost_input(document):
+    """Retain public Core checks and require HIA owners for nominal lowering."""
+    from .hia_program import VerifiedProgram, _decode, _reject as reject_core, verify_program
+    from .hia_schema import COMPOSITE_SCHEMAS
+
+    original = document.structured_bytes if isinstance(document, VerifiedProgram) else None
+    if original is not None and type(original) is not bytes:
+        reject_core("structured input must be immutable canonical bytes", "E_HIA_FORMAT")
+    value, raw = _decode(document if original is None else original)
+    if (type(value) is not dict or type(value.get("schema")) is not str
+            or value["schema"] not in COMPOSITE_SCHEMAS):
+        return verify_program(document), None
+    from .hia_program_composite import elaborate_program_native
+    core = verify_program(elaborate_program_native(value))
+    if original is not None and (raw != original or core.canonical_bytes != document.canonical_bytes):
+        reject_core("structured input and executable core differ", "E_HIA_CORE")
+    return VerifiedProgram(core.canonical_bytes, raw), value["schema"]
+
+
 def build_program_selfhost(document, output, *, manifest, manifest_sha256,
                            timeout_seconds=30, target=TARGET, kind="object",
                            machine_plan=None, foreign_buffer_exports=()):
-    """Compile an explicit bounded v8/v9 scalar object without the Python emitter."""
+    """Compile bounded Core or native-lowered nominal inputs without the Python emitter."""
     if (target != TARGET or kind != "object" or machine_plan is not None
             or foreign_buffer_exports):
         _reject("E_HIA_SELFHOST_PROFILE", "selfhost supports canonical scalar ELF objects only")
@@ -385,12 +404,12 @@ def build_program_selfhost(document, output, *, manifest, manifest_sha256,
     if (destination.exists() or destination.is_symlink() or not destination.parent.is_dir()
             or destination.parent.resolve() != destination.parent):
         _reject("E_HIA_SELFHOST_OUTPUT", "output must be a new path under an existing nonsymlink directory")
-    from .hia_program import verify_program, SCALARS
-    program = verify_program(document)
+    from .hia_program import SCALARS
+    program, nominal_schema = _verify_selfhost_input(document)
     value = program.as_dict()
-    if (value["schema"] not in {"hepta.hia.program.v8", "hepta.hia.program.v9"}
-            or program.structured_bytes is not None):
-        _reject("E_HIA_SELFHOST_PROFILE", "selfhost accepts explicit primitive Core v8, not nominal input")
+    if value["schema"] not in {"hepta.hia.program.v6", "hepta.hia.program.v7",
+                               "hepta.hia.program.v8", "hepta.hia.program.v9"}:
+        _reject("E_HIA_SELFHOST_PROFILE", "selfhost accepts primitive Core v6-v9 or native-lowered canonical nominal input")
     exports = sorted(program.scalar_entrypoints)
     functions = {function["name"]: function for function in value["functions"]}
     if not 1 <= len(exports) <= 128:
@@ -438,7 +457,7 @@ def build_program_selfhost(document, output, *, manifest, manifest_sha256,
             os.close(fd)
     finally:
         directory.close()
-    return {"schema": "hepta.hia.program.selfhost-native.v1", "ok": True,
+    report = {"schema": "hepta.hia.program.selfhost-native.v1", "ok": True,
             "status": "native_emitted_not_executed", "profile": PROFILE,
             "target": TARGET, "kind": "object", "output": str(destination),
             "input_sha256": program.input_sha256, "core_sha256": program.sha256,
@@ -459,3 +478,10 @@ def build_program_selfhost(document, output, *, manifest, manifest_sha256,
                 "generated_program_executed": False, "hosted_cli_and_publication": True,
                 "operator_pin_is_correctness_proof": False,
                 "whole_native_delivery_qualified": False, "production_activated": False}}
+
+    if nominal_schema is not None:
+        report["nominal_lowering"] = {
+            "input_schema": nominal_schema, "core_schema": value["schema"],
+            "semantic_owners": "selected-complete-HIA", "host_semantic_fallback": False,
+            "primitive_core_reverified": True, "nominal_public_abi_promoted": False}
+    return report

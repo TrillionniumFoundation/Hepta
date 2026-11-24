@@ -133,8 +133,8 @@ def capture_capsule(captured, path, expected, installed):
                     and any(isinstance(t, ast.Name) and t.id == "SOURCES" for t in node.targets)]
     need(len(declarations) == 1, "exact mechanical source closure declaration absent")
     source_names = ast.literal_eval(declarations[0].value)
-    need(type(source_names) is tuple and len(source_names) == len(set(source_names)) == 11,
-         "complete eleven-source closure differs")
+    need(type(source_names) is tuple and len(source_names) == len(set(source_names)) == 12,
+         "complete twelve-source closure differs")
     need(set(record["sources"]) == set(bridge["sources"]) == set(source_names),
          "compile-source closure differs")
     for name, pin in bridge["sources"].items():

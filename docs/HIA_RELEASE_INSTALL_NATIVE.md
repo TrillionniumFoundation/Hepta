@@ -173,3 +173,38 @@ retained as a failure, not skipped or counted as a product pass. A supplied
 source contract and native compiler image. Without it, the suite records an
 explicit B0/B1/B2 development build after independent VM execution. That result
 does not qualify a later joint source or close whole-native delivery.
+
+
+### Compiler-matched Agent Store build plan
+
+The Agent Store plan binds the complete native input frames, every filtered
+unit, four module bundles, the module manifest, and the executable root. A
+compiler upgrade changes actual function offsets and bytes, even when the HIA
+unit sources are unchanged. The release must regenerate this entire plan and
+the word filter's exact frame-hash table. Changing only the outer bundle hash
+does not produce a matching Store.
+
+The tool tools/rebase_hia_agent_store_plan.py creates a separate migration
+candidate. It first compiles all units with the previous compiler and requires
+both the raw image and native-filter output to reproduce the previous checked-in
+pins. It then observes each compiler's actual function record, maps the existing
+patch by function ordinal, preserves the replacement bytes, and uses the new
+function extent. The HIA word filter and native bundle/root packers produce
+the new images. Old compiler frames and one-byte code mutations are rejected
+by the new exact frame table. Source and compiler custody are rechecked before
+the candidate report is marked passed.
+
+For a current-plan reproducibility check, supply the matching admitted B3 as
+both --previous-compiler and --compiler, a fresh --output directory, and
+--check. The result must reproduce the checked-in plan, word filter, root packer, and syscall adapter byte
+for byte. This development command is not part of ordinary release execution;
+the native release owner continues to enforce every exact plan hash.
+
+
+The module locations in the syscall adapter are part of this same compiler
+contract. Regeneration verifies every old module, manifest, and executable,
+then updates every unit-table location and the producer callback location.
+The root packer retains the exact assembled adapter bytes and their source
+binding. A migration is ready only after actual Store transactions pass with
+the resulting executable; matching packaging hashes alone do not establish
+that runtime condition.

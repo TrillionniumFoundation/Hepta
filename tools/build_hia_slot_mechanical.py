@@ -14,14 +14,16 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCES = (
+MECHANICAL_SOURCES = (
     "hepta/native/slot_mechanical.c", "hepta/hia_slot_continuations.py",
     "hepta/hia_slot_mechanical.py", "hepta/hia_slot_operations_native.py",
     "hepta/hia_slot_operations_selection.py", "hepta/hia_slot_operations_protocol.py",
     "hepta/hia_slot_operation_series.py", "hepta/hia_native_delivery.py",
-    "hepta/hia_native_helpers.py", "hepta/hia_mechanical_worker_bundle.py",
-    "hepta/native/slot_mechanical_build.py", "tools/build_hia_slot_mechanical.py",
-    "setup.py", "pyproject.toml", "MANIFEST.in",
+    "hepta/hia_native_helpers.py", "hepta/hia_native_host_support.py",
+    "hepta/hia_mechanical_worker_bundle.py", "hepta/native/slot_mechanical_build.py",
+)
+SOURCES = MECHANICAL_SOURCES + (
+    "tools/build_hia_slot_mechanical.py", "setup.py", "pyproject.toml", "MANIFEST.in",
 )
 
 def pin(raw):
@@ -67,9 +69,9 @@ def main():
             value["schema"] == "hepta.slot.mechanical.build.v2"
             and value["product_qualification_claimed"] is False
             and value["binary"] == {"name": binary.name, **pin(binary_raw)}
-            and set(value["sources"]) == set(SOURCES[:11])
+            and set(value["sources"]) == set(MECHANICAL_SOURCES)
             and all(value["sources"][name] == pin(before[name])
-                    for name in SOURCES[:11])
+                    for name in MECHANICAL_SOURCES)
             and identity.read_bytes() == raw)
     report = {**start, "ended_ns": time.time_ns(), "returncode": result.returncode,
               "source_after_equal": stable, "extension_receipt_verified": verified,

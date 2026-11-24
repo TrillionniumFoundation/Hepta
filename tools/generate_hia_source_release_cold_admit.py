@@ -38,7 +38,7 @@ def render(root):
     path_bytes = b''.join((struct.pack('<Q', len(name.encode())) + name.encode() for name in names))
     metadata_pin = sha256(metadata).digest()
     paths_pin = sha256(path_bytes).digest()
-    strings = ['schema', 'profile', 'status', 'returncode', 'checks', 'generation_sha256', 'source_manifest', 'source_identity', 'files', CONTRACT_PATH, 'hepta.hia.selfhost-cold-replay.v1', 'selfhost-core-linux-x86_64-v93-word-memory64', 'COLD_SELFHOST_REPLAY_PASS', 'export_manifest_matches_qualification', 'isolated_python_without_site', 'nested_full_qualification_pass', 'nested_process_exit_zero', 'no_ancestor_git_identity', 'no_bytecode_cache_created', 'no_inherited_home_or_python_cache', 'no_inherited_seed_or_successor_images', 'origin_hashes_preserved', 'owned_process_tree_cleanup_confirmed', 'source_export_hashes_preserved']
+    strings = ['schema', 'profile', 'status', 'returncode', 'checks', 'generation_sha256', 'source_manifest', 'source_identity', 'files', CONTRACT_PATH, 'hepta.hia.selfhost-cold-replay.v1', contract['profile'], 'COLD_SELFHOST_REPLAY_PASS', 'export_manifest_matches_qualification', 'isolated_python_without_site', 'nested_full_qualification_pass', 'nested_process_exit_zero', 'no_ancestor_git_identity', 'no_bytecode_cache_created', 'no_inherited_home_or_python_cache', 'no_inherited_seed_or_successor_images', 'origin_hashes_preserved', 'owned_process_tree_cleanup_confirmed', 'source_export_hashes_preserved']
     constants = '\ndef constants(w:mutbuf) -> u64:\n'
     for i, value in enumerate(strings):
         raw = value.encode()

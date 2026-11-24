@@ -28,6 +28,7 @@ INPUTS = (
     'hepta/hia_slot_ledger_native.py',
     'hepta/hia_native_delivery.py',
     'hepta/hia_native_helpers.py',
+    'hepta/hia_native_host_support.py',
     'hepta/hia_json_preflight_native.py',
     'hepta/hia_store_lifecycle_native.py',
     'hepta/hia_emission_native.py',

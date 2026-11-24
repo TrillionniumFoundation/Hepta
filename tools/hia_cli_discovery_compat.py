@@ -166,6 +166,15 @@ def before_default_cli(name, current):
     row = fixture['files'].get(name)
     if row is None:
         return current
+    if name == 'hepta/cli.py' and sha256(current.encode()).hexdigest() == 'e66c2cdc3a66ca1f3f09c813b5f279cfb60fad7b972e6b708179fb5c93b9bdee':
+        # Undo only native nominal preverification; the original parser bytes stay pinned.
+        active = "        if args.hia_action == 'build' and args.backend == 'selfhost':\n            from .hia_program_selfhost import _verify_selfhost_input\n            program, _nominal_schema = _verify_selfhost_input(read_bounded(args.input))\n        else:\n            program = verify_program(read_bounded(args.input))\n"
+        original = '        program = verify_program(read_bounded(args.input))\n'
+        if current.count(active) != 1:
+            raise ValueError('invalid nominal preverification parser inverse')
+        current = current.replace(active, original)
+        if sha256(current.encode()).hexdigest() != 'fbd72fd381d7eae7ca9ddff790809815aa34f24b86a8ae7fe24a33adea24517d':
+            raise ValueError('nominal preverification predecessor source differs')
     if name == 'hepta/cli.py' and sha256(current.encode()).hexdigest() == 'fbd72fd381d7eae7ca9ddff790809815aa34f24b86a8ae7fe24a33adea24517d':
         # Reconstruct the already pinned parser oracle from the package-discovery opt-in.
         for active, original in (

@@ -20,7 +20,7 @@ import types
 
 from .hia_emission_protocol import PORT, PORTS, MODES
 from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path, _unique_manifest_pairs
-from .hia_store_lifecycle_native import _regular_bytes
+from .hia_native_host_support import _global_value, _regular_bytes
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/emission.hepta')
 SCHEMA = 'hepta.hia.emission-native.v1'
@@ -316,21 +316,6 @@ def _unbound_data():
     data = data
 
 
-def _global_value(namespace, builtins, name):
-    """Resolve an original provider global with its bound builtins fallback."""
-    try:
-        value = namespace[name]
-    except KeyError:
-        pass
-    else:
-        return value
-    try:
-        value = builtins[name]
-    except KeyError:
-        pass
-    else:
-        return value
-    raise NameError("name '" + name + "' is not defined", name=name)
 
 
 @dataclass(frozen=True)
