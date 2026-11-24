@@ -1,0 +1,165 @@
+{
+  "begin": {
+    "bytes_fields": {
+      "104..127": "reservedzero",
+      "128..191": "owner ASCII64; preparezero",
+      "192..255": "tool ASCII padded64; preparezero",
+      "256..319": "readtarget ASCII64 orzero",
+      "320..511": "reservedzero"
+    },
+    "frame": "512-byte header followed by root_path_bytes exact UTF8 path bytes, no terminating NUL",
+    "header_bytes": 512,
+    "magic": "HIAAUD01",
+    "maximum_path_bytes": 4096,
+    "owner": "parent supplies existing authenticated connection owner ID; never from user arguments",
+    "read_target": "only original request_status/request_result target; native checks retained record sameowner before pinning",
+    "request_id": "native audit generates32 bytes getrandom and lowercasehex64; no caller-provided ID in v1",
+    "u64_fields": {
+      "16": "operation:0prepare/1begin",
+      "24": "frame_bytes=512+root_path_bytes",
+      "32": "state_dir_fd",
+      "40": "audit_memfd",
+      "48": "slot 0..31; prepare UINT64_MAX",
+      "56": "worker_pid=getpid in worker; prepare controller_pid",
+      "64": "generation>0 per worker spawn; prepare0",
+      "72": "controller_pid",
+      "8": "version=1",
+      "80": "root_path_bytes",
+      "88": "tool_name_bytes 1..64; prepare0",
+      "96": "read_target_bytes 0 or64"
+    }
+  },
+  "custody": {
+    "ancestor": "native walks exact UTF8 root path with NOFOLLOW/O_PATH ancestry and verifies state_dir_fd identity",
+    "archive_only": "admit archive-only if no inactive archived-equal hotvictim",
+    "archive_order": "archive filefsync+publication+directoryfsync before hot",
+    "held_fds": "daemon shares actual root/legacy/legacy-anchor/v12-root/v12-anchor/256-shard FDs across live tickets; each slot retains its actual hot-directory FD, original record identity, read pin and monotonic start",
+    "hot_limits": {
+      "global": 512,
+      "owner": 128
+    },
+    "shared_layout": "a later begin may finish and validate original v12 initialization into the shared held directory set; old flat tickets use that same completed set; an unvalidated external layout change still refuses old completion",
+    "shared_memory": "only32 live worker slots; archive population unbounded by slotcount; inactive stale slots reclaimed only after worker lease check"
+  },
+  "encoding": "little-endian u64 words; fixed ASCII identifiers; no host semantic owners",
+  "finish": {
+    "bytes": 128,
+    "bytes_fields": {
+      "64..127": "exact successfulbegin request_id ASCII64"
+    },
+    "magic": "HIAAUF01",
+    "u64_fields": {
+      "16": "operation=2",
+      "24": "frame_bytes=128",
+      "32": "completion:0Unknown/1Completed/2Failed",
+      "40": "same slot",
+      "48": "same generation",
+      "56": "same worker_pid",
+      "8": "version=1"
+    }
+  },
+  "frame_layout_changed": false,
+  "process": "one native daemon per controller lifetime; AF_UNIX SOCK_SEQPACKET socketpair, daemon stdin/stdout on one blocking endpoint; prepare, begin and finish responses do not exit the daemon; controller death is fenced with PR_SET_PDEATHSIG plus parent-PID reread",
+  "qualification": {
+    "daemon_sha256": "ffd240a825efe9d05ae3ba519099c9169f94ad0da0af3da1ceb59fb4b6b8ee87",
+    "native_retention_custody_cases": 16,
+    "native_source_custody_report": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/recursion/request-audit/native-source-custody-v1/qualification.json",
+    "native_v12_cases": 24,
+    "standalone_query_index_protocol_implemented": false,
+    "whole_native_service_claimed": false
+  },
+  "queries": "v1 transport covers prepare/begin_with_read/finish; standalone history/usage/archive read protocol will be separately versioned, not falsely reported implemented",
+  "response": {
+    "bytes": 512,
+    "bytes_fields": {
+      "112..127": "reservedzero",
+      "128..191": "requestidASCII64 orzero",
+      "192..447": "UTF8 component error text zero-padded256; complete original malformed-error-string equivalence is not claimed by the component case gate",
+      "448..511": "reservedzero"
+    },
+    "cancel": "worker SIGKILL releases its byte64+slot lease; daemon reaps expired actual ticket FDs on the next packet and leaves the previously durable Unknown record unchanged; controller death kills the daemon; cancellation never synthesizes Failed",
+    "failure": "prepare refusal/system failure emits one complete response then exits65/74; later begin/finish refusal emits one response and preserves the daemon for other slots; socket/write failure ends the daemon; no automatic operation replay",
+    "magic": "HIAAUO01",
+    "success": "one exact512-byte packet; prepare success remains alive, begin success authorizes dispatch, finish success completes the same actual ticket and remains alive",
+    "u64_fields": {
+      "104": "error_text_bytes0..256",
+      "16": "phase0prepare/1begin/2finish",
+      "24": "status0success/1refusal/2systemfailure",
+      "32": "stable component reason code; nonzero if failure",
+      "40": "requestidbytes0or64",
+      "48": "hotpresent0or1",
+      "56": "accepted_ms_lo",
+      "64": "accepted_ms_hi",
+      "72": "elapsedpresent0or1",
+      "8": "version=1",
+      "80": "elapsedms",
+      "88": "slot",
+      "96": "generation"
+    }
+  },
+  "schema": "hia.mcp.request-audit-daemon-transport.v1",
+  "shared": {
+    "bytes": 2097152,
+    "caller_posix_write_lock_byte": 1,
+    "epoch_bytes": [
+      192,
+      224
+    ],
+    "global_posix_write_lock_byte": 0,
+    "header_offset": 128,
+    "header_u64_fields": {
+      "128": "magic HIAAUS01",
+      "136": "version=1",
+      "144": "size=2097152",
+      "152": "slot_count=32",
+      "160": "slot_stride=512",
+      "168": "state_root_device",
+      "176": "state_root_inode",
+      "184": "controller_pid",
+      "224": "ready=1 only after prepare",
+      "232": "root_path_bytes"
+    },
+    "mode": "0600",
+    "required_seals": 7,
+    "root_path_offset": 4096,
+    "slot_base": 65536,
+    "slot_fields": {
+      "0": "state:0empty/1active/2finishing/3finished",
+      "16": "generation",
+      "160..223": "read_target ASCII64 or zero",
+      "224..287": "tool ASCII padded64",
+      "24": "hot_present",
+      "288": "tool_bytes",
+      "296": "accepted_ms_lo",
+      "304": "accepted_ms_hi",
+      "312": "started_monotonic_seconds",
+      "32..95": "request_id ASCII64",
+      "320": "started_monotonic_nanoseconds",
+      "328": "read_pin_active",
+      "336": "completion",
+      "344": "elapsed_ms",
+      "352..511": "reserved zero",
+      "8": "worker_pid",
+      "96..159": "owner ASCII64"
+    },
+    "slot_stride": 512,
+    "worker_lease": "worker PID holds one-byte F_WRLCK at 64+slot for the complete dispatch; daemon verifies F_GETLK l_pid equals the supplied worker_pid, not the daemon parent PID; worker must not close any FD for this memfd inode before its dispatch lease ends",
+    "worker_posix_write_lock_bytes": [
+      64,
+      95
+    ]
+  },
+  "source_runtime_head": "d022649c64b48fb2a43263faf90103a9a8957b94",
+  "status": "IMPLEMENTED_PREPARE_BEGIN_FINISH_WITH_V12_RECOVERY",
+  "supersedes_process_contract_sha256": "e55dddd44d7af8eb7b1f48b2ee8259e3f46f8f2f8b203aa5a608647cee8bbd29",
+  "transport": {
+    "client_endpoint": "O_NONBLOCK; caller serializes send plus matching response with byte1 POSIX lease",
+    "daemon_receive_buffer_bytes": 4609,
+    "maximum_request_packet_bytes": 4608,
+    "parent_receive_buffer_bytes": 513,
+    "reply_packet_bytes": 512,
+    "socket_family": "AF_UNIX",
+    "socket_type": "SOCK_SEQPACKET|SOCK_CLOEXEC",
+    "stale_response": "parent validates a complete basic response then discards old phase/slot/generation packets until its own response; no automatic business retry"
+  }
+}
