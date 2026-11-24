@@ -29,7 +29,7 @@ from .hia_sha256_native import payload_sha256
 from .hia_capability_flow import (Capability as _Capability,
                                   CapabilityFlowRejected, rename_capabilities)
 from .hia_schema import (
-    COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
+    COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, ALL_PRIMITIVE_PROFILES, PROFILE, PROFILE_V2, PROFILE_V3,
     PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, PROFILE_V8, SCHEMA, SCHEMA_V2, SCHEMA_V3,
     SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, profile_for_schema, supports_feature,
 )
@@ -850,15 +850,24 @@ def _reference_primitive_structure(data):
     if type(data) is dict and "exports" in data:
         fields.add("exports")
     _keys(data, fields, "program")
-    if type(data["schema"]) is not str or data["schema"] not in PRIMITIVE_SCHEMAS:
+    if type(data["schema"]) is not str or data["schema"] not in ALL_PRIMITIVE_PROFILES:
         _reject("unsupported program schema", "E_HIA_SCHEMA")
     _ident(data["module"], "module")
     if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
         _reject("invalid function inventory", "E_HIA_FORMAT")
     functions, block_maps = {}, {}
     for fn in data["functions"]:
+        # Validate the complete function container and its effect list before
+        # inspecting profile-specific permissions. An attacker-controlled list
+        # or scalar must raise HIAProgramRejected, never an unchecked TypeError.
         blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
                                  parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
+        # New effects must not silently widen historical Core v1-v8 grammar.
+        if data["schema"] not in {"hepta.hia.program.kernel-fence.v1",
+                                  "hepta.hia.program.kernel-tlb.v1"} and "atomic" in fn["effects"]:
+            _reject("atomic effect requires an explicit kernel effect schema", "E_HIA_EFFECT")
+        if data["schema"] != "hepta.hia.program.kernel-tlb.v1" and "privilege" in fn["effects"]:
+            _reject("privilege effect requires the explicit kernel-tlb schema", "E_HIA_EFFECT")
         if fn["name"] in functions:
             _reject("duplicate function", "E_HIA_NAME")
         functions[fn["name"]], block_maps[fn["name"]] = fn, blocks
