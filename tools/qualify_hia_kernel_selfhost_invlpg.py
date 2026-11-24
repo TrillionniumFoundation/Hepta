@@ -325,6 +325,22 @@ def candidate_source():
         owned_instruction(o, w, op, n, a, at)""")
     # 200..207 is a dedicated candidate profile word within the existing
     # per-phase 0..255 zeroed header; no existing state field is moved.
+    # Keep the main instruction function below the fixed per-function SSA
+    # name limit. The MMIO lowering is an actual Core helper, not a second
+    # interpreter or a change to the emitted subject instruction sequence.
+    mmio_start = "    if op == @x86.mmio.read32@ or op == @x86.mmio.write32@:"
+    mmio_end = "    if op == @x86.fence.mfence@:"
+    first = source.index(mmio_start)
+    last = source.index(mmio_end, first)
+    body = source[first:last].splitlines()[1:]
+    if not body or any(line and not line.startswith("        ") for line in body):
+        raise ValueError("MMIO lowering helper boundary changed")
+    helper = ("\ndef mmio_instruction(s:readbuf, o:mutbuf, w:mutbuf, op:u64, n:u64, "
+              "at:u64, t:u64, v:u64, bt:u64, a:u64, b:u64) -> u64:\n")
+    helper += "".join(line[4:] + "\n" for line in body)
+    source = (source[:first] + mmio_start + "\n"
+              "        return mmio_instruction(s, o, w, op, n, at, t, v, bt, a, b)\n"
+              + source[last:] + helper)
     with patch.multiple(gen, SOURCE=source, W=words,
                         MAX_INSTRUCTIONS=CANDIDATE_INSTRUCTIONS,
                         MAX_RELOCATIONS=CANDIDATE_RELOCATIONS, **layout):
@@ -332,6 +348,18 @@ def candidate_source():
     functions = document["functions"]
     blocks = [b for f in functions for b in f["blocks"]]
     ops = sum(len(b["ops"]) for b in blocks)
+    # Selfhost's exact-name table counts distinct SSA definitions, not the
+    # numerical suffix (authoring may preserve sparse names). Check each
+    # function before attempting the independent B0/B1 replay.
+    for function in functions:
+        names = {v["name"] for v in function["params"]}
+        for block in function["blocks"]:
+            names.update(v["name"] for v in block["params"])
+            for instruction in block["ops"]:
+                names.update(v["name"] for v in instruction.get("out", ()))
+        if len(names) > 2048 or len(function["blocks"]) > 256:
+            raise ValueError(("per-function native limit", function["name"],
+                              len(names), len(function["blocks"])))
     if len(functions) > 128 or len(blocks) > CANDIDATE_BLOCKS or ops > CANDIDATE_INSTRUCTIONS:
         raise ValueError({"functions": len(functions), "blocks": len(blocks), "ops": ops})
     result = render_assembly(document).encode()
