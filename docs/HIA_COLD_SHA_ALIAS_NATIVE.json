@@ -1,7 +1,7 @@
 {
   "schema": "hepta.hia.cold-sha-disjoint-native.v1",
   "component_qualified": true,
-  "consumer_integration_qualified": false,
+  "consumer_integration_qualified": true,
   "whole_native_cold_replay_closed": false,
   "state_abi_bytes": 1184,
   "six_word_abi_unchanged": true,
@@ -130,6 +130,56 @@
   "experimental_rejections": {
     "fused_schedule_and_rounds": "no net throughput improvement; not integrated",
     "large_unroll": "lower throughput; not integrated",
-    "smaller_journal_chunks": "separate measurement pending; no production chunk-size change"
-  }
+    "smaller_journal_chunks": "16KiB writer selected in a separate commit after actual base/chain whole-pipeline comparison; accepted decoder extent unchanged"
+  },
+  "consumer_qualification_evidence": [
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-driver-v1/qualification.json",
+      "sha256": "6c14e885deae8caa42c5773ce5dc1512392e2f80d2b4f9ae25b6baa238de096f",
+      "passed": true,
+      "cases": 18
+    },
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-archive-v1/qualification.json",
+      "sha256": "f0b65543f5ef67615e4f33d182f2c26dbafd9db5981ffe75e4a75f28c4940d3e",
+      "passed": true,
+      "cases": 19
+    },
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-archive-az02-guards-v1/report.json",
+      "sha256": "28b3d3873c331cea894a2d0dbc2f47fbdfa4df94a5a845b9ce39d123ab784801",
+      "passed": true,
+      "cases": 19
+    },
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-source-export-v1/qualification.json",
+      "sha256": "2cf89ef971c2542339609ff06501a17582561fa87ca4a42f07c6b1a4e75515f2",
+      "passed": true,
+      "cases": 47
+    },
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-cli-qualification-v1/report.json",
+      "sha256": "7a1c4b2f2fa63458b73ad771aef549dd2d034c048ea4168e6923b2ff73367ee0",
+      "passed": true,
+      "cases": 0
+    },
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-cli-guards-v1/report.json",
+      "sha256": "3cb33b347907c82897b49af9a0dabb4952a29f856aa1f51ddc156ebda131bc8b",
+      "passed": true,
+      "cases": 22
+    },
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-cli-overlap-v1/report.json",
+      "sha256": "62378600c994855931c4dcb183564ee3b2af21f34bc2ba45436c9c88e682946d",
+      "passed": true,
+      "cases": 3
+    },
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-chunk16-driver-v1/qualification.json",
+      "sha256": "425f09a7ec38500312a6581d89cce282ed0dd88b0bb3456500159433060ab183",
+      "passed": true,
+      "cases": 18
+    }
+  ]
 }
