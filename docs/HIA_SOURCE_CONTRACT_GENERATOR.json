@@ -1,0 +1,160 @@
+{
+  "borrowed_buffer_abi": {
+    "failed_output": "scratch only; caller must not publish",
+    "input_max_bytes": 8388608,
+    "input_output_workspace_must_be_disjoint": true,
+    "invalid_abi": 4294967293,
+    "malformed_or_refused": 4294967295,
+    "output_exact_bytes": 8388608,
+    "output_too_large": 4294967294,
+    "success": "positive output JSON byte length",
+    "workspace_min_bytes": 32768
+  },
+  "development_author": "tools/generate_hia_source_contract_generate.py",
+  "entry_function": "f0",
+  "frame": {
+    "endianness": "little",
+    "fields": [
+      {
+        "bytes": 8,
+        "offset": 0,
+        "value": "HIASCG01"
+      },
+      {
+        "bytes": 8,
+        "meaning": "metadata JSON byte length",
+        "offset": 8,
+        "type": "u64"
+      },
+      {
+        "bytes": 8,
+        "meaning": "HIASPI01 inventory byte length",
+        "offset": 16,
+        "type": "u64"
+      },
+      {
+        "bytes": 8,
+        "offset": 24,
+        "type": "u64",
+        "value": 0
+      }
+    ],
+    "header_bytes": 32,
+    "payload": [
+      "metadata JSON bytes",
+      "inventory bytes"
+    ],
+    "trailing_bytes_permitted": false
+  },
+  "inventory": {
+    "count_max": 4096,
+    "count_min": 1,
+    "header": [
+      {
+        "bytes": 8,
+        "value": "HIASPI01"
+      },
+      {
+        "bytes": 8,
+        "meaning": "record count",
+        "type": "u64"
+      }
+    ],
+    "path_alphabet": "ASCII A-Z a-z 0-9 _ - . /",
+    "path_bytes_max": 4095,
+    "path_bytes_min": 1,
+    "path_rules": [
+      "no absolute path",
+      "no empty component",
+      "no dot or dot-dot component",
+      "no trailing slash",
+      "strict ascending raw path byte order",
+      "no duplicate path"
+    ],
+    "record": [
+      {
+        "bytes": 8,
+        "meaning": "path byte length",
+        "type": "u64"
+      },
+      {
+        "bytes": 32,
+        "meaning": "raw SHA256 digest"
+      },
+      {
+        "bytes": "path byte length",
+        "meaning": "ASCII relative path"
+      }
+    ],
+    "required_self_path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+    "self_is_emitted": false,
+    "self_occurrences": 1
+  },
+  "metadata": {
+    "files": "object",
+    "global_duplicate_keys": "rejected, including escaped spelling aliases",
+    "max_depth": 128,
+    "max_nodes": 262144,
+    "other_metadata": "byte-for-byte preserved; not synthesized or approved by this component",
+    "required_member": "source_identity.files",
+    "root": "object",
+    "source_identity": "object"
+  },
+  "product_name": "hia-source-contract",
+  "production_source": "examples/hia_bootstrap/source_contract_generate.hepta",
+  "production_source_sha256": "3e5d2eac075e0ab85ac22fa8cd1bde0c34ca9635d0cc520affe8db81504561ff",
+  "qualification": {
+    "all_passed": true,
+    "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+    "elf_bytes": 143831,
+    "elf_sha256": "01f9dfc346463bc4c34d0d9d3b2b0ec24cefdb8da16867716cf7bfc0df63e68f",
+    "flat_sha256": "dfc5d460a89c14504ee954aa0a22f75c37daa7642220d1c5beff049de5d2d0d6",
+    "native_flat_abi_controls": 5,
+    "native_flat_data_and_refusal_cases": 61,
+    "original_complete_inventory_entries": 2926,
+    "standalone_cases": 6,
+    "standalone_full_inventory_execve_count": 1,
+    "standalone_full_inventory_execveat_count": 0,
+    "standalone_full_inventory_output_sha256": "aed627e22688fde3d4a2840580832c2efe14821a3d98b363fdf9ee4c2b7e97b0",
+    "whole_cold_boundary_closed": false
+  },
+  "schema": "hepta.hia.source-contract-generator.v1",
+  "scope": {
+    "caller_owns": [
+      "metadata authority and policy pin",
+      "physical file read custody and digest calculation",
+      "source inventory completeness",
+      "cold qualification observations and report publication"
+    ],
+    "is_cold_qualification_report": false,
+    "is_independent_bootstrap_proof": false,
+    "owns": [
+      "strict JSON admission of metadata",
+      "duplicate-key rejection at every depth",
+      "relative ASCII path admission",
+      "sorted unique source inventory admission",
+      "lowercase SHA256 rendering",
+      "exact replacement of source_identity.files",
+      "exclusion of the contract self-entry",
+      "preservation of every other metadata byte"
+    ]
+  },
+  "standalone_cli": {
+    "argc": 1,
+    "arguments": [],
+    "exit_component_refusal": 2,
+    "exit_input_capacity": 3,
+    "exit_success": 0,
+    "exit_usage": 64,
+    "packer_flat_input_max_bytes": 1048576,
+    "packer_request": "HIAFLT01 + u64 flat byte length + flat bytes",
+    "packer_source": "examples/hia_bootstrap/native_filter_packer.hepta",
+    "packer_source_sha256": "63ec799f8b427e089c2a66bc345c1ca1ed6b022c12e6af5bfebd6953d66b4c2d",
+    "runtime_child_processes": 0,
+    "runtime_path_required": false,
+    "stdin": "one HIASCG01 frame followed by EOF",
+    "stdout_failure": "empty",
+    "stdout_success": "exact generated JSON bytes; no newline added",
+    "workspace_bytes": 16777216
+  }
+}
