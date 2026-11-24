@@ -80,6 +80,66 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE)
+    /* Test-only initial-state provisioning. All subsequent transitions
+     * on the success path must be performed by the HIA subject. */
+#ifdef HIA_TEST_CR0_WRITE
+#define WRITE_CR %cr0
+#define WRITE_BIT 0x10000
+#else
+#define WRITE_CR %cr4
+#define WRITE_BIT 0x80
+    movl $1, %eax
+    cpuid
+    testl $0x2000, %edx
+    jz abort
+#endif
+    movq WRITE_CR, %r12
+    movq %r12, %r13
+    andq $~WRITE_BIT, %r13
+    movq %r13, WRITE_CR
+    movq WRITE_CR, %rcx
+    cmpq %r13, %rcx
+    jne abort
+    movq %r13, %r14
+    orq $WRITE_BIT, %r14
+    movq %r14, %rdi
+    call f0
+    cmpq %r14, %rax
+    jne abort
+    movq WRITE_CR, %rcx
+    cmpq %r14, %rcx
+    je write_set_observed
+    /* Negative control counts only exact unchanged hardware state,
+     * not an exception, malformed return, or arbitrary failure. */
+    cmpq %r13, %rcx
+    jne abort
+    movq %r12, WRITE_CR
+    movq WRITE_CR, %rcx
+    cmpq %r12, %rcx
+    jne abort
+    movb $'N', %bl
+    jmp debug_exit64
+write_set_observed:
+    movq %r13, %rdi
+    call f0
+    cmpq %r13, %rax
+    jne abort
+    movq WRITE_CR, %rcx
+    cmpq %r13, %rcx
+    jne abort
+    movq %r12, %rdi
+    call f0
+    cmpq %r12, %rax
+    jne abort
+    movq WRITE_CR, %rcx
+    cmpq %r12, %rcx
+    jne abort
+    movb $'P', %bl
+    jmp debug_exit64
+#undef WRITE_CR
+#undef WRITE_BIT
+#endif
 #if defined(HIA_TEST_CR0_READ) || defined(HIA_TEST_CR4_READ)
     /* Independent test-only CR writes; subject f0 is a HIA read only.
      * Compare two distinct valid states, then restore the original CR. */
@@ -262,6 +322,9 @@ fail64:
     movb $'N', %bl
     jmp debug_exit64
 pf_handler:
+#if defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE)
+    jmp abort /* A fault must not masquerade as the write NOP control. */
+#endif
 #ifdef HIA_TEST_CR2_READ
     /* The fault frame, not the HIA return, selects the expected address.
      * Do not supply that address as an argument. */

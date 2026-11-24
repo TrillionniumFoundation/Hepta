@@ -38,14 +38,14 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr3.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read"):
+    for word in (PROFILE, "privilege", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read"):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
-    # The six experimental opcodes occupy a contiguous token interval.
+    # The eight experimental opcodes occupy a contiguous token interval.
     # Keep the native compiler within its fixed 1536-block capacity.
     if [words[name] - words["x86.tlb.invlpg"] for name in
-            ("x86.tlb.invlpg", "x86.cr3.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read")] != list(range(6)):
+            ("x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read")] != list(range(8)):
         raise ValueError("kernel token interval changed")
     source = gen.SOURCE
     source = replace_once(source,
@@ -96,17 +96,18 @@ def candidate_source():
         emit(o, w, 192 + 8 * ((17184 >> (4 * (op - @x86.cr0.read@))) & 15))
         store_var(o, w, v, 0)
         return 0
-    if op == @x86.cr3.write@:
+    if op >= @x86.cr0.write@ and op <= @x86.cr4.write@:
         if get(w, 200) != 1 or n != 1 or at != 1 or t != 0 or get(w, 288) != 0:
             return fail(w, 65)
         expect(s, w, 10)
         if get(w, 40) != 0:
             return 0
         load_var(o, w, 0, a, 0)
-        # MOV CR3, RAX. Valid root and CPL0 are caller obligations.
+        # MOV CR0/CR3/CR4, RAX. Valid state and CPL0 are caller obligations.
+        # Packed CR numbers 0x430; no CR2 write is admitted.
         emit(o, w, 15)
         emit(o, w, 34)
-        emit(o, w, 216)
+        emit(o, w, 192 + 8 * ((1072 >> (4 * (op - @x86.cr0.write@))) & 15))
         return 0
     if op == @x86.tlb.invlpg@:
         if get(w, 200) != 1 or n != 1 or at != 1 or t != 0 or get(w, 288) != 0:
@@ -310,6 +311,31 @@ def run(output):
         extra_reads[reg + "_read"] = {"elf_sha256": digest(native), "text_sha256": digest(native_text),
             "oracle_hex": reg_oracle.hex(), "refusals": list(reg_refusals), "source_sha256": digest(subject)}
 
+    extra_writes = {}
+    for reg, expected_hex in (("cr0", "0f22c0"), ("cr4", "0f22e0")):
+        label = reg + "-write"
+        opcode = ("x86." + reg + ".write").encode()
+        subject = write_source.replace(b"x86.cr3.write", opcode)
+        obj = compile_cli(exe, subject, output, label + "-1")
+        if obj != compile_cli(exe, subject, output, label + "-2") or not obj.startswith(b"\x7fELF"):
+            raise AssertionError(label + " native ELF repeat failed")
+        obj_text = text_bytes(output, label, obj)
+        asm = output / (label + "-oracle.s")
+        asm.write_text(".text\n movq %rax, %" + reg + "\n")
+        oracle_object = output / (label + "-oracle.o")
+        subprocess.run(["as", "--64", "-o", str(oracle_object), str(asm)], check=True)
+        reg_oracle = text_bytes(output, label + "-oracle-copy", oracle_object.read_bytes())
+        if reg_oracle != bytes.fromhex(expected_hex) or obj_text.count(reg_oracle) != 1:
+            raise AssertionError(label + " GNU as oracle mismatch")
+        negatives = {reg + "-" + key: bad.replace(b"x86.cr3.write", opcode)
+                     for key, bad in write_refusals.items()}
+        for key, bad in negatives.items():
+            compile_cli(exe, bad, output, key, expected=2)
+        extra_writes[reg + "_write"] = {"elf_sha256": digest(obj), "text_sha256": digest(obj_text),
+            "oracle_hex": reg_oracle.hex(), "refusals": list(negatives), "source_sha256": digest(subject)}
+    compile_cli(exe, write_source.replace(b"x86.cr3.write", b"x86.cr2.write"),
+                output, "cr2-write-unavailable", expected=2)
+
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -330,6 +356,8 @@ def run(output):
                      "oracle_hex": cr2_oracle.hex(), "refusals": list(cr2_refusals),
                      "source_sha256": digest(cr2_source)},
         **extra_reads,
+        **extra_writes,
+        "unsupported_cr2_write_refused": True,
         "shape": shape, "guest_execution": "NOT_RUN", "full_linux_acceptance": "HOLD",
         "locked_compiler_changed": False, "privilege_authority_proved": False}
     (output / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")

@@ -227,6 +227,33 @@ def run(output):
         extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
                               (output / (reg + ".text"), entry["text_sha256"])))
         hardware[reg + "_subject_source_sha256"] = entry["source_sha256"]
+    for reg, expected_hex in (("cr0", "0f22c0"), ("cr4", "0f22e0")):
+        label = reg + "-write"
+        obj = output / (label + ".o")
+        src = output / (label + "-1.input")
+        reg_native = obj.read_bytes()
+        reg_text = (output / (label + ".text")).read_bytes()
+        entry = report[reg + "_write"]
+        opcode = bytes.fromhex(entry["oracle_hex"])
+        if (digest(reg_native) != entry["elf_sha256"] or digest(reg_text) != entry["text_sha256"]
+                or digest(src.read_bytes()) != entry["source_sha256"]
+                or opcode != bytes.fromhex(expected_hex) or reg_text.count(opcode) != 1
+                or dump_text(obj, output / (label + "-original-readback.text")) != reg_text):
+            raise AssertionError(label + " native custody or opcode failure")
+        reg_bad = reg_text.replace(opcode, b"\x90"*3, 1)
+        mutation = output / (label + "-dishonest.text")
+        mutation.write_bytes(reg_bad)
+        reg_bad_obj = output / (label + "-dishonest.o")
+        invoke(["objcopy", "--update-section", ".text=" + str(mutation), str(obj), str(reg_bad_obj)])
+        if (dump_text(reg_bad_obj, output / (label + "-dishonest-readback.text")) != reg_bad
+                or symbol(obj, "f0") != symbol(reg_bad_obj, "f0")):
+            raise AssertionError(label + " mutation readback failure")
+        macros = ("HIA_TEST_" + reg.upper() + "_WRITE",)
+        extra_cases.extend(((label + "-two-states", reg_native, reg_text, macros, 33, "P"),
+                            (label + "-nop", reg_bad_obj.read_bytes(), reg_bad, macros, 35, "N")))
+        extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
+                              (output / (label + ".text"), entry["text_sha256"])))
+        hardware[reg + "_write_subject_source_sha256"] = entry["source_sha256"]
     path = output / "hardware"
     path.mkdir()
     try:
