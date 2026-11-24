@@ -325,7 +325,8 @@ def check_placement(binary, stub, holes, images):
     return inspect_executable(binary)
 
 
-def build(output, compiler, cold_report, *, release_only=False, native_tools=None, constructor=None, prover_bytes=None, wheel_layout=False):
+def build(output, compiler, cold_report, *, release_only=False, native_tools=None, constructor=None,
+          prover_bytes=None, wheel_layout=False, retain_compiled_image=None):
     compiler_raw, report_raw = compiler.read_bytes(), cold_report.read_bytes()
     admitted = admit_cold_build(compiler_raw, report_raw)
     # The stdin-to-object development probe is not a public dispatcher role.
@@ -363,6 +364,8 @@ def build(output, compiler, cold_report, *, release_only=False, native_tools=Non
                       'produced_sha256': digest(images[name]), 'produced_bytes': len(images[name])}
             if receipts.setdefault(path, record) != record:
                 raise ValueError('Core source produced inconsistent native images: ' + path)
+            if retain_compiled_image is not None:
+                retain_compiled_image(path, images[name])
         return wire, images, originals
 
     native_tools = seed, compile_with_receipts, call

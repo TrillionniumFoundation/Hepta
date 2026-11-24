@@ -218,6 +218,117 @@ class DefaultReleaseNativeTests(unittest.TestCase):
     def tearDown(self):
         self.assertEqual(self.inventory(), self.initial_files)
 
+    def test_wheel_record_rows_and_incremental_hashes_match_original_wheel_protocol(self):
+        import base64
+        import csv
+        import io
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from hepta.hia_sha256_stream_native import MAX_CHUNK, NativeSha256Stream
+        from tools.build_hia_default_release import _wheel_record_row
+
+        images = self.root / 'build' / 'wheel-record'
+        def load(name, image_type):
+            image = (images / (name + '.image.bin')).read_bytes()
+            receipt = json.loads((images / (name + '.receipt.json')).read_bytes())
+            return image_type(image, receipt['produced_sha256'])
+
+        encoder = load('wheel_record_row', NativeHiaJsonImage)
+        hasher = load('sha256_stream', NativeSha256Stream)
+        content = b'wheel' * (MAX_CHUNK // 5 + 1)
+        expected = sha256(content).digest()
+        self.assertEqual(hasher.digest(content), expected)
+        for name, size, digest in (('目录/"quoted",file\r\n', (1 << 64) - 1, expected),
+                                   ('x' * 65535, 0, sha256(b'').digest()), ('w.dist-info/RECORD', 0, None)):
+            with self.subTest(length=len(name), size=size):
+                writer = io.StringIO(newline='')
+                checksum = 'sha256=' + base64.urlsafe_b64encode(digest).decode().rstrip('=') if digest else ''
+                csv.writer(writer, lineterminator='\n').writerow((name, checksum, size if digest else ''))
+                self.assertEqual(_wheel_record_row(encoder, name, size, digest), writer.getvalue().encode())
+        with self.assertRaises(ValueError):
+            _wheel_record_row(encoder, 'x' * 65536, 0, expected)
+        with self.assertRaises(ValueError):
+            _wheel_record_row(encoder, 'w.dist-info/RECORD', 1)
+
+    def test_hia_zip_writes_seekable_deflate_and_preserves_executable_mode(self):
+        import io
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from tools.build_hia_default_release import _write_zip
+
+        images = self.root / 'build' / 'wheel-record'
+        image = (images / 'wheel_zip_directory.image.bin').read_bytes()
+        receipt = json.loads((images / 'wheel_zip_directory.receipt.json').read_bytes())
+        encoder = NativeHiaJsonImage(image, receipt['produced_sha256'])
+        package = 'hia_core-1'
+        program = package + '.data/scripts/hia'
+        members = {program: b'\x7fELF' + b'x' * (1 << 20), '资料/é': b'payload', 'empty': b''}
+        members[package + '.data/scripts/text'] = b'not an ELF'
+        actual = io.BytesIO()
+        _write_zip(actual, members, package + '.dist-info', encoder)
+        original = io.BytesIO()
+        with zipfile.ZipFile(original, 'w') as archive:
+            for name, contents in sorted(members.items()):
+                member = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
+                member.create_system = 3
+                member.external_attr = (0o100755 if name == program else 0o100644) << 16
+                member.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(member, contents)
+        self.assertEqual(actual.getvalue(), original.getvalue())
+        with zipfile.ZipFile(actual) as archive:
+            self.assertIsNone(archive.testzip())
+            self.assertEqual(archive.getinfo(program).external_attr >> 16, 0o100755)
+
+    def test_hia_inflater_admits_extent_before_allocating(self):
+        import ctypes
+        import zlib
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from tools.build_hia_default_release import _inflate_wheel_member
+
+        folder = self.root / 'build' / 'wheel-record'
+        raw = (folder / 'wheel_inflate.image.bin').read_bytes()
+        receipt = json.loads((folder / 'wheel_inflate.receipt.json').read_bytes())
+        image = NativeHiaJsonImage(raw, receipt['produced_sha256'])
+        content = b'wheel' * 18432
+        for level, strategy in ((0, zlib.Z_DEFAULT_STRATEGY), (6, zlib.Z_FIXED), (9, zlib.Z_DEFAULT_STRATEGY)):
+            compressor = zlib.compressobj(level, zlib.DEFLATED, -15, zlib.DEF_MEM_LEVEL, strategy)
+            encoded = compressor.compress(content) + compressor.flush()
+            self.assertEqual(_inflate_wheel_member(image, encoded, len(content)), content)
+            for damaged in (encoded[:-1], encoded + b'X'):
+                with self.assertRaises(zipfile.BadZipFile):
+                    _inflate_wheel_member(image, damaged, len(content))
+        allocate = ctypes.create_string_buffer
+        def bounded(value, *args):
+            if isinstance(value, int) and value > 4112:
+                self.fail('allocation preceded validation of the declared uncompressed extent')
+            return allocate(value, *args)
+        with patch.object(ctypes, 'create_string_buffer', bounded), self.assertRaises(zipfile.BadZipFile):
+            _inflate_wheel_member(image, encoded, 1 << 44)
+
+    def test_stored_and_deflated_members_use_checked_local_hia_extent(self):
+        import ctypes
+        import io
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from tools.build_hia_default_release import _wheel_member
+
+        folder = self.root / 'build' / 'wheel-record'
+        def image(name):
+            raw = (folder / (name + '.image.bin')).read_bytes()
+            digest = json.loads((folder / (name + '.receipt.json')).read_bytes())['produced_sha256']
+            return NativeHiaJsonImage(raw, digest)
+        images = (None, None, image('wheel_zip_directory'), image('wheel_inflate'), image('wheel_zip_local'))
+        workspace = ctypes.create_string_buffer(2048)
+        wire = io.BytesIO()
+        expected = {'payload/é': b'example' * 1024, 'empty': b''}
+        with zipfile.ZipFile(wire, 'w') as archive:
+            archive.writestr('payload/é', expected['payload/é'], compress_type=zipfile.ZIP_DEFLATED)
+            archive.writestr('empty', b'', compress_type=zipfile.ZIP_STORED)
+        with zipfile.ZipFile(wire) as archive, patch.object(zipfile.ZipFile, 'open', side_effect=AssertionError):
+            for name, raw in expected.items():
+                self.assertEqual(_wheel_member(archive, name, images, workspace), raw)
+        damaged = bytearray(wire.getvalue())
+        damaged[30] ^= 1
+        with zipfile.ZipFile(io.BytesIO(damaged)) as archive, self.assertRaises(zipfile.BadZipFile):
+            _wheel_member(archive, 'payload/é', images, workspace)
+
     def test_wheel_is_platform_specific_and_only_pin_is_derived_runtime_source(self):
         import csv
         import io
@@ -276,6 +387,114 @@ assert not [k for k in os.environ if k.startswith('HEPTA_HIA_') and k.endswith('
 print(json.dumps(answer, sort_keys=True))
 '''
         self.assertEqual(json.loads(self.child(body).stdout), self.expected)
+
+    def test_installed_assembly_parser_and_public_checker_preserve_real_diagnostics(self):
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
+            self.skipTest('the parser and diagnostic reporter are linked into the cold public tool')
+        from tests.test_hia_agent_assembly import SOURCE
+        body = r'''
+import contextlib, io, subprocess
+from hashlib import sha256
+from hepta import cli, hia_agent_assembly as asm
+from hepta.hia_native_helpers import native_helpers_scope
+valid = sys.argv[3]
+attributes = valid.replace('{"mode":"wrap"}', '{"a":[' + ','.join('0' for _ in range(2050)) + ']}', 1)
+loan = ' return_loans(' + ('[' * 17 + '0' + ']' * 17) + ')'
+loans = valid.replace('v6', 'v8').replace('effects() entry(entry)', 'effects() entry(entry)' + loan)
+obsolete = valid.replace('effects() entry(entry)', 'effects() entry(entry) return_loans([null])')
+cases = [valid, valid.encode(), b'', b'no header', b'\xff', valid + 'end', attributes, loans, obsolete,
+         valid.replace('ret(answer)', 'ret(unknown)'), valid.replace('exports(total)', 'exports(twice)')]
+def outcome(source):
+    try:
+        return 'ok', asm.assemble_program(source).canonical_bytes
+    except asm.HIAAssemblyRejected as exc:
+        return 'error', exc.code, exc.line, exc.phase, str(exc), type(exc.__cause__).__name__, str(exc.__cause__)
+with patch.object(defaults, 'default_assembly_document', return_value=None):
+    expected = [outcome(source) for source in cases]
+    reports = [asm.diagnose_assembly(text) for text in (attributes, loans, obsolete)]
+observed = []
+run = asm._native_assembly_document
+def capture(syntax, presenter, source):
+    observed.append((syntax.image_sha256, presenter.image_sha256))
+    return run(syntax, presenter, source)
+resources = [installed / 'hepta' / path for path in (defaults.ASSEMBLY_SYNTAX_RESOURCE, defaults.ASSEMBLY_DIAGNOSTIC_RESOURCE)]
+pair = tuple(sha256(resource.read_bytes()).hexdigest() for resource in resources)
+with patch.object(asm, '_native_assembly_document', capture), patch.object(asm, '_parse_assembly_document', forbidden), patch.object(asm, '_source', forbidden):
+    assert [outcome(source) for source in cases] == expected
+    for field, bound, detail in (('MAX_FUNCTIONS', 0, 'function inventory'), ('MAX_BLOCKS', 0, 'block inventory'),
+                                 ('MAX_OPERATIONS', 1, 'operation inventory')):
+        with patch.object(asm, field, bound):
+            blocked = outcome(valid)
+            assert blocked[1] == 'E_HIA_ASSEMBLY_LIMIT' and detail in blocked[4]
+    from tempfile import TemporaryDirectory
+    with TemporaryDirectory() as temporary:
+        assembly = Path(temporary) / 'example.hia'
+        assembly.write_text(valid)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            assert cli.hia_main(['import-assembly', str(assembly)]) == 0
+        assert json.loads(output.getvalue())['module'] == 'sums'
+assert observed == [pair] * (len(cases) + 4)
+role = installed / 'bin' / 'hia-import-assembly'
+assert all(role.read_bytes().count(path.read_bytes()) == 1 for path in resources)
+for text, expected in zip((attributes, loans, obsolete), reports, strict=True):
+    result = subprocess.run(['hia-check-assembly-accepted'], executable=role, input=text.encode(), capture_output=True)
+    assert result.returncode == 1 and not result.stderr and json.loads(result.stdout) == expected
+with native_helpers_scope(), patch.object(asm, '_native_assembly_document', forbidden):
+    assert asm.assemble_program(valid).canonical_bytes
+print('PACKAGE_HIA_ASSEMBLY_SYNTAX')
+'''
+        self.assertEqual(self.child(body, SOURCE).stdout.strip(), 'PACKAGE_HIA_ASSEMBLY_SYNTAX')
+
+    def test_installed_public_api_and_cli_share_the_authenticated_assembly_renderer(self):
+        if self.report['scope'] == 'DEVELOPMENT_COMPONENT':
+            self.skipTest('the public renderer comes from the matching cold CLI link')
+        from tests.test_hia_agent_assembly import SOURCE
+        body = r'''
+from hashlib import sha256
+from hepta import cli, hia_agent_assembly as assembly
+from hepta.hia_agent_assembly import assemble_program, render_assembly
+from hepta.hia_native_helpers import native_helpers_scope
+import contextlib, io
+text = sys.argv[3]
+checked = assemble_program(text)
+renderer = installed / 'hepta' / defaults.ASSEMBLY_RENDER_RESOURCE
+digest = sha256(renderer.read_bytes()).hexdigest()
+role = installed / 'bin' / 'hia-render-assembly'
+assert role.read_bytes().count(renderer.read_bytes()) == 1
+observed = []
+original = assembly._native_assembly_text
+def consume(image, core):
+    observed.append((image.image_sha256, sha256(core).hexdigest()))
+    return original(image, core)
+with patch.object(assembly, '_native_assembly_text', consume), patch.object(assembly, '_render_assembly_document', forbidden):
+    assert render_assembly(checked) == text
+    from tempfile import TemporaryDirectory
+    with TemporaryDirectory() as temporary:
+        source = Path(temporary) / 'program.json'
+        source.write_bytes(checked.canonical_bytes)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            assert cli.hia_main(['render-assembly', str(source)]) == 0
+        assert output.getvalue() == text
+assert observed == [(digest, checked.sha256)] * 2
+with native_helpers_scope(), patch.object(assembly, '_native_assembly_text', forbidden):
+    assert render_assembly(checked) == text
+original_image = renderer.read_bytes()
+try:
+    renderer.write_bytes(original_image[:-1])
+    with patch.object(assembly, '_render_assembly_document', forbidden), patch.object(assembly, '_native_assembly_text', forbidden):
+        try:
+            render_assembly(checked)
+        except ValueError as error:
+            assert defaults.ASSEMBLY_RENDER_RESOURCE in str(error)
+        else:
+            raise AssertionError('damaged package renderer reached the public API')
+finally:
+    renderer.write_bytes(original_image)
+print('PACKAGE_HIA_ASSEMBLY_RENDER')
+'''
+        self.assertEqual(self.child(body, SOURCE).stdout.strip(), 'PACKAGE_HIA_ASSEMBLY_RENDER')
 
     def test_installed_cli_uses_package_control_without_argparse_or_selectors(self):
         from hepta.hia_cli_native import native_cli_profile
