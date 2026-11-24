@@ -950,6 +950,7 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'examples/hia_bootstrap/system_jobctl_diagnostic_json.hepta',
     'examples/hia_bootstrap/mcp_canonical.hepta',
     'examples/hia_bootstrap/mcp_input_diagnostic.hepta',
     'examples/hia_bootstrap/mcp_job_bridge_audit.hepta',

@@ -343,9 +343,13 @@ def main():
     (ROOT / BOOT / RECIPE).write_bytes(recipe.binary())
     table = ROOT / BOOT / 'release_stage_sources.tsv'
     lines = table.read_text().splitlines()
-    if any(line.startswith('stage\t11\t') for line in lines):
-        lines = [line for line in lines if not (len(line.split('\t')) > 1 and line.split('\t')[1] == '11')]
+    assert lines, 'empty native stage inventory'
     header = lines[0].split('\t')
+    assert len(header) == 3 and header[0] == 'stage' and header[1] in ('10', '11'), header
+    # The first line is the aggregate count, not stage 11's data. Preserve
+    # it and the first stage's source-builder requirement on every replay.
+    lines = [lines[0]] + [line for line in lines[1:]
+        if not (len(line.split('\t')) > 1 and line.split('\t')[1] == '11')]
     old_outputs = sum(line.startswith('output\t') for line in lines)
     lines[0] = '\t'.join((header[0], '11', str(old_outputs + len(recipe.published))))
     lines += ['stage\t11\tnative-controllers', 'need\t11\t0\thia-source-build',
