@@ -137,3 +137,79 @@ def qualify_exports(p,h,compiler,programs,refusals,references,words,*,label):
         gate=check_flat(p,h['check'],observed,empty,mode=2 if row['trapped'] else 1,cap=row['size'],work=0,core=7,code=-4 if row['trapped'] else 0,initial_handle=row['initial'],expected_handle=row['expected'],label=name+':original-full-output-assertions')
         assert_gate(p,gate,label=name);p.drop(image,shared,observed)
     p.drop(empty)
+
+
+
+def word_layouts():
+    return [(0,n) for n in range(9)]+[(1,8),(1,9),(8,15),(8,16),(U64,8)]
+
+
+def word_bundle_layout(compiler_source):
+    """Source extents only, from the current input; never runtime values."""
+    import re
+    from importlib.util import spec_from_file_location,module_from_spec
+    from pathlib import Path
+    spec=spec_from_file_location("_word_source_literals",Path(__file__).with_name("generate_hia_cold_export_word_source.py"))
+    module=module_from_spec(spec);spec.loader.exec_module(module);PARTS=module.PARTS
+    bodies=[]
+    for name in (b'f36',b'f37'):
+        found=list(re.finditer(rb'(?m)^fn '+name+rb'\(',compiler_source))
+        if len(found)!=1:raise ValueError('actual compiler word helper is not unique')
+        start=found[0].start();end=compiler_source.find(b'\nend\n',found[0].end())
+        if end<0:raise ValueError('unterminated actual word helper')
+        bodies.append(compiler_source[start:end+5])
+    rows=[];cursor=48
+    for op,operation in enumerate(('get','put')):
+        for offset,size in word_layouts():
+            trapped=offset>size or size-offset<8
+            expected=0 if trapped else sum(((17*(offset+i)+3)&255)<<(8*i) for i in range(8))
+            prefix=PARTS[0]+str(offset).encode()+PARTS[1]
+            prefix+=PARTS[2] if op else PARTS[3]+str(expected).encode()+PARTS[4]
+            n=len(prefix)+sum(map(len,bodies))
+            rows.append(dict(name='compiler-word-'+operation+'-'+str(offset)+'-'+str(size),
+                             source_bytes=n,size=size,trapped=trapped,record_offset=cursor))
+            cursor+=24+n+2*size
+    return rows,cursor
+
+
+def publish_reference_bundle(p,h,programs,compiler_source,layout):
+    """Pre-B0: five publications, all freshly computed during this replay."""
+    references=reference_exports(p,h,programs)
+    words=reference_words(p,h,compiler_source)
+    header=p.literal(b'HIAEWR01'+struct.pack('<Q',28));source_digest=p.sha256(compiler_source)
+    parts=[p.concat(header,source_digest)];p.drop(header,source_digest)
+    assert len(words)==len(layout)==28
+    for row,meta in zip(words,layout):
+        lengths=[p.length(row[field]) for field in ('source','initial','expected')]
+        for length,value in zip(lengths,(meta['source_bytes'],meta['size'],meta['size'])):
+            p.word(length,0,value,label=row['name']+':actual-source-bound-bundle-extent')
+        parts.append(p.concat(*lengths,row['source'],row['initial'],row['expected']))
+        p.drop(*lengths,row['source'],row['initial'],row['expected'])
+    bundle=p.concat(*parts);p.publish(bundle,'word-reference.bin');p.drop(*parts,bundle,*references.values())
+    return ['reference-'+row['name']+'.bin' for row in programs]+['word-reference.bin']
+
+
+def import_reference_bundle(p,programs,compiler_source,layout,total):
+    references={row['name']:p.imported('reference-'+row['name']+'.bin') for row in programs}
+    bundle=p.imported('word-reference.bin');p.word(bundle,0,int.from_bytes(b'HIAEWR01','little'));p.word(bundle,8,28)
+    extent=p.length(bundle);p.word(extent,0,total);p.drop(extent)
+    old_digest=p.slice(bundle,16,32);current_digest=p.sha256(compiler_source)
+    p.compare(old_digest,current_digest,label='exports:same-round-actual-compiler-source')
+    p.drop(old_digest,current_digest)
+    words=[]
+    for meta in layout:
+        at=meta['record_offset'];n=meta['source_bytes'];size=meta['size']
+        for j,value in enumerate((n,size,size)):p.word(bundle,at+j*8,value)
+        words.append(dict(name=meta['name'],source=p.slice(bundle,at+24,n),
+                          initial=p.slice(bundle,at+24+n,size),expected=p.slice(bundle,at+24+n+size,size),
+                          trapped=meta['trapped'],size=size))
+    p.drop(bundle)
+    return references,words
+
+
+def qualify_exports_from_bundle(p,h,compiler,compiler_source,programs,refusals,layout,total,*,label):
+    """One original/modified phase, bound to this run's live reference outputs."""
+    references,words=import_reference_bundle(p,programs,compiler_source,layout,total)
+    qualify_exports(p,h,compiler,programs,refusals,references,words,label=label)
+    p.drop(*references.values())
+    for row in words:p.drop(row['source'],row['initial'],row['expected'])
