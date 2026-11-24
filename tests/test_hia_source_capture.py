@@ -170,6 +170,48 @@ class SourceCaptureNativeTests(unittest.TestCase):
             wire[56] ^= 1
             self.assert_refused(wire, 19)
 
+    def test_audit_returns_only_verified_count_and_total_including_empty_files(self):
+        with tempfile.TemporaryDirectory(dir=self.work) as directory:
+            root = Path(directory)
+            rows = [('one.txt', 'first', b'private source text'), ('empty.py', 'second', b'')]
+            for path, _, raw in rows:
+                (root / path).write_bytes(raw)
+            descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try:
+                wire = bytearray(request(descriptor, rows, b'HIAAUD01'))
+                wire[:8] = b'HIACAP02'
+                at = 32
+                for path, alias, _ in rows:
+                    struct.pack_into('<Q', wire, at + 16, 0)
+                    at += 56 + len(path) + len(alias)
+                result = self.run_capture(wire, root_fd=descriptor)
+                self.assertEqual((result.returncode, result.stdout, result.stderr),
+                                 (0, struct.pack('<8sQQ', b'HIAAOK01', 2, len(rows[0][2])), b''))
+                wire[56 + 56 + len(rows[0][0]) + len(rows[0][1])] ^= 1
+                self.assert_refused(wire, 19, root_fd=descriptor)
+            finally:
+                os.close(descriptor)
+
+    def test_audit_covers_every_matching_cold_source_pin(self):
+        admitted = json.loads(self.report.read_bytes())['source_manifest']
+        paths = sorted(admitted)
+        audited = 0
+        for start in range(0, len(paths), 128):
+            selected = paths[start:start + 128]
+            wire = bytearray(struct.pack('<8sQ8sQ', b'HIACAP02', self.root_fd, b'HIAAUD01', len(selected)))
+            total = 0
+            for index, relative in enumerate(selected):
+                raw = (ROOT / relative).read_bytes()
+                self.assertEqual(sha256(raw).hexdigest(), admitted[relative])
+                total += len(raw)
+                path, alias = relative.encode('ascii'), ('source-' + str(index)).encode('ascii')
+                wire += struct.pack('<3Q', len(path), len(alias), 0) + bytes.fromhex(admitted[relative]) + path + alias
+            result = self.run_capture(wire, timeout=30)
+            self.assertEqual((result.returncode, result.stdout, result.stderr),
+                             (0, struct.pack('<8sQQ', b'HIAAOK01', len(selected), total), b''))
+            audited += len(selected)
+        self.assertEqual(audited, len(admitted))
+
     def test_request_extent_aliases_and_parent_paths_are_rejected_before_output(self):
         rows = [('examples/hia_bootstrap/sha256_stream.hepta', 'hash.hepta',
                  (ROOT / 'examples/hia_bootstrap/sha256_stream.hepta').read_bytes())]

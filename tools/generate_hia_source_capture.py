@@ -16,11 +16,11 @@ MAGIC = int.from_bytes(b'HIACAP01', 'little')
 MAGIC2 = int.from_bytes(b'HIACAP02', 'little')
 PACK = int.from_bytes(b'HIACAPK1', 'little')
 TAGS = tuple(int.from_bytes(s, 'little') for s in
-             (b'HIANAM01', b'HIASRC01', b'HIAIMG01', b'HIAMUL01', b'HIAKIT01', b'HIAKOBJ1', b'HIARAW01'))
+             (b'HIANAM01', b'HIASRC01', b'HIAIMG01', b'HIAMUL01', b'HIAKIT01', b'HIAKOBJ1', b'HIARAW01', b'HIAAUD01'))
 
 POLICY = r'''
 def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(w) != 2097152 or length(o) != 67108864:
+    if length(w) != 68157440 or length(o) != 67108864:
         return 0
     phase = mw(w, 0, 8)
     result = mw(w, 8, 8)
@@ -35,7 +35,7 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         count = uint(s, 24, 8)
         if root < 3 or root > 2147483647 or count == 0 or count > 128:
             return fail(w, 16)
-        if tag != NAMED and tag != SINGLE and tag != IMAGE and tag != MULTI and tag != KIT and tag != KOBJ and tag != RAW:
+        if tag != NAMED and tag != SINGLE and tag != IMAGE and tag != MULTI and tag != KIT and tag != KOBJ and tag != RAW and tag != AUDIT:
             return fail(w, 16)
         if (tag == SINGLE or tag == IMAGE or tag == RAW) and count != 1:
             return fail(w, 16)
@@ -46,7 +46,7 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         at = 32
         index = 0
         total = 16
-        if tag == RAW:
+        if tag == RAW or tag == AUDIT:
             total = 0
         while index < count:
             if at > length(s) or length(s) - at < 56:
@@ -54,7 +54,7 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             pn = uint(s, at, 8)
             an = uint(s, at + 8, 8)
             size = uint(s, at + 16, 8)
-            if pn == 0 or pn > 4095 or an == 0 or an > 127 or size > 1048576:
+            if pn == 0 or pn > 4095 or an == 0 or an > 127 or size > choose(tag == AUDIT, 67108864, 1048576):
                 return fail(w, 16)
             if size == 0 and protocol == MAGIC:
                 return fail(w, 16)
@@ -64,7 +64,7 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             alias = path + pn
             if valid_path(s, path, pn) == 0 or valid_name(s, alias, an) == 0:
                 return fail(w, 16)
-            if tag != RAW and valid_alias(s, alias, an) == 0:
+            if tag != RAW and tag != AUDIT and valid_alias(s, alias, an) == 0:
                 return fail(w, 16)
             prior = 0
             while prior < index:
@@ -73,8 +73,9 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                     if equal_source(s, alias, mw(w, slot + 8, 8), an) == 1:
                         return fail(w, 16)
                 prior = prior + 1
-            if total > length(o) - 16 - an - size:
-                return fail(w, 17)
+            if tag != AUDIT:
+                if total > length(o) - 16 - an - size:
+                    return fail(w, 17)
             slot = 16384 + 32 * index
             write(w, slot, at, 8)
             write(w, slot + 8, alias, 8)
@@ -83,17 +84,20 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             if tag == RAW:
                 total = size
             else:
-                total = total + 16 + an + size
+                if tag == AUDIT:
+                    total = total + size
+                else:
+                    total = total + 16 + an + size
             at = alias + an
             index = index + 1
         if at != length(s):
             return fail(w, 16)
-        if tag != RAW:
+        if tag != RAW and tag != AUDIT:
             write(o, 0, tag, 8)
             write(o, 8, count, 8)
         write(w, 32, count, 8)
         write(w, 40, 0, 8)
-        if tag == RAW:
+        if tag == RAW or tag == AUDIT:
             write(w, 48, 0, 8)
         else:
             write(w, 48, 16, 8)
@@ -119,10 +123,11 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return fail(w, 16)
         actual = mw(w, 4656, 8)
         if mw(w, 72, 8) == 0:
-            if actual == 0 or actual > 1048576:
+            if (actual == 0 and mw(w, 120, 8) != AUDIT) or actual > choose(mw(w, 120, 8) == AUDIT, 67108864, 1048576):
                 return fail(w, 16)
-            if mw(w, 112, 8) > length(o) - actual:
-                return fail(w, 17)
+            if mw(w, 120, 8) != AUDIT:
+                if mw(w, 112, 8) > length(o) - actual:
+                    return fail(w, 17)
             write(w, 72, actual, 8)
             write(w, 112, mw(w, 112, 8) + actual, 8)
         if actual != mw(w, 72, 8):
@@ -187,6 +192,13 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         alias = mw(w, 96, 8)
         an = mw(w, 104, 8)
         size = mw(w, 72, 8)
+        if mw(w, 120, 8) == AUDIT:
+            write(w, 48, target + size, 8)
+            write(o, 0, AUDIT_OK, 8)
+            write(o, 8, mw(w, 32, 8), 8)
+            write(o, 16, target + size, 8)
+            write(w, 40, mw(w, 40, 8) + 1, 8)
+            return next_source(s, w)
         if mw(w, 120, 8) == RAW:
             copy_mut(w, o, 65537, 0, size)
             write(w, 48, size, 8)
@@ -205,6 +217,8 @@ def next_source(s:readbuf, w:mutbuf) -> u32:
     if index == mw(w, 32, 8):
         if mw(w, 48, 8) != mw(w, 112, 8):
             return fail(w, 16)
+        if mw(w, 120, 8) == AUDIT:
+            write(w, 48, 24, 8)
         write(w, 128, 0, 8)
         return issue(w, 10, 10)
     if index > mw(w, 32, 8):
@@ -303,6 +317,7 @@ def copy_mut(s:mutbuf, o:mutbuf, first:u64, target:u64, n:u64) -> u64:
 def policy_source():
     values = {'MAGIC2': MAGIC2, 'MAGIC': MAGIC, 'NAMED': TAGS[0], 'SINGLE': TAGS[1], 'IMAGE': TAGS[2], 'MULTI': TAGS[3],
               'KOBJ': TAGS[5], 'KIT': TAGS[4], 'RAW': TAGS[6],
+              'AUDIT_OK': int.from_bytes(b'HIAAOK01', 'little'), 'AUDIT': TAGS[7],
               'SUFFIX': int.from_bytes(b'.hepta', 'little')}
     value = POLICY
     for key, number in values.items():
