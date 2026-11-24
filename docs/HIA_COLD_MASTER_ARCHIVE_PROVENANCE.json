@@ -1,0 +1,220 @@
+{
+  "schema": "hepta.hia.cold-master-archive.provenance.v1",
+  "source": {
+    "tools/generate_hia_cold_master_common.py": {
+      "sha256": "5c750ddc3caab7db49e97ad7fcd5903880e43f7f4824360f4c5c8b4ceaa57a2d",
+      "bytes": 4453
+    },
+    "tools/generate_hia_cold_master_archive.py": {
+      "sha256": "95d73781d1684edcbe6cadb7e3d7c3f7bdd512042e0736caa7c7d43be0fa057f",
+      "bytes": 17697
+    },
+    "tools/hia_cold_master_syscalls.S": {
+      "sha256": "bb7b472aa4d007f64879c85e9ed6a8ed69587492d2220bdb001ffb67bfc18d4c",
+      "bytes": 3314
+    },
+    "examples/hia_bootstrap/cold_master_archive.hepta": {
+      "sha256": "81a99c7416b6f611b8ba99f5dd3fa11e1d0cb2fe1e5b69559cb322c9a05ef618",
+      "bytes": 152078
+    },
+    "examples/hia_bootstrap/cold_master_archive_packer.hepta": {
+      "sha256": "6f231855789a1a7eb9f4c72f975a0083c1bbb67aaa32d45dbf05b015434041e1",
+      "bytes": 21669
+    }
+  },
+  "build": {
+    "passed": true,
+    "elapsed_seconds": 1.811153968097642,
+    "rows": [
+      {
+        "name": "cold_master_archive",
+        "source_sha256": "81a99c7416b6f611b8ba99f5dd3fa11e1d0cb2fe1e5b69559cb322c9a05ef618",
+        "core_sha256": "6424ddcae984bda79149afa0753cf793fe61a8a9819cccefe34c3797e82809e4",
+        "wire_sha256": "aba04ff66c9d38fcd3bebd7adb5d7b3c25468df29ab6a6fc395b19937a0ff122",
+        "flat_sha256": "7630fe14dea2f3850d622b425c3f4b3557388f231450fb15d2d0fb9d1f587e35",
+        "flat_bytes": 180493
+      },
+      {
+        "name": "cold_master_archive_packer",
+        "source_sha256": "6f231855789a1a7eb9f4c72f975a0083c1bbb67aaa32d45dbf05b015434041e1",
+        "core_sha256": "bde68e3fdff170aed6f82634f1303276b2ddbf1177800fa106ad040ff67be4c5",
+        "wire_sha256": "a0a2831366adfb8e53cfdb6fe285362c66cddcfc154ed7cf1b501f5115f33459",
+        "flat_sha256": "50a2e8efbc7d644055e4a363ac2c0d368b575150660e9df0ccb12b8e66f7b0a6",
+        "flat_bytes": 21396
+      },
+      {
+        "name": "sha256_stream",
+        "source_sha256": "80df3148e5dc8df8ab4c43e5d1edd1b4057dcdcffe5a06c3635bfee17a779054",
+        "core_sha256": "d952bbd2995fb210df5066f23a908ce8b8ce889b71b113b7f784f1b4e1be480e",
+        "wire_sha256": "683d330f750d2283097b946f945b66575b721a7bc5697238b732aaa6da8cee87",
+        "flat_sha256": "b2cc50c1ee11c896495a4ce38a8fa1d5a441b149faec3524f5c91bce827ff4c3",
+        "flat_bytes": 31568
+      }
+    ],
+    "image_sha256": "04b1dbadacad86773be181b5cfcc07951bb69f0d50f0159486545767b591d4c4",
+    "image_bytes": 212888,
+    "target_used": false
+  },
+  "qualification": {
+    "passed": true,
+    "cases": [
+      {
+        "case": "valid-actual-phase",
+        "passed": true,
+        "returncode": 0,
+        "elapsed_seconds": 0.47804228705354035,
+        "stdout_bytes": 128,
+        "archive_bytes": 1051491
+      },
+      {
+        "case": "parent-identity",
+        "passed": true,
+        "returncode": 65,
+        "elapsed_seconds": 0.000318245030939579,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "reserved-word",
+        "passed": true,
+        "returncode": 65,
+        "elapsed_seconds": 0.0002051340416073799,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "deadline",
+        "passed": true,
+        "returncode": 124,
+        "elapsed_seconds": 0.09251833299640566,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "plan-pin",
+        "passed": true,
+        "returncode": 65,
+        "elapsed_seconds": 0.09220657998230308,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "receipt-journal-pin",
+        "passed": true,
+        "returncode": 74,
+        "elapsed_seconds": 0.09165332396514714,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "receipt-node-count",
+        "passed": true,
+        "returncode": 65,
+        "elapsed_seconds": 0.00033449602779001,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "forged-node-count-actual-stream",
+        "passed": true,
+        "returncode": 74,
+        "elapsed_seconds": 0.09392460598610342,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "corrupt-logical-header-rehashed",
+        "passed": true,
+        "returncode": 74,
+        "elapsed_seconds": 0.0903177949367091,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "corrupt-compression-magic-rehashed",
+        "passed": true,
+        "returncode": 74,
+        "elapsed_seconds": 0.09264847706072032,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "truncated-chunk-rehashed",
+        "passed": true,
+        "returncode": 74,
+        "elapsed_seconds": 0.09333907999098301,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "symlink-refused",
+        "passed": true,
+        "returncode": 74,
+        "elapsed_seconds": 0.09471853193826973,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "directory-refused",
+        "passed": true,
+        "returncode": 65,
+        "elapsed_seconds": 0.10302035103086382,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "hardlink-refused",
+        "passed": true,
+        "returncode": 65,
+        "elapsed_seconds": 0.09460124198812991,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "leading-dot-refused",
+        "passed": true,
+        "returncode": 65,
+        "elapsed_seconds": 0.09692058304790407,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "world-readable-refused",
+        "passed": true,
+        "returncode": 65,
+        "elapsed_seconds": 0.09435594303067774,
+        "stdout_bytes": 0,
+        "archive_bytes": 0
+      },
+      {
+        "case": "actual-archive-external-write",
+        "passed": true,
+        "returncode": 74,
+        "elapsed_seconds": 2.5357290310785174,
+        "stdout_bytes": 0,
+        "archive_bytes": 6294547
+      },
+      {
+        "case": "actual-input-external-write",
+        "passed": true,
+        "returncode": 74,
+        "elapsed_seconds": 1.8244706549448892,
+        "stdout_bytes": 0,
+        "archive_bytes": 6291872
+      },
+      {
+        "case": "actual-journal-external-write",
+        "passed": true,
+        "returncode": 74,
+        "elapsed_seconds": 1.856126926955767,
+        "stdout_bytes": 0,
+        "archive_bytes": 6294547
+      }
+    ],
+    "count": 19,
+    "image_sha256": "04b1dbadacad86773be181b5cfcc07951bb69f0d50f0159486545767b591d4c4",
+    "actual_mutations_preserved": true
+  },
+  "evidence_directory": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1",
+  "target_used": false
+}
