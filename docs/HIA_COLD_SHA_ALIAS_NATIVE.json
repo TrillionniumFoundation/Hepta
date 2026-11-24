@@ -1,7 +1,8 @@
 {
   "schema": "hepta.hia.cold-sha-disjoint-native.v1",
   "component_qualified": true,
-  "consumer_integration_qualified": true,
+  "archive_consumer_qualified": true,
+  "consumer_integration_qualified": false,
   "whole_native_cold_replay_closed": false,
   "state_abi_bytes": 1184,
   "six_word_abi_unchanged": true,
@@ -18,11 +19,11 @@
     "rows": [
       {
         "name": "cold_sha256_nonalias",
-        "source_sha256": "6e7cc48b17bde7fce56e635fe3ecff98b87e852c0cce26ff52d6c6f8f9e58bd4",
-        "core_sha256": "46eb81b59b70bef0021fb60966ae844cbec5657409375847a24727a023a269f5",
-        "wire_sha256": "0bf84c410fc400bf3987709072f77e7c4101c1ae970e8349e249fa3c6e4acda8",
-        "flat_sha256": "1417b965392d394bc81fe30776fb1030eb456d3158b4574fe3647c625913fb9e",
-        "bytes": 48816
+        "source_sha256": "a953265fd9c2e5dc24c924b61b445e67e8c9eee88e8d04de4a9aca5238924829",
+        "core_sha256": "1439572fa9c22a14cf4a359cf39d4c88d7a1e8d8460a4fd77e4fd0d8dd20ea07",
+        "wire_sha256": "e9c6e7adb2f371e717182ea6e8456ef8894445763be800dc42051778c8ca9cea",
+        "flat_sha256": "43c845f97bf0bc1163c9e3e031b73723fb06e32b1b6b75a897d6d28bab701c0b",
+        "bytes": 45089
       },
       {
         "name": "cold_sha256_alias_packer",
@@ -42,8 +43,8 @@
     "mechanical_cases": 5894,
     "mechanical_cases_sha256": "ad8be3f96137117025d15951fabf8c5e53c1174851f845b668a4b47b38e1ae60",
     "new": {
-      "bytes": 113493,
-      "sha256": "62637eebd8b4c9706607bf7854e48c2146d0862f90c90290daac459b86ddb753"
+      "bytes": 109766,
+      "sha256": "a93da2f7bcdb284fce1e990f956d27ac9a7f3444965ef0f7a1c0f30133e81185"
     },
     "fallback": {
       "bytes": 64588,
@@ -55,131 +56,251 @@
     },
     "source_pins": {
       "examples/hia_bootstrap/hia_cold_sha_alias.S": "887a76283a9785065f486c26c0ef99a9faf578639f3ed4a1805dd8d47fbcfd65",
-      "tools/generate_hia_cold_sha_alias.py": "5b3f5db457f7a4a31f60814a245cc2ecefe10078daa4d377ddee9a334b188654",
-      "examples/hia_bootstrap/cold_sha256_nonalias.hepta": "6e7cc48b17bde7fce56e635fe3ecff98b87e852c0cce26ff52d6c6f8f9e58bd4",
+      "tools/generate_hia_cold_sha_alias.py": "6a5055c428ae9d5204d75c03ba7926b10a5e02967709b6dc56271b1ef08e31a7",
+      "examples/hia_bootstrap/cold_sha256_nonalias.hepta": "a953265fd9c2e5dc24c924b61b445e67e8c9eee88e8d04de4a9aca5238924829",
       "examples/hia_bootstrap/cold_sha256_alias_packer.hepta": "71e4d062e30c03d436ed1b7651652331b3dc5030929d02c69caeb485623274f7",
       "examples/hia_bootstrap/cold_sha256_stream.hepta": "d2edf6e888abc06ae9dae60ee36f84772d5f9b49b52a40d0dc510265acbf955f"
     }
   },
-  "qualification_evidence": [
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-v1/build.json",
-      "sha256": "4bda9f04ba59abff6f26ee8aaf005721d1fb7e5190ae954da16e14fd28eee857",
+  "construction_record_scope": "The preserved construction report predates semantic qualification. The separate pinned reports below establish the completed component qualification; no earlier report was retroactively edited.",
+  "independent_endian_seed": {
+    "source": {
+      "bytes": 123330,
+      "path": "examples/hia_bootstrap/seed_endian_backend.hepta",
+      "sha256": "1ae37fdf74bd84a59e16f80162aa7e19cd25377c2a8902b89f6d732d9e781d71"
+    },
+    "flat": {
+      "bytes": 152270,
+      "sha256": "de344285c8d454e04c7bc355c0524fdb9d1c9396fc35d111600fe3204c313086"
+    },
+    "elf": {
+      "bytes": 152759,
+      "sha256": "a75c12a3fd1673c693ba9db2d68c1f0308b85adbd75f89e9cc51b2d642ae404b"
+    },
+    "qualification": "HIA_INDEPENDENT_SEED_ENDIAN_QUALIFICATION.json"
+  },
+  "qualification_evidence": {
+    "construction": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-v1/build.json",
+      "sha256": "86de37176a1ce81f995ee7ee755d874e26170fb76d8d380f55a07066a29ec924",
+      "bytes": 2360,
       "passed": true
     },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-equivalence-v1/qualification.json",
-      "sha256": "8d3732c04671baf23b08cd1ac85886c5ac7b510b2f35d0a45b7701ec2dcca136",
+    "sha_semantics": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-equivalence-v1/qualification.json",
+      "sha256": "47a546327971ec8ad5b5abe7fb089c2229ee09b41ef130215064ed50d047d72f",
+      "bytes": 3467,
       "passed": true
     },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-v1/offset-alias.json",
-      "sha256": "9680dd893f27787cce0f596e31f1a7bc9fd57b289233bd46a17287cc4da4dd0d",
+    "offset_alias": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-v1/offset-alias.json",
+      "sha256": "08fff175a2bfba2dac24eb085e0caa25281ff1d869b5c270d1fe41895e00340d",
+      "bytes": 452,
       "passed": true
     },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-packer-guards-v1/qualification.json",
-      "sha256": "eecf04ee755a76612b7f2ee1c2e62b1a016eb4cabebf38db7147143f43c45a5e",
+    "native_packer": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-packer-v1/qualification.json",
+      "sha256": "268cacc92541a2d17d30cd6ccad79fbfd963850d52b7cb57e8477ad3894b7fde",
+      "bytes": 17399,
+      "passed": true
+    },
+    "archive_live_controls": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-archive-v1/qualification.json",
+      "sha256": "3dd0901db182fe70f8c4383e818757ad6ad65c4e6904720a1efcd101bcb2fd23",
+      "bytes": 9479,
+      "passed": true
+    },
+    "archive_az02_controls": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-archive-az02-guards-v1/report.json",
+      "sha256": "59914dfdf8dbfc7ab24abe492b7374cd0e3edc9fd311e2b25984e3b09e72d719",
+      "bytes": 3895,
+      "passed": true
+    },
+    "actual_archive_comparison": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-archive-benchmark-v1/report.json",
+      "sha256": "af33b993aebf16e69c9ba86eec9a6e5e4282dd803eed2b23322c272c207ebde8",
+      "bytes": 2486,
       "passed": true
     }
-  ],
+  },
   "benchmarks": [
     {
       "image": "old",
       "bytes": 1048576,
-      "seconds": 0.08927787293214351,
-      "MiB_per_second": 11.200983705784068,
+      "seconds": 0.08785727398935705,
+      "MiB_per_second": 11.382096832655415,
       "sha256": "fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83"
     },
     {
       "image": "new",
       "bytes": 1048576,
-      "seconds": 0.020645880023948848,
-      "MiB_per_second": 48.43581377204644,
+      "seconds": 0.018421545042656362,
+      "MiB_per_second": 54.28426321920506,
       "sha256": "fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83"
     },
     {
       "image": "old",
       "bytes": 4194304,
-      "seconds": 0.3509407880483195,
-      "MiB_per_second": 11.397934170733262,
+      "seconds": 0.3541019430849701,
+      "MiB_per_second": 11.296182012308705,
       "sha256": "2b07811057df887086f06a67edc6ebf911de8b6741156e7a2eb1416a4b8b1b2e"
     },
     {
       "image": "new",
       "bytes": 4194304,
-      "seconds": 0.08281941199675202,
-      "MiB_per_second": 48.297855581936155,
+      "seconds": 0.07410325203090906,
+      "MiB_per_second": 53.97873764476042,
       "sha256": "2b07811057df887086f06a67edc6ebf911de8b6741156e7a2eb1416a4b8b1b2e"
     },
     {
       "image": "old",
       "bytes": 8388608,
-      "seconds": 0.7043849430046976,
-      "MiB_per_second": 11.35742619067689,
+      "seconds": 0.7112061830703169,
+      "MiB_per_second": 11.248496132954795,
       "sha256": "7d212b9c884f5c77896de960ae17cc341cda43b14d6a971f34ca29ebd4badf7f"
     },
     {
       "image": "new",
       "bytes": 8388608,
-      "seconds": 0.1661829820368439,
-      "MiB_per_second": 48.139706617049065,
+      "seconds": 0.1483507640659809,
+      "MiB_per_second": 53.92624736628857,
       "sha256": "7d212b9c884f5c77896de960ae17cc341cda43b14d6a971f34ca29ebd4badf7f"
     }
   ],
+  "archive_comparison": {
+    "passed": true,
+    "scope": "Actual unchanged original-chain archive, native complete journal admission and all physical byte readbacks; interleaved component comparison only, not a completed cold replay.",
+    "whole_native_cold_replay_closed": false,
+    "images": {
+      "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-archive-v1/hia-cold-master-archive": "c56d3b6bfc1572fce451db88f772f05627c630f4d213469dcfbe4a367e090a3e",
+      "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-archive-v1/hia-cold-master-archive": "b4712510bb1eba8ddf10ef0fa428699ba7be4539c85fd70361c8786fb25b19c9"
+    },
+    "journal_bytes": 14144120,
+    "archive_bytes": 28828792,
+    "rows": [
+      {
+        "image": "old",
+        "index": 0,
+        "elapsed_ns": 3944866164,
+        "archive_bytes": 28828792,
+        "archive_sha256": "7698544aa6b8897d67ddd4df309246f4aad45f57dfd4f9722fb07aab02a75bc7",
+        "complete_bytes_equal": true,
+        "passed": true
+      },
+      {
+        "image": "new",
+        "index": 1,
+        "elapsed_ns": 3518345001,
+        "archive_bytes": 28828792,
+        "archive_sha256": "7698544aa6b8897d67ddd4df309246f4aad45f57dfd4f9722fb07aab02a75bc7",
+        "complete_bytes_equal": true,
+        "passed": true
+      },
+      {
+        "image": "new",
+        "index": 2,
+        "elapsed_ns": 3554652203,
+        "archive_bytes": 28828792,
+        "archive_sha256": "7698544aa6b8897d67ddd4df309246f4aad45f57dfd4f9722fb07aab02a75bc7",
+        "complete_bytes_equal": true,
+        "passed": true
+      },
+      {
+        "image": "old",
+        "index": 3,
+        "elapsed_ns": 3994780367,
+        "archive_bytes": 28828792,
+        "archive_sha256": "7698544aa6b8897d67ddd4df309246f4aad45f57dfd4f9722fb07aab02a75bc7",
+        "complete_bytes_equal": true,
+        "passed": true
+      },
+      {
+        "image": "old",
+        "index": 4,
+        "elapsed_ns": 4041008354,
+        "archive_bytes": 28828792,
+        "archive_sha256": "7698544aa6b8897d67ddd4df309246f4aad45f57dfd4f9722fb07aab02a75bc7",
+        "complete_bytes_equal": true,
+        "passed": true
+      },
+      {
+        "image": "new",
+        "index": 5,
+        "elapsed_ns": 3513505959,
+        "archive_bytes": 28828792,
+        "archive_sha256": "7698544aa6b8897d67ddd4df309246f4aad45f57dfd4f9722fb07aab02a75bc7",
+        "complete_bytes_equal": true,
+        "passed": true
+      }
+    ],
+    "median_old_seconds": 3.994780367,
+    "median_new_seconds": 3.518345001,
+    "median_ratio": 1.1354146241669265
+  },
+  "archive_product": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-archive-v1/hia-cold-master-archive",
+    "sha256": "b4712510bb1eba8ddf10ef0fa428699ba7be4539c85fd70361c8786fb25b19c9",
+    "bytes": 344995
+  },
+  "performance_scope": "The complete archive comparison replaces only the SHA companion, preserves every journal and physical hash/readback, and compares every archive byte. It is a component measurement, not a 60-phase deadline qualification.",
   "experimental_rejections": {
     "fused_schedule_and_rounds": "no net throughput improvement; not integrated",
     "large_unroll": "lower throughput; not integrated",
-    "smaller_journal_chunks": "16KiB writer selected in a separate commit after actual base/chain whole-pipeline comparison; accepted decoder extent unchanged"
+    "smaller_unroll": "lower throughput than four schedule and four round operations; not integrated",
+    "generic_filter_wrapper_for_endian_seed": "insufficient existing workspace; rejected and replaced by the original backend packer without changing its limits"
   },
-  "consumer_qualification_evidence": [
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-driver-v1/qualification.json",
-      "sha256": "6c14e885deae8caa42c5773ce5dc1512392e2f80d2b4f9ae25b6baa238de096f",
-      "passed": true,
-      "cases": 18
-    },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-archive-v1/qualification.json",
-      "sha256": "f0b65543f5ef67615e4f33d182f2c26dbafd9db5981ffe75e4a75f28c4940d3e",
-      "passed": true,
-      "cases": 19
-    },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-archive-az02-guards-v1/report.json",
-      "sha256": "28b3d3873c331cea894a2d0dbc2f47fbdfa4df94a5a845b9ce39d123ab784801",
-      "passed": true,
-      "cases": 19
-    },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-source-export-v1/qualification.json",
-      "sha256": "2cf89ef971c2542339609ff06501a17582561fa87ca4a42f07c6b1a4e75515f2",
-      "passed": true,
-      "cases": 47
-    },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-cli-qualification-v1/report.json",
-      "sha256": "7a1c4b2f2fa63458b73ad771aef549dd2d034c048ea4168e6923b2ff73367ee0",
-      "passed": true,
-      "cases": 0
-    },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-cli-guards-v1/report.json",
-      "sha256": "3cb33b347907c82897b49af9a0dabb4952a29f856aa1f51ddc156ebda131bc8b",
-      "passed": true,
-      "cases": 22
-    },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-cli-overlap-v1/report.json",
-      "sha256": "62378600c994855931c4dcb183564ee3b2af21f34bc2ba45436c9c88e682946d",
-      "passed": true,
-      "cases": 3
-    },
-    {
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-chunk16-driver-v1/qualification.json",
-      "sha256": "425f09a7ec38500312a6581d89cce282ed0dd88b0bb3456500159433060ab183",
-      "passed": true,
-      "cases": 18
-    }
-  ]
+  "previous_composite_consumer_qualification": {
+    "sha256": "62637eebd8b4c9706607bf7854e48c2146d0862f90c90290daac459b86ddb753",
+    "scope": "Preserved earlier consumer evidence only; these results are not evidence for the current composite.",
+    "evidence": [
+      {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-driver-v1/qualification.json",
+        "sha256": "6c14e885deae8caa42c5773ce5dc1512392e2f80d2b4f9ae25b6baa238de096f",
+        "passed": true,
+        "cases": 18
+      },
+      {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-archive-v1/qualification.json",
+        "sha256": "f0b65543f5ef67615e4f33d182f2c26dbafd9db5981ffe75e4a75f28c4940d3e",
+        "passed": true,
+        "cases": 19
+      },
+      {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-archive-az02-guards-v1/report.json",
+        "sha256": "28b3d3873c331cea894a2d0dbc2f47fbdfa4df94a5a845b9ce39d123ab784801",
+        "passed": true,
+        "cases": 19
+      },
+      {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-source-export-v1/qualification.json",
+        "sha256": "2cf89ef971c2542339609ff06501a17582561fa87ca4a42f07c6b1a4e75515f2",
+        "passed": true,
+        "cases": 47
+      },
+      {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-cli-qualification-v1/report.json",
+        "sha256": "7a1c4b2f2fa63458b73ad771aef549dd2d034c048ea4168e6923b2ff73367ee0",
+        "passed": true,
+        "cases": 0
+      },
+      {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-cli-guards-v1/report.json",
+        "sha256": "3cb33b347907c82897b49af9a0dabb4952a29f856aa1f51ddc156ebda131bc8b",
+        "passed": true,
+        "cases": 22
+      },
+      {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-cli-overlap-v1/report.json",
+        "sha256": "62378600c994855931c4dcb183564ee3b2af21f34bc2ba45436c9c88e682946d",
+        "passed": true,
+        "cases": 3
+      },
+      {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-sha-alias-chunk16-driver-v1/qualification.json",
+        "sha256": "425f09a7ec38500312a6581d89cce282ed0dd88b0bb3456500159433060ab183",
+        "passed": true,
+        "cases": 18
+      }
+    ]
+  }
 }
