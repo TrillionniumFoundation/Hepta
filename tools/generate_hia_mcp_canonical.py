@@ -11,6 +11,7 @@ value. Typed-struct field rejection belongs to the independent typed owners.
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_worker_config_json import document
+from tools.generate_hia_mcp_sdk_value import SOURCE as SDK_VALUE
 from tools.generate_hia_worker_request import (
     canonical_program, data_source, decimal_program, format_program, replace_once,
 )
@@ -22,6 +23,10 @@ WORKSPACE_BYTES = 64 + 262144 * 56 + LIMIT + 16384
 
 ENTRY = r'''
 def canonical(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(o) == 8388609:
+        if length(w) != WORKSPACE_CAP:
+            return 4294967293
+        return sdk_value(s, w)
     if length(s) > 8388608 or length(o) != 8388608 or length(w) != WORKSPACE_CAP:
         return 4294967293
     put(o, 48, MAXIMUM_NODES)
@@ -127,7 +132,7 @@ def source_program(*, maximum_nodes=262144, maximum_depth=127):
     entry = ENTRY.replace('WORKSPACE_CAP', str(64 + maximum_nodes * 56 + LIMIT + 16384))
     entry = entry.replace('MAXIMUM_NODES', str(maximum_nodes)).replace('MAXIMUM_DEPTH', str(maximum_depth))
     value = '\n'.join((entry,
-                       serializer, LAST_WINS, decoder, decimal_program(), formatter))
+                       serializer, LAST_WINS, decoder, decimal_program(), formatter, SDK_VALUE))
     return value
 
 

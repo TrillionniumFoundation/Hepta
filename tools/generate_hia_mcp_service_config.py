@@ -144,6 +144,10 @@ def host_policy(s:readbuf, w:mutbuf, host:u64) -> bool:
                 return False
             field = field + 1
     jobs = lookup(w, host, K_NATIVE_JOBS)
+    if jobs == NONE:
+        return True
+    if get(w, jobs) == 0:
+        return True
     if object(w, jobs) == False or get(w, jobs + 32) != 5:
         return False
     field = K_ENTRY

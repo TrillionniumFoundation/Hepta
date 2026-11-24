@@ -6,6 +6,8 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = get(w, 0)
     result = get(w, 8)
     if phase == 0:
+        if get(w, 456) == 1:
+            return decode(o, w, 20, get(w, S_RESPONSE), get(w, S_RESPONSE + 8))
         at = text_id(w, PURE_INPUT)
         at = cp(w, S_REQUEST_ID, at)
         at = text_kind(w, at)
@@ -33,6 +35,20 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 240, result)
         put(w, 248, 0)
         return enter(w, 2, 19)
+    if phase == 20:
+        completion = 0
+        if get(w, 264) == 12:
+            if result < 4294967292 and get(w, 280) == 4 and str_is(w, field(w, F_STATUS), 0):
+                completion = 1
+        else:
+            if result < 4294967292 and get(w, 280) == 2 and (str_is(w, field(w, F_STATUS), 0) or str_is(w, field(w, F_STATUS), 1)):
+                completion = 1
+            elif get(w, 264) == 1 or get(w, 264) == 3 or get(w, 264) == 5:
+                completion = 2
+        put(w, 464, completion)
+        return audit(w, 5, 21, 2)
+    if phase == 21:
+        return enter(w, 5, 0)
     if phase == 100:
         return decode(o, w, 101, get(w, S_ORIGINAL), get(w, S_ORIGINAL + 8))
     if phase == 101:
@@ -120,4 +136,4 @@ def source():
         'refresh': '"refresh_context"', 'correct': '"correct_input"',
         'request_prefix': '},"request_id":"hia_',
         'reject_suffix': '","status":"rejected"}',
-    })
+    }, extra={'_checks': ('completed', 'accepted')})

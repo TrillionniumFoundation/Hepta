@@ -20,7 +20,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = get(w, 0)
     result = get(w, 8)
     if phase == 0:
-        if length(w) < STATE_BYTES or length(o) < 128 or get(w, 112) != 4 or get(w, 120) < 64 or get(w, 120) > BRIDGE_CAP:
+        if length(w) < STATE_BYTES or length(o) < 128 or get(w, 112) != 4 or get(w, 120) < 64 or get(w, 120) > BRIDGE_CAP or get(w, 128) < 64 or get(w, 128) > AUDIT_CAP:
             return 0
         put(w, 64, CACHE)
         put(w, 48, NONE)
@@ -34,6 +34,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if failed(result) or result == 0:
             return 0
         put(w, 32, result)
+        put(w, 424, result)
         if arguments(w) == False:
             return 0
         return walk(w, 0, 10, get(w, S_CONFIG_DIR), get(w, S_CONFIG_DIR + 8), 0)
@@ -114,6 +115,19 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if phase == 50:
         put(w, role_record(20), get(w, 1128))
         put(w, role_record(20) + 8, get(w, 1112))
+        if elf(w, AUDIT_IMAGE, get(w, 128), 0) == False:
+            return 0
+        put(w, 1000, 0)
+        put(w, 1008, 51)
+        put(w, 1016, 2)
+        put(w, 1080, AUDIT_CAP)
+        put(w, 1088, AUDIT_IMAGE)
+        put(w, 1112, get(w, 128))
+        put(w, 1136, role_record(21) + 16)
+        return enter(w, 7, 0)
+    if phase == 51:
+        put(w, role_record(21), get(w, 1128))
+        put(w, role_record(21) + 8, get(w, 1112))
         return enter(w, 1, 0)
     return 0
 

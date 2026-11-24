@@ -132,7 +132,7 @@ def main():
         (args.output / 'partial.json').write_text(json.dumps(records, indent=2) + '\n')
 
     def run_case(name, *, config=None, data=None, refusal=False, changed_env=None,
-                 config_pin=None, manifest_pin=None):
+                 config_pin=None, manifest_pin=None, expected_rc=0):
         cfg = config or config_for(name)
         argv = arguments(cfg, config_pin, manifest_pin)
         raw = data if data is not None else wire(INIT) + wire(READY) + wire(PING)
@@ -143,7 +143,7 @@ def main():
             assert result.returncode == 65 and result.stdout == b'' and result.stderr == b'', (
                 name, result.returncode, result.stdout[:1024], result.stderr)
         else:
-            assert result.returncode == 0 and not result.stderr, (name, result.returncode, result.stderr)
+            assert result.returncode == expected_rc and not result.stderr, (name, result.returncode, result.stderr)
             parsed = [json.loads(line) for line in result.stdout.splitlines()]
             assert parsed and parsed[-1]['id'] == 'ping', (name, parsed[-1:] if parsed else [])
         record(name, rc=result.returncode, seconds=time.monotonic() - started,
@@ -268,8 +268,11 @@ def main():
         'io.modelcontextprotocol/protocolVersion': '2026-07-28',
         'io.modelcontextprotocol/clientCapabilities': {}}}}
     ping = wire(modern).rstrip(b'\n')
-    run_case('exact-eight-mib-line', data=b' ' * ((8 << 20) - len(ping)) + ping + b'\n')
-    run_case('over-eight-mib-line', data=b' ' * ((8 << 20) + 1) + b'\n', refusal=True)
+    # The original rmcp SDK accepts control frames through 16 MiB, and a
+    # ping-only connection remains uninitialized (EOF exits 1). The strict
+    # 8 MiB HIA wire gate is qualified separately against the actual runtime.
+    run_case('exact-eight-mib-line', data=b' ' * ((8 << 20) - len(ping)) + ping + b'\n', expected_rc=1)
+    run_case('over-eight-mib-line', data=b' ' * ((8 << 20) + 1) + ping + b'\n', expected_rc=1)
 
     cfg = config_for('live')
     live_args = arguments(cfg)
@@ -321,7 +324,10 @@ def main():
             response = connection.read(timeout=15)
             assert response['id'] not in observed
             observed.add(response['id'])
-            assert response['result']['structuredContent']['status'] == 'rejected'
+            assert response['error'] == {
+                'code': -32602,
+                'message': 'HIA input does not match its advertised contract: arguments.section: required field is absent',
+            }, response
         assert observed == expected
         connection.send(PING)
         assert connection.read()['id'] == 'ping'

@@ -19,10 +19,10 @@ from tools.generate_hia_native_filter import LINK_SOURCE
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENTS = ('bootstrap', 'setup', 'stream', 'dispatch', 'transport', 'response',
-              'scheduler', 'files', 'state')
+              'scheduler', 'files', 'state', 'audit_transport')
 PURE = ('session', 'reply', 'canonical', 'config', 'admission', 'catalog',
-        'input_schema', 'controller_json', 'output_schema')
-ROLES = COMPONENTS + PURE + ('json', 'sha', 'bridge')
+        'input_schema', 'controller_json', 'output_schema', 'sdk_request')
+ROLES = COMPONENTS + PURE + ('json', 'sha', 'bridge', 'audit')
 COMPANIONS = {
     'session': 'examples/hia_bootstrap/mcp_service_session.hepta',
     'reply': 'examples/hia_bootstrap/mcp_service_reply.hepta',
@@ -30,7 +30,8 @@ COMPANIONS = {
     'config': 'examples/hia_bootstrap/mcp_service_config.hepta',
     'admission': 'examples/hia_bootstrap/mcp_service_admission.hepta',
     'catalog': 'examples/hia_bootstrap/mcp_catalog_wire.hepta',
-    'input_schema': 'examples/hia_bootstrap/agent_schema.hepta',
+    'input_schema': 'examples/hia_bootstrap/mcp_input_diagnostic.hepta',
+    'sdk_request': 'examples/hia_bootstrap/mcp_sdk_request.hepta',
     'controller_json': 'examples/hia_bootstrap/worker_config_json.hepta',
     'output_schema': 'examples/hia_bootstrap/agent_response_schema.hepta',
     'sha': 'examples/hia_bootstrap/sha256_stream.hepta',
@@ -80,21 +81,23 @@ def template():
     holes = {name: 176 + symbols['mcp_service_' + name + '_hole'] for name in ROLES}
     holes['bridge_size'] = 176 + symbols['mcp_service_bridge_size_hole']
     holes['bridge_pin'] = 176 + symbols['mcp_service_bridge_pin']
+    holes['audit_size'] = 176 + symbols['mcp_service_audit_size_hole']
+    holes['audit_pin'] = 176 + symbols['mcp_service_audit_pin']
     return header + code, holes
 
 
 def packer_source():
     prefix, holes = template()
     count = len(ROLES)
-    head = 8 + count * 8 + 32
+    head = 8 + count * 8 + 64
     code = f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < {head + count} or uint(s, 0, 8) != {int.from_bytes(b'HIAMSP01', 'little')}:
+    if length(s) < {head + count} or uint(s, 0, 8) != {int.from_bytes(b'HIAMSP03', 'little')}:
         return 4294967295
     size = {len(prefix)}
     index = 0
     while index < {count}:
         part = uint(s, 8 + index * 8, 8)
-        maximum = choose(index == {count - 1}, 16777216, 1048576)
+        maximum = choose(index >= {count - 2}, 16777216, 1048576)
         if part == 0 or part > maximum:
             return 4294967295
         size = size + part
@@ -118,8 +121,10 @@ def packer_source():
         at = holes[name]
         code += f'    write(o, {at}, target - {at + 4}, 4)\n'
         code += f'    target = target + uint(s, {8 + i * 8}, 8)\n'
-    code += f'    write(o, {holes["bridge_size"]}, uint(s, {8 + (count - 1) * 8}, 8), 4)\n'
+    code += f'    write(o, {holes["bridge_size"]}, uint(s, {8 + (count - 2) * 8}, 8), 4)\n'
     code += f'    copy_bytes(s, o, {8 + count * 8}, {holes["bridge_pin"]}, 32)\n'
+    code += f'    write(o, {holes["audit_size"]}, uint(s, {8 + (count - 1) * 8}, 8), 4)\n'
+    code += f'    copy_bytes(s, o, {40 + count * 8}, {holes["audit_pin"]}, 32)\n'
     code += f'    copy_bytes(s, o, {head}, {len(prefix)}, size - {len(prefix)})\n    return size\n'
     return code + helpers + LINK_SOURCE[LINK_SOURCE.index('\ndef uint('):]
 

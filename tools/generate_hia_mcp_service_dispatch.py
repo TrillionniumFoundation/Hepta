@@ -11,49 +11,55 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         action = get(w, 256)
         if action == 1:
-            bind(w, S_RESPONSE, get(w, S_CATALOG_RESULT), get(w, S_CATALOG_RESULT + 8))
-            put(w, 280, 1)
-            return enter(w, 5, 0)
+            return control_reply(w, get(w, S_CATALOG_RESULT), get(w, S_CATALOG_RESULT + 8))
         if action == 3 or action == 4:
             if action == 3:
                 end = text_resources(w, PURE_OUTPUT)
             else:
                 end = text_templates(w, PURE_OUTPUT)
-            bind(w, S_RESPONSE, PURE_OUTPUT, end - PURE_OUTPUT)
-            put(w, 280, 1)
-            return enter(w, 5, 0)
+            return control_reply(w, PURE_OUTPUT, end - PURE_OUTPUT)
         if action != 2 and action != 5:
             return 0
+        if action == 2:
+            return audit(w, 3, 10, 1)
+        return enter(w, 3, 10)
+    if phase == 10:
+        action = get(w, 256)
+        if action == 2 and get(w, 2016) != 0:
+            return rpc_error(w, 4)
         if action == 5:
             at = text_resource_prefix(w, PURE_INPUT)
             at = cp(w, S_URI, at)
             at = text_resource_suffix(w, at)
             return pure(o, w, 1, P_CANONICAL, PURE_INPUT, at - PURE_INPUT, PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
+        put(w, PURE_WORK, 4294967296 + get(w, 264))
+        cp(w, S_CATALOG_PIN, PURE_WORK + 8)
+        if get(w, 296) == 0:
+            end = text_empty_object(w, PURE_INPUT)
+            return pure(o, w, 2, P_INPUT_SCHEMA, PURE_INPUT, end - PURE_INPUT, PURE_OUTPUT, 8389120, PURE_WORK, 33554432)
+        return pure(o, w, 2, P_INPUT_SCHEMA, get(w, 288), get(w, 296), PURE_OUTPUT, 8389120, PURE_WORK, 33554432)
+    if phase == 2:
+        if result != 0:
+            if result > 8389120:
+                return rpc_error(w, 1)
+            bind(w, S_RESPONSE, PURE_OUTPUT, result)
+            put(w, 280, 3)
+            return enter(w, 5, 0)
         if get(w, 296) == 0:
             end = text_empty_object(w, PURE_INPUT)
             return pure(o, w, 1, P_CANONICAL, PURE_INPUT, end - PURE_INPUT, PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
         return pure(o, w, 1, P_CANONICAL, get(w, 288), get(w, 296), PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
     if phase == 1:
-        if result == 0 or result > 8388608:
+        if result == 0:
             return rpc_error(w, 1)
-        if result > 524288:
-            if get(w, 264) == 12:
+        if get(w, 264) == 12:
+            if result > 524288:
                 return rpc_error(w, 2)
-            copy_state(w, PURE_OUTPUT, CHILD_IN, result)
-            bind(w, S_ORIGINAL, CHILD_IN, result)
+        elif result > 524288:
             put(w, 288, 4)
             return enter(w, 5, 100)
         copy_state(w, PURE_OUTPUT, ORIGINAL_ARGS, result)
         bind(w, S_ORIGINAL, ORIGINAL_ARGS, result)
-        if get(w, 264) == 12:
-            return admission(o, w)
-        put(w, PURE_WORK, get(w, 264))
-        cp(w, S_CATALOG_PIN, PURE_WORK + 8)
-        return pure(o, w, 2, P_INPUT_SCHEMA, ORIGINAL_ARGS, result, PURE_OUTPUT, 1048576, PURE_WORK, 33554432)
-    if phase == 2:
-        if result != 0:
-            put(w, 288, 1)
-            return enter(w, 5, 100)
         return admission(o, w)
     if phase == 3:
         if result == 0 or result > 524288:
@@ -63,6 +69,14 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return enter(w, 5, 100)
         copy_state(w, PURE_OUTPUT, NORMAL_ARGS, result)
         bind(w, S_ARGUMENTS, NORMAL_ARGS, result)
+        if get(w, 264) == 12:
+            return audit(w, 3, 6, 1)
+        return enter(w, 3, 7)
+    if phase == 6:
+        if get(w, 2016) != 0:
+            return rpc_error(w, 5)
+        return enter(w, 3, 7)
+    if phase == 7:
         size = bridge_frame(w)
         if size == 0:
             return 0
@@ -80,13 +94,21 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return 0
 
 def descriptor(w:mutbuf) -> bool:
-    if get(w, SESSION_OUT + 80) != 0 or get(w, SESSION_OUT + 88) != 0 or get(w, SESSION_OUT + 56) > 1:
+    if get(w, SESSION_OUT + 88) < 1 or get(w, SESSION_OUT + 88) > 2 or get(w, SESSION_OUT + 56) > 1:
         return False
     at = get(w, SESSION_OUT + 16)
     size = get(w, SESSION_OUT + 24)
     if at > get(w, 200) or size > get(w, 200) - at or size == 0:
         return False
-    bind(w, S_REQUEST_ID, REQUEST + at, size)
+    if get(w, SESSION_OUT + 88) == 1:
+        start = get(w, 64)
+        end = signed_decimal(w, start, get(w, SESSION_OUT + 80))
+        bind(w, S_REQUEST_ID, start, end - start)
+        put(w, 64, end)
+    else:
+        if get(w, SESSION_OUT + 80) != 0:
+            return False
+        bind(w, S_REQUEST_ID, REQUEST + at, size)
     put(w, 256, get(w, SESSION_OUT + 8))
     put(w, 264, get(w, SESSION_OUT + 32))
     put(w, 272, get(w, SESSION_OUT + 56))
@@ -105,6 +127,30 @@ def descriptor(w:mutbuf) -> bool:
         bind(w, S_TOOL, start, end - start)
         put(w, 64, end)
     return True
+
+def control_reply(w:mutbuf, source:u64, size:u64) -> u32:
+    if size < 2 or size > 1048576 or byte(w, source) != 123 or byte(w, source + size - 1) != 125:
+        return 0
+    at = text_control_prefix(w, SESSION_OUT)
+    at = cp(w, S_REQUEST_ID, at)
+    at = text_control_result(w, at)
+    at = copy_state(w, source, at, size - 1)
+    if get(w, 272) == 1:
+        if size > 2:
+            store(w, at, 44)
+            at = at + 1
+        if get(w, 256) == 1:
+            at = text_control_public(w, at)
+        else:
+            at = text_control_private(w, at)
+        at = text_control_modern(w, at)
+    at = text_control_close(w, at)
+    if at - SESSION_OUT > 17826304:
+        return 0
+    put(w, 232, SESSION_OUT)
+    put(w, 240, at - SESSION_OUT)
+    put(w, 248, 0)
+    return enter(w, 2, 19)
 
 def admission(o:mutbuf, w:mutbuf) -> u32:
     at = text_context(w, PURE_INPUT)
@@ -169,6 +215,10 @@ def rpc_error(w:mutbuf, kind:u64) -> u32:
         end = text_invalid_params(w, PURE_OUTPUT)
     elif kind == 2:
         end = text_invalid_uri(w, PURE_OUTPUT)
+    elif kind == 4:
+        end = text_audit_error(w, PURE_OUTPUT)
+    elif kind == 5:
+        end = text_resource_audit_error(w, PURE_OUTPUT)
     else:
         end = text_bridge_error(w, PURE_OUTPUT)
     bind(w, S_RESPONSE, PURE_OUTPUT, end - PURE_OUTPUT)
@@ -178,11 +228,17 @@ def rpc_error(w:mutbuf, kind:u64) -> u32:
 
 
 def source():
-    text = {'resources': '{"resources":[]}', 'templates': '{"resourceTemplates":[]}',
+    text = {'control_prefix': '{"jsonrpc":"2.0","id":', 'control_result': ',"result":',
+        'control_close': '}}\n',
+        'control_public': '"cacheScope":"public",', 'control_private': '"cacheScope":"private",',
+        'control_modern': '"ttlMs":0,"resultType":"complete","_meta":{"io.modelcontextprotocol/serverInfo":{"name":"hepta-hia","version":"1"}}',
+        'resources': '{"resources":[]}', 'templates': '{"resourceTemplates":[]}',
         'resource_prefix': '{"max_bytes":65536,"uri":', 'resource_suffix': '}',
         'empty_object': '{}', 'context': '{"context":', 'arguments': ',"arguments":',
         'tool': ',"tool":', 'invalid_params': '{"code":-32602,"message":"Invalid params"}',
         'invalid_uri': '{"code":-32602,"message":"Invalid HIA artifact URI"}',
+        'audit_error': '{"code":-32603,"message":"request audit unavailable; dispatch refused"}',
+        'resource_audit_error': '{"code":-32603,"message":"HIA resource audit unavailable; dispatch refused"}',
         'bridge_error': '{"code":-32603,"message":"HIA native job bridge unavailable; repeat the identical request to observe its original binding"}'}
     code = SOURCE + '\ndef tool_json(w:mutbuf, role:u64, at:u64) -> u64:\n'
     for index, name in enumerate((*tool_names(), 'hia_resource_read'), 1):

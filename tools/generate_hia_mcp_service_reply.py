@@ -231,7 +231,7 @@ def render():
         'cache_fields': b'"cacheScope":"private","ttlMs":0',
         'modern_fields': b'"resultType":"complete","_meta":{"io.modelcontextprotocol/serverInfo":{"name":"hepta-hia","version":"1"}}',
         'resource_prefix': b',"result":{"contents":[{"uri":',
-        'resource_text': b',"text":', 'resource_tail': b'}]',
+        'resource_text': b',"mimeType":"text/plain","text":', 'resource_tail': b'}]',
         'resource_error': b',"error":{"code":-32603,"message":"HIA resource read is pending or unavailable; repeat the same URI, or use hia_read with its original artifact reference","data":',
     }
     decoder = json_decoder(wire_spans=True)

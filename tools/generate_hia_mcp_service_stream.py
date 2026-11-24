@@ -7,6 +7,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     result = get(w, 8)
     if phase == 0:
         put(w, 200, 0)
+        put(w, FRAME_DISCARD, 0)
         put(w, 208, 0)
         put(w, 216, 0)
         put(w, 224, 0)
@@ -31,7 +32,19 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if result == 0:
             put(w, 224, 1)
         return consume(o, w)
+    if phase == 11:
+        if result == 0:
+            put(w, 200, 0)
+            return consume(o, w)
+        if result != 1 and result != 160:
+            return 0
+        put(w, SDK_STATUS, result)
+        if result == 160:
+            copy_state(w, PURE_OUTPUT, SDK_DESCRIPTOR, 160)
+        return pure(o, w, 10, P_SESSION, REQUEST, get(w, 200), SESSION_OUT, 16777728, SESSION_WORK, W_SESSION)
     if phase == 10:
+        if result == 4294967274:
+            return call(o, w, 999, 60, 1, 0, 0, 0, 0, 0, 0)
         if result == 0:
             put(w, 200, 0)
             return consume(o, w)
@@ -45,7 +58,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 copy_state(w, SESSION_OUT, SCHEDULE_DESCRIPTOR, 96)
                 return enter(w, 6, 200)
             return enter(w, 3, 0)
-        if result > 8389120:
+        if result > 16777728:
             return 0
         return write_line(w, SESSION_OUT, result)
     if phase == 20:
@@ -62,6 +75,8 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if phase == 30:
         if get(w, 184) == 1:
             return call(o, w, 999, 60, 0, 0, 0, 0, 0, 0, 0)
+        if get(w, SESSION_PHASE) == 3:
+            return call(o, w, 999, 60, 1, 0, 0, 0, 0, 0, 0)
         put(w, 200, 0)
         put(w, 64, get(w, 176))
         return consume(o, w)
@@ -73,22 +88,33 @@ def consume(o:mutbuf, w:mutbuf) -> u32:
     cursor = get(w, 216)
     end = get(w, 208)
     length = get(w, 200)
+    discarding = get(w, FRAME_DISCARD)
     while cursor < end:
         ch = byte(w, READ_CHUNK + cursor)
         cursor = cursor + 1
         if ch == 10:
-            put(w, 216, cursor)
-            put(w, 200, length)
-            return pure(o, w, 10, P_SESSION, REQUEST, length, SESSION_OUT, 8389120, SESSION_WORK, W_SESSION)
-        if length == REQUEST_CAP:
-            return 0
-        store(w, REQUEST + length, ch)
-        length = length + 1
+            if discarding == 1:
+                discarding = 0
+                length = 0
+            else:
+                if length != 0 and byte(w, REQUEST + length - 1) == 13:
+                    length = length - 1
+                put(w, 216, cursor)
+                put(w, 200, length)
+                put(w, FRAME_DISCARD, 0)
+                return pure(o, w, 11, P_SDK, REQUEST, length, PURE_OUTPUT, 160, PURE_WORK, 32768)
+        elif discarding == 0:
+            if length == REQUEST_CAP:
+                discarding = 1
+                length = 0
+            else:
+                store(w, REQUEST + length, ch)
+                length = length + 1
     put(w, 200, length)
     put(w, 216, cursor)
+    put(w, FRAME_DISCARD, discarding)
     if get(w, 224) == 1:
-        if length != 0:
-            return pure(o, w, 10, P_SESSION, REQUEST, length, SESSION_OUT, 8389120, SESSION_WORK, W_SESSION)
+        put(w, 200, 0)
         return enter(w, 6, 100)
     return read_more(o, w)
 

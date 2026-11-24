@@ -8,6 +8,7 @@
 .equ STATE_BYTES,402653184
 .equ PLAN_BYTES,128
 .equ BRIDGE_IMAGE,301989888
+.equ AUDIT_IMAGE,369098752
 _start:
     cmp QWORD PTR [rsp],5
     jne invalid
@@ -105,6 +106,23 @@ mcp_service_bridge_hole: .long 0
     lea rdi,[r15+5392]
     mov ecx,32
     rep movsb
+    .byte 0xb9
+.global mcp_service_audit_size_hole
+mcp_service_audit_size_hole: .long 0
+    cmp ecx,64
+    jb invalid
+    cmp ecx,16777216
+    ja invalid
+    mov [r15+128],rcx
+    .byte 0x48,0x8d,0x35
+.global mcp_service_audit_hole
+mcp_service_audit_hole: .long 0
+    lea rdi,[r15+AUDIT_IMAGE]
+    rep movsb
+    lea rsi,[rip+.Laudit_pin_data]
+    lea rdi,[r15+5456]
+    mov ecx,32
+    rep movsb
 advance:
     mov rdi,r12
     mov rsi,r13
@@ -130,6 +148,8 @@ advance:
     je module_files
     cmp QWORD PTR [r15+16],8
     je module_state
+    cmp QWORD PTR [r15+16],9
+    je module_audit_transport
     jmp invalid
 module_bootstrap:
     .byte 0xe8
@@ -175,6 +195,11 @@ module_state:
     .byte 0xe8
 .global mcp_service_state_hole
 mcp_service_state_hole: .long 0
+    jmp returned
+module_audit_transport:
+    .byte 0xe8
+.global mcp_service_audit_transport_hole
+mcp_service_audit_transport_hole: .long 0
     jmp returned
 returned:
     mov eax,eax
@@ -322,6 +347,8 @@ buffer_pair:
     je call_controller_json
     cmp QWORD PTR [r14],8
     je call_output_schema
+    cmp QWORD PTR [r14],9
+    je call_sdk_request
     jmp invalid
 call_json:
     .byte 0xe8
@@ -373,6 +400,11 @@ call_output_schema:
 .global mcp_service_output_schema_hole
 mcp_service_output_schema_hole: .long 0
     jmp buffer_return
+call_sdk_request:
+    .byte 0xe8
+.global mcp_service_sdk_request_hole
+mcp_service_sdk_request_hole: .long 0
+    jmp buffer_return
 buffer_return:
     mov eax,eax
     mov [r15+8],rax
@@ -402,4 +434,7 @@ invalid:
 .global mcp_service_bridge_pin
 .Lbridge_pin_data:
 mcp_service_bridge_pin: .zero 32
+.global mcp_service_audit_pin
+.Laudit_pin_data:
+mcp_service_audit_pin: .zero 32
 .section .note.GNU-stack,"",@progbits

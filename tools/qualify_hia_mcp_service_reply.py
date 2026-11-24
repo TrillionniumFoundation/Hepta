@@ -82,7 +82,7 @@ def main():
         for index, result in enumerate(({}, [], None, True, False, -17, 1.25, '中\n"\\')):
             payload = {'status': 'completed', 'result': result}
             value = request(4, payload, modern=modern, uri='hia://artifacts/中?a="\\')
-            expected = {'contents': [{'uri': value['uri'], 'text': compact(result).decode()}]}
+            expected = {'contents': [{'uri': value['uri'], 'mimeType': 'text/plain', 'text': compact(result).decode()}]}
             if modern:
                 expected.update(cache)
                 expected.update(meta)

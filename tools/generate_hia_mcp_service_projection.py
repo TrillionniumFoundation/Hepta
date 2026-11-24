@@ -5,6 +5,8 @@ serde's IgnoredAny grammar. HiaWorkerProfile and native role pins deny them.
 The process keeps the original authenticated bytes; this is a derived view.
 The hosts and privileged-actions maps retain their last decoded string key.
 Every overwritten struct still passes deserialization before replacement.
+Struct arrays follow serde's declared field order and missing-field defaults;
+maps remain objects. Both representations produce the same derived view.
 """
 from tools.generate_hia_mcp_service_config import FIELD
 from tools.generate_hia_mcp_typed_json import IGNORED_VALUE
@@ -15,8 +17,8 @@ for _name in ('weight_workers', 'rea_static_profiles', 'fixed_args',
     PROJECT_FIELDS.setdefault(_name, len(PROJECT_FIELDS) + 1)
 
 STRUCT_FIELDS = {
-    0: ('state_dir', 'controller_workspace_roots', 'hosts', 'hia_worker',
-        'weight_workers', 'rea_static_profiles'),
+    0: ('state_dir', 'controller_workspace_roots', 'hosts', 'weight_workers',
+        'rea_static_profiles', 'hia_worker'),
     2: ('native_jobs', 'checkpoint_binary', 'checkpoint_binary_sha256',
         'execution_mode', 'ssh_target', 'platform', 'remote_state_dir',
         'allow_execute', 'allow_pty', 'allow_write', 'allow_job_network',
@@ -82,7 +84,10 @@ def project_copy(w:mutbuf, start:u64, size:u64) -> bool:
 
 def project_open(o:mutbuf, w:mutbuf, kind:u64) -> u32:
     at = ignored_space(w, get(w, 1720), get(w, 1824))
-    if at == get(w, 1824) or byte(w, at) != 123 or get(w, 1744) >= 8:
+    if at == get(w, 1824) or get(w, 1744) >= 8:
+        return 0
+    sequence = byte(w, at) == 91
+    if byte(w, at) != 123 and (sequence == False or kind == 1 or kind == 4):
         return 0
     frame = PROJECT_FRAMES + get(w, 1744) * 96
     put(w, frame, kind)
@@ -91,7 +96,8 @@ def project_open(o:mutbuf, w:mutbuf, kind:u64) -> u32:
     put(w, frame + 24, 0)
     put(w, frame + 40, get(w, 1808))
     put(w, frame + 48, 0)
-    put(w, frame + 56, 0)
+    put(w, frame + 56, choose(sequence, 1, 0))
+    put(w, frame + 64, 0)
     put(w, 1744, get(w, 1744) + 1)
     if kind == 1 or kind == 4:
         put(w, 1816, get(w, 1816) + 1)
@@ -99,10 +105,21 @@ def project_open(o:mutbuf, w:mutbuf, kind:u64) -> u32:
     if project_byte(w, 123) == False:
         return 0
     at = ignored_space(w, at + 1, get(w, 1824))
-    if at < get(w, 1824) and byte(w, at) == 125:
+    if at < get(w, 1824) and byte(w, at) == choose(sequence, 93, 125):
         put(w, 1720, at + 1)
         return project_close(o, w)
+    if sequence:
+        return project_sequence_value(o, w, at)
     return project_key(o, w, at)
+
+def project_sequence_value(o:mutbuf, w:mutbuf, at:u64) -> u32:
+    frame = project_frame(w)
+    index = get(w, frame + 64)
+    key = project_sequence_key(get(w, frame), index)
+    if key == 0:
+        return 0
+    put(w, frame + 64, index + 1)
+    return project_value(o, w, at, key)
 
 def project_key(o:mutbuf, w:mutbuf, at:u64) -> u32:
     end = ignored_string(w, at, get(w, 1824))
@@ -115,16 +132,19 @@ def project_key(o:mutbuf, w:mutbuf, at:u64) -> u32:
 def project_key_ready(o:mutbuf, w:mutbuf, result:u64) -> u32:
     if result >= 4294967292 or get(w, ARENA + 64) != 4:
         return 0
-    frame = project_frame(w)
-    kind = get(w, frame)
     key = project_key_id(w, ARENA + get(w, ARENA + 88), get(w, ARENA + 96))
-    known = project_mask(kind)
     at = ignored_space(w, get(w, 1760), get(w, 1824))
     if at == get(w, 1824) or byte(w, at) != 58:
         return 0
     at = ignored_space(w, at + 1, get(w, 1824))
+    return project_value(o, w, at, key)
+
+def project_value(o:mutbuf, w:mutbuf, at:u64, key:u64) -> u32:
     if at == get(w, 1824):
         return 0
+    frame = project_frame(w)
+    kind = get(w, frame)
+    known = project_mask(kind)
     put(w, 1784, key)
     if kind != 1 and kind != 4:
         if key == 0 or (known >> key) & 1 == 0:
@@ -144,7 +164,12 @@ def project_key_ready(o:mutbuf, w:mutbuf, result:u64) -> u32:
     if get(w, frame + 24) != 0 and project_byte(w, 44) == False:
         return 0
     put(w, frame + 32, get(w, 1736))
-    if project_copy(w, get(w, 1752), get(w, 1760) - get(w, 1752)) == False or project_byte(w, 58) == False:
+    if get(w, frame + 56) != 0:
+        if project_sequence_key_write(w, key) == False:
+            return 0
+    elif project_copy(w, get(w, 1752), get(w, 1760) - get(w, 1752)) == False:
+        return 0
+    if project_byte(w, 58) == False:
         return 0
     put(w, frame + 24, get(w, frame + 24) + 1)
     put(w, 1720, at)
@@ -192,12 +217,15 @@ def project_next(o:mutbuf, w:mutbuf) -> u32:
     at = ignored_space(w, get(w, 1720), get(w, 1824))
     if at == get(w, 1824):
         return 0
-    if byte(w, at) == 125:
+    if byte(w, at) == choose(get(w, frame + 56) != 0, 93, 125):
         put(w, 1720, at + 1)
         return project_close(o, w)
     if byte(w, at) != 44:
         return 0
-    return project_key(o, w, ignored_space(w, at + 1, get(w, 1824)))
+    at = ignored_space(w, at + 1, get(w, 1824))
+    if get(w, frame + 56) != 0:
+        return project_sequence_value(o, w, at)
+    return project_key(o, w, at)
 
 def project_close(o:mutbuf, w:mutbuf) -> u32:
     frame = project_frame(w)
@@ -314,6 +342,34 @@ def project_enum_write(w:mutbuf, value:u64) -> bool:
 
 def helpers():
     text = SOURCE + '\n' + IGNORED_VALUE
+    text += '\ndef project_sequence_key(kind:u64, index:u64) -> u64:\n'
+    for kind, fields in STRUCT_FIELDS.items():
+        text += f'    if kind == {kind}:\n'
+        for index, field in enumerate(fields):
+            text += f'        if index == {index}:\n            return {PROJECT_FIELDS[field]}\n'
+    text += '    return 0\n'
+    text += '\ndef project_sequence_key_write(w:mutbuf, key:u64) -> bool:\n'
+    used_fields = {field for fields in STRUCT_FIELDS.values() for field in fields}
+    fields = sorted(((field, key) for field, key in PROJECT_FIELDS.items()
+                     if field in used_fields), key=lambda item: item[1])
+    banks = [fields[start:start + 12] for start in range(0, len(fields), 12)]
+    for index, bank in enumerate(banks):
+        text += f'    if key <= {bank[-1][1]}:\n        return project_sequence_key_write_{index}(w, key)\n'
+    text += '    return False\n'
+    for bank_index, bank in enumerate(banks):
+        text += f'\ndef project_sequence_key_write_{bank_index}(w:mutbuf, key:u64) -> bool:\n    at = get(w, 1736)\n'
+        for field, key in bank:
+            raw = ('"' + field + '"').encode()
+            text += f'    if key == {key}:\n        if PROJECT_END - at < {len(raw)}:\n            return False\n'
+            offset = 0
+            while offset + 8 <= len(raw):
+                value = int.from_bytes(raw[offset:offset + 8], 'little')
+                text += f'        put(w, at + {offset}, {value})\n'
+                offset += 8
+            for index in range(offset, len(raw)):
+                text += f'        store(w, at + {index}, {raw[index]})\n'
+            text += f'        put(w, 1736, at + {len(raw)})\n        return True\n'
+        text += '    return False\n'
     for name, groups in (('project_mask', STRUCT_FIELDS), ('project_required', REQUIRED_FIELDS)):
         text += f'\ndef {name}(kind:u64) -> u64:\n'
         for kind, fields in groups.items():

@@ -14,21 +14,25 @@ C = dict(STATE_BYTES=STATE_BYTES, INPUT_BYTES=0, NONE=NONE,
          SCRATCH=192 << 20, SCRATCH_BYTES=32 << 20,
          CHILD_IN=224 << 20, CHILD_OUT=240 << 20, CHILD_ERR=248 << 20,
          ENV=2 << 20, TABLE=32768,
-         REQUEST=32 << 20, REQUEST_CAP=8 << 20, READ_CHUNK=40 << 20,
-         SESSION_OUT=48 << 20, SESSION_WORK=64 << 20,
+         REQUEST=32 << 20, REQUEST_CAP=(16 << 20) - 1, READ_CHUNK=94 << 20,
+         SESSION_OUT=48 << 20, SESSION_WORK=66 << 20,
          PURE_INPUT=96 << 20, PURE_OUTPUT=112 << 20, PURE_WORK=128 << 20,
          CONFIG_RAW=256 << 20, CATALOG_RAW=264 << 20, CATALOG_RESULT=265 << 20,
          CONTEXT=272 << 20, PROFILE=276 << 20, HOST=277 << 20,
          ORIGINAL_ARGS=278 << 20, NORMAL_ARGS=279 << 20,
-         BRIDGE_IMAGE=288 << 20, BRIDGE_CAP=16 << 20)
+         BRIDGE_IMAGE=288 << 20, BRIDGE_CAP=16 << 20,
+         AUDIT_IMAGE=352 << 20, AUDIT_CAP=16 << 20,
+         AUDIT_WIRE=368 << 20, AUDIT_REPLY=(368 << 20) + 8192,
+         AUDIT_ERROR=(368 << 20) + 16384)
 C.update(P_SESSION=0, P_REPLY=1, P_CANONICAL=2, P_CONFIG=3,
          P_ADMISSION=4, P_CATALOG=5, P_INPUT_SCHEMA=6, P_CONTROLLER_JSON=7,
-         P_OUTPUT_SCHEMA=8)
-C.update(W_SESSION=64 + 262144 * 72 + (8 << 20) + 8,
+         P_OUTPUT_SCHEMA=8, P_SDK=9)
+C.update(W_SESSION=64 + 262144 * 72 + (8 << 20) + 256,
          W_REPLY=64 + 262144 * 72 + (9 << 20),
          W_CANONICAL=64 + 262144 * 56 + (8 << 20) + 16384,
          W_CONFIG=64 + 262144 * 72 + (9 << 20),
          W_ADMISSION=64 + 262144 * 72 + (8 << 20))
+C.update(SESSION_PHASE=(66 << 20) + 27263040, SDK_STATUS=(66 << 20) + 27263048, SDK_DESCRIPTOR=(66 << 20) + 27263056, FRAME_DISCARD=2032)
 C.update(TASK_TABLE=36864, TASK_BYTES=128, TASK_COUNT=32, SCHEDULE_DESCRIPTOR=35840)
 SLOTS = (
     'config_path', 'config_sha', 'manifest_path', 'manifest_sha',
@@ -38,6 +42,7 @@ SLOTS = (
     'worker_host', 'entry_path', 'ssh_target', 'remote_command',
     'config_dir', 'config_name', 'manifest_name', 'ssh_dir', 'ssh_name',
     'worker_state', 'working_directory', 'catalog_pin', 'bridge_name',
+    'audit_owner', 'audit_id',
 )
 SLOT = {name: 32768 + index * 16 for index, name in enumerate(SLOTS)}
 FIELDS = ('profile', 'host', 'state_dir', 'aliases', 'native_jobs', 'entry', 'submit',
@@ -52,6 +57,13 @@ FIELD = {name: index + 1 for index, name in enumerate(FIELDS)}
 # Filled from the reviewed scalar buffer and Linux plan helpers below. This is
 # authoring source only; all executable policy is emitted as checked-in HIA.
 COMMON = r'''
+def signed_decimal(w:mutbuf, at:u64, value:u64) -> u64:
+    if value >> 63 == 1:
+        store(w, at, 45)
+        at = at + 1
+        value = 0 - value
+    return decimal(w, at, value)
+
 def get(w:mutbuf, at:u64) -> u64:
     return word_load(w, at)
 
@@ -440,6 +452,12 @@ def encode_hex(w:mutbuf, source:u64, target:u64) -> u64:
 
 def role_record(role:u64) -> u64:
     return 4096 + role * 64
+
+def audit(w:mutbuf, module:u64, phase:u64, operation:u64) -> u32:
+    put(w, 1992, module)
+    put(w, 2000, phase)
+    put(w, 1920, operation)
+    return enter(w, 9, 0)
 '''
 
 

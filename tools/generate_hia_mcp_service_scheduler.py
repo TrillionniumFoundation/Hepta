@@ -35,14 +35,21 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         size = get(w, SCHEDULE_DESCRIPTOR + 24)
         if at > get(w, 200) or size > get(w, 200) - at or size == 0:
             return 0
-        end = text_error_prefix(w, PURE_INPUT)
-        end = copy_state(w, REQUEST + at, end, size)
-        put(w, 1672, end - PURE_INPUT)
-        end = text_error_suffix(w, end)
-        put(w, 1584, end - PURE_INPUT)
-        put(w, 1592, 0)
         put(w, 1688, 0)
-        return pure(o, w, 10, P_CANONICAL, REQUEST + at, size, PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
+        return pure(o, w, 210, P_SDK, REQUEST + at, size, PURE_OUTPUT, 8389120, PURE_WORK, 32768)
+    if phase == 210:
+        if result == 0 or result > 8388608:
+            if get(w, 1688) == 1:
+                return enter(w, 2, 30)
+            return 0
+        if get(w, 1688) == 0:
+            end = text_error_prefix(w, PURE_INPUT)
+            end = copy_state(w, PURE_OUTPUT, end, result)
+            put(w, 1672, end - PURE_INPUT)
+            end = text_error_suffix(w, end)
+            put(w, 1584, end - PURE_INPUT)
+            put(w, 1592, 0)
+        return identity(o, w, 10, result)
     if phase == 3:
         if result == NEG4:
             return backup_write(o, w)
@@ -55,6 +62,11 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if phase == 4:
         if failed(result):
             return 0
+        if get(w, 440) == NONE:
+            return 0
+        put(w, 440, get(w, 440) + 1)
+        put(w, 448, get(w, 440))
+        put(w, 432, (get(w, 1560) - TASK_TABLE) // TASK_BYTES)
         return call(o, w, 20, 57, 0, 0, 0, 0, 0, 0, 0)
     if phase >= 10 and phase <= 13:
         return identity(o, w, phase, result)
@@ -75,7 +87,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         copy_state(w, 1712, row + 96, 32)
         put(w, 192, get(w, 192) + 1)
         return enter(w, 2, 30)
-    if phase >= 21 and phase <= 24:
+    if phase >= 21 and phase <= 25:
         return request_child(o, w, phase, result)
     if phase == 100:
         put(w, 1600, 1)
@@ -138,6 +150,14 @@ def request_child(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
             return 0
         put(w, 184, 1)
         copy_state(w, SCHEDULE_DESCRIPTOR, SESSION_OUT, 96)
+        put(w, 50000, 1)
+        put(w, 50008, 64 + get(w, 432))
+        put(w, 50016, 1)
+        put(w, 50024, 0)
+        return call(o, w, 25, 72, get(w, 416), 6, 50000, 0, 0, 0, 48)
+    if phase == 25:
+        if result != 0:
+            return 0
         return enter(w, 3, 0)
     return 0
 
@@ -160,7 +180,7 @@ def scan(o:mutbuf, w:mutbuf) -> u32:
     if get(w, 1600) == 0 and free_slot(w) != NONE:
         return enter(w, 6, 0)
     if get(w, 224) == 1 and get(w, 192) == 0:
-        return call(o, w, 999, 60, 0, 0, 0, 0, 0, 0, 0)
+        return call(o, w, 999, 60, choose(get(w, SESSION_PHASE) == 0, 1, 0), 0, 0, 0, 0, 0, 0)
     descriptor = choose(get(w, 1600) == 1 and get(w, 224) == 0, 0, 4294967295)
     put(w, 8288, descriptor | 4294967296)
     return call(o, w, 106, 7, 8288, 1, 100, 0, 0, 0, 3)
@@ -276,7 +296,7 @@ def cancellation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         if at > get(w, 200) or size > get(w, 200) - at or size == 0:
             return 0
         put(w, 1688, 1)
-        return pure(o, w, 10, P_CANONICAL, REQUEST + at, size, PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
+        return pure(o, w, 210, P_SDK, REQUEST + at, size, PURE_OUTPUT, 8389120, PURE_WORK, 32768)
     if phase == 201:
         row = get(w, 1704)
         if result == NEG4:

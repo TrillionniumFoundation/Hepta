@@ -66,6 +66,12 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return subdirectories(o, w, phase, result)
     if phase >= 50 and phase <= 55:
         return replay_cache(o, w, phase, result)
+    if phase >= 60 and phase <= 69:
+        return audit_cache(o, w, phase, result)
+    if phase == 70:
+        if get(w, 2016) != 0:
+            return 0
+        return enter(w, 1, 30)
     return 0
 
 def next_part(o:mutbuf, w:mutbuf) -> u32:
@@ -183,12 +189,53 @@ def replay_cache(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 54:
         if result != 7:
             return 0
-        return enter(w, 1, 30)
+        end = text_audit_cache(w, 12288)
+        store(w, end, 0)
+        return call(o, w, 60, 319, 12288, 3, 0, 0, 0, 0, 3)
     return 0
+
+def audit_cache(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
+    if phase == 60:
+        if failed(result) or result < 3:
+            return 0
+        put(w, 416, result)
+        return call(o, w, 61, 77, result, 2097152, 0, 0, 0, 0, 0)
+    if phase == 61:
+        if failed(result):
+            return 0
+        return call(o, w, 62, 91, get(w, 416), 384, 0, 0, 0, 0, 0)
+    if phase == 62:
+        if failed(result):
+            return 0
+        return call(o, w, 63, 72, get(w, 416), 1033, 7, 0, 0, 0, 0)
+    if phase == 63:
+        if failed(result):
+            return 0
+        return call(o, w, 64, 72, get(w, 416), 1034, 0, 0, 0, 0, 0)
+    if phase == 64:
+        if result != 7:
+            return 0
+        put(w, 1456, 0)
+        return random_owner(o, w)
+    if phase == 65:
+        if result == NEG4:
+            return random_owner(o, w)
+        if failed(result) or result == 0 or result > 32 - get(w, 1456):
+            return 0
+        put(w, 1456, get(w, 1456) + result)
+        if get(w, 1456) != 32:
+            return random_owner(o, w)
+        encode_hex(w, 50528, 50560)
+        bind(w, S_AUDIT_OWNER, 50560, 64)
+        return audit(w, 8, 70, 0)
+    return 0
+
+def random_owner(o:mutbuf, w:mutbuf) -> u32:
+    return call(o, w, 65, 318, 50528 + get(w, 1456), 32 - get(w, 1456), 0, 0, 0, 0, 3)
 '''
 
 
 def source():
     return authored(SOURCE, text={'fd': '/proc/self/fd/', 'owner_lock': 'controller.owner.lock',
         'legacy_lock': 'controller.lock', 'jobs': 'jobs', 'audit': 'audit',
-        'replay': 'hia-mcp-replay-cache'})
+        'replay': 'hia-mcp-replay-cache', 'audit_cache': 'hia-mcp-audit-state'})
