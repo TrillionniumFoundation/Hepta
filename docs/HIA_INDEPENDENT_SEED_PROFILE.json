@@ -1,0 +1,188 @@
+{
+  "assembly_frontend": {
+    "arguments": [
+      "--agent-compact"
+    ],
+    "mechanical_adapter": "tools/hia_core_edit_import_assembly.S",
+    "name": "hia-seed-assembly",
+    "packer": {
+      "layout": "8-byte magic, four u64 section lengths, four consecutive sections: syntax, admission, canonical, six-image indexed presentation table",
+      "magic": "HIASBA01",
+      "source": "examples/hia_bootstrap/seed_backend_assembly_packer.hepta"
+    },
+    "semantic_kernels": [
+      "core_cli/assembly_syntax_diagnostics.hepta",
+      "core_admission.hepta",
+      "json_canonical.hepta",
+      "core_cli/assembly_diagnostic_report.hepta",
+      "core_cli/assembly_pretty.hepta",
+      "core_cli/assembly_driver.hepta",
+      "core_edit/publication_frontend.hepta",
+      "core_edit/publication_import.hepta",
+      "core_edit/publication_policy.hepta"
+    ],
+    "stdin": "complete HIA assembly source",
+    "stdout": "canonical checked Core JSON"
+  },
+  "cli": {
+    "arguments": [],
+    "exit_codes": {
+      "0": "success",
+      "2": "kernel refused",
+      "3": "input exceeds fixed transport capacity",
+      "64": "unexpected argument"
+    },
+    "name": "hia-seed-backend",
+    "stderr": "empty on success",
+    "stdin": "raw HIAERW02 packet",
+    "stdout": "native flat bytes"
+  },
+  "emission": {
+    "machine_encoding_owner": "existing HIA numeric machine_encoding owner, source copied into seed source at authoring time",
+    "native_entry_has_VM_recursion_counter": false,
+    "native_entry_has_VM_step_counter": false,
+    "scope": "the seed compiles bounded source kernels directly; this does not claim equivalence of VM budget/depth errors for arbitrary recursive applications",
+    "trap_instruction": "UD2",
+    "two_pass": "full wire validation, dry machine-size/relocation pass, then publish and resolve"
+  },
+  "function_profile": {
+    "borrowed_buffer_operations": {
+      "24": "load u64 little-endian",
+      "3": "len",
+      "4": "load byte",
+      "5": "store byte on mutable view",
+      "7": "fill_range on mutable view"
+    },
+    "control": [
+      "call with one result",
+      "one-value return",
+      "jump with parallel block arguments",
+      "branch with parallel block arguments",
+      "trap"
+    ],
+    "entry": "f0(buffer<u8,read>,buffer<u8,mut>,buffer<u8,mut>)->u32",
+    "explicitly_excluded": [
+      "signed arithmetic/comparison flags",
+      "checked add/sub/mul/neg/cast",
+      "division/remainder",
+      "multiple result calls",
+      "owner allocation/release",
+      "loan creation/end",
+      "chain allocation/linking",
+      "resource transitions other than borrowed views"
+    ],
+    "internal_abi": "argument-word array and result-word array; borrowed values point to two-word pointer/length descriptors",
+    "machine_abi": "SysV AMD64 six words: source pointer/length, output pointer/length, workspace pointer/length",
+    "scalar_operations": [
+      "const",
+      "int.add.wrap",
+      "int.sub.wrap",
+      "int.mul.wrap",
+      "int.shl.checked",
+      "int.shr.checked (unsigned)",
+      "bit.and",
+      "bit.or",
+      "bit.xor",
+      "bit.not",
+      "compare.eq",
+      "compare.ne",
+      "compare.lt (unsigned)",
+      "compare.le (unsigned)",
+      "compare.gt (unsigned)",
+      "compare.ge (unsigned)",
+      "bool.and",
+      "bool.or",
+      "bool.not",
+      "cast.wrap",
+      "select"
+    ],
+    "scalar_types": [
+      "bool",
+      "u8",
+      "u16",
+      "u32",
+      "u64",
+      "usize"
+    ]
+  },
+  "input": {
+    "authority": "output of the independent HIA reference projector on Core accepted by the full HIA assembly/Core admission frontend",
+    "body": "original reference register body begins at byte 64",
+    "bytes_max": 1048576,
+    "header_words": [
+      "magic",
+      "registers",
+      "bounce_words",
+      "body_end",
+      "return_count_1",
+      "resource_sites_1",
+      "reserved_0",
+      "reserved_0"
+    ],
+    "magic": "HIAERW02",
+    "raw_wire_structural_validation_is_full_Core_typechecking": false,
+    "suffix": "one little-endian u64 return type code 8 (u32)"
+  },
+  "limits": {
+    "bounce_words_maximum": 64,
+    "bounce_words_minimum": 1,
+    "commands_maximum": 16384,
+    "functions_maximum": 128,
+    "output_bytes_exact": 1048576,
+    "registers_maximum": 2048,
+    "registers_minimum": 3,
+    "relocations_maximum": 32768,
+    "results_per_reachable_function": 1,
+    "workspace_bytes_minimum": 1048576
+  },
+  "preserved_failed_route": {
+    "budget_increased_or_resumed": false,
+    "observed_VM_status": 5,
+    "observed_steps": 10000001,
+    "source_VM_budget": 10000000,
+    "source_VM_depth": 256,
+    "source_bytes": 474960,
+    "source_sha256": "4280fe2c1b14ee1345e92dd55927b5f4dc2cca35f34da02cca85832151a61359",
+    "statement": "full original compiler execution in the reference VM exhausted the original budget; direct independent native seed construction is a distinct v2 trust boundary, not a forged v1 proof"
+  },
+  "producer_result": {
+    "4294967293": "producer ABI view sizes",
+    "4294967294": "output or relocation capacity",
+    "4294967295": "refused profile or relocation",
+    "positive": "native flat byte count"
+  },
+  "purpose": "independent B0 source compiler seed; does not replace the full Core VM, general allocator backend, or cold qualification families",
+  "qualification": {
+    "ABI_controls": 5,
+    "actual_original_selfhost_B0": "a587e546c73adae16615bfeb41a08d2b4564746c708ce89978cd6495d14cfdeb",
+    "all_source_Core_wire_flat_and_final_ELF_bytes_equal_initial_independent_construction": true,
+    "complete_original_19_family_cold_qualification_claimed_here": false,
+    "independent_VM_full_observations": 7,
+    "native_source_self_rebuild_components": 15,
+    "negative_wire_cases": 75,
+    "original_selfhost_B1_B2_B3": [
+      "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9",
+      "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9",
+      "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+    ],
+    "target_or_successor_used_to_construct_root_or_B0": false
+  },
+  "reference_projector": {
+    "arguments": [],
+    "name": "hia-seed-projector",
+    "stdin": "[canonical_Core_object,\"f0\",1]",
+    "stdout": "raw HIAERW02"
+  },
+  "schema": "hepta.hia.independent-seed-backend-profile.v1",
+  "source": "examples/hia_bootstrap/seed_backend.hepta",
+  "source_identity": {
+    "bytes": 121764,
+    "sha256": "af15231c39cf3aba80c35ec47276e5ab6f4f27d59d6fb969f185bf473b96565b"
+  },
+  "trusted_root_pins": {
+    "hia-seed-assembly": "a005d4f249ed1bde14db3b94fba85f3178f52f4e5632a14833e9214a65fef424",
+    "hia-seed-backend": "d7d02d3dcd889c18e95645857df2b36871319ed11734df2ab4d9a8f42a1b66fb",
+    "hia-seed-filter-pack": "bd9f7c5d09a044737c549f860a581bb44e9d5e007fd9dd1ce15524cafff918f0",
+    "hia-seed-projector": "7d9cba93a9017a8160a255d6141ea627145a21e57c43b9cf3fcf6304ba65f723"
+  }
+}
