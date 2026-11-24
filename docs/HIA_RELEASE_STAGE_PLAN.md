@@ -233,3 +233,7 @@ with the retained Python verification functions. It includes source-hash
 padding boundaries, zeroed relocation hashing, corrupted ELF fields and
 permissions, exact aligned placement, real private-entry extraction, and a
 direct-call member compiled and packed by the actual native source seed.
+
+## Executable special-stage recipes
+
+The source declarations now have two directly consumable HIASTD01 recipe resources, documented in `HIA_RELEASE_STAGE_RECIPES.md`. They order every actual capture, compilation, kit, frame, native invocation, check and publication for the constructor and the seven later nonuniform stages. The HIA checker also accepts modes 5 (helper manifest binding) and 6 (public artifact control descriptor); their exact piece schemas and scope are specified there. Safe proof and Core scheduling remain separate owner fragments.
