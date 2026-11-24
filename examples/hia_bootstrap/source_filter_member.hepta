@@ -5795,7 +5795,57 @@ block b5(v89:readbuf,v90:u64,v91:u64,v92:u64,v93:u64,v94:u64,v95:u64,v96:u64,v97
   v104:u64 = int.add.wrap(v99,v103)
   jump b1(v89,v90,v91,v92,v93,v94,v95,v96,v97,v98,v104)
 end
-fn worker_aux(dag_input:readbuf,dag_name:u64,dag_name_size:u64,dag_source:u64,dag_source_size:u64) -> (u64) effects(read,write,trap) entry(dag_dispatch)
+fn worker_aux(ia0:readbuf,in0:u64,iz0:u64,is0:u64,ix0:u64) -> (u64) effects(read,write,trap) entry(install_aux0)
+block install_aux0(ia0:readbuf,in0:u64,iz0:u64,is0:u64,ix0:u64)
+  aux_name0_0:u64 = const() {"value":22}
+  aux_name0_1:u64 = const() {"value":7812741990951317347}
+  aux_name0_2:u64 = const() {"value":7305524082850624101}
+  aux_name0_3:u64 = const() {"value":107152729794606}
+  aux_name0_4:u64 = const() {"value":0}
+  aux_name0_5:u64 = const() {"value":0}
+  aux_name0_6:u64 = const() {"value":0}
+  aux_name0_7:u64 = const() {"value":0}
+  aux_named0:bool = call(ia0,in0,iz0,aux_name0_0,aux_name0_1,aux_name0_2,aux_name0_3,aux_name0_4,aux_name0_5,aux_name0_6,aux_name0_7) {"function":"is_name"}
+  branch aux_named0 install_module0(ia0,is0,ix0) install_aux1(ia0,in0,iz0,is0,ix0)
+block install_module0(ma0:readbuf,ms0:u64,mz0:u64)
+  aux_module0_0:u64 = const() {"value":16}
+  aux_module0_1:u64 = const() {"value":7812741990951317347}
+  aux_module0_2:u64 = const() {"value":7305524082850624101}
+  aux_module0_3:u64 = const() {"value":0}
+  aux_module0_4:u64 = const() {"value":0}
+  aux_module0_5:u64 = const() {"value":0}
+  aux_module0_6:u64 = const() {"value":0}
+  aux_module0_7:u64 = const() {"value":0}
+  aux_valid0:bool = call(ma0,ms0,mz0,aux_module0_0,aux_module0_1,aux_module0_2,aux_module0_3,aux_module0_4,aux_module0_5,aux_module0_6,aux_module0_7) {"function":"is_module"}
+  aux_role0:u64 = const() {"value":27}
+  aux_zero0:u64 = const() {"value":0}
+  aux_result0:u64 = select(aux_valid0,aux_role0,aux_zero0)
+  ret(aux_result0)
+block install_aux1(ia1:readbuf,in1:u64,iz1:u64,is1:u64,ix1:u64)
+  aux_name1_0:u64 = const() {"value":24}
+  aux_name1_1:u64 = const() {"value":7592913276689870711}
+  aux_name1_2:u64 = const() {"value":7232618739327595374}
+  aux_name1_3:u64 = const() {"value":7022361299819325281}
+  aux_name1_4:u64 = const() {"value":0}
+  aux_name1_5:u64 = const() {"value":0}
+  aux_name1_6:u64 = const() {"value":0}
+  aux_name1_7:u64 = const() {"value":0}
+  aux_named1:bool = call(ia1,in1,iz1,aux_name1_0,aux_name1_1,aux_name1_2,aux_name1_3,aux_name1_4,aux_name1_5,aux_name1_6,aux_name1_7) {"function":"is_name"}
+  branch aux_named1 install_module1(ia1,is1,ix1) dag_dispatch(ia1,in1,iz1,is1,ix1)
+block install_module1(ma1:readbuf,ms1:u64,mz1:u64)
+  aux_module1_0:u64 = const() {"value":18}
+  aux_module1_1:u64 = const() {"value":7592913276689870711}
+  aux_module1_2:u64 = const() {"value":7232618739327595374}
+  aux_module1_3:u64 = const() {"value":26465}
+  aux_module1_4:u64 = const() {"value":0}
+  aux_module1_5:u64 = const() {"value":0}
+  aux_module1_6:u64 = const() {"value":0}
+  aux_module1_7:u64 = const() {"value":0}
+  aux_valid1:bool = call(ma1,ms1,mz1,aux_module1_0,aux_module1_1,aux_module1_2,aux_module1_3,aux_module1_4,aux_module1_5,aux_module1_6,aux_module1_7) {"function":"is_module"}
+  aux_role1:u64 = const() {"value":28}
+  aux_zero1:u64 = const() {"value":0}
+  aux_result1:u64 = select(aux_valid1,aux_role1,aux_zero1)
+  ret(aux_result1)
 block dag_dispatch(dag_input:readbuf,dag_name:u64,dag_name_size:u64,dag_source:u64,dag_source_size:u64)
   dag_name_word0:u64 = const() {"value":17}
   dag_name_word1:u64 = const() {"value":6874027268401554802}
@@ -7645,7 +7695,15 @@ block entry(mode:u64,default_value:u64)
   release_build_entry:u64 = const() {"value":3552021028211345736}
   is_release_entry:bool = compare.eq(mode,release_build_entry)
   with_release_entry:u64 = select(is_release_entry,hashing_companion,with_release_owner)
-  ret(with_release_entry)
+  controller_install:u64 = const() {"value":3552013357366200648}
+  is_controller_install:bool = compare.eq(mode,controller_install)
+  controller_companions:u64 = const() {"value":3867}
+  with_controller_install:u64 = select(is_controller_install,controller_companions,with_release_entry)
+  worker_install_owner:u64 = const() {"value":3552021007038499144}
+  is_worker_install_owner:bool = compare.eq(mode,worker_install_owner)
+  worker_install_companions:u64 = const() {"value":3868}
+  with_worker_install_owner:u64 = select(is_worker_install_owner,worker_install_companions,with_controller_install)
+  ret(with_worker_install_owner)
 end
 fn transaction_span(v0:mutbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64)
@@ -8871,7 +8929,7 @@ block candidate5(input5:readbuf,name5:u64,size5:u64,body5:u64,extent5:u64)
   nameword5_6:u64 = const() {"value":0}
   nameword5_7:u64 = const() {"value":0}
   named5:bool = call(input5,name5,size5,nameword5_0,nameword5_1,nameword5_2,nameword5_3,nameword5_4,nameword5_5,nameword5_6,nameword5_7) {"function":"is_name"}
-  branch named5 matched5(input5,body5,extent5) absent(input5)
+  branch named5 matched5(input5,body5,extent5) candidate6(input5,name5,size5,body5,extent5)
 block matched5(source5:readbuf,at5:u64,length5:u64)
   moduleword5_0:u64 = const() {"value":19}
   moduleword5_1:u64 = const() {"value":6874027268401554802}
@@ -8886,6 +8944,106 @@ block matched5(source5:readbuf,at5:u64,length5:u64)
   zero5:u64 = const() {"value":0}
   role5:u64 = select(module5,magic5,zero5)
   ret(role5)
+block candidate6(input6:readbuf,name6:u64,size6:u64,body6:u64,extent6:u64)
+  nameword6_0:u64 = const() {"value":28}
+  nameword6_1:u64 = const() {"value":8389765627591616872}
+  nameword6_2:u64 = const() {"value":7578839527870721906}
+  nameword6_3:u64 = const() {"value":7507056841620484974}
+  nameword6_4:u64 = const() {"value":1635020901}
+  nameword6_5:u64 = const() {"value":0}
+  nameword6_6:u64 = const() {"value":0}
+  nameword6_7:u64 = const() {"value":0}
+  named6:bool = call(input6,name6,size6,nameword6_0,nameword6_1,nameword6_2,nameword6_3,nameword6_4,nameword6_5,nameword6_6,nameword6_7) {"function":"is_name"}
+  branch named6 matched6(input6,body6,extent6) candidate7(input6,name6,size6,body6,extent6)
+block matched6(source6:readbuf,at6:u64,length6:u64)
+  moduleword6_0:u64 = const() {"value":18}
+  moduleword6_1:u64 = const() {"value":7812741990951317347}
+  moduleword6_2:u64 = const() {"value":7022364637028905573}
+  moduleword6_3:u64 = const() {"value":27756}
+  moduleword6_4:u64 = const() {"value":0}
+  moduleword6_5:u64 = const() {"value":0}
+  moduleword6_6:u64 = const() {"value":0}
+  moduleword6_7:u64 = const() {"value":0}
+  module6:bool = call(source6,at6,length6,moduleword6_0,moduleword6_1,moduleword6_2,moduleword6_3,moduleword6_4,moduleword6_5,moduleword6_6,moduleword6_7) {"function":"is_module"}
+  magic6:u64 = const() {"value":3552013357366200648}
+  zero6:u64 = const() {"value":0}
+  role6:u64 = select(module6,magic6,zero6)
+  ret(role6)
+block candidate7(input7:readbuf,name7:u64,size7:u64,body7:u64,extent7:u64)
+  nameword7_0:u64 = const() {"value":30}
+  nameword7_1:u64 = const() {"value":7742373267056453992}
+  nameword7_2:u64 = const() {"value":7022364637025628773}
+  nameword7_3:u64 = const() {"value":8243116152216972396}
+  nameword7_4:u64 = const() {"value":107152729794606}
+  nameword7_5:u64 = const() {"value":0}
+  nameword7_6:u64 = const() {"value":0}
+  nameword7_7:u64 = const() {"value":0}
+  named7:bool = call(input7,name7,size7,nameword7_0,nameword7_1,nameword7_2,nameword7_3,nameword7_4,nameword7_5,nameword7_6,nameword7_7) {"function":"is_name"}
+  branch named7 matched7(input7,body7,extent7) candidate8(input7,name7,size7,body7,extent7)
+block matched7(source7:readbuf,at7:u64,length7:u64)
+  moduleword7_0:u64 = const() {"value":20}
+  moduleword7_1:u64 = const() {"value":7592913276689870711}
+  moduleword7_2:u64 = const() {"value":8025252273744802670}
+  moduleword7_3:u64 = const() {"value":1919250039}
+  moduleword7_4:u64 = const() {"value":0}
+  moduleword7_5:u64 = const() {"value":0}
+  moduleword7_6:u64 = const() {"value":0}
+  moduleword7_7:u64 = const() {"value":0}
+  module7:bool = call(source7,at7,length7,moduleword7_0,moduleword7_1,moduleword7_2,moduleword7_3,moduleword7_4,moduleword7_5,moduleword7_6,moduleword7_7) {"function":"is_module"}
+  magic7:u64 = const() {"value":3552021007038499144}
+  zero7:u64 = const() {"value":0}
+  role7:u64 = select(module7,magic7,zero7)
+  ret(role7)
+block candidate8(input8:readbuf,name8:u64,size8:u64,body8:u64,extent8:u64)
+  nameword8_0:u64 = const() {"value":24}
+  nameword8_1:u64 = const() {"value":7742373267056453992}
+  nameword8_2:u64 = const() {"value":7022364637025628773}
+  nameword8_3:u64 = const() {"value":7022361299819326572}
+  nameword8_4:u64 = const() {"value":0}
+  nameword8_5:u64 = const() {"value":0}
+  nameword8_6:u64 = const() {"value":0}
+  nameword8_7:u64 = const() {"value":0}
+  named8:bool = call(input8,name8,size8,nameword8_0,nameword8_1,nameword8_2,nameword8_3,nameword8_4,nameword8_5,nameword8_6,nameword8_7) {"function":"is_name"}
+  branch named8 matched8(input8,body8,extent8) candidate9(input8,name8,size8,body8,extent8)
+block matched8(source8:readbuf,at8:u64,length8:u64)
+  moduleword8_0:u64 = const() {"value":20}
+  moduleword8_1:u64 = const() {"value":7592913276689870711}
+  moduleword8_2:u64 = const() {"value":7304676333365523310}
+  moduleword8_3:u64 = const() {"value":2037544046}
+  moduleword8_4:u64 = const() {"value":0}
+  moduleword8_5:u64 = const() {"value":0}
+  moduleword8_6:u64 = const() {"value":0}
+  moduleword8_7:u64 = const() {"value":0}
+  module8:bool = call(source8,at8,length8,moduleword8_0,moduleword8_1,moduleword8_2,moduleword8_3,moduleword8_4,moduleword8_5,moduleword8_6,moduleword8_7) {"function":"is_module"}
+  magic8:u64 = const() {"value":3552021028211345736}
+  zero8:u64 = const() {"value":0}
+  role8:u64 = select(module8,magic8,zero8)
+  ret(role8)
+block candidate9(input9:readbuf,name9:u64,size9:u64,body9:u64,extent9:u64)
+  nameword9_0:u64 = const() {"value":37}
+  nameword9_1:u64 = const() {"value":8391171928733346152}
+  nameword9_2:u64 = const() {"value":8031938369660152929}
+  nameword9_3:u64 = const() {"value":8389754401704995698}
+  nameword9_4:u64 = const() {"value":3344876418397731186}
+  nameword9_5:u64 = const() {"value":418565350760}
+  nameword9_6:u64 = const() {"value":0}
+  nameword9_7:u64 = const() {"value":0}
+  named9:bool = call(input9,name9,size9,nameword9_0,nameword9_1,nameword9_2,nameword9_3,nameword9_4,nameword9_5,nameword9_6,nameword9_7) {"function":"is_name"}
+  branch named9 matched9(input9,body9,extent9) absent(input9)
+block matched9(source9:readbuf,at9:u64,length9:u64)
+  moduleword9_0:u64 = const() {"value":29}
+  moduleword9_1:u64 = const() {"value":7308335461136821865}
+  moduleword9_2:u64 = const() {"value":8243112832212098916}
+  moduleword9_3:u64 = const() {"value":8097324187522065759}
+  moduleword9_4:u64 = const() {"value":491327808353}
+  moduleword9_5:u64 = const() {"value":0}
+  moduleword9_6:u64 = const() {"value":0}
+  moduleword9_7:u64 = const() {"value":0}
+  module9:bool = call(source9,at9,length9,moduleword9_0,moduleword9_1,moduleword9_2,moduleword9_3,moduleword9_4,moduleword9_5,moduleword9_6,moduleword9_7) {"function":"is_module"}
+  magic9:u64 = const() {"value":3544425593313511752}
+  zero9:u64 = const() {"value":0}
+  role9:u64 = select(module9,magic9,zero9)
+  ret(role9)
 block absent(missing_input:readbuf)
   none:u64 = const() {"value":0}
   ret(none)
