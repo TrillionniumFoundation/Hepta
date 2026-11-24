@@ -8,10 +8,14 @@
 .equ STATE_BYTES,234881024
 .equ PLAN_BYTES,128
 .equ INPUT_BYTES,65536
+.equ ENVIRONMENT_OFFSET,233832448
+.equ ENVIRONMENT_BYTES,1048576
 _start:
     cmp QWORD PTR [rsp],1
     jne invalid
+    lea rbx,[rsp+24]
     sub rsp,160
+    mov [rsp+80],rbx
     mov eax,9
     xor edi,edi
     mov esi,STATE_BYTES+4096+INPUT_BYTES+1
@@ -25,6 +29,29 @@ _start:
     mov r15,rax
     lea r14,[rax+STATE_BYTES]
     lea r12,[r14+4096]
+    mov rbx,[rsp+80]
+    lea rbp,[r15+ENVIRONMENT_OFFSET]
+    xor r8d,r8d
+    xor r9d,r9d
+environment_entry:
+    mov rsi,[rbx]
+    test rsi,rsi
+    jz environment_done
+environment_byte:
+    cmp r8,ENVIRONMENT_BYTES
+    jae invalid
+    mov al,[rsi]
+    mov [rbp+r8],al
+    inc rsi
+    inc r8
+    test al,al
+    jnz environment_byte
+    inc r9
+    add rbx,8
+    jmp environment_entry
+environment_done:
+    mov [r15+448],r8
+    mov [r15+456],r9
     xor r13d,r13d
 read_input:
     xor eax,eax
@@ -53,6 +80,8 @@ advance:
 job_observation_policy_hole: .long 0
     cmp eax,1
     je syscall_action
+    cmp eax,2
+    je relocate_action
     cmp eax,4
     je json_action
     jmp invalid
@@ -99,6 +128,42 @@ argument_ready:
     mov r9,[rsp+40]
     syscall
     mov [r15+8],rax
+    jmp advance
+relocate_action:
+    mov rbx,[r14]
+    mov rbp,[r14+8]
+    mov rdx,[r14+16]
+    test rbp,rbp
+    jz invalid
+    cmp rbp,4099
+    ja invalid
+    cmp rbx,STATE_BYTES
+    jae invalid
+    cmp rdx,STATE_BYTES
+    jae invalid
+    lea rax,[rbx+rbp*8]
+    cmp rax,STATE_BYTES
+    ja invalid
+    lea rax,[rdx+rbp*8]
+    cmp rax,STATE_BYTES
+    ja invalid
+relocate_word:
+    mov rax,[r15+rbx]
+    cmp rax,-1
+    je null_word
+    cmp rax,STATE_BYTES
+    jae invalid
+    add rax,r15
+    jmp store_word
+null_word:
+    xor eax,eax
+store_word:
+    mov [r15+rdx],rax
+    add rbx,8
+    add rdx,8
+    dec rbp
+    jnz relocate_word
+    mov QWORD PTR [r15+8],0
     jmp advance
 json_action:
     xor ebx,ebx

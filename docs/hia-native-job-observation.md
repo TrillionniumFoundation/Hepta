@@ -5,10 +5,13 @@ Linux adapter gathers bounded stdin, calls HIA, translates buffer offsets and
 executes the syscall selected by HIA. The product image runs without Python,
 Rust, a shell, libc, or a dynamic loader.
 
-The initial component implements the bound `READ_CODE` contract. A complete
-native `STATUS_CODE` path is a separate extension. This component alone does
-not replace the Rust MCP controller, SSH connection pool, job submission, or
-the running service configuration.
+The component implements bound `READ_CODE` and the v25 `STATUS_CODE` snapshot
+profile with all six HIA status flags. HIA owns directory custody, persisted
+metadata decoding, log cursors, systemd observation, process identity capture,
+and the resulting snapshot. Existing HIA terminal and lifecycle owners consume
+that snapshot. This component alone does not replace the Rust MCP controller,
+SSH connection pool, job submission, cancellation, or the running service
+configuration.
 
 ## Request ABI
 
@@ -18,7 +21,7 @@ an 80-byte header, little-endian `<8s9Q>`:
 | Field | Value |
 | --- | --- |
 | Magic | `HIAJOBQ1` |
-| Mode | `0` for a bounded log read |
+| Mode | `0` for a bounded log read; `1` for a v25 status snapshot |
 | stdout offset | Unsigned byte cursor |
 | stderr offset | Unsigned byte cursor |
 | Limit | Clamped to `1..16384` independently for each log |
@@ -26,7 +29,7 @@ an 80-byte header, little-endian `<8s9Q>`:
 | Job-id length | `1..128` bytes |
 | Unit length | `1..512` bytes |
 | Digest length | Exactly `64` bytes |
-| Flags | Zero |
+| Flags | `0` for READ; `63` for the six-flag STATUS profile |
 
 The header is followed by the job directory, job id, unit, and digest bytes in
 that order. Strings contain no NUL bytes. The digest is lowercase hexadecimal.
@@ -54,11 +57,19 @@ mode, uid, link count, size, mtime and ctime before and after reading, including
 a final pathname observation relative to the retained job directory. Atime and
 allocation-block accounting are deliberately excluded from this identity.
 
-The HIA JSON profile retains the host metadata convention of accepting repeated
-keys and selecting their last value. It decodes escaped keys and strings before
-binding. The private profile permits 2097152 nodes and a maximum nesting depth
-of 1000 so the 4 MiB input extent is not reduced to the general wire decoder's
-smaller node/depth defaults. The typed node arena retains raw wire spans.
+The shared HIA metadata profile retains repeated keys and selects their last
+value. It implements the persisted-byte conventions of `json.loads(bytes)`:
+UTF-8, UTF-16 and UTF-32, BOM and no-BOM detection, isolated surrogate code
+points, escaped surrogate pairs, and the accepted nonfinite literals. The
+original encoded extent remains limited to 4 MiB; a separate 8 MiB buffer holds
+normalized UTF-8/WTF-8. Integer lexemes retain the original 4300-digit limit;
+floating-point lexemes are not incorrectly subjected to that integer limit.
+
+The private profile permits 2097152 nodes. Its 32 MiB explicit stack permits a
+maximum nesting depth of 699047. It does not copy CPython's incidental C-stack
+exhaustion, whose boundary changes with process layout. The original oracle
+accepts the qualified 56000-depth input. Typed nodes retain spans into the
+normalized representation, while receipt custody retains the original bytes.
 
 ## Log response
 
@@ -74,6 +85,43 @@ file length fails rather than silently rewinding. A log path must retain its
 original device/inode; its retained fd must still have one link and must not
 shrink below the initial size. Append-only growth is allowed. HIA emits no
 partial response before both stream observations have passed validation.
+
+## Status snapshot
+
+Mode 1 with flags 63 corresponds to `hia_status_snapshot`,
+`hia_status_terminal_facts`, `hia_status_terminal_witness`,
+`hia_status_native_receipt`, `hia_status_lifecycle_facts`, and
+`hia_status_lifecycle_owner` all being true. The executable returns one immediate
+snapshot. Polling and the caller's wait budget remain with the enclosing owner.
+
+Terminal observation preserves the protocol, witness, and pending-state
+semantics of the retained profile. Terminal receipts require mode 0600 and at
+most 1 MiB; witnesses require mode 0600 and at most 4096 bytes. `witness.raw`
+contains the original encoded receipt bytes in hexadecimal, including any BOM.
+The `receipt` object is emitted from normalized text, with isolated surrogates
+escaped so the outer response remains strict UTF-8. Unsupported or unsafe
+publication is pending rather than a manufactured completed state.
+
+Started metadata has a 16 KiB capture limit and mode 0600. The systemd path
+executes the absolute `/usr/bin/systemctl` with HIA-constructed arguments. It
+preserves the inherited environment, adding the existing XDG and session-bus
+defaults only when absent. A separate close-on-exec error pipe distinguishes a
+failed exec from a real systemctl nonzero exit. Captured environment data is
+bounded to 1 MiB and 4096 entries. No service is changed by observation.
+
+Process identity comes from `/proc/<pid>/stat` and the kernel boot id; a
+separate UID observation reads the process directory. The parser uses the last
+`) ` separator so parentheses in process names are retained correctly. Missing
+identity and missing UID remain separate observations. Invalid UTF-8 or failed
+proc reads produce the same absent observations as the retained host profile.
+The systemd path rereads the receipt after observing the unit to close the
+existing collection race. Detached jobs retain the frozen supervisor checks.
+
+Legacy receipts without a publication protocol keep their facts projection.
+The existing exact HIA decimal-to-binary64 converter supplies float truth and
+integer conversion, including underflow, infinity, NaN, and rounding at one.
+Integer strings use the frozen Unicode 16 decimal-digit and whitespace tables,
+signs, underscore placement, and 4300-digit limit of the retained oracle.
 
 ## Source and build boundary
 
@@ -98,6 +146,15 @@ symlinks, hard links, writable files, and malformed request frames. Strace also
 checks that the native read has exactly one exec and that a rejected binding
 never opens stdout or stderr.
 
+`tools/qualify_hia_job_observation_status.py` compares the unchanged six-flag
+STATUS oracle and the native snapshot. It covers running and terminal jobs,
+all supported metadata encodings, original-byte witness hashes, isolated
+surrogates, large normalized responses, legacy numeric facts, safe and unsafe
+receipt/owner files, unavailable buses, process names, and live read-only
+systemd observations. Targeted syscall failures independently exercise missing
+process identity, missing UID, and a systemctl exec failure. These tests do not
+change shared services or signal unrelated processes.
+
 ## Reusable policy helpers
 
 The authoring source is `tools/generate_hia_job_observation.py`.
@@ -113,3 +170,12 @@ the decoder's 72-byte node layout and selects the last matching field.
 UTF-8 replacement. `call(...)` produces a syscall plan; `decode(...)` produces
 the bounded HIA decoder call plan. Their workspace offsets are component-local
 and must be rebased when embedding the helpers in another owner.
+
+`tools/generate_hia_job_metadata.py` exports `NORMALIZE`,
+`metadata_json_source()`, and `MAXIMUM_METADATA_DEPTH`. `NORMALIZE` is HIA text
+using the caller's `RAW_JSON` and `NONE` constants and `getn`/`copy_bytes`
+helpers; `normalize_json(w, source, size)` returns a normalized length or
+`NONE`. It is compiled into each policy and adds no runtime host dependency or
+third observation image. `tools/generate_hia_job_observation_status.py` authors
+the status extension and relocates the existing binary64 conversion scratch
+without sharing mutable decoder state.

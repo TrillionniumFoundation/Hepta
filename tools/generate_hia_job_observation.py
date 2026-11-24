@@ -12,8 +12,9 @@ from pathlib import Path
 
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_job_supervisor import document
-from tools.generate_hia_json_decode import source_program as json_source
 from tools.generate_hia_native_filter import LINK_SOURCE
+from tools.generate_hia_job_observation_status import extend, STATUS_FIELDS, STATUS_TEXT
+from tools.generate_hia_job_metadata import NORMALIZE, metadata_json_source
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE_BYTES = 224 << 20
@@ -25,6 +26,7 @@ ARENA = 16 << 20
 ARENA_BYTES = 160 << 20
 SCRATCH = 184 << 20
 SCRATCH_BYTES = 32 << 20
+RAW_JSON = 176 << 20
 NONE = (1 << 64) - 1
 
 POLICY = r'''
@@ -202,9 +204,13 @@ def metadata(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 15:
         if failed(result):
             return 0
+        normalized = normalize_json(w, META, get(w, 104))
+        if normalized == NONE:
+            return metadata_failure(s, o, w, True)
+        put(w, 232, normalized)
         put(w, SCRATCH + 48, 2097152)
-        put(w, SCRATCH + 56, 1000)
-        return decode(o, w, 16, META, get(w, 104))
+        put(w, SCRATCH + 56, 699047)
+        return decode(o, w, 16, RAW_JSON, normalized)
     if phase == 16:
         if result >= 4294967292 or get(w, ARENA + 64) != 6:
             return 0
@@ -386,6 +392,12 @@ def quoted_input(s:readbuf, w:mutbuf, at:u64, source:u64, size:u64) -> u64:
     return quoted(w, at, 16384, size)
 
 def quoted(w:mutbuf, at:u64, source:u64, size:u64) -> u64:
+    return quote_value(w, at, source, size, False)
+
+def quoted_metadata(w:mutbuf, at:u64, source:u64, size:u64) -> u64:
+    return quote_value(w, at, source, size, True)
+
+def quote_value(w:mutbuf, at:u64, source:u64, size:u64, metadata:bool) -> u64:
     store(w, at, 34)
     at = at + 1
     index = 0
@@ -405,7 +417,7 @@ def quoted(w:mutbuf, at:u64, source:u64, size:u64) -> u64:
                 cp = point & 15
                 if point == 224:
                     low = 160
-                elif point == 237:
+                elif point == 237 and metadata == False:
                     high = 159
             elif point >= 240 and point <= 244:
                 needed = 4
@@ -522,6 +534,9 @@ def put(w:mutbuf, at:u64, value:u64) -> u64:
         store(w, at + index, (value >> (8 * index)) & 255)
         index = index + 1
     return 0
+
+def copy_bytes(w:mutbuf, target:u64, source:u64, size:u64) -> u64:
+    return copy_state(w, source, target, size)
 '''
 
 TEXT = {
@@ -535,42 +550,54 @@ TEXT = {
     'reply_end': '}\n',
 }
 FIELDS = ('job_id', 'job_dir', 'unit', 'request_digest', 'request_fingerprint')
+TEXT.update(STATUS_TEXT)
+FIELDS += STATUS_FIELDS
 
 
 def policy_source():
-    source = POLICY
+    source = extend(POLICY) + NORMALIZE
     values = dict(STATE_BYTES=STATE_BYTES, REQUEST_MAGIC=REQUEST_MAGIC,
                   META=META, OUTPUT=OUTPUT, ARENA_BYTES=ARENA_BYTES, ARENA=ARENA,
                   SCRATCH_BYTES=SCRATCH_BYTES, SCRATCH=SCRATCH, NONE=NONE,
+                  RAW_JSON=RAW_JSON,
                   NEG100=(1 << 64) - 100, NEG4=(1 << 64) - 4, NEG2=(1 << 64) - 2)
     for name in sorted(values, key=len, reverse=True):
         source = source.replace(name, str(values[name]))
-    for name, value in TEXT.items():
-        raw = value.encode()
-        source += f'\ndef text_{name}(w:mutbuf, at:u64) -> u64:\n'
-        for i, byte in enumerate(raw):
-            source += f'    store(w, at + {i}, {byte})\n'
-        source += f'    return at + {len(raw)}\n'
+    # Fixed text is grouped into small HIA dispatch functions, retaining the
+    # existing native compiler's function and block budgets without expansion.
+    literals = list(TEXT.items())
+    for index, (name, _) in enumerate(literals):
+        source = source.replace(f'text_{name}(w, ', f'text_bank_{index // 16}(w, {index % 16}, ')
+    for first in range(0, len(literals), 16):
+        source += f'\ndef text_bank_{first // 16}(w:mutbuf, kind:u64, at:u64) -> u64:\n'
+        for index, (_, value) in enumerate(literals[first:first + 16]):
+            raw = value.encode()
+            source += f'    if kind == {index}:\n'
+            full = len(raw) // 8 * 8
+            for i in range(0, full, 8):
+                source += f'        put(w, at + {i}, {int.from_bytes(raw[i:i + 8], "little")})\n'
+            for i in range(full, len(raw)):
+                source += f'        store(w, at + {i}, {raw[i]})\n'
+            source += f'        return at + {len(raw)}\n'
+        source += '    return at\n'
     source += '\ndef key_id(w:mutbuf, at:u64, size:u64) -> u64:\n'
+    by_size = {}
     for i, name in enumerate(FIELDS, 1):
         raw = name.encode()
-        source += f'    if size == {len(raw)}:\n'
-        condition = ' and '.join(f'byte(w, at + {j}) == {c}' for j, c in enumerate(raw))
-        source += f'        if {condition}:\n            return {i}\n'
+        by_size.setdefault(len(raw), []).append((i, raw))
+    for size, fields in by_size.items():
+        source += f'    if size == {size}:\n'
+        for i, raw in fields:
+            condition = ' and '.join(
+                f'getn(w, at + {j}, {len(raw[j:j + 8])}) == {int.from_bytes(raw[j:j + 8], "little")}'
+                for j in range(0, len(raw), 8))
+            source += f'        if {condition}:\n            return {i}\n'
     source += '    return 0\n'
     return source
 
 
 def observation_json_source():
-    # Persisted host metadata uses Python's last-key-wins JSON convention.
-    # Keep that convention here; request binding selects the final occurrence.
-    source = json_source(wire_spans=True)
-    source = source.replace('maximum > 1048576', 'maximum > 2097152')
-    source = source.replace('maximum_depth > 128', 'maximum_depth > 1000')
-    old = 'if same_key(s, item & 4294967295, start) == 1:\n                return 4'
-    if source.count(old) != 1:
-        raise ValueError('JSON duplicate-key admission point changed')
-    return source.replace(old, old.replace('return 4', 'return 0'))
+    return metadata_json_source()
 
 
 def template():

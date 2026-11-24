@@ -73,7 +73,7 @@ def run(binary, runtime_source, output):
         if expected:
             assert old.returncode == 0, (name, 'oracle', old.returncode, old.stderr)
             assert new.returncode == 0 and not new.stderr, (name, 'native', new.returncode, new.stderr)
-            assert json.loads(new.stdout) == json.loads(old.stdout), (name, new.stdout[:1000], old.stdout[:1000])
+            assert json.loads(new.stdout.decode('utf-8')) == json.loads(old.stdout), (name, new.stdout[:1000], old.stdout[:1000])
         else:
             assert old.returncode != 0, (name, 'oracle unexpectedly admitted', old.stdout)
             assert new.returncode == 65 and not new.stdout, (name, 'native unexpectedly admitted', new.returncode, new.stdout[:1000])
@@ -112,6 +112,27 @@ def run(binary, runtime_source, output):
     check('readable-metadata', setup=lambda r, j, q, m: (j / 'request.json').chmod(0o644))
     check('read-only-log', setup=lambda r, j, q, m: (j / 'stdout.log').chmod(0o400))
     check('unknown-metadata', setup=lambda r, j, q, m: write_json(j / 'request.json', {**m, 'unknown': ['中文', {'value': 1.25e25}]}))
+    for encoding, prefix in METADATA_ENCODINGS:
+        check('metadata-encoding-' + encoding + ('-bom' if prefix else ''),
+              setup=lambda r, j, q, m, encoding=encoding, prefix=prefix: write_bytes(
+                  j / 'request.json', encoded_json({**m, 'unknown': METADATA_UNICODE}, encoding, prefix)))
+    check('metadata-escaped-surrogates', setup=lambda r, j, q, m: write_json(
+          j / 'request.json', {**m, 'unknown': METADATA_UNICODE}))
+    check('metadata-nonfinite-unknown', setup=lambda r, j, q, m: write_json(
+          j / 'request.json', {**m, 'unknown': [float('nan'), float('inf'), -float('inf')]}))
+    for count, suffix, accepted in ((4300, '', True), (4301, '', False),
+                                     (4300, '-negative', True), (4301, '-negative', False),
+                                     (4301, '-float', True), (4301, '-exponent', True)):
+        token = ('-' if suffix == '-negative' else '') + '9' * count
+        token += '.0' if suffix == '-float' else 'e0' if suffix == '-exponent' else ''
+        check('metadata-number-' + str(count) + suffix,
+              setup=lambda r, j, q, m, token=token: write_bytes(j / 'request.json',
+                  (json.dumps(m)[:-1] + ',"unknown":' + token + '}').encode()), expected=accepted)
+    for name, raw in (('utf16-odd', b'\xff\xfe{\x00x'),
+                      ('utf32-invalid-scalar', b'\xff\xfe\x00\x00{\x00\x00\x00\x00\x00\x11\x00'),
+                      ('utf8-invalid', b'{"unknown":"\xf4\x90\x80\x80"}')):
+        check('metadata-invalid-' + name, setup=lambda r, j, q, m, raw=raw:
+              write_bytes(j / 'request.json', raw), expected=False)
     check('fingerprint-fallback', setup=lambda r, j, q, m: write_json(j / 'request.json',
           {**{k: v for k, v in m.items() if k != 'request_digest'}, 'request_fingerprint': m['request_digest']}))
     check('escaped-binding-key', setup=lambda r, j, q, m: write_bytes(j / 'request.json',
@@ -122,6 +143,10 @@ def run(binary, runtime_source, output):
           (json.dumps(m)[:-1] + ',"unknown":1,"unknown":2}').encode()))
     check('metadata-depth-160', setup=lambda r, j, q, m: write_bytes(j / 'request.json',
           (json.dumps(m)[:-1] + ',"nested":' + '[' * 160 + '0' + ']' * 160 + '}').encode()))
+    for depth in (1000, 1001, 56000):
+        check('metadata-depth-' + str(depth), setup=lambda r, j, q, m, depth=depth:
+              write_bytes(j / 'request.json', (json.dumps(m)[:-1] + ',"nested":' +
+                  '[' * depth + '0' + ']' * depth + '}').encode()))
     check('metadata-exact-bound', setup=lambda r, j, q, m: write_bytes(j / 'request.json',
           (json.dumps(m)[:-1] + ',"padding":"' + 'x' *
            (4194304 - len(json.dumps(m)[:-1].encode()) - len(',"padding":""}')) + '"}').encode()))
@@ -188,6 +213,21 @@ def write_bytes(path, raw):
 
 def write_json(path, value):
     write_bytes(path, json.dumps(value).encode())
+
+
+METADATA_ENCODINGS = (
+    ('utf-8', b''), ('utf-8', b'\xef\xbb\xbf'),
+    ('utf-16-le', b''), ('utf-16-be', b''),
+    ('utf-16-le', b'\xff\xfe'), ('utf-16-be', b'\xfe\xff'),
+    ('utf-32-le', b''), ('utf-32-be', b''),
+    ('utf-32-le', b'\xff\xfe\x00\x00'), ('utf-32-be', b'\x00\x00\xfe\xff'),
+)
+METADATA_UNICODE = ['中文😀', '\ud800', '\udc80', '\udcff', '\udfff',
+                    '\ud800x', '\ud800\ud800', '\ud800\udc00', {'\udc80': '\ud800'}]
+
+
+def encoded_json(value, encoding='utf-8', prefix=b''):
+    return prefix + json.dumps(value, ensure_ascii=False).encode(encoding, 'surrogatepass')
 
 
 def make_mode(path, mode):
