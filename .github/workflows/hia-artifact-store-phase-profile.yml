@@ -1,0 +1,47 @@
+name: HIA artifact store 64MiB phase diagnostic (original gate unchanged)
+on:
+  push:
+    branches: ['automation/hia-artifact-store-phase-profile-*']
+  pull_request:
+    paths:
+      - 'tools/profile_hia_artifact_store.py'
+      - '.github/workflows/hia-artifact-store-phase-profile.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Native independent observer prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc strace
+          python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Original source-only cold qualification
+        id: cold
+        run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: Unchanged original 64MiB quota gate
+        run: python -B -m unittest tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_quota_is_original_64MiB_and_never_applied_to_generic_publisher -v
+        env:
+          HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Independent operation and syscall-gap diagnostic
+        if: always() && steps.cold.outcome == 'success'
+        run: python -B tools/profile_hia_artifact_store.py --output "$RUNNER_TEMP/store-phases"
+        env:
+          HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Retain diagnostic even on timeout
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-store-phase-profile-${{ github.sha }}
+          path: ${{ runner.temp }}/store-phases/
+          if-no-files-found: warn
+          retention-days: 7
