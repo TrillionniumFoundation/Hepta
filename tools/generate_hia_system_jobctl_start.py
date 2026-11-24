@@ -40,7 +40,8 @@ TEXT={'write_zero':'failed to write whole buffer',**control.TEXT,
  'start_reply_end':',"workspace":"/workspace"}',
  'pty_reply':'{"pty_exit_code":','null':'null',
  'spec_request':'{"request":','spec_nonce':',"nonce":','spec_boot':',"boot_id":',
- 'spec_workspace':',"workspace":','spec_protocol':',"terminal_protocol":'}
+ 'spec_workspace':',"workspace":','spec_protocol':',"terminal_protocol":',
+ 'worker_state_env':'Environment=STATE_DIRECTORY=/var/lib/hepta-job-'}
 
 POLICY=r'''
 def start(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -413,6 +414,10 @@ def build_command(w:mutbuf) -> u64:
         elif property == 4:
             copy(w, stop, JOB_ID, get(w, 48))
             stop = stop + get(w, 48)
+            if get(w, WP_SELECTED) == 1:
+                store(w, stop, 32)
+                copy(w, stop + 1, WP_NAME, get(w, WP_NAME_SIZE))
+                stop = stop + 1 + get(w, WP_NAME_SIZE)
         elif property == 6:
             copy(w, stop, REGISTRY, get(w, 64))
             stop = text_spec(w, stop + get(w, 64))
@@ -444,6 +449,14 @@ def build_command(w:mutbuf) -> u64:
         if argument(w, stop) == 0:
             return 0
         property = property + 1
+    if get(w, WP_SELECTED) == 1:
+        if constant_argument(w, 6) == 0:
+            return 0
+        at = get(w, COMMAND_CURSOR)
+        stop = text_worker_state_env(w, at)
+        copy(w, stop, JOB_ID, get(w, 48))
+        if argument(w, stop + get(w, 48)) == 0:
+            return 0
     if get(w, 2064) == 0:
         if constant_argument(w, 6) == 0 or constant_argument(w, 40) == 0 or constant_argument(w, 6) == 0 or constant_argument(w, 41) == 0:
             return 0

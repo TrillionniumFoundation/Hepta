@@ -73,8 +73,22 @@ def admit(capture, name, raw, original_sha256=None):
     return restored, relation
 
 
+DISCOVERY_RESULTS_PATH = 'tests/test_hia_agent_native_tools.py'
+DISCOVERY_RESULTS_RECORD = {'old_bytes': 47052, 'old_sha256': '64462e8735d8be3838396808dc05391e4437b2dba093fcc265468df6abb4cb70', 'new_bytes': 47052, 'new_sha256': '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2', 'hunks': [{'old_offset': 4865, 'new_offset': 4865, 'old_hex': '202020202020202073656c662e617373657274457175616c28737570706f72745b226c696d697473225d5b2266756e6374696f6e5f726573756c7473225d2c2033290a', 'new_hex': '202020202020202073656c662e617373657274457175616c28737570706f72745b226c696d697473225d5b2266756e6374696f6e5f726573756c7473225d2c2036290a'}]}
+DISCOVERY_RESULTS_VERSION = {'original_limit': 3, 'current_limit': 6, 'single_current_assertion_literal_changed': True, 'current_method_ast_unchanged': False, 'original_complete_method_sha256': '82a0ce15d6302b32420c6ff3132f175639195a1487ab53feb3a2f6a4617f20c9', 'original_complete_method_actual_execution': {'legacy_commit': 'cc65b70e51f27f49091bb5654bf3e42cc8240d76', 'legacy_tree': '9937d08b52347edd9ce91efbbb6e021c397e2f29', 'old_support': {'bytes': 467649, 'function_results': 3, 'sha256': '20cea67eec54012354566962ce811a7266493aa599bb19daebe4d41f6ce42954'}, 'unwrapped_original_method': {'errors': [], 'failures': [], 'passed': True, 'skipped': [], 'tests': 1}, 'unchanged_reads_observation': {'errors': [], 'failures': [], 'passed': True, 'skipped': [], 'tests': 1}}, 'current_source_matches_previous_except_exact_splice': True}
+
+def discovery_results_predecessor(raw):
+    """Restore the complete three-result discovery source as qualification data."""
+    previous = {'bytes': DISCOVERY_RESULTS_RECORD['old_bytes'], 'sha256': DISCOVERY_RESULTS_RECORD['old_sha256']}
+    if pin(raw) == previous:
+        return raw
+    return _reverse_record(raw, DISCOVERY_RESULTS_RECORD)
+
+
 def admit_diagnostics(capture, name, raw, original_sha256, authority, diagnostic):
     """Extend the unchanged deadline proof through its fixed SQLite test boundary."""
+    physical = raw
+    raw = discovery_results_predecessor(raw)
     path = 'tests/fixtures/delivery_sqlite_boundary_source_v3.json'
     previous = 'tests/fixtures/delivery_diagnostic_source_successors_v1.json'
     pins = {
@@ -96,7 +110,8 @@ def admit_diagnostics(capture, name, raw, original_sha256, authority, diagnostic
     restored = _reverse_record(raw, record)
     relation = diagnostic.admit(name, restored, original_sha256, authority)
     return {**relation,
-        'current': {'bytes': record['new_bytes'], 'sha256': record['new_sha256']},
+        'current': pin(physical),
+        **({'discovery_results_source_successor': dict(DISCOVERY_RESULTS_VERSION)} if physical != raw else {}),
         'preceding_current': dict(diagnostic.CURRENT),
         'diagnostic_successor_authorities': {source: dict(expected) for source, expected in pins.items()},
         'diagnostic_successor_exact_splices': len(record['hunks']),

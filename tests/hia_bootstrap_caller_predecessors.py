@@ -23,6 +23,12 @@ _REVIEWED = {
 
 def bootstrap_caller_predecessor(root, name, raw, expected, capture):
     """A recognized complete file must invert under its own fixed byte authority."""
+    if name == 'tests/test_hia_agent_native_tools.py':
+        previous = installed.discovery_predecessor(name, raw)
+        if previous != raw:
+            capture('tests/hia_final_source_successor.py')
+            capture('tests/hia_installed_distribution_history.py')
+            raw = previous
     if name not in _REVIEWED or sha256(raw).hexdigest() != _REVIEWED[name]:
         return raw
     if name in ('tests/test_hia_agent_journal_native.py', 'tests/test_hia_service_context_native.py'):

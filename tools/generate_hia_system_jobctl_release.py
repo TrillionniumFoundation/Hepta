@@ -19,6 +19,9 @@ def source_paths():
         PROGRAMS + 'source_build_packer.hepta',
         'tools/hia_source_build_syscalls.S', 'tools/hia_system_jobctl_syscalls.S',
         'tools/generate_hia_system_jobctl_packer.py',
+        'tools/generate_hia_system_jobctl_control.py',
+        'tools/generate_hia_system_jobctl_start.py',
+        'tools/generate_hia_system_jobctl_worker_profile.py',
         'tools/generate_hia_system_jobctl_release.py',
         'tools/generate_hia_mcp_release.py', 'tools/build_hia_system_jobctl.py',
     }))

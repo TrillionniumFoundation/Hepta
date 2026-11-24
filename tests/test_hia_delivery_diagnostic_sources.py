@@ -267,7 +267,16 @@ class DeliveryDiagnosticSourceTests(unittest.TestCase):
                 self.assertEqual(pin(reviewed_input), {'bytes': update['new_bytes'], 'sha256': update['new_sha256']})
                 self.assertEqual(propagated[name]['original_evaluation_callers_verified'], 183)
             elif active != reviewed:
-                self.assertEqual(active, subject.SQLITE_BOUNDARY_SOURCES[name])
+                from tests.hia_installed_distribution_history import discovery_predecessor
+                previous = discovery_predecessor(name, self.source_raw[name])
+                self.assertEqual(pin(previous), subject.SQLITE_BOUNDARY_SOURCES[name])
+                if pin(previous) != active:
+                    from tests import hia_final_source_successor as final
+                    self.assertEqual(propagated[name]['discovery_results_source_successor'],
+                                     final.DISCOVERY_RESULTS_VERSION)
+                    for helper in ('tests/hia_final_source_successor.py',
+                                   'tests/hia_installed_distribution_history.py'):
+                        self.assertEqual(proof['actual_captured_files'][helper], pin((ROOT / helper).read_bytes()))
                 self.assertEqual(propagated[name]['sqlite_boundary_successor'], {
                     'authority': {'path': subject.SQLITE_BOUNDARY_FIXTURE, **subject.SQLITE_BOUNDARY_FIXTURE_PIN},
                     'restores_reviewed_diagnostic_source_exactly': True,

@@ -10,6 +10,7 @@ import argparse,ast,re
 from pathlib import Path
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_system_jobctl_request import document,request_source
+from tools import generate_hia_system_jobctl_worker_profile as worker_profile
 ROOT=Path(__file__).resolve().parents[1]
 
 CONSTANTS=dict(STATE_BYTES=128<<20,RAW=1<<20,ARENA=4<<20,ARENA_BYTES=64<<20,
@@ -20,7 +21,7 @@ CONSTANTS=dict(STATE_BYTES=128<<20,RAW=1<<20,ARENA=4<<20,ARENA_BYTES=64<<20,
  PATH=16384,TEMP_PATH=20480,PROC_PATH=24576,STAT=32768,
  TABLE=512,VALUES=768,ENV_COUNT=920,REQUEST_SIZE=928,
  OVERRIDE_CWD=944,OVERRIDE_CWD_SIZE=952,OVERRIDE_TIMEOUT=960,OVERRIDE_MASK=968,ERROR=976,
- POLICY_TABLE=40960)
+ POLICY_TABLE=40960, **worker_profile.CONSTANTS)
 
 TEXT={
  'root':'/var/lib/hepta-runtime-jobctl','policy':'/etc/hepta-runtime/job-policy.json',
@@ -53,6 +54,8 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return 0
 
 def admission(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
+    if phase >= 80 and phase <= 96:
+        return worker_admission(o, w, phase, result)
     if phase == 0:
         if length(s) < 32 or uint(s, 0) != ARG_MAGIC or uint(s, 8) != 1 or uint(s, 24) != length(s):
             return 0
@@ -151,7 +154,7 @@ def admission(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 26:
         if result != 1:
             return 0
-        return begin_lock(o, w, 300)
+        return worker_begin(s, o, w)
     return 0
 
 def input_byte(o:mutbuf, w:mutbuf) -> u32:
@@ -203,7 +206,7 @@ def policy(s:readbuf, w:mutbuf) -> u64:
     if kind != 6 and kind != 5:
         return 0
     index = 0
-    while index < 5:
+    while index < 6:
         put(w, POLICY_TABLE + index * 8, NONE)
         index = index + 1
     mask = 0
@@ -250,7 +253,7 @@ def policy(s:readbuf, w:mutbuf) -> u64:
                 return 0
             put(w, 2072 + (index - 2) * 8, value)
         index = index + 1
-    return 1
+    return worker_profile_policy(w, get(w, POLICY_TABLE + 40))
 
 def file_integer(w:mutbuf, child:u64) -> u64:
     put(w, ERROR, 0)
@@ -492,18 +495,19 @@ def failed(value:u64) -> bool:
 """
 
 def source_program():
-    source=POLICY
+    source=POLICY+'\n'+worker_profile.source_program()
     helpers={n.name:ast.get_source_segment(request_source(),n) for n in ast.parse(request_source()).body if isinstance(n,ast.FunctionDef)}
     for name in ['get','getn','put','putn','decimal','node']:
         source+='\n'+helpers[name]+'\n'
-    for label,values in [('policy_key',['workspace','allow_network','max_timeout_seconds','max_cpu_percent','max_memory_bytes']),
+    for label,values in [('policy_key',['workspace','allow_network','max_timeout_seconds','max_cpu_percent','max_memory_bytes','native_worker']),
+                         ('worker_profile_key', worker_profile.KEYS),
                          ('operation_id',['start','pty','status','read','cancel'])]:
         source+=f'\ndef {label}(w:mutbuf, at:u64, size:u64) -> u64:\n'
         for index,name in enumerate(values,1):
             raw=name.encode();condition=' and '.join(f'getn(w, at + {i}, {len(raw[i:i+8])}) == {int.from_bytes(raw[i:i+8],"little")}' for i in range(0,len(raw),8))
             source+=f'    if size == {len(raw)} and {condition}:\n        return {index}\n'
         source+='    return 0\n'
-    for name,value in TEXT.items():
+    for name,value in {**TEXT, **worker_profile.TEXT}.items():
         raw=value.encode();source+=f'\ndef text_{name}(w:mutbuf, at:u64) -> u64:\n'
         for i in range(0,len(raw),8):
             chunk=raw[i:i+8];source+=f'    putn(w, at + {i}, {int.from_bytes(chunk,"little")}, {len(chunk)})\n'

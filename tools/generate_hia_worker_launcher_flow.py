@@ -122,11 +122,17 @@ def bind_capsule(s:readbuf, o:mutbuf, w:mutbuf, state:u64) -> u64:
         if start != get(w, CAPSULE_BYTES):
             return BAD
         return issue(o, w, RELEASE_DIRECTORY, OPEN_RELEASE, 0, 0, 0, 0)
-    if length(s) != 88 or bound_fd(s) == False or capsule_word(s, 64) != capsule_word(s, 72):
+    if length(s) != 88 or bound_fd(s) == False:
         return BAD
     mode = capsule_word(s, 80)
     if (mode & 61440) != 16384 or (mode & 18) != 0:
         return BAD
+    owner = capsule_word(s, 72)
+    if owner != capsule_word(s, 64):
+        # Administrator-owned code is admissible only as a read-only directory.
+        # Mutable Worker state keeps its separate, exact effective-uid custody.
+        if owner != 0 or (mode & 146) != 0:
+            return BAD
     put(w, RELEASE_FD, capsule_word(s, 32))
     return next_role(o, w)
 

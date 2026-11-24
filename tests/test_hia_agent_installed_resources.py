@@ -19,6 +19,10 @@ RESOURCES=(tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_
 # The two declared native package files also belong in the actual wheel;
 # all other support paths remain absent from its package root.
 SDIST_SUPPORT_FILES=(
+    'docs/HIA_INSTALLED_RESOURCE_CONTINUITY.md',
+    'tests/hia_installed_resource_history.py',
+    'tests/test_hia_installed_resource_history.py',
+    'tests/fixtures/hia_installed_resource_successors.json',
     # Native service, NDU, source-contract and their independent controls.
     # These inputs are registered in SOURCE_FILES and declared separately
     # from the sdist MANIFEST; exact set and duplicate checks stay below.
@@ -587,6 +591,14 @@ SDIST_SUPPORT_FILES=(
     'tests/test_hia_selfhost_native_observer.py',
     'tools/hia_selfhost_linked_observer.py',
     'tools/hia_selfhost_native_observer.py',
+    "docs/HIA_NATIVE_MANAGED_WORKER_STATE.md",
+    "tools/generate_hia_store_path_transport.py",
+    "tools/generate_hia_system_jobctl_worker_profile.py",
+    "tools/hia_open_nofollow.S",
+    "tools/qualify_hia_store_loader_custody.py",
+    "tools/qualify_hia_store_path_transport.py",
+    "tools/qualify_hia_system_jobctl_worker_profile.py",
+    "tools/qualify_hia_worker_release_custody.py",
 )
 SDIST_SUPPORT_FILES=tuple(dict.fromkeys(SDIST_SUPPORT_FILES))
 WHEEL_PACKAGE_FILES=(
@@ -1273,8 +1285,15 @@ assert not blocked.intersection(sys.modules)
                 native.add(full + 'pin.json')
             bundled={name.removeprefix('hepta/_data/') for name in z.namelist()
                      if name.startswith('hepta/_data/') and not name.endswith('/')}
-            self.assertEqual(bundled,native|set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES)|set(VM_INTEGER_ARITHMETIC_RESOURCES)|set(VM_INTEGER_SCALAR_RESOURCES))
-            for name in (*RESOURCES,*EXECUTABLE_CAPTURE_RESOURCES,*VM_INTEGER_DIVREM_RESOURCES,*VM_INTEGER_ARITHMETIC_RESOURCES,*VM_INTEGER_SCALAR_RESOURCES):
+            from tests.hia_installed_resource_history import reviewed_inventory,assembly_identity
+            legacy=native|set(RESOURCES)|set(EXECUTABLE_CAPTURE_RESOURCES)|set(VM_INTEGER_DIVREM_RESOURCES)|set(VM_INTEGER_ARITHMETIC_RESOURCES)|set(VM_INTEGER_SCALAR_RESOURCES)
+            more_sources,more_images,expected=reviewed_inventory(ROOT,legacy)
+            self.assertEqual(len(legacy),261)
+            self.assertEqual(len(expected),290)
+            self.assertEqual(bundled,expected)
+            assembly_identity(z)
+            native.update(more_images)
+            for name in (*RESOURCES,*EXECUTABLE_CAPTURE_RESOURCES,*VM_INTEGER_DIVREM_RESOURCES,*VM_INTEGER_ARITHMETIC_RESOURCES,*VM_INTEGER_SCALAR_RESOURCES,*more_sources):
                 self.assertEqual(z.read('hepta/_data/'+name),(ROOT/name).read_bytes())
                 self.assertEqual((self.installed/'hepta/_data'/name).read_bytes(),(ROOT/name).read_bytes())
             for name in native:

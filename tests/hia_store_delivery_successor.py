@@ -61,7 +61,7 @@ PATHS = ORIGINAL_SOURCE_PATHS + SHARED_PATHS + (ADAPTER_PATH, WORKER_PATH) + tup
 LATER_SHARED_PATHS = ('hepta/hia_cost_ledger_native.py', 'hepta/hia_evaluation_native.py',
                       'hepta/hia_service_context_native.py', 'tools/build_hia_evaluation.py')
 FINAL_SOURCE_HELPER = 'tests/hia_final_source_successor.py'
-FINAL_SOURCE_HELPER_PIN = {'bytes': 7012, 'sha256': '68ffd7b27fbd492915221a5894c7c1eb4f0101001b9fd400481e19cdf19744f7'}
+FINAL_SOURCE_HELPER_PIN = {'bytes': 8968, 'sha256': '101873425ef8bba70456e915916836bcd4b48d29b2cf5b44cbd121603a097722'}
 FINITE_PROOF_SHA256 = 'd85ded0610fc7ee3443340f5892e705f24768492100ee1f69af05eb336f8a8c5'
 FINAL_COMPOSITION_SHA256 = {'hepta/hia_agent_service.py': 'd85ded0610fc7ee3443340f5892e705f24768492100ee1f69af05eb336f8a8c5', 'hepta/hia_store_lifecycle_native.py': 'c800f2d9701698147b4702401908dc37625cdea1ee21d550b5154ea10c9806f1', 'hepta/hia_emission_native.py': '2dffce808cccef4f5632d10c63dbb22b523aeed867142d64a142e44b2d4a86ba'}
 

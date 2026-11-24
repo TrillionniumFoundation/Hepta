@@ -39,7 +39,7 @@ def _admit_diagnostic_source(capture, name, raw, original_digest):
     if name == 'tests/test_hia_agent_native_machine_validation.py':
         from tests import hia_final_source_successor as final
         helper = capture('tests/hia_final_source_successor.py')
-        if (_source_pin(helper) != {'bytes': 7012, 'sha256': '68ffd7b27fbd492915221a5894c7c1eb4f0101001b9fd400481e19cdf19744f7'}
+        if (_source_pin(helper) != {'bytes': 8968, 'sha256': '101873425ef8bba70456e915916836bcd4b48d29b2cf5b44cbd121603a097722'}
                 or Path(final.__file__).read_bytes() != helper):
             raise ValueError('complete machine caller source helper changed')
         return final.admit_machine_caller(capture, name, raw, original_digest)
@@ -55,7 +55,7 @@ def _admit_diagnostic_source(capture, name, raw, original_digest):
     if _source_pin(raw) != diagnostic.CURRENT:
         from tests import hia_final_source_successor as final
         final_source = capture('tests/hia_final_source_successor.py')
-        if (_source_pin(final_source) != {'bytes': 7012, 'sha256': '68ffd7b27fbd492915221a5894c7c1eb4f0101001b9fd400481e19cdf19744f7'}
+        if (_source_pin(final_source) != {'bytes': 8968, 'sha256': '101873425ef8bba70456e915916836bcd4b48d29b2cf5b44cbd121603a097722'}
                 or Path(final.__file__).read_bytes() != final_source):
             raise ValueError('complete caller diagnostic source helper changed')
         return final.admit_diagnostics(capture, name, raw, original_digest, authority, diagnostic)

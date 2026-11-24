@@ -270,6 +270,10 @@ WORKER_REQUEST_SDIST_FILES = (
     'tests/test_hia_native_store_release.py',
     'tests/hia_distribution_fixture.py',
     'tests/hia_installed_distribution_history.py',
+    'docs/HIA_INSTALLED_RESOURCE_CONTINUITY.md',
+    'tests/hia_installed_resource_history.py',
+    'tests/test_hia_installed_resource_history.py',
+    'tests/fixtures/hia_installed_resource_successors.json',
     'tests/fixtures/hia_native_distribution_reference_sources.json',
     'tests/fixtures/hia_installed_distribution_sources.json',
     'tools/hia_frozen_component_sources.py',
@@ -2975,6 +2979,14 @@ SOURCE_FILES += (
     'tools/qualify_hia_system_jobctl_supervisor.py',
     'tools/qualify_hia_system_jobctl_terminal.py',
     'tools/qualify_hia_system_jobctl_visibility.py',
+    'docs/HIA_NATIVE_MANAGED_WORKER_STATE.md',
+    'tools/generate_hia_system_jobctl_worker_profile.py',
+    'tools/qualify_hia_system_jobctl_worker_profile.py',
+    'tools/qualify_hia_worker_release_custody.py',
+    'tools/hia_open_nofollow.S',
+    'tools/generate_hia_store_path_transport.py',
+    'tools/qualify_hia_store_path_transport.py',
+    'tools/qualify_hia_store_loader_custody.py',
 )
 
 def file_digests(root=ROOT):

@@ -997,15 +997,24 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
         expected = DIAGNOSTIC_RECORDS[path]
         from tests.hia_installed_distribution_history import predecessor
         reviewed = predecessor(path, raw)
+        result_version = path == 'tests/test_hia_agent_native_tools.py' and reviewed != raw
+        if result_version:
+            from tests import hia_final_source_successor as final
+            helper = capture('tests/hia_final_source_successor.py')
+            if (_pin(helper) != {'bytes': 8968, 'sha256': '101873425ef8bba70456e915916836bcd4b48d29b2cf5b44cbd121603a097722'}
+                    or Path(final.__file__).read_bytes() != helper
+                    or final.discovery_results_predecessor(raw) != reviewed):
+                raise ValueError('discovery result-version capture differs')
+            capture(FINAL_CALLER_HISTORY)
         caller_update = (path == 'tools/qualify_hia_evaluation_callers.py'
                          and sha256(reviewed).hexdigest() == '4ff2b72e17ff08e0016379cd5242b6293344ba644eb607ea490c85f3a4c1a339')
         if caller_update:
             from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, evaluate_records, reverse_exact
             update = evaluate_records(capture(EVALUATE_FIXTURE))['evaluation_qualifier']
             reviewed = reverse_exact(reviewed, update, expected['new'])
-        boundary = _pin(raw) == SQLITE_BOUNDARY_SOURCES.get(path)
+        boundary = _pin(reviewed) == SQLITE_BOUNDARY_SOURCES.get(path)
         if boundary:
-            reviewed = _reverse_sqlite_boundary(path, raw, capture(SQLITE_BOUNDARY_FIXTURE),
+            reviewed = _reverse_sqlite_boundary(path, reviewed, capture(SQLITE_BOUNDARY_FIXTURE),
                                                 DIAGNOSTIC_FIXTURE, frozen, expected['new'])
         if _pin(raw) == expected['old']:
             preview = _diagnostic_transform(raw, record, path, reverse=False)
@@ -1027,6 +1036,8 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
                     'complete_original_inverse_verified': True,
                     'complete_current_forward_replay_verified': True,
                     'production_source_exception': False}
+                if result_version:
+                    adjustments[path]['discovery_results_source_successor'] = dict(final.DISCOVERY_RESULTS_VERSION)
                 if caller_update:
                     adjustments[path].update(current_bytes=len(raw), current_sha256=sha256(raw).hexdigest(),
                                              original_evaluation_callers_verified=183)
@@ -1271,7 +1282,7 @@ ORDINARY_CALLER_COUNTS = {'tools/qualify_hia_cost_ledger_callers.py': 81, 'tools
 ORDINARY_CALLER_CAPTURE_PATHS = (ORDINARY_CALLER_FIXTURE, *ORDINARY_CALLER_PATHS,
                                 *ORDINARY_CALLER_DEPENDENCIES)
 FINAL_CALLER_HISTORY = 'tests/hia_installed_distribution_history.py'
-FINAL_CALLER_HISTORY_PIN = {'bytes': 7262, 'sha256': '58986a6a6d9f86fc3ee53d740229d3fab5ed120156d80e8ba3ac2bd245a0c0a6'}
+FINAL_CALLER_HISTORY_PIN = {'bytes': 8730, 'sha256': 'e49fca0d6a8bcee353f9c1f505677661f0728b30182a6bf30115bc065f14870b'}
 
 
 def _ordinary_caller_transform(raw, record, path, *, reverse):

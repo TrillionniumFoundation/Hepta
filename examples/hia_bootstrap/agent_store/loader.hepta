@@ -1443,7 +1443,10 @@ block b0(v0:readbuf,v1:mutbuf)
   v42:u64 = const() {"value":128}
   v43:u64 = bit.or(v3,v42)
   v10:bool = compare.ne(v43,v9)
-  branch v10 b2(v0,v1,v10) b1(v0,v1)
+  v44:u64 = const() {"value":16749}
+  v45:bool = compare.ne(v3,v44)
+  v46:bool = bool.and(v10,v45)
+  branch v46 b2(v0,v1,v46) b1(v0,v1)
 block b1(v11:readbuf,v12:mutbuf)
   v17:u64 = const() {"value":48}
   v18:u64 = call(v11,v17) {"function":"f19"}
@@ -1485,7 +1488,10 @@ block b0(v0:readbuf,v1:mutbuf)
   v8:u64 = const() {"value":33024}
   v9:u64 = bit.or(v7,v8)
   v10:bool = compare.ne(v3,v9)
-  branch v10 b2(v0,v1,v10) b1(v0,v1)
+  v53:u64 = const() {"value":33060}
+  v54:bool = compare.ne(v3,v53)
+  v55:bool = bool.and(v10,v54)
+  branch v55 b2(v0,v1,v55) b1(v0,v1)
 block b1(v11:readbuf,v12:mutbuf)
   v17:u64 = const() {"value":48}
   v18:u64 = call(v11,v17) {"function":"f19"}

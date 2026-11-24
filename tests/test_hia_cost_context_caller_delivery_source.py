@@ -97,6 +97,11 @@ class CostContextCallerDeliverySourceTests(unittest.TestCase):
         from tests.hia_installed_distribution_history import caller_predecessor
         for path in subject.ORDINARY_CALLER_PATHS:
             cls.sources[path] = caller_predecessor(path, cls.sources[path])
+        # This control owns the former three-result diagnostic fixture.
+        # The complete physical successor remains in live_sources above.
+        from tests.hia_installed_distribution_history import discovery_predecessor
+        diagnostic_path = subject.DIAGNOSTIC_PATHS[0]
+        cls.sources[diagnostic_path] = discovery_predecessor(diagnostic_path, cls.sources[diagnostic_path])
         cls.old_sources = {path: independent_inverse(cls.sources[path], cls.records[path])
                            for path in subject.ORDINARY_CALLER_PATHS}
         for path, old in cls.old_sources.items():

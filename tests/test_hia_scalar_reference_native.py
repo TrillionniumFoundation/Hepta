@@ -357,6 +357,66 @@ class ScalarReferenceNativeTests(unittest.TestCase):
             response = run(raw, *options)
             self.assertEqual((response.returncode, response.stdout, response.stderr), (code, b'', b''))
 
+    def test_owned_reference_private_entry_keeps_the_complete_native_budget_guard(self):
+        from tools.build_hia_owned_reference_cli import (
+            RUN_RECORD, RUN_RECORD_OFFSETS, assemble, verify_owned_call_budget, verify_owned_entry,
+        )
+        from tools.generate_hia_native_filter import elf_header, read_adapter_binding
+        from tools.generate_hia_owned_reference import ADAPTER_PATH, PACKER_PATH, SOURCE_PATH
+
+        root = SOURCE.parents[2]
+        sources = {path: (root / path).read_bytes()
+                   for path in (ADAPTER_PATH, PACKER_PATH, SOURCE_PATH)}
+        directory = self.compiler.parent / 'owned-entry-guard'
+        directory.mkdir()
+        binding = read_adapter_binding(sources[PACKER_PATH], sources[ADAPTER_PATH], calls=2)
+        binary, report = assemble(directory, self.compiler, sources, binding)
+        image = (directory / 'owned-reference.image.bin').read_bytes()
+        workspace = report['native_compile_receipt']['workspace_header']
+        entry, admitted = verify_owned_entry(image, workspace)
+        self.assertEqual(entry, report['private_entry_offset'])
+        self.assertEqual(admitted, report['private_entry'])
+        # Every byte belongs to the actual native compiler's guard, stack
+        # probes, or saved-budget/result prefix. No later prologue is an entry.
+        for index in range(admitted['checked_entry_bytes']):
+            changed = bytearray(image)
+            changed[entry + index] ^= 1
+            with self.subTest(kind='entry-byte', index=index):
+                with self.assertRaisesRegex(ValueError, 'expected owned reference entry'):
+                    verify_owned_entry(bytes(changed), workspace)
+        for amount in range(admitted['checked_entry_bytes']):
+            with self.subTest(kind='truncated-entry', amount=amount):
+                with self.assertRaisesRegex(ValueError, 'expected owned reference entry'):
+                    verify_owned_entry(image[:entry + amount], workspace)
+        for replacement in (False, -1, 0, len(image), entry + 1, entry + 26):
+            changed = dict(workspace, **{str(RUN_RECORD): replacement})
+            with self.subTest(kind='entry-record', replacement=replacement):
+                with self.assertRaisesRegex(ValueError, 'expected owned reference entry'):
+                    verify_owned_entry(image, changed)
+        for offset in RUN_RECORD_OFFSETS:
+            changed = dict(workspace)
+            changed.pop(str(offset))
+            with self.subTest(kind='missing-word', offset=offset):
+                with self.assertRaisesRegex(ValueError, 'expected owned reference entry'):
+                    verify_owned_entry(image, changed)
+        for offset in (RUN_RECORD + 24, RUN_RECORD + 32, RUN_RECORD + 40,
+                       RUN_RECORD + 48, RUN_RECORD + 184, RUN_RECORD + 264):
+            changed = dict(workspace)
+            changed[str(offset)] += 1
+            with self.subTest(kind='changed-function-record', offset=offset):
+                with self.assertRaisesRegex(ValueError, 'expected owned reference entry'):
+                    verify_owned_entry(image, changed)
+        private_call = len(elf_header()) + binding[2][1]
+        verify_owned_call_budget(binary, binding)
+        for index in range(private_call - 6, private_call):
+            changed = bytearray(binary)
+            changed[index] ^= 1
+            with self.subTest(kind='adapter-budget', index=index):
+                with self.assertRaisesRegex(ValueError, 'private call budget differs'):
+                    verify_owned_call_budget(bytes(changed), binding)
+        with self.assertRaisesRegex(ValueError, 'private call budget differs'):
+            verify_owned_call_budget(binary[:private_call + 3], binding)
+
     def test_standalone_owned_reference_preserves_grown_state_chains_and_returned_loans(self):
         from hepta import hia_agent_runner as runner
         from hepta.hia_agent_runner import run_reference_batch
