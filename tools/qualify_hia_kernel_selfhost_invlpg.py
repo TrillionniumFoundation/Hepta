@@ -22,6 +22,7 @@ if __package__ in (None, ""):
 from tools import generate_hia_selfhost as gen
 from hepta.hia_agent_assembly import render_assembly
 from tools.qualify_hia_selfhost import build_seed, compile_stage, invoke
+from tools import hia_kernel_selfhost_msr as msr
 
 PROFILE = "hepta.hia.program.kernel-tlb.v1"
 LEGACY = "hepta.hia.program.v8"
@@ -88,7 +89,7 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64", "x86.mmio.read32", "x86.mmio.write32"):
+    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64", "x86.mmio.read32", "x86.mmio.write32", *msr.WORDS):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
@@ -341,6 +342,7 @@ def candidate_source():
     source = (source[:first] + mmio_start + "\n"
               "        return mmio_instruction(s, o, w, op, n, at, t, v, bt, a, b)\n"
               + source[last:] + helper)
+    source = msr.extend_source(source, replace_once)
     with patch.multiple(gen, SOURCE=source, W=words,
                         MAX_INSTRUCTIONS=CANDIDATE_INSTRUCTIONS,
                         MAX_RELOCATIONS=CANDIDATE_RELOCATIONS, **layout):
@@ -1111,6 +1113,7 @@ def run(output):
 
     atomic = qualify_atomic(exe, output)
     mmio = qualify_mmio(exe, output)
+    msr_report = msr.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest)
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -1136,6 +1139,8 @@ def run(output):
         "port_io": port_io,
         "atomic": atomic,
         "mmio": mmio,
+        "msr": msr_report,
+        "msr_authority_proved": False,
         "mmio_authority_proved": False,
         "memory_order_proved": False,
         "capacity": capacity,

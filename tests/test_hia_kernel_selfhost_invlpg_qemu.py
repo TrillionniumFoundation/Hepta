@@ -413,6 +413,43 @@ def run(output):
     hardware["mmio_authority_proved"] = False
     hardware["mmio_device_mapping_owner"] = "NON_HIA_ISOLATED_OBSERVER"
     hardware["mmio_posted_write_order_proved"] = False
+    for action, encoding, noaccess, truncated in (
+            ("read", "0f3248c1e2204809d0", "31c090909090909090", "0f3290909090909090"),
+            ("write", "4889c248c1ea200f30", "4889c248c1ea209090", "31d290909090900f30")):
+        label = "msr-" + action
+        entry = report["msr"][label]
+        obj = output / (label + ".o")
+        src = output / (label + "-1.input")
+        raw = output / (label + ".text")
+        native_msr, text_msr = obj.read_bytes(), raw.read_bytes()
+        opcode = bytes.fromhex(encoding)
+        if (entry["oracle_hex"] != encoding or text_msr.count(opcode) != 1
+                or digest(native_msr) != entry["elf_sha256"]
+                or digest(text_msr) != entry["text_sha256"]
+                or digest(src.read_bytes()) != entry["source_sha256"]
+                or dump_text(obj, output / (label + "-original-readback.text")) != text_msr):
+            raise AssertionError(label + " original native custody failed")
+        macros = ("HIA_TEST_MSR_" + action.upper(),)
+        extra_cases.append((label + "-two-registers", native_msr, text_msr, macros, 33, "P"))
+        for suffix, replacement, flag in (
+                ("noaccess", noaccess, "HIA_TEST_MSR_NOOP"),
+                ("truncate", truncated, "HIA_TEST_MSR_TRUNCATE")):
+            mutant_text = text_msr.replace(opcode, bytes.fromhex(replacement), 1)
+            if len(mutant_text) != len(text_msr) or mutant_text == text_msr:
+                raise AssertionError(label + " invalid mutation")
+            mutation = output / (label + "-" + suffix + ".text")
+            mutation.write_bytes(mutant_text)
+            mutant = output / (label + "-" + suffix + ".o")
+            invoke(["objcopy", "--update-section", ".text=" + str(mutation), str(obj), str(mutant)])
+            if (dump_text(mutant, output / (label + "-" + suffix + "-readback.text")) != mutant_text
+                    or symbol(obj, "f0") != symbol(mutant, "f0")):
+                raise AssertionError(label + " mutation readback failed")
+            extra_cases.append((label + "-" + suffix, mutant.read_bytes(), mutant_text,
+                                macros + (flag,), 35, "N"))
+        extra_custody.extend(((obj, entry["elf_sha256"]), (src, entry["source_sha256"]),
+                              (raw, entry["text_sha256"])))
+        hardware[label + "_subject_source_sha256"] = entry["source_sha256"]
+    hardware["msr_authority_proved"] = False
     path = output / "hardware"
     path.mkdir()
     try:

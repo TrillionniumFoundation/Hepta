@@ -95,6 +95,120 @@ long64:
     movl %eax, 8(%rdi)
     movl $0, 12(%rdi)
     lidt idtr(%rip)
+#if defined(HIA_TEST_MSR_READ) || defined(HIA_TEST_MSR_WRITE)
+    /* Independent guest-only MSR oracle. FS/GS are not used for memory
+     * accesses. Both actual registers are saved and restored. */
+    .macro msr_get index
+    movl $\index, %ecx
+    rdmsr
+    shlq $32, %rdx
+    orq %rdx, %rax
+    .endm
+    .macro msr_set index, value
+    movabsq $\value, %rax
+    movq %rax, %rdx
+    shrq $32, %rdx
+    movl $\index, %ecx
+    wrmsr
+    .endm
+    .macro msr_expect index, value
+    msr_get \index
+    movabsq $\value, %r8
+    cmpq %r8, %rax
+    jne msr_fail
+    .endm
+    .macro msr_return value
+    movabsq $\value, %r8
+    cmpq %r8, %rax
+    jne msr_fail
+    .endm
+    msr_get 0xc0000100
+    movq %rax, %r12
+    msr_get 0xc0000101
+    movq %rax, %r13
+    msr_set 0xc0000100, 0x0000123456789abc
+    msr_set 0xc0000101, 0x000021fedcba9876
+    msr_expect 0xc0000100, 0x0000123456789abc
+    msr_expect 0xc0000101, 0x000021fedcba9876
+#ifdef HIA_TEST_MSR_READ
+    movl $0xc0000100, %edi
+    call f0
+#ifdef HIA_TEST_MSR_NOOP
+    msr_return 0
+#elif defined(HIA_TEST_MSR_TRUNCATE)
+    msr_return 0x56789abc
+#else
+    msr_return 0x0000123456789abc
+#endif
+    movl $0xc0000101, %edi
+    call f0
+#ifdef HIA_TEST_MSR_NOOP
+    msr_return 0
+#elif defined(HIA_TEST_MSR_TRUNCATE)
+    msr_return 0xdcba9876
+#else
+    msr_return 0x000021fedcba9876
+#endif
+    msr_expect 0xc0000100, 0x0000123456789abc
+    msr_expect 0xc0000101, 0x000021fedcba9876
+#else
+    movl $0xc0000100, %edi
+    movabsq $0x0000345689abcdef, %rsi
+    call f0
+    msr_return 0xc0000100
+    msr_expect 0xc0000101, 0x000021fedcba9876
+#ifdef HIA_TEST_MSR_NOOP
+    msr_expect 0xc0000100, 0x0000123456789abc
+#elif defined(HIA_TEST_MSR_TRUNCATE)
+    msr_expect 0xc0000100, 0x89abcdef
+#else
+    msr_expect 0xc0000100, 0x0000345689abcdef
+#endif
+    movl $0xc0000101, %edi
+    movabsq $0x000045671234fedc, %rsi
+    call f0
+    msr_return 0xc0000101
+#ifdef HIA_TEST_MSR_NOOP
+    msr_expect 0xc0000100, 0x0000123456789abc
+    msr_expect 0xc0000101, 0x000021fedcba9876
+#elif defined(HIA_TEST_MSR_TRUNCATE)
+    msr_expect 0xc0000100, 0x89abcdef
+    msr_expect 0xc0000101, 0x1234fedc
+#else
+    msr_expect 0xc0000100, 0x0000345689abcdef
+    msr_expect 0xc0000101, 0x000045671234fedc
+#endif
+#endif
+    xorl %r15d, %r15d
+    jmp msr_restore
+msr_fail:
+    movl $1, %r15d
+msr_restore:
+    movq %r12, %rax
+    movq %rax, %rdx
+    shrq $32, %rdx
+    movl $0xc0000100, %ecx
+    wrmsr
+    movq %r13, %rax
+    movq %rax, %rdx
+    shrq $32, %rdx
+    movl $0xc0000101, %ecx
+    wrmsr
+    msr_get 0xc0000100
+    cmpq %r12, %rax
+    jne abort
+    msr_get 0xc0000101
+    cmpq %r13, %rax
+    jne abort
+    testl %r15d, %r15d
+    jne abort
+#if defined(HIA_TEST_MSR_NOOP) || defined(HIA_TEST_MSR_TRUNCATE)
+    movb $'N', %bl
+#else
+    movb $'P', %bl
+#endif
+    jmp debug_exit64
+#endif
 #ifdef HIA_TEST_MMIO32
 #ifdef HIA_TEST_MMIO_ALIGN
     /* Alignment tests use private RAM, not undefined unaligned device I/O. */
@@ -777,7 +891,7 @@ mmio_ud_handler:
 #endif
 #endif
 pf_handler:
-#if defined(HIA_TEST_MMIO32) || defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32) || defined(HIA_TEST_CAS64)
+#if defined(HIA_TEST_MSR_READ) || defined(HIA_TEST_MSR_WRITE) || defined(HIA_TEST_MMIO32) || defined(HIA_TEST_CR0_WRITE) || defined(HIA_TEST_CR4_WRITE) || defined(HIA_TEST_IRQ_DISABLE) || defined(HIA_TEST_IRQ_ENABLE) || defined(HIA_TEST_IO_IN8) || defined(HIA_TEST_IO_OUT8) || defined(HIA_TEST_IO_IN16) || defined(HIA_TEST_IO_OUT16) || defined(HIA_TEST_IO_IN32) || defined(HIA_TEST_IO_OUT32) || defined(HIA_TEST_CAS64)
     jmp abort /* A fault must not masquerade as the write NOP control. */
 #endif
 #ifdef HIA_TEST_CR2_READ
