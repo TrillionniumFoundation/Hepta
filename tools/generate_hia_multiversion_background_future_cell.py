@@ -10,7 +10,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={
-'MAGIC':int.from_bytes(b'HIABFQ01','little'),'REPLY':int.from_bytes(b'HIABFR01','little'),
+'MAGIC':int.from_bytes(b'HIABFQ01','little'),'MAGIC2':int.from_bytes(b'HIABFQ02','little'),'REPLY':int.from_bytes(b'HIABFR01','little'),
 'STATE':int.from_bytes(b'HIABFS01','little'),'OBJECT':int.from_bytes(b'HIABFO01','little'),
 'NMAGIC':int.from_bytes(b'HIABFN01','little'),'PMAGIC':int.from_bytes(b'HIABFA01','little'),
 'BOXMAGIC':int.from_bytes(b'HIABFB01','little'),'FREQUEST':int.from_bytes(b'HIAMVFQ1','little'),
@@ -50,9 +50,17 @@ def background_future_cell(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)!=128 or readword(s,0)!=MAGIC or readword(s,8)>13:
+    if length(s)!=128:
         return 4294967293
     op=readword(s,8)
+    if readword(s,0)==MAGIC:
+        if op>13:
+            return 4294967293
+    elif readword(s,0)==MAGIC2:
+        if op!=14:
+            return 4294967293
+    else:
+        return 4294967293
     at=16
     while at<128:
         used=False
@@ -61,6 +69,8 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if op==2 or op==3 or (op>=6 and op<=12):
             if at>=24 and at<=40:
                 used=True
+        if op==14 and at==24:
+            used=True
         if op==10 and (at==104 or at==112):
             used=True
         if op==11 and ((at>=48 and at<=64) or at==80):
@@ -132,6 +142,9 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return again(o,180)
         if op==1:
             return allocate(o,200,1024)
+        if op==14:
+            put(o,CURSOR,get(w,48))
+            return again(o,160)
         put(o,CAP,readword(s,24))
         put(o,CURSOR,get(w,16))
         return again(o,100)
@@ -165,6 +178,20 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return fail(o,0)
         put(o,NEXT,500)
         return address(o,700,PIN)
+    if phase==160:
+        if get(o,CURSOR)==0:
+            return fail(o,1)
+        put(o,OBJ,get(o,CURSOR))
+        return memory(o,161,0,get(o,OBJ),3,HEADER,160)
+    if phase==161:
+        if get(o,HEADER)!=OBJECT or get(o,HEADER+8)!=get(o,PID) or get(o,HEADER+120)!=1:
+            return fail(o,9)
+        if get(o,OBJ)+512!=readword(s,24):
+            put(o,CURSOR,get(o,HEADER+136))
+            return again(o,160)
+        if get(o,HEADER+96)!=1 or (get(o,HEADER+32)==0 and get(o,HEADER+56)==0):
+            return fail(o,1)
+        return again(o,300)
     if phase==180:
         if get(o,CURSOR)==0:
             return fail(o,0)
@@ -172,9 +199,11 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return memory(o,181,0,get(o,OBJ),3,HEADER,128)
     if phase==181:
         if get(o,HEADER+96)==3 and get(o,HEADER+32)==0 and get(o,HEADER+56)==0:
-            return unlock(o,610)
+            return write_pointer(o,182,get(o,OBJ)+96,2)
         put(o,CURSOR,get(o,HEADER+48))
         return again(o,180)
+    if phase==182:
+        return unlock(o,610)
     return fail(o,9)
 
 def create(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
