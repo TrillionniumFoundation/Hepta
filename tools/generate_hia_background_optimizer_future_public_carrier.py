@@ -55,6 +55,11 @@ C={"MAGIC":int.from_bytes("HIAPFC01".encode(),'little'),
 "FEEDBACK":448,
 "TEMP":456,
 "RANDOM_USED":464,
+"GMAGIC":int.from_bytes(b"HIABFC01",'little'),"GREPLY":int.from_bytes(b"HIABFCR1",'little'),
+"GOBJECT":int.from_bytes(b"HIABFCT1",'little'),"GCOUNT":16,
+"GCAP":512,"GPTR":536,"GBAD":544,"GNEXT":552,"GKIND":560,
+"GKEEP":568,"GSTATUS":576,"GLOST":584,"GSCAN":608,"FACTORY_ID":632,
+"GSHADOW":2304,"GREQUEST":2816,"GOUTPUT":3072,"GNODE":3200,
 "RANDOM":704,
 "FHEADER":1024,
 "CHEADER":1280,
@@ -70,6 +75,8 @@ def future_carrier(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,PHASE)
     if phase==0:
         return begin(s,o,w)
+    if phase>=1600:
+        return guarded(s,o,w,phase)
     if phase<100:
         return locks(s,o,w,phase)
     if phase<200:
@@ -151,6 +158,8 @@ def locate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
                 return again(o,100)
             if get(o,FHEADER+32)!=readword(s,24) or get(o,FHEADER+40)!=readword(s,32) or get(o,FHEADER+112)!=1 or get(o,FHEADER+56)==0:
                 return fail(o,1,107)
+            put(o,FACTORY_ID,get(o,F))
+            within(o,FACTORY_ID+8,FHEADER+32,16)
             return unlock(o,200)
         put(o,CURSOR,get(o,FHEADER+104))
         return again(o,110)
@@ -171,6 +180,8 @@ def locate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,CHEADER+96)!=1 or get(o,CHEADER+104)!=0 or get(o,CHEADER+40)!=readword(s,24):
             put(o,CALLBACK_RC,2)
             return fail(o,1,107)
+        put(o,FACTORY_ID,get(o,F))
+        within(o,FACTORY_ID+8,FHEADER+32,16)
         put(o,CURSOR,get(o,FHEADER+96))
         return again(o,120)
     if phase==120:
@@ -189,11 +200,22 @@ def locate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==122:
         return write_pointer(o,123,get(o,FRAMEPTR)+64,get(o,FRAME+64)+1)
     if phase==123:
-        return unlock(o,300)
+        put(o,GNEXT,300)
+        return unlock(o,1600)
     return fail(o,1,107)
 
 def register(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==200:
+        # Preserve the original invalid-environment ordering before reserve.
+        value_packet(o,7)
+        copy_input(s,64,o,RQ+24,24)
+        return value(o,w,205)
+    if phase==205:
+        if value_ok(o)==False:
+            return fail(o,1,choose(get(o,VP+8)==5,103,107))
+        put(o,GNEXT,206)
+        return again(o,1600)
+    if phase==206:
         value_packet(o,5)
         copy_input(s,64,o,RQ+24,24)
         return value(o,w,201)
@@ -314,7 +336,8 @@ def invoke_user(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return value(o,w,303)
     if phase==303:
         if value_ok(o)==False:
-            zero(o,RETURN_TEMP,24)
+            # A failed observation does not prove the actual owned callback
+            # result was consumed; cleanup must retain its complete fate.
             put(o,THROW_KIND,1)
             put(o,THROW_CLASS,107)
             return lock(o,500)
@@ -449,6 +472,8 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==900:
         if get(o,HELD)!=0:
             return unlock(o,900)
+        if get(o,GBAD)!=0 and get(o,GPTR)!=0:
+            return guard_bad_snapshot(o)
         if get(o,FUTURE_TEMP)!=0:
             cell_packet(o,3)
             within(o,RQ+24,FUTURE_TEMP,24)
@@ -461,6 +486,8 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             value_packet(o,6)
             within(o,RQ+24,ENV_TEMP,24)
             return value(o,w,903)
+        if get(o,GPTR)!=0:
+            return guard_snapshot(o,1640)
         if get(o,NEWC)!=0:
             if get(o,REGISTERED)!=0:
                 return raw_drop(o,w,904,get(o,NEWC))
@@ -504,8 +531,18 @@ def value_packet(o:mutbuf,op:u64) -> u64:
     put(o,RQ+8,op)
     return 0
 def cell(o:mutbuf,w:mutbuf,next:u64) -> u32:
+    if get(o,RQ+8)==3 and get(o,GPTR)!=0:
+        put(o,GKIND,1)
+        put(o,GNEXT,next)
+        put(o,GKEEP,get(o,HELD))
+        return guard_snapshot(o,1620)
     return invoke(o,next,get(w,80),RQ,128,FP,16384,get(o,F)+256,256)
 def value(o:mutbuf,w:mutbuf,next:u64) -> u32:
+    if get(o,RQ+8)==6 and get(o,GPTR)!=0:
+        put(o,GKIND,2)
+        put(o,GNEXT,next)
+        put(o,GKEEP,get(o,HELD))
+        return guard_snapshot(o,1620)
     return invoke(o,next,get(w,72),RQ,128,VP,8192,get(w,112),get(w,120))
 def cell_ok(o:mutbuf) -> bool:
     return get(o,FEEDBACK)==0 and get(o,FP)==FREPLY and get(o,FP+8)==0
@@ -542,6 +579,230 @@ def value_drop_record(o:mutbuf,op:u64) -> bool:
     put(o,VD_PENDING,pending)
     put(o,VD_STATUS,status)
     return True
+def guarded(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase<1620:
+        return guard_reserve(o,w,phase)
+    if phase<1640:
+        return guard_drop(o,w,phase)
+    if phase<1660:
+        return guard_release(o,w,phase)
+    return guard_quarantine(o,w,phase)
+
+def guard_failed(o:mutbuf) -> u64:
+    put(o,ERROR,1)
+    put(o,CLASS,107)
+    put(o,CALLBACK_RC,2)
+    return 0
+
+def guard_error(o:mutbuf,kind:u64) -> u32:
+    if get(o,OP)==1:
+        put(o,THROW_KIND,1)
+        put(o,THROW_CLASS,kind)
+        if get(o,HELD)!=0:
+            return again(o,500)
+        return lock(o,500)
+    return fail(o,1,kind)
+
+def guard_snapshot(o:mutbuf,next:u64) -> u32:
+    zero(o,GSHADOW,GCOUNT*32)
+    guard_shadow_current(o,GSHADOW)
+    return memory(o,next,3,GSHADOW,0,get(o,GPTR)+128+GCOUNT*64,GCOUNT*32)
+
+def guard_bad_snapshot(o:mutbuf) -> u32:
+    zero(o,GSHADOW+256,256)
+    guard_shadow_current(o,GSHADOW+256)
+    return memory(o,1660,3,GSHADOW,0,get(o,GPTR)+128+GCOUNT*64,GCOUNT*32)
+
+def guard_shadow_current(o:mutbuf,to:u64) -> u64:
+    guard_shadow_cap(o,to,1,FUTURE_TEMP)
+    guard_shadow_cap(o,to+32,2,RETURN_TEMP)
+    guard_shadow_cap(o,to+64,2,ENV_TEMP)
+    return 0
+
+
+def guard_reserve(o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1600:
+        guard_packet(o,0)
+        put(o,GREQUEST+96,GCOUNT)
+        return guard_call(o,w,1601)
+    if phase==1601:
+        if guard_record(o,0)==False:
+            guard_failed(o)
+            return guard_error(o,107)
+        if get(o,GOUTPUT+8)!=0:
+            return guard_error(o,choose(get(o,GOUTPUT+8)==4,103,107))
+        within(o,GCAP,GOUTPUT+16,24)
+        return lock(o,1602)
+    if phase==1602:
+        return memory(o,1603,0,get(o,F)+152,3,GSCAN,8)
+    if phase==1603:
+        if get(o,GSCAN)==0:
+            guard_failed(o)
+            return guard_error(o,107)
+        return memory(o,1604,0,get(o,GSCAN),3,GNODE,128)
+    if phase==1604:
+        if get(o,GNODE)!=GOBJECT or get(o,GNODE+8)!=get(o,PID) or get(o,GNODE+16)!=get(o,F):
+            guard_failed(o)
+            return guard_error(o,107)
+        if get(o,GSCAN)!=get(o,GCAP):
+            put(o,GSCAN,get(o,GNODE+48))
+            return again(o,1603)
+        if get(o,GNODE+24)!=get(o,FACTORY_ID+8) or get(o,GNODE+32)!=get(o,FACTORY_ID+16) or get(o,GNODE+56)!=get(o,GCAP+8) or get(o,GNODE+64)!=get(o,GCAP+16):
+            guard_failed(o)
+            return guard_error(o,107)
+        if get(o,GNODE+72)!=0 or get(o,GNODE+80)!=0 or get(o,GNODE+88)!=GCOUNT or get(o,GNODE+96)!=128+96*GCOUNT or get(o,GNODE+112)!=0:
+            guard_failed(o)
+            return guard_error(o,107)
+        put(o,GPTR,get(o,GSCAN))
+        # Reservation released the registry lock. Re-observe the live frame
+        # head before linking this call's callback frame under the same lock.
+        return memory(o,1605,0,get(o,F),3,FHEADER,256)
+    if phase==1605:
+        return unlock(o,get(o,GNEXT))
+    return guard_error(o,107)
+
+def guard_drop(o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1620:
+        if get(o,HELD)!=0:
+            return unlock(o,1620)
+        guard_packet(o,1)
+        put(o,GREQUEST+64,get(o,GKIND))
+        within(o,GREQUEST+72,RQ+24,24)
+        return guard_call(o,w,1621)
+    if phase==1621:
+        put(o,GSTATUS,choose(get(o,GKIND)==1,9,11))
+        if guard_record(o,1)==False:
+            put(o,GBAD,1)
+            guard_failed(o)
+        elif get(o,GOUTPUT+56)!=1:
+            put(o,GBAD,1)
+            guard_failed(o)
+        elif get(o,GOUTPUT+8)==0:
+            put(o,GSTATUS,0)
+        else:
+            guard_failed(o)
+        if get(o,GKEEP)!=0:
+            return lock(o,1622)
+        return again(o,1622)
+    if phase==1622:
+        at=choose(get(o,GKIND)==1,FP,VP)
+        zero(o,at,128)
+        put(o,at,choose(get(o,GKIND)==1,FREPLY,VREPLY))
+        put(o,at+8,get(o,GSTATUS))
+        put(o,FEEDBACK,0)
+        return again(o,get(o,GNEXT))
+    return guard_error(o,107)
+
+def guard_release(o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1640:
+        guard_packet(o,2)
+        return guard_call(o,w,1641)
+    if phase==1641:
+        within(o,GLOST,GCAP,24)
+        zero(o,GCAP,24)
+        put(o,GPTR,0)
+        if guard_record(o,2)==False:
+            guard_failed(o)
+            return lock(o,1670)
+        if get(o,GOUTPUT+56)!=1:
+            guard_failed(o)
+            return lock(o,1670)
+        if get(o,GOUTPUT+8)!=0:
+            guard_failed(o)
+        return again(o,900)
+    return guard_error(o,107)
+
+def guard_quarantine(o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1660:
+        if get(o,HELD)!=0:
+            return again(o,1661)
+        return lock(o,1661)
+    if phase==1661:
+        return write_pointer(o,1662,get(o,GPTR)+112,1)
+    if phase==1662:
+        return write_pointer(o,1663,get(o,GPTR)+72,1)
+    if phase==1663:
+        # The independently linked shadow now owns the complete unresolved
+        # temporary-reference callsite. No original drop may be replayed.
+        zero(o,FUTURE_TEMP,24)
+        zero(o,RETURN_TEMP,24)
+        zero(o,ENV_TEMP,24)
+        zero(o,GCAP,24)
+        put(o,GPTR,0)
+        put(o,GBAD,0)
+        guard_failed(o)
+        return again(o,900)
+    if phase==1670:
+        # Release may already have freed an empty guard. Preserve its exact
+        # identity in the actual factory; never dereference or replay it.
+        return memory(o,1671,3,GLOST,0,get(o,F)+168,24)
+    if phase==1671:
+        return write_pointer(o,900,get(o,F)+144,1)
+    return guard_error(o,107)
+
+def guard_shadow_cap(o:mutbuf,to:u64,kind:u64,at:u64) -> u64:
+    if get(o,at)!=0:
+        put(o,to,kind)
+        within(o,to+8,at,24)
+    return 0
+
+def guard_packet(o:mutbuf,op:u64) -> u64:
+    zero(o,GREQUEST,192)
+    put(o,GREQUEST,GMAGIC)
+    put(o,GREQUEST+8,op)
+    within(o,GREQUEST+16,FACTORY_ID,24)
+    if op==1 or op==2:
+        within(o,GREQUEST+40,GCAP,24)
+    return 0
+
+def guard_call(o:mutbuf,w:mutbuf,next:u64) -> u32:
+    if get(w,200)==0:
+        put(o,FEEDBACK,MAX)
+        return again(o,next)
+    return invoke(o,next,get(w,200),GREQUEST,192,GOUTPUT,128,get(o,WPTR),256)
+
+def guard_record(o:mutbuf,op:u64) -> bool:
+    if get(o,FEEDBACK)!=0 or get(o,GOUTPUT)!=GREPLY:
+        return False
+    status=get(o,GOUTPUT+8)
+    pending=get(o,GOUTPUT+40)
+    known=get(o,GOUTPUT+48)
+    taken=get(o,GOUTPUT+56)
+    raw=get(o,GOUTPUT+64)
+    if status!=0 and status!=1 and status!=4 and status!=5 and status!=9:
+        return False
+    if pending>1 or known>1 or taken>1:
+        return False
+    if known==0 and status!=9:
+        return False
+    if raw!=0 and raw!=1 and raw!=5 and raw!=6 and raw!=9 and raw!=11:
+        return False
+    if taken==1 and status!=0 and status!=9:
+        return False
+    at=88
+    while at<128:
+        if get(o,GOUTPUT+at)!=0:
+            return False
+        at=at+8
+    if op==0:
+        if known!=1 or taken!=0 or raw!=0:
+            return False
+        if status==0:
+            ptr=get(o,GOUTPUT+16)
+            return ptr!=0 and ptr<=MAX-(128+96*GCOUNT) and pending==1 and get(o,GOUTPUT+72)==128+96*GCOUNT and get(o,GOUTPUT+80)==GCOUNT
+    else:
+        if get(o,GOUTPUT+72)!=0 or get(o,GOUTPUT+80)!=0:
+            return False
+        if status==0 and (known!=1 or raw!=0):
+            return False
+        if op==3 and taken!=0:
+            return False
+        if (op==1 or op==2) and status==0 and taken!=1:
+            return False
+        if op==1 and status==0 and pending!=1:
+            return False
+    return get(o,GOUTPUT+16)==0 and get(o,GOUTPUT+24)==0 and get(o,GOUTPUT+32)==0 and get(o,GOUTPUT+72)==0 and get(o,GOUTPUT+80)==0
+
 def raw_drop(o:mutbuf,w:mutbuf,next:u64,p:u64) -> u32:
     put(o,PHASE,next)
     put(o,0,get(w,104))
