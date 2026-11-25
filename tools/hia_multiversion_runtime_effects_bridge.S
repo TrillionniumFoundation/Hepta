@@ -39,6 +39,8 @@ hia_mv_runtime_effects:
  .Laction:
  cmp eax,25
  je .Lcapture
+ cmp eax,27
+ je .Lsnapshot_capture
  test eax,eax
  je .Ldone
  cmp eax,10
@@ -61,6 +63,12 @@ hia_mv_runtime_effects:
  je .Lnative
  cmp eax,22
  je .Limage_span
+ cmp eax,26
+ je .Lroles
+ cmp eax,28
+ je .Lroles
+ cmp eax,29
+ je .Lroles
  cmp eax,23
  je .Lroles
  cmp eax,24
@@ -89,6 +97,12 @@ hia_mv_runtime_effects:
  mov r8,[rsp+136]
  mov r9,[r13+64]
  mov eax,[rsp+80]
+ cmp eax,26
+ je .Lsnapshot
+ cmp eax,28
+ je .Lsnapshot_retirement
+ cmp eax,29
+ je .Lsnapshot_number
  cmp eax,23
  je .Linformation
  cmp eax,24
@@ -123,6 +137,32 @@ hia_mv_runtime_effects:
  hash_hole:
  .long 0
  jmp .Lfeedback
+.Lsnapshot:
+ .byte 0xe8
+ snapshot_hole:
+ .long 0
+ jmp .Lfeedback
+.Lsnapshot_retirement:
+ .byte 0xe8
+ snapshot_retirement_hole:
+ .long 0
+ jmp .Lfeedback
+.Lsnapshot_number:
+ .byte 0xe8
+ snapshot_number_hole:
+ .long 0
+ jmp .Lfeedback
+.Lsnapshot_capture:
+ mov rdi,r12
+ mov rsi,r15
+ mov rdx,r13
+ mov rcx,rbp
+ mov r8,r14
+ mov r9,rbx
+ .byte 0xe8
+ snapshot_capture_hole:
+ .long 0
+ jmp .Laction
 .Lcapture:
  mov rdi,r12
  mov rsi,r15

@@ -38,6 +38,14 @@ C={
 'COOR':8192,'IDENTITY':32768,'SLOTS':65536,'PARENT':73728,'DIRECTORY':77824,
 'DIR_STAT':82000,'DIR_FDSTAT':82160,'DMETA':82500,
 'DSTATE':86016,'DINPUT':90624,'DOUTPUT':94912,
+'DC':96000,'DC_VALID':96008,'DC_FLAGS':96016,'DC_FENCE':96024,
+'DC_RETURN':96032,'DC_EVENT':96040,'DC_CODE':96048,'DC_ACQ':96056,
+'DC_CLOSE':96064,'DC_OPEN_STAGE':96072,'DC_OPEN_RAW':96080,'DC_ACQ_REASON':96088,
+'DC_STATUS':96096,'DC_TIME':96104,'DC_ERROR':96112,'DC_RECEIPT':96128,
+'DC_ATTESTED':96256,'DC_OBS':96768,'DC_BEFORE':96896,'DC_AFTER':97024,
+'DC_PIN':97280,'DC_PIN_META':101888,
+'SHISTORY':102400,'SHHEAD':104448,'SHCOUNT':104456,
+'SPENDING_HEAD':104464,'SPENDING_TAIL':104472,
 'PHASE':128,'FEEDBACK':136,'OP':144,'ACTION':152,'NEXT':160,'GEN':168,'SLOT':176,
 'SUBOP':184,'NOW':192,'FRAME_N':200,'ERROR':208,'TOKEN':216,
 'LOCK_OFFSET':224,'LOCK_NEXT':232,'LOCK_ACTION':240,'RELEASE_MASK':248,
@@ -59,6 +67,8 @@ def runtime_effects(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,PHASE)
     if phase==0:
         return begin(s,o,w)
+    if phase>=1300:
+        return 27
     if phase>=1200:
         return 25
     if phase>=1000:
@@ -640,6 +650,8 @@ def generation(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,GOUT)!=GENREP or get(o,FEEDBACK)!=get(o,GOUT+8):
             return feedback(o,9)
         within(o,RETIRE_RESULT,GOUT,4096)
+        if get(o,I_PUBLIC)==1:
+            return again(o,1500)
         identity_request(o,12,0)
         return identity_call(o,344)
     if phase==343:
@@ -785,6 +797,8 @@ def finish_context(o:mutbuf,w:mutbuf) -> u32:
         return result(o,w,5)
     if get(w,DMETA)!=0 and (get(w,DOUTPUT+40)&1)==0:
         return result(o,w,5)
+    if get(w,SHCOUNT)!=0:
+        return again(o,1700)
     if get(w,IDENTITY+30000)!=0:
         identity_request(o,11,0)
         return identity_call(o,930)
@@ -870,6 +884,8 @@ def completion_cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return again(o,931)
     if phase==932:
         return again(o,931)
+    if phase==933:
+        return finish_context(o,w)
     return result(o,w,9)
 
 def release_lease(o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -1330,6 +1346,8 @@ def generation_release(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==352:
         if get(o,GO+64)!=0:
             return private_lock(o,2,264,get(o,AFTER_GEN))
+        if get(o,GO+184)!=0 or get(o,GO+224)!=0:
+            return again(o,1800)
         if get(o,GO+32)!=0:
             return system(o,353,11,0,get(o,GO+32),GW,0,0,0,0)
         put(o,FEEDBACK,0)
@@ -1419,7 +1437,7 @@ def directory(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(w,DINPUT+32,1)
         within(w,DINPUT+128,DIRECTORY,get(w,224))
         put(o,DINPUT_N,128+get(w,224))
-        return directory_submit(o,702)
+        return directory_submit(o,w,702)
     if phase==702:
         put(w,DMETA,1)
         return system(o,703,83,1,DIRECTORY,448,0,0,0,0)
@@ -1438,22 +1456,26 @@ def directory(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(w,DINPUT+32,1)
         put(w,DINPUT+40,get(w,DIR_STAT))
         put(w,DINPUT+48,get(w,DIR_STAT+8))
-        return directory_submit(o,705)
+        return directory_submit(o,w,705)
     if phase==705:
         put(o,DTOKEN,get(w,DOUTPUT+24))
+        put(w,DC_OPEN_STAGE,1)
         return system(o,706,257,4,NONE-99,DIRECTORY,2818048,0,0,0)
     if phase==706:
         raw=get(o,FEEDBACK)
+        put(w,DC_OPEN_STAGE,2)
+        put(w,DC_OPEN_RAW,raw)
         if raw==NONE-3:
             return system(o,706,257,4,NONE-99,DIRECTORY,2818048,0,0,0)
         if raw>=NEGATIVE:
             put(w,DMETA+32,raw)
+            put(w,DC_ACQ,raw)
             directory_request(o,w,5,get(o,DTOKEN))
-            return directory_submit(o,713)
+            return directory_submit(o,w,713)
         put(w,232,raw)
         directory_request(o,w,3,get(o,DTOKEN))
         put(w,DINPUT+32,raw)
-        return directory_submit(o,707)
+        return directory_submit(o,w,707)
     if phase==707:
         return system(o,708,5,4,get(w,232),DIR_FDSTAT,0,0,0,0)
     if phase==708:
@@ -1462,21 +1484,23 @@ def directory(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return system(o,708,5,4,get(w,232),DIR_FDSTAT,0,0,0,0)
         if raw!=0:
             put(w,DMETA+32,raw)
+            put(w,DC_ACQ,raw)
             directory_request(o,w,5,get(o,DTOKEN))
-            return directory_submit(o,713)
+            return directory_submit(o,w,713)
         return system(o,709,262,20,NONE-99,DIRECTORY,DIR_STAT,256,0,0)
     if phase==709:
         if get(o,FEEDBACK)!=0:
             put(w,DMETA+32,get(o,FEEDBACK))
+            put(w,DC_ACQ,get(o,FEEDBACK))
             directory_request(o,w,5,get(o,DTOKEN))
-            return directory_submit(o,713)
+            return directory_submit(o,w,713)
         directory_request(o,w,4,get(o,DTOKEN))
         put(w,DINPUT+32,get(w,DIR_FDSTAT))
         put(w,DINPUT+40,get(w,DIR_FDSTAT+8))
         put(w,DINPUT+48,get(w,DIR_FDSTAT+24))
         put(w,DINPUT+56,get(w,DIR_STAT))
         put(w,DINPUT+64,get(w,DIR_STAT+8))
-        return directory_submit(o,710)
+        return directory_submit(o,w,710)
     if phase==710:
         identity_request(o,0,0)
         return identity_call(o,714)
@@ -1509,10 +1533,12 @@ def directory(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(w,DINPUT+24,get(o,NOW))
         return role(o,791,19,1,DINPUT,get(o,DINPUT_N),1,DOUTPUT,64,1,DSTATE,4608)
     if phase==791:
-        if get(o,FEEDBACK)!=64 or get(w,DOUTPUT)!=DREP:
-            return feedback(o,9)
+        valid=directory_attest(o,w)
+        if valid!=0:
+            return feedback(o,choose(valid==1,9,6))
         if get(w,DOUTPUT+8)!=0:
             put(w,DMETA+40,get(w,DOUTPUT+8))
+            put(w,DC_ACQ_REASON,get(w,DOUTPUT+8))
             return feedback(o,6)
         return again(o,get(o,DNEXT))
     return result(o,w,9)
@@ -1525,6 +1551,9 @@ def directory_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         raw=get(o,FEEDBACK)
         directory_request(o,w,9,0)
         if raw==0:
+            put(w,DC_OBS+16,1)
+            put(w,DC_OBS+24,get(w,DIR_STAT))
+            put(w,DC_OBS+32,get(w,DIR_STAT+8))
             put(w,DINPUT+40,get(w,DIR_STAT))
             put(w,DINPUT+48,get(w,DIR_STAT+8))
             put(w,DINPUT+56,get(w,DIR_STAT+24))
@@ -1532,8 +1561,11 @@ def directory_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(w,DINPUT+32,choose(raw==NONE-1,1,2))
             if raw!=NONE-1:
                 put(w,DMETA+32,raw)
-        return directory_submit(o,752)
+                put(w,DC_OBS+40,raw)
+                put(w,DC_OBS+48,1)
+        return directory_submit(o,w,752)
     if phase==752:
+        put(w,DC_OBS,get(w,DOUTPUT+56))
         put(o,DTOKEN,get(w,DOUTPUT+24))
         if get(w,DOUTPUT+16)==3:
             return system(o,753,5,4,get(w,DOUTPUT+32),DIR_FDSTAT,0,0,0,0)
@@ -1550,11 +1582,16 @@ def directory_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(w,DINPUT+32,choose(raw==NONE-1,1,2))
             if raw!=NONE-1:
                 put(w,DMETA+32,raw)
-        return directory_submit(o,754)
+                put(w,DC_OBS+40,raw)
+                put(w,DC_OBS+48,0)
+        return directory_submit(o,w,754)
     if phase==754:
+        put(w,DC_OBS,get(w,DOUTPUT+56))
         put(o,DTOKEN,get(w,DOUTPUT+24))
         return directory_decide(o,w)
     if phase==755:
+        put(w,DC_TIME,get(w,DINPUT+24))
+        put(w,DC_STATUS,get(w,DOUTPUT+32))
         put(w,DMETA+48,get(w,DOUTPUT+32))
         if get(w,DOUTPUT+16)==6:
             put(o,DTOKEN,get(w,DOUTPUT+24))
@@ -1567,16 +1604,18 @@ def directory_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(w,DINPUT+32,choose(raw==NONE-1,1,2))
             if raw!=NONE-1:
                 put(w,DMETA+32,raw)
-        return directory_submit(o,757)
+                put(w,DC_ERROR,raw)
+        return directory_submit(o,w,757)
     if phase==757:
+        put(w,DC_STATUS,get(w,DOUTPUT+32))
         put(w,DMETA+48,get(w,DOUTPUT+32))
         return directory_release(o,w)
     if phase==760:
         directory_request(o,w,6,0)
-        return directory_submit(o,761)
+        return directory_submit(o,w,761)
     if phase==761:
         if get(w,DOUTPUT+16)==0:
-            return feedback(o,0)
+            return directory_after(o,w)
         if get(w,DOUTPUT+16)!=4:
             return feedback(o,9)
         put(o,DTOKEN,get(w,DOUTPUT+24))
@@ -1586,11 +1625,20 @@ def directory_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==762:
         raw=get(o,FEEDBACK)
         put(w,DMETA+56,raw)
+        put(w,DC_CLOSE,raw)
         directory_request(o,w,7,get(o,DTOKEN))
         put(w,DINPUT+32,choose(raw==0,1,0))
-        return directory_submit(o,763)
+        return directory_submit(o,w,763)
     if phase==763:
-        return feedback(o,0)
+        return directory_after(o,w)
+    if phase==774:
+        zero(w,DC_OBS,128)
+        put(w,DC_OBS+8,get(o,NOW))
+        if get(w,DC_FENCE)!=0:
+            put(w,DC_OBS,6)
+            put(w,DC_OBS+56,1)
+            return directory_decide(o,w)
+        return system(o,751,262,20,NONE-99,DIRECTORY,DIR_STAT,256,0,0)
     return result(o,w,9)
 
 def directory_observe(o:mutbuf,w:mutbuf) -> u32:
@@ -1598,19 +1646,36 @@ def directory_observe(o:mutbuf,w:mutbuf) -> u32:
         if get(o,DMODE)!=0:
             return snapshot_copy(o,w)
         return feedback(o,0)
-    return system(o,751,262,20,NONE-99,DIRECTORY,DIR_STAT,256,0,0)
+    return clock(o,774)
 
 def directory_decide(o:mutbuf,w:mutbuf) -> u32:
-    if get(o,DMODE)!=0:
+    if get(o,DMODE)==1:
         return snapshot_copy(o,w)
+    if get(o,DMODE)==2:
+        within(w,DC_AFTER,DC_OBS,128)
+        within(w,DC_PIN,DSTATE,4608)
+        if get(w,DC_FENCE)!=0:
+            within(w,DC_PIN,DC_ATTESTED,512)
+        within(w,DC_PIN_META,DC,128)
+        return feedback(o,0)
+    within(w,DC_BEFORE,DC_OBS,128)
+    put(w,DC_ERROR,0)
+    if get(w,DC_FENCE)!=0:
+        put(w,DC_TIME,get(o,NOW))
+        put(w,DC_STATUS,3)
+        return directory_after(o,w)
     directory_request(o,w,11,get(o,DTOKEN))
-    return directory_submit(o,755)
+    return directory_submit(o,w,755)
+
+def directory_after(o:mutbuf,w:mutbuf) -> u32:
+    put(o,DMODE,2)
+    return directory_observe(o,w)
 
 def directory_release(o:mutbuf,w:mutbuf) -> u32:
     if get(w,DOUTPUT+16)==8:
         directory_request(o,w,8,0)
-        return directory_submit(o,760)
-    return feedback(o,0)
+        return directory_submit(o,w,760)
+    return directory_after(o,w)
 
 def directory_request(o:mutbuf,w:mutbuf,event:u64,token:u64) -> u64:
     zero(w,DINPUT,128)
@@ -1622,9 +1687,63 @@ def directory_request(o:mutbuf,w:mutbuf,event:u64,token:u64) -> u64:
     put(o,DINPUT_N,128)
     return 0
 
-def directory_submit(o:mutbuf,next:u64) -> u32:
+def directory_submit(o:mutbuf,w:mutbuf,next:u64) -> u32:
     put(o,DNEXT,next)
+    if get(w,DINPUT+8)==9:
+        put(w,DINPUT+24,get(w,DC_OBS+8))
+        return role(o,791,19,1,DINPUT,get(o,DINPUT_N),1,DOUTPUT,64,1,DSTATE,4608)
     return clock(o,790)
+
+
+def directory_attest(o:mutbuf,w:mutbuf) -> u64:
+    reason=0
+    raw=get(o,FEEDBACK)
+    code=get(w,DOUTPUT+8)
+    action=get(w,DOUTPUT+16)
+    flags=get(w,DOUTPUT+40)
+    event=get(w,DINPUT+8)
+    if raw!=64:
+        reason=1
+    elif get(w,DOUTPUT)!=DREP or code>7 or action>8 or flags>15 or get(w,DOUTPUT+56)>6:
+        reason=2
+    elif code!=0 and code!=3 and code!=5:
+        reason=3
+    elif (code==3 and event!=2) or (code==5 and event!=4) or (code!=0 and action!=0):
+        reason=4
+    elif code==0 and directory_action(event,action)==0:
+        reason=4
+    elif action>0 and action<8 and get(w,DOUTPUT+24)==0:
+        reason=4
+    elif get(w,DSTATE+16)!=get(w,DOUTPUT+48) or get(w,DSTATE+440)!=get(w,16) or get(w,DSTATE+448)!=get(w,24):
+        reason=5
+    if reason!=0:
+        if get(w,DC_FENCE)==0:
+            put(w,DC_FENCE,reason)
+            put(w,DC_RETURN,raw)
+            put(w,DC_EVENT,event)
+            put(w,DC_CODE,code)
+            within(w,DC_RECEIPT,DOUTPUT,64)
+        put(w,DC_FLAGS,0)
+        return reason
+    put(w,DC_FLAGS,flags)
+    within(w,DC_ATTESTED,DSTATE,512)
+    put(w,DC_VALID,1)
+    return 0
+
+def directory_action(event:u64,action:u64) -> u64:
+    if event==2:
+        return choose(action==1 or action==2,1,0)
+    if event==3:
+        return choose(action==3,1,0)
+    if event==6:
+        return choose(action==0 or action==4,1,0)
+    if event==9:
+        return choose(action==0 or action==3,1,0)
+    if event==11:
+        return choose(action==0 or action==6 or action==8,1,0)
+    if event==12:
+        return choose(action==0 or action==8,1,0)
+    return choose(action==0,1,0)
 
 def directory_name(o:mutbuf,w:mutbuf) -> u64:
     n=get(w,216)
@@ -1655,6 +1774,8 @@ def snapshot(o:mutbuf,w:mutbuf) -> u32:
     return directory_observe(o,w)
 
 def snapshot_copy(o:mutbuf,w:mutbuf) -> u32:
+    if get(o,I_PUBLIC)==1:
+        return again(o,1300)
     copy(o,FRAME,w,COOR,24576)
     copy(o,FRAME+24576,w,DSTATE,4608)
     copy(o,FRAME+29184,w,SLOTS,1024)

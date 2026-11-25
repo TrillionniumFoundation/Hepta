@@ -164,6 +164,126 @@ def discard(o:mutbuf,w:mutbuf,slot:u64) -> u64:
         put(o,352,get(o,352)|(1<<slot))
     return 0
 """
+    # Exact insertion order is a finite ordering of the existing 64 owned
+    # slots, not a numeric generation/epoch counter. Keep a locked copy for
+    # close/retry so removing an entry cannot skip its successor.
+    s=s.replace('        put(w,120,0)','        put(w,120,0)\n        put(w,128,0)\n        put(w,136,0)')
+    s=s.replace('        put(w,512,2)','        put(w,512,2)\n        order_add(w,136,24064,0)')
+    s=s.replace('        put(w,record(slot),2)','        put(w,record(slot),2)\n        order_add(w,136,24064,slot)')
+    s=s.replace('        put(w,record(slot),6)','        put(w,record(slot),6)\n        order_add(w,128,23552,slot)')
+    s=s.replace('            put(w,record(slot),6)','            put(w,record(slot),6)\n            order_add(w,128,23552,slot)') if False else s
+    # The exact original indent is preserved by line-wise insertion.
+    lines=[]
+    for line in s.splitlines():
+        lines.append(line)
+        body=line.lstrip()
+        indent=line[:-len(body)] if body else ''
+        if body=='put(w,record(slot),4)':
+            lines.append(indent+'order_add(w,128,23552,slot)')
+            lines.append(indent+'order_remove(w,136,24064,slot)')
+        if body=='put(w,record(get(o,40)),1)':
+            lines.append(indent+'order_remove(w,136,24064,get(o,40))')
+    s='\n'.join(lines)+'\n'
+    # Correct the generic six-state insertion to its surrounding indent.
+    s=s.replace('            put(w,record(slot),6)\n        order_add(w,128,23552,slot)',
+                '            put(w,record(slot),6)\n            order_add(w,128,23552,slot)')
+    s=s.replace('def clear_record(w:mutbuf,slot:u64) -> u64:\n    i=0',
+                'def clear_record(w:mutbuf,slot:u64) -> u64:\n    order_remove(w,128,23552,slot)\n    order_remove(w,136,24064,slot)\n    i=0')
+    s=s.replace('        put(o,232,0)\n        return close_next(o,w)',
+                '        put(o,232,0)\n        order_capture(o,w,136,24064)\n        return close_next(o,w)')
+    s=s.replace('        put(o,224,0)\n        return cleanup_next(o,w)',
+                '        put(o,224,0)\n        order_capture(o,w,128,23552)\n        return cleanup_next(o,w)')
+    old='''def close_next(o:mutbuf,w:mutbuf) -> u32:
+    i=get(o,224)
+    while i<64:
+        if (get(w,record(i))&2)!=0:
+            put(o,224,i)
+            put(o,32,i)
+            put(o,144,503)
+            return issue(o,25,660,i,3)
+        i=i+1'''
+    new='''def close_next(o:mutbuf,w:mutbuf) -> u32:
+    i=get(o,224)
+    while i<get(o,368):
+        slot=get(o,512+i*8)
+        if slot<64 and (get(w,record(slot))&2)!=0:
+            put(o,224,i)
+            put(o,32,slot)
+            put(o,144,503)
+            return issue(o,25,660,slot,3)
+        i=i+1'''
+    assert old in s;s=s.replace(old,new)
+    old='''def cleanup_next(o:mutbuf,w:mutbuf) -> u32:
+    i=get(o,224)
+    while i<64:
+        if (get(w,record(i))&4)!=0:
+            put(o,224,i)
+            put(o,32,i)
+            if get(w,record(i))==6:
+                put(o,144,603)
+                return issue(o,25,661,i,5)
+            # Mode 3 retries path cleanup only. fd/dlclose and identity-close
+            # uncertainty remain with the same existing retirement owner.
+            return issue(o,26,603,i,3)
+        i=i+1'''
+    new='''def cleanup_next(o:mutbuf,w:mutbuf) -> u32:
+    i=get(o,224)
+    while i<get(o,368):
+        slot=get(o,512+i*8)
+        if slot<64 and (get(w,record(slot))&4)!=0:
+            put(o,224,i)
+            put(o,32,slot)
+            if get(w,record(slot))==6:
+                put(o,144,603)
+                return issue(o,25,661,slot,5)
+            return issue(o,26,603,slot,3)
+        i=i+1'''
+    assert old in s;s=s.replace(old,new)
+    s+='''
+def order_add(w:mutbuf,count:u64,base:u64,slot:u64) -> u64:
+    n=get(w,count)
+    i=0
+    if n>64 or slot>=64:
+        return 0
+    while i<n:
+        if get(w,base+i*8)==slot:
+            return 1
+        i=i+1
+    if n==64:
+        return 0
+    put(w,base+n*8,slot)
+    put(w,count,n+1)
+    return 1
+
+def order_remove(w:mutbuf,count:u64,base:u64,slot:u64) -> u64:
+    n=get(w,count)
+    if n>64:
+        return 0
+    i=0
+    while i<n and get(w,base+i*8)!=slot:
+        i=i+1
+    if i==n:
+        return 1
+    while i+1<n:
+        put(w,base+i*8,get(w,base+(i+1)*8))
+        i=i+1
+    put(w,base+(n-1)*8,0)
+    put(w,count,n-1)
+    return 1
+
+def order_capture(o:mutbuf,w:mutbuf,count:u64,base:u64) -> u64:
+    n=get(w,count)
+    if n>64:
+        put(o,368,0)
+        return 0
+    put(o,368,n)
+    i=0
+    while i<n:
+        put(o,512+i*8,get(w,base+i*8))
+        i=i+1
+    return 1
+'''
+
     s=s.replace('MAGIC',str(MAGIC)).replace('STATE',str(STATE)).replace('NONE',str(NONE))
     return s
 def main():

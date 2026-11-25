@@ -9,6 +9,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={'REQ':int.from_bytes(b'HIAMVID1','little'),'REP':int.from_bytes(b'HIAMVIDR','little'),
+'COUNTER_REQ':int.from_bytes(b'HIAMVID2','little'),
 'STATE':int.from_bytes(b'HIAMVIDS','little'),'NREQ':int.from_bytes(b'HIAMVNB1','little'),
 'NREP':int.from_bytes(b'HIAMVNR1','little'),'VREQ_MAGIC':int.from_bytes(b'HIAMVU01','little'),
 'VREP_MAGIC':int.from_bytes(b'HIAMVUR1','little'),'NODE_MAGIC':int.from_bytes(b'HIAMVUN1','little'),
@@ -24,7 +25,9 @@ def runtime_identity(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     phase=get(o,PHASE)
     if phase==0:
-        if word(s,0)!=REQ or word(s,8)>13 or word(s,56)!=0:
+        if (word(s,0)!=REQ and word(s,0)!=COUNTER_REQ) or word(s,56)!=0:
+            return 4294967293
+        if (word(s,0)==REQ and word(s,8)>13) or (word(s,0)==COUNTER_REQ and (word(s,8)<14 or word(s,8)>15)):
             return 4294967293
         op=word(s,8)
         selector=word(s,16)
@@ -38,7 +41,7 @@ def runtime_identity(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return 4294967293
         if op!=1 and op!=5 and op!=6 and op!=7 and op!=9 and op!=10 and selector!=0:
             return 4294967293
-        if op!=8 and op!=9 and op!=13 and (word(s,24)!=0 or word(s,32)!=0 or word(s,40)!=0):
+        if op!=8 and op!=9 and op!=13 and op!=15 and (word(s,24)!=0 or word(s,32)!=0 or word(s,40)!=0):
             return 4294967293
         if word(s,48)!=0:
             return 4294967293
@@ -175,6 +178,17 @@ def operation(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return again(o,300)
         if op==12:
             return value_cap(o,w,160,4,ATTEMPTS)
+        if op==14:
+            value_request(o,1)
+            put(o,VINPUT+72,1)
+            store(o,VINPUT+128,48)
+            return value_call(o,170,129)
+        if op==15:
+            value_request(o,4)
+            put(o,VINPUT+24,word(s,24))
+            put(o,VINPUT+32,word(s,32))
+            put(o,VINPUT+40,word(s,40))
+            return value_call(o,170,128)
         return fail(o,9)
     if phase==101:
         if valid_number(o)==0:
@@ -274,6 +288,14 @@ def operation(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return fail(o,9)
         zero(w,GENS+selector*32,32)
         return fail(o,0)
+    if phase==170:
+        if valid_value(o)==0:
+            return fail(o,get(o,CHILD+8))
+        within(o,SAVE,CHILD+16,32)
+        put(o,RESULT+72,1)
+        return memory(o,171,0,get(o,SAVE),3,NODE,96)
+    if phase==171:
+        return identity_result(o,w,0)
     if phase==160:
         if valid_value(o)==0:
             return fail(o,4)
