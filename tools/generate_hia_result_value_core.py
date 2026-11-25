@@ -250,11 +250,11 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         key=get(o,G_B)
         if get(w,key+8)==5 or get(w,key+8)==6:
             return done(o,2)
-        if op==10 and get(w,key+8)!=4 and get(w,a+120)==0:
-            put(o,G_PHASE,6)
-            return 10
         found=dict_find(w,a,key)
         put(o,G_FOUND,found)
+        if op==10 and found==MAX and get(w,key+8)!=4 and get(w,a+120)==0:
+            put(o,G_PHASE,6)
+            return 10
         if found==MAX and op!=10:
             return done(o,3)
         if op==9:

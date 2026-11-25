@@ -435,14 +435,17 @@ def author_allocation_cases():
     engine = AuthorEngine()
     v = Values(engine)
     d = v.dictionary([('a', 1)])
-    key, value = v.scalar(StringAlias('a')), v.scalar(2)
+    key, value = v.scalar(StringAlias('new')), v.scalar(2)
     engine.allocation_attempts = 0
     engine.allocation_fault = 1
     v.raw(10, a=d, b=key, c=value, want=5)
     assert engine.growth_failures == 2
     engine.allocation_fault = None
-    result = v.keep(v.raw(9, a=d, b=key))
-    assert v.python(result) == 1
+    v.raw(9, a=d, b=key, want=3)
+    original_key=v.scalar('a')
+    result=v.keep(v.raw(9,a=d,b=original_key))
+    assert v.python(result)==1
+    v.drop(original_key)
     v.raw(10, a=d, b=key, c=value)
     result = v.keep(v.raw(9, a=d, b=key))
     assert v.python(result) == 2

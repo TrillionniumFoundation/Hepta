@@ -42,19 +42,22 @@ class Notification(C.Structure):
 class Response(C.Structure):
     _fields_=[('id',C.c_ulonglong),('value',C.c_longlong),('error',C.c_int),('flags',C.c_uint)]
 
-def notify_filter(address):
-    # Only munmap of this child's exact private arena is mediated. All other
-    # system calls retain their real kernel behavior.
-    instructions=(Filter*8)(
-        Filter(0x20,0,0,0),
-        Filter(0x15,0,5,11),
-        Filter(0x20,0,0,16),
-        Filter(0x15,0,3,address&0xffffffff),
-        Filter(0x20,0,0,20),
-        Filter(0x15,0,1,address>>32),
-        Filter(0x06,0,0,0x7fc00000),
-        Filter(0x06,0,0,0x7fff0000))
-    program=Program(len(instructions),instructions)
+def notify_filter(address,size=None,ip=None):
+    # Bind mediation to the exact owned native syscall as well as its arena.
+    # After successful munmap libc may reuse the same address for other work;
+    # those unrelated calls must never be counted as product cleanup.
+    checks=[(0,11),(16,address&0xffffffff),(20,address>>32)]
+    if size is not None:checks.extend(((24,size&0xffffffff),(28,size>>32)))
+    if ip is not None:checks.extend(((8,ip&0xffffffff),(12,ip>>32)))
+    count=len(checks)*2+2
+    instructions=[]
+    for at,value in checks:
+        instructions.append(Filter(0x20,0,0,at))
+        index=len(instructions)
+        instructions.append(Filter(0x15,0,count-index-2,value))
+    instructions.extend((Filter(0x06,0,0,0x7fc00000),Filter(0x06,0,0,0x7fff0000)))
+    native=(Filter*count)(*instructions)
+    program=Program(count,native)
     if LIBC.prctl(38,1,0,0,0)!=0:raise OSError(C.get_errno(),'prctl private no_new_privs')
     fd=LIBC.syscall(317,1,8,C.byref(program))
     if fd<0:raise OSError(C.get_errno(),'seccomp private NEW_LISTENER')
@@ -74,6 +77,8 @@ class Native:
         self.mapping=mmap.mmap(-1,len(self.raw),prot=mmap.PROT_READ|mmap.PROT_WRITE|mmap.PROT_EXEC)
         self.mapping.write(self.raw)
         self.view=(C.c_ubyte*len(self.raw)).from_buffer(self.mapping)
+        assert self.raw[:616].count(b'\x0f\x05')==1
+        self.syscall_ip=C.addressof(self.view)+self.raw[:616].index(b'\x0f\x05')+2
         self.function=C.CFUNCTYPE(C.c_uint32,C.c_void_p,C.c_uint64,C.c_void_p,C.c_uint64,C.c_void_p,C.c_uint64)(C.addressof(self.view))
         self.context=C.create_string_buffer(256)
         self.rows=[]
@@ -123,9 +128,9 @@ class Native:
         else:
             assert all(word(w,p)==0 for p in(16,40,80,88,96,104))
 
-def inject_ready(sock,address,size):
-    listener=notify_filter(address)
-    send_json(sock,dict(ready=True,address=address,size=size),listener)
+def inject_ready(sock,address,size,ip=None):
+    listener=notify_filter(address,size,ip)
+    send_json(sock,dict(ready=True,address=address,size=size,ip=ip),listener)
     os.close(listener)
 
 def fixture_child(sock):
@@ -149,7 +154,7 @@ def failure_child(sock,image,kind,legacy=False):
     else:
         cap=n.value();n.new(30,want=(0,1,1,0));op=29;oldop=6
     address=word(n.context.raw,16);size=word(n.context.raw,40)
-    inject_ready(sock,address,size)
+    inject_ready(sock,address,size,n.syscall_ip)
     if legacy:
         n.old(oldop,cap,want=11)
         # Q01 did not attest a retry record. Q02 cannot adopt it as if it had.
@@ -225,7 +230,11 @@ def controls_child(sock,image):
     frames.append(request(31,a))
     for frame in frames:
         before=n.context.raw;rc,out=n.raw_call(frame)
-        assert rc==BAD and n.context.raw==before and out==b'\xa5'*8192,(frame[:128],rc)
+        expected=bytearray(b'\xa5'*8192)
+        # The established fixed capsule initializes only this private phase
+        # word before request grammar admission; original V01 does the same.
+        struct.pack_into('<Q',expected,128,0)
+        assert rc==BAD and n.context.raw==before and out==expected,(frame[:128],rc)
     n.new(29,a,want=(0,1,1,0));n.new(30,want=(0,1,1,0))
     return dict(scope='actual-native-original-and-new-private-domain',controls=len(frames),rows=n.rows)
 
@@ -264,10 +273,10 @@ def run_case(name,body,failures,expected_notifications):
                 if r<0:
                     if C.get_errno()in(errno.EINTR,errno.ENOENT):continue
                     raise OSError(C.get_errno(),'SECCOMP_IOCTL_NOTIF_RECV')
-                assert notice.data.nr==11 and notice.data.args[0]==ready['address'] and notice.data.args[1]==ready['size']
+                assert notice.data.nr==11 and notice.data.args[0]==ready['address'] and notice.data.args[1]==ready['size'] and (ready.get('ip') is None or notice.data.ip==ready['ip']), (name,ready,dict(nr=notice.data.nr,args=list(notice.data.args),ip=notice.data.ip))
                 deny=len(notifications)<failures
                 response=Response(notice.id,0,-errno.EIO if deny else 0,0 if deny else 1)
-                notifications.append(dict(tid=notice.pid,nr=notice.data.nr,args=list(notice.data.args),error=-errno.EIO if deny else 0,continued=not deny))
+                notifications.append(dict(tid=notice.pid,nr=notice.data.nr,ip=notice.data.ip,args=list(notice.data.args),error=-errno.EIO if deny else 0,continued=not deny))
                 assert LIBC.ioctl(listener,0xc0182101,C.byref(response))==0,(C.get_errno(),notifications)
         _,status=os.waitpid(pid,0);pid=0
         assert reply.get('done')and reply.get('passed')and status==0,reply
