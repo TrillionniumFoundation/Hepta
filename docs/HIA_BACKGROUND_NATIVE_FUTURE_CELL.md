@@ -15,10 +15,10 @@ shared linker produces the loadable component. The two policy compilations are
 byte-identical. GNU assembly is used only by development provenance checks of the
 readable mechanical prefix, never by the native production object or shared link.
 
-The final Future cell policy is 183271 bytes,
-`9c1a495c3bb790f9962d255ea34eb8e1eab41347f7fac80c9a06a57ef60cd2ea`;
-the actual shared image is 193296 bytes,
-`a070bd290676e3b6bb89772b2e9c668be89749428762274f0c8675c8ebee70b9`.
+The final Future cell policy is 192197 bytes,
+`49f0579e2d631c42195382c1926b842a21b9e64f61f2db7406013c6f83567973`;
+the actual shared image is 205584 bytes,
+`1929df3ca8e6e3dc6df02a55476efe88b021f10e55bcf8b7c9e902f785301b3a`.
 The final Jobs policy is 163313 bytes,
 `1c1b306f80471c02306122f333bd1ee3315dcaef15a2b7009d864e8acdf4ac58`;
 its shared image is 172816 bytes,
@@ -148,3 +148,20 @@ The earlier observer failures and the real candidate failures remain external
 qualification evidence. No failed run is relabelled as a pass. These are component
 and combination results; the complete BackgroundOptimizer remains unqualified
 until its actual controller and public entry are integrated and tested.
+
+## Current callback identity and concurrent retry
+
+The separate private HIABFQ02 profile accepts only operation 14 and the actual
+currently pinned kernel pointer at word 24; all other payload words are zero.
+It finds the registered owning object before using the pointer and creates a
+new independent nonce reference. The original HIABFQ01 profile still rejects 14.
+A typed callback therefore receives the same Future identity even when it
+drops the last external reference during completion. Three identity groups
+and 35 actual native calls pass, along with the original smoke/lifetime/OOM gates.
+
+Retry operation 13 now claims a quarantined object under the cell mutex before
+unlocking to finalize it. The previous image actually crashed with SIGSEGV
+under concurrent retry. The fixed public composition passes 8 threads retrying
+9 closures across 3 factories, with all tokens and mappings reclaimed.
+The typed public core is qualified in HIA_BACKGROUND_NATIVE_PUBLIC_FUTURE_CORE;
+full observer, inherited setter and BG dispatcher integration remain explicit.
