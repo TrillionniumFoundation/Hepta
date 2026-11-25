@@ -31,6 +31,8 @@ def rank_report(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)<768 or length(o)<64 or length(w)<4096 or readword(s,0)!=REQUEST:
         return 4294967293
     action=readword(s,8)
+    if action==11:
+        return return_order(s,o,w)
     mode=readword(s,16)
     count=readword(s,24)
     if action>10 or mode>1 or count>64 or count>(length(s)-768)//16:
@@ -294,6 +296,8 @@ def source_program():
     wanted={'get','put','choose'}
     helpers=[ast.unparse(n) for n in ast.parse(admission_source()).body if n.name in wanted]
     text+='\n'+'\n'.join(helpers)+'\n'
+    from tools.generate_hia_ndu_rank_report_order import source_program as order_source
+    text+='\n'+order_source()
     text+='\ndef readword(s:readbuf,at:u64) -> u64:\n    value=0\n    i=0\n    while i<8:\n        value=value|(byte(s,at+i)<<(i*8))\n        i=i+1\n    return value\n'
     for key,value in {'REQUEST':int.from_bytes(b'HIANRP01','little'),'REPLY':int.from_bytes(b'HIANPR01','little'),'COST_REPLY':int.from_bytes(b'HIANRR01','little')}.items():
         text=re.sub(r'\b'+key+r'\b',str(value),text)
