@@ -682,46 +682,50 @@ def transfer(w:mutbuf, o:mutbuf, edge:u64, queue:u64, last:u64) -> u64:
 '''
 
 
+def linear_transfer_walks(body):
+    """Keep the completed diagnostic passes, walking each JSON array once.
 
-def _linear_edge_transfer(source):
-    """Preserve diagnostic passes while traversing edge arrays sequentially."""
-    tree=ast.parse(source)
-    transfer=next(n for n in tree.body if n.name=='transfer')
-    match=ast.dump(ast.parse('i < count(w, args)',mode='eval').body)
-    result=[];rewritten=0
+    DiagnosticAuthor has already inserted the complete capability-closure pass
+    and fixed refusal ordering.  This only replaces repeated head-to-index seeks
+    in those four edge passes; it does not fuse, reorder, or remove checks.
+    """
+    transfer = next(node for node in body if node.name == 'transfer')
+    rewritten = []
+    walks = 0
+    replacements = {'args': 0, 'params': 0}
     for node in transfer.body:
-        if not isinstance(node,ast.While) or ast.dump(node.test)!=match:
-            result.append(node)
+        if not (isinstance(node, ast.While)
+                and ast.unparse(node.test) == 'i < count(w, args)'):
+            rewritten.append(node)
             continue
-        assert ast.dump(result[-1])==ast.dump(ast.parse('i = 0').body[0])
-        result.pop()
-        needs_params=any(isinstance(x,ast.Call) and isinstance(x.func,ast.Name)
-                         and x.func.id=='item' and ast.dump(x.args[1])==ast.dump(ast.Name(id='params',ctx=ast.Load()))
-                         for x in ast.walk(node))
-        class Sequential(ast.NodeTransformer):
-            increments=0
-            def visit_Call(self,call):
-                if isinstance(call.func,ast.Name) and call.func.id=='item':
-                    assert len(call.args)==3 and isinstance(call.args[1],ast.Name) and call.args[1].id in {'args','params'}
-                    assert isinstance(call.args[2],ast.Name) and call.args[2].id=='i'
-                    return ast.copy_location(ast.Name(id='arg' if call.args[1].id=='args' else 'param',ctx=ast.Load()),call)
+        used = set()
+        class Cursor(ast.NodeTransformer):
+            def visit_Call(self, call):
+                if (isinstance(call.func, ast.Name) and call.func.id == 'item'
+                        and len(call.args) == 3
+                        and all(isinstance(arg, ast.Name) for arg in call.args)
+                        and call.args[0].id == 'w'
+                        and call.args[1].id in {'args', 'params'}
+                        and call.args[2].id == 'i'):
+                    which = call.args[1].id
+                    used.add(which)
+                    replacements[which] += 1
+                    return ast.copy_location(ast.Name(
+                        id='edge_argument' if which == 'args' else 'edge_parameter',
+                        ctx=ast.Load()), call)
                 return self.generic_visit(call)
-            def visit_Assign(self,assign):
-                if ast.dump(assign)==ast.dump(ast.parse('i = i + 1').body[0]):
-                    self.increments+=1
-                    text='arg = next_node(w, arg)'
-                    if needs_params:text+='\nparam = next_node(w, param)'
-                    return ast.parse(text).body
-                return self.generic_visit(assign)
-        rewrite=Sequential()
-        node=rewrite.visit(node);assert rewrite.increments==1
-        node.test=ast.parse('arg != NONE',mode='eval').body
-        result.extend(ast.parse('arg = child(w, args)').body)
-        if needs_params:result.extend(ast.parse('param = child(w, params)').body)
-        result.append(node);rewritten+=1
-    assert rewritten==4,rewritten
-    transfer.body=result
-    return ast.unparse(ast.fix_missing_locations(tree))+'\n'
+        node = Cursor().visit(node)
+        assert used and not any(isinstance(part, (ast.Break, ast.Continue))
+                                for part in ast.walk(node))
+        for which, variable in (('args', 'edge_argument'), ('params', 'edge_parameter')):
+            if which in used:
+                rewritten.extend(ast.parse(f'{variable} = child(w, {which})').body)
+                node.body.extend(ast.parse(f'{variable} = next_node(w, {variable})').body)
+        rewritten.append(node)
+        walks += 1
+    assert walks == 4 and replacements == {'args': 4, 'params': 2}, (walks, replacements)
+    transfer.body = rewritten
+    return body
 
 
 def source_program():
@@ -734,7 +738,7 @@ def source_program():
     call=next(n for n in ast.walk(defs) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='symbol')
     assert isinstance(call.args[-1],ast.Constant) and call.args[-1].value==0
     call.args[-1]=ast.Name(id='item',ctx=ast.Load())
-    text=_linear_edge_transfer(diagnostics.body_source(BODY))
+    text=diagnostics.body_source(BODY)
     text+='\ndef instruction(s:readbuf, w:mutbuf, o:mutbuf, ins:u64) -> u64:\n    op = field(w, ins, K_op)\n'
     for spec in OPCODES.values():
         a=rules(spec.operands)|((1<<48) if spec.name in {'borrow.read','borrow.mut'} else 0)
@@ -778,6 +782,7 @@ def source_program():
                 args.extend(ast.Constant(x) for x in literals[arg.id]) if isinstance(arg,ast.Name) and arg.id in literals else args.append(arg)
             node.args=args;return node
     body=Expand().visit(ast.parse(text)).body
+    body=linear_transfer_walks(body)
     root=body.pop(0)
     return ast.unparse(ast.fix_missing_locations(ast.Module(body=[root,*declarations,*body,*extra],type_ignores=[])))+'\n'
 
