@@ -454,7 +454,7 @@ def budget(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==226:
         request(o,VALUE_INPUT,19)
         within(o,RQ+24,BUDGET,24)
-        put(o,RQ+112,32)
+        put(o,RQ+112,choose(get(o,COMPARE_SIZE)<32,get(o,COMPARE_SIZE),32))
         return values(o,w,227,128)
     if phase==227:
         if valid(o,RP,VALUE_REPLY)==0 or get(o,RP+8)!=0 or get(o,RP+16)!=2 or get(o,RP+72)==0 or get(o,RP+72)>19 or get(o,RP+64)!=get(o,RP+72):
@@ -1169,7 +1169,7 @@ def retain_value(o:mutbuf,w:mutbuf,next:u64,dest:u64,source:u64) -> u32:
     put(o,DEST,dest)
     return values(o,w,1010,128)
 def queue_owner(o:mutbuf,w:mutbuf,next:u64) -> u32:
-    return invoke(o,next,get(w,136),51,RQ,128,RP,2048,get(w,144),get(w,152))
+    return invoke(o,next,get(w,136),51,RQ,128,RP,4096,get(w,144),get(w,152))
 def lookup(o:mutbuf,next:u64,container:u64,key:u64,dest:u64,optional:u64) -> u32:
     put(o,RESUME,next)
     put(o,DEST,dest)

@@ -1,33 +1,25 @@
 # Native BackgroundOptimizer execution checkpoint
 
-This checkpoint contains the actual execution and publication continuations and their fixed native adapter. It is a development checkpoint, not a complete BackgroundOptimizer qualification.
+The actual native execution component now covers the original execution, rank, independent decision, and conditional publication sequence. The complete BackgroundOptimizer and the component allocation/cleanup fault matrix remain open.
 
-## Actual construction and verified branches
+## Actual construction and integration
 
-The existing sealed native source compiler constructs both HIA policies twice with identical results. The HIA packer creates the relocatable object; the existing native shared linker produces the executable component. The assembler used by the development script supplies only an independently compared mechanical reference.
+The existing sealed source compiler constructs each HIA policy twice with byte-identical results. A native HIA packer and native shared linker create the component. Its current 541,456-byte image is recorded with the complete source and construction pins in the accompanying JSON.
 
-The actual component has passed three original-behavior checks through real native submission, runtime snapshots, generation construction, shared cancellation token, values, and rank engine:
+Six actual integration cases have passed. Three retain the earlier generation-staleness, shared-token pre-cancellation, and real rank-error/finally-wall checks. Three additional cases exercise a zero-resource-cap abstention, the real native evaluator with no candidates, and an admitted candidate through rank proof, two fresh source verifications, and conditional runtime publication. The admitted case changes generation and selection epoch from zero to one and commits the same actual Future token. Observed original budget arithmetic and ordered report values are compared without replacing measured clocks with a product fixture.
 
-1. A newly published generation makes an older accepted Job return its original stale report.
-2. Cancellation of the same actual token before ranking preserves the original base report and field order.
-3. A malformed objective reaches the complete native rank engine; execution preserves the original exception and records the actual ranking wall time in its finally path.
-
-All owned result/error values, runtime replies, temporary mappings and descriptors are checked after each case. The actual source/build identities and external reports are in the accompanying JSON.
-
-## Current boundary
-
-Candidate decision and publication integration are still open. The source contains their intended complete sequence, but source presence and successful compilation do not qualify those paths. The business worker, fatal-worker drain, constructor and public shutdown are also still open.
-
-The decision owner uses output bytes 262144 through 524287. These bytes are reused only after the rank output has been parsed and its result imported; the rank-owned mapping pointer and extent remain in separate control words. The still-live transport continuation at 229376 through 229631 is disjoint. The original 524288-byte outer view is unchanged. Actual candidate-decision integration remains open; the three qualified early branches have been repeated on this corrected image.
+The currently selected generation legitimately owns its image and descriptors until runtime teardown. The final publication test checks those live resources and then requires exact descriptor-set recovery after the actual runtime is released. All temporary owned values, replies, and mappings are checked separately.
 
 ## Fixed private interface
 
-The complete six-word entry accepts a 128-byte HIABEX01 request and exclusive HIABEXC1 context (16384 bytes). Its output view is 524288 bytes, with a 128-byte HIABER01 public result. Request operation zero executes a captured Job; operation one only retries retained cleanup. Job, metadata, Future, runtime, values, payload and queue identities come from the controller's actual captures.
+The six-word entry accepts a 128-byte HIABEX01 request and an exclusive 16,384-byte HIABEXC1 context. Output is 524,288 bytes with a 128-byte HIABER01 public reply. Operation zero executes the captured Job; operation one retries retained cleanup. Job, metadata, Future, runtime, value, payload, and queue identities are actual controller captures.
 
-Status zero is normal, one an original Exception, two a BaseException, five allocation failure, six lifecycle misuse, seven a dependency error, eight an OS failure and nine retained cleanup quarantine. An original result and an actual caught error retain their own mutable value identities. A quarantined call keeps the original output and context views alive and does not replay ranking or publication.
+Status zero is normal, one an original Exception, two a BaseException, five allocation failure, six lifecycle misuse, seven dependency error, eight OS failure, and nine retained cleanup quarantine. An actual mutable result and a caught error keep their own shared identities. A quarantined invocation retains its original output and context and does not replay rank or publication.
 
-The publication path uses arbitrary-length integer values for the original cost arithmetic, hands the actual shared token to the runtime, and moves the already-owned complete candidate program into the controller's selected-program state under the queue condition. These paths require actual integration qualification before use.
+The decision output occupies bytes 262144..524287 after rank parsing and value import finish. The still-live transport context at 229376..229631 is disjoint. No output or compiler limit changed. Arbitrary-length value integers implement cost arithmetic; bounded decimal copying now requests only the bytes actually present. The queue transaction uses its existing required 4096-byte output extent.
 
-## Preserved evidence
+## Remaining work and evidence
 
-The initial single-policy packer selection failure, the first rank-argument mismatch, and diagnostic-only forwarding observations remain external evidence. The rank mismatch was an authoring error: objective/function and generation argument positions had been confused by an overly broad textual edit. Exact contextual corrections fixed that mapping and the fifth temporary-payload cleanup slot. No parser, proof, budget, source, image or output limit was relaxed.
+The business worker, fatal drain, constructor, shutdown, and coherent final dependency aggregation have their own qualification scopes. These six execution cases do not establish their completion or the entire allocation/cleanup failure domain.
+
+Earlier authoring failures and observer errors remain in external reports. They include the initial packer selection, argument mapping, premature selected-image FD assertion, and the short budget-value copy. The final source corrects the actual implementation defects; the observer separately preserves live generation ownership. No parser, proof, source, image, or budget limit was relaxed.
