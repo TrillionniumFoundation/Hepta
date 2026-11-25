@@ -431,6 +431,103 @@ def wire_terminal(o:mutbuf, w:mutbuf, a:u64, term:u64, pc:u64) -> bool:
     put(w, a + 80, 1)
     return True
 
+
+# Optional scratch beyond the historical arena accelerates lookup. A caller
+# supplying exactly the original extent retains the original linear fallback.
+# Every block resets the index; duplicates preserve the first declared row.
+def value_index_base(w:mutbuf, a:u64) -> u64:
+    return a + BLOCK_BASE + 40 * get(w, 8)
+
+def value_name_hash(w:mutbuf, name:u64) -> u64:
+    at = get(w, name + 24)
+    end = at + get(w, name + 32)
+    result = 14695981039346656037
+    while at < end:
+        result = (result ^ widen(byte(w, at))) * 1099511628211
+        at = at + 1
+    return result
+
+def value_index_prepare(w:mutbuf, a:u64, params:u64, ops:u64) -> u64:
+    base = value_index_base(w, a)
+    if base > length(w) or length(w) - base < 16:
+        return 0
+    put(w, base, 0)
+    if kind(w, ops) != 5:
+        return 0
+    size = get(w, params + 32)
+    ins = child(w, ops)
+    while ins != NONE:
+        outputs = lookup(w, ins, K_out)
+        if kind(w, outputs) != 5:
+            return 0
+        size = size + get(w, outputs + 32)
+        ins = next(w, ins)
+    if size > get(w, 8):
+        return 0
+    capacity = 2
+    while capacity < size * 2:
+        capacity = capacity * 2
+    if capacity > (length(w) - base - 16) >> 3:
+        return 0
+    put(w, base, capacity - 1)
+    index = 0
+    while index < capacity:
+        put(w, base + 16 + 8 * index, 0)
+        index = index + 1
+    return 0
+
+def value_index_insert(w:mutbuf, a:u64, row:u64) -> u64:
+    base = value_index_base(w, a)
+    if base > length(w) or length(w) - base < 16:
+        return 0
+    mask = get(w, base)
+    if mask == 0:
+        return 0
+    name = get(w, row)
+    index = value_name_hash(w, name) & mask
+    checked = 0
+    while checked <= mask:
+        at = base + 16 + 8 * index
+        old = get(w, at)
+        if old == 0:
+            put(w, at, row)
+            return 0
+        if eq_text(w, name, get(w, old)):
+            return 0
+        index = (index + 1) & mask
+        checked = checked + 1
+    # No valid block can fill a table sized for twice its definitions.
+    # Preserve the prior lookup behavior if private malformed input does.
+    put(w, base, 0)
+    return 0
+
+def value_row(w:mutbuf, a:u64, name:u64) -> u64:
+    if kind(w, name) != 4:
+        return NONE
+    base = value_index_base(w, a)
+    mask = 0
+    if base <= length(w) and length(w) - base >= 16:
+        mask = get(w, base)
+    if mask == 0:
+        index = 0
+        while index < get(w, a + 32):
+            row = a + VALUE_BASE + 24 * index
+            if eq_text(w, name, get(w, row)):
+                return row
+            index = index + 1
+        return NONE
+    index = value_name_hash(w, name) & mask
+    checked = 0
+    while checked <= mask:
+        row = get(w, base + 16 + 8 * index)
+        if row == 0:
+            return NONE
+        if eq_text(w, name, get(w, row)):
+            return row
+        index = (index + 1) & mask
+        checked = checked + 1
+    return NONE
+
 def admitted_type(w:mutbuf, a:u64, node:u64) -> u64:
     typ = type_code(w, node)
     if get(w, a + 72) == 0 and typ >= SCALAR_COUNT:
@@ -495,7 +592,7 @@ def program():
     # The finite proof role retains its smaller admission bounds; reuse only
     # grammar readers and the interpreter's instruction/edge encoders.
     shared = ('scalar_operands', 'emit_terminal', 'emit_edge',
-              'value_list', 'capture_value', 'def_type', 'value_row',
+              'value_list', 'capture_value', 'def_type',
               'named', 'reserve', 'clear_command', 'object', 'kind', 'child',
               'next', 'eq_text')
     values = {
@@ -513,12 +610,14 @@ def program():
     scalar = function(FINITE, 'emit_instruction').replace('def emit_instruction(', 'def emit_scalar(')
     define = function(FINITE, 'define_value').replace('typ = def_type(w, node)',
                 'typ = admitted_type(w, a, lookup(w, node, K_type))')
+    define = define.replace('    put(w, a + 32, cursor + 1)', '    put(w, a + 32, cursor + 1)\n    value_index_insert(w, a, row)')
     signature = ['def resource_accepts(code:u64, kind:u64) -> bool:']
     for name, kinds in RESOURCE_SIGNATURES.items():
         signature.extend((f'    if code == {RESOURCE_CODES[name]}:',
                           '        return ' + ' or '.join(f'kind == {RESOURCE_KINDS.index(k)}' for k in kinds)))
     signature.append('    return False')
     block = function(FINITE, 'project_block').replace('return emit_terminal(', 'return wire_terminal(')
+    block = block.replace('    put(w, a + 32, 0)', '    put(w, a + 32, 0)\n    value_index_prepare(w, a, params, lookup(w, block, K_ops))')
     source = '\n'.join((POLICY, scalar, define, block, *signature, *(function(FINITE, name) for name in shared)))
     source = source.replace('a + VALUE_BASE', 'a + BLOCK_BASE + 16 * get(w, 8)')
     source = source.replace('cursor == VALUE_MAX', 'cursor >= get(w, 8)')
