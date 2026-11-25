@@ -10,6 +10,16 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 ROOT=Path(__file__).resolve().parents[1]
 C={
+
+'EXT_REQUEST':int.from_bytes(b'HIAMVEX2','little'),
+'BG_MAGIC':int.from_bytes(b'HIAMVBS1','little'),
+'VALUE_MAGIC':int.from_bytes(b'HIAMVUO1','little'),
+'D_BASE':27000,'D_EXT':27000,'D_START':27008,'D_GN':27016,'D_EN':27024,
+'D_MAPPED':27032,'D_WHICH':27040,'D_INDEX':27048,'D_AMOUNT':27056,
+'D_VALUE':27064,'D_SIZE':27072,'D_NEXT':27080,'D_GCAP':27104,'D_ECAP':27136,
+'D_GID':27168,'D_EID':27176,'D_PTR':27184,'D_LEN':27192,'D_ERROR':27200,
+'D_GDATA':27208,'D_EDATA':27216,'D_CAPTURE_GN':27224,'D_CAPTURE_EN':27232,
+'D_REPLY':27392,'D_CHUNK':28000,'D_OWNED':27240,'D_FAILED':27248,
 'REQUEST':int.from_bytes(b'HIAMVEX1','little'),'REPLY':int.from_bytes(b'HIAMVER1','little'),
 'STATE':int.from_bytes(b'HIAMVEW1','little'),'GOBJ':int.from_bytes(b'HIAMVGO1','little'),
 'LOBJ':int.from_bytes(b'HIAMVLO1','little'),'COREQ':int.from_bytes(b'HIAMVC02','little'),
@@ -46,6 +56,8 @@ def runtime_effects(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,PHASE)
     if phase==0:
         return begin(s,o,w)
+    if phase>=1000:
+        return extended(s,o,w,phase)
     if phase<100:
         return admission(s,o,w,phase)
     if phase<200:
@@ -67,7 +79,12 @@ def runtime_effects(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return completing(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if word(s,0)!=REQUEST or word(s,8)>13 or word(s,120)>1:
+    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST:
+        return 4294967293
+    ext=word(s,0)==EXT_REQUEST
+    if word(s,120)>1 or (ext==False and word(s,8)>13):
+        return 4294967293
+    if ext and word(s,8)!=2 and word(s,8)!=14:
         return 4294967293
     n=word(s,80)
     parent=word(s,88)
@@ -76,14 +93,38 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     measure=word(s,112)
     if n>8388608 or parent>4095 or fn>8388608 or args>8388608 or measure>8388608:
         return 4294967293
-    if n>length(s)-256 or parent>length(s)-256-n or fn>length(s)-256-n-parent or args>length(s)-256-n-parent-fn or measure!=length(s)-256-n-parent-fn-args:
+    gn=0
+    en=0
+    if ext:
+        gn=word(s,224)
+        en=word(s,232)
+    if n>length(s)-256 or parent>length(s)-256-n or fn>length(s)-256-n-parent or args>length(s)-256-n-parent-fn or measure>length(s)-256-n-parent-fn-args:
         return 4294967293
+    rest=length(s)-256-n-parent-fn-args-measure
+    if gn>rest or en!=rest-gn:
+        return 4294967293
+    if ext and word(s,8)==14:
+        if n!=0 or parent!=0 or fn!=0 or args!=0 or measure!=0 or gn!=0 or en!=0:
+            return 4294967293
+    if ext and word(s,8)==2:
+        if gn==0 or en==0 or word(s,40)!=0 or word(s,48)!=0:
+            return 4294967293
+        start=length(s)-gn-en
+        if canonical_decimal(s,start,gn)==0 or canonical_decimal(s,start+gn,en)==0:
+            return 4294967293
     i=224
+    if ext:
+        i=240
     while i<256:
         if word(s,i)!=0:
             return 4294967293
         i=i+8
     zero(o,128,24320)
+    zero(o,D_BASE,384)
+    put(o,D_EXT,choose(ext,1,0))
+    put(o,D_START,length(s)-gn-en)
+    put(o,D_GN,gn)
+    put(o,D_EN,en)
     put(o,OP,word(s,8))
     put(o,TOKEN,word(s,64))
     put(o,GEN,NONE)
@@ -189,7 +230,7 @@ def admission_failure(o:mutbuf,status:u64) -> u32:
 def start_coordinator(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     zero(o,CINPUT,96)
     put(o,CINPUT,COREQ)
-    put(o,CINPUT+8,choose(get(o,OP)==12,5,choose(get(o,OP)==13,8,get(o,OP))))
+    put(o,CINPUT+8,choose(get(o,OP)==14,10,choose(get(o,OP)==12,5,choose(get(o,OP)==13,8,get(o,OP)))))
     put(o,CINPUT+16,get(w,16))
     put(o,CINPUT+24,get(w,24))
     put(o,CINPUT+32,word(s,40))
@@ -299,6 +340,8 @@ def dispatch(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if action==36:
         return again(o,750)
     if action==37:
+        if get(o,OP)==14:
+            return bg_snapshot(o,w)
         return snapshot(o,w)
     if action==40:
         identity_request(o,1,get(o,STATE_O+168))
@@ -315,7 +358,7 @@ def locking(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
                 return system(o,103,202,0,get(o,LOCK_OFFSET),129,2147483647,0,0,0)
             if get(o,LOCK_MODE)!=0:
                 return again(o,get(o,LOCK_RESUME))
-            return locked_observe(o,w)
+            return locked_observe(s,o,w)
         return system(o,101,202,0,get(o,LOCK_OFFSET),128,1,0,0,0)
     if phase==101:
         raw=get(o,FEEDBACK)
@@ -371,7 +414,16 @@ def local_lock(o:mutbuf,action:u64,at:u64) -> u32:
     put(o,8,action)
     return 4
 
-def locked_observe(o:mutbuf,w:mutbuf) -> u32:
+def locked_observe(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
+    if get(o,D_EXT)!=0 and get(o,OP)==2 and get(o,STATE_O+168)==2 and get(o,D_MAPPED)==0:
+        put(o,D_MAPPED,1)
+        put(o,STATE_O+48,NONE)
+        put(o,STATE_O+56,NONE)
+        if get(w,COOR+24)==0 and get(w,COOR+48)<64:
+            put(o,D_WHICH,0)
+            identity_request(o,7,get(w,COOR+48))
+            put(o,D_NEXT,1001)
+            return identity_call(o,1050)
     if get(o,STATE_O+168)==4:
         return read_token(o,104)
     return feedback(o,0)
@@ -862,6 +914,9 @@ def release_lease(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     return result(o,w,9)
 
 def result(o:mutbuf,w:mutbuf,status:u64) -> u32:
+    if get(o,D_FAILED)==0 and (get(o,D_GCAP)!=0 or get(o,D_ECAP)!=0 or (status!=0 and get(o,D_PTR)!=0)):
+        put(o,D_ERROR,status)
+        return again(o,1190)
     put(o,0,REPLY)
     put(o,8,status)
     put(o,16,get(o,STATE_O+120))
@@ -880,6 +935,8 @@ def result(o:mutbuf,w:mutbuf,status:u64) -> u32:
     put(o,120,RESULT+264)
     put(o,128,get(o,RESULT+320))
     put(o,136,get(o,RESULT+328))
+    put(o,144,get(o,D_PTR))
+    put(o,152,get(o,D_LEN))
     return 0
 
 def start_retention(o:mutbuf,w:mutbuf) -> u32:
@@ -1798,6 +1855,208 @@ def choose(test:bool,yes:u64,no:u64) -> u64:
 
 def narrow(n:u64) -> u32:
     return n
+
+def canonical_decimal(s:readbuf,at:u64,n:u64) -> u64:
+    if n==0 or (n>1 and byte(s,at)==48):
+        return 0
+    i=0
+    while i<n:
+        c=byte(s,at+i)
+        if c<48 or c>57:
+            return 0
+        i=i+1
+    return 1
+
+def bg_snapshot(o:mutbuf,w:mutbuf) -> u32:
+    zero(o,D_REPLY,256)
+    put(o,D_REPLY,BG_MAGIC)
+    put(o,D_REPLY+16,choose(get(w,COOR+24)!=0,1,0))
+    if get(w,SLOTS)!=0:
+        put(o,D_REPLY+16,get(o,D_REPLY+16)|2)
+        return memory(o,1100,0,get(w,SLOTS),3,GO,256)
+    return again(o,1103)
+
+def decimal_mismatch(o:mutbuf) -> u32:
+    put(o,STATE_O+48,NONE)
+    put(o,STATE_O+56,NONE)
+    return feedback(o,0)
+
+def decimal_failure(o:mutbuf) -> u32:
+    # The OS mutex is already held; record custody before the coordinator unwinds.
+    put(o,STATE_O+24,get(o,STATE_O+24)|2)
+    return coordinator_failure(o,29)
+
+def extended(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1001:
+        wanted=get(o,D_GN)
+        if get(o,D_WHICH)!=0:
+            wanted=get(o,D_EN)
+        if wanted!=get(o,D_SIZE):
+            return decimal_mismatch(o)
+        put(o,D_INDEX,0)
+        return again(o,1002)
+    if phase==1002:
+        n=get(o,D_SIZE)-get(o,D_INDEX)
+        if n>2048:
+            n=2048
+        put(o,D_AMOUNT,n)
+        return memory(o,1003,0,get(o,D_VALUE)+96+get(o,D_INDEX),3,D_CHUNK,n)
+    if phase==1003:
+        at=get(o,D_START)+get(o,D_INDEX)
+        if get(o,D_WHICH)!=0:
+            at=at+get(o,D_GN)
+        i=0
+        while i<get(o,D_AMOUNT):
+            if byte(o,D_CHUNK+i)!=byte(s,at+i):
+                return decimal_mismatch(o)
+            i=i+1
+        put(o,D_INDEX,get(o,D_INDEX)+get(o,D_AMOUNT))
+        if get(o,D_INDEX)<get(o,D_SIZE):
+            return again(o,1002)
+        if get(o,D_WHICH)==0:
+            put(o,D_WHICH,1)
+            put(o,D_NEXT,1001)
+            identity_request(o,7,64)
+            return identity_call(o,1050)
+        identity_request(o,5,get(w,COOR+48))
+        return identity_call(o,1004)
+    if phase==1004:
+        if identity_ok(o)==0:
+            return decimal_failure(o)
+        within(o,D_GCAP,IOUT+24,24)
+        put(o,D_GID,get(o,IOUT+16))
+        identity_request(o,5,64)
+        return identity_call(o,1005)
+    if phase==1005:
+        if identity_ok(o)==0:
+            return decimal_failure(o)
+        within(o,D_ECAP,IOUT+24,24)
+        put(o,D_EID,get(o,IOUT+16))
+        put(o,STATE_O+48,get(o,D_GID))
+        put(o,STATE_O+56,get(o,D_EID))
+        return feedback(o,0)
+    if phase==1050:
+        if identity_ok(o)==0:
+            if get(o,OP)==2:
+                return decimal_failure(o)
+            return feedback(o,9)
+        n=get(o,IOUT+48)
+        if n==0 or n>NONE-96:
+            if get(o,OP)==2:
+                return decimal_failure(o)
+            return feedback(o,9)
+        put(o,D_VALUE,get(o,IOUT+16))
+        put(o,D_SIZE,n)
+        return memory(o,1051,0,get(o,D_VALUE),3,D_CHUNK,96)
+    if phase==1051:
+        if get(o,D_CHUNK)!=VALUE_MAGIC or get(o,D_CHUNK+8)!=get(w,8) or get(o,D_CHUNK+24)!=get(o,D_SIZE) or get(o,D_CHUNK+16)<96+get(o,D_SIZE):
+            if get(o,OP)==2:
+                return decimal_failure(o)
+            return feedback(o,9)
+        return again(o,get(o,D_NEXT))
+    if phase==1100:
+        if get(o,GO)!=GOBJ or get(o,GO+8)!=get(w,8) or get(o,GO+32)==0:
+            return feedback(o,9)
+        return memory(o,1101,0,get(o,GO+32)+GCTRL+320,3,D_REPLY+64,32)
+    if phase==1101:
+        return memory(o,1103,0,get(o,GO+32)+GCTRL+288,3,D_REPLY+96,32)
+    if phase==1103:
+        slot=get(w,COOR+48)
+        if slot>=64:
+            return again(o,1110)
+        if get(w,SLOTS+slot*16)==0:
+            return feedback(o,9)
+        put(o,D_REPLY+16,get(o,D_REPLY+16)|4)
+        return memory(o,1104,0,get(w,SLOTS+slot*16),3,GO,256)
+    if phase==1104:
+        if get(o,GO)!=GOBJ or get(o,GO+8)!=get(w,8) or get(o,GO+32)==0:
+            return feedback(o,9)
+        return memory(o,1105,0,get(o,GO+32)+GCTRL+320,3,D_REPLY+128,32)
+    if phase==1105:
+        return memory(o,1106,0,get(o,GO+32)+GCTRL+288,3,D_REPLY+160,32)
+    if phase==1106:
+        return memory(o,1107,0,get(o,GO+32)+GCTRL+736,3,D_REPLY+192,32)
+    if phase==1107:
+        identity_request(o,7,get(w,COOR+48))
+        put(o,D_NEXT,1108)
+        return identity_call(o,1050)
+    if phase==1108:
+        put(o,D_GDATA,get(o,D_VALUE)+96)
+        put(o,D_CAPTURE_GN,get(o,D_SIZE))
+        return again(o,1110)
+    if phase==1110:
+        identity_request(o,7,64)
+        put(o,D_NEXT,1111)
+        return identity_call(o,1050)
+    if phase==1111:
+        put(o,D_EDATA,get(o,D_VALUE)+96)
+        put(o,D_CAPTURE_EN,get(o,D_SIZE))
+        gn=get(o,D_CAPTURE_GN)
+        en=get(o,D_CAPTURE_EN)
+        if gn>NONE-256 or en>NONE-256-gn:
+            return feedback(o,4)
+        n=256+gn+en
+        put(o,D_LEN,n)
+        put(o,D_REPLY+24,gn)
+        put(o,D_REPLY+32,en)
+        put(o,D_REPLY+40,n)
+        return allocate(o,1112,n)
+    if phase==1112:
+        if get(o,FEEDBACK)==0:
+            put(o,D_LEN,0)
+            return feedback(o,4)
+        put(o,D_PTR,get(o,FEEDBACK))
+        return memory(o,1113,3,D_REPLY,0,get(o,D_PTR),256)
+    if phase==1113:
+        if get(o,D_CAPTURE_GN)!=0:
+            return memory(o,1114,0,get(o,D_GDATA),0,get(o,D_PTR)+256,get(o,D_CAPTURE_GN))
+        return again(o,1114)
+    if phase==1114:
+        return memory(o,1115,0,get(o,D_EDATA),0,get(o,D_PTR)+256+get(o,D_CAPTURE_GN),get(o,D_CAPTURE_EN))
+    if phase==1115:
+        return feedback(o,0)
+    if phase==1190:
+        if get(o,D_GCAP)!=0:
+            identity_request(o,8,0)
+            within(o,IREQ+24,D_GCAP,24)
+            return identity_call(o,1191)
+        return again(o,1192)
+    if phase==1191:
+        if identity_ok(o)==0:
+            copy(w,336,o,D_GCAP,24)
+            zero(o,D_GCAP,24)
+            put(w,312,1)
+            put(o,D_ERROR,9)
+        else:
+            zero(o,D_GCAP,24)
+        return again(o,1192)
+    if phase==1192:
+        if get(o,D_ECAP)!=0:
+            identity_request(o,8,0)
+            within(o,IREQ+24,D_ECAP,24)
+            return identity_call(o,1193)
+        return again(o,1194)
+    if phase==1193:
+        if identity_ok(o)==0:
+            copy(w,368,o,D_ECAP,24)
+            zero(o,D_ECAP,24)
+            put(w,312,1)
+            put(o,D_ERROR,9)
+        else:
+            zero(o,D_ECAP,24)
+        return again(o,1194)
+    if phase==1194:
+        if get(o,D_ERROR)!=0 and get(o,D_PTR)!=0:
+            ptr=get(o,D_PTR)
+            put(o,D_PTR,0)
+            put(o,D_LEN,0)
+            return deallocate(o,1195,ptr)
+        return again(o,1195)
+    if phase==1195:
+        put(o,D_FAILED,1)
+        return result(o,w,get(o,D_ERROR))
+    return result(o,w,9)
+
 '''
 def source_program():
  s=SOURCE
