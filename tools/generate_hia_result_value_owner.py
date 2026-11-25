@@ -261,6 +261,8 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
         put(o,40,get(o,G_TAG1))
         put(o,48,get(o,G_N))
         put(o,72,get(o,G_BYTES))
+        if op==7 and get(o,G_KIND)==9:
+            put(o,56,get(o,G_INDEX))
         if readword(s,8)==19:
             put(o,56,get(o,G_INDEX))
             put(o,64,get(o,G_PLAN))

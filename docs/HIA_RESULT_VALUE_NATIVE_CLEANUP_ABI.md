@@ -52,6 +52,25 @@ The three flags are Boolean words. `consumed` is zero whenever `known` is zero.
 An unexpected role completion makes the consumption result unknown and requires
 quarantine; callers must not retry the same capability on that basis.
 
+The actual producer status domain is closed: operations 29/30 produce only
+0, 1, 6 or 11; operation 31 produces only 0, 6 or 11. A different status, such
+as 5 or 999, is a bad private reply and must be rejected before any owned slot
+is changed. An arbitrary nonzero word is not an accepted dependency status.
+The following associations are also required before trusting `consumed`:
+
+- Status 0 has known=1 and pending=0; consumed is one for 29/30 and zero for 31.
+- Status 1 has known=1, consumed=0 and pending=0.
+- Status 6 has known=1 and consumed=0; pending may be zero or one.
+- A known consumed reference can occur only with status 0 or 11.
+- The current 29/30 unknown-action path produces only status 11, known=0,
+  consumed=0 and pending=0. No other flag combination is a valid unknown reply.
+- The current operation-31 producer always has known=1 and consumed=0. A
+  different result is quarantined as a bad/unknown private completion.
+
+These checks precede clearing any caller-owned capability. In particular,
+contradictory success (status 0 with pending=1) cannot be trusted merely because
+its consumed bit is set.
+
 The `known` flag concerns consumption, not a claim that every unrelated context
 fact was observed. In particular, an error before acquisition of the context
 lock can have `known=1, consumed=0, pending=0`: this invocation did not consume
@@ -73,7 +92,7 @@ context destruction.
 | Invalid or stale capability in an otherwise active context | 1 | 1 | 0 | 0 |
 | 31 targets an active context | 6 | 1 | 0 | 0 |
 
-This table is not a whitelist for all dependency errors. For example, after an
+The pending column does not classify every dependency failure. After an
 actual capability was consumed, an unexpected failure of the empty-registry
 check can produce status 11 with `known=1, consumed=1, pending=0`. The reference
 must still be cleared from its caller's owned slot. There is no recorded mapping

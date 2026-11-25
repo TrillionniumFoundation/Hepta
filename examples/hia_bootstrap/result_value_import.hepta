@@ -3098,13 +3098,26 @@ block b0(v0:mutbuf,v1:mutbuf,v2:u64)
   v36:u64 = select(v35,v3,v33)
   v37:u64 = const() {"value":368}
   v38:u64 = call(v0,v37,v36) {"function":"f14"}
-  v39:u64 = const() {"value":464}
-  v40:u64 = call(v0,v39,v2) {"function":"f14"}
-  v41:u64 = const() {"value":472}
-  v42:u64 = const() {"value":40}
-  v43:u64 = call(v1,v42) {"function":"f12"}
-  v44:u64 = call(v0,v41,v43) {"function":"f14"}
-  ret(v14)
+  branch v28 b1(v0,v1,v2) b3(v0,v1,v2)
+block b1(v39:mutbuf,v40:mutbuf,v41:u64)
+  v49:u64 = const() {"value":376}
+  v50:u64 = const() {"value":24}
+  v51:u64 = int.add.wrap(v41,v50)
+  v52:u64 = call(v40,v51) {"function":"f12"}
+  v53:u64 = const() {"value":32}
+  v54:u64 = int.add.wrap(v52,v53)
+  v55:u64 = call(v40,v54) {"function":"f12"}
+  v56:u64 = call(v39,v49,v55) {"function":"f14"}
+  jump b3(v39,v40,v41)
+block b3(v57:mutbuf,v58:mutbuf,v59:u64)
+  v62:u64 = const() {"value":464}
+  v63:u64 = call(v57,v62,v59) {"function":"f14"}
+  v64:u64 = const() {"value":472}
+  v65:u64 = const() {"value":40}
+  v66:u64 = call(v58,v65) {"function":"f12"}
+  v67:u64 = call(v57,v64,v66) {"function":"f14"}
+  v68:u64 = const() {"value":0}
+  ret(v68)
 end
 fn f44(v0:mutbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64)

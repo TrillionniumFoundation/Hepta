@@ -817,6 +817,8 @@ def object_kind_size(o:mutbuf,w:mutbuf,p:u64) -> u64:
     if kind==3:
         n=8
     put(o,G_BYTES,n)
+    if kind==9:
+        put(o,G_INDEX,get(w,get(w,p+24)+32))
     put(o,G_ID0,p)
     put(o,G_ID1,get(w,40))
     return 0
