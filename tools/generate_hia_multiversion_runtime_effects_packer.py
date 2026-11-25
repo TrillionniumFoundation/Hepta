@@ -14,17 +14,22 @@ from tools import generate_hia_multiversion_runtime_identity_packer as identity
 from tools import generate_hia_multiversion_future_packer as future
 from tools import generate_hia_multiversion_measurement_packer as measurement
 ROOT=Path(__file__).resolve().parents[1]
-OUTER=bytes.fromhex('535541544155415641574881ec980000004989fc4989f74989d54889cd4d89c64c89cb4881fd000080020f829d0200004881fb000002000f829002000049c785800000000000000048c70424000000004c897424084c896424104c896c24184c89e74c89fe4c89ea4889e94d89f04989d9e80000000085c00f844902000083f80a74dc83f8010f842001000083f8020f846601000083f8030f847201000083f8040f847801000083f8060f847b01000083f8070f848001000083f8080f848401000083f8150f84aa01000083f80c0f82fe01000083f8140f87f50100008944245031c9498b44cd004883f8030f87db010000498b54cd08480314c4488954cc5883c10383f90972db488b7c2458498b7510488b542470498b4d284c8b8424880000004d8b4d408b44245083f80c742d83f80d743283f80e743783f80f743c83f810744183f811744683f812744b83f8137450e800000000e95f010000e800000000e955010000e800000000e94b010000e800000000e941010000e800000000e937010000e800000000e92d010000e800000000e923010000e800000000e919010000e800000000e90f0100004d8b550831c9498b44cd104d89d34183e3034a0304dc488944cc2049c1ea02ffc183f90672e0488b7c2420488b742428488b5424304c8b5424384c8b4424404c8b4c2448498b45000f05e9c0000000498b5500418b4508418b4d10f00fb10ae9ab000000498b5500418b45088702e99c000000498b45004c01f0e990000000498b7d00e800000000e982000000498b7d00e80000000031c0eb75498b45004883f803777d498b7508480334c4498b45104883f803776b498b7d1848033cc4498b4d20fcf3a431c0eb464d8b5d0049837d0810774d4d8b55104d01ea4883ec5031c9498b44ca30488904ccffc183f90a72f0498b3a498b7208498b5210498b4a184d8b42204d8b4a2841ffd34883c45049898588000000e998fdffff418b4508eb05b8fdffffff4881c498000000415f415e415d415c5d5bc3')
-OUTER_HOLES={'effects': 114, 'typed': 339, 'generation': 349, 'identity': 359, 'state': 369, 'retention': 379, 'future': 389, 'call': 399, 'measure': 409, 'directory': 419}
-OUTER_RELOCATIONS=((560, 'malloc'), (574, 'free'))
+OUTER=bytes.fromhex('535541544155415641574881ec980000004989fc4989f74989d54889cd4d89c64c89cb4881fd000080020f822b0300004881fb000002000f821e03000049c785800000000000000048c70424000000004c897424084c896424104c896c24184c89e74c89fe4c89ea4889e94d89f04989d9e80000000083f8190f843701000085c00f84ce02000083f80a74d383f8010f84a501000083f8020f84eb01000083f8030f84f701000083f8040f84fd01000083f8060f840002000083f8070f840502000083f8080f840902000083f8150f842f02000083f8160f84f500000083f817741783f818741283f80c0f827002000083f8140f87670200008944245031c9498b44cd004883f8030f874d020000498b54cd08480314c4488954cc5883c10383f90972db488b7c2458498b7510488b542470498b4d284c8b8424880000004d8b4d408b44245083f817745783f818745c83f80c0f849100000083f80d0f849200000083f80e0f849300000083f80f0f849400000083f8100f849500000083f8110f849600000083f8120f849700000083f8130f8498000000e800000000e9a7010000e800000000e99d010000e800000000e9930100004c89e74c89fe4c89ea4889e94d89f04989d9e800000000e9a4feffff488d0500000000b90000000049898d20800000e95f010000e800000000e955010000e800000000e94b010000e800000000e941010000e800000000e937010000e800000000e92d010000e800000000e923010000e800000000e919010000e800000000e90f0100004d8b550831c9498b44cd104d89d34183e3034a0304dc488944cc2049c1ea02ffc183f90672e0488b7c2420488b742428488b5424304c8b5424384c8b4424404c8b4c2448498b45000f05e9c0000000498b5500418b4508418b4d10f00fb10ae9ab000000498b5500418b45088702e99c000000498b45004c01f0e990000000498b7d00e800000000e982000000498b7d00e80000000031c0eb75498b45004883f803777d498b7508480334c4498b45104883f803776b498b7d1848033cc4498b4d20fcf3a431c0eb464d8b5d0049837d0810774d4d8b55104d01ea4883ec5031c9498b44ca30488904ccffc183f90a72f0498b3a498b7208498b5210498b4a184d8b42204d8b4a2841ffd34883c45049898588000000e90afdffff418b4508eb05b8fdffffff4881c498000000415f415e415d415c5d5bc3')
+OUTER_HOLES={'effects': 114, 'typed': 409, 'information': 419, 'hash': 429, 'capture': 457, 'mapping_span': 469, 'mapping_size': 474, 'generation': 491, 'identity': 501, 'state': 511, 'retention': 521, 'future': 531, 'call': 541, 'measure': 551, 'directory': 561}
+OUTER_RELOCATIONS=((702, 'malloc'), (716, 'free'))
+SIZE_HOLE=OUTER_HOLES['mapping_size']
 IMPORTS=('dlopen','dlsym','dlclose','malloc','free')
-ROLES=('effects','state','retention','call','typed')+tuple('gen_'+x for x in generation.ROLES)+tuple('identity_'+x for x in identity.ROLES)+('future',)+tuple('measurement_'+x for x in measurement.ROLES)
-MAGIC=int.from_bytes(b'HIAMVEK1','little')
+ROLES=('effects','state','retention','call','typed','information','information_capture')+tuple('gen_'+x for x in generation.ROLES)+tuple('identity_'+x for x in identity.ROLES)+('future',)+tuple('measurement_'+x for x in measurement.ROLES)
+MAGIC=int.from_bytes(b'HIAMVEK2','little')
 EXPORT_SIZE=len(OUTER)
 def bridges():
     raw=bytearray(OUTER)
     holes={name:[] for name in ROLES}
     for name in ('effects','state','retention','call','typed'):holes[name]=[OUTER_HOLES[name]]
+    holes['information']=[OUTER_HOLES['information']]
+    holes['information_capture']=[OUTER_HOLES['capture']]
+    holes['gen_proof_hash']=[OUTER_HOLES['hash']]
+    holes['gen_prepare_mapping']=[OUTER_HOLES['mapping_span']]
     holes['gen_prepare_retirement_state']=[OUTER_HOLES['directory']]
     relocations=list(OUTER_RELOCATIONS)
     for name,module,prefix in [('generation',generation,'gen_'),('identity',identity,'identity_'),('future',future,''),('measure',measurement,'measurement_')]:
@@ -61,6 +66,7 @@ def reference_object(flats):
         raw.extend(bytes((-len(raw))%16))
         for h in HOLES[role]:struct.pack_into('<i',raw,64+h,len(raw)-64-h-4)
         raw.extend(flat)
+    struct.pack_into('<I',raw,64+SIZE_HOLE,len(flats[ROLES.index('gen_prepare_mapping')]))
     textsize=len(raw)-64
     if textsize>16777216:raise ValueError('original sixteen MiB text bound')
     raw.extend(bytes((-len(raw))%8));offsets=[]
@@ -116,6 +122,7 @@ def source_program():
 '''
     for i,name in enumerate(ROLES):
         for h in HOLES[name]:source+=f'    write(o,{64+h},get(w,{512+8*i})-{64+h+4},4)\n'
+    source+=f'    write(o,{64+SIZE_HOLE},get(w,{8*ROLES.index("gen_prepare_mapping")}),4)\n'
     source+=f'''    at={head}
     i=0
     while i<{n}:
