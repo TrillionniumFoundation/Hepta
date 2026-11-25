@@ -9,14 +9,14 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={
-"MAGIC":int.from_bytes("HIABFP01".encode(),'little'),"MAGIC2":int.from_bytes(b"HIABFP02",'little'),
-"REPLY":int.from_bytes("HIABFRP1".encode(),'little'),
+"MAGIC":int.from_bytes("HIABFP01".encode(),'little'),"MAGIC2":int.from_bytes(b"HIABFP02",'little'),"MAGIC3":int.from_bytes(b"HIABFP03",'little'),
+"REPLY":int.from_bytes("HIABFRP1".encode(),'little'),"REPLY2":int.from_bytes(b"HIABFRP2",'little'),
 "STATE":int.from_bytes("HIABFPS1".encode(),'little'),
 "OBJECT":int.from_bytes("HIABFPO1".encode(),'little'),
 "NMAGIC":int.from_bytes("HIABFPL1".encode(),'little'),
 "FMAGIC":int.from_bytes("HIABFPA1".encode(),'little'),
-"FREQUEST":int.from_bytes("HIABFQ01".encode(),'little'),"FREQUEST3":int.from_bytes(b"HIABFQ03",'little'),
-"FREPLY":int.from_bytes("HIABFR01".encode(),'little'),
+"FREQUEST":int.from_bytes("HIABFQ01".encode(),'little'),"FREQUEST3":int.from_bytes(b"HIABFQ03",'little'),"FREQUEST4":int.from_bytes(b"HIABFQ04",'little'),
+"FREPLY":int.from_bytes("HIABFR01".encode(),'little'),"FREPLY2":int.from_bytes(b"HIABFR02",'little'),
 "VREQUEST":int.from_bytes("HIABVQ01".encode(),'little'),
 "VREPLY":int.from_bytes("HIABVR01".encode(),'little'),
 "KREQUEST":int.from_bytes("HIAMVFQ1".encode(),'little'),
@@ -64,6 +64,8 @@ C={
 "TOKEN":576,
 "RETRY_NEXT":608,
 "RETRY_CARRIER":616,
+"DROP_CONSUMED":624,
+"DROP_KNOWN":632,
 "CARRIER_MAGIC":int.from_bytes("HIABFPC1".encode(),'little'),
 "RANDOM":704,
 "FRAME":1024,
@@ -114,6 +116,9 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     elif readword(s,0)==MAGIC2:
         if op<22 or op>25:
             return 4294967293
+    elif readword(s,0)==MAGIC3:
+        if op!=26:
+            return 4294967293
     else:
         return 4294967293
     at=16
@@ -142,6 +147,8 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     zero(o,128,OUT-128)
     put(o,OP,op)
+    if op==26:
+        put(o,DROP_KNOWN,1)
     return system(o,1,39,0,0,0,0,0,0,0)
 
 def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -444,7 +451,7 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         op=get(o,OP)
         if op==4:
             return unlock(o,303)
-        if op==6:
+        if op==6 or op==26:
             return unlock(o,340)
         cell_packet(o,2)
         copy_input(s,40,o,RQ+24,24)
@@ -575,10 +582,16 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return fail(o,1,get(o,CP+16))
         return fail(o,0,0)
     if phase==340:
-        cell_packet(o,3)
+        if get(o,OP)==26:
+            cell_packet(o,20)
+            put(o,DROP_KNOWN,0)
+        else:
+            cell_packet(o,3)
         copy_input(s,40,o,RQ+24,24)
         return cell(o,w,341)
     if phase==341:
+        if get(o,OP)==26:
+            return drop_record(o)
         if cell_ok(o)==False:
             return cell_error(o)
         return fail(o,0,0)
@@ -806,7 +819,10 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cell_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,192)
-    put(o,RQ,choose(op>=15,FREQUEST3,FREQUEST))
+    magic=choose(op>=15,FREQUEST3,FREQUEST)
+    if op==20 or op==21:
+        magic=FREQUEST4
+    put(o,RQ,magic)
     put(o,RQ+8,op)
     return 0
 def value_packet(o:mutbuf,op:u64) -> u64:
@@ -828,6 +844,29 @@ def cell_error(o:mutbuf) -> u32:
     if get(o,FP+8)==1:
         return fail(o,3,107)
     return fail(o,1,choose(get(o,FP+8)==4,103,107))
+def drop_record(o:mutbuf) -> u32:
+    if get(o,FEEDBACK)!=0 or get(o,FP)!=FREPLY2:
+        return fail(o,1,107)
+    status=get(o,FP+8)
+    consumed=get(o,FP+128)
+    if consumed>1 or get(o,FP+120)>1:
+        return fail(o,1,107)
+    if status!=0 and status!=1 and status!=5 and status!=6 and status!=9:
+        return fail(o,1,107)
+    if status==0 and consumed!=1:
+        return fail(o,1,107)
+    if consumed==1 and status!=0 and status!=9:
+        return fail(o,1,107)
+    at=16
+    while at<160:
+        if at!=120 and at!=128 and get(o,FP+at)!=0:
+            return fail(o,1,107)
+        at=at+8
+    put(o,DROP_CONSUMED,consumed)
+    put(o,DROP_KNOWN,1)
+    if status==0:
+        return fail(o,0,0)
+    return fail(o,choose(status==1,3,1),107)
 def kernel_error(status:u64) -> u64:
     if status==1:
         return 100
@@ -880,6 +919,10 @@ def finish(o:mutbuf,status:u64,kind:u64) -> u32:
     put(o,120,get(o,EXTRA))
     if get(o,CLEANUP_FAILED)!=0:
         put(o,120,MAX)
+    if get(o,OP)==26:
+        put(o,0,REPLY2)
+        put(o,96,get(o,DROP_CONSUMED))
+        put(o,104,get(o,DROP_KNOWN))
     return 0
 def copy_between(a:mutbuf,at:u64,b:mutbuf,bt:u64,n:u64) -> u64:
     i=0
