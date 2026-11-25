@@ -87,3 +87,41 @@ The sealed 494833 compiler built the final receipt source (427597 B, SHA256 67de
 The private frame deliberately carries a bounded ASCII identifier, with length zero meaning None. An outer public typed-input layer must preserve the original distinction between None and an empty string, and original unknown outcomes/error order for other public function values; these private-frame tests do not close that layer. The diagnostic decoder accepts at most 1 MiB JSON and a 131072-byte message; larger actual producer output must remain an unestablished component failure until a separately qualified complete diagnostic route or exact producer bound is established. No original diagnostic is silently truncated.
 
 The original verification-policy oracle receives a frozen fresh result for these pure-component comparisons; it does not rerun the solver during those decision-policy tests. Actual fresh proof recomputation and all process custody/deadline paths must additionally pass in the enclosing native public service. No caller arena, metadata flag, digest, serialized receipt, or component unit test grants execution authority.
+
+
+## Explicit complete diagnostic profile
+
+The legacy flag domain (0 through 255), legacy JSON limits, original action
+semantics, and positive claim bindings retain their qualified behavior. The
+additional flag bit 256 is a private, caller-owned diagnostic extension. It is
+accepted only for action 1 with diagnostic bit 64, or action 2 without bit 64,
+with `actual_private_outcome == 0` and a fresh A receipt whose status is
+`unknown`. It cannot widen the domain of proved receipts.
+
+In action 1 only diagnostic JSON may use a 64 MiB raw extent. In action 2 only
+fresh unknown A JSON may use that extent. Other JSON segments retain their
+1 MiB bounds. Every actual arena remains bounded by 16 MiB and 131073 nodes.
+The decoder uses the same complete JSON/duplicate/UTF-8 checks. For raw JSON
+larger than 8 MiB its workspace word at offset 120 must be the little-endian
+magic `HIAJLG01`, and its output extent must be at least 80 MiB; this is an
+explicit private profile, not a changed default decoder limit.
+
+The diagnostic is the actual first `E_DRIVER` record from the sealed
+normalizer. Its decoded message starts with a checked `E_HIA_*: ` prefix.
+The original whole-Core diagnostic capacity is
+`input_bytes + min(262144, (input_bytes + 1) // 2 + 1) + 4096`, at most 8654848
+bytes for the existing 8 MiB source bound. The generated single-diagnostic
+JSON report has 144 fixed bytes outside its quoted message. Even the
+conservative six-byte-per-input-byte JSON escaping bound plus this fixed
+report is below 64 MiB. The process capture limit is unchanged.
+
+The large message is never copied into the old 1 MiB text region. The native
+receipt owner validates the arena and the message's actual raw JSON span,
+then appends that complete quoted span to the rendered unknown receipt. The
+short code prefix alone uses the old text region. A small output extent
+refuses without writing beyond it. The fresh-verification action continues
+its original schema, binding, proof-status and exact-scope comparison order.
+
+This closes diagnostic extent transport for the stated producer. It does
+not close typed function argument adaptation, original late-error deadline
+ordering, full publication/call composition, or whole-release qualification.
