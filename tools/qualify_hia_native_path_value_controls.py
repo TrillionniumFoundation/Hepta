@@ -14,6 +14,7 @@ def child_case(case):
     p=Pipeline();v=p.values;result=v.scalar('retained');obj=p.native_object('Actual',lambda:(0,result))
     if case=='postconsume-no-pending':p.drop_faults=[dict(status=11,consume=True)]
     elif case=='unknown-consumption':p.drop_faults=[dict(status=11,known=0)]
+    elif case=='retained-cap-and-mapping-pending':p.drop_faults=[dict(status=11,known=1,consumed=0,pending=1)]
     elif case=='contradictory-success':p.drop_faults=[dict(status=0,consumed=1,pending=1)]
     elif case=='outside-producer-domain':p.drop_faults=[dict(status=999,consumed=1)]
     elif case.startswith('callback-'):p.callback_fault=case[9:]
@@ -23,6 +24,7 @@ def child_case(case):
     old=p.w.raw;before=word(p.engine.w,88);out=p.convert(mode=2)
     assert word(out,104)==1 and p.w.raw==old and word(p.engine.w,88)==before and p.callback_calls==1
     receiver=caps(p.w,512)
+    if case=='retained-cap-and-mapping-pending':assert word(p.w,416)==1
     if case=='postconsume-no-pending':assert receiver==ZERO
     else:assert receiver!=ZERO
     return dict(name=case,frame_state=word(p.w,128),held_nodes=before,receiver_consumed=receiver==ZERO,passed=True)
@@ -45,7 +47,7 @@ def main():
             assert ns['drop_ok'](o,op)==False
             rows.append(dict(name='drop-reserved-field',op=op,offset=at))
     p.finish()
-    for case in('postconsume-no-pending','unknown-consumption','contradictory-success','outside-producer-domain','callback-bad-context','callback-bad-magic','callback-bad-reserved','callback-borrowed-cap'):
+    for case in('postconsume-no-pending','unknown-consumption','retained-cap-and-mapping-pending','contradictory-success','outside-producer-domain','callback-bad-context','callback-bad-magic','callback-bad-reserved','callback-borrowed-cap'):
         proc=subprocess.run([sys.executable,__file__,'--child',case],capture_output=True,text=True,timeout=30)
         (dest/(case+'.stdout')).write_text(proc.stdout);(dest/(case+'.stderr')).write_text(proc.stderr)
         assert proc.returncode==0,(case,proc.returncode,proc.stderr)

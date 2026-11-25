@@ -424,6 +424,8 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(w,CLEAN,get(w,CLEAN)+1)
         if pending!=0:
             put(w,VPENDING,1)
+            if consumed==0:
+                return quarantine(o,w,206)
         if status!=0:
             put(w,DEPENDENCY,status)
             if consumed!=0 and pending==0:
