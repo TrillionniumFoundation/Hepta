@@ -1,4 +1,4 @@
-# Explicit Future drop consumption
+# Explicit Future, factory, and global cleanup consumption
 
 ## Status and scope
 
@@ -92,19 +92,38 @@ exactly 192 bytes:
 | Offset | Meaning |
 | --- | --- |
 | 0 | `HIABFP03` |
-| 8 | 26: drop a Future nonce and report consumption |
-| 16/24/32 | Actual factory identity |
-| 40/48/56 | Actual Future nonce capability |
+| 8 | Operation 26 through 29 |
+| 16/24/32 | Actual factory identity for 26/27/28; zero for 29 |
+| 40/48/56 | Future nonce for 26; factory lease for 27; zero for 28/29 |
 | All other words | Zero |
 
-Only op 26 is admitted under profile 03. The reply is `HIABFRP2`, with status
-at 8, kind at 16, and the existing diagnostics at 112 and 120. This operation
-does not return a result capability or an owned exception value.
+Only operations 26 through 29 are admitted under profile 03. The reply is
+`HIABFRP2`, with status at 8, kind at 16, and the existing cleanup diagnostic at
+120. None of these operations returns a result capability or an owned exception
+value. Older profile replies, including their different use of offset 112,
+remain unchanged.
+
+| Operation | Requested action |
+| --- | --- |
+| 26 | Drop one actual Future nonce and attest its consumption |
+| 27 | Drop one actual factory lease and retain any unfinished retirement |
+| 28 | Retry an actual retained factory retirement record, identified by FID |
+| 29 | Close the global owner, or retry its actual recorded mapping retirement |
 
 | Offset | Meaning |
 | --- | --- |
 | 96 | `consumed`, 0 or 1 |
 | 104 | `consumption_known`, 0 or 1 |
+| 112 | `pending`, 0 or 1; zero for op 26 |
+| 24/32/40 | Actual FID for an op-27/28 pending retirement; otherwise zero |
+
+These flags describe the current invocation. A nonzero status is not evidence
+that every unrelated context resource was inspected. A failure before acquiring
+a lock may know that this invocation did not consume a reference without having
+observed another thread's pending retirement. A caller must not treat
+`pending=0` on an error as proof of successful overall destruction.
+
+### Future nonce: operation 26
 
 Before the cell effect is issued, a failure is known not to have consumed the
 Future nonce. Immediately before issuing that effect, the owner clears known.
@@ -127,6 +146,92 @@ The existing public op 20 retry and actual factory lifetime checks remain in
 place; callers must not equate an old retry's status alone with total retirement
 completion.
 
+### Factory lease and registry custody: operations 27 and 28
+
+Operation 27 sets consumption at continuation 183, after the actual lease has
+been removed from the linked lease registry and the deallocation effect has
+returned. If other independent factory leases remain, it completes normally.
+If it removed the last lease, the existing factory registry takes explicit
+retirement custody of the actual factory storage. The consumed nonce is no
+longer a lease and is never used as a retry token.
+
+The factory's unused private header words now hold this limited state:
+
+| Factory offset | Internal fact |
+| --- | --- |
+| 128 | 0 ordinary lifetime; 1 retained retirement; 2 retirement claimed by an active call |
+| 136 | An actual value-context mapping remains pending after the factory token was consumed |
+| 144 | Unknown dependency completion, or a consumed token with an unrecorded cleanup failure; quarantine |
+
+These words are written from actual owner effects while holding the original
+factory registry mutex. They are not supplied in the request. Existing checks
+still require no independent lease, active call, callback frame, callback
+carrier, or cell object before freeing the factory. The cell and token are
+retired in their original order.
+
+If retirement cannot finish, operation 27 returns consumed 1, known 1, pending
+1 and the actual FID at 24/32/40. The caller clears the consumed lease and keeps
+this separate retirement record and its enclosing global storage. It invokes
+operation 28 using only that FID. A successful drop with other factory leases
+still present has pending 0; it is not a claim that the entire factory is dead.
+
+Operation 28 validates the FID against the real registry. Under the registry
+mutex it claims state 1 as state 2, and performs one bounded cleanup attempt.
+Another call finding state 2 returns pending 1 without issuing another
+retirement effect. The active claimant returns the record to state 1 if work
+remains; only actual terminal cleanup unlinks and frees it. An unknown
+dependency leaves the record quarantined and cannot be replayed. Operation 28
+never consumes the already invalid lease: consumed is always zero. After the
+record has actually been freed, a repeated stale FID is rejected; this protocol
+does not invent a new completion cache.
+
+Operation 28 is not a substitute for profile-04 cell op 21 while an ordinary
+factory lease is still alive. A Future-drop consumer retains its ordinary lease,
+performs public op 20 or the appropriate actual cell retry, and observes the
+cell's retirement list. Only the last-lease operation transfers ownership into
+the factory registry retirement record.
+
+### Value dependency and the global owner: operation 29
+
+The new retirement paths require the separately qualified mutable-value
+`HIABVQ02` operations 29, 30, and 31. Its candidate source checkpoint is
+`62c0dd36549595c2a98f08e910f1d752bdfb1d0c`, documented in
+`HIA_RESULT_VALUE_NATIVE_CLEANUP_ABI.md`. No old value image is silently
+interpreted as implementing this candidate contract.
+The original value profile remains available to the unchanged legacy paths.
+
+The new value reply is `HIABVR02`, with status at 8 and Boolean pending, known,
+consumed at 80/88/96. All other reply words after status are zero. A success
+from value op 29 or 30 must be known 1, consumed 1, pending 0; op 31 must be
+known 1, consumed 0, pending 0. Unknown or malformed replies are quarantined.
+Nonzero status codes are not reduced to a narrow whitelist: actual consumption
+and mapping facts, rather than an assumed error class, govern ownership.
+
+When a new cell drop has touched an object, its actual result Box and context
+token use the new value cleanup operations. A consumed Box capability or token
+is cleared in the actual retained object before any retry. Actual mapping
+pending is recorded separately. Value op 31 retries that captured mapping and
+never drops the original capability. A nonzero op-31 result retains the previous
+pending record even if the failed invocation could not acquire the lock and
+therefore returned pending 0. Only successful op 31 clears that record.
+
+A consumed value/token followed by a nonzero error with no recorded mapping is
+different: the capability is cleared, but the object remains quarantined for
+the dependency failure. It is not legal to manufacture an op-31 obligation from
+this error. Unknown consumption retains the complete original call record and
+does not repeat the original effect.
+
+Operation 29 applies the same rule to the global owner's actual context token.
+It first checks that the real factory registry and observer registry are empty.
+If either remains, it retains the token and returns a nonzero result with known
+1, consumed 0, pending 1. Otherwise it invokes value op 30. Consumption clears
+the held token exactly once. The existing lifecycle word at global offset 24
+now distinguishes live 0, closed 1, actual mapping retirement 2, and unknown
+quarantine 3. Only state 2 may invoke value op 31. State 3 retains the global
+storage and refuses replay. A successful retry closes the owner; a later call
+on the same closed, process-matching context is an idempotent no-consumption
+success. Older public operations still reject every non-live lifecycle state.
+
 ## Required live qualification before admission
 
 The native qualification must construct both policies and the fixed public
@@ -141,6 +246,17 @@ capsule from actual HIA, then cover:
   retirement retry, without double drop or early factory destruction.
 - Actual result-Box/value retirement failures, preserving the result object's
   owner and the factory lease until cleanup succeeds.
+- Actual factory last-lease consumption before retirement failure; retain the
+  registry record, reject reuse of the consumed nonce, and complete with op 28.
+- Actual value token/anchor last-release `munmap` failure, repeated failure,
+  successful op-31 recovery, and the public op-29 global-close path.
+- A claimed factory retirement observed by another thread; no duplicate cell
+  destruction, token drop, unlink, or free. Keep actual storage until the
+  claimant has finished.
+- Actual pre-lock retry failures after a mapping was recorded; a returned zero
+  pending bit on an error must not erase the previous retirement record.
+- Post-consumption dependency errors without a mapping record and malformed
+  completion frames; retain quarantined storage without repeating the drop.
 - Concurrent state-2 retirement while op 13 returns status 0; op 21 must still
   report pending 1. After real completion it must report pending 0.
 - Malformed callee feedback or contradictory consumption claims producing
@@ -149,4 +265,15 @@ capsule from actual HIA, then cover:
   exact new response profiles.
 
 Development source verification is recorded separately in
-`offline-verification.json`; it is not any of the live gates above.
+`HIA_BACKGROUND_NATIVE_FUTURE_DROP_OFFLINE.json`; it is not any of the live
+gates above. The offline author-transition matrix checks the new wire and
+continuation facts without executing allocation, memory effects, syscalls,
+callee policies, or native code. It does not establish actual concurrency or
+kernel-fault coverage.
+
+The development author matrix is retained as
+`tools/qualify_hia_future_drop_author_protocol.py`. It takes explicit
+`--source-root`, `--baseline-root`, `--dependency-root`, and `--output` paths.
+The baseline must be a checkout or exact author capture from the baseline
+commit above; the dependency root supplies the original author helpers. Its
+output remains offline development evidence, never a runtime authority input.
