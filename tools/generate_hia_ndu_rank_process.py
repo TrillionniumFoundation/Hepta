@@ -8,7 +8,7 @@ import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 ROOT=Path(__file__).resolve().parents[1]
-C=dict(MAGIC=int.from_bytes(b'HIANPS01','little'),REPLY=int.from_bytes(b'HIANPO01','little'),
+C=dict(MAGIC=int.from_bytes(b'HIANPS01','little'),MAGIC2=int.from_bytes(b'HIANPS02','little'),REPLY=int.from_bytes(b'HIANPO01','little'),
        NONE=(1<<64)-1,NEG4=(1<<64)-4,NEG11=(1<<64)-11,WORK=20<<20,
        INPUT=1<<20,IO=262144,CLOCK=32768,STAT=32832,PIPE=33024,POLL=33152,WAITINFO=33280,EXECERR=33408,WAITSTATUS=33536,
        COMMAND=65536,ARGV=131072,ENVP=131136,EMPTY=131200,ENV=131216)
@@ -39,10 +39,15 @@ def rank_process(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return cleanup(o,w,phase,result)
     if phase>=200 and phase<210:
         return guarded(o,w,phase,result)
+    if phase>=210 and phase<=212:
+        return live_read(o,w,phase,result)
     return 4294967293
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)<128 or readword(s,0)!=MAGIC:
+    if length(s)<128:
+        return 4294967293
+    magic=readword(s,0)
+    if magic!=MAGIC and magic!=MAGIC2:
         return 4294967293
     role=readword(s,8)
     n=readword(s,32)
@@ -59,7 +64,9 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     if role==3 and (pn==0 or byte(s,128+n)!=47):
         return 4294967293
-    if readword(s,64)!=0 and (readword(s,64)&7)!=0:
+    if magic==MAGIC and readword(s,64)!=0 and (readword(s,64)&7)!=0:
+        return 4294967293
+    if magic==MAGIC2 and readword(s,64)>18446744073709551607:
         return 4294967293
     i=72
     while i<128:
@@ -72,6 +79,7 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return 4294967293
         i=i+1
     zero(w,64,16320)
+    put(w,600,magic)
     put(w,160,role)
     put(w,168,readword(s,16))
     put(w,176,readword(s,24))
@@ -95,6 +103,8 @@ def setup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         put(w,120,now)
         if now>=get(w,176):
             return fail(o,w,1,0)
+        if get(w,600)==MAGIC2:
+            return live_poll(o,w,2)
         put(w,0,2)
         return 2
     if phase==2:
@@ -512,6 +522,8 @@ def guarded(o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         put(w,120,now_ns(w))
         if get(w,120)>=get(w,176):
             return fail(o,w,1,0)
+        if get(w,600)==MAGIC2:
+            return live_poll(o,w,201)
         put(w,0,201)
         return 2
     if phase==201:
@@ -520,6 +532,46 @@ def guarded(o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         put(w,0,get(w,440))
         put(w,8,0)
         return 3
+    return 4294967293
+
+
+# HIANPS02 reads the constructor-owned live word through the kernel. The old
+# HIANPS01 aligned-pointer validation and mechanical read action are unchanged.
+def live_poll(o:mutbuf,w:mutbuf,next:u64) -> u32:
+    put(w,608,next)
+    if get(w,184)==0:
+        put(w,0,next)
+        put(w,8,0)
+        return 3
+    return call(o,w,210,39,0,0,0,0,0,0,0)
+
+def live_read(o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
+    if get(w,600)!=MAGIC2:
+        return 4294967293
+    if phase==210:
+        if failed(result) or result==0:
+            return fail(o,w,3,result)
+        put(w,616,result)
+        put(w,640,get(w,16)+632)
+        put(w,648,8)
+        put(w,656,get(w,184))
+        put(w,664,8)
+        return call(o,w,211,310,68,result,640,1,656,1,0)
+    if phase==211:
+        if result==NEG4:
+            return call(o,w,212,228,4,1,CLOCK,0,0,0,0)
+        if result!=8:
+            return fail(o,w,3,result)
+        put(w,0,get(w,608))
+        put(w,8,get(w,632))
+        return 3
+    if phase==212:
+        if failed(result):
+            return fail(o,w,3,result)
+        put(w,120,now_ns(w))
+        if get(w,120)>=get(w,176):
+            return fail(o,w,1,0)
+        return call(o,w,211,310,68,get(w,616),640,1,656,1,0)
     return 4294967293
 
 def finish(o:mutbuf,w:mutbuf) -> u32:

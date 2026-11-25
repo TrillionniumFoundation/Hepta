@@ -1,7 +1,7 @@
 /* Mechanical fixed-six-word role router. HIA owns identity, paths, budgets and process state. */
 .intel_syntax noprefix
 .text
-.global hia_ndu_owner_join, owner_call, sha_call, identity_call, path_call, pump_call, json_call
+.global hia_ndu_owner_join, cancel_sample_call, owner_call, sha_call, identity_call, path_call, pump_call, json_call
 hia_ndu_owner_join:
     push rbp
     push rbx
@@ -48,8 +48,33 @@ hia_ndu_owner_join:
 .Lno_input:
     mov [r15+16],r15
     cmp QWORD PTR [r15],0
-    jne .Lresume
+    jne .Lsample
     mov QWORD PTR [r15+1024],0
+    jmp .Lresume
+/* HIA sampler preserves original parent phase, syscall feedback and nested await.
+ * It is advanced before each effect continuation, including nested path/pump. */
+.Lsample:
+    mov rax,3544418957723257160
+    cmp [r15+2256],rax
+    jne .Lresume
+    cmp QWORD PTR [r15+2424],1
+    je .Lsample_call
+    mov QWORD PTR [r15+2424],1
+    mov QWORD PTR [r15+2432],0
+.Lsample_call:
+    mov rdi,r12
+    mov rsi,r13
+    mov rdx,r14
+    mov rcx,[rsp+48]
+    mov r8,r15
+    mov r9,[rsp+56]
+    .byte 0xe8
+cancel_sample_call:.long 0
+    cmp eax,1
+    je .Lreturn
+    test eax,eax
+    jne .Lbad
+    mov QWORD PTR [r15+2424],0
 .Lresume:
     cmp QWORD PTR [r15+1024],0
     jne .Lnested
