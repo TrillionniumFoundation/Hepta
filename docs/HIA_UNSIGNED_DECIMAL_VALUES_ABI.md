@@ -43,3 +43,7 @@ Public exact-integer and nonnegative checks happen before converting values to s
 The runtime owns immutable value objects, separately from finite private live-row slots. Under the original writer and selection locks, it allocates and computes a complete new value before replacing the owning reference. Allocation or computation failure preserves the old value. Lease records, events, and snapshots retain the referenced value; reusing a private row must never change an already published generation number.
 
 The counter does not reset on close or when no generation is current. Reservation, rollback, publication, cancellation, and handoff ordering remain in the runtime coordinator.
+
+## Qualification
+
+The actual compiled role passed 4,024 independent checks, including million-digit arithmetic and atomic refusal boundaries. See [HIA_UNSIGNED_DECIMAL_VALUES_QUALIFICATION.md](HIA_UNSIGNED_DECIMAL_VALUES_QUALIFICATION.md) for the exact scope and complete case record. Runtime coordinator integration remains separately qualified.
