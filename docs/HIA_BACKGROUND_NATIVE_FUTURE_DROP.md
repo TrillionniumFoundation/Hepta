@@ -284,3 +284,35 @@ The development author matrix is retained as
 The baseline must be a checkout or exact author capture from the baseline
 commit above; the dependency root supplies the original author helpers. Its
 output remains offline development evidence, never a runtime authority input.
+
+## Captured callback environment retirement
+
+The existing callback carrier still uses its original request and reply
+profile. Its actual 33,792-byte object now reserves header word 192 for an
+attested value-mapping retirement and word 200 for an unknown or non-retryable
+dependency completion. Both words are initialized by the original complete
+header zeroing. The environment capability remains at bytes 56 through 79.
+
+Carrier retirement calls value-profile 02 operation 29. It validates the whole
+128-byte reply and the exact producer status/flag combinations before clearing
+the actual environment slot. A successful drop permits the existing unlink
+and free. A known pre-consumption error retains the original capability. A
+known consumed error clears it; a genuine pending mapping is recorded in word
+192, while a consumed error without a mapping record sets quarantine word 200.
+Malformed or unknown completion preserves the capability and sets quarantine.
+Every unfinished path retains the actual carrier in the factory list with
+retiring state 3.
+
+A recorded mapping is retried only by operation 31. Any nonzero retry preserves
+the previous pending record, including a failure that itself reports pending
+zero. Only actual success clears word 192 and permits unlink/free. Quarantine
+causes no repeated drop or mapping retry. The old allocator's failed `munmap`
+remains fail-stop and is not reclassified as a structured success.
+
+The added development cases distinguish persistent carrier storage from the
+temporary output buffer with an independent byte-transport model. They cover
+strict malformed replies, the consumed-without-mapping case, retained pending
+after a failed retry, and permanent quarantine. They do not run native code,
+real value retirement, real allocation, or actual concurrent callbacks. The
+carrier's temporary Future/return captures and the other consumer rows remain
+open until their separate registry-held cleanup mechanism is completed.

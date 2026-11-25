@@ -58,6 +58,8 @@ def frame(n, magic, op):
         put(data, 96, 1)
     if n == 192 and op == 13:
         put(data, 88, 17)
+    if magic == b"HIAPFC01" and op == 0:
+        put(data, 88, 17)
     return data
 
 def record(name, count):
@@ -68,6 +70,8 @@ for label, stem, n, outn, magics in (
      (b"HIABFQ01", b"HIABFQ02", b"HIABFQ03")),
     ("public", "background_optimizer_future_public_owner", 192, 65536,
      (b"HIABFP01", b"HIABFP02")),
+    ("carrier", "background_optimizer_future_public_carrier", 192, 32768,
+     (b"HIAPFC01",)),
 ):
     bc, before = owner("baseline", stem)
     nc, after = owner("tools", stem)
@@ -386,6 +390,115 @@ for status, consumed, pending in ((1, 1, 0), (6, 1, 0), (999, 1, 0), (0, 1, 1), 
             assert get(out, 24) == 0xA0000 + 184
         count += 1
 record("malformed-consumption-record-preserves-original-owned-slot", count)
+
+# These are author transition probes with synthetic dependency records, not
+# native effects. A tiny independent byte-transport model lets the assertions
+# distinguish persistent object fields from temporary O slots.
+kc, carrier = owner("tools", "background_optimizer_future_public_carrier")
+
+def carrier_transition(reply=None, *, original_pending=0, fenced=0,
+                       environment=True, corrupt_offset=None, corrupt_value=1):
+    out, work = bytearray(32768), bytearray(256)
+    fptr, cptr = 0x10000, 0x20000
+    factory, actual = bytearray(256), bytearray(256)
+    token = struct.pack("<QQQ", 0x30000, 0x81, 0x82)
+    put(factory, 104, cptr)
+    if environment:
+        actual[56:80] = token
+    put(actual, 96, 4)
+    put(actual, 192, original_pending)
+    put(actual, 200, fenced)
+    put(out, kc["F"], fptr)
+    put(out, kc["CARRIER"], cptr)
+    out[kc["CHEADER"]:kc["CHEADER"] + 256] = actual
+    put(out, kc["PHASE"], 600)
+    provider_calls, writes = [], []
+
+    def span(selector, at, amount):
+        if selector == 3:
+            assert at + amount <= len(out)
+            return out, at
+        assert selector == 0
+        for base, data in ((fptr, factory), (cptr, actual)):
+            if base <= at and at + amount <= base + len(data):
+                return data, at - base
+        raise AssertionError((selector, at, amount))
+
+    for _ in range(32):
+        phase = get(out, kc["PHASE"])
+        if phase == 900:
+            break
+        action = carrier["release"](frame(192, b"HIAPFC01", 2), out, work, phase)
+        if action == 9:
+            assert reply is not None and not provider_calls
+            assert out[kc["RQ"]:kc["RQ"] + 8] == b"HIABVQ02"
+            provider_calls.append(get(out, kc["RQ"] + 8))
+            value_reply(kc, out, *reply)
+            if corrupt_offset is not None:
+                put(out, kc["VP"] + corrupt_offset, corrupt_value)
+        elif action == 8:
+            a, at, b, bt, amount = (get(out, x) for x in (0, 8, 16, 24, 32))
+            source, si = span(a, at, amount)
+            dest, di = span(b, bt, amount)
+            dest[di:di + amount] = bytes(source[si:si + amount])
+            writes.append((b, bt, amount))
+            put(out, kc["FEEDBACK"], 0)
+        else:
+            assert action == 10
+    else:
+        raise AssertionError("carrier author transition did not terminate")
+    return out, factory, actual, token, provider_calls, writes
+
+count = 0
+for record_fields in (
+    (0, 1, 1, 0), (1, 1, 0, 0), (6, 1, 0, 0),
+    (6, 1, 0, 1), (11, 1, 0, 0), (11, 1, 0, 1),
+    (11, 1, 1, 0), (11, 1, 1, 1),
+):
+    status, known, consumed, pending = record_fields
+    out, factory, actual, token, calls, writes = carrier_transition(record_fields)
+    assert calls == [29]
+    assert actual[56:80] == (bytes(24) if consumed else token)
+    if status == 0:
+        assert get(factory, 104) == 0 and get(out, kc["FREEPTR"]) == 0x20000
+    else:
+        assert get(factory, 104) == 0x20000 and get(out, kc["FREEPTR"]) == 0
+        assert get(actual, 96) == 3
+        assert get(actual, 192) == int(bool(consumed and pending))
+        assert get(actual, 200) == int(bool(consumed and not pending))
+    count += 1
+record("carrier-env-known-consumption-updates-actual-retained-object", count)
+
+count = 0
+for offset in (8, 16, 64, 80, 88, 96, 104, 120):
+    bad = 999 if offset == 8 else 2 if offset in (80, 88, 96) else 1
+    out, factory, actual, token, calls, writes = carrier_transition(
+        (0, 1, 1, 0), corrupt_offset=offset, corrupt_value=bad)
+    assert calls == [29] and actual[56:80] == token
+    assert get(actual, 192) == 0 and get(actual, 200) == 1
+    assert get(actual, 96) == 3 and get(factory, 104) == 0x20000
+    assert get(out, kc["FREEPTR"]) == 0
+    count += 1
+for record_fields in ((0, 1, 1, 1), (1, 1, 1, 0), (6, 1, 1, 0),
+                      (1, 1, 0, 1), (11, 0, 0, 0)):
+    out, factory, actual, token, calls, writes = carrier_transition(record_fields)
+    assert actual[56:80] == token and get(actual, 200) == 1
+    assert get(out, kc["FREEPTR"]) == 0 and get(actual, 96) == 3
+    count += 1
+record("carrier-env-malformed-or-unknown-completion-never-erases-nonce", count)
+
+count = 0
+for status, pending in ((0, 0), (6, 0), (6, 1), (11, 0), (11, 1)):
+    out, factory, actual, token, calls, writes = carrier_transition(
+        (status, 1, 0, pending), original_pending=1, environment=False)
+    assert calls == [31] and actual[56:80] == bytes(24)
+    assert get(actual, 192) == int(status != 0)
+    assert get(out, kc["FREEPTR"]) == (0 if status else 0x20000)
+    count += 1
+out, factory, actual, token, calls, writes = carrier_transition(fenced=1)
+assert not calls and actual[56:80] == token
+assert get(factory, 104) == 0x20000 and get(out, kc["FREEPTR"]) == 0
+record("carrier-env-actual-mapping-retry-and-permanent-quarantine", count + 1)
 
 report = {"schema": "hepta.hia.future-drop-author-protocol-probes.v1",
           "passed": True, "checks": sum(x["checks"] for x in cases), "cases": cases,

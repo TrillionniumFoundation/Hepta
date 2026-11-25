@@ -15,6 +15,8 @@ C={"MAGIC":int.from_bytes("HIAPFC01".encode(),'little'),
 "FREPLY":int.from_bytes("HIABFR01".encode(),'little'),
 "VREQUEST":int.from_bytes("HIABVQ01".encode(),'little'),
 "VREPLY":int.from_bytes("HIABVR01".encode(),'little'),
+"VREQUEST2":int.from_bytes(b"HIABVQ02",'little'),
+"VREPLY2":int.from_bytes(b"HIABVR02",'little'),
 "KREQUEST":int.from_bytes("HIAMVFQ1".encode(),'little'),
 "KREPLY":int.from_bytes("HIAMVFR1".encode(),'little'),
 "CBREQUEST":int.from_bytes("HIAFCBQ1".encode(),'little'),
@@ -47,6 +49,9 @@ C={"MAGIC":int.from_bytes("HIAPFC01".encode(),'little'),
 "THROW_CLASS":368,
 "USER_KIND":376,
 "FREEPTR":384,
+"VD_CONSUMED":392,
+"VD_PENDING":400,
+"VD_STATUS":408,
 "FEEDBACK":448,
 "TEMP":456,
 "RANDOM_USED":464,
@@ -380,12 +385,43 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==600:
         if get(o,CHEADER+96)!=1 and get(o,CHEADER+96)!=3 and get(o,CHEADER+96)!=4:
             return fail(o,1,107)
-        value_packet(o,6)
+        # The actual carrier remains linked to its factory until its captured
+        # environment and any recorded mapping retirement are both finished.
+        # An unknown completion is never replayed using its old nonce.
+        if get(o,CHEADER+200)!=0:
+            return again(o,609)
+        if get(o,CHEADER+192)!=0:
+            value_packet(o,31)
+            return value(o,w,610)
+        if get(o,CHEADER+56)==0:
+            if get(o,CHEADER+64)!=0 or get(o,CHEADER+72)!=0:
+                return write_pointer(o,609,get(o,CARRIER)+200,1)
+            return again(o,606)
+        value_packet(o,29)
         within(o,RQ+24,CHEADER+56,24)
         return value(o,w,601)
     if phase==601:
-        if value_ok(o)==False:
-            return write_pointer(o,609,get(o,CARRIER)+96,3)
+        if value_drop_record(o,29)==False:
+            return write_pointer(o,609,get(o,CARRIER)+200,1)
+        if get(o,VD_CONSUMED)==0:
+            return again(o,609)
+        zero(o,CHEADER+56,24)
+        return memory(o,612,3,CHEADER+56,0,get(o,CARRIER)+56,24)
+    if phase==612:
+        if get(o,VD_PENDING)!=0:
+            return write_pointer(o,609,get(o,CARRIER)+192,1)
+        if get(o,VD_STATUS)!=0:
+            return write_pointer(o,609,get(o,CARRIER)+200,1)
+        return again(o,606)
+    if phase==610:
+        if value_drop_record(o,31)==False:
+            return write_pointer(o,609,get(o,CARRIER)+200,1)
+        # A failed retry may report pending=0 before acquiring its own lock.
+        # Only a successful actual retry can clear this retained fact.
+        if get(o,VD_STATUS)!=0:
+            return again(o,609)
+        return write_pointer(o,606,get(o,CARRIER)+192,0)
+    if phase==606:
         if get(o,CHEADER+80)!=0:
             return write_pointer(o,602,get(o,CHEADER+80)+88,get(o,CHEADER+88))
         return write_pointer(o,602,get(o,F)+104,get(o,CHEADER+88))
@@ -397,6 +433,8 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,FREEPTR,get(o,CARRIER))
         return fail(o,0,0)
     if phase==609:
+        return write_pointer(o,611,get(o,CARRIER)+96,3)
+    if phase==611:
         return fail(o,1,107)
     return fail(o,1,107)
 
@@ -455,7 +493,7 @@ def cell_packet(o:mutbuf,op:u64) -> u64:
     return 0
 def value_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,192)
-    put(o,RQ,VREQUEST)
+    put(o,RQ,choose(op>=29,VREQUEST2,VREQUEST))
     put(o,RQ+8,op)
     return 0
 def cell(o:mutbuf,w:mutbuf,next:u64) -> u32:
@@ -466,6 +504,37 @@ def cell_ok(o:mutbuf) -> bool:
     return get(o,FEEDBACK)==0 and get(o,FP)==FREPLY and get(o,FP+8)==0
 def value_ok(o:mutbuf) -> bool:
     return get(o,FEEDBACK)==0 and get(o,VP)==VREPLY and get(o,VP+8)==0
+def value_drop_record(o:mutbuf,op:u64) -> bool:
+    if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY2:
+        return False
+    status=get(o,VP+8)
+    pending=get(o,VP+80)
+    known=get(o,VP+88)
+    consumed=get(o,VP+96)
+    if pending>1 or known!=1 or consumed>1:
+        return False
+    if status!=0 and status!=1 and status!=6 and status!=11:
+        return False
+    if op==31 and status==1:
+        return False
+    if status==1 and pending!=0:
+        return False
+    if consumed==1 and status!=0 and status!=11:
+        return False
+    at=16
+    while at<128:
+        if at!=80 and at!=88 and at!=96 and get(o,VP+at)!=0:
+            return False
+        at=at+8
+    if op==31:
+        if consumed!=0 or (status==0 and pending!=0):
+            return False
+    elif status==0 and (consumed!=1 or pending!=0):
+        return False
+    put(o,VD_CONSUMED,consumed)
+    put(o,VD_PENDING,pending)
+    put(o,VD_STATUS,status)
+    return True
 def raw_drop(o:mutbuf,w:mutbuf,next:u64,p:u64) -> u32:
     put(o,PHASE,next)
     put(o,0,get(w,104))
