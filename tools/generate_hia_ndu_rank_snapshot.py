@@ -94,7 +94,7 @@ def snapshot(s:readbuf,w:mutbuf) -> u64:
             i=0
             while i<n:
                 c=byte(s,at+i)
-                if c==46 or c==101 or c==69:
+                if c==46 or c==101 or c==69 or c==78 or c==73:
                     return 3
                 i=i+1
         elif kind>6:
