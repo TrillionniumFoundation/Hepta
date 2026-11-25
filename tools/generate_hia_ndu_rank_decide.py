@@ -5,6 +5,7 @@ from tools.generate_hia_system_jobctl_request import document
 from tools.generate_hia_ndu_rank_owner_common import C,common_source,resolve
 ROOT=Path(__file__).resolve().parents[1]
 C.update({
+ 'ORDER_FRAME':7040,'ORDER_FRAME_N':7048,'ORDER_WORK_N':7056,'PUBLIC_RESPONSE_AT':7064,'PUBLIC_RESPONSE_N':7072,'ORDER_SIZE':7080,
  'SEARCH_LOW':5000,'SEARCH_HIGH':5008,'OBJECTIVE_HASH':5024,'OBS_HASH':5056,'REQUEST_HASH':5088,'RESPONSE_HASH':5120,
  'REQUEST_AT':5152,'REQUEST_N':5160,'REQUEST_ARENA':5168,'REQUEST_AN':5176,'RESPONSE_AT':5184,'RESPONSE_N':5192,'RESPONSE_ARENA':5200,'RESPONSE_AN':5208,
  'IDENTITY_AT':5216,'IDENTITY_N':5224,'SELECTION_AT':5232,'SELECTION_N':5240,'SELECTED':5248,'FINAL_REASON':5256,'ADMITTED':5264,
@@ -19,6 +20,7 @@ C.update({
  'T_FD_READ':8,'NATIVE_ERROR_ROLE':19,'NATIVE_ERROR_REQUEST':int.from_bytes(b'HIANER01','little'),
  'R_NATIVE_COST':616,'R_NATIVE_UNCERTAINTY':624,'R_NATIVE_RESOURCE':632,'R_PROOF_ARENA':648,'R_PROOF_AN':656,
  'UNCHANGED_REQUEST':int.from_bytes(b'HIANUC01','little'),'UNCHANGED_REPLY':int.from_bytes(b'HIANUR01','little'),
+ 'ORDER_REPLY':int.from_bytes(b'HIANPR01','little'),
  'BINDING_REQUEST':int.from_bytes(b'HIANBD01','little'),'BINDING_REPLY':int.from_bytes(b'HIANBDR1','little'),
  'PROOF_REQUEST':int.from_bytes(b'HIAPPR01','little'),'PROOF_REPLY':int.from_bytes(b'HIAMVR01','little'),
  'BUDGET_REQUEST':int.from_bytes(b'HIANRB01','little'),'BUDGET_REPLY':int.from_bytes(b'HIANBR01','little'),
@@ -722,6 +724,8 @@ def native_advice(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return direct_error(o,at+128,get(w,at+32))
         if get(w,at+16)!=1:
             return terminal(o,4)
+        put(o,PUBLIC_RESPONSE_AT,get(o,RESPONSE_AT))
+        put(o,PUBLIC_RESPONSE_N,get(o,RESPONSE_N))
         put(o,NATIVE_INVOKED,1)
         put(o,NATIVE_REASON,2)
         return canonical_at(o,1,get(o,RESPONSE_AT),get(o,RESPONSE_N),get(o,RESPONSE_ARENA),get(o,RESPONSE_AN),0,0,608)
@@ -1072,7 +1076,7 @@ def final_report(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         optional_part(o,7,get(o,FINAL_ADMISSION_AT),get(o,FINAL_ADMISSION_N))
         report_part(o,8,1,get(o,NATIVE_ADMISSION_AT),get(o,NATIVE_ADMISSION_N))
         report_part(o,9,1,get(o,REQUEST_AT),get(o,REQUEST_N))
-        optional_part(o,10,get(o,RESPONSE_AT),get(o,RESPONSE_N))
+        optional_part(o,10,get(o,PUBLIC_RESPONSE_AT),get(o,PUBLIC_RESPONSE_N))
         optional_part(o,11,get(o,IDENTITY_AT),get(o,IDENTITY_N))
         optional_part(o,12,get(o,SELECTION_AT),get(o,SELECTION_N))
         return frame_start(o,831)
@@ -1083,10 +1087,62 @@ def final_report(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if phase==832:
         if get(o,RET_STATUS)!=0:
             return task_failure(o)
+        put(o,FINAL_REPORT_AT,get(o,RET_AT))
+        put(o,FINAL_REPORT_N,get(o,RET_N))
+        return capture_at(o,1,get(o,RET_AT),get(o,RET_N),833)
+    if phase==833:
+        if get(o,RET_STATUS)!=0:
+            return task_failure(o)
+        arena=get(o,RET_ARENA)
+        an=get(o,RET_ARENA_N)
+        count=get(w,arena+8)
+        if an>18446744073709535231 or count>(18446744073709535231-an)//16:
+            return terminal(o,3)
+        wn=16384+an+count*16
+        other=get(w,get(o,ARGS_ARENA)+8)
+        if other>18446744073709420543:
+            return terminal(o,3)
+        if count>18446744073709420543:
+            return terminal(o,3)
+        if 131072+other>wn:
+            wn=131072+other
+        if 131072+count>wn:
+            wn=131072+count
+        put(o,ORDER_WORK_N,wn)
+        report_begin(o,11,4)
+        report_part(o,0,1,get(o,FINAL_REPORT_AT),get(o,FINAL_REPORT_N))
+        report_part(o,1,1,arena,an)
+        report_part(o,2,2,get(o,ARGS_AT),get(o,ARGS_N))
+        report_part(o,3,1,get(o,ARGS_ARENA),get(o,ARGS_AN))
+        return frame_start(o,834)
+    if phase==834:
+        if get(o,RET_STATUS)!=0:
+            return task_failure(o)
+        put(o,ORDER_FRAME,get(o,RET_AT))
+        put(o,ORDER_FRAME_N,get(o,RET_N))
+        return call_role(o,REPORT_ROLE,1,get(o,RET_AT),get(o,RET_N),64,get(o,ORDER_WORK_N),835)
+    if phase==835:
+        if get(o,RET_STATUS)!=0:
+            return task_failure(o)
+        at=get(o,RET_AT)
+        if get(o,RET_AUX)!=0 or get(w,at)!=ORDER_REPLY or get(w,at+16)!=11:
+            return terminal(o,4)
+        n=get(w,at+8)
+        if n>18446744073709551551:
+            return terminal(o,3)
+        put(o,ORDER_SIZE,n)
+        put(w,get(o,ORDER_FRAME)+16,1)
+        return call_role(o,REPORT_ROLE,1,get(o,ORDER_FRAME),get(o,ORDER_FRAME_N),64+n,get(o,ORDER_WORK_N),836)
+    if phase==836:
+        if get(o,RET_STATUS)!=0:
+            return task_failure(o)
+        at=get(o,RET_AT)
+        if get(o,RET_AUX)!=0 or get(w,at)!=ORDER_REPLY or get(w,at+16)!=11 or get(w,at+8)!=get(o,ORDER_SIZE):
+            return terminal(o,4)
         put(o,RESULT_STATUS,0)
         put(o,RESULT_KIND,1)
-        put(o,RESULT_AT,get(o,RET_AT))
-        put(o,RESULT_N,get(o,RET_N))
+        put(o,RESULT_AT,at+64)
+        put(o,RESULT_N,get(o,ORDER_SIZE))
         put(o,PHASE,9990)
         return 3
     return terminal(o,4)
