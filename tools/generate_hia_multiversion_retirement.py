@@ -17,6 +17,7 @@ C={
 'INPUT_DIAGNOSTIC':int.from_bytes(b'HIAMVRT2','little'),'RESULT_DIAGNOSTIC':int.from_bytes(b'HIAMVTR2','little'),'EXTENDED':4408,
 'INPUT_LOADER':int.from_bytes(b'HIAMVRT3','little'),'RESULT_LOADER':int.from_bytes(b'HIAMVTR3','little'),
 'LIB_FUNCTION':4416,'LIB_POINTER':4424,'LIB_RAW_N':4432,'LIB_TEXT_N':4440,'LIB_CAPTURE':4448,'LIB_CAPTURE_ERROR':4456,'LIB_AMOUNT':4464,'LIB_BASE':4472,
+'DISK_CAPTURE':(6<<20)+20480,
 'LIB_IOV':(6<<20)+10880,'LIB_REMOTE':(6<<20)+10912,'LIB_RAW':(6<<20)+12288,'LIB_TEXT':(6<<20)+16384,
 'REQUEST_MAGIC':int.from_bytes(b'HIARREQ1','little'),'REPLY_MAGIC':int.from_bytes(b'HIARRES1','little'),
 'PHASE':4096,'OWNER':4104,'OP':4112,'GEN':4120,'INIT':4128,'FENCED':4136,'ERROR':4144,'TOKEN':4152,'ATTEMPT':4160,
@@ -43,6 +44,8 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return 4294967293
         put(w,EXTENDED,choose(readword(s,0)==INPUT_LOADER,2,choose(readword(s,0)==INPUT_DIAGNOSTIC,1,0)))
         put(w,OP,readword(s,8))
+        if readword(s,8)==1:
+            put(w,DISK_CAPTURE+64,0)
         return system(o,w,2,39,0,0,0,0,0,0,0)
     if phase==2:
         if get(w,8)!=get(w,24) or get(w,8)==0:
@@ -77,6 +80,8 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if raw!=0 or get(w,TIME+8)>=1000000000:
             return fence(o,w,raw)
         put(w,REQUEST+24,get(w,TIME)*1000000000+get(w,TIME+8))
+        if get(w,EVENT)==9:
+            put(w,DISK_CAPTURE+8,get(w,REQUEST+24))
         put(w,PHASE,9001)
         put(o,0,REQUEST)
         put(o,8,get(w,REQUEST_N))
@@ -396,6 +401,9 @@ def finish_native(o:mutbuf,w:mutbuf) -> u32:
     return submit(o,w,205)
 
 def begin_disk(o:mutbuf,w:mutbuf) -> u32:
+    zero(w,DISK_CAPTURE,128)
+    put(w,DISK_CAPTURE+56,1)
+    put(w,DISK_CAPTURE+64,1)
     put(w,DISKERR,0)
     request(w,26,0)
     return submit(o,w,210)
@@ -408,6 +416,9 @@ def release_disk(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         raw=get(w,8)
         request(w,9,0)
         if raw==0:
+            put(w,DISK_CAPTURE+16,1)
+            put(w,DISK_CAPTURE+24,get(w,STAT))
+            put(w,DISK_CAPTURE+32,get(w,STAT+8))
             put(w,REQUEST+32,0)
             put(w,REQUEST+40,get(w,STAT))
             put(w,REQUEST+48,get(w,STAT+8))
@@ -416,8 +427,11 @@ def release_disk(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(w,REQUEST+32,choose(raw==MINUS2,1,2))
             if raw!=MINUS2:
                 put(w,DISKERR,raw)
+                put(w,DISK_CAPTURE+40,raw)
+                put(w,DISK_CAPTURE+48,1)
         return submit(o,w,212)
     if phase==212:
+        put(w,DISK_CAPTURE,get(w,OBSERVATION))
         if get(w,ACTION)==3:
             put(w,TOKEN,get(w,CLAIM))
             return system(o,w,213,5,4,get(w,VALUE),FDSTAT,0,0,0,0)
@@ -435,8 +449,11 @@ def release_disk(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(w,REQUEST+32,choose(raw==MINUS2,1,2))
             if raw!=MINUS2:
                 put(w,DISKERR,raw)
+                put(w,DISK_CAPTURE+40,raw)
+                put(w,DISK_CAPTURE+48,0)
         return submit(o,w,214)
     if phase==214:
+        put(w,DISK_CAPTURE,get(w,OBSERVATION))
         return disk_decision(o,w)
     if phase==215:
         if get(w,ACTION)==5:
