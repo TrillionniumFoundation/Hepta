@@ -23,11 +23,11 @@ def release_begin(o:mutbuf) -> u64:
     put(o,DROP_ACTIVE,1)
     put(o,DROP_KNOWN,0)
     return 0
-def release_value_reply(o:mutbuf) -> u64:
+def release_value_reply(o:mutbuf,op:u64) -> u64:
     if valid(o,RP,VALUE_DROP_REPLY)==0 or get(o,RP+88)!=1 or get(o,RP+96)>1 or get(o,RP+80)>1:
         return 0
     status=get(o,RP+8)
-    if status!=0 and status!=1 and status!=5 and status!=6 and status!=11:
+    if status!=0 and status!=6 and status!=11 and (op==31 or status!=1):
         return 0
     at=16
     while at<128:
@@ -37,7 +37,7 @@ def release_value_reply(o:mutbuf) -> u64:
         at=at+8
     return 1
 def release_value(o:mutbuf,at:u64) -> u64:
-    if release_value_reply(o)==0:
+    if release_value_reply(o,29)==0:
         return 0
     status=get(o,RP+8)
     consumed=get(o,RP+96)
@@ -61,7 +61,7 @@ def release_job(o:mutbuf,at:u64) -> u64:
     status=get(o,RP+8)
     if status!=0 and status!=1 and status!=5 and status!=6 and status!=9:
         return 0
-    if status==0 and (get(o,RP+128)!=1 or get(o,RP+144)!=0):
+    if (status==0 and (get(o,RP+128)!=1 or get(o,RP+144)!=0)) or (status==1 and get(o,RP+128)!=0):
         return 0
     put(o,DROP_KNOWN,1)
     if get(o,RP+144)!=0:
@@ -108,7 +108,7 @@ def release_job_retry(o:mutbuf) -> u64:
     put(o,DROP_ACTIVE,0)
     return 1
 def release_value_retry(o:mutbuf) -> u64:
-    if release_value_reply(o)==0 or get(o,RP+96)!=0:
+    if release_value_reply(o,31)==0 or get(o,RP+96)!=0:
         return 0
     put(o,DROP_KNOWN,1)
     if get(o,RP+8)!=0 or get(o,RP+80)!=0:

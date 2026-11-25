@@ -45,7 +45,14 @@ def job_refs(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if word_load(o,FEEDBACK)!=0 or word_load(o,RP)!=wanted:
             return finish(o,9,0,0,0)
         if word_load(o,PROFILE)!=0 and word_load(s,8)==2:
-            if word_load(o,RP+128)>1 or word_load(o,RP+136)>1 or word_load(o,RP+144)>1:
+            status=word_load(o,RP+8)
+            consumed=word_load(o,RP+128)
+            pending=word_load(o,RP+144)
+            if consumed>1 or word_load(o,RP+136)!=1 or pending>1:
+                return finish(o,9,0,0,0)
+            if status!=0 and status!=1 and status!=5 and status!=6 and status!=9:
+                return finish(o,9,0,0,0)
+            if (status==0 and (consumed!=1 or pending!=0)) or (status==1 and consumed!=0):
                 return finish(o,9,0,0,0)
             put(o,CONSUMED,word_load(o,RP+128))
             put(o,KNOWN,word_load(o,RP+136))

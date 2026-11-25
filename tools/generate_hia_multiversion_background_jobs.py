@@ -506,6 +506,17 @@ def retirement_safe(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==608:
         if get(o,FEEDBACK)!=0 or get(o,RP)!=CELL_REPLY2 or get(o,RP+128)>1:
             return retire_failure(o,3,9)
+        status=get(o,RP+8)
+        consumed=get(o,RP+128)
+        if status!=0 and status!=1 and status!=5 and status!=6 and status!=9:
+            return retire_failure(o,3,9)
+        if (status==0 and consumed!=1) or (consumed==1 and status!=0 and status!=9) or get(o,RP+120)>1:
+            return retire_failure(o,3,9)
+        at=16
+        while at<160:
+            if at!=120 and at!=128 and get(o,RP+at)!=0:
+                return retire_failure(o,3,9)
+            at=at+8
         if get(o,RP+128)==0:
             if get(o,RP+8)==0:
                 return retire_failure(o,3,9)
@@ -533,7 +544,9 @@ def retirement_safe(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,RQ,CELL_INPUT4)
         return cell(o,w,622)
     if phase==622:
-        if get(o,FEEDBACK)!=0 or get(o,RP)!=CELL_REPLY2 or get(o,RP+8)!=0 or get(o,RP+144)!=1 or get(o,RP+136)>1:
+        if get(o,FEEDBACK)!=0 or get(o,RP)!=CELL_REPLY2 or get(o,RP+128)!=0 or get(o,RP+144)>1 or get(o,RP+136)>1 or get(o,RP+152)!=0:
+            return retire_failure(o,3,9)
+        if get(o,RP+8)!=0 or get(o,RP+144)!=1:
             return retire_failure(o,1,9)
         if get(o,RP+136)!=0:
             return retire_failure(o,1,5)

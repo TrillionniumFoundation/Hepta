@@ -970,6 +970,7 @@ def quarantine(o:mutbuf,w:mutbuf,detail:u64) -> u32:
     if get(o,DROP_ACTIVE)!=0 and get(o,DROP_KNOWN)==1:
         kind=1
     put(w,480,kind)
+    put(w,504,get(o,PHASE))
     put(o,DETAIL,detail)
     put(w,464,1)
     if get(o,LOCK)!=0:

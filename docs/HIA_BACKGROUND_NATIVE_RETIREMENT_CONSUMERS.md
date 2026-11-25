@@ -2,7 +2,7 @@
 
 This checkpoint changes the owned background continuations to consume explicit
 release outcomes. The original authoring verifier accepts the generated HIA
-within the existing limits. The source-policy probes exercise 62 concrete
+within the existing limits. The source-policy probes exercise 67 concrete
 consumption and retirement observations. They execute the development policy
 text; they are **not native product tests**. Native construction, original API
 comparisons, fault controls, concurrency tests, and whole-background
@@ -28,7 +28,11 @@ policy. It is a development author dependency, not an installed Python runtime
 dependency. The final generated policies contain the selected native helper
 functions directly.
 
-Mutable values use `HIABVQ02` operations 29 and 31. A reply with status 11,
+Mutable values use `HIABVQ02` operations 29 and 31. The producer's actual
+operation-29 statuses are 0, 1, 6, and 11; operation 31 uses only 0, 6, and 11.
+A known consumed reference can have status 0 or 11. Unknown status numbers or
+contradictory status/consumption pairs are rejected before clearing a slot.
+A reply with status 11,
 known 1, consumed 1, and pending 0 is a real post-consumption dependency error.
 It clears the old capability and enters non-replayable quarantine; it is not
 treated as success or as a mapping eligible for operation 31. Reserved reply
