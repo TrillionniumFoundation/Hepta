@@ -1,7 +1,7 @@
 """External malloc failure controls on the actual native payload call sites."""
 from pathlib import Path
 import argparse,ctypes as C,hashlib,json,os,subprocess,sys
-from tools.qualify_hia_multiversion_values_allocations import INJECTOR
+INJECTOR = '\n#include <stdint.h>\n#include <stddef.h>\nextern void *__libc_malloc(size_t);\nextern void __libc_free(void *);\nstatic uintptr_t lo,hi;\nstatic unsigned long fail_after,attempts,allocs,frees;\nvoid values_fault_arm(uintptr_t low,uintptr_t high,unsigned long fail) {\n lo=low;hi=high;fail_after=fail;attempts=allocs=frees=0;\n}\nunsigned long values_fault_count(unsigned long selector) {\n return selector==0?attempts:selector==1?allocs:frees;\n}\nvoid *malloc(size_t n) {\n uintptr_t pc=(uintptr_t)__builtin_return_address(0);\n if(pc>=lo && pc<hi) {\n  attempts++;if(attempts==fail_after)return 0;\n  void *p=__libc_malloc(n);if(p)allocs++;return p;\n }\n return __libc_malloc(n);\n}\nvoid free(void *p) {\n uintptr_t pc=(uintptr_t)__builtin_return_address(0);\n if(p && pc>=lo && pc<hi)frees++;\n __libc_free(p);\n}\n'
 from tools.qualify_hia_multiversion_background_payload import Owner,get
 def child(D):
  product=D/'payload-component.so';q=Owner(product);hooks=C.CDLL(None);arm=hooks.values_fault_arm;arm.argtypes=[C.c_uint64]*3;count=hooks.values_fault_count;count.argtypes=[C.c_uint64];count.restype=C.c_uint64
