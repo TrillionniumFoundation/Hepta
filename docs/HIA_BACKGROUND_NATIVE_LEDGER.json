@@ -1,0 +1,725 @@
+{
+  "schema": "hepta.hia.background-native-ledger.component.v1",
+  "whole_background_qualified": false,
+  "scope": "Atomic detached accounting ownership and full-width cumulative arithmetic, not receipt formatting or whole business",
+  "sources": {
+    "examples/hia_bootstrap/multiversion_background_ledger.hepta": {
+      "bytes": 86886,
+      "sha256": "5c7d343184f801343bd4dbb53fcde7defba3a20d2f2a80357c905cbfd8efa6fc"
+    },
+    "examples/hia_bootstrap/multiversion_background_ledger_packer.hepta": {
+      "bytes": 32191,
+      "sha256": "5059b5fac83ced9ce26d3dea8a5e18902ce446262e30ee62a50d32863f1f3b02"
+    },
+    "tools/hia_multiversion_background_ledger_bridge.S": {
+      "bytes": 2737,
+      "sha256": "562e7133087072ce5d77db69b0f10d18db5499e7f3937d7eb0398c01464ff7c4"
+    },
+    "tools/generate_hia_multiversion_background_ledger.py": {
+      "bytes": 16040,
+      "sha256": "1d2dbe54fca38b214450d5de91216b6e6afaaeb46f5d93ee2b9021e35c65f6c4"
+    },
+    "tools/generate_hia_multiversion_background_ledger_packer.py": {
+      "bytes": 3266,
+      "sha256": "b6a7eddf11c4c14ee66a52b6bd9f3c373a727e7ee02b150272b5f0a6111ea2ef"
+    },
+    "tools/qualify_hia_multiversion_background_ledger.py": {
+      "bytes": 11693,
+      "sha256": "ac444eed2505e5f124ad1e50cc49824c7504c887d9d5deb64576df95f2bb8260"
+    },
+    "tools/qualify_hia_multiversion_background_ledger_allocations.py": {
+      "bytes": 5406,
+      "sha256": "cce626d272148f5053f44f5886051e7183083b0ea62f92074f172b361a4d260b"
+    },
+    "tools/qualify_hia_multiversion_background_ledger_pack.py": {
+      "bytes": 2768,
+      "sha256": "8bc9b6f1760e770cee419b0258263859b8751a5fd5a79a6f4968d462624030fa"
+    }
+  },
+  "construction": {
+    "status": "built_unqualified",
+    "components": [
+      {
+        "role": "multiversion_background_ledger",
+        "source_sha256": "5c7d343184f801343bd4dbb53fcde7defba3a20d2f2a80357c905cbfd8efa6fc",
+        "flat_sha256": "485f3cedfc8ab47f5a13d315408cfb6c9695851cfe81a73d441ce95063ecc8fe",
+        "bytes": 113615,
+        "elapsed_ns": 84550553
+      },
+      {
+        "role": "multiversion_background_ledger_packer",
+        "source_sha256": "5059b5fac83ced9ce26d3dea8a5e18902ce446262e30ee62a50d32863f1f3b02",
+        "flat_sha256": "6871505c5d233fb4608f359731222539cacb038819423105a3d1ff93177f96bc",
+        "bytes": 35211,
+        "elapsed_ns": 29554919
+      },
+      {
+        "role": "elf_shared_linker",
+        "source_sha256": "a8aef777d9ada151b5bdf007f30966e9ecff5f72e34a416ae440bb57dc3f204c",
+        "flat_sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff",
+        "bytes": 127874,
+        "elapsed_ns": 72495100
+      }
+    ],
+    "image_bytes": 123664,
+    "image_sha256": "5795330ebc57f3e88ce1062e3a1c126e532afcbc819dfb097b217327d3f712bb",
+    "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+    "mechanical_source_used_only_to_generate_and_verify_fixed_template": true,
+    "actual_pack_and_shared_link": "pure HIA",
+    "whole_background_qualified": false
+  },
+  "products": {
+    "ledger-component.so": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-ledger-v1/ledger-component.so",
+      "bytes": 123664,
+      "sha256": "5795330ebc57f3e88ce1062e3a1c126e532afcbc819dfb097b217327d3f712bb"
+    },
+    "ledger-component.o": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-ledger-v1/ledger-component.o",
+      "bytes": 114880,
+      "sha256": "98c5838d01b59a09948bd1ef9778a49eb58b0877c8535e15d3e7b0712f899285"
+    },
+    "multiversion_background_ledger.flat": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-ledger-v1/multiversion_background_ledger.flat",
+      "bytes": 113615,
+      "sha256": "485f3cedfc8ab47f5a13d315408cfb6c9695851cfe81a73d441ce95063ecc8fe"
+    },
+    "multiversion_background_ledger_packer.flat": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-ledger-v1/multiversion_background_ledger_packer.flat",
+      "bytes": 35211,
+      "sha256": "6871505c5d233fb4608f359731222539cacb038819423105a3d1ff93177f96bc"
+    },
+    "elf_shared_linker.flat": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-ledger-v1/elf_shared_linker.flat",
+      "bytes": 127874,
+      "sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff"
+    }
+  },
+  "evidence": {
+    "qualification.json": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-ledger-v1/qualification.json",
+      "sha256": "ac3c061cc612de242697cd7e55bf7b59c07e8bbf45931f471d78f5c14109c4fb",
+      "report": {
+        "schema": "hepta.hia.background-native-ledger.v1",
+        "whole_background_qualified": false,
+        "scope": "Atomic native storage/summation of accounted-job receipt bytes and detached owned snapshots. Receipt formatting, real clocks and full optimizer business are separate.",
+        "image_sha256": "5795330ebc57f3e88ce1062e3a1c126e532afcbc819dfb097b217327d3f712bb",
+        "passed": 7,
+        "failed": 0,
+        "ledger_calls": 1286,
+        "jobs_calls": 1543,
+        "external_values_calls": 2318,
+        "external_payload_calls": 6607,
+        "cases": [
+          {
+            "name": "initial-state-and-once-only-job-accounting",
+            "passed": true,
+            "detail": {
+              "accounted_once_marker_from_actual_job": true,
+              "receipt_input_detached": true,
+              "duplicate_does_not_consume_new_receipt": true
+            },
+            "elapsed_ns": 1929042
+          },
+          {
+            "name": "unbounded-sums-six-outcomes-and-64-receipt-window",
+            "passed": true,
+            "detail": {
+              "fresh_bigint_inputs": 300,
+              "largest_input_digits": 299,
+              "recent_window": 64,
+              "full_sums_and_counts_match_independent_integers": true
+            },
+            "elapsed_ns": 227611221
+          },
+          {
+            "name": "later-native-future-cancellation-preserves-accounting-observation",
+            "passed": true,
+            "detail": {
+              "later_actual_native_future_cancel_does_not_rewrite_receipt": true
+            },
+            "elapsed_ns": 9323951
+          },
+          {
+            "name": "snapshot-reference-lifetime-across-all-ring-evictions",
+            "passed": true,
+            "detail": {
+              "retained_old_receipts_survive_ring_eviction": 64,
+              "new_settlements": 65
+            },
+            "elapsed_ns": 48461865
+          },
+          {
+            "name": "concurrent-once-only-settlement-and-atomic-detached-snapshots",
+            "passed": true,
+            "detail": {
+              "threads": 8,
+              "accepted_once_each": 400,
+              "duplicate_settlements": 400,
+              "actual_concurrent_snapshots": 30,
+              "all_snapshot_counter_sums_consistent": true
+            },
+            "elapsed_ns": 397167010
+          },
+          {
+            "name": "private-frame-foreign-ref-and-ownership-transfer-guards",
+            "passed": true,
+            "detail": {
+              "frame_controls": 56,
+              "invalid_job_payload_value_controls": 4,
+              "failed_settlement_keeps_receipt_and_job_marker": true
+            },
+            "elapsed_ns": 1787247
+          },
+          {
+            "name": "pid-and-independent-snapshot-lifetime-at-final-destruction",
+            "passed": true,
+            "detail": {
+              "fork_refused": true,
+              "retained_snapshot_survives_ledger_destruction": true,
+              "all_component_reference_registries_empty": true
+            },
+            "elapsed_ns": 17789735
+          }
+        ]
+      }
+    },
+    "allocation-qualification.json": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-ledger-v1/allocation-qualification.json",
+      "sha256": "d5908a61335c16abc9739a2882fcc328784173de1f8aa1943a5bce45cadb4cb5",
+      "report": {
+        "passed": 37,
+        "failed": 0,
+        "cases": [
+          {
+            "case": "initialize",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 9,
+            "counts": [
+              9,
+              8,
+              8
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 10,
+            "counts": [
+              10,
+              9,
+              9
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 9,
+            "counts": [
+              9,
+              8,
+              8
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 9,
+            "counts": [
+              9,
+              8,
+              8
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 10,
+            "counts": [
+              10,
+              9,
+              9
+            ],
+            "all_decimal_and_payload_clones_released": true
+          }
+        ],
+        "actual_initialize_allocation_sites": 10,
+        "actual_settle_allocation_sites": 9,
+        "image_sha256": "5795330ebc57f3e88ce1062e3a1c126e532afcbc819dfb097b217327d3f712bb",
+        "schema": "hepta.hia.background-native-ledger.allocations.v1",
+        "whole_background_qualified": false,
+        "external_injector_only": true,
+        "injector_source_sha256": "a591c1fab357661127703a03d09bfd5f8c5f2ffe00efe0314bcf0442cdacb3f3"
+      }
+    },
+    "packer-qualification.json": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-ledger-v1/packer-qualification.json",
+      "sha256": "0f8e97becc70731b5f7903653ba68a4b90f727b71333ee37e13f4f5dfda1d4bb",
+      "report": {
+        "schema": "hepta.hia.background-native-ledger-pack.qualification.v1",
+        "whole_background_qualified": false,
+        "passed": 24,
+        "failed": 0,
+        "cases": [
+          {
+            "name": "exact-object",
+            "returncode": 114880,
+            "passed": true
+          },
+          {
+            "name": "truncated-0",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-1",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-7",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-8",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-15",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-16",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-23",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-24",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-113638",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-0-0",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-8-0",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-8-2",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-8-18446744073709551615",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-16-0",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-16-113614",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-16-113616",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-16-18446744073709551615",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "extra-byte",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "short-output-0",
+            "returncode": 4294967294,
+            "passed": true
+          },
+          {
+            "name": "short-output-1",
+            "returncode": 4294967294,
+            "passed": true
+          },
+          {
+            "name": "short-output-63",
+            "returncode": 4294967294,
+            "passed": true
+          },
+          {
+            "name": "short-output-114879",
+            "returncode": 4294967294,
+            "passed": true
+          },
+          {
+            "name": "readable-mechanical-source-full-prefix",
+            "bytes": 474,
+            "passed": true
+          }
+        ],
+        "native_packer_sha256": "6871505c5d233fb4608f359731222539cacb038819423105a3d1ff93177f96bc",
+        "object_sha256": "98c5838d01b59a09948bd1ef9778a49eb58b0877c8535e15d3e7b0712f899285",
+        "source_sha256": "562e7133087072ce5d77db69b0f10d18db5499e7f3937d7eb0398c01464ff7c4",
+        "mechanical_assembly_used_only_as_external_source_provenance_check": true
+      }
+    }
+  },
+  "external_observer_correction": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-ledger-v1/qualification.log",
+    "product_bytes_unchanged": true,
+    "reason": "The expected length of one literal receipt was hardcoded incorrectly; corrected to actual literal length."
+  }
+}
