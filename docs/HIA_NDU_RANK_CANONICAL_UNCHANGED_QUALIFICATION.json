@@ -1,0 +1,99 @@
+{
+  "schema": "hepta.hia.ndu-rank-canonical-unchanged-qualification.v1",
+  "component_qualified": true,
+  "whole_native_rank_closed": false,
+  "production_activation": false,
+  "build": {
+    "built": true,
+    "qualified": false,
+    "roles": [
+      {
+        "role": "ndu_rank_canonical",
+        "source_sha256": "b69afb7c3637a5c06c59d3673813b5f4f8fdd26d5ac1e164ce80ccd5fb0f02ff",
+        "profile": {
+          "functions": 45,
+          "blocks": 583,
+          "ops": 2216,
+          "max_block_params": 16
+        },
+        "flat_bytes": 216748,
+        "flat_sha256": "2b9b658fd0c5211d020b60238472119f136075b3e89f638f84ed0ad7835f4fa0"
+      },
+      {
+        "role": "ndu_rank_unchanged",
+        "source_sha256": "76d325e5f11fdf3aac830618e99e5a80b8afe5d1b1e6fe4ddbd610152820ba30",
+        "profile": {
+          "functions": 13,
+          "blocks": 353,
+          "ops": 979,
+          "max_block_params": 16
+        },
+        "flat_bytes": 108658,
+        "flat_sha256": "381902ad4e92287af2491e17ac92b7baca1ac036adeaa8af01d0ef694fb9869a"
+      }
+    ]
+  },
+  "qualification": {
+    "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-canonical-unchanged-qualification-v2/report.json",
+    "bytes": 328267,
+    "sha256": "701f974d0f5030210cca3ddece073dce4262a89926561462264ee33df97573c9",
+    "result": {
+      "passed": true,
+      "whole_native_rank_closed": false,
+      "roles": [
+        {
+          "role": "ndu_rank_canonical",
+          "source_sha256": "b69afb7c3637a5c06c59d3673813b5f4f8fdd26d5ac1e164ce80ccd5fb0f02ff",
+          "profile": {
+            "functions": 45,
+            "blocks": 583,
+            "ops": 2216,
+            "max_block_params": 16
+          },
+          "flat_bytes": 216748,
+          "flat_sha256": "2b9b658fd0c5211d020b60238472119f136075b3e89f638f84ed0ad7835f4fa0"
+        },
+        {
+          "role": "ndu_rank_unchanged",
+          "source_sha256": "76d325e5f11fdf3aac830618e99e5a80b8afe5d1b1e6fe4ddbd610152820ba30",
+          "profile": {
+            "functions": 13,
+            "blocks": 353,
+            "ops": 979,
+            "max_block_params": 16
+          },
+          "flat_bytes": 108658,
+          "flat_sha256": "381902ad4e92287af2491e17ac92b7baca1ac036adeaa8af01d0ef694fb9869a"
+        }
+      ],
+      "scope": "Actual HIA canonical subtree serialization, and module/unselected-function equality over freshly normalized native Core. The original host implementations are external oracles only. No evaluator, proof or full rank claim.",
+      "groups": {
+        "canonical": 420,
+        "binary64": 612,
+        "subtree": 161,
+        "large_transport": 3,
+        "private_guards": 17,
+        "unchanged_core": 77
+      },
+      "count": 1290,
+      "actual_native_normalizations": 38,
+      "seed": 2026112507
+    }
+  },
+  "runner": {
+    "passed": true,
+    "gates": [
+      {
+        "gate": "build-ndu-rank-canonical-unchanged-v2",
+        "returncode": 0,
+        "elapsed_ns": 965754117
+      },
+      {
+        "gate": "qualify-ndu-rank-canonical-unchanged-v2",
+        "returncode": 0,
+        "elapsed_ns": 63239802088
+      }
+    ]
+  },
+  "prior_attempt": "v1 exposed a selected-subtree traversal escape into the root sibling; v2 stops at the selected root. The complete unchanged qualification was rerun. Prior files are retained."
+}
