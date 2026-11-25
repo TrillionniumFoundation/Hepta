@@ -15,6 +15,9 @@ C={
 'IMAGE_MAGIC':int.from_bytes(b'HIAMVIS1','little'),'INPUT_MAGIC':int.from_bytes(b'HIAMVRT1','little'),
 'OWNER_MAGIC':int.from_bytes(b'HIAMVRS1','little'),'RESULT_MAGIC':int.from_bytes(b'HIAMVTR1','little'),
 'INPUT_DIAGNOSTIC':int.from_bytes(b'HIAMVRT2','little'),'RESULT_DIAGNOSTIC':int.from_bytes(b'HIAMVTR2','little'),'EXTENDED':4408,
+'INPUT_LOADER':int.from_bytes(b'HIAMVRT3','little'),'RESULT_LOADER':int.from_bytes(b'HIAMVTR3','little'),
+'LIB_FUNCTION':4416,'LIB_POINTER':4424,'LIB_RAW_N':4432,'LIB_TEXT_N':4440,'LIB_CAPTURE':4448,'LIB_CAPTURE_ERROR':4456,'LIB_AMOUNT':4464,'LIB_BASE':4472,
+'LIB_IOV':(6<<20)+10880,'LIB_REMOTE':(6<<20)+10912,'LIB_RAW':(6<<20)+12288,'LIB_TEXT':(6<<20)+16384,
 'REQUEST_MAGIC':int.from_bytes(b'HIARREQ1','little'),'REPLY_MAGIC':int.from_bytes(b'HIARRES1','little'),
 'PHASE':4096,'OWNER':4104,'OP':4112,'GEN':4120,'INIT':4128,'FENCED':4136,'ERROR':4144,'TOKEN':4152,'ATTEMPT':4160,
 'NEXT':4168,'EVENT':4176,'NONCEA':4184,'NONCEB':4192,'FLAGS':4200,'TRANSITIONS':4208,'OBSERVATION':4216,'REQUEST_N':4224,
@@ -28,7 +31,7 @@ POLICY=r'''
 def retire(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(w)<167772160 or length(o)<768 or length(s)!=24:
         return 4294967293
-    if (readword(s,0)!=INPUT_MAGIC and readword(s,0)!=INPUT_DIAGNOSTIC) or readword(s,8)<1 or readword(s,8)>2:
+    if (readword(s,0)!=INPUT_MAGIC and readword(s,0)!=INPUT_DIAGNOSTIC and readword(s,0)!=INPUT_LOADER) or readword(s,8)<1 or readword(s,8)>2:
         return 4294967293
     if get(w,16)!=IMAGE_MAGIC or (get(w,0)!=999 and get(w,0)!=902):
         return 4294967293
@@ -38,7 +41,7 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return 4294967293
         if get(w,OWNER)==OWNER_MAGIC and get(w,GEN)!=readword(s,16):
             return 4294967293
-        put(w,EXTENDED,choose(readword(s,0)==INPUT_DIAGNOSTIC,1,0))
+        put(w,EXTENDED,choose(readword(s,0)==INPUT_LOADER,2,choose(readword(s,0)==INPUT_DIAGNOSTIC,1,0)))
         put(w,OP,readword(s,8))
         return system(o,w,2,39,0,0,0,0,0,0,0)
     if phase==2:
@@ -112,6 +115,14 @@ def initialize(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     put(w,FENCED,0)
     put(w,ERROR,0)
     put(w,LIBERR,0)
+    put(w,LIB_FUNCTION,0)
+    put(w,LIB_POINTER,0)
+    put(w,LIB_RAW_N,0)
+    put(w,LIB_TEXT_N,0)
+    put(w,LIB_CAPTURE,0)
+    put(w,LIB_CAPTURE_ERROR,0)
+    put(w,LIB_AMOUNT,0)
+    put(w,LIB_BASE,0)
     put(w,FDERR,0)
     put(w,DISKERR,0)
     put(w,PINERR,0)
@@ -225,9 +236,8 @@ def release_native(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         zero(w,2048,128)
         put(w,CLEARED,1)
         if (get(w,EFFECTS)&1)!=0:
-            put(w,PHASE,201)
-            put(o,0,get(w,56))
-            return 3
+            put(w,PHASE,206)
+            return 4
         return close_native_fd(o,w)
     if phase==201:
         raw=get(w,8)
@@ -235,10 +245,12 @@ def release_native(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(w,56,0)
         else:
             put(w,LIBERR,raw)
-        request(w,22,get(w,TOKEN))
-        put(w,REQUEST+32,1)
-        put(w,REQUEST+40,choose(raw==0,1,0))
-        return submit(o,w,202)
+        if raw!=0:
+            if get(w,LIB_FUNCTION)!=0:
+                put(w,PHASE,207)
+                return 5
+            put(w,LIB_CAPTURE,2)
+        return library_complete(o,w)
     if phase==202:
         return close_native_fd(o,w)
     if phase==203:
@@ -255,7 +267,123 @@ def release_native(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return finish_native(o,w)
     if phase==205:
         return begin_disk(o,w)
+    if phase==206:
+        put(w,LIB_FUNCTION,get(w,8))
+        put(w,PHASE,201)
+        put(o,0,get(w,56))
+        return 3
+    if phase==207:
+        put(w,LIB_POINTER,get(w,8))
+        if get(w,8)==0:
+            put(w,LIB_CAPTURE,2)
+            return library_complete(o,w)
+        put(w,PHASE,208)
+        return 6
+    if phase==208:
+        put(w,LIB_BASE,get(w,8))
+        return library_read(o,w)
+    if phase==209:
+        raw=get(w,8)
+        if raw==MINUS4:
+            return library_read(o,w)
+        if raw==0 or raw>=NEGATIVE or raw>get(w,LIB_AMOUNT):
+            put(w,LIB_CAPTURE,2)
+            put(w,LIB_CAPTURE_ERROR,raw)
+            return library_complete(o,w)
+        used=get(w,LIB_RAW_N)
+        i=0
+        while i<raw:
+            if byte(w,LIB_RAW+used+i)==0:
+                put(w,LIB_RAW_N,used+i)
+                library_text(w)
+                return library_complete(o,w)
+            i=i+1
+        used=used+raw
+        put(w,LIB_RAW_N,used)
+        if used==4096:
+            library_text(w)
+            return library_complete(o,w)
+        return library_read(o,w)
     return fence(o,w,9)
+
+def library_complete(o:mutbuf,w:mutbuf) -> u32:
+    request(w,22,get(w,TOKEN))
+    put(w,REQUEST+32,1)
+    put(w,REQUEST+40,choose(get(w,LIBERR)==0,1,0))
+    return submit(o,w,202)
+
+def library_read(o:mutbuf,w:mutbuf) -> u32:
+    used=get(w,LIB_RAW_N)
+    pointer=get(w,LIB_POINTER)
+    if used>=4096 or pointer>NONE-used:
+        put(w,LIB_CAPTURE,2)
+        put(w,LIB_CAPTURE_ERROR,NONE)
+        return library_complete(o,w)
+    pointer=pointer+used
+    amount=4096-(pointer&4095)
+    if amount>256:
+        amount=256
+    if amount>4096-used:
+        amount=4096-used
+    put(w,LIB_AMOUNT,amount)
+    put(w,LIB_IOV,get(w,LIB_BASE)+LIB_RAW+used)
+    put(w,LIB_IOV+8,amount)
+    put(w,LIB_REMOTE,pointer)
+    put(w,LIB_REMOTE+8,amount)
+    return system(o,w,209,310,68,get(w,CREATOR),LIB_IOV,1,LIB_REMOTE,1,0)
+
+def continuation(value:u64) -> bool:
+    return value>=128 and value<=191
+
+def library_unit(w:mutbuf,at:u64,left:u64) -> u64:
+    a=byte(w,LIB_RAW+at)
+    if a<128:
+        return 1
+    if a>=194 and a<=223 and left>=2:
+        if continuation(byte(w,LIB_RAW+at+1)):
+            return 2
+    if a>=224 and a<=239 and left>=3:
+        b=byte(w,LIB_RAW+at+1)
+        c=byte(w,LIB_RAW+at+2)
+        low=choose(a==224,160,128)
+        high=choose(a==237,159,191)
+        if b>=low and b<=high and continuation(c):
+            return 3
+    if a>=240 and a<=244 and left>=4:
+        b=byte(w,LIB_RAW+at+1)
+        c=byte(w,LIB_RAW+at+2)
+        d=byte(w,LIB_RAW+at+3)
+        low=choose(a==240,144,128)
+        high=choose(a==244,143,191)
+        if b>=low and b<=high and continuation(c) and continuation(d):
+            return 4
+    return 0
+
+def library_text(w:mutbuf) -> u64:
+    at=0
+    written=0
+    characters=0
+    n=get(w,LIB_RAW_N)
+    while at<n and characters<1024:
+        size=library_unit(w,at,n-at)
+        if size==0:
+            cp=56320+byte(w,LIB_RAW+at)
+            store(w,LIB_TEXT+written,224|(cp>>12))
+            store(w,LIB_TEXT+written+1,128|((cp>>6)&63))
+            store(w,LIB_TEXT+written+2,128|(cp&63))
+            written=written+3
+            at=at+1
+        else:
+            i=0
+            while i<size:
+                store(w,LIB_TEXT+written+i,byte(w,LIB_RAW+at+i))
+                i=i+1
+            written=written+size
+            at=at+size
+        characters=characters+1
+    put(w,LIB_TEXT_N,written)
+    put(w,LIB_CAPTURE,1)
+    return 0
 
 def close_native_fd(o:mutbuf,w:mutbuf) -> u32:
     if (get(w,EFFECTS)&2)!=0:
@@ -442,7 +570,7 @@ def fence(o:mutbuf,w:mutbuf,raw:u64) -> u32:
 
 def result(o:mutbuf,w:mutbuf,status:u64) -> u32:
     zero(o,0,768)
-    put(o,0,choose(get(w,EXTENDED)==1,RESULT_DIAGNOSTIC,RESULT_MAGIC))
+    put(o,0,choose(get(w,EXTENDED)==2,RESULT_LOADER,choose(get(w,EXTENDED)==1,RESULT_DIAGNOSTIC,RESULT_MAGIC)))
     put(o,8,status)
     put(o,16,get(w,OP))
     put(o,24,get(w,FLAGS))
@@ -465,7 +593,7 @@ def result(o:mutbuf,w:mutbuf,status:u64) -> u32:
     while i<512:
         store(o,128+i,byte(w,captured+i))
         i=i+1
-    if get(w,EXTENDED)==1:
+    if get(w,EXTENDED)>=1:
         put(o,640,get(w,ATTESTED_VALID))
         put(o,648,get(w,FENCE_RETURN))
         put(o,656,get(w,FENCE_EVENT))
@@ -474,6 +602,11 @@ def result(o:mutbuf,w:mutbuf,status:u64) -> u32:
         while i<64:
             store(o,672+i,byte(w,FENCE_REPLY+i))
             i=i+1
+    if get(w,EXTENDED)==2:
+        put(o,736,get(w,LIB_TEXT_N))
+        put(o,744,get(w,LIB_CAPTURE))
+        put(o,752,get(w,LIB_RAW_N))
+        put(o,760,get(w,LIB_CAPTURE_ERROR))
     put(w,PHASE,0)
     return 0
 
