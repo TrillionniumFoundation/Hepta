@@ -109,15 +109,17 @@ def main():
         v.drop(cap);rows.append(dict(case='fixed-class-construction',index=index,utf8_bytes=len(text.encode('utf-8','surrogatepass'))))
     p.finish()
     # Public leaf publishes no partial output after any normal value failure.
-    if not args.image:
+    if True:
+        # Fixed dependency-fault replies are explicit QA instrumentation;
+        # all nonfaulted calls execute the actual captured value image.
         for op in(5,32,2,3,16,35,36,8):
-            p=Pipeline();v=p.values;source=v.scalar('/tmp/factory')
+            p=Pipeline(args.image,args.value_image);v=p.values;source=v.scalar('/tmp/factory')
             p.faults=[dict(op=op,fields={8:5})]
             out=p.call(source)
             assert word(out,8)==3 and word(out,96)==word(out,104)==0,out.hex()
             assert out[16:88]==bytes(72)
             v.drop(source);p.finish();rows.append(dict(case='value-allocation-failure',op=op))
-        p=Pipeline();v=p.values;source=v.scalar('/retry')
+        p=Pipeline(args.image,args.value_image);v=p.values;source=v.scalar('/retry')
         p.faults=[dict(op=29,fields={8:11,80:0,88:1,96:0})]
         out=p.call(source);assert word(out,8)==4 and word(out,96)==1 and word(out,104)==0
         count=p.value_calls.count(35);out=p.call(op=2)
@@ -126,7 +128,7 @@ def main():
         v.drop(cap);v.drop(source);p.finish();rows.append(dict(case='cleanup-only-no-reconstruction'))
         # Actual already-consumed nodes stay cleared; unknown objects are held.
         for fields,consume in (({8:11,80:0,88:1,96:1},True),({8:11,80:1,88:1,96:0},False),({8:0,80:1,88:1,96:1},False)):
-            p=Pipeline();v=p.values;source=v.scalar('/quarantine')
+            p=Pipeline(args.image,args.value_image);v=p.values;source=v.scalar('/quarantine')
             p.faults=[dict(op=29,fields=fields,actual_consume=consume)]
             out=p.call(source);assert word(out,8)==4 and word(out,96)==word(out,104)==1
             saved=p.w.raw;calls=len(p.value_calls);again=p.call(op=2)

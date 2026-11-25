@@ -123,7 +123,8 @@ def source_program():
         for n in ast.walk(functions[pending.pop()]):
             if isinstance(n,ast.Call)and isinstance(n.func,ast.Name)and n.func.id in functions and n.func.id not in needed:
                 needed.add(n.func.id);pending.append(n.func.id)
-    return '\n\n'.join(ast.unparse(n)for n in tree.body if isinstance(n,ast.FunctionDef)and n.name in needed)+'\n'
+    ordered=[functions['native_posix_path_factory']]+[n for n in tree.body if isinstance(n,ast.FunctionDef)and n.name in needed and n.name!='native_posix_path_factory']
+    return '\n\n'.join(ast.unparse(n)for n in ordered)+'\n'
 
 
 def program():return document(source_program(),'native_posix_path_factory')
