@@ -183,21 +183,33 @@ hash_source:
  jne hash_not_initial
  mov BYTE PTR [r14+FILE_AT],0
  mov esi,1
+ lea rdi,[r14+FILE_AT]
  jmp hash_call
 hash_not_initial:
  cmp QWORD PTR [rsp+8],8
  jne hash_final
- mov BYTE PTR [r14+FILE_AT],1
- mov rsi,[r14+72]
- cmp rsi,FILE_CAP
+ /* The HIA policy selects a bounded view and owns its command prefix.
+  * Only the retained file mapping may be read by the embedded hash role. */
+ mov rdx,[r14+72]
+ cmp rdx,FILE_CAP
  ja invalid
+ mov rcx,[r14+152]
+ cmp rcx,rdx
+ ja invalid
+ sub rdx,rcx
+ mov rsi,[r14+160]
+ cmp rsi,rdx
+ ja invalid
+ lea rdi,[r14+rcx+FILE_AT]
+ cmp BYTE PTR [rdi],1
+ jne invalid
  inc rsi
  jmp hash_call
 hash_final:
  mov BYTE PTR [r14+FILE_AT],2
  mov esi,1
-hash_call:
  lea rdi,[r14+FILE_AT]
+hash_call:
  lea rdx,[r14+DIGEST_AT]
  mov ecx,32
  lea r8,[r14+SHA_AT]
