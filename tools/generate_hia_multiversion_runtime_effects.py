@@ -12,6 +12,8 @@ ROOT=Path(__file__).resolve().parents[1]
 C={
 
 'EXT_REQUEST':int.from_bytes(b'HIAMVEX2','little'),
+'PUBLIC_REQUEST':int.from_bytes(b'HIAMVEX3','little'),
+'I_PUBLIC':32768,'I_HASH_DONE':32776,'I_INFO_DONE':32784,'I_RETURNED':32792,
 'BG_MAGIC':int.from_bytes(b'HIAMVBS1','little'),
 'VALUE_MAGIC':int.from_bytes(b'HIAMVUO1','little'),
 'D_BASE':27000,'D_EXT':27000,'D_START':27008,'D_GN':27016,'D_EN':27024,
@@ -56,6 +58,8 @@ def runtime_effects(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,PHASE)
     if phase==0:
         return begin(s,o,w)
+    if phase>=1200:
+        return 25
     if phase>=1000:
         return extended(s,o,w,phase)
     if phase<100:
@@ -79,12 +83,13 @@ def runtime_effects(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return completing(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST:
+    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST and word(s,0)!=PUBLIC_REQUEST:
         return 4294967293
-    ext=word(s,0)==EXT_REQUEST
+    public=word(s,0)==PUBLIC_REQUEST
+    ext=word(s,0)==EXT_REQUEST or public
     if word(s,120)>1 or (ext==False and word(s,8)>13):
         return 4294967293
-    if ext and word(s,8)!=2 and word(s,8)!=14:
+    if (public and word(s,8)>14) or (ext and public==False and word(s,8)!=2 and word(s,8)!=14):
         return 4294967293
     n=word(s,80)
     parent=word(s,88)
@@ -102,6 +107,8 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     rest=length(s)-256-n-parent-fn-args-measure
     if gn>rest or en!=rest-gn:
+        return 4294967293
+    if public and word(s,8)!=2 and (gn!=0 or en!=0):
         return 4294967293
     if ext and word(s,8)==14:
         if n!=0 or parent!=0 or fn!=0 or args!=0 or measure!=0 or gn!=0 or en!=0:
@@ -121,6 +128,8 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         i=i+8
     zero(o,128,24320)
     zero(o,D_BASE,384)
+    zero(o,I_PUBLIC,512)
+    put(o,I_PUBLIC,choose(public,1,0))
     put(o,D_EXT,choose(ext,1,0))
     put(o,D_START,length(s)-gn-en)
     put(o,D_GN,gn)
@@ -143,6 +152,9 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,OP)!=0:
             if get(w,0)!=STATE or get(w,8)!=pid:
                 return result(o,w,1)
+            if get(o,I_PUBLIC)!=0 and get(w,416)!=1:
+                return result(o,w,1)
+            put(o,I_PUBLIC,get(w,416))
             if get(o,OP)==13 and get(w,COOR)==0:
                 return finish_context(o,w)
             if get(o,OP)==2:
@@ -161,6 +173,7 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             i=i+1
         put(w,0,STATE)
         put(w,8,pid)
+        put(w,416,get(o,I_PUBLIC))
         put(w,64,NONE)
         put(w,72,NONE)
         put(w,80,NONE)
@@ -371,6 +384,8 @@ def locking(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,LOCK_MODE)!=0:
             return again(o,get(o,LOCK_RESUME))
         return feedback(o,0)
+    if phase==106:
+        return start_lock(o,w,2)
     if phase==104:
         return token_observed(o,w)
     if phase==105:
@@ -383,6 +398,9 @@ def locking(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 def start_lock(o:mutbuf,w:mutbuf,action:u64) -> u32:
     put(o,LOCK_MODE,0)
     which=get(o,STATE_O+168)
+    if get(o,I_PUBLIC)==1 and get(o,I_RETURNED)==0 and action==2 and get(o,STATE_O+120)==0:
+        if (which==1 and (get(o,OP)==1 or get(o,OP)==2 or get(o,OP)==7)) or (which==3 and get(o,OP)==6):
+            return again(o,1250)
     if which==1:
         return local_lock(o,action,256)
     if which==2:
@@ -525,6 +543,8 @@ def generation(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,TEMP_PTR,get(o,NOW)+60000000000)
         return memory(o,314,3,TEMP_PTR,0,get(o,GO+32)+GCTRL+104,8)
     if phase==314:
+        if get(o,I_PUBLIC)==1 and get(o,I_HASH_DONE)==0:
+            return again(o,1200)
         return generation_op(o,315,3)
     if phase==315:
         if get(o,GOUT)!=GENREP or get(o,FEEDBACK)!=get(o,GOUT+8):
@@ -548,6 +568,8 @@ def generation(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,GO+152,1)
         return memory(o,317,3,GO+152,0,get(o,GEN)+152,8)
     if phase==317:
+        if get(o,I_PUBLIC)==1 and get(o,I_INFO_DONE)==0:
+            return again(o,1210)
         return feedback(o,0)
     if phase==318:
         return memory(o,319,0,get(o,LO+32)+GCTRL+120,3,LO+256,16)
@@ -1341,6 +1363,15 @@ def generation_release(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return memory(o,357,3,TEMP_PTR,0,following+24,8)
         return again(o,357)
     if phase==357:
+        if get(o,GO+168)!=0:
+            put(o,TEMP_PTR,get(o,GO+168))
+            put(o,GO+168,0)
+            put(o,GO+176,0)
+            return memory(o,360,3,GO+168,0,get(o,GEN)+168,16)
+        return deallocate(o,358,get(o,GEN))
+    if phase==360:
+        return deallocate(o,361,get(o,TEMP_PTR))
+    if phase==361:
         return deallocate(o,358,get(o,GEN))
     if phase==358:
         put(o,GEN,0)

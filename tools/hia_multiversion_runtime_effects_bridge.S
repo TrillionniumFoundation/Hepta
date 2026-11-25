@@ -36,6 +36,9 @@ hia_mv_runtime_effects:
  .byte 0xe8
  effects_hole:
  .long 0
+ .Laction:
+ cmp eax,25
+ je .Lcapture
  test eax,eax
  je .Ldone
  cmp eax,10
@@ -56,10 +59,17 @@ hia_mv_runtime_effects:
  je .Lcopy
  cmp eax,21
  je .Lnative
+ cmp eax,22
+ je .Limage_span
+ cmp eax,23
+ je .Lroles
+ cmp eax,24
+ je .Lroles
  cmp eax,12
  jb .Lreturn
  cmp eax,20
  ja .Lreturn
+ .Lroles:
  mov [rsp+80],eax
  xor ecx,ecx
 .Lrole_translate:
@@ -79,6 +89,10 @@ hia_mv_runtime_effects:
  mov r8,[rsp+136]
  mov r9,[r13+64]
  mov eax,[rsp+80]
+ cmp eax,23
+ je .Linformation
+ cmp eax,24
+ je .Lhash
  cmp eax,12
  je .Lgeneration
  cmp eax,13
@@ -98,6 +112,36 @@ hia_mv_runtime_effects:
  .byte 0xe8
  typed_hole:
  .long 0
+ jmp .Lfeedback
+.Linformation:
+ .byte 0xe8
+ information_hole:
+ .long 0
+ jmp .Lfeedback
+.Lhash:
+ .byte 0xe8
+ hash_hole:
+ .long 0
+ jmp .Lfeedback
+.Lcapture:
+ mov rdi,r12
+ mov rsi,r15
+ mov rdx,r13
+ mov rcx,rbp
+ mov r8,r14
+ mov r9,rbx
+ .byte 0xe8
+ capture_hole:
+ .long 0
+ jmp .Laction
+.Limage_span:
+ .byte 0x48,0x8d,0x05
+ mapping_span_hole:
+ .long 0
+ .byte 0xb9
+ mapping_size_hole:
+ .long 0
+ mov [r13+32800],rcx
  jmp .Lfeedback
 .Lgeneration:
  .byte 0xe8

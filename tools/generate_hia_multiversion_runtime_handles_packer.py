@@ -12,8 +12,9 @@ OUTER_HOLES={'handles': 114, 'effects': 273}
 OUTER_RELOCATIONS=((408, 'malloc'), (419, 'free'))
 IMPORTS=effects.IMPORTS
 ROLES=('handles',)+effects.ROLES
-MAGIC=int.from_bytes(b'HIAMVHK1','little')
+MAGIC=int.from_bytes(b'HIAMVHK2','little')
 EXPORT_SIZE=len(OUTER)
+SIZE_HOLE=((len(OUTER)+15)&~15)+effects.SIZE_HOLE
 def bridges():
  raw=bytearray(OUTER);raw.extend(bytes((-len(raw))%16));at=len(raw);raw.extend(effects.BRIDGE)
  h=OUTER_HOLES['effects'];struct.pack_into('<i',raw,h,at-h-4)
@@ -44,6 +45,7 @@ def reference_object(flats):
         raw.extend(bytes((-len(raw))%16))
         for h in HOLES[role]:struct.pack_into('<i',raw,64+h,len(raw)-64-h-4)
         raw.extend(flat)
+    struct.pack_into('<I',raw,64+SIZE_HOLE,len(flats[ROLES.index('gen_prepare_mapping')]))
     textsize=len(raw)-64
     if textsize>16777216:raise ValueError('original sixteen MiB text bound')
     raw.extend(bytes((-len(raw))%8));offsets=[]
@@ -99,6 +101,7 @@ def source_program():
 '''
     for i,name in enumerate(ROLES):
         for h in HOLES[name]:source+=f'    write(o,{64+h},get(w,{512+8*i})-{64+h+4},4)\n'
+    source+=f'    write(o,{64+SIZE_HOLE},get(w,{8*ROLES.index("gen_prepare_mapping")}),4)\n'
     source+=f'''    at={head}
     i=0
     while i<{n}:
