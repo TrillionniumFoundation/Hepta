@@ -12,14 +12,14 @@ for i,name in enumerate(['bool','i16','i32','i64','i8','isize','u16','u32','u64'
 ERRORS={1:'function must name an existing public scalar entrypoint',2:'generation must be a bounded exact integer',3:'timeout_ms must be a bounded exact integer',4:'bridge timeout must be finite and at most sixty seconds',5:'objective has an unexpected shape',6:'expected_calls must be a bounded exact integer',7:'resource_cap_ns must be a bounded exact integer',8:'objective target must be bounded text',9:'objective measurement_profile must be bounded text',10:'at most thirty-two finite proposals are allowed',11:'candidate requires only id, action and program',12:'candidate id is invalid, reserved or duplicated',13:'candidate action must be bounded text',14:'observations must cover exactly abstain and all proposals',15:'observation has an unexpected shape',16:'observation must identify exact canonical program bytes',17:'runtime_ns must be a bounded exact integer',18:'uncertainty_ns must be a bounded exact integer',19:'search_ns must be a bounded exact integer',20:'baseline measurement belongs to a different program',21:'aggregate measured search cost must be a bounded exact integer'}
 SOURCE=r'''
 def rank_admission(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)<128 or length(w)<131072 or read64(s,0)!=REQUEST or read64(s,8)>3:
+    if length(s)<128 or length(w)<131072 or read64(s,0)!=REQUEST or read64(s,8)>5:
         return BAD
     if read64(s,96)>1 or read64(s,104)!=0 or read64(s,112)!=0 or read64(s,120)!=0:
         return BAD
     action=read64(s,8)
-    if action!=1 and (read64(s,56)!=0 or read64(s,96)!=0):
+    if action!=1 and action!=5 and (read64(s,56)!=0 or read64(s,96)!=0):
         return BAD
-    if action<2 and read64(s,16)!=0:
+    if (action<2 or action>=4) and read64(s,16)!=0:
         return BAD
     at=128
     i=0
@@ -44,8 +44,8 @@ def rank_admission(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     put(w,R,REPLY)
     put(w,R+24,read64(s,16))
     error=0
-    if action<2:
-        error=options(s,w,action)
+    if action<2 or action>=4:
+        error=options(s,w,action%4)
     elif action==2:
         error=candidate(s,w,read64(s,16))
     else:
@@ -127,6 +127,13 @@ def options(s:readbuf,w:mutbuf,action:u64) -> u64:
         if field(s,a,objective,key)==NONE:
             return 5
         key=key+1
+    if read64(s,8)>=4:
+        put(w,R+104,objective)
+        put(w,R+112,field(s,a,0,8))
+        put(w,R+120,field(s,a,0,6))
+        put(w,R+128,field(s,a,0,7))
+        put(w,R+8,4)
+        return 0
     calls=integer(s,w,get(w,0),a,field(s,a,objective,9),MAX)
     if get(w,520)==0 or calls==0:
         return 6
