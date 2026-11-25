@@ -887,12 +887,14 @@ def coverage_manifest():
     from tools.hia_selfhost_contract import support_contract
     from hepta.hia_agent_assembly import render_assembly
     from hepta.hia_opcodes import OPCODES
+    # Coverage is for the pinned v1-v8 selfhost language, not experimental profiles.
+    locked_core_v8 = {name for name, spec in OPCODES.items() if spec.since <= 8}
     contract = support_contract()
     doc, names = document()
     compiler = (ROOT / "examples/hia_bootstrap/selfhost.hepta").read_bytes()
     if render_assembly(doc).encode() != compiler:
         raise AssertionError("authoring map is not the checked-in HIA compiler")
-    supported = sorted(word for word in WORDS if word in OPCODES)
+    supported = sorted(word for word in WORDS if word in locked_core_v8)
     if supported != sorted(set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES) | set(ELF_CHAIN_OPCODES)):
         raise AssertionError("coverage inventory differs from actual HIA keyword/opcode set")
     rules = {
@@ -965,8 +967,8 @@ def coverage_manifest():
         "input_opcodes": supported,
         "input_opcodes_by_output": {"selfhost": list(INPUT_OPCODES), "selfhost_elf": supported},
         "input_opcode_inventory_scope": "union of explicit output-format profiles; owned-buffer and chain operations require selfhost_elf; opcode-name coverage does not imply all Core types or result shapes",
-        "general_core_opcode_count": len(OPCODES),
-        "general_core_opcodes_outside_profile": sorted(set(OPCODES) - set(supported)),
+        "general_core_opcode_count": len(locked_core_v8),
+        "general_core_opcodes_outside_profile": sorted(locked_core_v8 - set(supported)),
         "input_types": [*scalar_types, "readbuf", "mutbuf", "buffer", "chain"],
         "input_types_by_output": {"selfhost": [*scalar_types, "readbuf", "mutbuf"],
                                   "selfhost_elf": [*scalar_types, "readbuf", "mutbuf", "buffer", "chain"],

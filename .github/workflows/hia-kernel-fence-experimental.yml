@@ -1,0 +1,32 @@
+name: Experimental HIA Core kernel MFENCE (not Linux acceptance)
+on:
+  push:
+    branches:
+      - 'automation/hia-core-kernel-fence-*'
+  pull_request:
+    paths:
+      - 'hepta/hia_schema.py'
+      - 'hepta/hia_opcodes.py'
+      - 'hepta/hia_program_native.py'
+      - 'hepta/hia_program_runtime.py'
+      - 'hepta/hia_machine_x64.py'
+      - 'tests/test_hia_kernel_fence_core.py'
+      - '.github/workflows/hia-kernel-fence-experimental.yml'
+  workflow_dispatch:
+jobs:
+  native-fence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Exact HIA verifier, native ELF, independent GNU as oracle, hostile no-op
+        run: python -B -m unittest tests.test_hia_kernel_fence_core -v
+      - name: Fail closed on full Linux claim
+        run: |
+          python - <<'PY'
+          from hepta.hia_schema import KERNEL_FENCE_SCHEMA
+          assert KERNEL_FENCE_SCHEMA == "hepta.hia.program.kernel-fence.v1"
+          print("HIA_KERNEL_FENCE_EXPERIMENT: PASS; FULL_LINUX_REWRITE: HOLD")
+          PY

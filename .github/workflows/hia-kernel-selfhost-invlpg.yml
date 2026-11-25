@@ -1,0 +1,70 @@
+name: HIA kernel selfhost INVLPG experiment
+on:
+  push:
+    paths:
+      - 'tools/qualify_hia_kernel_selfhost_invlpg.py'
+      - 'tools/hia_kernel_selfhost_msr.py'
+      - 'tools/hia_kernel_selfhost_idtr.py'
+      - 'tools/hia_kernel_selfhost_iretq.py'
+      - 'tools/hia_kernel_selfhost_tr.py'
+      - 'tools/hia_kernel_selfhost_kernel_frame.py'
+      - 'tools/hia_kernel_selfhost_kernel_irq.py'
+      - 'tests/test_hia_kernel_irq_qemu.py'
+      - 'tests/fixtures/hia_kernel_irq_boot.S'
+      - 'tests/test_hia_kernel_frame_qemu.py'
+      - 'tests/fixtures/hia_kernel_frame_boot.S'
+      - 'tests/test_hia_kernel_iretq_user_qemu.py'
+      - 'tests/fixtures/hia_kernel_iretq_user_boot.S'
+      - 'tests/test_hia_kernel_selfhost_invlpg_qemu.py'
+      - 'tests/fixtures/hia_kernel_invlpg_qemu_boot.S'
+      - 'tests/fixtures/hia_kernel_invlpg_qemu.ld'
+      - '.github/workflows/hia-kernel-selfhost-invlpg.yml'
+  pull_request:
+    paths:
+      - 'tools/qualify_hia_kernel_selfhost_invlpg.py'
+      - 'tools/hia_kernel_selfhost_msr.py'
+      - 'tools/hia_kernel_selfhost_idtr.py'
+      - 'tools/hia_kernel_selfhost_iretq.py'
+      - 'tools/hia_kernel_selfhost_tr.py'
+      - 'tools/hia_kernel_selfhost_kernel_frame.py'
+      - 'tools/hia_kernel_selfhost_kernel_irq.py'
+      - 'tests/test_hia_kernel_irq_qemu.py'
+      - 'tests/fixtures/hia_kernel_irq_boot.S'
+      - 'tests/test_hia_kernel_frame_qemu.py'
+      - 'tests/fixtures/hia_kernel_frame_boot.S'
+      - 'tests/test_hia_kernel_iretq_user_qemu.py'
+      - 'tests/fixtures/hia_kernel_iretq_user_boot.S'
+      - 'tests/test_hia_kernel_selfhost_invlpg_qemu.py'
+      - 'tests/fixtures/hia_kernel_invlpg_qemu_boot.S'
+      - 'tests/fixtures/hia_kernel_invlpg_qemu.ld'
+      - '.github/workflows/hia-kernel-selfhost-invlpg.yml'
+permissions:
+  contents: read
+jobs:
+  native-selfhost:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install isolated guest runner
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-x86
+      - name: Candidate source, three native generations and independent ELF oracle
+        run: python -B tools/qualify_hia_kernel_selfhost_invlpg.py --output "$RUNNER_TEMP/kernel-selfhost"
+      - name: Exact selfhost ELF in CPL0 guest, PC and Q35
+        run: python -B -m tests.test_hia_kernel_selfhost_invlpg_qemu --output "$RUNNER_TEMP/kernel-selfhost"
+      - name: Execute exact terminal HIA IRETQ in two distinct user frames
+        run: python -B -m tests.test_hia_kernel_iretq_user_qemu --output "$RUNNER_TEMP/kernel-selfhost"
+      - name: Execute exact native terminal integer context restore in CPL0
+        run: python -B -m tests.test_hia_kernel_frame_qemu --output "$RUNNER_TEMP/kernel-selfhost"
+      - name: Execute raw native HIA CPL0 interrupt entry and restore
+        run: python -B -m tests.test_hia_kernel_irq_qemu --output "$RUNNER_TEMP/kernel-selfhost"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kernel-selfhost-invlpg-${{ github.sha }}
+          path: ${{ runner.temp }}/kernel-selfhost/
+          if-no-files-found: error
+          retention-days: 7
