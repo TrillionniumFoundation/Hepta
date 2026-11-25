@@ -1019,6 +1019,12 @@ def value_drop_record(o:mutbuf,op:u64) -> bool:
     consumed=get(o,VP+96)
     if pending>1 or known!=1 or consumed>1:
         return False
+    if status!=0 and status!=1 and status!=6 and status!=11:
+        return False
+    if op==31 and status==1:
+        return False
+    if consumed==1 and status!=0 and status!=11:
+        return False
     at=16
     while at<128:
         if at!=80 and at!=88 and at!=96 and get(o,VP+at)!=0:
