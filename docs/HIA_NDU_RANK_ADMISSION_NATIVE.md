@@ -1,0 +1,11 @@
+# Native typed NDU rank admission
+
+The actual 281,849-byte HIA flat, SHA-256 07ca207fe7fe8c1a35f841cb43ef559a2bc75f814448d734828bbca6845e254c, passed 499 scenarios through 852 sealed native calls. The original option, candidate and observation statements were extracted unchanged at their orchestration boundaries: 291 option cases, 47 candidate cases, 149 observations and 12 atomic frame refusals. Actual native JSON, binary64 conversion and baseline normalization were used.
+
+The private six-word ABI takes HIANRA01/128 plus argument JSON, its owned arena, lowered Core JSON and its owned arena. Header words at 8/16 give action/index; 24/32/40/48 give the four lengths. Actions 0/1/2/3 mean options, binary64 continuation, candidate, observations. Only continuation accepts binary64 bits at 56 and failure flag at 96. Bytes 64..95 carry the freshly normalized baseline digest; other reserved fields are zero.
+
+Output is HIANDR01/8192. Status at 8: 0 admitted, 1 OptimizationRejected, 2 binary64 needed, 3 iteration complete. Error JSON starts at 1024, its length at 248. Options at 32..72 are generation, timeout, calls, cap, bridge bits and exact-integer flag. Function length is at 96, bytes at 512. Candidate id/action/program nodes are at 136/144/152; kind at 160, raw span at 168/176, decoded string span at 224/232. Observation rows start at 2048, 96 bytes each, baseline first: observation node, runtime, uncertainty, search, digest node. Supplied-search sum is at 216.
+
+Work covers 131072 bytes plus the larger node count. Arenas must come from the caller's own actual decoder and be held with the unchanged source. Public caller-supplied arenas or digests are not trusted. The role does not impose an aggregate 8 MiB or 64 MiB limit.
+
+The reusable qualifier accepts explicit --flat, --decoder, --binary64, --normalizer, --baseline and --output paths. Python is an external original-source oracle only. Q32 checks, candidate normalization, proof, identity, execution, selection and final owned result belong to the remaining rank composition. This checkpoint does not claim full rank closure or production activation; the accompanying JSON records exact source, flat and evidence digests.
