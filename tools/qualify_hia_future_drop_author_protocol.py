@@ -222,9 +222,12 @@ for c, implementation, size in ((cc, cell, 16384), (pc, public, 65536)):
                         out = bytearray(size)
                         value_reply(c, out, status, known, consumed, pending)
                         accepted = implementation["value_drop_record"](out, op)
-                        expected = (known == 1 and consumed <= 1 and pending <= 1)
+                        expected = (known == 1 and consumed <= 1 and pending <= 1
+                                    and status in (0, 1, 6, 11)
+                                    and (consumed != 1 or status in (0, 11)))
                         if op == 31:
-                            expected &= consumed == 0 and (status != 0 or pending == 0)
+                            expected &= (status in (0, 6, 11) and consumed == 0
+                                         and (status != 0 or pending == 0))
                         elif status == 0:
                             expected &= consumed == 1 and pending == 0
                         assert accepted == expected, (op, status, known, consumed, pending)
@@ -237,7 +240,7 @@ for c, implementation, size in ((cc, cell, 16384), (pc, public, 65536)):
         value_reply(c, out, 0, 1, 1, 0, offset)
         assert not implementation["value_drop_record"](out, 30)
         count += 1
-record("value02-completion-full-u64-status-and-consumption-invariants", count)
+record("value02-completion-exact-status-domain-and-consumption-invariants", count)
 
 # These probes inspect the policies' requested effects; they do not implement
 # allocation, mutexes, memory writes or callee execution.
@@ -339,7 +342,7 @@ for c, implementation, size, phase, name in (
     (cc, cell, 16384, 624, "cell-box"),
     (cc, cell, 16384, 631, "cell-token"),
     (pc, public, 65536, 605, "factory-token")):
-    for status in (1, 6, 11, NONE):
+    for status in (6, 11):
         for reported_pending in (0, 1):
             out, work = bytearray(size), bytearray(256)
             value_reply(c, out, status, 1, 0, reported_pending)
@@ -354,6 +357,34 @@ for c, implementation, size, phase, name in (
             # the object's pending mapping or consumes another original cap.
             count += 1
 record("pending31-nonzero-never-clears-prior-actual-mapping-record", count)
+
+count = 0
+for status, pending in ((1, 0), (6, 0), (999, 0), (0, 1)):
+    for role in ("global", "factory", "cell-token"):
+        c = cc if role == "cell-token" else pc
+        out = bytearray(16384 if role == "cell-token" else 65536)
+        work = bytearray(256)
+        value_reply(c, out, status, 1, 1, pending)
+        if role == "global":
+            token = struct.pack("<QQQ", 0x22200, 8, 9)
+            work[128:152] = token
+            put(out, c["VALUE_ATTEMPT"], 30)
+            assert public["global_close"](out, work, 21) == 10
+            assert work[128:152] == token and get(work, 24) == 3
+            assert get(out, c["DROP_KNOWN"]) == 0
+        elif role == "factory":
+            put(out, c["F"], 0x90000)
+            put(out, c["VALUE_ATTEMPT"], 30)
+            assert public["retire_value"](out, work, 605) == 8
+            # First requested write only fences the actual record. It never
+            # clears F+72, whose consumption was not validly attested.
+            assert get(out, 24) == 0x90000 + 144
+        else:
+            put(out, c["OBJ"], 0xA0000)
+            assert cell["retire_values"](out, work, 622) == 8
+            assert get(out, 24) == 0xA0000 + 184
+        count += 1
+record("malformed-consumption-record-preserves-original-owned-slot", count)
 
 report = {"schema": "hepta.hia.future-drop-author-protocol-probes.v1",
           "passed": True, "checks": sum(x["checks"] for x in cases), "cases": cases,
