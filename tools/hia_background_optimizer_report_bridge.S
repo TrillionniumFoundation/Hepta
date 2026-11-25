@@ -54,6 +54,12 @@ hia_background_optimizer_report:
     cmp %r14,%rax
     ja .Lguard_bad
 .Lviews_ready:
+    cmp $8,%r15
+    jb .Lreport_profile_ready
+    movabs $3616478815007623496,%rax
+    cmp (%r12),%rax
+    je .Lguard_bad
+.Lreport_profile_ready:
     mov 8(%r14),%rax
     mov %rax,80(%rsp)
     .byte 0x48,0x8d,0x05
