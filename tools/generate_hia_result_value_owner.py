@@ -18,16 +18,18 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if length(s)<128 or readword(s,0)!=MAGIC or readword(s,16)!=0 or readword(s,120)!=0 or readword(s,96)!=length(s)-128:
         return 4294967293
     op=readword(s,8)
-    if op>23:
+    if op>24:
         return 4294967293
     if op!=1 and op!=2 and readword(s,96)!=0:
         return 4294967293
-    if op!=0 and op!=2 and op!=19 and op!=23 and (readword(s,104)!=0 or readword(s,112)!=0):
+    if op!=0 and op!=2 and op!=19 and op!=23 and op!=24 and (readword(s,104)!=0 or readword(s,112)!=0):
         return 4294967293
     if op==0 and (readword(s,112)!=0 or (readword(s,104)!=0 and readword(s,104)<640)):
         return 4294967293
-    has_a=op>=5 and op<=19 or op==23 or op==22
-    has_b=op>=8 and op<=16
+    if op==24 and (readword(s,104)>1 or readword(s,112)!=0):
+        return 4294967293
+    has_a=op>=5 and op<=19 or op==23 or op==22 or op==24
+    has_b=op>=8 and op<=16 or op==24
     has_c=op==10 or op==13 or op==14
     if (has_a==False and (readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0)) or (has_b==False and (readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0)) or (has_c==False and (readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0)):
         return 4294967293
