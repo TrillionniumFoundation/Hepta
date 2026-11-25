@@ -14,18 +14,21 @@ C={
 'NONE':(1<<64)-1,'MINUS2':(1<<64)-2,'MINUS4':(1<<64)-4,'NEGATIVE':(1<<64)-4095,
 'IMAGE_MAGIC':int.from_bytes(b'HIAMVIS1','little'),'INPUT_MAGIC':int.from_bytes(b'HIAMVRT1','little'),
 'OWNER_MAGIC':int.from_bytes(b'HIAMVRS1','little'),'RESULT_MAGIC':int.from_bytes(b'HIAMVTR1','little'),
+'INPUT_DIAGNOSTIC':int.from_bytes(b'HIAMVRT2','little'),'RESULT_DIAGNOSTIC':int.from_bytes(b'HIAMVTR2','little'),'EXTENDED':4408,
 'REQUEST_MAGIC':int.from_bytes(b'HIARREQ1','little'),'REPLY_MAGIC':int.from_bytes(b'HIARRES1','little'),
 'PHASE':4096,'OWNER':4104,'OP':4112,'GEN':4120,'INIT':4128,'FENCED':4136,'ERROR':4144,'TOKEN':4152,'ATTEMPT':4160,
 'NEXT':4168,'EVENT':4176,'NONCEA':4184,'NONCEB':4192,'FLAGS':4200,'TRANSITIONS':4208,'OBSERVATION':4216,'REQUEST_N':4224,
 'ACTION':4232,'CLAIM':4240,'VALUE':4248,'CREATOR':4256,'SAVEDRAW':4264,'LIBERR':4272,'FDERR':4280,'DISKERR':4288,
 'PINERR':4296,'CLEARED':4304,'FDATTEMPT':4320,'PATH_N':4352,'EFFECTS':4360,'RANDOM_USED':4368,
+'ATTESTED_VALID':4376,'FENCE_RETURN':4384,'FENCE_EVENT':4392,'FENCE_RAW':4400,
+'ATTESTED':(6<<20)+10240,'FENCE_REPLY':(6<<20)+10752,
 'STATE':6<<20,'REQUEST':(6<<20)+4608,'REPLY':(6<<20)+9000,'TIME':(6<<20)+9088,'STAT':(6<<20)+9120,'FDSTAT':(6<<20)+9280
 }
 POLICY=r'''
 def retire(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(w)<167772160 or length(o)<768 or length(s)!=24:
         return 4294967293
-    if readword(s,0)!=INPUT_MAGIC or readword(s,8)<1 or readword(s,8)>2:
+    if (readword(s,0)!=INPUT_MAGIC and readword(s,0)!=INPUT_DIAGNOSTIC) or readword(s,8)<1 or readword(s,8)>2:
         return 4294967293
     if get(w,16)!=IMAGE_MAGIC or (get(w,0)!=999 and get(w,0)!=902):
         return 4294967293
@@ -35,6 +38,7 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return 4294967293
         if get(w,OWNER)==OWNER_MAGIC and get(w,GEN)!=readword(s,16):
             return 4294967293
+        put(w,EXTENDED,choose(readword(s,0)==INPUT_DIAGNOSTIC,1,0))
         put(w,OP,readword(s,8))
         return system(o,w,2,39,0,0,0,0,0,0,0)
     if phase==2:
@@ -116,6 +120,12 @@ def initialize(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     put(w,TRANSITIONS,0)
     put(w,FLAGS,0)
     put(w,RANDOM_USED,0)
+    put(w,ATTESTED_VALID,0)
+    put(w,FENCE_RETURN,0)
+    put(w,FENCE_EVENT,0)
+    put(w,FENCE_RAW,0)
+    zero(w,ATTESTED,512)
+    zero(w,FENCE_REPLY,64)
     zero(w,STATE,4608)
     return system(o,w,3,318,1,NONCEA,16,0,0,0,0)
 
@@ -397,6 +407,8 @@ def receipt(w:mutbuf) -> u64:
     put(w,FLAGS,flags)
     put(w,OBSERVATION,observed)
     put(w,TRANSITIONS,get(w,TRANSITIONS)+1)
+    copyw(w,ATTESTED,STATE,512)
+    put(w,ATTESTED_VALID,1)
     return 1
 
 def allowed(event:u64,action:u64) -> u64:
@@ -417,14 +429,20 @@ def allowed(event:u64,action:u64) -> u64:
     return choose(action==0,1,0)
 
 def fence(o:mutbuf,w:mutbuf,raw:u64) -> u32:
+    if get(w,FENCED)==0:
+        put(w,FENCE_RETURN,get(w,8))
+        put(w,FENCE_EVENT,get(w,EVENT))
+        put(w,FENCE_RAW,raw)
+        copyw(w,FENCE_REPLY,REPLY,64)
     put(w,FENCED,1)
+    put(w,FLAGS,0)
     if get(w,ERROR)==0:
         put(w,ERROR,raw)
     return result(o,w,65)
 
 def result(o:mutbuf,w:mutbuf,status:u64) -> u32:
     zero(o,0,768)
-    put(o,0,RESULT_MAGIC)
+    put(o,0,choose(get(w,EXTENDED)==1,RESULT_DIAGNOSTIC,RESULT_MAGIC))
     put(o,8,status)
     put(o,16,get(w,OP))
     put(o,24,get(w,FLAGS))
@@ -440,10 +458,22 @@ def result(o:mutbuf,w:mutbuf,status:u64) -> u32:
     put(o,104,get(w,CLEARED))
     put(o,112,get(w,FDATTEMPT))
     put(o,120,get(w,TRANSITIONS))
+    captured=STATE
+    if get(w,FENCED)!=0:
+        captured=ATTESTED
     i=0
     while i<512:
-        store(o,128+i,byte(w,STATE+i))
+        store(o,128+i,byte(w,captured+i))
         i=i+1
+    if get(w,EXTENDED)==1:
+        put(o,640,get(w,ATTESTED_VALID))
+        put(o,648,get(w,FENCE_RETURN))
+        put(o,656,get(w,FENCE_EVENT))
+        put(o,664,get(w,FENCE_RAW))
+        i=0
+        while i<64:
+            store(o,672+i,byte(w,FENCE_REPLY+i))
+            i=i+1
     put(w,PHASE,0)
     return 0
 

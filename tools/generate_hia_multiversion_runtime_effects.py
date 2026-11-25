@@ -13,6 +13,7 @@ C={
 
 'EXT_REQUEST':int.from_bytes(b'HIAMVEX2','little'),
 'PUBLIC_REQUEST':int.from_bytes(b'HIAMVEX3','little'),
+'TIMED_REQUEST':int.from_bytes(b'HIAMVEX4','little'),
 'I_PUBLIC':32768,'I_HASH_DONE':32776,'I_INFO_DONE':32784,'I_RETURNED':32792,
 'BG_MAGIC':int.from_bytes(b'HIAMVBS1','little'),
 'VALUE_MAGIC':int.from_bytes(b'HIAMVUO1','little'),
@@ -83,9 +84,11 @@ def runtime_effects(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return completing(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST and word(s,0)!=PUBLIC_REQUEST:
+    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST and word(s,0)!=PUBLIC_REQUEST and word(s,0)!=TIMED_REQUEST:
         return 4294967293
-    public=word(s,0)==PUBLIC_REQUEST
+    public=word(s,0)==PUBLIC_REQUEST or word(s,0)==TIMED_REQUEST
+    if word(s,0)==TIMED_REQUEST and word(s,8)!=2:
+        return 4294967293
     ext=word(s,0)==EXT_REQUEST or public
     if word(s,120)>1 or (ext==False and word(s,8)>13):
         return 4294967293
@@ -222,6 +225,10 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return again(o,3)
     if phase==5:
         put(o,STARTED,get(o,NOW))
+        if word(s,0)==TIMED_REQUEST:
+            if word(s,216)==0 or word(s,216)>get(o,NOW):
+                return result(o,w,9)
+            put(o,STARTED,word(s,216))
         if word(s,120)==0:
             return start_coordinator(s,o,w)
         measurement_frame(s,o,0)
