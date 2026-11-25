@@ -204,8 +204,13 @@ The new value reply is `HIABVR02`, with status at 8 and Boolean pending, known,
 consumed at 80/88/96. All other reply words after status are zero. A success
 from value op 29 or 30 must be known 1, consumed 1, pending 0; op 31 must be
 known 1, consumed 0, pending 0. Unknown or malformed replies are quarantined.
-Nonzero status codes are not reduced to a narrow whitelist: actual consumption
-and mapping facts, rather than an assumed error class, govern ownership.
+The actual producer's fixed status domain is 0/1/6/11 for operations 29/30,
+and 0/6/11 for operation 31. A known consumed reference can accompany only
+status 0 or 11. These checks precede any local capability clearing. Status 999,
+or status 1/6 accompanied by consumed 1, is a malformed completion rather than
+evidence of reference consumption. In particular, status 11 / known 1 /
+consumed 1 / pending 0 is valid and must follow the quarantine rule below;
+post-consumption errors do not all have pending 1.
 
 When a new cell drop has touched an object, its actual result Box and context
 token use the new value cleanup operations. A consumed Box capability or token
