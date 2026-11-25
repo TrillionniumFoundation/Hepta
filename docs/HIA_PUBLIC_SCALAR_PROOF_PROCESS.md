@@ -62,6 +62,12 @@ a distinct, once-computed transport lifetime permits required preceding
 validation to complete. The actual new parent also passes the original 113
 semantic calls and the 12 large-input/deadline-order comparisons.
 
+The signal cancellation component is qualified in
+`HIA_PUBLIC_PROOF_CANCELLATION.md`: actual stopped-child cancellation, process
+group interruption, full output-pipe interruption and failure before request
+completion retain owned-child and descriptor custody. The unchanged original
+113 proof calls also pass with these handlers installed.
+
 Empty, non-ASCII and non-string function values still require the full typed
 input adapter. Full public lifetime/fault, publication, installed cold,
 OpenClaw integration and cleanup gates remain separate obligations. No

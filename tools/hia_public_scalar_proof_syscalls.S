@@ -76,6 +76,10 @@ _start:
     mov [r14+112],rcx
     mov rcx,[rax+24]
     mov [r14+120],rcx
+    lea rax,[rip+.public_signal]
+    mov [r14+136],rax
+    lea rax,[rip+.public_signal_return]
+    mov [r14+144],rax
     mov qword ptr [rsp],0
     mov [rsp+8],r14
     mov [rsp+16],r12
@@ -221,6 +225,8 @@ public_policy_hole:
     ja .invalid
     lea rsi,[r12+input_cap]
 .write:
+    cmp qword ptr [r14+896],0
+    jne .plan
     test rdx,rdx
     jz .done
     mov eax,1
@@ -249,6 +255,20 @@ public_policy_hole:
     mov edi,64
 .exit:
     mov eax,60
+    syscall
+    ud2
+/* The signal handler publishes a boolean cancellation word and the first signal to the owned HIA
+ * workspace. HIA closes captured streams/images and reaps its owned child,
+ * then restores the default disposition and re-raises the original signal. */
+.public_signal:
+    cmp qword ptr gs:896,0
+    jne .public_signal_done
+    mov qword ptr gs:904,rdi
+    mov qword ptr gs:896,1
+.public_signal_done:
+    ret
+.public_signal_return:
+    mov eax,15
     syscall
     ud2
 .balign 8
