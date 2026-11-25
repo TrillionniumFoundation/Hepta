@@ -13,6 +13,7 @@ import struct
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_mcp_service import document
 from tools import generate_hia_mcp_service as service
+from tools import generate_hia_mcp_http as http
 from tools import generate_hia_mcp_job_bridge as bridge
 from tools import generate_hia_mcp_request_audit as audit
 from tools import generate_hia_system_jobctl_packer as jobctl
@@ -46,6 +47,10 @@ def specifications():
          {r: service.COMPANIONS.get(r, BOOT + 'mcp_service_' + r + '.hepta')
           for r in service.ROLES if r not in ('bridge', 'audit')},
          'mcp_service_packer.hepta', 'tools/hia_mcp_service_syscalls.S', service.template, 67108864),
+        (5, 'hia-mcp-http', b'HIAMHP01', http.ROLES,
+         {r: http.COMPANIONS.get(r, http.source_path(r))
+          for r in http.ROLES if r not in ('bridge', 'audit')},
+         'mcp_http_packer.hepta', 'tools/hia_mcp_http_syscalls.S', http.template, 67108864),
     ):
         prefix, holes = template()
         rows.append(dict(mode=mode, name=name, magic=magic, roles=tuple(roles), parts=parts,
@@ -208,6 +213,8 @@ def delivery_source(specs):
         maximum = 1048576
         if mode == 4 and index >= {len(service.ROLES) - 2}:
             maximum = 16777216
+        if mode == 5 and index >= {len(http.ROLES) - 2}:
+            maximum = 16777216
         if size == 0 or size > maximum or size > ceiling - total:
             return 4294967295
         hole = call_hole(mode, index)
@@ -220,8 +227,8 @@ def delivery_source(specs):
         return 4294967295
     write(w, 352, elf, 8)
     write(w, 360, elf, 8)
-    if mode == 4:
-        service_fields(s, w)
+    if mode == 4 or mode == 5:
+        embedded_fields(mode, s, w)
     if same(s, w, 32 + wire, 256, base) == False:
         return 4294967295
     index = 0
@@ -233,7 +240,7 @@ def delivery_source(specs):
     return 8
 '''
     for name, getter in (
-        ('header', lambda r: 8 + len(r['roles']) * 8 + (64 if r['mode'] == 4 else 0)),
+        ('header', lambda r: 8 + len(r['roles']) * 8 + (64 if r['mode'] in (4, 5) else 0)),
         ('roles', lambda r: len(r['roles'])),
         ('magic', lambda r: int.from_bytes(r['magic'], 'little')),
         ('limit', lambda r: r['cap']),
@@ -251,13 +258,20 @@ def delivery_source(specs):
         for i, role in enumerate(r['roles']):
             source += f'    if index == {i}:\n        return {r["holes"][role]}\n'
         source += '    return 0\n'
-    r = next(row for row in specs if row['mode'] == 4)
-    count = len(r['roles'])
-    source += '\ndef service_fields(s:readbuf, w:mutbuf) -> u64:\n'
-    for role, index, at in (('bridge', count - 2, 8 + count * 8), ('audit', count - 1, 40 + count * 8)):
-        source += f'    write(w, {256 + r["holes"][role + "_size"]}, uint(s, {40 + index * 8}, 8), 4)\n'
-        source += f'    copy(s, w, {32 + at}, {256 + r["holes"][role + "_pin"]}, 32)\n'
+    source += '\ndef embedded_fields(mode:u64, s:readbuf, w:mutbuf) -> u64:\n'
+    for r in specs:
+        if r['mode'] in (4, 5):
+            source += f'    if mode == {r["mode"]}:\n        return embedded_fields_{r["mode"]}(s, w)\n'
     source += '    return 0\n'
+    for r in specs:
+        if r['mode'] not in (4, 5):
+            continue
+        count = len(r['roles'])
+        source += f'\ndef embedded_fields_{r["mode"]}(s:readbuf, w:mutbuf) -> u64:\n'
+        for role, index, at in (('bridge', count - 2, 8 + count * 8), ('audit', count - 1, 40 + count * 8)):
+            source += f'    write(w, {256 + r["holes"][role + "_size"]}, uint(s, {40 + index * 8}, 8), 4)\n'
+            source += f'    copy(s, w, {32 + at}, {256 + r["holes"][role + "_pin"]}, 32)\n'
+        source += '    return 0\n'
     return source + constant_functions({r['mode']: r['prefix'] for r in specs}) + HELPERS
 
 
@@ -324,11 +338,11 @@ def build_recipe(specs):
         packer = r.native_filter(r.compiled[row['packer']], wide=True)
         parts = []
         for role in row['roles']:
-            if row['mode'] == 4 and role in ('bridge', 'audit'):
+            if row['mode'] in (4, 5) and role in ('bridge', 'audit'):
                 parts.append(products['hia-mcp-job-bridge' if role == 'bridge' else 'hia-mcp-request-audit'])
             else:
                 parts.append(r.compiled[row['parts'][role]])
-        pins = [r.digest(parts[-2]), r.digest(parts[-1])] if row['mode'] == 4 else []
+        pins = [r.digest(parts[-2]), r.digest(parts[-1])] if row['mode'] in (4, 5) else []
         wire = r.concat(r.literal(row['magic']), *(r.length(part) for part in parts), *pins, *parts)
         executable = r.run(packer, wire, 0)
         r.verify_delivery(row['mode'], wire, executable)
@@ -360,13 +374,13 @@ def main():
     lines = table.read_text().splitlines()
     assert lines, 'empty native stage inventory'
     header = lines[0].split('\t')
-    assert len(header) == 3 and header[0] == 'stage' and header[1] in ('10', '11'), header
+    assert len(header) == 3 and header[0] == 'stage' and 10 <= int(header[1]) <= 16, header
     # The first line is the aggregate count, not stage 11's data. Preserve
     # it and the first stage's source-builder requirement on every replay.
-    lines = [lines[0]] + [line for line in lines[1:]
-        if not (len(line.split('\t')) > 1 and line.split('\t')[1] == '11')]
-    old_outputs = sum(line.startswith('output\t') for line in lines)
-    lines[0] = '\t'.join((header[0], '11', str(old_outputs + len(recipe.published))))
+    later = [line for line in lines[1:] if int(line.split('\t')[1]) > 11]
+    lines = [lines[0]] + [line for line in lines[1:] if int(line.split('\t')[1]) < 11]
+    old_outputs = sum(line.startswith('output\t') for line in lines + later)
+    lines[0] = '\t'.join((header[0], str(max(11, int(header[1]))), str(old_outputs + len(recipe.published))))
     lines += ['stage\t11\tnative-controllers', 'need\t11\t0\thia-source-build',
               'need\t11\t0\tselfhost.image.bin']
     lines += ['compile\t11\tcontrollers\t' + Path(path).name + '\t' + path.removeprefix(BOOT) for path in paths]
@@ -375,6 +389,7 @@ def main():
     lines += ['output\t11\t' + name for name in recipe.published]
     for row in specs:
         lines += [f'framing\t11\t{row["mode"]}\t{row["magic"].decode()}\tindependent-prefix-and-all-source-images']
+    lines += later
     table.write_text('\n'.join(lines) + '\n')
     # The legacy cold proof also authenticates this new production graph. Its
     # optional reference-only driver remains separate from the native runtime.
