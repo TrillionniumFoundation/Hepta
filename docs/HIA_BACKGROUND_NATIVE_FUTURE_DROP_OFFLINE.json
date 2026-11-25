@@ -7,7 +7,7 @@
   "author_transition_probes": {
     "schema": "hepta.hia.future-drop-author-protocol-probes.v1",
     "passed": true,
-    "checks": 7252,
+    "checks": 9284,
     "cases": [
       {
         "case": "cell-old-profile-admission-byte-exact",
@@ -47,6 +47,41 @@
       {
         "case": "public-strict-consumption-record-and-typed-error",
         "checks": 14,
+        "passed": true
+      },
+      {
+        "case": "public-profile03-exact-26-through29-reserved-domain",
+        "checks": 828,
+        "passed": true
+      },
+      {
+        "case": "value02-completion-full-u64-status-and-consumption-invariants",
+        "checks": 1156,
+        "passed": true
+      },
+      {
+        "case": "factory-drop-consumption-commit-precedes-registry-retirement-claim",
+        "checks": 3,
+        "passed": true
+      },
+      {
+        "case": "factory-retirement-claim-and-other-thread-does-not-retire",
+        "checks": 7,
+        "passed": true
+      },
+      {
+        "case": "factory-reply-transfers-retirement-identity-never-consumed-lease",
+        "checks": 2,
+        "passed": true
+      },
+      {
+        "case": "global-token-consumption-pending-retry-and-unknown-quarantine",
+        "checks": 12,
+        "passed": true
+      },
+      {
+        "case": "pending31-nonzero-never-clears-prior-actual-mapping-record",
+        "checks": 24,
         "passed": true
       }
     ],
@@ -126,18 +161,18 @@
         },
         "candidate": {
           "author": {
-            "bytes": 27521,
-            "sha256": "16ff5e42e5289de139a4b9fe116976c1bb93a337edd790dce87c8860e75c9f8d"
+            "bytes": 31571,
+            "sha256": "b51bbaed8cf13d6b18bd0e73cdd7a7171f08c6caf87fc80d32dfd195c5650bbc"
           },
           "source": {
-            "bytes": 155397,
-            "sha256": "31eccccff0f2032f3fb0176153e51da43fc8b71bde1b33dbe8fbe545f7c0401b"
+            "bytes": 175584,
+            "sha256": "e586394861b1e22245f794763c58d001e32e36944c0ec8555d4ef50a934da784"
           },
           "profile": {
-            "functions": 40,
-            "blocks": 582,
-            "ops": 2660,
-            "max_function_blocks": 92,
+            "functions": 43,
+            "blocks": 664,
+            "ops": 3016,
+            "max_function_blocks": 108,
             "max_block_params": 10
           },
           "original_verify_program_pass": true,
@@ -151,6 +186,9 @@
             "release",
             "execute",
             "retire",
+            "retire_values",
+            "fence_value",
+            "value_drop_record",
             "pins",
             "cleanup",
             "save_kernel",
@@ -283,18 +321,18 @@
         },
         "candidate": {
           "author": {
-            "bytes": 55854,
-            "sha256": "c240e21b2f336d7ea2c174e4caaa2071598fc0655a7c1751ea4909e628774c47"
+            "bytes": 62460,
+            "sha256": "b822adc6ac397a911c3ceedec30b53c57343a1d7fc6a375a754a26afd8222567"
           },
           "source": {
-            "bytes": 316735,
-            "sha256": "08930dc7489b7f47002754938522785f1cfdc058b9af80b7219c7ed2f93f7b84"
+            "bytes": 351456,
+            "sha256": "760161ed512958595cc611e2093be6843c28a3cb60ebd471e0acc2cf60aa3feb"
           },
           "profile": {
-            "functions": 75,
-            "blocks": 1018,
-            "ops": 6071,
-            "max_function_blocks": 115,
+            "functions": 80,
+            "blocks": 1161,
+            "ops": 6684,
+            "max_function_blocks": 124,
             "max_block_params": 10
           },
           "original_verify_program_pass": true,
@@ -302,7 +340,9 @@
             "future_public",
             "begin",
             "locks",
+            "global_close",
             "locate",
+            "factory_retry",
             "construct",
             "attach",
             "release_lease",
@@ -310,6 +350,8 @@
             "frames",
             "results",
             "retire",
+            "retirement_error",
+            "retire_value",
             "cleanup",
             "cell_packet",
             "value_packet",
@@ -317,6 +359,7 @@
             "value",
             "cell_ok",
             "value_ok",
+            "value_drop_record",
             "cell_error",
             "drop_record",
             "kernel_error",
@@ -381,27 +424,68 @@
   },
   "candidate_files": {
     "tools/generate_hia_multiversion_background_future_cell.py": {
-      "bytes": 27521,
-      "sha256": "16ff5e42e5289de139a4b9fe116976c1bb93a337edd790dce87c8860e75c9f8d"
+      "bytes": 31571,
+      "sha256": "b51bbaed8cf13d6b18bd0e73cdd7a7171f08c6caf87fc80d32dfd195c5650bbc"
     },
     "tools/generate_hia_background_optimizer_future_public_owner.py": {
-      "bytes": 55854,
-      "sha256": "c240e21b2f336d7ea2c174e4caaa2071598fc0655a7c1751ea4909e628774c47"
+      "bytes": 62460,
+      "sha256": "b822adc6ac397a911c3ceedec30b53c57343a1d7fc6a375a754a26afd8222567"
     },
     "examples/hia_bootstrap/multiversion_background_future_cell.hepta": {
-      "bytes": 155397,
-      "sha256": "31eccccff0f2032f3fb0176153e51da43fc8b71bde1b33dbe8fbe545f7c0401b"
+      "bytes": 175584,
+      "sha256": "e586394861b1e22245f794763c58d001e32e36944c0ec8555d4ef50a934da784"
     },
     "examples/hia_bootstrap/background_optimizer_future_public_owner.hepta": {
-      "bytes": 316735,
-      "sha256": "08930dc7489b7f47002754938522785f1cfdc058b9af80b7219c7ed2f93f7b84"
+      "bytes": 351456,
+      "sha256": "760161ed512958595cc611e2093be6843c28a3cb60ebd471e0acc2cf60aa3feb"
     },
     "docs/HIA_BACKGROUND_NATIVE_FUTURE_DROP.md": {
-      "bytes": 7387,
-      "sha256": "7e99f9e97cfaa94cf8278c14d3ee355f0920fe67c9a2f605b6a4f7868df99136"
+      "bytes": 15146,
+      "sha256": "3d5735eaadbbff9b313034633d8545a674898cc0806e89da26e22bee5389621a"
+    },
+    "tools/qualify_hia_future_drop_author_protocol.py": {
+      "bytes": 16054,
+      "sha256": "966857f8785a4f8758e89952511183b43138a9b17b1e5efaa5dce65ebf37190b"
     }
   },
   "native_build_status": "pending: original ROG endpoint unreachable",
   "native_execution_qualification_status": "pending",
-  "no_original_native_reports_reused_as_new_pass": true
+  "no_original_native_reports_reused_as_new_pass": true,
+  "value_dependency": {
+    "candidate_commit": "62c0dd36549595c2a98f08e910f1d752bdfb1d0c",
+    "abi_doc": "docs/HIA_RESULT_VALUE_NATIVE_CLEANUP_ABI.md",
+    "request": "HIABVQ02",
+    "ops": [
+      29,
+      30,
+      31
+    ],
+    "reply": "HIABVR02",
+    "native_dependency_qualified": false
+  },
+  "new_profiles": {
+    "HIABFQ04": [
+      20,
+      21
+    ],
+    "HIABFP03": [
+      26,
+      27,
+      28,
+      29
+    ]
+  },
+  "published_contract": {
+    "cell_consumed_offset": 128,
+    "cell_retiring_pending_offset": 136,
+    "cell_retiring_known_offset": 144,
+    "public_consumed_offset": 96,
+    "public_known_offset": 104,
+    "public_pending_offset": 112,
+    "factory_pending_identity_offsets": [
+      24,
+      32,
+      40
+    ]
+  }
 }
