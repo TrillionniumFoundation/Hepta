@@ -1,4 +1,39 @@
 {
+  "actual_parent_pipeline": {
+    "actual_parent_calls": 40,
+    "cases": 44,
+    "classifier_sha256": "fdb43861f73f85e87d32ed52a5d706d5759e11397bcb23a430aa8a43e40404db",
+    "flow_sha256": "77dfcccd09f555e586e83967a42bcee1f3a3df224b685e81b5993be67aaae7d7",
+    "original_backend_diagnostic_differences": [
+      {
+        "case": "1-inferred",
+        "exact_same_image_positive_semantics": true,
+        "original_solver_reason": "nonreturning_outcome_unsatisfiable",
+        "same_image_native_reason": "native_structural_nontrapping_dag"
+      },
+      {
+        "case": "1-explicit",
+        "exact_same_image_positive_semantics": true,
+        "original_solver_reason": "nonreturning_outcome_unsatisfiable",
+        "same_image_native_reason": "native_structural_nontrapping_dag"
+      }
+    ],
+    "parent_sha256": "c1afe2d9302e62d5a633737eb766debe88243c25f157b6322e1c905cc859ffb7",
+    "passed": true,
+    "preserved_failed_attempt": {
+      "cause": "The first observer compared a native structural-proof diagnostic with the original Z3-specific diagnostic. The corrected positive gate compares the complete typed result with the same native image without typed rebinding; original status, claims and input binding remain checked.",
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-public-proof-typed-pipeline-v1"
+    },
+    "receipt_sha256": "9bd5cc7b00a04cd4710406951d8b07348d83832479591c1168fe56841cb3f324",
+    "report": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-public-proof-typed-pipeline-v2/report.json",
+      "sha256": "9d685cf08b4bb9492ecaf42646c666786d9a382fabb64d0212ec2e746c1bff6b"
+    },
+    "same_image_positive_baseline_calls": 5,
+    "scope": "QA orchestrates fixed native role calls and a captured actual public parent; all type, selection, value-rebinding and receipt decisions are native. This validates the embedded continuation recipe, not the root unified owner executable.",
+    "values_sha256": "4584643de857d4238529a484a2f514c6bae13afab583246cc462543ea7a68d8e",
+    "whole_public_api_closed": false
+  },
   "classifier": {
     "cases": 20,
     "flat_bytes": 15034,
@@ -142,6 +177,18 @@
     "whole_public_api_closed": false
   },
   "implementation": "Two pure roles and the embedded continuation are qualified components; final public owner integration and non-JSON value adapter are not claimed complete.",
+  "raw_input_reference": {
+    "bytes_decode": "UTF-8 only; no preparse into dict",
+    "bytes_limit_first": 8388608,
+    "call": "validate_scalar_totality(raw_bytes, function=selected_name, timeout_ms=60000)",
+    "helper": "qualify-public-proof-normalization-v1.py",
+    "original": "hepta/hia_program.py::_decode",
+    "oversize_error": {
+      "code": "E_HIA_LIMIT",
+      "message": "program exceeds byte budget"
+    },
+    "str_and_dict_are_distinct_original_input_domains": true
+  },
   "schema": "hepta.hia.public-proof-typed.component.v1",
   "selector_wire_unchanged": "HIAMVP02",
   "sentinel": "abort",
