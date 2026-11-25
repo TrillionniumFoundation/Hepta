@@ -1,0 +1,162 @@
+{
+  "schema": "hia.background-native-business-worker-checkpoint.v1",
+  "component_qualified": false,
+  "actual_pthread_business_cases_passed": true,
+  "actual_fatal_drain_cases_passed": true,
+  "whole_background_qualified": false,
+  "sources": [
+    {
+      "path": "tools/generate_hia_background_optimizer_business_worker.py",
+      "bytes": 41461,
+      "sha256": "25f9b40fae5c643fd822039bb1499f7a964c51a27e4605f195fa444d3e21af34",
+      "runtime_required": false
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_business_worker_packer.py",
+      "bytes": 4832,
+      "sha256": "0b4770c02670123e7696884db3f666fc31197505dce3baae5f7fb8dd2704efbb",
+      "runtime_required": false
+    },
+    {
+      "path": "tools/hia_background_optimizer_business_worker_bridge.S",
+      "bytes": 3409,
+      "sha256": "094758d8642d2a53958d4e8053fb5be8c54346995f2d006cb54afa442583d5e3",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_business_worker.hepta",
+      "bytes": 302209,
+      "sha256": "8246734a00a3f7fb45f05fda875372390e12125eec59468956005c74da664cdc",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_business_worker_failure.hepta",
+      "bytes": 256698,
+      "sha256": "a5821c914644ec3dfb2a966e9bdc0f2700ff21cd7c9984a038fd5046105617bc",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_business_worker_packer.hepta",
+      "bytes": 35427,
+      "sha256": "6dcf9b2a2c20b94626e2b078a675af196a7f291baf9e6d33120d9856c9767ee7",
+      "runtime_required": true
+    }
+  ],
+  "construction": {
+    "status": "native_built_unqualified",
+    "roles": [
+      {
+        "role": "background_optimizer_business_worker",
+        "source": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-source/examples/hia_bootstrap/background_optimizer_business_worker.hepta",
+          "bytes": 302209,
+          "sha256": "8246734a00a3f7fb45f05fda875372390e12125eec59468956005c74da664cdc"
+        },
+        "native_compiles": [
+          {
+            "bytes": 334796,
+            "sha256": "055bec9e7214a2ce2ecfd8821cccf63af988bac996428d62af46935474002d1d",
+            "elapsed_ns": 195034662
+          },
+          {
+            "bytes": 334796,
+            "sha256": "055bec9e7214a2ce2ecfd8821cccf63af988bac996428d62af46935474002d1d",
+            "elapsed_ns": 208421038
+          }
+        ],
+        "byte_identical": true
+      },
+      {
+        "role": "background_optimizer_business_worker_failure",
+        "source": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-source/examples/hia_bootstrap/background_optimizer_business_worker_failure.hepta",
+          "bytes": 256698,
+          "sha256": "a5821c914644ec3dfb2a966e9bdc0f2700ff21cd7c9984a038fd5046105617bc"
+        },
+        "native_compiles": [
+          {
+            "bytes": 261929,
+            "sha256": "77d508b8aefb7f97a7097e86ad4c4f62166ea7c4999f6dee0267cee16eb2c2ce",
+            "elapsed_ns": 171622246
+          },
+          {
+            "bytes": 261929,
+            "sha256": "77d508b8aefb7f97a7097e86ad4c4f62166ea7c4999f6dee0267cee16eb2c2ce",
+            "elapsed_ns": 168445698
+          }
+        ],
+        "byte_identical": true
+      }
+    ],
+    "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+    "whole_background_qualified": false
+  },
+  "packing": {
+    "native_policy": {
+      "bytes": 334796,
+      "sha256": "055bec9e7214a2ce2ecfd8821cccf63af988bac996428d62af46935474002d1d"
+    },
+    "native_publication": {
+      "bytes": 261929,
+      "sha256": "77d508b8aefb7f97a7097e86ad4c4f62166ea7c4999f6dee0267cee16eb2c2ce"
+    },
+    "native_packer": {
+      "bytes": 38155,
+      "sha256": "6ee9137c1cea1e88149756f96c0fb1ea2ecde80a211718edcf5b87805d889219"
+    },
+    "mechanical": {
+      "source_sha256": "094758d8642d2a53958d4e8053fb5be8c54346995f2d006cb54afa442583d5e3",
+      "bytes": 621,
+      "sha256": "2e4e9910746fb04cdd5c1783ceeb90e620db80cf9185a911acb93fd207bdedb8",
+      "holes": {
+        "policy": 266,
+        "publication": 283
+      },
+      "relocations": [
+        [
+          497,
+          "malloc"
+        ],
+        [
+          508,
+          "free"
+        ]
+      ]
+    },
+    "native_linker_sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff",
+    "image": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-business-worker-v1/business-worker.so",
+      "bytes": 606992,
+      "sha256": "223faf47f53dada2a0df917660b1243571dfb084b952c901e8a3f1ad5a001181"
+    },
+    "component_qualified": false,
+    "whole_background_qualified": false
+  },
+  "qualification": [
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-business-smoke-v2/report.json",
+      "bytes": 9742,
+      "sha256": "609793402ca85956c83723ed2b65e2823e614ab8c54cdade22290197414f0d87",
+      "passed": true,
+      "cases": 3,
+      "scope": "actual native pthread plus fixed HIA business execution/account/completion; original account receipts and shared result identity",
+      "whole_background_closed": false
+    },
+    {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-business-full-v1/report.json",
+      "bytes": 44975,
+      "sha256": "a77e1b84ca0ef41adb150f7e9808507ce3408655529161e5d96e3b66b58d128c",
+      "passed": true,
+      "cases": 2,
+      "scope": null,
+      "whole_background_closed": false
+    }
+  ],
+  "remaining": [
+    "retained cleanup and dependency failure recovery",
+    "public constructor and shutdown",
+    "physical worker-exit observation",
+    "final coherent Future and ledger aggregation",
+    "whole BackgroundOptimizer qualification"
+  ]
+}
