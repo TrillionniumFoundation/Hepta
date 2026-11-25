@@ -235,6 +235,8 @@ def main():
    if found is None:continue
    name,new=found;new=copy.deepcopy(new);new['name']=fn['name'];new['effects']=fn['effects'];doc['functions'][i]=new
    changes.append({'function':fn['name'],'transformation':name,'original_sha256':sha256(fingerprint(fn).encode()).hexdigest(),'replacement_sha256':sha256(fingerprint(new).encode()).hexdigest()})
+  from tools.hia_seed_front_hot import rewrite
+  changes.extend(rewrite(doc,rel))
   selected=rel
   if changes:
    doc['schema']='hepta.hia.program.v9';selected='seed_front_bulk/'+rel;path=base/selected;path.parent.mkdir(parents=True,exist_ok=True)
