@@ -24,6 +24,16 @@ On success the return value is the graph byte count. Work words at bytes
 offset, and the name length. The name remains in the work view. Refusal
 values are at least 4294967292.
 
+Work words at bytes 64 and 72 identify the exact signature vector and its
+word count. Each parameter type followed by each return type occupies one
+eight-byte word: bool=1, unit=2, u8=3, u16=4, u32=5, u64=6, i8=7, i16=8,
+i32=9, i64=10, usize=11 and isize=12. The graph itself preserves the
+original bit-vector encoding; this additional metadata preserves exact
+source-type equality, including usize versus u64 and isize versus i64.
+Consumers must compare these exact signature words before translation
+validation. The vector remains in the work view and is disjoint from the
+returned name.
+
 ## Preserved proof profile
 
 Core v1 through v7, primitive unit, Boolean and signed/unsigned integer
@@ -47,7 +57,9 @@ independent graph serializer byte for byte. Checks include the complete
 general-profile boundary counts, signed and unsigned types, checked
 operations, casts, branches, phi arguments, specialization candidates and
 multiple public exports. The returned name and selected index were checked
-against the original document on every successful call.
+against the original document on every successful call. The exact signature
+vector was also compared to the original parameter and return types in all
+2864 successful controls.
 
 31 refusal controls cover selection, schema, operations, function shape,
 cycles, malformed input and the source-byte boundary. An unreachable-cycle

@@ -19,7 +19,9 @@ REFUSED=4294967292
 # a single-function document. UINT64_MAX-1 selects the exact name in o[16:]
 # with byte length o[8]. The caller supplies selection, never proof truth.
 # On success w[40:64] holds the actual function index, decoded name offset,
-# and name length. The name bytes remain in the caller's 32 MiB work view.
+# and name length. Work[64:80] gives an exact signature-type-id vector offset
+# and count; it distinguishes usize/u64 and isize/i64. The name and signature
+# bytes remain in the caller's 32 MiB work view.
 ENTRY=r'''
 def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) > 8388608 or length(o) < 4096 or length(w) < 4096:
@@ -40,7 +42,7 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     end = widen(decode_json(s, w, o))
     if end >= 4294967292:
         return end
-    if end + RESERVED > length(w) - name_size or proof_schema(w, field(w, 0, K_schema)) == 0:
+    if length(w) - name_size < 1024 or end + RESERVED > length(w) - name_size - 1024 or proof_schema(w, field(w, 0, K_schema)) == 0:
         return REFUSED
     functions = field(w, 0, K_functions)
     size = count(w, functions)
@@ -127,10 +129,24 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         i = i + 1
     size = get(w, 0) - start
     put(o, start, size)
+    signature = (length(w) - name_size - 1024) & 18446744073709551608
+    count = 0
+    parameter = child(w, params)
+    while parameter != NONE:
+        put(w, signature + 8 * count, proof_identity_type(w, field(w, parameter, K_type)))
+        count = count + 1
+        parameter = next_node(w, parameter)
+    returned = child(w, returns)
+    while returned != NONE:
+        put(w, signature + 8 * count, proof_identity_type(w, returned))
+        count = count + 1
+        returned = next_node(w, returned)
     symbol = field(w, fn, K_name)
     put(w, 40, selected)
     put(w, 48, get(w, 64 + symbol * 56 + 24))
     put(w, 56, get(w, 64 + symbol * 56 + 32))
+    put(w, 64, signature)
+    put(w, 72, count)
     return get(w, 0)
 
 def requested_name(w:mutbuf, node:u64, size:u64) -> u64:
@@ -251,6 +267,7 @@ def policy():
     source=source.replace('MODE_KEY',', '.join(map(str,packed('mode')))).replace('VALUE_KEY',', '.join(map(str,packed('value'))))
     for name,domain in (('schema',{name:1 for name in sorted(QUALIFIED_CORE_SCHEMAS)}),('type',{name:_word_type(name) for name in sorted(SCALARS)}),('op',_GRAPH_OPERATIONS),('trap',_CORE_TRAP_TAGS),('term',{'ret':1,'trap':2,'jump':3,'branch':4}),('checked',{'checked':1}),('effect',{'trap':1})):
         source+='\n'+match(name,domain)
+    source += '\n' + match('identity_type', {name: i + 1 for i, name in enumerate(('bool','unit','u8','u16','u32','u64','i8','i16','i32','i64','usize','isize'))})
     return source
 
 def program():
