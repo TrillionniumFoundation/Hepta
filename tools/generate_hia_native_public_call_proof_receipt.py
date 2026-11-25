@@ -32,6 +32,12 @@ LABELS[44]='error_type'
 for index,reason in enumerate(PROFILE_REASONS[:2]):
  LABELS[200+index]=reason
 EXTRA[510]=',"error_type":"_OutsideProfile"'
+EXTRA[511]=',"error_type":"TypeError"'
+# The frozen original call API performs set membership after both admissions
+# and before considering the second side's profile. JSON arrays and objects
+# preserve its exact unhashable list/dict diagnostic.
+EXTRA[128]="\"cannot use 'list' as a set element (unhashable type: 'list')\""
+EXTRA[129]="\"cannot use 'dict' as a set element (unhashable type: 'dict')\""
 IDENTITIES=shared.IDENTITIES
 def replace_one(text,old,new):
  assert text.count(old)==1,(old,text.count(old))
@@ -39,6 +45,7 @@ def replace_one(text,old,new):
 POLICY=shared.POLICY
 POLICY=replace_one(POLICY,'def public_proof_receipt(','def public_call_proof_receipt(')
 POLICY=replace_one(POLICY,'if action>3 or mode<1','if action>1 or mode<1')
+POLICY=replace_one(POLICY,'    if reason<1 or reason>27:', '    if reason<1 or reason>29 or (reason>27 and read64(s,16)!=2):')
 POLICY=replace_one(POLICY,'    if action==3:\n        return receipt_selection(s,o,w)\n','')
 POLICY=replace_one(POLICY,'    if action==2:\n        if large and string_id(s,arena,field(s,arena,0,2))!=105:\n            return BAD\n        return verify_fresh(s,o,w)\n','')
 # Drop the primitive saved-translation receipt operations: calls expose fresh
@@ -88,6 +95,8 @@ POLICY=replace_one(POLICY,'    put(w,512,flags&15)',
     put(w,512,visible)''')
 POLICY=replace_one(POLICY,'        return lit(o,at,509)\n    if get(w,DIAG_SIZE)==0:',
  '''        return lit(o,at,509)
+    if get(w,256)==2 and (get(w,320)==28 or get(w,320)==29):
+        return lit(o,at,511)
     if get(w,256)==2 and (get(w,320)==1 or get(w,320)==19 or get(w,320)==20):
         return lit(o,at,510)
     if get(w,DIAG_SIZE)==0:''')
@@ -95,7 +104,7 @@ POLICY+=r"""
 def call_public_hashes(s:readbuf,w:mutbuf) -> bool:
     if read64(s,8)==1:
         reason=read64(s,24)
-        return reason!=1 and reason!=2 and reason!=3 and reason!=19 and reason!=20 and reason!=27
+        return reason!=1 and reason!=2 and reason!=3 and reason!=19 and reason!=20 and reason!=27 and reason!=28 and reason!=29
     reason=string_id(s,get(w,CTX+8),field(s,get(w,CTX+8),0,36))
     return reason!=200 and reason!=201
 

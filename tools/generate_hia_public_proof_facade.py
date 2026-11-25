@@ -259,6 +259,66 @@ def typed_flow(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         return after_receipt(o,w,64+result)
     return 4294967293
 
+def call_selection_error(w:mutbuf) -> u64:
+    if get(w,FAMILY)!=2 or get(w,TYPED_INPUT)!=1 or get(w,256)!=2:
+        return 0
+    if get(w,N1+24)!=0 or get(w,FUNCTION_DOC)!=0:
+        return 0
+    node=get(w,FUNCTION_NODE)
+    if node==NONE or node>=get(w,TA+8):
+        return 0
+    kind=get(w,TA+64+node*72)
+    if (kind==5 or kind==6) and call_first_schema(w):
+        return kind+23
+    return 0
+
+def call_first_schema(w:mutbuf) -> bool:
+    at=N1+64
+    end=at+get(w,416)
+    depth=0
+    quoted=False
+    escaped=False
+    while at<end:
+        c=byte(w,at)
+        if quoted:
+            if escaped:
+                escaped=False
+            elif c==92:
+                escaped=True
+            elif c==34:
+                quoted=False
+        elif c==34:
+            if depth==1 and call_schema_key(w,at,end):
+                return call_schema_value(w,at+9,end)
+            quoted=True
+        elif c==123 or c==91:
+            depth=depth+1
+        elif c==125 or c==93:
+            depth=depth-1
+        at=at+1
+    return False
+
+def call_schema_key(w:mutbuf,at:u64,end:u64) -> bool:
+    return end-at>=9 and get(w,at)==2477381552340955938 and byte(w,at+8)==58
+
+def call_schema_value(w:mutbuf,at:u64,end:u64) -> bool:
+    if end-at<22:
+        return False
+    if get(w,at+0)!=7507044781602990114:
+        return False
+    if get(w,at+8)!=8243680180224024937:
+        return False
+    if byte(w,at+16)!=97:
+        return False
+    if byte(w,at+17)!=109:
+        return False
+    if byte(w,at+18)!=46:
+        return False
+    if byte(w,at+19)!=118:
+        return False
+    version=byte(w,at+20)
+    return version>=49 and version<=55 and byte(w,at+21)==34
+
 def option_field(w:mutbuf,which:u64) -> u64:
     node=get(w,TA+64+24)
     steps=0
@@ -732,6 +792,10 @@ def source_program():
             return decode(w,75,DJ,amount,DA)
         return process_raw(s,w,51,1)""")
     source=replace_one(source,'    if phase==80:\n        zero(w,PIN,192)','''    if phase==80:
+        selection_error=call_selection_error(w)
+        if selection_error!=0:
+            put(w,544,selection_error)
+            return prepare_result(o,w)
         if get(w,FAMILY)==2 and (get(w,N1+24)!=0 or (get(w,256)==2 and get(w,N2+24)!=0)):
             put(w,544,19)
             return prepare_result(o,w)
@@ -778,6 +842,8 @@ def source_program():
     part=source[start:end]
     part=part.replace('    zero(w,RI,768)','    ri=receipt_input(w)\n    zero(w,RI,768)')
     part=re.sub(r'\bRI\b','ri',part)
+    part=replace_one(part,'bn=choose(get(w,256)==3,get(w,296),0)','bn=choose(get(w,256)==3 and action>=2,get(w,296),0)')
+    part=replace_one(part,'ba=choose(get(w,256)==3,get(w,784),0)','ba=choose(get(w,256)==3 and action>=2,get(w,784),0)')
     part=re.sub(r'\bBJ\b','claim_json(w)',part)
     part=re.sub(r'\bBA\b','claim_arena(w)',part)
     source=source[:start]+part+source[end:]

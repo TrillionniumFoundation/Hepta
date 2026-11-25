@@ -1,0 +1,13 @@
+# Native scalar caller selection
+
+This component implements the caller policy in hepta/hia_ndu_scalar_selection.py. It has no authority to establish evaluator image identity, invoke an evaluator, prove a program, publish a candidate or declare the complete rank caller closed. Its private inputs are raw JSON and arenas produced by the same caller's actual native decoder; no public endpoint admits caller-supplied arenas or digests.
+
+The request is HIANSQ01, a 128-byte header followed by request JSON, its 72-byte-node arena, response JSON and its arena. Offsets 8,16,24,32 carry the four exact lengths; offsets 40 through 56 are zero. Bytes 64 through 95 and 96 through 127 carry the caller's independently computed canonical request and response SHA-256 values. The native parent must generate these from the captured values, inside its original measured interval. The two raw native wire messages retain their original 1 MiB caller bounds.
+
+The result is HIANSR01: a 64-byte header plus JSON. Offset 8 is 0 for the original selection receipt and 1 for ScalarSelectionRejected; 16 is JSON length; 24 is the selected original candidate row index (UINT64_MAX on refusal); 32 and 40 are feasible and frontier counts; 48 is source (1 explicit abstain, 2 unique native recommendation, 3 caller tie policy); 56 is zero.
+
+The role checks the closed request and rows, original exact numeric domains, distinct ID syntax, support and objective digests, a feasible incumbent, the exact sorted minimum-cost frontier, response binding, rejected-row partition and all three dispositions. It preserves the incumbent on a tied frontier when present and otherwise selects the lexicographically first ID. It never rewrites a native null recommendation as an explicit abstain. Every original selection receipt field and error message is retained.
+
+The actual sealed HIA role and native JSON decoder passed 551 comparisons against the unchanged original resolver: 364 accepted cases, 37 request refusals, 53 row refusals, 47 response refusals, 36 disposition/priority cases and 14 private-frame/output guards. Tests include 128 rows, signed Q32 extremes, full u64 generations, unknown response fields, 900,000 bytes of ignored response content and exact integer negative zero. Evaluator responses in this component qualification are explicitly fixtures, not evidence that a native evaluator ran.
+
+The companion JSON records source, flat, compiler and qualification identities. The qualifier accepts --flat, --decoder and --output and executes actual sealed HIA bytes. Production composition must still complete the native caller's identity, process, response admission, proof and cost gates.
