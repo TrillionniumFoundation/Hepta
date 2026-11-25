@@ -374,12 +374,94 @@ def graph_order(w:mutbuf, n:u64, entry:u64) -> u64:
         i = i + 1
     return 1
 '''
+SLOT_INDEX=r'''
+
+# The original name vector occupies NODE_BUDGET words. For ordinary admitted
+# blocks the same words hold a bounded, open-addressed index, with exact text
+# comparisons on collisions. Oversized private layouts retain the linear path.
+def slot_hash(w:mutbuf, name:u64) -> u64:
+    row = 64 + name * 56
+    at = get(w, row + 24)
+    end = at + get(w, row + 32)
+    value = 14695981039346656037
+    while at < end:
+        value = (value ^ widen(byte(w, at))) * 1099511628211
+        at = at + 1
+    return value
+
+def slots_begin(w:mutbuf, slots:u64) -> u64:
+    capacity = 2
+    while capacity < slots * 2:
+        capacity = capacity * 2
+    put(w, 40, 0)
+    if capacity > NODE_BUDGET:
+        return 1
+    put(w, 40, capacity - 1)
+    table = get(w, 24)
+    index = 0
+    while index < capacity:
+        put(w, table + 8 * index, 0)
+        index = index + 1
+    return 1
+
+def slot_define(w:mutbuf, name:u64, slot:u64) -> u64:
+    table = get(w, 24)
+    mask = get(w, 40)
+    if mask == 0:
+        put(w, table + 8 * slot, name)
+        return 1
+    index = slot_hash(w, name) & mask
+    checked = 0
+    while checked <= mask:
+        at = table + 8 * index
+        old = get(w, at)
+        if old == 0:
+            put(w, at, (name << 32) | (slot + 1))
+            return 1
+        if same_name(w, name, old >> 32):
+            return 1
+        index = (index + 1) & mask
+        checked = checked + 1
+    return 0
+
+def value_slot(w:mutbuf, size:u64, name:u64) -> u64:
+    table = get(w, 24)
+    mask = get(w, 40)
+    if mask == 0:
+        index = 0
+        while index < size:
+            if same_name(w, name, get(w, table + 8 * index)):
+                return index
+            index = index + 1
+        return size
+    if kind(w, name) != 4:
+        return size
+    index = slot_hash(w, name) & mask
+    checked = 0
+    while checked <= mask:
+        entry = get(w, table + 8 * index)
+        if entry == 0:
+            return size
+        if same_name(w, name, entry >> 32):
+            slot = (entry & 4294967295) - 1
+            return choose(slot < size, slot, size)
+        index = (index + 1) & mask
+        checked = checked + 1
+    return size
+'''
 def policy():
     suffix=BASE_POLICY[BASE_POLICY.index('def same_name('):]
     a=suffix.index('def graph_order(');b=suffix.index('def value_slot(',a)
     suffix=suffix[:a]+ORDER+'\n'+suffix[b:]
     suffix=suffix.replace('table + 48 *','table + 64 *').replace('get(w, 8) + 48 *','get(w, 8) + 64 *')
     suffix=suffix.replace('    if tag == 1 or tag == 2:', '    if tag == 0 or tag == 1 or tag == 2:')
+    a=suffix.index('def value_slot(');b=suffix.index('def capture_slots(',a)
+    suffix=suffix[:a]+SLOT_INDEX+'\n'+suffix[b:]
+    suffix=suffix.replace('    put(w, 16, total)', '    slots_begin(w, slots)\n    put(w, 16, total)')
+    suffix=suffix.replace('    put(w, get(w, 24) + 8 * slots, field(w, output, K_name))',
+        '    if slot_define(w, field(w, output, K_name), slots) == 0:\n        return 0')
+    suffix=suffix.replace('        put(w, get(w, 24) + slot * 8, field(w, param, K_name))',
+        '        if slot_define(w, field(w, param, K_name), slot) == 0:\n            return 0')
     source=ENTRY+'\n'+SELECTION_HELPERS+'\n'+suffix
     constants={'SELECTION_MAGIC':int.from_bytes(b'HIAPSL01','little'),'REFUSED':REFUSED,'REQUEST':GRAPH_PROJECTION_REQUEST,'BLOCKS':128,'NODE_BUDGET':262144,'OP_BUDGET':2048,'CHECKED_CAST':PROJECT_CHECKED_CAST,'RESERVED':128*72+8*262144+32}
     for name,value in constants.items():source=re.sub(rf'\b{name}\b',str(value),source)

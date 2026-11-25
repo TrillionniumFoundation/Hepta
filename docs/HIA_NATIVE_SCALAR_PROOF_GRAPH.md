@@ -80,8 +80,9 @@ resource refusal as a successful proof.
 
 ## Evidence
 
-The accompanying qualification record pins the emitted HIA source, native
-flat image and the actual assembly, projector and independent seed backend.
+The accompanying qualification record pins the current emitted HIA source,
+actual native flat image and the sealed native source compiler that produced
+this image. The native compiler executes with an empty PATH.
 477 source cases and 2864 selection/format controls matched the original
 independent graph serializer byte for byte. Checks include the complete
 general-profile boundary counts, signed and unsigned types, checked
@@ -101,11 +102,20 @@ fixture deliberately bypasses the old structural verifier because that
 verifier already rejects unreachable blocks; it is not described as an
 admitted source.
 
-Construction used the qualified native assembly and projector roots and
-the independent word seed backend, with an empty PATH. Python authored
-the source and ran independent development comparisons; it is not a runtime
-dependency of this module. Earlier failed development fixtures and build
-reports remain external evidence until final closeout.
+The current graph uses an exact-text hash index in the original reserved name
+workspace. Each block clears only its active table, each collision compares
+the complete decoded name, and duplicate private names retain the first
+declaration. Slot and node identifiers remain full width. Oversized private
+layouts retain the former linear lookup path. No graph wire bytes, public
+profile limit or workspace requirement changed.
+
+The shared admission and reference projector received matching scan
+improvements. Their current source pins, original semantic checks, private
+collision and minimum-workspace comparisons are in
+`HIA_NATIVE_PROOF_LOOKUP.json`. Python authored source and ran independent
+development comparisons; the emitted HIA components execute without Python.
+Earlier failed development fixtures and build reports remain external
+evidence until final closeout.
 
 The complete native scalar proof service and multiversion runtime are
 still separate integration obligations. This component record confers
