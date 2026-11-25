@@ -190,7 +190,7 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if op==5:
         put(o,G_RESULT,a)
         put(o,G_COUNT,1)
-    elif op==8 or (op>=9 and op<=15):
+    elif op==8 or (op>=9 and op<=15) or op==24:
         b=cap_lookup(w,readword(s,48),readword(s,56),readword(s,64))
         if b==0:
             return done(o,1)
@@ -205,6 +205,10 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if b==0:
             return done(o,1)
         put(o,G_B,b)
+    if op==24:
+        if get(w,a+8)!=2 or get(w,get(o,G_B)+8)!=2:
+            return done(o,2)
+        put(o,G_COUNT,1)
     if op>=9 and op<=11:
         if get(w,a+8)!=6:
             return done(o,2)
@@ -348,6 +352,14 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             object_release(w,obj)
             return growth(o,w)
         return done(o,0)
+    if op==24:
+        obj=integer_binary(w,a,get(o,G_B),readword(s,104))
+        if obj==0:
+            return growth(o,w)
+        if publish_one(o,w,obj)!=0:
+            object_release(w,obj)
+            return growth(o,w)
+        return done(o,0)
     if op==5 or op==9 or op==12:
         if publish_one(o,w,get(o,G_RESULT))!=0:
             return growth(o,w)
@@ -377,6 +389,93 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if op==23:
         return enumerate_values(o,w)
     return done(o,7)
+def integer_binary(w:mutbuf,a:u64,b:u64,subtract:u64) -> u64:
+    ap=get(w,a+24)
+    bp=get(w,b+24)
+    an=get(w,a+32)
+    bn=get(w,b+32)
+    asign=choose(byte(w,ap)==45,1,0)
+    bsign=choose(byte(w,bp)==45,1,0)
+    ap=ap+asign
+    bp=bp+bsign
+    an=an-asign
+    bn=bn-bsign
+    bsign=bsign^subtract
+    n=choose(an>bn,an,bn)
+    obj=object_new(w,2)
+    if obj==0:
+        return 0
+    data=allocate(w,n+2)
+    if data==0:
+        object_unlink(w,obj)
+        return 0
+    put(w,obj+24,data)
+    sign=asign
+    addition=asign==bsign
+    if addition==False:
+        comparison=0
+        if an>bn:
+            comparison=1
+        elif an<bn:
+            comparison=2
+        else:
+            i=0
+            while i<an and comparison==0:
+                av=byte(w,ap+i)
+                bv=byte(w,bp+i)
+                if av>bv:
+                    comparison=1
+                elif av<bv:
+                    comparison=2
+                i=i+1
+        if comparison==2:
+            p=ap
+            ap=bp
+            bp=p
+            size=an
+            an=bn
+            bn=size
+            sign=bsign
+    at=data+n+2
+    i=0
+    carry=0
+    while i<n:
+        av=0
+        bv=0
+        if i<an:
+            av=byte(w,ap+an-i-1)-48
+        if i<bn:
+            bv=byte(w,bp+bn-i-1)-48
+        digit=0
+        if addition:
+            value=av+bv+carry
+            digit=value%10
+            carry=value//10
+        elif av<bv+carry:
+            digit=av+10-bv-carry
+            carry=1
+        else:
+            digit=av-bv-carry
+            carry=0
+        at=at-1
+        store(w,at,48+digit)
+        i=i+1
+    if addition and carry!=0:
+        at=at-1
+        store(w,at,48+carry)
+    end=data+n+2
+    while at<end-1 and byte(w,at)==48:
+        at=at+1
+    if at==end-1 and byte(w,at)==48:
+        sign=0
+    if sign!=0:
+        at=at-1
+        store(w,at,45)
+    count=end-at
+    copy(w,data,at,count)
+    put(w,obj+32,count)
+    put(w,obj+56,bytes_hash(w,data,count))
+    return obj
 def mutate_dict(o:mutbuf,w:mutbuf) -> u64:
     obj=get(o,G_A)
     key=get(o,G_B)
