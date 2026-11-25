@@ -29,6 +29,7 @@ def qualify(name,d,linkerpath):
     packer=Image(d/('multiversion_'+name+'_packer.flat'));linker=Image(linkerpath)
     if name=='retirement':roles=['multiversion_retirement','retirement_state'];magic=b'HIAMVRP1';product='retirement'
     elif name=='future':roles=['multiversion_future'];magic=b'HIAMVFP1';product='future'
+    elif name=='prepare_process':roles=['multiversion_prepare_process'];magic=b'HIAMVXP1';product='process'
     else:roles=['multiversion_probe_owner','multiversion_probes','evaluate_reference_wire','scalar_reference'];magic=b'HIAMVPP1';product='probe'
     parts=[(d/(r+'.flat')).read_bytes() for r in roles]
     def packet(xs):return struct.pack('<8s'+'Q'*(len(xs)+1),magic,len(xs),*map(len,xs))+b''.join(xs)
@@ -55,5 +56,5 @@ def qualify(name,d,linkerpath):
     report={'schema':'hepta.hia.multiversion-effect-native-packaging.v1','component':name,'passed':len(rows),'failed':0,'production_packaging_uses_hia_only':True,'whole_native_runtime':False,'mechanical':mechanical(m,name,d),'actual_roles':{r:sha(p) for r,p in zip(roles,parts)},'image_sha256':sha(linked),'cases':rows}
     (d/'packaging-qualification.json').write_text(json.dumps(report,indent=2)+'\n');print('MV_EFFECT_PACK_PASS',name,len(rows),flush=True)
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--name',required=True,choices=['retirement','probe','future']);p.add_argument('--directory',type=Path,required=True);p.add_argument('--linker',type=Path,required=True);a=p.parse_args();qualify(a.name,a.directory,a.linker)
+    p=argparse.ArgumentParser();p.add_argument('--name',required=True,choices=['retirement','probe','future','prepare_process']);p.add_argument('--directory',type=Path,required=True);p.add_argument('--linker',type=Path,required=True);a=p.parse_args();qualify(a.name,a.directory,a.linker)
 if __name__=='__main__':main()
