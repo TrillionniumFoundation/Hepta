@@ -26,7 +26,7 @@ HTTP/1.0 SSE is close-delimited, without HTTP/1.1 chunk framing. HTTP/1.1 uses t
 
 ## Verification
 
-The JSON companion records exact binary/source pins and report digests. On the current complete image:
+The JSON companion records exact binary/source pins and report digests. At the exact image pins recorded in each report:
 
 - 61 inherited-role, owner-lease and cache-custody refusal cases passed.
 - 7 predecessor/replay and namespace-drift cases passed.
@@ -37,10 +37,20 @@ The JSON companion records exact binary/source pins and report digests. On the c
 - 87 HTTP responses covered two sessions, 64 overlapping requests, two actual native Worker requests observing the same terminal job, and parent-only SIGTERM with complete descendant reap.
 - All 41 retained business calls covered all eleven HIA tools and 64 KiB pagination. Both the new native bridge and a fresh frozen Rust provider returned the original values. All 42 job-record hashes remained unchanged, and a mutated identity was rejected.
 
-The older resource-failure case in that retained campaign remains explicitly a failure result from its old Worker. It is not used to claim current resource-success coverage. The current resource-success HTTP envelope and the final native-only production integration remain separate gates.
+The older resource-failure case in that retained campaign remains explicitly a failure result from its old Worker. It is not used to claim current resource-success coverage. The current resource-success HTTP envelope is covered by the additional complete-envelope qualification below. Final native-only production integration remains a separate gate.
 
 The frozen Rust private selected-Controller HTTP path lacks the admitted-wire extension installed by its stdio path. Positive default HTTP protocol/race oracles therefore use its valid default path. Native HTTP retains full actual role and controller admission; same-job HIA business values use the fresh frozen stdio provider.
 
 ## Preserved failures
 
 The pre-v10 inherited-socket race and the first relocated-audit fixture rejection remain preserved. The latter copied an inode-bound audit anchor to a different namespace; the original reader correctly rejected it. The successful fixture copied only immutable job records and created a fresh valid audit namespace through the original owner.
+
+## Complete HTTP business envelopes and DELETE reuse
+
+The native HTTP image v13 executed all 41 retained calls in both legacy sessions and modern per-request mode. Its 82 complete result/error values matched 82 newly executed frozen-runtime stdio calls on the same durable jobs, including pagination; no result fields were filtered. The 42 actual job files remained unchanged.
+
+A complete current Worker fixture separately supplied eight public calls and four resources in each mode. All 24 complete values matched fresh original calls: short text, Unicode, an 80 KB four-byte UTF-8 artifact whose first page is 65,536 bytes, and a missing artifact URI. Modern resultType, ttlMs, cacheScope, MIME type and cursor fields were compared as returned. Four further same-session resource observations also matched. No jobs were relaunched or replaced.
+
+The final teardown probe found a real connection-lifetime difference. Session deletion traversed other connection records before restoring a stale copy of the DELETE connection. Saving its current admitted record before that traversal preserves HTTP version, consumed bytes and keep-alive state. V14 changes only that http_post payload; the other 41 packed roles are byte-identical to v13. Four fresh original/native pairs cover HTTP/1.0 and 1.1, explicit close and keep-alive, and reinitialization over the very same TCP socket. Headers, status 202 and empty bodies match. This small fix is not presented as a rerun of unrelated business roles.
+
+All failed harness attempts remain available. The first business script incorrectly expected 200 after its 82 successful calls; the original DELETE contract returns 202. A too-short token and an HTTP/1.0 client that omitted Host were also corrected in new fixture directories. The separately observed v13 keep-alive difference was a product defect and is fixed in v14.
