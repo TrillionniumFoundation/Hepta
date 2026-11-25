@@ -57,9 +57,9 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     if mode==1 and (second!=0 or claim!=0):
         return 4294967293
-    if mode==2 and (second==0 or claim!=0):
+    if mode==2 and claim!=0:
         return 4294967293
-    if mode==3 and (second==0 or claim==0):
+    if mode==3 and claim==0:
         return 4294967293
     if length(s)!=64+name+first+second+claim:
         return 4294967293
