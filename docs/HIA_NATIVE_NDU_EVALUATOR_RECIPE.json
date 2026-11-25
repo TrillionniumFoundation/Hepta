@@ -1,0 +1,137 @@
+{
+  "compile": {
+    "argv": [
+      "hia-source-build",
+      "compile"
+    ],
+    "roles": [
+      {
+        "flat_bytes": 97366,
+        "flat_sha256": "4adb0434fd1c15c503568747bfbe8d82b90caf141b3e207375e220d2497a89fb",
+        "role": "transport",
+        "source_bytes": 98924,
+        "source_path": "examples/hia_bootstrap/ndu_evaluator_transport.hepta",
+        "source_sha256": "13de51360d17a2e35bee3e85633895281d8d944000645fd58dbb18c6b2147e0d"
+      },
+      {
+        "flat_bytes": 362165,
+        "flat_sha256": "a557f23679eb510a9e985e42e0d620f90ecb1ea3f6918153029e4c3e314ce1c2",
+        "role": "evaluator",
+        "source_bytes": 367661,
+        "source_path": "examples/hia_bootstrap/ndu_evaluator.hepta",
+        "source_sha256": "310489853d91e0c92ab8ad2067a00a4a8eeb9c5b39fa91f492e2d7962e45e1d1"
+      },
+      {
+        "flat_bytes": 140892,
+        "flat_sha256": "aea2fac210dab4bfc8ca5ace088abb297091dbd187015bf7bb27eed0b9126a52",
+        "role": "number",
+        "source_bytes": 138850,
+        "source_path": "examples/hia_bootstrap/ndu_evaluator_number.hepta",
+        "source_sha256": "75ee094b8e1532dd3f59991739e1d53f3cd3a1bbf633a4721881fc9cbd9b71c9"
+      },
+      {
+        "flat_bytes": 84129,
+        "flat_sha256": "48ff5887bbbedbd399f281778e035ee2cfc62264f5437e9c978662e43f86b9e3",
+        "role": "debug",
+        "source_bytes": 168780,
+        "source_path": "examples/hia_bootstrap/ndu_evaluator_debug.hepta",
+        "source_sha256": "5b28bb82bceb75756c4d3ffca19d721e2f34f56b45fdcb90cdb441bb40cb6db0"
+      },
+      {
+        "flat_bytes": 19097,
+        "flat_sha256": "fa6b9f165d504336105b69b9eb52d126a683bc96fc760f1f7d67aeaceb66513d",
+        "role": "packer",
+        "source_bytes": 29689,
+        "source_path": "examples/hia_bootstrap/ndu_evaluator_packer.hepta",
+        "source_sha256": "89ce0355eb32f7100eee7dc454807e877b8a4dc4949354f9b98da8f028659ec0"
+      }
+    ],
+    "stdin": "exact checked-in HIA assembly bytes",
+    "stdout": "native six-word borrowed-buffer flat"
+  },
+  "entry_point": "hepta.hia.ndu_evaluator.v1",
+  "pack": {
+    "header_bytes": 48,
+    "input_limit_bytes": 4194352,
+    "magic": "HIANDP01",
+    "output_capacity_bytes": 8388608,
+    "reserved_zero_at": 40,
+    "tail_roles": [
+      "transport",
+      "evaluator",
+      "number",
+      "debug"
+    ],
+    "tool": "hia-ndu-evaluator-pack",
+    "u64_le_lengths_at": [
+      8,
+      16,
+      24,
+      32
+    ]
+  },
+  "publish": {
+    "binary": "hia-ndu-evaluator",
+    "build_receipt": "hia-ndu-evaluator-build.json",
+    "receipt_template": "docs/HIA_NATIVE_NDU_EVALUATOR_BUILD.json",
+    "require_exact_output_sha256": "7dbe3f18f329be0124ba1af55bad4358654262e1b0503a7745b56b9f3b76057e",
+    "template_is_only_publishable_after_actual_source_and_output_hash_checks": true
+  },
+  "runtime_uses_host_linker": false,
+  "runtime_uses_python": false,
+  "runtime_uses_rust": false,
+  "schema": "hepta.hia.ndu-native-recipe.v1",
+  "source_files": {
+    "examples/hia_bootstrap/native_filter_packer.hepta": {
+      "bytes": 14265,
+      "sha256": "63ec799f8b427e089c2a66bc345c1ca1ed6b022c12e6af5bfebd6953d66b4c2d"
+    },
+    "examples/hia_bootstrap/ndu_evaluator.hepta": {
+      "bytes": 367661,
+      "sha256": "310489853d91e0c92ab8ad2067a00a4a8eeb9c5b39fa91f492e2d7962e45e1d1"
+    },
+    "examples/hia_bootstrap/ndu_evaluator_debug.hepta": {
+      "bytes": 168780,
+      "sha256": "5b28bb82bceb75756c4d3ffca19d721e2f34f56b45fdcb90cdb441bb40cb6db0"
+    },
+    "examples/hia_bootstrap/ndu_evaluator_number.hepta": {
+      "bytes": 138850,
+      "sha256": "75ee094b8e1532dd3f59991739e1d53f3cd3a1bbf633a4721881fc9cbd9b71c9"
+    },
+    "examples/hia_bootstrap/ndu_evaluator_packer.hepta": {
+      "bytes": 29689,
+      "sha256": "89ce0355eb32f7100eee7dc454807e877b8a4dc4949354f9b98da8f028659ec0"
+    },
+    "examples/hia_bootstrap/ndu_evaluator_transport.hepta": {
+      "bytes": 98924,
+      "sha256": "13de51360d17a2e35bee3e85633895281d8d944000645fd58dbb18c6b2147e0d"
+    },
+    "examples/hia_bootstrap/ndu_evaluator_unicode.hiadat": {
+      "bytes": 7352,
+      "sha256": "c80193ba6c434cd1f5b0e28108d0ab65f9af8acaace8a005109cd4cab2dbc3ae"
+    },
+    "tools/hia_ndu_evaluator_join.S": {
+      "bytes": 1425,
+      "sha256": "970ea7d9821f54941ec0db2f9946c547e6b550c17171500f09cb711c77df7103"
+    },
+    "tools/hia_ndu_evaluator_syscalls.S": {
+      "bytes": 2428,
+      "sha256": "d3f354e8b02f65d47fe3844baa4327743f821edf77edf0aa79a21844d114332c"
+    }
+  },
+  "wrap_packer": {
+    "fields": [
+      {
+        "offset": 8,
+        "type": "u64-le",
+        "value": "ndu_evaluator_packer flat bytes"
+      }
+    ],
+    "header_bytes": 16,
+    "magic": "HIAFLT01",
+    "tail": [
+      "ndu_evaluator_packer flat"
+    ],
+    "tool": "hia-seed-filter-pack"
+  }
+}
