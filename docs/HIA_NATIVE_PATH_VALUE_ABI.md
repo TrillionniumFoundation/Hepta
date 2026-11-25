@@ -83,7 +83,9 @@ flags in `HIA_RESULT_VALUE_NATIVE_CLEANUP_ABI.md` are checked before trusting
 consumption; an arbitrary status such as 999 is not accepted. Contradictory success is quarantined before changing the
 owned slot. For a valid known-consumed completion the slot is cleared even
 when status is nonzero. Actual pending mapping cleanup is retried only with 31.
-An unknown consumption result, or a nonzero post-consumption result without a
+A known unconsumed value together with mapping-pending retains both facts and
+is quarantined; a successful mapping retry cannot establish that the value was
+consumed. An unknown consumption result, or a nonzero post-consumption result without a
 recorded retryable mapping, is kept in persistent quarantine. The parent cannot
 discard the workspace because a reply only claims that cleanup is pending.
 

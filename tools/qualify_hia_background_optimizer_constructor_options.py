@@ -209,7 +209,7 @@ def cleanup_author_matrix():
                     if success:
                         assert word(out, c['PHASE']) == 100 and word(out, c['CLEAN']) == 1
                     else:
-                        expected_quarantine = 1 if valid and (consumed == 0 or pending == 1) else 2
+                        expected_quarantine = 1 if valid and consumed == pending else 2
                         assert word(work, 40) == expected_quarantine, (status, known, consumed, pending)
                     rows.append({'name': 'author-op29-reply-matrix', 'status': status, 'known': known,
                                  'consumed': consumed, 'pending': pending, 'passed': True})

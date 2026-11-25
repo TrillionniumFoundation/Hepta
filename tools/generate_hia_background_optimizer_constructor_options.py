@@ -228,7 +228,7 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,PENDING,1)
         if status!=0:
             kind=1
-            if consumed!=0 and pending==0:
+            if (consumed!=0 and pending==0) or (consumed==0 and pending!=0):
                 kind=2
             return quarantine(o,w,kind,status)
         put(o,CLEAN,get(o,CLEAN)+1)
