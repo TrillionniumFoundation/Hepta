@@ -1,10 +1,10 @@
 {
   "B0_sha256": "a587e546c73adae16615bfeb41a08d2b4564746c708ce89978cd6495d14cfdeb",
   "all_original_numeric_limits_unchanged": true,
-  "assembly_new_ns": 47606556724,
-  "assembly_old_ns": 57098186812,
+  "assembly_new_ns": 47456668305,
+  "assembly_old_ns": 47309657132,
   "build_record_status": "The construction report retains its original pending-qualification marker; subsequent complete qualification reports above resolve it.",
-  "comparison_baseline": "Previously qualified checked-word-load frontend with original byte stores and literal loops, assembly 5595527f / projector 4a1f912b. Earlier qualification remains in source history.",
+  "comparison_baseline": "Previously qualified literal and word-store frontend, assembly 4968d4153757d52da8bbecb1e4205dce36fde8d06fffa33573d7c7a106e55689 / projector 84ddc8342a4f915d42291be4971763f0eb34aaec189dbc75bfd5a32cc4e3b483. Its exact original fixtures and historical evidence remain retained.",
   "evidence": [
     {
       "bytes": 25964,
@@ -35,12 +35,56 @@
       "bytes": 62522,
       "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/seed-front-literal-selfrebuild-v1/report.json",
       "sha256": "0f7c7795560a45c9502a3f30610f64ef66c12dac425dbdbd81d0c0d1619cbeca"
+    },
+    {
+      "bytes": 25982,
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/seed-front-lookup-v1/report.json",
+      "scope": "lookup-derived frontend v1",
+      "sha256": "ba26d7379cce651b8b401eb88d2e2c67e95d62e51bdc6f0fe0520aef963c8b59"
+    },
+    {
+      "bytes": 23977,
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/seed-front-lookup-hot-v1/report.json",
+      "scope": "lookup-derived frontend hot-v1",
+      "sha256": "bf78e764e9b21a52a82546b93854b190f61d9dd11885f8272f53e4c9235f942e"
+    },
+    {
+      "bytes": 1951216,
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/seed-front-lookup-corpus-v1/report.json",
+      "scope": "lookup-derived frontend corpus-v1",
+      "sha256": "7c1337c18a892df2b0a7bbab421d7de4ac5dd49753497c94429e554e1df0f25a"
+    },
+    {
+      "bytes": 62648,
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/seed-front-lookup-selfrebuild-v1/report.json",
+      "scope": "lookup-derived frontend selfrebuild-v1",
+      "sha256": "3d61e79cdcb07be2553623ee5dd6221c739d1934bd716eb60783694a76673b13"
+    },
+    {
+      "bytes": 10284,
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/seed-front-lookup-index-v1/report.json",
+      "scope": "lookup-derived frontend index-v1",
+      "sha256": "564416577dacdcd849c4c503af6570677fb3bc796716fa12547d7e3917cae145"
     }
   ],
   "family_count": 13,
+  "generic_source_update": {
+    "changes": [
+      "Core admission transfer argument scans use ordered child traversal",
+      "Reference SSA name lookup uses exact-byte-checked open addressing with original linear fallback when workspace is too short"
+    ],
+    "commit": "b83e9b224285d3fe9c6631e4cb9df6bacc17f8a4",
+    "derived_changed_components": [
+      "core_admission.hepta",
+      "evaluate_reference_wire.hepta"
+    ],
+    "qualification": "HIA_NATIVE_PROOF_LOOKUP.json",
+    "unchanged_helper_replacement_multiset": true
+  },
   "helper_bounds_traps": 3690,
   "helper_cases": 8172,
   "helper_normal": 4327,
+  "helper_qualification_reused_unchanged": true,
   "helper_shift_traps": 155,
   "independent_compile_profile": {
     "elf_sha256": "9610956124383993a32f8e47fb697d1754d6b06778e0cb3339d12f6ec6166525",
@@ -50,25 +94,40 @@
   "new_front_components_rebuilt": 10,
   "original_and_new_seed_self_rebuild_exact": true,
   "original_components_rebuilt": 15,
+  "original_fixture_sources": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-sha-repeat-source",
+    "purpose": "Unmodified pre-lookup fifteen original inputs compiled live by the new frontend and compared to all old Core/wire/flat pins; current derived sources are independently built and separately self-rebuilt."
+  },
   "original_native_roots_repacked": 7,
   "passed": true,
   "prior_word_store_bounds_traps": 513,
   "prior_word_store_helper_cases": 858,
+  "private_index_controls": {
+    "block_reset": true,
+    "cases": 24,
+    "embedded_nul": true,
+    "first_duplicate_name": true,
+    "missing_name": true,
+    "original_and_new_output_and_refusals_exact": true,
+    "original_minimum_workspace": 355128,
+    "poisoned_workspace": true,
+    "same_bucket_names": 128
+  },
   "products": {
     "hia-seed-assembly": {
-      "bytes": 2206049,
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/seed-front-literal-v1/hia-seed-assembly",
-      "sha256": "4968d4153757d52da8bbecb1e4205dce36fde8d06fffa33573d7c7a106e55689"
+      "bytes": 2205447,
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/seed-front-lookup-v1/hia-seed-assembly",
+      "sha256": "4e12e9496168557ded920b97109dc450b97bb3c7627d28238b6dba54f792170a"
     },
     "hia-seed-projector": {
-      "bytes": 405096,
-      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/seed-front-literal-v1/hia-seed-projector",
-      "sha256": "84ddc8342a4f915d42291be4971763f0eb34aaec189dbc75bfd5a32cc4e3b483"
+      "bytes": 418284,
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/seed-front-lookup-v1/hia-seed-projector",
+      "sha256": "bded06c364aa15811da6f3d005b31e06342df6261705db636692d73f41e37369"
     }
   },
   "projection_cases": 2090,
-  "projector_new_ns": 32287379233,
-  "projector_old_ns": 35336698041,
+  "projector_new_ns": 15228120436,
+  "projector_old_ns": 32150227031,
   "reference_calls_covered": 965,
   "retained_harness_failures": [
     {
@@ -128,10 +187,10 @@
           }
         ],
         "original": "core_admission.hepta",
-        "original_sha256": "ef3158238e5509b7577f4fd8aa6f16fd80c3d55200a764b1c0cc14ede42de986",
+        "original_sha256": "d71b576956cc28169e521e9704cf97c9369108b46fdd7f6a867dadd802c413ab",
         "selected": "seed_front_bulk/core_admission.hepta",
-        "selected_sha256": "6e787b3a143a6c11353b0c6c2e6850f0b2ef24d0b312c8aad9c0345a3ab16686",
-        "source_bytes": 455271
+        "selected_sha256": "9368f225a7d22802e9ee8d2a3093a797ea6eba2a2f88463eeb6d9b277fb7fef3",
+        "source_bytes": 454980
       },
       {
         "changes": [
@@ -269,29 +328,29 @@
       {
         "changes": [
           {
-            "function": "f39",
+            "function": "f43",
             "original_sha256": "fd606f3eee4e4f4930671991e8fe85209c2e100bdbcaed1398e85ae4e8134e8e",
             "replacement_sha256": "5b7cacc4f0ef48f9b750af9c246f848afa0dd880c629892d483faae6acaf483d",
             "transformation": "checked_variable_width_word_load"
           },
           {
-            "function": "f74",
+            "function": "f78",
             "original_sha256": "7f85088b378030ecd33a786b3aaac68c648dc1fae2e0cd374dbb2b7ec05a0529",
             "replacement_sha256": "6619779d137b3fc9272d882de42e90961d7731d861b174a1f2fe18baee78cef2",
             "transformation": "checked_word_load_mutbuf"
           },
           {
-            "function": "f75",
+            "function": "f79",
             "original_sha256": "658c5762819b14849c1056f17574ec7b86d87250fc53bebe62574f7880f64d0b",
             "replacement_sha256": "9b037ccee2ad9e238c309b3f7b1db969b049baf1991ba8b8d10dc00ba67fc8fa",
             "transformation": "checked_word_store_with_byte_fallback_00"
           }
         ],
         "original": "evaluate_reference_wire.hepta",
-        "original_sha256": "6618f62809b9e73b0e8124eef6e6fad2dc0bcaaffdca179c2569f393b08eb7a8",
+        "original_sha256": "5523b76f7d33f6392a1e362d6cf23eb751cad3cc4f2111ee5e862a2c69f87489",
         "selected": "seed_front_bulk/evaluate_reference_wire.hepta",
-        "selected_sha256": "fda53d15fc225132dd23619b83d69463d6a4ad41760b7341c2da55c019c7bb89",
-        "source_bytes": 328972
+        "selected_sha256": "65fb1fb024c670a3c9ace9d00bc384f0fa9427f71c61851fd1a28a93405cd8d8",
+        "source_bytes": 339632
       }
     ],
     "schema": "hepta.hia.seed-front-bulk.sources.v1"

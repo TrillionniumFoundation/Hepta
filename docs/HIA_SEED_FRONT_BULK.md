@@ -1,8 +1,9 @@
 # Independent native frontend word profile
 
 This separate profile accelerates the unchanged HIA assembly frontend and the
-existing HIAERW02 reference projector. Original generic sources and initial seed
-profiles remain unchanged. The current executables are independently built
+existing HIAERW02 reference projector. The qualified generic sources now include the deterministic lookup changes
+documented in [the lookup checkpoint](HIA_NATIVE_PROOF_LOOKUP.md). The original
+seed profiles remain unchanged. The current executables are independently built
 through qualified native assembly, projection, the explicit word-store seed,
 and native packers. No target selfhost compiler or successor is used. Runtime
 inputs, outputs, limits and frontend CLI options remain unchanged.
@@ -42,8 +43,9 @@ thirteen cold families compare live against the previous qualified frontend.
 All 965 original reference calls are represented. The 2,090 function projections
 compare complete return code, stdout and stderr bytes.
 
-Cumulative assembly time is 57.098 versus 47.607 seconds, and projection time is
-35.337 versus 32.287 seconds. A separate 29-case hot-input comparison also
+Cumulative assembly time is 47.310 versus 47.457 seconds, and projection time is
+32.150 versus 15.228 seconds. Assembly timing is effectively unchanged. The
+comparison baseline is the previous qualified literal and word-store frontend. A separate 29-case hot-input comparison also
 preserves every result. These are serial old/new component-regression timings;
 the original 180-second whole-cold deadline remains a separate gate.
 
@@ -56,10 +58,31 @@ instruction counts are excluded from semantic comparison. The unchanged
 word-store transformation also retains its earlier 858 controls, including
 513 bounds traps. Roots are rehashed after execution.
 
-All fifteen original frontend/seed component sources retain exact Core, wire
-and machine bytes, and the seven original native roots repack identically.
+All fifteen unmodified original frontend/seed inputs retain exact Core, wire
+and machine bytes when compiled by the new frontend, and the seven original
+native roots repack identically. These original inputs are kept distinct from
+the current qualified admission and reference sources.
 All ten current frontend components reproduce their independent construction
 when rebuilt by the new frontend itself. Both new frontend executable images
 are byte-identical under this self-rebuild. The original word seed and B0 image
 also remain unchanged. Every semantic construction step executes an actual
 native child with an empty PATH.
+
+## Indexed reference lookup
+
+The current source map applies the unchanged complete-function helper matches
+to the qualified admission and reference lookup sources. Only those two of the
+ten selected component sources change. The helper pattern and replacement hash
+multisets are identical to the preceding qualification.
+
+The actual independently built reference component additionally passes twenty-four
+old/new controls: 128 deliberately colliding names, first duplicate-name behavior,
+per-block reset, an embedded NUL, a missing name, poisoned work, and extents at
+and around the original minimum of 355,128 bytes. When the optional index cannot
+fit, the original linear lookup still runs. No workspace minimum or source limit
+is raised. The unchanged helper arithmetic retains its previously recorded
+8,172 and 858 controls; those historical helper checks are distinguished from
+the new complete-input and lookup comparisons.
+
+This checkpoint qualifies the two new bootstrap executables as components. It
+does not mark the sixty-phase, 180-second native cold replay gate as passed.
