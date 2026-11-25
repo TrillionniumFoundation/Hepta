@@ -55,7 +55,7 @@
         "passed": true
       },
       {
-        "case": "value02-completion-full-u64-status-and-consumption-invariants",
+        "case": "value02-completion-exact-status-domain-and-consumption-invariants",
         "checks": 1156,
         "passed": true
       },
@@ -81,7 +81,12 @@
       },
       {
         "case": "pending31-nonzero-never-clears-prior-actual-mapping-record",
-        "checks": 24,
+        "checks": 12,
+        "passed": true
+      },
+      {
+        "case": "malformed-consumption-record-preserves-original-owned-slot",
+        "checks": 12,
         "passed": true
       }
     ],
@@ -161,17 +166,17 @@
         },
         "candidate": {
           "author": {
-            "bytes": 31571,
-            "sha256": "b51bbaed8cf13d6b18bd0e73cdd7a7171f08c6caf87fc80d32dfd195c5650bbc"
+            "bytes": 31773,
+            "sha256": "1d239433959eabad4dab627e3b63dfba50b95a77f24694cc54eeb3c259409e8e"
           },
           "source": {
-            "bytes": 175584,
-            "sha256": "e586394861b1e22245f794763c58d001e32e36944c0ec8555d4ef50a934da784"
+            "bytes": 176997,
+            "sha256": "2cbc3ceade49eb27388d5803ec284d4c8798e7ef15a437c40b52f752d20a24c9"
           },
           "profile": {
             "functions": 43,
-            "blocks": 664,
-            "ops": 3016,
+            "blocks": 670,
+            "ops": 3043,
             "max_function_blocks": 108,
             "max_block_params": 10
           },
@@ -321,17 +326,17 @@
         },
         "candidate": {
           "author": {
-            "bytes": 62460,
-            "sha256": "b822adc6ac397a911c3ceedec30b53c57343a1d7fc6a375a754a26afd8222567"
+            "bytes": 62662,
+            "sha256": "9ceb1d7a2aed2489e02ad4a3d57f5967993f72d31d23b00baed93d4e215fbb58"
           },
           "source": {
-            "bytes": 351456,
-            "sha256": "760161ed512958595cc611e2093be6843c28a3cb60ebd471e0acc2cf60aa3feb"
+            "bytes": 352869,
+            "sha256": "a9a37babe1e279af4c8efbcb439335f876b9bb9d115a57ba83ff8bc0daa30dc3"
           },
           "profile": {
             "functions": 80,
-            "blocks": 1161,
-            "ops": 6684,
+            "blocks": 1167,
+            "ops": 6711,
             "max_function_blocks": 124,
             "max_block_params": 10
           },
@@ -424,28 +429,28 @@
   },
   "candidate_files": {
     "tools/generate_hia_multiversion_background_future_cell.py": {
-      "bytes": 31571,
-      "sha256": "b51bbaed8cf13d6b18bd0e73cdd7a7171f08c6caf87fc80d32dfd195c5650bbc"
+      "bytes": 31773,
+      "sha256": "1d239433959eabad4dab627e3b63dfba50b95a77f24694cc54eeb3c259409e8e"
     },
     "tools/generate_hia_background_optimizer_future_public_owner.py": {
-      "bytes": 62460,
-      "sha256": "b822adc6ac397a911c3ceedec30b53c57343a1d7fc6a375a754a26afd8222567"
+      "bytes": 62662,
+      "sha256": "9ceb1d7a2aed2489e02ad4a3d57f5967993f72d31d23b00baed93d4e215fbb58"
     },
     "examples/hia_bootstrap/multiversion_background_future_cell.hepta": {
-      "bytes": 175584,
-      "sha256": "e586394861b1e22245f794763c58d001e32e36944c0ec8555d4ef50a934da784"
+      "bytes": 176997,
+      "sha256": "2cbc3ceade49eb27388d5803ec284d4c8798e7ef15a437c40b52f752d20a24c9"
     },
     "examples/hia_bootstrap/background_optimizer_future_public_owner.hepta": {
-      "bytes": 351456,
-      "sha256": "760161ed512958595cc611e2093be6843c28a3cb60ebd471e0acc2cf60aa3feb"
+      "bytes": 352869,
+      "sha256": "a9a37babe1e279af4c8efbcb439335f876b9bb9d115a57ba83ff8bc0daa30dc3"
     },
     "docs/HIA_BACKGROUND_NATIVE_FUTURE_DROP.md": {
-      "bytes": 15146,
-      "sha256": "3d5735eaadbbff9b313034633d8545a674898cc0806e89da26e22bee5389621a"
+      "bytes": 15502,
+      "sha256": "197cec1852b5883e65ee9f5d050b1520507e09679331e266c4171f9f64bdfdaa"
     },
     "tools/qualify_hia_future_drop_author_protocol.py": {
-      "bytes": 16054,
-      "sha256": "966857f8785a4f8758e89952511183b43138a9b17b1e5efaa5dce65ebf37190b"
+      "bytes": 17550,
+      "sha256": "167bc0a8765f2828cd13aa6b09c79fb579ae3d65556bcd85f4b7c7dab232b4ab"
     }
   },
   "native_build_status": "pending: original ROG endpoint unreachable",
@@ -461,7 +466,30 @@
       31
     ],
     "reply": "HIABVR02",
-    "native_dependency_qualified": false
+    "native_dependency_qualified": false,
+    "cleanup_statuses": {
+      "29": [
+        0,
+        1,
+        6,
+        11
+      ],
+      "30": [
+        0,
+        1,
+        6,
+        11
+      ],
+      "31": [
+        0,
+        6,
+        11
+      ]
+    },
+    "known_consumed_statuses": [
+      0,
+      11
+    ]
   },
   "new_profiles": {
     "HIABFQ04": [
@@ -487,5 +515,12 @@
       32,
       40
     ]
+  },
+  "protocol_review_correction": {
+    "superseded_offline_tip": "d32c39dab6dda3c4c2dc50879a1f23478f3d83f3",
+    "issue": "The earlier candidate accepted arbitrary nonzero value status words under an overbroad producer description. Actual producer source establishes a closed cleanup status domain.",
+    "correction": "Reject unknown statuses and impossible consumed/status combinations before clearing any owned slot. Keep status 11/known1/consumed1/pending0 valid.",
+    "native_images_affected": false,
+    "old_offline_logs_preserved": true
   }
 }
