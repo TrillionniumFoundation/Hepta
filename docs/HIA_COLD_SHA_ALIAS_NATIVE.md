@@ -57,5 +57,8 @@ The adjacent JSON pins the source, flats, independent constructor and each
 complete report. Its construction report retains the annotation that existed
 before semantic qualification; the separately pinned completed reports supply
 the subsequent evidence. This component result does not establish the full
-60-phase, 180-second cold replay. Consumer reconstruction and the actual
-complete replay remain separate release gates.
+60-phase, 180-second cold replay. The driver's original 18 controls, exporter's original 47 controls, actual 41-phase
+master/CLI fixture, 22 CLI refusal controls and three live archive-overlap
+controls also pass with this same companion. Their source and product pins
+are recorded in HIA_COLD_SHA_ROUND_CONSUMERS.json. The actual complete
+60-phase replay remains a separate release gate.
