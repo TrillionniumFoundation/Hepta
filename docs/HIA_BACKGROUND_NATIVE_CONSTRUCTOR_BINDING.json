@@ -1,0 +1,120 @@
+{
+  "schema": "hepta.hia.background.constructor-binding.offline.v1",
+  "authoring_verifier": "original verify_program before and after compact_authoring_cfg",
+  "native_limits_changed": false,
+  "native_built": false,
+  "runtime_qualified": false,
+  "whole_background_qualified": false,
+  "roles": [
+    {
+      "role": "background_optimizer_constructor_checks",
+      "author": {
+        "path": "tools/generate_hia_background_optimizer_constructor_checks.py",
+        "bytes": 5237,
+        "sha256": "e51f7ee14c7f9a3aac5f760f1c93c24dbf5257170ca213b4904d828195ea69ef"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/background_optimizer_constructor_checks.hepta",
+        "bytes": 165671,
+        "sha256": "14eaa5c8c60a7d2c88a9eac847a0f86960b505f0617ab157c06ed848b6e4d800"
+      },
+      "functions": 23,
+      "blocks": 787,
+      "operations": 2447,
+      "maximum_function_blocks": 169,
+      "maximum_function_values": 1120,
+      "maximum_block_parameters": 16
+    },
+    {
+      "role": "background_optimizer_constructor_binding",
+      "author": {
+        "path": "tools/generate_hia_background_optimizer_constructor_binding.py",
+        "bytes": 27339,
+        "sha256": "183b9efa224b9ab57ac6eb716165feb7f3804490830e46cac8d29f16f5a3838c"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/background_optimizer_constructor_binding.hepta",
+        "bytes": 185436,
+        "sha256": "c4ea8e560a80b16cacef37332e7033586541a983909f1d5ec96de968e94f708b"
+      },
+      "functions": 47,
+      "blocks": 687,
+      "operations": 3181,
+      "maximum_function_blocks": 91,
+      "maximum_function_values": 843,
+      "maximum_block_parameters": 10
+    },
+    {
+      "role": "background_optimizer_constructor_binding_packer",
+      "author": {
+        "path": "tools/generate_hia_background_optimizer_constructor_binding_packer.py",
+        "bytes": 4483,
+        "sha256": "16ab0e0d3429988e49917f6afb39636d2b165121127d82512b322299c29e2f0c"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/background_optimizer_constructor_binding_packer.hepta",
+        "bytes": 31647,
+        "sha256": "9499f0c38a181717f0c3e93775aa986539ce33dbfb442ca37b6bd9d5f6ab3665"
+      },
+      "functions": 11,
+      "blocks": 51,
+      "operations": 673,
+      "maximum_function_blocks": 26,
+      "maximum_function_values": 241,
+      "maximum_block_parameters": 6
+    }
+  ],
+  "bridge": {
+    "path": "tools/hia_background_optimizer_constructor_binding_bridge.S",
+    "bytes": 3006,
+    "sha256": "32a84661dd27d55bb4ed5b6d33c61ca142b771b2d041e216b7db5950f6bc6a7f"
+  },
+  "mechanical_template_bytes": 516,
+  "mechanical_template_sha256": "ab14a5f1087ac9f791b7d63be0c54073c79b00088f603209f8641b75e896fa8c",
+  "mechanical_imports": [],
+  "mechanical_holes": {
+    "policy": 207,
+    "checks": 405
+  },
+  "source_packer_controls": 6,
+  "development_probes": {
+    "path": "docs/HIA_BACKGROUND_NATIVE_CONSTRUCTOR_BINDING_SOURCE_PROBES.json",
+    "bytes": 5164,
+    "sha256": "469cb12c8e2a7c652c12f085d779e1e8175420cd41cb98c1b18518b221123cfc"
+  },
+  "shared_author_dependencies": [
+    {
+      "path": "tools/generate_hia_background_optimizer_admission.py",
+      "bytes": 14946,
+      "sha256": "9aa25819ff8a2baa1bb837ee59d356db3cc5668ffd3f1d9065b83bb48949abde"
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_structure.py",
+      "bytes": 12714,
+      "sha256": "c9c053d20955351646dd824ad3dd630a4c60d104e01316f7e9abee393c56035a"
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_value_freeze.py",
+      "bytes": 14105,
+      "sha256": "3302880c0cc3e1829e6557a52cfc80bd291de3b45d61575c5136949f3b212acf"
+    },
+    {
+      "path": "tools/hia_background_retirement_source.py",
+      "bytes": 5917,
+      "sha256": "ce1328e298484297a1817ff6301f728c18690cbfa1c986c8e42d3fe7e40bd43e"
+    }
+  ],
+  "required_new_dependency_profiles": [
+    "HIABVFY3/4",
+    "HIABVYC2",
+    "HIABVFR2",
+    "HIABVQ02/29,31"
+  ],
+  "remaining": [
+    "native construction and actual dependency gates",
+    "actual public runtime class gate",
+    "actual Path objects after live mapping construction",
+    "complete BG allocation/start/rollback",
+    "full original public constructor and whole lifecycle qualification"
+  ]
+}
