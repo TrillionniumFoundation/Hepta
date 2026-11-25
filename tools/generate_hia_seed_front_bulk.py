@@ -2,8 +2,9 @@
 
 The old source files remain unchanged. Matching uses complete canonical Core
 function bodies, rather than names or a substring. Word reads retain the old
-loop outside the complete legal range; word writes retain bytewise order and
-therefore preserve every partial-write boundary.
+loop outside the complete legal range. Word writes use one word store only
+inside the complete legal range, retaining the original bytewise fallback
+and every partial-write boundary outside that range.
 """
 from pathlib import Path
 from hashlib import sha256
@@ -65,12 +66,37 @@ def putter(*,mask=False,zero=False):
     return '''+('0' if zero else 'value')+'\n'
 
 def putter_fast(*,mask=False,zero=False):
- lines=['def put(w:mutbuf,index:u64,value:u64) -> u64:']
+ lines=['def put(w:mutbuf,index:u64,value:u64) -> u64:',
+        '    if index <= length(w) and length(w) - index >= 8:',
+        '        store_word(w,index,value)',
+        '        return '+('0' if zero else 'value')]
  for i in range(8):
   value=f'(value >> {i*8}) & 255' if mask else f'value >> {i*8}'
   lines.append(f'    store(w,index + {i},{value})')
  lines.append('    return '+('0' if zero else 'value'))
- return canonical('\n'.join(lines)+'\n')['functions'][0]
+ lines.extend(['','def store_word(w:mutbuf,index:u64,value:u64) -> u64:', '    return 0'])
+ fn=canonical('\n'.join(lines)+'\n')['functions'][0];found=0
+ used={x for b in fn['blocks'] for op in b['ops'] for x in op['args']}
+ def collect(value):
+  if isinstance(value,str):used.add(value)
+  elif isinstance(value,list):
+   for x in value:collect(x)
+  elif isinstance(value,dict):
+   for x in value.values():collect(x)
+ for b in fn['blocks']:collect(b['term'])
+ for block in fn['blocks']:
+  ops=[]
+  for op in block['ops']:
+   if op['op']=='call':
+    assert op['attrs']=={'function':'f1'} and len(op['args'])==3
+    assert not any(x['name'] in used for x in op['out'])
+    name='bulk_store_word_offset'
+    ops.extend(({'op':'int.cast','args':[op['args'][1]],'attrs':{'mode':'wrap'},'out':[{'name':name,'type':'usize'}]}, {'op':'buffer.store.u64.le','args':[op['args'][0],name,op['args'][2]],'attrs':{},'out':[]}))
+    found+=1
+   else:ops.append(op)
+  block['ops']=ops
+ assert found==1
+ return fn
 
 def replacements():
  result={}
@@ -80,7 +106,7 @@ def replacements():
  for mask in (False,True):
   for zero in (False,True):
    old=canonical(putter(mask=mask,zero=zero))['functions'][0]
-   result[fingerprint(old)]=('unrolled_byte_store_'+str(int(mask))+str(int(zero)),putter_fast(mask=mask,zero=zero))
+   result[fingerprint(old)]=('checked_word_store_with_byte_fallback_'+str(int(mask))+str(int(zero)),putter_fast(mask=mask,zero=zero))
  return result
 
 def main():
