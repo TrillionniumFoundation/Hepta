@@ -6,6 +6,7 @@ from tools.generate_hia_multiversion_future import document
 from tools.generate_hia_multiversion_background_jobs import SOURCE as JOBS_SOURCE
 ROOT=Path(__file__).resolve().parents[1]
 C={
+ 'MAGIC2':int.from_bytes(b'HIABLG02','little'),'PROFILE':80,'ORDERCOUNT':168,'ORDER':176,'SAVED_ORDERCOUNT':864,'SAVED_ORDER':872,
  'MAGIC':int.from_bytes(b'HIABLG01','little'),'STATE':int.from_bytes(b'HIABLGS1','little'),'REPLY':int.from_bytes(b'HIABLGR1','little'),
  'VALUES_INPUT':int.from_bytes(b'HIAMVU01','little'),'VALUES_REPLY':int.from_bytes(b'HIAMVUR1','little'),
  'PAYLOAD_INPUT':int.from_bytes(b'HIABPY01','little'),'PAYLOAD_REPLY':int.from_bytes(b'HIABPYR1','little'),
@@ -39,10 +40,10 @@ def multiversion_background_ledger(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)!=128 or readword(s,0)!=MAGIC:
+    if length(s)!=128 or (readword(s,0)!=MAGIC and readword(s,0)!=MAGIC2):
         return 4294967293
     op=readword(s,8)
-    if op>4:
+    if op>4 or (readword(s,0)==MAGIC2 and op!=2):
         return 4294967293
     at=16
     while at<128:
@@ -59,6 +60,7 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if op==1 and readword(s,96)>=6:
         return 4294967293
     zero(o,64,8128)
+    put(o,PROFILE,choose(readword(s,0)==MAGIC2,1,0))
     put(o,OP,op)
     return system(o,1,39,0,0,0,0,0,0,0)
 
@@ -218,6 +220,8 @@ def settle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if status!=0:
             return fail(o,w,choose(status==4,4,9))
         copy_local(o,RP+16,NEW+48,24)
+        if (get(w,MASK)&(1<<get(o,INDEX)))==0 and get(w,ORDERCOUNT)>=6:
+            return fail(o,w,9)
         from_work(w,o,COUNTERS,OLD,48)
         from_work(w,o,COUNTERS+48+get(o,INDEX)*24,OLD+48,24)
         to_work(o,w,NEW,COUNTERS,48)
@@ -233,6 +237,10 @@ def settle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         else:
             put(w,RCNT,count+1)
         source_work(s,w,48,at,24)
+        if (get(w,MASK)&(1<<get(o,INDEX)))==0:
+            ordinal=get(w,ORDERCOUNT)
+            put(w,ORDER+ordinal*8,get(o,INDEX))
+            put(w,ORDERCOUNT,ordinal+1)
         put(w,MASK,get(w,MASK)|(1<<get(o,INDEX)))
         put(o,TRANSFER,1)
         put(o,TEMP,1)
@@ -417,12 +425,20 @@ def fail(o:mutbuf,w:mutbuf,status:u64) -> u32:
     if get(o,HELD)!=0:
         put(o,SAVED_COUNT,get(w,RCNT))
         put(o,SAVED_MASK,get(w,MASK))
+        if get(o,PROFILE)==1:
+            count=get(w,ORDERCOUNT)
+            if count>6:
+                status=9
+            else:
+                put(o,SAVED_ORDERCOUNT,count)
+                from_work(w,o,ORDER,SAVED_ORDER,count*8)
     put(o,ERROR,status)
     put(o,CLEAN,0)
     return again(o,900)
 
 def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
     count=get(o,NROWS)
+    profile=get(o,PROFILE)
     transfer=get(o,TRANSFER)
     already=get(o,ALREADY)
     zero(o,0,128)
@@ -434,6 +450,9 @@ def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
     put(o,40,transfer)
     put(o,48,already)
     put(o,56,get(w,8))
+    if status==0 and profile==1:
+        put(o,64,get(o,SAVED_ORDERCOUNT))
+        copy_local(o,SAVED_ORDER,72,get(o,SAVED_ORDERCOUNT)*8)
     return 0
 
 def from_work(w:mutbuf,o:mutbuf,src:u64,dest:u64,n:u64) -> u64:

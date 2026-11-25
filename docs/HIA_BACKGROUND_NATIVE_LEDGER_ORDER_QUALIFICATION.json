@@ -1,0 +1,1124 @@
+{
+  "schema": "hepta.hia.background-ledger-order.qualification.v1",
+  "qualified_order_profile": true,
+  "whole_background_qualified": false,
+  "build": {
+    "built": true,
+    "qualified": false,
+    "roles": {
+      "multiversion_background_ledger": {
+        "source_bytes": 91676,
+        "source_sha256": "21ad40d7b4b549ad2932a5de71a07454e17b510f0c056c015d3ea413d1c9bbce",
+        "flat_bytes": 120514,
+        "flat_sha256": "c549b900613c633d71ba897085d7bf3aa69766623dd203b9ad4acaeeda761393",
+        "profile": {
+          "functions": 30,
+          "blocks": 319,
+          "ops": 1609,
+          "max_block_params": 10
+        }
+      },
+      "multiversion_background_ledger_packer": {
+        "source_bytes": 32191,
+        "source_sha256": "5059b5fac83ced9ce26d3dea8a5e18902ce446262e30ee62a50d32863f1f3b02",
+        "flat_bytes": 35211,
+        "flat_sha256": "6871505c5d233fb4608f359731222539cacb038819423105a3d1ff93177f96bc",
+        "profile": {
+          "functions": 11,
+          "blocks": 51,
+          "ops": 690,
+          "max_block_params": 6
+        }
+      }
+    },
+    "image_bytes": 131856,
+    "image_sha256": "e1ad0e7ca7f1f8019a8c88a597f6084b9313d94a9d0021288891dcfaf39888e3",
+    "compile_pack_link_twice_identical": true,
+    "native_linker_sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff",
+    "old_packer_and_mechanical_template_unchanged": true
+  },
+  "sources": {
+    "tools/generate_hia_multiversion_background_ledger.py": {
+      "bytes": 16966,
+      "sha256": "437f784fa2e77db78692a72bdcbfe27d3aa7cac1ac44915f47599409ddaf28ea"
+    },
+    "examples/hia_bootstrap/multiversion_background_ledger.hepta": {
+      "bytes": 91676,
+      "sha256": "21ad40d7b4b549ad2932a5de71a07454e17b510f0c056c015d3ea413d1c9bbce"
+    }
+  },
+  "reports": {
+    "qualification.json": {
+      "sha256": "928a1815ef29c56fce97e23a06e2a4d87d9885f96fe961f7cf1558d8d8267fbb",
+      "record": {
+        "schema": "hepta.hia.background-native-ledger.v1",
+        "whole_background_qualified": false,
+        "scope": "Atomic native storage/summation of accounted-job receipt bytes and detached owned snapshots. Receipt formatting, real clocks and full optimizer business are separate.",
+        "image_sha256": "e1ad0e7ca7f1f8019a8c88a597f6084b9313d94a9d0021288891dcfaf39888e3",
+        "passed": 7,
+        "failed": 0,
+        "ledger_calls": 1279,
+        "jobs_calls": 1543,
+        "external_values_calls": 2206,
+        "external_payload_calls": 5711,
+        "cases": [
+          {
+            "name": "initial-state-and-once-only-job-accounting",
+            "passed": true,
+            "detail": {
+              "accounted_once_marker_from_actual_job": true,
+              "receipt_input_detached": true,
+              "duplicate_does_not_consume_new_receipt": true
+            },
+            "elapsed_ns": 1918786
+          },
+          {
+            "name": "unbounded-sums-six-outcomes-and-64-receipt-window",
+            "passed": true,
+            "detail": {
+              "fresh_bigint_inputs": 300,
+              "largest_input_digits": 299,
+              "recent_window": 64,
+              "full_sums_and_counts_match_independent_integers": true
+            },
+            "elapsed_ns": 251715044
+          },
+          {
+            "name": "later-native-future-cancellation-preserves-accounting-observation",
+            "passed": true,
+            "detail": {
+              "later_actual_native_future_cancel_does_not_rewrite_receipt": true
+            },
+            "elapsed_ns": 11690176
+          },
+          {
+            "name": "snapshot-reference-lifetime-across-all-ring-evictions",
+            "passed": true,
+            "detail": {
+              "retained_old_receipts_survive_ring_eviction": 64,
+              "new_settlements": 65
+            },
+            "elapsed_ns": 48837313
+          },
+          {
+            "name": "concurrent-once-only-settlement-and-atomic-detached-snapshots",
+            "passed": true,
+            "detail": {
+              "threads": 8,
+              "accepted_once_each": 400,
+              "duplicate_settlements": 400,
+              "actual_concurrent_snapshots": 23,
+              "all_snapshot_counter_sums_consistent": true
+            },
+            "elapsed_ns": 401006382
+          },
+          {
+            "name": "private-frame-foreign-ref-and-ownership-transfer-guards",
+            "passed": true,
+            "detail": {
+              "frame_controls": 56,
+              "invalid_job_payload_value_controls": 4,
+              "failed_settlement_keeps_receipt_and_job_marker": true
+            },
+            "elapsed_ns": 1805793
+          },
+          {
+            "name": "pid-and-independent-snapshot-lifetime-at-final-destruction",
+            "passed": true,
+            "detail": {
+              "fork_refused": true,
+              "retained_snapshot_survives_ledger_destruction": true,
+              "all_component_reference_registries_empty": true
+            },
+            "elapsed_ns": 18205575
+          }
+        ]
+      }
+    },
+    "allocation-qualification.json": {
+      "sha256": "807c95e0dc2f854ec49b5c5c122cdd94c4c83d277e202764c082fd0be86e8014",
+      "record": {
+        "passed": 37,
+        "failed": 0,
+        "cases": [
+          {
+            "case": "initialize",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 9,
+            "counts": [
+              9,
+              8,
+              8
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 10,
+            "counts": [
+              10,
+              9,
+              9
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 9,
+            "counts": [
+              9,
+              8,
+              8
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 9,
+            "counts": [
+              9,
+              8,
+              8
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 10,
+            "counts": [
+              10,
+              9,
+              9
+            ],
+            "all_decimal_and_payload_clones_released": true
+          }
+        ],
+        "actual_initialize_allocation_sites": 10,
+        "actual_settle_allocation_sites": 9,
+        "image_sha256": "e1ad0e7ca7f1f8019a8c88a597f6084b9313d94a9d0021288891dcfaf39888e3",
+        "schema": "hepta.hia.background-native-ledger.allocations.v1",
+        "whole_background_qualified": false,
+        "external_injector_only": true,
+        "injector_source_sha256": "a591c1fab357661127703a03d09bfd5f8c5f2ffe00efe0314bcf0442cdacb3f3"
+      }
+    },
+    "packer-qualification.json": {
+      "sha256": "97ed9abc2cb899eaa83e2177502222dbb2c1173d837095347437a92b8a3ca358",
+      "record": {
+        "schema": "hepta.hia.background-native-ledger-pack.qualification.v1",
+        "whole_background_qualified": false,
+        "passed": 24,
+        "failed": 0,
+        "cases": [
+          {
+            "name": "exact-object",
+            "returncode": 121784,
+            "passed": true
+          },
+          {
+            "name": "truncated-0",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-1",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-7",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-8",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-15",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-16",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-23",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-24",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "truncated-120537",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-0-0",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-8-0",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-8-2",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-8-18446744073709551615",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-16-0",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-16-120513",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-16-120515",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "word-16-18446744073709551615",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "extra-byte",
+            "returncode": 4294967295,
+            "passed": true
+          },
+          {
+            "name": "short-output-0",
+            "returncode": 4294967294,
+            "passed": true
+          },
+          {
+            "name": "short-output-1",
+            "returncode": 4294967294,
+            "passed": true
+          },
+          {
+            "name": "short-output-63",
+            "returncode": 4294967294,
+            "passed": true
+          },
+          {
+            "name": "short-output-121783",
+            "returncode": 4294967294,
+            "passed": true
+          },
+          {
+            "name": "readable-mechanical-source-full-prefix",
+            "bytes": 474,
+            "passed": true
+          }
+        ],
+        "native_packer_sha256": "6871505c5d233fb4608f359731222539cacb038819423105a3d1ff93177f96bc",
+        "object_sha256": "95247bbdafe9f89d8fc93624656c6fca0b18c7229e7a46fcaed88f42d67e6788",
+        "source_sha256": "562e7133087072ce5d77db69b0f10d18db5499e7f3937d7eb0398c01464ff7c4",
+        "mechanical_assembly_used_only_as_external_source_provenance_check": true
+      }
+    },
+    "order-qualification.json": {
+      "sha256": "02451b724997d09b05084b756302ef329703eb99fa3a92453ed8b9c61f4b28f0",
+      "record": {
+        "qualified_order_profile": true,
+        "whole_background_qualified": false,
+        "passed": 3,
+        "failed": 0,
+        "rows": [
+          {
+            "case": "all-first-occurrence-permutations-and-prefixes",
+            "permutations": 720,
+            "ordered_snapshots": 5040,
+            "old_reply_reserved_words_preserved": true
+          },
+          {
+            "case": "new-profile-only-snapshot-and-old-private-domain",
+            "controls": 26
+          },
+          {
+            "case": "actual-first-settlement-races-and-real-time-order",
+            "rounds": 16,
+            "threads_each": 8
+          }
+        ],
+        "actual_ledger_calls": 15307,
+        "ordered_snapshots": 5056,
+        "image_sha256": "e1ad0e7ca7f1f8019a8c88a597f6084b9313d94a9d0021288891dcfaf39888e3"
+      }
+    },
+    "gate-status.json": {
+      "sha256": "3cdee8ce35ac229c3160f8f0ef98bfcc4685d9a7077734b57648ee5ca8229982",
+      "record": [
+        {
+          "task": "legacy",
+          "returncode": 0
+        },
+        {
+          "task": "allocations",
+          "returncode": 0
+        },
+        {
+          "task": "pack",
+          "returncode": 0
+        },
+        {
+          "task": "order",
+          "returncode": 0
+        }
+      ]
+    },
+    "new-profile-allocation.stdout": {
+      "sha256": "aa89f6f46f78f00b27118956e5e562fa72788a6dea2c8c874c5089f57fc9afd6",
+      "record": {
+        "passed": 37,
+        "failed": 0,
+        "cases": [
+          {
+            "case": "initialize",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 9,
+            "counts": [
+              9,
+              8,
+              8
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "initialize",
+            "failed_allocation": 10,
+            "counts": [
+              10,
+              9,
+              9
+            ],
+            "retry_same_context": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "settle",
+            "failed_allocation": 9,
+            "counts": [
+              9,
+              8,
+              8
+            ],
+            "counter_and_marker_unchanged_on_failure": true,
+            "same_job_retry": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-decimal",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "all_unpublished_refs_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 1,
+            "counts": [
+              1,
+              0,
+              0
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 2,
+            "counts": [
+              2,
+              1,
+              1
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 3,
+            "counts": [
+              3,
+              2,
+              2
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 4,
+            "counts": [
+              4,
+              3,
+              3
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 5,
+            "counts": [
+              5,
+              4,
+              4
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 6,
+            "counts": [
+              6,
+              5,
+              5
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 7,
+            "counts": [
+              7,
+              6,
+              6
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 8,
+            "counts": [
+              8,
+              7,
+              7
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 9,
+            "counts": [
+              9,
+              8,
+              8
+            ],
+            "all_decimal_and_payload_clones_released": true
+          },
+          {
+            "case": "snapshot-receipt",
+            "failed_allocation": 10,
+            "counts": [
+              10,
+              9,
+              9
+            ],
+            "all_decimal_and_payload_clones_released": true
+          }
+        ],
+        "actual_initialize_allocation_sites": 10,
+        "actual_settle_allocation_sites": 9,
+        "image_sha256": "e1ad0e7ca7f1f8019a8c88a597f6084b9313d94a9d0021288891dcfaf39888e3"
+      }
+    }
+  },
+  "external_qa_sources": {
+    "build-ledger-order-v2.py": {
+      "sha256": "19c1a866334a78281370c54d1a3ef894c0a86683fe1579c6d14d924f8e461915",
+      "text": "from pathlib import Path\nfrom hashlib import sha256\nimport ctypes as C,importlib,importlib.util,json,resource,struct,subprocess,sys\nT=Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125')\nP=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-multiversion-proof-source')\nB=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z')\nD=T/'ledger-order-native-v2';D.mkdir(exist_ok=False);sys.path.insert(0,str(P));resource.setrlimit(resource.RLIMIT_CORE,(0,0))\nfrom hepta.hia_agent_assembly import render_assembly\nfrom tools.build_hia_source_build import _run_captured,_named_source_request,_compiled_sources\nfrom tools.generate_hia_artifact_publication import document\nsp=importlib.util.spec_from_file_location('client',T/'qualify-result-value-core-smoke-v1.py')\nm=importlib.util.module_from_spec(sp);sp.loader.exec_module(m)\nseed=(T/'root-proof/hia-source-build-494833.bin').read_bytes()\nassert sha256(seed).hexdigest()=='494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af'\nroles={};records={}\nfor stem in ['multiversion_background_ledger','multiversion_background_ledger_packer']:\n    mod=importlib.import_module('tools.generate_hia_'+stem)\n    tree=mod.document(mod.source_program(),stem);source=render_assembly(tree).encode();name=stem+'.hepta'\n    (P/'examples/hia_bootstrap'/name).write_bytes(source);(D/name).write_bytes(source)\n    stats={'functions':len(tree['functions']),'blocks':sum(len(f['blocks'])for f in tree['functions']),'ops':sum(len(b['ops'])for f in tree['functions']for b in f['blocks']),'max_block_params':max(len(b['params'])for f in tree['functions']for b in f['blocks'])}\n    assert stats['functions']<=128 and stats['blocks']<=1536 and stats['ops']<=8192 and stats['max_block_params']<=16\n    flats=[]\n    for i in range(2):\n        d=D/(stem+'-compile'+str(i));d.mkdir()\n        r=_run_captured(seed,'sources',_named_source_request({name:source}),d)\n        (d/'stdout').write_bytes(r.stdout);(d/'stderr').write_bytes(r.stderr)\n        assert r.returncode==0 and not r.stderr,(r.returncode,r.stderr)\n        flats.append(_compiled_sources(r.stdout,{name:source})[name])\n    assert flats[0]==flats[1];roles[stem]=flats[0];(D/(stem+'.flat')).write_bytes(flats[0])\n    records[stem]={'source_bytes':len(source),'source_sha256':sha256(source).hexdigest(),'flat_bytes':len(flats[0]),'flat_sha256':sha256(flats[0]).hexdigest(),'profile':stats}\n    print('LEDGER_NATIVE_ROLE',stem,records[stem],flush=True)\npackmod=importlib.import_module('tools.generate_hia_multiversion_background_ledger_packer')\nraw=roles['multiversion_background_ledger'];packer=m.load(D/'multiversion_background_ledger_packer.flat',records['multiversion_background_ledger_packer']['flat_sha256'])\nexpected=packmod.reference_object([raw]);packet=struct.pack('<8sQQ',b'HIABGLP1',1,len(raw))+raw\nlj=json.loads((B/'native-multiversion-future-v2/build.json').read_text());lsha=next(x['flat_sha256']for x in lj['components']if x['role']=='elf_shared_linker')\nlink=m.load(B/'native-multiversion-future-v2/elf_shared_linker.flat',lsha);images=[]\nfor i in range(2):\n    s=C.create_string_buffer(packet);o=C.create_string_buffer(len(expected));w=C.create_string_buffer(1<<20)\n    rc=packer(s,len(packet),o,len(o),w,len(w));assert rc==len(expected)and o.raw==expected\n    inp=C.create_string_buffer(expected);out=C.create_string_buffer(len(expected)+32768)\n    n=link(inp,len(expected),out,len(out),w,len(w));assert 0<n<len(out);images.append(out.raw[:n])\nassert images[0]==images[1];(D/'ledger-component.o').write_bytes(expected);(D/'ledger-component.so').write_bytes(images[0])\nrec={'built':True,'qualified':False,'roles':records,'image_bytes':len(images[0]),'image_sha256':sha256(images[0]).hexdigest(),'compile_pack_link_twice_identical':True,'native_linker_sha256':lsha,'old_packer_and_mechanical_template_unchanged':True}\n(D/'build.json').write_text(json.dumps(rec,indent=2)+'\\n');print('LEDGER_ORDER_NATIVE_BUILT',json.dumps(rec),flush=True)\n"
+    },
+    "qualify-ledger-order-v2.py": {
+      "sha256": "3cf3211ab5b7ac69742bb01360e6722ccb06015692d03281d596c383e315affe",
+      "text": "from pathlib import Path\nfrom hashlib import sha256\nimport collections,ctypes as C,itertools,json,os,resource,struct,sys,threading,time\nT=Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125')\nP=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-multiversion-proof-source')\nL=P.parent;B=L.parent/'cleanup-audit-20261124T0745Z';D=T/'ledger-order-native-v2'\nsys.path.insert(0,str(P));resource.setrlimit(resource.RLIMIT_CORE,(0,0))\nfrom tools.qualify_hia_multiversion_background_ledger import Ledger,STATUSES\nfrom tools.qualify_hia_multiversion_background_jobs import Jobs,get\nfrom tools.qualify_hia_multiversion_values import Owner\nq=Jobs(L/'native-background-jobs-external-v3/jobs-component.so',B/'native-multiversion-future-v2/future-component.so',L/'native-background-payload-v1/payload-component.so')\nvalues=Owner(B/'native-multiversion-values-v1/values-component.so');rows=[];snapshots=0;total_calls=0\ndef observed(l):\n    global snapshots\n    raw=bytearray(l.packet(2));raw[:8]=b'HIABLG02';out=l.run(2,wire=bytes(raw));n=get(out,64);mask=get(out,24)\n    assert n<=6 and out[72+8*n:128]==bytes(56-8*n)\n    indexes=[get(out,72+i*8)for i in range(n)];assert len(set(indexes))==n and all(i<6 for i in indexes)\n    assert sum(1<<i for i in indexes)==mask\n    entries=[];counters=[]\n    try:\n        for i in range(get(out,32)):\n            at=4096+i*48;kind=get(out,at);cap=struct.unpack_from('<3Q',out,at+16);size=get(out,at+40)\n            entries.append((kind,cap,size))\n            if i<8:counters.append(int(values.copy(cap,size)))\n        snapshots+=1\n        return indexes,counters,get(out,16)\n    finally:l.release_entries(entries)\nfor perm in itertools.permutations(range(6)):\n    l=Ledger(D/'ledger-component.so',q,values);expected={};assert observed(l)==([], [0]*8,0)\n    for i,status in enumerate(perm):\n        job=q.create(b'ordered');l.record(job,b'{\"job\":1}',1,status);expected[status]=1\n        if i==0:assert get(l.run(1,job),48)==1\n        q.drop(job)\n        order,counters,recent=observed(l)\n        assert order==list(expected)and counters[0]==i+1 and counters[1]==i+1 and recent==i+1\n        assert counters[2:]==[expected.get(j,0)for j in range(6)]\n        legacy=l.run(2);assert legacy[64:128]==bytes(64)\n        refs=[]\n        for j in range(get(legacy,32)):\n            at=4096+j*48;refs.append((get(legacy,at),struct.unpack_from('<3Q',legacy,at+16),get(legacy,at+40)))\n        l.release_entries(refs)\n    total_calls+=l.calls;l.destroy()\nrows.append({'case':'all-first-occurrence-permutations-and-prefixes','permutations':720,'ordered_snapshots':snapshots,'old_reply_reserved_words_preserved':True})\nprint('LEDGER_ORDER_ALL_PERMUTATIONS_PASS',snapshots,flush=True)\nl=Ledger(D/'ledger-component.so',q,values);checks=0\nfor op in [0,1,3,4,5,9,10,(1<<64)-1]:\n    raw=bytearray(l.packet(op));raw[:8]=b'HIABLG02';prior=l.w.raw;l.run(op,wire=bytes(raw),want=0xfffffffd);assert prior==l.w.raw;checks+=1\nfor at in range(16,128,8):\n    raw=bytearray(l.packet(2));raw[:8]=b'HIABLG02';struct.pack_into('<Q',raw,at,1)\n    prior=l.w.raw;l.run(2,wire=bytes(raw),want=0xfffffffd);assert prior==l.w.raw;checks+=1\nfor n in [0,1,127,129]:\n    raw=bytearray(l.packet(2));raw[:8]=b'HIABLG02';wire=(bytes(raw)+b'x')[:n]\n    prior=l.w.raw;l.run(2,wire=wire,want=0xfffffffd);assert prior==l.w.raw;checks+=1\ntotal_calls+=l.calls;l.destroy()\nrows.append({'case':'new-profile-only-snapshot-and-old-private-domain','controls':checks})\nfor turn in range(16):\n    l=Ledger(D/'ledger-component.so',q,values);barrier=threading.Barrier(9);errors=[];intervals=[None]*8;statuses=[0,1,2,3,4,5,0,3]\n    jobs=[q.create(b'concurrent order')for i in statuses]\n    def work(i):\n        try:\n            barrier.wait();start=time.monotonic_ns();l.record(jobs[i],b'{\"job\":1}',1,statuses[i]);end=time.monotonic_ns()\n            intervals[i]=(start,end);q.drop(jobs[i])\n        except BaseException as e:errors.append(repr(e))\n    threads=[threading.Thread(target=work,args=(i,))for i in range(8)]\n    for thread in threads:thread.start()\n    barrier.wait()\n    for thread in threads:thread.join(20);assert not thread.is_alive()\n    assert not errors,errors\n    order,counters,recent=observed(l)\n    assert len(order)==6 and set(order)==set(range(6))and counters[0:2]==[8,8]and recent==8\n    assert counters[2:]==[statuses.count(i)for i in range(6)]\n    for i in range(8):\n        for j in range(8):\n            if statuses[i]!=statuses[j] and intervals[i][1]<min(intervals[k][0]for k in range(8)if statuses[k]==statuses[j]):\n                assert order.index(statuses[i])<order.index(statuses[j])\n    total_calls+=l.calls;l.destroy()\nrows.append({'case':'actual-first-settlement-races-and-real-time-order','rounds':16,'threads_each':8})\nassert get(values.w.raw,16)==0 and get(q.payload.w.raw,16)==0 and get(q.w.raw,16)==0\nq.destroy();values.run(9)\nreport={'qualified_order_profile':True,'whole_background_qualified':False,'passed':len(rows),'failed':0,'rows':rows,\n'actual_ledger_calls':total_calls,'ordered_snapshots':snapshots,'image_sha256':sha256((D/'ledger-component.so').read_bytes()).hexdigest()}\n(D/'order-qualification.json').write_text(json.dumps(report,indent=2)+'\\n');print('LEDGER_ORDER_QUALIFIED',json.dumps(report),flush=True)\n"
+    },
+    "qualify-ledger-order-new-profile-alloc-v1.py": {
+      "sha256": "f1e02744ae08780520f956afcb5c8b3a6d8150591387ac3ab85d89162e2b006e",
+      "text": "from pathlib import Path\nimport argparse,json,sys\nP=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-multiversion-proof-source');sys.path.insert(0,str(P));L=P.parent;B=L.parent/'cleanup-audit-20261124T0745Z'\nfrom tools import qualify_hia_multiversion_background_ledger_allocations as q\nBase=q.Ledger\nclass Ordered(Base):\n def run(self,op,*a,**kw):\n  if op==2:\n   raw=bytearray(self.packet(2));raw[:8]=b'HIABLG02';kw['wire']=bytes(raw)\n  out=super().run(op,*a,**kw)\n  if op==2 and kw.get('want',0)!=0:assert out[64:128]==bytes(64)\n  return out\nq.Ledger=Ordered\na=argparse.Namespace(directory=Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125/ledger-order-native-v2'),jobs=L/'native-background-jobs-external-v3/jobs-component.so',future=B/'native-multiversion-future-v2/future-component.so',payload=L/'native-background-payload-v1/payload-component.so',values=B/'native-multiversion-values-v1/values-component.so')\nq.child(a)\n"
+    }
+  }
+}
