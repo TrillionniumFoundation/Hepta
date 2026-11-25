@@ -12,7 +12,7 @@ from tools.generate_hia_background_optimizer_structure import SOURCE as structur
 from tools.generate_hia_background_optimizer_structure import ERRORS as structure_errors
 ROOT=Path(__file__).resolve().parents[1]
 C={'REQUEST':int.from_bytes(b'HIABTC01','little'),'REPLY':int.from_bytes(b'HIABTV01','little'),
-'CONTEXT':int.from_bytes(b'HIABVC01','little'),'VREQUEST':int.from_bytes(b'HIABVQ01','little'),'VREPLY':int.from_bytes(b'HIABVR01','little'),
+'RETRY_REQUEST':int.from_bytes(b'HIABTC02','little'),'CONTEXT':int.from_bytes(b'HIABVC01','little'),'VREQUEST':int.from_bytes(b'HIABVQ01','little'),'VREPLY':int.from_bytes(b'HIABVR01','little'),
 'NONE':(1<<64)-1,'BAD':4294967293,'MAX_NODES':262144,'MAX_DEPTH':64,'MAX_BYTES':8388608,
 'THRESHOLD_N':10100891,'OUTPUT':96<<20,'NODES':65536,'STRIDE':160,'FRAMES':44<<20,'RP':48<<20,'RQ':1024,
 'PHASE':128,'FEEDBACK':136,'CUR':144,'ALLOCATED':152,'VISITED':160,'QUEUED':168,'SIZE':176,'DEPTH':184,'PASS':192,
@@ -26,7 +26,13 @@ SOURCE=r'''
 def background_optimizer_value_structure(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=128+THRESHOLD_N or length(o)<OUTPUT or length(w)<128:
         return BAD
-    if read64(s,0)!=REQUEST or read64(s,8)>1 or read64(s,48)!=THRESHOLD_N:
+    profile=read64(s,0)
+    op=read64(s,8)
+    if profile!=REQUEST and profile!=RETRY_REQUEST:
+        return BAD
+    if (profile==REQUEST and op>1) or (profile==RETRY_REQUEST and op!=2) or read64(s,48)!=THRESHOLD_N:
+        return BAD
+    if profile==RETRY_REQUEST and (read64(s,16)!=0 or read64(s,24)!=0 or read64(s,32)!=0):
         return BAD
     if get(w,0)!=CONTEXT or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
         return BAD
@@ -39,6 +45,21 @@ def background_optimizer_value_structure(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return BAD
         at=at+8
     phase=get(o,PHASE)
+    if profile==RETRY_REQUEST:
+        if get(o,0)==REPLY and get(o,8)==3:
+            if get(o,CLEANUP_ERRORS)==0 or get(o,ALLOCATED)>MAX_NODES or get(o,OVERFLOW_N)>MAX_NODES+1:
+                return BAD
+            if get(o,LIMIT)!=limit:
+                return BAD
+            zero(o,0,128)
+            put(o,CLEANUP_ERRORS,0)
+            put(o,DROP_INDEX,0)
+            put(o,DROP_SLOT,0)
+            put(o,512,1)
+            return again(o,choose(get(o,OVERFLOW_N)!=0,330,300))
+        if get(o,512)!=1 or (phase!=300 and phase!=301 and phase!=330 and phase!=331):
+            return BAD
+        return cleanup(o,w,phase)
     if phase==0:
         zero(o,128,896)
         put(o,MODE,read64(s,8))
@@ -461,7 +482,8 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return next_drop(o)
     if phase==330:
         if get(o,DROP_INDEX)==get(o,OVERFLOW_N):
-            put(o,OVERFLOW_N,0)
+            if get(o,CLEANUP_ERRORS)==0:
+                put(o,OVERFLOW_N,0)
             return begin_cleanup(o)
         entry=RP+8192+get(o,DROP_INDEX)*64
         at=choose(get(o,DROP_SLOT)==0,entry+16,entry+40)
@@ -474,6 +496,9 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==331:
         if value_ok(o)==False:
             put(o,CLEANUP_ERRORS,get(o,CLEANUP_ERRORS)+1)
+        else:
+            entry=RP+8192+get(o,DROP_INDEX)*64
+            zero(o,choose(get(o,DROP_SLOT)==0,entry+16,entry+40),24)
         return overflow_next(o)
     return BAD
 
@@ -527,6 +552,7 @@ def value_ok(o:mutbuf) -> bool:
     return get(o,FEEDBACK)==0 and get(o,RP)==VREPLY and get(o,RP+8)==0
 
 def finish(o:mutbuf) -> u32:
+    put(o,512,0)
     error=get(o,ERR)
     zero(o,0,128)
     put(o,0,REPLY)
