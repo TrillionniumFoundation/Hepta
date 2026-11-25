@@ -164,3 +164,8 @@ or full Linux closure is claimed. The public legacy profile and production
 toolchain lock are unchanged. The earlier original 5-second lifecycle
 failure remains a separate release blocker; this patch does not change
 the 3s/5s/60s gates.
+
+
+## Restricted terminal kernel integer frame restore (candidate)
+
+This experiment extends the #958 candidate without changing its original performance budgets or tests. The new typed operation `x86.irq.restore_kernel_frame(u64)` consumes a caller-owned 160-byte integer frame. The selfhost verifier admits exactly one export/function/block/op with `privilege,read,trap`, no ordinary return, and the existing trap-user sentinel. Native code checks aligned, nonzero, lower-half pointer and full extent before dereference; live IF clear and CS/SS fixed to 0x18/0x10; exact full-width frame selectors, nonzero lower-half RIP/RSP, aligned RSP, permitted flags and bit 1. It then changes RSP, pops 15 GPRs and executes IRETQ. GNU as independently validates the encoding; the compiler does not call it during lowering. Two independent CPL0 frames, fourteen exact guard traps, deleted IRETQ and wrong-r15 controls on PC/Q35 (36 planned cases) augment, not replace, all prior suites. This is terminal restricted integer context restore, not a native IRQ entry, arbitrary state, FPU, page/stack authority, or Linux acceptance. No PASS claimed before exact qualification.

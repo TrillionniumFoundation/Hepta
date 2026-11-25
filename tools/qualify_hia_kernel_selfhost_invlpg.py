@@ -26,6 +26,7 @@ from tools import hia_kernel_selfhost_msr as msr
 from tools import hia_kernel_selfhost_idtr as idtr
 from tools import hia_kernel_selfhost_iretq as iretq
 from tools import hia_kernel_selfhost_tr as tr
+from tools import hia_kernel_selfhost_kernel_frame as kernel_frame
 
 PROFILE = "hepta.hia.program.kernel-tlb.v1"
 LEGACY = "hepta.hia.program.v8"
@@ -101,7 +102,7 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64", "x86.mmio.read32", "x86.mmio.write32", *msr.WORDS, *idtr.WORDS, iretq.WORD, *tr.WORDS):
+    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64", "x86.mmio.read32", "x86.mmio.write32", *msr.WORDS, *idtr.WORDS, iretq.WORD, *tr.WORDS, kernel_frame.WORD):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
@@ -384,6 +385,7 @@ def candidate_source():
     source = idtr.extend_source(source, replace_once)
     source = iretq.extend_source(source, replace_once)
     source = tr.extend_source(source, replace_once)
+    source = kernel_frame.extend_source(source, replace_once)
     with patch.multiple(gen, SOURCE=source, W=words,
                         MAX_INSTRUCTIONS=CANDIDATE_INSTRUCTIONS,
                         MAX_RELOCATIONS=CANDIDATE_RELOCATIONS, **layout):
@@ -1279,6 +1281,7 @@ def run(output):
     idtr_report = idtr.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest)
     iretq_report = iretq.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest)
     tr_report = tr.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest)
+    kernel_frame_report = kernel_frame.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest)
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -1308,6 +1311,8 @@ def run(output):
         "idtr": idtr_report,
         "iretq": iretq_report,
         "tr": tr_report,
+        "kernel_frame": kernel_frame_report,
+        "kernel_frame_authority_proved": False,
         "tr_authority_proved": False,
         "iretq_authority_proved": False,
         "idtr_authority_proved": False,

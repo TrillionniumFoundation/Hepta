@@ -7,6 +7,9 @@ on:
       - 'tools/hia_kernel_selfhost_idtr.py'
       - 'tools/hia_kernel_selfhost_iretq.py'
       - 'tools/hia_kernel_selfhost_tr.py'
+      - 'tools/hia_kernel_selfhost_kernel_frame.py'
+      - 'tests/test_hia_kernel_frame_qemu.py'
+      - 'tests/fixtures/hia_kernel_frame_boot.S'
       - 'tests/test_hia_kernel_iretq_user_qemu.py'
       - 'tests/fixtures/hia_kernel_iretq_user_boot.S'
       - 'tests/test_hia_kernel_selfhost_invlpg_qemu.py'
@@ -20,6 +23,9 @@ on:
       - 'tools/hia_kernel_selfhost_idtr.py'
       - 'tools/hia_kernel_selfhost_iretq.py'
       - 'tools/hia_kernel_selfhost_tr.py'
+      - 'tools/hia_kernel_selfhost_kernel_frame.py'
+      - 'tests/test_hia_kernel_frame_qemu.py'
+      - 'tests/fixtures/hia_kernel_frame_boot.S'
       - 'tests/test_hia_kernel_iretq_user_qemu.py'
       - 'tests/fixtures/hia_kernel_iretq_user_boot.S'
       - 'tests/test_hia_kernel_selfhost_invlpg_qemu.py'
@@ -45,6 +51,8 @@ jobs:
         run: python -B -m tests.test_hia_kernel_selfhost_invlpg_qemu --output "$RUNNER_TEMP/kernel-selfhost"
       - name: Execute exact terminal HIA IRETQ in two distinct user frames
         run: python -B -m tests.test_hia_kernel_iretq_user_qemu --output "$RUNNER_TEMP/kernel-selfhost"
+      - name: Execute exact native terminal integer context restore in CPL0
+        run: python -B -m tests.test_hia_kernel_frame_qemu --output "$RUNNER_TEMP/kernel-selfhost"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
