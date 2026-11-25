@@ -1,0 +1,988 @@
+{
+  "schema": "hepta.hia.background-native-future-cell.qualification.v2",
+  "component_qualified": true,
+  "whole_background_qualified": false,
+  "public_typed_callback_dispatcher_qualified": false,
+  "sources": [
+    {
+      "path": "examples/hia_bootstrap/multiversion_background_future_cell.hepta",
+      "bytes": 142581,
+      "sha256": "aea78a01d229a551989306033af714e5624f62c3ca75afb0a73a799826671af3"
+    },
+    {
+      "path": "examples/hia_bootstrap/multiversion_background_future_cell_packer.hepta",
+      "bytes": 32836,
+      "sha256": "11453608cc86b3c3dbc89eefb3cb3cea0c383ac7a1305c2aa123629b4c38eeaa"
+    },
+    {
+      "path": "tools/hia_multiversion_background_future_cell_bridge.S",
+      "bytes": 2888,
+      "sha256": "4cab412a06377f4d4d0fbfcd7283ff54631216edad3227a9b0a319cb2a313632"
+    },
+    {
+      "path": "tools/generate_hia_multiversion_background_future_cell.py",
+      "bytes": 25212,
+      "sha256": "c175a4bc5d147bb153c340358c856af8db0ab3dbbb936cca7d1b4548f4e2644a"
+    },
+    {
+      "path": "tools/generate_hia_multiversion_background_future_cell_packer.py",
+      "bytes": 3349,
+      "sha256": "9e7eb8808ed764ab4498876a23be37be037db59d58d981dc4eef9ecdcf669a33"
+    }
+  ],
+  "future_construction": {
+    "built": true,
+    "qualified": false,
+    "native_compile_twice_identical": true,
+    "source_bytes": 142581,
+    "source_sha256": "aea78a01d229a551989306033af714e5624f62c3ca75afb0a73a799826671af3",
+    "profile": {
+      "functions": 40,
+      "blocks": 541,
+      "ops": 2434,
+      "max_block_params": 10
+    },
+    "flat_bytes": 192197,
+    "flat_sha256": "49f0579e2d631c42195382c1926b842a21b9e64f61f2db7406013c6f83567973"
+  },
+  "future_packing": {
+    "native_policy": {
+      "bytes": 192197,
+      "sha256": "49f0579e2d631c42195382c1926b842a21b9e64f61f2db7406013c6f83567973"
+    },
+    "native_packer": {
+      "bytes": 35806,
+      "sha256": "852702c329398c7d0ba2e79479c753c38a5f7cacda17c9dd4232e280dcaa56ab"
+    },
+    "mechanical": {
+      "source_sha256": "4cab412a06377f4d4d0fbfcd7283ff54631216edad3227a9b0a319cb2a313632",
+      "bytes": 508,
+      "sha256": "d22cec98a54a52e9959ed2478dddab5bb39d35c1d7f20e7d66dd6ac483427d2c",
+      "holes": {
+        "policy": 114
+      },
+      "relocations": [
+        [
+          404,
+          "malloc"
+        ],
+        [
+          415,
+          "free"
+        ]
+      ]
+    },
+    "native_linker_sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff",
+    "image": {
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-cell-native-v6/future-cell.so",
+      "bytes": 205584,
+      "sha256": "1929df3ca8e6e3dc6df02a55476efe88b021f10e55bcf8b7c9e902f785301b3a"
+    },
+    "component_qualified": false,
+    "whole_background_qualified": false
+  },
+  "reports": [
+    {
+      "label": "future_smoke",
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-cell-v6-smoke/report.json",
+      "bytes": 802,
+      "sha256": "4dbeaae3b77d570a4fd4ad8febf37b9dc16a1a2aaef6739afa1adfb75b6a1875",
+      "report": {
+        "passed": true,
+        "whole_background_closed": false,
+        "calls": 49,
+        "count": 6,
+        "cases": [
+          {
+            "case": "shared-value-result-survives-future",
+            "passed": true
+          },
+          {
+            "case": "cancel-rejects-box-and-releases-context",
+            "passed": true
+          },
+          {
+            "case": "exception-box-same-value",
+            "passed": true
+          },
+          {
+            "case": "wait-strong-pin-last-external-drop",
+            "passed": true
+          },
+          {
+            "case": "callback-reentry-last-drop-neighbour-change",
+            "passed": true
+          },
+          {
+            "case": "released-anchor-future-to-result-handoff",
+            "passed": true
+          }
+        ],
+        "image_sha256": "1929df3ca8e6e3dc6df02a55476efe88b021f10e55bcf8b7c9e902f785301b3a",
+        "value_sha256": "6d769f3369ceaebed9602a784166548ed2cf48fed608a80a572b1a9c73cc3a7c"
+      }
+    },
+    {
+      "label": "future_lifetime",
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-cell-v6-lifetime/report.json",
+      "bytes": 661,
+      "sha256": "328641a37c18acd35a02ee112bd567e319fd1b8dce254b2f1183095f50c2d906",
+      "report": {
+        "passed": true,
+        "whole_background_closed": false,
+        "calls": 1195,
+        "count": 5,
+        "cases": [
+          {
+            "case": "private-caps-atomic-frames-and-actual-fork",
+            "passed": true
+          },
+          {
+            "case": "100-retained-result-aliases-and-mutation",
+            "passed": true
+          },
+          {
+            "case": "80-three-way-complete-cancel-races",
+            "passed": true
+          },
+          {
+            "case": "8-overlapping-retirements-and-context-guards",
+            "passed": true
+          },
+          {
+            "case": "callback-Exception-and-BaseException-box-ownership",
+            "passed": true
+          }
+        ],
+        "image_sha256": "1929df3ca8e6e3dc6df02a55476efe88b021f10e55bcf8b7c9e902f785301b3a"
+      }
+    },
+    {
+      "label": "future_callback-identity",
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-cell-v6-callback-identity/report.json",
+      "bytes": 501,
+      "sha256": "2a9537b6489da9a930ae7dccd40b30b746aac0a9748349be241f0673a8ef3881",
+      "report": {
+        "passed": true,
+        "whole_background_closed": false,
+        "count": 3,
+        "calls": 35,
+        "cases": [
+          {
+            "case": "registered-identity-stale-foreign-and-invalid-addresses",
+            "passed": true
+          },
+          {
+            "case": "callback-last-external-drop-independent-retain-and-same-object",
+            "passed": true
+          },
+          {
+            "case": "separate02-envelope-and-reserved-fields",
+            "passed": true
+          }
+        ],
+        "image_sha256": "1929df3ca8e6e3dc6df02a55476efe88b021f10e55bcf8b7c9e902f785301b3a"
+      }
+    },
+    {
+      "label": "future_allocation",
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-cell-v6-allocation/report.json",
+      "bytes": 1273,
+      "sha256": "d0ea8afdbf0a0d36c8e0f954f23888a71a88788ec094d55e93cf45f27b0dc2c2",
+      "report": {
+        "passed": true,
+        "whole_background_closed": false,
+        "calls": 2039,
+        "count": 8,
+        "cases": [
+          {
+            "case": "malloc-1-1",
+            "passed": true,
+            "actual_counts": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "case": "malloc-1-2",
+            "passed": true,
+            "actual_counts": [
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "case": "malloc-2-1",
+            "passed": true,
+            "actual_counts": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "case": "malloc-11-1",
+            "passed": true,
+            "actual_counts": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "case": "last-drop-no-owner-allocation",
+            "passed": true,
+            "actual_counts": [
+              0,
+              0,
+              3
+            ]
+          },
+          {
+            "case": "1001-independent-nonce-cap-releases",
+            "passed": true
+          },
+          {
+            "case": "already-done-ignores-value-before-allocation-False",
+            "passed": true,
+            "actual_counts": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "case": "already-done-ignores-value-before-allocation-True",
+            "passed": true,
+            "actual_counts": [
+              0,
+              0,
+              0
+            ]
+          }
+        ],
+        "image_sha256": "1929df3ca8e6e3dc6df02a55476efe88b021f10e55bcf8b7c9e902f785301b3a"
+      }
+    }
+  ],
+  "failure_provenance": [
+    "native-background-future-cell-smoke-v1: kernel business timeout status was incorrectly treated as a private rc failure; candidate corrected",
+    "native-background-future-cell-lifetime-v1: observer incorrectly tested global mutex availability while other threads could own it; eight-way callback barrier is the correct held-lock check",
+    "native-background-external-future-jobs-allocation-v1: observer looked for Job mapping before loading the Job image",
+    "native-background-external-future-jobs-allocation-v2: actual second Job malloc failure lost status4 during retirement; final candidate preserves original status"
+  ],
+  "runtime_dependencies": {
+    "future_kernel": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade",
+    "result_value": "6d769f3369ceaebed9602a784166548ed2cf48fed608a80a572b1a9c73cc3a7c",
+    "native_compiler": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af"
+  },
+  "external_job_compatibility_at_introduction": {
+    "job_construction": {
+      "status": "native_built_unqualified",
+      "source": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-source/examples/hia_bootstrap/multiversion_background_jobs.hepta",
+        "bytes": 122163,
+        "sha256": "c3609135f331bf3208794ce43a5cddd3fc142f53d2191826b1aaee24dbdbf7e1"
+      },
+      "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+      "native_compiles": [
+        {
+          "bytes": 163313,
+          "sha256": "1c1b306f80471c02306122f333bd1ee3315dcaef15a2b7009d864e8acdf4ac58",
+          "elapsed_ns": 87010810
+        },
+        {
+          "bytes": 163313,
+          "sha256": "1c1b306f80471c02306122f333bd1ee3315dcaef15a2b7009d864e8acdf4ac58",
+          "elapsed_ns": 90488126
+        }
+      ],
+      "byte_identical": true,
+      "whole_background_qualified": false
+    },
+    "job_packing": {
+      "image_bytes": 172816,
+      "image_sha256": "209cce0ce13288f6d52afa41e9bbb28c0ffa5b198ffc248f7f527d85c7d2964e",
+      "policy_sha256": "1c1b306f80471c02306122f333bd1ee3315dcaef15a2b7009d864e8acdf4ac58",
+      "actual_pack_and_link": "pure HIA",
+      "whole_background_qualified": false
+    },
+    "sources": [
+      {
+        "path": "examples/hia_bootstrap/multiversion_background_jobs.hepta",
+        "bytes": 122163,
+        "sha256": "c3609135f331bf3208794ce43a5cddd3fc142f53d2191826b1aaee24dbdbf7e1"
+      },
+      {
+        "path": "tools/generate_hia_multiversion_background_jobs.py",
+        "bytes": 21925,
+        "sha256": "37ca69e0c10846c765723aa3b2d789e20420e3cd2cceb7b97755b6e1f5f65c3b"
+      }
+    ],
+    "reports": [
+      {
+        "label": "external_jobs",
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-external-future-jobs-qualification-v2/report.json",
+        "bytes": 974,
+        "sha256": "3372206903de00607e7422ee7f08d4e387de2f22c1b5a4d9862f79fd0698df0a",
+        "report": {
+          "passed": true,
+          "whole_background_closed": false,
+          "calls": 41,
+          "count": 5,
+          "cases": [
+            {
+              "case": "Job-drops-all-input-storage-before-Future-completion",
+              "passed": true,
+              "job_calls": 26
+            },
+            {
+              "case": "user-Job-result-independent-lifetimes",
+              "passed": true,
+              "job_calls": 6
+            },
+            {
+              "case": "legacy-external-coexistence-and-owned-payloads",
+              "passed": true,
+              "job_calls": 18
+            },
+            {
+              "case": "actual-callback-drops-Job-and-last-user-Future",
+              "passed": true,
+              "job_calls": 4
+            },
+            {
+              "case": "separate02profile-and-real-foreign-cap-rejection",
+              "passed": true,
+              "job_calls": 8
+            }
+          ],
+          "future_image_sha256": "a070bd290676e3b6bb89772b2e9c668be89749428762274f0c8675c8ebee70b9",
+          "jobs_image_sha256": "209cce0ce13288f6d52afa41e9bbb28c0ffa5b198ffc248f7f527d85c7d2964e",
+          "value_sha256": "6d769f3369ceaebed9602a784166548ed2cf48fed608a80a572b1a9c73cc3a7c"
+        }
+      },
+      {
+        "label": "external_allocations",
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-external-future-jobs-allocation-v3/report.json",
+        "bytes": 1588,
+        "sha256": "554d9d9209a9767f5a51377debb9617ffbe7114689423a7d93e2fd629e90afa9",
+        "report": {
+          "passed": true,
+          "whole_background_closed": false,
+          "cases": [
+            {
+              "case": "job-own-allocation-failure-0-1",
+              "passed": true,
+              "actual_counts": [
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "case": "job-own-allocation-failure-0-2",
+              "passed": true,
+              "actual_counts": [
+                2,
+                1,
+                1
+              ]
+            },
+            {
+              "case": "job-own-allocation-failure-15-1",
+              "passed": true,
+              "actual_counts": [
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "case": "job-own-allocation-failure-15-2",
+              "passed": true,
+              "actual_counts": [
+                2,
+                1,
+                1
+              ]
+            },
+            {
+              "case": "job-own-allocation-failure-8388608-1",
+              "passed": true,
+              "actual_counts": [
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "case": "job-own-allocation-failure-8388608-2",
+              "passed": true,
+              "actual_counts": [
+                2,
+                1,
+                1
+              ]
+            },
+            {
+              "case": "actual-cell-retain-allocation-failure",
+              "passed": true,
+              "actual_counts": [
+                1,
+                0,
+                0
+              ]
+            },
+            {
+              "case": "8MiB-job-input-free-pending-Future",
+              "passed": true,
+              "actual_counts": [
+                0,
+                0,
+                2
+              ]
+            }
+          ],
+          "count": 8,
+          "future_calls": 7,
+          "future_image_sha256": "a070bd290676e3b6bb89772b2e9c668be89749428762274f0c8675c8ebee70b9",
+          "jobs_image_sha256": "209cce0ce13288f6d52afa41e9bbb28c0ffa5b198ffc248f7f527d85c7d2964e",
+          "value_sha256": "6d769f3369ceaebed9602a784166548ed2cf48fed608a80a572b1a9c73cc3a7c"
+        }
+      },
+      {
+        "label": "original_jobs",
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-jobs-external-v3/legacy-qualification/qualification.json",
+        "bytes": 3402,
+        "sha256": "f108d90d3f0f934c7b6b3fec82da406a51f08b3b21e6cb8fdb5e39cb18e82e06",
+        "report": {
+          "schema": "hepta.hia.background-native-jobs.v1",
+          "whole_background_qualified": false,
+          "scope": "Native heap Job/Future ownership and immutable owned payload slots only; no rank/runtime or optimizer business fixture is admitted as a product.",
+          "image": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-jobs-external-v3/jobs-component.so",
+          "image_bytes": 172816,
+          "image_sha256": "209cce0ce13288f6d52afa41e9bbb28c0ffa5b198ffc248f7f527d85c7d2964e",
+          "future_sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade",
+          "payload_sha256": "2f754946320efa6061cb29948f12c5ae4104617edb5e581a464bc6399ae961eb",
+          "passed": 10,
+          "failed": 0,
+          "actual_job_calls": 6177,
+          "actual_external_payload_calls": 2558,
+          "cases": [
+            {
+              "name": "opaque-immutable-input-and-retained-native-future",
+              "passed": true,
+              "elapsed_ns": 1757814,
+              "detail": {
+                "input_cases": 5,
+                "native_future_initialized_and_completed": true
+              }
+            },
+            {
+              "name": "queue-release-and-user-future-result-lifetime",
+              "passed": true,
+              "elapsed_ns": 405866,
+              "detail": {
+                "pending_release_preserves_public_future": true,
+                "copied_result_reference_survives_last_job_release": true
+              }
+            },
+            {
+              "name": "eight-transferred-payload-slots-with-exact-retirement",
+              "passed": true,
+              "elapsed_ns": 1147046,
+              "detail": {
+                "owned_slots": 8,
+                "replacement_clear_duplicate_and_last_drop": true
+              }
+            },
+            {
+              "name": "nested-closure-destruction-outside-registry-lock",
+              "passed": true,
+              "elapsed_ns": 422146,
+              "detail": {
+                "reentrant_closure_drops": [
+                  1,
+                  2
+                ],
+                "destroy_refused_until_retirement_list_empty": true
+              }
+            },
+            {
+              "name": "last-user-reference-dropped-inside-completion-callback",
+              "passed": true,
+              "elapsed_ns": 226102,
+              "detail": {
+                "method_strong_reference_covers_reentrant_last_public_drop": true
+              }
+            },
+            {
+              "name": "12-concurrent-last-releases-and-reentrant-context-checks",
+              "passed": true,
+              "elapsed_ns": 3603760,
+              "detail": {
+                "actual_overlapping_retirements": 12,
+                "retiring_links_reread_after_callbacks": true
+              }
+            },
+            {
+              "name": "concurrent-result-retain-replace-and-job-retain-copy-drop",
+              "passed": true,
+              "elapsed_ns": 53285621,
+              "detail": {
+                "threads": 8,
+                "result_clones_and_job_reference_cycles": 800,
+                "concurrent_owned_replacements": 100
+              }
+            },
+            {
+              "name": "private-fields-ranges-stale-foreign-job-and-payload-controls",
+              "passed": true,
+              "elapsed_ns": 952083,
+              "detail": {
+                "private_frame_refusals": 103,
+                "range_refusals": 8,
+                "foreign_payload_never_transferred": true
+              }
+            },
+            {
+              "name": "opaque-input-boundaries-and-stale-node-reuse",
+              "passed": true,
+              "elapsed_ns": 92462691,
+              "detail": {
+                "opaque_bytes": 8388609,
+                "stale_allocator_reuse_controls": 500
+              }
+            },
+            {
+              "name": "fixed-u32-provider-and-actual-pid-boundaries",
+              "passed": true,
+              "elapsed_ns": 2081606,
+              "detail": {
+                "actual_provider_upper_RAX_discarded": true,
+                "actual_fork_PID_rejected": true
+              }
+            }
+          ]
+        }
+      },
+      {
+        "label": "original_job_allocations",
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-jobs-external-v3/allocation-qualification.json",
+        "bytes": 1895,
+        "sha256": "ca5d95beb80a32a6e3aa26f87913c6bb6cfa8c043d179e741d35e2b43b7d8d59",
+        "report": {
+          "passed": 7,
+          "failed": 0,
+          "cases": [
+            {
+              "operation": 1,
+              "empty_input": true,
+              "failed_allocation": 1,
+              "actual_counts": [
+                1,
+                0,
+                0
+              ],
+              "original_owner_unchanged": true,
+              "same_owner_retry": true
+            },
+            {
+              "operation": 1,
+              "empty_input": true,
+              "failed_allocation": 2,
+              "actual_counts": [
+                2,
+                1,
+                1
+              ],
+              "original_owner_unchanged": true,
+              "same_owner_retry": true
+            },
+            {
+              "operation": 1,
+              "empty_input": false,
+              "failed_allocation": 1,
+              "actual_counts": [
+                1,
+                0,
+                0
+              ],
+              "original_owner_unchanged": true,
+              "same_owner_retry": true
+            },
+            {
+              "operation": 1,
+              "empty_input": false,
+              "failed_allocation": 2,
+              "actual_counts": [
+                2,
+                1,
+                1
+              ],
+              "original_owner_unchanged": true,
+              "same_owner_retry": true
+            },
+            {
+              "operation": 2,
+              "empty_input": true,
+              "failed_allocation": 1,
+              "actual_counts": [
+                1,
+                0,
+                0
+              ],
+              "original_owner_unchanged": true,
+              "same_owner_retry": true
+            },
+            {
+              "name": "1001-distinct-job-reference-nodes-and-one-job-future-object",
+              "counts": [
+                1002,
+                1002,
+                1002
+              ]
+            },
+            {
+              "name": "payload-field-clone-allocation-failure-and-same-job-retry",
+              "actual_counts": [
+                1,
+                0,
+                0
+              ],
+              "post_retry_counts": [
+                1,
+                1,
+                3
+              ]
+            }
+          ],
+          "image_sha256": "209cce0ce13288f6d52afa41e9bbb28c0ffa5b198ffc248f7f527d85c7d2964e",
+          "schema": "hepta.hia.background-native-jobs.allocations.v1",
+          "whole_background_qualified": false,
+          "external_injector_only": true,
+          "injector_source_sha256": "a591c1fab357661127703a03d09bfd5f8c5f2ffe00efe0314bcf0442cdacb3f3"
+        }
+      },
+      {
+        "label": "job_packer",
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-jobs-external-v3/packer-qualification.json",
+        "bytes": 2851,
+        "sha256": "943c21458664c265a978b97e88844961267c26149e7d4e9eeb390ead54f4a451",
+        "report": {
+          "schema": "hepta.hia.background-native-jobs-pack.qualification.v1",
+          "whole_background_qualified": false,
+          "passed": 24,
+          "failed": 0,
+          "cases": [
+            {
+              "name": "exact-object",
+              "returncode": 164576,
+              "passed": true
+            },
+            {
+              "name": "truncated-0",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "truncated-1",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "truncated-7",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "truncated-8",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "truncated-15",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "truncated-16",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "truncated-23",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "truncated-24",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "truncated-163336",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "word-0-0",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "word-8-0",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "word-8-2",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "word-8-18446744073709551615",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "word-16-0",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "word-16-163312",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "word-16-163314",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "word-16-18446744073709551615",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "extra-byte",
+              "returncode": 4294967295,
+              "passed": true
+            },
+            {
+              "name": "short-output-0",
+              "returncode": 4294967294,
+              "passed": true
+            },
+            {
+              "name": "short-output-1",
+              "returncode": 4294967294,
+              "passed": true
+            },
+            {
+              "name": "short-output-63",
+              "returncode": 4294967294,
+              "passed": true
+            },
+            {
+              "name": "short-output-164575",
+              "returncode": 4294967294,
+              "passed": true
+            },
+            {
+              "name": "readable-mechanical-source-full-prefix",
+              "bytes": 474,
+              "passed": true
+            }
+          ],
+          "native_packer_sha256": "8236e0c24e51c20227bbec71f229d968abebf35d68195b8a51a2a59db8f3ca29",
+          "object_sha256": "d7dc6f9778937fa02390fb23b750d9d346f088dfa82e73756ed106c424bf6f9a",
+          "source_sha256": "9fe5f3450c9e9a68e0a7ccc970317d5060ee488cb412eff4ba74b16f45d900a0",
+          "mechanical_assembly_used_only_as_external_source_provenance_check": true
+        }
+      }
+    ]
+  },
+  "unchanged_packer_negative_controls": {
+    "label": "future_packer",
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-future-cell-v4/packer-qualification.json",
+    "bytes": 2858,
+    "sha256": "3a279f0dcd7e9084f9fbebe2e1a49022a3ab029f3687dde6f5c694e0a9c8db87",
+    "report": {
+      "schema": "hepta.hia.background-native-future-cell-pack.qualification.v1",
+      "whole_background_qualified": false,
+      "passed": 24,
+      "failed": 0,
+      "cases": [
+        {
+          "name": "exact-object",
+          "returncode": 184568,
+          "passed": true
+        },
+        {
+          "name": "truncated-0",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "truncated-1",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "truncated-7",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "truncated-8",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "truncated-15",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "truncated-16",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "truncated-23",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "truncated-24",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "truncated-183294",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "word-0-0",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "word-8-0",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "word-8-2",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "word-8-18446744073709551615",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "word-16-0",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "word-16-183270",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "word-16-183272",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "word-16-18446744073709551615",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "extra-byte",
+          "returncode": 4294967295,
+          "passed": true
+        },
+        {
+          "name": "short-output-0",
+          "returncode": 4294967294,
+          "passed": true
+        },
+        {
+          "name": "short-output-1",
+          "returncode": 4294967294,
+          "passed": true
+        },
+        {
+          "name": "short-output-63",
+          "returncode": 4294967294,
+          "passed": true
+        },
+        {
+          "name": "short-output-184567",
+          "returncode": 4294967294,
+          "passed": true
+        },
+        {
+          "name": "readable-mechanical-source-full-prefix",
+          "bytes": 508,
+          "passed": true
+        }
+      ],
+      "native_packer_sha256": "852702c329398c7d0ba2e79479c753c38a5f7cacda17c9dd4232e280dcaa56ab",
+      "object_sha256": "8917c26d2e721a496d9ce7d96ffe788300cc2ed9c078a5df1f5ea53732b466f1",
+      "source_sha256": "4cab412a06377f4d4d0fbfcd7283ff54631216edad3227a9b0a319cb2a313632",
+      "mechanical_assembly_used_only_as_external_source_provenance_check": true
+    }
+  },
+  "public_core_qualification": "HIA_BACKGROUND_NATIVE_PUBLIC_FUTURE_CORE.json",
+  "callback_profile": {
+    "magic": "HIABFQ02",
+    "operation": 14,
+    "only_payload_word": 24,
+    "kernel_pointer_is_private_and_must_be_currently_pinned": true,
+    "original_HIABFQ01_rejection_domain_preserved": true
+  },
+  "concurrent_retry": {
+    "claim": "state 3 to 2 under registry mutex before unlock",
+    "actual_counterfactual_exit": -11,
+    "qualification": {
+      "label": "cleanup",
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-public-cleanup-v2/report.json",
+      "bytes": 756,
+      "sha256": "045655f20fdde569e4733cd3785095e5d8ac7682cccb5a3fc97b95547feb0e50",
+      "report": {
+        "passed": true,
+        "count": 2,
+        "calls": 108,
+        "cases": [
+          {
+            "case": "actual-rejected-value-context-retains-result-box-cell-factory-until-retry",
+            "passed": true
+          },
+          {
+            "case": "parallel-quarantined-closure-and-cell-retries-remove-neighbours-once",
+            "passed": true,
+            "factories": 3,
+            "carriers": 9,
+            "threads": 8,
+            "retry_calls": 64
+          }
+        ],
+        "image_sha256": "8d0e3366502578eace019e4e6ac5b803d022974fb0a8d27ef3349c51c1556d4e",
+        "whole_public_future_closed": false,
+        "fault_scope": "Private dependency-integrity control: temporarily set actual value context magic invalid, then restore exact original word. This is not an ordinary MemoryError and does not broaden the callable trust boundary."
+      }
+    }
+  }
+}
