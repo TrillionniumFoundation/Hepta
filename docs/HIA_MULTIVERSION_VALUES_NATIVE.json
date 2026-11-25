@@ -1,0 +1,419 @@
+{
+  "schema": "hepta.hia.multiversion-values-native.v1",
+  "whole_native_runtime": false,
+  "scope": "Qualified ownership component. Integration into the complete multiversion coordinator and its public integer/error mapping remains a separate gate.",
+  "source_files": {
+    "examples/hia_bootstrap/multiversion_values.hepta": {
+      "bytes": 76866,
+      "sha256": "7af216075ea250066c69a8e36525a7f971ccf736dd4d0fd4f4a8adc0975f6a91"
+    },
+    "examples/hia_bootstrap/multiversion_values_packer.hepta": {
+      "bytes": 31503,
+      "sha256": "02597086c64afa3d2f0eb4a461ae8f273580b779c94e062aad317335b980a4a3"
+    },
+    "examples/hia_bootstrap/unsigned_decimal_values.hepta": {
+      "bytes": 23744,
+      "sha256": "56fc5f659b5ef9f4f3dbe9229805eb04b520044f88255bc459e078fee0c2eee3"
+    },
+    "tools/hia_multiversion_values_bridge.S": {
+      "bytes": 2584,
+      "sha256": "ac50f4614d3a3b468240da4ac6361ea89091adf7a733e1dcbf40fef2c0c440b3"
+    }
+  },
+  "build": {
+    "schema": "hepta.hia.multiversion-value-owner.build.v1",
+    "whole_native_runtime": false,
+    "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+    "sources": [
+      {
+        "role": "multiversion_values",
+        "returncode": 0,
+        "source_bytes": 76866,
+        "source_sha256": "7af216075ea250066c69a8e36525a7f971ccf736dd4d0fd4f4a8adc0975f6a91",
+        "flat_bytes": 104413,
+        "flat_sha256": "fba03514585a546e46887b3796767f91de947625bf1d1f46e787e8621787efc0"
+      },
+      {
+        "role": "multiversion_values_packer",
+        "returncode": 0,
+        "source_bytes": 31503,
+        "source_sha256": "02597086c64afa3d2f0eb4a461ae8f273580b779c94e062aad317335b980a4a3",
+        "flat_bytes": 34656,
+        "flat_sha256": "6960cd4cf6887d2713a1c5328f232d07d741af75e8b82c03f70ec22df89c25df"
+      }
+    ],
+    "pure_value_sha256": "f07aca774bdf703fda1db510d99cd5dbe903058db97a17a356c3ee44c85913a8",
+    "packer": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-values-v1/multiversion_values_packer.flat",
+      "bytes": 34656,
+      "sha256": "6960cd4cf6887d2713a1c5328f232d07d741af75e8b82c03f70ec22df89c25df"
+    },
+    "linker": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-future-v2/elf_shared_linker.flat",
+      "bytes": 127874,
+      "sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff"
+    },
+    "image_bytes": 152336,
+    "image_sha256": "7bc67d8cc2bba8d323d333493cc9fdfbba88d46907f452246b41bd466d32f4e8",
+    "object_sha256": "ef0faebb98f957b809ef5d9fb3f88e85bbc34afdbd0bb297f88c5baf7c399e71"
+  },
+  "qualification": {
+    "qualification.json": {
+      "file_sha256": "f60c0804c22c4f013a89731b0b2496861794e9e592543d710e3131841c82a5be",
+      "report": {
+        "schema": "hepta.hia.multiversion-value-owner.qualification.v1",
+        "whole_native_runtime": false,
+        "image": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-values-v1/values-component.so",
+        "image_bytes": 152336,
+        "image_sha256": "7bc67d8cc2bba8d323d333493cc9fdfbba88d46907f452246b41bd466d32f4e8",
+        "passed": 7,
+        "failed": 0,
+        "actual_native_calls": 6930,
+        "cases": [
+          {
+            "name": "u64-crossing-immutable-retain-underflow",
+            "passed": true,
+            "elapsed_ns": 389480
+          },
+          {
+            "name": "200-fresh-bigint-arithmetic-ownership-pairs",
+            "passed": true,
+            "elapsed_ns": 51202585
+          },
+          {
+            "name": "1048577-digit-carry-borrow-and-lifetime",
+            "passed": true,
+            "elapsed_ns": 104086632
+          },
+          {
+            "name": "format-stale-cross-owner-short-output-guards",
+            "passed": true,
+            "elapsed_ns": 410940
+          },
+          {
+            "name": "16-thread-640-retain-arithmetic-release-rounds",
+            "passed": true,
+            "elapsed_ns": 69689958
+          },
+          {
+            "name": "fork-context-owner-pid-refusal",
+            "passed": true,
+            "elapsed_ns": 1210378
+          },
+          {
+            "name": "closed-context-and-complete-release",
+            "passed": true,
+            "elapsed_ns": 31539
+          }
+        ],
+        "scope": "Actual HIA ownership, libc allocations, kernel futex and fresh Python integer oracle; not the complete runtime."
+      }
+    },
+    "allocation-qualification.json": {
+      "file_sha256": "1651d52d1d7b20fcd88064cdfe5911860bd49cca6cbe857027292caf8e84d1f9",
+      "report": {
+        "schema": "hepta.hia.multiversion-values-allocation-qualification.v1",
+        "whole_native_runtime": false,
+        "external_injector_only": true,
+        "scope": "Actual malloc/free call sites in the current native owner; existing Python allocations are excluded by instruction address.",
+        "injector_source_sha256": "a591c1fab357661127703a03d09bfd5f8c5f2ffe00efe0314bcf0442cdacb3f3",
+        "injector_image_sha256": "f4cab93a971b7c18687977a865e13e428c8497c3a5d4ae1466392d340e0c3827",
+        "passed": 16,
+        "failed": 0,
+        "cases": [
+          {
+            "op": 1,
+            "failed_ordinal": 1,
+            "actual_attempts": 1,
+            "actual_allocations": 0,
+            "actual_frees": 0,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 1,
+            "failed_ordinal": 2,
+            "actual_attempts": 2,
+            "actual_allocations": 1,
+            "actual_frees": 1,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 1,
+            "failed_ordinal": 3,
+            "actual_attempts": 3,
+            "actual_allocations": 2,
+            "actual_frees": 2,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 2,
+            "failed_ordinal": 1,
+            "actual_attempts": 1,
+            "actual_allocations": 0,
+            "actual_frees": 0,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 4,
+            "failed_ordinal": 1,
+            "actual_attempts": 1,
+            "actual_allocations": 0,
+            "actual_frees": 0,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 4,
+            "failed_ordinal": 2,
+            "actual_attempts": 2,
+            "actual_allocations": 1,
+            "actual_frees": 1,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 4,
+            "failed_ordinal": 3,
+            "actual_attempts": 3,
+            "actual_allocations": 2,
+            "actual_frees": 2,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 5,
+            "failed_ordinal": 1,
+            "actual_attempts": 1,
+            "actual_allocations": 0,
+            "actual_frees": 0,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 5,
+            "failed_ordinal": 2,
+            "actual_attempts": 2,
+            "actual_allocations": 1,
+            "actual_frees": 1,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 5,
+            "failed_ordinal": 3,
+            "actual_attempts": 3,
+            "actual_allocations": 2,
+            "actual_frees": 2,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 6,
+            "failed_ordinal": 1,
+            "actual_attempts": 1,
+            "actual_allocations": 0,
+            "actual_frees": 0,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 6,
+            "failed_ordinal": 2,
+            "actual_attempts": 2,
+            "actual_allocations": 1,
+            "actual_frees": 1,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 6,
+            "failed_ordinal": 3,
+            "actual_attempts": 3,
+            "actual_allocations": 2,
+            "actual_frees": 2,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 7,
+            "failed_ordinal": 1,
+            "actual_attempts": 1,
+            "actual_allocations": 0,
+            "actual_frees": 0,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "op": 7,
+            "failed_ordinal": 2,
+            "actual_attempts": 2,
+            "actual_allocations": 1,
+            "actual_frees": 1,
+            "same_owner_retry": true,
+            "original_values_preserved": true
+          },
+          {
+            "case": "1001-strong-reference-nodes-exactly-once-free",
+            "actual_allocations": 1003,
+            "actual_frees": 1003
+          }
+        ],
+        "image_sha256": "7bc67d8cc2bba8d323d333493cc9fdfbba88d46907f452246b41bd466d32f4e8"
+      }
+    },
+    "packaging-qualification.json": {
+      "file_sha256": "73a0ec18f7eeecae06314ae2ef01937178dc513e2e3e5a2d89ffad2d46db492a",
+      "report": {
+        "schema": "hepta.hia.multiversion-values-packaging.v1",
+        "whole_native_runtime": false,
+        "passed": 24,
+        "failed": 0,
+        "packer": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-values-v1/multiversion_values_packer.flat",
+          "bytes": 34656,
+          "sha256": "6960cd4cf6887d2713a1c5328f232d07d741af75e8b82c03f70ec22df89c25df"
+        },
+        "cases": [
+          {
+            "case": "actual-native-object",
+            "bytes": 140584,
+            "sha256": "ef0faebb98f957b809ef5d9fb3f88e85bbc34afdbd0bb297f88c5baf7c399e71"
+          },
+          {
+            "case": "actual-native-shared-link",
+            "sha256": "7bc67d8cc2bba8d323d333493cc9fdfbba88d46907f452246b41bd466d32f4e8"
+          },
+          {
+            "case": "actual-independent-mechanical-capsule",
+            "bytes": 452,
+            "sha256": "ce500fb897debde8b04029b3e5538921016ff8220e938d709982e8e73f6e5715",
+            "source_sha256": "ac50f4614d3a3b468240da4ac6361ea89091adf7a733e1dcbf40fef2c0c440b3",
+            "holes": {
+              "policy": 107,
+              "values": 418
+            }
+          },
+          {
+            "case": "reject-magic",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-short-header",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-short-body",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-tail",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-8-0",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-8-1",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-8-3",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-8-18446744073709551615",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-16-0",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-16-4194305",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-16-18446744073709551615",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-24-0",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-24-4194305",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "reject-24-18446744073709551615",
+            "status": 4294967295,
+            "transactional_output": true
+          },
+          {
+            "case": "short-output-0",
+            "status": 4294967294
+          },
+          {
+            "case": "short-output-63",
+            "status": 4294967294
+          },
+          {
+            "case": "short-output-140583",
+            "status": 4294967294
+          },
+          {
+            "case": "short-workspace",
+            "status": 4294967294
+          },
+          {
+            "case": "policy-four-MiB",
+            "bytes": 4230472,
+            "sha256": "db4f87bd58ef88f512db3addaa2bf0f7a2b93b358f2922ae0bee2cfc12ec9d0b"
+          },
+          {
+            "case": "values-four-MiB",
+            "bytes": 4299952,
+            "sha256": "69e66135ea9853c44eb5f0f06a0a731b85c5d154052245e80582304f26342d99"
+          },
+          {
+            "case": "both-four-MiB",
+            "bytes": 8389840,
+            "sha256": "05c3c767beff44f4fcac85730f287a5a1e406d46a9e4836f6f5b75cd83806e18"
+          }
+        ]
+      }
+    }
+  },
+  "production_dependencies": [
+    "actual unsigned_decimal_values role",
+    "native shared object linker",
+    "fixed malloc/free provider",
+    "kernel futex/getpid/getrandom"
+  ],
+  "development_only": [
+    "Python generators and original integer oracle",
+    "GNU assembler mechanical provenance check",
+    "allocation fault injection provider"
+  ],
+  "numeric_domain": "canonical nonnegative decimal with no fixed integer width; extent and allocation failures never wrap the value",
+  "reference_domain": "one separately allocated ownership node per retain; no finite reference count",
+  "lifecycle": "initialization is exclusive; each caller owns its reference and private output; destruction refuses while any reference is live; enclosing context stays alive through all active calls"
+}
