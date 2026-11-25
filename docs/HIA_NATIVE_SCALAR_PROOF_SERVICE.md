@@ -3,15 +3,15 @@
 This checkpoint implements a standalone native HIA proof owner for the original
 primitive acyclic scalar profile. The service performs fresh structural Core
 admission, canonicalization, exact public entry selection, graph construction,
-bounded Boolean solving or exhaustive small word search, independent Core
+the original bounded solvers and resumable general CNF solving, independent Core
 counterexample replay, deadline checks, native closure identity checks and
 receipt serialization. A mechanical assembly adapter only transports byte
 spans and performs fixed Linux clock, mapping and standard input/output calls.
 
-This is a qualified component checkpoint. The native general solver is not
-connected in this image, and the full public proof API, call closures, bounded
-recursive proof profiles, multiversion integration and final release admission
-are still open. The receipt does not establish whole-language soundness,
+This is a qualified primitive-service component checkpoint. The full public
+input-normalization and receipt-verification API, call closures, bounded
+feedback-loop proof profiles, multiversion integration and final release
+admission remain separate obligations. The receipt does not establish whole-language soundness,
 machine-checked implementation correctness or execution authority.
 
 ## Private request and response
@@ -64,8 +64,19 @@ timeout. A consumer must freshly bind and recompute at the point of use.
 The existing fast graph, Boolean and small exhaustive-word engines keep their
 original capacities. Structural nontrapping DAGs and exactly identical typed
 graphs have explicit native methods. A fast-engine capacity refusal is not
-promoted to an all-input proof. In this checkpoint cases requiring the separate
-general solver remain unknown with an explicit unconnected-general reason.
+promoted to an all-input proof. When the original fast paths cannot discharge
+the query, the owner passes the exact typed graph to the independently
+qualified general HIA solver, under the same remaining absolute deadline.
+The old fast paths retain their capacities and behavior.
+
+The general role uses a private 512 MiB workspace, quantum 1024 and full-width
+SSA/Boolean indices. The owner validates every continuation's actual graph
+digest, monotone phase, cumulative/call step counts, capacities, SAT argument
+extent and unused model bits. It binds the independently computed initial
+CNF digest only after the native ready flag is set, and checks that identity
+and its initial counts stay unchanged during learning. A graph digest is not
+reported as a formula digest. Actual capacity exhaustion, invalid replies,
+deadline expiry and unresolved search remain unknown with no proof claim.
 
 A SAT model is first checked against the native word circuit and then replayed
 through the separately compiled original Core projector and native Core VM.
@@ -80,13 +91,13 @@ not authorize executable publication.
 
 ## Runtime components and storage
 
-The eight embedded roles are: native proof policy, private nonalias SHA,
+The nine embedded roles are: native proof policy, private nonalias SHA,
 structural Core admission, canonical JSON, scalar graph/preflight, existing
-CNF/word engine, original Core-to-reference-wire projector and native reference
-VM. The native HIA packer binds those roles into the fixed adapter. There is no
+CNF/word engine, original Core-to-reference-wire projector, native reference
+VM and the separate general CNF engine. The native HIA packer binds those roles into the fixed adapter. There is no
 Python, Rust, C or Z3 runtime fallback in the produced executable.
 
-Private memory is a 256 MiB work mapping, 256 KiB response area and bounded
+Private memory is a 768 MiB work mapping, 256 KiB response area and bounded
 request area. Role views are disjoint where their ABI requires it. Canonical
 JSON receives its original node/depth controls in work bytes 48/56, not output.
 Selection records occupy independent work ranges so the second Core cannot
@@ -106,13 +117,25 @@ qualification reports; it does not activate this checkpoint.
 - 197 actual HIA-role fault checks exercised malformed stage results,
   transport faults, selection and graph layouts, solver/replay failures,
   deadline expiry and changed closure identity.
-- 66 process/private-ABI/native-packer controls covered malformed frames,
+- 74 additional actual native general-reply/formula/deadline fault controls
+  validated continuation, model layout, stable formula identity and declared
+  Unknown/invalid completion. Phase-1 branch probes use a legal early yield;
+  controlled clocks do not constitute a performance measurement.
+- 68 process/private-ABI/native-packer controls covered malformed frames,
   capacity boundaries and byte-identical reconstruction of the full ELF.
+- Ten complete general-profile boundary cases passed with exact graph and
+  initial formula identities, including 32 parameters, 16 returns, 128 blocks,
+  2048 operations, 45000 block parameters, a 188592-variable formula and
+  conflict-learning UNSAT search. The declared 60-second boundary budgets
+  were unchanged.
 - 376 independent SHA comparisons covered padding, random inputs, 8 MiB,
   canaries and invalid spans.
 - The graph's separate record includes 477 sources / 2864 exact successful
   graphs, 31 refusals and 487 sources / 1463 exact selection-only records.
 
-No test is described as a complete native runtime, full general proof profile,
-cold release gate or final publication. Failed development reports remain
+The general component's additional original, randomized, capacity and native
+construction evidence is in `HIA_GENERAL_CNF_NATIVE.json`. These results do not
+guarantee that every admitted query completes within a given time/allocation
+budget. No test is described as a complete public native runtime, cold release
+gate or final publication. Failed development reports remain
 outside the source tree until final evidence custody and cleanup.

@@ -7,8 +7,8 @@
 .set input_cap, 17825792
 .set output_cap, 262144
 .set work_offset, 18087936
-.set work_cap, 268435456
-.set mapping_cap, 286523392
+.set work_cap, 805306368
+.set mapping_cap, 823394304
 _start:
 .image_anchor:
     cmp qword ptr [rsp], 1
@@ -58,7 +58,7 @@ _start:
     cmp rax, 176
     jb .invalid
     mov [r14 + 96], rax
-    mov qword ptr [r14 + 112], 8
+    mov qword ptr [r14 + 112], 9
 .plan:
     mov eax, 228
     mov edi, 1
@@ -77,12 +77,11 @@ _start:
     cmp rax, 1
     jne .answer
     inc r15
-    cmp r15, 128
-    ja .invalid
+    jz .invalid
     mov rax, [r14 + 8]
     cmp rax, 1
     jb .invalid
-    cmp rax, 7
+    cmp rax, 8
     ja .invalid
     shl rax, 4
     lea rbp, [rip + .role_table]
@@ -195,5 +194,5 @@ proof_policy_hole:
 .balign 8
 embedded_roles:
 .role_table:
-    .zero 128
+    .zero 144
 .section .note.GNU-stack,"",@progbits

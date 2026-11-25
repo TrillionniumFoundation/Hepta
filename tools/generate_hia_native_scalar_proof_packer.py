@@ -1,4 +1,4 @@
-"""HIA packer for the fixed native scalar-proof transport and eight HIA roles."""
+"""HIA packer for the fixed native scalar-proof transport and nine HIA roles."""
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from hepta.hia_agent_assembly import render_assembly
@@ -8,10 +8,10 @@ from tools.generate_hia_safe_core_binder import document as transport_document
 ROOT=Path(__file__).resolve().parents[1]
 ADAPTER='tools/hia_native_scalar_proof_syscalls.S'
 PACKER='examples/hia_bootstrap/native_scalar_proof_packer.hepta'
-MAGIC=int.from_bytes(b'HIAMVK01','little')
+MAGIC=int.from_bytes(b'HIAMVK02','little')
 POLICY=r'''
 def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 72 or length(s) > 8388680 or uint(s, 0, 8) != MAGIC:
+    if length(s) < 80 or length(s) > 8388688 or uint(s, 0, 8) != MAGIC:
         return 4294967295
     size = extent(s)
     if size == 0 or size > 8388608 or size > length(o):
@@ -21,8 +21,8 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(o, 104, size)
     index = 0
     at = PREFIX
-    source = 72
-    while index < 8:
+    source = 80
+    while index < 9:
         aligned = (at + 7) & 18446744073709551608
         clear(o, at, aligned)
         at = aligned
@@ -40,8 +40,8 @@ def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def extent(s:readbuf) -> u64:
     index = 0
     at = PREFIX
-    source = 72
-    while index < 8:
+    source = 80
+    while index < 9:
         piece = uint(s, 8 + 8 * index, 8)
         if piece == 0 or piece > 1048576 or piece > length(s) - source:
             return 0
@@ -70,7 +70,7 @@ def document():
     with TemporaryDirectory(prefix='hia-native-scalar-proof-transport-') as temporary:
         stub,symbols,_=assemble_adapter(Path(temporary),ADAPTER,adapter)
     hole=symbols['proof_policy_hole'];table=symbols['embedded_roles']
-    assert stub[hole-1:hole+4]==b'\xe8\0\0\0\0' and table%8==0 and stub[table:table+128]==bytes(128)
+    assert stub[hole-1:hole+4]==b'\xe8\0\0\0\0' and table%8==0 and stub[table:table+144]==bytes(144)
     header=elf_header();prefix=header+stub
     constants={'PREFIX':len(prefix),'TABLE':len(header)+table,'POLICY_HOLE':len(header)+hole,'MAGIC':MAGIC}
     source=POLICY+'\ndef envelope(o:mutbuf) -> u64:\n'

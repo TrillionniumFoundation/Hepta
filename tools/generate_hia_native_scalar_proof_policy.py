@@ -16,7 +16,7 @@ C={
 'TABLE_MAGIC':M('HIABVT01'),'WIRE_MAGIC':M('HIAERW01'),
 'VM_MAGIC':M('HIASPG01'),'VM_REPLY':M('HIASPR01'),'SELECTION_MAGIC':M('HIAPSL01'),
 'NONE':(1<<64)-1,'BAD':4294967293,'FILE_MAX':8<<20,
-'WORK_MAX':256<<20,'OUTPUT_MAX':262144,
+'WORK_MAX':768<<20,'OUTPUT_MAX':262144,
 'NAME':4096,'ARGUMENTS':8192,'WITNESS_WORDS':8704,'SIGNATURE1':12288,'SIGNATURE2':12800,'TOKENS':16384,
 'WHOLE_ID':1024,'HASH_RESULT':1056,'RAW_BEFORE':1088,'RAW_AFTER':1120,
 'CORE_BEFORE':1152,'CORE_AFTER':1184,'HASH_WORK':2048,
@@ -25,7 +25,8 @@ C={
 'REPLAY_INPUT':40<<20,'REPLAY_WIRE':49<<20,
 'OBS1':81<<20,'OBS2':(81<<20)+4096,'ROLE_OUTPUT':82<<20,
 'ROLE_WORK':146<<20,'GRAPH_CAP':4<<20,'REPLAY_CAP':32<<20,
-'SELECT1':210<<20,'SELECT2':218<<20,
+'SELECT1':210<<20,'SELECT2':218<<20,'GENERAL_WORK':256<<20,'GENERAL_CAP':512<<20,
+'GENERAL_MAGIC':M('HIAGCN01'),'GENERAL_REPLY':M('HIAGCR01'),'GENERAL_HASH':1280,
 'CNF_OUTPUT':10808,'CNF_WORK':294912,'CNF_ENCODE_WORK':98848,
 'CNF_FORMULA_CAP':196608,
 }
@@ -46,6 +47,8 @@ def native_scalar_proof_policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return prepare(s, o, w, phase, result)
     if phase >= 20 and phase <= 24:
         return solve(o, w, phase, result)
+    if phase >= 40 and phase <= 42:
+        return general_reply(o, w, phase, result)
     if phase >= 25 and phase <= 29:
         return replay(o, w, phase, result)
 
@@ -599,7 +602,171 @@ def word_table_reply(o:mutbuf, w:mutbuf, result:u64) -> u32:
     return check_witness(w)
 
 def fallback(o:mutbuf, w:mutbuf) -> u32:
-    return unknown(o, w, 6)
+    put(w, 408, 5)
+    put(w, 432, 0)
+    put(w, 472, 0)
+    put(w, 488, 0)
+    put(w, 560, 0)
+    put(w, 568, 0)
+    put(w, 576, 0)
+    at = 600
+    while at <= 696:
+        put(w, at, 0)
+        at = at + 8
+    return hash(w, 40, 1, JOINED, get(w, 416), GENERAL_HASH)
+
+def general_request(o:mutbuf, w:mutbuf, begin:bool) -> u32:
+    current = now(w)
+    if current >= get(w, 272):
+        return unknown(o, w, 12)
+    remaining = (get(w, 272) - current) // 1000000
+    if remaining == 0 or remaining > 60000:
+        return unknown(o, w, 12)
+    if begin == False and remaining > get(w, 616):
+        return unknown(o, w, 14)
+    put(w, 616, remaining)
+    at = 0
+    while at < 128:
+        put(w, REPLAY_INPUT + at, 0)
+        at = at + 8
+    put(w, REPLAY_INPUT, GENERAL_MAGIC)
+    put(w, REPLAY_INPUT + 8, choose(begin, 0, 1))
+    put(w, REPLAY_INPUT + 24, remaining)
+    put(w, REPLAY_INPUT + 32, 1024)
+    copy(w, GENERAL_HASH, REPLAY_INPUT + 64, 32)
+    size = 128
+    if begin:
+        graph_bytes = get(w, 416)
+        if graph_bytes > 8388608 or graph_bytes < 56:
+            return unknown(o, w, 14)
+        put(w, REPLAY_INPUT + 16, graph_bytes)
+        copy(w, JOINED, REPLAY_INPUT + 128, graph_bytes)
+        size = size + graph_bytes
+    return dispatch(w, choose(begin, 41, 42), 8, 1, REPLAY_INPUT, size, ROLE_OUTPUT, 67108864, GENERAL_WORK, GENERAL_CAP)
+
+def general_reply(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
+    if phase == 40:
+        if result != 32:
+            return unknown(o, w, 14)
+        put(w, 640, 1)
+        return general_request(o, w, True)
+    if general_record(w, result) == False:
+        return unknown(o, w, 14)
+    status = get(w, ROLE_OUTPUT + 8)
+    if status == 4:
+        return unknown(o, w, 14)
+    if general_formula(w) == False:
+        return unknown(o, w, 14)
+    if status == 3:
+        return general_request(o, w, False)
+    if status == 0:
+        return unknown(o, w, 7)
+    if get(w, 624) != 1:
+        return unknown(o, w, 14)
+    put(w, 576, status)
+    if status == 2:
+        return decided(w, 1, choose(get(w, 256) == 1, 10, 11))
+    if general_arguments(w) == False:
+        return unknown(o, w, 8)
+    return project_replay(w, 25, CANON1, get(w, 360))
+
+def general_record(w:mutbuf, size:u64) -> bool:
+    base = ROLE_OUTPUT
+    if size < 128 or size > 67108864 or get(w, base) != GENERAL_REPLY:
+        return False
+    status = get(w, base + 8)
+    if status > 4:
+        return False
+    if status == 4:
+        return size == 128
+    phase = get(w, base + 16)
+    steps = get(w, base + 56)
+    call_steps = get(w, base + 112)
+    if phase < 1 or phase > 7 or phase < get(w, 600) or get(w, base + 120) != 0:
+        return False
+    if get(w, base + 32) > GENERAL_CAP or get(w, base + 40) > 2147483647 or get(w, base + 48) > 4294967295:
+        return False
+    if steps < get(w, 608) or call_steps > 1024 or steps - get(w, 608) != call_steps:
+        return False
+    if phase == 1:
+        if status != 3:
+            return False
+        i = 0
+        while i < 32:
+            if byte(w, base + 64 + i) != 0:
+                return False
+            i = i + 1
+    elif same(w, GENERAL_HASH, base + 64, 32) == False:
+        return False
+    argc = get(w, base + 96)
+    model_bytes = get(w, base + 104)
+    if status == 1:
+        if phase != 7 or argc != get(w, 392) or model_bytes != (get(w, base + 40) + 7) // 8:
+            return False
+        if size != 128 + 8 * argc + model_bytes:
+            return False
+        used_bits = get(w, base + 40) & 7
+        if used_bits != 0 and (byte(w, base + size - 1) >> used_bits) != 0:
+            return False
+    else:
+        if size != 128 or argc != 0 or model_bytes != 0:
+            return False
+        if status == 2 and phase != 7:
+            return False
+    put(w, 600, phase)
+    put(w, 608, steps)
+    put(w, 632, get(w, base + 32))
+    put(w, 648, status)
+    put(w, 688, get(w, base + 24))
+    put(w, 472, get(w, base + 40))
+    put(w, 488, get(w, base + 48))
+    return True
+
+def general_formula(w:mutbuf) -> bool:
+    at = GENERAL_WORK + 1024
+    ready = get(w, at)
+    if ready > 1 or ready < get(w, 624):
+        return False
+    if ready == 0:
+        return True
+    variables = get(w, at + 8)
+    clauses = get(w, at + 16)
+    tokens = get(w, at + 24)
+    serialized = get(w, at + 64)
+    if variables > 2147483647 or clauses > 4294967295 or tokens > GENERAL_CAP // 4 or serialized != 32 + 4 * tokens:
+        return False
+    if variables != get(w, 472) or clauses > get(w, 488):
+        return False
+    if get(w, 624) == 1:
+        if variables != get(w, 656) or clauses != get(w, 664) or tokens != get(w, 672) or serialized != get(w, 680) or same(w, at + 32, 1248, 32) == False:
+            return False
+    else:
+        put(w, 624, 1)
+        put(w, 568, 1)
+        put(w, 656, variables)
+        put(w, 664, clauses)
+        put(w, 672, tokens)
+        put(w, 680, serialized)
+        copy(w, at + 32, 1248, 32)
+    return True
+
+def general_arguments(w:mutbuf) -> bool:
+    i = 0
+    while i < get(w, 392):
+        typ = get(w, GRAPH1 + 32 + 8 * i)
+        value = get(w, ROLE_OUTPUT + 128 + 8 * i)
+        if typ == 65:
+            if value != 0:
+                return False
+        else:
+            width = typ & 127
+            if width != 1 and width != 8 and width != 16 and width != 32 and width != 64:
+                return False
+            if value != (value & mask(width)):
+                return False
+        put(w, ARGUMENTS + 8 * i, argument_word(value, typ))
+        i = i + 1
+    return True
 
 def project_replay(w:mutbuf, phase:u64, core:u64, size:u64) -> u32:
     store(w, REPLAY_INPUT, 91)
@@ -862,6 +1029,10 @@ LITERALS={
 125:'"operation_outside_scalar_profile"',126:'"cyclic_cfg_outside_profile"',127:'"invalid_program"',
 201:'"bool"',202:'"unit"',203:'"u8"',204:'"u16"',205:'"u32"',206:'"u64"',
 207:'"i8"',208:'"i16"',209:'"i32"',210:'"i64"',211:'"usize"',212:'"isize"',
+301:'"native_hia_general_cnf"',302:'"hia-native-general-cnf"',
+303:',"graph_sha256":',304:',"steps":',305:',"workspace_bytes":',
+306:',"initial_variables":',307:',"initial_clauses":',308:',"initial_tokens":',
+309:',"native_general_reason":',
 }
 RENDER=r'''
 def receipt(o:mutbuf, w:mutbuf) -> u32:
@@ -983,7 +1154,9 @@ def identities(o:mutbuf, w:mutbuf, at:u64) -> u64:
 def solver_report(o:mutbuf, w:mutbuf, at:u64) -> u64:
     at = lit(o, at, 41)
     method_id = get(w, 408)
-    if method_id == 1:
+    if method_id == 5:
+        at = lit(o, at, 302)
+    elif method_id == 1:
         at = lit(o, at, 42)
     elif method_id == 2:
         at = lit(o, at, 43)
@@ -999,19 +1172,40 @@ def solver_report(o:mutbuf, w:mutbuf, at:u64) -> u64:
     at = method(o, w, at)
     at = lit(o, at, 57)
     at = digest(o, w, at, 1248, get(w, 568) == 1)
-    at = lit(o, at, 58)
-    at = unsigned(o, w, at, get(w, 432))
+    if method_id != 5:
+        at = lit(o, at, 58)
+        at = unsigned(o, w, at, get(w, 432))
     at = lit(o, at, 59)
     at = unsigned(o, w, at, get(w, 472))
     at = lit(o, at, 60)
     at = unsigned(o, w, at, get(w, 488))
     at = lit(o, at, 61)
     at = unsigned(o, w, at, get(w, 560))
+    if method_id == 5:
+        at = general_report(o, w, at)
     at = emit(o, at, 125)
     return emit(o, at, 125)
 
+def general_report(o:mutbuf, w:mutbuf, at:u64) -> u64:
+    at = lit(o, at, 303)
+    at = digest(o, w, at, GENERAL_HASH, get(w, 640) == 1)
+    at = lit(o, at, 304)
+    at = unsigned(o, w, at, get(w, 608))
+    at = lit(o, at, 305)
+    at = unsigned(o, w, at, get(w, 632))
+    at = lit(o, at, 306)
+    at = unsigned(o, w, at, get(w, 656))
+    at = lit(o, at, 307)
+    at = unsigned(o, w, at, get(w, 664))
+    at = lit(o, at, 308)
+    at = unsigned(o, w, at, get(w, 672))
+    at = lit(o, at, 309)
+    return unsigned(o, w, at, get(w, 688))
+
 def method(o:mutbuf, w:mutbuf, at:u64) -> u64:
     kind = get(w, 408)
+    if kind == 5:
+        return lit(o, at, 301)
     if kind < 1 or kind > 4:
         return lit(o, at, 47)
     return lit(o, at, 52 + kind)
