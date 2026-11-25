@@ -1,0 +1,236 @@
+{
+  "schema": "hepta.hia.future-observers.array.qualification.v1",
+  "status": "NATIVE_ARRAY_OBSERVERS_PASS",
+  "runtime_sources": {
+    "examples/hia_bootstrap/background_optimizer_future_public_observers.hepta": {
+      "sha256": "3ac0fecf860238bd605db3eed4b7cf402c4c40cba3f35eba3780afdf41d52e21",
+      "bytes": 190125
+    },
+    "examples/hia_bootstrap/background_optimizer_future_public_observers_math.hepta": {
+      "sha256": "e9844009a93e4eb23d04c0764387957d153f8cab9577cbf6e6608277ae3df217",
+      "bytes": 38484
+    },
+    "examples/hia_bootstrap/background_optimizer_future_public_observers_packer.hepta": {
+      "sha256": "0db26bc4f1b072520460f5e2d0896aafa9837a347ce1e6c96b33404d234f4ffc",
+      "bytes": 26742
+    },
+    "tools/hia_background_optimizer_future_public_observers_bridge.S": {
+      "sha256": "22459dbdb1afca5ff8aa45ecaa29c25530fa7c5043ba28631a515487789ed956",
+      "bytes": 5069
+    }
+  },
+  "reports": {
+    "build": {
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-public-observers-qa/owner-native-v2/build.json",
+      "bytes": 1440,
+      "sha256": "624a9204afc59d63f81c9fdbc86c4d3686ec6bab31075953f572bf369090347e",
+      "result": {
+        "status": "DOUBLE_NATIVE_BUILD_AND_NATIVE_PACK_PASS",
+        "roles": [
+          {
+            "name": "background_optimizer_future_public_observers",
+            "source_sha256": "3ac0fecf860238bd605db3eed4b7cf402c4c40cba3f35eba3780afdf41d52e21",
+            "source_bytes": 190125,
+            "flat_sha256": "e51ba41984cf9ee41b466ff3571fd5c7d32130dba9859d8da86652869c2a8ee1",
+            "flat_bytes": 249877
+          },
+          {
+            "name": "background_optimizer_future_public_observers_math",
+            "source_sha256": "e9844009a93e4eb23d04c0764387957d153f8cab9577cbf6e6608277ae3df217",
+            "source_bytes": 38484,
+            "flat_sha256": "655d801539128e8fb56e375b2de0f7d3f8d1d2d3497b9be759351a8978a0589b",
+            "flat_bytes": 46234
+          },
+          {
+            "name": "background_optimizer_future_public_observers_packer",
+            "source_sha256": "0db26bc4f1b072520460f5e2d0896aafa9837a347ce1e6c96b33404d234f4ffc",
+            "source_bytes": 26742,
+            "flat_sha256": "e6fb92ae9d1853afb91d7a0bd6b406c3de8f7f2a61e3c0ee3b07e9861b60bce4",
+            "flat_bytes": 17820
+          }
+        ],
+        "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+        "compiler_seals": 15,
+        "elapsed_ns": [
+          192553006,
+          195000206
+        ],
+        "bridge_sha256": "847cab8d48452f47418de7b815e508dfeb3ba48111f0c6192392404c94024007",
+        "bridge_bytes": 887,
+        "flat_sha256": "8dee4c96d56c24aaea612051dd23a4af20004b4509ff45cdaf02cf6a9bf76fe5",
+        "flat_bytes": 296998,
+        "whole_runtime_qualified": false
+      }
+    },
+    "original": {
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-public-observers-qa/owner-original-v3/report.json",
+      "bytes": 1157,
+      "sha256": "0e31d59c9b537dc1a12fb9fe7cc08744957d1fbeaf5de40c952afc5a774898c9",
+      "result": {
+        "passed": true,
+        "cases": [
+          {
+            "case": "all_256_three_future_state_and_condition_pairs",
+            "passed": true,
+            "pairs": 256
+          },
+          {
+            "case": "original_wait_timeout_type_sign_nan_and_bypass",
+            "passed": true,
+            "values": 12
+          },
+          {
+            "case": "original_as_completed_timeout_ordering",
+            "passed": true
+          },
+          {
+            "case": "as_completed_None_and_nan_actual_completion",
+            "passed": true
+          },
+          {
+            "case": "259_unique_648_inputs_no_128_limit",
+            "passed": true
+          },
+          {
+            "case": "two_live_iterators_identical_completion_order",
+            "passed": true
+          },
+          {
+            "case": "earlier_actual_deadline_capture_no_extension",
+            "passed": true
+          },
+          {
+            "case": "partial_collection_bad_future_cleanup",
+            "passed": true
+          }
+        ],
+        "calls": 1534,
+        "actual_public_calls": 5536,
+        "observer_pin": "8dee4c96d56c24aaea612051dd23a4af20004b4509ff45cdaf02cf6a9bf76fe5",
+        "public_future_pin": "8d0e3366502578eace019e4e6ac5b803d022974fb0a8d27ef3349c51c1556d4e",
+        "whole_public_iterable": false,
+        "scope": "actual-native array owner vs original concurrent.futures"
+      }
+    },
+    "controls": {
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-public-observers-qa/owner-controls-v2/report.json",
+      "bytes": 1529,
+      "sha256": "2cb7567a76bf505c08d6e1158367e60790563e70de88601de834484ffc4777ee",
+      "result": {
+        "passed": true,
+        "cases": [
+          {
+            "case": "four_wrong_handles_no_dereference",
+            "passed": true
+          },
+          {
+            "case": "three_stale_handles_exactly_once",
+            "passed": true
+          },
+          {
+            "case": "seven_six_word_view_refusals_context_unchanged",
+            "passed": true
+          },
+          {
+            "case": "six_request_shape_refusals",
+            "passed": true
+          },
+          {
+            "case": "lazy_type2_cross_interface_close_refusal",
+            "passed": true
+          },
+          {
+            "case": "four_real_waiting_iterators_32_ordered_completions",
+            "passed": true,
+            "order": [
+              0,
+              2,
+              4,
+              6,
+              8,
+              10,
+              12,
+              14,
+              16,
+              18,
+              20,
+              22,
+              24,
+              26,
+              28,
+              30,
+              1,
+              3,
+              5,
+              7,
+              9,
+              11,
+              13,
+              15,
+              17,
+              19,
+              21,
+              23,
+              25,
+              27,
+              29,
+              31
+            ]
+          },
+          {
+            "case": "actual_seccomp_kernel_failure_9",
+            "passed": true
+          },
+          {
+            "case": "actual_seccomp_kernel_failure_318",
+            "passed": true
+          },
+          {
+            "case": "eleven_native_packer_rejections_five_atomic_short_outputs",
+            "passed": true
+          }
+        ],
+        "case_groups": 9,
+        "calls": 146,
+        "public_calls": 369,
+        "observer_sha256": "8dee4c96d56c24aaea612051dd23a4af20004b4509ff45cdaf02cf6a9bf76fe5",
+        "actual_future_sha256": "8d0e3366502578eace019e4e6ac5b803d022974fb0a8d27ef3349c51c1556d4e",
+        "whole_public_iterable": false
+      }
+    },
+    "math": {
+      "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/future-public-observers-qa/math-qa-v1/report.json",
+      "bytes": 422,
+      "sha256": "35ae96f9bd667ba0c4544da21928a63df99cc07ecf48b2b4323e56d73a9b827c",
+      "result": {
+        "status": "NATIVE_MATH_PYTHON_BINARY64_PASS",
+        "calls": 56398,
+        "counts": {
+          "add": 20024,
+          "subtract": 20024,
+          "ns_clock_double": 5197,
+          "integer_float": 5114,
+          "condition_timeout": 6039
+        },
+        "flat_sha256": "655d801539128e8fb56e375b2de0f7d3f8d1d2d3497b9be759351a8978a0589b",
+        "flat_bytes": 46234,
+        "nan_semantic_class_checked": true,
+        "nan_payload_not_public": true,
+        "whole_observer": false
+      }
+    }
+  },
+  "dependency_notify": "20c92a775afcf1cb88d3d3ce9ee890420f178607",
+  "claims": {
+    "actual_future_wait_array": true,
+    "actual_future_as_completed_array": true,
+    "actual_binary64_deadlines": true,
+    "whole_public_iterable": false,
+    "whole_public_future_closed": false,
+    "whole_background": false
+  },
+  "retained_failures": [
+    "owner-original-v1 failed in fixture because scalar constructor excludes dict/list",
+    "owner-original-v2 expected ordinary private-invalid-cap status but actual public owner returned status3/kind107; v3 checks exact direct public-owner response"
+  ]
+}
