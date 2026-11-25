@@ -278,8 +278,8 @@ def exports(w:mutbuf,n:u64) -> bool:
 def number(w:mutbuf,n:u64) -> u64:
     if node(w,n,0)!=3:
         return NONE
-    size=node(w,n,64)
-    at=JSON+node(w,n,56)
+    size=node(w,n,32)
+    at=JSON+node(w,n,24)
     if size==0 or size>20:
         return NONE
     value=0
