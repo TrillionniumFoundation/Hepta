@@ -583,6 +583,8 @@ class WireNativeTests(unittest.TestCase):
             target = source / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)
+        from tests.hia_distribution_fixture import stage_cold_sources
+        stage_cold_sources(source)
         command = [sys.executable, '-B', 'setup.py', 'bdist_wheel', '--dist-dir', str(directory / 'wheel')]
         result = subprocess.run(command, cwd=source, capture_output=True, timeout=90)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

@@ -38,8 +38,10 @@ def encoded(value):
 
 
 def clean_environment():
-    return {key: value for key, value in os.environ.items()
-            if key not in ('PYTHONPATH', 'PYTHONHOME') and not key.startswith('HEPTA_HIA_')}
+    from tests.hia_distribution_fixture import reference_fixture_environment
+    return {**{key: value for key, value in os.environ.items()
+               if key not in ('PYTHONPATH', 'PYTHONHOME') and not key.startswith('HEPTA_HIA_')},
+            **reference_fixture_environment()}
 
 
 def original_inventory():

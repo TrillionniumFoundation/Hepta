@@ -848,7 +848,8 @@ raise SystemExit(0 if passed else 1)
             self.assertIn(name, NATIVE_SOURCE_FILES)
         contract = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
         contract_bytes = (ROOT / contract).read_bytes()
-        pinned = json.loads(contract_bytes)['source_identity']['files']
+        pinned = {**json.loads(contract_bytes)['source_identity']['files'],
+                  contract: sha256(contract_bytes).hexdigest()}
         self.assertTrue(set(resources).issubset(pinned))
         for name, identity in {**pinned, contract: sha256(contract_bytes).hexdigest()}.items():
             target = source / name
@@ -1036,15 +1037,26 @@ print(json.dumps({"schema":"hepta.hia.cli-installed-execution.v1",
  "installed_source_paths":{name:str(path) for name,path in SOURCES.items()},
  "source_sha256":{name:sha256(raw).hexdigest() for name,raw in source_bytes.items()},
  "bundle_sha256":sha256(bundle_original).hexdigest(),"native_returns":native_returns,
- "console_entry_point":entries[0].value,"isolated_without_site":True,"empty_PATH":True,
+ "console_entry_point":None,"physical_entry_point":str(physical_entry),
+ "isolated_without_site":True,"empty_PATH":True,
  "forbidden_entries":forbidden_entries,"calls":calls,"refusals":refusals,
  "shared_build_transport":shared_calls,"shared_build_execution_qualified_by_this_control":False,
  "sources_and_bundle_restored":True,"whole_native_delivery_qualified":False},sort_keys=True))
 '''
         try:
-            command([packaging_python, "-B", "-m", "pip", "wheel", "--no-cache-dir", "--no-deps",
-                     "--no-index", "--no-build-isolation", "--config-settings", "hia.reference-wheel=true",
-                     "--wheel-dir", str(wheels), str(source)], "wheel-build")
+            from tests.hia_distribution_fixture import reference_fixture_environment
+            materialize = (
+                "import shutil,sys\n"
+                "from pathlib import Path\n"
+                "source,wheels=map(Path,sys.argv[1:])\n"
+                "sys.path.insert(0,str(source))\n"
+                "from tests.hia_distribution_fixture import reference_wheel\n"
+                "wheel=reference_wheel(source,sys.executable)\n"
+                "wheels.mkdir(mode=0o700)\n"
+                "shutil.copyfile(wheel,wheels/wheel.name)\n"
+            )
+            command([packaging_python, "-B", "-c", materialize, str(source), str(wheels)],
+                    "wheel-build", env=environment(reference_fixture_environment()))
             wheel, = wheels.glob("*.whl")
             with zipfile.ZipFile(wheel) as archive:
                 members = archive.namelist()

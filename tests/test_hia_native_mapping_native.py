@@ -518,7 +518,7 @@ class NativeMappingNativeTests(unittest.TestCase):
                 result = subprocess.run([sys.executable, '-B', *map(str, arguments)], cwd=source,
                                         stdout=output, stderr=subprocess.STDOUT, timeout=1800 if label == 'wheel' else 60)
             self.assertEqual(result.returncode, 0, (folder / (label + '.log')).read_text())
-        from tests.hia_distribution_fixture import stage_cold_sources
+        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings
         stage_cold_sources(source)
         command('sdist', ['setup.py', 'sdist', '--dist-dir', folder / 'sdist'])
         archive, = (folder / 'sdist').glob('*.tar.gz')
@@ -526,7 +526,7 @@ class NativeMappingNativeTests(unittest.TestCase):
             name, = (name for name in handle.getnames() if name.endswith('/examples/hia_bootstrap/native_mapping.hepta'))
             self.assertEqual(handle.extractfile(name).read(), native.SOURCE.read_bytes())
         command('wheel', ['-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation',
-                          '--wheel-dir', folder / 'wheels', archive])
+                          *reference_build_settings(), '--wheel-dir', folder / 'wheels', archive])
         wheel, = (folder / 'wheels').glob('*.whl')
         installed = folder / 'installed'
         command('install', ['-m', 'pip', 'install', '--no-index', '--no-deps', '--target', installed, wheel])

@@ -919,6 +919,52 @@ jobs:
           git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
       - id: worker_unknown_cold_authority
         run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: Build explicit same-source reference wheel for installed QA
+        run: |
+          set -euo pipefail
+          python -B - <<'PY'
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+          import sys
+          from tools.build_hia_default_release import build, source_identity
+          from tools.build_hia_json_preflight import current_sources
+          from tests.hia_distribution_fixture import _check_wheel
+
+          temporary = Path(os.environ['RUNNER_TEMP'])
+          cold = temporary / 'hia-cold.json'
+          compiler, = sorted((temporary / 'hia-cold.cold').rglob('B3.image.bin'))
+          sources = current_sources()
+          wheel = build(temporary / 'hia-reference-qa', compiler, cold, reference=True)
+          _check_wheel(wheel, sources)
+          if current_sources() != sources:
+              raise ValueError('QA reference distribution sources changed during the build')
+          wheel = wheel.resolve(strict=True)
+          pin = sha256(wheel.read_bytes()).hexdigest()
+          values = {
+              'HEPTA_HIA_TEST_PACKAGING_PYTHON': sys.executable,
+              'HEPTA_HIA_TEST_DISTRIBUTION_WHEEL': str(wheel),
+              'HEPTA_HIA_TEST_DISTRIBUTION_SHA256': pin,
+          }
+          if any('\n' in value or '\r' in value for value in values.values()):
+              raise ValueError('QA fixture environment contains a line delimiter')
+          report = {
+              'schema': 'hepta.hia.ci-reference-distribution.v1',
+              'distribution_profile': 'reference-only',
+              'source_identity_sha256': source_identity(sources),
+              'cold_report_sha256': sha256(cold.read_bytes()).hexdigest(),
+              'compiler_sha256': sha256(compiler.read_bytes()).hexdigest(),
+              'wheel': str(wheel),
+              'wheel_sha256': pin,
+              'production_distribution_qualified': False,
+          }
+          (temporary / 'hia-reference-qa.json').write_text(
+              json.dumps(report, indent=2, sort_keys=True) + '\n')
+          with Path(os.environ['GITHUB_ENV']).open('a') as output:
+              for name, value in values.items():
+                  output.write(name + '=' + value + '\n')
+          PY
       - name: Validate native execution ledger
         run: |
           set -euo pipefail

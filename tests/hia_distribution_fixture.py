@@ -181,7 +181,7 @@ def reference_wheel(source, python=None):
             wheels = work / 'wheels'
             wheels.mkdir()
             command = [str(python), '-B', '-m', 'pip', 'wheel', '--no-index', '--no-deps',
-                       '--no-build-isolation', '--config-settings', 'hia.reference-wheel=true',
+                       '--no-build-isolation', *reference_build_settings(),
                        '--wheel-dir', str(wheels), str(stage)]
             result = subprocess.run(command, cwd=work, capture_output=True)
             if result.returncode:
@@ -219,3 +219,25 @@ def compare_vm_routes(collect):
     assert operation_reports == graph_reports
     return graph_reports
 """
+
+
+def reference_build_settings():
+    """Select the hosted API/oracle profile only in an explicit QA build."""
+    return ('--config-settings', 'hia.reference-wheel=true')
+
+
+def reference_fixture_environment(environment=None):
+    """Carry only source-checked QA packaging inputs across clean test children.
+
+    Native provider selectors and runtime configuration are deliberately absent.
+    reference_wheel rechecks the complete source identity and archive digest.
+    """
+    environment = os.environ if environment is None else environment
+    path = environment.get('HEPTA_HIA_TEST_DISTRIBUTION_WHEEL')
+    pin = environment.get('HEPTA_HIA_TEST_DISTRIBUTION_SHA256')
+    if (path is None) != (pin is None):
+        raise ValueError('a reference fixture requires its path and SHA-256 together')
+    names = ('HEPTA_HIA_TEST_PACKAGING_PYTHON',
+             'HEPTA_HIA_TEST_DISTRIBUTION_WHEEL',
+             'HEPTA_HIA_TEST_DISTRIBUTION_SHA256')
+    return {name: environment[name] for name in names if name in environment}

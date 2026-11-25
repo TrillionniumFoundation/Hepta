@@ -115,7 +115,7 @@ class NativeOuterIntegrationTests(unittest.TestCase):
                 shutil.copyfile(ROOT/name,target)
             sdists, wheels, installed = folder/'sdist', folder/'wheels', folder/'installed'
             rows = []
-            from tests.hia_distribution_fixture import stage_cold_sources
+            from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings
             stage_cold_sources(source)
             result = subprocess.run([sys.executable, '-B', 'setup.py', 'sdist', '--dist-dir', str(sdists)],
                 cwd=source, capture_output=True, timeout=120,
@@ -133,7 +133,7 @@ class NativeOuterIntegrationTests(unittest.TestCase):
                          'sdist_sha256': sha256(archive.read_bytes()).hexdigest(),
                          'sdist_bytes': archive.stat().st_size})
             command = [sys.executable,'-B','-m','pip','wheel', '--no-index','--no-deps','--no-build-isolation',
-                       '--wheel-dir',str(wheels),str(archive)]
+                       *reference_build_settings(), '--wheel-dir',str(wheels),str(archive)]
             result = subprocess.run(command,cwd=folder,capture_output=True,timeout=1800)
             rows.append({'label':'wheel-build','returncode':result.returncode,
                          'stdout':result.stdout.decode(),'stderr':result.stderr.decode()})

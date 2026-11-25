@@ -1294,7 +1294,7 @@ raise SystemExit(main(sys.argv[1:]))
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)
         packaging = os.environ.get("HEPTA_HIA_TEST_PACKAGING_PYTHON", sys.executable)
-        from tests.hia_distribution_fixture import stage_cold_sources
+        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings
         stage_cold_sources(source)
         self.run_recorded("sdist", [packaging, "-B", "setup.py", "sdist", "--dist-dir", str(self.root / "sdist")],
                           cwd=source, timeout=90)
@@ -1304,7 +1304,7 @@ raise SystemExit(main(sys.argv[1:]))
             for name in resources:
                 self.assertEqual(tar.extractfile(prefix + name).read(), (ROOT / name).read_bytes(), name)
         self.run_recorded("wheel", [packaging, "-B", "-m", "pip", "wheel", "--no-deps", "--no-index",
-            "--no-build-isolation", "--wheel-dir", str(self.root / "wheels"), str(archive)], timeout=1800)
+            "--no-build-isolation", *reference_build_settings(), "--wheel-dir", str(self.root / "wheels"), str(archive)], timeout=1800)
         wheel, = (self.root / "wheels").glob("*.whl")
         installed = self.root / "installed"
         self.run_recorded("install", [packaging, "-B", "-m", "pip", "install", "--no-deps", "--no-index",

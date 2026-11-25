@@ -379,7 +379,7 @@ class CompleteNativeFunctionTests(unittest.TestCase):
                 target = source / name; target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / name, target)
             sdists, wheels, installed = folder / 'sdist', folder / 'wheels', folder / 'installed'
-            from tests.hia_distribution_fixture import stage_cold_sources
+            from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings
             stage_cold_sources(source)
             run = subprocess.run([sys.executable, '-B', 'setup.py', 'sdist', '--dist-dir', str(sdists)],
                 cwd=source, capture_output=True, timeout=120,
@@ -391,7 +391,7 @@ class CompleteNativeFunctionTests(unittest.TestCase):
                 for name in resource_names:
                     self.assertEqual(package.extractfile(prefix + name).read(), (ROOT / name).read_bytes())
             for command in ([sys.executable, '-B', '-m', 'pip', 'wheel', '--no-index', '--no-deps', '--no-build-isolation',
-                             '--wheel-dir', str(wheels), str(archive)],):
+                             *reference_build_settings(), '--wheel-dir', str(wheels), str(archive)],):
                 run = subprocess.run(command, cwd=folder, capture_output=True, timeout=1800,
                                      env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
                 self.assertEqual(run.returncode, 0, run.stdout + run.stderr)

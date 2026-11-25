@@ -46,6 +46,12 @@ REFERENCE_FIXTURE_SHA256 = 'a8b85794e88413a40e6fcc14d7764856a661b11258bc31a327bc
 
 def reference_predecessor(name, data):
     """Restore only exact reviewed reference-profile argument/scope changes."""
+    from tests import hia_reference_profile_history as reference
+    helper = (Path(__file__).resolve().parents[1] / 'tests/hia_reference_profile_history.py').read_bytes()
+    if ({'bytes': len(helper), 'sha256': sha256(helper).hexdigest()} != {'bytes': 2472, 'sha256': 'afd75b65a9ebaacc2c2cef918d43445b42829b66cdbce11b2c5a16e8e982d9e3'}
+            or Path(reference.__file__).read_bytes() != helper):
+        raise ValueError('complete explicit reference-profile source helper changed')
+    data = reference.predecessor(name, data)
     if name == 'tests/test_hia_agent_installed_resources.py':
         from tests import hia_installed_resource_history as resource
         helper = (Path(__file__).resolve().parents[1] / 'tests/hia_installed_resource_history.py').read_bytes()

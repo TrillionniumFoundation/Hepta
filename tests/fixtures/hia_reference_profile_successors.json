@@ -1,0 +1,338 @@
+{
+  "files": {
+    "tests/hia_distribution_fixture.py": {
+      "current": {
+        "bytes": 11842,
+        "sha256": "916a83d2378d404843c61b1f0b56bc5e59447e6f21d411e85f0beeb2c43ca099"
+      },
+      "original": {
+        "bytes": 10835,
+        "sha256": "b11deaa2127977723c59d1820cd14239cc7b56bee74f03099856dd94939c1cbf"
+      },
+      "splices": [
+        {
+          "after": "                       '--no-build-isolation', *reference_build_settings(),\n",
+          "before": "                       '--no-build-isolation', '--config-settings', 'hia.reference-wheel=true',\n",
+          "offset": 9060
+        },
+        {
+          "after": "\n\ndef reference_build_settings():\n    \"\"\"Select the hosted API/oracle profile only in an explicit QA build.\"\"\"\n    return ('--config-settings', 'hia.reference-wheel=true')\n\n\ndef reference_fixture_environment(environment=None):\n    \"\"\"Carry only source-checked QA packaging inputs across clean test children.\n\n    Native provider selectors and runtime configuration are deliberately absent.\n    reference_wheel rechecks the complete source identity and archive digest.\n    \"\"\"\n    environment = os.environ if environment is None else environment\n    path = environment.get('HEPTA_HIA_TEST_DISTRIBUTION_WHEEL')\n    pin = environment.get('HEPTA_HIA_TEST_DISTRIBUTION_SHA256')\n    if (path is None) != (pin is None):\n        raise ValueError('a reference fixture requires its path and SHA-256 together')\n    names = ('HEPTA_HIA_TEST_PACKAGING_PYTHON',\n             'HEPTA_HIA_TEST_DISTRIBUTION_WHEEL',\n             'HEPTA_HIA_TEST_DISTRIBUTION_SHA256')\n    return {name: environment[name] for name in names if name in environment}\n",
+          "before": "",
+          "offset": 10835
+        }
+      ]
+    },
+    "tests/test_hia_agent_installed_resources.py": {
+      "current": {
+        "bytes": 85488,
+        "sha256": "3e3dd2d320505351e7593920dc82105fd5d1d23c1cf6377ad6f8fc05f25c4306"
+      },
+      "original": {
+        "bytes": 85488,
+        "sha256": "3e3dd2d320505351e7593920dc82105fd5d1d23c1cf6377ad6f8fc05f25c4306"
+      },
+      "splices": []
+    },
+    "tests/test_hia_bounded_memory_native.py": {
+      "current": {
+        "bytes": 33000,
+        "sha256": "6115b028bd9778a2a38de96013950a1141bc6eb8cb7ad5bd66474529734c5a98"
+      },
+      "original": {
+        "bytes": 32945,
+        "sha256": "435f5f134af54d54ea6167ed161d83c9a557b426f12152a9f9ea5aa8c382b7b1"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "        from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 29868
+        },
+        {
+          "after": "            *reference_build_settings(), '--wheel-dir', folder / 'wheels', archive])\n",
+          "before": "            '--wheel-dir', folder / 'wheels', archive])\n",
+          "offset": 30475
+        }
+      ]
+    },
+    "tests/test_hia_candidate_budget_native.py": {
+      "current": {
+        "bytes": 47645,
+        "sha256": "8b74ad53edff74ee4f374398b72026778a7d1788f52570de337ad1f9236f5b83"
+      },
+      "original": {
+        "bytes": 47590,
+        "sha256": "2a5e6deed4fa86630b659084320c95fbb06a4283d00bbb54764b1e0d4d66a24c"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "        from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 43341
+        },
+        {
+          "after": "            '--no-build-isolation', *reference_build_settings(), '--wheel-dir', str(case / 'wheels'), str(archive)],\n",
+          "before": "            '--no-build-isolation', '--wheel-dir', str(case / 'wheels'), str(archive)],\n",
+          "offset": 44167
+        }
+      ]
+    },
+    "tests/test_hia_cli_native.py": {
+      "current": {
+        "bytes": 63146,
+        "sha256": "93186f6f4f9892285d930fe788620f9c414ea8cc82a40f2e2671ddbe0c04a147"
+      },
+      "original": {
+        "bytes": 62585,
+        "sha256": "a56e7a54fe74639637204e4e57e166c49354c9fee545c339c50e75f9ec6df6d4"
+      },
+      "splices": [
+        {
+          "after": "        pinned = {**json.loads(contract_bytes)['source_identity']['files'],\n                  contract: sha256(contract_bytes).hexdigest()}\n",
+          "before": "        pinned = json.loads(contract_bytes)['source_identity']['files']\n",
+          "offset": 48741
+        },
+        {
+          "after": " \"console_entry_point\":None,\"physical_entry_point\":str(physical_entry),\n \"isolated_without_site\":True,\"empty_PATH\":True,\n",
+          "before": " \"console_entry_point\":entries[0].value,\"isolated_without_site\":True,\"empty_PATH\":True,\n",
+          "offset": 58883
+        },
+        {
+          "after": "            from tests.hia_distribution_fixture import reference_fixture_environment\n            materialize = (\n                \"import shutil,sys\\n\"\n                \"from pathlib import Path\\n\"\n                \"source,wheels=map(Path,sys.argv[1:])\\n\"\n                \"sys.path.insert(0,str(source))\\n\"\n                \"from tests.hia_distribution_fixture import reference_wheel\\n\"\n                \"wheel=reference_wheel(source,sys.executable)\\n\"\n                \"wheels.mkdir(mode=0o700)\\n\"\n                \"shutil.copyfile(wheel,wheels/wheel.name)\\n\"\n            )\n            command([packaging_python, \"-B\", \"-c\", materialize, str(source), str(wheels)],\n                    \"wheel-build\", env=environment(reference_fixture_environment()))\n",
+          "before": "            command([packaging_python, \"-B\", \"-m\", \"pip\", \"wheel\", \"--no-cache-dir\", \"--no-deps\",\n                     \"--no-index\", \"--no-build-isolation\", \"--config-settings\", \"hia.reference-wheel=true\",\n                     \"--wheel-dir\", str(wheels), str(source)], \"wheel-build\")\n",
+          "offset": 59253
+        }
+      ]
+    },
+    "tests/test_hia_composite_functions_native.py": {
+      "current": {
+        "bytes": 30423,
+        "sha256": "eddec8af1c0fa2dc43953cc7399e71e40ebe18ce55e887eeb4f0ba5a59697958"
+      },
+      "original": {
+        "bytes": 30368,
+        "sha256": "da6b31067f529bcf56bc6d579530ea60dfe9bf3d6499325cd7991f11b8d7536c"
+      },
+      "splices": [
+        {
+          "after": "            from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "            from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 24829
+        },
+        {
+          "after": "                             *reference_build_settings(), '--wheel-dir', str(wheels), str(archive)],):\n",
+          "before": "                             '--wheel-dir', str(wheels), str(archive)],):\n",
+          "offset": 25691
+        }
+      ]
+    },
+    "tests/test_hia_composite_outer_integration.py": {
+      "current": {
+        "bytes": 15472,
+        "sha256": "204541e40d9d60f0aa1f23fce971d8981cc56d48161510b8fabd5ada4bc5308f"
+      },
+      "original": {
+        "bytes": 15417,
+        "sha256": "eefba7776cb279bb164d026a811138339c38724c5b103369ee8439286e757e35"
+      },
+      "splices": [
+        {
+          "after": "            from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "            from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 6807
+        },
+        {
+          "after": "                       *reference_build_settings(), '--wheel-dir',str(wheels),str(archive)]\n",
+          "before": "                       '--wheel-dir',str(wheels),str(archive)]\n",
+          "offset": 8148
+        }
+      ]
+    },
+    "tests/test_hia_continuation_native.py": {
+      "current": {
+        "bytes": 47495,
+        "sha256": "e511f77961d5dc0795ac95a43edffbf21d9ab6bb9b1d217aba77470814059ce6"
+      },
+      "original": {
+        "bytes": 47390,
+        "sha256": "c5c62d19790ccef49296b2783d84cfa2469aa82a83d129f82e34c098adb3ef41"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 20422
+        }
+      ]
+    },
+    "tests/test_hia_execution_budget_native.py": {
+      "current": {
+        "bytes": 56686,
+        "sha256": "80e6b83d9fb73e989d04bdfe7e8e3932a782144608d42a8a134e6d2373c54868"
+      },
+      "original": {
+        "bytes": 56631,
+        "sha256": "31becb0bf5001aa4b1cb6565a0bee2d68ecbd7248c951b1c485401eda2cf8b23"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "        from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 53085
+        },
+        {
+          "after": "            '--no-build-isolation', *reference_build_settings(), '--wheel-dir', str(wheels), str(sdist)], cwd=case,\n",
+          "before": "            '--no-build-isolation', '--wheel-dir', str(wheels), str(sdist)], cwd=case,\n",
+          "offset": 53914
+        }
+      ]
+    },
+    "tests/test_hia_generation_retention_native.py": {
+      "current": {
+        "bytes": 51696,
+        "sha256": "9d93c6ff1f9701365e0901e56cb7d066c264f6a74f36ee98f42600758ef0b8d4"
+      },
+      "original": {
+        "bytes": 51641,
+        "sha256": "1bc79ee476609f0db1c650ec354cf837c22b59eccbdff19a89b8dbb210893a0d"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "        from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 36270
+        },
+        {
+          "after": "                          *reference_build_settings(), '--wheel-dir', folder / 'wheels', archive])\n",
+          "before": "                          '--wheel-dir', folder / 'wheels', archive])\n",
+          "offset": 36887
+        }
+      ]
+    },
+    "tests/test_hia_json_wire_native.py": {
+      "current": {
+        "bytes": 34177,
+        "sha256": "bcb56f60318b352b2a5e333415ea8f86a5633b293c424361357381f03aeaf5f9"
+      },
+      "original": {
+        "bytes": 34072,
+        "sha256": "d0140b75f914c0c09886b342fe63309414e9abde9c185a88fc3d14e039e9293e"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources\n        stage_cold_sources(source)\n",
+          "before": "",
+          "offset": 32002
+        }
+      ]
+    },
+    "tests/test_hia_native_mapping_native.py": {
+      "current": {
+        "bytes": 37625,
+        "sha256": "7a57ce1841349f34f35a907362b135ff2d4c9f808258a35bb3ad8e80a2f4538e"
+      },
+      "original": {
+        "bytes": 37570,
+        "sha256": "1f3508a5012c61c03d04a3f4c8361f51b61a2fb8efdc778a91b154424d230eb4"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "        from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 30216
+        },
+        {
+          "after": "                          *reference_build_settings(), '--wheel-dir', folder / 'wheels', archive])\n",
+          "before": "                          '--wheel-dir', folder / 'wheels', archive])\n",
+          "offset": 30813
+        }
+      ]
+    },
+    "tests/test_hia_publication_measurement_native.py": {
+      "current": {
+        "bytes": 29791,
+        "sha256": "24128701b04fe9d6126eaa8b7b7d1d9420cf43def140a15b2ac683b9dea56e86"
+      },
+      "original": {
+        "bytes": 29736,
+        "sha256": "9a5eb9315ea8c689e1f1d53c974825fcb52f93c13368daedee2cdfc9afa1e607"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "        from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 23113
+        },
+        {
+          "after": "                          *reference_build_settings(), '--wheel-dir', folder / 'wheels', archive])\n",
+          "before": "                          '--wheel-dir', folder / 'wheels', archive])\n",
+          "offset": 23733
+        }
+      ]
+    },
+    "tests/test_hia_scalar_profile_native.py": {
+      "current": {
+        "bytes": 38476,
+        "sha256": "37436a5aa852f34d60e504636a84ee793106f85602137692a2c6ae33cf93cc39"
+      },
+      "original": {
+        "bytes": 38421,
+        "sha256": "e0eb80a4c03ef8613f4b7f7c3c66f8f60049c06c534551b7f0905d54fcb09a73"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "        from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 31536
+        },
+        {
+          "after": "                          *reference_build_settings(), '--wheel-dir', folder / 'wheels', archive])\n",
+          "before": "                          '--wheel-dir', folder / 'wheels', archive])\n",
+          "offset": 32154
+        }
+      ]
+    },
+    "tests/test_hia_slot_ledger_native_integration.py": {
+      "current": {
+        "bytes": 85268,
+        "sha256": "ab050947b23ce434092150b591d562ac5ab59890a722ee3ef7fadf1f509c4b59"
+      },
+      "original": {
+        "bytes": 85213,
+        "sha256": "e6aacdb28c34890f897b09d088ede33cd1360a9e8cf09ba44e48fecd1187ffd1"
+      },
+      "splices": [
+        {
+          "after": "        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings\n",
+          "before": "        from tests.hia_distribution_fixture import stage_cold_sources\n",
+          "offset": 77586
+        },
+        {
+          "after": "            \"--no-build-isolation\", *reference_build_settings(), \"--wheel-dir\", str(self.root / \"wheels\"), str(archive)], timeout=1800)\n",
+          "before": "            \"--no-build-isolation\", \"--wheel-dir\", str(self.root / \"wheels\"), str(archive)], timeout=1800)\n",
+          "offset": 78259
+        }
+      ]
+    },
+    "tests/test_hia_store_native_delivery.py": {
+      "current": {
+        "bytes": 16920,
+        "sha256": "2c02ef85c141f13b7a91bd789ba452dab5942f5d1c13cf589f8abcc16cfb0041"
+      },
+      "original": {
+        "bytes": 16789,
+        "sha256": "0aa787ba9533def4d49224aed1a4545f24a64874e4e8f14e6652ce41e0a2fbe5"
+      },
+      "splices": [
+        {
+          "after": "    from tests.hia_distribution_fixture import reference_fixture_environment\n    return {**{key: value for key, value in os.environ.items()\n               if key not in ('PYTHONPATH', 'PYTHONHOME') and not key.startswith('HEPTA_HIA_')},\n            **reference_fixture_environment()}\n",
+          "before": "    return {key: value for key, value in os.environ.items()\n            if key not in ('PYTHONPATH', 'PYTHONHOME') and not key.startswith('HEPTA_HIA_')}\n",
+          "offset": 1562
+        }
+      ]
+    }
+  },
+  "original_commit": "bb45cd65f51c7dc9d98149d43729fed1b8a1ac5f",
+  "schema": "hepta.hia.reference-profile-successors.v1",
+  "scope": "Explicit reference-profile selection and transfer of three checked QA packaging inputs only. Original source files are reconstructed in full and replayed forward. Production native defaults, test assertions, input domains, and timeouts are unchanged. Continuation reference wheels stage the complete same-source contract before the original 120-second setup.py build. The resource-source row is now an exact identity relation: the three support paths are already independently selected before the tuple is finalized, so the duplicate append is removed."
+}

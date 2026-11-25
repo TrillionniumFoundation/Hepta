@@ -286,6 +286,8 @@ class ContinuationNativeTests(unittest.TestCase):
         for symbol,values in declarations.items():names.extend('docs/'+n if symbol=='DISCOVERY_FILES' else n for n in values)
         for name in names:
             target=source/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,target)
+        from tests.hia_distribution_fixture import stage_cold_sources
+        stage_cold_sources(source)
         python=os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON',sys.executable)
         built=subprocess.run([python,'-B','setup.py','bdist_wheel','--dist-dir',str(directory/'wheels')],cwd=source,capture_output=True,timeout=120)
         self.assertEqual(built.returncode,0,built.stdout+built.stderr)

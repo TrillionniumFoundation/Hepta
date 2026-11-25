@@ -870,7 +870,7 @@ raise AssertionError('the selected crash boundary was never reached')
             shutil.copyfile(ROOT / name, target)
         packaging = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
         sdists, wheels, installed = case / 'sdists', case / 'wheels', case / 'installed'
-        from tests.hia_distribution_fixture import stage_cold_sources
+        from tests.hia_distribution_fixture import stage_cold_sources, reference_build_settings
         stage_cold_sources(source)
         archived = subprocess.run([packaging, '-B', 'setup.py', 'sdist', '--dist-dir', str(sdists)],
             cwd=source, capture_output=True, timeout=120)
@@ -882,7 +882,7 @@ raise AssertionError('the selected crash boundary was never reached')
             members = {name.split('/', 1)[1] for name in archive.getnames() if '/' in name}
         self.assertTrue(set(resources).issubset(members), sorted(set(resources) - members))
         built = subprocess.run([packaging, '-B', '-m', 'pip', 'wheel', '--no-deps', '--no-index',
-            '--no-build-isolation', '--wheel-dir', str(wheels), str(sdist)], cwd=case,
+            '--no-build-isolation', *reference_build_settings(), '--wheel-dir', str(wheels), str(sdist)], cwd=case,
             capture_output=True, timeout=1800)
         (case / 'wheel-build.log').write_bytes(built.stdout + built.stderr)
         self.assertEqual(built.returncode, 0, built.stdout + built.stderr)

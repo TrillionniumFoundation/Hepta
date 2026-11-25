@@ -1282,7 +1282,7 @@ ORDINARY_CALLER_COUNTS = {'tools/qualify_hia_cost_ledger_callers.py': 81, 'tools
 ORDINARY_CALLER_CAPTURE_PATHS = (ORDINARY_CALLER_FIXTURE, *ORDINARY_CALLER_PATHS,
                                 *ORDINARY_CALLER_DEPENDENCIES)
 FINAL_CALLER_HISTORY = 'tests/hia_installed_distribution_history.py'
-FINAL_CALLER_HISTORY_PIN = {'bytes': 8730, 'sha256': 'e49fca0d6a8bcee353f9c1f505677661f0728b30182a6bf30115bc065f14870b'}
+FINAL_CALLER_HISTORY_PIN = {'bytes': 9264, 'sha256': '8d253f443ccdb982bb9181d616f5e2cf837e7ac74eaed563d5f196c83bebdb2b'}
 
 
 def _ordinary_caller_transform(raw, record, path, *, reverse):
