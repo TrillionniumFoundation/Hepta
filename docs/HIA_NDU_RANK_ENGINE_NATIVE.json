@@ -1,0 +1,1214 @@
+{
+  "schema": "hepta.hia.ndu-rank-engine.native-qualification.v1",
+  "passed": true,
+  "native_engine_closed": true,
+  "whole_native_rank_closed": false,
+  "production_activation": false,
+  "remaining": "Rank context/active-call/result lifecycle and background/multiversion integration",
+  "engine": {
+    "bytes": 4461559,
+    "sha256": "8338a80a992218ca6faefea66235fd18fcfb5c5d59f2bcc1d10a184f28e294ff"
+  },
+  "owner_dependency_commit": "2dc549bbec818aff9f09a417747bd9884ec917c1",
+  "engine_qualification": {
+    "schema": "hepta.hia.ndu-rank-engine.actual-qualification.v1",
+    "passed": true,
+    "count": 17,
+    "engine_bytes": 4461559,
+    "engine_sha256": "8338a80a992218ca6faefea66235fd18fcfb5c5d59f2bcc1d10a184f28e294ff",
+    "scope": "Each product call is one sealed native engine invocation with fixed HIA roles and actual syscalls/children. No host language effect or role dispatch. Reference-only clocks reconstructed from actual captured costs and proof wall intervals preserve every observable elapsed field; actual product clock is unchanged CLOCK_MONOTONIC. Root-owned context and external result lifetime remain separate.",
+    "whole_native_rank_closed": false,
+    "cases": [
+      {
+        "case": "native-engine-cap-zero",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 6,
+        "actual_proof_calls": 0,
+        "admitted": false,
+        "selected_id": "abstain",
+        "reason": "search_budget_exhausted_before_native",
+        "result_bytes": 3480,
+        "result_sha256": "d0a751b3466d39430485ac67d6ca8c2d87bb4f190cce54bd61363828539a81fe"
+      },
+      {
+        "case": "held-entry-clock",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 6,
+        "actual_proof_calls": 0,
+        "admitted": false,
+        "selected_id": "abstain",
+        "reason": "search_budget_exhausted_before_native",
+        "result_bytes": 3480,
+        "result_sha256": "a8f9d525915fc16d6e98142c718e7b70dca300fe8cacbb543803addf537d1984"
+      },
+      {
+        "case": "native-engine-late-action-unicode",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 1,
+        "clock_samples": 4,
+        "actual_proof_calls": 0,
+        "admitted": null,
+        "selected_id": null,
+        "reason": null,
+        "result_bytes": 127,
+        "result_sha256": "f55380112df9bb62d3d8ed5e678c83204b2821d35c17f0ad1b8785999d3388de"
+      },
+      {
+        "case": "native-engine-early-objective-unicode",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 1,
+        "clock_samples": 1,
+        "actual_proof_calls": 0,
+        "admitted": null,
+        "selected_id": null,
+        "reason": null,
+        "result_bytes": 127,
+        "result_sha256": "1b18542cbcb8d24df45acf8e163b0987613c714bcf970a0ab6c34a80a4b791c1"
+      },
+      {
+        "case": "native-engine-bad-baseline",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 1,
+        "clock_samples": 1,
+        "actual_proof_calls": 0,
+        "admitted": null,
+        "selected_id": null,
+        "reason": null,
+        "result_bytes": 79,
+        "result_sha256": "b9ea5af3cd1b8117d93be35d86ea378577c513730592b1088bc61c4c40888ef1"
+      },
+      {
+        "case": "native-engine-native-empty",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 4,
+        "actual_proof_calls": 0,
+        "admitted": false,
+        "selected_id": "abstain",
+        "reason": "native_evaluator_abstained",
+        "result_bytes": 4559,
+        "result_sha256": "fda58a7475cce23195e3ace5ec8067c13a5c461b5c5bef3c22d5bd04458e23dc"
+      },
+      {
+        "case": "native-engine-one-proved",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 10,
+        "actual_proof_calls": 2,
+        "admitted": true,
+        "selected_id": "A",
+        "reason": "fresh_proof_and_robust_cost_gate_passed",
+        "result_bytes": 16220,
+        "result_sha256": "4ad9c067b351ee474809f6bc18e7eb0e52fe0e111f589b97ecfc60e14ff8c8a2"
+      },
+      {
+        "case": "native-engine-two-proved",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 13,
+        "actual_proof_calls": 3,
+        "admitted": true,
+        "selected_id": "A",
+        "reason": "fresh_proof_and_robust_cost_gate_passed",
+        "result_bytes": 22291,
+        "result_sha256": "d76f6220b3ec1f49fed313f5401819196c04fae707afc41463e97e1506ec613e"
+      },
+      {
+        "case": "native-engine-rejected-and-proved",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 10,
+        "actual_proof_calls": 2,
+        "admitted": true,
+        "selected_id": "B",
+        "reason": "fresh_proof_and_robust_cost_gate_passed",
+        "result_bytes": 16814,
+        "result_sha256": "91c28b45086e40fe6456bde4fccd9b5fbb95f0a953c2d284d95fc6ce6c5ec441"
+      },
+      {
+        "case": "native-engine-identity-budget",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 10,
+        "actual_proof_calls": 2,
+        "admitted": false,
+        "selected_id": "abstain",
+        "reason": "native_identity_admission_exhausted_budget",
+        "result_bytes": 14451,
+        "result_sha256": "6ed333bb3cce2d2c3a20d41ada0998da6e413d8c2038cfb14a7782556ba39ebe"
+      },
+      {
+        "case": "native-engine-bridge-error-10",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 1,
+        "clock_samples": 3,
+        "actual_proof_calls": 0,
+        "admitted": null,
+        "selected_id": null,
+        "reason": null,
+        "result_bytes": 101,
+        "result_sha256": "1d8fea51ea0862b68c0baa16110e55b0727b1c98c3e5fe840d23117c7bc802c2"
+      },
+      {
+        "case": "native-engine-bridge-error-11",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 1,
+        "clock_samples": 3,
+        "actual_proof_calls": 0,
+        "admitted": null,
+        "selected_id": null,
+        "reason": null,
+        "result_bytes": 126,
+        "result_sha256": "775b7de98f072fe60bbc81648454186d19297c5e9364ff51a9ed157d46ea149e"
+      },
+      {
+        "case": "native-engine-bridge-error-12",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 1,
+        "clock_samples": 3,
+        "actual_proof_calls": 0,
+        "admitted": null,
+        "selected_id": null,
+        "reason": null,
+        "result_bytes": 87,
+        "result_sha256": "3d77ef38fb96ed28a2c97d24323a8f040db7826d2dfcbaf5983f2432c26bce47"
+      },
+      {
+        "case": "native-engine-all-loser-costs-once",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 6,
+        "actual_proof_calls": 0,
+        "admitted": false,
+        "selected_id": "abstain",
+        "reason": "search_budget_exhausted_before_native",
+        "result_bytes": 3499,
+        "result_sha256": "785d08d93eadc8996b4fa697bdd049ae50f38522e7fb571387b6d8f69b7cd9fc"
+      },
+      {
+        "case": "native-engine-owned-args-9437184",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 4,
+        "actual_proof_calls": 0,
+        "admitted": false,
+        "selected_id": "abstain",
+        "reason": "search_budget_exhausted_before_native",
+        "result_bytes": 2834,
+        "result_sha256": "60027e06b9d638dd3cc5b6bf98004d15e41708a00b8984bbe20d870d4693dc1f"
+      },
+      {
+        "case": "native-engine-owned-args-75497472",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 4,
+        "actual_proof_calls": 0,
+        "admitted": false,
+        "selected_id": "abstain",
+        "reason": "search_budget_exhausted_before_native",
+        "result_bytes": 6585,
+        "result_sha256": "e21ace5aa2cff6f776cb567b694032461f61c2d3ba88d7e2daf0eaecf907f142"
+      },
+      {
+        "case": "native-engine-all-32-proposals",
+        "passed": true,
+        "transitions": 1,
+        "grows": null,
+        "rank_status": 0,
+        "clock_samples": 36,
+        "actual_proof_calls": 0,
+        "admitted": false,
+        "selected_id": "abstain",
+        "reason": "search_budget_exhausted_before_native",
+        "result_bytes": 21541,
+        "result_sha256": "595182ad9188edeae532be9d6146d1243e65d358b9cfae9ea24d062a0d515d45"
+      }
+    ]
+  },
+  "native_pack_qualification": {
+    "schema": "hepta.hia.ndu-rank-engine.native-pack.v1",
+    "passed": true,
+    "count": 74,
+    "qualified_as_final_owner": false,
+    "owner_dependency": "v6 selected owner pending final source-custody qualification",
+    "input_roles": [
+      {
+        "role": "main",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-main-v5/ndu_rank_main.flat",
+        "sha256": "b67c6de037c6aa041fa60225f778f1e5f1cbb344ee319b74ec336d997b7b2d34",
+        "bytes": 450887
+      },
+      {
+        "role": "tasks",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-tasks-v4/ndu_rank_tasks.flat",
+        "sha256": "0a4364fc8f886bd1e862c3cac24c7d9e5028dec670773c0cec8d3d4ac76fb88b",
+        "bytes": 129649
+      },
+      {
+        "role": "r1",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-json-v4/ndu_rank_json.flat",
+        "sha256": "2e6537acb01c8c2e93c7f7bbcac4f9d0a9fe2e10836d6f56d479c9506f434144",
+        "bytes": 148164
+      },
+      {
+        "role": "r2",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-canonical-unchanged-v2/ndu_rank_canonical.flat",
+        "sha256": "2b9b658fd0c5211d020b60238472119f136075b3e89f638f84ed0ad7835f4fa0",
+        "bytes": 216748
+      },
+      {
+        "role": "r3",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-main-v2/ndu_rank_snapshot.flat",
+        "sha256": "c6ab6ba1f7c89117ac687665b2c0489f27ca54740dc900bcd2501f41b99fbf64",
+        "bytes": 95497
+      },
+      {
+        "role": "r4",
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-structure-v3/background_optimizer_structure.flat",
+        "sha256": "501694a31b52ec095f31a6e650e1ca15f7c0999c1cee62c6afcbe077a838afde",
+        "bytes": 151614
+      },
+      {
+        "role": "r5",
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-freeze-v2/background_optimizer_freeze.flat",
+        "sha256": "f32bf4a811481a3baa007919710549a8e231caa3cb44c6afcb180f4c124d210d",
+        "bytes": 309230
+      },
+      {
+        "role": "r6",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-admission-staged-v2/ndu_rank_admission.flat",
+        "sha256": "18c70f0fb94c80d386b3f5eabb6accef4989c78cb4f4f76b93b27126f2aab2e1",
+        "bytes": 284172
+      },
+      {
+        "role": "r7",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-binary64-v1/agent_binary64.flat",
+        "sha256": "9184c68f231af5e42a0b2a419700d0601390fbbe4942387777d80e55f012559a",
+        "bytes": 67649
+      },
+      {
+        "role": "r8",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-binary64-v1/agent_binary64_format.flat",
+        "sha256": "ab4877e353a65a3834cf318bd02ad3ccacb16c2709aebbb669af7ed3b8a6eb2c",
+        "bytes": 76877
+      },
+      {
+        "role": "r9",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-cost-v1/ndu_rank_cost.flat",
+        "sha256": "f6c4aa1ac0f0de5e0971456d615407d8d67954b6be58fc609e5cdbe7f441d29b",
+        "bytes": 34016
+      },
+      {
+        "role": "r10",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-clock-budget-v1/ndu_rank_clock_budget.flat",
+        "sha256": "f3dfec793b05805db93a2b4b0e794201b13e495dba40a74909f2bf2117b4902e",
+        "bytes": 26198
+      },
+      {
+        "role": "r11",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-canonical-unchanged-v2/ndu_rank_unchanged.flat",
+        "sha256": "381902ad4e92287af2491e17ac92b7baca1ac036adeaa8af01d0ef694fb9869a",
+        "bytes": 108658
+      },
+      {
+        "role": "r12",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-binding-v1/ndu_rank_binding.flat",
+        "sha256": "d8b8b223bbace19a922d15eb6b150c1e27a0f6453161e8e2de7ee90a33702cbd",
+        "bytes": 269584
+      },
+      {
+        "role": "r13",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-selection-v1/ndu_rank_selection.flat",
+        "sha256": "e4c7125ccc6295fe7fea4188f096a5a65735923e9a8f4f70c7c482bde451271e",
+        "bytes": 322461
+      },
+      {
+        "role": "r14",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-owner-support-v1/ndu_rank_report.flat",
+        "sha256": "908e9b52943be2e477b045042147751e2e44e9ab9148c1ac40e6ceaba040d720",
+        "bytes": 177896
+      },
+      {
+        "role": "r15",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-evaluator-qa/owner-main-v1/sha.flat",
+        "sha256": "214aea20ce10da438d1a96e98b0a25ed1151776e1fd577047c336d57cd54ae19",
+        "bytes": 116455
+      },
+      {
+        "role": "r16",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-owner-support-v1/ndu_rank_process.flat",
+        "sha256": "531319d3fed0853e80d44fe53804a78f75ea2553888d5d3cce36eddf05f1bf88",
+        "bytes": 160944
+      },
+      {
+        "role": "r17",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-evaluator-qa/native-owner-pack-v6/effects.flat",
+        "sha256": "14abdc26508e5adbdb8dbd301d305599689eb9228d7e65efdb701b2c2f177b0a",
+        "bytes": 939447
+      },
+      {
+        "role": "r19",
+        "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-evaluator-qa/owner-error-v3/flat.bin",
+        "sha256": "0b423516af64a25a3a682f101fba8c92fd0fbd5c724fa3681b5399f69a8d3c2e",
+        "bytes": 161880
+      },
+      {
+        "role": "r20",
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-json-capture-v4/background_optimizer_json_capture.flat",
+        "sha256": "62f62e547a346c631697a4c0ced3385afb78d6a6472a11ecad2e8c57da0faf1f",
+        "bytes": 212039
+      }
+    ],
+    "packer_sha256": "78a2b66835ecc37c8eb13cdc6db4fabdcc8383e62c59f335801bc3d3517e3a13",
+    "cases": [
+      {
+        "case": "native-object-twice",
+        "passed": true,
+        "bytes": 4462232,
+        "sha256": "b4d441f358139c129d631a4e568ea74a81ad4002b7244e8a8f70ffb1ff200085"
+      },
+      {
+        "case": "object-short-0",
+        "passed": true
+      },
+      {
+        "case": "object-short-1",
+        "passed": true
+      },
+      {
+        "case": "object-short-4462231",
+        "passed": true
+      },
+      {
+        "case": "object-work-0",
+        "passed": true
+      },
+      {
+        "case": "object-work-511",
+        "passed": true
+      },
+      {
+        "case": "native-flat-twice",
+        "passed": true,
+        "bytes": 4461559,
+        "sha256": "8338a80a992218ca6faefea66235fd18fcfb5c5d59f2bcc1d10a184f28e294ff"
+      },
+      {
+        "case": "flat-short-0",
+        "passed": true
+      },
+      {
+        "case": "flat-short-1",
+        "passed": true
+      },
+      {
+        "case": "flat-short-4461558",
+        "passed": true
+      },
+      {
+        "case": "flat-work-0",
+        "passed": true
+      },
+      {
+        "case": "flat-work-511",
+        "passed": true
+      },
+      {
+        "case": "empty",
+        "passed": true
+      },
+      {
+        "case": "truncated-header",
+        "passed": true
+      },
+      {
+        "case": "short-body",
+        "passed": true
+      },
+      {
+        "case": "trailing-body",
+        "passed": true
+      },
+      {
+        "case": "invalid-0-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-8-20",
+        "passed": true
+      },
+      {
+        "case": "invalid-8-22",
+        "passed": true
+      },
+      {
+        "case": "invalid-184-2",
+        "passed": true
+      },
+      {
+        "case": "invalid-16-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-24-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-32-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-40-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-48-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-56-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-64-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-72-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-80-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-88-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-96-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-104-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-112-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-120-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-128-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-136-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-144-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-152-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-160-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-168-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-176-0",
+        "passed": true
+      },
+      {
+        "case": "invalid-16-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-24-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-32-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-40-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-48-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-56-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-64-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-72-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-80-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-88-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-96-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-104-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-112-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-120-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-128-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-136-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-144-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-152-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-160-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-168-4194305",
+        "passed": true
+      },
+      {
+        "case": "invalid-176-4194305",
+        "passed": true
+      },
+      {
+        "case": "preserved-16MiB-total-text-limit",
+        "passed": true
+      },
+      {
+        "case": "short-control",
+        "passed": true
+      },
+      {
+        "case": "null-control",
+        "passed": true
+      },
+      {
+        "case": "null-input",
+        "passed": true
+      },
+      {
+        "case": "input-wrap",
+        "passed": true
+      },
+      {
+        "case": "control-wrap",
+        "passed": true
+      },
+      {
+        "case": "input-control-alias",
+        "passed": true
+      },
+      {
+        "case": "null-work-nonzero",
+        "passed": true
+      },
+      {
+        "case": "work-zero-extent",
+        "passed": true
+      },
+      {
+        "case": "work-wrap",
+        "passed": true
+      },
+      {
+        "case": "work-control-alias",
+        "passed": true
+      },
+      {
+        "case": "work-input-alias",
+        "passed": true
+      }
+    ]
+  },
+  "observed_policy_qualifications": [
+    {
+      "schema": "hepta.hia.ndu-rank-main.partial-qualification.v1",
+      "passed": true,
+      "count": 34,
+      "scope": "Actual complete native rank policy and dynamic tasks for no-native-budget branch, plus original typed input/freezer errors. Every clock is an actual CLOCK_MONOTONIC sample replayed only into unchanged legacy reference for exact full-output comparison. Native evaluator and proof branch remain pending.",
+      "whole_native_rank_closed": false,
+      "cases": [
+        {
+          "case": "owned-fd-read-0",
+          "passed": true,
+          "transitions": 5,
+          "grows": 0
+        },
+        {
+          "case": "owned-fd-read-1",
+          "passed": true,
+          "transitions": 7,
+          "grows": 0
+        },
+        {
+          "case": "owned-fd-read-65535",
+          "passed": true,
+          "transitions": 7,
+          "grows": 0
+        },
+        {
+          "case": "owned-fd-read-65536",
+          "passed": true,
+          "transitions": 7,
+          "grows": 0
+        },
+        {
+          "case": "owned-fd-read-65537",
+          "passed": true,
+          "transitions": 9,
+          "grows": 0
+        },
+        {
+          "case": "owned-fd-read-8388609",
+          "passed": true,
+          "transitions": 264,
+          "grows": 1
+        },
+        {
+          "case": "owned-fd-short-read",
+          "passed": true,
+          "transitions": 8,
+          "grows": 0
+        },
+        {
+          "case": "owned-fd-growth-failure",
+          "passed": true,
+          "transitions": 5,
+          "grows": 1
+        },
+        {
+          "case": "owned-fd-extent-overflow",
+          "passed": true,
+          "transitions": 4,
+          "grows": 0
+        },
+        {
+          "case": "full-cap-zero-two-candidates",
+          "passed": true,
+          "transitions": 568,
+          "grows": 1,
+          "rank_status": 0,
+          "clock_samples": 6,
+          "result_bytes": 3476,
+          "result_sha256": "b8ac5f99b6069a20b608ba3f9c2e670bd4cd1648921db5ff90dd2d6dc758c35e"
+        },
+        {
+          "case": "full-cap-zero-empty",
+          "passed": true,
+          "transitions": 261,
+          "grows": 1,
+          "rank_status": 0,
+          "clock_samples": 4,
+          "result_bytes": 2277,
+          "result_sha256": "b6d7178e46ed2bc96df3e0ca9d6cdb2221c16ad8bf006528b372c98bd476cf33"
+        },
+        {
+          "case": "typed-rejected-program-11",
+          "passed": true,
+          "transitions": 551,
+          "grows": 1,
+          "rank_status": 0,
+          "clock_samples": 5,
+          "result_bytes": 3429,
+          "result_sha256": "fe7577a7c285a32efd191cf27efbeb0a4005a18b57e7cdef01e45f432227fb8c"
+        },
+        {
+          "case": "typed-rejected-program-12",
+          "passed": true,
+          "transitions": 551,
+          "grows": 1,
+          "rank_status": 0,
+          "clock_samples": 5,
+          "result_bytes": 3429,
+          "result_sha256": "1c0a93e91054997beeab0f5f087f7aca0ceca716c90ac391dd1befd1bae6ba8d"
+        },
+        {
+          "case": "typed-rejected-program-13",
+          "passed": true,
+          "transitions": 537,
+          "grows": 1,
+          "rank_status": 0,
+          "clock_samples": 5,
+          "result_bytes": 3405,
+          "result_sha256": "5975cadd1def89e823f5573ac71acc40e844ddd0aff18d500106c65f60c5203a"
+        },
+        {
+          "case": "typed-rejected-program-14",
+          "passed": true,
+          "transitions": 511,
+          "grows": 1,
+          "rank_status": 0,
+          "clock_samples": 5,
+          "result_bytes": 3408,
+          "result_sha256": "580e3dc54587edbcc8d24d4d385d7e2f96fcaf3fd84344284398cab19a8408a7"
+        },
+        {
+          "case": "typed-rejected-program-15",
+          "passed": true,
+          "transitions": 511,
+          "grows": 1,
+          "rank_status": 0,
+          "clock_samples": 5,
+          "result_bytes": 3412,
+          "result_sha256": "001588c5150d80052af80b3812cfab73b7eb7be07f7305897332e299b14048b2"
+        },
+        {
+          "case": "typed-rejected-program-16",
+          "passed": true,
+          "transitions": 515,
+          "grows": 1,
+          "rank_status": 0,
+          "clock_samples": 5,
+          "result_bytes": 3401,
+          "result_sha256": "66e7e03244aa0c9ec30a27c04f0786c59a1dc49a5f6537714fd8b526113a4089"
+        },
+        {
+          "case": "late-action-freeze-17",
+          "passed": true,
+          "transitions": 383,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 4,
+          "result_bytes": 127,
+          "result_sha256": "f55380112df9bb62d3d8ed5e678c83204b2821d35c17f0ad1b8785999d3388de"
+        },
+        {
+          "case": "late-action-freeze-18",
+          "passed": true,
+          "transitions": 383,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 4,
+          "result_bytes": 127,
+          "result_sha256": "d03d3d17401545593d88516eea32061786e694111a1cb74e940c03e39fd94cf8"
+        },
+        {
+          "case": "late-action-freeze-19",
+          "passed": true,
+          "transitions": 383,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 4,
+          "result_bytes": 121,
+          "result_sha256": "9080a39b7bb1b1da5ea2accd7659850d079a0eb2dfbde60d7e9636d28fc6bc1e"
+        },
+        {
+          "case": "late-action-freeze-20",
+          "passed": true,
+          "transitions": 568,
+          "grows": 1,
+          "rank_status": 0,
+          "clock_samples": 6,
+          "result_bytes": 3474,
+          "result_sha256": "82e7979e37603c6da036e666f393d21df3d6db35c8927bd0e25b09f58eb17f66"
+        },
+        {
+          "case": "typed-objective-21",
+          "passed": true,
+          "transitions": 64,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 127,
+          "result_sha256": "1b18542cbcb8d24df45acf8e163b0987613c714bcf970a0ab6c34a80a4b791c1"
+        },
+        {
+          "case": "typed-objective-22",
+          "passed": true,
+          "transitions": 64,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 87,
+          "result_sha256": "22def55d04830893288ca3678466f53534ff32e7cd990157e23b69f1426e197c"
+        },
+        {
+          "case": "typed-objective-23",
+          "passed": true,
+          "transitions": 64,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 87,
+          "result_sha256": "01618de0d3f63b26054c37724d5ab26cc553fc983255129779820ab2dd45f9fe"
+        },
+        {
+          "case": "typed-objective-24",
+          "passed": true,
+          "transitions": 64,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 151,
+          "result_sha256": "0f6ed95497499564712c8788e14e6829a33b90a17a5a136e7678a847ebca2649"
+        },
+        {
+          "case": "typed-bridge-timeout-25",
+          "passed": true,
+          "transitions": 52,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 110,
+          "result_sha256": "cb4805138736bcab62d9482e359efe93f7933842a5603bedba89b2fb71307fde"
+        },
+        {
+          "case": "typed-bridge-timeout-26",
+          "passed": true,
+          "transitions": 52,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 110,
+          "result_sha256": "cb4805138736bcab62d9482e359efe93f7933842a5603bedba89b2fb71307fde"
+        },
+        {
+          "case": "typed-bridge-timeout-27",
+          "passed": true,
+          "transitions": 52,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 110,
+          "result_sha256": "cb4805138736bcab62d9482e359efe93f7933842a5603bedba89b2fb71307fde"
+        },
+        {
+          "case": "typed-bridge-timeout-28",
+          "passed": true,
+          "transitions": 52,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 110,
+          "result_sha256": "cb4805138736bcab62d9482e359efe93f7933842a5603bedba89b2fb71307fde"
+        },
+        {
+          "case": "typed-bridge-timeout-29",
+          "passed": true,
+          "transitions": 52,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 110,
+          "result_sha256": "cb4805138736bcab62d9482e359efe93f7933842a5603bedba89b2fb71307fde"
+        },
+        {
+          "case": "typed-bridge-timeout-30",
+          "passed": true,
+          "transitions": 52,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 110,
+          "result_sha256": "cb4805138736bcab62d9482e359efe93f7933842a5603bedba89b2fb71307fde"
+        },
+        {
+          "case": "candidate-binding-before-budget",
+          "passed": true,
+          "transitions": 239,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 110,
+          "result_sha256": "6ef941e4b14faa5114ae5c50293885776dd218e23ddce14deaa668fbe3e045e4"
+        },
+        {
+          "case": "row-q32-overflow-before-native",
+          "passed": true,
+          "transitions": 311,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 4,
+          "result_bytes": 98,
+          "result_sha256": "efed6def8e9bab705152c13ce954a38dc746596fe0da4ebd467fdbbb64985f0d"
+        },
+        {
+          "case": "bad-baseline-before-rank",
+          "passed": true,
+          "transitions": 50,
+          "grows": 1,
+          "rank_status": 1,
+          "clock_samples": 1,
+          "result_bytes": 79,
+          "result_sha256": "b9ea5af3cd1b8117d93be35d86ea378577c513730592b1088bc61c4c40888ef1"
+        }
+      ]
+    },
+    {
+      "schema": "hepta.hia.ndu-rank-main.integration-debug.v1",
+      "passed": true,
+      "count": 10,
+      "scope": "All actual native roles, real normalizer/proof/evaluator subprocesses and identity source reads. Real proof and native response observations are replayed only into unchanged legacy rank reference to compare complete rank report and timing fields; product has no mocks. Owner debug image pending its independent whole qualification.",
+      "whole_native_rank_closed": false,
+      "cases": [
+        {
+          "case": "actual-native-empty",
+          "passed": true,
+          "transitions": 334,
+          "grows": 2,
+          "rank_status": 0,
+          "clock_samples": 4,
+          "actual_proof_calls": 0,
+          "admitted": false,
+          "selected_id": "abstain",
+          "reason": "native_evaluator_abstained",
+          "result_bytes": 4559,
+          "result_sha256": "2b86efe2a19406277fef10974d406fd4147a6d75dd664618c2e95b641114204b"
+        },
+        {
+          "case": "actual-native-one-proved",
+          "passed": true,
+          "transitions": 602,
+          "grows": 2,
+          "rank_status": 0,
+          "clock_samples": 10,
+          "actual_proof_calls": 2,
+          "admitted": true,
+          "selected_id": "A",
+          "reason": "fresh_proof_and_robust_cost_gate_passed",
+          "result_bytes": 16220,
+          "result_sha256": "3eb7b212017f6bc01ad1248ae31b2d8527eee1eafb1f2085390c92e62acc9463"
+        },
+        {
+          "case": "actual-native-two-proved",
+          "passed": true,
+          "transitions": 797,
+          "grows": 2,
+          "rank_status": 0,
+          "clock_samples": 13,
+          "actual_proof_calls": 3,
+          "admitted": true,
+          "selected_id": "A",
+          "reason": "fresh_proof_and_robust_cost_gate_passed",
+          "result_bytes": 22291,
+          "result_sha256": "d295ecf28dbb8b460ec1291d4cf237638606c5e1e43052f304ba39dec69dcb1b"
+        },
+        {
+          "case": "actual-native-rejected-and-proved",
+          "passed": true,
+          "transitions": 733,
+          "grows": 2,
+          "rank_status": 0,
+          "clock_samples": 10,
+          "actual_proof_calls": 2,
+          "admitted": true,
+          "selected_id": "B",
+          "reason": "fresh_proof_and_robust_cost_gate_passed",
+          "result_bytes": 16814,
+          "result_sha256": "7baf3529cd7637a65fd17c10f4c36a1a937b46128cbc8aa4b1271f03629dc37d"
+        },
+        {
+          "case": "actual-identity-exhaustion-no-child",
+          "passed": true,
+          "transitions": 681,
+          "grows": 2,
+          "rank_status": 0,
+          "clock_samples": 10,
+          "actual_proof_calls": 2,
+          "admitted": false,
+          "selected_id": "abstain",
+          "reason": "native_identity_admission_exhausted_budget",
+          "result_bytes": 14451,
+          "result_sha256": "22fca079f2df534686adb2eb7295aa8c66566650471be2973dc8e8056077fce9"
+        },
+        {
+          "case": "actual-native-bridge-error-5",
+          "passed": true,
+          "transitions": 228,
+          "grows": 2,
+          "rank_status": 1,
+          "clock_samples": 3,
+          "actual_proof_calls": 0,
+          "admitted": null,
+          "selected_id": null,
+          "reason": null,
+          "result_bytes": 101,
+          "result_sha256": "1d8fea51ea0862b68c0baa16110e55b0727b1c98c3e5fe840d23117c7bc802c2"
+        },
+        {
+          "case": "actual-native-bridge-error-6",
+          "passed": true,
+          "transitions": 228,
+          "grows": 2,
+          "rank_status": 1,
+          "clock_samples": 3,
+          "actual_proof_calls": 0,
+          "admitted": null,
+          "selected_id": null,
+          "reason": null,
+          "result_bytes": 101,
+          "result_sha256": "1d8fea51ea0862b68c0baa16110e55b0727b1c98c3e5fe840d23117c7bc802c2"
+        },
+        {
+          "case": "actual-native-bridge-error-7",
+          "passed": true,
+          "transitions": 228,
+          "grows": 2,
+          "rank_status": 1,
+          "clock_samples": 3,
+          "actual_proof_calls": 0,
+          "admitted": null,
+          "selected_id": null,
+          "reason": null,
+          "result_bytes": 101,
+          "result_sha256": "1d8fea51ea0862b68c0baa16110e55b0727b1c98c3e5fe840d23117c7bc802c2"
+        },
+        {
+          "case": "actual-native-bridge-error-8",
+          "passed": true,
+          "transitions": 228,
+          "grows": 2,
+          "rank_status": 1,
+          "clock_samples": 3,
+          "actual_proof_calls": 0,
+          "admitted": null,
+          "selected_id": null,
+          "reason": null,
+          "result_bytes": 129,
+          "result_sha256": "4dcb6949d4f5c3fcc271f4cfd8f10b0c19b310d05cf61a76363b30e20bbb551b"
+        },
+        {
+          "case": "actual-native-bridge-error-9",
+          "passed": true,
+          "transitions": 236,
+          "grows": 2,
+          "rank_status": 1,
+          "clock_samples": 3,
+          "actual_proof_calls": 0,
+          "admitted": null,
+          "selected_id": null,
+          "reason": null,
+          "result_bytes": 87,
+          "result_sha256": "3d77ef38fb96ed28a2c97d24323a8f040db7826d2dfcbaf5983f2432c26bce47"
+        }
+      ]
+    }
+  ],
+  "source_build": {
+    "built": true,
+    "qualified": false,
+    "roles": [
+      {
+        "role": "ndu_rank_prepare",
+        "source_sha256": "4449cc43671ce375d53cafbf664ce3666f68b8207172a4e3221bd023e41d424f",
+        "profile": {
+          "functions": 45,
+          "blocks": 414,
+          "ops": 2586,
+          "max_block_params": 11
+        },
+        "flat_bytes": 169866,
+        "flat_sha256": "43a31651c8d7d0eb5d3724b05d92d0fab77ebde01efa0a604d593d29e646e3d7"
+      },
+      {
+        "role": "ndu_rank_decide",
+        "source_sha256": "76522ef6c235ddf6f726754afd0791716b19a6c0797de973e849a7bf10196f1c",
+        "profile": {
+          "functions": 56,
+          "blocks": 769,
+          "ops": 4666,
+          "max_block_params": 11
+        },
+        "flat_bytes": 321874,
+        "flat_sha256": "144e930fe391a013ff8f8b619617d2cf5f6b8b39bb14b38b7bad580efd96dddd"
+      },
+      {
+        "role": "ndu_rank_main",
+        "source_sha256": "f802ac71bb99661c28675a1259d7d9729e8b1f794c19a526f0e6d6e72af18b76",
+        "profile": {
+          "functions": 65,
+          "blocks": 1063,
+          "ops": 6414,
+          "max_block_params": 11
+        },
+        "flat_bytes": 450887,
+        "flat_sha256": "b67c6de037c6aa041fa60225f778f1e5f1cbb344ee319b74ec336d997b7b2d34"
+      }
+    ]
+  },
+  "runtime_sources": {
+    "examples/hia_bootstrap/ndu_rank_tasks.hepta": "e9aa2f7906472f16feb86aea6b63212ca42e632a9cf62d3c74da385e9e9173c8",
+    "examples/hia_bootstrap/ndu_rank_prepare.hepta": "4449cc43671ce375d53cafbf664ce3666f68b8207172a4e3221bd023e41d424f",
+    "examples/hia_bootstrap/ndu_rank_decide.hepta": "76522ef6c235ddf6f726754afd0791716b19a6c0797de973e849a7bf10196f1c",
+    "examples/hia_bootstrap/ndu_rank_main.hepta": "f802ac71bb99661c28675a1259d7d9729e8b1f794c19a526f0e6d6e72af18b76",
+    "examples/hia_bootstrap/ndu_rank_engine_packer.hepta": "1f54987290c8ce208cb5a145d76e0641a356de81c5ea717ae1eac11b34294995",
+    "tools/hia_ndu_rank_engine_bridge.S": "8d50646adbf9d2b2e1b5534d239faaec0557afd991d682c384cb9825cf986912"
+  }
+}
