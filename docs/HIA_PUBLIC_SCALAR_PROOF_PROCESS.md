@@ -17,6 +17,13 @@ identifier of at most 128 bytes, with zero length denoting omitted selection.
 This private restriction is not a substitute for the original typed public
 function argument semantics. The claimed receipt is limited to 262144 bytes.
 
+Raw before/after byte strings may be empty. In translation and fresh receipt
+verification an empty after span is still passed through original validation;
+it is not an absent required canonical document or a malformed private frame.
+The canonical primitive child retains its nonempty input requirement. The
+32 exact empty-input/timeout/claimed-receipt comparisons are recorded in
+`HIA_PUBLIC_PROOF_RAW_INPUTS.json`.
+
 The response is a complete `HIAMVR01` header and JSON receipt. A component
 failure cannot create a proof; incomplete child output is never accepted.
 The original normalizer's large errors are transported in full, through the
