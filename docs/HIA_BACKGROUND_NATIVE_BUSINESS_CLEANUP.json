@@ -1,0 +1,110 @@
+{
+  "schema": "hepta.hia.background.business-cleanup.offline.v1",
+  "native_built": false,
+  "runtime_qualified": false,
+  "whole_background_qualified": false,
+  "authoring_verifier": "the original verify_program called by compact_authoring_cfg before and after compaction",
+  "native_limits_changed": false,
+  "roles": [
+    {
+      "role": "background_optimizer_business_worker",
+      "author": {
+        "path": "tools/generate_hia_background_optimizer_business_worker.py",
+        "bytes": 46166,
+        "sha256": "040c051b7e2e53d964257df2c44cc8afcbaaa656281e5fa35b123b05164268e8"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/background_optimizer_business_worker.hepta",
+        "bytes": 358208,
+        "sha256": "2758eb86e18aae629a8e448e9dda4cffea9cc5d13e18e0ca358510db50221d04"
+      },
+      "functions": 92,
+      "blocks": 1287,
+      "operations": 6728,
+      "maximum_function_blocks": 116,
+      "maximum_function_values": 858,
+      "maximum_block_parameters": 10
+    },
+    {
+      "role": "background_optimizer_business_worker_failure",
+      "author": {
+        "path": "tools/generate_hia_background_optimizer_business_worker.py",
+        "bytes": 46166,
+        "sha256": "040c051b7e2e53d964257df2c44cc8afcbaaa656281e5fa35b123b05164268e8"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/background_optimizer_business_worker_failure.hepta",
+        "bytes": 300589,
+        "sha256": "07cafd8e793c40193f6178eae285bac21966793c52200bc65e1a4fdb4d898049"
+      },
+      "functions": 89,
+      "blocks": 1055,
+      "operations": 5886,
+      "maximum_function_blocks": 106,
+      "maximum_function_values": 664,
+      "maximum_block_parameters": 10
+    },
+    {
+      "role": "background_optimizer_business_cleanup",
+      "author": {
+        "path": "tools/generate_hia_background_optimizer_business_cleanup.py",
+        "bytes": 8299,
+        "sha256": "8af6c34a4b382449cf869a41d4bda2717b513254c76f6fe19accc7333da122fe"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/background_optimizer_business_cleanup.hepta",
+        "bytes": 48431,
+        "sha256": "4362a3b33fa38278bf06a7be9bdfb9c144084d12c006fee2fb9d116de2e5644c"
+      },
+      "functions": 19,
+      "blocks": 205,
+      "operations": 833,
+      "maximum_function_blocks": 66,
+      "maximum_function_values": 429,
+      "maximum_block_parameters": 10
+    },
+    {
+      "role": "background_optimizer_business_cleanup_packer",
+      "author": {
+        "path": "tools/generate_hia_background_optimizer_business_cleanup_packer.py",
+        "bytes": 3210,
+        "sha256": "e1336da0bbd1a15bd7cc48acc5d3dd91eb0a9a09191e506bff55c3d15fbe9800"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/background_optimizer_business_cleanup_packer.hepta",
+        "bytes": 31340,
+        "sha256": "fb1c0fb98889e05e378b20488b698fc7d86a6c321a86fc2031987232e24e0292"
+      },
+      "functions": 11,
+      "blocks": 51,
+      "operations": 667,
+      "maximum_function_blocks": 26,
+      "maximum_function_values": 237,
+      "maximum_block_parameters": 6
+    }
+  ],
+  "mechanical_bridge": {
+    "path": "tools/hia_background_optimizer_business_cleanup_bridge.S",
+    "bytes": 2954,
+    "sha256": "136585274dd952dea5c8485778180505b1b748a39a577c276f982d54558692c9"
+  },
+  "source_probes": {
+    "path": "docs/HIA_BACKGROUND_NATIVE_BUSINESS_CLEANUP_SOURCE_PROBES.json",
+    "bytes": 6090,
+    "sha256": "98467d95410510df119194847029c3f2ebce991bad42f0465308df5a277c6f48"
+  },
+  "required_profiles": [
+    "HIABGW03/op3",
+    "HIABGWQ3/op3",
+    "HIABJO03/11,12",
+    "HIABFP03/26",
+    "HIABFQ04/21",
+    "HIABVQ02/29,31"
+  ],
+  "remaining": [
+    "actual worker exit and join concurrency",
+    "native coherent dependency construction",
+    "actual pre/post-consumption failures and remaining-retirement faults",
+    "public enclosing ownership and complete lifecycle gates"
+  ]
+}

@@ -15,7 +15,8 @@ def get(o,at):return int.from_bytes(o[at:at+8],'little')
 def put(o,at,n):o[at:at+8]=n.to_bytes(8,'little');return 0
 def zero(o,at,n):o[at:at+n]=bytes(n);return 0
 def valid(o,at,magic):return int(get(o,C['FEEDBACK'])==0 and get(o,at)==magic)
-env={**C,'u64':int,'mutbuf':bytearray,'get':get,'put':put,'zero':zero,'valid':valid}
+env={**C,'u64':int,'mutbuf':bytearray,'get':get,'put':put,'zero':zero,'valid':valid,
+     'choose':lambda condition,a,b:a if condition else b}
 exec(policy.SOURCE,env)
 CAP=(91,181,271);CAP_AT=256
 rows=[]
@@ -55,7 +56,7 @@ for status in (1,6,11):
 run('value closed mapping still pending','value',{8:6,80:1,88:1,96:0},expect(0,False,1,v=1))
 for at in list(range(16,80,8))+list(range(104,128,8)):
     run('value reserved '+str(at),'value',v,expect(0,False,0),[(at,1)])
-for fields in ({88:0,96:0},{88:2},{96:2},{80:2},{8:9},{8:5},{8:1},{8:6},{96:0},{80:1}):
+for fields in ({88:0,96:0},{88:2},{96:2},{80:2},{8:9},{8:5},{8:999},{8:1},{8:6},{96:0},{80:1},{8:1,96:0,80:1}):
     run('value contradictory '+repr(fields),'value',{**v,**fields},expect(0,False,0))
 run('value transport failure','value',v,expect(0,False,0),feedback=4294967293)
 
@@ -91,6 +92,8 @@ retry('value mapping retry completes','release_value_retry',C['VALUE_DROP_REPLY'
 retry('value retry unknown dependency','release_value_retry',C['VALUE_DROP_REPLY'],{8:11,80:0,88:1,96:0},0,2,[1,1,1])
 retry('value retry cannot emit bad-cap status','release_value_retry',C['VALUE_DROP_REPLY'],{8:1,80:0,88:1,96:0},0,0,[1,1,1])
 retry('value retry cannot emit allocation status','release_value_retry',C['VALUE_DROP_REPLY'],{8:5,80:0,88:1,96:0},0,0,[1,1,1])
+retry('value retry cannot claim success with pending mapping','release_value_retry',C['VALUE_DROP_REPLY'],{8:0,80:1,88:1,96:0},0,0,[1,1,1])
+retry('value retry cannot consume a reference','release_value_retry',C['VALUE_DROP_REPLY'],{8:11,80:1,88:1,96:1},0,0,[1,1,1])
 retry('Job claim busy is not empty','release_job_retry',C['JOB_DROP_REPLY'],{8:5,128:0,136:1,144:1},0,1,[1,1,1])
 retry('Job retirement completes','release_job_retry',C['JOB_DROP_REPLY'],{8:0,128:0,136:1,144:0},1,1,[1,0,1])
 retry('cell pending after successful retry','release_cell_query',C['CELL_QUERY_REPLY'],{8:0,128:0,136:1,144:1},0,1,[1,1,1])

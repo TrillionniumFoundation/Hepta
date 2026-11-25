@@ -67,8 +67,12 @@ failures. Other statuses or malformed replies remain quarantined.
 | Shutdown | Cancels selected Futures outside the condition, preserves callback error identity and join precedence, then releases references through explicit consumption and retained cleanup. |
 
 Business retained cleanup after actual pthread exit is still an open part of
-the whole controller. These source changes do not turn the previously refused
-business operation 3 into a complete cleanup API.
+native qualification. A separate candidate owner checks the worker's actual
+joined state and captured business/queue bindings before entering the new
+`HIABGWQ3/op3` cleanup profile. The old `HIABGWQ2/op3` remains rejected. Source
+traces cover owned versus borrowed references and forbid business-effect replay;
+they are not actual pthread or consumption-fault gates. See
+`HIA_BACKGROUND_NATIVE_BUSINESS_CLEANUP.md` for the fixed candidate ABI.
 
 ## Captured dependency fields
 

@@ -19,6 +19,8 @@ for module,entry,suffix in [
     ('background_optimizer_business_worker','business',''),
     ('background_optimizer_business_worker','business_failure','_failure'),
     ('background_optimizer_shutdown',None,None),
+    ('background_optimizer_business_cleanup',None,None),
+    ('background_optimizer_business_cleanup_packer',None,None),
 ]:
     m=importlib.import_module('tools.generate_hia_'+module)
     d=m.document(m.source_program(entry)if entry else m.source_program(),module)
@@ -61,7 +63,7 @@ report={'schema':'hepta.hia.background-retirement-consumers.offline.v1',
    'shutdown':'W192/200/208 actual cell entry/context/extent; enclosing owner retains the factory lease',
    'account':'existing W192/200/208 retained without relocation'},
  'remaining':['actual coherent new dependency builds and native gates',
-              'business retained cleanup after true worker exit',
+              'actual native post-exit business cleanup and real pthread exit qualification',
               'original complete shutdown, failure drain, and allocation comparisons',
               'constructor fixed capture and complete public lifecycle']}
 (root/'docs/HIA_BACKGROUND_NATIVE_RETIREMENT_CONSUMERS.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -70,9 +72,23 @@ old['roles']=[r for r in roles if r['role'].startswith('multiversion_')]
 old['shared_payload_failure_rule']='Only actual legacy op3 statuses 1,5,6 are established pre-consumption; protocol and internal outcomes remain unknown.'
 (root/'docs/HIA_BACKGROUND_NATIVE_RETIREMENT.json').write_text(json.dumps(old,indent=2)+'\n')
 sd=json.loads((root/'docs/HIA_BACKGROUND_NATIVE_SHUTDOWN.json').read_text())
-sd['sources']=[{**pin(x['path']),'runtime_required':x['runtime_required']}for x in sd['sources']]
-sd['sources'].append({**pin('tools/hia_background_retirement_source.py'),'runtime_required':False})
-sd['author_validation']={k:v for k,v in roles[-1].items()if k not in ('author','source')}
+unique={x['path']:x['runtime_required']for x in sd['sources']}
+unique['tools/hia_background_retirement_source.py']=False
+sd['sources']=[{**pin(path),'runtime_required':required}for path,required in unique.items()]
+shutdown_role=next(row for row in roles if row['role']=='background_optimizer_shutdown')
+sd['author_validation']={k:v for k,v in shutdown_role.items()if k not in ('author','source')}
 sd['required_private_profiles']=['HIABGQ04','HIABJO03','HIABFP03/op26','HIABFQ04/op21','HIABVQ02/29,31']
 (root/'docs/HIA_BACKGROUND_NATIVE_SHUTDOWN.json').write_text(json.dumps(sd,indent=2)+'\n')
+cleanup_report={'schema':'hepta.hia.background.business-cleanup.offline.v1',
+ 'native_built':False,'runtime_qualified':False,'whole_background_qualified':False,
+ 'authoring_verifier':report['authoring_verifier'],'native_limits_changed':False,
+ 'roles':[r for r in roles if 'business_' in r['role']],
+ 'mechanical_bridge':pin('tools/hia_background_optimizer_business_cleanup_bridge.S'),
+ 'source_probes':pin('docs/HIA_BACKGROUND_NATIVE_BUSINESS_CLEANUP_SOURCE_PROBES.json'),
+ 'required_profiles':['HIABGW03/op3','HIABGWQ3/op3','HIABJO03/11,12','HIABFP03/26',
+                      'HIABFQ04/21','HIABVQ02/29,31'],
+ 'remaining':['actual worker exit and join concurrency','native coherent dependency construction',
+              'actual pre/post-consumption failures and remaining-retirement faults',
+              'public enclosing ownership and complete lifecycle gates']}
+(root/'docs/HIA_BACKGROUND_NATIVE_BUSINESS_CLEANUP.json').write_text(json.dumps(cleanup_report,indent=2)+'\n')
 print('all source pin records written; native qualification remains false')

@@ -29,6 +29,16 @@ def release_value_reply(o:mutbuf,op:u64) -> u64:
     status=get(o,RP+8)
     if status!=0 and status!=6 and status!=11 and (op==31 or status!=1):
         return 0
+    consumed=get(o,RP+96)
+    pending=get(o,RP+80)
+    if status==1 and (consumed!=0 or pending!=0):
+        return 0
+    if status==6 and consumed!=0:
+        return 0
+    if op==31 and consumed!=0:
+        return 0
+    if status==0 and (pending!=0 or consumed!=choose(op==31,0,1)):
+        return 0
     at=16
     while at<128:
         if at<80 or at>=104:
