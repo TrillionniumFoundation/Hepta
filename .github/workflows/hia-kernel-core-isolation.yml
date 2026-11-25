@@ -1,0 +1,38 @@
+name: HIA Core experimental privilege isolation (original v1-v8 preserved)
+on:
+  push:
+    branches:
+      - 'automation/hia-core-closed-baseline-isolation-*'
+  pull_request:
+    paths:
+      - 'hepta/hia_schema.py'
+      - 'hepta/hia_opcodes.py'
+      - 'hepta/hia_machine_x64.py'
+      - 'hepta/hia_program_native.py'
+      - 'tests/test_hia_kernel_fence_core.py'
+      - 'tests/test_hia_kernel_invlpg_core.py'
+      - '.github/workflows/hia-kernel-core-isolation.yml'
+  workflow_dispatch:
+jobs:
+  independent-original-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Historical catalog, shape, machine, lowering and kernel controls
+        run: |
+          python -B -m unittest \
+            tests.test_hia_core_emitter_native.CoreEmitterSourceTests.test_complete_original_Emitter_AST_and_constructor_transport \
+            tests.test_hia_instruction_policy_native.InstructionPolicySourceTests.test_full_catalog_schema_and_groups_not_compiler_opcode_subset \
+            tests.test_hia_program_shape_native.ProgramShapeSourceTests.test_complete_closed_catalog_and_version_feature_correspondence \
+            tests.test_hia_core_lowering_native.CoreLoweringSourceTests.test_complete_original_Function_and_five_helpers_are_independent \
+            tests.test_hia_machine_encoding_native.MachineEncodingSourceTests.test_retained_reference_methods_are_unchanged \
+            tests.test_hia_machine_state_native.MachineStateSourceTests.test_complete_original_Code_AST_and_fixture_bytes_are_retained \
+            tests.test_hia_machine_instructions_native.MachineInstructionsSourceTests.test_complete_original_classes_and_fixture_bytes_are_retained \
+            tests.test_hia_kernel_fence_core \
+            tests.test_hia_kernel_invlpg_core \
+            tests.test_hia_kernel_privilege_shape_guard -v
+      - name: Linux full acceptance remains HOLD
+        run: echo 'HIA_CORE_EXPERIMENT_ISOLATED; FULL_LINUX_REWRITE=HOLD'
