@@ -15,12 +15,18 @@ def result_value_owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return graph_driver(s,o,w,phase)
     return release(s,o,w,phase)
 def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
-    if length(s)<128 or (readword(s,0)!=MAGIC and readword(s,0)!=MAGIC2) or readword(s,16)!=0 or readword(s,120)!=0 or readword(s,96)!=length(s)-128:
+    if length(s)<128 or (readword(s,0)!=MAGIC and readword(s,0)!=MAGIC2 and readword(s,0)!=MAGIC3) or readword(s,16)!=0 or readword(s,120)!=0 or readword(s,96)!=length(s)-128:
         return 4294967293
     op=readword(s,8)
     extended=readword(s,0)==MAGIC2
-    if (extended==False and op>24) or (extended and (op<25 or op>31)):
+    classes=readword(s,0)==MAGIC3
+    if (classes and (op<32 or op>39)) or (classes==False and ((extended==False and op>24) or (extended and (op<25 or op>31)))):
         return 4294967293
+    if classes:
+        if class_request_valid(s)==False:
+            return 4294967293
+        zero(o,0,8192)
+        return system(o,1,39,0,0,0,0,0,0,0)
     if op==25:
         base=readword(s,104)
         if base!=0 and base!=4 and base!=7:
@@ -215,7 +221,32 @@ def graph_driver(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
             return owner_fail(o,11)
         return graph_call(s,o,w,100,graph_id(s))
     return owner_fail(o,11)
+def class_request_valid(s:readbuf) -> bool:
+    op=readword(s,8)
+    if length(s)!=128 or readword(s,96)!=0 or readword(s,112)!=0:
+        return False
+    arg=readword(s,104)
+    if op==32:
+        if arg<1 or arg>27:
+            return False
+    elif op==34:
+        if arg>1:
+            return False
+    elif op==38:
+        if arg>3:
+            return False
+    elif arg!=0:
+        return False
+    hasa=op!=32
+    hasb=op==33 or op==34 or op==35 or op==37 or op==39
+    hasc=op==33 or (op==34 and arg==0) or op==35
+    if (hasa==False and (readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0)) or (hasb==False and (readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0)) or (hasc==False and (readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0)):
+        return False
+    return True
+
 def graph_id(s:readbuf) -> u64:
+    if readword(s,0)==MAGIC3:
+        return 9
     if readword(s,8)==1:
         return 2
     if readword(s,8)==18:
