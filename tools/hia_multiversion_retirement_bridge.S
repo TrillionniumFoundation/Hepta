@@ -1,5 +1,7 @@
 # Mechanical adapter for the private HIA same-holder retirement owner.
-# Only syscall dispatch, a fixed HIA retirement-state call, and dlclose.
+# Only syscalls, the fixed HIA state role, dlclose and pre-resolved dlerror.
+# dlerror is resolved by the existing fixed dlsym import before the release.
+# HIA owns the order, captures the returned text and decides every completion.
 .intel_syntax noprefix
 .text
 .global hia_mv_retire
@@ -22,6 +24,7 @@ hia_mv_retire:
     mov [rsp+8], r14
     mov [rsp+16], r12
     mov [rsp+24], r13
+    mov qword ptr [rsp+80], 0
 .Lpolicy_loop:
     mov rdi, r12
     mov rsi, r15
@@ -40,6 +43,12 @@ policy_hole:
     je .Lrole
     cmp eax, 3
     je .Ldlclose
+    cmp eax, 4
+    je .Lresolve_error
+    cmp eax, 5
+    je .Lloader_error
+    cmp eax, 6
+    je .Lworkspace_address
     mov eax, 0xfffffffd
     jmp .Lreturn
 .Lsyscall:
@@ -78,6 +87,18 @@ policy_hole:
 state_hole:
     .long 0
     jmp .Lfeedback
+.Lresolve_error:
+    xor edi, edi
+    lea rsi, [rip+.Ldlerror_name]
+    call dlsym@PLT
+    mov [rsp+80], rax
+    jmp .Lfeedback
+.Lloader_error:
+    call qword ptr [rsp+80]
+    jmp .Lfeedback
+.Lworkspace_address:
+    mov rax, r14
+    jmp .Lfeedback
 .Ldlclose:
     mov rdi, [r13]
     call dlclose@PLT
@@ -96,4 +117,6 @@ state_hole:
     pop rbx
     ret
 .size hia_mv_retire, .-hia_mv_retire
+.Ldlerror_name:
+    .asciz "dlerror"
 .section .note.GNU-stack,"",@progbits
