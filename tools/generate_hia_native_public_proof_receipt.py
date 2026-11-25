@@ -13,7 +13,7 @@ SOURCE_PATH='examples/hia_bootstrap/native_public_proof_receipt.hepta'
 C={**base.C,'PUB_REQUEST':int.from_bytes(b'HIAJPR01','little'),
    'SELECTION_REPLY':int.from_bytes(b'HIAVRG01','little'),'ERROR_PREFIX':int.from_bytes(b'E_HIA_','little'),'CTX':2097152,'SEEN':4194304,'RWORK':8388608,'ROUT':1048576,
    'ORIGINAL1':61440,'ORIGINAL2':61472,'SUBJECT':61600,
-   'DIAG_SIZE':61624,'DIAG_CODE':61632,'DIAG_TEXT':1048576}
+   'DIAG_SIZE':61624,'DIAG_CODE':61632,'DIAG_TEXT':1048576,'DIAG_RAW':61640,'DIAG_RAW_N':61648,'DIAG_LARGE':61656,'DIAG_LIMIT':8654848}
 LABELS={
 1:'schema',2:'status',3:'profile',4:'function',5:'scope',
 6:'program_sha256',7:'input_sha256',8:'before_sha256',9:'after_sha256',
@@ -46,7 +46,15 @@ def public_proof_receipt(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     mode=read64(s,16)
     if action>3 or mode<1 or mode>2 or read64(s,48)>128 or read64(s,408)>2:
         return BAD
-    if read64(s,56)>255 or read64(s,400)!=0:
+    flags=read64(s,56)
+    large=(flags&256)!=0
+    if flags>511 or read64(s,400)!=0:
+        return BAD
+    if large and (action!=1 and action!=2):
+        return BAD
+    if large and action==1 and (flags&64)==0:
+        return BAD
+    if large and action==2 and ((flags&64)!=0 or read64(s,408)!=0):
         return BAD
     i=416
     while i<512:
@@ -71,7 +79,10 @@ def public_proof_receipt(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     while i<3:
         jn=read64(s,352+i*16)
         an=read64(s,360+i*16)
-        if jn>1048576 or an>16777216 or jn>length(s)-at:
+        limit=1048576
+        if large and ((action==1 and i==2) or (action==2 and i==0)):
+            limit=67108864
+        if jn>limit or an>16777216 or jn>length(s)-at:
             return BAD
         put(w,CTX+i*16,at)
         at=at+jn
@@ -96,6 +107,8 @@ def public_proof_receipt(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if nodeword(s,arena,0,0)!=6:
         return BAD
     if action==2:
+        if large and string_id(s,arena,field(s,arena,0,2))!=105:
+            return BAD
         return verify_fresh(s,o,w)
     if string_id(s,arena,field(s,arena,0,1))!=100+mode:
         return BAD
@@ -603,7 +616,10 @@ def make_unknown(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     copy_to_work(s,w,224,CORE_AFTER,32)
     copy_to_work(s,w,256,WHOLE_ID,32)
     copy_to_work(s,w,320,1216,32)
-    return base_receipt(o,w)
+    result=base_receipt(o,w)
+    if get(w,DIAG_LARGE)!=0:
+        return append_large_diagnostic(s,o,w,result)
+    return result
 
 def prepare_diagnostic(s:readbuf,w:mutbuf) -> bool:
     if read64(s,384)==0:
@@ -620,7 +636,8 @@ def prepare_diagnostic(s:readbuf,w:mutbuf) -> bool:
         return False
     start=a+nodeword(s,a,text,24)
     n=nodeword(s,a,text,32)
-    if n<9 or n>131072 or readn(s,start,6)!=ERROR_PREFIX:
+    limit=choose((read64(s,56)&256)!=0,DIAG_LIMIT,131072)
+    if n<9 or n>limit or readn(s,start,6)!=ERROR_PREFIX:
         return False
     code=0
     while code<n and byte(s,start+code)!=58:
@@ -630,10 +647,35 @@ def prepare_diagnostic(s:readbuf,w:mutbuf) -> bool:
         code=code+1
     if code<7 or code>128 or code+1>=n or byte(s,start+code)!=58 or byte(s,start+code+1)!=32:
         return False
-    copy_to_work(s,w,start,DIAG_TEXT,n)
-    put(w,DIAG_SIZE,n)
+    if (read64(s,56)&256)!=0:
+        raw=get(w,CTX+32)+nodeword(s,a,text,56)
+        count=nodeword(s,a,text,64)
+        if count<2 or raw>length(s) or count>length(s)-raw:
+            return False
+        if byte(s,raw)!=34 or byte(s,raw+count-1)!=34:
+            return False
+        copy_to_work(s,w,start,DIAG_TEXT,code)
+        put(w,DIAG_RAW,raw)
+        put(w,DIAG_RAW_N,count)
+        put(w,DIAG_LARGE,1)
+    else:
+        copy_to_work(s,w,start,DIAG_TEXT,n)
+        put(w,DIAG_SIZE,n)
     put(w,DIAG_CODE,code)
     return True
+
+def append_large_diagnostic(s:readbuf,o:mutbuf,w:mutbuf,n:u64) -> u32:
+    if n<65 or n>length(o) or byte(o,n-1)!=125:
+        return BAD
+    at=lit(o,n-1,501)
+    at=quote_work(o,w,at,DIAG_TEXT,get(w,DIAG_CODE))
+    at=lit(o,at,502)
+    at=input_copy(s,o,at,get(w,DIAG_RAW),get(w,DIAG_RAW_N))
+    at=emit(o,at,125)
+    at=emit(o,at,125)
+    if at>length(o):
+        return BAD
+    return reply(o,read64(s,16),0,read64(s,32),at)
 
 def copy_to_work(s:readbuf,w:mutbuf,start:u64,target:u64,n:u64) -> u64:
     i=0
@@ -732,7 +774,12 @@ def program():
     return document(source_program(),'native_public_proof_receipt')
 def json_program():
     from tools.generate_hia_json_decode import source_program as wire_source
-    return document(wire_source(wire_spans=True),'native_public_proof_json')
+    source=wire_source(wire_spans=True)
+    assert source.count('length(s) > 8388608')==2
+    source=source.replace('length(s) > 8388608','length(s) > 67108864')
+    source=source.replace('def decode_json(', 'def decode_private_json(',1)
+    wrapper='def public_proof_json(s:readbuf,o:mutbuf,w:mutbuf) -> u32:\n    if length(s)>8388608:\n        if length(w)<128 or get(w,120)!=3544411299729459528 or length(s)>67108864 or length(o)<83886080:\n            return 4294967293\n    return decode_private_json(s,o,w)\n'
+    return document(wrapper+'\n'+source,'native_public_proof_json')
 if __name__=='__main__':
     for name,tree in [('native_public_proof_receipt',program()),('native_public_proof_json',json_program())]:
         p=ROOT/'examples/hia_bootstrap'/(name+'.hepta');p.write_text(render_assembly(tree))

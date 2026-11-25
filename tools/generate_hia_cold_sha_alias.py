@@ -8,7 +8,7 @@ The checked-in HIA packer contains the fixed mechanical template and produces
 both relative jumps from actual supplied flat extents without a host linker.
 """
 from pathlib import Path
-import ast,struct,subprocess,tempfile
+import ast,copy,struct,subprocess,tempfile
 from tools.generate_hia_cold_sha256_stream import source_program as original_source,Builder as WordBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
 from hepta.hia_agent_assembly import render_assembly
@@ -87,21 +87,31 @@ def hoist_schedule(loop,count):
     for j in range(count):
         source+=f'''x = word_load(w, {offset('schedule_at',(j-15)*8)})
 y = word_load(w, {offset('schedule_at',(j-2)*8)})
-sx = ((x >> 7) | (x << 25)) ^ ((x >> 18) | (x << 14)) ^ (x >> 3)
-sy = ((y >> 17) | (y << 15)) ^ ((y >> 19) | (y << 13)) ^ (y >> 10)
+cold_x = x * 4294967297
+cold_y = y * 4294967297
+sx = (cold_x >> 7) ^ (cold_x >> 18) ^ (x >> 3)
+sy = (cold_y >> 17) ^ (cold_y >> 19) ^ (y >> 10)
 value = (word_load(w, {offset('schedule_at',(j-16)*8)}) + sx + word_load(w, {offset('schedule_at',(j-7)*8)}) + sy) & 4294967295
 word_store(w, {offset('schedule_at',j*8)}, value)
 '''
     source+=f'i = i + {count}\n';addbody(loop,source)
 
-def hoist_round(loop,count):
+def hoist_round(loop,count,first=False):
     source='round_at = i * 8\n'
     for j in range(count):
-        source+=f'''s1 = ((e >> 6) | (e << 26)) ^ ((e >> 11) | (e << 21)) ^ ((e >> 25) | (e << 7))
-choose_bits = g ^ (e & (f ^ g))
+        if first and j == 0:
+            # Initial chaining words may contain arbitrary full-u64 state.
+            upper='s1 = ((e >> 6) | (e << 26)) ^ ((e >> 11) | (e << 21)) ^ ((e >> 25) | (e << 7))\n'
+            lower='s0 = ((a >> 2) | (a << 30)) ^ ((a >> 13) | (a << 19)) ^ ((a >> 22) | (a << 10))\n'
+        else:
+            # Every preceding round masks a/e before this read. For x < 2^32,
+            # x * (2^32 + 1) repeats x twice without overflow; shifting this
+            # word preserves the old entire-u64 rotate expression exactly.
+            upper='cold_e = e * 4294967297\ns1 = (cold_e >> 6) ^ (cold_e >> 11) ^ (cold_e >> 25)\n'
+            lower='cold_a = a * 4294967297\ns0 = (cold_a >> 2) ^ (cold_a >> 13) ^ (cold_a >> 22)\n'
+        source+=upper+f'''choose_bits = g ^ (e & (f ^ g))
 t1 = h + s1 + choose_bits + word_load(w, {offset('round_at',j*8)}) + word_load(w, {offset('round_at',512+j*8)})
-s0 = ((a >> 2) | (a << 30)) ^ ((a >> 13) | (a << 19)) ^ ((a >> 22) | (a << 10))
-majority = (a & b) | (c & (a | b))
+'''+lower+'''majority = (a & b) | (c & (a | b))
 t2 = s0 + majority
 h = g
 g = f
@@ -132,6 +142,10 @@ def nonalias_source():
     assert len(loops) == 3
     replace_be(loops[0])
     hoist_schedule(loops[1], 4)
+    first_rounds = copy.deepcopy(loops[2])
+    hoist_round(first_rounds, 4, first=True)
+    at = compression.body.index(loops[2])
+    compression.body[at:at] = first_rounds.body
     hoist_round(loops[2], 4)
     return ast.unparse(ast.fix_missing_locations(module))+'\n'
 
