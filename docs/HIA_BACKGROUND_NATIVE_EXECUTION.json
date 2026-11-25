@@ -1,0 +1,144 @@
+{
+  "schema": "hia.background-native-execution-checkpoint.v1",
+  "component_qualified": false,
+  "early_execution_branches_qualified": true,
+  "candidate_decision_qualified": false,
+  "publication_integration_qualified": false,
+  "whole_background_qualified": false,
+  "sources": [
+    {
+      "path": "tools/generate_hia_background_optimizer_execution.py",
+      "bytes": 52640,
+      "sha256": "da5d0e75831dfaca0adf012c0f560934667bdc975c6f84ad1b44da4a9fd05c45",
+      "runtime_required": false
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_execution_packer.py",
+      "bytes": 4722,
+      "sha256": "bcb24c54af0f56005575a511791ee584be25f93124143a1ffc7940d42ddf57bc",
+      "runtime_required": false
+    },
+    {
+      "path": "tools/hia_background_optimizer_execution_bridge.S",
+      "bytes": 3172,
+      "sha256": "169cd77ddbefd2768fb2030bd652ad13389abfbd4ebb51e6277aa339157a3ba9",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_execution.hepta",
+      "bytes": 266368,
+      "sha256": "ac200e4000b4517357168cc7b8a0500685ffd51cb5e9bab6020ff0148226d4c2",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_execution_publication.hepta",
+      "bytes": 200259,
+      "sha256": "8d9bdaeae6f5ea20dd4b78b7cda1d5db4c778078a76f8e9a4700d30df8c13916",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_execution_packer.hepta",
+      "bytes": 34398,
+      "sha256": "768f5bb35fb0bfd1bf42ed0e5525c73be048cd826b6977368992fea674fb7b3b",
+      "runtime_required": true
+    }
+  ],
+  "construction": {
+    "status": "native_built_unqualified",
+    "roles": [
+      {
+        "role": "background_optimizer_execution",
+        "source": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-source/examples/hia_bootstrap/background_optimizer_execution.hepta",
+          "bytes": 266368,
+          "sha256": "ac200e4000b4517357168cc7b8a0500685ffd51cb5e9bab6020ff0148226d4c2"
+        },
+        "native_compiles": [
+          {
+            "bytes": 314569,
+            "sha256": "c9eb524c18e68949c1257005b304ba352bde34156bbbdf3ad223235c6e5621d7",
+            "elapsed_ns": 189874757
+          },
+          {
+            "bytes": 314569,
+            "sha256": "c9eb524c18e68949c1257005b304ba352bde34156bbbdf3ad223235c6e5621d7",
+            "elapsed_ns": 189533442
+          }
+        ],
+        "byte_identical": true
+      },
+      {
+        "role": "background_optimizer_execution_publication",
+        "source": {
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-source/examples/hia_bootstrap/background_optimizer_execution_publication.hepta",
+          "bytes": 200259,
+          "sha256": "8d9bdaeae6f5ea20dd4b78b7cda1d5db4c778078a76f8e9a4700d30df8c13916"
+        },
+        "native_compiles": [
+          {
+            "bytes": 215341,
+            "sha256": "b3f824b86f4536ea9b45ac5977904253cf077fe5a1bb7d850a610246867aca6a",
+            "elapsed_ns": 141026486
+          },
+          {
+            "bytes": 215341,
+            "sha256": "b3f824b86f4536ea9b45ac5977904253cf077fe5a1bb7d850a610246867aca6a",
+            "elapsed_ns": 138890342
+          }
+        ],
+        "byte_identical": true
+      }
+    ],
+    "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+    "whole_background_qualified": false
+  },
+  "packing": {
+    "native_policy": {
+      "bytes": 314569,
+      "sha256": "c9eb524c18e68949c1257005b304ba352bde34156bbbdf3ad223235c6e5621d7"
+    },
+    "native_publication": {
+      "bytes": 215341,
+      "sha256": "b3f824b86f4536ea9b45ac5977904253cf077fe5a1bb7d850a610246867aca6a"
+    },
+    "native_packer": {
+      "bytes": 37257,
+      "sha256": "24b477d64c6d24ad4798f436392144e66b7b5bfdbcb684165eceb7814badee6e"
+    },
+    "mechanical": {
+      "source_sha256": "169cd77ddbefd2768fb2030bd652ad13389abfbd4ebb51e6277aa339157a3ba9",
+      "bytes": 575,
+      "sha256": "6dbe8fc2053f0641a0dbaf90eb54f7faa5138b4c1e195402c270fec2865baabe",
+      "holes": {
+        "policy": 240,
+        "publication": 257
+      },
+      "relocations": [
+        [
+          471,
+          "malloc"
+        ],
+        [
+          482,
+          "free"
+        ]
+      ]
+    },
+    "native_linker_sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff",
+    "image": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-execution-v2/execution.so",
+      "bytes": 541456,
+      "sha256": "cf1c3cbc529ed3eaa643fe94a7cdc95a79063cf7ff997f92c59a32b7183ff234"
+    },
+    "component_qualified": false,
+    "whole_background_qualified": false
+  },
+  "qualification": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-execution-smoke-v2/report.json",
+    "bytes": 4201,
+    "sha256": "58b4f4b1479c51ead8d74bc4b999cfe10a0f10c50eeb8e74eab49731b2c91207",
+    "cases": 3,
+    "scope": "actual early execution and rank-error branches only"
+  },
+  "known_open_static_issue": "Separate decision private output from the retained transport continuation before candidate integration."
+}
