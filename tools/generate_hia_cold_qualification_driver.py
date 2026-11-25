@@ -962,7 +962,21 @@ def policy_source():
     for key,value in words.items():text=re.sub(r'\b'+key+r'\b',str(value),text)
     unresolved=re.findall(r'\b(?:C|L|MAGIC)_[A-Z_]+\b',text)
     if unresolved:raise ValueError(unresolved)
-    return text+'\ndef constants(w:mutbuf) -> u64:\n'+'\n'.join(writes)+'\n    return 0\n'
+    text = text+'\ndef constants(w:mutbuf) -> u64:\n'+'\n'.join(writes)+'\n    return 0\n'
+    tree = ast.parse(text)
+    getter = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'get')
+    if (len(getter.body) != 1 or not isinstance(getter.body[0], ast.Return)
+            or ast.unparse(getter.body[0].value) != 'word_load(w, at)'):
+        raise ValueError('get wrapper is no longer the exact single word load')
+    class InlineWordReads(ast.NodeTransformer):
+        def visit_Call(self, node):
+            self.generic_visit(node)
+            if isinstance(node.func, ast.Name) and node.func.id == 'get':
+                if len(node.args) != 2 or node.keywords:
+                    raise ValueError('unexpected get call shape')
+                node.func = ast.copy_location(ast.Name(id='word_load', ctx=ast.Load()), node.func)
+            return node
+    return ast.unparse(ast.fix_missing_locations(InlineWordReads().visit(tree)))+'\n'
 
 
 def template():

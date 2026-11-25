@@ -1,0 +1,78 @@
+{
+  "schema": "hepta.hia.cold-driver-word-read-inlining.v1",
+  "whole_native_cold_replay_closed": false,
+  "change": "Replace every exact get(w,at) wrapper call with the same existing word_load(w,at) operation; preserve argument evaluation, bounds, trap and writes. Validate the wrapper AST before authoring. No seed opcode or profile change.",
+  "source": {
+    "path": "examples/hia_bootstrap/cold_qualification_driver.hepta",
+    "bytes": 321976,
+    "sha256": "a06187d4a510ebadb49f75a2d4f4ed3538ce42b5dfb909453d8bd9e681d4f8d6"
+  },
+  "product": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-inline-get-driver-v1/hia-cold-qualification-driver",
+    "bytes": 499647,
+    "sha256": "02a25acd0eb35c16f77ffcdbd041232a5308f7ddd7619da89219bf2eb410fe04"
+  },
+  "sha_companion": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/cold-sha-round-v1/new.flat",
+    "bytes": 109766,
+    "sha256": "a93da2f7bcdb284fce1e990f956d27ac9a7f3444965ef0f7a1c0f30133e81185"
+  },
+  "evidence": {
+    "guards": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-inline-get-driver-v1/qualification.json",
+      "bytes": 16162,
+      "sha256": "f69283eb1ce0aff4123a731c487d50a6bd105d6cb6d95562903d807c70927dc7"
+    },
+    "sample": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/driver-native-sampling-v1/profile.json",
+      "bytes": 348917,
+      "sha256": "be625cc9f46e6ca4ac45926cbbe62f41e2b0c09885c78002c445cde44f34498c"
+    },
+    "baseline-v1": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-inline-get-signed-baseline-v1/qualification.json",
+      "bytes": 1245,
+      "sha256": "250ad95696c649db93225eec37ad21f6705fdb36494fb34d69e179b4ff6e5bfa"
+    },
+    "inline-v1": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-inline-get-signed-inline-v1/qualification.json",
+      "bytes": 1245,
+      "sha256": "bb178a123f2989494c1d997fb34763a8b06123771f408c04c10e29bfdba85377"
+    },
+    "baseline-quiet-v2": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-inline-get-signed-baseline-quiet-v2/qualification.json",
+      "bytes": 1245,
+      "sha256": "b1debdcd46689d2055714b1cccbf9c19559e81d8d456f244b217902720a745de"
+    },
+    "inline-quiet-v2": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-inline-get-signed-inline-quiet-v2/qualification.json",
+      "bytes": 1245,
+      "sha256": "2a64b1eb67210400515d1a5e619bc1c9b9b665015272073b694ed95db9805e49"
+    }
+  },
+  "validation": {
+    "original_driver_guards": 18,
+    "actual_phase": "original-signed",
+    "nodes": 22544,
+    "actual_native_replay_and_full_archive": true,
+    "all_publications_equal_previous_actual": true,
+    "first_pair_overlapping_frontend_qa": {
+      "baseline_driver_ns": 19061268841,
+      "inline_driver_ns": 18231490038
+    },
+    "quiet_reverse_order_pair": {
+      "inline_driver_ns": 18444292501,
+      "baseline_driver_ns": 19209777387,
+      "inline_archive_ns": 7044772408,
+      "baseline_archive_ns": 7070135693
+    },
+    "timing_limitations": "One loaded pair plus one quiet reverse-order pair. These component results do not prove the 180-second whole replay. Journal bytes include fresh process receipts and need not be identical between executions."
+  },
+  "unchanged": [
+    "All 22544 phase nodes and independent reference inputs",
+    "Every native child execution and observable assertion",
+    "Lossless encoding/decoding, byte equality, immutable snapshots and custody checks",
+    "180-second qualification and 3-second cleanup budgets",
+    "2 phase workers, 1 archive worker, 2 pending archives, 4 unsealed phases",
+    "4 MiB workspace and all per-object caps"
+  ]
+}
