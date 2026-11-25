@@ -14,7 +14,7 @@ C.update({
 'EXEC_INPUT':int.from_bytes(b'HIABEX01','little'),'EXEC_REPLY':int.from_bytes(b'HIABER01','little'),
 'ACCOUNT_INPUT':int.from_bytes(b'HIABACQ1','little'),'ACCOUNT_REPLY':int.from_bytes(b'HIABACR1','little'),
 'PUBLIC_INPUT':int.from_bytes(b'HIABFP01','little'),'PUBLIC_REPLY':int.from_bytes(b'HIABFRP1','little'),
-'OUT':1048576,'CLOCK_WORD':976,
+'OUT':1048576,'CLOCK_WORD':976,'FUTURE_PENDING':1144,
 'WORK_PHASE':704,'OWNED_CURRENT':712,'SLOT':720,'CURRENT_EXISTS':728,'RESULT_PRESENT':736,
 'PENDING_FATAL':744,'CATCHING':752,'FAILURE_MODE':760,'DRAIN_COUNT':768,'DRAIN_INDEX':776,'DRAIN_FOUND':784,
 'BASE_NEXT':792,'BASE_STATUS':800,'BASE_REASON':808,'PUBLIC_NEXT':816,'PUBLIC_OP':824,'PUBLIC_KIND':832,
@@ -90,6 +90,8 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if get(w,168)==0 or get(w,176)==0 or get(w,184)<256 or get(w,192)==0:
         return 4294967293
     if get(w,216)==0 or get(w,224)==0 or get(w,232)<16384 or get(w,240)==0 or get(w,248)==0 or get(w,256)<4096:
+        return 4294967293
+    if get(w,384)==0 or get(w,392)==0 or get(w,400)<256:
         return 4294967293
     if get(w,288)==0 or get(w,320)==0 or get(w,328)<8192:
         return 4294967293
@@ -262,9 +264,19 @@ def final_step(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if account_valid(o)==0:
             return quarantine(o,w,104)
         put(o,ACCOUNT_NESTED,0)
+        if get(o,CHILD_OUT+8)==5:
+            put(o,ERROR_KIND,103)
+            put(o,ERROR_ROUTE,300)
+            request(o,QUEUE_INPUT,11)
+            return queue_owner(o,w,108)
         if get(o,CHILD_OUT+8)!=0:
             return quarantine(o,w,104)
         return again(o,110)
+    if phase==108:
+        if queue_valid(o)==0:
+            return quarantine(o,w,108)
+        put(o,LOCK,0)
+        return again(o,3100)
     if phase==110:
         request(o,QUEUE_INPUT,3)
         put(o,RQ+16,get(o,SLOT))
@@ -341,7 +353,9 @@ def queue_valid(o:mutbuf) -> u64:
 def public_valid(o:mutbuf) -> u64:
     return choose(valid(o,PUBLIC_OUT,PUBLIC_REPLY)!=0,1,0)
 def public_call(o:mutbuf,w:mutbuf,next:u64,op:u64,kind:u64,value:u64) -> u32:
-    request(o,PUBLIC_INPUT,op)
+    request(o,choose(op==26,PUBLIC_DROP_INPUT,PUBLIC_INPUT),op)
+    if op==26:
+        release_begin(o)
     from_work(w,o,192,RQ+16,24)
     within(o,RQ+40,G_FUTURE,24)
     if value!=0:
@@ -910,11 +924,9 @@ def failure_release(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return again(o,600)
         put(o,SAVED,at)
         if at==G_JOB:
-            request(o,JOB_INPUT,3)
-            within(o,RQ+24,at,24)
-            return jobs(o,w,602)
+            return job_drop(o,w,602,at)
         if at==G_FUTURE:
-            return public_call(o,w,603,6,0,0)
+            return public_call(o,w,603,26,0,0)
         return drop_value(o,w,601,at)
     if phase==601:
         if cleared(o,get(o,SAVED))==0:
@@ -922,15 +934,13 @@ def failure_release(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,600)
     if phase==602:
-        if valid(o,RP,JOB_REPLY)==0 or get(o,RP+8)!=0:
+        if release_job(o,G_JOB)==0:
             return quarantine(o,w,602)
-        zero(o,G_JOB,24)
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,600)
     if phase==603:
-        if public_valid(o)==0 or get(o,PUBLIC_OUT+8)!=0:
+        if release_future(o,G_FUTURE)==0:
             return quarantine(o,w,603)
-        zero(o,G_FUTURE,24)
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,600)
     return quarantine(o,w,phase)
@@ -942,6 +952,8 @@ def fail(o:mutbuf,status:u64,detail:u64) -> u32:
     put(o,ERROR,status)
     put(o,DETAIL,detail)
     phase=get(o,PHASE)
+    if get(o,DROP_ACTIVE)!=0:
+        return again(o,3990)
     if status!=5 or get(o,FAILURE_MODE)!=0 or (phase>=3100 and phase<3200):
         return again(o,3990)
     put(o,ERROR_KIND,103)
@@ -954,6 +966,10 @@ def done(o:mutbuf) -> u32:
     put(o,CLEAN,0)
     return again(o,4000)
 def quarantine(o:mutbuf,w:mutbuf,detail:u64) -> u32:
+    kind=2
+    if get(o,DROP_ACTIVE)!=0 and get(o,DROP_KNOWN)==1:
+        kind=1
+    put(w,480,kind)
     put(o,DETAIL,detail)
     put(w,464,1)
     if get(o,LOCK)!=0:
@@ -981,11 +997,9 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             if get(o,OWNED_CURRENT)==0:
                 return quarantine(o,w,4000)
         if at==G_JOB:
-            request(o,JOB_INPUT,3)
-            within(o,RQ+24,G_JOB,24)
-            return jobs(o,w,4002)
+            return job_drop(o,w,4002,G_JOB)
         if at==G_FUTURE:
-            return public_call(o,w,4003,6,0,0)
+            return public_call(o,w,4003,26,0,0)
         return drop_value(o,w,4001,at)
     if phase==4001:
         if cleared(o,get(o,SAVED))==0:
@@ -993,15 +1007,13 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,4000)
     if phase==4002:
-        if valid(o,RP,JOB_REPLY)==0 or get(o,RP+8)!=0:
+        if release_job(o,G_JOB)==0:
             return quarantine(o,w,4002)
-        zero(o,G_JOB,24)
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,4000)
     if phase==4003:
-        if public_valid(o)==0 or get(o,PUBLIC_OUT+8)!=0:
+        if release_future(o,G_FUTURE)==0:
             return quarantine(o,w,4003)
-        zero(o,G_FUTURE,24)
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,4000)
     if phase==4050:
@@ -1011,7 +1023,7 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return provider_owner(o,w,4051)
         if get(o,DREQ)!=0:
             return deallocate(o,4052,get(o,DREQ))
-        return terminal(o,w,choose(get(o,FAILURE_MODE)!=0,1,0))
+        return again(o,4060)
     if phase==4051:
         if valid(o,RP,PROVIDER_REPLY)==0 or get(o,RP+8)!=0:
             return quarantine(o,w,4051)
@@ -1020,6 +1032,38 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==4052:
         put(o,DREQ,0)
         return again(o,4050)
+    if phase==4060:
+        if get(o,JOB_PENDING)!=0:
+            release_begin(o)
+            request(o,JOB_DROP_INPUT,12)
+            return jobs(o,w,4061)
+        if get(o,FUTURE_PENDING)!=0:
+            release_begin(o)
+            request(o,PUBLIC_INPUT,20)
+            return invoke(o,4062,get(w,168),51,RQ,192,PUBLIC_OUT,65536,get(w,176),get(w,184))
+        if get(o,VALUE_PENDING)!=0:
+            release_begin(o)
+            request(o,VALUE_DROP_INPUT,31)
+            return values(o,w,4064,128)
+        return terminal(o,w,choose(get(o,FAILURE_MODE)!=0,1,0))
+    if phase==4061:
+        if release_job_retry(o)==0:
+            return quarantine(o,w,4061)
+        return again(o,4060)
+    if phase==4062:
+        if release_future_retry(o)==0:
+            return quarantine(o,w,4062)
+        release_begin(o)
+        request(o,CELL_QUERY_INPUT,21)
+        return invoke(o,4063,get(w,384),51,RQ,128,RP,16384,get(w,392),get(w,400))
+    if phase==4063:
+        if release_cell_query(o)==0:
+            return quarantine(o,w,4063)
+        return again(o,4060)
+    if phase==4064:
+        if release_value_retry(o)==0:
+            return quarantine(o,w,4064)
+        return again(o,4060)
     return quarantine(o,w,phase)
 def terminal(o:mutbuf,w:mutbuf,status:u64) -> u32:
     zero(o,0,128)
@@ -1041,7 +1085,7 @@ def again(o:mutbuf,next:u64) -> u32:
 def source_program(entry='business'):
     own={n.name:ast.get_source_segment(SOURCE,n)for n in ast.parse(SOURCE).body if isinstance(n,ast.FunctionDef)}
     fallback={}
-    for text in (E.SOURCE,E.BASE):
+    for text in (E.SOURCE,E.BASE,E.R.SOURCE):
         for n in ast.parse(text).body:
             if isinstance(n,ast.FunctionDef)and n.name not in fallback:
                 fallback[n.name]=ast.get_source_segment(text,n)

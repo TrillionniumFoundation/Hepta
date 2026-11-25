@@ -4,6 +4,7 @@ Development construction only. The generated HIA owns the runtime sequence;
 the final closed adapter only performs its fixed native calls and effects.
 """
 from pathlib import Path
+from tools import hia_background_retirement_source as R
 import ast,re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
@@ -12,6 +13,9 @@ ROOT=Path(__file__).resolve().parents[1]
 C={
 'MAGIC':int.from_bytes(b'HIABEX01','little'),'REPLY':int.from_bytes(b'HIABER01','little'),'CONTEXT':int.from_bytes(b'HIABEXC1','little'),
 'VALUE_INPUT':int.from_bytes(b'HIABVQ01','little'),'VALUE_REPLY':int.from_bytes(b'HIABVR01','little'),
+'VALUE_DROP_INPUT':int.from_bytes(b'HIABVQ02','little'),'VALUE_DROP_REPLY':int.from_bytes(b'HIABVR02','little'),
+'JOB_DROP_INPUT':int.from_bytes(b'HIABJO03','little'),'JOB_DROP_REPLY':int.from_bytes(b'HIABJOR2','little'),
+'DROP_ACTIVE':1104,'DROP_KNOWN':1112,'DROP_TARGET':1120,'VALUE_PENDING':1128,'JOB_PENDING':1136,
 'JOB_INPUT':int.from_bytes(b'HIABJO02','little'),'JOB_REPLY':int.from_bytes(b'HIABJOR1','little'),
 'PAYLOAD_INPUT':int.from_bytes(b'HIABPY01','little'),'PAYLOAD_REPLY':int.from_bytes(b'HIABPYR1','little'),
 'PROVIDER_INPUT':int.from_bytes(b'HIAMVBQ1','little'),'PROVIDER_REPLY':int.from_bytes(b'HIAMVBO1','little'),'SNAPSHOT':int.from_bytes(b'HIAMVBS1','little'),
@@ -41,6 +45,7 @@ C={
 'INFO':2048,'TS':2304,'ST':2400,'RQ':16384,'RP':24576,'RP_N':16384,'REPORT_OUT':40960,'REPORT_WORK':49152,'REPORT_SOURCE':81920,
 'IO_OUT':98304,'IO_WORK':229376,'RANK_OUT':262144,'DECISION_OUT':262144,'ERR':327680,
 }
+C.update(R.MAGICS)
 SOURCE=r'''
 def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<16384:
@@ -119,10 +124,13 @@ def starting(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,OP)==1:
             if get(w,464)==0:
                 return finish(o,w,0)
+            if get(w,480)==2:
+                return finish(o,w,6)
             from_work(w,o,512,128,8064)
             from_work(w,o,8576,IO_WORK,256)
             put(o,OP,1)
             put(w,464,0)
+            put(w,480,0)
             put(o,CLEAN,0)
             return again(o,2000)
         if get(w,464)!=0:
@@ -980,6 +988,8 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,LOCK,0)
         return again(o,2000)
     if phase==2000:
+        if get(o,DROP_ACTIVE)!=0 and get(o,DROP_KNOWN)!=1:
+            return quarantine(o,w,2000)
         if get(o,NESTED)!=0:
             request(o,DECISION_INPUT,1)
             return invoke(o,1980,get(w,296),51,RQ,128,DECISION_OUT,262144,get(w,304),get(w,312))
@@ -998,10 +1008,8 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,CLEAN,index+1)
             return again(o,2000)
         if at==G_JOB:
-            request(o,JOB_INPUT,3)
-            within(o,RQ+24,at,24)
             put(o,SAVED,at)
-            return jobs(o,w,2002)
+            return job_drop(o,w,2002,at)
         put(o,SAVED,at)
         return drop_value(o,w,2001,at)
     if phase==2001:
@@ -1010,9 +1018,8 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,2000)
     if phase==2002:
-        if valid(o,RP,JOB_REPLY)==0 or get(o,RP+8)!=0:
+        if job_cleared(o,get(o,SAVED))==0:
             return quarantine(o,w,2002)
-        zero(o,get(o,SAVED),24)
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,2000)
     if phase==2100:
@@ -1080,12 +1087,30 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==2230:
         if get(o,RANK_WORK)!=0:
             return system(o,2231,11,0,get(o,RANK_WORK),get(o,RANK_WORK_N),0,0,0,0)
-        return finish(o,w,get(o,ERROR))
+        return again(o,2240)
     if phase==2231:
         if get(o,FEEDBACK)!=0:
             return quarantine(o,w,2231)
         put(o,RANK_WORK,0)
+        return again(o,2240)
+    if phase==2240:
+        if get(o,JOB_PENDING)!=0:
+            release_begin(o)
+            request(o,JOB_DROP_INPUT,12)
+            return jobs(o,w,2241)
+        if get(o,VALUE_PENDING)!=0:
+            release_begin(o)
+            request(o,VALUE_DROP_INPUT,31)
+            return values(o,w,2242,128)
         return finish(o,w,get(o,ERROR))
+    if phase==2241:
+        if release_job_retry(o)==0:
+            return quarantine(o,w,2241)
+        return again(o,2240)
+    if phase==2242:
+        if release_value_retry(o)==0:
+            return quarantine(o,w,2242)
+        return again(o,2240)
     return quarantine(o,w,phase)
 
 def simple_task(o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -1238,14 +1263,25 @@ def take_value(o:mutbuf,at:u64) -> u64:
 def value_failure(o:mutbuf) -> u64:
     return choose(valid(o,RP,VALUE_REPLY)!=0 and get(o,RP+8)==5,5,7)
 def drop_value(o:mutbuf,w:mutbuf,next:u64,at:u64) -> u32:
-    request(o,VALUE_INPUT,6)
+    put(o,DROP_ACTIVE,1)
+    put(o,DROP_KNOWN,0)
+    put(o,DROP_TARGET,at)
+    request(o,VALUE_DROP_INPUT,29)
     within(o,RQ+24,at,24)
     return values(o,w,next,128)
 def cleared(o:mutbuf,at:u64) -> u64:
-    if valid(o,RP,VALUE_REPLY)==0 or get(o,RP+8)!=0:
-        return 0
-    zero(o,at,24)
-    return 1
+    return release_value(o,at)
+
+def job_drop(o:mutbuf,w:mutbuf,next:u64,at:u64) -> u32:
+    put(o,DROP_ACTIVE,1)
+    put(o,DROP_KNOWN,0)
+    put(o,DROP_TARGET,at)
+    request(o,JOB_DROP_INPUT,11)
+    within(o,RQ+24,at,24)
+    return jobs(o,w,next)
+def job_cleared(o:mutbuf,at:u64) -> u64:
+    return release_job(o,at)
+
 def allocate(o:mutbuf,next:u64,n:u64) -> u32:
     put(o,PHASE,next)
     put(o,0,n)
@@ -1266,6 +1302,16 @@ def quarantine(o:mutbuf,w:mutbuf,detail:u64) -> u32:
     if get(o,ERROR)==0:
         put(o,ERROR,7)
     put(o,DETAIL,detail)
+    kind=2
+    if get(o,DROP_ACTIVE)!=0 and get(o,DROP_KNOWN)==1:
+        kind=1
+    if detail==2221 or detail==2231:
+        kind=1
+    if detail==2101 and valid(o,RP,PAYLOAD_REPLY)!=0:
+        status=get(o,RP+8)
+        if status==1 or status==5 or status==6:
+            kind=1
+    put(w,480,kind)
     to_work(o,w,128,512,8064)
     to_work(o,w,IO_WORK,8576,256)
     put(w,464,1)
@@ -1315,6 +1361,7 @@ def digits(o:mutbuf,at:u64,value:u64) -> u64:
         i=i+1
     return n
 '''
+SOURCE+='\n'+R.selected('release_begin','release_value','release_job','release_job_retry','release_value_retry')
 LABELS={1:'costs',2:'enqueued_ns',3:'queue_wait_ns',4:'candidates',5:'observations',6:'function',7:'bridge',8:'objective',9:'epoch',10:'generation',11:'timeout_ms',12:'bridge_timeout_s',13:'rank_call_wall_ns',14:'ranking',15:'reason',16:'status',17:'net_margin_ns',18:'resource_cap_ns',19:'selected_id',20:'prepare_ns',21:'publication',22:'submit_work_ns',23:'coordinator_before_publish_ns',24:'publication_budget_ns',25:'publication_call_wall_ns',26:'publication_prepare_ns',27:'net_margin_before_postcommit_reporting_ns',28:'search_and_preparation_ns',29:'publication_handoff_ns',30:'postcommit_runtime_return_ns',31:'abstained',32:'ranker_abstained',33:'coordinator_work_exhausted_net_or_resource_budget',34:'published',35:'fresh_proof_native_prepare_and_conditional_swap_passed',36:'actual_adapter_ns',37:'total_search_ns'}
 def source_program(entry='execute'):
  s=SOURCE

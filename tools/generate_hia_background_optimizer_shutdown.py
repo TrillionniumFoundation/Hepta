@@ -1,5 +1,6 @@
 """Author the fixed native shutdown continuation; no host policy at runtime."""
 from pathlib import Path
+from tools import hia_background_retirement_source as R
 import ast,re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
@@ -8,9 +9,13 @@ ROOT=Path(__file__).resolve().parents[1]
 C={
  'INPUT':int.from_bytes(b'HIABSHQ1','little'),'REPLY':int.from_bytes(b'HIABSHR1','little'),'CONTEXT':int.from_bytes(b'HIABSHC1','little'),
  'VALUE_INPUT':int.from_bytes(b'HIABVQ01','little'),'VALUE_REPLY':int.from_bytes(b'HIABVR01','little'),
- 'QUEUE_INPUT':int.from_bytes(b'HIABGQ02','little'),'QUEUE_REPLY':int.from_bytes(b'HIABGQR1','little'),
- 'JOB_INPUT':int.from_bytes(b'HIABJO02','little'),'JOB_REPLY':int.from_bytes(b'HIABJOR1','little'),
+ 'VALUE_DROP_INPUT':int.from_bytes(b'HIABVQ02','little'),'VALUE_DROP_REPLY':int.from_bytes(b'HIABVR02','little'),
+ 'QUEUE_INPUT':int.from_bytes(b'HIABGQ04','little'),'QUEUE_REPLY':int.from_bytes(b'HIABGQR2','little'),
+ 'JOB_INPUT':int.from_bytes(b'HIABJO03','little'),'JOB_REPLY':int.from_bytes(b'HIABJOR2','little'),
  'PUBLIC_INPUT':int.from_bytes(b'HIABFP01','little'),'PUBLIC_REPLY':int.from_bytes(b'HIABFRP1','little'),
+ 'PUBLIC_DROP_INPUT':int.from_bytes(b'HIABFP03','little'),'PUBLIC_DROP_REPLY':int.from_bytes(b'HIABFRP2','little'),
+ 'CELL_INPUT':int.from_bytes(b'HIABFQ04','little'),'CELL_REPLY':int.from_bytes(b'HIABFR02','little'),
+ 'JOB_PENDING':256,'FUTURE_PENDING':264,'UNKNOWN_ROWS':272,'QUARANTINE_MODE':280,'VALUE_PENDING':288,
  'WORKER_INPUT':int.from_bytes(b'HIABGW01','little'),'WORKER_REPLY':int.from_bytes(b'HIABGWO1','little'),
  'NEGATIVE':(1<<64)-4095,'OUT':262144,'WORK':16384,
  'PHASE':128,'OP':136,'ERROR':144,'DETAIL':152,'PID':160,'TID':168,'WAIT':176,'CANCEL':184,
@@ -18,6 +23,8 @@ C={
  'FEEDBACK':448,'ARG':512,'FIRST_ERROR':536,'EXTRA_ERROR':560,'RECORD':600,
  'ROWS':1024,'RQ':16384,'RP':24576,'PUBLIC_OUT':65536,
 }
+C.update(R.MAGICS)
+C.update({'DROP_ACTIVE':296,'DROP_KNOWN':304})
 SOURCE=r'''
 def shutdown(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<WORK:
@@ -51,7 +58,9 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     if get(w,128)==0 or get(w,136)==0 or get(w,144)<512 or get(w,152)==0 or get(w,160)<8192:
         return 4294967293
-    at=192
+    if get(w,192)==0 or get(w,200)==0 or get(w,208)<256:
+        return 4294967293
+    at=216
     while at<512:
         if get(w,at)!=0:
             return 4294967293
@@ -139,7 +148,7 @@ def start(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 def close_pending(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==20:
         if valid(o,RP,QUEUE_REPLY)==0 or get(o,RP+8)!=0:
-            return fail(o,7,20)
+            return quarantine(o,w,20)
         put(o,LOCK,1)
         request(o,QUEUE_INPUT,4)
         put(o,RQ+16,get(o,CANCEL))
@@ -147,23 +156,18 @@ def close_pending(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==21:
         if valid(o,RP,QUEUE_REPLY)==0:
             return quarantine(o,w,21)
+        if capture_rows(o)==0:
+            return quarantine(o,w,21)
+        if get(o,UNKNOWN_ROWS)!=0:
+            return quarantine(o,w,21)
         if get(o,RP+8)!=0:
             if get(o,RP+8)==5:
                 put(o,FIRST_STATUS,1)
                 put(o,FIRST_KIND,103)
                 return again(o,100)
+            return fail(o,7,21)
+        if get(o,RP+120)!=0:
             return quarantine(o,w,21)
-        n=get(o,RP+56)
-        if n>8 or get(o,RP+64)!=choose(n!=0,1,0):
-            return quarantine(o,w,21)
-        put(o,COUNT,n)
-        i=0
-        while i<n:
-            at=ROWS+i*128
-            within(o,at,RP+512+i*64,24)
-            put(o,at+88,get(o,RP+512+i*64+24))
-            put(o,at+96,get(o,RP+512+i*64+40))
-            i=i+1
         put(o,INDEX,0)
         return again(o,22)
     if phase==22:
@@ -200,6 +204,25 @@ def close_pending(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,INDEX,0)
         return again(o,40)
     return fail(o,7,phase)
+def capture_rows(o:mutbuf) -> u64:
+    n=get(o,RP+56)
+    if n>8 or get(o,RP+64)!=choose(n!=0,1,0) or get(o,RP+120)>7:
+        return 0
+    put(o,COUNT,n)
+    if (get(o,RP+120)&4)!=0:
+        put(o,JOB_PENDING,1)
+    i=0
+    while i<n:
+        source=RP+512+i*64
+        at=ROWS+i*128
+        within(o,at,source,24)
+        put(o,at+88,get(o,source+24))
+        put(o,at+96,get(o,source+40))
+        put(o,at+104,get(o,source+48))
+        if get(o,source+48)!=0:
+            put(o,UNKNOWN_ROWS,1)
+        i=i+1
+    return 1
 def cancel_pending(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==40:
         if get(o,INDEX)>=get(o,COUNT):
@@ -270,38 +293,107 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==110:
         i=get(o,CLEAN)
         if i>=get(o,COUNT)*3:
-            if get(o,EXTRA_ERROR)!=0:
-                return drop_value(o,w,114,EXTRA_ERROR)
-            return finish(o,w)
+            return again(o,115)
         at=ROWS+(i//3)*128+(i%3)*24
         if get(o,at)==0:
             put(o,CLEAN,i+1)
             return again(o,110)
         if i%3==0:
-            request(o,JOB_INPUT,3)
+            if get(o,ROWS+(i//3)*128+104)!=0:
+                return quarantine(o,w,110)
+            release_begin(o)
+            request(o,JOB_INPUT,11)
             within(o,RQ+24,at,24)
-            return invoke(o,111,get(w,56),51,RQ,128,RP,2048,get(w,64),get(w,72))
+            return jobs(o,w,111)
         if i%3==1:
-            request(o,PUBLIC_INPUT,6)
+            release_begin(o)
+            request(o,PUBLIC_DROP_INPUT,26)
             from_work(w,o,104,RQ+16,24)
             within(o,RQ+40,at,24)
             return public_owner(o,w,112)
         return drop_value(o,w,113,at)
-    if phase==111 or phase==112 or phase==113:
-        base=choose(phase==112,PUBLIC_OUT,RP)
-        magic=choose(phase==111,JOB_REPLY,choose(phase==112,PUBLIC_REPLY,VALUE_REPLY))
-        if valid(o,base,magic)==0 or get(o,base+8)!=0:
-            return quarantine(o,w,phase)
+    if phase>=111 and phase<=113:
         i=get(o,CLEAN)
-        zero(o,ROWS+(i//3)*128+(i%3)*24,24)
-        put(o,CLEAN,i+1)
-        return again(o,110)
+        at=ROWS+(i//3)*128+(i%3)*24
+        done=0
+        if phase==111:
+            done=release_job(o,at)
+        elif phase==112:
+            done=release_future(o,at)
+        else:
+            done=release_value(o,at)
+        if done==0:
+            if get(o,DROP_KNOWN)==1:
+                return retry_cleanup(o,w,phase)
+            return quarantine(o,w,phase)
+        return released(o)
     if phase==114:
-        if valid(o,RP,VALUE_REPLY)==0 or get(o,RP+8)!=0:
+        if release_value(o,EXTRA_ERROR)==0:
+            if get(o,DROP_KNOWN)==1:
+                return retry_cleanup(o,w,114)
             return quarantine(o,w,114)
-        zero(o,EXTRA_ERROR,24)
+        return again(o,115)
+    if phase==115:
+        if get(o,JOB_PENDING)!=0:
+            release_begin(o)
+            request(o,JOB_INPUT,12)
+            return jobs(o,w,116)
+        if get(o,FUTURE_PENDING)!=0:
+            release_begin(o)
+            request(o,PUBLIC_INPUT,20)
+            return public_owner(o,w,117)
+        if get(o,VALUE_PENDING)!=0:
+            release_begin(o)
+            request(o,VALUE_DROP_INPUT,31)
+            return values(o,w,119,128)
+        if get(o,EXTRA_ERROR)!=0:
+            return drop_value(o,w,114,EXTRA_ERROR)
         return finish(o,w)
+    if phase==116:
+        if release_job_retry(o)==0:
+            if get(o,DROP_KNOWN)==1:
+                return retry_cleanup(o,w,116)
+            return quarantine(o,w,116)
+        return again(o,115)
+    if phase==117:
+        if release_future_retry(o)==0:
+            return quarantine(o,w,117)
+        release_begin(o)
+        request(o,CELL_QUERY_INPUT,21)
+        return invoke(o,118,get(w,192),51,RQ,128,RP,16384,get(w,200),get(w,208))
+    if phase==118:
+        if release_cell_query(o)==0:
+            if get(o,DROP_KNOWN)==1:
+                return retry_cleanup(o,w,118)
+            return quarantine(o,w,118)
+        return again(o,115)
+    if phase==119:
+        if release_value_retry(o)==0:
+            if get(o,DROP_KNOWN)==1:
+                return retry_cleanup(o,w,119)
+            return quarantine(o,w,119)
+        return again(o,115)
+    if phase==190:
+        if valid(o,RP,QUEUE_REPLY)!=0 and get(o,RP+8)==0:
+            put(o,LOCK,0)
+        return save_quarantine(o,w,2)
     return quarantine(o,w,phase)
+def released(o:mutbuf) -> u32:
+    i=get(o,CLEAN)
+    zero(o,ROWS+(i//3)*128+(i%3)*24,24)
+    put(o,CLEAN,i+1)
+    return again(o,110)
+def jobs(o:mutbuf,w:mutbuf,next:u64) -> u32:
+    return invoke(o,next,get(w,56),51,RQ,128,RP,2048,get(w,64),get(w,72))
+def value_drop_known(o:mutbuf) -> u64:
+    if valid(o,RP,VALUE_DROP_REPLY)==0 or get(o,RP+88)!=1 or get(o,RP+96)>1 or get(o,RP+80)>1:
+        return 0
+    status=get(o,RP+8)
+    if status!=0 and status!=1 and status!=5 and status!=6 and status!=11:
+        return 0
+    if status==0 and get(o,RP+96)!=1:
+        return 0
+    return 1
 def error_value(o:mutbuf,w:mutbuf,which:u64,status:u64) -> u32:
     request(o,VALUE_INPUT,1)
     n=error_literal(o,RQ+128,which)
@@ -310,7 +402,8 @@ def error_value(o:mutbuf,w:mutbuf,which:u64,status:u64) -> u32:
 def values(o:mutbuf,w:mutbuf,next:u64,n:u64) -> u32:
     return invoke(o,next,get(w,8),51,RQ,n,RP,8193,get(w,16),get(w,24))
 def drop_value(o:mutbuf,w:mutbuf,next:u64,at:u64) -> u32:
-    request(o,VALUE_INPUT,6)
+    release_begin(o)
+    request(o,VALUE_DROP_INPUT,29)
     within(o,RQ+24,at,24)
     return values(o,w,next,128)
 def public_owner(o:mutbuf,w:mutbuf,next:u64) -> u32:
@@ -330,13 +423,23 @@ def fail(o:mutbuf,status:u64,detail:u64) -> u32:
     return again(o,100)
 def quarantine(o:mutbuf,w:mutbuf,detail:u64) -> u32:
     put(o,DETAIL,detail)
+    within(o,4096,RP,2048)
+    within(o,6144,PUBLIC_OUT,128)
+    if get(o,LOCK)!=0:
+        request(o,QUEUE_INPUT,11)
+        return queue(o,w,190)
+    return save_quarantine(o,w,2)
+def retry_cleanup(o:mutbuf,w:mutbuf,detail:u64) -> u32:
+    put(o,DETAIL,detail)
+    return save_quarantine(o,w,1)
+def save_quarantine(o:mutbuf,w:mutbuf,kind:u64) -> u32:
     to_work(o,w,128,512,8064)
-    put(w,176,1)
+    put(w,176,kind)
     zero(o,0,128)
     put(o,0,REPLY)
     put(o,8,9)
-    put(o,48,detail)
-    put(o,56,1)
+    put(o,48,get(o,DETAIL))
+    put(o,56,kind)
     return 0
 def finish(o:mutbuf,w:mutbuf) -> u32:
     zero(o,0,128)
@@ -350,6 +453,7 @@ def finish(o:mutbuf,w:mutbuf) -> u32:
     put(w,184,0)
     return 0
 '''
+SOURCE+='\n'+R.SOURCE
 ERRORS=(
  b'{"class":"BackgroundOptimizationRejected","message":"E_HIA_BACKGROUND: shutdown flags must be exact booleans"}',
  b'{"class":"RuntimeError","message":"Failed joining thread"}',

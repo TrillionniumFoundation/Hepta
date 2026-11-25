@@ -8,44 +8,63 @@
   "whole_background_qualified": false,
   "roles": [
     {
-      "role": "jobs",
-      "author": "tools/generate_hia_multiversion_background_jobs.py",
-      "author_bytes": 29163,
-      "author_sha256": "413c93979799a3271cd19411b89e2519e8312041692ac2c08a6f516fe1acf072",
-      "source": "examples/hia_bootstrap/multiversion_background_jobs.hepta",
-      "source_bytes": 167592,
-      "source_sha256": "3cad7761414cfe3cb6545f88214fe9c42d86552cc363d946455ec8f6ffb81339",
+      "role": "multiversion_background_jobs",
+      "author": {
+        "path": "tools/generate_hia_multiversion_background_jobs.py",
+        "bytes": 29291,
+        "sha256": "2f7820a832f022db41a403f115b19c3adfffce8b620d32732ae341a1ba6960df"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/multiversion_background_jobs.hepta",
+        "bytes": 168304,
+        "sha256": "3052f53476cff51e62bfd326be294417cdd5b0aebb77e645b0d6d7012ad72b68"
+      },
       "functions": 35,
-      "blocks": 605,
-      "operations": 2916,
-      "maximum_function_blocks": 111
+      "blocks": 607,
+      "operations": 2931,
+      "maximum_function_blocks": 113,
+      "maximum_function_values": 884,
+      "maximum_block_parameters": 10
     },
     {
-      "role": "job_refs",
-      "author": "tools/generate_hia_multiversion_background_job_refs.py",
-      "author_bytes": 4307,
-      "author_sha256": "f915c5e534dcc41126b101e63c1291ffbdfa59413514bbf60b78887d9a24ba87",
-      "source": "examples/hia_bootstrap/multiversion_background_job_refs.hepta",
-      "source_bytes": 20967,
-      "source_sha256": "da8de90b2052f8a98b745ff2c333be8e4ff97198b587a200f97bfe3bb65b6688",
+      "role": "multiversion_background_job_refs",
+      "author": {
+        "path": "tools/generate_hia_multiversion_background_job_refs.py",
+        "bytes": 4307,
+        "sha256": "f915c5e534dcc41126b101e63c1291ffbdfa59413514bbf60b78887d9a24ba87"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/multiversion_background_job_refs.hepta",
+        "bytes": 20967,
+        "sha256": "da8de90b2052f8a98b745ff2c333be8e4ff97198b587a200f97bfe3bb65b6688"
+      },
       "functions": 6,
       "blocks": 76,
       "operations": 363,
-      "maximum_function_blocks": 61
+      "maximum_function_blocks": 61,
+      "maximum_function_values": 489,
+      "maximum_block_parameters": 5
     },
     {
-      "role": "queue",
-      "author": "tools/generate_hia_multiversion_background_queue.py",
-      "author_bytes": 17840,
-      "author_sha256": "1ca96e1dec00fcc1f1ecc0a8cf9b8806bc5a9cb62c0f360b23cef693b6cd7a96",
-      "source": "examples/hia_bootstrap/multiversion_background_queue.hepta",
-      "source_bytes": 95785,
-      "source_sha256": "31ecc7f872056630850c631fbffce4ab3cf1a3396cea80f7f79304905bb4fd51",
+      "role": "multiversion_background_queue",
+      "author": {
+        "path": "tools/generate_hia_multiversion_background_queue.py",
+        "bytes": 17840,
+        "sha256": "1ca96e1dec00fcc1f1ecc0a8cf9b8806bc5a9cb62c0f360b23cef693b6cd7a96"
+      },
+      "source": {
+        "path": "examples/hia_bootstrap/multiversion_background_queue.hepta",
+        "bytes": 95785,
+        "sha256": "31ecc7f872056630850c631fbffce4ab3cf1a3396cea80f7f79304905bb4fd51"
+      },
       "functions": 27,
       "blocks": 352,
       "operations": 1609,
-      "maximum_function_blocks": 172
+      "maximum_function_blocks": 172,
+      "maximum_function_values": 1344,
+      "maximum_block_parameters": 10
     }
   ],
-  "required_dependency": "New HIABFQ04 operations 20 and 21, preserving all old cell profiles; not a stub or success fixture."
+  "required_dependency": "New HIABFQ04 operations 20 and 21, preserving all old cell profiles; not a stub or success fixture.",
+  "shared_payload_failure_rule": "Only actual legacy op3 statuses 1,5,6 are established pre-consumption; protocol and internal outcomes remain unknown."
 }

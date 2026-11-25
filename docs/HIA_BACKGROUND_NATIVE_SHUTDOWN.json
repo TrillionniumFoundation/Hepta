@@ -7,8 +7,8 @@
   "sources": [
     {
       "path": "tools/generate_hia_background_optimizer_shutdown.py",
-      "bytes": 14267,
-      "sha256": "dcfc8b705c77b0b8f4d804b4c6084bd61e48e985ab560e617328bea7e3a495d4",
+      "bytes": 17967,
+      "sha256": "759885463bdbec3e5f7dd23f42228cf135d62af49bef9c956501c1656d39535c",
       "runtime_required": false
     },
     {
@@ -25,8 +25,8 @@
     },
     {
       "path": "examples/hia_bootstrap/background_optimizer_shutdown.hepta",
-      "bytes": 87955,
-      "sha256": "4de31ae407fb413f2ebce51c6868b04762bb1f48ae40d4d7982a061853167319",
+      "bytes": 131328,
+      "sha256": "2d1b476927f9f791536b69540b874b7857fd39155a403b73c1f20307c5318c19",
       "runtime_required": true
     },
     {
@@ -34,9 +34,23 @@
       "bytes": 33181,
       "sha256": "b89044dea23d58218c0c63982210d213a7b70042ff309f656407585ca3429a73",
       "runtime_required": true
+    },
+    {
+      "path": "tools/hia_background_retirement_source.py",
+      "bytes": 5512,
+      "sha256": "2463c45bd4d4c76fb2828c88634e73e9738c6382d12032861bd96173c385f211",
+      "runtime_required": false
     }
   ],
-  "author_validation": "original HIA verifier, 31 functions, 321 blocks, 1519 operations; source rendering only",
+  "author_validation": {
+    "role": "background_optimizer_shutdown",
+    "functions": 46,
+    "blocks": 543,
+    "operations": 2328,
+    "maximum_function_blocks": 78,
+    "maximum_function_values": 512,
+    "maximum_block_parameters": 10
+  },
   "mechanical_template": {
     "passed": true,
     "scope": "external mechanical template byte comparison only; native product not constructed",
@@ -50,5 +64,12 @@
     "real concurrent/reentrant shutdown and native pthread join",
     "retained ownership, actual allocation and cleanup failures",
     "coherent inherited Future and insertion-order ledger integration"
+  ],
+  "required_private_profiles": [
+    "HIABGQ04",
+    "HIABJO03",
+    "HIABFP03/op26",
+    "HIABFQ04/op21",
+    "HIABVQ02/29,31"
   ]
 }

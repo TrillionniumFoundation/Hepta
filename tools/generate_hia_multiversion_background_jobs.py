@@ -558,7 +558,10 @@ def retirement_safe(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,FEEDBACK)!=0 or get(o,RP)!=PAYLOAD_REPLY:
             return retire_failure(o,3,9)
         if get(o,RP+8)!=0:
-            return retire_failure(o,1,9)
+            status=get(o,RP+8)
+            if status==1 or status==5 or status==6:
+                return retire_failure(o,1,9)
+            return retire_failure(o,3,9)
         zero(o,OLD,24)
         return memory(o,613,3,OLD,0,get(o,OBJ)+672+get(o,RETIRE_INDEX)*24,24)
     if phase==613:
