@@ -115,3 +115,43 @@ capsules with these roles and verify their result lifetime. Complete typed
 public exception mapping and the shared historical-v2/types collision admission
 gate remain open. No final installation, default activation, source cleanup or
 whole-runtime success is asserted here.
+
+
+## Owned public carrier composition
+
+The unchanged qualified handle and background provider policies now compose the
+48-role snapshot effects image through two newly generated native packers.
+Both objects are produced by actual HIA packers, compared byte for byte with
+the independent object construction, and linked by the actual native linker.
+Each packer passed 17 malformed-frame, role-count, extent and short-output
+atomic refusal checks.
+
+| Actual product | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Runtime and lease carrier | 8561424 | 426fb168686beb757bb477898ca0ba56b5d30067ee2f9a72668cf410d9901dbf |
+| Background runtime provider | 8852240 | 2170b895ed9c146c87888c7c83057e22aa0f2bfd7a87fbf348f51f50e3f09192 |
+
+The same carrier passed the original seven lifecycle groups (24 calls) and
+two full snapshot lifetime groups (18 calls). Three complete snapshots match
+the original runtime, including an old leased generation after publication
+and a closed runtime with that lease retained. Two separately allocated JSON
+results remain byte-identical after all runtime and lease capabilities are
+released and the context is destroyed. Another actual snapshot reads an
+immutable 9437201-digit epoch while the last user capability is dropped.
+Its 9440432-byte result remains valid after the carrier's real finalizer runs
+and the context is destroyed; the receiver then frees the result. This uses
+a real in-flight capability pin, not a supplied lifetime assertion.
+
+The provider passed the original eight groups (18 calls): actual normalize,
+proof, build and load; selection-lock snapshot; strong reference cloning;
+same-token conditional publication; stale-before-token precedence;
+cancellation; retained reply ownership; and actual descriptor/finalizer cleanup.
+The four provider status classes remain distinct. Unmapped dependency errors
+remain explicitly open and are not relabeled as MemoryError or as an
+uncommitted publication.
+
+The first additional fixture incorrectly expected a GenerationInfo payload
+from the runtime constructor. Its failed log remains pinned in the JSON
+record. The constructor returns its owned runtime capability and an empty
+extra payload; the corrected fixture checks this result through actual
+snapshots and operations. No product bytes changed for that correction.
