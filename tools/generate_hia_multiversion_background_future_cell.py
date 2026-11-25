@@ -10,7 +10,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={
-'MAGIC':int.from_bytes(b'HIABFQ01','little'),'MAGIC2':int.from_bytes(b'HIABFQ02','little'),'MAGIC3':int.from_bytes(b'HIABFQ03','little'),'REPLY':int.from_bytes(b'HIABFR01','little'),
+'MAGIC':int.from_bytes(b'HIABFQ01','little'),'MAGIC2':int.from_bytes(b'HIABFQ02','little'),'MAGIC3':int.from_bytes(b'HIABFQ03','little'),'MAGIC4':int.from_bytes(b'HIABFQ04','little'),'REPLY':int.from_bytes(b'HIABFR01','little'),'REPLY2':int.from_bytes(b'HIABFR02','little'),
 'STATE':int.from_bytes(b'HIABFS01','little'),'OBJECT':int.from_bytes(b'HIABFO01','little'),
 'NMAGIC':int.from_bytes(b'HIABFN01','little'),'PMAGIC':int.from_bytes(b'HIABFA01','little'),
 'BOXMAGIC':int.from_bytes(b'HIABFB01','little'),'FREQUEST':int.from_bytes(b'HIAMVFQ1','little'),
@@ -22,7 +22,7 @@ C={
 'VALUE_KIND':328,'KERNEL_STATUS':336,'KERNEL_STATE':344,'KERNEL_TOKEN':352,
 'KERNEL_VALUE':360,'KERNEL_SEEN':368,'KERNEL_CAUGHT':376,'BORROWED':384,'FINAL_STAGE':392,
 'FINAL_FAILED':400,'TEMP':408,'RANDOM':416,'FEEDBACK':448,'RESTORE':456,'BOXPTR':464,'CALL_OP':472,
-'RUNNING':480,'NOTIFIED':488,'COMPLETION_MODE':496,'VALUE_CLASS':504,'NODE':512,'HEADER':640,'BOX':768,'PIN':1024,'SAVED':1152,'RQ':4096,'FP':6144,'VP':8192,'OUT':16384}
+'RUNNING':480,'NOTIFIED':488,'COMPLETION_MODE':496,'VALUE_CLASS':504,'NODE':512,'HEADER':640,'BOX':768,'PIN':1024,'SAVED':1152,'DROP_CONSUMED':1216,'RETIRING_PENDING':1224,'RETIRING_KNOWN':1232,'RQ':4096,'FP':6144,'VP':8192,'OUT':16384}
 SOURCE=r'''
 
 def background_future_cell(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -62,6 +62,9 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     elif readword(s,0)==MAGIC3:
         if op<15 or op>19:
             return 4294967293
+    elif readword(s,0)==MAGIC4:
+        if op!=20 and op!=21:
+            return 4294967293
     else:
         return 4294967293
     at=16
@@ -73,6 +76,8 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             if at>=24 and at<=40:
                 used=True
         if op>=15 and op<=19 and at>=24 and at<=40:
+            used=True
+        if op==20 and at>=24 and at<=40:
             used=True
         if (op==15 or op==16) and ((at>=48 and at<=64) or at==80):
             used=True
@@ -147,6 +152,10 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if op==13:
             put(o,CURSOR,get(w,40))
             return again(o,180)
+        if op==21:
+            put(o,RETIRING_PENDING,choose(get(w,40)!=0,1,0))
+            put(o,RETIRING_KNOWN,1)
+            return fail(o,0)
         if op==1:
             return allocate(o,200,1024)
         if op==14:
@@ -178,7 +187,7 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         op=get(o,OP)
         if op==2:
             return again(o,300)
-        if op==3:
+        if op==3 or op==20:
             return again(o,400)
         if op==6:
             put(o,BORROWED,get(o,OBJ)+512)
@@ -329,6 +338,10 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==404:
         return deallocate(o,405,get(o,CAP))
     if phase==405:
+        # The nonce has been unlinked from both registries and deallocated.
+        # Later retirement failures do not restore this reference.
+        if get(o,OP)==20:
+            put(o,DROP_CONSUMED,1)
         return memory(o,406,0,get(o,OBJ),3,HEADER,128)
     if phase==406:
         if get(o,HEADER+32)==0 and get(o,HEADER+56)==0:
@@ -715,6 +728,7 @@ def fail(o:mutbuf,status:u64) -> u32:
     put(o,ERROR,status)
     return again(o,900)
 def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
+    op=get(o,OP)
     result=get(o,RESULT)
     t0=get(o,TAG0)
     t1=get(o,TAG1)
@@ -736,7 +750,13 @@ def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
     put(o,104,get(o,KERNEL_SEEN))
     put(o,112,get(o,KERNEL_CAUGHT))
     put(o,120,get(o,FINAL_FAILED))
-    if get(o,OP)>=15:
+    if op==20 or op==21:
+        put(o,0,REPLY2)
+        put(o,128,get(o,DROP_CONSUMED))
+        put(o,136,get(o,RETIRING_PENDING))
+        put(o,144,get(o,RETIRING_KNOWN))
+        put(o,152,0)
+    elif op>=15:
         put(o,128,get(o,RUNNING))
         put(o,136,get(o,NOTIFIED))
         put(o,144,get(o,COMPLETION_MODE))
