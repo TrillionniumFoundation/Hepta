@@ -508,6 +508,8 @@ def native_inspect(o:mutbuf,w:mutbuf) -> u64:
     i=0
     while i<3:
         child=get(w,data+16+i*8)
+        if i==2 and get(w,data+40)!=0:
+            child=get(w,get(w,get(w,data+40)+24))
         if child==0:
             child=get(w,128)
         cap=enum_cap(o,w,child,i,head,8224+i*24)
