@@ -20,6 +20,18 @@ LABELS={**shared.LABELS,40:'implementation',41:'call_expansions',42:'call_closur
  104:'hia.scalar-acyclic-direct-calls-bitvector-first-traps.v1',
  109:'symbolic_call_expansion_budget_exceeded'}
 EXTRA={**shared.EXTRA,509:',"error_type":"HIAProgramRejected"'}
+# Call validation publishes hashes only after the original public-selection gate.
+# Native backend custody fields remain independently bound.
+PROFILE_REASONS=('invalid_solver_timeout','public_primitive_scalar_function_required',
+ 'signature_mismatch','symbolic_program_budget_exceeded','symbolic_signature_budget_exceeded',
+ 'resource_effects_outside_scalar_profile','resource_types_outside_scalar_profile',
+ 'operation_outside_scalar_profile','cyclic_cfg_outside_profile','recursive_call_graph',
+ 'call_function_budget_exceeded','bounded_scalar_call_results_required',
+ 'call_closure_program_budget_exceeded','symbolic_call_expansion_budget_exceeded')
+LABELS[44]='error_type'
+for index,reason in enumerate(PROFILE_REASONS[:2]):
+ LABELS[200+index]=reason
+EXTRA[510]=',"error_type":"_OutsideProfile"'
 IDENTITIES=shared.IDENTITIES
 def replace_one(text,old,new):
  assert text.count(old)==1,(old,text.count(old))
@@ -46,8 +58,93 @@ POLICY=replace_one(POLICY,'        if key==12:\n','        if key==25:\n        
 POLICY=replace_one(POLICY,'    result=base_receipt(o,w)\n','    result=base_receipt(s,o,w)\n')
 POLICY=replace_one(POLICY,'    if get(w,DIAG_LARGE)!=0:\n        return append_large_diagnostic(s,o,w,result)\n','    if get(w,DIAG_LARGE)!=0 and read64(s,16)==1:\n        return append_large_diagnostic(s,o,w,result)\n')
 POLICY=replace_one(POLICY,'def validation_fields(o:mutbuf,w:mutbuf,at:u64) -> u64:\n    if get(w,DIAG_SIZE)==0:\n','def validation_fields(o:mutbuf,w:mutbuf,at:u64) -> u64:\n    if get(w,256)==2 and get(w,DIAG_CODE)!=0:\n        return lit(o,at,509)\n    if get(w,DIAG_SIZE)==0:\n')
+# Calls expose fresh results only; the primitive claimed-receipt flag paths
+# are unreachable and remain rejected under the original 0..511 flag domain.
+POLICY=replace_one(POLICY,'    large_claimed=(flags&512)!=0\n    if large_claimed and action!=2 and action!=3:\n        return BAD\n','')
+POLICY=replace_one(POLICY,'    if flags>1023 or read64(s,400)!=0:','    if flags>511 or read64(s,400)!=0:')
+POLICY=replace_one(POLICY,'    if large and (action!=1 and action!=2):','    if large and action!=1:')
+POLICY=replace_one(POLICY,'    if large and action==2 and ((flags&64)!=0 or read64(s,408)!=0):\n        return BAD\n','')
+POLICY=replace_one(POLICY,'    if action>=2 and mode!=2:\n        return BAD\n','')
+POLICY=replace_one(POLICY,'        if large and ((action==1 and i==2) or (action==2 and i==0)):\n            limit=67108864\n            if action==2:\n                arena_limit=83886080\n        if large_claimed and i==1:\n            limit=67108864\n            arena_limit=83886080','        if large and i==2:\n            limit=67108864')
+
+# Public call validation has no top-level scope or structural_verification field.
+# Its subject.selection and explicit native custody remain intact.
+POLICY=replace_one(POLICY,'        skip=path==1 and (key==13 or key==14 or key==15)',
+ '        skip=(path==1 and (key==13 or key==14 or key==15)) or (path==0 and read64(s,16)==2 and (key==5 or key==26 or key==44))')
+POLICY=replace_one(POLICY,'        child=nodeword(s,arena,child,16)\n    return emit(o,at,125)',
+ '''        child=nodeword(s,arena,child,16)
+    if path==0 and read64(s,16)==2 and read64(s,408)==0 and call_profile_reason(s,w):
+        at=lit(o,at,510)
+    return emit(o,at,125)''')
+POLICY=replace_one(POLICY,'    if path==0 or path==1:\n',
+ '''    if path==0 or path==1:
+        if read64(s,16)==2 and key>=8 and key<=11 and call_public_hashes(s,w)==False:
+            return lit(o,at,12)
+''')
+POLICY=replace_one(POLICY,'    put(w,512,flags&15)',
+ '''    visible=flags&15
+    if read64(s,16)==2 and call_public_hashes(s,w)==False:
+        visible=visible&5
+    put(w,512,visible)''')
+POLICY=replace_one(POLICY,'        return lit(o,at,509)\n    if get(w,DIAG_SIZE)==0:',
+ '''        return lit(o,at,509)
+    if get(w,256)==2 and (get(w,320)==1 or get(w,320)==19 or get(w,320)==20):
+        return lit(o,at,510)
+    if get(w,DIAG_SIZE)==0:''')
+POLICY+=r"""
+def call_public_hashes(s:readbuf,w:mutbuf) -> bool:
+    if read64(s,8)==1:
+        reason=read64(s,24)
+        return reason!=1 and reason!=2 and reason!=3 and reason!=19 and reason!=20 and reason!=27
+    reason=string_id(s,get(w,CTX+8),field(s,get(w,CTX+8),0,36))
+    return reason!=200 and reason!=201
+
+def call_profile_reason(s:readbuf,w:mutbuf) -> bool:
+    arena=get(w,CTX+8)
+    node=field(s,arena,0,36)
+    if nodeword(s,arena,node,0)!=4:
+        return False
+    source=arena+nodeword(s,arena,node,24)
+    size=nodeword(s,arena,node,32)
+    end=call_profile_table(w)
+    cursor=4352
+    while cursor<end:
+        n=get(w,cursor)
+        same=n==size
+        i=0
+        while i<n and same:
+            same=byte(s,source+i)==byte(w,cursor+8+i)
+            i=i+1
+        if same:
+            return True
+        cursor=(cursor+8+n+7)&18446744073709551608
+    return False
+"""
+_reason_table=bytearray()
+for _reason in PROFILE_REASONS:
+ _raw=_reason.encode()
+ _reason_table+=len(_raw).to_bytes(8,'little')+_raw
+ _reason_table+=bytes((-len(_reason_table))%8)
+assert len(_reason_table)<3840
+POLICY+='\ndef call_profile_table(w:mutbuf) -> u64:\n'
+for _at in range(0,len(_reason_table),8):
+ POLICY+=f'    put(w,{4352+_at},{int.from_bytes(_reason_table[_at:_at+8],"little")})\n'
+POLICY+=f'    return {4352+len(_reason_table)}\n'
+
 def source_program():
  render=base.RENDER.replace('def receipt(o:mutbuf, w:mutbuf)', 'def base_receipt(s:readbuf,o:mutbuf, w:mutbuf)')
+ render=replace_one(render,'    at = lit(o, at, 13)','    if total:\n        at = lit(o, at, 13)')
+ render=replace_one(render,'''    at = lit(o, at, 21)
+    if total:
+        at = boolean(o, at, get(w, 328) == 1)
+    else:
+        at = lit(o, at, 22)
+        at = boolean(o, at, get(w, 328) == 1)
+        at = lit(o, at, 23)
+        at = boolean(o, at, get(w, 336) == 1)
+        at = emit(o, at, 125)''','''    if total:
+        at = lit(o, at, 21)
+        at = boolean(o, at, get(w, 328) == 1)''')
  first=render.index('\ndef identities(')
  last=render.index('\ndef solver_report(',first)
  render=render[:first]+'\n'+IDENTITIES+render[last:]
@@ -107,12 +204,26 @@ def closure_report(s:readbuf,o:mutbuf,w:mutbuf,at:u64) -> u64:
     return emit(o,at,93)
 '''
 
- wanted={'get','getn','put','now','mask','trap_code'}
+ wanted={'get','put','now'}
  helpers=[ast.get_source_segment(base.POLICY,node) for node in ast.parse(base.POLICY).body if isinstance(node,ast.FunctionDef) and node.name in wanted]
  assert len(helpers)==len(wanted)
+ used=set()
+ def literal_ids(expr):
+  if isinstance(expr,ast.Constant) and type(expr.value)is int:
+   return {expr.value}
+  if isinstance(expr,ast.Call) and isinstance(expr.func,ast.Name) and expr.func.id=='choose':
+   return literal_ids(expr.args[1])|literal_ids(expr.args[2])
+  if isinstance(expr,ast.BinOp) and isinstance(expr.op,ast.Add) and isinstance(expr.left,ast.Constant):
+   ranges={100:range(100,170),8:range(8,11),47:range(47,50),52:range(52,57)}
+   if expr.left.value in ranges:return set(ranges[expr.left.value])
+  raise AssertionError(('unresolved literal selector',ast.dump(expr)))
+ for node in ast.walk(ast.parse(POLICY+'\n'+render)):
+  if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=='lit':
+   used.update(literal_ids(node.args[2]))
  old_literals=base.LITERALS
  try:
-  base.LITERALS={**old_literals,**EXTRA}
+  all_literals={**old_literals,**EXTRA}
+  base.LITERALS={key:value for key,value in all_literals.items()if key in used}
   literals=base.literal_source()
  finally:base.LITERALS=old_literals
  entries=list(LABELS.items());groups=[entries[i:i+12] for i in range(0,len(entries),12)]
