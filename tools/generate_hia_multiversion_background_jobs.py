@@ -4,6 +4,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={'MAGIC': 3544420087098329416, 'STATE': 3554271711283202376, 'REPLY': 3553990236306491720, 'OBJECT': 3553145811376359752, 'NODE_MAGIC': 3552864336399649096, 'PURE': 3544416840421820744, 'PURE_REPLY': 3544423394558691656, 'MAX': 18446744073709551615, 'NEGATIVE': 18446744073709547521, 'PHASE': 64, 'OP': 72, 'NEXT': 80, 'HELD': 88, 'ERROR': 96, 'CURSOR': 104, 'CAP': 112, 'OBJ': 120, 'AOBJ': 128, 'AN': 136, 'BOBJ': 144, 'BN': 152, 'REQUEST': 160, 'REQUEST_N': 168, 'NEWOBJ': 176, 'NEWOBJ_N': 184, 'NEWREF': 192, 'RESULT': 200, 'TAG0': 208, 'TAG1': 216, 'COMPARED': 224, 'N': 232, 'RANDOM_USED': 240, 'PID': 248, 'NODE': 256, 'HEADER': 352, 'RANDOM': 416, 'FEEDBACK': 448, 'TEMP': 456, 'DROP_OBJECT': 464, 'SCAN': 472, 'AFTER': 480, 'LIMIT': 488, 'FUTURE_INPUT': 3553698917449288008, 'FUTURE_REPLY': 3553980392425998664, 'PAYLOAD_INPUT': 3544431107984410952, 'PAYLOAD_REPLY': 3554001257192573256, 'OLD': 512, 'SLOTS': 576, 'FIELD': 808, 'RETIRE_INDEX': 824, 'META_VIEW': 840, 'INPUT_VIEW': 848, 'TRANSFERRED': 856, 'RESULT_KIND': 864, 'RQ': 1024, 'RP': 1152}
+C.update({'MAGIC2':int.from_bytes(b'HIABJO02','little'),'CELL_INPUT':int.from_bytes(b'HIABFQ01','little'),'CELL_REPLY':int.from_bytes(b'HIABFR01','little'),'CELL_NEXT':880,'CELL_RC':888,'NEW_EXTERNAL':896})
 SOURCE=r'''
 def multiversion_background_jobs(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<2048 or length(w)<256:
@@ -28,20 +29,29 @@ def multiversion_background_jobs(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)<128 or readword(s,0)!=MAGIC:
+    if length(s)<128:
+        return 4294967293
+    magic=readword(s,0)
+    if magic!=MAGIC and magic!=MAGIC2:
         return 4294967293
     op=readword(s,8)
+    if magic==MAGIC and op>8:
+        return 4294967293
     n=readword(s,72)
-    if op>8 or n!=length(s)-128 or (op!=1 and n!=0):
+    if op==9:
+        n=0
+    if op>10 or n!=length(s)-128 or (op!=1 and op!=10 and n!=0):
         return 4294967293
     at=16
     while at<128:
         used=0
-        if op==0 and at>=24 and at<=48:
+        if (op==0 or op==9) and at>=24 and at<=48:
             used=1
-        if op==1 and at==72:
+        if (op==1 or op==10) and at==72:
             used=1
-        if op==2 or op==3 or op==4 or op==6 or op==7 or op==8:
+        if op==9 and at>=56 and at<=72:
+            used=1
+        if op==2 or op==3 or op==4 or op==6 or op==7 or op==8 or op==10:
             if at>=24 and at<=40:
                 used=1
         if op==4 and (at==48 or at==56):
@@ -66,7 +76,9 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if pid==0 or pid>=NEGATIVE:
             return finish(o,w,6)
         put(o,PID,pid)
-        if get(o,OP)==0:
+        if get(o,OP)==0 or get(o,OP)==9:
+            if get(o,OP)==9 and (readword(s,56)==0 or readword(s,64)==0 or readword(s,72)<256):
+                return finish(o,w,5)
             if get(w,0)!=0 or readword(s,24)==0 or readword(s,32)==0 or readword(s,40)==0 or readword(s,48)<256:
                 return finish(o,w,5)
             zero(w,0,256)
@@ -76,6 +88,10 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(w,72,readword(s,32))
             put(w,80,readword(s,40))
             put(w,88,readword(s,48))
+            if get(o,OP)==9:
+                put(w,96,readword(s,56))
+                put(w,104,readword(s,64))
+                put(w,112,readword(s,72))
             return finish(o,w,0)
         if get(w,0)!=STATE or get(w,8)!=pid or get(w,24)!=0:
             return finish(o,w,5)
@@ -99,13 +115,20 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
                 return fail(o,5)
             put(w,24,1)
             return fail(o,0)
-        if op==1:
+        if op==1 or op==10:
             n=readword(s,72)
             if n>MAX-864:
                 return fail(o,4)
+            size=864+n
+            if op==10:
+                if get(w,96)==0:
+                    return fail(o,5)
+                if n>MAX-17263:
+                    return fail(o,4)
+                size=((n+879)&(MAX-15))+16384
             put(o,N,n)
-            put(o,NEWOBJ_N,864+n)
-            return allocate(o,200,864+n)
+            put(o,NEWOBJ_N,size)
+            return allocate(o,200,size)
         put(o,SCAN,0)
         put(o,CAP,readword(s,24))
         put(o,CURSOR,get(w,16))
@@ -143,6 +166,8 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,LIMIT,get(o,OBJ)+96)
             put(o,META_VIEW,get(o,OBJ)+608)
             put(o,INPUT_VIEW,get(o,OBJ)+864)
+            if get(o,HEADER+56)==1:
+                return memory(o,105,0,get(o,OBJ)+120,3,LIMIT,8)
             return fail(o,0)
         if op==7 or op==8:
             if readword(s,80)>=8:
@@ -161,6 +186,10 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return memory(o,104,0,get(o,OBJ)+864+offset,3,2048,count)
     if phase==104:
         return fail(o,0)
+    if phase==105:
+        if get(o,LIMIT)==0:
+            return fail(o,9)
+        return fail(o,0)
     return fail(o,9)
 
 def calculate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -174,6 +203,7 @@ def calculate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,NODE+8,get(o,PID))
         put(o,NODE+16,get(o,NEWOBJ_N))
         put(o,NODE+24,get(o,N))
+        put(o,NODE+56,choose(get(o,OP)==10,1,0))
         return memory(o,201,3,NODE,0,get(o,OBJ),64)
     if phase==201:
         zero(o,RQ,768)
@@ -181,10 +211,33 @@ def calculate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==202:
         return memory(o,203,2,128,0,get(o,OBJ)+864,get(o,N))
     if phase==203:
+        if get(o,OP)==10:
+            cell_packet(o,2)
+            put(o,RQ+24,readword(s,24))
+            put(o,RQ+32,readword(s,32))
+            put(o,RQ+40,readword(s,40))
+            return cell(o,w,207)
         return future(o,w,204,0)
     if phase==204:
         if get(o,FEEDBACK)!=0 or get(o,RP)!=FUTURE_REPLY or get(o,RP+8)!=0:
             return fail(o,9)
+        return again(o,400)
+    if phase==207:
+        if get(o,FEEDBACK)!=0 or get(o,RP)!=CELL_REPLY:
+            return fail(o,9)
+        if get(o,RP+8)!=0:
+            return fail(o,choose(get(o,RP+8)==4,4,1))
+        put(o,NEW_EXTERNAL,1)
+        return memory(o,208,3,RP+16,0,get(o,OBJ)+96,24)
+    if phase==208:
+        cell_packet(o,6)
+        copy_local(o,RP+16,RQ+24,24)
+        return cell(o,w,209)
+    if phase==209:
+        if get(o,FEEDBACK)!=0 or get(o,RP)!=CELL_REPLY or get(o,RP+8)!=0 or get(o,RP+64)==0:
+            return fail(o,9)
+        return write_pointer(o,210,get(o,OBJ)+120,get(o,RP+64))
+    if phase==210:
         return again(o,400)
     return fail(o,9)
 
@@ -299,6 +352,7 @@ def attach(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,RESULT,get(o,NEWREF))
         put(o,NEWREF,0)
         put(o,NEWOBJ,0)
+        put(o,NEW_EXTERNAL,0)
         return fail(o,0)
     return fail(o,9)
 
@@ -344,9 +398,18 @@ def retirement(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==603:
         return system(o,604,202,1,32,129,2147483647,0,0,0)
     if phase==604:
+        return memory(o,606,0,get(o,OBJ)+56,3,FIELD,8)
+    if phase==606:
+        if get(o,FIELD)==1:
+            return memory(o,607,0,get(o,OBJ)+96,3,OLD,24)
         return future(o,w,605,10)
+    if phase==607:
+        cell_packet(o,3)
+        copy_local(o,OLD,RQ+24,24)
+        return cell(o,w,605)
     if phase==605:
-        if get(o,FEEDBACK)!=0 or get(o,RP)!=FUTURE_REPLY or get(o,RP+8)!=0:
+        expected=choose(get(o,FIELD)==1,CELL_REPLY,FUTURE_REPLY)
+        if get(o,FEEDBACK)!=0 or get(o,RP)!=expected or get(o,RP+8)!=0:
             return finish(o,w,9)
         put(o,RETIRE_INDEX,0)
         return again(o,610)
@@ -382,10 +445,17 @@ def retirement(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==653:
         return deallocate(o,654,get(o,OBJ))
     if phase==654:
-        return fail(o,0)
+        return fail(o,get(o,ERROR))
     return fail(o,9)
 
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==840:
+        put(o,CELL_RC,get(o,FEEDBACK))
+        at=get(o,OBJ)+((get(o,N)+879)&(MAX-15))
+        return memory(o,841,0,at,3,RP,128)
+    if phase==841:
+        put(o,FEEDBACK,get(o,CELL_RC))
+        return again(o,get(o,CELL_NEXT))
     if phase==900:
         if get(o,REQUEST)!=0:
             pointer=get(o,REQUEST)
@@ -398,6 +468,10 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,NEWOBJ)!=0:
             pointer=get(o,NEWOBJ)
             put(o,NEWOBJ,0)
+            if get(o,NEW_EXTERNAL)!=0:
+                put(o,OBJ,pointer)
+                put(o,NEW_EXTERNAL,0)
+                return write_pointer(o,600,pointer+40,0)
             return deallocate(o,900,pointer)
         if get(o,HELD)!=0:
             put(o,HELD,0)
@@ -551,6 +625,23 @@ def invoke(o:mutbuf,next:u64,fn:u64,src:u64,sn:u64,dest:u64,dn:u64,ctx:u64,cn:u6
     put(o,40,dn)
     put(o,48,ctx)
     put(o,56,cn)
+    return 9
+def cell_packet(o:mutbuf,op:u64) -> u64:
+    zero(o,RQ,128)
+    put(o,RQ,CELL_INPUT)
+    put(o,RQ+8,op)
+    return 0
+def cell(o:mutbuf,w:mutbuf,next:u64) -> u32:
+    put(o,CELL_NEXT,next)
+    put(o,PHASE,840)
+    put(o,0,get(w,96))
+    put(o,8,3)
+    put(o,16,RQ)
+    put(o,24,128)
+    put(o,32,get(o,OBJ)+((get(o,N)+879)&(MAX-15)))
+    put(o,40,16384)
+    put(o,48,get(w,104))
+    put(o,56,get(w,112))
     return 9
 def copy_local(o:mutbuf,src:u64,dest:u64,n:u64) -> u64:
     i=0
