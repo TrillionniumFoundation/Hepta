@@ -1,18 +1,41 @@
 from pathlib import Path
 import re
 from hepta.hia_agent_assembly import render_assembly
-from tools.generate_hia_multiversion_future import document
+import ast
+from tools.generate_hia_multiversion_future import FutureBuilder
+from tools.generate_hia_worker_config_json import ConfigBuilder
+from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
+class QueueBuilder(FutureBuilder,ConfigBuilder):
+    pass
+def document(source,module):
+    nodes=ast.parse(source).body
+    names={n.name:'f'+str(i)for i,n in enumerate(nodes)}
+    sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id)for n in nodes}
+    total=total_scalar_functions(nodes);functions=[]
+    for node in nodes:
+        b=QueueBuilder(node,names,sigs,total);b.statements(node.body)
+        functions.append({'name':names[node.name],'params':[b.param(p)for p in b.params],'returns':[b.returns],'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
+    return compact_authoring_cfg({'schema':'hepta.hia.program.v9','module':module,'functions':functions})
 ROOT=Path(__file__).resolve().parents[1]
-C={'MAGIC':int.from_bytes(b'HIABGQS1','little'),'INPUT_MAGIC':int.from_bytes(b'HIABGQ01','little'),'OUTPUT_MAGIC':int.from_bytes(b'HIABGQR1','little'),'REFQ':int.from_bytes(b'HIABJRF1','little'),'REFR':int.from_bytes(b'HIABJRO1','little'),'NONE':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'PHASE':128,'OP':136,'NEXT':144,'ERR':256,'VALUE':264,'CLOSED':272,'PENDING':280,'QUEUED':288,'ACTIVE':296,'EXITED':304,'WORKER':312,'NREF':320,'OWNED':328,'CURRENT':336,'MODE':344,'SAVED_NEXT':352,'ROLLBACK':360,'TIME':384,'SYSRET':448,'REFS':512,'RQ':2048,'RP':2176}
+C={'INPUT_MAGIC2':int.from_bytes(b'HIABGQ02','little'),'TX':368,'MAGIC':int.from_bytes(b'HIABGQS1','little'),'INPUT_MAGIC':int.from_bytes(b'HIABGQ01','little'),'OUTPUT_MAGIC':int.from_bytes(b'HIABGQR1','little'),'REFQ':int.from_bytes(b'HIABJRF1','little'),'REFR':int.from_bytes(b'HIABJRO1','little'),'NONE':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'PHASE':128,'OP':136,'NEXT':144,'ERR':256,'VALUE':264,'CLOSED':272,'PENDING':280,'QUEUED':288,'ACTIVE':296,'EXITED':304,'WORKER':312,'NREF':320,'OWNED':328,'CURRENT':336,'MODE':344,'SAVED_NEXT':352,'ROLLBACK':360,'TIME':384,'SYSRET':448,'REFS':512,'RQ':2048,'RP':2176}
 SOURCE=r'''
 def queue(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=128 or length(o)<4096 or length(w)<4096:
         return 4294967293
-    if readword(s,0)!=INPUT_MAGIC or readword(s,8)>9 or valid_input(s)==0:
+    magic=readword(s,0)
+    requested=readword(s,8)
+    if magic!=INPUT_MAGIC and magic!=INPUT_MAGIC2:
+        return 4294967293
+    if magic==INPUT_MAGIC and requested>9:
+        return 4294967293
+    if magic==INPUT_MAGIC2 and requested!=1 and requested!=3 and requested!=4 and requested!=5 and requested!=6 and requested!=10 and requested!=11:
+        return 4294967293
+    if valid_input(s)==0:
         return 4294967293
     phase=get(o,PHASE)
     if phase==0:
         put(o,OP,readword(s,8))
+        put(o,TX,0)
         put(o,ERR,0)
         put(o,VALUE,NONE)
         put(o,NREF,0)
@@ -51,6 +74,17 @@ def queue(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if get(o,SYSRET)==0 or get(o,SYSRET)>=NEGATIVE:
             return finish(o,65)
         put(o,376,get(o,SYSRET))
+        if readword(s,0)==INPUT_MAGIC2 and get(o,OP)!=10:
+            if get(w,160)!=get(o,376):
+                return finish(o,65)
+            put(o,TX,1)
+            if get(o,OP)==11:
+                word_store(w,160,0)
+                put(o,TX,0)
+                return release(o,w,0)
+            return again(o,100)
+        if get(w,160)==get(o,376):
+            return finish(o,65)
         return lock(o,100)
     if phase>=20 and phase<=23:
         return lock_phase(o,phase)
@@ -58,6 +92,12 @@ def queue(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if get(w,152)!=0:
             return release(o,w,65)
         op=get(o,OP)
+        if op==10:
+            if get(w,160)!=0:
+                return release(o,w,65)
+            word_store(w,160,get(o,376))
+            put(o,TX,1)
+            return release(o,w,0)
         if op==7:
             if get(w,56)!=0:
                 return release(o,w,4)
@@ -337,6 +377,8 @@ def notify(o:mutbuf,w:mutbuf,next:u64) -> u32:
 def release(o:mutbuf,w:mutbuf,status:u64) -> u32:
     put(o,ERR,status)
     save_state(o,w)
+    if get(o,TX)!=0:
+        return finish(o,status)
     return unlock(o,900)
 
 def save_state(o:mutbuf,w:mutbuf) -> u64:
