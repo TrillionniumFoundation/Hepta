@@ -8,7 +8,7 @@ import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 ROOT=Path(__file__).resolve().parents[1]
-C=dict(MAGIC=int.from_bytes(b'HIAMVPS1','little'),REPLY=int.from_bytes(b'HIAMVPO1','little'),
+C=dict(MAGIC=int.from_bytes(b'HIAMVPS1','little'),UNLIMITED=int.from_bytes(b'HIAMVPS2','little'),REPLY=int.from_bytes(b'HIAMVPO1','little'),
        NONE=(1<<64)-1,NEG4=(1<<64)-4,NEG11=(1<<64)-11,WORK=20<<20,
        INPUT=1<<20,IO=262144,CLOCK=32768,STAT=32832,PIPE=33024,POLL=33152,WAITINFO=33280,EXECERR=33408,WAITSTATUS=33536,
        COMMAND=65536,ARGV=131072,ENVP=131136,EMPTY=131200,ENV=131216)
@@ -42,12 +42,16 @@ def process(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return 4294967293
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)<128 or readword(s,0)!=MAGIC:
+    if length(s)<128 or (readword(s,0)!=MAGIC and readword(s,0)!=UNLIMITED):
         return 4294967293
     role=readword(s,8)
     n=readword(s,32)
     pn=readword(s,56)
-    if role<1 or role>4 or readword(s,16)<3 or readword(s,16)>2147483647 or readword(s,24)==0:
+    if role<1 or role>4 or readword(s,16)<3 or readword(s,16)>2147483647:
+        return 4294967293
+    if readword(s,0)==MAGIC and readword(s,24)==0:
+        return 4294967293
+    if readword(s,0)==UNLIMITED and (readword(s,24)!=0 or (role!=1 and role!=4)):
         return 4294967293
     if n>16777408 or (role!=2 and n>8388608):
         return 4294967293
@@ -93,7 +97,7 @@ def setup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         now=now_ns(w)
         put(w,112,now)
         put(w,120,now)
-        if now>=get(w,176):
+        if get(w,176)!=0 and now>=get(w,176):
             return fail(o,w,1,0)
         put(w,0,2)
         return 2
@@ -373,7 +377,9 @@ def capture(o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
                 fd=4294967295
             put(w,POLL+i*8,fd|4294967296)
             i=i+1
-        left=get(w,176)-get(w,120)
+        left=10000000
+        if get(w,176)!=0:
+            left=get(w,176)-get(w,120)
         timeout=10
         if left<10000000:
             timeout=1
@@ -468,7 +474,7 @@ def sealing(o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         if failed(result):
             return fail(o,w,3,result)
         put(w,120,now_ns(w))
-        if get(w,120)>=get(w,176):
+        if get(w,176)!=0 and get(w,120)>=get(w,176):
             return fail(o,w,1,0)
         put(w,496,15)
         return start_cleanup(o,w)
@@ -510,7 +516,7 @@ def guarded(o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         if failed(result):
             return fail(o,w,3,result)
         put(w,120,now_ns(w))
-        if get(w,120)>=get(w,176):
+        if get(w,176)!=0 and get(w,120)>=get(w,176):
             return fail(o,w,1,0)
         put(w,0,201)
         return 2
