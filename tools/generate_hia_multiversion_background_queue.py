@@ -17,18 +17,20 @@ def document(source,module):
         functions.append({'name':names[node.name],'params':[b.param(p)for p in b.params],'returns':[b.returns],'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
     return compact_authoring_cfg({'schema':'hepta.hia.program.v9','module':module,'functions':functions})
 ROOT=Path(__file__).resolve().parents[1]
-C={'INPUT_MAGIC2':int.from_bytes(b'HIABGQ02','little'),'TX':368,'MAGIC':int.from_bytes(b'HIABGQS1','little'),'INPUT_MAGIC':int.from_bytes(b'HIABGQ01','little'),'OUTPUT_MAGIC':int.from_bytes(b'HIABGQR1','little'),'REFQ':int.from_bytes(b'HIABJRF1','little'),'REFR':int.from_bytes(b'HIABJRO1','little'),'NONE':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'PHASE':128,'OP':136,'NEXT':144,'ERR':256,'VALUE':264,'CLOSED':272,'PENDING':280,'QUEUED':288,'ACTIVE':296,'EXITED':304,'WORKER':312,'NREF':320,'OWNED':328,'CURRENT':336,'MODE':344,'SAVED_NEXT':352,'ROLLBACK':360,'TIME':384,'SYSRET':448,'REFS':512,'RQ':2048,'RP':2176}
+C={'INPUT_MAGIC3':int.from_bytes(b'HIABGQ03','little'),'CLOCK_ERROR':400,'CLOCK_ATTEMPT':408,'CLOCK_PROFILE':416,'INPUT_MAGIC2':int.from_bytes(b'HIABGQ02','little'),'TX':368,'MAGIC':int.from_bytes(b'HIABGQS1','little'),'INPUT_MAGIC':int.from_bytes(b'HIABGQ01','little'),'OUTPUT_MAGIC':int.from_bytes(b'HIABGQR1','little'),'REFQ':int.from_bytes(b'HIABJRF1','little'),'REFR':int.from_bytes(b'HIABJRO1','little'),'NONE':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'PHASE':128,'OP':136,'NEXT':144,'ERR':256,'VALUE':264,'CLOSED':272,'PENDING':280,'QUEUED':288,'ACTIVE':296,'EXITED':304,'WORKER':312,'NREF':320,'OWNED':328,'CURRENT':336,'MODE':344,'SAVED_NEXT':352,'ROLLBACK':360,'TIME':384,'SYSRET':448,'REFS':512,'RQ':2048,'RP':2176}
 SOURCE=r'''
 def queue(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=128 or length(o)<4096 or length(w)<4096:
         return 4294967293
     magic=readword(s,0)
     requested=readword(s,8)
-    if magic!=INPUT_MAGIC and magic!=INPUT_MAGIC2:
+    if magic!=INPUT_MAGIC and magic!=INPUT_MAGIC2 and magic!=INPUT_MAGIC3:
         return 4294967293
     if magic==INPUT_MAGIC and requested>9:
         return 4294967293
     if magic==INPUT_MAGIC2 and requested!=1 and requested!=3 and requested!=4 and requested!=5 and requested!=6 and requested!=10 and requested!=11:
+        return 4294967293
+    if magic==INPUT_MAGIC3 and requested!=2:
         return 4294967293
     if valid_input(s)==0:
         return 4294967293
@@ -36,6 +38,12 @@ def queue(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if phase==0:
         put(o,OP,readword(s,8))
         put(o,TX,0)
+        put(o,CLOCK_PROFILE,0)
+        if magic==INPUT_MAGIC3:
+            put(o,CLOCK_PROFILE,1)
+        zero(o,TIME,16)
+        put(o,CLOCK_ERROR,0)
+        put(o,CLOCK_ATTEMPT,0)
         put(o,ERR,0)
         put(o,VALUE,NONE)
         put(o,NREF,0)
@@ -150,6 +158,14 @@ def queue(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return release(o,w,0)
     if phase==181:
         return release(o,w,get(o,ERR))
+    if phase==182:
+        raw=get(o,SYSRET)
+        if raw==NONE-3:
+            return system(o,182,228,12,1,TIME,0,0,0,0)
+        if raw!=0 or get(o,TIME+8)>=1000000000:
+            put(o,CLOCK_ERROR,raw)
+            return release(o,w,65)
+        return release(o,w,0)
     if phase==200:
         current=get(o,CURRENT)
         if current==NONE:
@@ -265,6 +281,9 @@ def take(o:mutbuf,w:mutbuf) -> u32:
     put(o,NREF,1)
     put(o,OWNED,0)
     put(o,VALUE,i)
+    if get(o,CLOCK_PROFILE)!=0:
+        put(o,CLOCK_ATTEMPT,1)
+        return system(o,182,228,12,1,TIME,0,0,0,0)
     return release(o,w,0)
 
 def settle(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -445,6 +464,11 @@ def finish(o:mutbuf,status:u64) -> u32:
     put(o,64,get(o,OWNED))
     put(o,72,get(o,WORKER))
     put(o,80,get(o,EXITED))
+    if get(o,CLOCK_PROFILE)!=0 and get(o,CLOCK_ATTEMPT)!=0:
+        put(o,88,get(o,TIME))
+        put(o,96,get(o,TIME+8))
+        put(o,104,get(o,CLOCK_ERROR))
+        put(o,112,get(o,CLOCK_ATTEMPT))
     return 0
 
 def row(index:u64) -> u64:

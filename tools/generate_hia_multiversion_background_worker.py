@@ -3,12 +3,15 @@ import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
-C={'INPUT': 3544428870306449736, 'OUTPUT': 3553154594584480072, 'STATE_MAGIC': 3554280494491322696, 'QUEUE_INPUT': 3544422273236683080, 'QUEUE_REPLY': 3553992422444845384, 'HANDLER_INPUT': 3553717544537901384, 'HANDLER_REPLY': 3553999019514612040, 'NONE': 18446744073709551615, 'NEGATIVE': 18446744073709547521, 'PHASE': 128, 'OP': 136, 'NEXT': 144, 'ERR': 256, 'VALUE': 264, 'STATE': 272, 'TID': 280, 'TERMINAL': 288, 'JOINING': 296, 'CALLER': 304, 'JNI': 312, 'FAIL_PHASE': 328, 'FAIL_CODE': 336, 'ACTIVE': 344, 'SYSRET': 448, 'RQ': 1024, 'RP': 1280, 'JREF': 1792, 'QRP': 2048}
+C={'INPUT2':int.from_bytes(b'HIABGW02','little'),'QUEUE_INPUT3':int.from_bytes(b'HIABGQ03','little'),'HANDLER_INPUT2':int.from_bytes(b'HIABGWQ2','little'),'TAKE_SEC':360,'TAKE_NS':368,'TAKE_ERROR':376,'TAKE_VALID':384,'INPUT': 3544428870306449736, 'OUTPUT': 3553154594584480072, 'STATE_MAGIC': 3554280494491322696, 'QUEUE_INPUT': 3544422273236683080, 'QUEUE_REPLY': 3553992422444845384, 'HANDLER_INPUT': 3553717544537901384, 'HANDLER_REPLY': 3553999019514612040, 'NONE': 18446744073709551615, 'NEGATIVE': 18446744073709547521, 'PHASE': 128, 'OP': 136, 'NEXT': 144, 'ERR': 256, 'VALUE': 264, 'STATE': 272, 'TID': 280, 'TERMINAL': 288, 'JOINING': 296, 'CALLER': 304, 'JNI': 312, 'FAIL_PHASE': 328, 'FAIL_CODE': 336, 'ACTIVE': 344, 'SYSRET': 448, 'RQ': 1024, 'RP': 1280, 'JREF': 1792, 'QRP': 2048}
 SOURCE=r'''
 def worker(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=128 or length(o)<8192 or length(w)<512:
         return 4294967293
-    if readword(s,0)!=INPUT or readword(s,8)>5 or valid(s)==0:
+    magic=readword(s,0)
+    if magic!=INPUT and magic!=INPUT2:
+        return 4294967293
+    if readword(s,8)>5 or (magic==INPUT2 and readword(s,8)!=0) or valid(s)==0:
         return 4294967293
     phase=get(o,PHASE)
     if phase==0:
@@ -31,6 +34,8 @@ def worker(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             put(w,88,readword(s,40))
             put(w,96,readword(s,48))
             put(w,104,readword(s,56))
+            if magic==INPUT2:
+                put(w,112,1)
             save(o,w)
             return finish(o,0)
         if get(w,0)!=STATE_MAGIC or get(w,8)!=pid:
@@ -123,11 +128,20 @@ def worker(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return failed(o,501)
         return queue_call(o,w,502,2)
     if phase==502:
+        if get(w,112)!=0 and get(o,SYSRET)==0 and get(o,QRP)==QUEUE_REPLY and get(o,QRP+56)==1 and get(o,QRP+64)==0:
+            copy_within(o,QRP+512,JREF,64)
+            put(o,ACTIVE,1)
+            put(o,TAKE_SEC,get(o,QRP+88))
+            put(o,TAKE_NS,get(o,QRP+96))
+            put(o,TAKE_ERROR,get(o,QRP+104))
+            put(o,TAKE_VALID,get(o,QRP+112))
         if queue_ok(o)==0:
             return failed(o,502)
         if get(o,QRP+16)==NONE:
             return queue_call(o,w,550,8)
         if get(o,QRP+56)!=1 or get(o,QRP+64)!=0:
+            return failed(o,502)
+        if get(w,112)!=0 and (get(o,TAKE_VALID)!=1 or get(o,TAKE_ERROR)!=0 or get(o,TAKE_NS)>=1000000000):
             return failed(o,502)
         copy_within(o,QRP+512,JREF,64)
         put(o,ACTIVE,1)
@@ -165,12 +179,24 @@ def queue_ok(o:mutbuf) -> u64:
 def queue_call(o:mutbuf,w:mutbuf,next:u64,op:u64) -> u32:
     zero(o,RQ,128)
     put(o,RQ,QUEUE_INPUT)
+    if op==2 and get(w,112)!=0:
+        put(o,RQ,QUEUE_INPUT3)
+        put(o,TAKE_SEC,0)
+        put(o,TAKE_NS,0)
+        put(o,TAKE_ERROR,0)
+        put(o,TAKE_VALID,0)
     put(o,RQ+8,op)
     zero(o,QRP,128)
     return invoke(o,next,get(w,64),RQ,128,QRP,4096,get(w,72),get(w,80))
 def handler(o:mutbuf,w:mutbuf,next:u64,op:u64) -> u32:
     zero(o,RQ,128)
     put(o,RQ,HANDLER_INPUT)
+    if get(w,112)!=0:
+        put(o,RQ,HANDLER_INPUT2)
+        put(o,RQ+80,get(o,TAKE_SEC))
+        put(o,RQ+88,get(o,TAKE_NS))
+        put(o,RQ+96,get(o,TAKE_ERROR))
+        put(o,RQ+104,get(o,TAKE_VALID))
     put(o,RQ+8,op)
     if get(o,ACTIVE)!=0:
         copy_within(o,JREF,RQ+16,48)
