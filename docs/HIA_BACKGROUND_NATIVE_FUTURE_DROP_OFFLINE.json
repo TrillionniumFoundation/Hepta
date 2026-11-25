@@ -1,0 +1,407 @@
+{
+  "schema": "hepta.hia.future-drop.offline-candidate.v1",
+  "baseline_commit": "d118f47c189b3047b0457e7fca212e084ea1b93a",
+  "qualified": false,
+  "whole_native_runtime_closed": false,
+  "original_source_verify_pass": true,
+  "author_transition_probes": {
+    "schema": "hepta.hia.future-drop-author-protocol-probes.v1",
+    "passed": true,
+    "checks": 7252,
+    "cases": [
+      {
+        "case": "cell-old-profile-admission-byte-exact",
+        "checks": 1575,
+        "passed": true
+      },
+      {
+        "case": "cell-old-header-byte-exact",
+        "checks": 240,
+        "passed": true
+      },
+      {
+        "case": "public-old-profile-admission-byte-exact",
+        "checks": 1610,
+        "passed": true
+      },
+      {
+        "case": "public-old-header-byte-exact",
+        "checks": 3744,
+        "passed": true
+      },
+      {
+        "case": "cell-new-exact-domain",
+        "checks": 64,
+        "passed": true
+      },
+      {
+        "case": "cell-consumption-published-at-deallocation-return",
+        "checks": 3,
+        "passed": true
+      },
+      {
+        "case": "cell-retirement-query-serializes-locked-observation",
+        "checks": 2,
+        "passed": true
+      },
+      {
+        "case": "public-strict-consumption-record-and-typed-error",
+        "checks": 14,
+        "passed": true
+      }
+    ],
+    "execution_kind": "Python evaluation of pure author transitions; effects not executed",
+    "native_execution_qualification_pass": false,
+    "whole_native_runtime_closed": false
+  },
+  "source_verification": {
+    "schema": "hepta.hia.future-drop-offline-source-review.v1",
+    "baseline_commit": "d118f47c189b3047b0457e7fca212e084ea1b93a",
+    "offline_source_verification_pass": true,
+    "native_build_pass": false,
+    "native_execution_qualification_pass": false,
+    "whole_native_runtime_closed": false,
+    "rows": [
+      {
+        "role": "cell",
+        "baseline": {
+          "author": {
+            "bytes": 26642,
+            "sha256": "7bd9a90347162f9807677e3b107a630d4ec8739280c67848dc571a7056293c93"
+          },
+          "source": {
+            "bytes": 152088,
+            "sha256": "a29e7684b85904466c8c198ebf7ff4690a3e9e2a9db754c45cb61abe6a337d00"
+          },
+          "profile": {
+            "functions": 40,
+            "blocks": 573,
+            "ops": 2600,
+            "max_function_blocks": 92,
+            "max_block_params": 10
+          },
+          "original_verify_program_pass": true,
+          "function_names": [
+            "background_future_cell",
+            "begin",
+            "locks",
+            "lookup",
+            "create",
+            "attach",
+            "release",
+            "execute",
+            "retire",
+            "pins",
+            "cleanup",
+            "save_kernel",
+            "future_packet",
+            "value_packet",
+            "future",
+            "value",
+            "future_ok",
+            "value_ok",
+            "lock",
+            "unlock",
+            "atom",
+            "address",
+            "invoke",
+            "random",
+            "allocate",
+            "deallocate",
+            "memory",
+            "write_pointer",
+            "system",
+            "fail",
+            "finish",
+            "again",
+            "within",
+            "copy_input",
+            "zero",
+            "readword",
+            "get",
+            "put",
+            "choose",
+            "narrow"
+          ]
+        },
+        "candidate": {
+          "author": {
+            "bytes": 27521,
+            "sha256": "16ff5e42e5289de139a4b9fe116976c1bb93a337edd790dce87c8860e75c9f8d"
+          },
+          "source": {
+            "bytes": 155397,
+            "sha256": "31eccccff0f2032f3fb0176153e51da43fc8b71bde1b33dbe8fbe545f7c0401b"
+          },
+          "profile": {
+            "functions": 40,
+            "blocks": 582,
+            "ops": 2660,
+            "max_function_blocks": 92,
+            "max_block_params": 10
+          },
+          "original_verify_program_pass": true,
+          "function_names": [
+            "background_future_cell",
+            "begin",
+            "locks",
+            "lookup",
+            "create",
+            "attach",
+            "release",
+            "execute",
+            "retire",
+            "pins",
+            "cleanup",
+            "save_kernel",
+            "future_packet",
+            "value_packet",
+            "future",
+            "value",
+            "future_ok",
+            "value_ok",
+            "lock",
+            "unlock",
+            "atom",
+            "address",
+            "invoke",
+            "random",
+            "allocate",
+            "deallocate",
+            "memory",
+            "write_pointer",
+            "system",
+            "fail",
+            "finish",
+            "again",
+            "within",
+            "copy_input",
+            "zero",
+            "readword",
+            "get",
+            "put",
+            "choose",
+            "narrow"
+          ]
+        }
+      },
+      {
+        "role": "public",
+        "baseline": {
+          "author": {
+            "bytes": 54391,
+            "sha256": "553a7d8dad3793610d76c6751a4956cf44bf689f4204f06625f2dde0d2418888"
+          },
+          "source": {
+            "bytes": 308279,
+            "sha256": "9d07100c4585774dfd563642893fb47814a2b197cb67da7f8369d8e5ad56a046"
+          },
+          "profile": {
+            "functions": 74,
+            "blocks": 980,
+            "ops": 5922,
+            "max_function_blocks": 115,
+            "max_block_params": 10
+          },
+          "original_verify_program_pass": true,
+          "function_names": [
+            "future_public",
+            "begin",
+            "locks",
+            "locate",
+            "construct",
+            "attach",
+            "release_lease",
+            "methods",
+            "frames",
+            "results",
+            "retire",
+            "cleanup",
+            "cell_packet",
+            "value_packet",
+            "cell",
+            "value",
+            "cell_ok",
+            "value_ok",
+            "cell_error",
+            "kernel_error",
+            "save_cell",
+            "random_state",
+            "fail",
+            "finish",
+            "copy_between",
+            "raw_drop",
+            "waddress",
+            "lock",
+            "unlock",
+            "atom",
+            "address",
+            "invoke",
+            "random",
+            "allocate",
+            "deallocate",
+            "memory",
+            "write_pointer",
+            "system",
+            "again",
+            "within",
+            "copy_input",
+            "zero",
+            "readword",
+            "get",
+            "put",
+            "choose",
+            "narrow",
+            "inherited",
+            "error_begin",
+            "inherited_error",
+            "inherited_value",
+            "inherited_message",
+            "inherited_record",
+            "inherited_cleanup",
+            "inherited_fail",
+            "state_code",
+            "error_prefix",
+            "write_hex",
+            "value_wide",
+            "invoke_absolute",
+            "inherited_literal",
+            "inherited_literal_0",
+            "inherited_literal_1",
+            "inherited_literal_2",
+            "inherited_literal_3",
+            "inherited_literal_4",
+            "inherited_literal_5",
+            "inherited_literal_6",
+            "inherited_literal_7",
+            "inherited_literal_8",
+            "inherited_literal_9",
+            "inherited_literal_10",
+            "inherited_literal_11",
+            "inherited_literal_12"
+          ]
+        },
+        "candidate": {
+          "author": {
+            "bytes": 55854,
+            "sha256": "c240e21b2f336d7ea2c174e4caaa2071598fc0655a7c1751ea4909e628774c47"
+          },
+          "source": {
+            "bytes": 316735,
+            "sha256": "08930dc7489b7f47002754938522785f1cfdc058b9af80b7219c7ed2f93f7b84"
+          },
+          "profile": {
+            "functions": 75,
+            "blocks": 1018,
+            "ops": 6071,
+            "max_function_blocks": 115,
+            "max_block_params": 10
+          },
+          "original_verify_program_pass": true,
+          "function_names": [
+            "future_public",
+            "begin",
+            "locks",
+            "locate",
+            "construct",
+            "attach",
+            "release_lease",
+            "methods",
+            "frames",
+            "results",
+            "retire",
+            "cleanup",
+            "cell_packet",
+            "value_packet",
+            "cell",
+            "value",
+            "cell_ok",
+            "value_ok",
+            "cell_error",
+            "drop_record",
+            "kernel_error",
+            "save_cell",
+            "random_state",
+            "fail",
+            "finish",
+            "copy_between",
+            "raw_drop",
+            "waddress",
+            "lock",
+            "unlock",
+            "atom",
+            "address",
+            "invoke",
+            "random",
+            "allocate",
+            "deallocate",
+            "memory",
+            "write_pointer",
+            "system",
+            "again",
+            "within",
+            "copy_input",
+            "zero",
+            "readword",
+            "get",
+            "put",
+            "choose",
+            "narrow",
+            "inherited",
+            "error_begin",
+            "inherited_error",
+            "inherited_value",
+            "inherited_message",
+            "inherited_record",
+            "inherited_cleanup",
+            "inherited_fail",
+            "state_code",
+            "error_prefix",
+            "write_hex",
+            "value_wide",
+            "invoke_absolute",
+            "inherited_literal",
+            "inherited_literal_0",
+            "inherited_literal_1",
+            "inherited_literal_2",
+            "inherited_literal_3",
+            "inherited_literal_4",
+            "inherited_literal_5",
+            "inherited_literal_6",
+            "inherited_literal_7",
+            "inherited_literal_8",
+            "inherited_literal_9",
+            "inherited_literal_10",
+            "inherited_literal_11",
+            "inherited_literal_12"
+          ]
+        }
+      }
+    ]
+  },
+  "candidate_files": {
+    "tools/generate_hia_multiversion_background_future_cell.py": {
+      "bytes": 27521,
+      "sha256": "16ff5e42e5289de139a4b9fe116976c1bb93a337edd790dce87c8860e75c9f8d"
+    },
+    "tools/generate_hia_background_optimizer_future_public_owner.py": {
+      "bytes": 55854,
+      "sha256": "c240e21b2f336d7ea2c174e4caaa2071598fc0655a7c1751ea4909e628774c47"
+    },
+    "examples/hia_bootstrap/multiversion_background_future_cell.hepta": {
+      "bytes": 155397,
+      "sha256": "31eccccff0f2032f3fb0176153e51da43fc8b71bde1b33dbe8fbe545f7c0401b"
+    },
+    "examples/hia_bootstrap/background_optimizer_future_public_owner.hepta": {
+      "bytes": 316735,
+      "sha256": "08930dc7489b7f47002754938522785f1cfdc058b9af80b7219c7ed2f93f7b84"
+    },
+    "docs/HIA_BACKGROUND_NATIVE_FUTURE_DROP.md": {
+      "bytes": 7387,
+      "sha256": "7e99f9e97cfaa94cf8278c14d3ee355f0920fe67c9a2f605b6a4f7868df99136"
+    }
+  },
+  "native_build_status": "pending: original ROG endpoint unreachable",
+  "native_execution_qualification_status": "pending",
+  "no_original_native_reports_reused_as_new_pass": true
+}
