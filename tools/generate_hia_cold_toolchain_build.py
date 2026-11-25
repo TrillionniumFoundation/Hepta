@@ -347,7 +347,7 @@ def stage_semantic(build):
             s.seeds[profile] = image
             s.publish(image, "tmp-seed-" + profile)
     s.publish(generic, BOOTSTRAP[3], BOOTSTRAP[3])
-    front = [s.flat(role, "bulk") for role in FRONT]
+    front = [s.flat(role, "word" if role.startswith("seed_front_bulk/") else "v1") for role in FRONT]
     offset_words = []
     for i in range(6):
         prefix = p.concat(*front[3:3+i]) if i else p.literal(b"")
@@ -361,7 +361,7 @@ def stage_semantic(build):
     p.compare(assembler, s.boot(0), label="bootstrap-assembly-entire-image-equality")
     s.publish(assembler, BOOTSTRAP[0], BOOTSTRAP[0])
     projector = s.framed(s.tool("evaluate_reference_wire_filter_packer", "v1"),
-                         b"HIAEPF01", [s.flat("seed_front_bulk/evaluate_reference_wire", "bulk")],
+                         b"HIAEPF01", [s.flat("seed_front_bulk/evaluate_reference_wire", "word")],
                          "self-rebuild-projector")
     p.compare(projector, s.boot(1), label="bootstrap-projector-entire-image-equality")
     s.publish(projector, BOOTSTRAP[1], BOOTSTRAP[1])
