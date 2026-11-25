@@ -62,3 +62,18 @@ observer; SHA computation in the tested candidate is HIA-native.
 This checkpoint changes only the HIA SHA implementation. It does not change
 the 180 second execution deadline, the three second cleanup allowance, cold
 phase inventory, capacities, concurrency, archive hashes, or custody rules.
+
+## Actual archive consumer
+
+The same V8 archive policy (234402 bytes, dfcf80c0677bc093e07053828a6415bd2f3d41d71ce269ffb07809b01b5d2df0)
+and packer were rebuilt and compared byte for byte with the prior qualified
+consumer. Only SHA changes in the new 351684 byte image, whose SHA-256 is
+5950a07041ac24b5e2c381011c472627827d2121b9afc9e97fa763113a3edd54.
+
+All 19 original archive controls and 19 AZ02 controls pass, including actual
+concurrent external writes to the archive, an input and the journal. Six
+alternating actual original-chain archives match all 28828792 bytes and
+SHA-256 7698544aa6b8897d67ddd4df309246f4aad45f57dfd4f9722fb07aab02a75bc7.
+The median component wall time is 3.25695389 seconds before and 2.984196146
+seconds after (1.091400742 ratio). This is an archive consumer result; the
+whole cold replay remains a separate unsatisfied gate at this checkpoint.
