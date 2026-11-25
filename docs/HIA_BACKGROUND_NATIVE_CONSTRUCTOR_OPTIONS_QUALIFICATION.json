@@ -1,0 +1,75 @@
+{
+  "native_built": false,
+  "runtime_qualified": false,
+  "whole_background_qualified": false,
+  "source_author_verifier_ran": true,
+  "repeated_source_identical": true,
+  "sources": {
+    "policy": {
+      "bytes": 68145,
+      "sha256": "6614588f9aba200a66688cf77f4bb99755d3fa5cd63c9544b9e70749d443208f",
+      "profile": {
+        "functions": 26,
+        "blocks": 236,
+        "ops": 1195,
+        "max_block_params": 10
+      }
+    },
+    "packer": {
+      "bytes": 30825,
+      "sha256": "90956160f2543bc369b7e876246aaed927d4831f61a1dbfc1b496ae2d9ccef87",
+      "profile": {
+        "functions": 11,
+        "blocks": 51,
+        "ops": 654,
+        "max_block_params": 6
+      }
+    }
+  },
+  "mechanical": {
+    "bytes": 483,
+    "sha256": "4ae59ff7fe4b2a5404ff31ee8ae3e9aee4712ab88f88f0d433279fbb50136fa2",
+    "holes": {
+      "policy": 207
+    }
+  },
+  "schema": "hepta.hia.background-constructor-options.qualification.v1",
+  "runtime_sources": {
+    "tools/generate_hia_background_optimizer_constructor_options.py": {
+      "bytes": 10377,
+      "sha256": "73bd49ed816d70ce785b69ee4734024b5110335d06ceb7830bb690ce6b3d89f4"
+    },
+    "tools/generate_hia_background_optimizer_constructor_options_packer.py": {
+      "bytes": 4224,
+      "sha256": "6b856e7c23e87d3074487d1b279d4f1bf2a4ea9f6926bbd04ba32be04b8d6ded"
+    },
+    "tools/hia_background_optimizer_constructor_options_bridge.S": {
+      "bytes": 2770,
+      "sha256": "2fed227ce20e31ddb27f7d1b09080432f8eb51fc6dd3327818362cc512c9ef27"
+    },
+    "tools/qualify_hia_background_optimizer_constructor_options_pack.py": {
+      "bytes": 2731,
+      "sha256": "1260eebd29c51c922b09540afb12bf6085432336dbb26fede2e521f1883c6fee"
+    },
+    "examples/hia_bootstrap/background_optimizer_constructor_options.hepta": {
+      "bytes": 68145,
+      "sha256": "6614588f9aba200a66688cf77f4bb99755d3fa5cd63c9544b9e70749d443208f"
+    },
+    "examples/hia_bootstrap/background_optimizer_constructor_options_packer.hepta": {
+      "bytes": 30825,
+      "sha256": "90956160f2543bc369b7e876246aaed927d4831f61a1dbfc1b496ae2d9ccef87"
+    }
+  },
+  "original_constructor_source_sha256": "d5a3c81eb0d7907fe872565b6ca6605708f8a6f13fd5a8d55788a9a13a095f7b",
+  "native_compiler_expected_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+  "pending_gates": [
+    "actual-native-compile-pack-link-twice",
+    "original-constructor-option-comparisons",
+    "actual-allocation-and-retained-reference-controls",
+    "private-frame-and-lifetime-controls",
+    "native-pack-controls",
+    "shared-native-object-value-integration",
+    "whole-background-constructor"
+  ],
+  "external_build_source": "from pathlib import Path\nfrom hashlib import sha256\nimport ast,ctypes as C,importlib.util,json,os,re,resource,struct,subprocess,sys\nT=Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125')\nP=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-multiversion-proof-source')\nB=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z')\nD=T/'bg-constructor-options-native-v1';D.mkdir(exist_ok=False)\nsys.path.insert(0,str(P));resource.setrlimit(resource.RLIMIT_CORE,(0,0))\nfrom hepta.hia_agent_assembly import render_assembly\nfrom tools.build_hia_source_build import _run_captured,_named_source_request,_compiled_sources\nfrom tools.generate_hia_artifact_publication import document\nspec=importlib.util.spec_from_file_location('vclient',T/'qualify-result-value-core-smoke-v1.py')\nm=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)\nseed=(T/'root-proof/hia-source-build-494833.bin').read_bytes()\nassert sha256(seed).hexdigest()=='494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af'\nstem='background_optimizer_constructor_options';export='hia_background_constructor_options'\ndef compile_twice(role,tree):\n    name=stem+('_packer' if role=='packer' else '')+'.hepta';source=render_assembly(tree).encode()\n    (P/'examples/hia_bootstrap'/name).write_bytes(source);(D/name).write_bytes(source)\n    profile={'functions':len(tree['functions']),'blocks':sum(len(f['blocks'])for f in tree['functions']),'ops':sum(len(b['ops'])for f in tree['functions']for b in f['blocks']),'max_block_params':max(len(b['params'])for f in tree['functions']for b in f['blocks'])}\n    assert profile['functions']<=128 and profile['blocks']<=1536 and profile['ops']<=8192 and profile['max_block_params']<=16\n    print('SOURCE',role,len(source),profile,flush=True)\n    flats=[]\n    for i in range(2):\n        bd=D/(role+'-compile'+str(i));bd.mkdir()\n        r=_run_captured(seed,'sources',_named_source_request({name:source}),bd)\n        (bd/'stdout').write_bytes(r.stdout);(bd/'stderr').write_bytes(r.stderr)\n        assert r.returncode==0 and not r.stderr,(r.returncode,r.stderr)\n        flats.append(_compiled_sources(r.stdout,{name:source})[name])\n    assert flats[0]==flats[1];(D/(role+'.flat')).write_bytes(flats[0])\n    return flats[0],{'bytes':len(flats[0]),'sha256':sha256(flats[0]).hexdigest(),'source_bytes':len(source),'source_sha256':sha256(source).hexdigest(),'profile':profile}\nmod=importlib.import_module('tools.generate_hia_'+stem)\npolicy,prec=compile_twice('policy',mod.program())\nasm=P/'tools'/('hia_'+stem+'_bridge.S');obj=D/'mechanical-reference.o'\nsubprocess.run(['as','--64','-o',str(obj),str(asm)],check=True)\nraw=obj.read_bytes();shoff=struct.unpack_from('<Q',raw,40)[0];ents,n,si=struct.unpack_from('<HHH',raw,58)\nsh=[struct.unpack_from('<IIQQQQIIQQ',raw,shoff+i*ents)for i in range(n)];names=raw[sh[si][4]:sh[si][4]+sh[si][5]]\nsections={names[x[0]:].split(b'\\0',1)[0].decode():x for x in sh}\ndef data(name):\n    if name not in sections:return b''\n    x=sections[name];return raw[x[4]:x[4]+x[5]]\nbridge=data('.text');ss=data('.strtab');symbols={}\nfor at in range(0,len(data('.symtab')),24):\n    x=struct.unpack_from('<IBBHQQ',data('.symtab'),at);symbols[ss[x[0]:].split(b'\\0',1)[0].decode()]=x\nassert not data('.rela.text')\nholes={'policy':symbols['policy_hole'][4]};esize=symbols[export][5];assert esize==len(bridge)\npackmod=importlib.import_module('tools.generate_hia_'+stem+'_packer')\nassert packmod.BRIDGE==bridge and packmod.HOLES==holes and packmod.EXPORT_SIZE==esize\npacker,pacre=compile_twice('packer',document(packmod.source_program(),stem+'_packer'))\npackentry=m.load(D/'packer.flat',sha256(packer).hexdigest())\nlj=json.loads((B/'native-multiversion-future-v2/build.json').read_text())\nlsha=next(x['flat_sha256']for x in lj['components']if x['role']=='elf_shared_linker')\nlinker=m.load(B/'native-multiversion-future-v2/elf_shared_linker.flat',lsha)\npacket=struct.pack('<8sQQ',b'HIABOPP1',1,len(policy))+policy\nexpected=packmod.reference_object([policy]);images=[]\nfor i in range(2):\n    s=C.create_string_buffer(packet);o=C.create_string_buffer(len(expected));w=C.create_string_buffer(1<<20)\n    n=packentry(s,len(packet),o,len(o),w,len(w));assert n==len(expected) and o.raw==expected\n    so=C.create_string_buffer(len(expected)+32768);si=C.create_string_buffer(o.raw)\n    n=linker(si,len(expected),so,len(so),w,len(w));assert 0<n<len(so);images.append(so.raw[:n])\nassert images[0]==images[1]\n(D/'component.o').write_bytes(expected);(D/'component.so').write_bytes(images[0])\nshoff=struct.unpack_from('<Q',expected,40)[0];textn=struct.unpack_from('<Q',expected,shoff+64+32)[0]\nflat=expected[64:64+textn];(D/'component.flat').write_bytes(flat)\nrecord={'built':True,'qualified':False,'whole_native_runtime':False,'policy':prec,'packer':pacre,\n'bridge':{'bytes':len(bridge),'sha256':sha256(bridge).hexdigest(),'holes':holes,'source_sha256':sha256(asm.read_bytes()).hexdigest(),'undefined_imports':[]},\n'native_linker_sha256':lsha,'image':{'bytes':len(images[0]),'sha256':sha256(images[0]).hexdigest()},\n'flat':{'bytes':len(flat),'sha256':sha256(flat).hexdigest()},'compile_pack_link_twice_identical':True}\n(D/'build.json').write_text(json.dumps(record,indent=2)+'\\n');print('OPTIONS_NATIVE_BUILT',json.dumps(record),flush=True)\n"
+}
