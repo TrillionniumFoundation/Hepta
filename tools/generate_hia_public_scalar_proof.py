@@ -12,7 +12,7 @@ M=lambda t:int.from_bytes(t.encode(),'little')
 C=dict(REQUEST=M('HIAPPR01'),REPLY=M('HIAMVR01'),NORM=M('HIAVCF01'),PREQUEST=M('HIAMVPS1'),PREPLY=M('HIAMVPO1'),PROOF=M('HIAMVP02'),RREQUEST=M('HIAJPR01'),SELECT=M('HIAVRG01'),NONE=(1<<64)-1,NEG4=(1<<64)-4,WORK=608<<20,ROUT=64<<20,LARGE_JSON=M('HIAJLG01'),
  N1=1<<20,N2=18<<20,PIN=35<<20,AJ=52<<20,DJ=196<<20,BJ=54<<20,AA=55<<20,BA=71<<20,DA=260<<20,RI=340<<20,RO=468<<20,FJ=532<<20,PW=160<<20,JW=180<<20,RW=188<<20,
  POUT=65536,CLOCK=32768,STAT=32832,SHABUF=262144,HW=8192,HTMP=4448,HOUT=4480,FUNCTION=4608,MFNAME=12288,INV=12416,
- WHOLE=4096,WHOLE_END=4128,NORMAL_ID=4160,ENGINE_ID=4192,RAW1=4224,RAW2=4256,ORIG1=4288,ORIG2=4320,CORE1=4352,CORE2=4384,INVENTORY=4416,TRANSPORT_DEADLINE=880,PREPARATION_ALLOWANCE_NS=60000000000)
+ WHOLE=4096,WHOLE_END=4128,NORMAL_ID=4160,ENGINE_ID=4192,RAW1=4224,RAW2=4256,ORIG1=4288,ORIG2=4320,CORE1=4352,CORE2=4384,INVENTORY=4416,TRANSPORT_DEADLINE=880,PREPARATION_ALLOWANCE_NS=60000000000,CANCEL=896,RECEIVED_SIGNAL=904,SIGNAL=33824)
 SOURCE=r'''
 def public_proof(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)!=ROUT or length(w)!=WORK:
@@ -111,6 +111,27 @@ def initial(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
             put(w,TRANSPORT_DEADLINE,start+budget*1000000+PREPARATION_ALLOWANCE_NS)
         else:
             put(w,544,1)
+        zero(w,SIGNAL,32)
+        put(w,SIGNAL,get(w,136))
+        put(w,SIGNAL+8,67108864)
+        put(w,SIGNAL+16,get(w,144))
+        put(w,SIGNAL+24,16387)
+        return call(o,w,6,158,4,4097,0,0,0,0,0)
+    if phase==6:
+        if failed(result):
+            return unavailable(o,w)
+        return call(o,w,7,13,4,15,SIGNAL,0,8,0,0)
+    if phase==7:
+        if failed(result):
+            return unavailable(o,w)
+        return call(o,w,8,13,4,2,SIGNAL,0,8,0,0)
+    if phase==8:
+        if failed(result):
+            return unavailable(o,w)
+        return call(o,w,9,13,4,1,SIGNAL,0,8,0,0)
+    if phase==9:
+        if failed(result):
+            return unavailable(o,w)
         return call(o,w,4,257,4,18446744073709551516,12320,524288,0,0,0)
     if phase==4:
         if failed(result):
@@ -375,6 +396,7 @@ def process_ready(w:mutbuf,next:u64,role:u64,fd:u64,n:u64,cap:u64) -> u32:
     put(w,PIN+32,n)
     put(w,PIN+40,cap)
     put(w,PIN+48,67108864)
+    put(w,PIN+64,get(w,72)+CANCEL)
     put(w,552,role)
     zero(w,POUT,128)
     return role_call(w,next,2,1,PIN,128+n,POUT,128,PW,20971520)
@@ -617,6 +639,8 @@ def guarded(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         return 4294967293
     if failed(result):
         return unavailable(o,w)
+    if get(w,CANCEL)!=0:
+        return close_all(o,w)
     if get(w,TRANSPORT_DEADLINE)==0 or clock(w)>=get(w,TRANSPORT_DEADLINE):
         return unavailable(o,w)
     return advance(w,get(w,344))
@@ -669,8 +693,19 @@ def closing(o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
             return call(o,w,204,3,0,fd,0,0,0,0,0)
         phase=204
     if phase==204:
+        if get(w,CANCEL)!=0:
+            zero(w,SIGNAL,32)
+            return call(o,w,205,13,4,get(w,RECEIVED_SIGNAL),SIGNAL,0,8,0,0)
         copy_output(w,RO,o,0,get(w,704))
         return 0
+    if phase==205:
+        return call(o,w,206,39,0,0,0,0,0,0,0)
+    if phase==206:
+        if failed(result):
+            return call(o,w,208,60,0,128+get(w,RECEIVED_SIGNAL),0,0,0,0,0)
+        return call(o,w,207,62,0,result,get(w,RECEIVED_SIGNAL),0,0,0,0)
+    if phase==207:
+        return call(o,w,208,60,0,128+get(w,RECEIVED_SIGNAL),0,0,0,0,0)
     return 4294967293
 '''
 SOURCE+=r'''

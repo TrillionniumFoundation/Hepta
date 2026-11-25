@@ -78,7 +78,7 @@ Action2/3 refusal: HIAMVR01 with mode3/status3 and {"status":"error","error":{"c
 - E_HIA_TRANSLATION_UNPROVED / translation proof could not be recomputed: <fresh reason>
 - E_HIA_TRANSLATION_RECEIPT / translation proof scope is missing, stale or altered
 
-Public front-end requirements: same immutable raw inputs, same captured/sealed normalizer for admit/diagnostic, verified HIAVCF01 extents/profile, actual SHA hashes of all three byte identities, original before/after error order, one absolute deadline for normalization+private proof+closure. The child V8 relative budget must be floored from remaining nanoseconds; never extend the parent deadline. Before returning a proved/disproved patch, recheck parent wall and whole-image identity; deadline/identity/component failures build unknown and disable claims. Release/caller receipt verification always recomputes.
+Public front-end requirements: same immutable raw inputs, same captured/sealed normalizer for admit/diagnostic, verified HIAVCF01 extents/profile, actual SHA hashes of all three byte identities, original before/after error order, one original absolute proof deadline across normalization, private proof and closure. The qualified HIAMVP02 child receives that unchanged absolute deadline and the original timeout; required normalization/admission errors finish before the original proof checkpoint under a separate once-computed transport lifetime. See HIA_PUBLIC_PROOF_DEADLINE.md; no remaining-time rounding or child budget renewal is used. Before returning a proved/disproved patch, recheck parent wall and whole-image identity; deadline/identity/component failures build unknown and disable claims. Release/caller receipt verification always recomputes.
 
 ## Qualification and limitations
 
