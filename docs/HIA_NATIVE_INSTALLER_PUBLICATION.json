@@ -1,0 +1,82 @@
+{
+  "schema": "hepta.hia.native-installer-publication.v1",
+  "status": "NATIVE_COMPONENT_AND_DEPOT_INSTALL_PASS",
+  "final_aggregate_closed": false,
+  "source_contract_regeneration_required": true,
+  "baseline": {
+    "source_commit": "1df04333f911cb9fcfec0b664fd549019accd011",
+    "nodes": 1699,
+    "imports": 43,
+    "publications": 7,
+    "evidence": {
+      "relative_qa_path": "native-production-assembly-qa-v2/public-source-bootstrap-v1/qualification.json",
+      "bytes": 7253,
+      "sha256": "f18c84e4f0b211f1c98227591da93a5c029583c9f4a232f5733071cb82db4e57"
+    }
+  },
+  "extension": {
+    "nodes": 1832,
+    "imports": 45,
+    "publications": 8,
+    "first_seven_outputs_byte_equal": true,
+    "one_new_publication": "hia-release",
+    "plan_sha256": "a18978a6b951c5831b0df9f560f01c504716d7d7f5a79cf2e1284d9d3add2fc6",
+    "plan_bytes": 101431,
+    "recipe": {
+      "sources": 1129,
+      "authority_bytes": 68576,
+      "authority_sha256": "4d8108d1ec66e15bb569f3fd3547b966a32f2841e35fba898c229769b016917d",
+      "recipe_bytes": 8512,
+      "recipe_sha256": "d5a419d7d71d17dd12174e617d8e238a1f12c05eea0827b3505002b08294f8f7"
+    }
+  },
+  "trust": {
+    "initial_roots": 7,
+    "additional_initial_roots": 0,
+    "compiler": "Actual B3 admitted by the complete current-source HIACLD01 gate before any target execution",
+    "installer_packet": "HIAINS01 + policy_len:u64le + sha_len:u64le + policy + sha",
+    "source_roles": [
+      "examples/hia_bootstrap/release_install_policy.hepta",
+      "examples/hia_bootstrap/release_install_packer.hepta",
+      "examples/hia_bootstrap/sha256_stream.hepta"
+    ],
+    "mechanical_source": "tools/hia_release_install_syscalls.S"
+  },
+  "installer": {
+    "bytes": 185462,
+    "sha256": "36825058c4fbf7b705d6beb6eddafab00aa96819d4c29d4ac80287168a07cb1f"
+  },
+  "component": {
+    "passed": true,
+    "elapsed_seconds": 13.882717991,
+    "execve": 1,
+    "sealed_execveat": 246,
+    "journal_bytes": 39109876,
+    "journal_sha256": "abca962e4f8bbbb991ce2dcf771980d04a27762b074f20adad3dab64b322ab02",
+    "evidence": {
+      "relative_qa_path": "native-production-assembly-qa-v2/native-installer-post-extension-v1/qualification.json",
+      "bytes": 22327,
+      "sha256": "cf182e384aac5644e5d246172153bfbd05460f23c6f27613d94b328ca35db4c4"
+    }
+  },
+  "native_depot": {
+    "passed": true,
+    "package_sha256": "7d5656c46f8cb4a5fa567b4837402d19fbe6e78a133a1795bed777745ea206e9",
+    "package_bytes": 158739532,
+    "files": 288,
+    "exact_inventory_and_bytes": true,
+    "native_constructed_installer_equals_package_member": true,
+    "host_package_extraction_used": false,
+    "evidence": {
+      "relative_qa_path": "native-production-assembly-qa-v2/native-installation-v1/depot-install-status.json",
+      "bytes": 2281,
+      "sha256": "58acdb2c9b0d15a05282fc7c04e0907e6e45f6ed6b10d77dd164274c6d06cf4f"
+    }
+  },
+  "remaining": [
+    "Regenerate final source authority, both build recipes and strict source contract for the final aggregate",
+    "Run the extended public entry with its matching full cold report",
+    "Complete the isolated native Worker registration and installed full-source rebuild",
+    "Integrate the remaining final HTTP/public-proof/MV/bounded scope before activation"
+  ]
+}
