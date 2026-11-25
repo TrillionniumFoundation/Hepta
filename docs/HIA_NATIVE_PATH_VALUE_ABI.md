@@ -78,7 +78,9 @@ lifecycle refusal, not a second publication.
 Cleanup first validates the entire `HIABVR02` reply, its reserved words and
 Boolean fields, and the operation's success invariants. In particular, 29/30
 success requires known=1, consumed=1, pending=0; 31 success requires known=1,
-consumed=0, pending=0. Contradictory success is quarantined before changing the
+consumed=0, pending=0. The exact allowed cleanup status sets and associated
+flags in `HIA_RESULT_VALUE_NATIVE_CLEANUP_ABI.md` are checked before trusting
+consumption; an arbitrary status such as 999 is not accepted. Contradictory success is quarantined before changing the
 owned slot. For a valid known-consumed completion the slot is cleared even
 when status is nonzero. Actual pending mapping cleanup is retried only with 31.
 An unknown consumption result, or a nonzero post-consumption result without a
@@ -128,7 +130,9 @@ Exact str/bytes and actual native str/bytes subclasses bypass `__fspath__` for
 operation 0. Other native objects call their captured method. A missing method
 and a non-str/bytes returned value use the original, distinct TypeError wording.
 The `os.fspath` type-name formatting keeps the original 200-byte UTF-8 precision
-and replacement behavior; it is not a 200-code-point truncation.
+and replacement behavior after `_PyType_Name` selects the suffix after the last
+dot; it is not a 200-code-point truncation. The Path argument message uses the
+complete actual `__name__`, including dots.
 
 Operation 1 follows the original Path constructor: it catches actual TypeError
 from `os.fspath`, restores the original argument for its own type check and
