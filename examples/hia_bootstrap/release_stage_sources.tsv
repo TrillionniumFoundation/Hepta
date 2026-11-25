@@ -1,4 +1,4 @@
-stage	11	72
+stage	12	74
 need	1	0	hia-source-build
 compile	1	proof	cnf.hepta	cnf.hepta
 compile	1	proof	core_admission.hepta	core_admission.hepta
@@ -556,3 +556,23 @@ framing	11	2	HIARAU01	independent-prefix-and-all-source-images
 framing	11	3	HIAJCT02	independent-prefix-and-all-source-images
 framing	11	4	HIAMSP03	independent-prefix-and-all-source-images
 framing	11	5	HIAMHP01	independent-prefix-and-all-source-images
+stage	12	native-public-runtime
+need	12	0	hia-source-build
+need	12	0	selfhost.image.bin
+compile	12	runtime-0	native_filter_packer.hepta	native_filter_packer.hepta
+compile	12	runtime-0	ndu_evaluator.hepta	ndu_evaluator.hepta
+compile	12	runtime-0	ndu_evaluator_debug.hepta	ndu_evaluator_debug.hepta
+compile	12	runtime-0	ndu_evaluator_number.hepta	ndu_evaluator_number.hepta
+compile	12	runtime-0	ndu_evaluator_packer.hepta	ndu_evaluator_packer.hepta
+compile	12	runtime-0	ndu_evaluator_transport.hepta	ndu_evaluator_transport.hepta
+compile	12	runtime-0	source_native_filter_pack.hepta	source_native_filter_pack.hepta
+kit	12	source_native_filter_pack.hepta	native_filter_packer.hepta
+resource	12	docs/HIA_NATIVE_NDU_EVALUATOR_BUILD.json
+resource	12	docs/HIA_NATIVE_NDU_EVALUATOR_QUALIFICATION.json
+resource	12	docs/HIA_NATIVE_NDU_EVALUATOR_RECIPE.json
+resource	12	examples/hia_bootstrap/ndu_evaluator_unicode.hiadat
+resource	12	tools/hia_ndu_evaluator_join.S
+resource	12	tools/hia_ndu_evaluator_syscalls.S
+output	12	hia-ndu-evaluator
+output	12	hia-ndu-evaluator-build.json
+framing	12	0	HIANDP01	qualified-source-module-wrapper-output-binding
