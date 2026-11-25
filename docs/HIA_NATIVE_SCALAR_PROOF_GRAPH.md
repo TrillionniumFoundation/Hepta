@@ -34,6 +34,36 @@ Consumers must compare these exact signature words before translation
 validation. The vector remains in the work view and is disjoint from the
 returned name.
 
+## Selection before profile checks
+
+Two additional controls return a self-contained selection record without
+rejecting an otherwise verified function for profile budgets or operations.
+`UINT64_MAX-2` requests single-function inference and `UINT64_MAX-3`
+requests the exact name at output byte 16 with length at byte 8. This mode
+needs 8 MiB output scratch and 32 MiB work.
+
+The `HIAPSL01` header is 128 bytes. Eight-byte words after the magic contain:
+schema-qualified flag, original function count, selected index or UINT64_MAX,
+public-scalar flag, parameter count, return count, name bytes, signature bytes,
+and total record bytes. Bytes 80–127 are zero. The tail is the exact name
+followed by parameter and return type IDs. Non-scalar types have ID zero in
+a non-public preflight record. Missing or ambiguous selection returns exactly
+128 bytes with an absent index and zero name/signature/public fields.
+
+Preflight preserves signatures larger than the proof profile; the full profile
+still applies its original limits. A translation owner first independently
+verifies both Core documents, checks both schemas, infers a default only if
+both documents have one function, resolves the same name on both sides, checks
+both public entries and exact signatures, then profiles before and after.
+The original API refusal order was checked in 100 complete native service
+cases. No preflight field supplies proof truth or bypasses structural admission.
+
+For freshly admitted input, a full-profile refusal writes a diagnostic code to
+work byte 80 before returning 4294967292: 1 schema, 2 missing/ambiguous selection,
+3 non-public scalar entry, 4 program budget, 5 signature budget, 6 effects,
+7 declared types, 8 operations, 9 cyclic CFG, 10 unavailable private layout.
+JSON/ABI failures do not promise this diagnostic field.
+
 ## Preserved proof profile
 
 Core v1 through v7, primitive unit, Boolean and signed/unsigned integer
@@ -60,6 +90,10 @@ multiple public exports. The returned name and selected index were checked
 against the original document on every successful call. The exact signature
 vector was also compared to the original parameter and return types in all
 2864 successful controls.
+
+An additional 487 source cases / 1463 selection-only calls compare the exact
+preflight record against independently verified original public entries and
+signatures, including 2048 parameters and 257 returns before profile checks.
 
 31 refusal controls cover selection, schema, operations, function shape,
 cycles, malformed input and the source-byte boundary. An unreachable-cycle

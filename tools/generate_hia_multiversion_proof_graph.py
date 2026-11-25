@@ -27,6 +27,9 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) > 8388608 or length(o) < 4096 or length(w) < 4096:
         return REFUSED
     selected = get(o, 0)
+    selection_only = selected == 18446744073709551613 or selected == 18446744073709551612
+    if selection_only:
+        selected = choose(selected == 18446744073709551613, 18446744073709551615, 18446744073709551614)
     named = selected == 18446744073709551614
     name_size = 0
     if named:
@@ -42,8 +45,10 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     end = widen(decode_json(s, w, o))
     if end >= 4294967292:
         return end
-    if length(w) - name_size < 1024 or end + RESERVED > length(w) - name_size - 1024 or proof_schema(w, field(w, 0, K_schema)) == 0:
-        return REFUSED
+    if length(w) - name_size < 1024 or end + RESERVED > length(w) - name_size - 1024:
+        return profile_refused(w, 10)
+    if selection_only == False and proof_schema(w, field(w, 0, K_schema)) == 0:
+        return profile_refused(w, 1)
     functions = field(w, 0, K_functions)
     size = count(w, functions)
     if named:
@@ -57,17 +62,26 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             fn = next_node(w, fn)
     if selected == NONE:
         if size != 1:
-            return REFUSED
+            if selection_only:
+                return selection_record(w, o, size, NONE, NONE)
+            return profile_refused(w, 2)
         selected = 0
     if selected >= size:
-        return REFUSED
+        if selection_only:
+            return selection_record(w, o, size, NONE, NONE)
+        return profile_refused(w, 2)
     fn = child(w, functions)
     index = 0
     while index < selected:
         fn = next_node(w, fn)
         index = index + 1
-    if public_function(w, fn) == 0 or function_effects(w, fn) == 0:
-        return REFUSED
+    if selection_only:
+        return selection_record(w, o, size, selected, fn)
+    if public_function(w, fn) == 0:
+        return profile_refused(w, 3)
+    refusal = profile_reason(w, fn)
+    if refusal != 0:
+        return profile_refused(w, refusal)
     params = field(w, fn, K_params)
     returns = field(w, fn, K_returns)
     blocks = field(w, fn, K_blocks)
@@ -75,7 +89,7 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     inputs = count(w, params)
     outputs = count(w, returns)
     if n < 1 or n > BLOCKS or inputs > 32 or outputs > 16:
-        return REFUSED
+        return profile_refused(w, 10)
     put(w, 8, end)
     put(w, 16, 0)
     put(w, 24, end + BLOCKS * 64 + BLOCKS * 8)
@@ -93,8 +107,10 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         i = i + 1
         b = next_node(w, b)
     entry = block_slot(w, n, field(w, fn, K_entry))
-    if entry >= n or graph_order(w, n, entry) == 0:
-        return REFUSED
+    if entry >= n:
+        return profile_refused(w, 10)
+    if graph_order(w, n, entry) == 0:
+        return profile_refused(w, 9)
     put(o, 0, REQUEST)
     put(o, 8, 1)
     put(o, 16, inputs)
@@ -104,7 +120,7 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     while p != NONE:
         typ = proof_type(w, field(w, p, K_type))
         if typ == 0:
-            return REFUSED
+            return profile_refused(w, 7)
         put(o, at, typ)
         at = at + 8
         p = next_node(w, p)
@@ -112,7 +128,7 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     while p != NONE:
         typ = proof_type(w, p)
         if typ == 0:
-            return REFUSED
+            return profile_refused(w, 7)
         put(o, at, typ)
         at = at + 8
         p = next_node(w, p)
@@ -125,7 +141,7 @@ def multiversion_proof_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         source_index = get(w, end + 64 * i + 40)
         b = get(w, end + 64 * source_index)
         if write_block(s, o, w, n, b) == 0:
-            return REFUSED
+            return profile_refused(w, 10)
         i = i + 1
     size = get(w, 0) - start
     put(o, start, size)
@@ -165,6 +181,8 @@ def public_function(w:mutbuf, fn:u64) -> u64:
     name = field(w, fn, K_name)
     exports = field(w, 0, K_exports)
     if exports == NONE:
+        if scalar_records(w, field(w, fn, K_params)) == 0 or scalar_returns(w, field(w, fn, K_returns)) == 0:
+            return 0
         return 1
     node = child(w, exports)
     while node != NONE:
@@ -180,6 +198,107 @@ def function_effects(w:mutbuf, fn:u64) -> u64:
             return 0
         effect = next_node(w, effect)
     return 1
+'''
+SELECTION_HELPERS=r'''
+def profile_refused(w:mutbuf, reason:u64) -> u32:
+    put(w, 80, reason)
+    return REFUSED
+
+def selection_record(w:mutbuf, o:mutbuf, functions:u64, selected:u64, fn:u64) -> u32:
+    at = 0
+    while at < 128:
+        put(o, at, 0)
+        at = at + 8
+    put(o, 0, SELECTION_MAGIC)
+    put(o, 8, proof_schema(w, field(w, 0, K_schema)))
+    put(o, 16, functions)
+    put(o, 24, selected)
+    if fn == NONE:
+        put(o, 72, 128)
+        return 128
+    name = field(w, fn, K_name)
+    size = get(w, 64 + name * 56 + 32)
+    offset = get(w, 64 + name * 56 + 24)
+    params = field(w, fn, K_params)
+    returns = field(w, fn, K_returns)
+    parameters = count(w, params)
+    results = count(w, returns)
+    required = 128 + size + 8 * (parameters + results)
+    if required > length(o):
+        return profile_refused(w, 10)
+    put(o, 32, public_function(w, fn))
+    put(o, 40, parameters)
+    put(o, 48, results)
+    put(o, 56, size)
+    put(o, 64, 8 * (parameters + results))
+    put(o, 72, required)
+    index = 0
+    while index < size:
+        store(o, 128 + index, byte(w, offset + index))
+        index = index + 1
+    at = 128 + size
+    parameter = child(w, params)
+    while parameter != NONE:
+        put(o, at, proof_identity_type(w, field(w, parameter, K_type)))
+        at = at + 8
+        parameter = next_node(w, parameter)
+    returned = child(w, returns)
+    while returned != NONE:
+        put(o, at, proof_identity_type(w, returned))
+        at = at + 8
+        returned = next_node(w, returned)
+    return at
+
+def scalar_records(w:mutbuf, sequence:u64) -> u64:
+    node = child(w, sequence)
+    while node != NONE:
+        if proof_type(w, field(w, node, K_type)) == 0:
+            return 0
+        node = next_node(w, node)
+    return 1
+
+def scalar_returns(w:mutbuf, sequence:u64) -> u64:
+    node = child(w, sequence)
+    while node != NONE:
+        if proof_type(w, node) == 0:
+            return 0
+        node = next_node(w, node)
+    return 1
+
+def profile_reason(w:mutbuf, fn:u64) -> u64:
+    blocks = field(w, fn, K_blocks)
+    operations = 0
+    block = child(w, blocks)
+    while block != NONE:
+        operations = operations + count(w, field(w, block, K_ops))
+        block = next_node(w, block)
+    if count(w, blocks) > 128 or operations > 2048:
+        return 4
+    if count(w, field(w, fn, K_params)) > 32 or count(w, field(w, fn, K_returns)) > 16:
+        return 5
+    if function_effects(w, fn) == 0:
+        return 6
+    if scalar_records(w, field(w, fn, K_params)) == 0 or scalar_returns(w, field(w, fn, K_returns)) == 0:
+        return 7
+    block = child(w, blocks)
+    while block != NONE:
+        if scalar_records(w, field(w, block, K_params)) == 0:
+            return 7
+        op = child(w, field(w, block, K_ops))
+        while op != NONE:
+            if scalar_records(w, field(w, op, K_out)) == 0:
+                return 7
+            op = next_node(w, op)
+        block = next_node(w, block)
+    block = child(w, blocks)
+    while block != NONE:
+        op = child(w, field(w, block, K_ops))
+        while op != NONE:
+            if proof_op(w, field(w, op, K_op)) == 0:
+                return 8
+            op = next_node(w, op)
+        block = next_node(w, block)
+    return 0
 '''
 ORDER=r'''
 def graph_order(w:mutbuf, n:u64, entry:u64) -> u64:
@@ -261,8 +380,8 @@ def policy():
     suffix=suffix[:a]+ORDER+'\n'+suffix[b:]
     suffix=suffix.replace('table + 48 *','table + 64 *').replace('get(w, 8) + 48 *','get(w, 8) + 64 *')
     suffix=suffix.replace('    if tag == 1 or tag == 2:', '    if tag == 0 or tag == 1 or tag == 2:')
-    source=ENTRY+'\n'+suffix
-    constants={'REFUSED':REFUSED,'REQUEST':GRAPH_PROJECTION_REQUEST,'BLOCKS':128,'NODE_BUDGET':262144,'OP_BUDGET':2048,'CHECKED_CAST':PROJECT_CHECKED_CAST,'RESERVED':128*72+8*262144+32}
+    source=ENTRY+'\n'+SELECTION_HELPERS+'\n'+suffix
+    constants={'SELECTION_MAGIC':int.from_bytes(b'HIAPSL01','little'),'REFUSED':REFUSED,'REQUEST':GRAPH_PROJECTION_REQUEST,'BLOCKS':128,'NODE_BUDGET':262144,'OP_BUDGET':2048,'CHECKED_CAST':PROJECT_CHECKED_CAST,'RESERVED':128*72+8*262144+32}
     for name,value in constants.items():source=re.sub(rf'\b{name}\b',str(value),source)
     source=source.replace('MODE_KEY',', '.join(map(str,packed('mode')))).replace('VALUE_KEY',', '.join(map(str,packed('value'))))
     for name,domain in (('schema',{name:1 for name in sorted(QUALIFIED_CORE_SCHEMAS)}),('type',{name:_word_type(name) for name in sorted(SCALARS)}),('op',_GRAPH_OPERATIONS),('trap',_CORE_TRAP_TAGS),('term',{'ret':1,'trap':2,'jump':3,'branch':4}),('checked',{'checked':1}),('effect',{'trap':1})):
