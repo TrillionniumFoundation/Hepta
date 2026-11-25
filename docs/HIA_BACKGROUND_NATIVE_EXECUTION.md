@@ -18,7 +18,7 @@ All owned result/error values, runtime replies, temporary mappings and descripto
 
 Candidate decision and publication integration are still open. The source contains their intended complete sequence, but source presence and successful compilation do not qualify those paths. The business worker, fatal-worker drain, constructor and public shutdown are also still open.
 
-A static review identified that the decision owner's 262144-byte private output overlaps the transport continuation area in this checkpoint. The next increment separates those views before any candidate-decision integration. None of the three verified early branches enters that region.
+The decision owner uses output bytes 262144 through 524287. These bytes are reused only after the rank output has been parsed and its result imported; the rank-owned mapping pointer and extent remain in separate control words. The still-live transport continuation at 229376 through 229631 is disjoint. The original 524288-byte outer view is unchanged. Actual candidate-decision integration remains open; the three qualified early branches have been repeated on this corrected image.
 
 ## Fixed private interface
 

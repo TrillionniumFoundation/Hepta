@@ -39,7 +39,7 @@ C={
 'BUDGET':4792,'HANDOFF':4816,'PUB_START':4840,'PUB_END':4864,'PUB_WALL':4888,'PUBLICATION':4912,'PREPARE':4936,'NET':4960,'TOTAL':4984,'RETURN_TIME':5008,
 'SOURCE_RECORD':1536,'BASE_PAYLOAD':1560,'PROVIDER':1584,'OLD_SOURCE':1608,'DECISION_ERROR':1632,
 'INFO':2048,'TS':2304,'ST':2400,'RQ':16384,'RP':24576,'RP_N':16384,'REPORT_OUT':40960,'REPORT_WORK':49152,'REPORT_SOURCE':81920,
-'IO_OUT':98304,'IO_WORK':229376,'RANK_OUT':262144,'ERR':327680,
+'IO_OUT':98304,'IO_WORK':229376,'RANK_OUT':262144,'DECISION_OUT':262144,'ERR':327680,
 }
 SOURCE=r'''
 def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -301,35 +301,35 @@ def ranking(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,RQ+64,RANKING,24)
         within(o,RQ+88,RANK_WALL,24)
         put(o,NESTED,1)
-        return invoke(o,106,get(w,296),51,RQ,128,IO_OUT,262144,get(w,304),get(w,312))
+        return invoke(o,106,get(w,296),51,RQ,128,DECISION_OUT,262144,get(w,304),get(w,312))
     if phase==106:
-        if valid(o,IO_OUT,DECISION_REPLY)==0:
+        if valid(o,DECISION_OUT,DECISION_REPLY)==0:
             return quarantine(o,w,106)
-        if get(o,IO_OUT+88)!=0:
+        if get(o,DECISION_OUT+88)!=0:
             return quarantine(o,w,106)
         put(o,NESTED,0)
-        status=get(o,IO_OUT+8)
-        if get(o,IO_OUT+24)!=0:
-            within(o,SOURCE_RECORD,IO_OUT+24,24)
-        if get(o,IO_OUT+56)!=0:
-            within(o,DECISION_ERROR,IO_OUT+56,24)
+        status=get(o,DECISION_OUT+8)
+        if get(o,DECISION_OUT+24)!=0:
+            within(o,SOURCE_RECORD,DECISION_OUT+24,24)
+        if get(o,DECISION_OUT+56)!=0:
+            within(o,DECISION_ERROR,DECISION_OUT+56,24)
         if status==1:
-            if get(o,DECISION_ERROR)==0 or get(o,IO_OUT+104)<1 or get(o,IO_OUT+104)>3:
+            if get(o,DECISION_ERROR)==0 or get(o,DECISION_OUT+104)<1 or get(o,DECISION_OUT+104)>3:
                 return fail(o,7,106)
-            put(o,ERROR_FORMAT,get(o,IO_OUT+104))
+            put(o,ERROR_FORMAT,get(o,DECISION_OUT+104))
             request(o,PAYLOAD_INPUT,6)
             within(o,RQ+24,DECISION_ERROR,24)
             return payload_owner(o,w,190)
         if status!=0:
-            return fail(o,choose(status>=5 and status<=8,status,7),get(o,IO_OUT+96))
-        if get(o,IO_OUT+16)>1:
+            return fail(o,choose(status>=5 and status<=8,status,7),get(o,DECISION_OUT+96))
+        if get(o,DECISION_OUT+16)>1:
             return fail(o,7,106)
-        put(o,ADMITTED,get(o,IO_OUT+16))
+        put(o,ADMITTED,get(o,DECISION_OUT+16))
         if get(o,ADMITTED)==0:
             return literal_value(o,w,108,TEMP,31)
         if get(o,SOURCE_RECORD)==0:
             return fail(o,7,106)
-        within(o,CAND_CORE_SHA,IO_OUT+128,64)
+        within(o,CAND_CORE_SHA,DECISION_OUT+128,64)
         return lookup(o,120,RANKING,1,RANK_COSTS,0)
     if phase==108:
         return assign(o,109,RESULT,16,TEMP)
@@ -958,16 +958,16 @@ def rank_task(o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==1980:
-        if valid(o,IO_OUT,DECISION_REPLY)==0 or get(o,IO_OUT+88)!=0:
+        if valid(o,DECISION_OUT,DECISION_REPLY)==0 or get(o,DECISION_OUT+88)!=0:
             return quarantine(o,w,1980)
-        if get(o,IO_OUT+24)!=0:
+        if get(o,DECISION_OUT+24)!=0:
             if get(o,SOURCE_RECORD)!=0:
                 return quarantine(o,w,1980)
-            within(o,SOURCE_RECORD,IO_OUT+24,24)
-        if get(o,IO_OUT+56)!=0:
+            within(o,SOURCE_RECORD,DECISION_OUT+24,24)
+        if get(o,DECISION_OUT+56)!=0:
             if get(o,DECISION_ERROR)!=0:
                 return quarantine(o,w,1980)
-            within(o,DECISION_ERROR,IO_OUT+56,24)
+            within(o,DECISION_ERROR,DECISION_OUT+56,24)
         put(o,NESTED,0)
         return again(o,2000)
     if phase==1982:
@@ -982,7 +982,7 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==2000:
         if get(o,NESTED)!=0:
             request(o,DECISION_INPUT,1)
-            return invoke(o,1980,get(w,296),51,RQ,128,IO_OUT,262144,get(w,304),get(w,312))
+            return invoke(o,1980,get(w,296),51,RQ,128,DECISION_OUT,262144,get(w,304),get(w,312))
         if get(o,IO_WORK+32)!=0 or get(o,IO_WORK+40)!=0 or get(o,IO_WORK+64)!=0:
             request(o,IO_INPUT,1)
             return invoke(o,1982,get(w,216),819,RQ,128,IO_OUT,131072,IO_WORK,256)
