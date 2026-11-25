@@ -124,6 +124,40 @@ a = (t1 + t2) & 4294967295
 '''
     source+=f'i = i + {count}\n';addbody(loop,source)
 
+
+def fuse_schedule_round(loop,count):
+    source='schedule_at = 512 + i * 8\nround_at = i * 8\n'
+    def word(index):
+        return f'schedule_word_{index}' if index>=0 else f'word_load(w, {offset("schedule_at",index*8)})'
+    for j in range(count):
+        source+=f'''x = {word(j-15)}
+y = {word(j-2)}
+cold_x = x * 4294967297
+cold_y = y * 4294967297
+sx = (cold_x >> 7) ^ (cold_x >> 18) ^ (x >> 3)
+sy = (cold_y >> 17) ^ (cold_y >> 19) ^ (y >> 10)
+schedule_word_{j} = ({word(j-16)} + sx + {word(j-7)} + sy) & 4294967295
+word_store(w, {offset('schedule_at',j*8)}, schedule_word_{j})
+cold_e = e * 4294967297
+s1 = (cold_e >> 6) ^ (cold_e >> 11) ^ (cold_e >> 25)
+choose_bits = g ^ (e & (f ^ g))
+t1 = h + s1 + choose_bits + word_load(w, {offset('round_at',j*8)}) + schedule_word_{j}
+cold_a = a * 4294967297
+s0 = (cold_a >> 2) ^ (cold_a >> 13) ^ (cold_a >> 22)
+majority = (a & b) | (c & (a | b))
+t2 = s0 + majority
+h = g
+g = f
+f = e
+e = (d + t1) & 4294967295
+d = c
+c = b
+b = a
+a = (t1 + t2) & 4294967295
+'''
+    source+=f'i = i + {count}\n'
+    addbody(loop,source)
+
 def nonalias_source():
     module=ast.parse(original_source())
     compression=next(n for n in module.body if isinstance(n,ast.FunctionDef) and n.name=='compress')
@@ -141,12 +175,16 @@ def nonalias_source():
     loops = [n for n in compression.body if isinstance(n, ast.While)]
     assert len(loops) == 3
     replace_be(loops[0])
-    hoist_schedule(loops[1], 4)
+    compression.body.remove(loops[1])
     first_rounds = copy.deepcopy(loops[2])
     hoist_round(first_rounds, 4, first=True)
     at = compression.body.index(loops[2])
     compression.body[at:at] = first_rounds.body
     hoist_round(loops[2], 4)
+    fused = copy.deepcopy(loops[2])
+    loops[2].test = ast.parse('i < 16',mode='eval').body
+    fuse_schedule_round(fused,4)
+    compression.body.insert(compression.body.index(loops[2])+1,fused)
     return ast.unparse(ast.fix_missing_locations(module))+'\n'
 
 def packer_source():
