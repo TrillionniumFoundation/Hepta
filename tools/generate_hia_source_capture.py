@@ -174,10 +174,17 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if phase == 7:
         if result != 0:
             return fail(w, 18)
-        return issue(w, 8, 8)
+        write(w, 152, 0, 8)
+        return hash_piece(w)
     if phase == 8:
+        offset = mw(w, 152, 8)
+        store(w, 65536 + offset, mw(w, 168, 8))
         if result != 0:
             return fail(w, 18)
+        offset = offset + mw(w, 160, 8)
+        write(w, 152, offset, 8)
+        if offset < mw(w, 72, 8):
+            return hash_piece(w)
         return issue(w, 9, 9)
     if phase == 9:
         if result != 32:
@@ -211,6 +218,19 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         write(w, 40, mw(w, 40, 8) + 1, 8)
         return next_source(s, w)
     return fail(w, 16)
+
+def hash_piece(w:mutbuf) -> u32:
+    offset = mw(w, 152, 8)
+    size = mw(w, 72, 8)
+    if offset > size or size > 67108864:
+        return fail(w, 18)
+    amount = size - offset
+    if amount > 1048576:
+        amount = 1048576
+    write(w, 160, amount, 8)
+    write(w, 168, byte(w, 65536 + offset), 8)
+    store(w, 65536 + offset, 1)
+    return issue(w, 8, 8)
 
 def next_source(s:readbuf, w:mutbuf) -> u32:
     index = mw(w, 40, 8)

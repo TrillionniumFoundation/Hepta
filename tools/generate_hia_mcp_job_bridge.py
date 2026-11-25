@@ -18,7 +18,7 @@ from tools.generate_hia_json_decode import source_program as generic_json
 from tools.generate_hia_native_filter import LINK_SOURCE
 
 ROOT=Path(__file__).resolve().parents[1]
-COMPONENTS=('bootstrap','provider','registry','process','transport','result','fence','files','audit','status','pages','replay','compat')
+COMPONENTS=('bootstrap','provider','registry','process','transport','result','fence','files','audit','status','pages','replay','compat','transactions')
 ROLES=COMPONENTS+('json','sha','terminal','canonical')
 SOURCE_FILES=tuple('examples/hia_bootstrap/mcp_job_bridge_'+name+'.hepta' for name in COMPONENTS+('json','packer'))
 COMPANIONS={'sha':'examples/hia_bootstrap/sha256_stream.hepta',

@@ -1,4 +1,4 @@
-stage	11	71
+stage	11	72
 need	1	0	hia-source-build
 compile	1	proof	cnf.hepta	cnf.hepta
 compile	1	proof	core_admission.hepta	core_admission.hepta
@@ -432,6 +432,33 @@ compile	11	controllers	agent_response_schema.hepta	agent_response_schema.hepta
 compile	11	controllers	job_terminal_receipt.hepta	job_terminal_receipt.hepta
 compile	11	controllers	mcp_canonical.hepta	mcp_canonical.hepta
 compile	11	controllers	mcp_catalog_wire.hepta	mcp_catalog_wire.hepta
+compile	11	controllers	mcp_http_admission.hepta	mcp_http_admission.hepta
+compile	11	controllers	mcp_http_bind.hepta	mcp_http_bind.hepta
+compile	11	controllers	mcp_http_body.hepta	mcp_http_body.hepta
+compile	11	controllers	mcp_http_bootstrap.hepta	mcp_http_bootstrap.hepta
+compile	11	controllers	mcp_http_catalog_policy.hepta	mcp_http_catalog_policy.hepta
+compile	11	controllers	mcp_http_chunked.hepta	mcp_http_chunked.hepta
+compile	11	controllers	mcp_http_context.hepta	mcp_http_context.hepta
+compile	11	controllers	mcp_http_controller_bootstrap.hepta	mcp_http_controller_bootstrap.hepta
+compile	11	controllers	mcp_http_delivery.hepta	mcp_http_delivery.hepta
+compile	11	controllers	mcp_http_dispatch.hepta	mcp_http_dispatch.hepta
+compile	11	controllers	mcp_http_events.hepta	mcp_http_events.hepta
+compile	11	controllers	mcp_http_framing.hepta	mcp_http_framing.hepta
+compile	11	controllers	mcp_http_headers.hepta	mcp_http_headers.hepta
+compile	11	controllers	mcp_http_io.hepta	mcp_http_io.hepta
+compile	11	controllers	mcp_http_json_error.hepta	mcp_http_json_error.hepta
+compile	11	controllers	mcp_http_lifecycle.hepta	mcp_http_lifecycle.hepta
+compile	11	controllers	mcp_http_metadata.hepta	mcp_http_metadata.hepta
+compile	11	controllers	mcp_http_packer.hepta	mcp_http_packer.hepta
+compile	11	controllers	mcp_http_post.hepta	mcp_http_post.hepta
+compile	11	controllers	mcp_http_registry.hepta	mcp_http_registry.hepta
+compile	11	controllers	mcp_http_reply_policy.hepta	mcp_http_reply_policy.hepta
+compile	11	controllers	mcp_http_response.hepta	mcp_http_response.hepta
+compile	11	controllers	mcp_http_scheduler.hepta	mcp_http_scheduler.hepta
+compile	11	controllers	mcp_http_session.hepta	mcp_http_session.hepta
+compile	11	controllers	mcp_http_session_policy.hepta	mcp_http_session_policy.hepta
+compile	11	controllers	mcp_http_setup.hepta	mcp_http_setup.hepta
+compile	11	controllers	mcp_http_stream.hepta	mcp_http_stream.hepta
 compile	11	controllers	mcp_input_diagnostic.hepta	mcp_input_diagnostic.hepta
 compile	11	controllers	mcp_job_bridge_audit.hepta	mcp_job_bridge_audit.hepta
 compile	11	controllers	mcp_job_bridge_bootstrap.hepta	mcp_job_bridge_bootstrap.hepta
@@ -447,6 +474,7 @@ compile	11	controllers	mcp_job_bridge_registry.hepta	mcp_job_bridge_registry.hep
 compile	11	controllers	mcp_job_bridge_replay.hepta	mcp_job_bridge_replay.hepta
 compile	11	controllers	mcp_job_bridge_result.hepta	mcp_job_bridge_result.hepta
 compile	11	controllers	mcp_job_bridge_status.hepta	mcp_job_bridge_status.hepta
+compile	11	controllers	mcp_job_bridge_transactions.hepta	mcp_job_bridge_transactions.hepta
 compile	11	controllers	mcp_job_bridge_transport.hepta	mcp_job_bridge_transport.hepta
 compile	11	controllers	mcp_request_audit_archive.hepta	mcp_request_audit_archive.hepta
 compile	11	controllers	mcp_request_audit_files.hepta	mcp_request_audit_files.hepta
@@ -516,12 +544,15 @@ resource	11	tools/hia_mcp_job_bridge_syscalls.S
 resource	11	tools/hia_mcp_request_audit_syscalls.S
 resource	11	tools/hia_system_jobctl_syscalls.S
 resource	11	tools/hia_mcp_service_syscalls.S
+resource	11	tools/hia_mcp_http_syscalls.S
 output	11	hia-mcp-job-bridge
 output	11	hia-mcp-request-audit
 output	11	hia-system-jobctl
 output	11	hia-mcp-service
+output	11	hia-mcp-http
 output	11	hia-source-contract
 framing	11	1	HIAJBP01	independent-prefix-and-all-source-images
 framing	11	2	HIARAU01	independent-prefix-and-all-source-images
 framing	11	3	HIAJCT02	independent-prefix-and-all-source-images
 framing	11	4	HIAMSP03	independent-prefix-and-all-source-images
+framing	11	5	HIAMHP01	independent-prefix-and-all-source-images

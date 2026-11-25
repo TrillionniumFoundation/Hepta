@@ -225,8 +225,11 @@ def construct_release_bootstrap(s, b3):
     s.publish(bound, "hia-release-build", "hia-release-build")
     p.drop(magic, request, old_head, new_head, old_tail, new_tail,
            actual_pins, expected_pins, old_size, new_size, *pins)
+    installer = target.pack("release_install_packer", b"HIAINS01",
+                            [target.flat("release_install_policy"), sha],
+                            "release-package-installer")
     return {"builder": bootstrap, "owner": owner, "runner": runner,
-            "capture": capture, "entry": bound}
+            "capture": capture, "entry": bound, "installer": installer}
 
 
 def rebuild_public_self(s):
@@ -251,8 +254,11 @@ def build_plans(root=ROOT):
     build = Build(Path(root), plan_prefix=PLANS)
     s = independent_roots(build.stage("source-bootstrap"))
     b3 = admit_actual_cold(s)
-    construct_release_bootstrap(s, b3)
+    release = construct_release_bootstrap(s, b3)
     rebuild_public_self(s)
+    # Preserve the baseline seven publications and append the independently
+    # source-built native installer; installation never needs host extraction.
+    s.publish(release["installer"], "hia-release", "hia-release")
     result = build.finish(Path(root) / PLANS)
     result["schema"] = "hepta.hia.native-source-bootstrap-build.v1"
     result["target_compiler_required"] = True

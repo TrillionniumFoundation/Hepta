@@ -1,0 +1,25 @@
+# Native multiversion identity ledger
+
+This fixed in-process HIA companion owns public generation and selection-epoch decimal values, cleanup-attempt values, and the 128-entry event ring. It is not the complete multiversion runtime or a caller-authorized proof/build callback.
+
+Each ledger, event and external observation owns a separate value-reference node. The immutable value object's address is used only as a private equality identity while a strong reference remains alive. It is never a public number. Physical generation slots retain the original 64-slot bound; public values have no u64 or u128 limit. Successful retirement may reuse a physical slot without invalidating an older retained value.
+
+## Calling convention
+
+The exported `hia_mv_runtime_identity` uses the existing six-word borrowed-buffer ABI. Its source is exactly 64 bytes, output is at least 4,096 bytes, and private shared state is 32,768 zeroed bytes at construction. Per-call output is disjoint and thread private. The bridge resets only its continuation word, executes HIA requests and invokes the fixed number/value companions. All ownership, sequencing and arithmetic decisions are in HIA.
+
+The request is `HIAMVID1`, operation, selector, three capability/data words, and two zero words. Operations are 0 initialize, 1 reserve generation, 2 stage epoch, 3 commit epoch, 4 abort pending epoch, 5 retain selected value, 6 release a nonbaseline generation slot, 7 observe selected value, 8 drop an external reference, 9 append event, 10 read a physical event slot, 11 destroy, 12 increment cleanup attempts, and 13 copy referenced digits. Selectors 0 through 63 identify physical generation slots, 64 the selected epoch, 65 the pending epoch, and 66 cleanup attempts. Operation 9 uses its three words for kind, elapsed time and budget. Event selection is 0 through 127. Operations 8 and 13 use the three words for node and nonce capability.
+
+A completed structured reply returns zero and begins with `HIAMVIDR`. Status is at byte 8; private object identity at 16; capability node and nonce at 24, 32 and 40; decimal length at 48; an independently retained reference is marked at 72. Digit copy length is at 80 and bytes start at 1,536. Callers must provide at least 4,096 plus the digit length for the large copy form. Event reads return generation capability at 16/24/32 and length at 40, epoch capability at 48/56/64 and length at 72, kind/elapsed/budget at 80/88/96, and ring head/count at 112/120. Borrowed event references remain valid only while the enclosing runtime selection lock protects the ring; independent observations must retain their own node.
+
+Statuses are 0 success, 1 unknown/stale capability, 4 allocation failure, 5 state or owned-reference refusal, 6 operating-system failure, and 9 an internal companion failure. Malformed private requests return `0xfffffffd` before modifying the reply header or context. The caller-owned continuation area is private scratch, not a public transactional output. Successful destroy is idempotent and refuses live external references before releasing any ledger reference.
+
+## Failure and concurrency rules
+
+Initialization has twelve actual malloc sites. Every failed site releases all successful earlier allocations, preserves the allocation error and leaves a closed context. Reserving a generation consumes its decimal value after the underlying number transaction succeeds: if the subsequent ledger retain fails, the reserved slot is released while the already consumed generation remains consumed. Epoch-retain failure aborts the pending value. Event replacement retains both new values before releasing either old event value. All ordinary operations run under the native identity mutex. Final destruction checks the actual value registry, not a supplied count.
+
+## Qualification
+
+The companion's machine-readable record contains actual build pins, eight behavioral groups, 27 allocation-fault cases and 36 native-packer guards. Behavioral tests include 2,746 calls, old-object observations after slot reuse, 145 event publications across a full ring wrap, eight threads, and generation/epoch carry beyond 64 bits, 128 bits and 1,048,577 decimal digits. Large-state setup invokes the value owner embedded in the same actual image; it is privileged QA setup rather than a runtime API. Native allocation faults cover all initialization sites, partial reserve/stage transactions, event replacement, external retain, attempts, and 160 complete publication/event cycles with all allocations freed. The earlier v4 allocation refusal failure is retained in QA and is not reported as passed.
+
+The fixed native packer embeds four actual role flats and is linked by the existing HIA shared linker. It preserves the original four-MiB per-role and sixteen-MiB combined-text bounds. Python development authors and the external libc fault injector do not execute in the product path. Whole runtime factory, public capability custody, generation coordination and BG integration remain separate obligations.

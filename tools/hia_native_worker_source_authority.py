@@ -43,7 +43,7 @@ def checked_paths(value):
         if (not 1 <= len(encoded) <= 4095 or path.startswith('/')
                 or any(part in ('', '.', '..', '.git') for part in parts)
                 or any(ch < 32 or ch > 126 or ch in (34, 92) for ch in encoded)
-                or PurePosixPath(path).suffix not in SOURCE_SUFFIXES | DATA_SUFFIXES):
+                or (path != 'Makefile' and PurePosixPath(path).suffix not in SOURCE_SUFFIXES | DATA_SUFFIXES)):
             raise ValueError('invalid native source authority path: ' + path)
     if tuple(sorted(set(paths))) != paths:
         raise ValueError('native source authority paths must be sorted and unique')

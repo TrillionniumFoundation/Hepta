@@ -1,0 +1,700 @@
+{
+  "schema": "hepta.hia.multiversion-runtime-identity-component.v1",
+  "whole_native_runtime": false,
+  "build": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-runtime-identity-v5/build.json",
+    "sha256": "18397011fad6ae140d324fbad5dd3404ad92bceb1e5197a91793d1cd79c561fa",
+    "bytes": 2821,
+    "record": {
+      "schema": "hepta.hia.multiversion-runtime-identity-build.v1",
+      "whole_native_runtime": false,
+      "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+      "new_sources": [
+        {
+          "role": "multiversion_runtime_identity",
+          "source_bytes": 93778,
+          "source_sha256": "c2279acbe542b92eb9b105996659f92411a407ee32521844093a9b2e1a902f60",
+          "returncode": 0,
+          "flat_bytes": 125024,
+          "flat_sha256": "0375da00ee95d3bfd02b080145130f485db8d7dec4e0599b703259a315297c2a"
+        },
+        {
+          "role": "multiversion_runtime_identity_packer",
+          "source_bytes": 51577,
+          "source_sha256": "f5841db4a68569b24d4ab4fea1c87f0ac9d90fdc23d02d72d236fe46372583b1",
+          "returncode": 0,
+          "flat_bytes": 52584,
+          "flat_sha256": "fdbf7402a39a4d330a7dcdde114023cfc46c14dc7ed95acd4b0f73696afb5085"
+        }
+      ],
+      "roles": [
+        {
+          "role": "identity",
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-runtime-identity-v5/multiversion_runtime_identity.flat",
+          "bytes": 125024,
+          "sha256": "0375da00ee95d3bfd02b080145130f485db8d7dec4e0599b703259a315297c2a"
+        },
+        {
+          "role": "numbers",
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-runtime-numbers-v1/multiversion_runtime_numbers.flat",
+          "bytes": 89778,
+          "sha256": "4a6ed08bd84521acb992d7d99337cf9c496b2ca4dc444d1d6aef5ceba698e392"
+        },
+        {
+          "role": "values_owner",
+          "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-values-v1/multiversion_values.flat",
+          "bytes": 104413,
+          "sha256": "fba03514585a546e46887b3796767f91de947625bf1d1f46e787e8621787efc0"
+        },
+        {
+          "role": "unsigned",
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/root-proof/unsigned-decimal-f07aca.flat",
+          "bytes": 34929,
+          "sha256": "f07aca774bdf703fda1db510d99cd5dbe903058db97a17a356c3ee44c85913a8"
+        }
+      ],
+      "packer": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-runtime-identity-v5/multiversion_runtime_identity_packer.flat",
+        "bytes": 52584,
+        "sha256": "fdbf7402a39a4d330a7dcdde114023cfc46c14dc7ed95acd4b0f73696afb5085"
+      },
+      "linker": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-future-v2/elf_shared_linker.flat",
+        "bytes": 127874,
+        "sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff"
+      },
+      "image_bytes": 365328,
+      "image_sha256": "d9f3ea7f2d7feafa4cb5c1497b7b6c60ca81580182a7732e2ba2a9f3b73e37d6",
+      "object_bytes": 356296,
+      "object_sha256": "7d3f805e23540c4d1de75eb5c052340fcdefb6391e7a3c900507b9945596c774"
+    }
+  },
+  "behavior": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-runtime-identity-qualification-v2/qualification.json",
+    "sha256": "7a5fd04f77199cb4cc54a1b2e6d8a60c30a6291c32200ef6f88a1fe724dcfe47",
+    "bytes": 1919,
+    "record": {
+      "schema": "hepta.hia.multiversion-runtime-identity-qualification.v1",
+      "whole_native_runtime": false,
+      "passed": 8,
+      "failed": 0,
+      "actual_identity_calls": 2746,
+      "actual_values_calls": 18,
+      "image_sha256": "d9f3ea7f2d7feafa4cb5c1497b7b6c60ca81580182a7732e2ba2a9f3b73e37d6",
+      "elapsed_ns": 290150856,
+      "cases": [
+        {
+          "case": "same-object-retains-event-and-reused-slot",
+          "original_identity": 541844592,
+          "new_identity": 541090128,
+          "epoch_identity": 543221888
+        },
+        {
+          "case": "aborted-pending-epoch-keeps-previous"
+        },
+        {
+          "case": "full-128-ring-wrap-retains-both-values",
+          "events": 145,
+          "final_head": 17
+        },
+        {
+          "case": "unbounded-u64",
+          "input_digits": 20,
+          "generation_sha256": "2cdb26265b4dc65e3b44d694f121fd6de99b9e4b8ae7f08d84bfa9537635ae43",
+          "next_sha256": "8b292fc2d32f1fd491784610c61b90dc4632a6e4add19261eca4c3979e4ea6d2",
+          "epoch_sha256": "8b292fc2d32f1fd491784610c61b90dc4632a6e4add19261eca4c3979e4ea6d2"
+        },
+        {
+          "case": "unbounded-u128",
+          "input_digits": 39,
+          "generation_sha256": "f315ff319bf588e202110ab686fb8c3dbca12b4df9fbd844615b566a2fff3e75",
+          "next_sha256": "2bebd8c50579bb419bfa77966f212469b05d13e43bf0423daa2f9403bf5c26ff",
+          "epoch_sha256": "2bebd8c50579bb419bfa77966f212469b05d13e43bf0423daa2f9403bf5c26ff"
+        },
+        {
+          "case": "unbounded-million",
+          "input_digits": 1048577,
+          "generation_sha256": "c1674ff271b51fe7a89bf0a7c2c8350f4ac9fae951840fa50e1e1a8454dc06dd",
+          "next_sha256": "f5ba5dd2aef4976065b941b378a7f0ac3b2a97f8bbf9636dcc32bd4dfb2ec4ea",
+          "epoch_sha256": "f5ba5dd2aef4976065b941b378a7f0ac3b2a97f8bbf9636dcc32bd4dfb2ec4ea"
+        },
+        {
+          "case": "eight-thread-reserve-retain-release-accounting",
+          "publications": 280,
+          "attempts": 280
+        },
+        {
+          "case": "private-foreign-cap-and-frame-refusals"
+        }
+      ]
+    }
+  },
+  "allocation": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-runtime-identity-allocation-v2/qualification.json",
+    "sha256": "132be12b6db59206c479a6e3127f2965c03b09431e241b281bcf6952add65640",
+    "bytes": 6059,
+    "record": {
+      "schema": "hepta.hia.multiversion-runtime-identity-allocation.v1",
+      "whole_native_runtime": false,
+      "external_qa_injector": true,
+      "injector_source_sha256": "a591c1fab357661127703a03d09bfd5f8c5f2ffe00efe0314bcf0442cdacb3f3",
+      "passed": 27,
+      "failed": 0,
+      "cases": [
+        {
+          "operation": "initialize",
+          "failed_ordinal": 1,
+          "actual_counts": [
+            1,
+            0,
+            0
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 2,
+          "actual_counts": [
+            2,
+            1,
+            1
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 3,
+          "actual_counts": [
+            3,
+            2,
+            2
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 4,
+          "actual_counts": [
+            4,
+            3,
+            3
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 5,
+          "actual_counts": [
+            5,
+            4,
+            4
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 6,
+          "actual_counts": [
+            6,
+            5,
+            5
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 7,
+          "actual_counts": [
+            7,
+            6,
+            6
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 8,
+          "actual_counts": [
+            8,
+            7,
+            7
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 9,
+          "actual_counts": [
+            9,
+            8,
+            8
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 10,
+          "actual_counts": [
+            10,
+            9,
+            9
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 11,
+          "actual_counts": [
+            11,
+            10,
+            10
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": "initialize",
+          "failed_ordinal": 12,
+          "actual_counts": [
+            12,
+            11,
+            11
+          ],
+          "all_allocations_freed": true
+        },
+        {
+          "operation": 1,
+          "failed_ordinal": 1,
+          "actual_counts": [
+            1,
+            0,
+            0
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 1,
+          "failed_ordinal": 2,
+          "actual_counts": [
+            2,
+            1,
+            1
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 1,
+          "failed_ordinal": 3,
+          "actual_counts": [
+            3,
+            2,
+            2
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 1,
+          "failed_ordinal": 4,
+          "actual_counts": [
+            4,
+            3,
+            3
+          ],
+          "transaction_unchanged": false,
+          "consumed_generation_preserved": true,
+          "same_context_retry": true
+        },
+        {
+          "operation": 2,
+          "failed_ordinal": 1,
+          "actual_counts": [
+            1,
+            0,
+            0
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 2,
+          "failed_ordinal": 2,
+          "actual_counts": [
+            2,
+            1,
+            1
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 2,
+          "failed_ordinal": 3,
+          "actual_counts": [
+            3,
+            2,
+            2
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 2,
+          "failed_ordinal": 4,
+          "actual_counts": [
+            4,
+            3,
+            3
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 5,
+          "failed_ordinal": 1,
+          "actual_counts": [
+            1,
+            0,
+            0
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 9,
+          "failed_ordinal": 1,
+          "actual_counts": [
+            1,
+            0,
+            0
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 9,
+          "failed_ordinal": 2,
+          "actual_counts": [
+            2,
+            1,
+            1
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 12,
+          "failed_ordinal": 1,
+          "actual_counts": [
+            1,
+            0,
+            0
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 12,
+          "failed_ordinal": 2,
+          "actual_counts": [
+            2,
+            1,
+            1
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": 12,
+          "failed_ordinal": 3,
+          "actual_counts": [
+            3,
+            2,
+            2
+          ],
+          "transaction_unchanged": true,
+          "consumed_generation_preserved": false,
+          "same_context_retry": true
+        },
+        {
+          "operation": "160-publication-event-wrap-transactions-complete-free",
+          "actual_counts": [
+            2092,
+            2092,
+            2092
+          ]
+        }
+      ],
+      "image_sha256": "d9f3ea7f2d7feafa4cb5c1497b7b6c60ca81580182a7732e2ba2a9f3b73e37d6"
+    }
+  },
+  "packer": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-runtime-identity-v5/packer-qualification.json",
+    "sha256": "f3c088c5c215003041aae4ed59a8b04586fc012999bc8f0203a258ae405b2a6c",
+    "bytes": 4431,
+    "record": {
+      "schema": "hepta.hia.multiversion-runtime-identity-packer.v1",
+      "whole_native_runtime": false,
+      "passed": 36,
+      "failed": 0,
+      "packer": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-runtime-identity-v5/multiversion_runtime_identity_packer.flat",
+        "bytes": 52584,
+        "sha256": "fdbf7402a39a4d330a7dcdde114023cfc46c14dc7ed95acd4b0f73696afb5085"
+      },
+      "cases": [
+        {
+          "case": "actual-four-role-object",
+          "returncode": 356296,
+          "output_bytes": 356296
+        },
+        {
+          "case": "role-0-extent-1",
+          "returncode": 2184,
+          "output_bytes": 2184
+        },
+        {
+          "case": "role-0-extent-4194304",
+          "returncode": 4196472,
+          "output_bytes": 4196472
+        },
+        {
+          "case": "role-0-bad-extent-0",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-0-bad-extent-4194305",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-0-bad-extent-18446744073709551615",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-1-extent-1",
+          "returncode": 2184,
+          "output_bytes": 2184
+        },
+        {
+          "case": "role-1-extent-4194304",
+          "returncode": 4196472,
+          "output_bytes": 4196472
+        },
+        {
+          "case": "role-1-bad-extent-0",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-1-bad-extent-4194305",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-1-bad-extent-18446744073709551615",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-2-extent-1",
+          "returncode": 2184,
+          "output_bytes": 2184
+        },
+        {
+          "case": "role-2-extent-4194304",
+          "returncode": 4196472,
+          "output_bytes": 4196472
+        },
+        {
+          "case": "role-2-bad-extent-0",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-2-bad-extent-4194305",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-2-bad-extent-18446744073709551615",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-3-extent-1",
+          "returncode": 2184,
+          "output_bytes": 2184
+        },
+        {
+          "case": "role-3-extent-4194304",
+          "returncode": 4196480,
+          "output_bytes": 4196480
+        },
+        {
+          "case": "role-3-bad-extent-0",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-3-bad-extent-4194305",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "role-3-bad-extent-18446744073709551615",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "short-output",
+          "returncode": 4294967294,
+          "output_bytes": 2183
+        },
+        {
+          "case": "truncated-0",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "truncated-7",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "truncated-8",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "truncated-15",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "truncated-16",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "truncated-47",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "truncated-51",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "header-0-0",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "header-8-0",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "header-8-2",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "header-8-5",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "header-8-18446744073709551615",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "trailing-byte",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        },
+        {
+          "case": "combined-text-over-sixteen-MiB",
+          "returncode": 4294967295,
+          "output_bytes": 1048576
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "path": "tools/generate_hia_multiversion_runtime_identity.py",
+      "bytes": 17578,
+      "sha256": "ee1c1cf10e1e6f8a8e73240f6f57eec39da3a08aa5ad578a8fa7ac3422448bfb",
+      "runtime": false
+    },
+    {
+      "path": "examples/hia_bootstrap/multiversion_runtime_identity.hepta",
+      "bytes": 93778,
+      "sha256": "c2279acbe542b92eb9b105996659f92411a407ee32521844093a9b2e1a902f60",
+      "runtime": true
+    },
+    {
+      "path": "tools/hia_multiversion_runtime_identity_bridge.S",
+      "bytes": 2209,
+      "sha256": "a3f846fdf8b10b7e119b1b7a6c2b5f5491ba0e56946147b83632dfd1d9c3b385",
+      "runtime": true
+    },
+    {
+      "path": "tools/generate_hia_multiversion_runtime_identity_packer.py",
+      "bytes": 4849,
+      "sha256": "00224e52cdb293180dbbdf3be26eb43ea5cf663ca8ac6a51f5f11f41eb83a269",
+      "runtime": false
+    },
+    {
+      "path": "examples/hia_bootstrap/multiversion_runtime_identity_packer.hepta",
+      "bytes": 51577,
+      "sha256": "f5841db4a68569b24d4ab4fea1c87f0ac9d90fdc23d02d72d236fe46372583b1",
+      "runtime": true
+    },
+    {
+      "path": "tools/qualify_hia_multiversion_runtime_identity.py",
+      "bytes": 7605,
+      "sha256": "8f75bc7f14a3901b1f02e6bd0a5af617706ef57b3399c3185a001fe79c378962",
+      "runtime": false
+    },
+    {
+      "path": "tools/qualify_hia_multiversion_runtime_identity_allocations.py",
+      "bytes": 4628,
+      "sha256": "712877a453d07f8605f751d09ef167fbbf142b7478f39393966384501f2f2b7f",
+      "runtime": false
+    },
+    {
+      "path": "tools/qualify_hia_multiversion_runtime_identity_packer.py",
+      "bytes": 2584,
+      "sha256": "ce5ab293ab03efa79bff675cd6fa3140a7de3d53abc6301d82520eb82c79bc53",
+      "runtime": false
+    },
+    {
+      "path": "docs/HIA_MULTIVERSION_NATIVE_IDENTITY.md",
+      "bytes": 5033,
+      "sha256": "165d0c28e365f0fb5c467d9a270f55ae1c58e78ace7c3038c7077a0938418c80",
+      "runtime": false
+    }
+  ],
+  "failed_prior_evidence": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-runtime-identity-allocation-v1",
+  "scope": "Fixed identity companion only; outer runtime and provider are not declared complete."
+}

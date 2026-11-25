@@ -750,6 +750,7 @@ def journal(s:readbuf, o:mutbuf, w:mutbuf, p:u64, r:u64) -> u32:
     if failed(r):
         return finish(o, w, 74)
     if p == 1000:
+        put(w, 1501200, 0)
         put(w, 1500200, get(w, 144))
         put(w, 1500208, get(w, 152))
         put(w, 1500216, get(w, 1500064))
@@ -766,6 +767,11 @@ def journal(s:readbuf, o:mutbuf, w:mutbuf, p:u64, r:u64) -> u32:
     if p == 1001:
         return archive_memory(s, o, w, 2097152, get(w, 1500032) * 8 + get(w, 1500040), 1002)
     if p == 1002:
+        if get(w, 1500016) == 5 and get(w, 1500208) >= 64:
+            return reading(o, w, get(w, 1500200), 62064, 64, 0, 1003)
+        return archive_file(s, o, w, get(w, 1500200), get(w, 1500208), 1004)
+    if p == 1003:
+        result_partition(w, get(w, 1500208))
         return archive_file(s, o, w, get(w, 1500200), get(w, 1500208), 1004)
     if p == 1004:
         if get(w, 1500080) != 0:
@@ -809,6 +815,60 @@ def journal(s:readbuf, o:mutbuf, w:mutbuf, p:u64, r:u64) -> u32:
         return finish(o, w, 0)
     return finish(o, w, 65)
 
+def result_partition(w:mutbuf, size:u64) -> u64:
+    put(w, 1501200, 0)
+    if size < 64 or get(w, 62064) != MAGIC_RESULT or get(w, 62104) > 1 or get(w, 62120) != 0:
+        return 0
+    position = 64
+    put(w, 1501216, position)
+    amount = get(w, 62088)
+    if amount > size - position:
+        return 0
+    position = position + amount
+    put(w, 1501224, position)
+    amount = get(w, 62072)
+    if amount > size - position:
+        return 0
+    position = position + amount
+    put(w, 1501232, position)
+    amount = get(w, 62080)
+    if amount > size - position:
+        return 0
+    position = position + amount
+    put(w, 1501240, position)
+    shared = get(w, 62096)
+    if shared > size - position:
+        return 0
+    prefix = minimum(8, shared)
+    put(w, 1501248, position + prefix)
+    position = position + shared
+    put(w, 1501256, position)
+    amount = get(w, 62112)
+    if amount > size - position:
+        return 0
+    position = position + amount
+    put(w, 1501264, position)
+    if position != size:
+        return 0
+    put(w, 1501208, 0)
+    put(w, 1501200, 1)
+    return 1
+
+def archive_count(w:mutbuf, remaining:u64) -> u64:
+    count = minimum(16384, remaining)
+    if get(w, 1501200) != 1:
+        return count
+    position = get(w, 1500264)
+    index = get(w, 1501208)
+    while index < 7:
+        end = get(w, 1501216 + index * 8)
+        if end > position:
+            put(w, 1501208, index)
+            return minimum(count, end - position)
+        index = index + 1
+    put(w, 1501208, index)
+    return count
+
 def archive_memory(s:readbuf, o:mutbuf, w:mutbuf, buffer:u64, size:u64, after:u64) -> u32:
     if buffer > 4194304 or size > 4194304 - buffer:
         return finish(o, w, 65)
@@ -832,7 +892,7 @@ def archive_step(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         remaining = get(w, 1500272)
         if remaining == 0:
             return resume(s, o, w, get(w, 1500280))
-        count = minimum(16384, remaining)
+        count = archive_count(w, remaining)
         put(w, 1500288, count)
         if get(w, 1500256) == 0:
             copyw(w, 700000, get(w, 1500264), count)
@@ -962,7 +1022,21 @@ def policy_source():
     for key,value in words.items():text=re.sub(r'\b'+key+r'\b',str(value),text)
     unresolved=re.findall(r'\b(?:C|L|MAGIC)_[A-Z_]+\b',text)
     if unresolved:raise ValueError(unresolved)
-    return text+'\ndef constants(w:mutbuf) -> u64:\n'+'\n'.join(writes)+'\n    return 0\n'
+    text = text+'\ndef constants(w:mutbuf) -> u64:\n'+'\n'.join(writes)+'\n    return 0\n'
+    tree = ast.parse(text)
+    getter = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'get')
+    if (len(getter.body) != 1 or not isinstance(getter.body[0], ast.Return)
+            or ast.unparse(getter.body[0].value) != 'word_load(w, at)'):
+        raise ValueError('get wrapper is no longer the exact single word load')
+    class InlineWordReads(ast.NodeTransformer):
+        def visit_Call(self, node):
+            self.generic_visit(node)
+            if isinstance(node.func, ast.Name) and node.func.id == 'get':
+                if len(node.args) != 2 or node.keywords:
+                    raise ValueError('unexpected get call shape')
+                node.func = ast.copy_location(ast.Name(id='word_load', ctx=ast.Load()), node.func)
+            return node
+    return ast.unparse(ast.fix_missing_locations(InlineWordReads().visit(tree)))+'\n'
 
 
 def template():

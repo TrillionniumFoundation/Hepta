@@ -83,6 +83,7 @@ hia_ndu_rank_engine:
     mov [rsp+24],r13
     mov [r13+16],rbx
     mov [r13+40],r14
+    mov [r13+120],r13
 .Lloop:
     mov rdi,r12
     mov rsi,r15

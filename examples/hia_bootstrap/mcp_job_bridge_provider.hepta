@@ -2372,17 +2372,20 @@ block b4(v21:mutbuf,v22:u64,v23:u64,v24:u64)
   v56:u64 = const() {"value":95}
   v57:bool = compare.ne(v32,v56)
   v58:bool = bool.and(v55,v57)
-  branch v58 b6(v21) b7(v21,v22,v23,v24)
+  v59:u64 = const() {"value":64}
+  v60:bool = compare.ne(v32,v59)
+  v61:bool = bool.and(v58,v60)
+  branch v61 b6(v21) b7(v21,v22,v23,v24)
 block b5(v25:mutbuf)
-  v72:bool = const() {"value":true}
+  v75:bool = const() {"value":true}
+  ret(v75)
+block b6(v62:mutbuf)
+  v72:bool = const() {"value":false}
   ret(v72)
-block b6(v59:mutbuf)
-  v69:bool = const() {"value":false}
-  ret(v69)
-block b7(v64:mutbuf,v65:u64,v66:u64,v67:u64)
-  v70:u64 = const() {"value":1}
-  v71:u64 = int.add.wrap(v67,v70)
-  jump b3(v64,v65,v66,v71)
+block b7(v67:mutbuf,v68:u64,v69:u64,v70:u64)
+  v73:u64 = const() {"value":1}
+  v74:u64 = int.add.wrap(v70,v73)
+  jump b3(v67,v68,v69,v74)
 end
 fn f34(v0:mutbuf,v1:u64,v2:u64) -> (bool) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64,v2:u64)

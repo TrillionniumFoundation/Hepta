@@ -1,0 +1,7 @@
+# Native cold qualification execution order
+
+All 38 original/modified qualification plans import phase outputs only from the 21 independent references or the unique base phase. The full binding graph has no qualification-to-qualification edge. The complete plans execute in descending observed driver-plus-archive duration, with identifier tie breaking. Where a modified measurement is unavailable, the corresponding original duration is used only as a scheduling estimate. Every original and modified case still executes afresh.
+
+The 60 source plans, 479,882 nodes, 907 input bindings, independent references, compiler identities, observations and refusal gates are unchanged. Every dependency and phase-output index is remapped by stable identity, and normalization proves complete graph equality. All references still seal before B0 construction, and every qualification waits for the base and its reference outputs. The existing two-phase/one-archive scheduler, two pending archives, four unsealed phases, 180-second qualification deadline and three-second cleanup deadline are unchanged.
+
+The adjacent JSON records the exact order, actual measurement origins and unchanged graph identity. The scheduling model estimates queue behavior; it does not establish whole-replay wall time or qualification success. The source contract, native descriptor and report gate must be regenerated for this exact catalog before a full execution.

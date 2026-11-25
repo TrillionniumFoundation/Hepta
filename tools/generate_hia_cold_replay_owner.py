@@ -332,6 +332,12 @@ def scan_start(o:mutbuf, w:mutbuf, mode:u64, resume:u64) -> u32:
 def scanning(s:readbuf, o:mutbuf, w:mutbuf, p:u64, r:u64) -> u32:
     if p == 303 and (r == 18446744073709551614 or r == 18446744073709551613):
         return scan_next(s, o, w)
+    if p == 304 and r == 18446744073709551613:
+        # The held proc stat inode can lose its process after open succeeds.
+        # Always close it, then re-open the same numeric path once. A live
+        # replacement must pass the complete original parent/starttime checks.
+        put(w, 272, r)
+        return call(o, w, 305, 3, get(w, 184), 0, 0, 0, 0, 0, 0)
     if p == 308 and r == 18446744073709551613:
         clear(w, 640, 128)
         return call(o, w, 309, 247, 1, get(w, 192), 640, 16777221, 0, 0, 48)
@@ -359,6 +365,12 @@ def scanning(s:readbuf, o:mutbuf, w:mutbuf, p:u64, r:u64) -> u32:
         put(w, 272, r)
         return call(o, w, 305, 3, get(w, 184), 0, 0, 0, 0, 0, 0)
     if p == 305:
+        if get(w, 272) == 18446744073709551613:
+            if get(w, 360) != 0:
+                put(w, 88, 305)
+                return report_start(s, o, w)
+            put(w, 360, 1)
+            return call(o, w, 303, 257, get(w, 152), 1024, 655360, 0, 0, 0, 12)
         if get(w, 272) == 0 or get(w, 272) > 65536 or parse_stat(w, get(w, 272)) == 0:
             put(w, 88, 305)
             return report_start(s, o, w)
@@ -415,6 +427,7 @@ def scan_next(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 put(w, 88, 312)
                 return report_start(s, o, w)
             put(w, 192, pid)
+            put(w, 360, 0)
             path(w, pid)
             return call(o, w, 303, 257, get(w, 152), 1024, 655360, 0, 0, 0, 12)
     return call(o, w, 301, 217, get(w, 152), 131072, 16384, 0, 0, 0, 12)

@@ -172,3 +172,25 @@ construction, installation and an installed whole-source rebuild. Separate
 component results do not satisfy those remaining gates. Retain failed
 attempts and their precise source identities until the final evidence set is
 complete.
+
+## Native make entry
+
+The repository Makefile invokes the same four native commands in dependency
+order. Set `BOOTSTRAP` to the absolute seven-tool directory, `NATIVE_BUILD` to
+the source-bound `hia-cold-build` executable, and `OUTPUT_PREFIX` to a new
+absolute prefix whose parent directory exists. `SOURCE` defaults to the current
+repository directory. Output directories use the suffixes `-toolchain`, `-cold`,
+`-source-bootstrap` and `-release`.
+
+`make source` performs native toolchain construction. `make cold` and `make check`
+add the complete sixty-phase cold replay. `make source-bootstrap` additionally
+admits that actual report and constructs the release bootstrap. `make` and
+`make release` run the full four-command sequence. Every invocation requires
+fresh output paths; native owners refuse an existing output rather than deleting
+or replacing it. To operate an already constructed stage, invoke the corresponding
+public native command directly as documented above.
+
+The Makefile performs only argument presence checks and command sequencing.
+All source capture, hashing, process ownership, compilation, linking, admission
+and publication are performed by the native HIA entries. It invokes no Python,
+Rust compiler, host assembler, host linker, or historical qualification driver.

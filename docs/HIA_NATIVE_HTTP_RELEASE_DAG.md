@@ -1,0 +1,7 @@
+# Native HTTP release publication
+
+The retained controller HIASTD01 graph now constructs and publishes six products, including hia-mcp-http. It captures the declared source bytes, compiles each source twice, compares both images, builds every packer through HIA, hashes the actual bridge and audit images, and verifies the full delivered ELF prefix, relocations and component bytes before publication. The graph contains 929 nodes and 681 handles, within the unchanged 8,192-node and 2,048-handle limits. Runtime consumes the retained HIA sources and graph; the Python author is a development tool.
+
+The original 76 delivery/filter checks and 19 additional HTTP checks passed. All 115 source roles in this component qualification compiled identically twice. The actual HTTP image is 10,172,217 bytes with SHA-256 5e665ae7dd9c82a8b9b47e923e05588fea76b7a49ef62520e9cd78cceb7ae1da, identical to the independently qualified HTTP product. The new stdio capsule incorporates the same qualified bridge and is 8,216,422 bytes with SHA-256 34cedd7d75e0059098df768a18495e5cf19b8c51b20478ad10eb766d531a0928. Its complete layout was checked; the final installed 11-tool replay remains a separate requirement.
+
+The exact source, product, recipe and report pins are in HIA_NATIVE_HTTP_RELEASE_DAG.json. Earlier QA fixture failures remain recorded. These component results do not replace the final source-authority capture, native whole release, 60-phase cold replay, installation/rebuild, Worker registration or full 136-tool boundary verification. No service has been activated.

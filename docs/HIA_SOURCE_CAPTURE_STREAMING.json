@@ -1,0 +1,155 @@
+{
+  "schema": "hepta.hia.source-capture-streaming.v1",
+  "status": "COMPONENT_PASS",
+  "whole_source_tree_cold_requalified": false,
+  "original_failure": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-production-assembly-qa-v1/source-capture-large-repro-v1/report.json",
+    "bytes": 1044,
+    "sha256": "b7639ac22f8ac31e367d8dcaed19af3e24408d264598d2e09ae100e444a6d61d"
+  },
+  "ordinary_failure_preserved": {
+    "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-production-assembly-qa-v1/ordinary-production-v1/qualification.json",
+    "bytes": 3073,
+    "sha256": "41eb0f24267c1c2c2863958a0d4c494b4077a31be6793f2e36e5a8783e52cc61"
+  },
+  "reason": "HIAAUD01 already admits a single file through 64 MiB, but its one-shot call to sha256_stream exceeded that role's unchanged 8 MiB input bound for the actual 11,192,933-byte capacity qualification source pool.",
+  "changes": {
+    "HIA_policy": "Hash the retained captured bytes in bounded 1 MiB updates. Save the byte immediately before each view, install the stream command byte, restore it before advancing or refusing. Initialization, finalization and complete expected SHA comparison remain.",
+    "mechanical_adapter": "Only translate the HIA-selected offset and extent into the retained file mapping after subtraction-based bounds checks. No SHA algorithm, filesystem policy, source decision or larger limit is added."
+  },
+  "unchanged": {
+    "request_limit": 1048576,
+    "source_limit": 1048576,
+    "audit_file_limit": 67108864,
+    "source_count": 128,
+    "output_bytes": 67108864,
+    "workspace_bytes": 68157440,
+    "sha_workspace_bytes": 1184,
+    "source_custody": [
+      "descriptor-confined openat2",
+      "ordinary single-link files",
+      "pre/post identity,size,mtime,ctime",
+      "full source SHA before success",
+      "no output on any refusal"
+    ]
+  },
+  "private_hash_fields": {
+    "152": "offset into captured data",
+    "160": "current update data bytes, at most 1 MiB",
+    "168": "saved byte preceding the current data view"
+  },
+  "native_products": {
+    "passed": true,
+    "source": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-source-capture-stream-v1-source",
+    "compiler": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-production-assembly-qa-v1/public-source-bootstrap-v1/bootstrap/hia-source-build",
+      "sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af"
+    },
+    "filter_packer": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-production-assembly-qa-v1/public-build-v1/toolchain/hia-seed-filter-pack",
+      "sha256": "bd9f7c5d09a044737c549f860a581bb44e9d5e007fd9dd1ce15524cafff918f0"
+    },
+    "products": {
+      "source_capture": {
+        "source_path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-source-capture-stream-v1-source/examples/hia_bootstrap/source_capture.hepta",
+        "source": {
+          "bytes": 68992,
+          "sha256": "5d06265323a437b1f30a56dbefb946b760380dc06f81c8070f86c7da386a16b1"
+        },
+        "flat": {
+          "bytes": 102205,
+          "sha256": "b1c14e33d44e6aef93e3cb86f97b06d9e93aa90c094ee70b5dd12b14f04c946c"
+        },
+        "elapsed_ns": 48834401
+      },
+      "source_capture_packer": {
+        "source_path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-source-capture-stream-v1-source/examples/hia_bootstrap/source_capture_packer.hepta",
+        "source": {
+          "bytes": 27111,
+          "sha256": "cafa9e883a2122a6bb064467d06f6256b0054402e4a6b6b3241b7b74ed83791c"
+        },
+        "flat": {
+          "bytes": 29813,
+          "sha256": "d00f1a9f7a54433ad3018ea1d40c13d2b1f910033cbaa01dac8350bfe679b72b"
+        },
+        "elapsed_ns": 18043486
+      },
+      "sha256_stream": {
+        "source_path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-source-capture-stream-v1-source/examples/hia_bootstrap/sha256_stream.hepta",
+        "source": {
+          "bytes": 31728,
+          "sha256": "80df3148e5dc8df8ab4c43e5d1edd1b4057dcdcffe5a06c3635bfee17a779054"
+        },
+        "flat": {
+          "bytes": 33264,
+          "sha256": "d18077e7a13f00859e61101cf487ae579def62df2f5288066dfbb305ae386bfc"
+        },
+        "elapsed_ns": 20047801
+      }
+    },
+    "standalone_packer": {
+      "bytes": 30302,
+      "sha256": "30c7fffb9aafc5bc7713999fc6aad1f32c75860017ee49fd4e9d1a54252fdb04"
+    },
+    "tool": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-production-assembly-qa-v1/source-capture-stream-native-v1/hia-source-capture",
+      "bytes": 136645,
+      "sha256": "4acb5f95653a055b76e034ccfa26ce373178c4b4789646e5fce1d7a83df36485"
+    },
+    "pack_frame": {
+      "bytes": 135493,
+      "sha256": "9b93f1e2622aa35a79c0ed12bce1ef05ab69a0b9e0cffaccf631fce8a3087914"
+    }
+  },
+  "original_tests": {
+    "report": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-production-assembly-qa-v1/source-capture-original-tests-v1/qualification.json",
+      "bytes": 2357,
+      "sha256": "da045fd7e13bea9d7884f88b8321b31237c12e9eea2d4b513d7bb10e73f455bc"
+    },
+    "unmodified_test_methods": [
+      "tests.test_hia_source_capture.SourceCaptureSourceTests.test_generated_source_and_packer_are_exact",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_all_declared_recipe_sources_and_packer_kits_match",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_all_group_forms_and_raw_resource_are_exact",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_audit_covers_every_matching_cold_source_pin",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_audit_returns_only_verified_count_and_total_including_empty_files",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_bad_pin_size_missing_root_and_late_source_failure_publish_nothing",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_binary_resource_and_maximum_source_extent_are_captured",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_capture_feeds_the_sealed_native_source_compiler",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_release_transport_does_not_read_or_hash_sources_in_python",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_request_extent_aliases_and_parent_paths_are_rejected_before_output",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_symlinks_hardlinks_fifo_and_directories_are_refused",
+      "tests.test_hia_source_capture.SourceCaptureNativeTests.test_v2_native_metadata_lengths_and_v1_zero_length_refusal"
+    ],
+    "tests": 12,
+    "actual_run_capture_calls": 407,
+    "matching_old_source_and_cold_inputs": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-production-assembly-v1-source"
+  },
+  "large_boundaries": {
+    "report": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-production-assembly-qa-v1/source-capture-stream-large-v1/qualification.json",
+      "bytes": 10002,
+      "sha256": "e20631e49c80867c1694405e367e835030a8e7cc50feb65f213a65c62fbacca1"
+    },
+    "actual_process_cases": 22,
+    "actual_policy_and_sha_view_cases": 7,
+    "hash_failure_restoration": true
+  },
+  "source_files": {
+    "examples/hia_bootstrap/source_capture.hepta": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-source-capture-stream-v1-source/examples/hia_bootstrap/source_capture.hepta",
+      "bytes": 68992,
+      "sha256": "5d06265323a437b1f30a56dbefb946b760380dc06f81c8070f86c7da386a16b1"
+    },
+    "examples/hia_bootstrap/source_capture_packer.hepta": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-source-capture-stream-v1-source/examples/hia_bootstrap/source_capture_packer.hepta",
+      "bytes": 27111,
+      "sha256": "cafa9e883a2122a6bb064467d06f6256b0054402e4a6b6b3241b7b74ed83791c"
+    },
+    "tools/hia_source_capture_syscalls.S": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/native-source-capture-stream-v1-source/tools/hia_source_capture_syscalls.S",
+      "bytes": 4687,
+      "sha256": "694e8091b2c94c24e9cceea1a259a97f8023820ac3e4f45c817ad68df0840c13"
+    }
+  }
+}

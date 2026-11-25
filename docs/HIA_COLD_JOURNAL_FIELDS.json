@@ -1,0 +1,375 @@
+{
+  "schema": "hepta.hia.cold-journal-field-partition.v1",
+  "component_passed": true,
+  "whole_native_cold_replay_closed": false,
+  "source_base": "31664ac61ca67ed9790a5166f21aae77b1228857",
+  "runtime_source": "examples/hia_bootstrap/cold_qualification_driver.hepta",
+  "runtime_sha256": "9684426b23f1f9e17991d54823e3f36e3ab7bfa735fa2bd422cdb605218abb20",
+  "author": "tools/generate_hia_cold_qualification_driver.py",
+  "author_sha256": "bdf6afc8f5b1ec36df8b128293b8766545e051036af548ad64176c5bbc4c016a",
+  "logical_format_unchanged": "HIAQJL01, all node arguments, payloads and complete HIAQRR01 results retained",
+  "physical_formats_unchanged": [
+    "HIAQAZ01",
+    "HIAQAZ02",
+    "HIAQAZ03"
+  ],
+  "boundaries": [
+    "64-byte result header",
+    "complete process receipt",
+    "complete stdout",
+    "complete stderr",
+    "first min(8, shared_bytes) bytes",
+    "remaining shared bytes",
+    "complete original request"
+  ],
+  "invalid_partition_header": "Use the original entire-result chunking; do not change admission or failure claims",
+  "limits_unchanged": {
+    "workspace_bytes": 4194304,
+    "writer_chunk_bytes": 16384,
+    "decoded_chunk_bytes": 65504,
+    "backref_entries": 8192,
+    "phase_imports": 64,
+    "artifact_bytes": 67108864,
+    "phase_workers": 2,
+    "archive_workers": 1,
+    "pending_archives": 2,
+    "unsealed_phases": 4,
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3
+  },
+  "workspace": {
+    "header": [
+      62064,
+      62128
+    ],
+    "partition_flag": 1501200,
+    "cursor": 1501208,
+    "seven_end_offsets": [
+      1501216,
+      1501272
+    ]
+  },
+  "preserved_checks": [
+    "every actual process execution",
+    "all raw bytes and node fields",
+    "every chunk encode/decode/full byte equality",
+    "private encoded SHA on each original eligible candidate",
+    "actual previous encoded read/full byte equality and independent decode on every hit",
+    "streaming physical journal SHA and fsync readback",
+    "immutable archive snapshot and all original custody/hash passes"
+  ],
+  "qualification": {
+    "old_sha_driver_18": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-driver-v1/qualification.json",
+      "bytes": 16189,
+      "sha256": "88f9491e47161b5d42d5c826e3173ffd3e5ed0c9d2e318e1d90f37ef5fd3587b"
+    },
+    "fused_sha_driver_18": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-fusedsha-guards-v1/qualification.json",
+      "bytes": 9566,
+      "sha256": "1270358b6a4c2bce0683cfe7637391c6e9ccf763f7f3a93f3dd5a7e721b3f7fa"
+    },
+    "helpers_350_plus_16": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-helpers-v1/qualification.json",
+      "bytes": 52019,
+      "sha256": "32f83766696f63bd0cad4e6e98bc7f0c614ce38013bc1aa04f4a626c852943ec"
+    },
+    "pure_native_construction": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-native-v1/build.json",
+      "bytes": 2118,
+      "sha256": "e6d5394f15737cd56328216c6949f3018c850c48e52146a965c82ce3918b5939"
+    },
+    "actual_four_phases": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-actual-status-v1.json",
+      "bytes": 520,
+      "sha256": "4751ef9491aa3012e1da9c9e7cc51ed54326fab735ea9df374ee8405ed73b8e1"
+    }
+  },
+  "actual_phases": [
+    {
+      "version": "old",
+      "phase": "base",
+      "nodes": 3394,
+      "plan_sha256": "c4bf8874508ff2e8a6d9da90275912c133693102f6c2fbda7cf7adf76ef9645c",
+      "driver_returncode": 0,
+      "driver_ns": 14818384791,
+      "driver_user_cpu_seconds": 14.152322,
+      "driver_system_cpu_seconds": 0.557635,
+      "passed": true,
+      "journal": {
+        "physical_bytes": 14676744,
+        "logical_bytes": 455119187,
+        "original_chunks": 31568,
+        "reference_chunks": 4883,
+        "sha256": "be65a79a7f663816adf3b11c628a9daa8ed2f7e2a319467ee013e9673ed8e707"
+      },
+      "publications": {
+        "seed.core.json": {
+          "bytes": 1182590,
+          "sha256": "a42f7fbd6d43135f2379f47601a147453ee05aa32149d3bae8e5f2920f230c5d",
+          "matches_previous_actual": true
+        },
+        "seed.reference-wire": {
+          "bytes": 806568,
+          "sha256": "0a56799ecf6a746f0f18e9758c9cdb1fa0244c88d96d2f70a5754e5bf7713210",
+          "matches_previous_actual": true
+        },
+        "B0.flat": {
+          "bytes": 579903,
+          "sha256": "a587e546c73adae16615bfeb41a08d2b4564746c708ce89978cd6495d14cfdeb",
+          "matches_previous_actual": true
+        },
+        "B1.flat": {
+          "bytes": 641344,
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9",
+          "matches_previous_actual": true
+        },
+        "B2.flat": {
+          "bytes": 641344,
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9",
+          "matches_previous_actual": true
+        },
+        "B3.flat": {
+          "bytes": 641344,
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9",
+          "matches_previous_actual": true
+        },
+        "modified-selfhost.hepta": {
+          "bytes": 474960,
+          "sha256": "ec6c59733c52da3d1bd2f6ceb99d71f1b9c5517d230077ce23c98cff356cb4e2",
+          "matches_previous_actual": true
+        },
+        "M1.flat": {
+          "bytes": 641344,
+          "sha256": "9fe8cd566bf8cf5d149e267bdc49939840306e3cd8c9220c45ef84d212a993f1",
+          "matches_previous_actual": true
+        },
+        "M2.flat": {
+          "bytes": 641344,
+          "sha256": "4d83281194cd33ccfe047576e2475576dc277d7f1b6280f0aca285bfa2368228",
+          "matches_previous_actual": true
+        },
+        "M3.flat": {
+          "bytes": 641344,
+          "sha256": "4d83281194cd33ccfe047576e2475576dc277d7f1b6280f0aca285bfa2368228",
+          "matches_previous_actual": true
+        },
+        "original-bytesum.flat": {
+          "bytes": 1531,
+          "sha256": "4013003cbaa89cb36867a0c1cbe921fda66d06963d3810054f11ab31b0f1b6eb",
+          "matches_previous_actual": true
+        },
+        "modified-bytesum.flat": {
+          "bytes": 1531,
+          "sha256": "0350d37ebd249ce8db7146013474adc072e0a7fd63ea50505fb52cee95b54adf",
+          "matches_previous_actual": true
+        },
+        "native-observer.elf": {
+          "bytes": 1107,
+          "sha256": "830b80e8b1acf852cb7cb103abe453cfdd800b34d6f992e5396769cb6c7f8e30",
+          "matches_previous_actual": true
+        },
+        "linked-observer.elf": {
+          "bytes": 45840,
+          "sha256": "d2e0787ba1d51e1da2792bfc9bbde592a5cf1f1b740be7be038c3b3c6903c8fb",
+          "matches_previous_actual": true
+        }
+      },
+      "archive_ns": 2731339128,
+      "archive_user_cpu_seconds": 2.60609,
+      "archive_system_cpu_seconds": 0.054064,
+      "archive_returncode": 0,
+      "archive_bytes": 21621542,
+      "archive_sha256": "7876c09d7f8a3b271205c47b39c833a825b31802ac53e315de13c8c92cd4e8ec",
+      "archive_all_files_exact": true,
+      "evidence": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-actual-old-base-v1/qualification.json",
+        "bytes": 4214,
+        "sha256": "c8c0d3930fa1e6d890c2c5e9af145c81a693f4360dcb8e49f135421e5a4c329f"
+      }
+    },
+    {
+      "version": "new",
+      "phase": "base",
+      "nodes": 3394,
+      "plan_sha256": "c4bf8874508ff2e8a6d9da90275912c133693102f6c2fbda7cf7adf76ef9645c",
+      "driver_returncode": 0,
+      "driver_ns": 14928153438,
+      "driver_user_cpu_seconds": 14.287379,
+      "driver_system_cpu_seconds": 0.533142,
+      "passed": true,
+      "journal": {
+        "physical_bytes": 12298498,
+        "logical_bytes": 455119187,
+        "original_chunks": 31599,
+        "reference_chunks": 5385,
+        "sha256": "1de4ae24d8c73c0ba97cefcec63f6e77ddbf9c04b4a6f867326c87ca1279edf6"
+      },
+      "publications": {
+        "seed.core.json": {
+          "bytes": 1182590,
+          "sha256": "a42f7fbd6d43135f2379f47601a147453ee05aa32149d3bae8e5f2920f230c5d",
+          "matches_previous_actual": true
+        },
+        "seed.reference-wire": {
+          "bytes": 806568,
+          "sha256": "0a56799ecf6a746f0f18e9758c9cdb1fa0244c88d96d2f70a5754e5bf7713210",
+          "matches_previous_actual": true
+        },
+        "B0.flat": {
+          "bytes": 579903,
+          "sha256": "a587e546c73adae16615bfeb41a08d2b4564746c708ce89978cd6495d14cfdeb",
+          "matches_previous_actual": true
+        },
+        "B1.flat": {
+          "bytes": 641344,
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9",
+          "matches_previous_actual": true
+        },
+        "B2.flat": {
+          "bytes": 641344,
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9",
+          "matches_previous_actual": true
+        },
+        "B3.flat": {
+          "bytes": 641344,
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9",
+          "matches_previous_actual": true
+        },
+        "modified-selfhost.hepta": {
+          "bytes": 474960,
+          "sha256": "ec6c59733c52da3d1bd2f6ceb99d71f1b9c5517d230077ce23c98cff356cb4e2",
+          "matches_previous_actual": true
+        },
+        "M1.flat": {
+          "bytes": 641344,
+          "sha256": "9fe8cd566bf8cf5d149e267bdc49939840306e3cd8c9220c45ef84d212a993f1",
+          "matches_previous_actual": true
+        },
+        "M2.flat": {
+          "bytes": 641344,
+          "sha256": "4d83281194cd33ccfe047576e2475576dc277d7f1b6280f0aca285bfa2368228",
+          "matches_previous_actual": true
+        },
+        "M3.flat": {
+          "bytes": 641344,
+          "sha256": "4d83281194cd33ccfe047576e2475576dc277d7f1b6280f0aca285bfa2368228",
+          "matches_previous_actual": true
+        },
+        "original-bytesum.flat": {
+          "bytes": 1531,
+          "sha256": "4013003cbaa89cb36867a0c1cbe921fda66d06963d3810054f11ab31b0f1b6eb",
+          "matches_previous_actual": true
+        },
+        "modified-bytesum.flat": {
+          "bytes": 1531,
+          "sha256": "0350d37ebd249ce8db7146013474adc072e0a7fd63ea50505fb52cee95b54adf",
+          "matches_previous_actual": true
+        },
+        "native-observer.elf": {
+          "bytes": 1107,
+          "sha256": "830b80e8b1acf852cb7cb103abe453cfdd800b34d6f992e5396769cb6c7f8e30",
+          "matches_previous_actual": true
+        },
+        "linked-observer.elf": {
+          "bytes": 45840,
+          "sha256": "d2e0787ba1d51e1da2792bfc9bbde592a5cf1f1b740be7be038c3b3c6903c8fb",
+          "matches_previous_actual": true
+        }
+      },
+      "archive_ns": 2291236291,
+      "archive_user_cpu_seconds": 2.136125999999999,
+      "archive_system_cpu_seconds": 0.05212499999999998,
+      "archive_returncode": 0,
+      "archive_bytes": 19243296,
+      "archive_sha256": "392bb976843e8d8da227d304b0c74459f6997c92576ed3b1979fd62f274d6351",
+      "archive_all_files_exact": true,
+      "evidence": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-actual-new-base-v1/qualification.json",
+        "bytes": 4235,
+        "sha256": "6211612901590dfa9a80f799ebc96b49e252f45dbf900a76c84314f5049d19dd"
+      }
+    },
+    {
+      "version": "old",
+      "phase": "original-signed",
+      "nodes": 22544,
+      "plan_sha256": "64ad2d153e1b6decb9a471fffc3bfd8a5e77c00cf31f42266799f71d5c4d9bd6",
+      "driver_returncode": 0,
+      "driver_ns": 21365349575,
+      "driver_user_cpu_seconds": 19.459193,
+      "driver_system_cpu_seconds": 1.799882,
+      "passed": true,
+      "journal": {
+        "physical_bytes": 53517788,
+        "logical_bytes": 1170777775,
+        "original_chunks": 113859,
+        "reference_chunks": 14223,
+        "sha256": "53bad0e9dc4205ba883e19b7d6c6e7b398bcda8c9d6243c8166718a6ef618b59"
+      },
+      "publications": {},
+      "archive_ns": 7370868160,
+      "archive_user_cpu_seconds": 7.114238,
+      "archive_system_cpu_seconds": 0.16814700000000005,
+      "archive_returncode": 0,
+      "archive_bytes": 53518028,
+      "archive_sha256": "ecd2f72d1cf71d3df626090cbc37e44bba133548a50c843d0864797402505fa2",
+      "archive_all_files_exact": true,
+      "evidence": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-actual-old-original-signed-v1/qualification.json",
+        "bytes": 1508,
+        "sha256": "c0ebf61895b9857968be2db29fdc50824c3b2a9f0bb00edcebd650f1cc47d353"
+      }
+    },
+    {
+      "version": "new",
+      "phase": "original-signed",
+      "nodes": 22544,
+      "plan_sha256": "64ad2d153e1b6decb9a471fffc3bfd8a5e77c00cf31f42266799f71d5c4d9bd6",
+      "driver_returncode": 0,
+      "driver_ns": 19557887180,
+      "driver_user_cpu_seconds": 17.904671,
+      "driver_system_cpu_seconds": 1.661535,
+      "passed": true,
+      "journal": {
+        "physical_bytes": 47966273,
+        "logical_bytes": 1170777775,
+        "original_chunks": 115497,
+        "reference_chunks": 16171,
+        "sha256": "1c9897c6a4dec151dffb139a2619d9095422e0c2839d081f1f6c5da2cf219461"
+      },
+      "publications": {},
+      "archive_ns": 6562929868,
+      "archive_user_cpu_seconds": 6.324593,
+      "archive_system_cpu_seconds": 0.16606799999999988,
+      "archive_returncode": 0,
+      "archive_bytes": 47966513,
+      "archive_sha256": "9fb66d37c9b2d0a9e83caca4a9ea287e874252e5609806e11c2ad0b549c90138",
+      "archive_all_files_exact": true,
+      "evidence": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-actual-new-original-signed-v1/qualification.json",
+        "bytes": 1508,
+        "sha256": "5a43f3db34468c3f12a658b772a12276184639828736b6667e25c37fcb3ab155"
+      }
+    }
+  ],
+  "candidate_products": {
+    "aligned-oldsha": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-native-v1/hia-driver-aligned-oldsha",
+      "bytes": 511243,
+      "sha256": "c703455e11159d256751cd818a95e6423f9811fe12d657b39785f6ddc239c76b",
+      "sha_companion_sha256": "0f9fcdfd1e69d3da60cc0bc128bd03a859c72751c06c86f7d4d6a7bc4cd6018a"
+    },
+    "aligned-fusedsha": {
+      "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/slot-strict-lifetime-20261124/cold-native-qa-v1/cold-journal-alignment-native-v1/hia-driver-aligned-fusedsha",
+      "bytes": 515477,
+      "sha256": "a741e4a0bc27f7f5bd4820080913f80a999957e4fa51b49df1655c26977693de",
+      "sha_companion_sha256": "214aea20ce10da438d1a96e98b0a25ed1151776e1fd577047c336d57cd54ae19"
+    }
+  },
+  "sha_dependency_commit": "715942a570ed4c8b6ce291fa68b9fa2d0aa4da41",
+  "rejected_experiments": {
+    "first_block_content_anchor": "No stable additional volume benefit; not included",
+    "full_fingerprint_fold_selector": "Base physical journal increased by 6.54%; no format/cache changes included"
+  }
+}

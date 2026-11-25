@@ -1,0 +1,80 @@
+{
+  "schema": "hepta.hia.cold-owner-proc-read.v1",
+  "status": "COMPONENT_QUALIFIED",
+  "whole_native_cold_replay_pass": false,
+  "failure": {
+    "round": "v5",
+    "phase": "original-cli",
+    "plan_node": 890,
+    "owner_error_phase": 304,
+    "child_exit": 0,
+    "child_stdout_bytes": 930331,
+    "target_output_comparison_reached": false,
+    "original_receipt_did_not_record_syscall_errno": true,
+    "kernel_race_reproduced_separately": true
+  },
+  "recovery": {
+    "only_errno": "ESRCH",
+    "close_before_reopen": true,
+    "same_numeric_proc_path": true,
+    "maximum_reopens_per_inventory_pid": 1,
+    "successful_reopen_uses_original_pid_ppid_starttime_parser": true,
+    "repeated_ESRCH_rejected": true,
+    "permission_and_other_read_errors_unchanged": true,
+    "does_not_itself_set_empty_tree_or_ECHILD": true,
+    "retry_state_offset": 360
+  },
+  "preserved_limits": {
+    "outer_seconds": 180,
+    "cleanup_seconds": 3,
+    "short_profiles_seconds": [
+      15,
+      20
+    ],
+    "workspace_bytes": 4194304,
+    "owned_child_limit": 4096,
+    "proc_inventory_limit": 16384,
+    "stat_content_limit": 65536
+  },
+  "product": {
+    "bytes": 169691,
+    "sha256": "c1afe45376530e8a59b40164b85ee54a129d158fccf33fc45d0f7f91818d49c6",
+    "exact_development_product": true
+  },
+  "evidence": {
+    "original_owner_20": {
+      "qa_relative_path": "cold-native-owner-proc-read-v1/qualification.json",
+      "sha256": "8b492b8cb42f9b8d9f8ca47a05131793137b1f132960d092b8e84f355e55596f",
+      "passed": true,
+      "cases": 20
+    },
+    "real_proc_read_race_6": {
+      "qa_relative_path": "cold-owner-proc-race-native-v2/qualification.json",
+      "sha256": "5614300d86f4e2274de0d514f52c9f0d186c79a6e1af84f4eeec8e001e579557",
+      "passed": true,
+      "cases": 6
+    },
+    "native_policy_controls_34": {
+      "qa_relative_path": "cold-owner-proc-policy-v1/qualification.json",
+      "sha256": "7d95362f60e55c7ff7471c4ab27cface6b4a3913cf585258a9a51446eb12abaa",
+      "passed": true,
+      "cases": 34
+    },
+    "native_source_construction": {
+      "qa_relative_path": "cold-owner-proc-native-construction-v1/qualification.json",
+      "sha256": "d75f4dbac57b4a7154b27b195977dcefa173596f5c536c00dfea3789ff4ef71f",
+      "passed": true,
+      "cases": 0
+    }
+  },
+  "source": {
+    "examples/hia_bootstrap/cold_replay_owner.hepta": {
+      "bytes": 140956,
+      "sha256": "03d7aea3687f1b798a295c272b1f16345e27ba39c58165ce36fb40a0a24bc978"
+    },
+    "tools/generate_hia_cold_replay_owner.py": {
+      "bytes": 27799,
+      "sha256": "15cc60850ab6514f7123c0e3fda7fe762ca46415a0da3f026d0b8f1b00152954"
+    }
+  }
+}
