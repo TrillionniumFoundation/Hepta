@@ -374,7 +374,7 @@ def name_ok(w:mutbuf, at:u64, size:u64) -> bool:
     index = 0
     while index < size:
         ch = byte(w, at + index)
-        if (ch < 48 or ch > 57) and (ch < 65 or ch > 90) and (ch < 97 or ch > 122) and ch != 45 and ch != 46 and ch != 95:
+        if (ch < 48 or ch > 57) and (ch < 65 or ch > 90) and (ch < 97 or ch > 122) and ch != 45 and ch != 46 and ch != 95 and ch != 64:
             return False
         index = index + 1
     return True
@@ -587,3 +587,5 @@ def authored(source: str, *, text:dict|None=None, extra:dict|None=None) -> str:
                 needed.add(n.func.id);todo.append(n.func.id)
     lines=value.splitlines()
     return '\n\n'.join('\n'.join(lines[n.lineno-1:n.end_lineno]) for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in needed)+'\n'
+
+C.update(TX_LANE=3000,TX_GLOBAL=3008,TX_REMOTE=3016,TX_MODULE=3024,TX_PHASE=3032,TX_PAGES=3040,TX_NAME=60000,TX_STAT=60256,TX_STAMP=60400,TX_LOCK=60544)
