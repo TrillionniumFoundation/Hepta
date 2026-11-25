@@ -161,7 +161,7 @@ def after_intake(o:mutbuf,w:mutbuf) -> u32:
     raw=get(w,CTRL+8)
     put(w,CTRL+40,raw)
     if raw!=0 or get(w,OUT)!=INTAKE_REPLY or get(w,OUT+8)!=0:
-        if raw==0 and get(w,OUT)==INTAKE_REPLY:
+        if get(w,OUT)==INTAKE_REPLY and raw==get(w,OUT+8):
             put(w,CTRL+184,get(w,OUT+8))
             put(w,CTRL+192,get(w,OUT+16))
             put(w,CTRL+200,get(w,OUT+256))
