@@ -48,7 +48,10 @@ def public_proof_receipt(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return BAD
     flags=read64(s,56)
     large=(flags&256)!=0
-    if flags>511 or read64(s,400)!=0:
+    large_claimed=(flags&512)!=0
+    if large_claimed and action!=2 and action!=3:
+        return BAD
+    if flags>1023 or read64(s,400)!=0:
         return BAD
     if large and (action!=1 and action!=2):
         return BAD
@@ -80,9 +83,15 @@ def public_proof_receipt(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         jn=read64(s,352+i*16)
         an=read64(s,360+i*16)
         limit=1048576
+        arena_limit=16777216
         if large and ((action==1 and i==2) or (action==2 and i==0)):
             limit=67108864
-        if jn>limit or an>16777216 or jn>length(s)-at:
+            if action==2:
+                arena_limit=83886080
+        if large_claimed and i==1:
+            limit=67108864
+            arena_limit=83886080
+        if jn>limit or an>arena_limit or jn>length(s)-at:
             return BAD
         put(w,CTX+i*16,at)
         at=at+jn

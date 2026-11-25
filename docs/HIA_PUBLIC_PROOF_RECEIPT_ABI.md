@@ -1,12 +1,13 @@
 # Public proof receipt private role ABI
 
-Qualified private receipt component: 391 checks passed against captured actual V8 receipts, the original verification decision policy, actual normalizer diagnostic output, and private protocol/ownership guards. The parent metadata is a private component fixture in these checks. Complete public-process execution, arbitrary public function values, calls, bounded proofs, final installed release and production agent activation remain separate open gates.
+Qualified private HIA receipt and JSON components. The current receipt component passes the original 391 comparisons plus 19 large-claimed and large-fresh boundary controls. These are component gates; an enclosing public owner must actually normalize, recompute the proof, capture identities, and enforce lifetime rules before supplying the fresh receipt. No caller metadata or arena is authority.
 
 ## Components
 
-Root owns tools/generate_hia_native_public_proof_receipt.py and examples/hia_bootstrap/native_public_proof_receipt.hepta in native-multiversion-proof-source. The current built candidates are in L/native-public-proof-receipt-v4:
-- native_public_proof_receipt.hepta.flat: 490136 B, 7e5d7bfe44592dabaaaa586da498c1d858cf627c2418ed176e74b57be6da76aa
-- native_public_proof_json.hepta.flat: 120525 B, f6f3acf8474df795351381aec434de7a3163927953c8365d95dfb32615b6c404
+The runtime sources are `examples/hia_bootstrap/native_public_proof_receipt.hepta` and `examples/hia_bootstrap/native_public_proof_json.hepta`. Current independently compiled products are:
+
+- receipt: 513620 bytes, SHA256 `9bd5cc7b00a04cd4710406951d8b07348d83832479591c1168fe56841cb3f324`;
+- JSON: 123595 bytes, SHA256 `bbb894c08d02cff36080a8dfa3eb3c6846ac1aa2095eb2851414585fb45c4f04`.
 
 Both have the ordinary six-word (source, source_bytes, output, output_bytes, work, work_bytes) ABI. Distinct private extents; no aliases. Source is immutable. Return u32.
 
@@ -32,7 +33,7 @@ Header words:
 - +32 complete parent wall_ns (measured from original call start).
 - +40 original requested timeout_ms.
 - +48 explicit/selected ASCII function byte length 0..128; bytes at +512; zero means None.
-- +56 flags: bit1=raw-before hash available; bit2=normalized-before/core hash available; bit4=raw-after; bit8=normalized-after; bit16=whole public image hash; bit32=public source-inventory hash; bit64=use original diagnostic for action1; bit128=disable all canonical/proof claims after deadline/identity/component failure.
+- +56 flags: bit1=raw-before hash available; bit2=normalized-before/core hash available; bit4=raw-after; bit8=normalized-after; bit16=whole public image hash; bit32=public source-inventory hash; bit64=use original diagnostic for action1; bit128=disable all canonical/proof claims after deadline/identity/component failure; bit256=explicit complete diagnostic/fresh-unknown profile; bit512=explicit large claimed receipt for actions2/3 only. The extension rules below are mandatory; all other bits refuse.
 - +64 raw before SHA256 bytes32.
 - +96 raw after SHA256 bytes32.
 - +128 original-canonical before SHA256 bytes32.
@@ -82,9 +83,9 @@ Public front-end requirements: same immutable raw inputs, same captured/sealed n
 
 ## Qualification and limitations
 
-The sealed 494833 compiler built the final receipt source (427597 B, SHA256 67de8dd5234fd73c8831cd55f7673f5c5eb14642303088cdcc1c21e022de3d73) and JSON source (92108 B, SHA256 9896f9198d386c363b74b614e7f94bac6c0b17221a7c298bb3427c31a7039bdd). Receipt limits remain 64 functions / 1244 blocks / 7638 operations, within unchanged compiler limits. Complete machine evidence is recorded in HIA_PUBLIC_PROOF_RECEIPT_QUALIFICATION.json.
+The sealed 494833 compiler built the current receipt source (442692 bytes) within the unchanged 65-function / 1289-block / 7816-operation profile. Exact source, compiler, product, and original-oracle report identities are recorded in HIA_PUBLIC_PROOF_RECEIPT_QUALIFICATION.json.
 
-The private frame deliberately carries a bounded ASCII identifier, with length zero meaning None. An outer public typed-input layer must preserve the original distinction between None and an empty string, and original unknown outcomes/error order for other public function values; these private-frame tests do not close that layer. The diagnostic decoder accepts at most 1 MiB JSON and a 131072-byte message; larger actual producer output must remain an unestablished component failure until a separately qualified complete diagnostic route or exact producer bound is established. No original diagnostic is silently truncated.
+The original ASCII private selector remains bounded at 128 bytes, with zero length meaning None. The outer typed owner must use the common public_proof_typed/public_proof_values components to preserve empty strings, non-string values, exact timeout types and their original validation order. The older action3 ASCII selector alone is not a substitute for that typed selection sequence. The complete original normalizer diagnostic bound and immutable deadline behavior are documented below and in HIA_PUBLIC_PROOF_DEADLINE.md. Final unified public/MV integration and release activation are separate gates.
 
 The original verification-policy oracle receives a frozen fresh result for these pure-component comparisons; it does not rerun the solver during those decision-policy tests. Actual fresh proof recomputation and all process custody/deadline paths must additionally pass in the enclosing native public service. No caller arena, metadata flag, digest, serialized receipt, or component unit test grants execution authority.
 
@@ -100,7 +101,10 @@ with `actual_private_outcome == 0` and a fresh A receipt whose status is
 
 In action 1 only diagnostic JSON may use a 64 MiB raw extent. In action 2 only
 fresh unknown A JSON may use that extent. Other JSON segments retain their
-1 MiB bounds. Every actual arena remains bounded by 16 MiB and 131073 nodes.
+1 MiB bounds unless the separate large-claimed bit 512 applies. Diagnostic arenas
+retain 16 MiB. The explicit fresh-unknown action2 arena may use up to 80 MiB
+to preserve a complete typed function value repeated in root and subject. All
+arenas retain the same 131073-node limit.
 The decoder uses the same complete JSON/duplicate/UTF-8 checks. For raw JSON
 larger than 8 MiB its workspace word at offset 120 must be the little-endian
 magic `HIAJLG01`, and its output extent must be at least 80 MiB; this is an
@@ -122,6 +126,15 @@ short code prefix alone uses the old text region. A small output extent
 refuses without writing beyond it. The fresh-verification action continues
 its original schema, binding, proof-status and exact-scope comparison order.
 
-This closes diagnostic extent transport for the stated producer. It does
-not close typed function argument adaptation, original late-error deadline
-ordering, full publication/call composition, or whole-release qualification.
+This closes diagnostic extent transport for the stated producer. It does not
+claim full publication/call composition or whole-release qualification. The
+separate immutable-deadline and typed-component evidence retains its own scope.
+
+
+## Explicit large claimed receipt profile
+
+Bit 512 is accepted only for actions 2 and 3. It allows the claimed B JSON up to 64 MiB and its same-invocation decoder arena up to 80 MiB. The unchanged decoder uses its explicit HIAJLG01 profile above 8 MiB. No positive proof is granted by this flag. Action 2 still checks the original supported schema/status, all nine fresh string bindings, fresh proof decision, then exact proof scope. Unrelated claimed fields remain unrelated; altered scope remains a refusal. Bit 512 can combine with bit 256 only on action 2, where A must be genuinely fresh unknown and outcome metadata must be zero. Actions 0 and 1 cannot use bit 512. Existing accepted inputs and results in the earlier flag domains remain unchanged.
+
+The full six-tail frame may exceed the old public parent's 128 MiB input scratch. Its maximum paired fresh/claimed JSON-plus-arena footprint approaches 288 MiB plus the fixed header. The caller must reserve a sufficiently large independent span from actual lengths, without overlapping source, output, metadata or workspace; it must not merely raise the extent of the old physical buffer. The pure receipt workspace remains 8 MiB and the return buffer remains 1 MiB. Verification success returns only the fresh result, and large-fresh mode is restricted to unknown results, so this does not expand positive output or action0 authority.
+
+Large qualification includes actual decoding of a 64 MiB claimed document, 20 MiB unrelated claimed strings, complete 16 MiB function strings in both root and subject of fresh/claimed unknown fixtures, original scope/error decisions, and strict one-byte/arena-bound overflows. The fresh unknown fixture comparisons are pure component tests; actual fresh proving in the final unified public owner remains separately required.
