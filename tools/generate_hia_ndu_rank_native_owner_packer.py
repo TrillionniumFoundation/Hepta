@@ -35,6 +35,8 @@ def pack(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         copy(s,o,offset,target,n)
         p=join_call(i)
         poke32(o,at+p,target-at-p-4)
+        if i==0:
+            poke32(o,at+SAMPLE_CALL,target-at-SAMPLE_CALL-4)
         offset=offset+n
         target=target+n
         i=i+1
@@ -69,7 +71,7 @@ def poke32(o:mutbuf,at:u64,v:u64) -> u64:
 '''
 def program():
     join,j=capsule('hia_ndu_rank_native_owner_join.S');effect,e=capsule('hia_ndu_rank_native_owner_effects.S')
-    C={'MAGIC':int.from_bytes(b'HIANOP02','little'),'JOIN_BYTES':len(join),'EFFECT_BYTES':len(effect),'EFFECT_CALL':e['effect_policy_call'],'OWNER_CALL':j['owner_call'],'SHA_CALL':j['sha_call'],'ID_CALL':j['identity_call'],'PATH_CALL':j['path_call'],'PUMP_CALL':j['pump_call'],'JSON_CALL':j['json_call']}
+    C={'MAGIC':int.from_bytes(b'HIANOP02','little'),'JOIN_BYTES':len(join),'EFFECT_BYTES':len(effect),'EFFECT_CALL':e['effect_policy_call'],'OWNER_CALL':j['owner_call'],'SAMPLE_CALL':j['cancel_sample_call'],'SHA_CALL':j['sha_call'],'ID_CALL':j['identity_call'],'PATH_CALL':j['path_call'],'PUMP_CALL':j['pump_call'],'JSON_CALL':j['json_call']}
     s=SOURCE+'\n'+literal('join_prefix',join,True)+'\n'+literal('effects_prefix',effect,True)
     for k,v in C.items():s=re.sub(r'\b'+k+r'\b',str(v),s)
     return s

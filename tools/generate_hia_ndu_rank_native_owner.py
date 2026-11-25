@@ -19,9 +19,11 @@ def owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<128 or length(w)<WORK:
         return 4294967293
     p=get(w,0)
-    r=get(w,8)
     if p==0:
         return begin(s,o,w)
+    if get(w,2256)==3544418957723257160 and get(w,2424)==1:
+        return cancel_sample(o,w)
+    r=get(w,8)
     if p<10:
         return admission(s,o,w,p,r)
     if p<16:
@@ -40,6 +42,48 @@ def owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return closing(o,w,p,r)
     return 4294967293
 
+def cancel_sample(o:mutbuf,w:mutbuf) -> u32:
+    p=get(w,2432)
+    r=get(w,8)
+    if p==0:
+        put(w,2440,r)
+        put(w,2432,1)
+        return sample_effect(o,39,0,0,0,0,0,0,0)
+    if p==1:
+        if failed(r) or r==0:
+            put(w,32,1)
+            return sample_done(w)
+        put(w,2448,r)
+        put(w,2384,get(w,16)+2368)
+        put(w,2392,8)
+        put(w,2400,get(w,2264))
+        put(w,2408,8)
+        put(w,2432,2)
+        return sample_effect(o,310,204,r,2384,1,2400,1,0)
+    if p==2:
+        if r==EINTR:
+            return sample_effect(o,310,204,get(w,2448),2384,1,2400,1,0)
+        if r!=8 or get(w,2368)!=0:
+            put(w,32,1)
+        return sample_done(w)
+    return 4294967293
+
+def sample_done(w:mutbuf) -> u32:
+    put(w,8,get(w,2440))
+    put(w,2432,0)
+    return 0
+
+def sample_effect(o:mutbuf,number:u64,flags:u64,a:u64,b:u64,c:u64,d:u64,e:u64,f:u64) -> u32:
+    put(o,0,number)
+    put(o,8,a)
+    put(o,16,b)
+    put(o,24,c)
+    put(o,32,d)
+    put(o,40,e)
+    put(o,48,f)
+    put(o,56,flags)
+    return 1
+
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)<128 or word_load(s,0)!=MAGIC:
         return 4294967293
@@ -56,7 +100,15 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         digits=get(w,2248)
         if digits!=0 and (digits<640 or digits>2147483647):
             return 4294967293
+    cancel_pointer=0
+    if get(w,2256)==3544418957723257160:
+        cancel_pointer=get(w,2264)
+        if cancel_pointer==0 or cancel_pointer>18446744073709551607:
+            return 4294967293
     zero(w,40,4056)
+    if cancel_pointer!=0:
+        put(w,2256,3544418957723257160)
+        put(w,2264,cancel_pointer)
     put(w,2240,3544411265436830024)
     put(w,2248,digits)
     put(w,40,n)

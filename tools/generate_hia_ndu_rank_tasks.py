@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 CONSTANTS={
  'NONE':(1<<64)-1,'MAXSIZE':(1<<63)-1,
  'PHASE':0,'FEEDBACK':8,'CAPACITY':16,'TOP':24,'PERMANENT':32,
- 'NORMALIZER_FD':48,'PROOF_FD':56,'SOURCE_ROOT_FD':64,'THRESHOLD_PTR':72,'THRESHOLD_N':80,'INT_DIGITS':88,'PAYLOAD_CTX':96,'CANCEL_WORD':104,'ALLOC_FAILED':112,
+ 'NORMALIZER_FD':48,'PROOF_FD':56,'SOURCE_ROOT_FD':64,'THRESHOLD_PTR':72,'THRESHOLD_N':80,'INT_DIGITS':88,'PAYLOAD_CTX':96,'CANCEL_WORD':104,'ALLOC_FAILED':112,'CONTROL_BASE':120,
  'TASK':128,'STEP':136,'RESUME':144,'BASE':152,'INPUT_REGION':160,'INPUT_AT':168,'INPUT_N':176,'ARENA_AT':184,'ARENA_N':192,'ROOT_NODE':200,
  'PARAM':208,'PARAM2':216,'PARAM3':224,'PARAM4':232,'PARAM5':240,'PARAM6':248,
  'DESC':256,'ROLE_ID':264,'SELECTORS':272,'ARG0':280,
@@ -26,7 +26,7 @@ CONSTANTS={
  'FRAME_HEADER':54528,'FRAME_PARTS':55296,'FRAME_COUNT':56832,'FRAME_HEADER_N':56840,
  'FREEZE_REQUEST':int.from_bytes(b'HIABJF01','little'),'FREEZE_REPLY':int.from_bytes(b'HIABJR01','little'),
  'CANON_REQUEST':int.from_bytes(b'HIANJQ01','little'),'CANON_REPLY':int.from_bytes(b'HIANKJ01','little'),
- 'JSON_SIZE':int.from_bytes(b'HIANJS01','little'),'PROCESS_REQUEST':int.from_bytes(b'HIANPS01','little'),'PROCESS_REPLY':int.from_bytes(b'HIANPO01','little'),'REPORT_REPLY':int.from_bytes(b'HIANPR01','little')
+ 'JSON_SIZE':int.from_bytes(b'HIANJS01','little'),'PROCESS_REQUEST':int.from_bytes(b'HIANPS02','little'),'PROCESS_REPLY':int.from_bytes(b'HIANPO01','little'),'REPORT_REPLY':int.from_bytes(b'HIANPR01','little')
 }
 SOURCE=r'''
 def rank_tasks(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -380,7 +380,12 @@ def process(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,base+32,n)
         put(w,base+40,get(o,PARAM4))
         put(w,base+48,get(o,PARAM5))
-        put(w,base+64,get(o,PARAM6))
+        cancel=get(o,PARAM6)
+        if get(o,CONTROL_BASE)!=0:
+            if get(o,CONTROL_BASE)>18446744073709551511:
+                return finish(o,4)
+            cancel=get(o,CONTROL_BASE)+CANCEL_WORD
+        put(w,base+64,cancel)
         put(o,STEP,1)
         return move(o,1,base+128,get(o,INPUT_REGION),get(o,INPUT_AT),n)
     if step==1:
@@ -588,6 +593,13 @@ def pure_call(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             put(w,base+on+32,get(o,CANCEL_WORD))
             put(w,base+on+2240,NATIVE_DIGITS)
             put(w,base+on+2248,get(o,INT_DIGITS))
+            put(w,base+on+2256,0)
+            put(w,base+on+2264,0)
+            if get(o,CONTROL_BASE)!=0:
+                if get(o,CONTROL_BASE)>18446744073709551511:
+                    return finish(o,4)
+                put(w,base+on+2256,3544418957723257160)
+                put(w,base+on+2264,get(o,CONTROL_BASE)+CANCEL_WORD)
         put(o,STEP,1)
         return call(o,get(o,PARAM),get(o,INPUT_REGION),get(o,INPUT_AT),get(o,INPUT_N),1,base,on,1,base+on,wn)
     if step==1:
