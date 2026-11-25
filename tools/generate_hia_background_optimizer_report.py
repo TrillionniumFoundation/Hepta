@@ -1,7 +1,8 @@
 """Pure HIA construction and accounting of shared BackgroundOptimizer results.
 
-The controller captures actual job/time/Future observations and owns the input
-capabilities. This policy only calls the fixed mutable value primitive through
+The controller captures actual job/time observations and owns the input
+capabilities. A separate private continuation profile observes commitment and
+Future state only at their original positions after the cost mutations. This policy only calls the fixed mutable value primitive through
 the standard private continuation ABI. It never settles the ledger itself.
 """
 from pathlib import Path
@@ -70,14 +71,16 @@ def generated():
  series('account',[get('result','costs','costs'),get('meta','now_ns','now'),get('meta','submitted_ns','submitted'),get('meta','work_started_ns','started')],'worker')
  emit('worker','if get(w,176)==0:\n    '+call(5,'zero',dest='worker')('timing_0')+'\n'+call(24,'now','started',dest='worker',arg0=1)('timing_0'))
  series('timing',[get('meta','submit_work_ns','submit'),call(24,'now','submitted',dest='wall',arg0=1),call(24,'submit','worker',dest='observed'),put('costs','job_wall_before_future_completion_ns','wall'),put('costs','worker_elapsed_ns','worker'),put('costs','observed_submit_and_worker_ns','observed')],'committed')
- emit('committed','if readword(s,16)==0:\n    '+put('result','publication_committed','false')('future')+'\n'+put('result','publication_committed','true')('future'))
- emit('future','if readword(s,72)==1:\n    '+jump('cancel_0')+'\n'+jump('receipt_0'))
+ emit('committed','if get(w,240)!=0:\n    return observe(o,w,1,@committed_write@)\n'+jump('committed_write'))
+ emit('committed_write','if get(w,224)==0:\n    '+put('result','publication_committed','false')('future')+'\n'+put('result','publication_committed','true')('future'))
+ emit('future','if get(w,240)!=0:\n    return observe(o,w,2,@future_choice@)\n'+jump('future_choice'))
+ emit('future_choice','if get(w,232)==1:\n    '+jump('cancel_0')+'\n'+jump('receipt_0'))
  series('cancel',[put('result','status','cancelled'),put('result','reason','cancel_reason')],'receipt_0')
  actions=[call(4,dest='receipt')]
  for key in receipt_keys:actions +=[get('result',key,'temporary'),put('receipt',key,'temporary'),drop('temporary')]
  actions +=[get('result','status','temporary'),put('receipt','execution_status','temporary'),drop('temporary')]
  series('receipt',actions,'future_state')
- emit('future_state','if readword(s,72)==0:\n    '+put('receipt','future_state_at_accounting','pending')('receipt_more_0')+'\nif readword(s,72)==1:\n    '+put('receipt','future_state_at_accounting','cancelled')('receipt_more_0')+'\n'+put('receipt','future_state_at_accounting','finished')('receipt_more_0'))
+ emit('future_state','if get(w,232)==0:\n    '+put('receipt','future_state_at_accounting','pending')('receipt_more_0')+'\nif get(w,232)==1:\n    '+put('receipt','future_state_at_accounting','cancelled')('receipt_more_0')+'\n'+put('receipt','future_state_at_accounting','finished')('receipt_more_0'))
  series('receipt_more',[put('receipt','status_scope','scope'),call(4,dest='receipt_costs'),call(7,'costs')],'copy_begin')
  emit('copy_begin','if get(w,176)!=6:\n    return stop(w,2)\nput(w,192,0)\nput(w,200,get(w,184))\n'+jump('copy_next'))
  emit('copy_next','if get(w,192)>=get(w,200):\n    '+jump('receipt_after_copy_0')+'\n'+call(23,'costs',arg0='get(w,192)',arg1=1)('copy_take'))
@@ -116,7 +119,7 @@ def generated():
  numbers={label:i+1 for i,(label,_)in enumerate(STEPS)}
  text=COMMON
  text=text.replace('START_STEP',str(numbers['start']))
- for key,value in [('CAPS',CAPS),('REQUEST',REQUEST),('VALUE_OUT',VALUE_OUT),('CLEANUP',CLEANUP),('SLOT_COUNT',len(SLOTS)+1),('META_BORROW',loc('borrow_meta')),('RESULT_BORROW',loc('borrow_result')),('RESULT_SLOT',slot('result')),('RECEIPT_SLOT',slot('receipt')),('OBSERVED_SLOT',slot('observed')),('MAGIC',int.from_bytes(b'HIABRP01','little')),('REPLY',int.from_bytes(b'HIABRR01','little')),('CONTEXT',int.from_bytes(b'HIABRC01','little')),('VALUE_MAGIC',int.from_bytes(b'HIABVQ01','little')),('VALUE_REPLY',int.from_bytes(b'HIABVR01','little'))]:
+ for key,value in [('CAPS',CAPS),('REQUEST',REQUEST),('VALUE_OUT',VALUE_OUT),('CLEANUP',CLEANUP),('SLOT_COUNT',len(SLOTS)+1),('META_BORROW',loc('borrow_meta')),('RESULT_BORROW',loc('borrow_result')),('RESULT_SLOT',slot('result')),('RECEIPT_SLOT',slot('receipt')),('OBSERVED_SLOT',slot('observed')),('MAGIC',int.from_bytes(b'HIABRP01','little')),('OBSERVED_MAGIC',int.from_bytes(b'HIABRP02','little')),('OBSERVATION_REQUEST',int.from_bytes(b'HIABROQ1','little')),('REPLY',int.from_bytes(b'HIABRR01','little')),('CONTEXT',int.from_bytes(b'HIABRC01','little')),('VALUE_MAGIC',int.from_bytes(b'HIABVQ01','little')),('VALUE_REPLY',int.from_bytes(b'HIABVR01','little'))]:
   text=re.sub(r'\b'+key+r'\b',str(value),text)
  lines=['def dispatch(s:readbuf,o:mutbuf,w:mutbuf) -> u64:','    step=get(w,128)']
  for group,start in enumerate(range(0,len(STEPS),48)):
@@ -148,7 +151,12 @@ def background_optimizer_report(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     phase=get(o,128)
     if phase==0:
-        if length(s)!=128 or readword(s,0)!=MAGIC or readword(s,8)>1:
+        if length(s)!=128 or readword(s,8)>1:
+            return 4294967293
+        magic=readword(s,0)
+        if magic!=MAGIC and magic!=OBSERVED_MAGIC:
+            return 4294967293
+        if magic==OBSERVED_MAGIC and (readword(s,8)!=1 or readword(s,16)!=0 or readword(s,72)!=0):
             return 4294967293
         if readword(s,16)>1 or readword(s,72)>2:
             return 4294967293
@@ -171,9 +179,19 @@ def background_optimizer_report(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         from_input(s,w,META_BORROW,24,24)
         from_input(s,w,RESULT_BORROW,48,24)
         put(w,128,START_STEP)
+        put(w,224,readword(s,16))
+        put(w,232,readword(s,72))
+        put(w,240,choose(magic==OBSERVED_MAGIC,1,0))
         put(o,128,1)
     elif phase!=1:
         return 4294967293
+    observation=get(w,248)
+    if observation!=0:
+        put(w,248,0)
+        value=get(o,144)
+        if get(o,136)!=0 or observation>2 or value>choose(observation==1,1,2):
+            return stop(w,11)
+        put(w,choose(observation==1,224,232),value)
     pending=get(w,136)
     if pending!=0:
         put(w,136,0)
@@ -203,6 +221,15 @@ def background_optimizer_report(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if get(w,128)==CLEANUP:
         return cleanup(o,w)
     return dispatch(s,o,w)
+def observe(o:mutbuf,w:mutbuf,kind:u64,next:u64) -> u64:
+    put(w,128,next)
+    put(w,248,kind)
+    zero(o,0,128)
+    put(o,0,OBSERVATION_REQUEST)
+    put(o,8,kind)
+    put(o,136,18446744073709551615)
+    put(o,144,18446744073709551615)
+    return 11
 def advance(w:mutbuf,next:u64) -> u64:
     put(w,128,next)
     return 10
