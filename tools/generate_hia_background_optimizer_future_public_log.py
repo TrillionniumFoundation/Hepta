@@ -5,7 +5,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={"MAGIC":int.from_bytes("HIAFPL01".encode(),'little'),
-"REPLY":int.from_bytes("HIAFPLR1".encode(),'little'),
+"REPLY":int.from_bytes("HIAFPLR1".encode(),'little'),"MAGIC2":int.from_bytes(b"HIAFPL02",'little'),"MAGIC3":int.from_bytes(b"HIAFPL03",'little'),"MODE":144,"IDENTITY":296,"FSTATE":304,
 "STATE":int.from_bytes("HIABFPS1".encode(),'little'),
 "VREQUEST":int.from_bytes("HIABVQ01".encode(),'little'),
 "VREPLY":int.from_bytes("HIABVR01".encode(),'little'),
@@ -32,24 +32,42 @@ C={"MAGIC":int.from_bytes("HIAFPL01".encode(),'little'),
 "OUT":16384}
 SOURCE=r'''
 def future_log(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)!=192 or length(o)<OUT or length(w)<256 or readword(s,0)!=MAGIC:
+    if length(s)!=192 or length(o)<4096 or length(w)<256:
+        return 4294967293
+    if readword(s,0)==MAGIC and length(o)<OUT:
         return 4294967293
     phase=get(o,PHASE)
     if phase==0:
+        magic=readword(s,0)
+        if magic!=MAGIC and magic!=MAGIC2 and magic!=MAGIC3:
+            return 4294967293
+        if magic==MAGIC2 and (readword(s,8)==0 or readword(s,16)>4):
+            return 4294967293
         at=8
         while at<192:
-            if (at<24 or at>40) and readword(s,at)!=0:
+            used=magic==MAGIC and at>=24 and at<=40
+            if magic==MAGIC2 and (at==8 or at==16):
+                used=True
+            if used==False and readword(s,at)!=0:
                 return 4294967293
             at=at+8
-        zero(o,128,OUT-128)
-        copy_input(s,24,o,CAP,24)
+        zero(o,128,choose(magic==MAGIC,OUT,4096)-128)
+        if magic==MAGIC:
+            copy_input(s,24,o,CAP,24)
+        else:
+            put(o,MODE,choose(magic==MAGIC2,2,3))
+            put(o,IDENTITY,readword(s,8))
+            put(o,FSTATE,readword(s,16))
         return system(o,100,39,0,0,0,0,0,0,0)
     if phase>=100 and phase<130:
         return locks(o,w,phase)
     if phase>=1 and phase<=4:
         return field(o,w,phase)
     if phase==10:
-        return system(o,11,1,12,2,BUF+get(o,WRITTEN),get(o,USED)-get(o,WRITTEN),0,0,0)
+        at=BUF
+        if get(o,MODE)>=2:
+            at=1024
+        return system(o,11,1,12,2,at+get(o,WRITTEN),get(o,USED)-get(o,WRITTEN),0,0,0)
     if phase==11:
         n=get(o,FEEDBACK)
         if n==MAX-3:
@@ -106,6 +124,10 @@ def locks(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==110:
         if get(o,FEEDBACK)==0:
             put(o,HELD,1)
+            if get(o,MODE)==2:
+                return write(o,900,critical(o))
+            if get(o,MODE)==3:
+                return write(o,900,caught_running(o))
             return start_field(o,w)
         return system(o,111,202,1,44,128,1,0,0,0)
     if phase==111:
@@ -357,6 +379,201 @@ def atom(o:mutbuf,action:u64,next:u64,a:u64,b:u64) -> u32:
     return narrow(action)
 
 '''
+SOURCE+=r'''
+def critical(o:mutbuf) -> u64:
+    at=1024
+    at=at+critical_literal(o,at,0)
+    value=get(o,IDENTITY)
+    used=0
+    while value!=0:
+        store(o,1024+192+used,48+value%10)
+        value=value//10
+        used=used+1
+    if used==0:
+        store(o,1024+192,48)
+        used=1
+    while used!=0:
+        used=used-1
+        store(o,at,byte(o,1024+192+used))
+        at=at+1
+    at=at+critical_literal(o,at,1)
+    at=at+critical_literal(o,at,2+get(o,FSTATE))
+    store(o,at,10)
+    return at+1-1024
+
+def critical_literal(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==0:
+        store(o,at+0,70)
+        store(o,at+1,117)
+        store(o,at+2,116)
+        store(o,at+3,117)
+        store(o,at+4,114)
+        store(o,at+5,101)
+        store(o,at+6,32)
+        return 7
+    if index==1:
+        store(o,at+0,32)
+        store(o,at+1,105)
+        store(o,at+2,110)
+        store(o,at+3,32)
+        store(o,at+4,117)
+        store(o,at+5,110)
+        store(o,at+6,101)
+        store(o,at+7,120)
+        store(o,at+8,112)
+        store(o,at+9,101)
+        store(o,at+10,99)
+        store(o,at+11,116)
+        store(o,at+12,101)
+        store(o,at+13,100)
+        store(o,at+14,32)
+        store(o,at+15,115)
+        store(o,at+16,116)
+        store(o,at+17,97)
+        store(o,at+18,116)
+        store(o,at+19,101)
+        store(o,at+20,58)
+        store(o,at+21,32)
+        return 22
+    if index==2:
+        store(o,at+0,80)
+        store(o,at+1,69)
+        store(o,at+2,78)
+        store(o,at+3,68)
+        store(o,at+4,73)
+        store(o,at+5,78)
+        store(o,at+6,71)
+        return 7
+    if index==3:
+        store(o,at+0,82)
+        store(o,at+1,85)
+        store(o,at+2,78)
+        store(o,at+3,78)
+        store(o,at+4,73)
+        store(o,at+5,78)
+        store(o,at+6,71)
+        return 7
+    if index==4:
+        store(o,at+0,67)
+        store(o,at+1,65)
+        store(o,at+2,78)
+        store(o,at+3,67)
+        store(o,at+4,69)
+        store(o,at+5,76)
+        store(o,at+6,76)
+        store(o,at+7,69)
+        store(o,at+8,68)
+        return 9
+    if index==5:
+        store(o,at+0,67)
+        store(o,at+1,65)
+        store(o,at+2,78)
+        store(o,at+3,67)
+        store(o,at+4,69)
+        store(o,at+5,76)
+        store(o,at+6,76)
+        store(o,at+7,69)
+        store(o,at+8,68)
+        store(o,at+9,95)
+        store(o,at+10,65)
+        store(o,at+11,78)
+        store(o,at+12,68)
+        store(o,at+13,95)
+        store(o,at+14,78)
+        store(o,at+15,79)
+        store(o,at+16,84)
+        store(o,at+17,73)
+        store(o,at+18,70)
+        store(o,at+19,73)
+        store(o,at+20,69)
+        store(o,at+21,68)
+        return 22
+    if index==6:
+        store(o,at+0,70)
+        store(o,at+1,73)
+        store(o,at+2,78)
+        store(o,at+3,73)
+        store(o,at+4,83)
+        store(o,at+5,72)
+        store(o,at+6,69)
+        store(o,at+7,68)
+        return 8
+    return 0
+'''
+
+SOURCE+=r'''
+def caught_running(o:mutbuf) -> u64:
+    store(o,1024+0,101)
+    store(o,1024+1,120)
+    store(o,1024+2,99)
+    store(o,1024+3,101)
+    store(o,1024+4,112)
+    store(o,1024+5,116)
+    store(o,1024+6,105)
+    store(o,1024+7,111)
+    store(o,1024+8,110)
+    store(o,1024+9,32)
+    store(o,1024+10,99)
+    store(o,1024+11,97)
+    store(o,1024+12,108)
+    store(o,1024+13,108)
+    store(o,1024+14,105)
+    store(o,1024+15,110)
+    store(o,1024+16,103)
+    store(o,1024+17,32)
+    store(o,1024+18,99)
+    store(o,1024+19,97)
+    store(o,1024+20,108)
+    store(o,1024+21,108)
+    store(o,1024+22,98)
+    store(o,1024+23,97)
+    store(o,1024+24,99)
+    store(o,1024+25,107)
+    store(o,1024+26,10)
+    store(o,1024+27,82)
+    store(o,1024+28,117)
+    store(o,1024+29,110)
+    store(o,1024+30,116)
+    store(o,1024+31,105)
+    store(o,1024+32,109)
+    store(o,1024+33,101)
+    store(o,1024+34,69)
+    store(o,1024+35,114)
+    store(o,1024+36,114)
+    store(o,1024+37,111)
+    store(o,1024+38,114)
+    store(o,1024+39,58)
+    store(o,1024+40,32)
+    store(o,1024+41,70)
+    store(o,1024+42,117)
+    store(o,1024+43,116)
+    store(o,1024+44,117)
+    store(o,1024+45,114)
+    store(o,1024+46,101)
+    store(o,1024+47,32)
+    store(o,1024+48,105)
+    store(o,1024+49,110)
+    store(o,1024+50,32)
+    store(o,1024+51,117)
+    store(o,1024+52,110)
+    store(o,1024+53,101)
+    store(o,1024+54,120)
+    store(o,1024+55,112)
+    store(o,1024+56,101)
+    store(o,1024+57,99)
+    store(o,1024+58,116)
+    store(o,1024+59,101)
+    store(o,1024+60,100)
+    store(o,1024+61,32)
+    store(o,1024+62,115)
+    store(o,1024+63,116)
+    store(o,1024+64,97)
+    store(o,1024+65,116)
+    store(o,1024+66,101)
+    store(o,1024+67,10)
+    return 68
+'''
+
 def source_program():
  s=SOURCE
  for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)

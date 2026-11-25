@@ -9,14 +9,14 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_ndu_evaluator import document
 ROOT=Path(__file__).resolve().parents[1]
 C={k:int.from_bytes(v,'little')for k,v in {'REQ':b'HIABFN01','REP':b'HIABFNR1','GLOBAL':b'HIABFPS1','NODEMAGIC':b'HIABFOB1'}.items()}
-C.update({'MAX':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'PHASE':128,'HELD':136,'ERROR':144,'PID':152,'ROOTPTR':160,'NODEPTR':168,'COUNT':176,'MATCHED':184,'QUEUED':192,'PROBE':200,'SLOT':208,'INDEX':216,'NEXTPTR':224,'AFTER':232,'FEEDBACK':448,'TEMP':456,'HEADER':512,'ROW':1024,'SLOTBUF':1152})
+C.update({'REQ2':int.from_bytes(b'HIABFN02','little'),'REQ3':int.from_bytes(b'HIABFN03','little'),'KREQ':int.from_bytes(b'HIAMVFQ2','little'),'KREP':int.from_bytes(b'HIAMVFR1','little'),'LREQ2':int.from_bytes(b'HIAFPL02','little'),'LREQ3':int.from_bytes(b'HIAFPL03','little'),'LREP':int.from_bytes(b'HIAFPLR1','little'),'CBSTATUS':240,'COMPLETION':248,'MODE':256,'RQ':2048,'CHILD':4096,'MAX':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'PHASE':128,'HELD':136,'ERROR':144,'PID':152,'ROOTPTR':160,'NODEPTR':168,'COUNT':176,'MATCHED':184,'QUEUED':192,'PROBE':200,'SLOT':208,'INDEX':216,'NEXTPTR':224,'AFTER':232,'FEEDBACK':448,'TEMP':456,'HEADER':512,'ROW':1024,'SLOTBUF':1152})
 SOURCE=r'''
 def future_observer_notify(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=64 or length(o)<8192 or length(w)<256:
         return 4294967293
     phase=get(o,PHASE)
     if phase==0:
-        if word(s,0)!=REQ or word(s,8)==0:
+        if (word(s,0)!=REQ and word(s,0)!=REQ2 and word(s,0)!=REQ3) or word(s,8)==0:
             return 4294967293
         i=16
         while i<64:
@@ -24,6 +24,7 @@ def future_observer_notify(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
                 return 4294967293
             i=i+8
         zero(o,128,1200)
+        put(o,MODE,word(s,0))
         return system(o,1,39,0,0,0,0,0,0,0)
     if phase<100:
         return locks(s,o,w,phase)
@@ -37,10 +38,51 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if pid==0 or pid>=NEGATIVE or get(w,0)!=GLOBAL or get(w,8)!=pid or get(w,24)!=0:
             return finish(o,107)
         put(o,PID,pid)
+        if get(o,MODE)!=REQ:
+            zero(o,RQ,64)
+            put(o,RQ,KREQ)
+            put(o,RQ+8,15)
+            return invoke(o,3,get(w,64),RQ,64,CHILD,512,word(s,8),512)
         return waddress(o,2,0)
     if phase==2:
         put(o,ROOTPTR,get(o,FEEDBACK))
         return atom(o,2,10,0,1)
+    if phase==3:
+        if get(o,FEEDBACK)!=0 or get(o,CHILD)!=KREP or get(o,CHILD+8)!=0 or get(o,CHILD+24)==0 or get(o,CHILD+24)>2:
+            return finish(o,107)
+        put(o,COMPLETION,get(o,CHILD+88))
+        if get(o,MODE)==REQ2 and get(o,CHILD+24)==1:
+            zero(o,RQ,64)
+            put(o,RQ,KREQ)
+            put(o,RQ+8,16)
+            return invoke(o,4,get(w,64),RQ,64,CHILD,512,word(s,8),512)
+        return waddress(o,2,0)
+    if phase==4:
+        if get(o,CHILD)!=KREP or get(o,FEEDBACK)!=get(o,CHILD+8):
+            return finish(o,107)
+        if get(o,CHILD+8)==7:
+            zero(o,RQ,192)
+            put(o,RQ,LREQ2)
+            put(o,RQ+8,word(s,8))
+            put(o,RQ+16,3)
+            return waddress(o,7,0)
+        if get(o,CHILD+8)!=0:
+            return finish(o,107)
+        return waddress(o,2,0)
+    if phase==7:
+        put(o,ROOTPTR,get(o,FEEDBACK))
+        return invoke(o,5,get(w,192),RQ,192,CHILD,4096,get(o,ROOTPTR),256)
+    if phase==5:
+        if get(o,FEEDBACK)!=0 or get(o,CHILD)!=LREP or get(o,CHILD+8)!=0:
+            return finish(o,107)
+        zero(o,RQ,192)
+        put(o,RQ,LREQ3)
+        return invoke(o,6,get(w,192),RQ,192,CHILD,4096,get(o,ROOTPTR),256)
+    if phase==6:
+        if get(o,FEEDBACK)!=0 or get(o,CHILD)!=LREP or get(o,CHILD+8)!=0:
+            return finish(o,107)
+        put(o,CBSTATUS,1)
+        return finish(o,0)
     if phase==10:
         if get(o,FEEDBACK)==0:
             put(o,HELD,1)
@@ -101,6 +143,10 @@ def visit(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return next_node(o)
         if get(o,ROW+56)!=1 or get(o,HEADER+72)>=get(o,HEADER+32) or get(o,HEADER+88)==0:
             return fail(o,107)
+        if get(o,COMPLETION)==2:
+            return write_pointer(o,118,get(o,NODEPTR)+208,1)
+        return again(o,118)
+    if phase==118:
         return write_pointer(o,120,get(o,HEADER+56)+get(o,HEADER+72)*8,get(o,INDEX))
     if phase==120:
         return write_pointer(o,121,get(o,HEADER+40)+get(o,INDEX)*96+56,0)
@@ -179,6 +225,7 @@ def finish(o:mutbuf,error:u64) -> u32:
     put(o,8,error)
     put(o,16,get(o,MATCHED))
     put(o,24,get(o,QUEUED))
+    put(o,32,get(o,CBSTATUS))
     return 0
 
 def atom(o:mutbuf,action:u64,next:u64,a:u64,b:u64) -> u32:
@@ -239,6 +286,20 @@ def put(o:mutbuf,at:u64,value:u64) -> u64:
     word_store(o,at,value)
     return 0
 '''
+SOURCE+=r'''
+def invoke(o:mutbuf,next:u64,fn:u64,src:u64,sn:u64,dest:u64,dn:u64,ctx:u64,cn:u64) -> u32:
+    put(o,PHASE,next)
+    put(o,0,fn)
+    put(o,8,51)
+    put(o,16,src)
+    put(o,24,sn)
+    put(o,32,dest)
+    put(o,40,dn)
+    put(o,48,ctx)
+    put(o,56,cn)
+    return 9
+'''
+
 def source_program():
     text=SOURCE
     for name,value in sorted(C.items(),key=lambda item:-len(item[0])):text=re.sub(r'\b'+name+r'\b',str(value),text)

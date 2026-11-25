@@ -82,6 +82,8 @@ hia_background_optimizer_future_public_observers_notify:
     je .Lwaddress
     cmp eax,8
     je .Lcopy
+    cmp eax,9
+    je .Linvoke
 .Lbad:
     mov eax,0xfffffffd
     jmp .Lreturn
@@ -106,6 +108,27 @@ hia_background_optimizer_future_public_observers_notify:
     mov r9,[rsp+72]
     mov rax,[r13]
     syscall
+    jmp .Lfeedback
+.Linvoke:
+    mov r10,[r13+8]
+    xor ecx,ecx
+.Linvoke_translate:
+    mov rax,[r13+16+rcx*8]
+    mov r11,r10
+    and r11d,3
+    add rax,[rsp+r11*8]
+    mov [rsp+32+rcx*8],rax
+    shr r10,2
+    inc ecx
+    cmp ecx,6
+    jb .Linvoke_translate
+    mov rdi,[rsp+32]
+    mov rsi,[rsp+40]
+    mov rdx,[rsp+48]
+    mov rcx,[rsp+56]
+    mov r8,[rsp+64]
+    mov r9,[rsp+72]
+    call qword ptr [r13]
     jmp .Lfeedback
 .Lcas:
     cmp qword ptr [r13],32

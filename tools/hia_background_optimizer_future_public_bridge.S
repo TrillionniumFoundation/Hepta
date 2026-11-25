@@ -20,6 +20,10 @@ public_timeout_entry:
 public_log_entry:
     lea r10,[rip+policy_log]
     mov r11d,16384
+    jmp public_generic
+public_log_small_entry:
+    lea r10,[rip+policy_log]
+    mov r11d,4096
 public_generic:
     push rbx
     push rbp
@@ -93,6 +97,10 @@ public_views_ok:
     mov [r14+168],rax
     lea rax,[rip+public_log_entry]
     mov [r14+176],rax
+    lea rax,[rip+fixed_notify]
+    mov [r14+184],rax
+    lea rax,[rip+public_log_small_entry]
+    mov [r14+192],rax
     mov qword ptr [r13+128],0
     mov qword ptr [rsp],0
     mov [rsp+8],r14
@@ -314,7 +322,7 @@ public_notify:
     mov ecx,8
     cld
     rep stosq
-    mov rax,0x31304e4642414948
+    mov rax,0x32304e4642414948
     mov [rsp],rax
     mov [rsp+8],r10
     mov rdi,rsp
@@ -328,7 +336,7 @@ public_notify:
     jne public_notify_bad
     cmp qword ptr [rsp+72],0
     jne public_notify_bad
-    xor eax,eax
+    mov rax,[rsp+96]
     jmp public_notify_return
 public_notify_bad:
     mov eax,2
