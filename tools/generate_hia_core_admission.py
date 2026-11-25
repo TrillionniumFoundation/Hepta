@@ -682,6 +682,52 @@ def transfer(w:mutbuf, o:mutbuf, edge:u64, queue:u64, last:u64) -> u64:
 '''
 
 
+def linear_transfer_walks(body):
+    """Keep the completed diagnostic passes, walking each JSON array once.
+
+    DiagnosticAuthor has already inserted the complete capability-closure pass
+    and fixed refusal ordering.  This only replaces repeated head-to-index seeks
+    in those four edge passes; it does not fuse, reorder, or remove checks.
+    """
+    transfer = next(node for node in body if node.name == 'transfer')
+    rewritten = []
+    walks = 0
+    replacements = {'args': 0, 'params': 0}
+    for node in transfer.body:
+        if not (isinstance(node, ast.While)
+                and ast.unparse(node.test) == 'i < count(w, args)'):
+            rewritten.append(node)
+            continue
+        used = set()
+        class Cursor(ast.NodeTransformer):
+            def visit_Call(self, call):
+                if (isinstance(call.func, ast.Name) and call.func.id == 'item'
+                        and len(call.args) == 3
+                        and all(isinstance(arg, ast.Name) for arg in call.args)
+                        and call.args[0].id == 'w'
+                        and call.args[1].id in {'args', 'params'}
+                        and call.args[2].id == 'i'):
+                    which = call.args[1].id
+                    used.add(which)
+                    replacements[which] += 1
+                    return ast.copy_location(ast.Name(
+                        id='edge_argument' if which == 'args' else 'edge_parameter',
+                        ctx=ast.Load()), call)
+                return self.generic_visit(call)
+        node = Cursor().visit(node)
+        assert used and not any(isinstance(part, (ast.Break, ast.Continue))
+                                for part in ast.walk(node))
+        for which, variable in (('args', 'edge_argument'), ('params', 'edge_parameter')):
+            if which in used:
+                rewritten.extend(ast.parse(f'{variable} = child(w, {which})').body)
+                node.body.extend(ast.parse(f'{variable} = next_node(w, {variable})').body)
+        rewritten.append(node)
+        walks += 1
+    assert walks == 4 and replacements == {'args': 4, 'params': 2}, (walks, replacements)
+    transfer.body = rewritten
+    return body
+
+
 def source_program():
     from tools.hia_core_diagnostic_authorship import DiagnosticAuthor
     diagnostics = DiagnosticAuthor()
@@ -736,6 +782,7 @@ def source_program():
                 args.extend(ast.Constant(x) for x in literals[arg.id]) if isinstance(arg,ast.Name) and arg.id in literals else args.append(arg)
             node.args=args;return node
     body=Expand().visit(ast.parse(text)).body
+    body=linear_transfer_walks(body)
     root=body.pop(0)
     return ast.unparse(ast.fix_missing_locations(ast.Module(body=[root,*declarations,*body,*extra],type_ignores=[])))+'\n'
 
