@@ -58,6 +58,8 @@ def release_value(o:mutbuf,at:u64) -> u64:
     if pending!=0:
         put(o,VALUE_PENDING,1)
     if consumed==0:
+        if pending!=0:
+            put(o,DROP_KNOWN,2)
         return 0
     zero(o,at,24)
     if status!=0 and pending==0:

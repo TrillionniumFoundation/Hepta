@@ -206,6 +206,14 @@ s=Scenario(unknown=True);before=bytes(s.bc[16384:]);record('unknown business ret
 
 s=Scenario();s.inject[('value',29,CAP[1])]=[{8:1,96:0}]
 record('pre-consumption value failure retained',s,s.run(),(9,4,1));record('only unconsumed value retried',s,s.run(),(0,4,0));assert len(s.consumed)==4
+for status in (6,11):
+    s=Scenario();s.inject[('value',29,CAP[1])]=[{8:status,80:1,96:0}]
+    record('unconsumed cap and actual pending mapping retained '+str(status),s,s.run(),(9,4,2))
+    internal=memoryview(s.bc)[16384:]
+    assert readcap(internal,C['G_META'])==CAP[1] and get(internal,C['VALUE_PENDING'])==1
+    calls=len(s.trace)
+    record('pending mapping does not authorize repeated cap drop '+str(status),s,s.run(),(9,4,2))
+    assert not any(x[0]=='call'and x[1]==BUSINESS_FN for x in s.trace[calls:])
 s=Scenario();s.inject[('value',29,CAP[1])]=[{8:11,80:1}]
 s.inject[('value',31)]=[{8:11,80:1}]
 record('consumed value mapping failure',s,s.run(),(9,4,1));record('mapping retry without cap replay',s,s.run(),(0,4,0));assert len(s.consumed)==4

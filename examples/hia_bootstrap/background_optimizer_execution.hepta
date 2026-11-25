@@ -5621,30 +5621,39 @@ block b5(v51:mutbuf,v52:u64,v53:u64,v54:u64,v55:u64)
 block b7(v64:mutbuf,v65:u64,v66:u64,v67:u64,v68:u64)
   v69:u64 = const() {"value":0}
   v70:bool = compare.eq(v67,v69)
-  branch v70 b8(v64) b9(v64,v65,v66,v68)
-block b8(v71:mutbuf)
+  branch v70 b8(v64,v68) b9(v64,v65,v66,v68)
+block b8(v71:mutbuf,v75:u64)
   v81:u64 = const() {"value":0}
-  ret(v81)
+  v82:bool = compare.ne(v75,v81)
+  branch v82 b10(v71) b12(v71)
 block b9(v76:mutbuf,v77:u64,v78:u64,v80:u64)
-  v82:u64 = const() {"value":24}
-  v83:u64 = call(v76,v77,v82) {"function":"f61"}
-  v84:u64 = const() {"value":0}
-  v85:bool = compare.ne(v78,v84)
-  v86:bool = compare.eq(v80,v84)
-  v87:bool = bool.and(v85,v86)
-  branch v87 b10(v76) b11(v76)
-block b10(v88:mutbuf)
-  v98:u64 = const() {"value":1112}
-  v99:u64 = const() {"value":2}
-  v100:u64 = call(v88,v98,v99) {"function":"f63"}
+  v102:u64 = const() {"value":24}
+  v103:u64 = call(v76,v77,v102) {"function":"f61"}
+  v104:u64 = const() {"value":0}
+  v105:bool = compare.ne(v78,v104)
+  v106:bool = compare.eq(v80,v104)
+  v107:bool = bool.and(v105,v106)
+  branch v107 b13(v76) b14(v76)
+block b10(v83:mutbuf)
+  v93:u64 = const() {"value":1112}
+  v94:u64 = const() {"value":2}
+  v95:u64 = call(v83,v93,v94) {"function":"f63"}
+  jump b12(v83)
+block b12(v96:mutbuf)
   v101:u64 = const() {"value":0}
   ret(v101)
-block b11(v93:mutbuf)
-  v102:u64 = const() {"value":1104}
-  v103:u64 = const() {"value":0}
-  v104:u64 = call(v93,v102,v103) {"function":"f63"}
-  v105:u64 = const() {"value":1}
-  ret(v105)
+block b13(v108:mutbuf)
+  v118:u64 = const() {"value":1112}
+  v119:u64 = const() {"value":2}
+  v120:u64 = call(v108,v118,v119) {"function":"f63"}
+  v121:u64 = const() {"value":0}
+  ret(v121)
+block b14(v113:mutbuf)
+  v122:u64 = const() {"value":1104}
+  v123:u64 = const() {"value":0}
+  v124:u64 = call(v113,v122,v123) {"function":"f63"}
+  v125:u64 = const() {"value":1}
+  ret(v125)
 end
 fn f50(v0:mutbuf,v1:u64) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:mutbuf,v1:u64)

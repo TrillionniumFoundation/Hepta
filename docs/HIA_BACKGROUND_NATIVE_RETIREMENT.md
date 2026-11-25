@@ -30,6 +30,15 @@ Bad capabilities are not consumed. A capability removed by the actual release re
 
 The source uses private object states for available, claimed, and quarantined retirement. Unknown dependency outcomes are quarantined instead of replayed. Concurrent retry does not claim an already active object.
 
+For the value dependency, a valid reply can report both an unconsumed reference
+and an actual pending mapping. The consumers preserve both facts and isolate
+the continuation: they neither automatically repeat value drop 29 nor treat a
+later mapping retry 31 as proof that the original reference was consumed. This
+includes status 6 or 11 with known=1, consumed=0, pending=1. The distinct case
+status 11, known=1, consumed=1, pending=0 clears the consumed reference and also
+isolates the unexplained dependency failure. These controls remain development
+source probes until the new coherent native dependency images are qualified.
+
 The captured cell dependency uses HIABFQ04 / 20 for drop, with HIABFR02 consumption at byte 128. After a failed consumed drop, retry invokes the original one-object cell cleanup operation 13 and then HIABFQ04 / 21. The latter reports the actual retirement-list observation at byte 136, with its validity at byte 144. A successful operation 13 alone does not prove the list is empty.
 
 The existing HIABJO01 and HIABJO02 request domains and response formats remain unchanged.

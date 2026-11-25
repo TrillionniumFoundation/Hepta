@@ -53,7 +53,8 @@ run('value actual munmap EIO after consumption','value',{**v,8:11,80:1},expect(1
 run('value consumed dependency failure without recorded mapping','value',{**v,8:11},expect(0,True,2))
 for status in (1,6,11):
     run('value proven pre-consumption '+str(status),'value',{**v,8:status,96:0},expect(0,False,1))
-run('value closed mapping still pending','value',{8:6,80:1,88:1,96:0},expect(0,False,1,v=1))
+run('value closed mapping still pending preserves cap and isolates','value',{8:6,80:1,88:1,96:0},expect(0,False,2,v=1))
+run('value unconsumed dependency with mapping pending preserves cap and isolates','value',{8:11,80:1,88:1,96:0},expect(0,False,2,v=1))
 for at in list(range(16,80,8))+list(range(104,128,8)):
     run('value reserved '+str(at),'value',v,expect(0,False,0),[(at,1)])
 for fields in ({88:0,96:0},{88:2},{96:2},{80:2},{8:9},{8:5},{8:999},{8:1},{8:6},{96:0},{80:1},{8:1,96:0,80:1}):
