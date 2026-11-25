@@ -1,4 +1,53 @@
-# Native generation probes and retirement
+# Native multiversion runtime effects
+
+This checkpoint implements the fixed in-process effects behind the multiversion coordinator. It is a qualified **private component**, not a claim that the entire public multiversion API is complete. The remaining public strong-handle carrier, typed error/result rendering, complete snapshots and BackgroundOptimizer provider are separate owners.
+
+## Actual composition
+
+The package contains 43 source-bound HIA roles: lifecycle effects and policy, generation retention, scalar call marshalling, typed measurement, the 30-role same-holder generation owner, the four-role arbitrary-precision identity ledger, the Future/token owner, and the three-role measurement owner. A readable fixed assembly adapter supplies only Linux syscalls, 32-bit atomic lock operations, memory movement, malloc/free and calls to those embedded entries or to a verified selected native export. The closed linker accepts only dlopen, dlsym, dlclose, malloc and free.
+
+All new policies and the packer/linker were compiled by the captured SHA494833 native compiler. The native packer produced the actual ET_REL object and the native closed linker produced the loaded shared image. Development assembly establishes the mechanically frozen adapter bytes; production packing needs neither an assembler nor a linker executable.
+
+## Ownership and locks
+
+The runtime owns duplicated normalizer, primitive proof and native build descriptors. Each generation retains the actual same-holder loader, sealed artifact, source/proof records and inode custody. There is no supplied proof-success or load-success fact.
+
+Writer and selection locks preserve publication order. Each lease has its own lock. A separate per-generation lock protects every retention checksum/count access, including require-open queries and count-buffer growth. The registry lock protects generation and lease ownership lists. Header updates write only the fields owned by the current transition; an old full header is never written back across an unlocked interval.
+
+A new lease's ownership links are registered before its count is charged. Allocation failure therefore removes an uncharged owned object, and no fallible registry acquisition remains after the count commits. Closed lease handles keep their generation metadata alive until explicit last release; successful close does not invalidate info. A generation workspace is freed only after both bank ownership and all lease objects are gone.
+
+Generation, selection epoch, lease count and cleanup accounting do not wrap machine words. The fixed finite generation slots and 128-event ring are private storage limits. Public numbers are immutable decimal values with independent owned references. The original conditional preparation budget remains an exact integer in the interval 0 through 2**63-1; this budget was already bounded in the original API.
+
+## Private ABI
+
+The shared entry is `hia_mv_runtime_effects(s, sn, o, on, w, wn)`. Input begins with a 256-byte HIAMVEX1 header, shared context is 131072 bytes, and per-call output/work is 40 MiB. The three borrowed descriptor identities are validated by their actual child owners. Every invocation has independent scratch storage.
+
+Operations are construct, publish, conditional publish, acquire lease, native call, close lease, lease info, rollback, close runtime, retry cleanup, snapshot, cancel, release closed lease, and destroy context (0 through 13). Constructor fields hold the three descriptors, original validation timeout, live-generation limit and totality profile. The tail carries actual raw Core, parent directory, function, argument JSON and typed measurement.
+
+This is an internal ABI. Its raw lease pointer plus nonce and its private immutable-value addresses are not the public capability interface. The enclosing native carrier must pin the validated object for the complete invocation and provide distinct clone/drop references.
+
+HIAMVER1 carries the coordinator status, selection result, private identities, lease tuple, owned diagnostic descriptors and scalar-result span. A nonzero failure never constitutes publication authority. Context destruction refuses live or retained resources.
+
+The packer accepts HIAMVEK1, exactly 43 lengths and their flat bytes. Every role is nonempty and at most 4 MiB; total text is at most 16 MiB. Refusal leaves output untouched. No role, count or import can be selected by the caller.
+
+## Qualification at this checkpoint
+
+The JSON companion records every actual source, flat, image, harness and evidence hash.
+
+- Original runtime differential: 17 observable states and 47 actual HIA calls agree, including consumed generation numbers after invalid and behavior-changing candidates, retained old leases, rollback, close with live leases, repeated close and final reclamation.
+- Concurrent ownership: 300 retained references force count growth; eight threads mix registry operations, and six threads race 500 calls against close on one lease. All 2692 actual calls pass, with no descriptor or directory leak.
+- Real allocation faults: the constructor's 14 allocation points and seven lease/growth points refuse safely, recover on the same context, and balance actual allocation/free counts. The control case also balances its full lifetime.
+- Packaging: 125 actual gates include all 43 role extent refusals, exact 4 MiB role and 16 MiB total boundaries, output/workspace shortage, malformed ELF and forbidden-import rejection. The native object and linked image are byte-exact with the independent mechanical layout.
+- Existing generation qualification remains separate: 18 program groups, 283 signatures and all 16547 original probe vectors ran through independent HIA VM expectations and actual native exports.
+
+The original comparison uses the original Python runtime, original clang construction and the exact Z3 4.15.4 library recovered from the existing wheel cache. Its bytes match the original installed RECORD. That library is an external QA input and is not a production dependency. Native and original artifact bytes are naturally distinct; the comparison covers source identity, behavior, lease/generation selection, counters, events and actual ownership effects.
+
+Earlier failures are retained: the missing original Z3 library; a QA export-name mistake; the candidate frame-offset bug; stale whole-header updates; the missing per-generation retention lock; and a QA exception-class omission. The current results are not assigned to those earlier images. No unexplained tracked-file deletion was staged or repaired by this checkpoint.
+
+
+---
+
+## Prior qualified generation probe and retirement component
 
 This checkpoint supplies native preparation effects for the scalar multiversion runtime. It does not yet replace the complete public runtime or its background optimizer. The coordinator, native proof service, preparation transport, leases, thread ownership, and Future lifetimes still require their final integration gates. The accompanying JSON deliberately keeps whole-runtime completion false.
 
@@ -51,3 +100,5 @@ The six-word entries are private native preparation operations. An enclosing own
 The private generation field is a machine word. The original public generation and accounting values are Python integers; the final language-neutral public owner must preserve their unbounded observable semantics without exposing a wrapping private slot identifier as the public value.
 
 The native coordinator component already preserves selection and retirement ordering in its own qualification. Its previous external-effects harness is not claimed as the completed native public owner. Background work, cancellation/Future callbacks, public locks, and the final native preparation transport remain explicit integration work.
+
+The earlier section records that component's original qualification boundary. The current runtime-effects checkpoint above now provides its actual coordinator, lock and owned-identity integration; the public capability and complete typed facade remain pending.
