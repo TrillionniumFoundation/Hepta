@@ -296,7 +296,10 @@ header zeroing. The environment capability remains at bytes 56 through 79.
 Carrier retirement calls value-profile 02 operation 29. It validates the whole
 128-byte reply and the exact producer status/flag combinations before clearing
 the actual environment slot. A successful drop permits the existing unlink
-and free. A known pre-consumption error retains the original capability. A
+and free. A known pre-consumption error retains the original capability. If that reply
+also attests a pending mapping, word 192 preserves that fact and word 200
+quarantines the carrier. This call did not consume the original capability,
+so neither a repeated drop nor a mapping retry may stand in for its fate. A
 known consumed error clears it; a genuine pending mapping is recorded in word
 192, while a consumed error without a mapping record sets quarantine word 200.
 Malformed or unknown completion preserves the capability and sets quarantine.

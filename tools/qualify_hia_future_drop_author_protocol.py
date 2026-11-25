@@ -464,8 +464,8 @@ for record_fields in (
     else:
         assert get(factory, 104) == 0x20000 and get(out, kc["FREEPTR"]) == 0
         assert get(actual, 96) == 3
-        assert get(actual, 192) == int(bool(consumed and pending))
-        assert get(actual, 200) == int(bool(consumed and not pending))
+        assert get(actual, 192) == pending
+        assert get(actual, 200) == int(bool((consumed and not pending) or (not consumed and pending)))
     count += 1
 record("carrier-env-known-consumption-updates-actual-retained-object", count)
 

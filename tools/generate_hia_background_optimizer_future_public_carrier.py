@@ -404,6 +404,8 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if value_drop_record(o,29)==False:
             return write_pointer(o,609,get(o,CARRIER)+200,1)
         if get(o,VD_CONSUMED)==0:
+            if get(o,VD_PENDING)!=0:
+                return write_pointer(o,613,get(o,CARRIER)+192,1)
             return again(o,609)
         zero(o,CHEADER+56,24)
         return memory(o,612,3,CHEADER+56,0,get(o,CARRIER)+56,24)
@@ -421,6 +423,11 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,VD_STATUS)!=0:
             return again(o,609)
         return write_pointer(o,606,get(o,CARRIER)+192,0)
+    if phase==613:
+        # This call did not consume the held environment. Record the reported
+        # mapping, but do not invent permission to discard the original cap
+        # after retrying a different retirement obligation.
+        return write_pointer(o,609,get(o,CARRIER)+200,1)
     if phase==606:
         if get(o,CHEADER+80)!=0:
             return write_pointer(o,602,get(o,CHEADER+80)+88,get(o,CHEADER+88))
