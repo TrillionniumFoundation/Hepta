@@ -14,7 +14,7 @@ C={
 'PUBLIC_INPUT':int.from_bytes(b'HIABFP01','little'),'PUBLIC_REPLY':int.from_bytes(b'HIABFRP1','little'),
 'FREEZE_INPUT':int.from_bytes(b'HIABFZQ1','little'),'FREEZE_REPLY':int.from_bytes(b'HIABFZR1','little'),
 'PAYLOAD_INPUT':int.from_bytes(b'HIABPY01','little'),'PAYLOAD_REPLY':int.from_bytes(b'HIABPYR1','little'),
-'TINPUT':int.from_bytes(b'HIABTC01','little'),'TCONTEXT':int.from_bytes(b'HIABVC01','little'),'TREPLY':int.from_bytes(b'HIABTV01','little'),
+'TRETRY':int.from_bytes(b'HIABTC02','little'),'TINPUT':int.from_bytes(b'HIABTC01','little'),'TCONTEXT':int.from_bytes(b'HIABVC01','little'),'TREPLY':int.from_bytes(b'HIABTV01','little'),
 'ADMIT_INPUT':int.from_bytes(b'HIABAD01','little'),'ADMIT_REPLY':int.from_bytes(b'HIABAR01','little'),'JSTATS':int.from_bytes(b'HIANJS01','little'),
 'PROVIDER_INPUT':int.from_bytes(b'HIAMVBQ1','little'),'PROVIDER_REPLY':int.from_bytes(b'HIAMVBO1','little'),'SNAPSHOT':int.from_bytes(b'HIAMVBS1','little'),
 'MAX':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'THRESHOLD':10100891,'TBYTES':96<<20,'OUT':524288,
@@ -110,6 +110,7 @@ def entering(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             from_work(w,o,3072,128,CONTROL_N)
             from_work(w,o,3968,FREEZE_WORK,2048)
             from_work(w,o,6016,ERR,1024)
+            from_work(w,o,7040,STRUCT_CTX,128)
             put(o,LOCK,1)
             put(o,OP,1)
             put(w,792,0)
@@ -210,7 +211,7 @@ def structure(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return again(o,160)
         if rc==4:
             if get(o,INFO)!=get(w,8):
-                put(o,T_STUCK,1)
+                put(o,T_STUCK,2)
                 return fail(o,9,162)
             put(o,0,get(w,8))
             mask=get(o,INFO+8)
@@ -232,12 +233,25 @@ def structure(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,PHASE,163)
             return 9
         if rc!=0 or get(o,INFO)!=TREPLY:
-            put(o,T_STUCK,1)
+            put(o,T_STUCK,2)
             return fail(o,7,rc)
         status=get(o,INFO+8)
         if status==3:
             put(o,T_STUCK,1)
+            if get(o,OP)==1:
+                return quarantine(o,w,get(o,INFO+104))
             return fail(o,9,get(o,INFO+104))
+        if get(o,OP)==1 and get(o,T_STUCK)==1:
+            if status>2:
+                put(o,T_STUCK,2)
+                return quarantine(o,w,162)
+            if get(o,INFO+24)!=0:
+                if get(o,S_ROOT)!=0:
+                    put(o,T_STUCK,2)
+                    return quarantine(o,w,162)
+                within(o,S_ROOT,INFO+24,24)
+            put(o,T_STUCK,0)
+            return again(o,700)
         if status==2:
             return fail(o,choose(get(o,INFO+96)==5,5,7),get(o,INFO+96))
         if status==1:
@@ -681,6 +695,8 @@ def enqueue(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==700:
         if get(o,T_STUCK)!=0:
+            if get(o,OP)==1 and get(o,T_STUCK)==1 and get(o,T_SRC)!=0 and get(o,T_OUT)!=0:
+                return memory(o,702,0,get(o,T_SRC),3,INFO,128)
             return quarantine(o,w,700)
         if get(o,FREEZE_WORK+96)!=0:
             request(o,FREEZE_INPUT,1)
@@ -694,6 +710,11 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
                 return quarantine(o,w,701)
             within(o,PACK,FREEZE_OUT+16,24)
         return again(o,710)
+    if phase==702:
+        put(o,INFO,TRETRY)
+        put(o,INFO+8,2)
+        zero(o,INFO+16,24)
+        return memory(o,160,3,INFO,0,get(o,T_SRC),128)
     if phase==710:
         index=get(o,CLEAN)
         if index==17:
@@ -886,6 +907,7 @@ def quarantine(o:mutbuf,w:mutbuf,detail:u64) -> u32:
     to_work(o,w,128,3072,CONTROL_N)
     to_work(o,w,FREEZE_WORK,3968,2048)
     to_work(o,w,ERR,6016,1024)
+    to_work(o,w,STRUCT_CTX,7040,128)
     put(w,792,1)
     if get(o,LOCK)==0:
         return finish(o,w,9)
