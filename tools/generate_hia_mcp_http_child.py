@@ -13,68 +13,7 @@ from tools.generate_hia_mcp_service_scheduler import SOURCE as SCHEDULER
 
 FRAME = int.from_bytes(b'HIAHCI01','little')
 
-CONSUME = r"""
-def consume(o:mutbuf, w:mutbuf) -> u32:
-    cursor = get(w, 216)
-    end = get(w, 208)
-    while cursor < end:
-        if get(w, H_CHILD_FRAME_OPEN) == 0:
-            used = get(w, H_CHILD_HEADER_USED)
-            take = 64 - used
-            if take > end - cursor:
-                take = end - cursor
-            copy_state(w, READ_CHUNK + cursor, H_CHILD_HEADER + used, take)
-            cursor = cursor + take
-            used = used + take
-            put(w, H_CHILD_HEADER_USED, used)
-            if used == 64:
-                if frame_begin(w) == False:
-                    return 0
-        else:
-            take = get(w, H_CHILD_BODY_N) - get(w, 200)
-            if take > end - cursor:
-                take = end - cursor
-            copy_state(w, READ_CHUNK + cursor, REQUEST + get(w, 200), take)
-            put(w, 200, get(w, 200) + take)
-            cursor = cursor + take
-            if get(w, 200) == get(w, H_CHILD_BODY_N):
-                put(w, 216, cursor)
-                put(w, H_CHILD_FRAME_OPEN, 0)
-                put(w, H_CHILD_HEADER_USED, 0)
-                return pure(o, w, 11, P_SDK, REQUEST, get(w, 200), PURE_OUTPUT, 160, PURE_WORK, 32768)
-    put(w, 216, cursor)
-    if get(w, 224) == 1:
-        if get(w, H_CHILD_FRAME_OPEN) != 0 or get(w, H_CHILD_HEADER_USED) != 0:
-            return 0
-        return enter(w, 6, 100)
-    return read_more(o, w)
-
-def frame_begin(w:mutbuf) -> bool:
-    if get(w, H_CHILD_HEADER) != FRAME_MAGIC:
-        return False
-    size = get(w, H_CHILD_HEADER + 8)
-    slot = get(w, H_CHILD_HEADER + 16)
-    generation = get(w, H_CHILD_HEADER + 24)
-    mode = get(w, H_CHILD_HEADER + 32)
-    if size == 0 or size > 4194304 or mode > 1:
-        return False
-    if slot != NONE and (slot >= TASK_COUNT or generation == 0):
-        return False
-    if slot == NONE and generation != 0:
-        return False
-    if get(w, H_CHILD_HEADER + 40) != 0 or get(w, H_CHILD_HEADER + 48) != 0 or get(w, H_CHILD_HEADER + 56) != 0:
-        return False
-    put(w, H_CHILD_BODY_N, size)
-    put(w, H_ASSIGNED_SLOT, slot)
-    put(w, H_ASSIGNED_GENERATION, generation)
-    put(w, H_CHILD_MODE, mode)
-    put(w, H_CHILD_FRAME_OPEN, 1)
-    put(w, 200, 0)
-    if mode == 1 and get(w, SESSION_PHASE) == 0:
-        put(w, SESSION_PHASE, 2)
-        put(w, SESSION_PHASE + 184, 1)
-    return True
-"""
+CONSUME = '\ndef consume(o:mutbuf, w:mutbuf) -> u32:\n    cursor = get(w, 216)\n    end = get(w, 208)\n    while cursor < end:\n        if get(w, H_CHILD_FRAME_OPEN) == 0:\n            used = get(w, H_CHILD_HEADER_USED)\n            take = 64 - used\n            if take > end - cursor:\n                take = end - cursor\n            copy_state(w, READ_CHUNK + cursor, H_CHILD_HEADER + used, take)\n            cursor = cursor + take\n            used = used + take\n            put(w, H_CHILD_HEADER_USED, used)\n            if used == 64:\n                if frame_begin(w) == False:\n                    return 0\n        else:\n            take = get(w, H_CHILD_BODY_N) - get(w, 200)\n            if take > end - cursor:\n                take = end - cursor\n            copy_state(w, READ_CHUNK + cursor, REQUEST + get(w, 200), take)\n            put(w, 200, get(w, 200) + take)\n            cursor = cursor + take\n            if get(w, 200) == get(w, H_CHILD_BODY_N):\n                put(w, 216, cursor)\n                put(w, H_CHILD_FRAME_OPEN, 0)\n                put(w, H_CHILD_HEADER_USED, 0)\n                return pure(o, w, 11, P_SDK, REQUEST, get(w, 200), PURE_OUTPUT, 160, PURE_WORK, 32768)\n    put(w, 216, cursor)\n    if get(w, 224) == 1:\n        if get(w, H_CHILD_FRAME_OPEN) != 0 or get(w, H_CHILD_HEADER_USED) != 0:\n            return 0\n        return enter(w, 6, 100)\n    return read_more(o, w)\n\ndef frame_begin(w:mutbuf) -> bool:\n    if get(w, H_CHILD_HEADER) != FRAME_MAGIC:\n        return False\n    size = get(w, H_CHILD_HEADER + 8)\n    slot = get(w, H_CHILD_HEADER + 16)\n    generation = get(w, H_CHILD_HEADER + 24)\n    mode = get(w, H_CHILD_HEADER + 32)\n    if size == 0 or size > 4194304 or mode > 1:\n        return False\n    if slot != NONE and (slot >= TASK_COUNT or generation == 0):\n        return False\n    if slot == NONE and generation != 0:\n        return False\n    target=get(w,H_CHILD_HEADER+40)\n    target_generation=get(w,H_CHILD_HEADER+48)\n    if target>TASK_COUNT or (target==0)!=(target_generation==0) or get(w,H_CHILD_HEADER+56)!=0:\n        return False\n    put(w,H_CHILD_CANCEL_SLOT,target)\n    put(w,H_CHILD_CANCEL_GENERATION,target_generation)\n    put(w, H_CHILD_BODY_N, size)\n    put(w, H_ASSIGNED_SLOT, slot)\n    put(w, H_ASSIGNED_GENERATION, generation)\n    put(w, H_CHILD_MODE, mode)\n    put(w, H_CHILD_FRAME_OPEN, 1)\n    put(w, 200, 0)\n    if mode == 1 and get(w, SESSION_PHASE) == 0:\n        put(w, SESSION_PHASE, 2)\n        put(w, SESSION_PHASE + 184, 1)\n    return True\n'
 
 SLOT = r"""
 def free_slot(w:mutbuf) -> u64:
@@ -164,7 +103,9 @@ def stream_source():
         return consume(o, w)'''
     assert value.count(old)==1;value=value.replace(old,new)
     old='''        return pure(o, w, 10, P_SESSION, REQUEST, get(w, 200), SESSION_OUT, 16777728, SESSION_WORK, W_SESSION)'''
-    new='''        if result==160 and get(w,SDK_DESCRIPTOR+8)==1 and get(w,SDK_DESCRIPTOR+16)==1 and get(w,SESSION_PHASE)==0:
+    new='''        if get(w,H_CHILD_CANCEL_SLOT)!=0 and (result!=160 or get(w,SDK_DESCRIPTOR+8)!=2 or get(w,SDK_DESCRIPTOR+16)!=9):
+            return 0
+        if result==160 and get(w,SDK_DESCRIPTOR+8)==1 and get(w,SDK_DESCRIPTOR+16)==1 and get(w,SESSION_PHASE)==0:
             return enter(w,HTTP_CONTEXT,0)
         return enter(w,2,12)
     if phase==12:
@@ -216,6 +157,7 @@ def scheduler_source():
         output_header(w,(row-TASK_TABLE)//TASK_BYTES,get(w,row+72),get(w,1640),0)
         return output_write(o,w,119)'''
     assert value.count(old)==1;value=value.replace(old,new)
+    value=http_scheduler_cancel(value)
     return authored(ast.unparse(ast.parse(value+OUTPUT)),text={
       'response':'hia-mcp-response','failure':'hia-mcp-failure',
       'error_prefix':'{"jsonrpc":"2.0","id":',
@@ -226,6 +168,27 @@ def scheduler_source():
 def render():
     return {name:render_assembly(document(source(),'mcp_http_'+name)) for name,source in (
         ('stream',stream_source),('scheduler',scheduler_source))}
+
+
+def http_scheduler_cancel(value):
+    old='''    if phase == 200:
+        at = get(w, SCHEDULE_DESCRIPTOR + 16)
+        size = get(w, SCHEDULE_DESCRIPTOR + 24)
+        if at > get(w, 200) or size > get(w, 200) - at or size == 0:
+            return 0
+        put(w, 1688, 1)
+        return pure(o, w, 210, P_SDK, REQUEST + at, size, PURE_OUTPUT, 8389120, PURE_WORK, 32768)'''
+    new='''    if phase == 200:
+        target=get(w,H_CHILD_CANCEL_SLOT)
+        if target==0 or target>TASK_COUNT:
+            return enter(w,2,30)
+        row=TASK_TABLE+(target-1)*TASK_BYTES
+        if get(w,row)==0 or get(w,row+72)!=get(w,H_CHILD_CANCEL_GENERATION) or get(w,row+24)!=0:
+            return enter(w,2,30)
+        put(w,1704,row)
+        return call(o,w,201,61,get(w,row),8256,1,0,0,0,12)'''
+    assert value.count(old)==1
+    return value.replace(old,new,1)
 
 if __name__=='__main__':
     root=Path(__file__).resolve().parents[1]

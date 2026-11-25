@@ -15,6 +15,9 @@ PURE=MCP_PURE+HTTP_PURE
 ROLES=COMPONENTS+PURE+('json','sha','bridge','audit')
 COMPANIONS={**MCP_COMPANIONS,**{role:'examples/hia_bootstrap/mcp_'+role+'.hepta' for role in HTTP_PURE}}
 COMPANIONS['http_chunk']='examples/hia_bootstrap/mcp_http_chunked.hepta'
+COMPANIONS['session']='examples/hia_bootstrap/mcp_http_session_policy.hepta'
+COMPANIONS['reply']='examples/hia_bootstrap/mcp_http_reply_policy.hepta'
+COMPANIONS['catalog']='examples/hia_bootstrap/mcp_http_catalog_policy.hepta'
 
 def template():
     with tempfile.TemporaryDirectory(prefix='hia-mcp-service-author-') as temp:
@@ -83,6 +86,9 @@ def packer_source():
     return code + helpers + LINK_SOURCE[LINK_SOURCE.index('\ndef uint('):]
 
 def component_source(name):
+    if name=='dispatch':
+        from tools.generate_hia_mcp_http_presentation import dispatch_source
+        return dispatch_source()
     if name=='stream':
         from tools.generate_hia_mcp_http_child import stream_source
         return stream_source()
@@ -106,6 +112,10 @@ def component_source(name):
     return importlib.import_module('tools.generate_hia_mcp_service_'+name).source()
 
 def source_path(name):
+    if name=='dispatch':return 'examples/hia_bootstrap/mcp_http_dispatch.hepta'
+    if name=='reply':return 'examples/hia_bootstrap/mcp_http_reply_policy.hepta'
+    if name=='catalog':return 'examples/hia_bootstrap/mcp_http_catalog_policy.hepta'
+    if name=='session':return 'examples/hia_bootstrap/mcp_http_session_policy.hepta'
     if name=='bootstrap':return 'examples/hia_bootstrap/mcp_http_controller_bootstrap.hepta'
     if name=='setup':return 'examples/hia_bootstrap/mcp_http_setup.hepta'
     if name=='stream' or name=='scheduler':return 'examples/hia_bootstrap/mcp_http_'+name+'.hepta'
