@@ -1,0 +1,381 @@
+{
+  "schema": "hepta.hia.background-owned-payload.v1",
+  "whole_background_qualified": false,
+  "scope": "Reusable immutable native byte ownership only. Rank, BG worker and runtime assembly are distinct gates.",
+  "build": {
+    "status": "built_unqualified",
+    "components": [
+      {
+        "role": "multiversion_background_payload",
+        "source_sha256": "58b1ea0ec97e0d5e7e88118dfd6fb076218bc9df736a1afe889acb89d115591f",
+        "flat_sha256": "8e9c2b19c195ecf9ecfec3140e7392b57d11be7f120896d0776e88e716e3afa3",
+        "bytes": 84356,
+        "elapsed_ns": 46549096
+      },
+      {
+        "role": "multiversion_background_payload_packer",
+        "source_sha256": "181d40131d81555b23a910da6b54b54a03cf9e9e0933dc91853c3feae4fad581",
+        "flat_sha256": "eb3505f8e4a7996e6f4c739882164aeb0d4a39076e25740b52b8e36eb29105e6",
+        "bytes": 33834,
+        "elapsed_ns": 21122990
+      },
+      {
+        "role": "elf_shared_linker",
+        "source_sha256": "a8aef777d9ada151b5bdf007f30966e9ecff5f72e34a416ae440bb57dc3f204c",
+        "flat_sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff",
+        "bytes": 127874,
+        "elapsed_ns": 64900859
+      }
+    ],
+    "image_bytes": 94992,
+    "image_sha256": "2f754946320efa6061cb29948f12c5ae4104617edb5e581a464bc6399ae961eb",
+    "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+    "mechanical_source_used_only_to_generate_and_verify_fixed_template": true,
+    "actual_pack_and_shared_link": "pure HIA",
+    "whole_background_qualified": false
+  },
+  "qualification": {
+    "schema": "hepta.hia.background-owned-payload.qualification.v1",
+    "whole_background_qualified": false,
+    "scope": "Immutable byte ownership component only; actual malloc/free, getrandom, futex, threads and native reads. No BG/rank business facts are trusted from fixtures.",
+    "image": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-payload-v1/payload-component.so",
+    "image_bytes": 94992,
+    "image_sha256": "2f754946320efa6061cb29948f12c5ae4104617edb5e581a464bc6399ae961eb",
+    "passed": 8,
+    "failed": 0,
+    "actual_native_calls": 13022,
+    "cases": [
+      {
+        "name": "empty-arbitrary-bytes-and-independent-strong-nodes",
+        "passed": true,
+        "elapsed_ns": 597519,
+        "detail": {
+          "empty_and_arbitrary_byte_values": 6,
+          "borrow_lives_while_retained": true
+        }
+      },
+      {
+        "name": "900-fresh-segments-and-boundary-extents",
+        "passed": true,
+        "elapsed_ns": 15239438,
+        "detail": {
+          "random_exact_segments": 900,
+          "boundary_extents": 18
+        }
+      },
+      {
+        "name": "67108865-byte-payload-complete-chunk-and-borrow-equality",
+        "passed": true,
+        "elapsed_ns": 230861955,
+        "detail": {
+          "actual_payload_bytes": 67108865,
+          "actual_chunks": 65,
+          "sha256": "1c59ac3e75dad72b9911b18b7b02db7e848c6d8f04946284be2311f94a1f6a2f",
+          "no_8m_or_64m_payload_cap": true
+        }
+      },
+      {
+        "name": "range-overflow-stale-cross-owner-and-frame-guards",
+        "passed": true,
+        "elapsed_ns": 621203,
+        "detail": {
+          "framing_guards": 90,
+          "range_guards": 6,
+          "short_copy_has_no_partial_payload_write": true
+        }
+      },
+      {
+        "name": "1001-live-refs-and-1000-stale-node-reuse-controls",
+        "passed": true,
+        "elapsed_ns": 726445959,
+        "detail": {
+          "simultaneous_individual_references": 1001,
+          "stale_after_allocator_reuse_rounds": 1000
+        }
+      },
+      {
+        "name": "16-native-futex-threads-1600-reference-cycles",
+        "passed": true,
+        "elapsed_ns": 70847695,
+        "detail": {
+          "actual_threads": 16,
+          "retain_copy_drop_cycles": 1600
+        }
+      },
+      {
+        "name": "actual-fork-pid-refusal",
+        "passed": true,
+        "elapsed_ns": 1652764,
+        "detail": {
+          "actual_fork_refused_without_touching_parent": true
+        }
+      },
+      {
+        "name": "exclusive-final-destruction-and-no-reinitialization",
+        "passed": true
+      }
+    ]
+  },
+  "allocation": {
+    "passed": 6,
+    "failed": 0,
+    "cases": [
+      {
+        "operation": 1,
+        "empty_payload": true,
+        "failed_allocation": 1,
+        "actual_counts": [
+          1,
+          0,
+          0
+        ],
+        "original_owner_unchanged": true,
+        "same_owner_retry": true
+      },
+      {
+        "operation": 1,
+        "empty_payload": true,
+        "failed_allocation": 2,
+        "actual_counts": [
+          2,
+          1,
+          1
+        ],
+        "original_owner_unchanged": true,
+        "same_owner_retry": true
+      },
+      {
+        "operation": 1,
+        "empty_payload": false,
+        "failed_allocation": 1,
+        "actual_counts": [
+          1,
+          0,
+          0
+        ],
+        "original_owner_unchanged": true,
+        "same_owner_retry": true
+      },
+      {
+        "operation": 1,
+        "empty_payload": false,
+        "failed_allocation": 2,
+        "actual_counts": [
+          2,
+          1,
+          1
+        ],
+        "original_owner_unchanged": true,
+        "same_owner_retry": true
+      },
+      {
+        "operation": 2,
+        "empty_payload": true,
+        "failed_allocation": 1,
+        "actual_counts": [
+          1,
+          0,
+          0
+        ],
+        "original_owner_unchanged": true,
+        "same_owner_retry": true
+      },
+      {
+        "name": "1001-distinct-reference-nodes-and-one-object",
+        "counts": [
+          1002,
+          1002,
+          1002
+        ]
+      }
+    ],
+    "image_sha256": "2f754946320efa6061cb29948f12c5ae4104617edb5e581a464bc6399ae961eb",
+    "schema": "hepta.hia.background-owned-payload.allocations.v1",
+    "whole_background_qualified": false,
+    "external_injector_only": true,
+    "injector_source_sha256": "a591c1fab357661127703a03d09bfd5f8c5f2ffe00efe0314bcf0442cdacb3f3"
+  },
+  "packing": {
+    "schema": "hepta.hia.background-owned-payload-pack.qualification.v1",
+    "whole_background_qualified": false,
+    "passed": 24,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "exact-object",
+        "returncode": 85560,
+        "passed": true
+      },
+      {
+        "name": "truncated-0",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-1",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-7",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-8",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-15",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-16",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-23",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-24",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-84379",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-0-0",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-8-0",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-8-2",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-8-18446744073709551615",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-16-0",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-16-84355",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-16-84357",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-16-18446744073709551615",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "extra-byte",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "short-output-0",
+        "returncode": 4294967294,
+        "passed": true
+      },
+      {
+        "name": "short-output-1",
+        "returncode": 4294967294,
+        "passed": true
+      },
+      {
+        "name": "short-output-63",
+        "returncode": 4294967294,
+        "passed": true
+      },
+      {
+        "name": "short-output-85559",
+        "returncode": 4294967294,
+        "passed": true
+      },
+      {
+        "name": "readable-mechanical-source-full-prefix",
+        "bytes": 405,
+        "passed": true
+      }
+    ],
+    "native_packer_sha256": "eb3505f8e4a7996e6f4c739882164aeb0d4a39076e25740b52b8e36eb29105e6",
+    "object_sha256": "e3c20e78c82cb5da59c9529055c0de6850eeeca043cfbfb51a0e76ac1d818685",
+    "source_sha256": "793cc288f6fa9922d4d95dd7463ef81998ba2eac54791b4af15dd5410439eeac",
+    "mechanical_assembly_used_only_as_external_source_provenance_check": true
+  },
+  "ownership_origin": "Qualified multiversion_values separate-node/PID/nonce registry, a1fe464f08bf424bdabd1898fcd92d2083db9dae; the derived owner removes decimal arithmetic and owns opaque immutable bytes.",
+  "files": [
+    {
+      "path": "examples/hia_bootstrap/multiversion_background_payload.hepta",
+      "bytes": 61590,
+      "sha256": "58b1ea0ec97e0d5e7e88118dfd6fb076218bc9df736a1afe889acb89d115591f",
+      "runtime_source": true
+    },
+    {
+      "path": "examples/hia_bootstrap/multiversion_background_payload_packer.hepta",
+      "bytes": 30714,
+      "sha256": "181d40131d81555b23a910da6b54b54a03cf9e9e0933dc91853c3feae4fad581",
+      "runtime_source": true
+    },
+    {
+      "path": "tools/hia_multiversion_background_payload_bridge.S",
+      "bytes": 2452,
+      "sha256": "793cc288f6fa9922d4d95dd7463ef81998ba2eac54791b4af15dd5410439eeac",
+      "runtime_source": true
+    },
+    {
+      "path": "tools/generate_hia_multiversion_background_payload.py",
+      "bytes": 12203,
+      "sha256": "7bcec7dc21bc55fc6d55cb38b7682ee71cb56f1b2b95708924f21bba1ea84efa",
+      "runtime_source": false
+    },
+    {
+      "path": "tools/generate_hia_multiversion_background_payload_packer.py",
+      "bytes": 3127,
+      "sha256": "b933156e9991296058e95be33dfe6f0d709b3bab3dbbf03abcd7603e854a2264",
+      "runtime_source": false
+    },
+    {
+      "path": "tools/qualify_hia_multiversion_background_payload.py",
+      "bytes": 7955,
+      "sha256": "4a079b4b3e850bd41359553859ec92229240086fd9726a8bd2dbf878dc06816e",
+      "runtime_source": false
+    },
+    {
+      "path": "tools/qualify_hia_multiversion_background_payload_allocations.py",
+      "bytes": 3193,
+      "sha256": "5abf21d816abf45a3af517913d188eb496620cc642416e0e9824070cb838de22",
+      "runtime_source": false
+    },
+    {
+      "path": "tools/qualify_hia_multiversion_background_payload_pack.py",
+      "bytes": 2783,
+      "sha256": "ef0a3324e9768a80471214a73cefc8a3f2da54b801064a2ad1df2647fa60ecb1",
+      "runtime_source": false
+    }
+  ]
+}
