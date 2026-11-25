@@ -4,7 +4,7 @@ import struct
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 from tools import generate_hia_multiversion_image_packer as common
-from tools import generate_hia_multiversion_prepare_intake_packer as intake
+from tools import generate_hia_multiversion_prepare_admission_packer as intake
 from tools import generate_hia_multiversion_prepare_proof_packer as proof
 from tools import generate_hia_multiversion_prepare_owner_packer as prepare
 ROOT=Path(__file__).resolve().parents[1]
@@ -12,7 +12,7 @@ OUTER=bytes.fromhex('535541544155415641574881ec880000004989fc4989f74989d54889cd4
 OUTER_HOLES={'generation':114,'retirement':217,'intake':224,'proof':231,'prepare':238,'capture':245,'image':252,'probe':259}
 ROLES=('generation',)+tuple('intake_'+x for x in intake.ROLES)+tuple('proof_'+x for x in proof.ROLES)+tuple('prepare_'+x for x in prepare.ROLES)
 IMPORTS=('dlopen','dlsym','dlclose')
-MAGIC=int.from_bytes(b'HIAMVGK1','little')
+MAGIC=int.from_bytes(b'HIAMVGK2','little')
 def bridges():
     raw=bytearray(OUTER);holes={k:[] for k in ROLES};holes['generation']=[OUTER_HOLES['generation']];rel=[]
     for name,module in [('intake',intake),('proof',proof),('prepare',prepare)]:
@@ -45,7 +45,7 @@ def fixed_parts():
         rows.append(struct.pack('<IIQQQQIIQQ',common.SECTIONS.index(n.encode()+b'\0'),t,f,0,0,z,l,i,a,e))
     return header+BRIDGE,relas,symbols,bytes(strings),b''.join(rows)
 def reference_object(flats):
-    if len(flats)!=len(ROLES) or any(not x or len(x)>4194304 for x in flats):raise ValueError('all thirty actual bounded roles required')
+    if len(flats)!=len(ROLES) or any(not x or len(x)>4194304 for x in flats):raise ValueError('all thirty-one actual bounded roles required')
     prefix,relas,symbols,strings,sections=fixed_parts();raw=bytearray(prefix)
     for name,part in zip(ROLES,flats):
         raw.extend(bytes((-len(raw))%16))
@@ -62,7 +62,7 @@ def reference_object(flats):
 def source_program():
     prefix,relas,symbols,strings,sections=fixed_parts();tail=relas+symbols+strings+common.SECTIONS
     n=len(ROLES);head=16+8*n;functions=[];calls={}
-    assert n==30
+    assert n==31
     for name,raw in [('prefix',prefix),('tail',tail),('sections',sections)]:
         calls[name],src=common.emitters(name,raw);functions.append(src)
     src=f'''def pack(s:readbuf,o:mutbuf,w:mutbuf) -> u32:

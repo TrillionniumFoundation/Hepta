@@ -12,6 +12,7 @@ from tools.generate_hia_artifact_publication import document
 from tools.generate_hia_multiversion_intake import SOURCE as HELPERS
 ROOT=Path(__file__).resolve().parents[1]
 C={
+ 'STRICT':int.from_bytes(b'HIAMVGX2','little'),'STRICT_INTAKE':int.from_bytes(b'HIAMVNQ2','little'),
  'REQUEST':int.from_bytes(b'HIAMVGX1','little'),'REPLY':int.from_bytes(b'HIAMVGD1','little'),
  'STATE':int.from_bytes(b'HIAMVGW1','little'),'INTAKE':int.from_bytes(b'HIAMVNQ1','little'),
  'INTAKE_REPLY':int.from_bytes(b'HIAMVNP1','little'),'PROOF':int.from_bytes(b'HIAMVPF1','little'),
@@ -43,10 +44,10 @@ def runtime_generation(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return 4294967293
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)<256 or readword(s,0)!=REQUEST:
+    if length(s)<256 or (readword(s,0)!=REQUEST and readword(s,0)!=STRICT):
         return 4294967293
     op=readword(s,8)
-    if op>6:
+    if op>6 or (readword(s,0)==STRICT and op!=0):
         return 4294967293
     if op==0:
         return initialize(s,o,w)
@@ -100,9 +101,15 @@ def initialize(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     if raw>length(s)-256 or base>length(s)-256-raw or abi>length(s)-256-raw-base or path!=length(s)-256-raw-base-abi:
         return 4294967293
-    if readword(s,40)==0 or readword(s,40)>30000 or readword(s,48)==0 or readword(s,56)==0:
+    strict=readword(s,0)==STRICT
+    digits=readword(s,120)
+    if readword(s,40)==0 or readword(s,40)>30000 or readword(s,56)==0:
         return 4294967293
-    if readword(s,64)>1 or readword(s,72)>1 or readword(s,112)!=0 or readword(s,120)!=0:
+    if (strict==False and readword(s,48)==0) or (strict and readword(s,48)!=0):
+        return 4294967293
+    if readword(s,64)>1 or readword(s,72)>1 or readword(s,112)!=0:
+        return 4294967293
+    if (strict==False and digits!=0) or (strict and digits!=0 and (digits<640 or digits>2147483647)):
         return 4294967293
     i=224
     while i<256:
@@ -128,6 +135,10 @@ def initialize(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         i=i+1
     zero(w,CTRL,4096)
     put(w,CTRL+16,STATE)
+    put(w,CTRL+2600,0)
+    if strict:
+        put(w,CTRL+2600,1)
+    put(w,CTRL+2608,digits)
     put(w,CTRL+48,readword(s,16))
     put(w,CTRL+56,readword(s,24))
     put(w,CTRL+64,readword(s,32))
@@ -149,6 +160,9 @@ def initialize(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     copy_input(s,at,w,PATH,path)
     zero(w,FRAME,128)
     put(w,FRAME,INTAKE)
+    if strict:
+        put(w,FRAME,STRICT_INTAKE)
+        put(w,FRAME+48,digits)
     put(w,FRAME+8,get(w,CTRL+72))
     put(w,FRAME+16,get(w,CTRL+48))
     put(w,FRAME+24,get(w,CTRL+96))

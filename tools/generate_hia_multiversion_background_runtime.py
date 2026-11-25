@@ -7,6 +7,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_artifact_publication import document
 ROOT=Path(__file__).resolve().parents[1]
 C={
+'STRICT_CONTROL':int.from_bytes(b'HIAMVBC2','little'),'STRICT_EXMAG':int.from_bytes(b'HIAMVEX5','little'),
 'REQUEST':int.from_bytes(b'HIAMVBQ1','little'),'CONTROL':int.from_bytes(b'HIAMVBC1','little'),
 'REPLY':int.from_bytes(b'HIAMVBO1','little'),'STATE':int.from_bytes(b'HIAMBPC1','little'),
 'HREQMAG':int.from_bytes(b'HIAMVHQ1','little'),'HREPMAG':int.from_bytes(b'HIAMVHR1','little'),
@@ -51,8 +52,10 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     magic=word(s,0)
     op=word(s,8)
     family=0
-    if magic==CONTROL:
+    if magic==CONTROL or magic==STRICT_CONTROL:
         family=1
+        if magic==STRICT_CONTROL and op!=1:
+            return 4294967293
         if op>2:
             return 4294967293
         n=word(s,72)
@@ -64,7 +67,12 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
                 return 4294967293
             at=at+8
         if op==1:
-            if n<256 or n>20971520 or word(s,128)!=EXMAG or word(s,136)!=0:
+            if n<256 or n>20971520 or word(s,136)!=0:
+                return 4294967293
+            expected=EXMAG
+            if magic==STRICT_CONTROL:
+                expected=STRICT_EXMAG
+            if word(s,128)!=expected:
                 return 4294967293
         elif n!=0:
             return 4294967293
