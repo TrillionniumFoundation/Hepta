@@ -1,0 +1,11 @@
+# Native HTTP chunked request decoding
+
+The checked-in HIA source owns incremental HTTP/1 chunked framing. It is compiled by the native HIA source compiler with an empty PATH. It does not invoke Rust, Python, C, or a shell while serving a request.
+
+The private six-word entry accepts at most 65,536 network bytes per call, an output span of at least 128 plus the input size, and exactly 32,768 persistent workspace bytes. Output word zero carries caller control: 1 resets and consumes, 0 continues, and 2 marks EOF after consuming the segment. Invalid ABI returns 0xfffffffd. Valid output is HIAHCK01, status (need more / done / error), consumed bytes, decoded byte count, error ID, cumulative extension count, trailer count, and trailer bytes. The remaining header bytes are zero and decoded data begins at 128. The parent retains pipelined bytes, owns IO, and enforces the original 4 MiB request-body limit.
+
+The implementation matches Hyper 1.11.1, the version recorded by the frozen runtime's actual Cargo.lock and embedded source paths. Qualification includes 2,192 original-decoder cases in three fragmentation patterns, 77,980 native calls, 19 private ABI/state cases, and 25 actual frozen HTTP chunk cases replayed through the native role. Input, output, and workspace canaries are checked. Grammar, u64 size overflow, extension and trailer byte boundaries, all 256 bytes in five positions, 0 through 102 trailer lines, malformed EOF, duplicate trailers, and preserved pipeline tails are covered.
+
+Exactly 100 CRLF trailer rows are accepted; 101 are rejected. The older Hyper 1.8.1 decoder had an additional end-state check that incorrectly reduced this to 99. That initial qualification is retained as diagnostic evidence and is not the final dependency oracle. Trailer bytes and cumulative extension bytes reject at 16,384.
+
+Malformed chunked request bodies map to the frozen service's HTTP 500 body: Failed to read request body: error reading a body from connection. The native role returns internal error IDs; the HTTP parent owns the final response. This checkpoint closes the chunk decoder component only. Complete listener, session, cancellation, SSE, and protocol behavior require the composed HTTP qualification.
