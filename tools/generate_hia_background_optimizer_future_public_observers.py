@@ -440,7 +440,7 @@ def waiting(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return memory(o,302,0,get(o,NODE),3,HEADER,256)
     if phase==302:
         pending=get(o,HEADER+88)
-        if pending==0 or (get(o,WHEN)==0 and get(o,HEADER+72)!=0) or get(o,FOUND)!=0:
+        if pending==0 or (get(o,WHEN)==0 and get(o,HEADER+72)!=0) or get(o,FOUND)!=0 or (get(o,WHEN)==1 and get(o,HEADER+208)!=0):
             return again(o,390)
         if get(o,WHEN)>2:
             return failure(o,1,105)
@@ -492,13 +492,21 @@ def exceptions(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return again(o,300)
         if get(o,CHILD+16)!=4:
             return failure(o,1,107)
-        put(o,FOUND,1)
+        within(o,VALUECAP,CHILD+72,24)
+        value_packet(o,7)
+        within(o,RQ+24,VALUECAP,24)
+        return value(o,w,408)
+    if phase==408:
+        if value_ok(o)==False or get(o,CHILD+16)>7:
+            return failure(o,1,107)
+        put(o,FOUND,choose(get(o,CHILD+16)!=0,1,0))
         value_packet(o,6)
-        within(o,RQ+24,CHILD+72,24)
+        within(o,RQ+24,VALUECAP,24)
         return value(o,w,407)
     if phase==407:
         if value_ok(o)==False:
             return failure(o,1,107)
+        zero(o,VALUECAP,24)
         return again(o,300)
     return failure(o,1,107)
 

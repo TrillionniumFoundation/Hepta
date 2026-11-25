@@ -9,13 +9,13 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={
-"MAGIC":int.from_bytes("HIABFP01".encode(),'little'),
+"MAGIC":int.from_bytes("HIABFP01".encode(),'little'),"MAGIC2":int.from_bytes(b"HIABFP02",'little'),
 "REPLY":int.from_bytes("HIABFRP1".encode(),'little'),
 "STATE":int.from_bytes("HIABFPS1".encode(),'little'),
 "OBJECT":int.from_bytes("HIABFPO1".encode(),'little'),
 "NMAGIC":int.from_bytes("HIABFPL1".encode(),'little'),
 "FMAGIC":int.from_bytes("HIABFPA1".encode(),'little'),
-"FREQUEST":int.from_bytes("HIABFQ01".encode(),'little'),
+"FREQUEST":int.from_bytes("HIABFQ01".encode(),'little'),"FREQUEST3":int.from_bytes(b"HIABFQ03",'little'),
 "FREPLY":int.from_bytes("HIABFR01".encode(),'little'),
 "VREQUEST":int.from_bytes("HIABVQ01".encode(),'little'),
 "VREPLY":int.from_bytes("HIABVR01".encode(),'little'),
@@ -73,7 +73,7 @@ C={
 "FP":8192,
 "VP":24576,
 "CP":32768,
-"OUT":65536
+"OUT":65536,"LOG_REQUEST2":int.from_bytes(b"HIAFPL02","little"),"LOG_REPLY":int.from_bytes(b"HIAFPLR1","little"),"NOTIFY3":int.from_bytes(b"HIABFN03","little"),"NOTIFY_REPLY":int.from_bytes(b"HIABFNR1","little"),"EVAL_CAP":1536,"ERROR_CAP":1560,"MSG_CAP":1584,"KEY_CAP":1608,"CLASS_CAP":1632,"TYPE_CAP":1656,"EPTR":1680,"EN":1688,"EPREFIX":1696,"ETYPE_N":1704,"EOFF":1712,"ESTATE":1720,"ENOT":1728,"EMODE":1736,"EKIND":1744,"ECLASS":1752,"ETYPE":1760,"ETRUTH":1768,"EAFTER":1776,"EERROR":1784,"EKEYFIELD":1792,"EIDENT":1800,"ECOPY_N":1808,"ECLEAN":1840,"EVAL_AT":1848,"EACTIVE":1856,"EBUF":49152
 }
 SOURCE=r'''
 def future_public(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -82,6 +82,8 @@ def future_public(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,PHASE)
     if phase==0:
         return begin(s,o,w)
+    if phase>=1000:
+        return inherited(s,o,w,phase)
     if phase<100:
         return locks(s,o,w,phase)
     if phase<120:
@@ -103,9 +105,17 @@ def future_public(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)!=192 or readword(s,0)!=MAGIC or readword(s,8)>21:
+    if length(s)!=192:
         return 4294967293
     op=readword(s,8)
+    if readword(s,0)==MAGIC:
+        if op>21:
+            return 4294967293
+    elif readword(s,0)==MAGIC2:
+        if op<22 or op>25:
+            return 4294967293
+    else:
+        return 4294967293
     at=16
     while at<192:
         used=False
@@ -113,11 +123,11 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             used=True
         if op>=2 and op<=17 and at>=16 and at<=56:
             used=True
-        if (op==19 or op==21) and at>=16 and at<=56:
+        if (op==19 or op==21 or op>=22) and at>=16 and at<=56:
             used=True
-        if (op==12 or op==13) and at>=64 and at<=80:
+        if (op==12 or op==13 or op==22 or op==23) and at>=64 and at<=80:
             used=True
-        if op==12 and at==96:
+        if (op==12 or op==22 or op==23) and at==96:
             used=True
         if op==13 and at==88:
             used=True
@@ -126,7 +136,7 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if used==False and readword(s,at)!=0:
             return 4294967293
         at=at+8
-    if op==12 and (readword(s,96)<1 or readword(s,96)>3):
+    if (op==12 or op==22 or op==23) and (readword(s,96)<1 or readword(s,96)>3):
         return 4294967293
     if op==13 and readword(s,88)==0:
         return 4294967293
@@ -448,7 +458,7 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             zero(o,FUTURE_TEMP,24)
             return fail(o,0,2)
         op=get(o,OP)
-        if op==7 or op==8 or op==12 or op==13:
+        if op==7 or op==8 or op==12 or op==13 or op==22 or op==23:
             return address(o,400,FRAME)
         return unlock(o,310)
     if phase==303:
@@ -496,9 +506,17 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             k=11
         elif op==21:
             k=6
+        elif op==22:
+            k=15
+        elif op==23:
+            k=16
+        elif op==24:
+            k=17
+        elif op==16 or op==25:
+            k=18
         cell_packet(o,k)
         within(o,RQ+24,FUTURE_TEMP,24)
-        if op==12:
+        if op==12 or op==22 or op==23:
             copy_input(s,64,o,RQ+48,24)
             put(o,RQ+80,readword(s,96))
         return cell(o,w,320)
@@ -518,8 +536,19 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
                 return again(o,510)
             copy_input(s,0,o,RQ,192)
             return invoke(o,500,get(w,168),RQ,192,VP,16384,get(o,WPTR),256)
+        if (op==22 or op==23) and get(o,FP+40)==6:
+            return error_begin(o,w,1)
+        if op==24 and get(o,FP+40)==7:
+            return error_begin(o,w,2)
         if get(o,FP+40)!=0:
             return fail(o,1,kernel_error(get(o,FP+40)))
+        if op==24:
+            put(o,SCALAR,get(o,FP+64))
+            if get(o,SCALAR)==0:
+                cell_packet(o,6)
+                within(o,RQ+24,FUTURE_TEMP,24)
+                return cell(o,w,1021)
+            return fail(o,0,1)
         if op==21:
             put(o,SCALAR,get(o,FP+64))
             return fail(o,0,7)
@@ -532,8 +561,8 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if op==15:
             put(o,SCALAR,choose(get(o,FP+48)==1,1,0))
             return fail(o,0,1)
-        if op==16:
-            put(o,SCALAR,0)
+        if op==16 or op==25:
+            put(o,SCALAR,get(o,FP+64))
             return fail(o,0,1)
         if op==9 or op==19:
             put(o,SCALAR,get(o,FP+48))
@@ -615,7 +644,7 @@ def results(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         save_cell(o)
         if get(o,FP+40)!=0:
             return fail(o,1,kernel_error(get(o,FP+40)))
-        if get(o,FP+72)<1 or get(o,FP+72)>3:
+        if get(o,FP+72)<1 or get(o,FP+72)>6:
             return fail(o,1,107)
         within(o,RESULT_VALUE,FP+80,24)
         if get(o,OP)==11:
@@ -626,6 +655,11 @@ def results(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return fail(o,0,4)
         if get(o,FP+72)==1:
             return fail(o,0,4)
+        if get(o,FP+72)>=4:
+            put(o,EKIND,get(o,FP+72))
+            put(o,EVAL_AT,RESULT_VALUE)
+            put(o,EAFTER,1110)
+            return again(o,1100)
         return fail(o,get(o,FP+72)-1,200)
     return fail(o,1,107)
 
@@ -684,6 +718,8 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==900:
+        if get(o,EACTIVE)!=0:
+            return again(o,1400)
         if get(o,NEWLEASE)!=0:
             ptr=get(o,NEWLEASE)
             put(o,NEWLEASE,0)
@@ -770,7 +806,7 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cell_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,192)
-    put(o,RQ,FREQUEST)
+    put(o,RQ,choose(op>=15,FREQUEST3,FREQUEST))
     put(o,RQ+8,op)
     return 0
 def value_packet(o:mutbuf,op:u64) -> u64:
@@ -966,6 +1002,781 @@ def choose(test:bool,yes:u64,no:u64) -> u64:
 def narrow(n:u64) -> u32:
     return n
 '''
+SOURCE+=r'''
+def inherited(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase<1100:
+        return inherited_error(s,o,w,phase)
+    if phase<1200:
+        return inherited_value(s,o,w,phase)
+    if phase<1300:
+        return inherited_message(s,o,w,phase)
+    if phase<1400:
+        return inherited_record(s,o,w,phase)
+    return inherited_cleanup(s,o,w,phase)
+
+def error_begin(o:mutbuf,w:mutbuf,kind:u64) -> u32:
+    put(o,EACTIVE,1)
+    put(o,EERROR,kind)
+    put(o,ESTATE,get(o,FP+48))
+    put(o,ENOT,get(o,FP+136))
+    put(o,EMODE,get(o,FP+144))
+    cell_packet(o,6)
+    within(o,RQ+24,FUTURE_TEMP,24)
+    return cell(o,w,1001)
+
+def inherited_error(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1001:
+        if cell_ok(o)==False:
+            return inherited_fail(o,107)
+        put(o,EIDENT,get(o,FP+64))
+        if get(o,EERROR)==2:
+            zero(o,RQ,192)
+            put(o,RQ,LOG_REQUEST2)
+            put(o,RQ+8,get(o,EIDENT))
+            put(o,RQ+16,state_code(get(o,ESTATE),get(o,ENOT),1))
+            return invoke(o,1004,get(w,176),RQ,192,CP,16384,get(o,WPTR),256)
+        cell_packet(o,19)
+        within(o,RQ+24,FUTURE_TEMP,24)
+        return cell(o,w,1002)
+    if phase==1002:
+        if cell_ok(o)==False:
+            return cell_error(o)
+        if get(o,FP+40)!=0:
+            return inherited_fail(o,107)
+        put(o,EKIND,get(o,FP+72))
+        put(o,ECLASS,get(o,FP+152))
+        within(o,EVAL_CAP,FP+80,24)
+        if get(o,ESTATE)!=2:
+            return again(o,1200)
+        if get(o,EVAL_CAP)==0 or get(o,EKIND)<1 or get(o,EKIND)>6:
+            return inherited_fail(o,107)
+        if get(o,EKIND)==1:
+            put(o,ETRUTH,0)
+            return again(o,1120)
+        put(o,EVAL_AT,EVAL_CAP)
+        put(o,EAFTER,1010)
+        return again(o,1100)
+    if phase==1004:
+        if get(o,FEEDBACK)!=0 or get(o,CP)!=LOG_REPLY or get(o,CP+8)!=0:
+            return inherited_fail(o,107)
+        return again(o,1200)
+    if phase==1021:
+        if cell_ok(o)==False:
+            return inherited_fail(o,107)
+        zero(o,RQ,64)
+        put(o,RQ,NOTIFY3)
+        put(o,RQ+8,get(o,FP+64))
+        return invoke(o,1022,get(w,184),RQ,64,CP,8192,get(o,WPTR),256)
+    if phase==1022:
+        if get(o,FEEDBACK)!=0 or get(o,CP)!=NOTIFY_REPLY or get(o,CP+8)!=0:
+            return inherited_fail(o,107)
+        return fail(o,0,1)
+    if phase==1010:
+        if get(o,ETRUTH)==0:
+            put(o,ETYPE,0)
+            return again(o,1200)
+        return again(o,1120)
+    return inherited_fail(o,107)
+
+def inherited_value(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1100:
+        value_packet(o,7)
+        within(o,RQ+24,get(o,EVAL_AT),24)
+        return value(o,w,1101)
+    if phase==1101:
+        if value_ok(o)==False or get(o,VP+16)>7:
+            return inherited_fail(o,107)
+        typ=get(o,VP+16)
+        put(o,ETYPE,typ)
+        if get(o,EAFTER)==1110:
+            put(o,ETRUTH,choose(typ!=0,1,0))
+            return again(o,1110)
+        if typ==0:
+            put(o,ETRUTH,0)
+            return again(o,get(o,EAFTER))
+        if typ>=4:
+            put(o,ETRUTH,choose(get(o,VP+48)!=0,1,0))
+            return again(o,get(o,EAFTER))
+        if typ==2 and get(o,VP+72)>1:
+            put(o,ETRUTH,1)
+            return again(o,get(o,EAFTER))
+        amount=1
+        if typ==3:
+            amount=8
+        value_packet(o,19)
+        within(o,RQ+24,get(o,EVAL_AT),24)
+        put(o,RQ+112,amount)
+        return value_wide(o,w,1102,128,8200)
+    if phase==1102:
+        if value_ok(o)==False:
+            return inherited_fail(o,107)
+        typ=get(o,ETYPE)
+        if typ==3:
+            if get(o,VP+64)!=8:
+                return inherited_fail(o,107)
+            put(o,ETRUTH,choose((get(o,VP+8192)&9223372036854775807)!=0,1,0))
+        else:
+            if get(o,VP+64)!=1:
+                return inherited_fail(o,107)
+            expected=0
+            if typ==2:
+                expected=48
+            put(o,ETRUTH,choose(byte(o,VP+8192)!=expected,1,0))
+        return again(o,get(o,EAFTER))
+    if phase==1110:
+        if get(o,ETRUTH)==0:
+            within(o,DISCARD_VALUE,RESULT_VALUE,24)
+            zero(o,RESULT_VALUE,24)
+            return fail(o,0,0)
+        kind=get(o,EKIND)
+        if kind==5 or kind==6:
+            return fail(o,kind-4,200)
+        within(o,DISCARD_VALUE,RESULT_VALUE,24)
+        zero(o,RESULT_VALUE,24)
+        put(o,EACTIVE,1)
+        put(o,EERROR,3)
+        return again(o,1200)
+    if phase==1120:
+        value_packet(o,7)
+        within(o,RQ+24,EVAL_CAP,24)
+        return value(o,w,1121)
+    if phase==1121:
+        if value_ok(o)==False or get(o,VP+16)>7:
+            return inherited_fail(o,107)
+        put(o,ETYPE,get(o,VP+16))
+        kind=get(o,EKIND)
+        typed=(kind==1 and get(o,ECLASS)>=2) or kind==2 or kind==3 or kind==5 or kind==6
+        if typed==False:
+            return again(o,1200)
+        value_packet(o,2)
+        n=inherited_literal(o,RQ+128,0)
+        put(o,RQ+96,n)
+        put(o,RQ+104,4)
+        return value_wide(o,w,1122,128+n,8192)
+    if phase==1122:
+        if value_ok(o)==False:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        within(o,KEY_CAP,VP+24,24)
+        value_packet(o,9)
+        within(o,RQ+24,EVAL_CAP,24)
+        within(o,RQ+48,KEY_CAP,24)
+        return value(o,w,1123)
+    if phase==1123:
+        if value_ok(o)==False:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        within(o,TYPE_CAP,VP+24,24)
+        value_packet(o,6)
+        within(o,RQ+24,KEY_CAP,24)
+        return value(o,w,1124)
+    if phase==1124:
+        if value_ok(o)==False:
+            return inherited_fail(o,107)
+        zero(o,KEY_CAP,24)
+        value_packet(o,7)
+        within(o,RQ+24,TYPE_CAP,24)
+        return value(o,w,1125)
+    if phase==1125:
+        if value_ok(o)==False or get(o,VP+16)!=4:
+            return inherited_fail(o,107)
+        put(o,ETYPE_N,get(o,VP+72))
+        return again(o,1200)
+    return inherited_fail(o,107)
+
+def inherited_message(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1200:
+        n=error_prefix(o)
+        put(o,EPREFIX,n)
+        size=get(o,ETYPE_N)
+        if get(o,TYPE_CAP)==0:
+            size=0
+        if size>MAX-n-129:
+            return inherited_fail(o,103)
+        total=n+size
+        if get(o,TYPE_CAP)!=0:
+            total=total+1
+        put(o,EN,total)
+        put(o,EOFF,0)
+        return allocate(o,1201,128+total)
+    if phase==1201:
+        ptr=get(o,FEEDBACK)
+        if ptr==0:
+            return inherited_fail(o,103)
+        put(o,EPTR,ptr)
+        value_packet(o,2)
+        put(o,RQ+96,get(o,EN))
+        put(o,RQ+104,4)
+        return memory(o,1202,3,RQ,0,ptr,128)
+    if phase==1202:
+        return memory(o,1203,3,EBUF,0,get(o,EPTR)+128,get(o,EPREFIX))
+    if phase==1203:
+        if get(o,TYPE_CAP)==0:
+            return again(o,1208)
+        if get(o,EOFF)==get(o,ETYPE_N):
+            store(o,EBUF,62)
+            return memory(o,1208,3,EBUF,0,get(o,EPTR)+128+get(o,EPREFIX)+get(o,EOFF),1)
+        n=get(o,ETYPE_N)-get(o,EOFF)
+        if n>1024:
+            n=1024
+        put(o,ECOPY_N,n)
+        value_packet(o,19)
+        within(o,RQ+24,TYPE_CAP,24)
+        put(o,RQ+104,get(o,EOFF))
+        put(o,RQ+112,n)
+        return value_wide(o,w,1204,128,9216)
+    if phase==1204:
+        if value_ok(o)==False or get(o,VP+64)!=get(o,ECOPY_N):
+            return inherited_fail(o,107)
+        return memory(o,1205,3,VP+8192,0,get(o,EPTR)+128+get(o,EPREFIX)+get(o,EOFF),get(o,ECOPY_N))
+    if phase==1205:
+        put(o,EOFF,get(o,EOFF)+get(o,ECOPY_N))
+        return again(o,1203)
+    if phase==1208:
+        return invoke_absolute(o,1209,get(w,72),get(o,EPTR),128+get(o,EN),VP,8192,get(w,112),get(w,120))
+    if phase==1209:
+        if value_ok(o)==False:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        within(o,MSG_CAP,VP+24,24)
+        ptr=get(o,EPTR)
+        put(o,EPTR,0)
+        return deallocate(o,1300,ptr)
+    return inherited_fail(o,107)
+
+def inherited_record(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1300:
+        value_packet(o,4)
+        return value(o,w,1301)
+    if phase==1301:
+        if value_ok(o)==False:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        within(o,ERROR_CAP,VP+24,24)
+        value_packet(o,2)
+        n=inherited_literal(o,RQ+128,1+get(o,EERROR))
+        put(o,RQ+96,n)
+        put(o,RQ+104,4)
+        return value_wide(o,w,1302,128+n,8192)
+    if phase==1302:
+        if value_ok(o)==False:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        within(o,CLASS_CAP,VP+24,24)
+        put(o,EKEYFIELD,0)
+        return again(o,1303)
+    if phase==1303:
+        value_packet(o,2)
+        n=inherited_literal(o,RQ+128,get(o,EKEYFIELD))
+        put(o,RQ+96,n)
+        put(o,RQ+104,4)
+        return value_wide(o,w,1304,128+n,8192)
+    if phase==1304:
+        if value_ok(o)==False:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        within(o,KEY_CAP,VP+24,24)
+        value_packet(o,10)
+        within(o,RQ+24,ERROR_CAP,24)
+        within(o,RQ+48,KEY_CAP,24)
+        at=CLASS_CAP
+        if get(o,EKEYFIELD)==1:
+            at=MSG_CAP
+        within(o,RQ+72,at,24)
+        return value(o,w,1305)
+    if phase==1305:
+        if value_ok(o)==False:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        value_packet(o,6)
+        within(o,RQ+24,KEY_CAP,24)
+        return value(o,w,1306)
+    if phase==1306:
+        if value_ok(o)==False:
+            return inherited_fail(o,107)
+        zero(o,KEY_CAP,24)
+        if get(o,EKEYFIELD)==0:
+            put(o,EKEYFIELD,1)
+            return again(o,1303)
+        within(o,RESULT_VALUE,ERROR_CAP,24)
+        zero(o,ERROR_CAP,24)
+        return fail(o,1,200)
+    return inherited_fail(o,107)
+
+def inherited_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1400:
+        i=EVAL_CAP
+        while i<=TYPE_CAP:
+            if get(o,i)!=0:
+                put(o,ECLEAN,i)
+                value_packet(o,6)
+                within(o,RQ+24,i,24)
+                return value(o,w,1401)
+            i=i+24
+        if get(o,EPTR)!=0:
+            ptr=get(o,EPTR)
+            put(o,EPTR,0)
+            return deallocate(o,1400,ptr)
+        put(o,EACTIVE,0)
+        return again(o,900)
+    if phase==1401:
+        if value_ok(o)==False:
+            put(o,CLEANUP_FAILED,1)
+        zero(o,get(o,ECLEAN),24)
+        return again(o,1400)
+    return fail(o,1,107)
+
+def inherited_fail(o:mutbuf,kind:u64) -> u32:
+    if get(o,RESULT_VALUE)!=0:
+        within(o,DISCARD_VALUE,RESULT_VALUE,24)
+        zero(o,RESULT_VALUE,24)
+    return fail(o,1,kind)
+
+def state_code(state:u64,notified:u64,running:u64) -> u64:
+    if state==1:
+        return choose(notified!=0,3,2)
+    if state==2:
+        return 4
+    return choose(running!=0,1,0)
+
+def error_prefix(o:mutbuf) -> u64:
+    kind=get(o,EERROR)
+    if kind==2:
+        return inherited_literal(o,EBUF,5)
+    if kind==3:
+        return inherited_literal(o,EBUF,6)
+    code=state_code(get(o,ESTATE),get(o,ENOT),0)
+    at=EBUF
+    at=at+inherited_literal(o,at,7+code)
+    at=at+inherited_literal(o,at,12)
+    at=write_hex(o,at,get(o,EIDENT))
+    at=at+inherited_literal(o,at,13)
+    at=at+inherited_literal(o,at,14+choose(get(o,ESTATE)==2,1,0))
+    if get(o,ESTATE)==2:
+        at=at+inherited_literal(o,at,16+choose(get(o,ETRUTH)!=0,1,0))
+        if get(o,TYPE_CAP)!=0:
+            return at-EBUF
+        at=at+inherited_literal(o,at,18+get(o,ETYPE))
+    store(o,at,62)
+    return at-EBUF+1
+
+def write_hex(o:mutbuf,at:u64,value:u64) -> u64:
+    i=16
+    started=False
+    while i!=0:
+        i=i-1
+        digit=(value>>(i*4))&15
+        if digit!=0 or started or i==0:
+            store(o,at,choose(digit<10,48+digit,87+digit))
+            at=at+1
+            started=True
+    return at
+
+def value_wide(o:mutbuf,w:mutbuf,next:u64,sn:u64,on:u64) -> u32:
+    return invoke(o,next,get(w,72),RQ,sn,VP,on,get(w,112),get(w,120))
+
+def invoke_absolute(o:mutbuf,next:u64,fn:u64,src:u64,sn:u64,dest:u64,dn:u64,ctx:u64,cn:u64) -> u32:
+    put(o,PHASE,next)
+    put(o,0,fn)
+    put(o,8,48)
+    put(o,16,src)
+    put(o,24,sn)
+    put(o,32,dest)
+    put(o,40,dn)
+    put(o,48,ctx)
+    put(o,56,cn)
+    return 9
+
+def inherited_literal(o:mutbuf,at:u64,index:u64) -> u64:
+    if index<2:
+        return inherited_literal_0(o,at,index)
+    if index<4:
+        return inherited_literal_1(o,at,index)
+    if index<6:
+        return inherited_literal_2(o,at,index)
+    if index<8:
+        return inherited_literal_3(o,at,index)
+    if index<10:
+        return inherited_literal_4(o,at,index)
+    if index<12:
+        return inherited_literal_5(o,at,index)
+    if index<14:
+        return inherited_literal_6(o,at,index)
+    if index<16:
+        return inherited_literal_7(o,at,index)
+    if index<18:
+        return inherited_literal_8(o,at,index)
+    if index<20:
+        return inherited_literal_9(o,at,index)
+    if index<22:
+        return inherited_literal_10(o,at,index)
+    if index<24:
+        return inherited_literal_11(o,at,index)
+    if index<26:
+        return inherited_literal_12(o,at,index)
+    return 0
+
+def inherited_literal_0(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==0:
+        store(o,at+0,99)
+        store(o,at+1,108)
+        store(o,at+2,97)
+        store(o,at+3,115)
+        store(o,at+4,115)
+        return 5
+    if index==1:
+        store(o,at+0,109)
+        store(o,at+1,101)
+        store(o,at+2,115)
+        store(o,at+3,115)
+        store(o,at+4,97)
+        store(o,at+5,103)
+        store(o,at+6,101)
+        return 7
+    return 0
+
+def inherited_literal_1(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==2:
+        store(o,at+0,73)
+        store(o,at+1,110)
+        store(o,at+2,118)
+        store(o,at+3,97)
+        store(o,at+4,108)
+        store(o,at+5,105)
+        store(o,at+6,100)
+        store(o,at+7,83)
+        store(o,at+8,116)
+        store(o,at+9,97)
+        store(o,at+10,116)
+        store(o,at+11,101)
+        store(o,at+12,69)
+        store(o,at+13,114)
+        store(o,at+14,114)
+        store(o,at+15,111)
+        store(o,at+16,114)
+        return 17
+    if index==3:
+        store(o,at+0,82)
+        store(o,at+1,117)
+        store(o,at+2,110)
+        store(o,at+3,116)
+        store(o,at+4,105)
+        store(o,at+5,109)
+        store(o,at+6,101)
+        store(o,at+7,69)
+        store(o,at+8,114)
+        store(o,at+9,114)
+        store(o,at+10,111)
+        store(o,at+11,114)
+        return 12
+    return 0
+
+def inherited_literal_2(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==4:
+        store(o,at+0,84)
+        store(o,at+1,121)
+        store(o,at+2,112)
+        store(o,at+3,101)
+        store(o,at+4,69)
+        store(o,at+5,114)
+        store(o,at+6,114)
+        store(o,at+7,111)
+        store(o,at+8,114)
+        return 9
+    if index==5:
+        store(o,at+0,70)
+        store(o,at+1,117)
+        store(o,at+2,116)
+        store(o,at+3,117)
+        store(o,at+4,114)
+        store(o,at+5,101)
+        store(o,at+6,32)
+        store(o,at+7,105)
+        store(o,at+8,110)
+        store(o,at+9,32)
+        store(o,at+10,117)
+        store(o,at+11,110)
+        store(o,at+12,101)
+        store(o,at+13,120)
+        store(o,at+14,112)
+        store(o,at+15,101)
+        store(o,at+16,99)
+        store(o,at+17,116)
+        store(o,at+18,101)
+        store(o,at+19,100)
+        store(o,at+20,32)
+        store(o,at+21,115)
+        store(o,at+22,116)
+        store(o,at+23,97)
+        store(o,at+24,116)
+        store(o,at+25,101)
+        return 26
+    return 0
+
+def inherited_literal_3(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==6:
+        store(o,at+0,101)
+        store(o,at+1,120)
+        store(o,at+2,99)
+        store(o,at+3,101)
+        store(o,at+4,112)
+        store(o,at+5,116)
+        store(o,at+6,105)
+        store(o,at+7,111)
+        store(o,at+8,110)
+        store(o,at+9,115)
+        store(o,at+10,32)
+        store(o,at+11,109)
+        store(o,at+12,117)
+        store(o,at+13,115)
+        store(o,at+14,116)
+        store(o,at+15,32)
+        store(o,at+16,100)
+        store(o,at+17,101)
+        store(o,at+18,114)
+        store(o,at+19,105)
+        store(o,at+20,118)
+        store(o,at+21,101)
+        store(o,at+22,32)
+        store(o,at+23,102)
+        store(o,at+24,114)
+        store(o,at+25,111)
+        store(o,at+26,109)
+        store(o,at+27,32)
+        store(o,at+28,66)
+        store(o,at+29,97)
+        store(o,at+30,115)
+        store(o,at+31,101)
+        store(o,at+32,69)
+        store(o,at+33,120)
+        store(o,at+34,99)
+        store(o,at+35,101)
+        store(o,at+36,112)
+        store(o,at+37,116)
+        store(o,at+38,105)
+        store(o,at+39,111)
+        store(o,at+40,110)
+        return 41
+    if index==7:
+        store(o,at+0,80)
+        store(o,at+1,69)
+        store(o,at+2,78)
+        store(o,at+3,68)
+        store(o,at+4,73)
+        store(o,at+5,78)
+        store(o,at+6,71)
+        return 7
+    return 0
+
+def inherited_literal_4(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==8:
+        store(o,at+0,82)
+        store(o,at+1,85)
+        store(o,at+2,78)
+        store(o,at+3,78)
+        store(o,at+4,73)
+        store(o,at+5,78)
+        store(o,at+6,71)
+        return 7
+    if index==9:
+        store(o,at+0,67)
+        store(o,at+1,65)
+        store(o,at+2,78)
+        store(o,at+3,67)
+        store(o,at+4,69)
+        store(o,at+5,76)
+        store(o,at+6,76)
+        store(o,at+7,69)
+        store(o,at+8,68)
+        return 9
+    return 0
+
+def inherited_literal_5(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==10:
+        store(o,at+0,67)
+        store(o,at+1,65)
+        store(o,at+2,78)
+        store(o,at+3,67)
+        store(o,at+4,69)
+        store(o,at+5,76)
+        store(o,at+6,76)
+        store(o,at+7,69)
+        store(o,at+8,68)
+        store(o,at+9,95)
+        store(o,at+10,65)
+        store(o,at+11,78)
+        store(o,at+12,68)
+        store(o,at+13,95)
+        store(o,at+14,78)
+        store(o,at+15,79)
+        store(o,at+16,84)
+        store(o,at+17,73)
+        store(o,at+18,70)
+        store(o,at+19,73)
+        store(o,at+20,69)
+        store(o,at+21,68)
+        return 22
+    if index==11:
+        store(o,at+0,70)
+        store(o,at+1,73)
+        store(o,at+2,78)
+        store(o,at+3,73)
+        store(o,at+4,83)
+        store(o,at+5,72)
+        store(o,at+6,69)
+        store(o,at+7,68)
+        return 8
+    return 0
+
+def inherited_literal_6(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==12:
+        store(o,at+0,58)
+        store(o,at+1,32)
+        store(o,at+2,60)
+        store(o,at+3,95)
+        store(o,at+4,79)
+        store(o,at+5,112)
+        store(o,at+6,116)
+        store(o,at+7,105)
+        store(o,at+8,109)
+        store(o,at+9,105)
+        store(o,at+10,122)
+        store(o,at+11,97)
+        store(o,at+12,116)
+        store(o,at+13,105)
+        store(o,at+14,111)
+        store(o,at+15,110)
+        store(o,at+16,70)
+        store(o,at+17,117)
+        store(o,at+18,116)
+        store(o,at+19,117)
+        store(o,at+20,114)
+        store(o,at+21,101)
+        store(o,at+22,32)
+        store(o,at+23,97)
+        store(o,at+24,116)
+        store(o,at+25,32)
+        store(o,at+26,48)
+        store(o,at+27,120)
+        return 28
+    if index==13:
+        store(o,at+0,32)
+        store(o,at+1,115)
+        store(o,at+2,116)
+        store(o,at+3,97)
+        store(o,at+4,116)
+        store(o,at+5,101)
+        store(o,at+6,61)
+        return 7
+    return 0
+
+def inherited_literal_7(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==14:
+        store(o,at+0,99)
+        store(o,at+1,97)
+        store(o,at+2,110)
+        store(o,at+3,99)
+        store(o,at+4,101)
+        store(o,at+5,108)
+        store(o,at+6,108)
+        store(o,at+7,101)
+        store(o,at+8,100)
+        return 9
+    if index==15:
+        store(o,at+0,102)
+        store(o,at+1,105)
+        store(o,at+2,110)
+        store(o,at+3,105)
+        store(o,at+4,115)
+        store(o,at+5,104)
+        store(o,at+6,101)
+        store(o,at+7,100)
+        return 8
+    return 0
+
+def inherited_literal_8(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==16:
+        store(o,at+0,32)
+        store(o,at+1,114)
+        store(o,at+2,101)
+        store(o,at+3,116)
+        store(o,at+4,117)
+        store(o,at+5,114)
+        store(o,at+6,110)
+        store(o,at+7,101)
+        store(o,at+8,100)
+        store(o,at+9,32)
+        return 10
+    if index==17:
+        store(o,at+0,32)
+        store(o,at+1,114)
+        store(o,at+2,97)
+        store(o,at+3,105)
+        store(o,at+4,115)
+        store(o,at+5,101)
+        store(o,at+6,100)
+        store(o,at+7,32)
+        return 8
+    return 0
+
+def inherited_literal_9(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==18:
+        store(o,at+0,78)
+        store(o,at+1,111)
+        store(o,at+2,110)
+        store(o,at+3,101)
+        store(o,at+4,84)
+        store(o,at+5,121)
+        store(o,at+6,112)
+        store(o,at+7,101)
+        return 8
+    if index==19:
+        store(o,at+0,98)
+        store(o,at+1,111)
+        store(o,at+2,111)
+        store(o,at+3,108)
+        return 4
+    return 0
+
+def inherited_literal_10(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==20:
+        store(o,at+0,105)
+        store(o,at+1,110)
+        store(o,at+2,116)
+        return 3
+    if index==21:
+        store(o,at+0,102)
+        store(o,at+1,108)
+        store(o,at+2,111)
+        store(o,at+3,97)
+        store(o,at+4,116)
+        return 5
+    return 0
+
+def inherited_literal_11(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==22:
+        store(o,at+0,115)
+        store(o,at+1,116)
+        store(o,at+2,114)
+        return 3
+    if index==23:
+        store(o,at+0,108)
+        store(o,at+1,105)
+        store(o,at+2,115)
+        store(o,at+3,116)
+        return 4
+    return 0
+
+def inherited_literal_12(o:mutbuf,at:u64,index:u64) -> u64:
+    if index==24:
+        store(o,at+0,100)
+        store(o,at+1,105)
+        store(o,at+2,99)
+        store(o,at+3,116)
+        return 4
+    if index==25:
+        store(o,at+0,98)
+        store(o,at+1,121)
+        store(o,at+2,116)
+        store(o,at+3,101)
+        store(o,at+4,115)
+        return 5
+    return 0
+'''
+
 def source_program():
  s=SOURCE
  for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)

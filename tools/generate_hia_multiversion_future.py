@@ -38,7 +38,7 @@ def split_dispatch(source):
         elif phase is not None and 110<=phase<200:group='future_transition'
         if group:groups[group].append(node)
         else:other.append(node)
-    assert len(groups['future_transition'])==10
+    assert len(groups['future_transition'])==13
     tail=other.pop();assert isinstance(tail,ast.Return)
     routing=ast.parse('''
 if phase==113 or phase==210 or (phase>=300 and phase<500):
@@ -57,7 +57,7 @@ if phase>=110 and phase<200:
     return ast.unparse(ast.fix_missing_locations(tree))+'\n'
 
 ROOT=Path(__file__).resolve().parents[1]
-C={'MAGIC':int.from_bytes(b'HIAMVFS1','little'),'INPUT_MAGIC':int.from_bytes(b'HIAMVFQ1','little'),
+C={'MAGIC':int.from_bytes(b'HIAMVFS1','little'),'INPUT_MAGIC':int.from_bytes(b'HIAMVFQ1','little'),'INPUT_MAGIC2':int.from_bytes(b'HIAMVFQ2','little'),
 'OUTPUT_MAGIC':int.from_bytes(b'HIAMVFR1','little'),'NONE':(1<<64)-1,'NEGATIVE':(1<<64)-4095,
 'PHASE':64,'OP':72,'NEXT':80,'LOCK':88,'VALUE':96,'ERROR':104,'CURSOR':112,'CALLBACK':120,'ARGUMENT':128,
 'SEEN':136,'CAUGHT':144,'IMMEDIATE':152,'NODE':200,'SAVED_STATE':224,'SAVED_TOKEN':232,'ENTERED':240,
@@ -66,7 +66,22 @@ SOURCE=r'''
 def future(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=64 or length(o)<512 or length(w)<512:
         return 4294967293
-    if readword(s,0)!=INPUT_MAGIC or readword(s,8)>10 or readword(s,48)!=0 or readword(s,56)!=0:
+    if readword(s,0)==INPUT_MAGIC:
+        if readword(s,8)>10 or readword(s,48)!=0 or readword(s,56)!=0:
+            return 4294967293
+    elif readword(s,0)==INPUT_MAGIC2:
+        op=readword(s,8)
+        if op<11 or op>16:
+            return 4294967293
+        i=16
+        while i<64:
+            if (op!=11 and op!=12) or i>24:
+                if readword(s,i)!=0:
+                    return 4294967293
+            i=i+8
+        if (op==11 or op==12) and readword(s,16)==0:
+            return 4294967293
+    else:
         return 4294967293
     phase=get(o,PHASE)
     if phase==0:
@@ -124,6 +139,18 @@ def future(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return again(o,115)
         if op==7 or op==8 or op==9:
             return unlock(o,128,170)
+        if op==11 or op==12:
+            return again(o,180)
+        if op==13:
+            return again(o,181)
+        if op==14:
+            put(o,VALUE,get(w,96))
+            return release_finished(o,w)
+        if op==15:
+            put(o,VALUE,get(w,32))
+            return release_finished(o,w)
+        if op==16:
+            return again(o,182)
         return again(o,116)
     if phase==110:
         if get(w,16)!=0:
@@ -143,6 +170,9 @@ def future(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if phase==140:
         if get(w,16)!=0:
             put(o,VALUE,choose(get(w,16)==1,1,0))
+            return release_finished(o,w)
+        if get(w,96)!=0:
+            put(o,VALUE,0)
             return release_finished(o,w)
         put(w,16,1)
         put(w,24,1)
@@ -164,6 +194,8 @@ def future(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return unlock(o,128,320)
         put(w,32,readword(s,16))
         put(w,88,readword(s,24))
+        put(w,96,0)
+        put(w,112,1)
         put(w,16,2)
         put(w,24,1)
         return notify(o,w)
@@ -190,6 +222,38 @@ def future(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         else:
             put(o,VALUE,token)
         return unlock(o,132,800)
+    if phase==180:
+        if get(w,16)!=0:
+            put(o,ERROR,6)
+            return release_finished(o,w)
+        put(w,32,readword(s,16))
+        put(w,88,readword(s,24))
+        put(w,96,0)
+        put(w,112,choose(get(o,OP)==12,2,1))
+        put(w,16,2)
+        put(w,24,1)
+        return notify(o,w)
+    if phase==181:
+        if get(w,16)==1 and get(w,104)==0:
+            put(w,104,1)
+            put(o,VALUE,0)
+            return release_finished(o,w)
+        if get(w,16)==0 and get(w,96)==0:
+            put(w,96,1)
+            put(o,VALUE,1)
+            return release_finished(o,w)
+        put(o,ERROR,7)
+        return release_finished(o,w)
+    if phase==182:
+        if get(w,16)!=1:
+            put(o,VALUE,0)
+            return release_finished(o,w)
+        if get(w,104)!=0:
+            put(o,ERROR,7)
+            return release_finished(o,w)
+        put(w,104,1)
+        put(o,VALUE,1)
+        return release_finished(o,w)
     if phase==210:
         put(o,CURSOR,get(w,40))
         put(o,IMMEDIATE,0)
@@ -359,6 +423,9 @@ def release_finished(o:mutbuf,w:mutbuf) -> u32:
     put(o,SAVED_STATE,get(w,16))
     put(o,SAVED_TOKEN,get(w,64))
     put(o,216,get(w,56))
+    put(o,408,get(w,96))
+    put(o,416,get(w,104))
+    put(o,424,get(w,112))
     if get(o,ENTERED)==1:
         if get(w,72)==0:
             put(o,ERROR,65)
@@ -424,6 +491,7 @@ def again(o:mutbuf,phase:u64) -> u32:
     return 10
 
 def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
+    inherited=get(o,OP)>=11
     value=get(o,VALUE)
     state=get(o,SAVED_STATE)
     token=get(o,SAVED_TOKEN)
@@ -440,6 +508,10 @@ def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
     put(o,48,seen)
     put(o,56,caught)
     put(o,64,get(w,8))
+    if inherited:
+        put(o,72,get(o,408))
+        put(o,80,get(o,416))
+        put(o,88,get(o,424))
     return 0
 
 def zero(w:mutbuf,at:u64,size:u64) -> u64:

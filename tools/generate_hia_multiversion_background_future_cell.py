@@ -10,11 +10,11 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={
-'MAGIC':int.from_bytes(b'HIABFQ01','little'),'MAGIC2':int.from_bytes(b'HIABFQ02','little'),'REPLY':int.from_bytes(b'HIABFR01','little'),
+'MAGIC':int.from_bytes(b'HIABFQ01','little'),'MAGIC2':int.from_bytes(b'HIABFQ02','little'),'MAGIC3':int.from_bytes(b'HIABFQ03','little'),'REPLY':int.from_bytes(b'HIABFR01','little'),
 'STATE':int.from_bytes(b'HIABFS01','little'),'OBJECT':int.from_bytes(b'HIABFO01','little'),
 'NMAGIC':int.from_bytes(b'HIABFN01','little'),'PMAGIC':int.from_bytes(b'HIABFA01','little'),
 'BOXMAGIC':int.from_bytes(b'HIABFB01','little'),'FREQUEST':int.from_bytes(b'HIAMVFQ1','little'),
-'FREPLY':int.from_bytes(b'HIAMVFR1','little'),'VREQUEST':int.from_bytes(b'HIABVQ01','little'),
+'FREPLY':int.from_bytes(b'HIAMVFR1','little'),'FREQUEST2':int.from_bytes(b'HIAMVFQ2','little'),'VREQUEST':int.from_bytes(b'HIABVQ01','little'),
 'VREPLY':int.from_bytes(b'HIABVR01','little'),'MAX':(1<<64)-1,'NEGATIVE':(1<<64)-4095,
 'PHASE':128,'OP':136,'HELD':144,'ERROR':152,'AFTER':160,'PID':168,'OBJ':176,'CAP':184,
 'CURSOR':192,'NEWOBJ':200,'NEWREF':208,'RESULT':216,'TAG0':224,'TAG1':232,'RANDOM_USED':240,
@@ -22,7 +22,7 @@ C={
 'VALUE_KIND':328,'KERNEL_STATUS':336,'KERNEL_STATE':344,'KERNEL_TOKEN':352,
 'KERNEL_VALUE':360,'KERNEL_SEEN':368,'KERNEL_CAUGHT':376,'BORROWED':384,'FINAL_STAGE':392,
 'FINAL_FAILED':400,'TEMP':408,'RANDOM':416,'FEEDBACK':448,'RESTORE':456,'BOXPTR':464,'CALL_OP':472,
-'NODE':512,'HEADER':640,'BOX':768,'PIN':1024,'SAVED':1152,'RQ':4096,'FP':6144,'VP':8192,'OUT':16384}
+'RUNNING':480,'NOTIFIED':488,'COMPLETION_MODE':496,'VALUE_CLASS':504,'NODE':512,'HEADER':640,'BOX':768,'PIN':1024,'SAVED':1152,'RQ':4096,'FP':6144,'VP':8192,'OUT':16384}
 SOURCE=r'''
 
 def background_future_cell(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -59,6 +59,9 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     elif readword(s,0)==MAGIC2:
         if op!=14:
             return 4294967293
+    elif readword(s,0)==MAGIC3:
+        if op<15 or op>19:
+            return 4294967293
     else:
         return 4294967293
     at=16
@@ -69,6 +72,10 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if op==2 or op==3 or (op>=6 and op<=12):
             if at>=24 and at<=40:
                 used=True
+        if op>=15 and op<=19 and at>=24 and at<=40:
+            used=True
+        if (op==15 or op==16) and ((at>=48 and at<=64) or at==80):
+            used=True
         if op==14 and at==24:
             used=True
         if op==10 and (at==104 or at==112):
@@ -84,7 +91,7 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     if op==10 and readword(s,112)>1:
         return 4294967293
-    if op==11 and (readword(s,80)<1 or readword(s,80)>3):
+    if (op==11 or op==15 or op==16) and (readword(s,80)<1 or readword(s,80)>3):
         return 4294967293
     if op==12 and readword(s,48)==0:
         return 4294967293
@@ -334,8 +341,8 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return unlock(o,501)
     if phase==501:
         op=get(o,OP)
-        if op==11:
-            future_packet(o,5)
+        if op==11 or op==15 or op==16:
+            future_packet(o,choose(op==11,5,15))
             return future(o,w,518)
         kernel=5
         if op==7:
@@ -346,6 +353,12 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             kernel=6
         elif op==12:
             kernel=4
+        elif op==17:
+            kernel=13
+        elif op==18:
+            kernel=14
+        elif op==19:
+            kernel=15
         future_packet(o,kernel)
         if op==10:
             put(o,RQ+16,readword(s,104))
@@ -360,14 +373,15 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if future_ok(o)==False:
             return fail(o,9)
         save_kernel(o)
-        if get(o,OP)==10 and get(o,KERNEL_STATUS)==0:
+        if (get(o,OP)==10 or get(o,OP)==19) and get(o,KERNEL_STATUS)==0 and get(o,KERNEL_STATE)==2:
             put(o,BOXPTR,get(o,KERNEL_VALUE))
             return memory(o,511,0,get(o,BOXPTR),3,BOX,64)
         return fail(o,0)
     if phase==511:
-        if get(o,BOX)!=BOXMAGIC or get(o,BOX+8)!=get(o,PID) or get(o,BOX+16)<1 or get(o,BOX+16)>3:
+        if get(o,BOX)!=BOXMAGIC or get(o,BOX+8)!=get(o,PID) or get(o,BOX+16)<1 or get(o,BOX+16)>6:
             return fail(o,9)
         put(o,VALUE_KIND,get(o,BOX+16))
+        put(o,VALUE_CLASS,get(o,BOX+48))
         value_packet(o,5)
         within(o,RQ+24,BOX+24,24)
         return value(o,w,512)
@@ -381,6 +395,8 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return fail(o,9)
         if get(o,FP+24)!=0:
             save_kernel(o)
+            if get(o,OP)==15 or get(o,OP)==16:
+                put(o,KERNEL_STATUS,6)
             return fail(o,0)
         value_packet(o,5)
         copy_input(s,48,o,RQ+24,24)
@@ -397,11 +413,22 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         zero(o,BOX,128)
         put(o,BOX,BOXMAGIC)
         put(o,BOX+8,get(o,PID))
-        put(o,BOX+16,readword(s,80))
+        kind=readword(s,80)
+        if get(o,OP)==15:
+            kind=1
+        elif get(o,OP)==16:
+            kind=kind+3
+        put(o,BOX+16,kind)
+        put(o,BOX+48,readword(s,80))
         within(o,BOX+24,RETAINED_VALUE,24)
         return memory(o,522,3,BOX,0,get(o,NEWBOX),128)
     if phase==522:
-        future_packet(o,2)
+        kernel=2
+        if get(o,OP)==15:
+            kernel=11
+        elif get(o,OP)==16:
+            kernel=12
+        future_packet(o,kernel)
         put(o,RQ+16,get(o,NEWBOX))
         return future(o,w,523)
     if phase==523:
@@ -602,10 +629,13 @@ def save_kernel(o:mutbuf) -> u64:
     put(o,KERNEL_TOKEN,get(o,FP+32))
     put(o,KERNEL_SEEN,get(o,FP+48))
     put(o,KERNEL_CAUGHT,get(o,FP+56))
+    put(o,RUNNING,get(o,FP+72))
+    put(o,NOTIFIED,get(o,FP+80))
+    put(o,COMPLETION_MODE,get(o,FP+88))
     return 0
 def future_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,128)
-    put(o,RQ,FREQUEST)
+    put(o,RQ,choose(op>=11,FREQUEST2,FREQUEST))
     put(o,RQ+8,op)
     return 0
 def value_packet(o:mutbuf,op:u64) -> u64:
@@ -618,7 +648,7 @@ def future(o:mutbuf,w:mutbuf,next:u64) -> u32:
 def value(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return invoke(o,next,get(w,72),RQ,128,VP,8192,get(w,80),get(w,88))
 def future_ok(o:mutbuf) -> bool:
-    return get(o,FP)==FREPLY and get(o,FEEDBACK)==get(o,FP+8) and (get(o,FP+8)<=6 or get(o,FP+8)==65)
+    return get(o,FP)==FREPLY and get(o,FEEDBACK)==get(o,FP+8) and (get(o,FP+8)<=6 or (get(o,RQ)==FREQUEST2 and get(o,FP+8)==7) or get(o,FP+8)==65)
 def value_ok(o:mutbuf) -> bool:
     return get(o,FEEDBACK)==0 and get(o,VP)==VREPLY and get(o,VP+8)==0
 def lock(o:mutbuf,next:u64) -> u32:
@@ -689,7 +719,7 @@ def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
     t0=get(o,TAG0)
     t1=get(o,TAG1)
     borrowed=get(o,BORROWED)
-    if get(o,OP)==7 or get(o,OP)==8:
+    if get(o,OP)==7 or get(o,OP)==8 or get(o,OP)==17 or get(o,OP)==18:
         borrowed=get(o,KERNEL_VALUE)
     zero(o,0,128)
     put(o,0,REPLY)
@@ -706,6 +736,11 @@ def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
     put(o,104,get(o,KERNEL_SEEN))
     put(o,112,get(o,KERNEL_CAUGHT))
     put(o,120,get(o,FINAL_FAILED))
+    if get(o,OP)>=15:
+        put(o,128,get(o,RUNNING))
+        put(o,136,get(o,NOTIFIED))
+        put(o,144,get(o,COMPLETION_MODE))
+        put(o,152,get(o,VALUE_CLASS))
     return 0
 def again(o:mutbuf,next:u64) -> u32:
     put(o,PHASE,next)
