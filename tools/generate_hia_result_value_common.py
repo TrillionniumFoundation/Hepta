@@ -4,7 +4,7 @@ import ast,re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_system_jobctl_request import document
 ROOT=Path(__file__).resolve().parents[1]
-C={'MAX':18446744073709551615,'ARENA':int.from_bytes(b'HIABVA01','little'),'BLOCK_FREE':int.from_bytes(b'HIAVFREE','little'),'BLOCK_USED':int.from_bytes(b'HIAVUSED','little'),'OBJECT':int.from_bytes(b'HIAVOBJ1','little'),'CAP_MAGIC':int.from_bytes(b'HIAVCAP1','little'),'REPLY':int.from_bytes(b'HIABVR01','little'),'MAGIC':int.from_bytes(b'HIABVQ01','little'),'STATE':int.from_bytes(b'HIABVC01','little'),'P_PHASE':128,'P_FEEDBACK':136,'P_PID':144,'P_HELD':152,'P_ERROR':160,'P_ARENA':168,'P_AN':176,'P_OLD':184,'P_ROLE':192,'P_SELECT':200,'P_ARG':208,'G_PHASE':256,'G_FEEDBACK':264,'G_RANDOM':272,'G_RN':280,'G_RUSED':288,'G_WANT':296,'G_PLAN':304,'G_A':312,'G_B':320,'G_C':328,'G_RESULT':336,'G_CAP':344,'G_KIND':352,'G_N':360,'G_BYTES':368,'G_INDEX':376,'G_FOUND':384,'G_COUNT':392,'G_REQUIRED':400,'G_DATA':408,'G_NEWOBJ':416,'G_TEMP':424,'G_ITER':432,'G_OP':440,'G_TAG0':448,'G_TAG1':456,'G_ID0':464,'G_ID1':472,'G_ALLOC_FAILED':480,'G_RETRY':488,'G_INPUT':496,'G_INPUT_N':504,'G_STACK':520,'G_AUX':528,'G_AUX_N':536,'G_ARENA':544,'G_ARENA_N':552,'G_PARSEW':560,'G_PARSEWN':568,'G_ROOT':576,'G_MODE':584,'G_WORK':592,'G_WORK_N':600,'G_OUT':608,'G_OUT_N':616,'G_PARSE_NODES':624,'G_PARSE_DEPTH':632,'G_PARSE_KEYS':640}
+C={'MAX':18446744073709551615,'ARENA':int.from_bytes(b'HIABVA01','little'),'BLOCK_FREE':int.from_bytes(b'HIAVFREE','little'),'BLOCK_USED':int.from_bytes(b'HIAVUSED','little'),'OBJECT':int.from_bytes(b'HIAVOBJ1','little'),'CAP_MAGIC':int.from_bytes(b'HIAVCAP1','little'),'REPLY':int.from_bytes(b'HIABVR01','little'),'MAGIC':int.from_bytes(b'HIABVQ01','little'),'MAGIC2':int.from_bytes(b'HIABVQ02','little'),'NATIVE_INFO':int.from_bytes(b'HIAVNO01','little'),'DROP_REPLY':int.from_bytes(b'HIABVR02','little'),'P_DROP_CONSUMED':736,'P_DROP_KNOWN':744,'P_DROP_PENDING':752,'STATE':int.from_bytes(b'HIABVC01','little'),'P_PHASE':128,'P_FEEDBACK':136,'P_PID':144,'P_HELD':152,'P_ERROR':160,'P_ARENA':168,'P_AN':176,'P_OLD':184,'P_ROLE':192,'P_SELECT':200,'P_ARG':208,'G_PHASE':256,'G_FEEDBACK':264,'G_RANDOM':272,'G_RN':280,'G_RUSED':288,'G_WANT':296,'G_PLAN':304,'G_A':312,'G_B':320,'G_C':328,'G_RESULT':336,'G_CAP':344,'G_KIND':352,'G_N':360,'G_BYTES':368,'G_INDEX':376,'G_FOUND':384,'G_COUNT':392,'G_REQUIRED':400,'G_DATA':408,'G_NEWOBJ':416,'G_TEMP':424,'G_ITER':432,'G_OP':440,'G_TAG0':448,'G_TAG1':456,'G_ID0':464,'G_ID1':472,'G_ALLOC_FAILED':480,'G_RETRY':488,'G_INPUT':496,'G_INPUT_N':504,'G_STACK':520,'G_AUX':528,'G_AUX_N':536,'G_ARENA':544,'G_ARENA_N':552,'G_PARSEW':560,'G_PARSEWN':568,'G_ROOT':576,'G_MODE':584,'G_WORK':592,'G_WORK_N':600,'G_OUT':608,'G_OUT_N':616,'G_PARSE_NODES':624,'G_PARSE_DEPTH':632,'G_PARSE_KEYS':640}
 SOURCE=r'''
 def shrink_allocation(w:mutbuf,p:u64,n:u64) -> u64:
     at=p-32
@@ -105,6 +105,16 @@ def numeric_key_byte(w:mutbuf,p:u64,index:u64) -> u64:
         return byte(w,get(w,p+24)+index)
     return byte(w,get(w,p+24)+32+index)
 
+def input_operation(s:readbuf) -> u64:
+    op=readword(s,8)
+    if readword(s,0)==MAGIC2:
+        if op==29:
+            return 6
+        if op==30:
+            return 22
+    return op
+def drop_profile(s:readbuf) -> bool:
+    return readword(s,0)==MAGIC2 and readword(s,8)>=29 and readword(s,8)<=31
 def get(w:mutbuf,at:u64) -> u64:
     v=0
     i=0
@@ -310,6 +320,16 @@ def object_release(w:mutbuf,p:u64) -> u64:
                         put(w,value+72,get(w,value+72)-1)
                         head=zero_queue(w,value,head)
                 i=i+1
+        if (kind==8 or kind==9) and data!=0:
+            count=choose(kind==8,3,1)
+            offset=choose(kind==8,16,0)
+            i=0
+            while i<count:
+                child=get(w,data+offset+i*8)
+                if child!=0 and get(w,child+8)>1:
+                    put(w,child+72,get(w,child+72)-1)
+                    head=zero_queue(w,child,head)
+                i=i+1
         object_unlink(w,p)
     return 0
 def edge_drop(w:mutbuf,p:u64) -> u64:
@@ -354,6 +374,14 @@ def collect(w:mutbuf) -> u64:
                     head=mark_add(w,key,head)
                     head=mark_add(w,get(w,data+i*32+8),head)
                 i=i+1
+        if (kind==8 or kind==9) and data!=0:
+            count=choose(kind==8,3,1)
+            offset=choose(kind==8,16,0)
+            while i<count:
+                child=get(w,data+offset+i*8)
+                if child!=0:
+                    head=mark_add(w,child,head)
+                i=i+1
     p=get(w,96)
     while p!=0:
         next=get(w,p+88)
@@ -368,10 +396,18 @@ def collect(w:mutbuf) -> u64:
             if kind==6:
                 n=get(w,p+112)*2
                 stride=16
+            if kind==8 and data!=0:
+                n=3
+            if kind==9 and data!=0:
+                n=1
             while i<n:
                 child=0
                 if kind==5:
                     child=get(w,data+i*8)
+                elif kind==8:
+                    child=get(w,data+16+i*8)
+                elif kind==9:
+                    child=get(w,data)
                 else:
                     if get(w,data+(i//2)*32)!=0:
                         child=get(w,data+(i//2)*32+(i%2)*8)
@@ -616,11 +652,24 @@ def integer_index(w:mutbuf,p:u64,n:u64,insert:bool) -> u64:
     if v>=n:
         return MAX
     return v
+def native_base(w:mutbuf,p:u64) -> u64:
+    if get(w,p+8)==8:
+        data=get(w,p+24)
+        kind=get(w,data+8)
+        if kind==4 or kind==7:
+            return get(w,data+24)
+    return p
 def key_equal(w:mutbuf,a:u64,b:u64) -> bool:
+    if a==b:
+        return True
+    a=native_base(w,a)
+    b=native_base(w,b)
     if a==b:
         return True
     ak=get(w,a+8)
     bk=get(w,b+8)
+    if ak>=8 or bk>=8:
+        return False
     if numeric_kind(ak) and numeric_kind(bk):
         an=numeric_key_n(w,a)
         bn=numeric_key_n(w,b)
@@ -673,21 +722,31 @@ def dict_rehash(w:mutbuf,obj:u64) -> u64:
             put(w,bucket,i+1)
         i=i+1
     return 0
-def dict_reserve(w:mutbuf,obj:u64) -> bool:
-    used=get(w,obj+112)
-    cap=get(w,obj+40)
-    if used<cap:
-        return True
-    n=choose(cap==0,8,cap*2)
-    if cap!=0 and get(w,obj+16)<cap//2:
-        n=cap
-    if n>192153584101141162 or n<cap:
+def dict_target(w:mutbuf,obj:u64) -> u64:
+    live=get(w,obj+16)
+    if live>3074457345618258602:
+        put(w,16,MAX)
+        return 0
+    target=live*3
+    cap=8
+    while cap<target:
+        if cap>4611686018427387903:
+            put(w,16,MAX)
+            return 0
+        cap=cap*2
+    if cap>192153584101141162:
+        put(w,16,MAX)
+        return 0
+    return cap
+def dict_resize(w:mutbuf,obj:u64,n:u64,general:u64) -> bool:
+    if n==0 or n>192153584101141162:
         put(w,16,MAX)
         return False
     data=allocate(w,n*48)
     if data==0:
         return False
     zero(w,data,n*48)
+    used=get(w,obj+112)
     old=get(w,obj+24)
     i=0
     j=0
@@ -700,8 +759,20 @@ def dict_reserve(w:mutbuf,obj:u64) -> bool:
     put(w,obj+24,data)
     put(w,obj+40,n)
     put(w,obj+112,j)
+    put(w,obj+120,general)
     dict_rehash(w,obj)
     return True
+def dict_general(w:mutbuf,obj:u64) -> bool:
+    if get(w,obj+120)!=0:
+        return True
+    return dict_resize(w,obj,dict_target(w,obj),1)
+def dict_reserve(w:mutbuf,obj:u64) -> bool:
+    used=get(w,obj+112)
+    cap=get(w,obj+40)
+    if cap!=0 and used<(cap*2)//3:
+        return True
+    return dict_resize(w,obj,dict_target(w,obj),get(w,obj+120))
+
 def dict_insert(w:mutbuf,obj:u64,key:u64,value:u64) -> u64:
     data=get(w,obj+24)
     i=get(w,obj+112)
@@ -739,7 +810,7 @@ def object_kind_size(o:mutbuf,w:mutbuf,p:u64) -> u64:
     put(o,G_KIND,kind)
     put(o,G_N,choose(kind>=4,get(w,p+16),0))
     n=get(w,p+32)
-    if kind==0 or kind==5 or kind==6:
+    if kind==0 or kind==5 or kind==6 or kind==9:
         n=0
     if kind==1:
         n=1
@@ -792,3 +863,4 @@ def resolve(entry,source):
             if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id in functions and n.func.id not in needed:
                 needed.add(n.func.id);pending.append(n.func.id)
     return '\n\n'.join(ast.unparse(n) for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in needed)+'\n'
+
