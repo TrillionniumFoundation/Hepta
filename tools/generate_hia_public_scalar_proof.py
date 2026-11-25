@@ -9,10 +9,10 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_system_jobctl_request import document
 ROOT=Path(__file__).resolve().parents[1]
 M=lambda t:int.from_bytes(t.encode(),'little')
-C=dict(REQUEST=M('HIAPPR01'),REPLY=M('HIAMVR01'),NORM=M('HIAVCF01'),PREQUEST=M('HIAMVPS1'),PREPLY=M('HIAMVPO1'),PROOF=M('HIAMVP01'),RREQUEST=M('HIAJPR01'),SELECT=M('HIAVRG01'),NONE=(1<<64)-1,NEG4=(1<<64)-4,WORK=608<<20,ROUT=64<<20,LARGE_JSON=M('HIAJLG01'),
+C=dict(REQUEST=M('HIAPPR01'),REPLY=M('HIAMVR01'),NORM=M('HIAVCF01'),PREQUEST=M('HIAMVPS1'),PREPLY=M('HIAMVPO1'),PROOF=M('HIAMVP02'),RREQUEST=M('HIAJPR01'),SELECT=M('HIAVRG01'),NONE=(1<<64)-1,NEG4=(1<<64)-4,WORK=608<<20,ROUT=64<<20,LARGE_JSON=M('HIAJLG01'),
  N1=1<<20,N2=18<<20,PIN=35<<20,AJ=52<<20,DJ=196<<20,BJ=54<<20,AA=55<<20,BA=71<<20,DA=260<<20,RI=340<<20,RO=468<<20,FJ=532<<20,PW=160<<20,JW=180<<20,RW=188<<20,
  POUT=65536,CLOCK=32768,STAT=32832,SHABUF=262144,HW=8192,HTMP=4448,HOUT=4480,FUNCTION=4608,MFNAME=12288,INV=12416,
- WHOLE=4096,WHOLE_END=4128,NORMAL_ID=4160,ENGINE_ID=4192,RAW1=4224,RAW2=4256,ORIG1=4288,ORIG2=4320,CORE1=4352,CORE2=4384,INVENTORY=4416)
+ WHOLE=4096,WHOLE_END=4128,NORMAL_ID=4160,ENGINE_ID=4192,RAW1=4224,RAW2=4256,ORIG1=4288,ORIG2=4320,CORE1=4352,CORE2=4384,INVENTORY=4416,TRANSPORT_DEADLINE=880,PREPARATION_ALLOWANCE_NS=60000000000)
 SOURCE=r'''
 def public_proof(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)!=ROUT or length(w)!=WORK:
@@ -106,8 +106,9 @@ def initial(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         start=clock(w)
         put(w,328,start)
         budget=get(w,264)
-        if budget>=1 and budget<=60000 and start<=NONE-budget*1000000:
+        if budget>=1 and budget<=60000 and start<=NONE-budget*1000000-PREPARATION_ALLOWANCE_NS:
             put(w,336,start+budget*1000000)
+            put(w,TRANSPORT_DEADLINE,start+budget*1000000+PREPARATION_ALLOWANCE_NS)
         else:
             put(w,544,1)
         return call(o,w,4,257,4,18446744073709551516,12320,524288,0,0,0)
@@ -313,17 +314,15 @@ def diagnostic(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
 
 def proving(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
     if phase==80:
-        remaining=(get(w,336)-clock(w))//1000000
-        if remaining==0 or remaining>60000:
-            return deadline_failure(o,w)
         zero(w,PIN,192)
         put(w,PIN+128,PROOF)
         put(w,PIN+136,choose(get(w,256)==1,1,2))
-        put(w,PIN+144,remaining)
+        put(w,PIN+144,get(w,264))
         put(w,PIN+152,get(w,272))
         put(w,PIN+160,get(w,424))
         second=choose(get(w,256)==1,0,get(w,440))
         put(w,PIN+168,second)
+        put(w,PIN+184,get(w,336))
         copy(w,FUNCTION,PIN+192,get(w,272))
         cursor=PIN+192+get(w,272)
         copy(w,N1+64+get(w,416),cursor,get(w,424))
@@ -372,7 +371,7 @@ def process_ready(w:mutbuf,next:u64,role:u64,fd:u64,n:u64,cap:u64) -> u32:
     put(w,PIN,PREQUEST)
     put(w,PIN+8,role)
     put(w,PIN+16,fd)
-    put(w,PIN+24,get(w,336))
+    put(w,PIN+24,get(w,TRANSPORT_DEADLINE))
     put(w,PIN+32,n)
     put(w,PIN+40,cap)
     put(w,PIN+48,67108864)
@@ -400,8 +399,6 @@ def process_reply(w:mutbuf,result:u64) -> bool:
     return True
 
 def process_failure(o:mutbuf,w:mutbuf,result:u64) -> u32:
-    if get(w,POUT)==PREPLY and get(w,POUT+8)==1 and result==1:
-        return deadline_failure(o,w)
     return unavailable(o,w)
 
 def read_capture(o:mutbuf,w:mutbuf,next:u64,target:u64,n:u64) -> u32:
@@ -454,7 +451,7 @@ def receipt(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
     if phase==103:
         if failed(result):
             return 4294967293
-        if get(w,336)!=0 and clock(w)>=get(w,336):
+        if get(w,544)==0 and get(w,744)!=0 and get(w,336)!=0 and clock(w)>=get(w,336):
             put(w,544,12)
             put(w,352,get(w,352)|128)
         put(w,736,clock(w)-get(w,328))
@@ -620,8 +617,8 @@ def guarded(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
         return 4294967293
     if failed(result):
         return unavailable(o,w)
-    if get(w,336)==0 or clock(w)>=get(w,336):
-        return deadline_failure(o,w)
+    if get(w,TRANSPORT_DEADLINE)==0 or clock(w)>=get(w,TRANSPORT_DEADLINE):
+        return unavailable(o,w)
     return advance(w,get(w,344))
 
 def close_streams(o:mutbuf,w:mutbuf,next:u64) -> u32:

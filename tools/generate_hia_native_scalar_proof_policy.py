@@ -8,7 +8,7 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=Path('examples/hia_bootstrap/native_scalar_proof_policy.hepta')
 M=lambda s:int.from_bytes(s.encode(),'little')
 C={
-'REQUEST_MAGIC':M('HIAMVP01'),'REPLY_MAGIC':M('HIAMVR01'),
+'REQUEST_MAGIC':M('HIAMVP01'),'ABSOLUTE_MAGIC':M('HIAMVP02'),'ABSOLUTE_MODE':1000,'REPLY_MAGIC':M('HIAMVR01'),
 'GRAPH_MAGIC':M('HIABVP01'),'CIRCUIT_MAGIC':M('HIABVC01'),
 'PLAN_MAGIC':M('HIABVS03'),'FORMULA_MAGIC':M('HIACNX02'),
 'LEARNING_MAGIC':M('HIACNL05'),'RESTART_MAGIC':M('HIACNG06'),
@@ -40,7 +40,7 @@ def native_scalar_proof_policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if get(w, 104) != 0:
         put(w, 520, 0)
         return unknown(o, w, 14)
-    if phase < 90 and now(w) >= get(w, 272):
+    if phase < 90 and (get(w, ABSOLUTE_MODE) == 0 or phase >= 20) and now(w) >= get(w, 272):
         return unknown(o, w, 12)
     result = get(w, 72)
     if phase <= 19:
@@ -94,8 +94,9 @@ def native_scalar_proof_policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return unknown(o, w, 14)
 
 def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 64 or uint(s, 0) != REQUEST_MAGIC:
+    if length(s) < 64 or (uint(s, 0) != REQUEST_MAGIC and uint(s, 0) != ABSOLUTE_MAGIC):
         return BAD
+    absolute = uint(s, 0) == ABSOLUTE_MAGIC
     mode = uint(s, 8)
     budget = uint(s, 16)
     name = uint(s, 24)
@@ -107,7 +108,7 @@ def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return BAD
     if (mode == 1 and after != 0) or (mode == 2 and after == 0):
         return BAD
-    if uint(s, 48) != 0 or uint(s, 56) != 0 or length(s) != 64 + name + before + after:
+    if uint(s, 48) != 0 or (absolute == False and uint(s, 56) != 0) or length(s) != 64 + name + before + after:
         return BAD
     if name != 0:
         i = 0
@@ -120,9 +121,15 @@ def admit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     start = now(w)
     if start > NONE - budget * 1000000:
         return BAD
+    deadline = start + budget * 1000000
+    if absolute:
+        deadline = uint(s, 56)
+        if deadline > start + budget * 1000000:
+            return BAD
+    put(w, ABSOLUTE_MODE, choose(absolute, 1, 0))
     put(w, 256, mode)
     put(w, 264, start)
-    put(w, 272, start + budget * 1000000)
+    put(w, 272, deadline)
     put(w, 280, budget)
     put(w, 288, name)
     put(w, 296, before)
@@ -374,6 +381,8 @@ def accept_graph(w:mutbuf, size:u64, base:u64, first:u64) -> bool:
     return True
 
 def begin_solver(o:mutbuf, w:mutbuf) -> u32:
+    if now(w) >= get(w, 272):
+        return unknown(o, w, 12)
     if get(w, 256) == 1 and structural_totality(w):
         put(w, 408, 1)
         return decided(w, 1, 10)
@@ -872,9 +881,10 @@ def decided(w:mutbuf, status:u64, reason:u64) -> u32:
     return hash(w, 90, 2, 0, get(w, 96), HASH_RESULT)
 
 def unknown(o:mutbuf, w:mutbuf, reason:u64) -> u32:
+    was_decided = get(w, 312) != 0
     put(w, 312, 0)
     put(w, 320, reason)
-    if reason == 12 or reason == 13:
+    if reason == 13 or (reason == 12 and (get(w, ABSOLUTE_MODE) == 0 or was_decided)):
         put(w, 528, 1)
     if get(w, 520) == 1 and get(w, 0) < 90:
         return hash(w, 90, 2, 0, get(w, 96), HASH_RESULT)

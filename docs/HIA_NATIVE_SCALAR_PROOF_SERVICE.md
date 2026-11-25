@@ -31,6 +31,13 @@ Timeout is 1–60000 milliseconds; each Core is 1 byte through 8 MiB.
 A nonempty function name is an ASCII Core identifier of at most 128 bytes.
 An empty name requests the original single-function inference rule.
 
+A separate qualified `HIAMVP02` profile preserves the same request domains and
+places an immutable parent absolute monotonic deadline in the last header word.
+It finishes original admission/selection error precedence before the original
+solver checkpoint and cannot extend the configured proof budget. The legacy
+`HIAMVP01` contract remains unchanged. Its exact protocol, new component pins
+and qualification are in `HIA_PUBLIC_PROOF_DEADLINE.md` and `.json`.
+
 The reply header is 64 bytes: `HIAMVR01`, mode, result, JSON byte count,
 elapsed proof nanoseconds, zero, zero, zero. Result is 0 unknown, 1 proved,
 or 2 disproved. The remainder is one JSON receipt. This private frame is not

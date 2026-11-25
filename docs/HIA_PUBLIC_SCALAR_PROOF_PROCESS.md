@@ -55,11 +55,14 @@ large-diagnostic controls, and actual 8 MiB ASCII, escaped-control and UTF-8
 producer boundaries. The maximum diagnostics use an explicit 60-second
 configuration. They do not imply equivalence under every default deadline.
 
-The original API preserves specific admission, schema, selection and profile
-errors even if they finish after the proof deadline. The current front-end
-checkpoint still imposes that deadline too early on child normalization;
-the subsequent absolute-deadline profile must close this difference without
-renewing the solver's budget. Empty, non-ASCII and non-string function values
-also still require the full typed input adapter. Full public lifetime/fault,
-publication, installed cold, OpenClaw integration and cleanup gates remain
-separate obligations. No whole-native flag is set by this checkpoint.
+The original error/deadline ordering is now implemented by the explicit
+`HIAMVP02` absolute-deadline profile described in `HIA_PUBLIC_PROOF_DEADLINE.md`.
+The original proof budget is retained across normalization and proof children;
+a distinct, once-computed transport lifetime permits required preceding
+validation to complete. The actual new parent also passes the original 113
+semantic calls and the 12 large-input/deadline-order comparisons.
+
+Empty, non-ASCII and non-string function values still require the full typed
+input adapter. Full public lifetime/fault, publication, installed cold,
+OpenClaw integration and cleanup gates remain separate obligations. No
+whole-native flag is set by this checkpoint.
