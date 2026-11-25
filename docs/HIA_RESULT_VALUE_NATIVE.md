@@ -2,8 +2,8 @@
 
 ## Qualified component and boundary
 
-The final `hia_result_value` image is **960822 bytes**, SHA-256
-`32b9ec44279379d9d99343fd3ec5ef7d26144e082e11a3babd13f1aff62bf3eb`.
+The final `hia_result_value` image is **990342 bytes**, SHA-256
+`6d769f3369ceaebed9602a784166548ed2cf48fed608a80a572b1a9c73cc3a7c`.
 All value, ownership, mutation, JSON import/export, numeric conversion and
 allocation policies are HIA sources. The 577-byte mechanical bridge performs
 fixed role calls, Linux syscalls, atomic compare/exchange and exchanges. It has
@@ -142,6 +142,7 @@ owned capability to the existing object.
 | 21 | Retain context | Returns a fresh independent context token |
 | 22 | Drop context | A context token, or zero A to consume the initial anchor once |
 | 23 | Enumerate children | A list/dict; arg0 start, arg1 requested count |
+| 24 | Exact signed integer arithmetic | A/B exact integer values; arg0 0 adds, 1 subtracts; returns a fresh owned integer |
 
 Scalar integer tails are canonical decimal ASCII, optionally negative, without
 leading plus/zero or negative zero. Binary64 uses eight little-endian bytes.
@@ -175,6 +176,8 @@ capabilities. Each 64-byte entry has index at 0, value kind at 8, key capability
 at 16/24/32 (zero for lists), and value capability at 40/48/56. All nonzero
 capabilities are independently owned. Allocation failure rolls back every
 partially retained entry.
+
+Operation 24 implements signed decimal addition/subtraction in the owned HIA arena. Both operands must be exact kind 2 values; booleans, binary64 and nonnumeric values return TypeError. It preserves unbounded precision without decimal-to-u64 conversion, returns canonical zero and does not mutate its operands. Real allocation failure rolls back the unpublished result before retry/MemoryError. This compatible extension supplies epoch and elapsed-time arithmetic to the background report policy.
 
 ## Independent context ownership
 
@@ -224,8 +227,9 @@ Every case below executed the final image whose SHA-256 appears above.
 | Mutations and ownership | 9 groups, 42566 native calls, 1800 original list/dict operations, numeric dict equality, 10000 delete/reinsert cycles, thread sharing, actual mremap move, stale/cross-context/fork rejection |
 | Large admitted values | All 1114112 Unicode code points; 100663309-byte balanced decimal; 67108865-byte owned bytes; 262144 owned children survive parent release |
 | Private protocol | 46 guards, poisoned reused output, full-width chunk/enumeration offsets, scalar/error priority, no capability publication on short output |
-| Actual kernel allocation faults | 7 groups, 12 actual Linux ENOMEM results, unchanged old mappings, rollback/retry, pressure collection, final zero owned mappings |
+| Actual kernel allocation faults | 8 groups, 14 actual Linux ENOMEM results, unchanged old mappings, rollback/retry, pressure collection, final zero owned mappings |
 | Independent context tokens | 4 groups, 3710 native calls, 201 distinct tokens, exact single consumption, token typing, value survival, concurrent stale-drop/ABA protection |
+| Exact signed integer arithmetic | 4 groups / 28548 native calls; 1077 original Python pairs, 9 MiB carry/borrow, exact type/capability guards, eight concurrent threads |
 | Independent HIA rebuild | All six new source and flat modules byte-identical |
 
 Kernel fault qualification changed only child-process mmap/mremap size
