@@ -635,8 +635,8 @@ def timeout_start(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return failure(o,1,107)
         now=clock_ns(o)
         ns=get(o,TIMEOUTNS)
-        if ns>MAX-now:
-            put(o,DEADLINE,MAX)
+        if now>9223372036854775807 or ns>9223372036854775807-now:
+            put(o,DEADLINE,9223372036854775807)
         else:
             put(o,DEADLINE,now+ns)
         return again(o,300)

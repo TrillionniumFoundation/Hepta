@@ -133,6 +133,8 @@ def unsigned_float(n:u64) -> u64:
 def seconds(ns:u64) -> u64:
     if ns==0:
         return 0
+    if ns%1000000000==0:
+        return unsigned_float(ns//1000000000)
     a=unsigned_float(ns)
     exp=((a>>52)&2047)-29
     am=(a&FRAC)|HIDDEN

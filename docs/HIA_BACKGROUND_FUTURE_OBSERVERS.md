@@ -83,7 +83,13 @@ an entire buffered batch before checking that deadline again, checks expiry
 before collecting a new batch, and preserves NaN, infinity, negative zero,
 subnormal and arbitrary-integer conversion behavior. Timeout errors consume
 the handle and release pending references. The exact pure arithmetic role
-was independently compared to Python in 56398 native calls.
+was independently checked in 61398 native calls, including direct calls to
+the actual original C PyTime_AsSecondsDouble symbol. Integral seconds use
+that function's quotient-first shortcut; the earlier float(ns)/1e9 proxy
+missed four one-ulp counterexamples and is retained as superseded evidence.
+Finite wait deadlines saturate at the original signed PyTime_t maximum,
+confirmed against the actual _PyDeadline_Init symbol. Ordinary futex EINTR
+is retried; no external typed interruption source is invented.
 
 ## Qualification scope
 
