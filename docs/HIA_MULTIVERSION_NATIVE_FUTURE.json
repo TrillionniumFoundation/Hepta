@@ -1,0 +1,518 @@
+{
+  "schema": "hepta.hia.multiversion-native-future-component.v1",
+  "whole_native_runtime": false,
+  "public_background_optimizer_integrated": false,
+  "component": {
+    "schema": "hepta.hia.multiversion-future-construction.v1",
+    "components": [
+      {
+        "role": "multiversion_future",
+        "source_sha256": "59a57a6fffae87b38bc5e66fca08472c2f8c86d8a3fa99854d9f05e6546c76f9",
+        "flat_sha256": "090a20cb5369379b0e10dfc7d6ea639641e679e706b695c907e3f270f429a7ba",
+        "bytes": 91540
+      },
+      {
+        "role": "multiversion_future_packer",
+        "source_sha256": "3a1d92480e729c5683268655f01760dccb23d07bc463953de8eb057493cf5dc9",
+        "flat_sha256": "0cf412492a4503bb5f6a17735594bfd9bb03c52217cb724b951dfa0452ba2308",
+        "bytes": 35194
+      },
+      {
+        "role": "elf_shared_linker",
+        "source_sha256": "a8aef777d9ada151b5bdf007f30966e9ecff5f72e34a416ae440bb57dc3f204c",
+        "flat_sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff",
+        "bytes": 127874
+      }
+    ],
+    "image_bytes": 103184,
+    "image_sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade",
+    "source_seed_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+    "whole_native_runtime": false
+  },
+  "runtime_sources": {
+    "examples/hia_bootstrap/multiversion_future.hepta": {
+      "sha256": "59a57a6fffae87b38bc5e66fca08472c2f8c86d8a3fa99854d9f05e6546c76f9",
+      "bytes": 67494
+    },
+    "examples/hia_bootstrap/multiversion_future_packer.hepta": {
+      "sha256": "3a1d92480e729c5683268655f01760dccb23d07bc463953de8eb057493cf5dc9",
+      "bytes": 32153
+    },
+    "tools/hia_multiversion_future_bridge.S": {
+      "sha256": "da297d4e793ae65bac083bd855456f5a82f6890181679fa9cdb00ab5aded5024",
+      "bytes": 2727
+    }
+  },
+  "evidence": {
+    "build.json": {
+      "sha256": "446c9d3b642931bf66a2ba5ec198dd66b14c435b69d4db2ae600b1ce267922ff",
+      "bytes": 1081,
+      "report": {
+        "schema": "hepta.hia.multiversion-future-construction.v1",
+        "components": [
+          {
+            "role": "multiversion_future",
+            "source_sha256": "59a57a6fffae87b38bc5e66fca08472c2f8c86d8a3fa99854d9f05e6546c76f9",
+            "flat_sha256": "090a20cb5369379b0e10dfc7d6ea639641e679e706b695c907e3f270f429a7ba",
+            "bytes": 91540
+          },
+          {
+            "role": "multiversion_future_packer",
+            "source_sha256": "3a1d92480e729c5683268655f01760dccb23d07bc463953de8eb057493cf5dc9",
+            "flat_sha256": "0cf412492a4503bb5f6a17735594bfd9bb03c52217cb724b951dfa0452ba2308",
+            "bytes": 35194
+          },
+          {
+            "role": "elf_shared_linker",
+            "source_sha256": "a8aef777d9ada151b5bdf007f30966e9ecff5f72e34a416ae440bb57dc3f204c",
+            "flat_sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff",
+            "bytes": 127874
+          }
+        ],
+        "image_bytes": 103184,
+        "image_sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade",
+        "source_seed_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+        "whole_native_runtime": false
+      }
+    },
+    "qualification.json": {
+      "sha256": "adc40019bc1a7bc16af6486a36ebef4d5442a1f30809139872378a390e322ad8",
+      "bytes": 3935,
+      "report": {
+        "schema": "hepta.hia.native-future-component.v1",
+        "whole_native_runtime": false,
+        "scope": "actual in-process HIA Future/token/futex/C callback state and transferred closure lifetime; optimizer/public value carrier not integrated",
+        "passed_pairs": 13,
+        "native_races": 80,
+        "failed": 0,
+        "image_sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade",
+        "cases": [
+          {
+            "case": "normal",
+            "events_sha256": "8dbe14471bbe850698386b3188ad5c9c7565174dbee3e72147b46f9de7bb40c6",
+            "events": 7,
+            "actual_callback_entries": 3,
+            "retained_closures_until_destroy": 2,
+            "exactly_once_drops": 3
+          },
+          {
+            "case": "cancel",
+            "events_sha256": "2e80274be10162566794df2d119cbd4886a703110ef676ab2dc8f8792b53a35c",
+            "events": 6,
+            "actual_callback_entries": 3,
+            "retained_closures_until_destroy": 2,
+            "exactly_once_drops": 3
+          },
+          {
+            "case": "committed",
+            "events_sha256": "8ea902612b0a5a785722f92c4c8a489bc2fd4a094baf52f2d53d6115822515f5",
+            "events": 5,
+            "actual_callback_entries": 1,
+            "retained_closures_until_destroy": 1,
+            "exactly_once_drops": 1
+          },
+          {
+            "case": "token-gap",
+            "events_sha256": "b489ce05527366a183199e6ca3b9165253c71f5ee029fb34f75211c6e578ed8f",
+            "events": 6,
+            "actual_callback_entries": 1,
+            "retained_closures_until_destroy": 1,
+            "exactly_once_drops": 1
+          },
+          {
+            "case": "invalid-settle",
+            "events_sha256": "63e581b9e91ee404ca0cd2d5b02233b67878ecddbeef21f56d5620303015eb64",
+            "events": 2,
+            "actual_callback_entries": 0,
+            "retained_closures_until_destroy": 0,
+            "exactly_once_drops": 0
+          },
+          {
+            "case": "exception",
+            "events_sha256": "04302ee24dcab95138782f8c32a49b869cadf16f7fccec066379174da232ec44",
+            "events": 5,
+            "actual_callback_entries": 3,
+            "retained_closures_until_destroy": 2,
+            "exactly_once_drops": 3
+          },
+          {
+            "case": "interrupt",
+            "events_sha256": "6af45c4bd0efc18bbf78c99a8981c451659517211ace5cadea01262d81c080c2",
+            "events": 5,
+            "actual_callback_entries": 2,
+            "retained_closures_until_destroy": 2,
+            "exactly_once_drops": 3
+          },
+          {
+            "case": "recursive-add",
+            "events_sha256": "ae82deb2434e69dfe87a0ea802638253af61fc577dc9a3eaaf45dd88ea070de6",
+            "events": 5,
+            "actual_callback_entries": 3,
+            "retained_closures_until_destroy": 2,
+            "exactly_once_drops": 3
+          },
+          {
+            "case": "cancel-join",
+            "events_sha256": "ce9f15ecd1de8a290b5606a8b529b1abf8616a57e0231476e96ed56ecba3c990",
+            "events": 4,
+            "actual_callback_entries": 1,
+            "retained_closures_until_destroy": 1,
+            "exactly_once_drops": 1
+          },
+          {
+            "case": "wait-complete",
+            "events_sha256": "b19fdaaa7d6f922e58492bd5347049f0eaaaeb8ade4d533a00c956fc5f3e3e6b",
+            "events": 2,
+            "actual_callback_entries": 0,
+            "retained_closures_until_destroy": 0,
+            "exactly_once_drops": 0
+          },
+          {
+            "case": "wait-cancel",
+            "events_sha256": "d4a864681e69092c37dcd58ab9ff177a480d7f5cae893a39114bae33904c2285",
+            "events": 2,
+            "actual_callback_entries": 0,
+            "retained_closures_until_destroy": 0,
+            "exactly_once_drops": 0
+          },
+          {
+            "case": "timeout",
+            "events_sha256": "6fdb2171a0ae395484157f1d9e46480e30477f70ad40f8ee116e6a01d99ca5c0",
+            "events": 2,
+            "actual_callback_entries": 0,
+            "retained_closures_until_destroy": 0,
+            "exactly_once_drops": 0
+          },
+          {
+            "case": "many-callbacks",
+            "events_sha256": "750e9f0443fd37c96398eb37672c800f2243e6269c2ec938895b61ab7abd36f0",
+            "events": 1001,
+            "actual_callback_entries": 1000,
+            "retained_closures_until_destroy": 1000,
+            "exactly_once_drops": 1000
+          }
+        ],
+        "race_outcomes": {
+          "(True, 'cancelled', 1)": 37,
+          "(False, 'finished', 0)": 33,
+          "(False, 'finished', 1)": 10
+        }
+      }
+    },
+    "guards-qualification.json": {
+      "sha256": "0f8efc22c95d2f506aab98a4083c1932aecb3073f8b627814a337695227368b6",
+      "bytes": 1746,
+      "report": {
+        "schema": "hepta.hia.native-future-guards.v1",
+        "passed": 20,
+        "failed": 0,
+        "whole_native_runtime": false,
+        "image_sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade",
+        "cases": [
+          {
+            "case": "magic",
+            "refused_without_owner_mutation": true
+          },
+          {
+            "case": "truncated",
+            "refused_without_owner_mutation": true
+          },
+          {
+            "case": "trailing",
+            "refused_without_owner_mutation": true
+          },
+          {
+            "case": "op11",
+            "refused_without_owner_mutation": true
+          },
+          {
+            "case": "reserved48",
+            "refused_without_owner_mutation": true
+          },
+          {
+            "case": "reserved56",
+            "refused_without_owner_mutation": true
+          },
+          {
+            "case": "output-small"
+          },
+          {
+            "case": "work-small"
+          },
+          {
+            "case": "reinitialization-refused"
+          },
+          {
+            "case": "invalid-capabilities-and-timeout-flag"
+          },
+          {
+            "case": "foreign-pid-retains-original-owner"
+          },
+          {
+            "case": "actual-futex-signal-and-active-wait-destroy"
+          },
+          {
+            "case": "callback-active-destroy-and-concurrent-late-add"
+          },
+          {
+            "case": "actual-closure-retained-after-call-until-owner-release",
+            "original_and_native": [
+              true,
+              true
+            ]
+          },
+          {
+            "case": "selected-and-losing-result-transferred-lifetimes"
+          },
+          {
+            "case": "cancelled-future-drops-unselected-result-once"
+          },
+          {
+            "case": "pending-destruction-releases-without-invoking"
+          },
+          {
+            "case": "immediate-abrupt-callback-releases-incoming-closure"
+          },
+          {
+            "case": "callback-reentrant-destroy-refusal"
+          },
+          {
+            "case": "settle-token-gap-after-normal-completion-original-pair"
+          }
+        ]
+      }
+    },
+    "packaging-qualification.json": {
+      "sha256": "6b8b7fbb974b710b91bf2a54a0599544fb7e57897344cf5c4f9ea01517e240bb",
+      "bytes": 2174,
+      "report": {
+        "schema": "hepta.hia.multiversion-effect-native-packaging.v1",
+        "component": "future",
+        "passed": 16,
+        "failed": 0,
+        "production_packaging_uses_hia_only": true,
+        "whole_native_runtime": false,
+        "mechanical": {
+          "source_sha256": "da297d4e793ae65bac083bd855456f5a82f6890181679fa9cdb00ab5aded5024",
+          "object_sha256": "20811df891f69e976d73d747c91ce97779515180d1eba4d5e5597fa9d81ecb15",
+          "bridge_bytes": 494,
+          "bridge_sha256": "ef42f054b6c58c71af9a7c64cd06481aa982620ccd54a711497dae8f5c398612"
+        },
+        "actual_roles": {
+          "multiversion_future": "090a20cb5369379b0e10dfc7d6ea639641e679e706b695c907e3f270f429a7ba"
+        },
+        "image_sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade",
+        "cases": [
+          {
+            "case": "all-actual-roles",
+            "object_sha256": "74b8df74ccad615bcae6190f9b1f3676b18a72f99e6bbc52e1936c3c77103835",
+            "image_sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade"
+          },
+          {
+            "case": "magic",
+            "refused_transactionally": true
+          },
+          {
+            "case": "tail",
+            "refused_transactionally": true
+          },
+          {
+            "case": "truncated",
+            "refused_transactionally": true
+          },
+          {
+            "case": "short-header",
+            "refused_transactionally": true
+          },
+          {
+            "case": "field-8-0",
+            "refused_transactionally": true
+          },
+          {
+            "case": "field-8-0",
+            "refused_transactionally": true
+          },
+          {
+            "case": "field-8-2",
+            "refused_transactionally": true
+          },
+          {
+            "case": "field-8-18446744073709551615",
+            "refused_transactionally": true
+          },
+          {
+            "case": "field-16-0",
+            "refused_transactionally": true
+          },
+          {
+            "case": "field-16-4194305",
+            "refused_transactionally": true
+          },
+          {
+            "case": "field-16-18446744073709551615",
+            "refused_transactionally": true
+          },
+          {
+            "case": "output-0",
+            "refused_transactionally": true
+          },
+          {
+            "case": "output-63",
+            "refused_transactionally": true
+          },
+          {
+            "case": "output-92807",
+            "refused_transactionally": true
+          },
+          {
+            "case": "exact-four-MiB-role",
+            "bytes": 4195568
+          }
+        ]
+      }
+    },
+    "allocation-qualification.json": {
+      "sha256": "cc7f65f743c1e42da7c117af3dd4a9e73db59a03e1fe6f68d5d965e48f128ce1",
+      "bytes": 1218,
+      "report": {
+        "schema": "hepta.hia.native-future-allocation-faults.v1",
+        "passed": 3,
+        "failed": 0,
+        "whole_native_runtime": false,
+        "external_fault_injector_only": true,
+        "fault_scope": "real malloc(64) call sites inside actual HIA Future image, never returned public business facts",
+        "injector_source_sha256": "999416368c1256c189b152a028bf374f35e2fe65177872773b70ba10526c865d",
+        "injector_image_sha256": "f78d0c071c4f601e3c5d3531c37b9288fa59fc2209b15efe4fe6a31d12c8d5b6",
+        "cases": [
+          {
+            "failed_allocation_ordinal": 1,
+            "attempts": 2,
+            "actual_allocations": 1,
+            "actual_frees": 1,
+            "failed_transferred_closure_dropped_once": true,
+            "same_owner_retry": true
+          },
+          {
+            "failed_allocation_ordinal": 2,
+            "attempts": 3,
+            "actual_allocations": 2,
+            "actual_frees": 2,
+            "failed_transferred_closure_dropped_once": true,
+            "same_owner_retry": true
+          },
+          {
+            "failed_allocation_ordinal": 8,
+            "attempts": 9,
+            "actual_allocations": 8,
+            "actual_frees": 8,
+            "failed_transferred_closure_dropped_once": true,
+            "same_owner_retry": true
+          }
+        ],
+        "image_sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade"
+      }
+    },
+    "concurrency-qualification.json": {
+      "sha256": "3c1a5ef292da6ae69678036c454258fcec51be59e73e48ce393ff85a2a363f6b",
+      "bytes": 1497,
+      "report": {
+        "schema": "hepta.hia.native-future-concurrency.v1",
+        "passed": 240,
+        "failed": 0,
+        "whole_native_runtime": false,
+        "image_sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade",
+        "cases": [
+          {
+            "implementation": "original",
+            "family": "commit-cancel",
+            "real_thread_rounds": 40,
+            "outcomes": {
+              "[('cancel', False), ('commit', True)]": 10,
+              "[('cancel', True), ('commit', False)]": 30
+            }
+          },
+          {
+            "implementation": "original",
+            "family": "register-complete",
+            "real_thread_rounds": 40,
+            "outcomes": {
+              "exactly-once": 40
+            }
+          },
+          {
+            "implementation": "original",
+            "family": "competing-complete",
+            "real_thread_rounds": 40,
+            "outcomes": {
+              "invalid-state-count-0": 40
+            }
+          },
+          {
+            "implementation": "native",
+            "family": "commit-cancel",
+            "real_thread_rounds": 40,
+            "outcomes": {
+              "[('cancel', False), ('commit', True)]": 5,
+              "[('cancel', True), ('commit', False)]": 35
+            }
+          },
+          {
+            "implementation": "native",
+            "family": "register-complete",
+            "real_thread_rounds": 40,
+            "outcomes": {
+              "exactly-once": 40
+            }
+          },
+          {
+            "implementation": "native",
+            "family": "competing-complete",
+            "real_thread_rounds": 40,
+            "outcomes": {
+              "invalid-state-count-0": 12,
+              "invalid-state-count-1": 27,
+              "invalid-state-count-2": 1
+            }
+          }
+        ]
+      }
+    }
+  },
+  "qualification_scope": {
+    "original_native_scenarios": 13,
+    "native_cancel_complete_races": 80,
+    "original_native_concurrency_rounds": 240,
+    "lifetime_and_private_guard_cases": 20,
+    "actual_allocation_fault_cases": 3,
+    "native_packer_cases": 16
+  },
+  "remaining_integration": [
+    "public native value/closure capability owner",
+    "coordinator selection/cancellation token coupling",
+    "BackgroundOptimizer queue/worker/ranking/accounting/publication",
+    "public Future observer/timeout/exception facade",
+    "complete native preparation/proof/build/retirement integration"
+  ],
+  "historical_failures_preserved": [
+    {
+      "directory": "native-multiversion-future-v1",
+      "case": "qualification.log",
+      "reason": "QA read committed/cancelled bound methods without calling them"
+    },
+    {
+      "directory": "native-multiversion-future-v1",
+      "case": "guards.log",
+      "reason": "QA Reference callback adapter introduced self-capture cycle"
+    },
+    {
+      "directory": "native-multiversion-future-v1",
+      "case": "guards-v2.log",
+      "reason": "ctypes.cast callback carrier self-reference; replaced by borrowed pointer read, no GC adjustment"
+    },
+    {
+      "directory": "native-multiversion-future-v2",
+      "case": "concurrency.log",
+      "reason": "QA global lock-zero observation confused another native thread lock owner with callback lock ownership; real reentrant callback calls remain required"
+    }
+  ]
+}

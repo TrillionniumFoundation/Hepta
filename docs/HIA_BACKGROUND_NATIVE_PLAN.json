@@ -1,0 +1,408 @@
+{
+  "schema": "hia.background-native-implementation-plan.v1",
+  "whole_qualified": false,
+  "runtime_execution_implemented": false,
+  "source_baseline": "8d69edabbad9fedbc7b7aaa39dff1d38faff2f7f",
+  "source_contracts": [
+    {
+      "path": "hepta/hia_background_optimizer.py",
+      "bytes": 29432,
+      "sha256": "d5a3c81eb0d7907fe872565b6ca6605708f8a6f13fd5a8d55788a9a13a095f7b",
+      "tests": []
+    },
+    {
+      "path": "hepta/hia_ndu_optimizer.py",
+      "bytes": 28635,
+      "sha256": "f38d24cfa959d54acc0a220334de263ad840b72ffdae95050cbb9c1c2cbf38b7",
+      "tests": []
+    },
+    {
+      "path": "hepta/hia_ndu_scalar_selection.py",
+      "bytes": 7110,
+      "sha256": "280e287cde21fec7e49f38c07ada2f9f15a9b3c7fd8038432951abbf4b95f101",
+      "tests": []
+    },
+    {
+      "path": "tests/test_hia_background_optimizer.py",
+      "bytes": 27732,
+      "sha256": "0411520b3bb06df7da39028c4b8f075887d368dd6a79b2b95f007d48ab1f1080",
+      "tests": [
+        {
+          "name": "test_cancel_is_idempotent_and_token_cannot_be_copied",
+          "owner": "background"
+        },
+        {
+          "name": "test_cancel_callbacks_can_join_a_worker_completing_the_same_future",
+          "owner": "background"
+        },
+        {
+          "name": "test_actual_conditional_publication_records_cost_and_commits_token",
+          "owner": "background"
+        },
+        {
+          "name": "test_cancelled_zero_budget_and_wrong_types_do_not_build",
+          "owner": "background"
+        },
+        {
+          "name": "test_successive_jobs_rank_against_the_source_actually_published",
+          "owner": "background"
+        },
+        {
+          "name": "test_optimizer_admission_does_not_bypass_actual_behavior_proof",
+          "owner": "background"
+        },
+        {
+          "name": "test_unknown_publication_proof_preserves_the_native_head",
+          "owner": "background"
+        },
+        {
+          "name": "test_unbound_rank_output_and_wrong_exact_cost_types_reject",
+          "owner": "background"
+        },
+        {
+          "name": "test_no_positive_economic_margin_abstains_without_build",
+          "owner": "background"
+        },
+        {
+          "name": "test_cost_observation_does_not_predict_later_future_cancellation",
+          "owner": "background"
+        },
+        {
+          "name": "test_real_preparation_over_budget_is_disposed_without_selection",
+          "owner": "background"
+        },
+        {
+          "name": "test_current_snapshot_change_and_rollback_aba_invalidate_queued_result",
+          "owner": "background"
+        },
+        {
+          "name": "test_queued_job_is_not_silently_rebased_after_first_publication",
+          "owner": "background"
+        },
+        {
+          "name": "test_cancel_during_real_native_preparation_reclaims_unpublished_artifact",
+          "owner": "background"
+        },
+        {
+          "name": "test_cancel_after_atomic_commit_returns_false_even_before_future_completion",
+          "owner": "background"
+        },
+        {
+          "name": "test_submission_freezes_caller_dicts_and_capacity_counts_the_active_job",
+          "owner": "background"
+        },
+        {
+          "name": "test_shutdown_cancels_running_and_queued_work_without_closing_runtime",
+          "owner": "background"
+        },
+        {
+          "name": "test_shutdown_can_drain_and_a_completion_callback_does_not_join_itself",
+          "owner": "background"
+        },
+        {
+          "name": "test_source_target_measurement_and_input_limits_fail_before_enqueue",
+          "owner": "background"
+        }
+      ]
+    },
+    {
+      "path": "tests/test_hia_publication_interruptions.py",
+      "bytes": 19570,
+      "sha256": "f13e887d820da1ba77b25c1ec3c04043b440b4b3137411e002dc565dfd5f04f1",
+      "tests": [
+        {
+          "name": "test_plain_failure_before_registration_releases_prepared_image",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_plain_failure_after_insertion_rolls_back_owner_transfer",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_conditional_failure_before_registration_does_not_commit",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_conditional_failure_after_insertion_does_not_leave_released_entry",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_plain_postcommit_interruption_preserves_runtime_owner",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_conditional_postcommit_interruption_cannot_cancel_or_unload",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_retirement_return_interruption_never_recloses_a_reused_descriptor",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_retirement_interrupted_before_release_keeps_one_deferred_owner",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_retry_completes_interrupted_retirement_registration_before_release",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_interrupted_close_attempts_other_images_and_can_finish_later",
+          "owner": "runtime"
+        },
+        {
+          "name": "test_worker_interruption_settles_active_and_queued_futures",
+          "owner": "background"
+        },
+        {
+          "name": "test_postcommit_worker_failure_reports_committed_selection_without_replay",
+          "owner": "background"
+        },
+        {
+          "name": "test_completion_callback_interruption_cannot_strand_other_jobs",
+          "owner": "background"
+        },
+        {
+          "name": "test_shutdown_attempts_all_cancellations_before_propagating_callback_exit",
+          "owner": "background"
+        },
+        {
+          "name": "test_token_cancel_interruption_before_future_transition_cannot_strand_job",
+          "owner": "background"
+        }
+      ]
+    },
+    {
+      "path": "tests/test_hia_ndu_optimizer.py",
+      "bytes": 11089,
+      "sha256": "e4f9a081a07bb8366f2489e13c2a7bdf2f1db1ac20d8f5c372b48df424fb5cce",
+      "tests": [
+        {
+          "name": "test_integer_conversion_matches_exact_fraction_without_clipping",
+          "owner": "rank"
+        },
+        {
+          "name": "test_real_ndu_selects_only_a_freshly_proved_candidate",
+          "owner": "rank"
+        },
+        {
+          "name": "test_structurally_safe_wrong_cheapest_candidate_is_rejected",
+          "owner": "rank"
+        },
+        {
+          "name": "test_identical_unsupported_loop_never_becomes_an_identity_proof",
+          "owner": "rank"
+        },
+        {
+          "name": "test_unselected_export_cannot_change_behind_a_selected_function_proof",
+          "owner": "rank"
+        },
+        {
+          "name": "test_native_uncertainty_is_explicitly_applied_before_pareto_ranking",
+          "owner": "rank"
+        },
+        {
+          "name": "test_search_of_losing_candidates_and_baseline_measurement_is_charged",
+          "owner": "rank"
+        },
+        {
+          "name": "test_actual_search_budget_overrun_keeps_incumbent",
+          "owner": "rank"
+        },
+        {
+          "name": "test_cost_dominated_candidate_is_not_proved_or_marked_safe",
+          "owner": "rank"
+        },
+        {
+          "name": "test_exhausted_budget_skips_proof_but_still_binds_candidate_and_bridge",
+          "owner": "rank"
+        },
+        {
+          "name": "test_fresh_selected_proof_can_still_refuse_native_recommendation",
+          "owner": "rank"
+        },
+        {
+          "name": "test_complete_matching_hashes_with_wrong_proof_scope_do_not_authorize",
+          "owner": "rank"
+        },
+        {
+          "name": "test_identity_mismatches_and_authority_flags_are_not_accepted",
+          "owner": "rank"
+        },
+        {
+          "name": "test_modified_build_receipt_or_binary_does_not_rank",
+          "owner": "rank"
+        },
+        {
+          "name": "test_empty_finite_action_set_returns_existing_baseline",
+          "owner": "rank"
+        }
+      ]
+    },
+    {
+      "path": "tests/test_hia_ndu_optimizer_budget.py",
+      "bytes": 12731,
+      "sha256": "b44963c1ec778d773c6b68fa2d472c45e88adb6234a56f6e99d769d8039a80b6",
+      "tests": [
+        {
+          "name": "test_each_solver_timeout_uses_remaining_budget_including_paid_search",
+          "owner": "rank"
+        },
+        {
+          "name": "test_exhausted_search_never_starts_native_work_or_claims_native_receipt",
+          "owner": "rank"
+        },
+        {
+          "name": "test_proof_spending_remaining_budget_does_not_renew_native_timeout",
+          "owner": "rank"
+        },
+        {
+          "name": "test_all_candidates_share_one_cap_and_losing_search_costs",
+          "owner": "rank"
+        },
+        {
+          "name": "test_native_budget_overrun_does_not_start_a_second_solver",
+          "owner": "rank"
+        },
+        {
+          "name": "test_native_cost_exhausting_possible_gain_does_not_start_a_second_solver",
+          "owner": "rank"
+        },
+        {
+          "name": "test_less_than_one_solver_millisecond_never_rounds_the_budget_up",
+          "owner": "rank"
+        },
+        {
+          "name": "test_less_than_one_profitable_millisecond_does_not_start_a_solver",
+          "owner": "rank"
+        },
+        {
+          "name": "test_native_remainder_cannot_be_rounded_up_for_the_final_solver",
+          "owner": "rank"
+        },
+        {
+          "name": "test_exact_budget_exhaustion_is_not_reported_as_an_overrun",
+          "owner": "rank"
+        },
+        {
+          "name": "test_final_proof_may_finish_exactly_at_cap_if_net_margin_remains",
+          "owner": "rank"
+        },
+        {
+          "name": "test_final_proof_overshoot_still_preserves_incumbent",
+          "owner": "rank"
+        },
+        {
+          "name": "test_real_proofs_preserve_all_input_equivalence_and_reject_wrong_candidate",
+          "owner": "rank"
+        },
+        {
+          "name": "test_unsupported_loop_remains_unknown_and_cannot_reach_final_proof",
+          "owner": "rank"
+        }
+      ]
+    },
+    {
+      "path": "tests/test_hia_ndu_optimizer_transport.py",
+      "bytes": 12722,
+      "sha256": "a5293a3fc798be127ee429c7e63c8386b45c331dbd4ccce43ac24bc3c68d3397",
+      "tests": [
+        {
+          "name": "test_aba_path_replacement_cannot_execute_unadmitted_bytes",
+          "owner": "rank"
+        },
+        {
+          "name": "test_binary_fifo_without_writer_rejects_without_blocking",
+          "owner": "rank"
+        },
+        {
+          "name": "test_receipt_fifo_without_writer_rejects_without_blocking",
+          "owner": "rank"
+        },
+        {
+          "name": "test_identity_admission_cannot_renew_an_exhausted_process_budget",
+          "owner": "rank"
+        },
+        {
+          "name": "test_admitted_image_uses_required_kernel_seals_and_closes_descriptor",
+          "owner": "rank"
+        },
+        {
+          "name": "test_missing_sealing_capability_rejects_before_execution",
+          "owner": "rank"
+        },
+        {
+          "name": "test_missing_required_seal_readback_rejects_before_execution",
+          "owner": "rank"
+        },
+        {
+          "name": "test_actual_stdout_and_stderr_overflow_are_stopped_at_the_output_bound",
+          "owner": "rank"
+        },
+        {
+          "name": "test_actual_deadline_kills_and_reaps_leader",
+          "owner": "rank"
+        },
+        {
+          "name": "test_changed_original_path_after_admitted_execution_still_refuses",
+          "owner": "rank"
+        },
+        {
+          "name": "test_actual_nonzero_exit_remains_a_refusal",
+          "owner": "rank"
+        },
+        {
+          "name": "test_response_identity_and_advisory_boundaries_remain_required",
+          "owner": "rank"
+        },
+        {
+          "name": "test_changed_binary_refuses_before_execution",
+          "owner": "rank"
+        }
+      ]
+    }
+  ],
+  "ownership": {
+    "background": "native_release_audit",
+    "ndu_rank_": "root",
+    "runtime_provider": "cleanup_inventory"
+  },
+  "rank_contract": "Complete original rank_candidates call; proof, source capture and evaluator effects are performed by fixed native owners, never acknowledged by a caller.",
+  "runtime_provider": {
+    "path": "docs/HIA_MULTIVERSION_BACKGROUND_RUNTIME_ABI.md",
+    "sha256": "7100c0693130172d4fe04966ba475ea4b004a15ad9e4c59bb04af16f752c9e9c",
+    "status": "stable composition draft; actual native provider qualification pending"
+  },
+  "existing_components": {
+    "future": {
+      "commit": "b734e3e7e55f10d51af6c387f43612d2ef88d7c7",
+      "flat_sha256": "090a20cb5369379b0e10dfc7d6ea639641e679e706b695c907e3f270f429a7ba",
+      "whole_background_claim": false
+    },
+    "decimal": {
+      "commits": [
+        "367a273d",
+        "5839d525"
+      ],
+      "purpose": "Unbounded public job/accounting/generation values; finite private queue slots remain separate."
+    }
+  },
+  "planned_native_roles": [
+    "multiversion_background_economics",
+    "multiversion_background_queue",
+    "multiversion_background_worker",
+    "multiversion_background_values",
+    "multiversion_background_owner",
+    "multiversion_background_packer"
+  ],
+  "remaining": [
+    "native queue and one actual worker",
+    "captured payload and typed admission",
+    "independent ranking binding and exact arithmetic",
+    "immutable account receipts and arbitrary precision cumulative counters",
+    "public Future result/exception carrier and wait observers",
+    "shutdown and interruption settlement",
+    "actual native runtime provider and native rank owner composition",
+    "full unchanged original scenarios and fresh native publication/ABI/fault controls"
+  ]
+}

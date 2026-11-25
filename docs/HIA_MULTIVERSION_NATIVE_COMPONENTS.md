@@ -1,0 +1,28 @@
+# Native in-process multiversion components
+
+This checkpoint moves coordination, profile-fact projection, ABI materialization and scalar call admission into HIA. It is an implementation checkpoint, not an installed replacement for the complete ScalarMultiversionRuntime or BackgroundOptimizer. The accompanying JSON records the exact component images, original test source pins and evidence scope. The full native runtime remains incomplete until generation preparation, proof, loading, retirement and the public owner interface are connected and qualified together.
+
+## Actual qualification
+
+The original 34 multiversion/publication-interruption tests run unchanged against the original runtime and against the HIA coordinator component; both arms pass without skips. The component harness uses real original fresh proofs, native build/load/probes and retirement effects. The harness is a development oracle, never a production adapter. It does not grant a fabricated proof or replace a failed native decision with a reference decision.
+
+The profile projector has 200 exact fact-wire comparisons, including pretty/compact Core, function/block/instruction boundaries and the original profile decision. It returns the original header or complete facts, then invokes the existing scalar_profile owner. Caller output for the generic JSON decoder must provide at least 4 MiB scratch for the full original 8 MiB input/262144-node domain; the recorded qualification supplies 8 MiB output and 32 MiB workspace. A 128-byte structural minimum does not assert that all inputs fit that scratch extent.
+
+The ABI/call component qualification has 5344 passing checks, including 3936 actual shared-object calls compared against a fresh independent Core VM, all eleven scalar types, zero through sixteen arguments, mixed register/stack arguments, sixteen exports, 128-character names and the admitted u8/u16 div/rem operations. General native hia-build-object is invoked with argv[0] hia-build-shared and an empty PATH. A fixed assembly scalar invoker is a development mechanical fixture; its final native packaging is still required. Return conversion is checked through actual C ABI machine returns, not ctypes constructor conversions.
+
+## Private interfaces
+
+All four HIA roles use the standard six-word borrowed-buffer entry (source pointer/length, output pointer/length, workspace pointer/length). These are private components. A caller cannot supply a successful profile, proof, actual function address or generation state as public publication authority.
+
+- multiversion_coordinator consumes HIAMVC01 and drives fixed effect actions. Its persistent state is HIAMVS01. It retains writer/selection/lease/cancellation lock order, stale selection checks, capacity charging, rollback, cancellation linearization, registration before detach, last-lease retirement and the bounded event ring. Error acknowledgements preserve prior ownership and completed effects. Native generation_retention retains the original arbitrary-length lease count.
+- multiversion_profile consumes actual admitted Core JSON. Output controls are prove_total at byte0, phase0 header/phase1 complete facts at byte8, and original structured-input fact at byte16. It produces exact HIASCP01 bytes. The existing scalar_profile owner produces HIASCR01 sorted original function indices.
+- multiversion_abi consumes that exact complete fact frame and the actual 144-byte HIASCR01 decision in its workspace. Output is HIAMVAB1 plus count, then 320 bytes per sorted export: original function index, name length, argument count, result type (four words); 128 name bytes; sixteen parameter-type words; 32 reserved zero bytes. All output is committed only after complete extent/permutation checks. Type IDs1..11 are bool,i8,u8,i16,u16,i32,u32,i64,u64,isize,usize.
+- multiversion_call takes an exact scalar JSON array, a minimum 152-byte output and 512-byte workspace. Workspace controls are mode0 arguments/mode1 return, argument count, result type, sixteen argument types, actual return RAX at byte160. Mode0 emits HIAMVCAL, count, result type and sixteen zero-padded scalar words. It preserves exact bool/int distinctions, all narrow ranges, signed bounds, zero/negative-zero and complete framing. Mode1 takes empty source and emits one canonical scalar JSON value from the actual return register. The direct scalar-array parser needs no generic JSON arena or node-budget change.
+
+The fixed SysV invoker uses six integer registers and ten stack slots, maintains sixteen-byte call alignment and reads only the HIA-approved zero-padded words. Function addresses must come from the runtime's held, sealed and verified generation.
+
+## Proof and production integration
+
+Coordinator action21 performs original profile/optional totality admission; action22 proves every immutable baseline/candidate export pair. The production proof engine must independently read actual Core, preserve canonical/input/source/image identities and return its real HIA proof receipt. The old LLVM/Z3 identity is not assigned to a different HIA implementation. Each original proof retains its configured validation timeout; the conditional publication preparation deadline is a separate coordinator observation.
+
+The current coordinator's private generation/epoch representation is u64. The original public Python integers are not intrinsically capped; complete native publication must preserve this behavior before claiming equivalence. Existing ordinary generation retention, native mapping and retirement-state policies remain the reusable authorities for their respective decisions. Leaf policy presence and the component results above do not by themselves establish full loading, cleanup, optimizer or callback equivalence.

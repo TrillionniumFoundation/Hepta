@@ -1,0 +1,332 @@
+{
+  "schema": "hepta.hia.background-native-queue.v1",
+  "whole_background_qualified": false,
+  "scope": "Qualified native FIFO/ref-transfer/futex/thread-identity component; native pthread worker, job provider, accounting, runtime/rank integration remain separate.",
+  "build": {
+    "status": "built_unqualified",
+    "components": [
+      {
+        "role": "multiversion_background_queue",
+        "source_sha256": "0182ee02b2804fff05e82c380d4ad49cf703240ba778aea3d78d4ae615fe25bb",
+        "flat_sha256": "4871066853ed3dd10a7d82271df17043460e4474edd036ac794a8b6bd02baeba",
+        "bytes": 106492,
+        "elapsed_ns": 64046209
+      },
+      {
+        "role": "multiversion_background_queue_packer",
+        "source_sha256": "8adbfb1297175b4a8a3454159c0db6382333348a3d65d2ab41947a78bc42d27e",
+        "flat_sha256": "d6ce373ab45f189fb67d873c6b243a2ab900e22864f3a5db738ded3dd145d4c6",
+        "bytes": 31409,
+        "elapsed_ns": 23714927
+      },
+      {
+        "role": "elf_shared_linker",
+        "source_sha256": "a8aef777d9ada151b5bdf007f30966e9ecff5f72e34a416ae440bb57dc3f204c",
+        "flat_sha256": "fdb48211109c3c24df9f283e5e7abeecaaef97910f6ef33ec7f30f9b742f45ff",
+        "bytes": 127874,
+        "elapsed_ns": 71029456
+      }
+    ],
+    "image_bytes": 119568,
+    "image_sha256": "e2cd914f90060f27bcb55701ddc2ffcf793da86f2b428c8c8ad7bf50ad5b6d33",
+    "compiler_sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af",
+    "mechanical_source_used_only_to_generate_and_verify_fixed_template": true,
+    "actual_pack_and_shared_link": "pure HIA",
+    "whole_background_qualified": false
+  },
+  "qualification": {
+    "schema": "hepta.hia.background-native-queue.qualification.v1",
+    "whole_background_qualified": false,
+    "scope": "Actual HIA queue/FIFO/futex/worker identity and strong references; Python threads and a wire-only provider translator are the external component fixture, not the BG product worker or rank implementation.",
+    "images": {
+      "queue": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/native-release-closeout-20261124T0740Z/native-background-queue-v2/queue-component.so",
+        "bytes": 119568,
+        "sha256": "e2cd914f90060f27bcb55701ddc2ffcf793da86f2b428c8c8ad7bf50ad5b6d33"
+      },
+      "values": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-values-v1/values-component.so",
+        "bytes": 152336,
+        "sha256": "7bc67d8cc2bba8d323d333493cc9fdfbba88d46907f452246b41bd466d32f4e8"
+      },
+      "future": {
+        "path": "/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z/native-multiversion-future-v2/future-component.so",
+        "bytes": 103184,
+        "sha256": "4b99f2e17414552f115ac841ef29a3f192668e9ceaad9804420e316bfc7d1ade"
+      }
+    },
+    "passed": 9,
+    "failed": 0,
+    "native_queue_calls": 5690,
+    "native_value_calls": 3132,
+    "cases": [
+      {
+        "name": "all-capacities-active-cancel-retain-close",
+        "passed": true,
+        "elapsed_ns": 7606197,
+        "detail": {
+          "capacities": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "active_and_cancelled_slots_remain_charged": true
+        }
+      },
+      {
+        "name": "actual-fifo-ring-wrap-and-native-future-completion",
+        "passed": true,
+        "elapsed_ns": 58733296,
+        "detail": {
+          "jobs": 560,
+          "complete_fifo_wraps": 70
+        }
+      },
+      {
+        "name": "actual-blocked-worker-120-wakes-cancel-does-not-free",
+        "passed": true,
+        "elapsed_ns": 17392715,
+        "detail": {
+          "native_idle_wake_cycles": 120,
+          "actual_worker_tid": 957099
+        }
+      },
+      {
+        "name": "eight-native-concurrent-submitters-single-worker",
+        "passed": true,
+        "elapsed_ns": 66502318,
+        "detail": {
+          "producer_threads": 8,
+          "exactly_once_jobs": 400
+        }
+      },
+      {
+        "name": "snapshot-allocation-failure-unwinds-new-owned-refs",
+        "passed": true,
+        "elapsed_ns": 1534182,
+        "detail": {
+          "failed_clone_number": 3,
+          "partial_clones_dropped_once": 2,
+          "retry_still_owns_all_jobs": true
+        }
+      },
+      {
+        "name": "worker-failure-drain-retains-submission-order",
+        "passed": true,
+        "elapsed_ns": 626012,
+        "detail": {
+          "ordered_transferred_jobs": 8,
+          "corrupt_chain_no_partial_drain": true
+        }
+      },
+      {
+        "name": "native-future-callback-reenters-after-queue-release",
+        "passed": true,
+        "elapsed_ns": 319178,
+        "detail": {
+          "callback_resubmit_after_pending_removal": true
+        }
+      },
+      {
+        "name": "worker-pid-tid-lifecycle-and-duplicate-ownership",
+        "passed": true,
+        "elapsed_ns": 1634039,
+        "detail": {
+          "thread_refusals": 4,
+          "process_fork_refused": true,
+          "duplicate_ownership_node_refused": true
+        }
+      },
+      {
+        "name": "complete-frame-unused-words-and-short-view-refusals",
+        "passed": true,
+        "elapsed_ns": 475550,
+        "detail": {
+          "private_rejections": 135,
+          "owner_unchanged": true
+        }
+      }
+    ]
+  },
+  "packing": {
+    "schema": "hepta.hia.background-native-queue-pack.qualification.v1",
+    "whole_background_qualified": false,
+    "passed": 24,
+    "failed": 0,
+    "cases": [
+      {
+        "name": "exact-object",
+        "returncode": 107536,
+        "passed": true
+      },
+      {
+        "name": "truncated-0",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-1",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-7",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-8",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-15",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-16",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-23",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-24",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "truncated-106515",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-0-0",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-8-0",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-8-2",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-8-18446744073709551615",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-16-0",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-16-106491",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-16-106493",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "word-16-18446744073709551615",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "extra-byte",
+        "returncode": 4294967295,
+        "passed": true
+      },
+      {
+        "name": "short-output-0",
+        "returncode": 4294967294,
+        "passed": true
+      },
+      {
+        "name": "short-output-1",
+        "returncode": 4294967294,
+        "passed": true
+      },
+      {
+        "name": "short-output-63",
+        "returncode": 4294967294,
+        "passed": true
+      },
+      {
+        "name": "short-output-107535",
+        "returncode": 4294967294,
+        "passed": true
+      },
+      {
+        "name": "readable-mechanical-source-full-prefix",
+        "bytes": 362,
+        "passed": true
+      }
+    ],
+    "native_packer_sha256": "d6ce373ab45f189fb67d873c6b243a2ab900e22864f3a5db738ded3dd145d4c6",
+    "object_sha256": "42d5a4bc470bb54e38bb7a50639d4516fc0abdf55cc0aec8bd8468a63005c12a",
+    "source_sha256": "ee6bd0631187b09727b413bc49cc4dfcf16471028b660407bd53515547bcea58",
+    "mechanical_assembly_used_only_as_external_source_provenance_check": true
+  },
+  "files": [
+    {
+      "path": "examples/hia_bootstrap/multiversion_background_queue.hepta",
+      "bytes": 74379,
+      "sha256": "0182ee02b2804fff05e82c380d4ad49cf703240ba778aea3d78d4ae615fe25bb",
+      "runtime_source": true
+    },
+    {
+      "path": "examples/hia_bootstrap/multiversion_background_queue_packer.hepta",
+      "bytes": 28141,
+      "sha256": "8adbfb1297175b4a8a3454159c0db6382333348a3d65d2ab41947a78bc42d27e",
+      "runtime_source": true
+    },
+    {
+      "path": "tools/hia_multiversion_background_queue_bridge.S",
+      "bytes": 2199,
+      "sha256": "ee6bd0631187b09727b413bc49cc4dfcf16471028b660407bd53515547bcea58",
+      "runtime_source": true
+    },
+    {
+      "path": "tools/generate_hia_multiversion_background_queue.py",
+      "bytes": 13009,
+      "sha256": "e18fdf16fb342f9fb05c928ad83aa170264dbf94c8b4f40512d1b33084b597d0",
+      "runtime_source": false
+    },
+    {
+      "path": "tools/generate_hia_multiversion_background_queue_packer.py",
+      "bytes": 2764,
+      "sha256": "4685380299c5bf6cefd0114623d22ef098fd1988a76d5a1fcf05ff8b2eb5124f",
+      "runtime_source": false
+    },
+    {
+      "path": "tools/qualify_hia_multiversion_background_queue.py",
+      "bytes": 15038,
+      "sha256": "c92c02e614fcc43186005e37f7c811ef9f00e49d70d98c7eec950c6d13088629",
+      "runtime_source": false
+    },
+    {
+      "path": "tools/qualify_hia_multiversion_background_queue_pack.py",
+      "bytes": 2766,
+      "sha256": "225fe5b3008eb98b3b96503107b2c16199ae3b8e0fc7511393225f31ca586ced",
+      "runtime_source": false
+    }
+  ]
+}
