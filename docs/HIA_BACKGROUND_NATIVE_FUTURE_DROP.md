@@ -195,7 +195,8 @@ the factory registry retirement record.
 
 The new retirement paths require the separately qualified mutable-value
 `HIABVQ02` operations 29, 30, and 31. Its candidate source checkpoint is
-`62c0dd36549595c2a98f08e910f1d752bdfb1d0c`, documented in
+`62c0dd36549595c2a98f08e910f1d752bdfb1d0c`, with the precise status-domain
+contract at `c41703ff0b2ec662eec8f5fa2d06f581604284e2`, documented in
 `HIA_RESULT_VALUE_NATIVE_CLEANUP_ABI.md`. No old value image is silently
 interpreted as implementing this candidate contract.
 The original value profile remains available to the unchanged legacy paths.
@@ -206,7 +207,8 @@ from value op 29 or 30 must be known 1, consumed 1, pending 0; op 31 must be
 known 1, consumed 0, pending 0. Unknown or malformed replies are quarantined.
 The actual producer's fixed status domain is 0/1/6/11 for operations 29/30,
 and 0/6/11 for operation 31. A known consumed reference can accompany only
-status 0 or 11. These checks precede any local capability clearing. Status 999,
+status 0 or 11. Status 1 additionally requires pending 0. These checks precede
+any local capability clearing. Status 999,
 or status 1/6 accompanied by consumed 1, is a malformed completion rather than
 evidence of reference consumption. In particular, status 11 / known 1 /
 consumed 1 / pending 0 is valid and must follow the quarantine rule below;

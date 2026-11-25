@@ -224,7 +224,8 @@ for c, implementation, size in ((cc, cell, 16384), (pc, public, 65536)):
                         accepted = implementation["value_drop_record"](out, op)
                         expected = (known == 1 and consumed <= 1 and pending <= 1
                                     and status in (0, 1, 6, 11)
-                                    and (consumed != 1 or status in (0, 11)))
+                                    and (consumed != 1 or status in (0, 11))
+                                    and (status != 1 or pending == 0))
                         if op == 31:
                             expected &= (status in (0, 6, 11) and consumed == 0
                                          and (status != 0 or pending == 0))
@@ -359,12 +360,12 @@ for c, implementation, size, phase, name in (
 record("pending31-nonzero-never-clears-prior-actual-mapping-record", count)
 
 count = 0
-for status, pending in ((1, 0), (6, 0), (999, 0), (0, 1)):
+for status, consumed, pending in ((1, 1, 0), (6, 1, 0), (999, 1, 0), (0, 1, 1), (1, 0, 1)):
     for role in ("global", "factory", "cell-token"):
         c = cc if role == "cell-token" else pc
         out = bytearray(16384 if role == "cell-token" else 65536)
         work = bytearray(256)
-        value_reply(c, out, status, 1, 1, pending)
+        value_reply(c, out, status, 1, consumed, pending)
         if role == "global":
             token = struct.pack("<QQQ", 0x22200, 8, 9)
             work[128:152] = token

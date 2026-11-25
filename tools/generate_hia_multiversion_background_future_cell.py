@@ -650,6 +650,8 @@ def value_drop_record(o:mutbuf,op:u64) -> bool:
         return False
     if op==31 and status==1:
         return False
+    if status==1 and pending!=0:
+        return False
     if consumed==1 and status!=0 and status!=11:
         return False
     at=16
