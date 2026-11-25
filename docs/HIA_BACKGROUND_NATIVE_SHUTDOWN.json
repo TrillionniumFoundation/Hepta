@@ -1,0 +1,54 @@
+{
+  "schema": "hia.background-native-shutdown-development.v1",
+  "native_built": false,
+  "runtime_qualified": false,
+  "whole_background_qualified": false,
+  "base_commit": "485a339defe2bc4b92e298610afff699d6c4eabf",
+  "sources": [
+    {
+      "path": "tools/generate_hia_background_optimizer_shutdown.py",
+      "bytes": 14267,
+      "sha256": "dcfc8b705c77b0b8f4d804b4c6084bd61e48e985ab560e617328bea7e3a495d4",
+      "runtime_required": false
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_shutdown_packer.py",
+      "bytes": 3373,
+      "sha256": "84d3be634c7076115205d028bf4090f1931903402a7fecae8125c073825af739",
+      "runtime_required": false
+    },
+    {
+      "path": "tools/hia_background_optimizer_shutdown_bridge.S",
+      "bytes": 2932,
+      "sha256": "559bbbade29b8f92f0a159d7cca4e1a29a393269963b822f904a904d4394ed14",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_shutdown.hepta",
+      "bytes": 87955,
+      "sha256": "4de31ae407fb413f2ebce51c6868b04762bb1f48ae40d4d7982a061853167319",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_shutdown_packer.hepta",
+      "bytes": 33181,
+      "sha256": "b89044dea23d58218c0c63982210d213a7b70042ff309f656407585ca3429a73",
+      "runtime_required": true
+    }
+  ],
+  "author_validation": "original HIA verifier, 31 functions, 321 blocks, 1519 operations; source rendering only",
+  "mechanical_template": {
+    "passed": true,
+    "scope": "external mechanical template byte comparison only; native product not constructed",
+    "source_sha256": "559bbbade29b8f92f0a159d7cca4e1a29a393269963b822f904a904d4394ed14",
+    "bytes": 529,
+    "sha256": "fe1caf40da9e357d17e42180023865b108bd96b1028b46f694d0fca2bcb482c7"
+  },
+  "pending": [
+    "actual sealed native compilation and native pack/link",
+    "original shutdown and callback ordering comparison",
+    "real concurrent/reentrant shutdown and native pthread join",
+    "retained ownership, actual allocation and cleanup failures",
+    "coherent inherited Future and insertion-order ledger integration"
+  ]
+}
