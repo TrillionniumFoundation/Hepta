@@ -21,6 +21,8 @@ PUBLIC_ROLES = ('background_optimizer_future_public_owner',
                 'background_optimizer_future_public_log',
                 'multiversion_background_future_cell', 'multiversion_future')
 ADAPTER = 'background_optimizer_future_release_packer'
+CANCELLATION_ROLES = ('publication_cancellation_public', 'multiversion_runtime_handles',
+                      'publication_cancellation_effects', 'multiversion_future')
 
 
 def equal_digest(r, value, expected):
@@ -57,7 +59,8 @@ def build_recipe():
     equal_digest(r, r.small_builder, receipt['native_filter_kit']['dag_frame_sha256'])
     r.node(8, (r.length(r.small_builder), r.q(receipt['native_filter_kit']['dag_frame_bytes'])))
     packers = {}
-    for name in ('result_value_packer', 'background_optimizer_future_public_packer', ADAPTER):
+    for name in ('result_value_packer', 'background_optimizer_future_public_packer', ADAPTER,
+                 'publication_cancellation_packer'):
         image = r.native_filter(r.compiled[BOOT + name + '.hepta'], wide=False)
         expected = receipt['wrappers'][name]
         equal_digest(r, image, expected['sha256'])
@@ -90,6 +93,9 @@ def build_recipe():
     parts = [flat('background_optimizer_future_public_observers_iterable'), observers]
     wire = r.concat(r.literal(b'HIABFAPK'), *(r.length(p) for p in parts), r.q(0), *parts)
     publish('hia-future-iterable.core.bin', r.run(packers[ADAPTER], wire, 0))
+    parts = [flat(name) for name in CANCELLATION_ROLES]
+    wire = r.concat(r.literal(b'HIAPCPK1'), r.q(4), *(r.length(p) for p in parts), r.q(0, 0), *parts)
+    publish('hia-publication-cancellation.core.bin', r.run(packers['publication_cancellation_packer'], wire, 0))
     frozen = r.source(RECEIPT)
     pin = sha256(receipt_bytes).hexdigest()
     equal_digest(r, frozen, pin)

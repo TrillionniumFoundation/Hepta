@@ -1,9 +1,9 @@
-# Source-bound native Future release
+# Source-bound native Future and cancellation release
 
 The final native release owner now executes the Future family as stage 13,
 after the existing NDU runtime stage. The retained HIASTD01 recipe compiles
 the complete matching family twice, constructs its native packer executables,
-checks every source and image identity, and publishes five flat images plus
+checks every source and image identity, and publishes six flat images plus
 their frozen construction receipt.
 
 The matching family is the inherited-Future version qualified in
@@ -14,6 +14,13 @@ images from their current HIA sources produces the exact previously qualified
 bytes. Historical component receipts are retained as evidence for their
 original versions; they are not silently updated to describe this build.
 
+The same stage now publishes the native public PublicationCancellation owner.
+Its four roles reuse the unchanged capability registry and Future token kernel.
+Construction, cancellation and observation, independent retained references,
+copy/deepcopy rejection, failed-finalizer retention and retry are qualified in
+HIA_PUBLICATION_CANCELLATION_NATIVE.json. The real token's participation in the
+complete multiversion publication transaction remains a separate gate.
+
 ## Products
 
 | Product | Bytes | SHA256 |
@@ -23,10 +30,11 @@ original versions; they are not silently updated to describe this build.
 | hia-future-public.core.bin | 1991586 | 6615552f0a51de92ae2eba6294339167089572fa8db61ecd71751637aae4838f |
 | hia-future-observers.core.bin | 301031 | 640bda6bf540218f7e8b02c33b5c48c37681c19b2c74363b3ae5ceb46ef642ba |
 | hia-future-iterable.core.bin | 513782 | 5b4c98c6325abb9b597e70574f8cc7136af7db8758a7e2fde5910c3cd8d0fb9f |
+| hia-publication-cancellation.core.bin | 364751 | 6458c979f848747478e4fc0fdfb15d74adec63e849558a9e22c800cb3b94ffe0 |
 
 The recipe also publishes hia-future-build.json, exactly the retained
 docs/HIA_NATIVE_FUTURE_RELEASE_BUILD.json bytes. It checks that receipt's
-digest before publication. Its 28 source modules, five readable mechanical
+digest before publication. Its 32 source modules, six readable mechanical
 bridge sources, compiler identity, native kit and individual filter identities
 are recorded in that receipt and checked by the recipe.
 
@@ -52,15 +60,15 @@ remain byte-identical to the source-pinned inherited-Future checkpoint.
 The development qualification executes the 813,129-byte hia-source-build
 compiler with SHA256
 494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af.
-Each of the 28 modules is compiled twice with identical bytes. The compiler's
+Each of the 32 modules is compiled twice with identical bytes. The compiler's
 actual build and pack operations construct the three-source native filter kit;
 that native kit constructs every packer executable. The kit and wrappers are
 checked against their independent fixed mechanical ELF templates. The actual
-HIA packers then produce all five images above, including the array image
+HIA packers then produce all six images above, including the array image
 embedded by the iterable packer and the notify/value images embedded by the
 public Future packer.
 
-Eighteen checks cover source-kit correspondence, byte identity with the
+Nineteen checks cover source-kit correspondence, byte identity with the
 original packers, empty and unknown requests, truncated packets, output and
 workspace bounds, and nonzero reserved fields. Rejected inputs do not publish
 an output image. The separate release-registration qualification executes the

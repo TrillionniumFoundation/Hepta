@@ -24,12 +24,15 @@ PUBLIC_ROLES = ('background_optimizer_future_public_owner',
                 'background_optimizer_future_public_timeout',
                 'background_optimizer_future_public_log',
                 'multiversion_background_future_cell', 'multiversion_future')
+CANCELLATION_ROLES = ('publication_cancellation_public', 'multiversion_runtime_handles',
+                      'publication_cancellation_effects', 'multiversion_future')
 PRODUCTS = {
     'hia-result-value.core.bin': (990342, '6d769f3369ceaebed9602a784166548ed2cf48fed608a80a572b1a9c73cc3a7c'),
     'hia-future-notify.core.bin': (80226, '4a06fc521a47285685a6632e0f17b876364ee5e934bb81f5eb3f4195dc263580'),
     'hia-future-public.core.bin': (1991586, '6615552f0a51de92ae2eba6294339167089572fa8db61ecd71751637aae4838f'),
     'hia-future-observers.core.bin': (301031, '640bda6bf540218f7e8b02c33b5c48c37681c19b2c74363b3ae5ceb46ef642ba'),
     'hia-future-iterable.core.bin': (513782, '5b4c98c6325abb9b597e70574f8cc7136af7db8758a7e2fde5910c3cd8d0fb9f'),
+    'hia-publication-cancellation.core.bin': (364751, '6458c979f848747478e4fc0fdfb15d74adec63e849558a9e22c800cb3b94ffe0'),
 }
 
 
@@ -73,6 +76,14 @@ def source_paths():
         assert len(raw) == row['bytes'] and digest(raw) == row['sha256'], row['path']
     paths = {row['path'] for row in rows if row['path'].endswith('.hepta')}
     paths.add(BOOT + 'background_optimizer_future_release_packer.hepta')
+    cancellation = json.loads((ROOT / 'docs/HIA_PUBLICATION_CANCELLATION_NATIVE.json').read_text())
+    assert cancellation['qualified'] and not cancellation['whole_native_runtime']
+    assert not cancellation['final_aggregate_claimed'] and cancellation['compiler_sha256'] == COMPILER_SHA256
+    for row in cancellation['build']:
+        path = BOOT + row['role'] + '.hepta'
+        raw = (ROOT / path).read_bytes()
+        assert len(raw) == row['source_bytes'] and digest(raw) == row['source_sha256'], path
+        paths.add(path)
     paths.update(BOOT + name for name in ('source_native_filter_pack.hepta', 'native_filter_packer.hepta',
                                         'selfhost.hepta', 'source_release_kit.hepta', 'source_build_packer.hepta'))
     return sorted(paths)
@@ -214,8 +225,13 @@ def qualify(compiler, output):
     iterable = run_filter('background_optimizer_future_release_packer', iterable_wire)
     assert iterable == packed('background_optimizer_future_public_observers_iterable_packer', iterable_wire, True)
     checks.append('iterable status-to-extent adapter preserves the original packed image')
+    parts = [flats[name] for name in CANCELLATION_ROLES]
+    cancellation_wire = b'HIAPCPK1' + struct.pack('<7Q', 4, *(len(part) for part in parts), 0, 0) + b''.join(parts)
+    cancellation = run_filter('publication_cancellation_packer', cancellation_wire)
+    assert cancellation == packed('publication_cancellation_packer', cancellation_wire)
+    checks.append('public cancellation native packer and native filter are byte-identical')
     products = {}
-    for name, raw in zip(PRODUCTS, (value, notify, public, array, iterable)):
+    for name, raw in zip(PRODUCTS, (value, notify, public, array, iterable, cancellation), strict=True):
         expected = PRODUCTS[name]
         assert (len(raw), digest(raw)) == expected, (name, len(raw), digest(raw))
         (output / name).write_bytes(raw)
@@ -245,8 +261,11 @@ def qualify(compiler, output):
     for name in ('hia_result_value_bridge.S', 'hia_background_optimizer_future_public_bridge.S',
                  'hia_background_optimizer_future_public_observers_bridge.S',
                  'hia_background_optimizer_future_public_observers_iterable_bridge.S',
-                 'hia_background_optimizer_future_public_observers_notify_bridge.S'):
+                 'hia_background_optimizer_future_public_observers_notify_bridge.S',
+                 'hia_publication_cancellation_bridge.S'):
         source_files['tools/' + name] = digest((ROOT / 'tools' / name).read_bytes())
+    cancellation_receipt = 'docs/HIA_PUBLICATION_CANCELLATION_NATIVE.json'
+    source_files[cancellation_receipt] = digest((ROOT / cancellation_receipt).read_bytes())
     report = dict(schema='hepta.hia.future-native-release-build.v1', status='PASS',
                   source_base_commit='ecd688626409d1adcf4e04a7a535c1b2c45a13ce',
                   compiler=dict(bytes=813129, sha256=COMPILER_SHA256), modules=modules,
