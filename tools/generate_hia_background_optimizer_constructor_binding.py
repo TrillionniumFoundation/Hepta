@@ -22,17 +22,17 @@ C={
  'CURSOR':560,'CHUNK':568,'NODES':576,'KEYS':584,'DEPTH':592,'SNAP_PTR':600,'SNAP_N':608,
  'HPTR':624,'HN':632,'HDST':640,'HAFTER':648,'HCURSOR':656,'CLEAN':664,'DESTROY_AT':672,
  'DROP_ACTIVE':680,'DROP_KNOWN':688,'VALUE_PENDING':696,'ERRID':704,'ERROR_FORMAT':712,
- 'ERR_N':720,'ERR_PTR':728,'FAMILY':736,'SUCCESS':744,'CORE_SHA':768,'INPUT_SHA':800,
+ 'ERR_N':720,'ERR_PTR':728,'FAMILY':736,'SUCCESS':744,'PUBLIC_INPUT':752,'CORE_SHA':768,'INPUT_SHA':800,
  'FEEDBACK':3840,'RQ':4096,'RP':8192,'HEAD':49152,'NORM_HEADER':49664,'SNAP_HEADER':49728,
  'CHECK_HEADER':50176,'SMALL':51200,'ERRBUF':53248,'HBUF':65536,'HOUT':131072,
  'MAX':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'BAD':4294967293,'OUT':262144,
 }
 C.update(retirement.MAGICS)
 C.update({k:int.from_bytes(v.encode(),'little') for k,v in {
- 'MAGIC':'HIABCBQ1','VERIFIED':'HIABCBQ2','REPLY':'HIABCBR1','CONTEXT':'HIABCBX1',
+ 'MAGIC':'HIABCBQ1','VERIFIED':'HIABCBQ2','PUBLIC':'HIABCBQ3','PUBLIC_VERIFIED':'HIABCBQ4','REPLY':'HIABCBR1','CONTEXT':'HIABCBX1',
  'VREQUEST':'HIABVQ01','VREPLY':'HIABVR01','BREQUEST':'HIABPY01','BREPLY':'HIABPYR1',
  'YREQUEST':'HIABVFY3','YVERIFIED':'HIABVFY4','YREPLY':'HIABVFR2','YCONTEXT':'HIABVYC2',
- 'MREQUEST':'HIAMVBQ1','MREPLY':'HIAMVBO1','SNAPSHOT':'HIAMVBS1',
+ 'MREQUEST':'HIAMVBQ1','MCAPTURE':'HIAMVBQ2','MREPLY':'HIAMVBO1','SNAPSHOT':'HIAMVBS1',
  'CHECK_REQUEST':'HIABCCQ1','CHECK_REPLY':'HIABCCR1','SIZES':'HIANJS01','NORM':'HIAVCF01',
 }.items()})
 ERRORS={
@@ -62,12 +62,12 @@ def constructor_binding(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)!=128 or (word_load(s,0)!=MAGIC and word_load(s,0)!=VERIFIED) or word_load(s,8)>1:
+    if length(s)!=128 or (word_load(s,0)!=MAGIC and word_load(s,0)!=VERIFIED and word_load(s,0)!=PUBLIC and word_load(s,0)!=PUBLIC_VERIFIED) or word_load(s,8)>1:
         return BAD
     i=16
     while i<128:
         used=word_load(s,8)==0 and i>=24 and i<=88
-        if word_load(s,0)==VERIFIED and word_load(s,8)==0 and i>=96 and i<=112:
+        if (word_load(s,0)==VERIFIED or word_load(s,0)==PUBLIC_VERIFIED) and word_load(s,8)==0 and i>=96 and i<=112:
             used=True
         if used==False and word_load(s,i)!=0:
             return BAD
@@ -76,7 +76,9 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return BAD
     if get(w,32)==0 or get(w,40)==0 or get(w,48)==0 or get(w,56)<256:
         return BAD
-    if get(w,64)==0 or get(w,72)==0 or get(w,80)<1024 or get(w,88)==0 or get(w,96)==0:
+    if get(w,64)==0 or get(w,72)==0 or get(w,80)<768 or get(w,88)==0 or get(w,96)==0:
+        return BAD
+    if get(w,80)<1024 and word_load(s,0)!=PUBLIC and word_load(s,0)!=PUBLIC_VERIFIED:
         return BAD
     if get(w,104)<3 or get(w,112)==0 or get(w,120)!=10100891:
         return BAD
@@ -94,7 +96,14 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         i=i+8
     zero(o,128,1920)
     put(o,OP,word_load(s,8))
-    put(o,FAMILY,choose(word_load(s,0)==VERIFIED,1,0))
+    family=0
+    if word_load(s,0)==VERIFIED or word_load(s,0)==PUBLIC_VERIFIED:
+        family=1
+    put(o,FAMILY,family)
+    public_input=0
+    if word_load(s,0)==PUBLIC or word_load(s,0)==PUBLIC_VERIFIED:
+        public_input=1
+    put(o,PUBLIC_INPUT,public_input)
     return system(o,1,39,0,0,0,0,0,0,0)
 
 def entering(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -326,7 +335,7 @@ def selection(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,FEEDBACK)!=0:
             return isolate(o,w,1,get(o,FEEDBACK))
         zero(o,FRAME,16)
-        request(o,MREQUEST,3)
+        request(o,choose(get(o,PUBLIC_INPUT)!=0,MCAPTURE,MREQUEST),3)
         copy_source(s,o,72,RQ+16,24)
         return provider(o,w,200)
     return fail(o,7,phase)
