@@ -120,6 +120,41 @@ rather than risking closing a descriptor that may have been reused.
 Unmap failures likewise retain the exact mapping and continuation. An unknown
 reply never grants a retirement acknowledgement.
 
+## Permission recovery
+
+The native policy follows the observed Linux `TemporaryDirectory._rmtree`
+permission recovery behavior. A real `EACCES` or `EPERM` during traversal or
+deletion starts one permission repair attempt for the current entry. The held
+directory is changed to mode 0700 with a real `fchmod`. An entry requiring its
+own permission repair is first examined without following symlinks, captured
+with `O_PATH | O_NOFOLLOW | O_CLOEXEC`, and compared by device, inode and type
+before changing that exact captured object to 0700. Symlink targets are never
+changed.
+
+The preferred operation is `fchmodat2(captured_fd, "", 0700, AT_EMPTY_PATH)`.
+A real `ENOSYS` or `EINVAL` selects `chmod` through the actual owned descriptor's
+`/proc/self/fd/<number>` path. This fallback still identifies the held object
+rather than reopening the mutable directory entry. If that real operation
+fails, the FD and continuation remain owned for operation 1. The fallback does
+not hide a missing procfs or any other kernel error. A hardlink refers to the
+same inode, so the mode change is visible through its other names, as in the
+original Python behavior.
+
+The root's externally borrowed parent is not chmodded. Initial root identity
+failure never grants permission to change an unverified object. A captured
+entry whose identity differs from the preceding observation is closed and
+reported as `ESTALE` without chmod. Directory replacement after capture does
+not redirect the permission repair to its replacement.
+
+Permission captures are counted in the existing FD custody field. Failures in
+`fchmod`, `fchmodat2`, the descriptor-path fallback, or descriptor close preserve
+the actual continuation. Operation 2 retires those captures without pretending
+that the remaining tree was deleted. Permission repair uses context offsets
+400–456 for continuation and inode facts, with the actual permission FD at 416;
+the existing 4096-byte context and public request/reply layout do not change.
+The current Linux oracle has no `chflags` operation; this qualification does not
+claim a BSD file-flags implementation.
+
 ## Native packaging and qualification
 
 The independent packer consumes `HIARMTP1`, role count 1, one length at offset
@@ -129,11 +164,19 @@ the shared product. The capsule's extracted text has no external relocations;
 an enclosing native product can bind its entry statically.
 
 The qualification receipt records the exact source, bridge, product, native
-compiler and evidence hashes. Its 15 groups cover the packer domain, real
+compiler and evidence hashes. The original 15 groups cover the packer domain, real
 nested deletion, a 160-level tree beyond 4096 total path bytes, original
 directory-offset preservation, identity and no-write guards, actual kernel
 failures, retry and abort, fallback close and unknown custody, real notification
-races, `ENOTEMPTY` rescan, mutex contention, and borrowed FD 0/1.
+races, `ENOTEMPTY` rescan, mutex contention, and borrowed FD 0/1. All 15 were
+rerun against the permission-aware product without changing their assertions.
+
+An additional 16 groups compare actual Python permission recovery with native
+behavior for root/child mode 000, hardlinks, symlinks and an unwritable external
+parent. They also cover 112 nested mode-000 directories beyond 4096 total path
+bytes, real kernel permission syscall failures, the real ENOSYS fallback,
+retained permission FDs, abort-only retirement, and three notification-controlled
+inode replacement races. All gates run under the unprivileged service account.
 
 The Python author and qualification driver are development provenance only.
 Neither is read or executed by the native capsule. This component's

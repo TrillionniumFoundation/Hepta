@@ -19,6 +19,9 @@ C=dict(Q=int.from_bytes(b'HIARMTQ1','little'),R=int.from_bytes(b'HIARMTR1','litt
  UNKNOWN=200,SOURCE_ROOT=256,SOURCE_PARENT=264,CHILDFD=280,NEWFRAME=288,
  ENTRY_PTR=304,ENTRY_N=312,RECLEN=320,ENTRY_DEV=336,ENTRY_INO=344,
  CLOSE_NEXT=360,CLOSE_KIND=368,SAVED_PARENT=376,PREV=392,
+ PERM_NEXT=400,PERM_KIND=408,PERM_FD=416,PERM_DEV=424,PERM_INO=432,PERM_MODE=440,
+ PERM_USED=448,PERM_FAILURE=456,PERM_PATH=1600,PERM_DIGITS=1680,
+ PROC0=int.from_bytes(b'/proc/se','little'),PROC1=int.from_bytes(b'lf/fd/\0\0','little'),
  FRAME=512,STAT1=768,STAT2=1024,ENTRY=4096,FRAME_SIZE=36864,BUFFER_SIZE=32768)
 SOURCE=r'''
 def rmtree(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -64,6 +67,8 @@ def rmtree(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return finish_directory(s,o,w,phase,r)
     if phase>=300 and phase<=321:
         return pop_frame(s,o,w,phase,r)
+    if phase>=700 and phase<=715:
+        return permission_result(s,o,w,phase,r)
     if phase==901:
         if r!=0:
             return pending(o,w,r,901)
@@ -146,6 +151,7 @@ def locked(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,ROOTFD,NONE)
         put(w,PARENTFD,NONE)
         put(w,CHILDFD,NONE)
+        put(w,PERM_FD,NONE)
         put(w,0,CTX)
     if get(w,STATE)==4:
         put(o,STATUS,11)
@@ -180,6 +186,7 @@ def locked(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
                 put(w,ABORT,1)
                 put(w,STAGE,900)
         put(w,STATE,1)
+        put(w,PERM_USED,0)
     return drive(s,o,w)
 
 def drive(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -242,6 +249,8 @@ def drive(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return system(o,310,11,0,get(w,TOP),FRAME_SIZE,0,0,0,0)
     if stage==320:
         return memory(o,321,0,get(w,TOP),1,FRAME,256)
+    if stage>=700 and stage<=714:
+        return permission_drive(o,w,stage)
     if stage==900:
         return retire_resources(o,w)
     return pending(o,w,18446744073709551594,stage)
@@ -293,6 +302,8 @@ def capture(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
         return drive(s,o,w)
     if phase==108:
         if failed(r):
+            if permission_errno(r):
+                return permission_start(o,w,r,108,0,17)
             return abort_failure(s,o,w,r,108)
         put(w,CHILDFD,r)
         put(w,FDS,get(w,FDS)+1)
@@ -311,6 +322,7 @@ def capture(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
         put(w,TOP,r)
         put(w,MAPS,get(w,MAPS)+1)
         put(w,DEPTH,1)
+        put(w,PERM_USED,0)
         zero(w,FRAME,256)
         put(w,FRAME+8,FRAME_SIZE)
         put(w,FRAME+16,get(w,CHILDFD))
@@ -333,7 +345,7 @@ def capture(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
 def walk(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
     if phase==110:
         if failed(r):
-            return pending(o,w,r,110)
+            return permission_start(o,w,r,110,1,100)
         if r>BUFFER_SIZE:
             return quarantine(o,w,r,110)
         if r==0:
@@ -371,7 +383,7 @@ def walk(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
         if r==18446744073709551614:
             return next_entry(o,w)
         if failed(r):
-            return pending(o,w,r,121)
+            return permission_start(o,w,r,121,2,120)
         if (get(w,STAT1+24)&61440)==16384:
             put(w,ENTRY_DEV,get(w,STAT1))
             put(w,ENTRY_INO,get(w,STAT1+8))
@@ -382,7 +394,7 @@ def walk(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
     if phase==131:
         if failed(r):
             put(w,STAGE,120)
-            return pending(o,w,r,131)
+            return permission_start(o,w,r,131,2,120)
         put(w,CHILDFD,r)
         put(w,FDS,get(w,FDS)+1)
         put(w,STAGE,140)
@@ -422,6 +434,7 @@ def walk(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
         put(w,FRAME+40,get(w,ENTRY_DEV))
         put(w,FRAME+48,get(w,ENTRY_INO))
         put(w,DEPTH,get(w,DEPTH)+1)
+        put(w,PERM_USED,0)
         put(w,FRAME+72,get(w,DEPTH))
         put(w,FRAME+80,current+256)
         put(w,FRAME+96,get(w,SAVED_PARENT))
@@ -435,7 +448,7 @@ def walk(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
         return drive(s,o,w)
     if phase==155:
         if r!=0 and r!=18446744073709551614:
-            return pending(o,w,r,155)
+            return permission_start(o,w,r,155,2,120)
         if r==0:
             put(w,REMOVED,get(w,REMOVED)+1)
         return next_entry(o,w)
@@ -454,7 +467,7 @@ def finish_directory(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
             put(w,STAGE,205)
             return drive(s,o,w)
         if failed(r):
-            return pending(o,w,r,200)
+            return permission_start(o,w,r,200,3,200)
         if get(w,STAT1)!=get(w,FRAME+40) or get(w,STAT1+8)!=get(w,FRAME+48) or (get(w,STAT1+24)&61440)!=16384:
             return pending(o,w,18446744073709551500,200)
         put(w,STAGE,210)
@@ -473,6 +486,8 @@ def finish_directory(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
             return drive(s,o,w)
         if r!=0:
             put(w,STAGE,200)
+            if permission_errno(r):
+                return permission_start(o,w,r,210,3,200)
             if r==18446744073709551577 or r==18446744073709551599:
                 put(w,STAGE,190)
             return pending(o,w,r,210)
@@ -492,6 +507,7 @@ def pop_frame(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
         put(w,MAPS,get(w,MAPS)-1)
         put(w,TOP,get(w,PREV))
         put(w,DEPTH,get(w,DEPTH)-1)
+        put(w,PERM_USED,0)
         zero(w,FRAME,256)
         if get(w,TOP)==0:
             put(w,STAGE,900)
@@ -506,6 +522,8 @@ def pop_frame(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
     return BAD
 
 def retire_resources(o:mutbuf,w:mutbuf) -> u32:
+    if get(w,PERM_FD)!=NONE:
+        return start_close(o,w,5,900)
     if get(w,CHILDFD)!=NONE:
         return start_close(o,w,4,900)
     if get(w,NEWFRAME)!=0:
@@ -544,6 +562,8 @@ def closing_fd(w:mutbuf) -> u64:
         return get(w,PARENTFD)
     if kind==3:
         return get(w,FRAME+16)
+    if kind==5:
+        return get(w,PERM_FD)
     return get(w,CHILDFD)
 
 def closed(o:mutbuf,w:mutbuf,r:u64,uncertain:bool) -> u32:
@@ -559,6 +579,8 @@ def closed(o:mutbuf,w:mutbuf,r:u64,uncertain:bool) -> u32:
         put(w,PARENTFD,NONE)
     elif kind==3:
         put(w,FRAME+16,NONE)
+    elif kind==5:
+        put(w,PERM_FD,NONE)
     else:
         put(w,CHILDFD,NONE)
     put(w,FDS,get(w,FDS)-1)
@@ -569,6 +591,135 @@ def closed(o:mutbuf,w:mutbuf,r:u64,uncertain:bool) -> u32:
     if next==145:
         return again(o,145)
     return again(o,10)
+
+
+def permission_errno(error:u64) -> bool:
+    return error==18446744073709551615 or error==18446744073709551603
+
+def permission_start(o:mutbuf,w:mutbuf,error:u64,phase:u64,kind:u64,next:u64) -> u32:
+    if permission_errno(error)==False or get(w,PERM_USED)!=0:
+        return pending(o,w,error,phase)
+    if get(w,PERM_FD)!=NONE:
+        return quarantine(o,w,error,phase)
+    put(w,PERM_USED,1)
+    put(w,PERM_KIND,kind)
+    put(w,PERM_NEXT,next)
+    put(w,PERM_FAILURE,0)
+    put(w,STAGE,700)
+    return permission_drive(o,w,700)
+
+def permission_drive(o:mutbuf,w:mutbuf,stage:u64) -> u32:
+    kind=get(w,PERM_KIND)
+    if stage==700:
+        fd=get(w,FRAME+16)
+        if kind==0:
+            fd=get(w,ROOTFD)
+        elif kind==3 and get(w,DEPTH)>1:
+            fd=get(w,FRAME+96)
+        return system(o,701,91,0,fd,448,0,0,0,0)
+    if stage==702:
+        return system(o,703,262,16,get(w,FRAME+16),get(w,ENTRY_PTR),STAT1,256,0,0)
+    if stage==704:
+        return system(o,705,257,0,get(w,FRAME+16),get(w,ENTRY_PTR),2752512,0,0,0)
+    if stage==706:
+        return system(o,707,5,4,get(w,PERM_FD),STAT2,0,0,0,0)
+    if stage==708:
+        return system(o,709,452,4,get(w,PERM_FD),1560,448,4096,0,0)
+    if stage==710:
+        return system(o,711,91,0,get(w,FRAME+16),448,0,0,0,0)
+    if stage==712:
+        return system(o,713,90,1,PERM_PATH,448,0,0,0,0)
+    if stage==714:
+        put(w,STAGE,get(w,PERM_NEXT))
+        if get(w,PERM_FAILURE)!=0:
+            return pending(o,w,get(w,PERM_FAILURE),714)
+        return again(o,10)
+    return quarantine(o,w,stage,700)
+
+def permission_result(s:readbuf,o:mutbuf,w:mutbuf,phase:u64,r:u64) -> u32:
+    if phase==701:
+        if r!=0:
+            return pending(o,w,r,701)
+        kind=get(w,PERM_KIND)
+        if kind==0 or kind==1:
+            put(w,STAGE,get(w,PERM_NEXT))
+            return drive(s,o,w)
+        if kind==3:
+            if get(w,DEPTH)==1:
+                put(w,STAGE,get(w,PERM_NEXT))
+            else:
+                put(w,STAGE,710)
+        else:
+            put(w,STAGE,702)
+        return drive(s,o,w)
+    if phase==703:
+        if r==18446744073709551614:
+            return next_entry(o,w)
+        if failed(r):
+            return pending(o,w,r,703)
+        mode=get(w,STAT1+24)&61440
+        if mode==40960:
+            put(w,STAGE,get(w,PERM_NEXT))
+            return drive(s,o,w)
+        put(w,PERM_DEV,get(w,STAT1))
+        put(w,PERM_INO,get(w,STAT1+8))
+        put(w,PERM_MODE,mode)
+        put(w,STAGE,704)
+        return drive(s,o,w)
+    if phase==705:
+        if r==18446744073709551614:
+            return next_entry(o,w)
+        if failed(r):
+            return pending(o,w,r,705)
+        put(w,PERM_FD,r)
+        put(w,FDS,get(w,FDS)+1)
+        put(w,STAGE,706)
+        return drive(s,o,w)
+    if phase==707:
+        if failed(r):
+            return pending(o,w,r,707)
+        if get(w,STAT2)!=get(w,PERM_DEV) or get(w,STAT2+8)!=get(w,PERM_INO) or (get(w,STAT2+24)&61440)!=get(w,PERM_MODE):
+            put(w,PERM_FAILURE,18446744073709551500)
+            return start_close(o,w,5,714)
+        put(w,STAGE,708)
+        return drive(s,o,w)
+    if phase==709:
+        if r==18446744073709551578 or r==18446744073709551594:
+            permission_fd_path(w)
+            put(w,STAGE,712)
+            return drive(s,o,w)
+        if r!=0:
+            return pending(o,w,r,709)
+        return start_close(o,w,5,714)
+    if phase==711:
+        if r!=0:
+            return pending(o,w,r,711)
+        put(w,STAGE,get(w,PERM_NEXT))
+        return drive(s,o,w)
+    if phase==713:
+        if r!=0:
+            return pending(o,w,r,713)
+        return start_close(o,w,5,714)
+    return BAD
+
+def permission_fd_path(w:mutbuf) -> u64:
+    zero(w,PERM_PATH,64)
+    put(w,PERM_PATH,PROC0)
+    put(w,PERM_PATH+8,PROC1)
+    value=get(w,PERM_FD)
+    n=0
+    while value>=10:
+        quotient=(value*3435973837)>>35
+        store(w,PERM_DIGITS+n,48+value-quotient*10)
+        value=quotient
+        n=n+1
+    store(w,PERM_DIGITS+n,48+value)
+    n=n+1
+    i=0
+    while i<n:
+        store(w,PERM_PATH+14+i,byte(w,PERM_DIGITS+n-i-1))
+        i=i+1
+    return 0
 
 def abort_failure(s:readbuf,o:mutbuf,w:mutbuf,error:u64,phase:u64) -> u32:
     put(w,PRIMARY,error)
@@ -603,6 +754,7 @@ def quarantine(o:mutbuf,w:mutbuf,error:u64,phase:u64) -> u32:
     return unlock(o)
 
 def next_entry(o:mutbuf,w:mutbuf) -> u32:
+    put(w,PERM_USED,0)
     put(w,FRAME+64,get(w,FRAME+64)+get(w,RECLEN))
     put(w,STAGE,110)
     return again(o,10)
