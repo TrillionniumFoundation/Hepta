@@ -63,15 +63,45 @@ def native_packer_controls(output):
  rows.append({'case':'workspace-capacity-refusal','passed':True})
  return rows
 
-def build(compiler,output):
+def build(compiler,output,*,value_qualification_path=None):
  from tools.qualify_hia_multiversion_components import Image
- from tools.generate_hia_result_value_records_packer import reference_flat as value_reference
  from tools.generate_hia_background_optimizer_future_public_cleanup_packer import reference_flat,reference_object
  compiler=Path(compiler).resolve();compiler_raw=compiler.read_bytes()
  assert pin(compiler_raw)=={'bytes':813129,'sha256':COMPILER_SHA}
  source_files={p:digest((ROOT/p).read_bytes())for p in AUTHORS}
+ value_roles=kinds.VALUE;value_packer='result_value_records_packer';value_protocol='HIABVP04'
+ value_qualification=None;admitted={}
+ if value_qualification_path is not None:
+  qp=Path(value_qualification_path).resolve();qraw=qp.read_bytes();q=json.loads(qraw)
+  assert qp.is_relative_to(ROOT) and q['component_qualified'] is True
+  assert q['value_protocol']=='HIABVP05' and q['original_six_campaigns_qualified'] is True
+  assert q['value_roles']==['owner','core','import','export','capture','format','number','dict_iterator','classes','class_mro','records','resources']
+  assert q['construction']['compiler']['sha256']==COMPILER_SHA and q['construction']['compiler']['bytes']==813129
+  value_roles=kinds.VALUE+('result_value_resources',);value_packer='result_value_resources_packer';value_protocol='HIABVP05'
+  assert q['value_packer']=='examples/hia_bootstrap/'+value_packer+'.hepta'
+  table={row['source_path']:row for row in q['construction']['roles']}
+  assert len(table)==len(q['construction']['roles'])
+  for name in value_roles+(value_packer,):
+   path='examples/hia_bootstrap/'+name+'.hepta';row=table[path];raw=(ROOT/path).read_bytes()
+   assert row['two_compile_byteequal'] is True and len(raw)==row['source_bytes'] and digest(raw)==row['source_sha256'],path
+   admitted[name]={'bytes':row['bytes'],'sha256':row['sha256']}
+  for path,pin_value in q['source_files'].items():
+   source_path=ROOT/path;assert source_path.resolve().is_relative_to(ROOT) and not source_path.is_symlink(),path
+   source_raw=source_path.read_bytes()
+   if isinstance(pin_value,dict):
+    assert set(pin_value)=={'bytes','sha256'} and pin(source_raw)==pin_value,path
+    expected=pin_value['sha256']
+   else:
+    assert isinstance(pin_value,str) and digest(source_raw)==pin_value,path
+    expected=pin_value
+   source_files[path]=expected
+  source_files[str(qp.relative_to(ROOT))]=digest(qraw)
+  value_qualification={'path':str(qp.relative_to(ROOT)),'sha256':digest(qraw),'product':q['construction']['products']['value-component.flat']}
+  assert value_qualification['product']['native_pack'] is True and value_qualification['product']['independent_byte_comparison'] is True
+ value_reference=importlib.import_module('tools.generate_hia_'+value_packer).reference_flat
+ extras=(value_packer,)+EXTRA[1:]
  flats={};rows=[]
- for name in kinds.VALUE+PUBLIC+EXTRA:
+ for name in value_roles+PUBLIC+extras:
   path=BOOT/(name+'.hepta');source=path.read_bytes();source_files[str(path.relative_to(ROOT))]=digest(source)
   results=[]
   for _ in range(2):
@@ -79,7 +109,9 @@ def build(compiler,output):
    assert p.returncode==0 and p.stdout and not p.stderr,(name,p.returncode,p.stderr)
    results.append(p.stdout)
   assert results[0]==results[1],name
-  flat=results[0];flats[name]=flat;(output/(name+'.flat')).write_bytes(flat)
+  flat=results[0]
+  if name in admitted:assert pin(flat)==admitted[name],name
+  flats[name]=flat;(output/(name+'.flat')).write_bytes(flat)
   rows.append({'source_path':str(path.relative_to(ROOT)),'source_bytes':len(source),'source_sha256':digest(source),
                'flat_bytes':len(flat),'flat_sha256':digest(flat),'double_compile_identical':True})
   print('RETIREMENT_NATIVE_COMPILE',name,len(flat),flush=True)
@@ -89,9 +121,11 @@ def build(compiler,output):
   size=word(work.raw,0)if status_extent else rc
   assert (not status_extent or rc==0)and 0<size<len(out),(name,rc,size)
   return out.raw[:size]
- parts=[flats[n]for n in kinds.VALUE]
- value=pack('result_value_records_packer',b'HIABVP04'+struct.pack('<13Q',11,*map(len,parts),1)+b''.join(parts))
+ parts=[flats[n]for n in value_roles]
+ value=pack(value_packer,value_protocol.encode()+struct.pack('<'+str(len(parts)+2)+'Q',len(parts),*map(len,parts),1)+b''.join(parts))
  assert value==value_reference(parts)
+ if value_qualification is not None:
+  expected=value_qualification['product'];assert pin(value)=={'bytes':expected['bytes'],'sha256':expected['sha256']}
  n=flats['background_optimizer_future_public_observers_notify']
  notify=pack('background_optimizer_future_public_observers_notify_packer',b'HIABFNPK'+struct.pack('<3Q',len(n),0,0)+n,True)
  parts=[flats[n]for n in PUBLIC]+[value,notify,flats['background_optimizer_future_public_cleanup']]
@@ -105,6 +139,7 @@ def build(compiler,output):
  for name,expected in source_files.items():assert digest((ROOT/name).read_bytes())==expected,name
  result={'schema':'hepta.hia.future-retirement-build.v1','compiler':pin(compiler_raw),'modules':rows,
          'source_files':source_files,'products':{n:pin(b)for n,b in products.items()},'roles':ROLES,
+         'value_protocol':value_protocol,'value_roles':list(value_roles),'value_packer':value_packer,'value_qualification':value_qualification,
          'native_compile_and_pack':True,'independent_object_and_flat_comparison':True,
          'native_packer_controls':native_packer_controls(output)}
  save(output/'build.json',result);return result
@@ -184,14 +219,17 @@ def retirement_cases(output):
 def main():
  ap=argparse.ArgumentParser();ap.add_argument('--compiler',required=True);ap.add_argument('--output',required=True,type=Path)
  ap.add_argument('--receipt',type=Path);ap.add_argument('--reuse-build',action='store_true');ap.add_argument('--build-only',action='store_true')
+ ap.add_argument('--value-qualification',type=Path,help='Exact separately qualified twelve-role resource Value receipt')
  args=ap.parse_args();assert platform.system()=='Linux'and platform.machine()=='x86_64'
  output=args.output.resolve()
  if args.reuse_build:
   result=json.loads((output/'build.json').read_bytes())
+  if args.value_qualification is not None:
+   qp=args.value_qualification.resolve();assert result['value_qualification']['path']==str(qp.relative_to(ROOT)) and result['value_qualification']['sha256']==digest(qp.read_bytes())
   for name,expected in result['source_files'].items():assert digest((ROOT/name).read_bytes())==expected,name
   for name,expected in result['products'].items():assert pin((output/name).read_bytes())==expected,name
  else:
-  output.mkdir(parents=True,exist_ok=False);result=build(args.compiler,output)
+  output.mkdir(parents=True,exist_ok=False);result=build(args.compiler,output,value_qualification_path=args.value_qualification)
  if args.build_only:return
  original,deferred=kinds.behavior(output);retirement=retirement_cases(output)
  report={'schema':'hepta.hia.future-retirement-qualification.v1','component_qualified':True,
@@ -199,6 +237,8 @@ def main():
          'scope':'native nine-role construction, retained original default Value-kind semantics and normal retirement lifecycles',
          'compiler':result['compiler'],'modules':result['modules'],'source_files':result['source_files'],
          'products':result['products'],'roles':ROLES,'value_image_sha256':result['products']['hia-result-value.core.bin']['sha256'],
+         'value_protocol':result.get('value_protocol','HIABVP04'),'value_roles':result.get('value_roles',list(kinds.VALUE)),
+         'value_packer':result.get('value_packer','result_value_records_packer'),'value_qualification':result.get('value_qualification'),
          'public_product':result['products']['hia-future-public.core.bin'],
          'original_value_kind_cases':original,'retirement_cases':retirement,
          'native_packer_controls':result['native_packer_controls'],

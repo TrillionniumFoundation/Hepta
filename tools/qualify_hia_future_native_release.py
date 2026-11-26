@@ -8,6 +8,7 @@ import argparse
 import ctypes
 import hashlib
 import json
+import importlib
 import mmap
 from pathlib import Path
 import struct
@@ -21,6 +22,7 @@ VALUE_ROLES = ('result_value_owner', 'result_value_core', 'result_value_import',
                'agent_binary64_format', 'result_value_binary64')
 RECORD_VALUE_ROLES = VALUE_ROLES + ('result_value_dict_iterator', 'result_value_classes',
                                   'native_class_mro', 'result_value_records')
+RESOURCE_VALUE_ROLES = RECORD_VALUE_ROLES + ('result_value_resources',)
 PUBLIC_ROLES = ('background_optimizer_future_public_owner',
                 'background_optimizer_future_public_carrier',
                 'background_optimizer_future_public_timeout',
@@ -70,19 +72,31 @@ def filter_executable(flat):
 
 
 def admitted_value_qualification(path):
-    """Admit the new Value component's actual, separately qualified sources."""
+    """Admit exact separately qualified records or resource-capable Value sources."""
     path = Path(path).resolve()
     receipt_bytes = path.read_bytes()
     receipt = json.loads(receipt_bytes)
-    assert receipt['component_qualified'] is True
+    assert path.is_relative_to(ROOT) and receipt['component_qualified'] is True
     construction = receipt['construction']
     assert construction['compiler']['sha256'] == COMPILER_SHA256
     assert construction['compiler']['bytes'] == 813129
+    protocol = receipt.get('value_protocol', 'HIABVP04')
+    assert protocol in ('HIABVP04', 'HIABVP05')
+    roles = RECORD_VALUE_ROLES
+    packer = 'result_value_records_packer'
+    bridge_path = 'tools/hia_result_value_records_bridge.S'
+    if protocol == 'HIABVP05':
+        assert receipt['original_six_campaigns_qualified'] is True
+        assert receipt['value_roles'] == ['owner','core','import','export','capture','format','number','dict_iterator','classes','class_mro','records','resources']
+        assert receipt['value_packer'] == BOOT + 'result_value_resources_packer.hepta'
+        roles = RESOURCE_VALUE_ROLES
+        packer = 'result_value_resources_packer'
+        bridge_path = 'tools/hia_result_value_resources_bridge.S'
     rows = construction['roles']
     by_path = {row['source_path']: row for row in rows}
     assert len(by_path) == len(rows)
-    required = {BOOT + name + '.hepta' for name in RECORD_VALUE_ROLES}
-    required.add(BOOT + 'result_value_records_packer.hepta')
+    required = {BOOT + name + '.hepta' for name in roles}
+    required.add(BOOT + packer + '.hepta')
     assert required.issubset(by_path), sorted(required - set(by_path))
     admitted = []
     for name in sorted(required):
@@ -93,44 +107,77 @@ def admitted_value_qualification(path):
         admitted.append(dict(path=name, bytes=len(raw), sha256=digest(raw)))
     product = construction['products']['value-component.flat']
     assert product['native_pack'] is True and product['independent_byte_comparison'] is True
-    mechanical = receipt['source_files']
-    bridge_path = 'tools/hia_result_value_records_bridge.S'
-    assert bridge_path in mechanical
-    for name, expected in mechanical.items():
+    mechanical = {}
+    assert bridge_path in receipt['source_files']
+    for name, expected in receipt['source_files'].items():
         candidate = ROOT / name
         assert candidate.resolve().is_relative_to(ROOT) and not candidate.is_symlink(), name
-        assert digest(candidate.read_bytes()) == expected, name
+        raw = candidate.read_bytes()
+        if isinstance(expected, dict):
+            assert set(expected) == {'bytes', 'sha256'}, name
+            assert {'bytes': len(raw), 'sha256': digest(raw)} == expected, name
+            mechanical[name] = expected['sha256']
+        else:
+            assert isinstance(expected, str) and digest(raw) == expected, name
+            mechanical[name] = expected
     module_pins = {name: dict(bytes=by_path[name]['bytes'], sha256=by_path[name]['sha256'])
                    for name in required}
     return dict(path=path.relative_to(ROOT).as_posix(), sha256=digest(receipt_bytes),
                 rows=admitted, product=product, receipt=receipt,
-                module_pins=module_pins,
+                module_pins=module_pins, protocol=protocol, roles=roles, packer=packer,
+                bridge_path=bridge_path,
                 mechanical_sources={name: pin for name, pin in mechanical.items() if name.endswith('.S')},
-                development_sources={name: pin for name, pin in mechanical.items() if not name.endswith('.S')})
-
+                development_sources={name: pin for name, pin in mechanical.items() if name.endswith('.py')})
 
 def admitted_future_kind_qualification(path, value_qualification):
     path = Path(path).resolve()
     receipt_bytes = path.read_bytes()
     receipt = json.loads(receipt_bytes)
-    assert receipt['component_qualified'] is True
+    assert path.is_relative_to(ROOT) and receipt['component_qualified'] is True
     assert receipt['compiler']['bytes'] == 813129
     assert receipt['compiler']['sha256'] == COMPILER_SHA256
     assert receipt['value_image_sha256'] == value_qualification['product']['sha256']
-    owner_path = BOOT + 'background_optimizer_future_public_owner.hepta'
+    retirement = receipt['schema'] == 'hepta.hia.future-retirement-qualification.v1'
+    names = ('background_optimizer_future_public_owner',)
+    packer = 'background_optimizer_future_public_packer'
+    magic = 'HIABFPP2'
+    bridge_path = 'tools/hia_background_optimizer_future_public_bridge.S'
+    if retirement:
+        assert receipt['roles'] == ['owner','carrier','timeout','log','cell','kernel','value','notify','cleanup']
+        assert len(receipt['original_value_kind_cases']) == 62
+        assert all(row['passed'] for row in receipt['original_value_kind_cases'])
+        assert len(receipt['retirement_cases']) == 4 and all(row['passed'] for row in receipt['retirement_cases'])
+        assert len(receipt['native_packer_controls']) == 50 and all(row['passed'] for row in receipt['native_packer_controls'])
+        assert receipt.get('value_protocol','HIABVP04') == value_qualification['protocol']
+        names = PUBLIC_ROLES + ('background_optimizer_future_public_cleanup',
+                                'background_optimizer_future_public_cleanup_packer')
+        packer = 'background_optimizer_future_public_cleanup_packer'
+        magic = 'HIABFPP3'
+        bridge_path = 'tools/hia_background_optimizer_future_public_cleanup_bridge.S'
     rows = {row['source_path']: row for row in receipt['modules']}
-    assert len(rows) == len(receipt['modules']) and owner_path in rows
-    row = rows[owner_path]
-    assert row['double_compile_identical'] is True
-    raw = (ROOT / owner_path).read_bytes()
-    assert (len(raw), digest(raw)) == (row['source_bytes'], row['source_sha256'])
+    assert len(rows) == len(receipt['modules'])
+    admitted = {}
+    module_pins = {}
+    for name in names:
+        source_path = BOOT + name + '.hepta'
+        row = rows[source_path]
+        assert row['double_compile_identical'] is True
+        raw = (ROOT / source_path).read_bytes()
+        assert (len(raw), digest(raw)) == (row['source_bytes'], row['source_sha256'])
+        admitted[source_path] = dict(path=source_path, bytes=len(raw), sha256=digest(raw))
+        module_pins[source_path] = dict(bytes=row['flat_bytes'], sha256=row['flat_sha256'])
+    for name, expected in receipt.get('source_files', {}).items():
+        candidate = ROOT / name
+        assert candidate.resolve().is_relative_to(ROOT) and not candidate.is_symlink()
+        assert digest(candidate.read_bytes()) == expected, name
     product = receipt['public_product']
     assert product['bytes'] > 0 and len(product['sha256']) == 64
     return dict(path=path.relative_to(ROOT).as_posix(), sha256=digest(receipt_bytes),
-                rows={owner_path: dict(path=owner_path, bytes=len(raw), sha256=digest(raw))},
-                module_pins={owner_path: dict(bytes=row['flat_bytes'], sha256=row['flat_sha256'])},
-                product=product)
-
+                rows=admitted, module_pins=module_pins, product=product,
+                has_cleanup=retirement, public_packer=packer, public_protocol=magic,
+                bridge_path=bridge_path,
+                mechanical_sources={name: pin for name, pin in receipt.get('source_files', {}).items() if name.endswith('.S')},
+                development_sources={name: pin for name, pin in receipt.get('source_files', {}).items() if name.endswith('.py')})
 
 def source_paths(value_qualification=None, future_kind_qualification=None):
     inherited = json.loads((ROOT / 'docs/HIA_BACKGROUND_NATIVE_FUTURE_INHERITED.json').read_text())
@@ -142,14 +189,20 @@ def source_paths(value_qualification=None, future_kind_qualification=None):
     inherited_rows = inherited['runtime_sources']
     if future_kind_qualification is not None:
         replacements = future_kind_qualification['rows']
-        assert set(replacements).issubset(row['path'] for row in inherited_rows)
+        existing = {row['path'] for row in inherited_rows}
+        additional = set(replacements) - existing
+        allowed = {BOOT + name + '.hepta' for name in ('background_optimizer_future_public_cleanup', 'background_optimizer_future_public_cleanup_packer')} if future_kind_qualification['has_cleanup'] else set()
+        assert additional.issubset(allowed), sorted(additional - allowed)
         inherited_rows = [replacements.get(row['path'], row) for row in inherited_rows]
+        inherited_rows += [replacements[name] for name in sorted(additional)]
     rows = inherited_rows + value_rows
     for row in rows:
         raw = (ROOT / row['path']).read_bytes()
         assert len(raw) == row['bytes'] and digest(raw) == row['sha256'], row['path']
     paths = {row['path'] for row in rows if row['path'].endswith('.hepta')}
     paths.add(BOOT + 'background_optimizer_future_release_packer.hepta')
+    if future_kind_qualification is not None and future_kind_qualification['has_cleanup']:
+        paths.discard(BOOT + 'background_optimizer_future_public_packer.hepta')
     cancellation = json.loads((ROOT / 'docs/HIA_PUBLICATION_CANCELLATION_NATIVE.json').read_text())
     assert cancellation['qualified'] and not cancellation['whole_native_runtime']
     assert not cancellation['final_aggregate_claimed'] and cancellation['compiler_sha256'] == COMPILER_SHA256
@@ -293,9 +346,9 @@ def qualify(compiler, output, *, value_qualification_path=None, future_kind_qual
         assert process.returncode == 0 and not process.stderr and process.stdout, (name, process.returncode, process.stderr)
         return process.stdout
 
-    value_roles = VALUE_ROLES if value_qualification is None else RECORD_VALUE_ROLES
-    value_packer = 'result_value_packer' if value_qualification is None else 'result_value_records_packer'
-    value_magic = b'HIABVP01' if value_qualification is None else b'HIABVP04'
+    value_roles = VALUE_ROLES if value_qualification is None else value_qualification['roles']
+    value_packer = 'result_value_packer' if value_qualification is None else value_qualification['packer']
+    value_magic = b'HIABVP01' if value_qualification is None else value_qualification['protocol'].encode('ascii')
     value_parts = [flats[name] for name in value_roles]
     value_wire = (value_magic + struct.pack('<' + str(len(value_parts) + 2) + 'Q',
                   len(value_parts), *(len(part) for part in value_parts), 1) + b''.join(value_parts))
@@ -304,28 +357,37 @@ def qualify(compiler, output, *, value_qualification_path=None, future_kind_qual
     if value_qualification is not None:
         expected = value_qualification['product']
         assert (len(value), digest(value)) == (expected['bytes'], expected['sha256'])
-        checks.append('full native Value matches its separately qualified eleven-role product')
+        checks.append('native Value matches its separately qualified exact role product')
     checks.append('value native packer and native filter are byte-identical')
     notify_wire = b'HIABFNPK' + struct.pack('<3Q', len(flats['background_optimizer_future_public_observers_notify']), 0, 0) + flats['background_optimizer_future_public_observers_notify']
     notify = run_filter('background_optimizer_future_release_packer', notify_wire)
     assert notify == packed('background_optimizer_future_public_observers_notify_packer', notify_wire, True)
     checks.append('notify status-to-extent adapter preserves the original packed image')
     public_parts = [flats[name] for name in PUBLIC_ROLES] + [value, notify]
-    public_wire = b'HIABFPP2' + struct.pack('<10Q', 8, *(len(part) for part in public_parts), 1) + b''.join(public_parts)
-    public = run_filter('background_optimizer_future_public_packer', public_wire)
-    assert public == packed('background_optimizer_future_public_packer', public_wire)
-    from tools.generate_hia_background_optimizer_future_public_packer import reference_flat, reference_object
-    assert public == reference_flat(public_parts)
+    has_cleanup = future_kind_qualification is not None and future_kind_qualification['has_cleanup']
+    public_packer = ('background_optimizer_future_public_packer' if future_kind_qualification is None
+                     else future_kind_qualification['public_packer'])
+    public_magic = ('HIABFPP2' if future_kind_qualification is None
+                    else future_kind_qualification['public_protocol'])
+    if has_cleanup:
+        public_parts.append(flats['background_optimizer_future_public_cleanup'])
+    def public_frame(mode):
+        return public_magic.encode('ascii') + struct.pack('<' + str(len(public_parts) + 2) + 'Q',
+            len(public_parts), *(len(part) for part in public_parts), mode) + b''.join(public_parts)
+    public_wire = public_frame(1)
+    public = run_filter(public_packer, public_wire)
+    assert public == packed(public_packer, public_wire)
+    public_author = importlib.import_module('tools.generate_hia_' + public_packer)
+    assert public == public_author.reference_flat(public_parts)
     if future_kind_qualification is not None:
         expected = future_kind_qualification['product']
         assert (len(public), digest(public)) == (expected['bytes'], expected['sha256'])
         checks.append('complete Future product matches actual qualified native type semantics')
     checks.append('public native packer, native filter and independent relocation reference are byte-identical')
-    object_wire = (b'HIABFPP2' + struct.pack('<10Q', 8, *(len(part) for part in public_parts), 0)
-                   + b''.join(public_parts))
-    public_object = run_filter('background_optimizer_future_public_packer', object_wire)
-    assert public_object == packed('background_optimizer_future_public_packer', object_wire)
-    assert public_object == reference_object(public_parts)
+    object_wire = public_frame(0)
+    public_object = run_filter(public_packer, object_wire)
+    assert public_object == packed(public_packer, object_wire)
+    assert public_object == public_author.reference_object(public_parts)
     (output / 'hia-future-public.o').write_bytes(public_object)
     checks.append('public ELF object is actually native packed and matches independent relocation reference')
     array_parts = [flats['background_optimizer_future_public_observers'], flats['background_optimizer_future_public_observers_math']]
@@ -377,8 +439,10 @@ def qualify(compiler, output, *, value_qualification_path=None, future_kind_qual
         assert digest((ROOT / row['source_path']).read_bytes()) == row['source_sha256'], row['source_path']
     assert digest(compiler.read_bytes()) == COMPILER_SHA256
     value_bridge = ('hia_result_value_bridge.S' if value_qualification is None
-                    else 'hia_result_value_records_bridge.S')
-    for name in (value_bridge, 'hia_background_optimizer_future_public_bridge.S',
+                    else Path(value_qualification['bridge_path']).name)
+    public_bridge = ('hia_background_optimizer_future_public_bridge.S' if future_kind_qualification is None
+                     else Path(future_kind_qualification['bridge_path']).name)
+    for name in (value_bridge, public_bridge,
                  'hia_background_optimizer_future_public_observers_bridge.S',
                  'hia_background_optimizer_future_public_observers_iterable_bridge.S',
                  'hia_background_optimizer_future_public_observers_notify_bridge.S',
@@ -396,6 +460,10 @@ def qualify(compiler, output, *, value_qualification_path=None, future_kind_qual
         source_files[value_qualification['path']] = value_qualification['sha256']
         assert digest((ROOT / value_qualification['path']).read_bytes()) == value_qualification['sha256']
         assert future_kind_qualification is not None
+        for name, pin in future_kind_qualification['mechanical_sources'].items():
+            assert digest((ROOT / name).read_bytes()) == pin, name
+            assert name not in source_files or source_files[name] == pin, name
+            source_files[name] = pin
         source_files[future_kind_qualification['path']] = future_kind_qualification['sha256']
         assert digest((ROOT / future_kind_qualification['path']).read_bytes()) == future_kind_qualification['sha256']
         if behavior_qualification_path is not None:
@@ -417,14 +485,16 @@ def qualify(compiler, output, *, value_qualification_path=None, future_kind_qual
                   compiler=dict(bytes=813129, sha256=COMPILER_SHA256), modules=modules,
                   source_files=source_files,
                   development_source_provenance=({} if value_qualification is None else
-                      value_qualification['development_sources']),
+                      {**value_qualification['development_sources'], **future_kind_qualification['development_sources']}),
                   native_filter_kit=dict(bytes=len(kit_pack.stdout), sha256=digest(kit_pack.stdout),
                                          source_bundle_sha256=digest(kit_build.stdout),
                                          dag_frame_bytes=len(framed.stdout), dag_frame_sha256=digest(framed.stdout),
                                          composer_bytes=len(composer.stdout), composer_sha256=digest(composer.stdout)),
                   wrappers=wrappers, products=products, checks=checks,
                   value_protocol=value_magic.decode('ascii'), value_roles=list(value_roles),
-                  value_packer=value_packer,
+                  value_packer=value_packer, public_protocol=public_magic, public_packer=public_packer,
+                  public_has_cleanup=has_cleanup,
+                  public_roles=['owner','carrier','timeout','log','cell','kernel','value','notify'] + (['cleanup'] if has_cleanup else []),
                   value_qualification=(None if value_qualification is None else
                       {key: value_qualification[key] for key in ('path', 'sha256')}),
                   future_kind_qualification=(None if future_kind_qualification is None else
