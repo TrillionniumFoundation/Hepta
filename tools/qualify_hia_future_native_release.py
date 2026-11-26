@@ -19,6 +19,8 @@ COMPILER_SHA256 = '494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c7
 VALUE_ROLES = ('result_value_owner', 'result_value_core', 'result_value_import',
                'result_value_export', 'background_optimizer_json_capture',
                'agent_binary64_format', 'result_value_binary64')
+RECORD_VALUE_ROLES = VALUE_ROLES + ('result_value_dict_iterator', 'result_value_classes',
+                                  'native_class_mro', 'result_value_records')
 PUBLIC_ROLES = ('background_optimizer_future_public_owner',
                 'background_optimizer_future_public_carrier',
                 'background_optimizer_future_public_timeout',
@@ -67,10 +69,82 @@ def filter_executable(flat):
     return bytes(image)
 
 
-def source_paths():
+def admitted_value_qualification(path):
+    """Admit the new Value component's actual, separately qualified sources."""
+    path = Path(path).resolve()
+    receipt_bytes = path.read_bytes()
+    receipt = json.loads(receipt_bytes)
+    assert receipt['component_qualified'] is True
+    construction = receipt['construction']
+    assert construction['compiler']['sha256'] == COMPILER_SHA256
+    assert construction['compiler']['bytes'] == 813129
+    rows = construction['roles']
+    by_path = {row['source_path']: row for row in rows}
+    assert len(by_path) == len(rows)
+    required = {BOOT + name + '.hepta' for name in RECORD_VALUE_ROLES}
+    required.add(BOOT + 'result_value_records_packer.hepta')
+    assert required.issubset(by_path), sorted(required - set(by_path))
+    admitted = []
+    for name in sorted(required):
+        row = by_path[name]
+        assert row['two_compile_byteequal'] is True
+        raw = (ROOT / name).read_bytes()
+        assert len(raw) == row['source_bytes'] and digest(raw) == row['source_sha256'], name
+        admitted.append(dict(path=name, bytes=len(raw), sha256=digest(raw)))
+    product = construction['products']['value-component.flat']
+    assert product['native_pack'] is True and product['independent_byte_comparison'] is True
+    mechanical = receipt['source_files']
+    bridge_path = 'tools/hia_result_value_records_bridge.S'
+    assert bridge_path in mechanical
+    for name, expected in mechanical.items():
+        candidate = ROOT / name
+        assert candidate.resolve().is_relative_to(ROOT) and not candidate.is_symlink(), name
+        assert digest(candidate.read_bytes()) == expected, name
+    module_pins = {name: dict(bytes=by_path[name]['bytes'], sha256=by_path[name]['sha256'])
+                   for name in required}
+    return dict(path=path.relative_to(ROOT).as_posix(), sha256=digest(receipt_bytes),
+                rows=admitted, product=product, receipt=receipt,
+                module_pins=module_pins,
+                mechanical_sources={name: pin for name, pin in mechanical.items() if name.endswith('.S')},
+                development_sources={name: pin for name, pin in mechanical.items() if not name.endswith('.S')})
+
+
+def admitted_future_kind_qualification(path, value_qualification):
+    path = Path(path).resolve()
+    receipt_bytes = path.read_bytes()
+    receipt = json.loads(receipt_bytes)
+    assert receipt['component_qualified'] is True
+    assert receipt['compiler']['bytes'] == 813129
+    assert receipt['compiler']['sha256'] == COMPILER_SHA256
+    assert receipt['value_image_sha256'] == value_qualification['product']['sha256']
+    owner_path = BOOT + 'background_optimizer_future_public_owner.hepta'
+    rows = {row['source_path']: row for row in receipt['modules']}
+    assert len(rows) == len(receipt['modules']) and owner_path in rows
+    row = rows[owner_path]
+    assert row['double_compile_identical'] is True
+    raw = (ROOT / owner_path).read_bytes()
+    assert (len(raw), digest(raw)) == (row['source_bytes'], row['source_sha256'])
+    product = receipt['public_product']
+    assert product['bytes'] > 0 and len(product['sha256']) == 64
+    return dict(path=path.relative_to(ROOT).as_posix(), sha256=digest(receipt_bytes),
+                rows={owner_path: dict(path=owner_path, bytes=len(raw), sha256=digest(raw))},
+                module_pins={owner_path: dict(bytes=row['flat_bytes'], sha256=row['flat_sha256'])},
+                product=product)
+
+
+def source_paths(value_qualification=None, future_kind_qualification=None):
     inherited = json.loads((ROOT / 'docs/HIA_BACKGROUND_NATIVE_FUTURE_INHERITED.json').read_text())
-    value = json.loads((ROOT / 'docs/HIA_RESULT_VALUE_NATIVE.json').read_text())
-    rows = inherited['runtime_sources'] + value['source_authority']
+    if value_qualification is None:
+        value = json.loads((ROOT / 'docs/HIA_RESULT_VALUE_NATIVE.json').read_text())
+        value_rows = value['source_authority']
+    else:
+        value_rows = value_qualification['rows']
+    inherited_rows = inherited['runtime_sources']
+    if future_kind_qualification is not None:
+        replacements = future_kind_qualification['rows']
+        assert set(replacements).issubset(row['path'] for row in inherited_rows)
+        inherited_rows = [replacements.get(row['path'], row) for row in inherited_rows]
+    rows = inherited_rows + value_rows
     for row in rows:
         raw = (ROOT / row['path']).read_bytes()
         assert len(raw) == row['bytes'] and digest(raw) == row['sha256'], row['path']
@@ -89,14 +163,26 @@ def source_paths():
     return sorted(paths)
 
 
-def qualify(compiler, output):
+def qualify(compiler, output, *, value_qualification_path=None, future_kind_qualification_path=None,
+            behavior_qualification_path=None):
     compiler = Path(compiler).resolve()
     assert compiler.stat().st_size == 813129 and digest(compiler.read_bytes()) == COMPILER_SHA256
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=True)
+    value_qualification = (None if value_qualification_path is None
+                           else admitted_value_qualification(value_qualification_path))
+    future_kind_qualification = None
+    if value_qualification is not None:
+        assert future_kind_qualification_path is not None, 'complete Value requires actual Future type qualification'
+        future_kind_qualification = admitted_future_kind_qualification(
+            future_kind_qualification_path, value_qualification)
+    else:
+        assert future_kind_qualification_path is None
+    if behavior_qualification_path is not None:
+        assert value_qualification is not None, 'behavior requalification requires the exact Value receipt'
     modules = []
     flats = {}
-    for path in source_paths():
+    for path in source_paths(value_qualification, future_kind_qualification):
         raw = (ROOT / path).read_bytes()
         rounds = []
         for _ in range(2):
@@ -105,6 +191,12 @@ def qualify(compiler, output):
             rounds.append(result.stdout)
         assert rounds[0] == rounds[1], path
         flat = rounds[0]
+        if value_qualification is not None and path in value_qualification['module_pins']:
+            pin = value_qualification['module_pins'][path]
+            assert (len(flat), digest(flat)) == (pin['bytes'], pin['sha256']), path
+        if future_kind_qualification is not None and path in future_kind_qualification['module_pins']:
+            pin = future_kind_qualification['module_pins'][path]
+            assert (len(flat), digest(flat)) == (pin['bytes'], pin['sha256']), path
         name = Path(path).stem
         flats[name] = flat
         (output / (name + '.flat')).write_bytes(flat)
@@ -201,10 +293,18 @@ def qualify(compiler, output):
         assert process.returncode == 0 and not process.stderr and process.stdout, (name, process.returncode, process.stderr)
         return process.stdout
 
-    value_parts = [flats[name] for name in VALUE_ROLES]
-    value_wire = b'HIABVP01' + struct.pack('<9Q', 7, *(len(part) for part in value_parts), 1) + b''.join(value_parts)
-    value = run_filter('result_value_packer', value_wire)
-    assert value == packed('result_value_packer', value_wire)
+    value_roles = VALUE_ROLES if value_qualification is None else RECORD_VALUE_ROLES
+    value_packer = 'result_value_packer' if value_qualification is None else 'result_value_records_packer'
+    value_magic = b'HIABVP01' if value_qualification is None else b'HIABVP04'
+    value_parts = [flats[name] for name in value_roles]
+    value_wire = (value_magic + struct.pack('<' + str(len(value_parts) + 2) + 'Q',
+                  len(value_parts), *(len(part) for part in value_parts), 1) + b''.join(value_parts))
+    value = run_filter(value_packer, value_wire)
+    assert value == packed(value_packer, value_wire)
+    if value_qualification is not None:
+        expected = value_qualification['product']
+        assert (len(value), digest(value)) == (expected['bytes'], expected['sha256'])
+        checks.append('full native Value matches its separately qualified eleven-role product')
     checks.append('value native packer and native filter are byte-identical')
     notify_wire = b'HIABFNPK' + struct.pack('<3Q', len(flats['background_optimizer_future_public_observers_notify']), 0, 0) + flats['background_optimizer_future_public_observers_notify']
     notify = run_filter('background_optimizer_future_release_packer', notify_wire)
@@ -214,7 +314,20 @@ def qualify(compiler, output):
     public_wire = b'HIABFPP2' + struct.pack('<10Q', 8, *(len(part) for part in public_parts), 1) + b''.join(public_parts)
     public = run_filter('background_optimizer_future_public_packer', public_wire)
     assert public == packed('background_optimizer_future_public_packer', public_wire)
-    checks.append('public native packer and native filter are byte-identical')
+    from tools.generate_hia_background_optimizer_future_public_packer import reference_flat, reference_object
+    assert public == reference_flat(public_parts)
+    if future_kind_qualification is not None:
+        expected = future_kind_qualification['product']
+        assert (len(public), digest(public)) == (expected['bytes'], expected['sha256'])
+        checks.append('complete Future product matches actual qualified native type semantics')
+    checks.append('public native packer, native filter and independent relocation reference are byte-identical')
+    object_wire = (b'HIABFPP2' + struct.pack('<10Q', 8, *(len(part) for part in public_parts), 0)
+                   + b''.join(public_parts))
+    public_object = run_filter('background_optimizer_future_public_packer', object_wire)
+    assert public_object == packed('background_optimizer_future_public_packer', object_wire)
+    assert public_object == reference_object(public_parts)
+    (output / 'hia-future-public.o').write_bytes(public_object)
+    checks.append('public ELF object is actually native packed and matches independent relocation reference')
     array_parts = [flats['background_optimizer_future_public_observers'], flats['background_optimizer_future_public_observers_math']]
     array_wire = b'HIABFOPK' + struct.pack('<3Q', *(len(part) for part in array_parts), 0) + b''.join(array_parts)
     array = run_filter('background_optimizer_future_release_packer', array_wire)
@@ -232,8 +345,13 @@ def qualify(compiler, output):
     checks.append('public cancellation native packer and native filter are byte-identical')
     products = {}
     for name, raw in zip(PRODUCTS, (value, notify, public, array, iterable, cancellation), strict=True):
-        expected = PRODUCTS[name]
-        assert (len(raw), digest(raw)) == expected, (name, len(raw), digest(raw))
+        if value_qualification is not None and name in ('hia-result-value.core.bin', 'hia-future-public.core.bin'):
+            # These two products now capture the qualified complete Value implementation.
+            # Their construction is checked above; a build alone cannot promote this family.
+            assert raw
+        else:
+            expected = PRODUCTS[name]
+            assert (len(raw), digest(raw)) == expected, (name, len(raw), digest(raw))
         (output / name).write_bytes(raw)
         products[name] = dict(bytes=len(raw), sha256=digest(raw))
     adapter = NativeFlat(flats['background_optimizer_future_release_packer'])
@@ -258,7 +376,9 @@ def qualify(compiler, output):
     for row in modules:
         assert digest((ROOT / row['source_path']).read_bytes()) == row['source_sha256'], row['source_path']
     assert digest(compiler.read_bytes()) == COMPILER_SHA256
-    for name in ('hia_result_value_bridge.S', 'hia_background_optimizer_future_public_bridge.S',
+    value_bridge = ('hia_result_value_bridge.S' if value_qualification is None
+                    else 'hia_result_value_records_bridge.S')
+    for name in (value_bridge, 'hia_background_optimizer_future_public_bridge.S',
                  'hia_background_optimizer_future_public_observers_bridge.S',
                  'hia_background_optimizer_future_public_observers_iterable_bridge.S',
                  'hia_background_optimizer_future_public_observers_notify_bridge.S',
@@ -266,15 +386,51 @@ def qualify(compiler, output):
         source_files['tools/' + name] = digest((ROOT / 'tools' / name).read_bytes())
     cancellation_receipt = 'docs/HIA_PUBLICATION_CANCELLATION_NATIVE.json'
     source_files[cancellation_receipt] = digest((ROOT / cancellation_receipt).read_bytes())
-    report = dict(schema='hepta.hia.future-native-release-build.v1', status='PASS',
-                  source_base_commit='ecd688626409d1adcf4e04a7a535c1b2c45a13ce',
+    status = 'PASS' if value_qualification is None else 'BUILT_PENDING_FUTURE_BEHAVIOR'
+    behavior = None
+    if value_qualification is not None:
+        for name, pin in value_qualification['mechanical_sources'].items():
+            assert digest((ROOT / name).read_bytes()) == pin, name
+            assert name not in source_files or source_files[name] == pin, name
+            source_files[name] = pin
+        source_files[value_qualification['path']] = value_qualification['sha256']
+        assert digest((ROOT / value_qualification['path']).read_bytes()) == value_qualification['sha256']
+        assert future_kind_qualification is not None
+        source_files[future_kind_qualification['path']] = future_kind_qualification['sha256']
+        assert digest((ROOT / future_kind_qualification['path']).read_bytes()) == future_kind_qualification['sha256']
+        if behavior_qualification_path is not None:
+            behavior_path = Path(behavior_qualification_path).resolve()
+            behavior_bytes = behavior_path.read_bytes()
+            behavior = json.loads(behavior_bytes)
+            assert behavior['schema'] == 'hepta.hia.future-value-integration-qualification.v1'
+            assert behavior['passed'] is True and behavior['groups'] == 27
+            assert len(behavior['rows']) == 27 and all(row['returncode'] == 0 for row in behavior['rows'])
+            assert behavior['products'] == products
+            assert behavior['source_files'] == source_files
+            assert behavior['compiler_sha256'] == COMPILER_SHA256
+            assert behavior['source_frozen_through_campaigns'] is True
+            assert behavior['original_domains_and_assertions_unchanged'] is True
+            source_files[behavior_path.relative_to(ROOT).as_posix()] = digest(behavior_bytes)
+            status = 'PASS'
+    report = dict(schema='hepta.hia.future-native-release-build.v1', status=status,
+                  source_base_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                   compiler=dict(bytes=813129, sha256=COMPILER_SHA256), modules=modules,
                   source_files=source_files,
+                  development_source_provenance=({} if value_qualification is None else
+                      value_qualification['development_sources']),
                   native_filter_kit=dict(bytes=len(kit_pack.stdout), sha256=digest(kit_pack.stdout),
                                          source_bundle_sha256=digest(kit_build.stdout),
                                          dag_frame_bytes=len(framed.stdout), dag_frame_sha256=digest(framed.stdout),
                                          composer_bytes=len(composer.stdout), composer_sha256=digest(composer.stdout)),
                   wrappers=wrappers, products=products, checks=checks,
+                  value_protocol=value_magic.decode('ascii'), value_roles=list(value_roles),
+                  value_packer=value_packer,
+                  value_qualification=(None if value_qualification is None else
+                      {key: value_qualification[key] for key in ('path', 'sha256')}),
+                  future_kind_qualification=(None if future_kind_qualification is None else
+                      {key: future_kind_qualification[key] for key in ('path', 'sha256')}),
+                  value_class_queries_qualified=future_kind_qualification is not None,
+                  inherited_behavior_requalified=behavior is not None,
                   whole_public_future_closed=False, whole_background_optimizer_closed=False,
                   final_unified_dispatcher_qualified=False, production_activated=False)
     (output / 'build.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
@@ -285,8 +441,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--compiler', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--value-qualification', type=Path,
+                        help='exact qualified complete Value receipt; leaves family pending until all inherited gates rerun')
+    parser.add_argument('--future-kind-qualification', type=Path,
+                        help='matching actual tuple, record and native class Future semantics')
+    parser.add_argument('--behavior-qualification', type=Path,
+                        help='matching complete 27-group original Future qualification')
     args = parser.parse_args()
-    report = qualify(args.compiler, args.output)
+    report = qualify(args.compiler, args.output, value_qualification_path=args.value_qualification,
+                     future_kind_qualification_path=args.future_kind_qualification,
+                     behavior_qualification_path=args.behavior_qualification)
     print(json.dumps({'status': report['status'], 'modules': len(report['modules']),
                       'products': report['products'], 'checks': len(report['checks'])}, indent=2))
 

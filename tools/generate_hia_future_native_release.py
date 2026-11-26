@@ -15,6 +15,8 @@ RECEIPT = 'docs/HIA_NATIVE_FUTURE_RELEASE_BUILD.json'
 VALUE_ROLES = ('result_value_owner', 'result_value_core', 'result_value_import',
                'result_value_export', 'background_optimizer_json_capture',
                'agent_binary64_format', 'result_value_binary64')
+RECORD_VALUE_ROLES = VALUE_ROLES + ('result_value_dict_iterator', 'result_value_classes',
+                                  'native_class_mro', 'result_value_records')
 PUBLIC_ROLES = ('background_optimizer_future_public_owner',
                 'background_optimizer_future_public_carrier',
                 'background_optimizer_future_public_timeout',
@@ -36,6 +38,18 @@ def build_recipe():
     assert receipt['status'] == 'PASS'
     assert not any(receipt[name] for name in ('whole_public_future_closed',
         'whole_background_optimizer_closed', 'final_unified_dispatcher_qualified', 'production_activated'))
+    protocol = receipt.get('value_protocol', 'HIABVP01')
+    assert protocol in ('HIABVP01', 'HIABVP04')
+    if protocol == 'HIABVP04':
+        assert receipt['inherited_behavior_requalified'] is True
+        assert receipt['value_class_queries_qualified'] is True
+        assert receipt['future_kind_qualification']['path'] in receipt['source_files']
+        assert receipt['value_roles'] == list(RECORD_VALUE_ROLES)
+        assert receipt['value_packer'] == 'result_value_records_packer'
+        assert receipt['value_qualification']['path'] in receipt['source_files']
+        value_roles, value_packer = RECORD_VALUE_ROLES, 'result_value_records_packer'
+    else:
+        value_roles, value_packer = VALUE_ROLES, 'result_value_packer'
     r = ControllerRecipe()
     paths = sorted(row['source_path'] for row in receipt['modules'])
     assert len(paths) == len(set(paths)) and BOOT + FILTER_POLICY in paths
@@ -59,7 +73,7 @@ def build_recipe():
     equal_digest(r, r.small_builder, receipt['native_filter_kit']['dag_frame_sha256'])
     r.node(8, (r.length(r.small_builder), r.q(receipt['native_filter_kit']['dag_frame_bytes'])))
     packers = {}
-    for name in ('result_value_packer', 'background_optimizer_future_public_packer', ADAPTER,
+    for name in (value_packer, 'background_optimizer_future_public_packer', ADAPTER,
                  'publication_cancellation_packer'):
         image = r.native_filter(r.compiled[BOOT + name + '.hepta'], wide=False)
         expected = receipt['wrappers'][name]
@@ -77,9 +91,10 @@ def build_recipe():
         r.publish(name, value, expected['sha256'])
         return value
 
-    parts = [flat(name) for name in VALUE_ROLES]
-    wire = r.concat(r.literal(b'HIABVP01'), r.q(7), *(r.length(p) for p in parts), r.q(1), *parts)
-    value = publish('hia-result-value.core.bin', r.run(packers['result_value_packer'], wire, 0))
+    parts = [flat(name) for name in value_roles]
+    wire = r.concat(r.literal(protocol.encode('ascii')), r.q(len(value_roles)),
+                    *(r.length(p) for p in parts), r.q(1), *parts)
+    value = publish('hia-result-value.core.bin', r.run(packers[value_packer], wire, 0))
     policy = flat('background_optimizer_future_public_observers_notify')
     wire = r.concat(r.literal(b'HIABFNPK'), r.length(policy), r.q(0, 0), policy)
     notify = publish('hia-future-notify.core.bin', r.run(packers[ADAPTER], wire, 0))

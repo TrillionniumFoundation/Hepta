@@ -1,5 +1,113 @@
 {
-  "component_qualified": false,
+  "component_qualified": true,
+  "components": {
+    "cases": [
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_classes",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/build/value-component.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/qualification/classes"
+        ],
+        "elapsed_ns": 414826857,
+        "name": "classes",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_dict_iterator",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/build/value-component.flat",
+          "--report",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/qualification/iterator.json"
+        ],
+        "elapsed_ns": 1266943302,
+        "name": "iterator",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_cleanup",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/build/value-component.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/qualification/cleanup"
+        ],
+        "elapsed_ns": 114142998,
+        "name": "cleanup",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_native_objects",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/build/value-component.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/qualification/native-objects"
+        ],
+        "elapsed_ns": 1065683794,
+        "name": "native-objects",
+        "returncode": 0,
+        "timeout_seconds": 180
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_native_posix_path_factory",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/build/factory-component.flat",
+          "--value-image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/build/value-component.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/qualification/factory"
+        ],
+        "elapsed_ns": 365170810,
+        "name": "factory",
+        "returncode": 0,
+        "timeout_seconds": 180
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_class_packers",
+          "--class-packer",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/build/result_value_class_packer.flat",
+          "--factory-packer",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/build/native_posix_path_factory_packer.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/qualification/packers"
+        ],
+        "elapsed_ns": 64118692,
+        "name": "packers",
+        "returncode": 0,
+        "timeout_seconds": 180
+      }
+    ],
+    "oracle": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+    "passed": true,
+    "schema": "hia.native-value-assembly.components.v1",
+    "whole_public_runtime_closed": false
+  },
   "construction": {
     "compiler": {
       "bytes": 813129,
@@ -273,18 +381,118 @@
     "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v2",
     "runtime_job:1a2173b4668-ffbe-4605"
   ],
+  "final_campaign_receipt": {
+    "path": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/qualification.json",
+    "sha256": "769079422b2cd32d4658731197e93e155e88c0375388bdf841c7e94e711b34e9"
+  },
   "generation_info_as_dict_captured_values_qualified": true,
   "mechanical_bridge_source_byteequal": true,
+  "original_campaigns": {
+    "bridge_syscall_in_original577_range": true,
+    "cases": [
+      {
+        "case": "private-v3",
+        "elapsed_ns": 64668674,
+        "new_harness_sha256": "8402934d556ebc40963b7694a4f2c007090a6edde659f9cec44b4be96584047f",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-private-v3.py",
+          "sha256": "82abc758ed12dd7d20312d4720d73c12efa88552a903e93b0caee908d6688875"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/original-regression/private-v3/report.json",
+        "report_sha256": "8c45c814208999bec55302ad9e7791a8638cce03c700a3b0a988cb094650ac86",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "context-tokens-v2",
+        "elapsed_ns": 114625704,
+        "new_harness_sha256": "6ed204a1d59df86ae9ee948ea01f227c035e4d165e4abe5b9532d37d60848cd6",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-context-tokens-v2.py",
+          "sha256": "79133dd455803a0011c0a2af05800c649d990dee0171c728b21363c271c0d52b"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/original-regression/context-tokens-v2/report.json",
+        "report_sha256": "75f0b1e43767f20cdf79649d699af92bd4c4bcf34a25a25f11284f6faa7035b4",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "kernel-faults-v4",
+        "elapsed_ns": 1015165772,
+        "new_harness_sha256": "2527b5e7ed7c1273ecfab238f101effeffd4701ce98a03bb04bd63d4f168d314",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-kernel-faults-v4.py",
+          "sha256": "49ad8684c9ed3c756e87e6f1dbef489c1de13863044e9eca769f65ced1dbeef8"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/original-regression/kernel-faults-v4/report.json",
+        "report_sha256": "eadc78d8b6791867d1a5ffdcf8ec858ca79b07e122a534e7e308bb18b2280c05",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "operations-v3",
+        "elapsed_ns": 1666875467,
+        "new_harness_sha256": "d31dd5bc25af55fadc147f75b3fff36807bf5c3dea1674c0ad98bd41bdbc5e23",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-operations-v3.py",
+          "sha256": "dc667a099f04a107a46df07efe4fe8a0487def692826cfcab7273f44d3e68078"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/original-regression/operations-v3/report.json",
+        "report_sha256": "c0ea4f069c68d33239be2c39b493a0afe821bd0e214998369985f77d9af3d5cb",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "roundtrip-v4",
+        "elapsed_ns": 9128370222,
+        "new_harness_sha256": "51187fbc1cf61f6c8419bf407bf41f2693e05850f79921b30effa62697c5e911",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-roundtrip-v4.py",
+          "sha256": "da3460da609dfdc94815fff6adf0d3de3319ef326c62b1f9be9feb9a62441ebf"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/original-regression/roundtrip-v4/report.json",
+        "report_sha256": "94a924bee912b8368dcf1185a74d045b34f4e3bceab9ae7eaf6ace63d7f984b8",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "large-v3",
+        "elapsed_ns": 28660808237,
+        "new_harness_sha256": "1de00a8f3e13ebc33bf2ec442324ce2daa5827db6a43e30d914dfc5e9743be01",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-large-v3.py",
+          "sha256": "6afea9af51f98a3f135dae8ab9a7a6d7ee4a6ba60b5de0f94a6b5f604934bf99"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-regression-v3/original-regression/large-v3/report.json",
+        "report_sha256": "8b98860aa8a0fc24b19424d634edec732781cb9bc3c8cb31568a7060f47110a5",
+        "returncode": 0,
+        "timeout_seconds": 660
+      }
+    ],
+    "image": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/build/value-component.flat",
+    "image_sha256": "6aa48162de9636fd9a3a4552efce0cfa789e007db36aa261a1f3291134ea27b4",
+    "passed": true,
+    "schema": "hia.native-value-original-regression.v1",
+    "whole_public_runtime_closed": false
+  },
   "pending": [
-    "GenerationInfo.as_dict exact detached conversion",
-    "Typed carrier actual call within lease mutex",
-    "Complete original six native campaigns on final source"
+    "runtime-owned GenerationInfo capture and cross-lease identity",
+    "public arbitrary iterable and dataclass constructor protocols",
+    "tuple and frozen-record equality/hash protocols",
+    "enclosing typed-call lock, real builtin subclasses and resource-owner integration",
+    "native callable, bound self/environment and resource-finalizer ownership"
   ],
   "primitive_native_qualified": true,
   "primitive_qualification": {
     "actual_native_image": true,
     "component_qualified": true,
-    "generation_info_as_dict_closed": false,
+    "generation_info_as_dict_captured_values_qualified": true,
     "groups": [
       {
         "case": "actual-class-identity",
@@ -306,6 +514,54 @@
       },
       {
         "case": "tuple-list-cycle-collection-and-nonmutating-probe"
+      },
+      {
+        "case": "generation-info-as-dict-detached-original-oracle",
+        "mapping_bytes": 0
+      },
+      {
+        "case": "generation-info-as-dict-detached-original-oracle",
+        "mapping_bytes": 4
+      },
+      {
+        "case": "generation-info-as-dict-detached-original-oracle",
+        "mapping_bytes": 46
+      },
+      {
+        "case": "generation-info-as-dict-detached-original-oracle",
+        "mapping_bytes": 38
+      },
+      {
+        "case": "generation-info-as-dict-detached-original-oracle",
+        "mapping_bytes": 3
+      },
+      {
+        "case": "generation-info-as-dict-detached-original-oracle",
+        "mapping_bytes": 8
+      },
+      {
+        "case": "generation-info-as-dict-detached-original-oracle",
+        "mapping_bytes": 9
+      },
+      {
+        "case": "generation-info-as-dict-detached-original-oracle",
+        "mapping_bytes": 179124
+      },
+      {
+        "case": "dataclass-annotation-does-not-restrict-parameters",
+        "original_type": "str"
+      },
+      {
+        "case": "dataclass-annotation-does-not-restrict-parameters",
+        "original_type": "bytes"
+      },
+      {
+        "case": "dataclass-annotation-does-not-restrict-parameters",
+        "original_type": "dict"
+      },
+      {
+        "case": "dataclass-annotation-does-not-restrict-parameters",
+        "original_type": "list"
       },
       {
         "case": "typed-exact-scalar-original-oracle",
@@ -367,10 +623,11 @@
       },
       {
         "case": "preserved-and-new-private-request-domains",
-        "controls": 83
+        "controls": 82
       }
     ],
     "oracle": "3.14.4",
+    "public_arbitrary_iterable_dataclass_protocol_closed": false,
     "schema": "hia.native-record-values.qualification.v1",
     "tuple_hash_equality_protocol_closed": false,
     "typed_native_call_lock_integration_closed": false,
@@ -378,8 +635,8 @@
     "whole_public_runtime_qualified": false
   },
   "primitive_report": {
-    "path": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v1/qualification/records-v2/report.json",
-    "sha256": "c063f9c763c3c9be6b08e43bd337a639ee642594b5f68967ed6ddebb8c9c8e69"
+    "path": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/qualification/records/report.json",
+    "sha256": "fb31c93be29b416d8d60f372110ace6e01f9fe87177ab7047cea5f8c00c7769b"
   },
   "qualification": {
     "actual_native_image": true,
@@ -529,6 +786,17 @@
   "qualification_path": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/qualification/records/report.json",
   "qualification_sha256": "fb31c93be29b416d8d60f372110ace6e01f9fe87177ab7047cea5f8c00c7769b",
   "schema": "hia.native-record-values.checkpoint.v1",
+  "source_audit": {
+    "all_current_sources_match_native_double_build": true,
+    "construction": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/records-native-v3/build/build.json",
+    "old_ten_role_packer_source_unchanged": true,
+    "oracle": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+    "schema": "hia.native-record-values.source-freeze.v1",
+    "source_commit": "f63c80731305524844b9c25b1c591398350a85ec",
+    "source_frozen_through_campaigns": true,
+    "source_tree": "42f719b6b72406dcab513dd1441dae3b9123a65c",
+    "source_tree_after": "42f719b6b72406dcab513dd1441dae3b9123a65c"
+  },
   "source_files": {
     "tools/generate_hia_result_value_import.py": "b27492e9295fe7f206ae418d449bd8a46cb84b0ce02ce04133838370a0de50a3",
     "tools/generate_hia_result_value_owner.py": "8c6de7fbe951251b07971d6239661b78acab46685ece9a272d691dc921893f2c",
@@ -536,6 +804,6 @@
     "tools/hia_result_value_records_bridge.S": "f7e73539fc0d0e59e62c08f58f6785a52e35351d28054e286abb26657ac8aae0",
     "tools/qualify_hia_result_value_records.py": "9cf0a1aaae321d97c73dbdce8f1a6770d0fb69e2993eedff91ce714f169ca491"
   },
-  "status": "RECORDS_ASDICT_QUALIFIED_FINAL_CAMPAIGNS_PENDING",
+  "status": "CURRENT_RECORD_VALUE_COMPONENT_QUALIFIED",
   "whole_public_runtime_qualified": false
 }
