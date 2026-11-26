@@ -51,13 +51,16 @@ def information_child_step(o:mutbuf,w:mutbuf) -> u64:
         else:
             put(o,1832,cap)
             put(o,1840,get(w,cap+8))
-            put(o,1928,1)
+            put(o,1928,choose(get(o,1928)==4,5,1))
         deallocate(w,get(o,1816))
         put(o,1816,0)
         put(o,1800,0)
         zero(o,256,448)
-        put(o,G_OP,60)
-        put(o,G_PHASE,choose(get(o,1928)==3,10,1))
+        put(o,G_OP,choose(get(o,1928)==5,66,60))
+        if get(o,1928)==5:
+            put(o,G_PHASE,20)
+        else:
+            put(o,G_PHASE,choose(get(o,1928)==3,10,1))
         return 10
     if action==10:
         return information_child_call(o,w)
@@ -84,7 +87,12 @@ def information_child_step(o:mutbuf,w:mutbuf) -> u64:
 def information_find(o:mutbuf,w:mutbuf,obj:u64,index:u64) -> u64:
     if get(w,obj+8)!=6:
         return 0
-    n=records_name(o,2176,index)
+    n=11
+    if index==15:
+        put(o,2176,7598805615236769127)
+        put(o,2184,7564911)
+    else:
+        n=records_name(o,2176,index)
     i=0
     while i<get(w,obj+112):
         at=get(w,obj+24)+i*32
