@@ -1,7 +1,115 @@
 {
   "background_optimizer_resource_qualified": false,
-  "component_qualified": false,
-  "component_scope": "actual native construction and primitive compatibility; new actual-info capture and private deferred typed call require enclosing-owner behavior gates",
+  "component_qualified": true,
+  "component_scope": "native Value construction, records and builtin-subclass primitives, original component gates and all six unchanged original campaigns; actual resource finalizers, same-arena integration, actual Info capture, deferred typed locks and object protocols retain their separate qualification flags",
+  "components": {
+    "cases": [
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_classes",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-native-v4/build/value-component.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/qualification/classes"
+        ],
+        "elapsed_ns": 366604595,
+        "name": "classes",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_dict_iterator",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-native-v4/build/value-component.flat",
+          "--report",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/qualification/iterator.json"
+        ],
+        "elapsed_ns": 1323385805,
+        "name": "iterator",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_cleanup",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-native-v4/build/value-component.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/qualification/cleanup"
+        ],
+        "elapsed_ns": 114671778,
+        "name": "cleanup",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_native_objects",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-native-v4/build/value-component.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/qualification/native-objects"
+        ],
+        "elapsed_ns": 1118659206,
+        "name": "native-objects",
+        "returncode": 0,
+        "timeout_seconds": 180
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_native_posix_path_factory",
+          "--image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-native-v4/build/factory-component.flat",
+          "--value-image",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-native-v4/build/value-component.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/qualification/factory"
+        ],
+        "elapsed_ns": 366308388,
+        "name": "factory",
+        "returncode": 0,
+        "timeout_seconds": 180
+      },
+      {
+        "command": [
+          "/usr/bin/python3",
+          "-u",
+          "-m",
+          "tools.qualify_hia_result_value_class_packers",
+          "--class-packer",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/build/result_value_class_packer.flat",
+          "--factory-packer",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-native-v4/build/native_posix_path_factory_packer.flat",
+          "--output",
+          "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/qualification/packers"
+        ],
+        "elapsed_ns": 64623931,
+        "name": "packers",
+        "returncode": 0,
+        "timeout_seconds": 180
+      }
+    ],
+    "oracle": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+    "passed": true,
+    "schema": "hia.native-value-assembly.components.v1",
+    "whole_public_runtime_closed": false
+  },
   "construction": {
     "compiler": {
       "bytes": 813129,
@@ -299,7 +407,101 @@
     "sha256": "12c18ea6b6f28f9a5be2e40c25e4793effa7caed6775f3d4a5a965d8bb16bdd0"
   },
   "native_callable_and_boundmethod_qualified": false,
-  "original_six_campaigns_qualified": false,
+  "original_regression": {
+    "bridge_syscall_in_original577_range": true,
+    "cases": [
+      {
+        "case": "private-v3",
+        "elapsed_ns": 32329363,
+        "new_harness_sha256": "12f54a61c5bb54c3f10499b2e1037c5aca7d08d2571a1e2484ffe73f070dd173",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-private-v3.py",
+          "sha256": "82abc758ed12dd7d20312d4720d73c12efa88552a903e93b0caee908d6688875"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/original-regression/private-v3/report.json",
+        "report_sha256": "aa5cb7a62a5ed32d03b7f52bb5ee4e134388f1d762b1a8183487f6b2573066cd",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "context-tokens-v2",
+        "elapsed_ns": 114001241,
+        "new_harness_sha256": "8f469fab2a6598cb0f0eae24a0f47c60234648627527f5b676aa218d961f011b",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-context-tokens-v2.py",
+          "sha256": "79133dd455803a0011c0a2af05800c649d990dee0171c728b21363c271c0d52b"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/original-regression/context-tokens-v2/report.json",
+        "report_sha256": "5291dc02a19733e7feefbbbad1ed6df78ceb831cb426e9303f6f1202ae76e397",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "kernel-faults-v4",
+        "elapsed_ns": 1015708409,
+        "new_harness_sha256": "04eb2c8b42b894818345103038610a64626ce007ec9f2155ead2fbdcc1c9c588",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-kernel-faults-v4.py",
+          "sha256": "49ad8684c9ed3c756e87e6f1dbef489c1de13863044e9eca769f65ced1dbeef8"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/original-regression/kernel-faults-v4/report.json",
+        "report_sha256": "195c22418a8be3490bb9a85ca1359c94742341b2e7c7d24a8cee5727c86523bc",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "operations-v3",
+        "elapsed_ns": 1716547168,
+        "new_harness_sha256": "12e0a6a01c0545e6068c2f4204dcf983d9e77e460bc79bc68df62761f7982af0",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-operations-v3.py",
+          "sha256": "dc667a099f04a107a46df07efe4fe8a0487def692826cfcab7273f44d3e68078"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/original-regression/operations-v3/report.json",
+        "report_sha256": "3f8acea6acbabd556fc567ecd79e6ff3101bcb1dd1b7fbb25cf31be21f6a5531",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "roundtrip-v4",
+        "elapsed_ns": 9179999639,
+        "new_harness_sha256": "df53bf1aa3e686caf7534a96a333ed983423ba9bb7720e8e3821f0388ca97f3a",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-roundtrip-v4.py",
+          "sha256": "da3460da609dfdc94815fff6adf0d3de3319ef326c62b1f9be9feb9a62441ebf"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/original-regression/roundtrip-v4/report.json",
+        "report_sha256": "92431eed3dac9174f2da9881072c170d337a6897b816ed6d3e87a5e7252866b8",
+        "returncode": 0,
+        "timeout_seconds": 300
+      },
+      {
+        "case": "large-v3",
+        "elapsed_ns": 30769202582,
+        "new_harness_sha256": "c83f3f870f3bec884765607ff77c64518079a31c3175a95ab7a487b4b80031f6",
+        "only_harness_image_pin_output_paths_changed": true,
+        "original_source": {
+          "path": "/home/qian-qi/.local/state/hia-native-final-custody-20261125/qualify-result-value-large-v3.py",
+          "sha256": "6afea9af51f98a3f135dae8ab9a7a6d7ee4a6ba60b5de0f94a6b5f604934bf99"
+        },
+        "report": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-regression-v4/original-regression/large-v3/report.json",
+        "report_sha256": "0c5336102ba607bb724b7ab589904f4ad48a800b247de1ef572cf114137abc79",
+        "returncode": 0,
+        "timeout_seconds": 660
+      }
+    ],
+    "image": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-native-v4/build/value-component.flat",
+    "image_sha256": "e03d3c7802800720be340184a036151e0f0e4e788bf720ba6a7a135da7edbfe3",
+    "passed": true,
+    "schema": "hia.native-value-original-regression.v1",
+    "whole_public_runtime_closed": false
+  },
+  "original_six_campaigns_qualified": true,
   "previous_regression_checkpoint": {
     "commit": "58fbf9ce31681390aa41457b43b1d041a43836a4",
     "image_sha256": "308b60bd5a640c09bf201b93fbcd660ce9a19b81b9e5c24df45c0b0e9f8fb22b",
@@ -566,6 +768,17 @@
   "same_arena_future_ownership_qualified": false,
   "same_runtime_generation_info_and_abi_identity_qualified": false,
   "schema": "hia.native-resource-values.qualification.v1",
+  "source_audit": {
+    "all_current_sources_match_native_double_build": true,
+    "construction": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/resources-native-v4/build/build.json",
+    "old_ten_role_packer_source_unchanged": true,
+    "oracle": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+    "schema": "hia.native-resource-values.source-freeze.v1",
+    "source_commit": "80b4b898d8340006db1cf3cd909bdfed753fa4de",
+    "source_frozen_through_campaigns": true,
+    "source_tree": "3a8f0735a0ff5306c53c0d017159e65f9cad81cc",
+    "source_tree_after": "3a8f0735a0ff5306c53c0d017159e65f9cad81cc"
+  },
   "source_files": {
     "tools/generate_hia_generation_lease_typed.py": {
       "bytes": 7270,
@@ -609,7 +822,7 @@
     }
   },
   "source_parent_commit": "fdc3fb2d05e095f48c2229dabde623e2dcf7dfbf",
-  "status": "BUILT_PRIMITIVES_PASS_PENDING_ACTUAL_INFO_DEFERRED_LOCK_AND_REGRESSION",
+  "status": "COMPONENT_PASS_PENDING_ENCLOSING_RESOURCE_INFO_DEFERRED_LOCK_AND_OBJECT_PROTOCOLS",
   "tuple_hash_equality_protocol_closed": false,
   "value_packer": "examples/hia_bootstrap/result_value_resources_packer.hepta",
   "value_protocol": "HIABVP05",
