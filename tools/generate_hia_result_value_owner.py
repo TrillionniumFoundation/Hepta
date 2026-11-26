@@ -148,6 +148,7 @@ def lifecycle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
         put(o,1960,get(w,152))
         put(o,1968,get(w,120))
         put(o,1976,get(w,160))
+        put(o,2056,get(w,168))
         if readword(s,0)==MAGIC5:
             if op!=50 and op!=51 and op!=57 and bound==False:
                 return owner_fail(o,6)
@@ -299,6 +300,8 @@ def records_request_valid(s:readbuf) -> bool:
 
 def graph_id(s:readbuf) -> u64:
     if readword(s,0)==MAGIC5:
+        if readword(s,8)==61:
+            return 11
         return 12
     if readword(s,0)==MAGIC4:
         return 11
@@ -320,9 +323,10 @@ def owner_fail(o:mutbuf,status:u64) -> u64:
     return 10
 def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
     if phase==200:
+        deferred=readword(s,0)==MAGIC5 and readword(s,8)==61
         if get(o,P_HELD)!=0:
             if get(w,16)!=0:
-                if resource_bound(w):
+                if resource_bound(w) and deferred==False:
                     if get(o,2000)==0:
                         put(o,2000,1)
                         put(o,1984,get(o,P_ERROR))
@@ -383,7 +387,8 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
         if readword(s,0)==MAGIC5 and (op==51 or op==52):
             put(o,56,get(o,G_INDEX))
             put(o,64,get(o,G_PLAN))
-        if readword(s,0)==MAGIC4 and op==45:
+        typed=readword(s,0)==MAGIC4 and op==45 or readword(s,0)==MAGIC5 and op==61
+        if typed:
             put(o,56,get(o,G_INDEX))
             put(o,64,get(o,G_PLAN))
             put(o,72,get(o,G_REQUIRED))
@@ -419,29 +424,37 @@ def system(o:mutbuf,next:u64,number:u64,selectors:u64,a:u64,b:u64,c:u64,d:u64,e:
     return 1
 def resources_request_valid(s:readbuf) -> bool:
     op=readword(s,8)
-    if op<48 or op>57:
+    if (op<48 or op>57) and op!=60 and op!=61:
         return False
     tail=choose(op==48,24,0)
+    if op==61:
+        tail=5136
+    if op==60:
+        if length(s)<160:
+            return False
+        tail=length(s)-128
+        if readword(s,128)!=3626041284998809928 or readword(s,136)!=0 or readword(s,144)!=0 or readword(s,152)!=tail-32:
+            return False
     if length(s)!=128+tail or readword(s,96)!=tail:
         return False
     a=readword(s,104)
     b=readword(s,112)
     if op==48:
-        if a<1 or a>5 or b!=0 or readword(s,128)==0 or (readword(s,136)==0 and readword(s,144)==0):
+        if a<1 or a>6 or b!=0 or readword(s,128)==0 or (readword(s,136)==0 and readword(s,144)==0):
             return False
     elif op==49:
-        if a>5 or b!=0:
+        if a>6 or b!=0:
             return False
-    elif op==54 or op==55:
+    elif op==54 or op==55 or op==60:
         if a==0 and b==0:
             return False
     elif op==57:
-        if a<31 or a>34 or b!=0:
+        if a<31 or a>35 or b!=0:
             return False
     elif a!=0 or b!=0:
         return False
-    hasa=op==48 or op==49 or op==50 or op==54 or op==55
-    hasb=op==48 or op==50
+    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61
+    hasb=op==48 or op==50 or op==61
     hasc=op==48 or op==50
     if (hasa==False and (readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0)) or (hasb==False and (readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0)) or (hasc==False and (readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0)):
         return False

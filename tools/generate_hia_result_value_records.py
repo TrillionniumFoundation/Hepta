@@ -48,6 +48,8 @@ def records_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     zero(o,256,448)
     zero(o,768,128)
     op=readword(s,8)
+    if op==61:
+        op=45
     put(o,G_OP,op)
     put(w,16,0)
     if op==47:

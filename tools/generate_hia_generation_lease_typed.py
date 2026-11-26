@@ -13,7 +13,7 @@ from tools import generate_hia_multiversion_runtime_effects as effects
 
 ROOT=Path(__file__).resolve().parents[1]
 TYPED_MAGIC=int.from_bytes(b'HIAMVTC1','little')
-VALUE_MAGIC=int.from_bytes(b'HIABVQ04','little')
+VALUE_MAGIC=int.from_bytes(b'HIABVQ05','little')
 VALUE_REPLY=int.from_bytes(b'HIABVR01','little')
 CALL_MAGIC=int.from_bytes(b'HIAMVCAL','little')
 T_TYPED=26888
@@ -61,7 +61,7 @@ def typed_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
 def typed_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     zero(o,T_REQUEST,5264)
     put(o,T_REQUEST,TYPED_VALUE_MAGIC)
-    put(o,T_REQUEST+8,45)
+    put(o,T_REQUEST+8,61)
     copy_input(s,40,o,T_REQUEST+24,48)
     put(o,T_REQUEST+96,5136)
     within(o,T_REQUEST+128,FRAME,5136)
