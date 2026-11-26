@@ -132,7 +132,7 @@ def class_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         put(o,G_A,a)
         if (op==34 or op==38) and get(w,a+8)!=10:
             return done(o,2)
-    if op==33 or op==34 or op==35 or op==37 or op==39 or op==75:
+    if op==33 or op==34 or op==35 or op==37 or op==39 or op==75 or (op==111 and readword(s,112)==1):
         b=cap_lookup(w,readword(s,48),readword(s,56),readword(s,64))
         if b==0:
             return done(o,1)
@@ -155,6 +155,15 @@ def class_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             if get(w,namespace+8)!=6:
                 return done(o,2)
             put(o,G_C,namespace)
+    if op==111:
+        obj=get(o,G_A)
+        if get(w,obj+8)!=8:
+            return done(o,2)
+        data=get(w,obj+24)
+        if get(w,data+48)!=3544429961563687240 or class_is_subclass(w,get(w,data+40),get(w,class_slot(72)))==False:
+            return done(o,2)
+        if get(w,get(w,data+16)+8)!=6:
+            return done(o,2)
     if op==33:
         name=native_base(w,get(o,G_A))
         if get(w,name+8)!=4 or get(w,get(o,G_B)+8)!=5 or get(w,get(o,G_C)+8)!=6:
@@ -432,6 +441,8 @@ def class_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         result=get(w,160+(readword(s,104)-1)*8)
     elif op==75:
         return class_exception(o,w)
+    elif op==111:
+        return class_subprocess_field(s,o,w)
     elif op==33:
         return class_project(o,w)
     elif op==34:
@@ -659,6 +670,67 @@ def class_describe(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if fresh:
             object_release(w,result)
         return growth(o,w)
+    return class_finish(o,w,0)
+def class_subprocess_key(w:mutbuf,field:u64) -> u64:
+    key=object_new(w,4)
+    if key==0:
+        return 0
+    data=allocate(w,8)
+    if data==0:
+        object_unlink(w,key)
+        return 0
+    value=6581603
+    n=3
+    if field==1:
+        value=32780218601924980
+        n=7
+    elif field==2 or field==4:
+        value=128047746676079
+        n=6
+    elif field==3:
+        value=125835652920435
+        n=6
+    put(w,data,value)
+    put(w,key+24,data)
+    put(w,key+32,n)
+    put(w,key+56,bytes_hash(w,data,n))
+    return key
+def class_subprocess_field(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
+    obj=get(o,G_A)
+    namespace=get(w,get(w,obj+24)+16)
+    key=class_subprocess_key(w,readword(s,104))
+    if key==0:
+        return growth(o,w)
+    found=dict_find(w,namespace,key)
+    if readword(s,112)==0:
+        if found==MAX:
+            object_release(w,key)
+            return class_finish(o,w,3)
+        result=get(w,get(w,namespace+24)+found*32+8)
+        object_release(w,key)
+        if publish_one(o,w,result)!=0:
+            return growth(o,w)
+    else:
+        if found==MAX:
+            if dict_reserve(w,namespace)==False:
+                object_release(w,key)
+                return growth(o,w)
+        if publish_one(o,w,get(w,128))!=0:
+            object_release(w,key)
+            return growth(o,w)
+        value=get(o,G_B)
+        if found==MAX:
+            dict_insert(w,namespace,key,value)
+        else:
+            at=get(w,namespace+24)+found*32+8
+            previous=get(w,at)
+            edge_add(w,value)
+            put(w,at,value)
+            edge_drop(w,previous)
+        object_release(w,key)
+    put(o,G_INDEX,1)
+    put(o,P_DROP_KNOWN,1)
+    put(o,P_DROP_CONSUMED,1)
     return class_finish(o,w,0)
 def class_instance(o:mutbuf,w:mutbuf) -> u64:
     cls=get(o,G_A)

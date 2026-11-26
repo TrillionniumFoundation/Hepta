@@ -37,6 +37,9 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if length(s)>=8 and readword(s,0)==MAGIC10:
         if length(s)<128 or readword(s,8)!=1:
             return 4294967293
+    if length(s)>=8 and readword(s,0)==MAGIC11:
+        if length(s)<128 or deferred_exception_profile_allowed(readword(s,8))==False:
+            return 4294967293
     if length(s)<128 or (request_magic(s)!=MAGIC and request_magic(s)!=MAGIC2 and request_magic(s)!=MAGIC3 and request_magic(s)!=MAGIC4 and request_magic(s)!=MAGIC5) or readword(s,16)!=0 or readword(s,120)!=0 or readword(s,96)!=length(s)-128:
         return 4294967293
     op=readword(s,8)
@@ -44,7 +47,7 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if resources_request_valid(s)==False:
             return 4294967293
         zero(o,0,8192)
-        if op==48 or ((op>=68 and op<=70) or op==97) or (op>=77 and op<=79) or op==89 or op==90 or (op>=91 and op<=96) or (op>=101 and op<=109):
+        if op==48 or ((op>=68 and op<=70) or op==97) or (op>=77 and op<=79) or op==89 or op==90 or (op>=91 and op<=96) or (op>=101 and op<=112):
             put(o,P_DROP_KNOWN,1)
         return owner_start(s,o)
     if request_magic(s)==MAGIC4:
@@ -87,7 +90,7 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         put(o,P_DROP_KNOWN,1)
     return owner_start(s,o)
 def owner_start(s:readbuf,o:mutbuf) -> u64:
-    if readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or readword(s,0)==MAGIC8 or readword(s,0)==MAGIC9 or readword(s,0)==MAGIC10:
+    if readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or readword(s,0)==MAGIC8 or readword(s,0)==MAGIC9 or readword(s,0)==MAGIC10 or readword(s,0)==MAGIC11:
         put(o,P_PHASE,15)
         return 12
     return system(o,1,39,0,0,0,0,0,0,0)
@@ -97,6 +100,9 @@ def deferred_profile_allowed(op:u64) -> bool:
 
 def deferred_container_profile_allowed(op:u64) -> bool:
     return op==3 or op==12 or op==16 or op==18 or op==24
+
+def deferred_exception_profile_allowed(op:u64) -> bool:
+    return op==32 or op==40 or op==43 or op==57 or op==75 or op==87 or op==98 or op==99 or op==100 or (op>=101 and op<=112)
 
 def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
     if phase==15:
@@ -186,7 +192,7 @@ def lifecycle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
         codebound=get(w,192)!=0 and get(w,200)!=0 and get(w,208)==256 and get(w,216)!=0
         put(o,7200,choose(codebound,1,0))
         if request_magic(s)==MAGIC5:
-            if op!=50 and op!=51 and op!=57 and op!=62 and op!=63 and op!=67 and op!=75 and op!=87 and op!=99 and op!=100 and (op<101 or op>109) and bound==False:
+            if op!=50 and op!=51 and op!=57 and op!=62 and op!=63 and op!=67 and op!=75 and op!=87 and op!=99 and op!=100 and (op<101 or op>112) and bound==False:
                 return owner_fail(o,6)
             if op==53:
                 put(w,160,0)
@@ -342,7 +348,9 @@ def records_request_valid(s:readbuf) -> bool:
 
 def graph_id(s:readbuf) -> u64:
     if request_magic(s)==MAGIC5:
-        if readword(s,8)>=101 and readword(s,8)<=109:
+        if readword(s,8)==111:
+            return 9
+        if readword(s,8)>=101 and readword(s,8)<=112:
             return 16
         if readword(s,8)==75 or readword(s,8)==87 or readword(s,8)==98 or readword(s,8)==99:
             return 9
@@ -392,6 +400,10 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
                         put(o,2016,1)
                         put(o,G_PHASE,91)
                         return graph_call(s,o,w,21,1)
+        if readword(s,0)==MAGIC11 and get(o,P_HELD)!=0 and get(o,8152)==0 and get(w,16)!=0:
+            put(o,8152,1)
+            put(o,G_PHASE,93)
+            return graph_call(s,o,w,203,1)
         owned=drop_profile(s) or resource_capture(s)
         if owned and get(o,P_HELD)!=0:
             pending=get(w,80)==1 or get(w,176)!=0 or get(w,184)!=0
@@ -401,9 +413,19 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
                 resourcepending=get(w,176)!=0 or get(w,184)!=0
                 put(o,2088,choose(resourcepending,1,0))
         if get(o,P_HELD)!=0:
+            if readword(s,0)==MAGIC11 and get(o,8160)==1:
+                put(o,8168,choose(get(w,80)==1,1,0))
+                queued=get(w,176)!=0 or get(w,184)!=0
+                put(o,8176,choose(queued,1,0))
             put(o,P_HELD,0)
             return atom(o,3,201,32,0,0)
         return finish(s,o,get(o,P_ERROR))
+    if phase==203:
+        if get(o,P_FEEDBACK)==0:
+            put(o,8160,1)
+            put(w,176,get(o,8176))
+        put(o,P_PHASE,200)
+        return 10
     if phase==201:
         return system(o,202,202,4,32,129,2147483647,0,0,0)
     return finish(s,o,get(o,P_ERROR))
@@ -426,7 +448,7 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
             put(o,104,get(o,2080))
             put(o,112,get(o,2088))
             put(o,120,1)
-        return 0
+        return deferred_finish(s,o)
     if resource_capture(s):
         known=get(o,P_DROP_KNOWN)
         consumed=choose(known!=0,get(o,P_DROP_CONSUMED),0)
@@ -440,7 +462,7 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
             put(o,40,get(o,G_TAG1))
             put(o,104,get(o,G_ID0))
             put(o,112,get(o,G_ID1))
-        if readword(s,8)>=101 and readword(s,8)<=109:
+        if readword(s,8)>=101 and readword(s,8)<=112:
             put(o,48,choose(consumed==1,get(o,G_N),0))
             put(o,64,choose(consumed==1,get(o,G_INDEX),0))
             put(o,104,status)
@@ -450,11 +472,11 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
             put(o,104,get(o,2080))
             put(o,112,get(o,2088))
             put(o,120,1)
-        return 0
+        return deferred_finish(s,o)
     if status==0:
         op=readword(s,8)
         if op==0 or op==6 or op==20 or op==22:
-            return 0
+            return deferred_finish(s,o)
         put(o,16,get(o,G_KIND))
         put(o,24,get(o,G_CAP))
         put(o,32,get(o,G_TAG0))
@@ -483,6 +505,14 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
         put(o,112,get(o,G_ID1))
     elif status==13:
         put(o,72,get(o,G_REQUIRED))
+    return deferred_finish(s,o)
+def deferred_finish(s:readbuf,o:mutbuf) -> u64:
+    if readword(s,0)==MAGIC11:
+        put(o,128,0x3130445642414948)
+        put(o,136,get(o,8160))
+        put(o,144,get(o,8168))
+        put(o,152,get(o,8176))
+        put(o,160,1)
     return 0
 def atom(o:mutbuf,action:u64,next:u64,offset:u64,expected:u64,value:u64) -> u64:
     put(o,P_PHASE,next)
@@ -503,7 +533,7 @@ def system(o:mutbuf,next:u64,number:u64,selectors:u64,a:u64,b:u64,c:u64,d:u64,e:
     return 1
 def resources_request_valid(s:readbuf) -> bool:
     op=readword(s,8)
-    if (op<48 or op>57) and op!=60 and op!=61 and op!=62 and op!=63 and op!=64 and op!=65 and op!=66 and op!=67 and (op<68 or op>70) and op!=75 and op!=85 and op!=87 and op!=89 and op!=90 and (op<77 or op>80) and (op<91 or op>96) and op!=97 and op!=98 and op!=99 and op!=100 and (op<101 or op>109):
+    if (op<48 or op>57) and op!=60 and op!=61 and op!=62 and op!=63 and op!=64 and op!=65 and op!=66 and op!=67 and (op<68 or op>70) and op!=75 and op!=85 and op!=87 and op!=89 and op!=90 and (op<77 or op>80) and (op<91 or op>96) and op!=97 and op!=98 and op!=99 and op!=100 and (op<101 or op>112):
         return False
     tail=choose(op==48,24,0)
     if op==68:
@@ -550,6 +580,15 @@ def resources_request_valid(s:readbuf) -> bool:
     elif op==101:
         if a<48 or a>70 or b!=0:
             return False
+    elif op==110:
+        if a<71 or a>72 or b!=0:
+            return False
+    elif op==111:
+        if a>4 or b>1:
+            return False
+    elif op==112:
+        if a!=73 or b!=0:
+            return False
     elif op==105:
         if a>5 or b!=0:
             return False
@@ -567,8 +606,8 @@ def resources_request_valid(s:readbuf) -> bool:
             return False
     elif a!=0 or b!=0:
         return False
-    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61 or op==62 or op==63 or op==64 or op==65 or op==66 or op==67 or ((op>=68 and op<=70) or op==97) or op==75 or op==85 or op==89 or op==90 or op==95 or op==96 or (op>=77 and op<=80) or op==91 or op==92 or op==100 or (op>=102 and op<=109)
-    hasb=op==48 or op==50 or op==61 or op==62 or op==64 or op==66 or op==67 or ((op>=68 and op<=70) or op==97) or op==75 or op==85 or op==89 or op==90 or op==77 or op==79 or op==100 or (op>=102 and op<=104) or op==106 or op==108
+    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61 or op==62 or op==63 or op==64 or op==65 or op==66 or op==67 or ((op>=68 and op<=70) or op==97) or op==75 or op==85 or op==89 or op==90 or op==95 or op==96 or (op>=77 and op<=80) or op==91 or op==92 or op==100 or (op>=102 and op<=109) or op==111
+    hasb=op==48 or op==50 or op==61 or op==62 or op==64 or op==66 or op==67 or ((op>=68 and op<=70) or op==97) or op==75 or op==85 or op==89 or op==90 or op==77 or op==79 or op==100 or (op>=102 and op<=104) or op==106 or op==108 or (op==111 and b==1)
     hasc=op==48 or op==50 or op==67 or op==70 or op==75 or op==97
     if (hasa==False and (readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0)) or (hasb==False and (readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0)) or (hasc==False and (readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0)):
         return False
@@ -578,7 +617,7 @@ def resource_bound(w:mutbuf) -> bool:
     return get(w,128)!=0 and get(w,136)!=0 and get(w,144)==256 and get(w,152)!=0
 
 def resource_capture(s:readbuf) -> bool:
-    return request_magic(s)==MAGIC5 and (readword(s,8)==48 or ((readword(s,8)>=68 and readword(s,8)<=70) or readword(s,8)==97) or readword(s,8)==91 or (readword(s,8)>=101 and readword(s,8)<=109))
+    return request_magic(s)==MAGIC5 and (readword(s,8)==48 or ((readword(s,8)>=68 and readword(s,8)<=70) or readword(s,8)==97) or readword(s,8)==91 or (readword(s,8)>=101 and readword(s,8)<=112))
 
 def resource_retry(s:readbuf) -> bool:
     return request_magic(s)==MAGIC5 and (readword(s,8)==56 or readword(s,8)==93)

@@ -26,6 +26,9 @@ def result_value_core(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if phase==91:
         put(o,G_N,get(w,88)+get(w,1056))
         return 0
+    if phase==93:
+        put(o,8176,get(w,1056))
+        return 0
     if phase==92:
         arena_extend(w,get(o,P_OLD))
         put(o,G_PHASE,get(o,704))

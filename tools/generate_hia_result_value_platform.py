@@ -14,13 +14,15 @@ PLATFORM_CLASSES=(
  ('IsADirectoryError',25),('NotADirectoryError',25),('PermissionError',25),
  ('ProcessLookupError',25),('TimeoutError',25),('UnicodeDecodeError',43),
 )
+SUBPROCESS_CLASSES=(('SubprocessError',22),('TimeoutExpired',71))
+BACKGROUND_CLASSES=(('BackgroundOptimizationRejected',24),)
 SOURCE=r'''
 def result_value_platform(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,G_PHASE)
     if phase==0:
         return platform_prepare(s,o,w)
     if phase==1:
-        if platform_catalog(w)==False:
+        if platform_catalog(o,w)==False:
             return platform_growth(o,w)
         put(o,G_PHASE,10)
     if get(o,G_PHASE)==10:
@@ -52,7 +54,7 @@ def platform_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     op=readword(s,8)
     put(o,G_OP,op)
     put(w,16,0)
-    if op!=101:
+    if op!=101 and op!=110 and op!=112:
         a=cap_lookup(w,readword(s,24),readword(s,32),readword(s,40))
         if a==0:
             return done(o,1)
@@ -120,8 +122,13 @@ def platform_growth(o:mutbuf,w:mutbuf) -> u64:
     if action==0:
         return class_finish(o,w,get(o,P_ERROR))
     return action
-def platform_catalog(w:mutbuf) -> bool:
-    while get(w,152)<70:
+def platform_catalog(o:mutbuf,w:mutbuf) -> bool:
+    limit=70
+    if get(o,G_OP)==110:
+        limit=72
+    elif get(o,G_OP)==112:
+        limit=73
+    while get(w,152)<limit:
         id=get(w,152)+1
         obj=class_builtin(w,id)
         if obj==0:
@@ -518,7 +525,7 @@ def platform_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         data=get(w,get(o,G_A)+24)
         slots=get(w,data+136)
         result=get(w,get(w,slots+24)+(8+readword(s,104))*8)
-    elif op==101:
+    elif op==101 or op==110 or op==112:
         result=get(w,class_slot(readword(s,104)))
     elif op==102 or op==103:
         a=get(o,G_A)
@@ -559,7 +566,7 @@ def platform_catalog_source():
     result=['def platform_builtin_name(w:mutbuf,data:u64,id:u64) -> u64:',
             '    if id<48:','        return class_builtin_name(w,data,id)']
     catalog=list(CATALOG)
-    for index,(name,base)in enumerate(PLATFORM_CLASSES,48):
+    for index,(name,base)in enumerate(PLATFORM_CLASSES+SUBPROCESS_CLASSES+BACKGROUND_CLASSES,48):
         mro=(base,)+catalog[base-1][2]
         catalog.append((name,(base,),mro,index if index in(53,54)else 21,0))
         result.append('    if id=='+str(index)+':')
@@ -572,15 +579,19 @@ def platform_catalog_source():
         result.append(f'        return {len(raw)}')
     result+=['    return 0','def platform_builtin_shape(w:mutbuf,data:u64,obj:u64,id:u64) -> u64:',
              '    if id<48:','        return class_builtin_shape(w,data,obj,id)']
+    result+=['    base=0','    layout=21']
     for index,(name,bases,mro,layout,parser)in enumerate(catalog[47:],48):
+        assert len(bases)==1 and parser==0
         result.append(f'    if id=={index}:')
-        result.extend('        '+x for x in(
-            f'put(w,data+16,{len(bases)})',f'put(w,data+24,{len(mro)+1})',
-            f'put(w,data+32,{layout})','put(w,data+48,0)'))
-        for j,base in enumerate(bases):result.append(f'        put(w,data+{64+j*8},get(w,class_slot({base})))')
-        result.append(f'        put(w,data+{64+len(bases)*8},obj)')
-        for j,base in enumerate(mro):result.append(f'        put(w,data+{64+(len(bases)+1+j)*8},get(w,class_slot({base})))')
-        result.append('        return 0')
+        result.append(f'        base={bases[0]}')
+        if layout!=21:result.append(f'        layout={layout}')
+    result+=['    if base==0:','        return 0',
+             '    parent=get(w,class_slot(base))','    parent_data=get(w,parent+24)',
+             '    n=get(w,parent_data+24)',
+             '    put(w,data+16,1)','    put(w,data+24,n+1)',
+             '    put(w,data+32,layout)','    put(w,data+48,0)',
+             '    put(w,data+64,parent)','    put(w,data+72,obj)',
+             '    copy(w,data+80,parent_data+64+get(w,parent_data+16)*8,n*8)']
     result+=['    return 0','def platform_range_message(w:mutbuf,data:u64,name:u64,n:u64) -> u64:']
     before=b"cannot fit '";after=b"' into an index-sized integer"
     assert len(before)+len(after)==41
