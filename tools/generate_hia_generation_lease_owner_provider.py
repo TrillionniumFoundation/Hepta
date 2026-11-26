@@ -402,7 +402,9 @@ def retry_pending(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,72,get(o,SCAN))
         return write_pointer(o,702,get(o,SCAN)+32,2)
     if phase==702:
-        return memory(o,703,0,get(o,72)+128,3,128,3968)
+        # PH/FB are the current continuation, not retained operation custody.
+        # Restoring them would resume the saved phase952 instead of phase703.
+        return memory(o,703,0,get(o,72)+144,3,144,3952)
     if phase==703:
         record=get(o,72)
         if get(o,CHILD)>NONE-CHILD_BYTES or get(o,CHILD)+CHILD_BYTES!=record or get(o,REGISTRY)!=get(w,64) or get(o,VALUE_CONTEXT)!=get(w,88) or get(o,SELF)!=get(w,48) or get(o,BIND_NONCE)!=get(w,128):
