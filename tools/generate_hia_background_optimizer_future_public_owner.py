@@ -101,7 +101,7 @@ C.update(MAGIC4=int.from_bytes(b'HIABFP04','little'),REPLY3=int.from_bytes(b'HIA
  FREQUEST6=int.from_bytes(b'HIABFQ06','little'),FREPLY3=int.from_bytes(b'HIABFR03','little'),
  VREQUEST5=int.from_bytes(b'HIABVQ05','little'),VREQUEST6=int.from_bytes(b'HIABVQ06','little'),
  M_DEFER=872,M_QUEUE=880,M_UNMAP=848,M_BAD=856,M_NEXT=864)
-C.update(FREQUEST5=int.from_bytes(b'HIABFQ05','little'))
+C.update(FREQUEST5=int.from_bytes(b'HIABFQ05','little'),CREQUEST3=int.from_bytes(b'HIAPFC03','little'))
 C.update(CREQUEST2=int.from_bytes(b'HIAPFC02','little'),LOG_REQUEST5=int.from_bytes(b'HIAFPL05','little'),LOG_REPLY2=int.from_bytes(b'HIAFPLR2','little'))
 C.update(GMAGIC2=int.from_bytes(b'HIABFC02','little'),GREPLY2=int.from_bytes(b'HIABFCR2','little'),GOBJECT2=int.from_bytes(b'HIABFCT2','little'))
 SOURCE=r'''
@@ -154,7 +154,7 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if op<26 or op>29:
             return 4294967293
     elif readword(s,0)==MAGIC4:
-        if op>30:
+        if op>31:
             return 4294967293
     else:
         return 4294967293
@@ -165,15 +165,15 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             used=True
         if op>=2 and op<=17 and at>=16 and at<=56:
             used=True
-        if (op==19 or op==21 or op==30 or (op>=22 and op<=27)) and at>=16 and at<=56:
+        if (op==19 or op==21 or op==30 or op==31 or (op>=22 and op<=27)) and at>=16 and at<=56:
             used=True
         if op==28 and at>=16 and at<=32:
             used=True
-        if (op==12 or op==13 or op==22 or op==23 or op==30) and at>=64 and at<=80:
+        if (op==12 or op==13 or op==22 or op==23 or op==30 or op==31) and at>=64 and at<=80:
             used=True
         if (op==12 or op==22 or op==23) and at==96:
             used=True
-        if (op==13 or op==30) and at==88:
+        if (op==13 or op==30 or op==31) and at==88:
             used=True
         if (op==10 or op==11 or op==30) and at>=104 and at<=120:
             used=True
@@ -182,7 +182,7 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         at=at+8
     if (op==12 or op==22 or op==23) and (readword(s,96)<1 or readword(s,96)>3):
         return 4294967293
-    if (op==13 or op==30) and readword(s,88)==0:
+    if (op==13 or op==30 or op==31) and readword(s,88)==0:
         return 4294967293
     zero(o,128,OUT-128)
     put(o,OP,op)
@@ -636,7 +636,7 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             zero(o,FUTURE_TEMP,24)
             return fail(o,0,2)
         op=get(o,OP)
-        if op==7 or op==8 or op==12 or op==13 or op==22 or op==23:
+        if op==7 or op==8 or op==12 or op==13 or op==22 or op==23 or op==31:
             return address(o,400,FRAME)
         return unlock(o,310)
     if phase==303:
@@ -678,9 +678,9 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             copy_input(s,104,o,RQ+80,24)
             put(o,RQ+104,get(o,KERNEL))
             return cell(o,w,320)
-        if op==13:
+        if op==13 or op==31:
             copy_input(s,0,o,RQ,192)
-            put(o,RQ,choose(get(o,M_DEFER)!=0,CREQUEST2,CREQUEST))
+            put(o,RQ,choose(op==31,CREQUEST3,choose(get(o,M_DEFER)!=0,CREQUEST2,CREQUEST)))
             put(o,RQ+8,0)
             within(o,RQ+40,FUTURE_TEMP,24)
             return invoke(o,330,get(w,152),RQ,192,CP,32768,get(o,WPTR),256)
