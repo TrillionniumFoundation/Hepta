@@ -104,6 +104,9 @@ C.update(MAGIC4=int.from_bytes(b'HIABFP04','little'),REPLY3=int.from_bytes(b'HIA
 C.update(FREQUEST5=int.from_bytes(b'HIABFQ05','little'),CREQUEST3=int.from_bytes(b'HIAPFC03','little'))
 C.update(CREQUEST2=int.from_bytes(b'HIAPFC02','little'),LOG_REQUEST5=int.from_bytes(b'HIAFPL05','little'),LOG_REPLY2=int.from_bytes(b'HIAFPLR2','little'))
 C.update(GMAGIC2=int.from_bytes(b'HIABFC02','little'),GREPLY2=int.from_bytes(b'HIABFCR2','little'),GOBJECT2=int.from_bytes(b'HIABFCT2','little'))
+C.update(X_MAGIC2=int.from_bytes(b'HIAFQTN2','little'),T_PRIMARY=888,T_DISP=896,T_ERRCLASS=904,T_MSGKIND=912,
+ T_TYPEAT=920,T_MSGN=928,T_PREFIX=936,T_SUFFIX=944,T_LIMIT=952,T_INDEX=960,T_WRITTEN=968,
+ T_FULLN=976,T_CHUNK=984,T_MAPLEN=992,T_MAPNEW=1000,T_COPY=1008)
 SOURCE=r'''
 def future_public(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<256:
@@ -1236,6 +1239,10 @@ def random_state(o:mutbuf) -> u64:
         return 2
     return 0
 def fail(o:mutbuf,status:u64,kind:u64) -> u32:
+    if get(o,T_PRIMARY)!=0 and get(o,RESULT_VALUE)!=0:
+        if kind!=200 or status!=get(o,ERROR):
+            put(o,CLEANUP_FAILED,1)
+        return again(o,900)
     put(o,ERROR,status)
     put(o,RKIND,kind)
     return again(o,900)
@@ -1974,6 +1981,9 @@ def guard_record(o:mutbuf,op:u64) -> bool:
     return get(o,GOUTPUT+16)==0 and get(o,GOUTPUT+24)==0 and get(o,GOUTPUT+32)==0 and get(o,GOUTPUT+72)==0 and get(o,GOUTPUT+80)==0
 
 def inherited_fail(o:mutbuf,kind:u64) -> u32:
+    if get(o,T_PRIMARY)!=0 and get(o,RESULT_VALUE)!=0:
+        put(o,CLEANUP_FAILED,1)
+        return fail(o,get(o,ERROR),200)
     if get(o,RESULT_VALUE)!=0:
         within(o,DISCARD_VALUE,RESULT_VALUE,24)
         zero(o,RESULT_VALUE,24)
@@ -2437,6 +2447,7 @@ def extended_begin(o:mutbuf,mode:u64,at:u64) -> u32:
     if get(o,X_PTR)!=0:
         return inherited_fail(o,107)
     zero(o,X_PTR,184)
+    put(o,T_MAPLEN,4096)
     put(o,X_MODE,mode)
     put(o,X_AT,at)
     return system(o,1504,318,3,X_TAG0,16,0,0,0,0)
@@ -2529,28 +2540,12 @@ def extended_truth(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return inherited_fail(o,choose(status==5,103,107))
         return extended_drop(o,w,X_KEY,1513)
     if phase==1513:
-        # Actual captured callable dispatch is a separate unresolved protocol.
-        # Never silently substitute default truth for an existing override.
         if get(o,X_OVERRIDE)!=0:
-            return inherited_fail(o,107)
+            return again(o,1800)
         if get(o,X_PROBE)==0:
             put(o,X_PROBE,1)
             return again(o,1510)
-        value_packet(o,17)
-        within(o,RQ+24,get(o,X_AT),24)
-        return value(o,w,1514)
-    if phase==1514:
-        if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY:
-            return inherited_fail(o,107)
-        status=value_local_status(o)
-        if status==0:
-            put(o,ETRUTH,choose(get(o,VP+48)!=0,1,0))
-        elif status==2:
-            put(o,ETRUTH,1)
-        else:
-            return inherited_fail(o,choose(status==5,103,107))
-        put(o,X_CLEAN_NEXT,get(o,EAFTER))
-        return again(o,1570)
+        return again(o,1900)
     return inherited_fail(o,107)
 
 def extended_drop(o:mutbuf,w:mutbuf,at:u64,next:u64) -> u32:
@@ -2614,7 +2609,7 @@ def extended_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             at=at+24
         if get(o,X_NAMED)!=0 and get(o,TYPE_CAP)!=0:
             return extended_drop(o,w,TYPE_CAP,1570)
-        return system(o,1571,11,0,get(o,X_PTR),4096,0,0,0,0)
+        return system(o,1571,11,0,get(o,X_PTR),get(o,T_MAPLEN),0,0,0,0)
     if phase==1571:
         if get(o,FEEDBACK)!=0:
             put(o,X_BAD,4)
@@ -2630,7 +2625,7 @@ def extended_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         # its capability tags, this context address and a fresh 128-bit nonce.
         # w[200] is only a count. No context field becomes a raw record pointer.
         zero(o,RQ,256)
-        put(o,RQ,X_MAGIC)
+        put(o,RQ,choose(get(o,T_MAPLEN)==4096,X_MAGIC,X_MAGIC2))
         put(o,RQ+8,get(o,X_BAD))
         put(o,RQ+16,get(o,X_DROP))
         put(o,RQ+24,get(o,X_PTR))
@@ -2646,14 +2641,14 @@ def extended_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,RQ+176,get(o,F))
         within(o,RQ+184,HEADER+32,16)
         within(o,RQ+200,HEADER+208,24)
-        put(o,RQ+224,4096)
+        put(o,RQ+224,get(o,T_MAPLEN))
         put(o,RQ+232,4)
         return memory(o,1581,3,RQ,0,get(o,X_PTR),256)
     if phase==1581:
         put(o,RQ,get(o,X_PTR))
         put(o,RQ+8,get(o,X_TAG0))
         put(o,RQ+16,get(o,X_TAG1))
-        put(o,RQ+24,4096)
+        put(o,RQ+24,get(o,T_MAPLEN))
         return memory(o,1583,3,RQ,0,get(o,F)+200,32)
     if phase==1583:
         put(w,200,get(w,200)+1)
@@ -2662,12 +2657,13 @@ def extended_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,X_NAMED)!=0:
             zero(o,TYPE_CAP,24)
         put(o,X_NAMED,0)
-        if get(o,RESULT_VALUE)!=0:
-            within(o,DISCARD_VALUE,RESULT_VALUE,24)
-            zero(o,RESULT_VALUE,24)
+        if get(o,T_PRIMARY)==0:
+            if get(o,RESULT_VALUE)!=0:
+                within(o,DISCARD_VALUE,RESULT_VALUE,24)
+                zero(o,RESULT_VALUE,24)
+            put(o,ERROR,1)
+            put(o,RKIND,107)
         put(o,CLEANUP_FAILED,1)
-        put(o,ERROR,1)
-        put(o,RKIND,107)
         return unlock(o,1400)
     return inherited_fail(o,107)
 '''
@@ -2682,7 +2678,11 @@ def extended_retry_fail(o:mutbuf) -> u32:
     return fail(o,1,107)
 
 def extended_retry_valid(o:mutbuf,w:mutbuf) -> bool:
-    if get(o,NODE)!=X_MAGIC or get(o,NODE+24)!=get(o,X_PTR):
+    magic=get(o,NODE)
+    extent=get(o,T_MAPLEN)
+    if (magic!=X_MAGIC and magic!=X_MAGIC2) or get(o,NODE+24)!=get(o,X_PTR):
+        return False
+    if (magic==X_MAGIC and extent!=4096) or (magic==X_MAGIC2 and extent<=4096):
         return False
     if get(o,NODE+128)!=get(o,WPTR) or get(o,NODE+136)!=get(o,PID):
         return False
@@ -2690,7 +2690,7 @@ def extended_retry_valid(o:mutbuf,w:mutbuf) -> bool:
         return False
     if get(o,NODE+176)!=get(o,F) or get(o,NODE+184)!=get(o,HEADER+32) or get(o,NODE+192)!=get(o,HEADER+40):
         return False
-    if get(o,NODE+224)!=4096 or get(o,NODE+232)!=4 or get(o,NODE+240)!=0 or get(o,NODE+248)!=0:
+    if get(o,NODE+224)!=extent or get(o,NODE+232)!=4 or get(o,NODE+240)!=0 or get(o,NODE+248)!=0:
         return False
     bad=get(o,NODE+8)
     if bad!=1 and bad!=2 and bad!=4:
@@ -2701,7 +2701,8 @@ def extended_retry_valid(o:mutbuf,w:mutbuf) -> bool:
         if get(o,NODE+200)!=0 or get(o,NODE+208)!=0 or get(o,NODE+216)!=0:
             return False
     else:
-        if (get(o,NODE+152)&4095)!=0 or get(o,NODE+216)!=4096:
+        next_extent=get(o,NODE+216)
+        if (get(o,NODE+152)&4095)!=0 or next_extent<4096 or (next_extent&4095)!=0 or get(o,NODE+152)>MAX-next_extent:
             return False
     at=32
     while at<128:
@@ -2724,9 +2725,11 @@ def extended_retry_read(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,HEADER)!=OBJECT or get(o,HEADER+8)!=get(o,PID):
             return extended_retry_fail(o)
         ptr=get(o,HEADER+200)
-        if ptr==0 or (ptr&4095)!=0 or ptr>MAX-4096 or get(o,HEADER+224)!=4096:
+        extent=get(o,HEADER+224)
+        if ptr==0 or (ptr&4095)!=0 or extent<4096 or (extent&4095)!=0 or ptr>MAX-extent:
             return extended_retry_fail(o)
         put(o,X_PTR,ptr)
+        put(o,T_MAPLEN,extent)
         put(o,X_TAG0,get(o,HEADER+208))
         put(o,X_TAG1,get(o,HEADER+216))
         if get(o,X_TAG0)==0 and get(o,X_TAG1)==0:
@@ -2806,7 +2809,7 @@ def extended_retry_mapping(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==1621:
         if extended_drop_valid(o)==False or value_local_status(o)!=6 or value_local_pending(o)!=0 or get(o,VP+88)!=1 or get(o,VP+96)!=0 or get(w,200)==0:
             return extended_retry_fail(o)
-        return system(o,1622,11,0,get(o,X_PTR),4096,0,0,0,0)
+        return system(o,1622,11,0,get(o,X_PTR),get(o,T_MAPLEN),0,0,0,0)
     if phase==1622:
         if get(o,FEEDBACK)!=0:
             return extended_retry_fail(o)
