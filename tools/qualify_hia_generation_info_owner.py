@@ -339,14 +339,24 @@ def allocator_failure(path, files, parent):
             count = q.get(values.raw(47), 48)
             row = owner.call(8, request(lease))
             assert row['status'] != 0 or q.get(row['result'], 8) != 0, clean_row(row)
+            # A successful Info conversion can precede a refused allocation in
+            # the generation cache. The owner must deliver that already-published
+            # reference even when its enclosing operation reports the later error.
+            published = ZERO
             if row['kind'] == 4 and row['result'][:8] == b'HIABVR01':
-                assert not q.get(row['result'], 24), 'failed Info capture published an unowned cap'
-            assert row['cleanup_status'] == 0 and not row['cleanup_caps'], clean_row(row)
-            assert q.get(values.raw(47), 48) == count
+                cap = struct.unpack_from('<3Q', row['result'], 24)
+                if q.get(row['result'], 8) == 0:
+                    assert q.get(row['result'], 16) == 12 and all(cap), clean_row(row)
+                    published = values.keep(row['result'])
+                else:
+                    assert cap == ZERO, 'failed conversion returned ambiguous cap custody'
+            assert not row['cleanup_caps'], clean_row(row)
+            assert q.get(values.raw(47), 48) == count + (published != ZERO)
             assert q.get(owner.context, 552) == initial_extent
             result.put((tokens, dict(kernel_mremap_errno=12, arena_extent=initial_extent,
                                     retained_context_tokens=len(tokens),
                                     failed_capture=clean_row(row),
+                                    delivered_main_cap=published,
                                     no_partial_cap_or_argument_retain_leak=True)))
         except BaseException as error:
             result.put((tokens, error))
@@ -359,6 +369,11 @@ def allocator_failure(path, files, parent):
         values.raw(22, a=token)
     if isinstance(outcome, BaseException):
         raise outcome
+    if outcome['delivered_main_cap'] != ZERO:
+        # Cleanup occurs after the rejecting thread has exited; the test never
+        # suppresses the cap or substitutes an allocator/Value response.
+        values.drop(outcome['delivered_main_cap'])
+        outcome['delivered_main_cap_released_after_thread_exit'] = True
     assert identity(values, lease) == original_lease
     recovered = info_call(owner, values, lease)
     expected, captured, _ = captured_metadata(carrier, raw_lease)
@@ -450,6 +465,7 @@ def main():
                       passed=True, selected_cases=sorted(selected), complete_case_set=complete,
                       generation_info_owner_qualified=complete,
                       same_generation_info_and_runtime_abi_identity_qualified=complete,
+                      immediate_generation_cache_retirement_qualified=False,
                       owner=pin(args.owner.read_bytes()), value=pin(args.value.read_bytes()),
                       original_oracle='hepta.hia_multiversion.GenerationInfo/ScalarABI',
                       oracle=platform.python_version(), cases=rows,

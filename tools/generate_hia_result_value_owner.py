@@ -150,7 +150,7 @@ def lifecycle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
         put(o,1976,get(w,160))
         put(o,2056,get(w,168))
         if readword(s,0)==MAGIC5:
-            if op!=50 and op!=51 and op!=57 and bound==False:
+            if op!=50 and op!=51 and op!=57 and op!=67 and bound==False:
                 return owner_fail(o,6)
             if op==53:
                 put(w,160,0)
@@ -300,7 +300,7 @@ def records_request_valid(s:readbuf) -> bool:
 
 def graph_id(s:readbuf) -> u64:
     if readword(s,0)==MAGIC5:
-        if readword(s,8)==61:
+        if readword(s,8)==61 or readword(s,8)==67:
             return 11
         return 12
     if readword(s,0)==MAGIC4:
@@ -424,7 +424,7 @@ def system(o:mutbuf,next:u64,number:u64,selectors:u64,a:u64,b:u64,c:u64,d:u64,e:
     return 1
 def resources_request_valid(s:readbuf) -> bool:
     op=readword(s,8)
-    if (op<48 or op>57) and op!=60 and op!=61 and op!=64 and op!=65 and op!=66:
+    if (op<48 or op>57) and op!=60 and op!=61 and op!=64 and op!=65 and op!=66 and op!=67:
         return False
     tail=choose(op==48,24,0)
     if op==61:
@@ -453,13 +453,13 @@ def resources_request_valid(s:readbuf) -> bool:
         if a==0 and b==0:
             return False
     elif op==57:
-        if a<31 or a>35 or b!=0:
+        if a<31 or a>36 or b!=0:
             return False
     elif a!=0 or b!=0:
         return False
-    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61 or op==64 or op==65 or op==66
-    hasb=op==48 or op==50 or op==61 or op==64 or op==66
-    hasc=op==48 or op==50
+    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61 or op==64 or op==65 or op==66 or op==67
+    hasb=op==48 or op==50 or op==61 or op==64 or op==66 or op==67
+    hasc=op==48 or op==50 or op==67
     if (hasa==False and (readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0)) or (hasb==False and (readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0)) or (hasc==False and (readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0)):
         return False
     return True

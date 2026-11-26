@@ -46,6 +46,7 @@ CATALOG = [
     ('method', (1,), (1,), 33, 0),
     ('builtin_function_or_method', (1,), (1,), 34, 0),
     ('BackgroundOptimizer', (1,), (1,), 0, 0),
+    ('VerifiedProgram', (1,), (1,), 36, 0),
 ]
 
 SOURCE = r'''
@@ -197,7 +198,7 @@ def class_links(w:mutbuf,obj:u64) -> u64:
         i=i+1
     return 0
 def class_catalog(w:mutbuf) -> bool:
-    while get(w,152)<35:
+    while get(w,152)<36:
         id=get(w,152)+1
         obj=class_builtin(w,id)
         if obj==0:

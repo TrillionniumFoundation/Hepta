@@ -1,4 +1,5 @@
 {
+  "allocator_published_cap_custody_test_execution_pending": true,
   "cases": [
     {
       "actual_canonical_record": true,
@@ -88,6 +89,7 @@
   },
   "generation_info_owner_qualified": false,
   "generation_internal_strong_reference_qualified": false,
+  "immediate_generation_cache_retirement_qualified": false,
   "observed_runtime_owned_info_capture_qualified": true,
   "observed_same_generation_and_abi_identity_qualified": true,
   "oracle": "3.14.4",
@@ -97,10 +99,12 @@
     "sha256": "ad09f44cea61a046285ce31db7b1f060219eea2cc9dcaa9653fb245cb6ac7412"
   },
   "passed": true,
-  "qualification_source_note": "The six observed cases used the exact qualifier at qualification_source_revision; only the pending seventh case now retains allocation churn to reject accidental address reuse.",
+  "qualification_source_note": "The six observed cases used the qualifier at qualification_source_revision. The later seventh case holds live allocation churn, and the pending integrated allocator gate now accepts an explicitly returned successful Info capability when a later native generation-cache allocation fails, retaining and releasing it after the refusing thread exits.",
   "qualification_source_revision": "134b66be5dfb07cca52804faae490cbf40c9aa77",
   "qualifier_ast_change_only_unexecuted_case": [
-    "generation_strong_identity"
+    "generation_strong_identity",
+    "allocator_failure",
+    "main"
   ],
   "runtime_internal_abi_strong_reference_qualified": false,
   "same_generation_info_and_runtime_abi_identity_qualified": false,
