@@ -11,6 +11,14 @@ from tools import qualify_hia_generation_lease_owner_resources as resources
 from tools import qualify_hia_native_seccomp_notify as notify
 from tools.qualify_hia_generation_lease_owner_typed_lock import actual_value_spec
 from tools import generate_hia_generation_lease_owner_packer as spec
+from tools import generate_hia_generation_lease_owner_sidecar_packer as sidecar_spec
+
+
+def actual_finalizer_prefix(address):
+    prefix=C.string_at(address,200)
+    candidates=[image for image in (spec.FINALIZER_PREFIX,sidecar_spec.FINALIZER_PREFIX) if prefix==image[:200]]
+    assert len(candidates)==1,'actual fixed finalizer must match exactly one captured bridge'
+    return candidates[0]
 
 
 def install_two_spans(spans):
@@ -40,7 +48,7 @@ def run(path,files,parent):
     value_entry=q.get(owner.context,40);final_entry=q.get(owner.context,640)
     value_spec=actual_value_spec(value_entry)
     assert C.string_at(value_entry,200)==value_spec.BRIDGE[:200]
-    assert C.string_at(final_entry,200)==spec.FINALIZER_PREFIX[:200]
+    finalizer_prefix=actual_finalizer_prefix(final_entry)
     carrier_entry=q.get(owner.context,32);hole=spec.HANDLES_HOLES['effects']
     effects_entry=carrier_entry+hole+4+struct.unpack('<i',C.string_at(carrier_entry+hole,4))[0]
     assert C.string_at(effects_entry,96)==spec.EFFECTS_PREFIX[:96]
@@ -53,7 +61,7 @@ def run(path,files,parent):
             raw=q.envelope(1,bytes(frame)+q.typed_request(fn,args));src=C.create_string_buffer(raw)
             with mmap.mmap(-1,q.OUT)as out:
                 state['output']=out
-                fd=install_two_spans(((value_entry,value_entry+len(value_spec.BRIDGE)),(final_entry,final_entry+len(spec.FINALIZER_PREFIX))))
+                fd=install_two_spans(((value_entry,value_entry+len(value_spec.BRIDGE)),(final_entry,final_entry+len(finalizer_prefix))))
                 endpoints.put(('call',fd,threading.get_native_id()))
                 rc=owner.entry(src,len(raw),q.address(out),q.OUT,owner.context,q.CONTEXT_BYTES)
                 assert rc==0 and out[:8]==b'HIAGLOR1'
@@ -136,7 +144,7 @@ def run(path,files,parent):
         for fd in select.select(fds,[],[],0.1)[0]:
             if state.get('call_done'if fd==callfd else 'close_done'):continue
             event=notify.receive(fd)
-            if fd==callfd and final_entry<=event.data.ip<final_entry+len(spec.FINALIZER_PREFIX):
+            if fd==callfd and final_entry<=event.data.ip<final_entry+len(finalizer_prefix):
                 assert event.pid==calltid and event.data.nr==39
                 # The close thread can now own this same mutex. Inspecting
                 # only its lockword would confuse that with ownership by the
