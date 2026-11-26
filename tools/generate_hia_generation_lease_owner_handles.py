@@ -38,9 +38,11 @@ def source_program():
         f'''    op=word(s,8)
     private=word(s,0)=={REQUEST}
     if private:
-        if op!=3 and op!=6 and op!=7:
+        if op!=3 and op!=4 and op!=6 and op!=7:
             return 4294967293
         if (op==3 or op==6) and (word(s,16)<1 or word(s,16)>2):
+            return 4294967293
+        if op==4 and word(s,16)!=2:
             return 4294967293
         if op==7 and word(s,16)!=0:
             return 4294967293
@@ -61,7 +63,7 @@ def source_program():
         op=get(o,136)
 ''')
     source=replace_once(source,'        put(o,200,kind)\n',
-        f'''        if get(o,{MODE})!=0 and (get(o,136)==3 or get(o,136)==6) and kind!=get(o,{EXPECTED}):
+        f'''        if get(o,{MODE})!=0 and (get(o,136)==3 or get(o,136)==4 or get(o,136)==6) and kind!=get(o,{EXPECTED}):
             return fail(o,3)
         put(o,200,kind)
 ''')
@@ -87,6 +89,28 @@ def source_program():
         put(o,104,get(o,{CONSUMED}))
         put(o,112,get(o,{PENDING}))
     return 0
+''')
+    # Private Lease snapshot holds the real Lease in-flight pin and its
+    # internal parent-runtime reference. It never exposes a borrowed pointer.
+    source=replace_once(source,'def valid_command(s:readbuf,o:mutbuf,kind:u64) -> u64:\n',
+        f'''def valid_command(s:readbuf,o:mutbuf,kind:u64) -> u64:
+    if get(o,{MODE})!=0 and get(o,{original.C['OP']})==4:
+        if kind!=2 or word(s,128)!={original.C['PUBLIC_EFFECTS']} or word(s,136)!=10 or get(o,{original.C['N']})!=256:
+            return 0
+        i=144
+        while i<384:
+            expected=0
+            if i==200:
+                expected={original.C['NONE']}
+            if word(s,i)!=expected:
+                return 0
+            i=i+8
+        return 1
+''')
+    source=replace_once(source,f'        put(o,{original.C["CALL_KIND"]},choose(kind==1,3,4))\n',
+        f'''        put(o,{original.C['CALL_KIND']},choose(kind==1,3,4))
+        if get(o,{MODE})!=0 and get(o,{original.C['OP']})==4:
+            put(o,{original.C['CALL_KIND']},3)
 ''')
     # Private query compares the actual enclosing Runtime object while the
     # registry mutex pins both capability rows. The runtime nonce is read from

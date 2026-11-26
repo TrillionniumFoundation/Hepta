@@ -213,6 +213,8 @@ def owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return ownership_phases(s,o,w,phase)
     if phase>=60 and phase<=70:
         return info_phases(s,o,w,phase)
+    if phase>=71 and phase<=77:
+        return info_cache_phases(o,w,phase)
     if phase==20:
         return finish(o,get(o,600),get(o,616))
     return BAD
@@ -628,10 +630,9 @@ def info_phases(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         zero(o,RQ,128)
         zero(o,8192,128)
         put(o,RQ,VALUE5)
-        put(o,RQ+8,49)
-        put(o,RQ+104,2)
+        put(o,RQ+8,65)
         within(o,RQ+24,640,24)
-        put(o,PHASE,61)
+        put(o,PHASE,71)
         return 15
     if phase==61:
         if get(o,FEEDBACK)!=0 or get(o,8192)!=VREPLY1 or get(o,8200)!=0 or get(o,8208)!=2 or get(o,8216)==0:
@@ -722,6 +723,10 @@ def info_phases(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         elif get(o,CHILD+16)!=12 or get(o,CHILD+24)==0:
             put(o,1144,5)
         put(o,704,4)
+        if get(o,1144)==0:
+            within(o,2048,CHILD,128)
+            put(o,1160,1)
+            put(o,1168,72)
         return info_release(o,w)
     if phase==66:
         zero(w,1104,16)
@@ -751,6 +756,125 @@ def info_phases(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return unlock(o,w,get(o,1144),get(o,704))
     return BAD
 
+
+def info_cache_phases(o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==71:
+        if get(o,FEEDBACK)!=0 or get(o,8192)!=VREPLY1:
+            within(o,CHILD,8192,128)
+            put(o,1144,5)
+            return info_tempdrop(o,w)
+        if get(o,8200)==0:
+            if get(o,8208)!=12 or get(o,8216)==0:
+                put(o,1144,5)
+                within(o,CHILD,8192,128)
+                return info_tempdrop(o,w)
+            within(o,2048,8192,128)
+            put(o,1160,1)
+            return info_tempdrop(o,w)
+        if get(o,8200)!=6:
+            within(o,CHILD,8192,128)
+            put(o,1144,1)
+            return info_tempdrop(o,w)
+        zero(o,RQ,128)
+        zero(o,8192,128)
+        put(o,RQ,VALUE5)
+        put(o,RQ+8,49)
+        put(o,RQ+104,2)
+        within(o,RQ+24,640,24)
+        put(o,PHASE,61)
+        return 15
+    if phase==72:
+        zero(o,4352,384)
+        put(o,4352,ACKREQUEST)
+        put(o,4360,4)
+        put(o,4368,2)
+        within(o,4376,960,24)
+        put(o,4424,256)
+        put(o,4480,EFFECTS_REQUEST)
+        put(o,4488,10)
+        put(o,4552,18446744073709551615)
+        put(o,560,2)
+        put(o,568,384)
+        zero(o,CHILD,128)
+        put(o,PHASE,73)
+        return 12
+    if phase==73:
+        if get(o,FEEDBACK)!=0 or get(o,CHILD)!=ACKREPLY or get(o,CHILD+8)!=0:
+            put(o,1144,5)
+            return info_tempdrop(o,w)
+        if get(o,CHILD+16)!=2 or get(o,CHILD+96)!=1 or get(o,CHILD+104)!=0 or get(o,CHILD+112)!=0:
+            put(o,1144,5)
+            return info_tempdrop(o,w)
+        at=get(o,CHILD+56)
+        if at==0 or at>100663296-160 or get(o,CHILD+64)<160:
+            put(o,1144,5)
+            return info_tempdrop(o,w)
+        at=CHILD+at
+        if get(o,at)!=EFFECTS_REPLY:
+            put(o,1144,5)
+            return info_tempdrop(o,w)
+        put(w,1104,get(o,at+144))
+        put(w,1112,get(o,at+152))
+        put(o,1104,get(w,1104))
+        put(o,1112,get(w,1112))
+        i=0
+        while i<2:
+            fd=get(o,at+96+i*8)
+            if fd!=18446744073709551615:
+                if fd>2147483647:
+                    put(w,80,7)
+                    put(o,1144,5)
+                    return info_tempdrop(o,w)
+                put(w,1120+i*8,fd+1)
+            i=i+1
+        if get(o,at+8)!=0 or get(w,1104)==0 or get(w,1112)==0 or get(w,1112)>OUT-INFO_FRAME-128:
+            put(o,1144,5)
+            return info_release(o,w)
+        zero(o,INFO_FRAME,128)
+        put(o,INFO_FRAME,VALUE5)
+        put(o,INFO_FRAME+8,66)
+        within(o,INFO_FRAME+24,640,24)
+        within(o,INFO_FRAME+48,2072,24)
+        put(o,INFO_FRAME+96,get(w,1112))
+        put(o,INFO_FRAME+104,get(o,1088))
+        put(o,INFO_FRAME+112,get(o,1096))
+        put(o,PHASE,74)
+        return 23
+    if phase==74:
+        zero(o,CHILD,128)
+        put(o,PHASE,75)
+        return 24
+    if phase==75:
+        if get(o,FEEDBACK)!=0 or get(o,CHILD)!=VREPLY1:
+            put(o,1144,5)
+            put(o,728,11)
+        elif get(o,CHILD+8)!=0:
+            put(o,1144,5)
+            put(o,728,get(o,CHILD+8))
+        else:
+            put(o,1168,76)
+        return info_release(o,w)
+    if phase==76:
+        zero(o,RQ,128)
+        zero(o,8192,128)
+        put(o,RQ,VALUE5)
+        put(o,RQ+8,64)
+        within(o,RQ+24,640,24)
+        within(o,RQ+48,2072,24)
+        put(o,RQ+104,get(o,1088))
+        put(o,RQ+112,get(o,1096))
+        put(o,PHASE,77)
+        return 15
+    if phase==77:
+        if get(o,FEEDBACK)!=0 or get(o,8192)!=VREPLY1:
+            put(o,1144,5)
+            put(o,728,11)
+        elif get(o,8200)!=0:
+            put(o,1144,5)
+            put(o,728,get(o,8200))
+        return info_tempdrop(o,w)
+    return BAD
+
 def info_release(o:mutbuf,w:mutbuf) -> u32:
     if get(w,1104)!=0:
         put(o,1104,get(w,1104))
@@ -770,9 +894,16 @@ def info_fds(o:mutbuf,w:mutbuf) -> u32:
         i=i+1
     if get(o,1152)==1:
         return value_control(o,VALUE5,56,54)
+    if get(o,1168)!=0:
+        next=get(o,1168)
+        put(o,1168,0)
+        return info_cache_phases(o,w,next)
     return info_tempdrop(o,w)
 
 def info_tempdrop(o:mutbuf,w:mutbuf) -> u32:
+    if get(o,1160)!=0:
+        within(o,CHILD,2048,128)
+        put(o,704,4)
     zero(o,RQ,128)
     zero(o,8192,128)
     if get(o,688)!=0:
