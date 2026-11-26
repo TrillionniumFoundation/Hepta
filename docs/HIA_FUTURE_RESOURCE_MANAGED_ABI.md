@@ -146,11 +146,12 @@ The two callback-execution groups use an explicit QA callback oracle. They
 prove the native carrier's ownership and cleanup behavior; they do not prove
 the production native callable dispatcher.
 
-The previous full 27-group Future campaign is retained with its exact source
-and product binding. It predates private constructor binding operation 30 and
-therefore is not presented as an exact full-campaign proof for this new
-snapshot. The final merged source and Value image must run that campaign
-again without changing its assertions or budgets.
+The full 27-group Future campaign also passed against this exact runtime
+snapshot, including private constructor binding operation 30. Its frozen
+source, original assertions, 400-second per-group budgets, Value14 product
+267d6ebf and public product 00a2951e are recorded in the qualification JSON.
+The final merged Value15 fusion and any later runtime changes must run that
+campaign again with the original assertions and budgets.
 
 Remaining integration includes the actual trusted sidecar binder, fixed
 native callable callbacks and custom truth protocols, complete background
