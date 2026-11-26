@@ -399,6 +399,10 @@ def mark_add(w:mutbuf,p:u64,head:u64) -> u64:
         put(w,p+104,head)
         return p
     return head
+def class_slot(id:u64) -> u64:
+    if id>=48:
+        return 1280+(id-48)*8
+    return 160+(id-1)*8
 def collect(w:mutbuf) -> u64:
     p=get(w,96)
     while p!=0:
@@ -412,7 +416,7 @@ def collect(w:mutbuf) -> u64:
         si=si+8
     si=0
     while si<get(w,152):
-        head=mark_add(w,get(w,160+si*8),head)
+        head=mark_add(w,get(w,class_slot(si+1)),head)
         si=si+1
     head=mark_add(w,get(w,1024),head)
     while cap!=0:
