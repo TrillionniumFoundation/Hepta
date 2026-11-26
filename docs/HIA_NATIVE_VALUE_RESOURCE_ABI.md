@@ -4,9 +4,9 @@ This is the candidate Q05 integration contract. Its source and mechanical bridge
 
 ## One image and one arena
 
-The complete resource image uses twelve fixed roles, in this order: owner, core, import, export, capture, format, number, dictionary iterator, classes, C3 MRO, records, resources. The native packer is `result_value_resources_packer.hepta`, authored by `tools/generate_hia_result_value_resources_packer.py`, with the mechanical bridge `tools/hia_result_value_resources_bridge.S`.
+The current complete Value image uses thirteen fixed roles, in this order: owner, core, import, export, capture, format, number, dictionary iterator, classes, C3 MRO, records, resources, protocols. The native packer is `result_value_protocols_packer.hepta`, authored by `tools/generate_hia_result_value_protocols_packer.py`, with the mechanical bridge `tools/hia_result_value_protocols_bridge.S`.
 
-Its input is `HIABVP05`: count 12 at offset 8, twelve lengths at offsets 16 through 104, mode at 112, and concatenated role bytes at 120. Mode 1 produces the flat image; mode 0 produces the ELF object. Existing 4 MiB role and 16 MiB image bounds remain unchanged. The public image entry remains `hia_result_value` with its existing six-word ABI and a stable 256-byte context.
+Its input is `HIABVP06`: count 13 at offset 8, thirteen lengths at offsets 16 through 112, mode at 120, and concatenated role bytes at 128. The earlier twelve-role `HIABVP05` packer and its wire format remain unchanged for their recorded construction checkpoint. Mode 1 produces the flat image; mode 0 produces the ELF object. Existing 4 MiB role and 16 MiB image bounds remain unchanged. The public image entry remains `hia_result_value` with its existing six-word ABI and a stable 256-byte context.
 
 Every enclosing runtime, Future, callback and background owner must use the same captured entry and the same arena context. Matching image bytes in independently initialized arenas does not provide shared object identity or lifetime.
 
@@ -48,12 +48,14 @@ The 128-byte header uses `HIABVQ05`. Capability triples A, B and C remain at 24/
 | 58, 59 | Internal graph-role claim and acknowledgement. The public Value entry rejects both. |
 | 60 | Private actual GenerationInfo capture. Argument 0/1 contain the captured runtime identity; the tail is the actual complete HIAMVIR2 blob. It constructs real immutable records and ABI tuples, preserves same-generation Info and same-runtime ABI identity, and serializes the actual loaded mapping into canonical sorted compact bytes. |
 | 61 | Private typed preparation under the actual lease mutex. It preserves Q04/45's 5264-byte request, 8344-byte response and error ordering, and requires the captured owner binding. Only automatic finalizer draining is deferred for this single entry. |
+| 62 | Compare actual Values A and B with native default rich equality. Boolean result is at reply offset 48. Lists, tuples and dictionaries recurse through their actual shared graph, while dataclass records require the identical actual class. Repeated cyclic comparison pairs report status 23, corresponding to RecursionError. |
+| 63 | Hash actual Value A. Reply offset 48 is the signed 64-bit hash bit pattern. Mutable list/dict nodes and records or tuples containing them report type status 2. Numeric hashing and tuple combination match the original 64-bit Python domain; string, bytes and identity hashes are stable within this native runtime. |
 | 64 | Private Lease strong Info attachment. A is a live bound Lease resource, B is an actual weak-indexed GenerationInfo, and argument 0/1 is the captured runtime identity. The stored Runtime environment must be a live bound Runtime. It installs the first Info strong edge in the Lease base slot; attaching the identical object is idempotent and replacing it with another object is refused. It neither consumes B nor publishes a capability. |
 | 65 | Private Lease Info lookup. A is a live bound Lease resource and all other fields are zero. It returns a fresh strong capability to the cached Info; status 6 means no cached Info. The cache is an ordinary graph edge, retained through Lease close and released only by actual resource retirement. |
 | 66 | Private Runtime Info-cache reconciliation. A is a live bound Runtime or its Lease, B is an actual Info record or zero for pruning only, and argument 0/1 is the captured runtime identity. Its tail is the actual detached native runtime snapshot JSON. The Runtime base holds an immutable tuple of the shared ABI tuple and an immutable tuple of observed live-generation Info objects. A fully allocated replacement is attached atomically after validation; failure preserves the previous graph. Actual publication, cleanup and close must trigger this operation to release retired-generation edges promptly. |
 | 67 | Construct a real VerifiedProgram record. A is the exact canonical_bytes field Value, B is the exact structured_bytes field Value or zero for the actual None singleton, and C is the actual VerifiedProgram class or a real subclass, with zero selecting canonical class 36. Both fields remain strong graph edges. The original frozen dataclass constructor does not validate annotations or grant verification authority. |
 
-The sole owner's public Value transport may expose 50, 51, 57 and 67. It rejects the resource capture, extraction, destruction, identity-cache and cleanup control operations from external requests.
+The sole owner's public Value transport may expose 50, 51, 57, 62, 63 and 67. It rejects the resource capture, extraction, destruction, identity-cache and cleanup control operations from external requests.
 
 The sole owner initializes the supported-kind mask from its fixed dispatcher. A kind whose finalizer is absent is refused with known/unconsumed custody before any Value object is published. Merely adding a class does not enable resource dispatch.
 
@@ -76,6 +78,14 @@ Operation 60 accepts no caller type bits. Its frame is 128 bytes followed by the
 Native import and conversion keep a real internal capability on the partially built record across allocator collection and nested export. Function signatures become ScalarABI records with actual parameter tuples. The weak generation index uses runtime identity plus the exact unbounded generation integer. The separate weak ABI index preserves the runtime's shared signature tuple and members across generation records, while allowing independent retained ABI objects to outlive their Info object. No weak index is an extra collector root.
 
 Operation 61 routes the same native typed policy as Q04/45. It retains arena locking, strict function/list/tuple/scalar validation, ABI comparison and queued resource graph roots. It does not change a shared context flag. After the real scalar call and original lease unlock, the enclosing owner performs actual Q02 argument-reference cleanup and fixed native resource cleanup before completing its lifecycle receipt. No host polling is part of that protocol.
+
+## Equality, hash and dictionary keys
+
+The fixed protocols role also owns the existing Q01 dictionary get/set/delete operations 9 through 11. It validates all supplied capabilities in their original order, hashes an actual immutable key graph before changing the table, and preserves numeric cross-kind key equivalence. Tuples and dataclass records can be real keys; no serialization or class-name tag grants that behavior. Allocation failures leave the dictionary and caller capabilities intact.
+
+The comparison follows the original Python 3.14 distinction between container element identity and generated dataclass field comparison. Two distinct records containing the same NaN field are unequal; a record is equal to itself, and two tuples containing the same NaN object compare equal. Mutable field comparisons inspect the actual nodes while the arena mutex is held. Explicit native work stacks avoid executing recursive host code. Hashable dictionary-key walks restore their temporary graph traversal fields before returning.
+
+These default protocols do not establish arbitrary user-defined __eq__, __hash__, __bool__ or __len__ execution. Their actual native callable dispatch remains a separately qualified integration requirement.
 
 ## Native finalization
 

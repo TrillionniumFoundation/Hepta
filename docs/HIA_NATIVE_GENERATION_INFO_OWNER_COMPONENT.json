@@ -1,5 +1,7 @@
 {
-  "allocator_published_cap_custody_test_execution_pending": true,
+  "allocator_observed_branch": "Original seven-case gate observes failure before main publication; independent kernel-notification gate observes successful Info60 publication followed by actual cache66 mremap ENOMEM.",
+  "allocator_published_cap_custody_qualified": true,
+  "allocator_published_cap_custody_test_execution_pending": false,
   "cases": [
     {
       "actual_canonical_record": true,
@@ -7,7 +9,7 @@
       "artifact_parent_empty": true,
       "captured_blob": {
         "bytes": 965,
-        "sha256": "478977f6744b55bccb9550285b114946ef5f021a233344c7d734311964f9a013"
+        "sha256": "f5dc20f540fa5ed91f41480009bfe746838ea551f987286a241e9c7fc49e1de1"
       },
       "case": "actual-info-closed-lease-and-independent-survival",
       "closed_lease_property_access": true,
@@ -54,6 +56,11 @@
       "arena_extent": 65536,
       "artifact_parent_empty": true,
       "case": "actual-arena-enomem-preserves-info-custody-and-recovers",
+      "delivered_main_cap": [
+        0,
+        0,
+        0
+      ],
       "failed_capture": {
         "active": 0,
         "child_rc": 0,
@@ -79,59 +86,220 @@
       "invalid_caps": 8,
       "malformed_frames": 3,
       "registry_empty": true
+    },
+    {
+      "arena_and_scratch_retired": true,
+      "artifact_parent_empty": true,
+      "case": "actual-generation-and-runtime-own-info-without-user-caps",
+      "fd_set_unchanged": true,
+      "lease_info_strong_identity": true,
+      "registry_empty": true,
+      "runtime_abi_strong_identity": true,
+      "selected_generation_info_strong_identity": true
     }
   ],
-  "complete_case_set": false,
+  "complete_case_set": true,
   "construction_receipt": {
     "bytes": 25667,
-    "path": "/home/qian-qi/.local/state/hia-native-followthrough-20261126-620a-generation-lease/owner-v9/build.json",
-    "sha256": "41a666518a08f6f719de5e94402117e4ea7f53f5d73d750d674c11bd5e84b63b"
+    "path": "/home/qian-qi/.local/state/hia-native-followthrough-20261126-620a-generation-lease/owner-v11/build.json",
+    "sha256": "b5593a9f86dfd189c781096058af1ceb21bd5f15c04c9e94d0d333aac6928b7e"
   },
-  "generation_info_owner_qualified": false,
-  "generation_internal_strong_reference_qualified": false,
+  "generation_info_owner_qualified": true,
+  "generation_internal_strong_reference_qualified": true,
   "immediate_generation_cache_retirement_qualified": false,
   "observed_runtime_owned_info_capture_qualified": true,
   "observed_same_generation_and_abi_identity_qualified": true,
   "oracle": "3.14.4",
   "original_oracle": "hepta.hia_multiversion.GenerationInfo/ScalarABI",
   "owner": {
-    "bytes": 11490064,
-    "sha256": "ad09f44cea61a046285ce31db7b1f060219eea2cc9dcaa9653fb245cb6ac7412"
+    "bytes": 11641616,
+    "sha256": "fd8b2c928f5dae2a234e1dd2de66452d10a24c8f180bfb52a46dbefb647c9dc6"
   },
   "passed": true,
-  "qualification_source_note": "The six observed cases used the qualifier at qualification_source_revision. The later seventh case holds live allocation churn, and the pending integrated allocator gate now accepts an explicitly returned successful Info capability when a later native generation-cache allocation fails, retaining and releasing it after the refusing thread exits.",
-  "qualification_source_revision": "134b66be5dfb07cca52804faae490cbf40c9aa77",
-  "qualifier_ast_change_only_unexecuted_case": [
-    "generation_strong_identity",
-    "allocator_failure",
-    "main"
-  ],
-  "runtime_internal_abi_strong_reference_qualified": false,
-  "same_generation_info_and_runtime_abi_identity_qualified": false,
+  "post_publication_allocator": {
+    "allocator_published_cap_custody_qualified": true,
+    "case": {
+      "actual_canonical_record": true,
+      "arena_and_scratch_retired": true,
+      "artifact_parent_empty": true,
+      "captured_blob": {
+        "bytes": 965,
+        "sha256": "d0464355b0cab5fb8ba2f4058bae2048d6e12f1d17f9afe4219625e9ba401556"
+      },
+      "case": "published-main-info-survives-later-cache-enomem",
+      "failed_capture": {
+        "active": 0,
+        "child_rc": 0,
+        "cleanup_caps": [],
+        "cleanup_status": 5,
+        "kind": 4,
+        "op": 8,
+        "state": 1,
+        "status": 5
+      },
+      "fd_set_unchanged": true,
+      "fields": 12,
+      "fill": {
+        "actual_mremap_errno": 12,
+        "extent": 131072,
+        "retained_context_tokens": 504
+      },
+      "kernel_failure_after_successful_info60": true,
+      "loaded_mapping_bytes": 406,
+      "notifications": [
+        {
+          "cache_import": false,
+          "ip": 126979443875675,
+          "kernel_errno": 0,
+          "nr": 39,
+          "phase": 60,
+          "tid": 669030
+        },
+        {
+          "cache_import": false,
+          "ip": 126979443875675,
+          "kernel_errno": 0,
+          "nr": 39,
+          "phase": 71,
+          "tid": 669030
+        },
+        {
+          "cache_import": false,
+          "ip": 126979443875675,
+          "kernel_errno": 0,
+          "nr": 39,
+          "phase": 61,
+          "tid": 669030
+        },
+        {
+          "cache_import": false,
+          "ip": 126979443875675,
+          "kernel_errno": 0,
+          "nr": 39,
+          "phase": 65,
+          "tid": 669030
+        },
+        {
+          "cache_import": false,
+          "ip": 126979443875675,
+          "kernel_errno": 0,
+          "nr": 25,
+          "phase": 65,
+          "tid": 669030
+        },
+        {
+          "cache_import": true,
+          "ip": 126979443875675,
+          "kernel_errno": 0,
+          "nr": 39,
+          "phase": 75,
+          "tid": 669030
+        },
+        {
+          "cache_import": true,
+          "ip": 126979443875675,
+          "kernel_errno": 12,
+          "nr": 25,
+          "phase": 75,
+          "tid": 669030
+        },
+        {
+          "cache_import": true,
+          "ip": 126979443875675,
+          "kernel_errno": 12,
+          "nr": 25,
+          "phase": 75,
+          "tid": 669030
+        },
+        {
+          "cache_import": true,
+          "ip": 126979443875675,
+          "kernel_errno": 0,
+          "nr": 39,
+          "phase": 69,
+          "tid": 669030
+        },
+        {
+          "cache_import": true,
+          "ip": 126979443875675,
+          "kernel_errno": 0,
+          "nr": 39,
+          "phase": 70,
+          "tid": 669030
+        }
+      ],
+      "original_as_dict_equal": true,
+      "published_main_cap": [
+        47648,
+        4451999376160161763,
+        14223253164061355317
+      ],
+      "recovered_same_actual_info_object": true,
+      "registry_empty": true,
+      "returned_cap_explicitly_consumed": true,
+      "same_fixed_value_entry_and_arena": true,
+      "signatures": 1
+    },
+    "oracle": "3.14.4",
+    "owner": {
+      "bytes": 11641616,
+      "sha256": "fd8b2c928f5dae2a234e1dd2de66452d10a24c8f180bfb52a46dbefb647c9dc6"
+    },
+    "passed": true,
+    "schema": "hia.native-info-owner.post-publication-allocation.v1",
+    "source_sha256": "52e7f8df8b3ebfec10af58026e18871cdd85c8fa1aff040a14e580003ce03ed6",
+    "value": {
+      "bytes": 2655808,
+      "sha256": "efe70fcf1c14f033200c25797d54ed71e0b638f370bb6454427ccec974b8d130"
+    },
+    "whole_public_runtime_qualified": false
+  },
+  "post_publication_allocator_execution": {
+    "exit_code": 0,
+    "pty": "dpty-09fea397a3230557457b0b2d72a8bc477c93a8eda737cd1a920b5f8c26db722f"
+  },
+  "post_publication_allocator_source": {
+    "bytes": 12195,
+    "path": "tools/qualify_hia_generation_info_owner_faults.py",
+    "sha256": "52e7f8df8b3ebfec10af58026e18871cdd85c8fa1aff040a14e580003ce03ed6"
+  },
+  "post_publication_allocator_source_report": {
+    "bytes": 3322,
+    "path": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/info-owner-postpub-v1/report.json",
+    "sha256": "d477e6ad27a4a406493a510a31ae738cb25ec371d248dfd7136cdc672bf6480d"
+  },
+  "previous_observed_checkpoint": {
+    "owner": {
+      "bytes": 11490064,
+      "sha256": "ad09f44cea61a046285ce31db7b1f060219eea2cc9dcaa9653fb245cb6ac7412"
+    },
+    "qualification_source_revision": "134b66be5dfb07cca52804faae490cbf40c9aa77",
+    "value": {
+      "bytes": 2545589,
+      "sha256": "e03d3c7802800720be340184a036151e0f0e4e788bf720ba6a7a135da7edbfe3"
+    }
+  },
+  "qualification_source_note": "All seven original cases and the independent post-publication allocator gate executed against the exact pinned v11 owner and twelve-role Value. Immediate native generation retirement pruning retains its separate false flag.",
+  "qualification_source_revision": "104018d5b3de4535f1b40f88e9acc93cf68ef5e8",
+  "runtime_internal_abi_strong_reference_qualified": true,
+  "same_generation_info_and_runtime_abi_identity_qualified": true,
   "schema": "hepta.hia.generation-info-owner.qualification.v1",
-  "scope": "actual Info60 capture, closed property access, same-generation identity while referenced, cross-generation ABI identity, independent retained Info/ABI survival, real allocation failure recovery and wire guards; generation-owned strong lifetime remains pending",
   "selected_cases": [
     "allocator",
     "closed-survival",
     "concurrent",
     "different-runtime",
     "generation-abi",
-    "guards"
+    "guards",
+    "strong-generation-identity"
   ],
-  "source_files": {
-    "hepta/hia_multiversion.py": {
-      "bytes": 56985,
-      "path": "/home/qian-qi/hia-native-value-followthrough-20261126-620a/hepta/hia_multiversion.py",
-      "sha256": "4f490f48a8dec18325ee8bdb051ab5f6bcdcda29bb49a7fcc8445ba5f4eef256"
-    },
-    "tools/qualify_hia_generation_info_owner.py": {
-      "bytes": 21580,
-      "path": "/home/qian-qi/hia-native-value-followthrough-20261126-620a/tools/qualify_hia_generation_info_owner.py",
-      "sha256": "c5f6e80e6960c10b8378a1b4d7e7e7e83abb36a37949b1f755d2a716acb7cf8b"
-    }
+  "source_report": {
+    "bytes": 3917,
+    "path": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/info-owner-v4/report.json",
+    "sha256": "6827d91b3ea669d4632e9f750a91b5e9ff143706798b848379f3352bfa995e90"
   },
-  "source_sha256": "c5f6e80e6960c10b8378a1b4d7e7e7e83abb36a37949b1f755d2a716acb7cf8b",
-  "strong_identity_test_execution_pending": true,
+  "source_sha256": "a0084b799154948c03e62c96b1cc40f15179f137d88782ae6fbe71f3511c7cf2",
+  "strong_identity_test_execution_pending": false,
   "strong_identity_test_now_holds_allocation_churn": true,
   "strong_info_native_failed_attempts": [
     {
@@ -140,7 +308,8 @@
       "diagnostic_pty": "dpty-5ad3356a8a85e3f6d174d4bfcc5dd59777dd6cd7ec0f31a36a1e7710427587a1",
       "first_info_child_status": 11,
       "first_info_outer_status": 1,
-      "fixed_in_candidate_not_yet_requalified": true,
+      "fixed_and_requalified_by": "info-owner-v4 full seven cases",
+      "fixed_in_candidate_not_yet_requalified": false,
       "output_directory": "/home/qian-qi/.local/state/hia-native-value-followthrough-20261126-620a/info-owner-v2",
       "owner_path": "/home/qian-qi/.local/state/hia-native-followthrough-20261126-620a-generation-lease/owner-v10/hia-generation-lease-owner.so",
       "owner_sha256": "3e1453cb732fa512a047578c9f303f434dc23a21b194c64ce9e4abb6282e16cb",
@@ -149,8 +318,8 @@
     }
   ],
   "value": {
-    "bytes": 2545589,
-    "sha256": "e03d3c7802800720be340184a036151e0f0e4e788bf720ba6a7a135da7edbfe3"
+    "bytes": 2655808,
+    "sha256": "efe70fcf1c14f033200c25797d54ed71e0b638f370bb6454427ccec974b8d130"
   },
   "whole_public_runtime_qualified": false
 }
