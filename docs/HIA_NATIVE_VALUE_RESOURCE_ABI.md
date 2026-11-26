@@ -44,17 +44,16 @@ The 128-byte header uses `HIABVQ05`. Capability triples A, B and C remain at 24/
 | 54 | Look up an existing live GenerationInfo by exact generation integer A and the two actual runtime identity words in arguments 0 and 1. |
 | 55 | Publish or reuse GenerationInfo A under that same actual runtime identity. The index is weak; object unlink removes its entry. |
 | 56 | Retry retained native resource cleanup through the fixed finalizer. |
-| 57 | Obtain canonical class 31 GenerationLease, 32 function, 33 method, 34 builtin_function_or_method or 35 BackgroundOptimizer. |
+| 57 | Obtain canonical class 31 GenerationLease, 32 function, 33 method, 34 builtin_function_or_method, 35 BackgroundOptimizer or 36 VerifiedProgram. |
 | 58, 59 | Internal graph-role claim and acknowledgement. The public Value entry rejects both. |
 | 60 | Private actual GenerationInfo capture. Argument 0/1 contain the captured runtime identity; the tail is the actual complete HIAMVIR2 blob. It constructs real immutable records and ABI tuples, preserves same-generation Info and same-runtime ABI identity, and serializes the actual loaded mapping into canonical sorted compact bytes. |
 | 61 | Private typed preparation under the actual lease mutex. It preserves Q04/45's 5264-byte request, 8344-byte response and error ordering, and requires the captured owner binding. Only automatic finalizer draining is deferred for this single entry. |
 | 64 | Private Lease strong Info attachment. A is a live bound Lease resource, B is an actual weak-indexed GenerationInfo, and argument 0/1 is the captured runtime identity. The stored Runtime environment must be a live bound Runtime. It installs the first Info strong edge in the Lease base slot; attaching the identical object is idempotent and replacing it with another object is refused. It neither consumes B nor publishes a capability. |
 | 65 | Private Lease Info lookup. A is a live bound Lease resource and all other fields are zero. It returns a fresh strong capability to the cached Info; status 6 means no cached Info. The cache is an ordinary graph edge, retained through Lease close and released only by actual resource retirement. |
 | 66 | Private Runtime Info-cache reconciliation. A is a live bound Runtime or its Lease, B is an actual Info record or zero for pruning only, and argument 0/1 is the captured runtime identity. Its tail is the actual detached native runtime snapshot JSON. The Runtime base holds an immutable tuple of the shared ABI tuple and an immutable tuple of observed live-generation Info objects. A fully allocated replacement is attached atomically after validation; failure preserves the previous graph. Actual publication, cleanup and close must trigger this operation to release retired-generation edges promptly. |
+| 67 | Construct a real VerifiedProgram record. A is the exact canonical_bytes field Value, B is the exact structured_bytes field Value or zero for the actual None singleton, and C is the actual VerifiedProgram class or a real subclass, with zero selecting canonical class 36. Both fields remain strong graph edges. The original frozen dataclass constructor does not validate annotations or grant verification authority. |
 
-
-
-The sole owner's public Value transport may expose 50, 51 and 57. It rejects the resource capture, extraction, destruction, identity-cache and cleanup control operations from external requests.
+The sole owner's public Value transport may expose 50, 51, 57 and 67. It rejects the resource capture, extraction, destruction, identity-cache and cleanup control operations from external requests.
 
 The sole owner initializes the supported-kind mask from its fixed dispatcher. A kind whose finalizer is absent is refused with known/unconsumed custody before any Value object is published. Merely adding a class does not enable resource dispatch.
 

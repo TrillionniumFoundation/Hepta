@@ -162,7 +162,7 @@ def resources_cache_prepare(s:readbuf,o:mutbuf,w:mutbuf,op:u64) -> u64:
         return done(o,6)
     cached=get(w,data+24)
     if op==65:
-        if cached==get(w,128):
+        if cached==0 or cached==get(w,128):
             return done(o,6)
         if get(w,cached+8)!=12 or get(w,cached+48)!=30:
             return done(o,11)
@@ -176,12 +176,13 @@ def resources_cache_prepare(s:readbuf,o:mutbuf,w:mutbuf,op:u64) -> u64:
     error=resources_info_identity(s,w,info)
     if error!=0:
         return done(o,error)
-    if cached!=get(w,128) and cached!=info:
+    if cached!=0 and cached!=get(w,128) and cached!=info:
         return done(o,6)
     if cached!=info:
         edge_add(w,info)
         put(w,data+24,info)
-        edge_drop(w,cached)
+        if cached!=0:
+            edge_drop(w,cached)
     return done(o,0)
 
 def resources_base_kind(layout:u64) -> u64:
