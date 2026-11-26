@@ -73,6 +73,8 @@ def invocation_owner(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
         put(w,176,get(o,2008))
         put(o,7040,0)
         put(o,7048,0)
+        if readword(s,8)==115:
+            zero(o,8152,32)
         put(o,2000,0)
         put(o,2016,0)
         if get(o,7496)!=0:

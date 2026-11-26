@@ -2,7 +2,7 @@
 
 SOURCE=r'''
 def invocation_graph(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
-    op=choose(readword(s,8)==97,70,readword(s,8))
+    op=choose(readword(s,8)==97,70,choose(readword(s,8)==115,69,readword(s,8)))
     phase=get(o,G_PHASE)
     if phase==0:
         zero(o,256,448)

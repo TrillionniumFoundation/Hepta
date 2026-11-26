@@ -119,7 +119,7 @@ def invoke_init(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         from_input(s,w,32896,128,length(s)-128)
         put(w,8,10)
         return invoke_code_at(o,w,32768,length(s))
-    if op==69:
+    if op==69 or op==115:
         invoke_code_frame(w,2,384)
         put(w,8,10)
         return invoke_code_at(o,w,512,128)
@@ -192,8 +192,10 @@ def invoke_construct_reply(o:mutbuf,w:mutbuf) -> u64:
     if get(w,112)!=1 or get(w,8208)!=1:
         return invoke_fail(o,w,11)
     invoke_value_frame(w,48)
+    if get(w,16)==115:
+        put(w,2048,MAGIC8)
     copy(w,2072,416,24)
-    if get(w,16)==69:
+    if get(w,16)==69 or get(w,16)==115:
         copy(w,2096,440,24)
     copy(w,2120,464,24)
     put(w,2144,24)
@@ -206,13 +208,16 @@ def invoke_capture_reply(o:mutbuf,w:mutbuf) -> u64:
     if invoke_value_valid(o,w,16384,REPLY)==False or get(w,16472)!=1:
         put(w,488,1)
         return invoke_pending(o,w,600)
+    if get(w,16)==115 and (get(w,16488)>1 or get(w,16496)>1 or get(w,16504)!=1 or get(w,16464)!=(get(w,16488)|get(w,16496))):
+        put(w,488,1)
+        return invoke_pending(o,w,600)
     if get(w,16480)==1:
         if get(w,16408)==0:
             put(w,488,1)
             return invoke_pending(o,w,600)
         put(w,112,0)
         invoke_primary(w,16384,1)
-        if get(w,16392)!=0 or get(w,16464)!=0:
+        if get(w,16392)!=0 or (get(w,16)==115 and get(w,16488)!=0) or (get(w,16)!=115 and get(w,16464)!=0):
             put(w,56,11)
     elif get(w,16480)==0:
         put(w,72,choose(get(w,16392)==0,11,get(w,16392)))
