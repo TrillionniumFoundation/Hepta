@@ -11,6 +11,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 from tools.generate_hia_background_optimizer_value_freeze import SOURCE as HELPERS
 from tools import hia_background_retirement_source as retirement
+from tools import hia_background_provider_retirement_source as provider_retirement
 
 ROOT=Path(__file__).resolve().parents[1]
 C={
@@ -22,7 +23,7 @@ C={
  'CURSOR':560,'CHUNK':568,'NODES':576,'KEYS':584,'DEPTH':592,'SNAP_PTR':600,'SNAP_N':608,
  'HPTR':624,'HN':632,'HDST':640,'HAFTER':648,'HCURSOR':656,'CLEAN':664,'DESTROY_AT':672,
  'DROP_ACTIVE':680,'DROP_KNOWN':688,'VALUE_PENDING':696,'ERRID':704,'ERROR_FORMAT':712,
- 'ERR_N':720,'ERR_PTR':728,'FAMILY':736,'SUCCESS':744,'PUBLIC_INPUT':752,'CORE_SHA':768,'INPUT_SHA':800,
+ 'ERR_N':720,'ERR_PTR':728,'FAMILY':736,'SUCCESS':744,'PUBLIC_INPUT':752,'PROVIDER_PENDING':760,'CORE_SHA':768,'INPUT_SHA':800,
  'FEEDBACK':3840,'RQ':4096,'RP':8192,'HEAD':49152,'NORM_HEADER':49664,'SNAP_HEADER':49728,
  'CHECK_HEADER':50176,'SMALL':51200,'ERRBUF':53248,'HBUF':65536,'HOUT':131072,
  'MAX':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'BAD':4294967293,'OUT':262144,
@@ -32,7 +33,7 @@ C.update({k:int.from_bytes(v.encode(),'little') for k,v in {
  'MAGIC':'HIABCBQ1','VERIFIED':'HIABCBQ2','PUBLIC':'HIABCBQ3','PUBLIC_VERIFIED':'HIABCBQ4','REPLY':'HIABCBR1','CONTEXT':'HIABCBX1',
  'VREQUEST':'HIABVQ01','VREPLY':'HIABVR01','BREQUEST':'HIABPY01','BREPLY':'HIABPYR1',
  'YREQUEST':'HIABVFY3','YVERIFIED':'HIABVFY4','YREPLY':'HIABVFR2','YCONTEXT':'HIABVYC2',
- 'MREQUEST':'HIAMVBQ1','MCAPTURE':'HIAMVBQ2','MREPLY':'HIAMVBO1','SNAPSHOT':'HIAMVBS1',
+ 'MREQUEST':'HIAMVBQ1','MCAPTURE':'HIAMVBQ2','MTYPED':'HIAMVBQ3','MREPLY':'HIAMVBO1','PROVIDER_TYPED_REPLY':'HIAMVBO2','SNAPSHOT':'HIAMVBS1',
  'CHECK_REQUEST':'HIABCCQ1','CHECK_REPLY':'HIABCCR1','SIZES':'HIANJS01','NORM':'HIAVCF01',
 }.items()})
 ERRORS={
@@ -345,12 +346,23 @@ def runtime_binding(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if provider_reply(o)==False:
             return isolate(o,w,2,200)
         status=get(o,RP+8)
+        if get(o,RP+40)!=0:
+            if get(o,RP+16)!=3 or get(o,RUNTIME)!=0:
+                return isolate(o,w,2,201)
+            within(o,RUNTIME,RP+40,24)
+        if get(o,PUBLIC_INPUT)!=0:
+            if get(o,RP+80)!=0:
+                return isolate(o,w,2,200)
+            if get(o,RP+88)!=0:
+                put(o,PROVIDER_PENDING,1)
+                return isolate(o,w,choose(get(o,RP+72)==1,1,2),200)
+            if get(o,RP+72)!=1:
+                return isolate(o,w,2,200)
         if status!=0:
             return fail(o,choose(status==2,5,7),status)
-        if get(o,RP+16)!=3 or get(o,RP+24)!=0 or get(o,RP+32)!=0 or get(o,RP+40)==0:
+        if get(o,RP+16)!=3 or get(o,RP+24)!=0 or get(o,RP+32)!=0 or get(o,RUNTIME)==0:
             return isolate(o,w,2,201)
-        within(o,RUNTIME,RP+40,24)
-        request(o,MREQUEST,1)
+        request(o,choose(get(o,PUBLIC_INPUT)!=0,MTYPED,MREQUEST),1)
         within(o,RQ+16,RUNTIME,24)
         return provider(o,w,201)
     if phase==201:
@@ -361,6 +373,14 @@ def runtime_binding(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             within(o,PSNAPSHOT,RP+40,24)
             put(o,SNAP_PTR,get(o,RP+24))
             put(o,SNAP_N,get(o,RP+32))
+        if get(o,PUBLIC_INPUT)!=0:
+            if get(o,RP+80)!=0:
+                return isolate(o,w,2,202)
+            if get(o,RP+88)!=0:
+                put(o,PROVIDER_PENDING,1)
+                return isolate(o,w,choose(get(o,RP+72)==1,1,2),202)
+            if get(o,RP+72)!=1:
+                return isolate(o,w,2,202)
         if status!=0:
             if status==1 and get(o,PSNAPSHOT)!=0 and get(o,SNAP_PTR)!=0 and get(o,SNAP_N)!=0:
                 put(o,ERROR_FORMAT,3)
@@ -454,7 +474,7 @@ def hashing(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,HCURSOR,get(o,HCURSOR)+get(o,CHUNK))
         return again(o,602)
     if phase==605:
-        if get(o,FEEDBACK)!=0:
+        if get(o,FEEDBACK)!=32:
             return fail(o,7,605)
         within(o,get(o,HDST),HOUT,32)
         return again(o,get(o,HAFTER))
@@ -501,6 +521,11 @@ def errors(o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==1000:
+        if get(o,PROVIDER_PENDING)!=0:
+            if get(o,OP)!=1:
+                return isolate(o,w,1,1060)
+            request(o,MTYPED,6)
+            return provider(o,w,1060)
         if get(o,VERIFY_ACTIVE)!=0:
             if get(o,VERIFY_ACTIVE)!=1 or get(o,OP)!=1:
                 return isolate(o,w,2,1000)
@@ -542,24 +567,32 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return again(o,1010)
     if phase==1020:
         if get(o,PSNAPSHOT)!=0:
-            request(o,MREQUEST,5)
+            request(o,choose(get(o,PUBLIC_INPUT)!=0,MTYPED,MREQUEST),5)
             within(o,RQ+40,PSNAPSHOT,24)
             return provider(o,w,1021)
         return again(o,1030)
     if phase==1021:
-        if provider_ack(o)==False:
+        if get(o,PUBLIC_INPUT)!=0:
+            pending=provider_release(o,PSNAPSHOT)
+            if pending!=0:
+                return isolate(o,w,pending,1021)
+        elif provider_ack(o)==False:
             return isolate(o,w,2,1021)
         zero(o,PSNAPSHOT,24)
         return again(o,1030)
     if phase==1030:
         if (get(o,SUCCESS)==0 or get(o,ERROR)!=0) and get(o,RUNTIME)!=0:
-            request(o,MREQUEST,4)
+            request(o,choose(get(o,PUBLIC_INPUT)!=0,MTYPED,MREQUEST),4)
             within(o,RQ+16,RUNTIME,24)
             return provider(o,w,1031)
         put(o,CLEAN,0)
         return again(o,1040)
     if phase==1031:
-        if provider_ack(o)==False:
+        if get(o,PUBLIC_INPUT)!=0:
+            pending=provider_release(o,RUNTIME)
+            if pending!=0:
+                return isolate(o,w,pending,1031)
+        elif provider_ack(o)==False:
             return isolate(o,w,2,1031)
         zero(o,RUNTIME,24)
         put(o,CLEAN,0)
@@ -600,6 +633,11 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if release_value_retry(o)==0:
             return drop_isolate(o,w,1051)
         return finish(o,w,get(o,ERROR))
+    if phase==1060:
+        pending=provider_release_retry(o)
+        if pending!=0:
+            return isolate(o,w,pending,1060)
+        return again(o,1000)
     return isolate(o,w,2,phase)
 
 def drop_isolate(o:mutbuf,w:mutbuf,detail:u64) -> u32:
@@ -665,6 +703,8 @@ def value_failure(o:mutbuf) -> u64:
 def valid(o:mutbuf,at:u64,magic:u64) -> u64:
     return choose(get(o,FEEDBACK)==0 and get(o,at)==magic,1,0)
 def provider_reply(o:mutbuf) -> bool:
+    if get(o,PUBLIC_INPUT)!=0:
+        return provider_typed_valid(o) and get(o,RP+64)==0
     if valid(o,RP,MREPLY)==0 or get(o,RP+8)>3 or get(o,RP+64)!=0:
         return False
     at=72
@@ -708,6 +748,7 @@ def source_program():
     helpers='\n'.join(ast.unparse(f)for f in ast.parse(HELPERS).body
                       if isinstance(f,ast.FunctionDef)and f.name in names)
     text=SOURCE+'\n'+helpers+'\n'+retirement.selected('release_begin','release_value','release_value_retry')
+    text+='\n'+provider_retirement.SOURCE
     text+='\ndef error_text(o:mutbuf,id:u64) -> u64:\n'
     for ident,message in ERRORS.items():
         raw=json.dumps({'class':'BackgroundOptimizationRejected','message':'E_HIA_BACKGROUND: '+message},
