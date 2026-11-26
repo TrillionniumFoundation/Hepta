@@ -44,17 +44,22 @@ flag only when the original test explicitly mocks initialization admission.
 The mutation is labelled unverified fault-control output and never enters the
 production emitter.
 
-The remaining expanded gate requires the original pinned AArch64 QEMU 8.2.2
-executable. Its required SHA-256 is
+The full expanded gate now passes all 171 original tests, with zero failures,
+errors or skips and 282 actual native emissions. The repository's original
+installer obtained the exact AArch64 QEMU 8.2.2 executable, SHA-256
 `e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e`.
-The current available QEMU does not match, so that gate remains unqualified.
-No version or hash requirement has been weakened.
+The campaign uses the same fixed native LLVM body exported by the separately
+qualified Clang component. Original fixture hashes, both earlier failed
+receipts, and the corrected negative-control evidence are retained. No version,
+hash, assertion or domain requirement has been weakened.
 
 ## Scope and reproduction
 
-This component qualifies actual native LLVM bytes. Public verification,
-compiler discovery, compiler identity, bounded process capture, publication and
-receipt objects still require their native outer integration. The development
+This component qualifies actual native LLVM bytes. The separate native Clang
+byte producer also qualifies discovery, executable and implementation identity,
+bounded process capture, publication and receipt formatting. Public typed
+verification, Value coercion, immutable LLVM-record origin and Runtime
+integration remain separate obligations. The development
 campaign uses the retained Python versions of those outer operations as
 explicit oracles; it makes no whole-runtime or whole-release claim.
 
