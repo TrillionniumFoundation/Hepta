@@ -10,6 +10,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 from tools.generate_hia_background_optimizer_structure import SOURCE as structural
 from tools.generate_hia_background_optimizer_structure import ERRORS as structure_errors
+from tools.hia_background_retirement_source import selected as retirement_source
 ROOT=Path(__file__).resolve().parents[1]
 C={'REQUEST':int.from_bytes(b'HIABTC01','little'),'REPLY':int.from_bytes(b'HIABTV01','little'),
 'RETRY_REQUEST':int.from_bytes(b'HIABTC02','little'),'CONTEXT':int.from_bytes(b'HIABVC01','little'),'VREQUEST':int.from_bytes(b'HIABVQ01','little'),'VREPLY':int.from_bytes(b'HIABVR01','little'),
@@ -22,19 +23,23 @@ C={'REQUEST':int.from_bytes(b'HIABTC01','little'),'REPLY':int.from_bytes(b'HIABT
 'FIRST_BYTE':392,'SIGNED':400,'COPIED':408,'SCALAR_CAP':416,'STEP_AFTER':440,
 }
 ERRORS={**structure_errors,21:'E_HIA_LIMIT: caller-owned tree exceeds snapshot budget',22:'E_HIA_LIMIT: caller-owned tree exceeds queued-node budget',23:'E_HIA_FORMAT: cyclic caller-owned HIA tree',24:'E_HIA_FORMAT: non-string caller-owned JSON key',25:'E_HIA_FORMAT: unsupported caller-owned JSON node'}
+C.update({'MODERN':448,'DROP_ACTIVE':456,'DROP_KNOWN':464,'VALUE_PENDING':472,'QUARANTINE_KIND':480})
+C.update({k:int.from_bytes(v.encode(),'little') for k,v in {'NEW_REQUEST':'HIABTC03','NEW_RETRY':'HIABTC04','NEW_REPLY':'HIABTV02','NEW_CONTEXT':'HIABVC02','VALUE_DROP_INPUT':'HIABVQ02','VALUE_DROP_REPLY':'HIABVR02'}.items()})
 SOURCE=r'''
 def background_optimizer_value_structure(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=128+THRESHOLD_N or length(o)<OUTPUT or length(w)<128:
         return BAD
     profile=read64(s,0)
     op=read64(s,8)
-    if profile!=REQUEST and profile!=RETRY_REQUEST:
+    modern=profile==NEW_REQUEST or profile==NEW_RETRY
+    retry=profile==RETRY_REQUEST or profile==NEW_RETRY
+    if profile!=REQUEST and profile!=RETRY_REQUEST and modern==False:
         return BAD
-    if (profile==REQUEST and op>1) or (profile==RETRY_REQUEST and op!=2) or read64(s,48)!=THRESHOLD_N:
+    if (retry==False and op>1) or (retry and op!=2) or read64(s,48)!=THRESHOLD_N:
         return BAD
-    if profile==RETRY_REQUEST and (read64(s,16)!=0 or read64(s,24)!=0 or read64(s,32)!=0):
+    if retry and (read64(s,16)!=0 or read64(s,24)!=0 or read64(s,32)!=0):
         return BAD
-    if get(w,0)!=CONTEXT or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
+    if get(w,0)!=choose(modern,NEW_CONTEXT,CONTEXT) or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
         return BAD
     limit=read64(s,40)
     if limit!=0 and (limit<640 or limit>2147483647):
@@ -45,23 +50,30 @@ def background_optimizer_value_structure(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return BAD
         at=at+8
     phase=get(o,PHASE)
-    if profile==RETRY_REQUEST:
-        if get(o,0)==REPLY and get(o,8)==3:
+    if retry:
+        if get(o,0)==choose(modern,NEW_REPLY,REPLY) and get(o,8)==3:
             if get(o,CLEANUP_ERRORS)==0 or get(o,ALLOCATED)>MAX_NODES or get(o,OVERFLOW_N)>MAX_NODES+1:
                 return BAD
-            if get(o,LIMIT)!=limit:
+            if get(o,LIMIT)!=limit or get(o,MODERN)!=choose(modern,1,0):
                 return BAD
+            if modern and get(o,QUARANTINE_KIND)==2:
+                return finish(o)
             zero(o,0,128)
             put(o,CLEANUP_ERRORS,0)
             put(o,DROP_INDEX,0)
             put(o,DROP_SLOT,0)
             put(o,512,1)
+            put(o,QUARANTINE_KIND,0)
+            if modern and get(o,VALUE_PENDING)!=0:
+                request(o,31)
+                return invoke_overflow(o,w,310)
             return again(o,choose(get(o,OVERFLOW_N)!=0,330,300))
-        if get(o,512)!=1 or (phase!=300 and phase!=301 and phase!=330 and phase!=331):
+        if get(o,512)!=1 or (phase!=300 and phase!=301 and phase!=330 and phase!=331 and (modern==False or phase!=310)):
             return BAD
         return cleanup(o,w,phase)
     if phase==0:
         zero(o,128,896)
+        put(o,MODERN,choose(modern,1,0))
         put(o,MODE,read64(s,8))
         put(o,PASS,read64(s,8))
         put(o,LIMIT,limit)
@@ -475,6 +487,12 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,RQ+24,row,24)
         return invoke(o,w,301)
     if phase==301:
+        if get(o,MODERN)!=0:
+            at=node(get(o,DROP_INDEX))+get(o,DROP_SLOT)*24
+            released=release_value(o,at)
+            if released==0 or get(o,VALUE_PENDING)!=0:
+                return release_blocked(o)
+            return next_drop(o)
         if value_ok(o)==False:
             put(o,CLEANUP_ERRORS,get(o,CLEANUP_ERRORS)+1)
         else:
@@ -494,13 +512,29 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,RQ+24,896,24)
         return invoke_overflow(o,w,331)
     if phase==331:
+        if get(o,MODERN)!=0:
+            entry=RP+8192+get(o,DROP_INDEX)*64
+            at=choose(get(o,DROP_SLOT)==0,entry+16,entry+40)
+            released=release_value(o,at)
+            if released==0 or get(o,VALUE_PENDING)!=0:
+                return release_blocked(o)
+            return overflow_next(o)
         if value_ok(o)==False:
             put(o,CLEANUP_ERRORS,get(o,CLEANUP_ERRORS)+1)
         else:
             entry=RP+8192+get(o,DROP_INDEX)*64
             zero(o,choose(get(o,DROP_SLOT)==0,entry+16,entry+40),24)
         return overflow_next(o)
+    if phase==310:
+        if release_value_retry(o)==0:
+            return release_blocked(o)
+        return again(o,choose(get(o,OVERFLOW_N)!=0,330,300))
     return BAD
+
+def release_blocked(o:mutbuf) -> u32:
+    put(o,CLEANUP_ERRORS,1)
+    put(o,QUARANTINE_KIND,choose(get(o,DROP_KNOWN)==1,1,2))
+    return finish(o)
 
 def next_drop(o:mutbuf) -> u32:
     slot=get(o,DROP_SLOT)+1
@@ -522,6 +556,10 @@ def request(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,128)
     put(o,RQ,VREQUEST)
     put(o,RQ+8,op)
+    if get(o,MODERN)!=0 and (op==6 or op==31):
+        put(o,RQ,VALUE_DROP_INPUT)
+        put(o,RQ+8,choose(op==6,29,31))
+        release_begin(o)
     return 0
 
 def invoke(o:mutbuf,w:mutbuf,next:u64) -> u32:
@@ -555,7 +593,7 @@ def finish(o:mutbuf) -> u32:
     put(o,512,0)
     error=get(o,ERR)
     zero(o,0,128)
-    put(o,0,REPLY)
+    put(o,0,choose(get(o,MODERN)!=0,NEW_REPLY,REPLY))
     put(o,8,choose(get(o,CLEANUP_ERRORS)!=0,3,choose(error>=1000,2,choose(error==0,0,1))))
     put(o,16,error)
     within(o,24,ROOT,24)
@@ -567,6 +605,9 @@ def finish(o:mutbuf) -> u32:
     put(o,88,get(o,LIMIT))
     put(o,96,get(o,PROVIDER_ERROR))
     put(o,104,get(o,CLEANUP_ERRORS))
+    if get(o,MODERN)!=0 and get(o,CLEANUP_ERRORS)!=0:
+        put(o,112,get(o,QUARANTINE_KIND))
+        put(o,120,get(o,VALUE_PENDING))
     return 0
 
 def node(index:u64) -> u64:
@@ -586,7 +627,14 @@ def copy_input(s:readbuf,at:u64,o:mutbuf,dest:u64,n:u64) -> u64:
         store(o,dest+i,byte(s,at+i))
         i=i+1
     return 0
+
+def valid(o:mutbuf,at:u64,magic:u64) -> u64:
+    if get(o,FEEDBACK)!=0 or get(o,at)!=magic:
+        return 0
+    return 1
+
 '''
+SOURCE += '\n' + retirement_source('release_begin', 'release_value', 'release_value_retry')
 def source_program():
     tree=ast.parse(structural)
     helpers=[]
