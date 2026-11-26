@@ -1,6 +1,6 @@
 """Execute actual immutable values and typed scalar preparation against original Python values."""
 from pathlib import Path
-import argparse, ctypes as C, json, platform, random, struct
+import argparse, ctypes as C, json, math, platform, random, struct
 from tools.qualify_hia_result_value_classes import Values as PriorValues, NativeEngine, frame as prior_frame, word, ZERO
 from hepta.hia_program import scalar_value_valid, integer_range
 from hepta.hia_multiversion import ScalarABI, GenerationInfo
@@ -31,6 +31,15 @@ class Values(PriorValues):
             values=[self.python_value(x)for x in members]
             for item in members:self.drop(item)
             return tuple(values)if kind==11 else values
+        if kind==6:
+            n=word(self.raw(7,a=cap),48)
+            out=self.raw(23,a=cap,arg1=n,on=max(16384,8192+n*64))
+            result={}
+            for i in range(n):
+                key=self.keep(out,8192+i*64+16);value=self.keep(out,8192+i*64+40)
+                result[self.python_value(key)]=self.python_value(value)
+                self.drop(key);self.drop(value)
+            return result
         if kind==3:
             raw=self.raw(19,a=cap,arg1=8)[8192:8200]
             return struct.unpack('<d',raw)[0]
@@ -52,6 +61,47 @@ def abi_frame(entries):
         raw[at+32:at+32+len(name)]=name
         for j,typ in enumerate(parameters):struct.pack_into('<Q',raw,at+160+j*8,TYPES.index(typ)+1)
     return bytes(raw)
+
+def equivalent(a,b):
+    if type(a)is float and type(b)is float and math.isnan(a)and math.isnan(b):return True
+    if type(a)is not type(b):return False
+    if type(a)is dict:return list(a)==list(b)and all(equivalent(a[k],b[k])for k in a)
+    if type(a)in(list,tuple):return len(a)==len(b)and all(equivalent(x,y)for x,y in zip(a,b))
+    return a==b
+
+def qualify_asdict(v):
+    rows=[]
+    mapping_cases=[b'',b'null',b'{"x":[1,true,null,"\\u03bb","\\ud800"],"z":-0.0}',b'[-123456789012345678901234567890,0.25]',b'NaN',b'Infinity',b'-Infinity',json.dumps({'rows':[{'x':i,'tag':'\u03bb'*32}for i in range(2048)]},ensure_ascii=False).encode()]
+    for mapping in mapping_cases:
+        function=v.scalar('f');parameters=v.tuple([v.scalar('i64')]);result=v.scalar('i64')
+        abi=v.keep(v.raw(41,a=function,b=parameters,c=result))
+        py=GenerationInfo(10**200,'1'*64,'2'*64,'3'*64,4096,(ScalarABI('f',('i64',),'i64'),),1,2,True,'profile',0,mapping)
+        fields=[v.scalar(py.generation),v.scalar(py.program_sha256),v.scalar(py.input_sha256),v.scalar(py.artifact_sha256),v.scalar(py.artifact_bytes),v.tuple([abi]),v.scalar(py.translation_proofs),v.scalar(py.native_probe_calls),v.scalar(py.baseline),v.scalar(py.admission_profile),v.scalar(py.totality_proofs),v.scalar(mapping)]
+        packed=v.tuple(fields);info=v.keep(v.raw(42,a=packed));snapshot=v.keep(v.raw(44,a=info))
+        assert equivalent(v.python_value(snapshot),py.as_dict())
+        # Mutating the detached ABI list cannot change the immutable record.
+        key=v.scalar('abi');outer=v.keep(v.raw(9,a=snapshot,b=key));index=v.scalar(0)
+        row=v.keep(v.raw(12,a=outer,b=index));pkey=v.scalar('parameters');params=v.keep(v.raw(9,a=row,b=pkey));extra=v.scalar('u8')
+        v.raw(16,a=params,b=extra)
+        second=v.keep(v.raw(44,a=info));assert equivalent(v.python_value(second),py.as_dict())
+        for cap in list(v.held):
+            if cap!=second:v.drop(cap)
+        assert equivalent(v.python_value(second),py.as_dict())
+        v.drop(second);assert word(v.raw(47),48)==0
+        rows.append(dict(case='generation-info-as-dict-detached-original-oracle',mapping_bytes=len(mapping)))
+    for parameters in ('i\u03bb',b'\x00\x7f\xff',{'i64':1,'u8':2},['i64','u8']):
+        function=v.scalar('f');result=v.scalar('i64')
+        if type(parameters)is dict:p=v.dictionary(list(parameters.items()))
+        elif type(parameters)is list:p=v.lst([v.scalar(x)for x in parameters])
+        else:p=v.scalar(parameters)
+        abi=v.keep(v.raw(41,a=function,b=p,c=result))
+        py=GenerationInfo(0,'p','i','a',1,(ScalarABI('f',parameters,'i64'),),0,0,False)
+        fields=[v.scalar(0),v.scalar('p'),v.scalar('i'),v.scalar('a'),v.scalar(1),v.tuple([abi]),v.scalar(0),v.scalar(0),v.scalar(False),v.scalar(py.admission_profile),v.scalar(0),v.scalar(b'')]
+        info=v.keep(v.raw(42,a=v.tuple(fields)));snapshot=v.keep(v.raw(44,a=info))
+        assert equivalent(v.python_value(snapshot),py.as_dict())
+        for cap in list(v.held):v.drop(cap)
+        rows.append(dict(case='dataclass-annotation-does-not-restrict-parameters',original_type=type(parameters).__name__))
+    return rows
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--image',required=True);ap.add_argument('--output',required=True);args=ap.parse_args()
@@ -106,6 +156,7 @@ def main():
     child=v.lst([]);cyclic=v.tuple([child]);v.raw(16,a=child,b=cyclic)
     v.drop(child);v.drop(cyclic);assert word(v.raw(47),48)==0
     rows.append(dict(case='tuple-list-cycle-collection-and-nonmutating-probe'))
+    rows.extend(qualify_asdict(v))
     calls=0
     for typ in TYPES:
         if typ=='bool':values=[False,True,0,1,-1,None,0.0,'true',b'true']
@@ -143,7 +194,7 @@ def main():
     before=v.engine.context.raw;controls=0
     valid=frame(47)
     invalid=[]
-    for magic,ops in ((b'HIABVQ01',range(40,48)),(b'HIABVQ02',range(40,48)),(b'HIABVQ03',range(40,48)),(b'HIABVQ04',list(range(40))+[44,48,(1<<64)-1])):
+    for magic,ops in ((b'HIABVQ01',range(40,48)),(b'HIABVQ02',range(40,48)),(b'HIABVQ03',range(40,48)),(b'HIABVQ04',list(range(40))+[48,(1<<64)-1])):
         for op in ops:
             raw=bytearray(valid);raw[:8]=magic;struct.pack_into('<Q',raw,8,op);invalid.append(bytes(raw))
     for offset in range(16,128,8):
@@ -154,7 +205,7 @@ def main():
         controls+=1
     rows.append(dict(case='preserved-and-new-private-request-domains',controls=controls))
     v.finish()
-    report=dict(schema='hia.native-record-values.qualification.v1',component_qualified=True,actual_native_image=True,oracle=platform.python_version(),groups=rows,typed_scalar_comparisons=calls,whole_public_runtime_qualified=False,generation_info_as_dict_closed=False,tuple_hash_equality_protocol_closed=False,typed_native_call_lock_integration_closed=False)
+    report=dict(schema='hia.native-record-values.qualification.v1',component_qualified=True,actual_native_image=True,oracle=platform.python_version(),groups=rows,typed_scalar_comparisons=calls,whole_public_runtime_qualified=False,generation_info_as_dict_captured_values_qualified=True,public_arbitrary_iterable_dataclass_protocol_closed=False,tuple_hash_equality_protocol_closed=False,typed_native_call_lock_integration_closed=False)
     (target/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(dict(passed=True,groups=len(rows),typed_scalar_comparisons=calls,private_controls=controls)))
 if __name__=='__main__':main()

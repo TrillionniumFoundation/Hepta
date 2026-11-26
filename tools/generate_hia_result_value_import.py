@@ -4,6 +4,12 @@ from tools.generate_hia_result_value_common import ROOT,document,render_assembly
 from tools.generate_hia_result_value_core import SOURCE as CORE
 SOURCE=r'''
 def result_value_import(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
+    action=import_body(s,o,w)
+    if get(o,1800)==1 and action==4:
+        copy(o,1856,192,64)
+    return action
+
+def import_body(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     phase=get(o,G_PHASE)
     if phase==0:
         zero(o,256,448)
