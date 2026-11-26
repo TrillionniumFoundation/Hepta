@@ -455,7 +455,7 @@ def begin(s:readbuf,o:mutbuf) -> u32:
             return BAD
         if magic==VALUE2 and (action==30 or action==31):
             return BAD
-        if magic==VALUE5 and action!=50 and action!=51 and action!=57:
+        if magic==VALUE5 and action!=50 and action!=51 and action!=57 and action!=62 and action!=63 and action!=67:
             return BAD
     elif op==6:
         if size!=32 or word_load(s,64)!=TOOLS:

@@ -10,8 +10,16 @@ import argparse, ctypes as C, json, mmap, os, queue, select, struct, threading, 
 from tools import qualify_hia_generation_lease_owner as q
 from tools import qualify_hia_native_seccomp_notify as notify
 from tools.qualify_hia_result_value_records import Values
-from tools import generate_hia_result_value_resources_packer as value_spec
+from tools import generate_hia_result_value_resources_packer as value_resources_spec
+from tools import generate_hia_result_value_protocols_packer as value_protocols_spec
 from tools import generate_hia_generation_lease_owner_packer as owner_spec
+
+def actual_value_spec(entry):
+    # Both independently qualified fixed profiles retain their own exact bridge.
+    prefix=C.string_at(entry,200)
+    matches=[spec for spec in (value_resources_spec,value_protocols_spec) if prefix==spec.BRIDGE[:200]]
+    assert len(matches)==1,'actual Value bridge is not a qualified 12/13-role profile'
+    return matches[0]
 
 def run(path,files,parent):
     owner=q.Owner(path);owner.initialize();carrier=q.Carrier(owner);lifecycle=q.Lifecycle(owner)
@@ -20,6 +28,7 @@ def run(path,files,parent):
     runtime=q.old.create(carrier,files,parent);lease=q.old.lease(carrier,runtime)
     function=values.scalar('calculate');scalar=values.scalar(71);arguments=values.lst([scalar])
     value_entry=q.get(owner.context,40)
+    value_spec=actual_value_spec(value_entry)
     assert C.string_at(value_entry,200)==value_spec.BRIDGE[:200]
     carrier_entry=q.get(owner.context,32);hole=owner_spec.HANDLES_HOLES['effects']
     displacement=struct.unpack('<i',C.string_at(carrier_entry+hole,4))[0]

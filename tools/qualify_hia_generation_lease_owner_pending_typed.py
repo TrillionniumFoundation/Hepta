@@ -9,7 +9,7 @@ import argparse,ctypes as C,json,mmap,os,queue,select,struct,threading,time
 from tools import qualify_hia_generation_lease_owner as q
 from tools import qualify_hia_generation_lease_owner_resources as resources
 from tools import qualify_hia_native_seccomp_notify as notify
-from tools import generate_hia_result_value_resources_packer as value_spec
+from tools.qualify_hia_generation_lease_owner_typed_lock import actual_value_spec
 from tools import generate_hia_generation_lease_owner_packer as spec
 
 
@@ -38,6 +38,7 @@ def run(path,files,parent):
     retire=q.old.create(c,files,pending);resource=resources.capture(owner,v,1,retire);c.q(3,retire)
     fn=v.scalar('calculate');scalar=v.scalar(71);args=v.lst([scalar])
     value_entry=q.get(owner.context,40);final_entry=q.get(owner.context,640)
+    value_spec=actual_value_spec(value_entry)
     assert C.string_at(value_entry,200)==value_spec.BRIDGE[:200]
     assert C.string_at(final_entry,200)==spec.FINALIZER_PREFIX[:200]
     carrier_entry=q.get(owner.context,32);hole=spec.HANDLES_HOLES['effects']
