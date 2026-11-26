@@ -135,7 +135,7 @@ def input_operation(s:readbuf) -> u64:
             return 22
     return op
 def drop_profile(s:readbuf) -> bool:
-    return (request_magic(s)==MAGIC2 and readword(s,8)>=29 and readword(s,8)<=31) or (request_magic(s)==MAGIC5 and ((readword(s,8)>=77 and readword(s,8)<=79) or readword(s,8)==92 or readword(s,8)==93))
+    return (request_magic(s)==MAGIC2 and readword(s,8)>=29 and readword(s,8)<=31) or (request_magic(s)==MAGIC5 and ((readword(s,8)>=77 and readword(s,8)<=79) or readword(s,8)==89 or readword(s,8)==90 or readword(s,8)==92 or readword(s,8)==93 or readword(s,8)==95 or readword(s,8)==96))
 def get(w:mutbuf,at:u64) -> u64:
     v=0
     i=0
@@ -599,10 +599,13 @@ def cap_drop(w:mutbuf,p:u64) -> u64:
         cap_managed_unlink(w,p)
     elif obj!=0:
         put(w,obj+64,get(w,obj+64)-1)
+    cycle=False
+    if obj!=0 and get(w,1112)!=0:
+        cycle=get(w,obj+8)>=5 and get(w,obj+64)==0 and get(w,obj+72)!=0
     put(w,88,get(w,88)-1)
     deallocate(w,p)
     object_release(w,obj)
-    if get(w,88)==0 or get(w,1072)!=0 or managed:
+    if get(w,88)==0 or get(w,1072)!=0 or managed or cycle:
         collect(w)
     return 0
 def bytes_hash(w:mutbuf,at:u64,n:u64) -> u64:

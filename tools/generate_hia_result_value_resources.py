@@ -289,6 +289,8 @@ def resources_create(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     class_links(w,obj)
     if resource:
         put(w,data+48,3544424519840123208)
+        if kind>=3 and kind<=5:
+            put(w,1112,get(w,1112)+1)
         put(o,P_DROP_CONSUMED,1)
     return resources_finish(o,w,0)
 
@@ -407,6 +409,9 @@ def resources_ack(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             put(o,2008,get(w,1056))
             return done(o,11)
         resource_remove(w,obj)
+        kind=get(w,data+56)
+        if kind>=3 and kind<=5:
+            put(w,1112,get(w,1112)-1)
         put(w,data+48,0)
         edge_drop(w,obj)
         collect(w)
