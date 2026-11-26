@@ -213,7 +213,9 @@ class Case:
         if fn==FN_SHA:
             if s[0]==0:self.sha=hashlib.sha256()
             elif s[0]==1:self.sha.update(s[1:])
-            elif s[0]==2:o[:32]=self.sha.digest()
+            elif s[0]==2:
+                o[:32]=self.sha.digest()
+                return 32
             else:raise AssertionError(s[:10])
             return 0
         o[:128]=bytes(128)

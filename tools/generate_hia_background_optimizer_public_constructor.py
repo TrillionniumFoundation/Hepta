@@ -10,11 +10,12 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 from tools.generate_hia_background_optimizer_value_freeze import SOURCE as HELPERS
 from tools import hia_background_retirement_source as retirement
+from tools import hia_background_provider_retirement_source as provider_retirement
 ROOT=Path(__file__).resolve().parents[1]
 C=dict(BAD=4294967293,MAX=(1<<64)-1,OUT=524288,WORK=294912,
  PHASE=256,ERROR=264,DETAIL=272,OP=280,SUCCESS=288,ERROR_FORMAT=296,ERROR_N=304,
  MAXP=312,TIMEOUT=320,BTIME=328,BINT=336,CLEAN=344,CHILD_ACTIVE=352,
- DROP_ACTIVE=360,DROP_KNOWN=368,VALUE_PENDING=376,CLEAN_AT=384,
+ DROP_ACTIVE=360,DROP_KNOWN=368,VALUE_PENDING=376,CLEAN_AT=384,PROVIDER_PENDING=392,
  CLASS=512,RUNTIME_VALUE=536,BRIDGE=560,BASELINE=584,RUNTIME=608,FUNCTION=632,
  ERROR_VALUE=656,ERROR_PAYLOAD=680,BASE_N=704,CORE_SHA=736,INPUT_SHA=768,
  FEEDBACK=3840,RQ=65536,RP=98304,CHILD=262144,SAVE=288768,
@@ -26,7 +27,7 @@ C.update({k:int.from_bytes(v.encode(),'little')for k,v in dict(
  OPTIONS='HIABOPQ1',OPTIONS_REPLY='HIABOPR1',OPTIONS_CONTEXT='HIABOPC1',
  PATHS='HIABBPQ2',PATHS_REPLY='HIABBPR1',PATHS_CONTEXT='HIABBPC2',
  BINDING='HIABCBQ3',BIND_REPLY='HIABCBR1',BIND_CONTEXT='HIABCBX1',
- PAYLOAD='HIABPY01',PAYLOAD_REPLY='HIABPYR1',PROVIDER='HIAMVBQ1',PROVIDER_REPLY='HIAMVBO1').items()})
+ PAYLOAD='HIABPY01',PAYLOAD_REPLY='HIABPYR1',PROVIDER='HIAMVBQ3',PROVIDER_REPLY='HIAMVBO2',PROVIDER_TYPED_REPLY='HIAMVBO2').items()})
 SOURCE=r'''
 def public_constructor(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<WORK:
@@ -241,6 +242,11 @@ def binding(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==1000:
+        if get(o,PROVIDER_PENDING)!=0:
+            if get(o,OP)!=1:
+                return quarantine(o,w,1,1031)
+            request(o,PROVIDER,6)
+            return invoke(o,1031,get(w,120),51,RQ,128,RP,128,get(w,128),get(w,136))
         if get(o,DROP_ACTIVE)!=0 and get(o,DROP_KNOWN)!=1:
             return quarantine(o,w,2,1000)
         kind=get(o,CHILD_ACTIVE)
@@ -308,8 +314,9 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,1010)
     if phase==1022:
-        if provider_ack(o)==False:
-            return quarantine(o,w,2,1022)
+        pending=provider_release(o,get(o,CLEAN_AT))
+        if pending!=0:
+            return quarantine(o,w,pending,1022)
         zero(o,get(o,CLEAN_AT),24)
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,1010)
@@ -317,6 +324,11 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if release_value_retry(o)==0:
             return quarantine(o,w,choose(get(o,DROP_KNOWN)==1,1,2),1030)
         return finish(o,w,get(o,ERROR))
+    if phase==1031:
+        pending=provider_release_retry(o)
+        if pending!=0:
+            return quarantine(o,w,pending,1031)
+        return again(o,1000)
     return quarantine(o,w,2,phase)
 
 def harvest(o:mutbuf,kind:u64) -> bool:
@@ -403,15 +415,6 @@ def value_failure(o:mutbuf) -> u32:
     if valid(o,RP,VR)!=0 and get(o,RP+8)==5:
         status=5
     return fail(o,status,get(o,RP+8))
-def provider_ack(o:mutbuf) -> bool:
-    if valid(o,RP,PROVIDER_REPLY)==0 or get(o,RP+8)!=0 or get(o,RP+16)!=4:
-        return False
-    at=24
-    while at<128:
-        if get(o,RP+at)!=0:
-            return False
-        at=at+8
-    return True
 def fail(o:mutbuf,status:u64,detail:u64) -> u32:
     put(o,ERROR,status)
     put(o,DETAIL,detail)
@@ -457,6 +460,7 @@ def source_program():
  names={'request','invoke','system','again','to_work','from_work','copy_source','within','zero','get','put','choose'}
  helpers='\n'.join(ast.unparse(f)for f in ast.parse(HELPERS).body if isinstance(f,ast.FunctionDef)and f.name in names)
  text=SOURCE+'\n'+helpers+'\n'+retirement.selected('release_begin','release_value','release_value_retry')
+ text+='\n'+provider_retirement.SOURCE
  raw=json.dumps({'class':'BackgroundOptimizationRejected','message':'E_HIA_BACKGROUND: a ScalarMultiversionRuntime is required'},sort_keys=True,separators=(',',':')).encode()
  text+='\ndef runtime_error(o:mutbuf,at:u64) -> u64:\n'
  for at in range(0,len(raw),8):text+=f'    put(o,at+{at},{int.from_bytes(raw[at:at+8].ljust(8,bytes(1)),"little")})\n'
