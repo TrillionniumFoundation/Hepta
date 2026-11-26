@@ -41,6 +41,10 @@ CATALOG = [
     ('tuple', (1,), (1,), 28, 0),
     ('ScalarABI', (1,), (1,), 29, 0),
     ('GenerationInfo', (1,), (1,), 30, 0),
+    ('GenerationLease', (1,), (1,), 0, 0),
+    ('function', (1,), (1,), 32, 0),
+    ('method', (1,), (1,), 33, 0),
+    ('builtin_function_or_method', (1,), (1,), 34, 0),
 ]
 
 SOURCE = r'''
@@ -133,7 +137,7 @@ def class_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             if get(w,base+8)!=10:
                 return done(o,2)
             id=get(w,get(w,base+24)+40)
-            if id==4 or (id>=10 and id<=13):
+            if id==4 or (id>=10 and id<=13) or (id>=32 and id<=34):
                 return done(o,18)
             i=i+1
     if op==34 or op==39:
@@ -192,7 +196,7 @@ def class_links(w:mutbuf,obj:u64) -> u64:
         i=i+1
     return 0
 def class_catalog(w:mutbuf) -> bool:
-    while get(w,152)<30:
+    while get(w,152)<34:
         id=get(w,152)+1
         obj=class_builtin(w,id)
         if obj==0:

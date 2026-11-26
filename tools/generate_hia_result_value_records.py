@@ -131,13 +131,13 @@ def records_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if op==40:
         if get(w,a+8)==11:
             result=a
-        elif get(w,a+16)==0 and get(w,400)!=0:
-            result=get(w,400)
+        elif get(w,a+16)==0 and get(w,1024)!=0:
+            result=get(w,1024)
         else:
             result=records_new(o,w,11,28,get(w,a+24),get(w,a+16))
             fresh=True
             if result!=0 and get(w,a+16)==0:
-                put(w,400,result)
+                put(w,1024,result)
                 edge_add(w,result)
     elif op==41:
         result=records_new(o,w,12,29,0,3)

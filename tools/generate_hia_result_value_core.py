@@ -24,7 +24,7 @@ def result_value_core(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         zero(o,256,448)
         return 0
     if phase==91:
-        put(o,G_N,get(w,88))
+        put(o,G_N,get(w,88)+get(w,1056))
         return 0
     if phase==92:
         arena_extend(w,get(o,P_OLD))
@@ -248,7 +248,8 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if get(w,a+8)!=6:
             return done(o,2)
         key=get(o,G_B)
-        if get(w,key+8)==5 or get(w,key+8)==6 or get(w,key+8)>=11:
+        plain=native_base(w,key)
+        if get(w,plain+8)==5 or get(w,plain+8)==6 or get(w,plain+8)>=11:
             return done(o,2)
         found=dict_find(w,a,key)
         put(o,G_FOUND,found)
