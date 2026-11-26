@@ -5,10 +5,13 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 from tools.generate_hia_background_optimizer_value_freeze import SOURCE as HELPERS
 from tools.generate_hia_background_optimizer_value_structure import ERRORS as STRUCTURE_ERRORS
+from tools.hia_background_retirement_source import selected as retirement_source
 ROOT=Path(__file__).resolve().parents[1]
 C={"PHASE":128,"ERROR":136,"DETAIL":144,"PID":152,"CAP":160,"CANON":184,"DET":208,"FROZCAP":232,"RESULTCAP":256,"RAWN":280,"RAWCHARS":288,"KIND":296,"TSRC":304,"TSCN":312,"TOUT":320,"TOUTN":328,"PFRAME":336,"PFRAMEN":344,"PWORK":352,"PWORKN":360,"PREF":384,"PREFN":392,"OUTMAP":400,"OUTMAPN":408,"FDIN":416,"STDOUT":424,"STDERR":432,"ROLE":440,"CURSOR":448,"CHUNK":456,"CP":464,"NEED":472,"CPCHUNK":480,"CLEAN":536,"QUARANTINED":544,"OP":552,"PROFILE":560,"MODE":568,"COMPARE":576,"RESULTN":600,"CLEAN_AT":624,"AFTER_CLOSE":632,"SRC_PTR":648,"FREEZE_ACTIVE":664,"TYPED_PENDING":672,"RESUME_CLEAN":688,"STRUCTCAP":704,"ORIGINAL_N":728,"CORE_N":736,"CORE_PROFILE":744,"COMPARE_PART":752,"CLEAN_OWNER":760,"FEEDBACK":1024,"TMP":1536,"RQ":2048,"RP":4096,"HEAD":8192,"CHECKBUF":32768,"ERRBUF":65536}
 C.update({k:int.from_bytes(v.encode(),'little') for k,v in {"MAGIC":"HIABVFY1","VERIFIED":"HIABVFY2","REPLY":"HIABVFR1","CONTEXT":"HIABVYC1","VREQUEST":"HIABVQ01","VREPLY":"HIABVR01","BREQUEST":"HIABPY01","BREPLY":"HIABPYR1","TREQUEST":"HIABTC01","TRETRY":"HIABTC02","TREPLY":"HIABTV01","TCONTEXT":"HIABVC01","FREQUEST":"HIABFZQ1","FREPLY":"HIABFZR1","FCONTEXT":"HIABFZC1","PREQUEST":"HIAMVPS2","PREPLY":"HIAMVPO1","NORM":"HIAVCF01"}.items()})
 C.update(MAX=(1<<64)-1,NEGATIVE=(1<<64)-4095,NEG4=(1<<64)-4,NEG12=(1<<64)-12,BAD=4294967293)
+C.update({'MODERN':768,'QUARANTINE_KIND':776,'VALUE_PENDING':784,'DROP_ACTIVE':792,'DROP_KNOWN':800,'NESTED_PENDING':808})
+C.update({k:int.from_bytes(v.encode(),'little') for k,v in {'NEW_MAGIC':'HIABVFY3','NEW_VERIFIED':'HIABVFY4','NEW_REPLY':'HIABVFR2','NEW_CONTEXT':'HIABVYC2','NEW_TREQUEST':'HIABTC03','NEW_TRETRY':'HIABTC04','NEW_TREPLY':'HIABTV02','NEW_TCONTEXT':'HIABVC02','NEW_FREQUEST':'HIABFZQ2','NEW_FREPLY':'HIABFZR2','NEW_FCONTEXT':'HIABFZC2','VALUE_DROP_INPUT':'HIABVQ02','VALUE_DROP_REPLY':'HIABVR02'}.items()})
 SOURCE=r'''
 def verify_program(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<262144 or length(w)<4096:
@@ -37,17 +40,22 @@ def verify_program(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)!=128 or (word_load(s,0)!=MAGIC and word_load(s,0)!=VERIFIED) or word_load(s,8)>1:
+    if length(s)!=128:
+        return BAD
+    profile=word_load(s,0)
+    modern=profile==NEW_MAGIC or profile==NEW_VERIFIED
+    verified=profile==VERIFIED or profile==NEW_VERIFIED
+    if (profile!=MAGIC and profile!=VERIFIED and modern==False) or word_load(s,8)>1:
         return BAD
     at=16
     while at<128:
         used=word_load(s,8)==0 and at>=24 and at<=40
-        if word_load(s,0)==VERIFIED and word_load(s,8)==0 and at>=48 and at<=64:
+        if verified and word_load(s,8)==0 and at>=48 and at<=64:
             used=True
         if used==False and word_load(s,at)!=0:
             return BAD
         at=at+8
-    if get(w,0)!=CONTEXT or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
+    if get(w,0)!=choose(modern,NEW_CONTEXT,CONTEXT) or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
         return BAD
     if get(w,32)==0 or get(w,40)==0 or get(w,48)==0 or get(w,56)==0 or get(w,64)==0 or get(w,72)<256:
         return BAD
@@ -64,7 +72,8 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         at=at+8
     zero(o,128,896)
     put(o,OP,word_load(s,8))
-    put(o,PROFILE,word_load(s,0))
+    put(o,PROFILE,choose(verified,VERIFIED,MAGIC))
+    put(o,MODERN,choose(modern,1,0))
     return system(o,1,39,0,0,0,0,0,0,0)
 
 def entering(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -81,6 +90,10 @@ def entering(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,QUARANTINED,0)
             put(o,OP,1)
             put(o,CLEAN,0)
+            if get(o,MODERN)!=0:
+                if get(o,QUARANTINE_KIND)==2:
+                    return quarantine(o,w,get(o,DETAIL))
+                put(o,QUARANTINE_KIND,0)
             return again(o,700)
         if get(w,152)!=0:
             return finish(o,6)
@@ -271,7 +284,7 @@ def typed_structure(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return fail(o,5,raw)
         put(o,TOUT,raw)
         zero(w,1152,128)
-        put(w,1152,TCONTEXT)
+        put(w,1152,choose(get(o,MODERN)!=0,NEW_TCONTEXT,TCONTEXT))
         put(w,1160,get(w,8))
         put(w,1168,get(w,16))
         put(w,1176,get(w,24))
@@ -305,17 +318,26 @@ def typed_structure(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==113:
         return typed_call(o,w)
     if phase==114:
-        if get(o,HEAD)!=TREPLY:
+        if get(o,HEAD)!=choose(get(o,MODERN)!=0,NEW_TREPLY,TREPLY):
             return fail(o,7,114)
         status=get(o,HEAD+8)
+        if get(o,MODERN)!=0:
+            kind=get(o,HEAD+112)
+            pending=get(o,HEAD+120)
+            if kind>2 or pending>1 or (status==3 and kind==0) or (status!=3 and (kind!=0 or pending!=0)):
+                return quarantine(o,w,114)
+            put(o,NESTED_PENDING,pending)
         if status==3:
             put(o,TYPED_PENDING,1)
+            if get(o,MODERN)!=0:
+                put(o,TYPED_PENDING,get(o,HEAD+112))
             if get(o,ERROR)==0:
                 put(o,ERROR,9)
             return quarantine(o,w,114)
         if status>2:
             return fail(o,7,status)
         put(o,TYPED_PENDING,0)
+        put(o,NESTED_PENDING,0)
         within(o,DET,HEAD+24,24)
         if get(o,RESUME_CLEAN)!=0:
             put(o,RESUME_CLEAN,0)
@@ -332,7 +354,10 @@ def typed_structure(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     return fail(o,9,phase)
 
 def typed_request(o:mutbuf,w:mutbuf,retry:u64) -> u64:
-    request(o,choose(retry==0,TREQUEST,TRETRY),choose(retry==0,get(o,MODE),2))
+    magic=choose(retry==0,TREQUEST,TRETRY)
+    if get(o,MODERN)!=0:
+        magic=choose(retry==0,NEW_TREQUEST,NEW_TRETRY)
+    request(o,magic,choose(retry==0,get(o,MODE),2))
     if retry==0:
         within(o,RQ+16,CAP,24)
     put(o,RQ+40,get(w,80))
@@ -345,12 +370,12 @@ def typed_call(o:mutbuf,w:mutbuf) -> u32:
 def freeze_capture(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==200:
         zero(w,2048,2048)
-        put(w,2048,FCONTEXT)
+        put(w,2048,choose(get(o,MODERN)!=0,NEW_FCONTEXT,FCONTEXT))
         at=8
         while at<88:
             put(w,2048+at,get(w,at))
             at=at+8
-        request(o,FREQUEST,0)
+        request(o,choose(get(o,MODERN)!=0,NEW_FREQUEST,FREQUEST),0)
         within(o,RQ+24,DET,24)
         put(o,FREEZE_ACTIVE,2)
         return invoke(o,201,get(w,120),259,RQ,128,get(o,TOUT),get(o,TOUTN),2048,2048)
@@ -361,15 +386,27 @@ def freeze_capture(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return fail(o,7,get(o,FEEDBACK))
         return memory(o,202,0,get(o,TOUT),3,HEAD,128)
     if phase==202:
-        if get(o,HEAD)!=FREPLY:
+        if get(o,HEAD)!=choose(get(o,MODERN)!=0,NEW_FREPLY,FREPLY):
             return fail(o,7,202)
         status=get(o,HEAD+8)
+        if get(o,MODERN)!=0:
+            retained=get(o,HEAD+56)
+            kind=get(o,HEAD+104)
+            pending=get(o,HEAD+112)
+            if retained>1 or kind>2 or pending>1 or get(w,2144)!=retained:
+                return quarantine(o,w,202)
+            if (retained==0 and (kind!=0 or pending!=0)) or (retained==1 and kind==0):
+                return quarantine(o,w,202)
+            put(o,NESTED_PENDING,pending)
         if get(w,2144)!=0 or get(o,HEAD+56)!=0:
             put(o,FREEZE_ACTIVE,1)
+            if get(o,MODERN)!=0:
+                put(o,FREEZE_ACTIVE,get(o,HEAD+104))
             if get(o,ERROR)==0:
                 put(o,ERROR,9)
             return quarantine(o,w,status)
         put(o,FREEZE_ACTIVE,0)
+        put(o,NESTED_PENDING,0)
         if status==0:
             within(o,FROZCAP,HEAD+16,24)
         if get(o,RESUME_CLEAN)!=0:
@@ -451,22 +488,30 @@ def normalizing(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==350:
         if get(o,STDOUT)!=0:
             raw=get(o,STDOUT)-1
+            if get(o,MODERN)!=0:
+                return system(o,351,436,0,raw,raw,0,0,0,0)
             put(o,STDOUT,0)
             return system(o,351,3,0,raw,0,0,0,0,0)
         return again(o,352)
     if phase==351:
         if get(o,FEEDBACK)!=0:
             return fail(o,8,get(o,FEEDBACK))
+        if get(o,MODERN)!=0:
+            put(o,STDOUT,0)
         return again(o,352)
     if phase==352:
         if get(o,STDERR)!=0:
             raw=get(o,STDERR)-1
+            if get(o,MODERN)!=0:
+                return system(o,353,436,0,raw,raw,0,0,0,0)
             put(o,STDERR,0)
             return system(o,353,3,0,raw,0,0,0,0,0)
         return again(o,get(o,AFTER_CLOSE))
     if phase==353:
         if get(o,FEEDBACK)!=0:
             return fail(o,8,get(o,FEEDBACK))
+        if get(o,MODERN)!=0:
+            put(o,STDERR,0)
         return again(o,get(o,AFTER_CLOSE))
     return fail(o,9,phase)
 
@@ -605,11 +650,19 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,FREEZE_ACTIVE)!=0:
             if get(o,OP)!=1 or get(o,FREEZE_ACTIVE)!=1:
                 return quarantine(o,w,701)
-            request(o,FREQUEST,1)
+            request(o,choose(get(o,MODERN)!=0,NEW_FREQUEST,FREQUEST),1)
             put(o,RESUME_CLEAN,1)
             return invoke(o,201,get(w,120),259,RQ,128,get(o,TOUT),get(o,TOUTN),2048,2048)
+        if get(o,MODERN)!=0 and get(o,VALUE_PENDING)!=0:
+            request(o,VALUE_DROP_INPUT,31)
+            release_begin(o)
+            return value(o,w,705)
         put(o,CLEAN,0)
         return again(o,710)
+    if phase==705:
+        if release_value_retry(o)==0:
+            return quarantine(o,w,get(o,RP+8))
+        return again(o,700)
     if phase==710:
         index=get(o,CLEAN)
         if index>=7:
@@ -643,11 +696,29 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,CLEAN_AT,at)
         put(o,CLEAN_OWNER,owner)
         request(o,choose(owner==1,BREQUEST,VREQUEST),choose(owner==1,3,6))
+        if get(o,MODERN)!=0 and owner==0:
+            request(o,VALUE_DROP_INPUT,29)
+            release_begin(o)
         within(o,RQ+24,at,24)
         if owner==1:
             return payload(o,w,711)
         return value(o,w,711)
     if phase==711:
+        if get(o,MODERN)!=0:
+            if get(o,CLEAN_OWNER)==0:
+                released=release_value(o,get(o,CLEAN_AT))
+                if released==0 or get(o,VALUE_PENDING)!=0:
+                    return quarantine(o,w,get(o,RP+8))
+            else:
+                if payload_ok(o)==False:
+                    known=get(o,FEEDBACK)==0 and get(o,RP)==BREPLY
+                    status=get(o,RP+8)
+                    retryable=known and (status==1 or status==5 or status==6)
+                    put(o,QUARANTINE_KIND,choose(retryable,1,2))
+                    return quarantine(o,w,status)
+                zero(o,get(o,CLEAN_AT),24)
+            put(o,CLEAN,get(o,CLEAN)+1)
+            return again(o,710)
         good=choose(get(o,CLEAN_OWNER)==1,1,0)
         if (good==1 and payload_ok(o)==False) or (good==0 and value_ok(o)==False):
             return quarantine(o,w,get(o,RP+8))
@@ -668,9 +739,18 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,CLEAN,index+1)
             return again(o,720)
         fd=get(o,at)-1
+        if get(o,MODERN)!=0:
+            put(o,CLEAN_AT,at)
+            return system(o,721,436,0,fd,fd,0,0,0,0)
         put(o,at,0)
         return system(o,721,3,0,fd,0,0,0,0,0)
     if phase==721:
+        if get(o,MODERN)!=0:
+            if get(o,FEEDBACK)!=0:
+                return quarantine(o,w,get(o,FEEDBACK))
+            put(o,get(o,CLEAN_AT),0)
+            put(o,CLEAN,get(o,CLEAN)+1)
+            return again(o,720)
         if get(o,FEEDBACK)!=0:
             put(o,ERROR,8)
             put(o,DETAIL,get(o,FEEDBACK))
@@ -711,18 +791,26 @@ def original_error(o:mutbuf,code:u64) -> u32:
     put(o,DETAIL,code)
     return again(o,600)
 def quarantine(o:mutbuf,w:mutbuf,detail:u64) -> u32:
+    if get(o,MODERN)!=0:
+        if get(o,QUARANTINE_KIND)==0:
+            put(o,QUARANTINE_KIND,1)
+        if get(o,TYPED_PENDING)==2 or get(o,FREEZE_ACTIVE)==2:
+            put(o,QUARANTINE_KIND,2)
+        if get(o,DROP_ACTIVE)!=0 and get(o,DROP_KNOWN)!=1:
+            put(o,QUARANTINE_KIND,2)
     put(o,DETAIL,detail)
     to_work(o,w,128,256,896)
     put(w,152,1)
     put(o,QUARANTINED,1)
     return finish(o,9)
+
 def fail(o:mutbuf,status:u64,detail:u64) -> u32:
     put(o,ERROR,status)
     put(o,DETAIL,detail)
     return again(o,700)
 def finish(o:mutbuf,status:u64) -> u32:
     zero(o,0,128)
-    put(o,0,REPLY)
+    put(o,0,choose(get(o,MODERN)!=0,NEW_REPLY,REPLY))
     put(o,8,status)
     if status<=2:
         within(o,16,RESULTCAP,24)
@@ -730,6 +818,10 @@ def finish(o:mutbuf,status:u64) -> u32:
         zero(o,RESULTCAP,24)
     put(o,48,get(o,DETAIL))
     put(o,56,get(o,QUARANTINED))
+    if get(o,MODERN)!=0 and get(o,QUARANTINED)!=0:
+        put(o,64,get(o,QUARANTINE_KIND))
+        pending=get(o,VALUE_PENDING)!=0 or get(o,NESTED_PENDING)!=0
+        put(o,72,choose(pending,1,0))
     return 0
 def raw_read(o:mutbuf,w:mutbuf,next:u64,cap:u64) -> u32:
     count=get(o,RAWN)-get(o,CURSOR)
@@ -755,7 +847,13 @@ def value(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return invoke(o,next,get(w,8),51,RQ,128,RP,32768,get(w,16),get(w,24))
 def payload(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return invoke(o,next,get(w,56),51,RQ,128,RP,512,get(w,64),get(w,72))
+
+def valid(o:mutbuf,at:u64,magic:u64) -> u64:
+    if get(o,FEEDBACK)!=0 or get(o,at)!=magic:
+        return 0
+    return 1
 '''
+SOURCE += '\n' + retirement_source('release_begin', 'release_value', 'release_value_retry')
 def source_program():
     selected={'mapping','request','invoke','memory','system','again','to_work','from_work','copy_source','within','zero','get','put','choose'}
     helpers='\n'.join(ast.unparse(f) for f in ast.parse(HELPERS).body if isinstance(f,ast.FunctionDef) and f.name in selected)

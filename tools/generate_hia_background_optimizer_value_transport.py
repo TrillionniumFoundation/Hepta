@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
+from tools.hia_background_retirement_source import selected as retirement_source
 ROOT=Path(__file__).resolve().parents[1]
 C={
 'MAGIC':int.from_bytes(b'HIABIQ01','little'),'REPLY':int.from_bytes(b'HIABIO01','little'),
@@ -20,6 +21,8 @@ C={
 'FEEDBACK':448,'FR':512,'AR':640,'OWN':768,'RQ':1024,'VP':2048,'VOUT':12288,
 'DIGITS':16384,'TEXT':18432,'TEXTN':304,'TEXTAT':312,
 'BUF':32768,'BUFSIZE':65536,'OUT':131072}
+C.update({'MODERN':320,'VALUE_PENDING':328,'DROP_ACTIVE':336,'DROP_KNOWN':344,'QUARANTINE_KIND':352,'RELEASE_RESULT':360,'RP':2048})
+C.update({k:int.from_bytes(v.encode(),'little') for k,v in {'NEW_MAGIC':'HIABIQ02','NEW_REPLY':'HIABIO02','NEW_CONTEXT':'HIABIC02','VALUE_DROP_INPUT':'HIABVQ02','VALUE_DROP_REPLY':'HIABVR02'}.items()})
 SOURCE=r'''
 def value_transport(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<256:
@@ -44,7 +47,7 @@ def value_transport(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)!=128 or word_load(s,0)!=MAGIC or word_load(s,8)>1:
+    if length(s)!=128 or (word_load(s,0)!=MAGIC and word_load(s,0)!=NEW_MAGIC) or word_load(s,8)>1:
         return 4294967293
     at=16
     while at<128:
@@ -52,14 +55,18 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if used==False and word_load(s,at)!=0:
             return 4294967293
         at=at+8
-    if get(w,0)!=CONTEXT or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
+    modern=word_load(s,0)==NEW_MAGIC
+    if get(w,0)!=choose(modern,NEW_CONTEXT,CONTEXT) or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
         return 4294967293
-    at=88
+    if modern and (get(w,88)>2 or get(w,96)>1):
+        return 4294967293
+    at=choose(modern,112,88)
     while at<256:
         if get(w,at)!=0:
             return 4294967293
         at=at+8
     zero(o,128,OUT-128)
+    put(o,MODERN,choose(modern,1,0))
     put(o,RETRY,word_load(s,8))
     return system(o,1,39,0,0,0,0,0,0,0)
 
@@ -80,8 +87,18 @@ def opening(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,FD,get(w,64))
             put(o,ERROR,get(w,72))
             zero(w,32,48)
+            if get(o,MODERN)!=0:
+                put(o,QUARANTINE_KIND,get(w,88))
+                put(o,VALUE_PENDING,get(w,96))
+                put(o,NEW,get(w,104))
+                zero(w,88,24)
+                if get(o,QUARANTINE_KIND)==2:
+                    return quarantine(o,w,7,2)
+                put(o,QUARANTINE_KIND,0)
             return again(o,700)
         if get(w,32)!=0 or get(w,40)!=0 or get(w,64)!=0:
+            return finish(o,w,6)
+        if get(o,MODERN)!=0 and (get(w,88)!=0 or get(w,96)!=0 or get(w,104)!=0):
             return finish(o,w,6)
         packet(o,5)
         put(o,RQ+24,word_load(s,24))
@@ -321,8 +338,18 @@ def popping(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,RQ+24,FR+8,24)
         return value(o,w,402)
     if phase==402:
+        if get(o,MODERN)!=0:
+            released=release_value(o,FR+8)
+            put(o,RELEASE_RESULT,released)
+            return memory(o,403,3,FR,0,get(o,CURRENT),128)
         if value_ok(o)==False:
             return quarantine(o,w,7,get(o,VP+8))
+        ptr=get(o,CURRENT)
+        put(o,CURRENT,get(o,FR))
+        return deallocate(o,201,ptr)
+    if phase==403:
+        if get(o,RELEASE_RESULT)==0 or get(o,VALUE_PENDING)!=0:
+            return release_blocked(o,w)
         ptr=get(o,CURRENT)
         put(o,CURRENT,get(o,FR))
         return deallocate(o,201,ptr)
@@ -369,6 +396,9 @@ def sealing(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==700:
+        if get(o,MODERN)!=0 and get(o,VALUE_PENDING)!=0:
+            packet(o,31)
+            return value(o,w,760)
         if get(o,OWN)!=0:
             packet(o,6)
             within(o,RQ+24,OWN,24)
@@ -381,10 +411,17 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return memory(o,710,0,get(o,CURRENT),3,FR,128)
         if get(o,FD)!=0:
             fd=get(o,FD)-1
+            if get(o,MODERN)!=0:
+                return system(o,750,436,0,fd,fd,0,0,0,0)
             put(o,FD,0)
             return system(o,750,3,0,fd,0,0,0,0,0)
         return finish(o,w,get(o,ERROR))
     if phase==701:
+        if get(o,MODERN)!=0:
+            released=release_value(o,OWN)
+            if released==0 or get(o,VALUE_PENDING)!=0:
+                return release_blocked(o,w)
+            return again(o,700)
         if value_ok(o)==False:
             return quarantine(o,w,7,get(o,VP+8))
         zero(o,OWN,24)
@@ -404,19 +441,47 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,RQ+24,FR+at,24)
         return value(o,w,711)
     if phase==711:
+        if get(o,MODERN)!=0:
+            released=release_value(o,FR+get(o,READPOS))
+            put(o,RELEASE_RESULT,released)
+            return memory(o,712,3,FR,0,get(o,CURRENT),128)
         if value_ok(o)==False:
             return quarantine(o,w,7,get(o,VP+8))
         zero(o,FR+get(o,READPOS),24)
         return memory(o,700,3,FR,0,get(o,CURRENT),128)
+    if phase==712:
+        if get(o,RELEASE_RESULT)==0 or get(o,VALUE_PENDING)!=0:
+            return release_blocked(o,w)
+        return again(o,700)
+    if phase==760:
+        if release_value_retry(o)==0:
+            return release_blocked(o,w)
+        return again(o,700)
     if phase==750:
         raw=get(o,FEEDBACK)
+        if get(o,MODERN)!=0:
+            if raw!=0:
+                put(o,QUARANTINE_KIND,1)
+                return quarantine(o,w,8,raw)
+            put(o,FD,0)
+            return again(o,700)
         if raw!=0:
             put(o,DETAIL,raw)
             put(o,ERROR,8)
         return finish(o,w,get(o,ERROR))
     return finish(o,w,9)
 
+def release_blocked(o:mutbuf,w:mutbuf) -> u32:
+    put(o,QUARANTINE_KIND,choose(get(o,DROP_KNOWN)==1,1,2))
+    return quarantine(o,w,7,get(o,VP+8))
+
 def quarantine(o:mutbuf,w:mutbuf,status:u64,detail:u64) -> u32:
+    if get(o,MODERN)!=0:
+        if get(o,QUARANTINE_KIND)==0:
+            put(o,QUARANTINE_KIND,1)
+        put(w,88,get(o,QUARANTINE_KIND))
+        put(w,96,get(o,VALUE_PENDING))
+        put(w,104,get(o,NEW))
     put(w,32,get(o,CURRENT))
     put(w,40,get(o,OWN))
     put(w,48,get(o,OWN+8))
@@ -547,7 +612,12 @@ def packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,128)
     put(o,RQ,VREQUEST)
     put(o,RQ+8,op)
+    if get(o,MODERN)!=0 and (op==6 or op==31):
+        put(o,RQ,VALUE_DROP_INPUT)
+        put(o,RQ+8,choose(op==6,29,31))
+        release_begin(o)
     return 0
+
 def value(o:mutbuf,w:mutbuf,next:u64) -> u32:
     put(o,PHASE,next)
     put(o,0,get(w,8))
@@ -602,13 +672,16 @@ def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
         seals=15
         put(o,FD,0)
     zero(o,0,128)
-    put(o,0,REPLY)
+    put(o,0,choose(get(o,MODERN)!=0,NEW_REPLY,REPLY))
     put(o,8,status)
     put(o,16,fd)
     put(o,24,n)
     put(o,32,seals)
     put(o,40,get(o,DETAIL))
     put(o,48,get(o,FAILED_DROP))
+    if get(o,MODERN)!=0 and get(o,FAILED_DROP)!=0:
+        put(o,56,get(o,QUARANTINE_KIND))
+        put(o,64,get(o,VALUE_PENDING))
     return 0
 def again(o:mutbuf,next:u64) -> u32:
     put(o,PHASE,next)
@@ -637,7 +710,19 @@ def hex_digit(n:u64) -> u64:
     if n<10:
         return 48+n
     return 87+n
+
+def valid(o:mutbuf,at:u64,magic:u64) -> u64:
+    if get(o,FEEDBACK)!=0 or get(o,at)!=magic:
+        return 0
+    return 1
+
+def choose(test:bool,yes:u64,no:u64) -> u64:
+    if test:
+        return yes
+    return no
+
 '''
+SOURCE += '\n' + retirement_source('release_begin', 'release_value', 'release_value_retry')
 def source_program():
  s=SOURCE
  for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
