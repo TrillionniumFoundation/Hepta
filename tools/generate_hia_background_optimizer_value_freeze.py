@@ -15,6 +15,8 @@ C={'MAGIC':int.from_bytes(b'HIABFZQ1','little'),'REPLY':int.from_bytes(b'HIABFZR
 'FROZEN':264,'ARENACAP':272,'NODES':280,'KEYS':288,'DEPTH':296,'STATWORK':304,'ERRN':312,
 'QUARANTINED':320,'CLEAN':328,'SAVED':336,'PID':344,'UCHAR':352,'USTART':360,'UEND':368,'UCP':376,'FEEDBACK':448,
 'ST':512,'SW':768,'RQ':1024,'IOC':2048,'RP':4096,'ERR':8192,'IOO':65536,'OUT':262144}
+C.update({'MODERN':384,'QUARANTINE_KIND':392,'VALUE_PENDING':400})
+C.update({k:int.from_bytes(v.encode(),'little') for k,v in {'NEW_MAGIC':'HIABFZQ2','NEW_REPLY':'HIABFZR2','NEW_CONTEXT':'HIABFZC2','NEW_IO_REQUEST':'HIABIQ02','NEW_IO_REPLY':'HIABIO02','NEW_IO_CONTEXT':'HIABIC02'}.items()})
 SOURCE=r'''
 def freeze_value(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<2048:
@@ -33,7 +35,7 @@ def freeze_value(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)!=128 or word_load(s,0)!=MAGIC or word_load(s,8)>1:
+    if length(s)!=128 or (word_load(s,0)!=MAGIC and word_load(s,0)!=NEW_MAGIC) or word_load(s,8)>1:
         return 4294967293
     at=16
     while at<128:
@@ -41,15 +43,19 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if used==False and word_load(s,at)!=0:
             return 4294967293
         at=at+8
-    if get(w,0)!=CONTEXT or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
+    modern=word_load(s,0)==NEW_MAGIC
+    if get(w,0)!=choose(modern,NEW_CONTEXT,CONTEXT) or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
         return 4294967293
     if get(w,32)==0 or get(w,40)==0 or get(w,48)==0 or get(w,56)==0 or get(w,64)==0 or get(w,72)<256:
         return 4294967293
     if (get(w,80)!=0 and get(w,80)<640) or get(w,80)>2147483647 or get(w,96)>1:
         return 4294967293
-    if get(w,104)!=0 or get(w,112)!=0 or get(w,120)!=0:
+    if get(w,120)!=0:
+        return 4294967293
+    if (modern==False and (get(w,104)!=0 or get(w,112)!=0)) or (modern and (get(w,104)>2 or get(w,112)>1)):
         return 4294967293
     zero(o,128,16256)
+    put(o,MODERN,choose(modern,1,0))
     put(o,OP,word_load(s,8))
     return system(o,1,39,0,0,0,0,0,0,0)
 
@@ -70,19 +76,29 @@ def capture_stream(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,QUARANTINED,0)
             put(o,OP,1)
             put(o,CLEAN,0)
+            if get(o,MODERN)!=0:
+                zero(w,104,16)
+                if get(o,QUARANTINE_KIND)==2:
+                    return quarantine(o,w,get(o,DETAIL))
+                put(o,QUARANTINE_KIND,0)
             return again(o,700)
         if get(w,96)!=0:
             return finish(o,6)
         zero(o,IOC,256)
-        put(o,IOC,IO_CONTEXT)
+        put(o,IOC,choose(get(o,MODERN)!=0,NEW_IO_CONTEXT,IO_CONTEXT))
         put(o,IOC+8,get(w,8))
         put(o,IOC+16,get(w,16))
         put(o,IOC+24,get(w,24))
-        request(o,IO_REQUEST,0)
+        request(o,choose(get(o,MODERN)!=0,NEW_IO_REQUEST,IO_REQUEST),0)
         copy_source(s,o,24,RQ+24,24)
         return invoke(o,2,get(w,32),819,RQ,128,IOO,131072,IOC,256)
     if phase==2:
-        if get(o,FEEDBACK)!=0 or get(o,IOO)!=IO_REPLY:
+        if get(o,MODERN)!=0:
+            if io_response(o)==0:
+                if get(o,ERROR)==0:
+                    put(o,ERROR,9)
+                return quarantine(o,w,get(o,FEEDBACK))
+        if get(o,FEEDBACK)!=0 or get(o,IOO)!=choose(get(o,MODERN)!=0,NEW_IO_REPLY,IO_REPLY):
             return fail(o,7,get(o,FEEDBACK))
         if get(o,IOO+8)!=0:
             status=get(o,IOO+8)
@@ -225,8 +241,11 @@ def publishing(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==700:
-        if get(o,IOC+32)!=0 or get(o,IOC+40)!=0 or get(o,IOC+64)!=0:
-            request(o,IO_REQUEST,1)
+        retained=get(o,IOC+32)!=0 or get(o,IOC+40)!=0 or get(o,IOC+64)!=0
+        if get(o,MODERN)!=0 and (get(o,IOC+88)!=0 or get(o,IOC+96)!=0 or get(o,IOC+104)!=0):
+            retained=True
+        if retained:
+            request(o,choose(get(o,MODERN)!=0,NEW_IO_REQUEST,IO_REQUEST),1)
             return invoke(o,701,get(w,32),819,RQ,128,IOO,131072,IOC,256)
         if get(o,ERROR)!=0 and get(o,CAP)!=0:
             request(o,PAYLOAD_REQUEST,3)
@@ -234,11 +253,21 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return invoke(o,702,get(w,56),51,RQ,128,RP,512,get(w,64),get(w,72))
         return again(o,710)
     if phase==701:
-        if get(o,FEEDBACK)!=0 or get(o,IOO)!=IO_REPLY or get(o,IOO+48)!=0 or get(o,IOC+32)!=0 or get(o,IOC+40)!=0 or get(o,IOC+64)!=0:
+        if get(o,MODERN)!=0:
+            if io_response(o)==0:
+                return quarantine(o,w,get(o,FEEDBACK))
+            put(o,VALUE_PENDING,0)
+            put(o,QUARANTINE_KIND,0)
+        if get(o,FEEDBACK)!=0 or get(o,IOO)!=choose(get(o,MODERN)!=0,NEW_IO_REPLY,IO_REPLY) or get(o,IOO+48)!=0 or get(o,IOC+32)!=0 or get(o,IOC+40)!=0 or get(o,IOC+64)!=0:
             return quarantine(o,w,get(o,FEEDBACK))
         return again(o,700)
     if phase==702:
         if get(o,FEEDBACK)!=0 or get(o,RP)!=PAYLOAD_REPLY or get(o,RP+8)!=0:
+            if get(o,MODERN)!=0:
+                known=get(o,FEEDBACK)==0 and get(o,RP)==PAYLOAD_REPLY
+                status=get(o,RP+8)
+                retryable=known and (status==1 or status==5 or status==6)
+                put(o,QUARANTINE_KIND,choose(retryable,1,2))
             return quarantine(o,w,get(o,RP+8))
         zero(o,CAP,24)
         return again(o,700)
@@ -266,10 +295,18 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==720:
         if get(o,FD)!=0:
             fd=get(o,FD)-1
+            if get(o,MODERN)!=0:
+                return system(o,721,436,0,fd,fd,0,0,0,0)
             put(o,FD,0)
             return system(o,721,3,0,fd,0,0,0,0,0)
         return finish(o,get(o,ERROR))
     if phase==721:
+        if get(o,MODERN)!=0:
+            if get(o,FEEDBACK)!=0:
+                put(o,QUARANTINE_KIND,1)
+                return quarantine(o,w,get(o,FEEDBACK))
+            put(o,FD,0)
+            return finish(o,get(o,ERROR))
         if get(o,FEEDBACK)!=0:
             put(o,ERROR,8)
             put(o,DETAIL,get(o,FEEDBACK))
@@ -278,13 +315,40 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     return fail(o,9,phase)
 
 def quarantine(o:mutbuf,w:mutbuf,detail:u64) -> u32:
+    put(o,DETAIL,detail)
+    if get(o,MODERN)!=0:
+        if get(o,QUARANTINE_KIND)==0:
+            put(o,QUARANTINE_KIND,1)
+        put(w,104,get(o,QUARANTINE_KIND))
+        put(w,112,get(o,VALUE_PENDING))
     to_work(o,w,128,128,320)
     to_work(o,w,IOC,512,256)
     to_work(o,w,ERR,768,896)
     put(w,96,1)
     put(o,QUARANTINED,1)
-    put(o,DETAIL,detail)
     return finish(o,9)
+
+def io_response(o:mutbuf) -> u64:
+    put(o,QUARANTINE_KIND,2)
+    if get(o,FEEDBACK)!=0 or get(o,IOO)!=NEW_IO_REPLY or get(o,IOO+48)>1 or get(o,IOO+56)>2 or get(o,IOO+64)>1:
+        return 0
+    retained=get(o,IOO+48)
+    kind=get(o,IOO+56)
+    pending=get(o,IOO+64)
+    if retained==0:
+        if kind!=0 or pending!=0 or get(o,IOC+32)!=0 or get(o,IOC+40)!=0 or get(o,IOC+64)!=0:
+            return 0
+        if get(o,IOC+88)!=0 or get(o,IOC+96)!=0 or get(o,IOC+104)!=0:
+            return 0
+        put(o,QUARANTINE_KIND,0)
+        put(o,VALUE_PENDING,0)
+        return 1
+    if kind==0:
+        return 0
+    put(o,QUARANTINE_KIND,kind)
+    put(o,VALUE_PENDING,pending)
+    return 0
+
 def mapping(o:mutbuf,next:u64,n:u64) -> u32:
     return system(o,next,9,0,0,n,3,34,MAX,0)
 def request(o:mutbuf,magic:u64,op:u64) -> u64:
@@ -329,7 +393,7 @@ def fail(o:mutbuf,status:u64,detail:u64) -> u32:
     return again(o,700)
 def finish(o:mutbuf,status:u64) -> u32:
     zero(o,0,128)
-    put(o,0,REPLY)
+    put(o,0,choose(get(o,MODERN)!=0,NEW_REPLY,REPLY))
     put(o,8,status)
     if status==0:
         within(o,16,CAP,24)
@@ -337,6 +401,9 @@ def finish(o:mutbuf,status:u64) -> u32:
         zero(o,CAP,24)
     put(o,56,get(o,QUARANTINED))
     put(o,64,get(o,DETAIL))
+    if get(o,MODERN)!=0 and get(o,QUARANTINED)!=0:
+        put(o,104,get(o,QUARANTINE_KIND))
+        put(o,112,get(o,VALUE_PENDING))
     if status==1:
         n=get(o,ERRN)
         put(o,48,n)
