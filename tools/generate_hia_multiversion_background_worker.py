@@ -4,12 +4,13 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={'INPUT2':int.from_bytes(b'HIABGW02','little'),'QUEUE_INPUT3':int.from_bytes(b'HIABGQ03','little'),'HANDLER_INPUT2':int.from_bytes(b'HIABGWQ2','little'),'TAKE_SEC':360,'TAKE_NS':368,'TAKE_ERROR':376,'TAKE_VALID':384,'INPUT': 3544428870306449736, 'OUTPUT': 3553154594584480072, 'STATE_MAGIC': 3554280494491322696, 'QUEUE_INPUT': 3544422273236683080, 'QUEUE_REPLY': 3553992422444845384, 'HANDLER_INPUT': 3553717544537901384, 'HANDLER_REPLY': 3553999019514612040, 'NONE': 18446744073709551615, 'NEGATIVE': 18446744073709547521, 'PHASE': 128, 'OP': 136, 'NEXT': 144, 'ERR': 256, 'VALUE': 264, 'STATE': 272, 'TID': 280, 'TERMINAL': 288, 'JOINING': 296, 'CALLER': 304, 'JNI': 312, 'FAIL_PHASE': 328, 'FAIL_CODE': 336, 'ACTIVE': 344, 'SYSRET': 448, 'RQ': 1024, 'RP': 1280, 'JREF': 1792, 'QRP': 2048}
+C.update(INPUT3=int.from_bytes(b'HIABGW03','little'))
 SOURCE=r'''
 def worker(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=128 or length(o)<8192 or length(w)<512:
         return 4294967293
     magic=readword(s,0)
-    if magic!=INPUT and magic!=INPUT2:
+    if magic!=INPUT and magic!=INPUT2 and magic!=INPUT3:
         return 4294967293
     if readword(s,8)>5 or (magic==INPUT2 and readword(s,8)!=0) or valid(s)==0:
         return 4294967293
@@ -34,11 +35,31 @@ def worker(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             put(w,88,readword(s,40))
             put(w,96,readword(s,48))
             put(w,104,readword(s,56))
-            if magic==INPUT2:
+            if magic==INPUT2 or magic==INPUT3:
                 put(w,112,1)
+            if magic==INPUT3:
+                put(w,120,1)
+                put(o,PHASE,3)
+                return 8
             save(o,w)
             return finish(o,0)
         if get(w,0)!=STATE_MAGIC or get(w,8)!=pid:
+            return finish(o,65)
+        if get(w,120)>1 or (magic==INPUT3 and get(w,120)!=1):
+            return finish(o,65)
+        if get(w,120)==1:
+            put(o,PHASE,4)
+            return 8
+        return system(o,2,186,0,0,0,0,0,0,0)
+    if phase==3:
+        if get(o,512)==0 or get(o,520)==0:
+            return finish(o,65)
+        put(w,160,get(o,512))
+        put(w,168,get(o,520))
+        save(o,w)
+        return finish(o,0)
+    if phase==4:
+        if get(o,512)!=get(w,160) or get(o,520)!=get(w,168) or get(w,120)!=1:
             return finish(o,65)
         return system(o,2,186,0,0,0,0,0,0,0)
     if phase==2:

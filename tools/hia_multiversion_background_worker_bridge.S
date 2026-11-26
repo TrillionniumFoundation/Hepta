@@ -19,6 +19,21 @@ hia_mv_background_worker:
     mov rbp,rcx
     mov r14,r8
     mov rbx,r9
+    test r12,r12
+    jz .Lbad
+    test r13,r13
+    jz .Lbad
+    test r14,r14
+    jz .Lbad
+    mov rax,r12
+    add rax,r15
+    jc .Lbad
+    mov rax,r13
+    add rax,rbp
+    jc .Lbad
+    mov rax,r14
+    add rax,rbx
+    jc .Lbad
     cmp rbp,8192
     jb .Lbad
     cmp rbx,512
@@ -54,6 +69,8 @@ policy_hole:
     je .Lstart
     cmp eax,7
     je .Ljoin
+    cmp eax,8
+    je .Lfacts
 .Lbad:
     mov eax,0xfffffffd
     jmp .Lreturn
@@ -105,6 +122,12 @@ policy_hole:
     xor esi,esi
     call pthread_join
     mov eax,eax
+    jmp .Lfeedback
+.Lfacts:
+    mov [r13+512],r14
+    lea rax,[rip+.Lentry]
+    mov [r13+520],rax
+    xor eax,eax
     jmp .Lfeedback
 .Lcas:
     mov rdx,[r13]
