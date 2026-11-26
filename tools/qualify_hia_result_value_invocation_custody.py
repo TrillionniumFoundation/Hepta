@@ -1,7 +1,7 @@
 """Kernel failure and concurrent custody gates for the real native invocation path."""
 from pathlib import Path
 import argparse, ctypes as C, errno, json, os, platform, queue, select, struct, threading, time
-from tools.qualify_hia_result_value_invocations import Bound, Values, Engine, FRESH, echo_field, code_call, sweep, frame, word, ZERO
+from tools.qualify_hia_result_value_invocations import Bound, Values, Engine, make_engine, FRESH, echo_field, code_call, sweep, frame, word, ZERO
 from tools.qualify_hia_native_callable_code_owner import listener, deny_native
 from tools.qualify_hia_result_value_cleanup import Notification, Response, LIBC
 from tools import generate_hia_result_value_invocations_packer as values_pack
@@ -18,7 +18,7 @@ def ip_at(address,prefix):
 def bound(path):
     b=Bound(path);row=b.call(0);assert row['status']==0 and row['state']==2 and row['pending']==0,row
     assert word(b.owner.context,680)==62
-    return b,Values(Engine(b))
+    return b,Values(make_engine(b))
 
 def notified(v,request,ip,numbers,target,handle,output=None):
     ready=queue.Queue();result=queue.Queue();notices=[]
@@ -27,10 +27,10 @@ def notified(v,request,ip,numbers,target,handle,output=None):
             ready.put(listener(ip,numbers))
             if output is None:result.put(v.engine.call(request))
             else:
-                source=C.create_string_buffer(request)
-                rc=int(v.engine.entry(source,len(request),output,16384,v.engine.context,256))
-                assert source.raw==request+b'\0' and output.raw[16384:]==b'\xa5'*64+b'\0'
-                result.put((rc,output.raw[:16384]))
+                rc=v.engine.invoke(request,output,16384)
+                value=v.engine.value_output(output,16384)
+                assert value.raw[16384:]==b'\xa5'*64+b'\0'
+                result.put((rc,value.raw[:16384]))
         except BaseException as exc:ready.put(exc);result.put(exc)
     worker=threading.Thread(target=execute);worker.start()
     fd=ready.get(timeout=30)
@@ -133,7 +133,7 @@ def adoption_contention_case(path,parent):
     b,v=bound(path);f=v.function(FRESH);arguments=v.tuple([])
     before=word(v.raw(47),48)
     value_ip=ip_at(b.value,values_pack)
-    output=C.create_string_buffer(b'\xa5'*(16384+64))
+    output=v.engine.allocate_output(16384)
     blocked={};observed={};ready=queue.Queue();finished=queue.Queue()
     def hold_value():
         try:
@@ -165,7 +165,7 @@ def adoption_contention_case(path,parent):
             observed['denied']=True
             return errno.EIO
         elif notice.data.nr==202 and observed.get('denied')and not observed.get('released'):
-            assert word(output,128)==421 and record is not None and word(record,8)==640
+            assert word(v.engine.value_output(output,16384),128)==421 and record is not None and word(record,8)==640
             assert word(v.engine.context,32)==1
             held=blocked['notice'];reply=Response(held.id,0,0,1)
             assert LIBC.ioctl(blocked['fd'],0xc0182101,C.byref(reply))==0
