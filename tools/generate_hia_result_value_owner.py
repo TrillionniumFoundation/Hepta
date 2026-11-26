@@ -34,6 +34,9 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if length(s)>=8 and readword(s,0)==MAGIC9:
         if length(s)<128 or readword(s,8)!=23:
             return 4294967293
+    if length(s)>=8 and readword(s,0)==MAGIC10:
+        if length(s)<128 or readword(s,8)!=1:
+            return 4294967293
     if length(s)<128 or (request_magic(s)!=MAGIC and request_magic(s)!=MAGIC2 and request_magic(s)!=MAGIC3 and request_magic(s)!=MAGIC4 and request_magic(s)!=MAGIC5) or readword(s,16)!=0 or readword(s,120)!=0 or readword(s,96)!=length(s)-128:
         return 4294967293
     op=readword(s,8)
@@ -84,7 +87,7 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         put(o,P_DROP_KNOWN,1)
     return owner_start(s,o)
 def owner_start(s:readbuf,o:mutbuf) -> u64:
-    if readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or readword(s,0)==MAGIC8 or readword(s,0)==MAGIC9:
+    if readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or readword(s,0)==MAGIC8 or readword(s,0)==MAGIC9 or readword(s,0)==MAGIC10:
         put(o,P_PHASE,15)
         return 12
     return system(o,1,39,0,0,0,0,0,0,0)
