@@ -27,6 +27,9 @@ C.update(MAX=(1<<64)-1,NEGATIVE=(1<<64)-4095,
  ROW=512,RQ=1024,TEMP=1536,RP=2048,FP=4096,VP=69632,OUT=102400)
 C.update(STATE2=int.from_bytes(b'HIAFRCX2','little'),FUT_PRIVATE=int.from_bytes(b'HIABFP04','little'),FUT_ACK3=int.from_bytes(b'HIABFRP3','little'),V_PRIVATE=int.from_bytes(b'HIABVQ05','little'),V_QUERY=int.from_bytes(b'HIABVQ06','little'))
 C.update(REQUEST3=int.from_bytes(b'HIAFRQ03','little'),REPLY3=int.from_bytes(b'HIAFRR03','little'))
+C.update(REQUEST4=int.from_bytes(b'HIAFRQ04','little'),REPLY4=int.from_bytes(b'HIAFRR04','little'),
+ FIXED_CALLBACK=1808,CALLER_OUTPUT=1816,REPLY_BYTES=1824,R_STATUS=1832,R_CLASS=1840,R_KNOWN=1848,
+ R_ATTEMPT=1856,R_ERROR=1864,R_FINAL=3072)
 C.update(REQUEST2=int.from_bytes(b'HIAFRQ02','little'),REPLY2=int.from_bytes(b'HIAFRR02','little'),
  C_NEED_DRAIN=1568,C_RETRY=1576,C_CAPTURE_TAKEN=1584)
 SOURCE=r'''
@@ -36,6 +39,8 @@ def future_resource_owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,PH)
     if phase==0:
         return begin(s,o,w)
+    if phase>=990:
+        return registration(s,o,w,phase)
     if phase>=900:
         return canonical(s,o,w,phase)
     if phase<100:
@@ -69,6 +74,10 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         family=2
         if op>1 or word(s,24)!=7 or read_zero(s,56,72)==False:
             return 4294967293
+    elif word(s,0)==REQUEST4:
+        family=5
+        if op!=0 or read_zero(s,64,64)==False:
+            return 4294967293
     elif word(s,0)==REQUEST3:
         family=4
         if op!=0 or read_zero(s,40,88)==False:
@@ -90,6 +99,7 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     zero(o,128,3968)
     put(o,OP,op)
     put(o,FAMILY,family)
+    put(o,REPLY_BYTES,128)
     if family==2:
         readcopy(s,32,o,CAP,24)
     elif family==0 and op!=0:
@@ -127,8 +137,14 @@ def start(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             if get(w,176)>1:
                 return rejected(o)
             at=184
-        if (get(o,FAMILY)==3 or get(o,FAMILY)==4) and get(w,0)!=STATE2:
+        if (get(o,FAMILY)==3 or get(o,FAMILY)==4 or get(o,FAMILY)==5) and get(w,0)!=STATE2:
             return rejected(o)
+        if get(o,FAMILY)==5:
+            if get(o,FIXED_CALLBACK)==0:
+                return rejected(o)
+            if get(o,CALLER_OUTPUT)<320:
+                return 4294967294
+            put(o,REPLY_BYTES,320)
         while at<256:
             if get(w,at)!=0:
                 return rejected(o)
@@ -186,7 +202,7 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return failure(o,6,0)
         if get(o,FAMILY)==2 and get(o,OP)==1:
             return failure(o,1,0)
-        if get(o,FAMILY)==4:
+        if get(o,FAMILY)==4 or get(o,FAMILY)==5:
             if get(w,176)!=0 or get(w,104)==MAX:
                 return failure(o,6,1)
             put(w,104,get(w,104)+1)
@@ -342,7 +358,7 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             if state==2 and dropping(o):
                 return claim(o,w)
             return failure(o,6,1)
-        if get(o,FAMILY)==4:
+        if get(o,FAMILY)==4 or get(o,FAMILY)==5:
             if get(o,ROW+232)==0:
                 return failure(o,3,0)
             value_packet(o,V_PRIVATE,80)
@@ -689,6 +705,8 @@ def rejected(o:mutbuf) -> u32:
     return finish(o)
 
 def finish(o:mutbuf) -> u32:
+    if get(o,FAMILY)==5:
+        return finish_registration(o)
     zero(o,0,128)
     if get(o,FAMILY)==2:
         put(o,0,FINAL_REPLY)
@@ -926,10 +944,61 @@ def canonical(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,KIND,7)
         put(o,CONSUMED,1)
         put(o,C_NEED_DRAIN,1)
+        if get(o,FAMILY)==5:
+            if get(o,VP+104)!=0:
+                return failure(o,11,1)
+            return unlock(o,990)
         return failure(o,0,get(o,VP+80))
     if phase==983:
         return failure(o,11,1)
     return rejected(o)
+
+
+def registration(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==990:
+        future_packet(o,31,False)
+        copy(o,RQ+16,ROW+64,24)
+        copy(o,RQ+40,ROW+88,24)
+        readcopy(s,40,o,RQ+64,24)
+        put(o,RQ+88,get(o,FIXED_CALLBACK))
+        put(o,R_ATTEMPT,1)
+        return futures(o,w,991)
+    if phase==991:
+        if future_valid(o)==False:
+            put(o,R_KNOWN,0)
+            return failure(o,11,1)
+        put(o,R_STATUS,get(o,FP+8))
+        put(o,R_CLASS,get(o,FP+16))
+        put(o,R_KNOWN,1)
+        if get(o,FP+16)==200:
+            if get(o,FP+72)==0 or get(o,FP+80)==0 or get(o,FP+88)==0:
+                put(o,R_KNOWN,0)
+                return failure(o,11,1)
+            copy(o,R_ERROR,FP+72,24)
+        pending=0
+        if get(o,VALUE_UNMAP)!=0 or get(o,VALUE_QUEUE)!=0:
+            pending=1
+        return failure(o,0,pending)
+    return rejected(o)
+
+def finish_registration(o:mutbuf) -> u32:
+    zero(o,R_FINAL,320)
+    put(o,R_FINAL,REPLY4)
+    put(o,R_FINAL+8,get(o,STATUS))
+    put(o,R_FINAL+16,get(o,KIND))
+    copy(o,R_FINAL+24,RESULT,24)
+    copy(o,R_FINAL+48,R_ERROR,24)
+    put(o,R_FINAL+72,get(o,R_STATUS))
+    put(o,R_FINAL+80,get(o,R_CLASS))
+    put(o,R_FINAL+88,get(o,R_KNOWN))
+    put(o,R_FINAL+96,get(o,KNOWN))
+    put(o,R_FINAL+104,get(o,CONSUMED))
+    put(o,R_FINAL+112,get(o,PENDING))
+    put(o,R_FINAL+120,get(o,R_ATTEMPT))
+    if get(o,R_ATTEMPT)!=0:
+        copy(o,R_FINAL+128,FP,192)
+    copy(o,0,R_FINAL,320)
+    return 0
 
 def canonical_pin_record(o:mutbuf) -> bool:
     if value_valid(o)==False or get(o,VP+88)!=1 or get(o,VP+96)>1 or get(o,VP+120)!=1:

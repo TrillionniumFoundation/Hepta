@@ -76,6 +76,9 @@ C.update(MAGIC2=int.from_bytes(b'HIAPFC02','little'),FREQUEST5=int.from_bytes(b'
  M_BAD=680,M_CUSTODY=688,M_WEAK=728,M_PIN=752,M_BOUND=776,M_ADOPT=784,M_NEXT=792,
  M_LOGKEY=800,M_LOGSTR=824,M_LOGMAP=856,M_LOGQUEUE=864,M_LOGUNKNOWN=872,M_BIND=888)
 C.update(LREQUEST4=int.from_bytes(b'HIAFPL04','little'),LREPLY2=int.from_bytes(b'HIAFPLR2','little'))
+C.update(MAGIC3=int.from_bytes(b'HIAPFC03','little'),CBREQUEST2=int.from_bytes(b'HIAFCBQ2','little'),
+ CBREPLY2=int.from_bytes(b'HIAFCBR2','little'),LREQUEST7=int.from_bytes(b'HIAFPL07','little'),
+ M_NATIVE=920,M_CBCLASS=928)
 SOURCE=r'''
 def future_carrier(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=192 or length(o)<OUT or length(w)<256:
@@ -105,9 +108,11 @@ def future_carrier(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if (readword(s,0)!=MAGIC and readword(s,0)!=MAGIC2) or readword(s,8)>2:
+    if (readword(s,0)!=MAGIC and readword(s,0)!=MAGIC2 and readword(s,0)!=MAGIC3) or readword(s,8)>2:
         return 4294967293
     op=readword(s,8)
+    if readword(s,0)==MAGIC3 and op!=0:
+        return 4294967293
     at=16
     while at<192:
         used=False
@@ -122,8 +127,10 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     zero(o,128,OUT-128)
     put(o,OP,op)
-    if readword(s,0)==MAGIC2:
+    if readword(s,0)==MAGIC2 or readword(s,0)==MAGIC3:
         put(o,M_DEFER,1)
+    if readword(s,0)==MAGIC3:
+        put(o,M_NATIVE,1)
     return system(o,1,39,0,0,0,0,0,0,0)
 
 def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -188,8 +195,12 @@ def locate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,CARRIER)!=readword(s,16):
             put(o,CURSOR,get(o,CHEADER+88))
             return again(o,110)
-        if get(o,CHEADER+112)>1 or get(o,CHEADER+144)>1 or get(o,CHEADER+152)>1:
+        if get(o,CHEADER+112)>1 or get(o,CHEADER+144)>1 or get(o,CHEADER+152)>1 or get(o,CHEADER+160)>1:
             return fail(o,1,107)
+        if get(o,CHEADER+160)!=0:
+            if get(o,CHEADER+112)!=1 or get(o,CHEADER+144)!=1:
+                return fail(o,1,107)
+            put(o,M_NATIVE,1)
         if get(o,CHEADER+112)!=0:
             put(o,M_DEFER,1)
             put(o,M_BOUND,get(o,CHEADER+144))
@@ -254,6 +265,8 @@ def register(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return allocate(o,203,33792)
     if phase==223:
         if get(o,M_BIND)==0 and get(o,M_BIND+8)==0 and get(o,M_BIND+16)==0 and get(o,M_BIND+24)==0:
+            if get(o,M_NATIVE)!=0:
+                return fail(o,1,107)
             return allocate(o,203,33792)
         if get(o,M_BIND)==0 or get(o,M_BIND+8)==0 or get(o,M_BIND+16)!=512 or get(o,M_BIND+24)==0:
             return fail(o,1,107)
@@ -268,6 +281,8 @@ def register(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return fail(o,1,107)
         if get(o,FP+16)==0:
             if get(o,FP+24)!=0 or get(o,FP+32)!=0 or get(o,FP+40)!=0:
+                return fail(o,1,107)
+            if get(o,M_NATIVE)!=0:
                 return fail(o,1,107)
             return allocate(o,203,33792)
         if get(o,FP+16)!=7 or get(o,FP+48)!=get(o,M_BIND+24):
@@ -323,6 +338,7 @@ def register(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             within(o,CHEADER+120,M_WEAK,24)
             put(o,CHEADER+144,get(o,M_BOUND))
             put(o,CHEADER+152,get(o,M_ADOPT))
+            put(o,CHEADER+160,get(o,M_NATIVE))
         put(o,CHEADER+184,get(o,WPTR))
         return memory(o,204,3,CHEADER,0,get(o,CARRIER),256)
     if phase==204:
@@ -391,14 +407,18 @@ def invoke_user(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return lock(o,500)
         within(o,FUTURE_TEMP,FP+16,24)
         zero(o,RQ,192)
-        put(o,RQ,CBREQUEST)
+        put(o,RQ,choose(get(o,M_NATIVE)!=0,CBREQUEST2,CBREQUEST))
         put(o,RQ+16,get(o,F))
         within(o,RQ+24,CHEADER+24,16)
         within(o,RQ+40,FUTURE_TEMP,24)
         within(o,RQ+64,CHEADER+56,24)
+        if get(o,M_NATIVE)!=0:
+            within(o,RQ+88,M_PIN,24)
         zero(o,VP,8192)
         return invoke(o,302,get(o,CHEADER+48),RQ,192,VP,8192,get(o,WPTR),256)
     if phase==302:
+        if get(o,M_NATIVE)!=0:
+            return native_callback_record(o)
         if get(o,FEEDBACK)!=0 or get(o,VP)!=CBREPLY or get(o,VP+8)>2:
             put(o,THROW_KIND,1)
             put(o,THROW_CLASS,107)
@@ -435,7 +455,7 @@ def invoke_user(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return lock(o,500)
         if get(o,USER_KIND)==0:
             return fail(o,0,0)
-        if get(o,VP+16)!=6:
+        if get(o,VP+16)!=choose(get(o,M_NATIVE)!=0,8,6):
             put(o,THROW_KIND,1)
             put(o,THROW_CLASS,107)
             return lock(o,500)
@@ -444,12 +464,83 @@ def invoke_user(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,THROW_CLASS,200)
             return lock(o,500)
         return again(o,400)
+    if phase==340:
+        put(o,CHEADER+208,get(o,VP+256))
+        put(o,CHEADER+216,get(o,VP+120))
+        put(o,CHEADER+224,get(o,VP+264))
+        put(o,CHEADER+232,1)
+        return memory(o,342,3,CHEADER+208,0,get(o,CARRIER)+208,32)
+    if phase==342:
+        return write_pointer(o,343,get(o,CARRIER)+200,1)
+    if phase==343:
+        return guard_error(o,107)
+    if phase==341:
+        return native_callback_continue(o,w)
     return fail(o,1,107)
+
+def native_callback_record(o:mutbuf) -> u32:
+    valid=get(o,FEEDBACK)==0 and get(o,VP)==CBREPLY2 and get(o,VP+8)<=2
+    flags=get(o,VP+120)
+    kind=get(o,VP+16)
+    if flags>7 or get(o,VP+264)>1 or get(o,VP+272)!=0 or get(o,VP+280)!=0:
+        valid=False
+    if kind!=0 and kind!=103 and kind!=107 and kind!=200:
+        valid=False
+    if get(o,VP+8)==0 and kind!=0:
+        valid=False
+    if get(o,VP+8)==2 and kind!=200:
+        valid=False
+    at=24
+    while at<120:
+        if get(o,VP+at)==0:
+            if get(o,VP+at+8)!=0 or get(o,VP+at+16)!=0:
+                valid=False
+        elif get(o,VP+at+8)==0 or get(o,VP+at+16)==0:
+            valid=False
+        at=at+24
+    if (get(o,VP+8)==0 or kind==200) and get(o,VP+24)==0:
+        valid=False
+    if valid:
+        within(o,RETURN_TEMP,VP+24,24)
+        within(o,M_LOGKEY,VP+48,24)
+        within(o,M_LOGSTR,VP+72,24)
+        within(o,M_CBCLASS,VP+96,24)
+        put(o,USER_KIND,get(o,VP+8))
+        put(o,THROW_CLASS,kind)
+        if (flags&1)!=0:
+            put(o,M_UNMAP,1)
+        if (flags&2)!=0:
+            put(o,M_QUEUE,1)
+    if valid==False or (flags&4)!=0:
+        # The actual carrier allocation keeps the entire unresolved receipt.
+        # Its unknown fence prevents later destruction or blind repeated drop.
+        put(o,M_BAD,1)
+        put(o,GBAD,1)
+        return memory(o,340,3,VP,0,get(o,CARRIER)+256,256)
+    if (flags&1)!=0:
+        return write_pointer(o,341,get(o,CARRIER)+192,1)
+    return again(o,341)
+
+def native_callback_continue(o:mutbuf,w:mutbuf) -> u32:
+    if get(o,M_LOGKEY)!=0 or get(o,M_LOGSTR)!=0 or get(o,M_CBCLASS)!=0 or get(o,VP+264)!=0:
+        put(o,THROW_KIND,1)
+        put(o,THROW_CLASS,107)
+        return lock(o,500)
+    if get(o,THROW_CLASS)==103 or get(o,THROW_CLASS)==107:
+        put(o,THROW_KIND,1)
+        return lock(o,500)
+    if same_cap(o,RETURN_TEMP,CHEADER+56) or same_cap(o,RETURN_TEMP,M_PIN):
+        put(o,M_BAD,1)
+        put(o,GBAD,1)
+        return memory(o,340,3,VP,0,get(o,CARRIER)+256,256)
+    value_packet(o,7)
+    within(o,RQ+24,RETURN_TEMP,24)
+    return value(o,w,303)
 
 def classify(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==400:
         zero(o,RQ,192)
-        put(o,RQ,choose(get(o,M_DEFER)!=0,LREQUEST4,LREQUEST))
+        put(o,RQ,choose(get(o,M_NATIVE)!=0,LREQUEST7,choose(get(o,M_DEFER)!=0,LREQUEST4,LREQUEST)))
         within(o,RQ+24,RETURN_TEMP,24)
         return invoke(o,401,get(w,176),RQ,192,VP,16384,get(o,WPTR),256)
     if phase==401:
@@ -598,6 +689,10 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             value_packet(o,6)
             within(o,RQ+24,M_LOGSTR,24)
             return value(o,w,907)
+        if get(o,M_CBCLASS)!=0:
+            value_packet(o,6)
+            within(o,RQ+24,M_CBCLASS,24)
+            return value(o,w,908)
         if get(o,GPTR)!=0:
             return guard_snapshot(o,1640)
         if get(o,NEWC)!=0:
@@ -627,7 +722,7 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,CLASS,107)
         zero(o,ENV_TEMP,24)
         return again(o,900)
-    if phase==905 or phase==906 or phase==907:
+    if phase==905 or phase==906 or phase==907 or phase==908:
         if value_ok(o)==False:
             guard_failed(o)
         if get(o,M_CUSTODY)!=1:
@@ -637,8 +732,10 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             zero(o,M_PIN,24)
         elif phase==906:
             zero(o,M_LOGKEY,24)
-        else:
+        elif phase==907:
             zero(o,M_LOGSTR,24)
+        else:
+            zero(o,M_CBCLASS,24)
         return again(o,900)
     if phase==904:
         put(o,NEWC,0)
@@ -773,6 +870,7 @@ def guard_shadow_current(o:mutbuf,to:u64) -> u64:
         guard_shadow_cap(o,to+96,2,M_PIN)
         guard_shadow_cap(o,to+128,2,M_LOGKEY)
         guard_shadow_cap(o,to+160,2,M_LOGSTR)
+        guard_shadow_cap(o,to+192,2,M_CBCLASS)
     return 0
 
 
@@ -891,6 +989,7 @@ def guard_quarantine(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         zero(o,M_PIN,24)
         zero(o,M_LOGKEY,24)
         zero(o,M_LOGSTR,24)
+        zero(o,M_CBCLASS,24)
         zero(o,GCAP,24)
         put(o,GPTR,0)
         put(o,GBAD,0)
