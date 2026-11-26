@@ -5,11 +5,12 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={'INPUT':int.from_bytes(b'HIABJRF1','little'),'OUTPUT':int.from_bytes(b'HIABJRO1','little'),'CONTEXT':int.from_bytes(b'HIABJRC1','little'),'JOB_INPUT':int.from_bytes(b'HIABJO01','little'),'JOB_OUTPUT':int.from_bytes(b'HIABJOR1','little'),'PHASE':128,'FEEDBACK':136,'RQ':256,'RP':512}
+C.update({'INPUT2':int.from_bytes(b'HIABJRF2','little'),'OUTPUT2':int.from_bytes(b'HIABJRO2','little'),'JOB_INPUT3':int.from_bytes(b'HIABJO03','little'),'JOB_OUTPUT2':int.from_bytes(b'HIABJOR2','little'),'PROFILE':144,'CONSUMED':152,'KNOWN':160,'PENDING':168})
 SOURCE=r'''
 def job_refs(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=64 or length(o)<4096 or length(w)<64:
         return 4294967293
-    if word_load(s,0)!=INPUT or word_load(s,8)<1 or word_load(s,8)>2:
+    if (word_load(s,0)!=INPUT and word_load(s,0)!=INPUT2) or word_load(s,8)<1 or word_load(s,8)>2:
         return 4294967293
     if word_load(s,40)!=0 or word_load(s,48)!=0 or word_load(s,56)!=0:
         return 4294967293
@@ -19,9 +20,13 @@ def job_refs(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     phase=word_load(o,PHASE)
     if phase==0:
+        put(o,PROFILE,choose(word_load(s,0)==INPUT2,1,0))
+        put(o,CONSUMED,0)
+        put(o,KNOWN,0)
+        put(o,PENDING,0)
         zero(o,RQ,128)
-        put(o,RQ,JOB_INPUT)
-        put(o,RQ+8,word_load(s,8)+1)
+        put(o,RQ,choose(special(s)!=0,JOB_INPUT3,JOB_INPUT))
+        put(o,RQ+8,choose(special(s)!=0,11,word_load(s,8)+1))
         put(o,RQ+24,word_load(s,16))
         put(o,RQ+32,word_load(s,24))
         put(o,RQ+40,word_load(s,32))
@@ -36,8 +41,22 @@ def job_refs(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(o,56,word_load(w,24))
         return 4
     if phase==1:
-        if word_load(o,FEEDBACK)!=0 or word_load(o,RP)!=JOB_OUTPUT:
+        wanted=choose(special(s)!=0,JOB_OUTPUT2,JOB_OUTPUT)
+        if word_load(o,FEEDBACK)!=0 or word_load(o,RP)!=wanted:
             return finish(o,9,0,0,0)
+        if word_load(o,PROFILE)!=0 and word_load(s,8)==2:
+            status=word_load(o,RP+8)
+            consumed=word_load(o,RP+128)
+            pending=word_load(o,RP+144)
+            if consumed>1 or word_load(o,RP+136)!=1 or pending>1:
+                return finish(o,9,0,0,0)
+            if status!=0 and status!=1 and status!=5 and status!=6 and status!=9:
+                return finish(o,9,0,0,0)
+            if (status==0 and (consumed!=1 or pending!=0)) or (status==1 and consumed!=0):
+                return finish(o,9,0,0,0)
+            put(o,CONSUMED,word_load(o,RP+128))
+            put(o,KNOWN,word_load(o,RP+136))
+            put(o,PENDING,word_load(o,RP+144))
         status=word_load(o,RP+8)
         if status!=0:
             return finish(o,status,0,0,0)
@@ -50,12 +69,26 @@ def job_refs(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
 
 def finish(o:mutbuf,status:u64,node:u64,a:u64,b:u64) -> u32:
     zero(o,0,128)
-    put(o,0,OUTPUT)
+    put(o,0,choose(word_load(o,PROFILE)!=0,OUTPUT2,OUTPUT))
     put(o,8,status)
     put(o,16,node)
     put(o,24,a)
     put(o,32,b)
+    if word_load(o,PROFILE)!=0:
+        put(o,40,word_load(o,CONSUMED))
+        put(o,48,word_load(o,KNOWN))
+        put(o,56,word_load(o,PENDING))
     return 0
+
+def special(s:readbuf) -> u64:
+    if word_load(s,0)==INPUT2 and word_load(s,8)==2:
+        return 1
+    return 0
+
+def choose(test:bool,yes:u64,no:u64) -> u64:
+    if test:
+        return yes
+    return no
 
 def put(w:mutbuf,at:u64,n:u64) -> u64:
     i=0

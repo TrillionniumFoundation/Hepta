@@ -1,11 +1,13 @@
 """Fixed native accounting: real queue custody, observations, freezing and ledger."""
 from pathlib import Path
+from tools import hia_background_retirement_source as R
 import ast,re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 from tools.generate_hia_background_optimizer_value_freeze import SOURCE as BASE
 ROOT=Path(__file__).resolve().parents[1]
 C={
+'DROP_ACTIVE':800,'DROP_KNOWN':808,'JOB_PENDING':816,'FUTURE_PENDING':824,'VALUE_PENDING':832,'QUARANTINE_KIND':840,
 'MAGIC':int.from_bytes(b'HIABACQ1','little'),'REPLY':int.from_bytes(b'HIABACR1','little'),'CONTEXT':int.from_bytes(b'HIABACC1','little'),
 'VALUE_INPUT':int.from_bytes(b'HIABVQ01','little'),'VALUE_REPLY':int.from_bytes(b'HIABVR01','little'),
 'JOB_INPUT':int.from_bytes(b'HIABJO01','little'),'JOB_REPLY':int.from_bytes(b'HIABJOR1','little'),
@@ -26,6 +28,7 @@ C={
 'PUB_ERROR':696,'SETTLED':720,'TID':728,'STATUS_VALUE':752,'CONTROL_N':896,
 'TS':2048,'ST':2304,'RQ':4096,'RP':8192,'RP_N':73728,'PUBLIC_OUT':81920,
 'REPORT_OUT':147456,'REPORT_WORK':155648,'FREEZE_WORK':188416,'REPORT_SOURCE':190464,'ERR':191488,'FREEZE_OUT':196608,'OUT':524288}
+C.update(R.MAGICS)
 SOURCE=r'''
 def account(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<4096:
@@ -90,6 +93,8 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             from_work(w,o,256,128,CONTROL_N)
             from_work(w,o,1152,FREEZE_WORK,2048)
             from_work(w,o,3200,ERR,896)
+            if get(o,QUARANTINE_KIND)==2:
+                return finish(o,9)
             put(w,248,0)
             put(o,QUARANTINED,0)
             put(o,OP,1)
@@ -443,6 +448,8 @@ def settlement(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==700:
+        if get(o,DROP_ACTIVE)!=0 and get(o,DROP_KNOWN)!=1:
+            return quarantine(o,w,700)
         if get(o,FREEZE_WORK+96)!=0:
             request(o,FREEZE_INPUT,1)
             return invoke(o,701,get(w,40),819,RQ,128,FREEZE_OUT,262144,FREEZE_WORK,2048)
@@ -471,11 +478,13 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return again(o,710)
         put(o,SAVED,at)
         if index==0:
-            request(o,JOB_INPUT,3)
+            release_begin(o)
+            request(o,JOB_DROP_INPUT,11)
             within(o,RQ+24,at,24)
             return jobs(o,w,711)
         if index==3:
-            request(o,PUBLIC_INPUT,6)
+            release_begin(o)
+            request(o,PUBLIC_DROP_INPUT,26)
             from_work(w,o,136,RQ+16,24)
             within(o,RQ+40,at,24)
             return public(o,w,712)
@@ -487,34 +496,67 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             request(o,DEC_INPUT,3)
             within(o,RQ+24,at,24)
             return invoke(o,714,get(w,168),51,RQ,128,RP,512,get(w,176),get(w,184))
-        request(o,VALUE_INPUT,6)
+        release_begin(o)
+        request(o,VALUE_DROP_INPUT,29)
         within(o,RQ+24,at,24)
         return values(o,w,715,128)
     if phase>=711 and phase<=715:
-        out=RP
-        magic=VALUE_REPLY
+        done=0
         if phase==711:
-            magic=JOB_REPLY
+            done=release_job(o,get(o,SAVED))
         elif phase==712:
-            out=PUBLIC_OUT
-            magic=PUBLIC_REPLY
-        elif phase==713:
-            magic=PAYLOAD_REPLY
-        elif phase==714:
-            magic=DEC_REPLY
-        if valid(o,out,magic)==0 or get(o,out+8)!=0:
+            done=release_future(o,get(o,SAVED))
+        elif phase==715:
+            done=release_value(o,get(o,SAVED))
+        else:
+            magic=choose(phase==713,PAYLOAD_REPLY,DEC_REPLY)
+            if valid(o,RP,magic)!=0 and get(o,RP+8)==0:
+                zero(o,get(o,SAVED),24)
+                done=1
+        if done==0:
             return quarantine(o,w,phase)
-        zero(o,get(o,SAVED),24)
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,710)
     if phase==730:
         if get(o,DYNAMIC)!=0:
             return deallocate(o,731,get(o,DYNAMIC))
-        return finish(o,get(o,ERROR))
+        return again(o,740)
     if phase==731:
         put(o,DYNAMIC,0)
         put(o,DYNAMIC_N,0)
+        return again(o,740)
+    if phase==740:
+        if get(o,JOB_PENDING)!=0:
+            release_begin(o)
+            request(o,JOB_DROP_INPUT,12)
+            return jobs(o,w,741)
+        if get(o,FUTURE_PENDING)!=0:
+            release_begin(o)
+            request(o,PUBLIC_INPUT,20)
+            return public(o,w,742)
+        if get(o,VALUE_PENDING)!=0:
+            release_begin(o)
+            request(o,VALUE_DROP_INPUT,31)
+            return values(o,w,744,128)
         return finish(o,get(o,ERROR))
+    if phase==741:
+        if release_job_retry(o)==0:
+            return quarantine(o,w,741)
+        return again(o,740)
+    if phase==742:
+        if release_future_retry(o)==0:
+            return quarantine(o,w,742)
+        release_begin(o)
+        request(o,CELL_QUERY_INPUT,21)
+        return invoke(o,743,get(w,192),51,RQ,128,RP,16384,get(w,200),get(w,208))
+    if phase==743:
+        if release_cell_query(o)==0:
+            return quarantine(o,w,743)
+        return again(o,740)
+    if phase==744:
+        if release_value_retry(o)==0:
+            return quarantine(o,w,744)
+        return again(o,740)
     return quarantine(o,w,phase)
 
 def values(o:mutbuf,w:mutbuf,next:u64,n:u64) -> u32:
@@ -557,6 +599,19 @@ def fail(o:mutbuf,status:u64,detail:u64) -> u32:
     put(o,CLEAN,0)
     return again(o,700)
 def quarantine(o:mutbuf,w:mutbuf,detail:u64) -> u32:
+    kind=2
+    if get(o,DROP_ACTIVE)!=0 and get(o,DROP_KNOWN)==1:
+        kind=1
+    if detail==713 and valid(o,RP,PAYLOAD_REPLY)!=0:
+        status=get(o,RP+8)
+        if status==1 or status==5 or status==6:
+            kind=1
+    if detail==714 and valid(o,RP,DEC_REPLY)!=0:
+        status=get(o,RP+8)
+        if status==1 or status==5 or status==6:
+            kind=1
+    put(o,QUARANTINE_KIND,kind)
+    put(o,QUARANTINED,1)
     to_work(o,w,128,256,CONTROL_N)
     to_work(o,w,FREEZE_WORK,1152,2048)
     to_work(o,w,ERR,3200,896)
@@ -603,6 +658,7 @@ def clock_decimal(o:mutbuf,at:u64,seconds:u64,nanos:u64) -> u64:
         i=i+1
     return n+9
 '''
+SOURCE+='\n'+R.SOURCE
 def source_program():
  s=SOURCE
  statuses=('published','abstained','stale','rejected','cancelled','interrupted')

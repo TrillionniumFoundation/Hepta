@@ -1,0 +1,75 @@
+{
+  "schema": "hia.background-native-shutdown-development.v1",
+  "native_built": false,
+  "runtime_qualified": false,
+  "whole_background_qualified": false,
+  "base_commit": "485a339defe2bc4b92e298610afff699d6c4eabf",
+  "sources": [
+    {
+      "path": "tools/generate_hia_background_optimizer_shutdown.py",
+      "bytes": 17967,
+      "sha256": "759885463bdbec3e5f7dd23f42228cf135d62af49bef9c956501c1656d39535c",
+      "runtime_required": false
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_shutdown_packer.py",
+      "bytes": 3373,
+      "sha256": "84d3be634c7076115205d028bf4090f1931903402a7fecae8125c073825af739",
+      "runtime_required": false
+    },
+    {
+      "path": "tools/hia_background_optimizer_shutdown_bridge.S",
+      "bytes": 2932,
+      "sha256": "559bbbade29b8f92f0a159d7cca4e1a29a393269963b822f904a904d4394ed14",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_shutdown.hepta",
+      "bytes": 134292,
+      "sha256": "fd89da3bb9f7b39ff2b47d3fb2b881dd89caa9edfda696b4b8785c7a8cde81c1",
+      "runtime_required": true
+    },
+    {
+      "path": "examples/hia_bootstrap/background_optimizer_shutdown_packer.hepta",
+      "bytes": 33181,
+      "sha256": "b89044dea23d58218c0c63982210d213a7b70042ff309f656407585ca3429a73",
+      "runtime_required": true
+    },
+    {
+      "path": "tools/hia_background_retirement_source.py",
+      "bytes": 5917,
+      "sha256": "ce1328e298484297a1817ff6301f728c18690cbfa1c986c8e42d3fe7e40bd43e",
+      "runtime_required": false
+    }
+  ],
+  "author_validation": {
+    "role": "background_optimizer_shutdown",
+    "functions": 46,
+    "blocks": 556,
+    "operations": 2381,
+    "maximum_function_blocks": 78,
+    "maximum_function_values": 512,
+    "maximum_block_parameters": 10
+  },
+  "mechanical_template": {
+    "passed": true,
+    "scope": "external mechanical template byte comparison only; native product not constructed",
+    "source_sha256": "559bbbade29b8f92f0a159d7cca4e1a29a393269963b822f904a904d4394ed14",
+    "bytes": 529,
+    "sha256": "fe1caf40da9e357d17e42180023865b108bd96b1028b46f694d0fca2bcb482c7"
+  },
+  "pending": [
+    "actual sealed native compilation and native pack/link",
+    "original shutdown and callback ordering comparison",
+    "real concurrent/reentrant shutdown and native pthread join",
+    "retained ownership, actual allocation and cleanup failures",
+    "coherent inherited Future and insertion-order ledger integration"
+  ],
+  "required_private_profiles": [
+    "HIABGQ04",
+    "HIABJO03",
+    "HIABFP03/op26",
+    "HIABFQ04/op21",
+    "HIABVQ02/29,31"
+  ]
+}
