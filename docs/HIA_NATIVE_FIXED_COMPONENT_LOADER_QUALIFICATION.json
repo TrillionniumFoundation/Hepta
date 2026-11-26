@@ -1,0 +1,834 @@
+{
+  "actual_groups": [
+    {
+      "name": "basic",
+      "passed": true,
+      "result": {
+        "actual_native_recursive_child": {
+          "cleanup_error": 0,
+          "depth": 0,
+          "error": 0,
+          "fds": 0,
+          "known": 1,
+          "maps": 0,
+          "pending": 0,
+          "phase": 0,
+          "removed": 3,
+          "retired": 1,
+          "root_removed": 1,
+          "status": 0,
+          "visited": 2
+        },
+        "busy_close": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 0,
+          "count": 1,
+          "detail": 1,
+          "export_count": 0,
+          "exports": [],
+          "known": 1,
+          "pending": 0,
+          "retired": 0,
+          "source_fd": 0,
+          "state": 2,
+          "status": 6
+        },
+        "fd_and_mapping_balance": true,
+        "passed": true,
+        "true_consumed_drop": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 1,
+          "count": 0,
+          "detail": 0,
+          "export_count": 0,
+          "exports": [],
+          "known": 1,
+          "pending": 0,
+          "retired": 0,
+          "source_fd": 0,
+          "state": 2,
+          "status": 0
+        }
+      }
+    },
+    {
+      "name": "cap-guards",
+      "passed": true,
+      "result": {
+        "foreign_wrong_nonce_zero_and_arbitrary_caps_refused": true,
+        "passed": true
+      }
+    },
+    {
+      "name": "wire-fork-copy",
+      "passed": true,
+      "result": {
+        "copied_and_forked_context_no_write": true,
+        "passed": true,
+        "span_controls": 7,
+        "wire_controls": 11
+      }
+    },
+    {
+      "name": "missing-export",
+      "passed": true,
+      "result": {
+        "actual_missing_file_export_and_catalog": [
+          {
+            "cap": [
+              0,
+              0,
+              0
+            ],
+            "consumed": 0,
+            "count": 0,
+            "detail": 2,
+            "export_count": 0,
+            "exports": [],
+            "known": 1,
+            "pending": 0,
+            "retired": 1,
+            "source_fd": 0,
+            "state": 4,
+            "status": 1
+          },
+          {
+            "cap": [
+              0,
+              0,
+              0
+            ],
+            "consumed": 0,
+            "count": 0,
+            "detail": 200,
+            "export_count": 0,
+            "exports": [],
+            "known": 1,
+            "pending": 0,
+            "retired": 1,
+            "source_fd": 0,
+            "state": 4,
+            "status": 4
+          },
+          {
+            "cap": [
+              0,
+              0,
+              0
+            ],
+            "consumed": 0,
+            "count": 0,
+            "detail": 4294967293,
+            "export_count": 0,
+            "exports": [],
+            "known": 1,
+            "pending": 0,
+            "retired": 1,
+            "source_fd": 0,
+            "state": 4,
+            "status": 3
+          }
+        ],
+        "fd_and_mapping_balance": true,
+        "passed": true
+      }
+    },
+    {
+      "name": "actual-hash-mutation",
+      "passed": true,
+      "result": {
+        "actual": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 0,
+          "count": 0,
+          "detail": 22,
+          "export_count": 0,
+          "exports": [],
+          "known": 1,
+          "pending": 0,
+          "retired": 1,
+          "source_fd": 0,
+          "state": 4,
+          "status": 2
+        },
+        "actual_sha_mismatch_rejected_before_dlopen": true,
+        "passed": true
+      }
+    },
+    {
+      "name": "source-fd-lifetime",
+      "passed": true,
+      "result": {
+        "actual_source_directory_fd_survives_rename_until_last_borrow": true,
+        "passed": true
+      }
+    },
+    {
+      "name": "8thread-borrow-drop",
+      "passed": true,
+      "result": {
+        "passed": true,
+        "real_borrow_drop_pairs": 128,
+        "snapshot_facts_observed": true,
+        "threads": 8
+      }
+    },
+    {
+      "name": "allocation-failures",
+      "passed": true,
+      "result": {
+        "actual_mmap_getrandom_failure_no_cap_publication": [
+          {
+            "cap": [
+              0,
+              0,
+              0
+            ],
+            "consumed": 0,
+            "count": 0,
+            "detail": 18446744073709551611,
+            "export_count": 0,
+            "exports": [],
+            "known": 1,
+            "pending": 0,
+            "retired": 0,
+            "source_fd": 0,
+            "state": 2,
+            "status": 9
+          },
+          {
+            "cap": [
+              0,
+              0,
+              0
+            ],
+            "consumed": 0,
+            "count": 0,
+            "detail": 18446744073709551611,
+            "export_count": 0,
+            "exports": [],
+            "known": 1,
+            "pending": 0,
+            "retired": 0,
+            "source_fd": 0,
+            "state": 2,
+            "status": 1
+          }
+        ],
+        "passed": true,
+        "real_recovery": true
+      }
+    },
+    {
+      "name": "drop-munmap-retry",
+      "passed": true,
+      "result": {
+        "actual_munmap_eio": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 1,
+          "count": 0,
+          "detail": 18446744073709551611,
+          "export_count": 0,
+          "exports": [],
+          "known": 1,
+          "pending": 1,
+          "retired": 0,
+          "source_fd": 0,
+          "state": 2,
+          "status": 1
+        },
+        "actual_other_thread_retry": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 0,
+          "count": 0,
+          "detail": 0,
+          "export_count": 0,
+          "exports": [],
+          "known": 1,
+          "pending": 0,
+          "retired": 0,
+          "source_fd": 0,
+          "state": 2,
+          "status": 0
+        },
+        "no_double_consumption": true,
+        "passed": true
+      }
+    },
+    {
+      "name": "fd-close-retry",
+      "passed": true,
+      "result": {
+        "actual_close_range_eio": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 0,
+          "count": 0,
+          "detail": 18446744073709551611,
+          "export_count": 0,
+          "exports": [],
+          "known": 1,
+          "pending": 1,
+          "retired": 0,
+          "source_fd": 0,
+          "state": 3,
+          "status": 1
+        },
+        "actual_retry": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 0,
+          "count": 0,
+          "detail": 0,
+          "export_count": 0,
+          "exports": [],
+          "known": 1,
+          "pending": 0,
+          "retired": 1,
+          "source_fd": 0,
+          "state": 4,
+          "status": 0
+        },
+        "passed": true
+      }
+    },
+    {
+      "name": "enosys-close-fallback",
+      "passed": true,
+      "result": {
+        "actual_close_range_enosys_close_success": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 1,
+          "count": 0,
+          "detail": 0,
+          "export_count": 0,
+          "exports": [],
+          "known": 1,
+          "pending": 0,
+          "retired": 1,
+          "source_fd": 0,
+          "state": 4,
+          "status": 0
+        },
+        "passed": true
+      }
+    },
+    {
+      "name": "ambiguous-close",
+      "passed": true,
+      "result": {
+        "actual_ambiguous_close_quarantined": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 0,
+          "count": 0,
+          "detail": 18446744073709551611,
+          "export_count": 0,
+          "exports": [],
+          "known": 0,
+          "pending": 1,
+          "retired": 0,
+          "source_fd": 0,
+          "state": 5,
+          "status": 5
+        },
+        "owned_qa_subprocess_exit_reclaims_isolated_leak": true,
+        "passed": true,
+        "retry_does_not_invent_ack": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 0,
+          "count": 0,
+          "detail": 18446744073709551611,
+          "export_count": 0,
+          "exports": [],
+          "known": 0,
+          "pending": 1,
+          "retired": 0,
+          "source_fd": 0,
+          "state": 5,
+          "status": 5
+        }
+      }
+    },
+    {
+      "name": "initial-syscall-failures",
+      "passed": true,
+      "result": {
+        "actual_initial_syscall_failures": [
+          {
+            "reply": {
+              "cap": [
+                0,
+                0,
+                0
+              ],
+              "consumed": 0,
+              "count": 0,
+              "detail": 18446744073709551611,
+              "export_count": 0,
+              "exports": [],
+              "known": 1,
+              "pending": 0,
+              "retired": 1,
+              "source_fd": 0,
+              "state": 4,
+              "status": 1
+            },
+            "syscall": 257
+          },
+          {
+            "reply": {
+              "cap": [
+                0,
+                0,
+                0
+              ],
+              "consumed": 0,
+              "count": 0,
+              "detail": 18446744073709551611,
+              "export_count": 0,
+              "exports": [],
+              "known": 1,
+              "pending": 0,
+              "retired": 1,
+              "source_fd": 0,
+              "state": 4,
+              "status": 1
+            },
+            "syscall": 5
+          },
+          {
+            "reply": {
+              "cap": [
+                0,
+                0,
+                0
+              ],
+              "consumed": 0,
+              "count": 0,
+              "detail": 18446744073709551611,
+              "export_count": 0,
+              "exports": [],
+              "known": 1,
+              "pending": 0,
+              "retired": 1,
+              "source_fd": 0,
+              "state": 4,
+              "status": 9
+            },
+            "syscall": 9
+          },
+          {
+            "reply": {
+              "cap": [
+                0,
+                0,
+                0
+              ],
+              "consumed": 0,
+              "count": 0,
+              "detail": 18446744073709551611,
+              "export_count": 0,
+              "exports": [],
+              "known": 1,
+              "pending": 0,
+              "retired": 1,
+              "source_fd": 0,
+              "state": 4,
+              "status": 1
+            },
+            "syscall": 319
+          },
+          {
+            "reply": {
+              "cap": [
+                0,
+                0,
+                0
+              ],
+              "consumed": 0,
+              "count": 0,
+              "detail": 18446744073709551611,
+              "export_count": 0,
+              "exports": [],
+              "known": 1,
+              "pending": 0,
+              "retired": 1,
+              "source_fd": 0,
+              "state": 4,
+              "status": 1
+            },
+            "syscall": 72
+          },
+          {
+            "reply": {
+              "cap": [
+                0,
+                0,
+                0
+              ],
+              "consumed": 0,
+              "count": 0,
+              "detail": 18446744073709551611,
+              "export_count": 0,
+              "exports": [],
+              "known": 1,
+              "pending": 0,
+              "retired": 1,
+              "source_fd": 0,
+              "state": 4,
+              "status": 1
+            },
+            "syscall": 17
+          }
+        ],
+        "passed": true
+      }
+    },
+    {
+      "name": "post-dlclose-observation-retry",
+      "passed": true,
+      "result": {
+        "actual_dlclose_already_consumed_but_maps_open_failed": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 0,
+          "count": 0,
+          "detail": 18446744073709551611,
+          "export_count": 0,
+          "exports": [],
+          "known": 1,
+          "pending": 1,
+          "retired": 0,
+          "source_fd": 0,
+          "state": 3,
+          "status": 1
+        },
+        "no_second_dlclose": true,
+        "passed": true
+      }
+    },
+    {
+      "name": "actual-ld-munmap-failure",
+      "passed": true,
+      "result": {
+        "actual_libc_munmap_eio_did_not_become_false_retired_ack": {
+          "cap": [
+            0,
+            0,
+            0
+          ],
+          "consumed": 0,
+          "count": 0,
+          "detail": 712,
+          "export_count": 0,
+          "exports": [],
+          "known": 0,
+          "pending": 1,
+          "retired": 0,
+          "source_fd": 0,
+          "state": 5,
+          "status": 5
+        },
+        "actual_owned_image_still_mapped": true,
+        "passed": true,
+        "quarantine_retained": true
+      }
+    },
+    {
+      "name": "native-lock-wait-wake-fault",
+      "passed": true,
+      "result": {
+        "actual_getrandom_holds_native_mutex": true,
+        "passed": true,
+        "real_denied_wake_does_not_strand_waiter": true,
+        "real_timed_futex_waits": [
+          {
+            "operation": 128,
+            "syscall": 202,
+            "timespec": [
+              0,
+              10000000
+            ]
+          },
+          {
+            "operation": 128,
+            "syscall": 202,
+            "timespec": [
+              0,
+              10000000
+            ]
+          },
+          {
+            "operation": 129,
+            "syscall": 202
+          }
+        ]
+      }
+    }
+  ],
+  "actual_subcomponent_native_invocation_qualified": true,
+  "background_optimizer_fully_integrated": false,
+  "behavior": {
+    "bytes": 14165,
+    "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-qualified-v1/report.json",
+    "sha256": "fc456eb25b2b2b464fce5aec337fc629f897450659326d16b07574e66115f7af"
+  },
+  "child_initializer_bound_qualified": false,
+  "compiler": {
+    "bytes": 813129,
+    "sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af"
+  },
+  "component_qualified": true,
+  "construction": {
+    "bytes": 7531,
+    "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-native-v2/build.json",
+    "sha256": "30219f8ec3ca6f0e4b49fa949ceff80930c22232a788896e979c2cc5b6ee5a8c"
+  },
+  "deferred_required_work": [
+    "Final installed root native catalog and shared-role rel32 binding",
+    "Trusted child initializer and ownership-borrow wiring for prepare and BG",
+    "Public Runtime constructor/GEN full behavior",
+    "Immediate generation cache pruning on public mutations"
+  ],
+  "development_source_provenance": {
+    "tools/generate_hia_clang_stable_file_packer.py": {
+      "bytes": 7181,
+      "sha256": "8648d928cd5a85016984e3e1334f912855503ccb1858b8b66f4b06e8551d5795"
+    },
+    "tools/generate_hia_native_fixed_component_catalog.py": {
+      "bytes": 2885,
+      "sha256": "ce88a302ac807a62791370a85aae1e50b68b488c1a1a047627df81cf8868a3a3"
+    },
+    "tools/generate_hia_native_fixed_component_loader.py": {
+      "bytes": 30931,
+      "sha256": "da472c0460a2cb8761704b9aa49212285115c2fe68dff9943b6ba39d122d4f82"
+    },
+    "tools/generate_hia_native_fixed_component_packer.py": {
+      "bytes": 7160,
+      "sha256": "8a174c546853413e5e65e63832c4e20bf36d751abfaca661308b25b369893596"
+    },
+    "tools/generate_hia_native_fixed_component_shared_packer.py": {
+      "bytes": 4344,
+      "sha256": "3e5c295eb46ab0d2dcc021bf7d4b2b423c81a042416bf7dff3ea2e9b4f6d5c9f"
+    },
+    "tools/qualify_hia_native_fixed_component_loader.py": {
+      "bytes": 19010,
+      "sha256": "460a22297c01b9ea792f77689e0d60991dacfb228860b639cfb72588afa73ec2"
+    }
+  },
+  "duplicated_text_bytes_saved": 114116,
+  "final_root_static_binding_qualified": false,
+  "fixture_catalog": {
+    "manifest": {
+      "bytes": 1196,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-native-v2/catalog.json",
+      "sha256": "c70d984a409af77f89d8dedc3f55ee601e77997df1f2723162e8c8b31c8c9c3c"
+    },
+    "native_flat": {
+      "bytes": 23000,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-native-v2/native_fixed_component_catalog.flat",
+      "sha256": "b585f4991a50d0ed17a028f9f1e1dd4747b2e892f17b9a30c39fc0c1150303db"
+    },
+    "native_hia": {
+      "bytes": 20985,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-native-v2/source/native_fixed_component_catalog.hepta",
+      "sha256": "b0305f1424becae44d2c3ef9ebc35fa15a0ff4d852d506aa073561cd13281b16"
+    },
+    "production_catalog": false
+  },
+  "full_packer_controls": [
+    "magic",
+    "count0",
+    "count4",
+    "count6",
+    "empty-0",
+    "too-large-0",
+    "empty-1",
+    "too-large-1",
+    "empty-2",
+    "too-large-2",
+    "empty-3",
+    "too-large-3",
+    "empty-4",
+    "too-large-4",
+    "short",
+    "truncated",
+    "trailing",
+    "short-output"
+  ],
+  "loader_policy_budget": {
+    "blocks": 626,
+    "functions": 47,
+    "operations": 2869
+  },
+  "native_policy_qualified": true,
+  "native_source_files": {
+    "examples/hia_bootstrap/clang_stable_file.hepta": {
+      "bytes": 66617,
+      "sha256": "5337ae5fa685d923fa7846afd1c9e00c02d51c82732166cda5d5b7e0b4d9c654"
+    },
+    "examples/hia_bootstrap/multiversion_runtime_linker.hepta": {
+      "bytes": 83516,
+      "sha256": "eeb2c7692b8d4dc57afe4ca3541635be2ed9785b179ae39792d0236cb8763a50"
+    },
+    "examples/hia_bootstrap/native_fixed_component_loader.hepta": {
+      "bytes": 168722,
+      "sha256": "eb68704e17572b45dd34a25ecbbccd42559018608ba062e148b83d2ad0b202fa"
+    },
+    "examples/hia_bootstrap/native_fixed_component_packer.hepta": {
+      "bytes": 69133,
+      "sha256": "16da28d290b19120cca082adf20d1162182d5a74cc6854d7db04673c9a12bcbb"
+    },
+    "examples/hia_bootstrap/native_fixed_component_shared_packer.hepta": {
+      "bytes": 71177,
+      "sha256": "75a6887330b760c843978def7541cb1c62d04ace220a79a8cbb54e2d6b34fc4c"
+    },
+    "examples/hia_bootstrap/native_mapping.hepta": {
+      "bytes": 49181,
+      "sha256": "0e12bd01eedb608144a8871c3ac7860cfb12b43ca73eb197bb900f303f60a56d"
+    },
+    "examples/hia_bootstrap/sha256_stream.hepta": {
+      "bytes": 31728,
+      "sha256": "80df3148e5dc8df8ab4c43e5d1edd1b4057dcdcffe5a06c3635bfee17a779054"
+    },
+    "tools/hia_clang_stable_file_bridge.S": {
+      "bytes": 3546,
+      "sha256": "b52797335004e9a89ded32ab4dec673a3b6241327dfbdae51d7252f9e5b63b50"
+    },
+    "tools/hia_native_fixed_component_loader_bridge.S": {
+      "bytes": 4769,
+      "sha256": "f1b05439613a4ec153b2a0b3869640f28c3378e5a70115775b8c4f64ae1845db"
+    }
+  },
+  "observed_native_image_retirement_qualified": true,
+  "original_compiler_limits": {
+    "blocks": 1536,
+    "functions": 128,
+    "operations": 8192,
+    "role_bytes": 4194304,
+    "text_bytes": 16777216
+  },
+  "production_component_catalog_qualified": false,
+  "products": {
+    "shared_parent_object": {
+      "bytes": 363440,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-shared-v1/component.o",
+      "sha256": "575fb88a1ac3e7ec7dcf3f4187033bab6358cccd9d47856065e6c298fe2ec7a2"
+    },
+    "shared_parent_packer": {
+      "bytes": 70509,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-shared-v1/packer.flat",
+      "sha256": "dde01765b6ec5855310847bb7cbafd1e3d53c72bb74f6e2319b459d48749d9fe"
+    },
+    "standalone_object": {
+      "bytes": 477384,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-native-v2/component.o",
+      "sha256": "48f4e5033b55a4c947938f08bd42d9612ca39309975dbc0db4cb521bebac0995"
+    },
+    "standalone_so": {
+      "bytes": 488208,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-native-v2/install/native-loader.so",
+      "sha256": "d28678d66cdef6b3b88bbe269b36f9ff3f18c4fca0b357e24ba484a7581fe404"
+    }
+  },
+  "public_runtime_constructor_qualified": false,
+  "retained_failure_semantics": {
+    "actual_libc_munmap_eio_detected": true,
+    "borrow_drop_consumed_once": true,
+    "dlclose_zero_is_not_retirement": true,
+    "known_kernel_failure_retains_retry_custody": true,
+    "unknown_close_quarantines": true
+  },
+  "same_code_after_actual_native_pack_and_static_resolution": true,
+  "schema": "hia_native_fixed_component_loader_qualification_v1",
+  "shared_bindings": {
+    "hia_root_native_mapping": {
+      "offset": 395664,
+      "pin": {
+        "bytes": 80848,
+        "sha256": "39b2175453bda3f81ce233c5fe31290e22e0d6f83b69fd57c46d396a6cf895f3"
+      },
+      "rel32_holes": [
+        1052
+      ]
+    },
+    "hia_root_sha256_stream": {
+      "offset": 362400,
+      "pin": {
+        "bytes": 33264,
+        "sha256": "d18077e7a13f00859e61101cf487ae579def62df2f5288066dfbb305ae386bfc"
+      },
+      "rel32_holes": [
+        1073,
+        1795
+      ]
+    }
+  },
+  "shared_packer_controls": [
+    "magic",
+    "count0",
+    "count2",
+    "count4",
+    "empty-0",
+    "too-large-0",
+    "empty-1",
+    "too-large-1",
+    "empty-2",
+    "too-large-2",
+    "short",
+    "truncated",
+    "trailing",
+    "short-output"
+  ],
+  "shared_parent_pack": {
+    "bytes": 3195,
+    "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/native-fixed-component-loader-shared-v1/report.json",
+    "sha256": "f25ec9b03f6b41da90c9dcff3f55f2fe599f057bf2608e0c3eff9deb5c01ec93"
+  },
+  "shared_parent_packer_qualified": true,
+  "shared_text_bytes": 362396,
+  "source_qualification_scope": "Exact native source files, standalone fixed test catalog, native HIA packing/linking and actual 16-group behavior. Final installed root and child initializer integration remain required.",
+  "standalone_fixed_catalog_admission_qualified": true,
+  "whole_native_runtime_qualified": false
+}
