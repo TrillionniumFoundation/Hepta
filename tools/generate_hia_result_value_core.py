@@ -399,7 +399,7 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         return done(o,0)
     if op==22:
         cap_drop(w,get(o,G_RESULT))
-        if readword(s,0)==MAGIC2 and readword(s,8)==30:
+        if request_magic(s)==MAGIC2 and readword(s,8)==30:
             put(o,P_DROP_CONSUMED,1)
         return done(o,0)
     if op==2 or op==3 or op==4:
@@ -428,7 +428,7 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         return done(o,0)
     if op==6:
         cap_drop(w,readword(s,24))
-        if readword(s,0)==MAGIC2 and readword(s,8)==29:
+        if request_magic(s)==MAGIC2 and readword(s,8)==29:
             put(o,P_DROP_CONSUMED,1)
         put(o,G_ID0,0)
         put(o,G_ID1,0)
