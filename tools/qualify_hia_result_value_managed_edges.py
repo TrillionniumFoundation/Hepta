@@ -279,7 +279,8 @@ def controls_case(path,files,parent):
     for wire in controls:
         prior=p.context.raw
         rc,out=p.call(wire)
-        assert rc==BAD and out[:128]==b'\xa5'*128 and out[8192:]==b'\xa5'*(len(out)-8192),(wire[:128].hex(),rc,out[:128].hex())
+        expected=bytearray(b'\xa5'*len(out));struct.pack_into('<Q',expected,128,0)
+        assert rc==BAD and out==expected,(wire[:128].hex(),rc,out[:128].hex())
         assert p.context.raw==prior
     deferred_facts(p.raw(92,a=token))
     private_drop(p,v,child);c.q(3,raw);v.drop(runtime)

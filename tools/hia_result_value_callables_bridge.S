@@ -67,8 +67,6 @@ hia_result_value:
     mov [rsp+24],r13
     mov [rsp+32],r14
 .Lloop:
-    mov rax,[rsp+136]
-    mov [r13+8184],rax
     mov rdi,r12
     mov rsi,r15
     mov rdx,r13
@@ -254,6 +252,8 @@ role_14_hole:
     jmp .Lfeedback
 .Ldeferred_input:
     mov qword ptr [rsp+136],1
+    mov rax,[rsp+136]
+    mov [r13+8184],rax
     jmp .Lloop
 .Lcas:
     mov r10,[r13]
