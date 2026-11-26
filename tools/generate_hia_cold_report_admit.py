@@ -243,9 +243,29 @@ def validate_catalog(catalog):
     return copy.deepcopy(catalog)
 
 
-def metadata(root,catalog):
+def native_catalog(root, authority_path):
+    """Read the complete plan catalog from the explicit frozen native metadata."""
+    contract = legacy.native_authority_contract(root, authority_path)
+    qualification = contract.get('native_cold_qualification')
+    if type(qualification) is not dict:
+        raise ValueError('native metadata lacks the complete v2 cold qualification')
+    return validate_catalog(qualification.get('phase_plan_catalog'))
+
+
+def metadata(root,catalog,*,native_source_authority=None):
     catalog=validate_catalog(catalog)
     root=Path(root)
+    if native_source_authority is not None:
+        contract=legacy.native_authority_contract(root,native_source_authority)
+        expected={'schema':'hepta.hia.selfhost-cold-replay.v2',
+            'runtime':'native HIA with explicit mechanical syscall and ELF ABI capsules',
+            'phase_plan_catalog':catalog,'checks':CHECKS,
+            'qualification_wall_limit_seconds':180,'cleanup_wall_limit_seconds':3,
+            'scheduler':{'phase_workers':2,'archive_workers':1,'max_pending_archives':2,'max_unsealed_phases':4},
+            'all_input_correctness_proved':False}
+        if contract.get('native_cold_qualification') != expected:
+            raise ValueError('native metadata differs from the complete retained v2 cold contract')
+        return contract
     manifest_path=root/'docs/HIA_COLD_NATIVE_SOURCE_FILES.json'
     manifest=json.loads(manifest_path.read_text()) if manifest_path.exists() else None
     if manifest is not None:
@@ -284,8 +304,9 @@ def metadata(root,catalog):
     return contract
 
 
-def render(root,catalog):
-    contract=metadata(root,catalog);catalog=contract['native_cold_qualification']['phase_plan_catalog']
+def render(root,catalog,*,native_source_authority=None):
+    contract=metadata(root,catalog,native_source_authority=native_source_authority)
+    catalog=contract['native_cold_qualification']['phase_plan_catalog']
     strings=['schema','profile','status','returncode','checks','generation_sha256','source_manifest',
         'source_identity','files',legacy.CONTRACT_PATH,'hepta.hia.selfhost-cold-replay.v2',
         contract['profile'],'NATIVE_COLD_SELFHOST_REPLAY_PASS',*CHECKS,*FIELDS]
@@ -345,15 +366,36 @@ def render(root,catalog):
     exec(compile(ast.fix_missing_locations(Specialize().visit(tree)),__file__,'exec'),scope)
     text,record=scope['render'](root)
     record.update(schema='hepta.hia.native_cold_report_admit.v2',phase_count=len(catalog),qualification_families=len(FAMILIES),native_checks=len(CHECKS))
+    if native_source_authority is not None:
+        record.update(native_source_authority_sha256=sha256(Path(native_source_authority).read_bytes()).hexdigest(),
+                      source_catalog='explicit-native', report_schema='hepta.hia.selfhost-cold-replay.v2')
     return text,record,contract
 
 
-if __name__=='__main__':
+def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--catalog',type=Path,required=True)
+    parser.add_argument('--catalog',type=Path,
+                        help='complete plan catalog; native mode defaults to frozen native metadata')
     parser.add_argument('--contract-root',type=Path,default=ROOT)
+    parser.add_argument('--native-source-authority',type=Path)
     parser.add_argument('--output',type=Path,default=ROOT/'examples/hia_bootstrap/cold_report_admit.hepta')
+    parser.add_argument('--check',action='store_true')
     args=parser.parse_args()
-    text,record,contract=render(args.contract_root.resolve(),json.loads(args.catalog.read_text()))
-    args.output.write_text(text)
+    root=args.contract_root.resolve(strict=True)
+    if args.catalog is not None:
+        catalog=json.loads(args.catalog.read_bytes(),object_pairs_hook=legacy._object)
+    elif args.native_source_authority is not None:
+        catalog=native_catalog(root,args.native_source_authority)
+    else:
+        parser.error('--catalog or --native-source-authority is required')
+    text,record,contract=render(root,catalog,native_source_authority=args.native_source_authority)
+    if args.check:
+        if args.output.read_text()!=text:
+            raise SystemExit('native v2 admission differs from the current source catalog or frozen metadata')
+    else:
+        args.output.write_text(text)
     print(json.dumps(record,sort_keys=True))
+
+
+if __name__=='__main__':
+    main()

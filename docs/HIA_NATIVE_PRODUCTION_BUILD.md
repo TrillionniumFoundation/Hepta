@@ -124,6 +124,25 @@ ordinary release path. The current metadata, source catalog and all sixty plan
 identities specialize that gate. An older matching component gate does not
 admit a changed source version.
 
+During development, generate and check this production policy with the explicit
+native authority in both commands:
+
+~~~sh
+python3 -B -m tools.generate_hia_source_release_cold_admit \
+  --native-source-authority docs/HIA_NATIVE_SOURCE_AUTHORITY.json
+python3 -B -m tools.generate_hia_source_release_cold_admit \
+  --native-source-authority docs/HIA_NATIVE_SOURCE_AUTHORITY.json --check
+~~~
+
+This selects the full native-v2 specialization. The unflagged generator retains
+the separate hosted-v1 compatibility domain and must not overwrite the final
+native policy. Complete all source/recipe/catalog changes first, regenerate the
+gate, then generate the frozen source contract from the final actual inventory.
+Build new public entries whose authority, recipe and seven root pins match those
+exact captured bytes. Historical entry images bind their own source catalogs and
+cannot attest a later aggregate. Published construction never runs a Python
+generator or qualifier.
+
 ## The post-cold bootstrap
 
 cold_source_bootstrap_recipe.hiadat selects the separate post-cold plan under
