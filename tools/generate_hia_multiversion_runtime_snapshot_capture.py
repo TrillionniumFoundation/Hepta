@@ -483,7 +483,7 @@ def flatten(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,SC_FLAT_INDEX,get(o,SC_FLAT_INDEX)+1)
         return again(o,1401)
     if phase==1403:
-        if get(o,FEEDBACK)!=NONE-1 or get(o,SC_WORK)==0:
+        if get(o,FEEDBACK)!=4294967294 or get(o,SC_WORK)==0 or get(o,SC_WORK+48)!=0:
             put(o,NATIVE_ERROR,get(o,SC_WORK+24))
             return capture_error(o,9)
         put(o,SC_OUTPUTN,get(o,SC_WORK))
@@ -494,7 +494,7 @@ def flatten(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,SC_OUTPUT,get(o,FEEDBACK))
         return role(o,1405,26,0,get(o,SC_FRAME),get(o,SC_FRAMEN),0,get(o,SC_OUTPUT),get(o,SC_OUTPUTN),3,SC_WORK,66560)
     if phase==1405:
-        if get(o,FEEDBACK)!=get(o,SC_OUTPUTN):
+        if get(o,FEEDBACK)!=0 or get(o,SC_WORK)!=get(o,SC_OUTPUTN) or get(o,SC_WORK+48)!=0:
             return capture_error(o,9)
         if get(o,SC_MODE)==4:
             identity_request(o,12,0)
