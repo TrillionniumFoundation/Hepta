@@ -10,6 +10,8 @@ parser.add_argument('--image',type=Path,required=True)
 parser.add_argument('--compiler',type=Path,required=True)
 parser.add_argument('--output',type=Path,required=True)
 parser.add_argument('--contract-root',type=Path,default=ROOT)
+parser.add_argument('--native-source-authority',type=Path,
+                    help='qualify the explicit native source catalog using the complete retained case domain')
 parser.add_argument('--case',action='append')
 parser.add_argument('--trace',action='store_true')
 args=parser.parse_args()
@@ -20,7 +22,12 @@ from tools.hia_selfhost_contract import support_contract,CONTRACT_PATH,PROFILE
 import tools.build_hia_json_preflight as reference
 image=args.image.resolve()
 compiler=args.compiler.read_bytes();compiler_pin=sha256(compiler).digest()
-expected_contract=support_contract(F);files=expected_contract['source_identity']['files']
+if args.native_source_authority is None:
+ expected_contract=support_contract(F)
+else:
+ from tools.generate_hia_source_release_cold_admit import native_authority_contract
+ expected_contract=native_authority_contract(F,args.native_source_authority)
+files=expected_contract['source_identity']['files']
 check_names=['export_manifest_matches_qualification','isolated_python_without_site','nested_full_qualification_pass','nested_process_exit_zero','no_ancestor_git_identity','no_bytecode_cache_created','no_inherited_home_or_python_cache','no_inherited_seed_or_successor_images','origin_hashes_preserved','owned_process_tree_cleanup_confirmed','source_export_hashes_preserved']
 cases=[]
 def encode(value):return (json.dumps(value,sort_keys=True,indent=2,ensure_ascii=False)+'\n').encode()
@@ -126,6 +133,11 @@ if args.case:
  cases=[row for row in cases if row[0] in selected]
 results=[]
 record={'scope':'component semantics and real native execution; successful report is a synthetic field fixture, not a completed cold qualification','image':str(image),'image_sha256':sha256(image.read_bytes()).hexdigest(),'compiler_sha256':compiler_pin.hex(),'source_count':len(files)+1,'cases':results}
+if args.native_source_authority is not None:
+ record['native_source_authority_sha256']=sha256(args.native_source_authority.read_bytes()).hexdigest()
+ record['source_catalog']='explicit-native-authority'
+else:
+ record['source_catalog']='retained-support-contract'
 def save():(D/'results.json').write_text(json.dumps(record,indent=2)+'\n')
 save()
 for index,(name,wire,expected) in enumerate(cases):

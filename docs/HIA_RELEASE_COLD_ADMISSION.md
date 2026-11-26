@@ -51,15 +51,29 @@ entire inventory.
 
 ## Admission
 
-The report must have the original cold replay schema and current profile,
-status `COLD_SELFHOST_REPLAY_PASS`, an integer zero return code, exactly the
-original eleven check names with literal true values, and exactly three compiler
-generation hashes equal to the independently admitted compiler hash.
+The production native report uses schema `hepta.hia.selfhost-cold-replay.v2`,
+status `NATIVE_COLD_SELFHOST_REPLAY_PASS`, the current profile and integer zero
+return code. All fourteen native checks must be literal true. The three original
+compiler generations must equal the independently captured B3 hash; the three
+modified generations must retain the distinct initial generation and the
+separate, equal second and third generations.
 
-The entire normative support contract is compared, including fields outside
-the source identity map. Object order, JSON escaping and last duplicate key
-semantics do not change meaning. The source identity map is checked separately;
-the remaining canonical metadata is bound by a compiled SHA-256.
+The gate checks every one of the sixty source-bound phase plans, every retained
+node count, successful return code, nonzero journal/archive identity, sealing
+and cleanup receipt. Independent references must precede B0 and qualification
+phases must follow it. All nineteen families require both original and modified
+compiler results. The original 180-second qualification and three-second cleanup
+limits remain binding, including measured elapsed times. Scheduler limits remain
+two phase workers, one archive worker, two pending archives and four unsealed
+phases; all actual peak counts are bounded. The independent observer bytes are
+checked exactly. Required report objects and source maps reject duplicate keys.
+
+The entire frozen native metadata is compared, including fields outside the
+source identity map. Object order and JSON escaping do not change meaning.
+The source identity map is checked separately; the remaining canonical metadata
+is bound by a compiled SHA-256. The explicit native authority and frozen metadata
+select this gate; hosted support-contract discovery does not determine its
+source set.
 
 The original contract comparison uses structural numeric equality. The HIA
 implementation preserves boolean/integer equality and integral floating point
@@ -86,22 +100,57 @@ the owner stage gates and both full source AUDIT passes succeed.
 
 ## Reproduction
 
-Regenerate with
-`python3 -m tools.generate_hia_source_release_cold_admit`.
-Use `--check` for an exact source check. The generator is an authoring tool;
-the installed command does not invoke it. A source catalog or normative
-contract change requires regeneration of the policy constants and a fresh
-cold replay for that resulting source tree.
+Generate and check the production native-v2 policy with the same explicit
+source authority used by the Worker and final source capture:
 
-The portable external qualifier is
-`python3 -m tools.qualify_hia_release_cold_admit --image IMAGE --compiler B3 --output EMPTY_DIRECTORY`.
-It executes the actual native ELF with an empty PATH and compares acceptance
-with the original admission code. Use `--trace` for process tracing.
-The matrix covers valid reordered and escaped JSON; missing, extra and changed
-source pins; coherently truncated inventories; wrong full contract metadata;
-wrong compiler generations; malformed wire framing; return-code/check type
-rules; and integral, rounded, underflowing and nonfinite numeric boundaries.
+```sh
+python3 -B -m tools.generate_hia_source_release_cold_admit \
+  --native-source-authority docs/HIA_NATIVE_SOURCE_AUTHORITY.json
+python3 -B -m tools.generate_hia_source_release_cold_admit \
+  --native-source-authority docs/HIA_NATIVE_SOURCE_AUTHORITY.json --check
+```
 
-The fixture construction and reference comparison are external test code.
-They are not installed runtime fallbacks, and their synthetic successful
-reports must never be substituted for a completed cold replay.
+The flag dispatches to the complete v2 specialization in
+`tools.generate_hia_cold_report_admit`. It checks that the frozen metadata retains
+the complete native plan catalog, all fourteen checks and the original resource
+and time limits. It refuses a divergent template instead of silently replacing
+those constraints. The generator is a development author; installed builds
+consume only the emitted HIA policy. A catalog or metadata change requires
+regeneration followed by a new matching whole cold replay.
+
+After actual source compilation and native packing, the component matrix is:
+
+```sh
+python3 -B -m tools.qualify_hia_cold_report_admit \
+  --image NATIVE_V2_IMAGE --compiler B3 \
+  --native-source-authority docs/HIA_NATIVE_SOURCE_AUTHORITY.json \
+  --fixture --output NEW_COMPONENT_EVIDENCE
+```
+
+It runs the actual ELF with an empty PATH and checks all phase, family, check,
+generation, observer, budget, scheduler, source, metadata and wire obligations.
+Negative cases require the native invalid-input result and no receipt; a crashed
+process does not pass a refusal case. A synthetic report is recorded explicitly
+as component evidence and cannot prove whole cold qualification.
+
+To admit an independently completed current-source replay, replace `--fixture`
+with `--cold-report NEW_COLD/final-cold.json` and pass that same run's
+`NEW_COLD/qualification/base/B3.flat` as `--compiler`. This mode first requires
+the exact frozen current contract and the exact actual source inventory, retains
+the original report bytes, and rechecks source/input custody after qualification.
+It records actual report admission separately from whole replay execution.
+
+## Retained hosted compatibility domain
+
+Without `--native-source-authority`, the original generator and
+`tools.qualify_hia_release_cold_admit` retain the v1 hosted report domain:
+`hepta.hia.selfhost-cold-replay.v1`, `COLD_SELFHOST_REPLAY_PASS` and the original
+eleven checks, including Python isolation. Keep its output separate by passing
+`--output PRIVATE_V1_SOURCE` to the generator. Its original fifty positive and
+negative cases remain available. The qualifier's optional native catalog
+binding still tests v1 compatibility; it is not the native-v2 production gate.
+Do not run the bare hosted generator over the final native policy.
+
+Both qualifier programs are external test tools. Neither is an installed
+fallback, and neither may substitute its synthetic report for a completed cold
+replay.

@@ -221,10 +221,17 @@ def main():
  parser.add_argument('--check',action='store_true')
  parser.add_argument('--contract-root',type=Path,default=ROOT)
  parser.add_argument('--native-source-authority',type=Path,
-                     help='explicit native path authority; preserves the full cold admission checks')
+                     help='explicit native authority selects the complete native v2 report gate')
+ parser.add_argument('--output',type=Path,default=ROOT/'examples/hia_bootstrap/source_release_cold_admit.hepta')
  args=parser.parse_args()
- text,record=render(args.contract_root.resolve(),native_source_authority=args.native_source_authority)
- target=ROOT/'examples/hia_bootstrap/source_release_cold_admit.hepta'
+ root=args.contract_root.resolve(strict=True)
+ if args.native_source_authority is None:
+  text,record=render(root)
+ else:
+  from tools.generate_hia_cold_report_admit import native_catalog,render as render_native
+  catalog=native_catalog(root,args.native_source_authority)
+  text,record,_=render_native(root,catalog,native_source_authority=args.native_source_authority)
+ target=args.output
  if args.check:
   if target.read_text()!=text:raise SystemExit('cold admission source differs from current source catalog or contract')
  else:target.write_text(text)
