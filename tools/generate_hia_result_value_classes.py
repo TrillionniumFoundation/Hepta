@@ -38,6 +38,9 @@ CATALOG = [
     ('OSError', (22,), (22, 21, 1), 21, 0),
     ('RuntimeError', (22,), (22, 21, 1), 21, 0),
     ('MemoryError', (22,), (22, 21, 1), 21, 0),
+    ('tuple', (1,), (1,), 28, 0),
+    ('ScalarABI', (1,), (1,), 29, 0),
+    ('GenerationInfo', (1,), (1,), 30, 0),
 ]
 
 SOURCE = r'''
@@ -189,7 +192,7 @@ def class_links(w:mutbuf,obj:u64) -> u64:
         i=i+1
     return 0
 def class_catalog(w:mutbuf) -> bool:
-    while get(w,152)<27:
+    while get(w,152)<30:
         id=get(w,152)+1
         obj=class_builtin(w,id)
         if obj==0:
@@ -240,6 +243,8 @@ def class_type(w:mutbuf,obj:u64) -> u64:
     kind=get(w,obj+8)
     if kind==8:
         return get(w,get(w,obj+24)+40)
+    if kind==11 or kind==12:
+        return get(w,obj+40)
     id=0
     if kind==0:
         id=10

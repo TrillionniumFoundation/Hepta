@@ -233,14 +233,14 @@ def push(o:mutbuf,w:mutbuf,obj:u64) -> u64:
     put(w,frame,obj)
     put(o,G_AUX_N,depth+1)
     put(w,obj+96,3)
-    if get(w,obj+8)==5:
+    if get(w,obj+8)==5 or get(w,obj+8)==11:
         emit(o,w,91)
     else:
         emit(o,w,123)
     return 0
 def visit(o:mutbuf,w:mutbuf,obj:u64) -> u64:
     kind=get(w,obj+8)
-    if kind==5 or kind==6:
+    if kind==5 or kind==6 or kind==11:
         return push(o,w,obj)
     return scalar(o,w,obj,False)
 def walk(o:mutbuf,w:mutbuf) -> u64:
@@ -254,7 +254,7 @@ def walk(o:mutbuf,w:mutbuf) -> u64:
         n=get(w,obj+16)
         kind=get(w,obj+8)
         if index==n:
-            if kind==5:
+            if kind==5 or kind==11:
                 emit(o,w,93)
             else:
                 emit(o,w,125)
@@ -265,7 +265,7 @@ def walk(o:mutbuf,w:mutbuf) -> u64:
                 emit(o,w,44)
             put(w,frame+8,index+1)
             child=0
-            if kind==5:
+            if kind==5 or kind==11:
                 child=get(w,get(w,obj+24)+index*8)
             else:
                 at=get(w,frame+16)

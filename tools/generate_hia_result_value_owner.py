@@ -15,9 +15,14 @@ def result_value_owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return graph_driver(s,o,w,phase)
     return release(s,o,w,phase)
 def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
-    if length(s)<128 or (readword(s,0)!=MAGIC and readword(s,0)!=MAGIC2 and readword(s,0)!=MAGIC3) or readword(s,16)!=0 or readword(s,120)!=0 or readword(s,96)!=length(s)-128:
+    if length(s)<128 or (readword(s,0)!=MAGIC and readword(s,0)!=MAGIC2 and readword(s,0)!=MAGIC3 and readword(s,0)!=MAGIC4) or readword(s,16)!=0 or readword(s,120)!=0 or readword(s,96)!=length(s)-128:
         return 4294967293
     op=readword(s,8)
+    if readword(s,0)==MAGIC4:
+        if records_request_valid(s)==False:
+            return 4294967293
+        zero(o,0,8192)
+        return system(o,1,39,0,0,0,0,0,0,0)
     extended=readword(s,0)==MAGIC2
     classes=readword(s,0)==MAGIC3
     if (classes and (op<32 or op>39)) or (classes==False and ((extended==False and op>24) or (extended and (op<25 or op>31)))):
@@ -244,7 +249,29 @@ def class_request_valid(s:readbuf) -> bool:
         return False
     return True
 
+def records_request_valid(s:readbuf) -> bool:
+    op=readword(s,8)
+    if op<40 or op>47 or op==44:
+        return False
+    tail=choose(op==45,5136,0)
+    if length(s)!=128+tail or readword(s,96)!=tail or readword(s,112)!=0:
+        return False
+    arg=readword(s,104)
+    if op==46:
+        if arg<28 or arg>30:
+            return False
+    elif op!=43 and arg!=0:
+        return False
+    hasa=op!=46 and op!=47
+    hasb=op==41 or op==45
+    hasc=op==41
+    if (hasa==False and (readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0)) or (hasb==False and (readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0)) or (hasc==False and (readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0)):
+        return False
+    return True
+
 def graph_id(s:readbuf) -> u64:
+    if readword(s,0)==MAGIC4:
+        return 11
     if readword(s,0)==MAGIC3:
         return 9
     if readword(s,8)==1:
@@ -292,6 +319,10 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
         put(o,40,get(o,G_TAG1))
         put(o,48,get(o,G_N))
         put(o,72,get(o,G_BYTES))
+        if readword(s,0)==MAGIC4 and op==45:
+            put(o,56,get(o,G_INDEX))
+            put(o,64,get(o,G_PLAN))
+            put(o,72,get(o,G_REQUIRED))
         if op==7 and get(o,G_KIND)==9:
             put(o,56,get(o,G_INDEX))
         if readword(s,8)==19:

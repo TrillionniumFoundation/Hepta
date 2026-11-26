@@ -4,7 +4,7 @@ import ast,re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_system_jobctl_request import document
 ROOT=Path(__file__).resolve().parents[1]
-C={'MAX':18446744073709551615,'ARENA':int.from_bytes(b'HIABVA01','little'),'BLOCK_FREE':int.from_bytes(b'HIAVFREE','little'),'BLOCK_USED':int.from_bytes(b'HIAVUSED','little'),'OBJECT':int.from_bytes(b'HIAVOBJ1','little'),'CAP_MAGIC':int.from_bytes(b'HIAVCAP1','little'),'REPLY':int.from_bytes(b'HIABVR01','little'),'MAGIC':int.from_bytes(b'HIABVQ01','little'),'MAGIC2':int.from_bytes(b'HIABVQ02','little'),'MAGIC3':int.from_bytes(b'HIABVQ03','little'),'NATIVE_INFO':int.from_bytes(b'HIAVNO01','little'),'DROP_REPLY':int.from_bytes(b'HIABVR02','little'),'P_DROP_CONSUMED':736,'P_DROP_KNOWN':744,'P_DROP_PENDING':752,'STATE':int.from_bytes(b'HIABVC01','little'),'P_PHASE':128,'P_FEEDBACK':136,'P_PID':144,'P_HELD':152,'P_ERROR':160,'P_ARENA':168,'P_AN':176,'P_OLD':184,'P_ROLE':192,'P_SELECT':200,'P_ARG':208,'G_PHASE':256,'G_FEEDBACK':264,'G_RANDOM':272,'G_RN':280,'G_RUSED':288,'G_WANT':296,'G_PLAN':304,'G_A':312,'G_B':320,'G_C':328,'G_RESULT':336,'G_CAP':344,'G_KIND':352,'G_N':360,'G_BYTES':368,'G_INDEX':376,'G_FOUND':384,'G_COUNT':392,'G_REQUIRED':400,'G_DATA':408,'G_NEWOBJ':416,'G_TEMP':424,'G_ITER':432,'G_OP':440,'G_TAG0':448,'G_TAG1':456,'G_ID0':464,'G_ID1':472,'G_ALLOC_FAILED':480,'G_RETRY':488,'G_INPUT':496,'G_INPUT_N':504,'G_STACK':520,'G_AUX':528,'G_AUX_N':536,'G_ARENA':544,'G_ARENA_N':552,'G_PARSEW':560,'G_PARSEWN':568,'G_ROOT':576,'G_MODE':584,'G_WORK':592,'G_WORK_N':600,'G_OUT':608,'G_OUT_N':616,'G_PARSE_NODES':624,'G_PARSE_DEPTH':632,'G_PARSE_KEYS':640}
+C={'MAX':18446744073709551615,'ARENA':int.from_bytes(b'HIABVA01','little'),'BLOCK_FREE':int.from_bytes(b'HIAVFREE','little'),'BLOCK_USED':int.from_bytes(b'HIAVUSED','little'),'OBJECT':int.from_bytes(b'HIAVOBJ1','little'),'CAP_MAGIC':int.from_bytes(b'HIAVCAP1','little'),'REPLY':int.from_bytes(b'HIABVR01','little'),'MAGIC':int.from_bytes(b'HIABVQ01','little'),'MAGIC2':int.from_bytes(b'HIABVQ02','little'),'MAGIC3':int.from_bytes(b'HIABVQ03','little'),'MAGIC4':int.from_bytes(b'HIABVQ04','little'),'NATIVE_INFO':int.from_bytes(b'HIAVNO01','little'),'DROP_REPLY':int.from_bytes(b'HIABVR02','little'),'P_DROP_CONSUMED':736,'P_DROP_KNOWN':744,'P_DROP_PENDING':752,'STATE':int.from_bytes(b'HIABVC01','little'),'P_PHASE':128,'P_FEEDBACK':136,'P_PID':144,'P_HELD':152,'P_ERROR':160,'P_ARENA':168,'P_AN':176,'P_OLD':184,'P_ROLE':192,'P_SELECT':200,'P_ARG':208,'G_PHASE':256,'G_FEEDBACK':264,'G_RANDOM':272,'G_RN':280,'G_RUSED':288,'G_WANT':296,'G_PLAN':304,'G_A':312,'G_B':320,'G_C':328,'G_RESULT':336,'G_CAP':344,'G_KIND':352,'G_N':360,'G_BYTES':368,'G_INDEX':376,'G_FOUND':384,'G_COUNT':392,'G_REQUIRED':400,'G_DATA':408,'G_NEWOBJ':416,'G_TEMP':424,'G_ITER':432,'G_OP':440,'G_TAG0':448,'G_TAG1':456,'G_ID0':464,'G_ID1':472,'G_ALLOC_FAILED':480,'G_RETRY':488,'G_INPUT':496,'G_INPUT_N':504,'G_STACK':520,'G_AUX':528,'G_AUX_N':536,'G_ARENA':544,'G_ARENA_N':552,'G_PARSEW':560,'G_PARSEWN':568,'G_ROOT':576,'G_MODE':584,'G_WORK':592,'G_WORK_N':600,'G_OUT':608,'G_OUT_N':616,'G_PARSE_NODES':624,'G_PARSE_DEPTH':632,'G_PARSE_KEYS':640}
 SOURCE=r'''
 def shrink_allocation(w:mutbuf,p:u64,n:u64) -> u64:
     at=p-32
@@ -302,6 +302,8 @@ def managed_count(w:mutbuf,p:u64) -> u64:
         return 1
     if kind==10:
         return 2+get(w,data+16)+get(w,data+24)
+    if kind==11 or kind==12:
+        return 1+get(w,p+16)
     return 0
 def managed_child(w:mutbuf,p:u64,index:u64) -> u64:
     kind=get(w,p+8)
@@ -310,6 +312,10 @@ def managed_child(w:mutbuf,p:u64,index:u64) -> u64:
         return get(w,data+16+index*8)
     if kind==9:
         return get(w,data)
+    if kind==11 or kind==12:
+        if index==0:
+            return get(w,p+40)
+        return get(w,data+(index-1)*8)
     if index<2:
         return get(w,data+index*8)
     return get(w,data+64+(index-2)*8)
@@ -342,7 +348,7 @@ def object_release(w:mutbuf,p:u64) -> u64:
                         put(w,value+72,get(w,value+72)-1)
                         head=zero_queue(w,value,head)
                 i=i+1
-        if kind>=8 and kind<=10 and data!=0:
+        if kind>=8 and kind<=12 and data!=0:
             count=managed_count(w,p)
             i=0
             while i<count:
@@ -379,6 +385,7 @@ def collect(w:mutbuf) -> u64:
     while si<get(w,152):
         head=mark_add(w,get(w,160+si*8),head)
         si=si+1
+    head=mark_add(w,get(w,400),head)
     while cap!=0:
         head=mark_add(w,get(w,cap+8),head)
         cap=get(w,cap+56)
@@ -399,7 +406,7 @@ def collect(w:mutbuf) -> u64:
                     head=mark_add(w,key,head)
                     head=mark_add(w,get(w,data+i*32+8),head)
                 i=i+1
-        if kind>=8 and kind<=10 and data!=0:
+        if kind>=8 and kind<=12 and data!=0:
             count=managed_count(w,p)
             while i<count:
                 child=managed_child(w,p,i)
@@ -420,13 +427,13 @@ def collect(w:mutbuf) -> u64:
             if kind==6:
                 n=get(w,p+112)*2
                 stride=16
-            if kind>=8 and kind<=10 and data!=0:
+            if kind>=8 and kind<=12 and data!=0:
                 n=managed_count(w,p)
             while i<n:
                 child=0
                 if kind==5:
                     child=get(w,data+i*8)
-                elif kind>=8 and kind<=10:
+                elif kind>=8 and kind<=12:
                     child=managed_child(w,p,i)
                 else:
                     if get(w,data+(i//2)*32)!=0:
@@ -830,7 +837,7 @@ def object_kind_size(o:mutbuf,w:mutbuf,p:u64) -> u64:
     put(o,G_KIND,kind)
     put(o,G_N,choose(kind>=4,get(w,p+16),0))
     n=get(w,p+32)
-    if kind==0 or kind==5 or kind==6 or kind==9 or kind==10:
+    if kind==0 or kind==5 or kind==6 or kind==9 or kind==10 or kind==11 or kind==12:
         n=0
     if kind==1:
         n=1

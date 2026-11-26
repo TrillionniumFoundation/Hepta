@@ -248,7 +248,7 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if get(w,a+8)!=6:
             return done(o,2)
         key=get(o,G_B)
-        if get(w,key+8)==5 or get(w,key+8)==6:
+        if get(w,key+8)==5 or get(w,key+8)==6 or get(w,key+8)>=11:
             return done(o,2)
         found=dict_find(w,a,key)
         put(o,G_FOUND,found)
@@ -261,7 +261,7 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             put(o,G_RESULT,get(w,get(w,a+24)+found*32+8))
             put(o,G_COUNT,1)
     if op>=12 and op<=16:
-        if get(w,a+8)!=5:
+        if get(w,a+8)!=5 and (op!=12 or get(w,a+8)!=11):
             return done(o,2)
         index=get(w,a+16)
         if op!=16:
@@ -279,7 +279,7 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if op==17:
         actual=native_base(w,a)
         kind=get(w,actual+8)
-        if kind<4 or kind>7:
+        if (kind<4 or kind>7) and kind!=11:
             return done(o,2)
     if op==19:
         actual=native_base(w,a)
@@ -298,7 +298,7 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             return done(o,13)
     if op==23:
         kind=get(w,a+8)
-        if kind!=5 and kind!=6:
+        if kind!=5 and kind!=6 and kind!=11:
             return done(o,2)
         n=get(w,a+16)
         start=readword(s,104)
