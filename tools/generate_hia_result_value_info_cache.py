@@ -37,7 +37,7 @@ def resources_runtime_cache_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if error!=0:
             return done(o,error)
     cached=get(w,data+24)
-    if cached==get(w,128):
+    if cached==0 or cached==get(w,128):
         cached=0
         if info==0:
             return done(o,0)
@@ -172,6 +172,7 @@ def resources_runtime_cache_commit(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     old=get(w,data+24)
     edge_add(w,replacement)
     put(w,data+24,replacement)
-    edge_drop(w,old)
+    if old!=0:
+        edge_drop(w,old)
     return resources_finish(o,w,0)
 '''
