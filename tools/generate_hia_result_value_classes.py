@@ -48,6 +48,11 @@ CATALOG = [
     ('BackgroundOptimizer', (1,), (1,), 0, 0),
     ('VerifiedProgram', (1,), (1,), 36, 0),
     ('Future', (1,), (1,), 0, 0),
+    ('ArithmeticError', (22,), (22, 21, 1), 21, 0),
+    ('OverflowError', (38,), (38, 22, 21, 1), 21, 0),
+    ('StopIteration', (22,), (22, 21, 1), 21, 0),
+    ('MultiversionRejected', (24,), (24, 22, 21, 1), 21, 0),
+    ('HIAProgramRejected', (24,), (24, 22, 21, 1), 21, 0),
 ]
 
 SOURCE = r'''
@@ -56,7 +61,10 @@ def result_value_classes(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if phase==0:
         return class_prepare(s,o,w)
     if phase==1:
-        if class_catalog(w)==False:
+        if get(o,G_OP)==87:
+            if class_catalog_extended(w)==False:
+                return growth(o,w)
+        elif class_catalog(w)==False:
             return growth(o,w)
         put(o,G_PHASE,10)
     if get(o,G_PHASE)==10:
@@ -109,14 +117,14 @@ def class_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if get(w,112)>=4096:
         collect(w)
     put(w,112,get(w,112)+1)
-    if op!=32:
+    if op!=32 and op!=87:
         a=cap_lookup(w,readword(s,24),readword(s,32),readword(s,40))
         if a==0:
             return done(o,1)
         put(o,G_A,a)
         if (op==34 or op==38) and get(w,a+8)!=10:
             return done(o,2)
-    if op==33 or op==34 or op==35 or op==37 or op==39:
+    if op==33 or op==34 or op==35 or op==37 or op==39 or op==75:
         b=cap_lookup(w,readword(s,48),readword(s,56),readword(s,64))
         if b==0:
             return done(o,1)
@@ -126,6 +134,19 @@ def class_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if c==0:
             return done(o,1)
         put(o,G_C,c)
+    if op==75:
+        a=get(o,G_A)
+        if get(w,a+8)!=10 or class_is_subclass(w,a,get(w,320))==False:
+            return done(o,2)
+        if get(w,get(o,G_B)+8)!=11:
+            return done(o,2)
+        if readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0:
+            namespace=cap_lookup(w,readword(s,72),readword(s,80),readword(s,88))
+            if namespace==0:
+                return done(o,1)
+            if get(w,namespace+8)!=6:
+                return done(o,2)
+            put(o,G_C,namespace)
     if op==33:
         name=native_base(w,get(o,G_A))
         if get(w,name+8)!=4 or get(w,get(o,G_B)+8)!=5 or get(w,get(o,G_C)+8)!=6:
@@ -209,6 +230,51 @@ def class_catalog(w:mutbuf) -> bool:
         put(w,160+(id-1)*8,obj)
         put(w,152,id)
     return True
+def class_catalog_extended(w:mutbuf) -> bool:
+    while get(w,152)<42:
+        id=get(w,152)+1
+        obj=class_builtin(w,id)
+        if obj==0:
+            return False
+        class_links(w,obj)
+        edge_add(w,obj)
+        put(w,160+(id-1)*8,obj)
+        put(w,152,id)
+    return True
+def class_exception(o:mutbuf,w:mutbuf) -> u64:
+    namespace=get(o,G_C)
+    owned=namespace==0
+    if owned:
+        namespace=object_new(w,6)
+        if namespace==0:
+            return growth(o,w)
+    obj=object_new(w,8)
+    if obj==0:
+        if owned:
+            object_release(w,namespace)
+        return growth(o,w)
+    data=allocate(w,64)
+    if data==0:
+        object_unlink(w,obj)
+        if owned:
+            object_release(w,namespace)
+        return growth(o,w)
+    zero(w,data,64)
+    cls=get(o,G_A)
+    put(w,obj+24,data)
+    put(w,obj+56,(obj^get(w,get(o,G_RANDOM)))*11400714819323198485)
+    put(w,data+16,namespace)
+    put(w,data+24,get(o,G_B))
+    put(w,data+32,get(w,get(w,cls+24)))
+    put(w,data+40,cls)
+    put(w,data+48,3544429961563687240)
+    if publish_one(o,w,obj)!=0:
+        object_unlink(w,obj)
+        if owned:
+            object_release(w,namespace)
+        return growth(o,w)
+    class_links(w,obj)
+    return class_finish(o,w,0)
 def class_builtin(w:mutbuf,id:u64) -> u64:
     name=object_new(w,4)
     if name==0:
@@ -343,8 +409,10 @@ def class_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     op=get(o,G_OP)
     a=get(o,G_A)
     result=0
-    if op==32:
+    if op==32 or op==87:
         result=get(w,160+(readword(s,104)-1)*8)
+    elif op==75:
+        return class_exception(o,w)
     elif op==33:
         return class_project(o,w)
     elif op==34:
@@ -621,9 +689,9 @@ def class_instance(o:mutbuf,w:mutbuf) -> u64:
 '''
 
 
-def catalog_source():
+def catalog_source(limit=37):
     result = ['def class_builtin_name(w:mutbuf,data:u64,id:u64) -> u64:']
-    for index, (name, bases, mro, layout, parser) in enumerate(CATALOG, 1):
+    for index, (name, bases, mro, layout, parser) in enumerate(CATALOG[:limit], 1):
         result.append('    if id==' + str(index) + ':')
         raw = name.encode()
         for offset in range(0, len(raw), 8):
@@ -636,7 +704,7 @@ def catalog_source():
         result.append('        return ' + str(len(raw)))
     result.append('    return 0')
     result.append('def class_builtin_shape(w:mutbuf,data:u64,obj:u64,id:u64) -> u64:')
-    for index, (name, bases, mro, layout, parser) in enumerate(CATALOG, 1):
+    for index, (name, bases, mro, layout, parser) in enumerate(CATALOG[:limit], 1):
         result.append('    if id==' + str(index) + ':')
         result.extend('        ' + x for x in (
             'put(w,data+16,' + str(len(bases)) + ')',
@@ -654,7 +722,7 @@ def catalog_source():
 
 
 def source_program():
-    return resolve('result_value_classes', SOURCE + '\n' + catalog_source() + '\n' + CORE)
+    return resolve('result_value_classes', SOURCE + '\n' + catalog_source(len(CATALOG)) + '\n' + CORE)
 
 
 def program():
