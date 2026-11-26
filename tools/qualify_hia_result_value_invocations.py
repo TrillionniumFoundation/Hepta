@@ -268,12 +268,27 @@ class Engine:
         self.bound=bound
         self.context=(C.c_ubyte*256).from_address(C.addressof(bound.owner.context)+512)
         self.entry=ENTRY(bound.value);self.calls=0
-    def call(self,request,on=16384):
-        source=C.create_string_buffer(request);output=C.create_string_buffer(b'\xa5'*(on+64))
+    def allocate_output(self,on=16384):
+        return C.create_string_buffer(b'\xa5'*(on+64))
+    def value_output(self,output,on=16384):
+        return output
+    def invoke(self,request,output,on=16384):
+        source=C.create_string_buffer(request)
         rc=int(self.entry(source,len(request),output,on,self.context,256))&0xffffffff
-        assert source.raw==request+b'\0' and output.raw[on:]==b'\xa5'*64+b'\0'
+        assert source.raw==request+b'\0'
+        return rc
+    def call(self,request,on=16384):
+        output=self.allocate_output(on)
+        rc=self.invoke(request,output,on)
+        value=self.value_output(output,on)
+        assert value.raw[on:]==b'\xa5'*64+b'\0'
         self.calls+=1
-        return rc,output.raw[:on]
+        return rc,value.raw[:on]
+
+ENGINE_FACTORY=None
+
+def make_engine(bound):
+    return Engine(bound) if ENGINE_FACTORY is None else ENGINE_FACTORY(bound)
 
 class Values(PriorValues):
     def function(self,source,env=ZERO,name='function'):
@@ -312,7 +327,7 @@ def main():
     assert word(b.owner.context,680)==62
     ctx=C.string_at(word(b.owner.context,712),256)
     assert word(ctx,136)==C.addressof(b.owner.context)+512 and word(ctx,144)==b.value
-    v=Values(Engine(b));rows=[]
+    v=Values(make_engine(b));rows=[]
     def passed(name,**kw):
         rows.append(dict(case=name,**kw));(args.output/'partial.json').write_text(json.dumps(rows,indent=2)+'\n');print('INVOCATION_CASE',name,flush=True)
     f=v.function(FRESH,name='fresh')
