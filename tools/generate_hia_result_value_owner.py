@@ -251,7 +251,7 @@ def class_request_valid(s:readbuf) -> bool:
 
 def records_request_valid(s:readbuf) -> bool:
     op=readword(s,8)
-    if op<40 or op>47 or op==44:
+    if op<40 or op>47:
         return False
     tail=choose(op==45,5136,0)
     if length(s)!=128+tail or readword(s,96)!=tail or readword(s,112)!=0:
