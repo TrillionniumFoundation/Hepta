@@ -23,12 +23,22 @@ C={
 'KERNEL_VALUE':360,'KERNEL_SEEN':368,'KERNEL_CAUGHT':376,'BORROWED':384,'FINAL_STAGE':392,
 'FINAL_FAILED':400,'TEMP':408,'RANDOM':416,'FEEDBACK':448,'RESTORE':456,'BOXPTR':464,'CALL_OP':472,
 'RUNNING':480,'NOTIFIED':488,'COMPLETION_MODE':496,'VALUE_CLASS':504,'NODE':512,'HEADER':640,'BOX':768,'PIN':1024,'SAVED':1152,'DROP_CONSUMED':1216,'RETIRING_PENDING':1224,'RETIRING_KNOWN':1232,'VD_CONSUMED':1240,'VD_PENDING':1248,'VD_STATUS':1256,'RETIRE_MODE':1264,'BOX_PENDING':1272,'TOKEN_PENDING':1280,'VALUE_FENCED':1288,'RQ':4096,'FP':6144,'VP':8192,'OUT':16384}
+C.update(MAGIC6=int.from_bytes(b'HIABFQ06','little'),VREQUEST6=int.from_bytes(b'HIABVQ06','little'),MAGIC5=int.from_bytes(b'HIABFQ05','little'),REPLY3=int.from_bytes(b'HIABFR03','little'),
+ VREQUEST5=int.from_bytes(b'HIABVQ05','little'),M_PROTOCOL=1296,M_DEFER=1304,
+ M_WEAK=1312,M_PIN=1344,M_BIND=1368,M_CHECKED=1400,M_MODE=1408,
+ M_ADOPTED=1416,M_QUEUE=1424,M_UNMAP=1432,M_BOX=1440,M_AFTER=1448,
+ M_OLD=1456,M_RECOVERED=1488,M_PENDING=1496,M_PTR=1504,M_NEXT=1512,
+ M_UNKNOWN=1520,M_SAVED=1536,M_RESULT=1664,M_BOUND=1696,
+ M_OWNER=1704,M_NOTIFY=1712,M_PARENT=1792,M_KHEAD=2048,M_KNODE=2176,
+ PUBLIC_STATE=int.from_bytes(b'HIABFPS1','little'),KERNEL_MAGIC=int.from_bytes(b'HIAMVFS1','little'))
 SOURCE=r'''
 
 def background_future_cell(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<256:
         return 4294967293
     phase=get(o,PHASE)
+    if phase>=1000:
+        return managed(s,o,w,phase)
     if phase==0:
         return begin(s,o,w)
     if phase<100:
@@ -65,6 +75,12 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     elif readword(s,0)==MAGIC4:
         if op!=20 and op!=21:
             return 4294967293
+    elif readword(s,0)==MAGIC5:
+        if op<22 or op>26:
+            return 4294967293
+    elif readword(s,0)==MAGIC6:
+        if op>21:
+            return 4294967293
     else:
         return 4294967293
     at=16
@@ -77,7 +93,11 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
                 used=True
         if op>=15 and op<=19 and at>=24 and at<=40:
             used=True
-        if op==20 and at>=24 and at<=40:
+        if (op==20 or (op>=22 and op<=25)) and at>=24 and at<=40:
+            used=True
+        if op==22 and at>=48 and at<=104:
+            used=True
+        if (op==23 or op==24) and at==72:
             used=True
         if (op==15 or op==16) and ((at>=48 and at<=64) or at==80):
             used=True
@@ -102,6 +122,14 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     zero(o,128,OUT-128)
     put(o,OP,op)
+    if readword(s,0)==MAGIC6:
+        put(o,M_PROTOCOL,100+op)
+        put(o,M_DEFER,1)
+    if readword(s,0)==MAGIC5:
+        put(o,M_PROTOCOL,op)
+        put(o,M_DEFER,1)
+        if op>=25:
+            put(o,OP,op-5)
     return system(o,1,39,0,0,0,0,0,0,0)
 
 def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -180,10 +208,14 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,NODE+48)!=readword(s,32) or get(o,NODE+56)!=readword(s,40):
             return fail(o,1)
         put(o,OBJ,get(o,NODE+8))
-        return memory(o,102,0,get(o,OBJ),3,HEADER,128)
+        return memory(o,102,0,get(o,OBJ),3,HEADER,256)
     if phase==102:
         if get(o,HEADER)!=OBJECT or get(o,HEADER+8)!=get(o,PID) or get(o,HEADER+32)==0 or get(o,HEADER+96)!=1:
             return fail(o,9)
+        if get(o,HEADER+216)>1:
+            return fail(o,9)
+        if get(o,HEADER+216)==1:
+            put(o,M_DEFER,1)
         op=get(o,OP)
         if op==2:
             return again(o,300)
@@ -192,6 +224,9 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if op==6:
             put(o,BORROWED,get(o,OBJ)+512)
             return fail(o,0)
+        if op>=22 and op<=24:
+            put(o,NEXT,1000)
+            return address(o,700,PIN)
         put(o,NEXT,500)
         return address(o,700,PIN)
     if phase==160:
@@ -414,6 +449,8 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             if get(o,OP)==15 or get(o,OP)==16:
                 put(o,KERNEL_STATUS,6)
             return fail(o,0)
+        if get(o,M_DEFER)!=0:
+            return allocate(o,1160,128)
         value_packet(o,5)
         copy_input(s,48,o,RQ+24,24)
         return value(o,w,520)
@@ -421,11 +458,15 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if value_ok(o)==False:
             return fail(o,choose(get(o,VP+8)==1,1,choose(get(o,VP+8)==5,4,9)))
         within(o,RETAINED_VALUE,VP+24,24)
+        if get(o,NEWBOX)!=0:
+            return again(o,521)
         return allocate(o,521,128)
     if phase==521:
-        if get(o,FEEDBACK)==0:
-            return fail(o,4)
-        put(o,NEWBOX,get(o,FEEDBACK))
+        if get(o,NEWBOX)==0:
+            if get(o,FEEDBACK)==0:
+                return fail(o,4)
+            put(o,NEWBOX,get(o,FEEDBACK))
+        put(o,M_BOX,get(o,NEWBOX))
         zero(o,BOX,128)
         put(o,BOX,BOXMAGIC)
         put(o,BOX+8,get(o,PID))
@@ -439,6 +480,10 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,BOX+24,RETAINED_VALUE,24)
         return memory(o,522,3,BOX,0,get(o,NEWBOX),128)
     if phase==522:
+        if get(o,M_CHECKED)==0:
+            put(o,M_CHECKED,1)
+            put(o,M_BOX,get(o,NEWBOX))
+            return memory(o,1060,0,get(o,OBJ)+192,3,M_WEAK,32)
         kernel=2
         if get(o,OP)==15:
             kernel=11
@@ -479,6 +524,9 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==604:
         return unlock(o,610)
     if phase==610:
+        if get(o,M_RECOVERED)==0:
+            put(o,M_RECOVERED,1)
+            return memory(o,1150,0,get(o,OBJ)+192,3,M_WEAK,32)
         return memory(o,617,0,get(o,OBJ),3,HEADER,192)
     if phase==617:
         # The Box scratch overlaps the tail of this extended capture. Keep
@@ -517,6 +565,8 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,RETIRE_MODE)==1:
             if get(o,BOX+24)==0:
                 return write_pointer(o,615,get(o,OBJ)+512+32,0)
+            if get(o,BOX+56)==1:
+                put(o,M_DEFER,1)
             value_packet(o,29)
         else:
             value_packet(o,6)
@@ -591,7 +641,10 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 def retire_values(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==614 or phase==622:
         op=choose(phase==614,29,30)
-        if value_drop_record(o,op)==False:
+        if get(o,M_DEFER)!=0:
+            if managed_drop_record(o,True)==False:
+                return fence_value(o)
+        elif value_drop_record(o,op)==False:
             return fence_value(o)
         if get(o,VD_CONSUMED)==0:
             if get(o,VD_PENDING)!=0:
@@ -614,7 +667,10 @@ def retire_values(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return write_pointer(o,615,get(o,OBJ)+512+32,0)
         return lock(o,650)
     if phase==624 or phase==631:
-        if value_drop_record(o,31)==False:
+        if get(o,M_DEFER)!=0:
+            if managed_drop_record(o,False)==False:
+                return fence_value(o)
+        elif value_drop_record(o,31)==False:
             return fence_value(o)
         if get(o,VD_STATUS)!=0:
             # A lock-before-error reply does not replace the actual pending
@@ -708,9 +764,17 @@ def pins(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==900:
         if get(o,RETAINED_VALUE)!=0:
+            if get(o,M_DEFER)!=0:
+                managed_value_packet(o,78)
+                within(o,RQ+24,RETAINED_VALUE,24)
+                return value(o,w,1070)
             value_packet(o,6)
             within(o,RQ+24,RETAINED_VALUE,24)
             return value(o,w,901)
+        if get(o,M_PIN)!=0:
+            managed_value_packet(o,78)
+            within(o,RQ+24,M_PIN,24)
+            return value(o,w,1080)
         if get(o,NEWBOX)!=0:
             ptr=get(o,NEWBOX)
             put(o,NEWBOX,0)
@@ -765,6 +829,17 @@ def value_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,128)
     put(o,RQ,choose(op>=29,VREQUEST2,VREQUEST))
     put(o,RQ+8,op)
+    if get(o,M_DEFER)!=0:
+        if op==29 or op==6:
+            managed_value_packet(o,78)
+        elif op==30 or op==22:
+            managed_value_packet(o,92)
+        elif op==31:
+            managed_value_packet(o,93)
+        elif op==5:
+            managed_value_packet(o,91)
+        else:
+            put(o,RQ,VREQUEST6)
     return 0
 def future(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return invoke(o,next,get(w,64),RQ,64,FP,512,get(o,OBJ)+512,512)
@@ -773,6 +848,13 @@ def value(o:mutbuf,w:mutbuf,next:u64) -> u32:
 def future_ok(o:mutbuf) -> bool:
     return get(o,FP)==FREPLY and get(o,FEEDBACK)==get(o,FP+8) and (get(o,FP+8)<=6 or (get(o,RQ)==FREQUEST2 and get(o,FP+8)==7) or get(o,FP+8)==65)
 def value_ok(o:mutbuf) -> bool:
+    if get(o,RQ)==VREQUEST5:
+        if get(o,RQ+8)==91:
+            return managed_retain_ok(o)
+        if get(o,RQ+8)==78 or get(o,RQ+8)==92:
+            if managed_drop_record(o,True)==False:
+                return False
+            return get(o,VD_CONSUMED)==1
     return get(o,FEEDBACK)==0 and get(o,VP)==VREPLY and get(o,VP+8)==0
 def lock(o:mutbuf,next:u64) -> u32:
     put(o,AFTER,next)
@@ -860,8 +942,19 @@ def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
     put(o,104,get(o,KERNEL_SEEN))
     put(o,112,get(o,KERNEL_CAUGHT))
     put(o,120,get(o,FINAL_FAILED))
+    if get(o,M_PROTOCOL)!=0:
+        put(o,0,REPLY3)
+        put(o,160,get(o,M_QUEUE))
+        put(o,168,get(o,M_UNMAP))
+        if op>=22 and op<=24:
+            put(o,16,choose(get(o,M_BOUND)!=0,7,0))
+            within(o,24,M_RESULT,24)
+            put(o,48,get(o,M_BIND+24))
+            put(o,64,get(o,OBJ)+512)
+            put(o,112,get(o,M_PENDING))
+            return 0
     if op==20 or op==21:
-        put(o,0,REPLY2)
+        put(o,0,choose(get(o,M_PROTOCOL)!=0,REPLY3,REPLY2))
         put(o,128,get(o,DROP_CONSUMED))
         put(o,136,get(o,RETIRING_PENDING))
         put(o,144,get(o,RETIRING_KNOWN))
@@ -915,6 +1008,349 @@ def choose(test:bool,yes:u64,no:u64) -> u64:
 def narrow(n:u64) -> u32:
     return n
 '''
+MANAGED_SOURCE=r'''
+
+def managed_retain_ok(o:mutbuf) -> bool:
+    if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY or get(o,VP+88)!=1 or get(o,VP+96)!=1 or get(o,VP+120)!=1:
+        return False
+    if get(o,VP+80)>1 or get(o,VP+104)>1 or get(o,VP+112)>1:
+        return False
+    if get(o,VP+112)!=0:
+        put(o,M_QUEUE,1)
+    if get(o,VP+104)!=0:
+        put(o,M_UNMAP,1)
+    return True
+
+def managed(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase<1060:
+        return managed_binding(s,o,w,phase)
+    if phase<1070:
+        return managed_adopt(s,o,w,phase)
+    if phase<1100:
+        return managed_cleanup(s,o,w,phase)
+    return managed_recovery(s,o,w,phase)
+
+def managed_binding(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1000:
+        return unlock(o,1001)
+    if phase==1001:
+        return memory(o,1002,0,get(w,80)+224,3,M_BIND,32)
+    if phase==1002:
+        if get(o,M_BIND)==0 or get(o,M_BIND+8)==0 or get(o,M_BIND+16)!=512 or get(o,M_BIND+24)==0:
+            return fail(o,1)
+        if readword(s,72)!=get(o,M_BIND+24):
+            return fail(o,1)
+        if get(o,OP)==24:
+            put(o,M_AFTER,900)
+            return lock(o,1100)
+        if get(o,OP)==23:
+            return memory(o,1011,0,get(o,OBJ)+192,3,M_WEAK,32)
+        if readword(s,104)!=get(o,OBJ)+512:
+            return fail(o,1)
+        managed_value_packet(o,49)
+        put(o,RQ,VREQUEST6)
+        copy_input(s,48,o,RQ+24,24)
+        return value(o,w,1003)
+    if phase==1003:
+        if value_ok(o)==False or get(o,VP+16)!=7:
+            return fail(o,1)
+        if managed_input_same(s,80,o,VP+24,24)==False:
+            return fail(o,1)
+        managed_value_packet(o,80)
+        copy_input(s,48,o,RQ+24,24)
+        return value(o,w,1004)
+    if phase==1004:
+        if value_ok(o)==False or get(o,VP+16)!=8 or get(o,VP+48)!=7:
+            return fail(o,1)
+        within(o,M_RESULT,VP+24,24)
+        future_packet(o,5)
+        return future(o,w,1005)
+    if phase==1005:
+        # The public constructor installs exactly its fixed observer notifier.
+        # No user callback or stored result may predate the canonical binding.
+        if future_ok(o)==False or get(o,FP+8)!=0 or get(o,FP+24)!=0 or get(o,FP+40)!=1:
+            return fail(o,5)
+        return memory(o,1012,0,get(o,M_BIND+8)+40,3,M_OWNER,8)
+    if phase==1012:
+        if get(o,M_OWNER)==0 or get(o,M_OWNER)>MAX-256:
+            return fail(o,9)
+        return memory(o,1013,0,get(o,M_OWNER),3,M_PARENT,256)
+    if phase==1013:
+        if get(o,M_PARENT)!=PUBLIC_STATE or get(o,M_PARENT+8)!=get(o,PID) or get(o,M_PARENT+208)!=get(o,M_OWNER):
+            return fail(o,9)
+        if get(o,M_PARENT+72)!=get(w,72) or get(o,M_PARENT+112)!=get(w,80) or get(o,M_PARENT+120)!=256 or get(o,M_PARENT+160)==0:
+            return fail(o,9)
+        put(o,M_NOTIFY,get(o,M_PARENT+160))
+        return memory(o,1014,0,get(o,OBJ)+512,3,M_KHEAD,128)
+    if phase==1014:
+        if get(o,M_KHEAD)!=KERNEL_MAGIC or get(o,M_KHEAD+8)!=get(o,PID) or get(o,M_KHEAD+16)!=0 or get(o,M_KHEAD+32)!=0 or get(o,M_KHEAD+80)!=0:
+            return fail(o,5)
+        if get(o,M_KHEAD+40)==0 or get(o,M_KHEAD+40)!=get(o,M_KHEAD+48) or get(o,M_KHEAD+56)!=1:
+            return fail(o,5)
+        return memory(o,1015,0,get(o,M_KHEAD+40),3,M_KNODE,64)
+    if phase==1015:
+        if get(o,M_KNODE)!=0 or get(o,M_KNODE+8)!=get(o,M_NOTIFY) or get(o,M_KNODE+16)!=get(o,M_OWNER):
+            return fail(o,5)
+        at=24
+        while at<64:
+            if get(o,M_KNODE+at)!=0:
+                return fail(o,5)
+            at=at+8
+        return lock(o,1006)
+    if phase==1006:
+        return memory(o,1007,0,get(o,OBJ)+192,3,M_WEAK,32)
+    if phase==1007:
+        if get(o,M_WEAK+24)!=0:
+            if get(o,M_WEAK+24)!=1 or managed_same(o,M_WEAK,M_RESULT,24)==False:
+                return fail(o,5)
+            put(o,M_BOUND,1)
+            return fail(o,0)
+        if get(o,M_WEAK)!=0 or get(o,M_WEAK+8)!=0 or get(o,M_WEAK+16)!=0:
+            return fail(o,9)
+        within(o,M_WEAK,M_RESULT,24)
+        put(o,M_WEAK+24,1)
+        return memory(o,1008,3,M_WEAK,0,get(o,OBJ)+192,32)
+    if phase==1008:
+        return write_pointer(o,1009,get(o,OBJ)+240,get(o,M_BIND+24))
+    if phase==1009:
+        copy_input(s,80,o,M_OLD,24)
+        return memory(o,1010,3,M_OLD,0,get(o,OBJ)+248,24)
+    if phase==1010:
+        put(o,M_BOUND,1)
+        return fail(o,0)
+    if phase==1011:
+        if get(o,M_WEAK+24)>1:
+            return fail(o,9)
+        put(o,M_BOUND,get(o,M_WEAK+24))
+        within(o,M_RESULT,M_WEAK,24)
+        return fail(o,0)
+    return fail(o,9)
+
+def managed_adopt(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1060:
+        if get(o,M_WEAK+24)==0:
+            return again(o,522)
+        if get(o,M_WEAK+24)!=1 or get(o,M_WEAK)==0:
+            return fail(o,9)
+        put(o,M_MODE,1)
+        put(o,M_DEFER,1)
+        managed_value_packet(o,80)
+        within(o,RQ+24,M_WEAK,24)
+        put(o,RQ+104,1)
+        return value(o,w,1061)
+    if phase==1061:
+        if value_ok(o)==False or get(o,VP+16)!=8 or get(o,VP+48)!=7:
+            return fail(o,9)
+        within(o,M_PIN,VP+24,24)
+        within(o,BOX+64,M_PIN,24)
+        put(o,BOX+104,get(o,OBJ))
+        put(o,BOX+120,get(o,M_BOX))
+        return memory(o,1062,3,BOX,0,get(o,M_BOX),128)
+    if phase==1062:
+        managed_value_packet(o,77)
+        within(o,RQ+24,M_PIN,24)
+        within(o,RQ+48,RETAINED_VALUE,24)
+        return value(o,w,1063)
+    if phase==1063:
+        if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY2 or get(o,VP+88)!=1 or get(o,VP+96)!=1:
+            return fail(o,9)
+        put(o,M_ADOPTED,1)
+        put(o,BOX+56,1)
+        return write_pointer(o,1064,get(o,M_BOX)+56,1)
+    if phase==1064:
+        return again(o,522)
+    return fail(o,9)
+
+def managed_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1070:
+        if managed_drop_record(o,True)==False:
+            put(o,M_UNKNOWN,1)
+            return managed_park(o)
+        if get(o,VD_CONSUMED)==0:
+            return managed_park(o)
+        zero(o,RETAINED_VALUE,24)
+        zero(o,BOX+24,24)
+        return memory(o,1071,3,BOX+24,0,get(o,M_BOX)+24,24)
+    if phase==1071:
+        if get(o,VD_PENDING)!=0 or get(o,VD_STATUS)!=0:
+            return managed_park(o)
+        return again(o,900)
+    if phase==1080:
+        if managed_drop_record(o,True)==False:
+            put(o,M_UNKNOWN,1)
+            return managed_park(o)
+        if get(o,VD_CONSUMED)==0:
+            return managed_park(o)
+        zero(o,M_PIN,24)
+        zero(o,BOX+64,24)
+        return memory(o,1081,3,BOX+64,0,get(o,M_BOX)+64,24)
+    if phase==1081:
+        if get(o,VD_PENDING)!=0 or get(o,VD_STATUS)!=0:
+            return managed_park(o)
+        return again(o,900)
+    if phase==1090:
+        put(o,FINAL_FAILED,1)
+        put(o,ERROR,9)
+        put(o,M_PENDING,1)
+        if get(o,NEWBOX)==0:
+            zero(o,M_PIN,24)
+            return fail(o,9)
+        put(o,BOX+96,choose(get(o,M_UNKNOWN)!=0,2,1))
+        put(o,BOX+104,get(o,OBJ))
+        put(o,BOX+120,get(o,NEWBOX))
+        return memory(o,1091,0,get(o,OBJ)+224,3,M_NEXT,8)
+    if phase==1091:
+        put(o,BOX+112,get(o,M_NEXT))
+        return memory(o,1092,3,BOX,0,get(o,NEWBOX),128)
+    if phase==1092:
+        return write_pointer(o,1093,get(o,OBJ)+224,get(o,NEWBOX))
+    if phase==1093:
+        put(o,NEWBOX,0)
+        zero(o,RETAINED_VALUE,24)
+        zero(o,M_PIN,24)
+        return fail(o,9)
+    return fail(o,9)
+
+def managed_recovery(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1100:
+        return memory(o,1101,0,get(o,OBJ)+224,3,M_PTR,8)
+    if phase==1101:
+        if get(o,M_PTR)==0:
+            return managed_recovery_done(o)
+        return memory(o,1102,0,get(o,M_PTR),3,M_SAVED,128)
+    if phase==1102:
+        if get(o,M_SAVED)!=BOXMAGIC or get(o,M_SAVED+8)!=get(o,PID) or get(o,M_SAVED+104)!=get(o,OBJ) or get(o,M_SAVED+120)!=get(o,M_PTR):
+            return fail(o,9)
+        if get(o,M_SAVED+96)!=1:
+            put(o,M_PENDING,1)
+            return fail(o,9)
+        if get(o,M_SAVED+24)!=0:
+            managed_value_packet(o,78)
+            within(o,RQ+24,M_SAVED+24,24)
+            return value(o,w,1103)
+        return again(o,1105)
+    if phase==1103:
+        if managed_drop_record(o,True)==False or get(o,VD_CONSUMED)==0:
+            put(o,M_PENDING,1)
+            return fail(o,9)
+        zero(o,M_SAVED+24,24)
+        return memory(o,1104,3,M_SAVED+24,0,get(o,M_PTR)+24,24)
+    if phase==1104:
+        if get(o,VD_PENDING)!=0 or get(o,VD_STATUS)!=0:
+            put(o,M_PENDING,1)
+            return fail(o,9)
+        return again(o,1105)
+    if phase==1105:
+        if get(o,M_SAVED+64)!=0:
+            managed_value_packet(o,78)
+            within(o,RQ+24,M_SAVED+64,24)
+            return value(o,w,1106)
+        return again(o,1110)
+    if phase==1106:
+        if managed_drop_record(o,True)==False or get(o,VD_CONSUMED)==0:
+            put(o,M_PENDING,1)
+            return fail(o,9)
+        zero(o,M_SAVED+64,24)
+        return memory(o,1107,3,M_SAVED+64,0,get(o,M_PTR)+64,24)
+    if phase==1107:
+        if get(o,VD_PENDING)!=0 or get(o,VD_STATUS)!=0:
+            put(o,M_PENDING,1)
+            return fail(o,9)
+        return again(o,1110)
+    if phase==1110:
+        return write_pointer(o,1111,get(o,OBJ)+224,get(o,M_SAVED+112))
+    if phase==1111:
+        return deallocate(o,1100,get(o,M_PTR))
+    if phase==1160:
+        if get(o,FEEDBACK)==0:
+            return fail(o,4)
+        put(o,NEWBOX,get(o,FEEDBACK))
+        put(o,M_BOX,get(o,FEEDBACK))
+        zero(o,BOX,128)
+        put(o,BOX,BOXMAGIC)
+        put(o,BOX+8,get(o,PID))
+        put(o,BOX+104,get(o,OBJ))
+        put(o,BOX+120,get(o,NEWBOX))
+        return memory(o,1161,3,BOX,0,get(o,NEWBOX),128)
+    if phase==1161:
+        value_packet(o,5)
+        copy_input(s,48,o,RQ+24,24)
+        return value(o,w,520)
+    if phase==1150:
+        if get(o,M_WEAK+24)==0:
+            return again(o,610)
+        if get(o,M_WEAK+24)!=1:
+            return fence_value(o)
+        put(o,M_DEFER,1)
+        put(o,M_AFTER,610)
+        return lock(o,1100)
+    return fail(o,9)
+
+def managed_recovery_done(o:mutbuf) -> u32:
+    put(o,M_PENDING,0)
+    if get(o,M_AFTER)==610:
+        return unlock(o,610)
+    return fail(o,0)
+
+def managed_park(o:mutbuf) -> u32:
+    if get(o,HELD)!=0:
+        return again(o,1090)
+    return lock(o,1090)
+
+def managed_value_packet(o:mutbuf,op:u64) -> u64:
+    zero(o,RQ,128)
+    put(o,RQ,VREQUEST5)
+    put(o,RQ+8,op)
+    return 0
+
+def managed_drop_record(o:mutbuf,allow_consumed:bool) -> bool:
+    if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY2 or get(o,VP+88)!=1 or get(o,VP+120)!=1:
+        return False
+    consumed=get(o,VP+96)
+    mapping=get(o,VP+104)
+    queued=get(o,VP+112)
+    pending=get(o,VP+80)
+    status=get(o,VP+8)
+    if consumed>1 or mapping>1 or queued>1 or pending>1:
+        return False
+    if pending!=choose(mapping!=0 or queued!=0,1,0):
+        return False
+    if allow_consumed==False and consumed!=0:
+        return False
+    if consumed!=0 and status!=0 and status!=11:
+        return False
+    if status!=0 and status!=1 and status!=6 and status!=11:
+        return False
+    put(o,VD_CONSUMED,consumed)
+    put(o,VD_PENDING,mapping)
+    put(o,VD_STATUS,status)
+    if queued!=0:
+        put(o,M_QUEUE,1)
+        if mapping==0 and status==11:
+            put(o,VD_STATUS,0)
+    if mapping!=0:
+        put(o,M_UNMAP,1)
+    return True
+
+def managed_input_same(s:readbuf,a:u64,o:mutbuf,b:u64,n:u64) -> bool:
+    i=0
+    while i<n:
+        if byte(s,a+i)!=byte(o,b+i):
+            return False
+        i=i+1
+    return True
+
+def managed_same(o:mutbuf,a:u64,b:u64,n:u64) -> bool:
+    i=0
+    while i<n:
+        if byte(o,a+i)!=byte(o,b+i):
+            return False
+        i=i+1
+    return True
+
+'''
+SOURCE+=MANAGED_SOURCE
+
 def source_program():
  s=SOURCE
  for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)

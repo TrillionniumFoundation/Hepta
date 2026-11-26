@@ -23,7 +23,12 @@ C.update(MAX=(1<<64)-1,NEGATIVE=(1<<64)-4095,
  CAP=288,RESULT=312,SAVED_NEXT=336,RANDOM=360,FREE_PTR=368,
  FACT_SELF=384,FACT_ENTRY=392,FACT_FUTURE=400,FACT_VALUES=408,FACT_REG=416,
  V_PENDING=424,FINISH_NEXT=432,DROP_MODE=440,EXTRA=448,RANDOM_USED=456,
+ DEFER=464,VALUE_QUEUE=472,VALUE_UNMAP=480,VALUE_BAD=488,
  ROW=512,RQ=1024,TEMP=1536,RP=2048,FP=4096,VP=69632,OUT=102400)
+C.update(STATE2=int.from_bytes(b'HIAFRCX2','little'),FUT_PRIVATE=int.from_bytes(b'HIABFP04','little'),FUT_ACK3=int.from_bytes(b'HIABFRP3','little'),V_PRIVATE=int.from_bytes(b'HIABVQ05','little'),V_QUERY=int.from_bytes(b'HIABVQ06','little'))
+C.update(REQUEST3=int.from_bytes(b'HIAFRQ03','little'),REPLY3=int.from_bytes(b'HIAFRR03','little'))
+C.update(REQUEST2=int.from_bytes(b'HIAFRQ02','little'),REPLY2=int.from_bytes(b'HIAFRR02','little'),
+ C_NEED_DRAIN=1568,C_RETRY=1576,C_CAPTURE_TAKEN=1584)
 SOURCE=r'''
 def future_resource_owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)!=512:
@@ -31,6 +36,8 @@ def future_resource_owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,PH)
     if phase==0:
         return begin(s,o,w)
+    if phase>=900:
+        return canonical(s,o,w,phase)
     if phase<100:
         return start(s,o,w,phase)
     if phase<200:
@@ -62,6 +69,14 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         family=2
         if op>1 or word(s,24)!=7 or read_zero(s,56,72)==False:
             return 4294967293
+    elif word(s,0)==REQUEST3:
+        family=4
+        if op!=0 or read_zero(s,40,88)==False:
+            return 4294967293
+    elif word(s,0)==REQUEST2:
+        family=3
+        if op!=0 or read_zero(s,40,24)==False or read_zero(s,88,40)==False:
+            return 4294967293
     elif word(s,0)==REQUEST:
         if op>3:
             return 4294967293
@@ -91,7 +106,7 @@ def start(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return 15
     if phase==2:
         own=get(o,FACT_SELF)
-        if own==0 or own>MAX-512 or get(w,0)!=STATE or get(w,8)!=get(o,PID):
+        if own==0 or own>MAX-512 or (get(w,0)!=STATE and get(w,0)!=STATE2) or get(w,8)!=get(o,PID):
             return rejected(o)
         if get(w,16)!=own or get(w,24)!=get(o,FACT_ENTRY):
             return rejected(o)
@@ -108,6 +123,12 @@ def start(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(w,168)>1:
             return rejected(o)
         at=176
+        if get(w,0)==STATE2:
+            if get(w,176)>1:
+                return rejected(o)
+            at=184
+        if (get(o,FAMILY)==3 or get(o,FAMILY)==4) and get(w,0)!=STATE2:
+            return rejected(o)
         while at<256:
             if get(w,at)!=0:
                 return rejected(o)
@@ -115,10 +136,14 @@ def start(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,FAMILY)==2 and (get(w,80)==0 or word(s,16)!=get(w,80)):
             return rejected(o)
         put(o,SELF,own)
-        return memory(o,3,0,get(w,64)+152,3,TEMP,8)
+        put(o,DEFER,choose(get(w,0)==STATE2,1,0))
+        return memory(o,3,0,get(w,64),3,TEMP,256)
     if phase==3:
-        if get(o,TEMP)!=get(w,160):
+        if get(o,TEMP+152)!=get(w,160):
             return rejected(o)
+        if get(o,DEFER)!=0 and get(o,FAMILY)!=1:
+            if get(o,TEMP+224)!=get(o,FACT_ENTRY) or get(o,TEMP+232)!=get(o,SELF) or get(o,TEMP+240)!=512 or get(o,TEMP+248)!=get(w,80):
+                return rejected(o)
         return memory(o,4,0,get(w,40),3,TEMP,256)
     if phase==4:
         if get(o,TEMP)!=FUT_STATE or get(o,TEMP+8)!=get(o,PID) or get(o,TEMP+24)!=0:
@@ -127,6 +152,9 @@ def start(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return rejected(o)
         if get(o,TEMP+208)!=get(w,40):
             return rejected(o)
+        put(o,C_NEED_DRAIN,0)
+        put(o,C_RETRY,0)
+        put(o,C_CAPTURE_TAKEN,0)
         return lock(o,200)
     return rejected(o)
 
@@ -158,7 +186,17 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return failure(o,6,0)
         if get(o,FAMILY)==2 and get(o,OP)==1:
             return failure(o,1,0)
-        if get(o,FAMILY)==0 and get(o,OP)==0:
+        if get(o,FAMILY)==4:
+            if get(w,176)!=0 or get(w,104)==MAX:
+                return failure(o,6,1)
+            put(w,104,get(w,104)+1)
+            put(o,ACTIVE,1)
+            value_packet(o,V_QUERY,49)
+            readcopy(s,16,o,RQ+24,24)
+            return values(o,w,980)
+        if (get(o,FAMILY)==0 or get(o,FAMILY)==3) and get(o,OP)==0:
+            if get(o,DEFER)!=0 and get(w,176)!=0:
+                return failure(o,6,1)
             if get(w,104)==MAX:
                 return failure(o,6,1)
             put(w,104,get(w,104)+1)
@@ -212,12 +250,15 @@ def capture(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if value_valid(o)==False:
             put(o,QUAR,1)
             return capture_failed(o,11)
-        if get(o,VP+8)!=0:
+        if value_local_status(o)!=0:
             return capture_failed(o,5)
         copy(o,ROW+136,VP+24,24)
-        future_packet(o,5,False)
+        future_packet(o,choose(get(o,FAMILY)==3,4,5),False)
         readcopy(s,16,o,RQ+16,24)
-        readcopy(s,40,o,RQ+40,24)
+        if get(o,FAMILY)==3:
+            readcopy(s,64,o,RQ+40,24)
+        else:
+            readcopy(s,40,o,RQ+40,24)
         return futures(o,w,307)
     if phase==307:
         if future_valid(o)==False:
@@ -244,6 +285,8 @@ def capture(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,ROW+40,1)
         return memory(o,309,3,ROW,0,get(o,PTR),512)
     if phase==309:
+        if get(o,FAMILY)==3:
+            return again(o,900)
         copy(o,RESULT,CAP,24)
         put(o,KIND,1)
         put(o,NEW_RECORD,0)
@@ -283,6 +326,13 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if state==3 or state==4:
             return failure(o,11,0)
         if get(o,RESUMING)!=0:
+            if state==6 and get(o,DEFER)!=0 and get(o,ROW+280)==1:
+                if get(w,104)==MAX:
+                    return failure(o,6,1)
+                copy(o,SAVED_NEXT,ROW+184,24)
+                put(w,104,get(w,104)+1)
+                put(o,ACTIVE,1)
+                return unlock(o,931)
             if state!=2:
                 return failure(o,6,1)
             copy(o,SAVED_NEXT,ROW+184,24)
@@ -291,6 +341,16 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if state!=1:
             if state==2 and dropping(o):
                 return claim(o,w)
+            return failure(o,6,1)
+        if get(o,FAMILY)==4:
+            if get(o,ROW+232)==0:
+                return failure(o,3,0)
+            value_packet(o,V_PRIVATE,80)
+            readcopy(s,16,o,RQ+24,24)
+            return values(o,w,981)
+        if get(o,ROW+232)!=0 and get(o,FAMILY)==0:
+            # Canonical records never export an independently usable raw
+            # provider alias; their only owner is the actual Value resource.
             return failure(o,6,1)
         if get(o,FAMILY)==0 and get(o,OP)==3:
             put(o,KIND,2)
@@ -340,9 +400,9 @@ def retirement(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return park(o,11)
         if get(o,VP+96)!=0:
             zero(o,ROW+160,24)
-        if get(o,VP+80)!=0:
+        if value_local_pending(o)!=0:
             put(o,ROW+56,1)
-        if get(o,VP+8)!=0:
+        if value_local_status(o)!=0:
             return park(o,11)
         return again(o,510)
     if phase==510:
@@ -407,7 +467,7 @@ def retirement(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return park(o,11)
         if get(o,VP+96)!=0:
             zero(o,ROW+136,24)
-        if get(o,VP+80)!=0:
+        if value_local_pending(o)!=0:
             put(o,ROW+56,1)
         if get(o,VP+96)==0:
             return park(o,11)
@@ -421,7 +481,7 @@ def retirement(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if value_drop(o,False)==False:
             put(o,QUAR,1)
             return park(o,11)
-        if get(o,VP+8)!=0 or get(o,VP+80)!=0:
+        if value_local_status(o)!=0 or value_local_pending(o)!=0:
             return park(o,11)
         put(o,ROW+56,0)
         return lock(o,560)
@@ -480,8 +540,15 @@ def controls(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if op==4:
             if state!=1 or get(w,104)!=0:
                 return failure(o,6,1)
+            if get(o,DEFER)!=0:
+                if get(w,176)!=0:
+                    return failure(o,6,1)
+                put(w,176,1)
+                put(o,C_RETRY,1)
             return again(o,720)
         if op==1:
+            if get(o,DEFER)!=0 and get(w,176)!=0:
+                return failure(o,6,1)
             if state>1 or get(w,104)!=0 or get(w,112)!=0 or get(w,272)!=0:
                 return failure(o,6,1)
             put(w,96,2)
@@ -557,6 +624,9 @@ def complete(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return again(o,801)
         return lock(o,801)
     if phase==801:
+        if get(o,C_RETRY)!=0:
+            put(w,176,0)
+            put(o,C_RETRY,0)
         if get(o,QUAR)!=0:
             put(w,96,4)
             put(o,KNOWN,0)
@@ -570,6 +640,24 @@ def complete(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,ACTIVE,0)
         return unlock(o,802)
     if phase==802:
+        if get(o,C_NEED_DRAIN)!=0:
+            put(o,C_NEED_DRAIN,0)
+            value_packet(o,V_PRIVATE,56)
+            return values(o,w,803)
+        return finish(o)
+    if phase==803:
+        if value_valid(o)==False or get(o,VP+8)!=0:
+            put(o,STATUS,11)
+            put(o,PENDING,1)
+            return finish(o)
+        value_packet(o,V_TYPED,31)
+        return values(o,w,804)
+    if phase==804:
+        if value_drop(o,False)==False or get(o,VP+104)!=0 or get(o,VP+112)!=0:
+            put(o,STATUS,11)
+            put(o,PENDING,1)
+        else:
+            put(o,PENDING,choose(get(w,112)!=0,1,0))
         return finish(o)
     return rejected(o)
 
@@ -609,17 +697,286 @@ def finish(o:mutbuf) -> u32:
         put(o,24,get(o,CONSUMED))
         put(o,32,get(o,PENDING))
         return 0
-    put(o,0,REPLY)
+    put(o,0,choose(get(o,FAMILY)==4,REPLY3,choose(get(o,FAMILY)==3,REPLY2,REPLY)))
     put(o,8,get(o,STATUS))
     put(o,16,get(o,KIND))
     copy(o,24,RESULT,24)
-    if get(o,KIND)==2:
+    if get(o,KIND)==2 or (get(o,FAMILY)==4 and get(o,KIND)==7):
         copy(o,48,ROW+64,24)
         copy(o,72,ROW+88,24)
     put(o,96,get(o,KNOWN))
     put(o,104,get(o,CONSUMED))
     put(o,112,get(o,PENDING))
     return 0
+
+
+def canonical(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==900:
+        value_packet(o,V_PRIVATE,48)
+        put(o,RQ+96,24)
+        put(o,RQ+104,7)
+        copy(o,RQ+128,CAP,24)
+        return values(o,w,901)
+    if phase==901:
+        if canonical_capture_record(o)==False:
+            put(o,QUAR,1)
+            return capture_failed(o,11)
+        if get(o,C_CAPTURE_TAKEN)==0:
+            return capture_failed(o,choose(get(o,VP+8)==5,5,3))
+        put(o,NEW_RECORD,0)
+        return memory(o,902,3,ROW,0,get(o,PTR),512)
+    if phase==902:
+        value_packet(o,V_PRIVATE,80)
+        copy(o,RQ+24,ROW+256,24)
+        return values(o,w,903)
+    if phase==903:
+        if value_valid(o)==False or get(o,VP+8)!=0 or get(o,VP+16)!=8 or get(o,VP+48)!=7:
+            return canonical_failed(o,11)
+        copy(o,ROW+232,VP+24,24)
+        return memory(o,904,3,ROW,0,get(o,PTR),512)
+    if phase==904:
+        future_packet(o,30,False)
+        copy(o,RQ+16,ROW+64,24)
+        copy(o,RQ+40,ROW+88,24)
+        copy(o,RQ+64,ROW+256,24)
+        put(o,RQ+88,get(w,80))
+        copy(o,RQ+104,CAP,24)
+        return futures(o,w,905)
+    if phase==905:
+        if future_valid(o)==False:
+            return canonical_failed(o,11)
+        harvest_error(o)
+        if get(o,FP+8)!=0 or get(o,FP+16)!=7:
+            return canonical_failed(o,3)
+        copy(o,RESULT,ROW+256,24)
+        zero(o,ROW+256,24)
+        put(o,KIND,7)
+        put(o,CONSUMED,1)
+        return memory(o,906,3,ROW,0,get(o,PTR),512)
+    if phase==906:
+        put(o,C_NEED_DRAIN,1)
+        return failure(o,0,0)
+    if phase==930:
+        return again(o,931)
+    if phase==931:
+        if get(o,ROW+160)!=0:
+            if get(o,ROW+296)!=0:
+                value_packet(o,V_QUERY,7)
+                copy(o,RQ+24,ROW+160,24)
+                return values(o,w,960)
+            value_packet(o,V_TYPED,29)
+            copy(o,RQ+24,ROW+160,24)
+            return values(o,w,932)
+        return again(o,940)
+    if phase==932:
+        if value_drop(o,True)==False:
+            put(o,ROW+296,1)
+            return canonical_park(o)
+        if get(o,VP+96)!=1:
+            return canonical_park(o)
+        zero(o,ROW+160,24)
+        if value_local_pending(o)!=0:
+            put(o,ROW+56,1)
+        return memory(o,933,3,ROW,0,get(o,PTR),512)
+    if phase==933:
+        return again(o,940)
+    if phase==940:
+        if get(o,ROW+256)==0:
+            return again(o,945)
+        if get(o,ROW+288)!=0:
+            value_packet(o,V_QUERY,7)
+            copy(o,RQ+24,ROW+256,24)
+            return values(o,w,970)
+        value_packet(o,V_TYPED,29)
+        copy(o,RQ+24,ROW+256,24)
+        return values(o,w,941)
+    if phase==941:
+        if value_drop(o,True)==False:
+            put(o,ROW+288,1)
+            return canonical_park(o)
+        if get(o,VP+96)!=1:
+            return canonical_park(o)
+        zero(o,ROW+256,24)
+        if value_local_pending(o)!=0:
+            put(o,ROW+56,1)
+        return again(o,945)
+    if phase==945:
+        put(o,ROW+40,1)
+        put(o,ROW+280,0)
+        put(o,ROW+288,0)
+        put(o,ROW+296,0)
+        return lock(o,946)
+    if phase==946:
+        if get(o,RESUMING)!=0:
+            if same_context_cap(o,CAP,w,112)==False:
+                put(o,QUAR,1)
+                return failure(o,11,1)
+            between(o,SAVED_NEXT,w,112,24)
+            zero(o,ROW+184,24)
+        return memory(o,947,3,ROW,0,get(o,PTR),512)
+    if phase==947:
+        return unlock(o,948)
+    if phase==948:
+        # From this point the actual Value queue owns the record. No caller
+        # dereferences it after the finalizer is permitted to retire it.
+        put(o,PTR,0)
+        value_packet(o,V_PRIVATE,56)
+        return values(o,w,949)
+    if phase==949:
+        if value_valid(o)==False or get(o,VP+8)!=0:
+            return failure(o,11,1)
+        value_packet(o,V_TYPED,31)
+        return values(o,w,952)
+    if phase==952:
+        if value_drop(o,False)==False or get(o,VP+104)!=0 or get(o,VP+112)!=0:
+            return failure(o,11,1)
+        if get(o,RESUMING)!=0:
+            return lock(o,720)
+        return failure(o,get(o,ERROR),0)
+    if phase==950:
+        if get(o,RESUMING)==0:
+            between(w,112,o,ROW+184,24)
+            between(o,CAP,w,112,24)
+        return memory(o,951,3,ROW,0,get(o,PTR),512)
+    if phase==951:
+        return failure(o,11,1)
+    if phase==960:
+        if value_valid(o)==False:
+            return canonical_park(o)
+        if get(o,VP+8)==0:
+            put(o,ROW+296,0)
+            return again(o,931)
+        if get(o,VP+8)!=1:
+            return canonical_park(o)
+        value_packet(o,V_TYPED,31)
+        return values(o,w,961)
+    if phase==961:
+        if value_drop(o,False)==False or value_local_pending(o)!=0 or value_local_status(o)!=0:
+            return canonical_park(o)
+        # The exact private token no longer exists and actual mapping retry
+        # is complete. Any resource child queue remains owned by Value.
+        zero(o,ROW+160,24)
+        put(o,ROW+296,0)
+        return memory(o,933,3,ROW,0,get(o,PTR),512)
+    if phase==970:
+        if value_valid(o)==False:
+            return canonical_park(o)
+        if get(o,VP+8)==0:
+            value_packet(o,V_QUERY,49)
+            copy(o,RQ+24,ROW+256,24)
+            return values(o,w,971)
+        if get(o,VP+8)!=1 or get(o,ROW+232)==0:
+            return canonical_park(o)
+        value_packet(o,V_TYPED,31)
+        return values(o,w,972)
+    if phase==971:
+        if value_valid(o)==False or get(o,VP+8)!=0 or get(o,VP+16)!=7 or same(o,VP+24,CAP,24)==False:
+            return canonical_park(o)
+        put(o,ROW+288,0)
+        return again(o,940)
+    if phase==972:
+        if value_drop(o,False)==False or value_local_pending(o)!=0 or value_local_status(o)!=0:
+            return canonical_park(o)
+        value_packet(o,V_PRIVATE,80)
+        copy(o,RQ+24,ROW+232,24)
+        put(o,RQ+104,1)
+        return values(o,w,973)
+    if phase==973:
+        if value_valid(o)==False:
+            return canonical_park(o)
+        if get(o,VP+8)==6:
+            zero(o,ROW+256,24)
+            put(o,ROW+288,0)
+            return again(o,945)
+        if get(o,VP+8)==0 and get(o,VP+16)==8 and get(o,VP+48)==7:
+            copy(o,ROW+256,VP+24,24)
+            return memory(o,974,3,ROW,0,get(o,PTR),512)
+        return canonical_park(o)
+    if phase==974:
+        value_packet(o,V_QUERY,49)
+        copy(o,RQ+24,ROW+256,24)
+        return values(o,w,971)
+    if phase==980:
+        if value_valid(o)==False or get(o,VP+8)!=0 or get(o,VP+16)!=7:
+            return failure(o,1,0)
+        copy(o,CAP,VP+24,24)
+        registry_packet(o,7)
+        copy(o,RQ+24,CAP,24)
+        return registry(o,w,400,128)
+    if phase==981:
+        if value_valid(o)==False or get(o,VP+8)!=0 or get(o,VP+16)!=8 or get(o,VP+48)!=7:
+            return failure(o,1,0)
+        if same(o,VP+24,ROW+232,24)==False:
+            return failure(o,3,0)
+        value_packet(o,V_PRIVATE,91)
+        readcopy(s,16,o,RQ+24,24)
+        return values(o,w,982)
+    if phase==982:
+        if canonical_pin_record(o)==False:
+            # Retain the exact uncertain delivery record in a real registry
+            # object; no guessed token is replayed or reported as consumed.
+            copy(o,ROW+320,VP,128)
+            put(o,ROW+312,1)
+            put(o,ROW+40,4)
+            put(o,QUAR,1)
+            return memory(o,983,3,ROW,0,get(o,PTR),512)
+        if get(o,VP+96)==0:
+            return failure(o,choose(get(o,VP+8)==5,5,1),get(o,VP+80))
+        copy(o,RESULT,VP+24,24)
+        put(o,KIND,7)
+        put(o,CONSUMED,1)
+        put(o,C_NEED_DRAIN,1)
+        return failure(o,0,get(o,VP+80))
+    if phase==983:
+        return failure(o,11,1)
+    return rejected(o)
+
+def canonical_pin_record(o:mutbuf) -> bool:
+    if value_valid(o)==False or get(o,VP+88)!=1 or get(o,VP+96)>1 or get(o,VP+120)!=1:
+        return False
+    mapping=get(o,VP+104)
+    queue=get(o,VP+112)
+    if mapping>1 or queue>1 or get(o,VP+80)!=choose(mapping!=0 or queue!=0,1,0):
+        return False
+    status=get(o,VP+8)
+    if get(o,VP+96)==0:
+        return status!=0 and get(o,VP+24)==0 and get(o,VP+32)==0 and get(o,VP+40)==0
+    return (status==0 or status==11) and get(o,VP+16)==8 and get(o,VP+24)!=0 and get(o,VP+32)!=0 and get(o,VP+40)!=0
+
+def canonical_capture_record(o:mutbuf) -> bool:
+    if value_valid(o)==False or get(o,VP+88)!=1 or get(o,VP+96)>1 or get(o,VP+80)>1:
+        return False
+    status=get(o,VP+8)
+    if get(o,VP+96)==0:
+        return status!=0 and get(o,VP+24)==0 and get(o,VP+32)==0 and get(o,VP+40)==0
+    if status!=0 and status!=11:
+        return False
+    if get(o,VP+16)!=8 or get(o,VP+24)==0 or get(o,VP+32)==0 or get(o,VP+40)==0:
+        return False
+    copy(o,ROW+256,VP+24,24)
+    put(o,C_CAPTURE_TAKEN,1)
+    return True
+
+def canonical_failed(o:mutbuf,status:u64) -> u32:
+    put(o,ERROR,status)
+    put(o,STATUS,status)
+    put(o,KIND,0)
+    put(o,CONSUMED,0)
+    zero(o,RESULT,24)
+    put(o,ROW+40,6)
+    put(o,ROW+280,1)
+    return memory(o,930,3,ROW,0,get(o,PTR),512)
+
+def canonical_park(o:mutbuf) -> u32:
+    put(o,C_NEED_DRAIN,0)
+    put(o,ROW+40,6)
+    put(o,ROW+280,1)
+    if get(o,HELD)!=0:
+        return again(o,950)
+    return lock(o,950)
+
+def same_context_cap(o:mutbuf,at:u64,w:mutbuf,to:u64) -> bool:
+    return get(o,at)==get(w,to) and get(o,at+8)==get(w,to+8) and get(o,at+16)==get(w,to+16)
 
 def dropping(o:mutbuf) -> bool:
     if get(o,FAMILY)==2:
@@ -649,7 +1006,7 @@ def registry_valid(o:mutbuf) -> bool:
 
 def future_packet(o:mutbuf,op:u64,typed:bool) -> u64:
     zero(o,RQ,192)
-    put(o,RQ,choose(typed,FUT_TYPED,FUT_REQUEST))
+    put(o,RQ,choose(get(o,DEFER)!=0,FUT_PRIVATE,choose(typed,FUT_TYPED,FUT_REQUEST)))
     put(o,RQ+8,op)
     return 0
 
@@ -658,10 +1015,14 @@ def futures(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return role(o,next,12,3,RQ,192,3,FP,65536,0,get(w,40),256)
 
 def future_valid(o:mutbuf) -> bool:
+    if get(o,DEFER)!=0:
+        return private_future_valid(o)
     return get(o,FB)==0 and get(o,FP)==FUT_REPLY
 
 def future_drop(o:mutbuf,allow_consumed:bool) -> bool:
-    if get(o,FB)!=0 or get(o,FP)!=FUT_ACK:
+    if get(o,DEFER)!=0 and private_future_valid(o)==False:
+        return False
+    if get(o,FB)!=0 or get(o,FP)!=choose(get(o,DEFER)!=0,FUT_ACK3,FUT_ACK):
         return False
     if get(o,FP+104)!=1 or get(o,FP+96)>1 or get(o,FP+112)>1:
         return False
@@ -678,26 +1039,39 @@ def value_packet(o:mutbuf,magic:u64,op:u64) -> u64:
     zero(o,RQ,192)
     put(o,RQ,magic)
     put(o,RQ+8,op)
+    if get(o,DEFER)!=0:
+        put(o,RQ,choose(magic==V_PRIVATE and op>=48,V_PRIVATE,V_QUERY))
+        if op==29:
+            put(o,RQ,V_PRIVATE)
+            put(o,RQ+8,78)
+        elif op==30:
+            put(o,RQ,V_PRIVATE)
+            put(o,RQ+8,92)
+        elif op==31:
+            put(o,RQ,V_PRIVATE)
+            put(o,RQ+8,93)
     return 0
 
 def values(o:mutbuf,w:mutbuf,next:u64) -> u32:
     zero(o,VP,32768)
-    return role(o,next,13,3,RQ,128,3,VP,32768,0,get(w,64),256)
+    return role(o,next,13,3,RQ,choose(get(o,RQ+8)==48,152,128),3,VP,32768,0,get(w,64),256)
 
 def value_valid(o:mutbuf) -> bool:
     return get(o,FB)==0 and get(o,VP)==V_REPLY
 
 def value_drop(o:mutbuf,allow_consumed:bool) -> bool:
+    if get(o,DEFER)!=0:
+        return private_value_drop(o,allow_consumed)
     if get(o,FB)!=0 or get(o,VP)!=V_ACK:
         return False
-    status=get(o,VP+8)
-    if get(o,VP+88)!=1 or get(o,VP+96)>1 or get(o,VP+80)>1:
+    status=value_local_status(o)
+    if get(o,VP+88)!=1 or get(o,VP+96)>1 or value_local_pending(o)>1:
         return False
     if allow_consumed==False and get(o,VP+96)!=0:
         return False
     if get(o,VP+96)!=0 and status!=0 and status!=11:
         return False
-    if status==0 and get(o,VP+80)!=0:
+    if status==0 and value_local_pending(o)!=0:
         return False
     return status==0 or status==1 or status==6 or status==11
 
@@ -754,6 +1128,9 @@ def read_zero(s:readbuf,at:u64,n:u64) -> bool:
         i=i+1
     return True
 '''
+PRIVATE_SOURCE='\ndef value_local_pending(o:mutbuf) -> u64:\n    if get(o,DEFER)!=0 and get(o,VP)==V_ACK and get(o,VP+120)==1:\n        return get(o,VP+104)\n    return get(o,VP+80)\ndef value_local_status(o:mutbuf) -> u64:\n    status=get(o,VP+8)\n    if get(o,DEFER)!=0 and get(o,VP)==V_ACK and get(o,VP+88)==1 and get(o,VP+120)==1:\n        if status==11 and get(o,VP+104)==0 and get(o,VP+112)==1 and (get(o,VP+96)==1 or get(o,RQ+8)==93):\n            return 0\n    return status\ndef private_future_valid(o:mutbuf) -> bool:\n    if get(o,FB)!=0 or get(o,FP)!=FUT_ACK3 or get(o,FP+128)>1 or get(o,FP+136)>1 or get(o,FP+144)!=0:\n        put(o,VALUE_BAD,1)\n        return False\n    if get(o,FP+128)!=0:\n        put(o,VALUE_UNMAP,1)\n    if get(o,FP+136)!=0:\n        put(o,VALUE_QUEUE,1)\n    return True\ndef private_value_drop(o:mutbuf,allow_consumed:bool) -> bool:\n    if get(o,FB)!=0 or get(o,VP)!=V_ACK or get(o,VP+88)!=1 or get(o,VP+120)!=1:\n        return False\n    status=get(o,VP+8)\n    consumed=get(o,VP+96)\n    mapping=get(o,VP+104)\n    queued=get(o,VP+112)\n    if consumed>1 or mapping>1 or queued>1 or get(o,VP+80)!=choose(mapping!=0 or queued!=0,1,0):\n        return False\n    if allow_consumed==False and consumed!=0:\n        return False\n    if consumed!=0 and status!=0 and status!=11:\n        return False\n    if status!=0 and status!=1 and status!=6 and status!=11:\n        return False\n    if status==0 and allow_consumed and consumed!=1:\n        return False\n    at=16\n    while at<80:\n        if get(o,VP+at)!=0:\n            return False\n        at=at+8\n    if queued!=0:\n        put(o,VALUE_QUEUE,1)\n    if mapping!=0:\n        put(o,VALUE_UNMAP,1)\n    return True\n'
+SOURCE += PRIVATE_SOURCE
+
 def source_program():
     text=SOURCE
     needed={'again','allocate','deallocate','memory','system','role','zero','word','get','put'}

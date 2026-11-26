@@ -11,6 +11,8 @@ from tools.generate_hia_multiversion_future import document
 ROOT = Path(__file__).resolve().parents[1]
 C = {k: int.from_bytes(v, 'little') for k, v in {
     'MAGIC': b'HIABFC01', 'REPLY': b'HIABFCR1',
+    'MAGIC2': b'HIABFC02', 'REPLY2': b'HIABFCR2', 'OBJECT2': b'HIABFCT2',
+    'FREQUEST6': b'HIABFQ06', 'FREPLY3': b'HIABFR03', 'VREQUEST5': b'HIABVQ05',
     'STATE': b'HIABFPS1', 'FACTORY': b'HIABFPO1', 'OBJECT': b'HIABFCT1',
     'FREQUEST': b'HIABFQ01', 'FREQUEST4': b'HIABFQ04',
     'FREPLY': b'HIABFR01', 'FREPLY2': b'HIABFR02',
@@ -26,6 +28,7 @@ C.update({
     'RANDOM_USED': 328, 'ATTEMPT': 336, 'CONSUMED': 344, 'MAPPED': 352,
     'STATUS': 360, 'POOL': 368, 'POOL_RESERVED': 376, 'CLAIMED': 392, 'FATE_UNKNOWN': 400, 'FEEDBACK': 448,
     'TEMP': 472, 'RESULT_CAP': 480, 'RESULT_BYTES': 504, 'RESULT_SLOTS': 512,
+    'M_WIRE': 536, 'M_DEFER': 544, 'M_QUEUE': 552, 'M_UNMAP': 560,
     'RANDOM': 704, 'FHEADER': 768, 'HEADER': 1024, 'ROW': 1280,
     'RQ': 4096, 'VP': 8192, 'FP': 16384,
 })
@@ -54,7 +57,7 @@ def future_cleanup(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return cleanup(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if word(s,0)!=MAGIC or word(s,8)>3:
+    if (word(s,0)!=MAGIC and word(s,0)!=MAGIC2) or word(s,8)>3:
         return 4294967293
     op=word(s,8)
     at=16
@@ -79,6 +82,8 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 4294967293
     zero(o,128,3968)
     put(o,OP,op)
+    put(o,M_WIRE,choose(word(s,0)==MAGIC2,1,0))
+    put(o,M_DEFER,get(o,M_WIRE))
     put(o,KNOWN,1)
     return system(o,1,39,0,0,0,0,0,0,0)
 
@@ -157,10 +162,13 @@ def locate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,RECORD,get(o,CURSOR))
         return memory(o,111,0,get(o,RECORD),3,HEADER,128)
     if phase==111:
-        if get(o,HEADER)!=OBJECT or get(o,HEADER+8)!=get(o,PID) or get(o,HEADER+16)!=get(o,F):
+        if (get(o,HEADER)!=OBJECT and get(o,HEADER)!=OBJECT2) or get(o,HEADER+8)!=get(o,PID) or get(o,HEADER+16)!=get(o,F):
             return fail(o,9)
         if get(o,HEADER+24)!=word(s,24) or get(o,HEADER+32)!=word(s,32):
             return fail(o,9)
+        put(o,M_DEFER,get(o,M_WIRE))
+        if get(o,HEADER)==OBJECT2:
+            put(o,M_DEFER,1)
         n=get(o,HEADER+88)
         if n==0 or n>(MAX-160)//96 or get(o,HEADER+96)!=128+n*96:
             return fail(o,9)
@@ -235,7 +243,7 @@ def reserve(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,RANDOM_USED)<16:
             return random(o,201)
         zero(o,HEADER,128)
-        put(o,HEADER,OBJECT)
+        put(o,HEADER,choose(get(o,M_DEFER)!=0,OBJECT2,OBJECT))
         put(o,HEADER+8,get(o,PID))
         put(o,HEADER+16,get(o,F))
         copy_input(s,24,o,HEADER+24,16)
@@ -356,7 +364,7 @@ def dropping(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,ERROR,9)
         return again(o,490)
     if phase==420:
-        if get(o,FEEDBACK)!=0 or get(o,FP)!=FREPLY or get(o,FP+8)!=0:
+        if get(o,FEEDBACK)!=0 or get(o,FP)!=choose(get(o,M_DEFER)!=0,FREPLY3,FREPLY) or get(o,FP+8)!=0:
             put(o,ERROR,9)
             return again(o,490)
         cell_packet(o,21)
@@ -516,7 +524,9 @@ def fence(o:mutbuf) -> u32:
     return again(o,490)
 
 def cell_drop_record(o:mutbuf) -> bool:
-    if get(o,FEEDBACK)!=0 or get(o,FP)!=FREPLY2:
+    if get(o,M_DEFER)!=0 and managed_cell_facts(o)==False:
+        return False
+    if get(o,FEEDBACK)!=0 or get(o,FP)!=choose(get(o,M_DEFER)!=0,FREPLY3,FREPLY2):
         return False
     status=get(o,FP+8)
     consumed=get(o,FP+128)
@@ -538,7 +548,9 @@ def cell_drop_record(o:mutbuf) -> bool:
     return True
 
 def cell_pending_record(o:mutbuf) -> bool:
-    if get(o,FEEDBACK)!=0 or get(o,FP)!=FREPLY2 or get(o,FP+8)!=0:
+    if get(o,M_DEFER)!=0 and managed_cell_facts(o)==False:
+        return False
+    if get(o,FEEDBACK)!=0 or get(o,FP)!=choose(get(o,M_DEFER)!=0,FREPLY3,FREPLY2) or get(o,FP+8)!=0:
         return False
     if get(o,FP+120)>1 or get(o,FP+136)>1 or get(o,FP+144)!=1:
         return False
@@ -550,6 +562,8 @@ def cell_pending_record(o:mutbuf) -> bool:
     return True
 
 def value_drop_record(o:mutbuf,op:u64) -> bool:
+    if get(o,M_DEFER)!=0:
+        return managed_value_drop(o,op)
     if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY:
         return False
     status=get(o,VP+8)
@@ -583,13 +597,13 @@ def value_drop_record(o:mutbuf,op:u64) -> bool:
 
 def cell_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,192)
-    put(o,RQ,choose(op>=20,FREQUEST4,FREQUEST))
+    put(o,RQ,choose(get(o,M_DEFER)!=0,FREQUEST6,choose(op>=20,FREQUEST4,FREQUEST)))
     put(o,RQ+8,op)
     return 0
 def value_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,192)
-    put(o,RQ,VREQUEST)
-    put(o,RQ+8,op)
+    put(o,RQ,choose(get(o,M_DEFER)!=0,VREQUEST5,VREQUEST))
+    put(o,RQ+8,choose(get(o,M_DEFER)!=0,choose(op==31,93,78),op))
     return 0
 def cell(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return invoke(o,next,get(w,80),RQ,128,FP,16384,get(o,F)+256,256)
@@ -600,7 +614,7 @@ def fail(o:mutbuf,status:u64) -> u32:
     return again(o,900)
 def finish(o:mutbuf,status:u64) -> u32:
     zero(o,0,128)
-    put(o,0,REPLY)
+    put(o,0,choose(get(o,M_WIRE)!=0,REPLY2,REPLY))
     put(o,8,status)
     within(o,16,RESULT_CAP,24)
     put(o,40,get(o,PENDING))
@@ -609,6 +623,9 @@ def finish(o:mutbuf,status:u64) -> u32:
     put(o,64,get(o,RAW))
     put(o,72,get(o,RESULT_BYTES))
     put(o,80,get(o,RESULT_SLOTS))
+    if get(o,M_WIRE)!=0:
+        put(o,88,get(o,M_QUEUE))
+        put(o,96,get(o,M_UNMAP))
     return 0
 def lock(o:mutbuf,next:u64) -> u32:
     put(o,AFTER,next)
@@ -710,6 +727,10 @@ def narrow(n:u64) -> u32:
     return n
 '''
 
+MANAGED_SOURCE = '\ndef managed_cell_facts(o:mutbuf) -> bool:\n    if get(o,FEEDBACK)!=0 or get(o,FP)!=FREPLY3 or get(o,FP+160)>1 or get(o,FP+168)>1:\n        return False\n    if get(o,FP+160)!=0:\n        put(o,M_QUEUE,1)\n    if get(o,FP+168)!=0:\n        put(o,M_UNMAP,1)\n    return True\n\ndef managed_value_drop(o:mutbuf,op:u64) -> bool:\n    if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY or get(o,VP+88)!=1 or get(o,VP+120)!=1:\n        return False\n    status=get(o,VP+8)\n    consumed=get(o,VP+96)\n    mapping=get(o,VP+104)\n    queued=get(o,VP+112)\n    if consumed>1 or mapping>1 or queued>1 or get(o,VP+80)!=choose(mapping!=0 or queued!=0,1,0):\n        return False\n    if status!=0 and status!=1 and status!=6 and status!=11:\n        return False\n    if consumed!=0 and status!=0 and status!=11:\n        return False\n    if op==31 and consumed!=0:\n        return False\n    if op==29 and status==0 and consumed!=1:\n        return False\n    at=16\n    while at<80:\n        if get(o,VP+at)!=0:\n            return False\n        at=at+8\n    if queued!=0:\n        put(o,M_QUEUE,1)\n        if mapping==0 and status==11 and (consumed!=0 or op==31):\n            status=0\n    if mapping!=0:\n        put(o,M_UNMAP,1)\n    put(o,CONSUMED,consumed)\n    put(o,MAPPED,mapping)\n    put(o,STATUS,status)\n    return True\n'
+SOURCE += MANAGED_SOURCE
+
+
 def source_program():
     import ast
     from tools import generate_hia_background_optimizer_future_public_owner as owner
@@ -737,9 +758,9 @@ def source_program():
     if length(s)!=192 or length(w)<256:
         return 4294967293
     magic=word_load(s,0)
-    if magic=={C['MAGIC']}:
+    if magic=={C['MAGIC']} or magic=={C['MAGIC2']}:
         return record_future_cleanup(s,o,w)
-    if magic!={owner.C['MAGIC']} and magic!={owner.C['MAGIC2']} and magic!={owner.C['MAGIC3']}:
+    if magic!={owner.C['MAGIC']} and magic!={owner.C['MAGIC2']} and magic!={owner.C['MAGIC3']} and magic!={owner.C['MAGIC4']}:
         return 4294967293
     if length(o)<65536:
         return 4294967293
