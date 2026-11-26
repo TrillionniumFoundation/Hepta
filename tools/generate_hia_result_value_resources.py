@@ -4,20 +4,26 @@ Q05 is a separate private lifecycle. Its binding is captured by the sole owner.
 from tools.generate_hia_result_value_common import ROOT,document,render_assembly,resolve
 from tools.generate_hia_result_value_core import SOURCE as CORE
 from tools.generate_hia_result_value_classes import SOURCE as CLASSES,catalog_source
+from tools.generate_hia_result_value_records import SOURCE as RECORDS
+from tools.generate_hia_result_value_information import SOURCE as INFORMATION
 
 SOURCE=r'''
 def result_value_resources(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
+    if get(o,1800)!=0:
+        return information_child_step(o,w)
     phase=get(o,G_PHASE)
+    if phase==60:
+        return resources_information_prepare(s,o,w)
     if phase==0:
         return resources_prepare(s,o,w)
     if phase==1:
         if class_catalog(w)==False:
-            return growth(o,w)
+            return resources_growth(o,w)
         put(o,G_PHASE,10)
     if get(o,G_PHASE)==10:
         random=allocate(w,16)
         if random==0:
-            return growth(o,w)
+            return resources_growth(o,w)
         put(o,G_RANDOM,random)
         put(o,G_RN,16)
         put(o,G_RUSED,0)
@@ -28,14 +34,14 @@ def result_value_resources(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if raw==MAX-3:
             return 5
         if raw==0 or raw>=18446744073709547521 or raw>16-get(o,G_RUSED):
-            return class_finish(o,w,11)
+            return resources_finish(o,w,11)
         put(o,G_RUSED,get(o,G_RUSED)+raw)
         if get(o,G_RUSED)!=16:
             return 5
         put(o,G_PHASE,20)
     if get(o,G_PHASE)==20:
         return resources_execute(s,o,w)
-    return class_finish(o,w,11)
+    return resources_finish(o,w,11)
 
 def resources_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     zero(o,256,448)
@@ -58,6 +64,9 @@ def resources_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         return done(o,0)
     if op==57:
         put(o,G_PHASE,1)
+        return 10
+    if op==60:
+        put(o,G_PHASE,60)
         return 10
     a=0
     if readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0:
@@ -94,6 +103,8 @@ def resources_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             i=i+1
         if op==48:
             if get(o,1952)!=1 or get(o,1960)==0:
+                return done(o,6)
+            if (get(o,2056)&(1<<readword(s,104)))==0:
                 return done(o,6)
             if readword(s,104)==4 and get(o,G_C)==0:
                 return done(o,2)
@@ -185,20 +196,20 @@ def resources_create(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             base=resources_copy_dict(w,base)
             ownbase=True
         if ownbase and base==0:
-            return growth(o,w)
+            return resources_growth(o,w)
     if env==0:
         env=get(w,128)
     obj=object_new(w,8)
     if obj==0:
         if ownbase:
             object_release(w,base)
-        return growth(o,w)
+        return resources_growth(o,w)
     data=allocate(w,choose(resource,144,64))
     if data==0:
         object_unlink(w,obj)
         if ownbase:
             object_release(w,base)
-        return growth(o,w)
+        return resources_growth(o,w)
     zero(w,data,choose(resource,144,64))
     put(w,obj+24,data)
     put(w,data+8,choose(resource,0,resources_base_kind(layout)))
@@ -225,12 +236,12 @@ def resources_create(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         object_unlink(w,obj)
         if ownbase:
             object_release(w,base)
-        return growth(o,w)
+        return resources_growth(o,w)
     class_links(w,obj)
     if resource:
         put(w,data+48,3544424519840123208)
         put(o,P_DROP_CONSUMED,1)
-    return class_finish(o,w,0)
+    return resources_finish(o,w,0)
 
 def resources_find_info(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     entry=get(w,1032)
@@ -248,16 +259,16 @@ def resources_info(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     entry=0
     if obj==0:
         if get(o,G_OP)==54:
-            return class_finish(o,w,3)
+            return resources_finish(o,w,3)
         obj=get(o,G_A)
         if get(w,obj+112)!=0:
-            return class_finish(o,w,2)
+            return resources_finish(o,w,2)
         entry=allocate(w,64)
         if entry==0:
-            return growth(o,w)
+            return resources_growth(o,w)
     if publish_one(o,w,obj)!=0:
         deallocate(w,entry)
-        return growth(o,w)
+        return resources_growth(o,w)
     if entry!=0:
         zero(w,entry,64)
         put(w,entry,obj)
@@ -269,20 +280,22 @@ def resources_info(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             put(w,next+24,entry)
         put(w,1032,entry)
         put(w,obj+112,entry)
-    return class_finish(o,w,0)
+    return resources_finish(o,w,0)
 
 def resources_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     op=get(o,G_OP)
     if op==48 or op==50:
         return resources_create(s,o,w)
+    if op==60:
+        return resources_information(s,o,w)
     if op==54 or op==55:
         return resources_info(s,o,w)
     if op==57:
         obj=get(w,160+(readword(s,104)-1)*8)
         if publish_one(o,w,obj)!=0:
-            return growth(o,w)
-        return class_finish(o,w,0)
-    return class_finish(o,w,11)
+            return resources_growth(o,w)
+        return resources_finish(o,w,0)
+    return resources_finish(o,w,11)
 
 def resources_claim(o:mutbuf,w:mutbuf) -> u64:
     zero(o,4096,256)
@@ -349,9 +362,39 @@ def resources_ack(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         put(w,data+88,1)
     put(o,2008,get(w,1056))
     return done(o,11)
+
+def resources_finish(o:mutbuf,w:mutbuf,status:u64) -> u64:
+    if get(o,2208)!=0:
+        cap_drop(w,get(o,2208))
+        put(o,2208,0)
+    else:
+        object_release(w,get(o,1920))
+    put(o,1920,0)
+    i=0
+    while i<3:
+        offset=1832
+        if i==1:
+            offset=1936
+        elif i==2:
+            offset=1944
+        if get(o,offset)!=0:
+            cap_drop(w,get(o,offset))
+            put(o,offset,0)
+        i=i+1
+    deallocate(w,get(o,1816))
+    put(o,1816,0)
+    put(o,1800,0)
+    return class_finish(o,w,status)
+
+def resources_growth(o:mutbuf,w:mutbuf) -> u64:
+    action=growth(o,w)
+    if action==0:
+        return resources_finish(o,w,get(o,P_ERROR))
+    return action
+
 '''
 def source_program():
-    return resolve('result_value_resources',SOURCE+'\n'+CLASSES+'\n'+catalog_source()+'\n'+CORE)
+    return resolve('result_value_resources',SOURCE+'\n'+INFORMATION+'\n'+RECORDS+'\n'+CLASSES+'\n'+catalog_source()+'\n'+CORE)
 def program():return document(source_program(),'result_value_resources')
 if __name__=='__main__':
     p=ROOT/'examples/hia_bootstrap/result_value_resources.hepta'

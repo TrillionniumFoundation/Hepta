@@ -22,11 +22,12 @@ The sole native owner captures these context fields mechanically. No request car
 | 144 | Finalizer context extent, exactly 256. |
 | 152 | Actual owner binding nonce. |
 | 160 | Destruction admission fence. |
+| 168 | Fixed owner supported-kind mask, using bit 1 << kind. Runtime and lease support is 6; adding BackgroundOptimizer support gives 70. |
 | 176 | Retained resource-finalizer queue count. |
 
 Each direct consumer retains a real context token until its last internal call has returned. A destruction fence succeeds only while the Value mutex is held, no external capability or queued resource remains, and the only in-flight entry is the fence operation itself. The sole owner then destroys its actual carrier registry and releases the Value anchor. A refused carrier destruction must complete the explicit fence rollback before resuming admission.
 
-The shared arena reserves offset 1024 for its canonical empty tuple, 1032 for the weak GenerationInfo identity index, and 1040/1048/1056 for finalizer queue head, tail and count. These offsets do not overlap the canonical class table or allocator free lists.
+The shared arena reserves offset 1024 for its canonical empty tuple, 1032 for the weak GenerationInfo identity index, 1040/1048/1056 for finalizer queue head, tail and count, and 1064 for the weak runtime ABI tuple index. These offsets do not overlap the canonical class table or allocator free lists.
 
 ## Q05 requests
 
@@ -34,7 +35,7 @@ The 128-byte header uses `HIABVQ05`. Capability triples A, B and C remain at 24/
 
 | Operation | Meaning |
 | --- | --- |
-| 48 | Capture an owner-bound resource. Argument 0 selects runtime 1, lease 2, function 3, bound method 4 or builtin method 5. The 24-byte tail is the actual independently retained carrier capability. A is the environment, B the bound self, and C the bound function. Success transfers that carrier reference into the native object. |
+| 48 | Capture an owner-bound resource. Argument 0 selects runtime 1, lease 2, function 3, bound method 4 builtin method 5, or BackgroundOptimizer 6. The fixed owner support mask must enable that kind before publication. The 24-byte tail is the actual independently retained carrier capability. A is the environment, B the bound self, and C the bound function. Success transfers that carrier reference into the native object. |
 | 49 | Extract a resource binding from actual object A, optionally requiring the resource kind in argument 0. It verifies the private marker, actual binding nonce and live resource state. The returned carrier triple at reply offsets 24/32/40 is an internal owner transport, not a new Value capability; reply offset 16 contains its resource kind. |
 | 50 | Construct a real native builtin-derived object from actual user-defined class A, environment B and inherited value C. Canonical builtin classes are refused with status 18. This extension leaves the earlier Q03 constructor domain unchanged. |
 | 51 | Read actual capability, queue and in-flight counts at reply offsets 48, 56 and 64. |
@@ -43,10 +44,14 @@ The 128-byte header uses `HIABVQ05`. Capability triples A, B and C remain at 24/
 | 54 | Look up an existing live GenerationInfo by exact generation integer A and the two actual runtime identity words in arguments 0 and 1. |
 | 55 | Publish or reuse GenerationInfo A under that same actual runtime identity. The index is weak; object unlink removes its entry. |
 | 56 | Retry retained native resource cleanup through the fixed finalizer. |
-| 57 | Obtain canonical class 31 GenerationLease, 32 function, 33 method or 34 builtin_function_or_method. |
+| 57 | Obtain canonical class 31 GenerationLease, 32 function, 33 method, 34 builtin_function_or_method or 35 BackgroundOptimizer. |
 | 58, 59 | Internal graph-role claim and acknowledgement. The public Value entry rejects both. |
+| 60 | Private actual GenerationInfo capture. Argument 0/1 contain the captured runtime identity; the tail is the actual complete HIAMVIR2 blob. It constructs real immutable records and ABI tuples, preserves same-generation Info and same-runtime ABI identity, and serializes the actual loaded mapping into canonical sorted compact bytes. |
+| 61 | Private typed preparation under the actual lease mutex. It preserves Q04/45's 5264-byte request, 8344-byte response and error ordering, and requires the captured owner binding. Only automatic finalizer draining is deferred for this single entry. |
 
 The sole owner's public Value transport may expose 50, 51 and 57. It rejects the resource capture, extraction, destruction, identity-cache and cleanup control operations from external requests.
+
+The sole owner initializes the supported-kind mask from its fixed dispatcher. A kind whose finalizer is absent is refused with known/unconsumed custody before any Value object is published. Merely adding a class does not enable resource dispatch.
 
 A real resource is native kind 8 with an actual canonical class edge and a private immutable owner binding. Ordinary Q02 or Q03 objects cannot write that binding. Runtime class 20 continues to be the existing actual ScalarMultiversionRuntime class. A same-named class or an uninitialized instance grants no native resource authority.
 
@@ -59,6 +64,14 @@ Operation 48 returns pending at 80, known at 88 and consumed at 96. Known 1 and 
 All-zero environment/self/function triples are valid for runtime and lease capture; the environment becomes the actual None singleton. Operation 50 clones mutable list/dict bases and shares immutable inherited bases, while preserving the actual class graph.
 
 An unrelated resource finalizer error cannot suppress an already-published ordinary create/retain result. Its queue custody remains explicit. Q02 ownership operations, capture 48 and retry 56 report pending cleanup or callback errors through their lifecycle contract.
+
+### Actual information and locked typed calls
+
+Operation 60 accepts no caller type bits. Its frame is 128 bytes followed by the captured 32-byte HIAMVIR2 header and JSON payload; tail length is exact, blob mode/reserved are zero, and its payload length matches. A, B and C are zero. The enclosing owner obtains the identity from the actual native Runtime while the registry mutex is held and retains the detached blob until conversion returns. It then actually frees that blob.
+
+Native import and conversion keep a real internal capability on the partially built record across allocator collection and nested export. Function signatures become ScalarABI records with actual parameter tuples. The weak generation index uses runtime identity plus the exact unbounded generation integer. The separate weak ABI index preserves the runtime's shared signature tuple and members across generation records, while allowing independent retained ABI objects to outlive their Info object. No weak index is an extra collector root.
+
+Operation 61 routes the same native typed policy as Q04/45. It retains arena locking, strict function/list/tuple/scalar validation, ABI comparison and queued resource graph roots. It does not change a shared context flag. After the real scalar call and original lease unlock, the enclosing owner performs actual Q02 argument-reference cleanup and fixed native resource cleanup before completing its lifecycle receipt. No host polling is part of that protocol.
 
 ## Native finalization
 

@@ -269,7 +269,8 @@ def object_new(w:mutbuf,kind:u64) -> u64:
     put(w,104,get(w,104)+1)
     return p
 def object_unlink(w:mutbuf,p:u64) -> u64:
-    if get(w,p+8)==12 and get(w,p+48)==30 and get(w,p+112)!=0:
+    weak=get(w,p+8)==11 or (get(w,p+8)==12 and get(w,p+48)==30)
+    if weak and get(w,p+112)!=0:
         weak_info_remove(w,get(w,p+112))
     previous=get(w,p+80)
     next=get(w,p+88)
@@ -831,13 +832,15 @@ def list_reserve(w:mutbuf,obj:u64) -> bool:
 def object_kind_size(o:mutbuf,w:mutbuf,p:u64) -> u64:
     kind=get(w,p+8)
     put(o,G_KIND,kind)
-    put(o,G_N,choose(kind>=4,get(w,p+16),0))
-    n=get(w,p+32)
-    if kind==0 or kind==5 or kind==6 or kind==9 or kind==10 or kind==11 or kind==12:
+    actual=native_base(w,p)
+    basekind=get(w,actual+8)
+    put(o,G_N,choose(basekind>=4,get(w,actual+16),0))
+    n=get(w,actual+32)
+    if basekind==0 or basekind==5 or basekind==6 or basekind==9 or basekind==10 or basekind==11 or basekind==12:
         n=0
-    if kind==1:
+    if basekind==1:
         n=1
-    if kind==3:
+    if basekind==3:
         n=8
     put(o,G_BYTES,n)
     if kind==9:
@@ -949,7 +952,8 @@ def weak_info_remove(w:mutbuf,entry:u64) -> u64:
     if previous!=0:
         put(w,previous+32,next)
     else:
-        put(w,1032,next)
+        head=get(w,entry+40)
+        put(w,choose(head==0,1032,head),next)
     if next!=0:
         put(w,next+24,previous)
     deallocate(w,entry)

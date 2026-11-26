@@ -31,10 +31,10 @@ def main():
     assert platform.python_version()=='3.14.4'
     target=Path(args.output);target.mkdir(parents=True,exist_ok=False)
     v=Values(NativeEngine(args.image));rows=[]
-    for index,name in ((31,'GenerationLease'),(32,'function'),(33,'method'),(34,'builtin_function_or_method')):
+    for index,name in ((31,'GenerationLease'),(32,'function'),(33,'method'),(34,'builtin_function_or_method'),(35,'BackgroundOptimizer')):
         cls=v.builtin(index);text=v.keep(v.raw(38,a=cls));assert v.python(text)==name
         v.raw(50,a=cls,want=18)
-        if index>=32:v.cls('Impossible',[cls],want=18)
+        if index in(32,33,34):v.cls('Impossible',[cls],want=18)
         v.drop(text);v.drop(cls)
         rows.append(dict(case='actual-canonical-class',id=index,name=name))
     scenarios=[
@@ -70,6 +70,12 @@ def main():
             elif kind==6:
                 v.set(base,'other',99);assert v.python_value(stored)==dict(oracle)
             if kind in (4,5,6,7,11):assert word(v.raw(17,a=obj),48)==len(oracle)
+            if kind==5:
+                v.raw(16,a=stored,b=v.scalar(8))
+                assert word(v.raw(17,a=obj),48)==len(oracle)+1
+            elif kind==6:
+                v.set(stored,'new',8)
+                assert word(v.raw(17,a=obj),48)==len(oracle)+1
         else:assert v.python(stored)is None
         # Canonical builtin objects cannot be fabricated as kind-8 subclasses.
         v.raw(50,a=builtin,c=base,want=18)
