@@ -1,4 +1,4 @@
-stage	12	74
+stage	13	80
 need	1	0	hia-source-build
 compile	1	proof	cnf.hepta	cnf.hepta
 compile	1	proof	core_admission.hepta	core_admission.hepta
@@ -576,3 +576,48 @@ resource	12	tools/hia_ndu_evaluator_syscalls.S
 output	12	hia-ndu-evaluator
 output	12	hia-ndu-evaluator-build.json
 framing	12	0	HIANDP01	qualified-source-module-wrapper-output-binding
+stage	13	native-matching-future-family
+need	13	0	hia-source-build
+need	13	0	selfhost.image.bin
+compile	13	future-0	agent_binary64_format.hepta	agent_binary64_format.hepta
+compile	13	future-0	background_optimizer_future_public_carrier.hepta	background_optimizer_future_public_carrier.hepta
+compile	13	future-0	background_optimizer_future_public_log.hepta	background_optimizer_future_public_log.hepta
+compile	13	future-0	background_optimizer_future_public_observers.hepta	background_optimizer_future_public_observers.hepta
+compile	13	future-0	background_optimizer_future_public_observers_iterable.hepta	background_optimizer_future_public_observers_iterable.hepta
+compile	13	future-0	background_optimizer_future_public_observers_iterable_packer.hepta	background_optimizer_future_public_observers_iterable_packer.hepta
+compile	13	future-0	background_optimizer_future_public_observers_math.hepta	background_optimizer_future_public_observers_math.hepta
+compile	13	future-0	background_optimizer_future_public_observers_notify.hepta	background_optimizer_future_public_observers_notify.hepta
+compile	13	future-0	background_optimizer_future_public_observers_notify_packer.hepta	background_optimizer_future_public_observers_notify_packer.hepta
+compile	13	future-0	background_optimizer_future_public_observers_packer.hepta	background_optimizer_future_public_observers_packer.hepta
+compile	13	future-0	background_optimizer_future_public_owner.hepta	background_optimizer_future_public_owner.hepta
+compile	13	future-0	background_optimizer_future_public_packer.hepta	background_optimizer_future_public_packer.hepta
+compile	13	future-0	background_optimizer_future_public_timeout.hepta	background_optimizer_future_public_timeout.hepta
+compile	13	future-0	background_optimizer_future_release_packer.hepta	background_optimizer_future_release_packer.hepta
+compile	13	future-0	background_optimizer_json_capture.hepta	background_optimizer_json_capture.hepta
+compile	13	future-0	multiversion_background_future_cell.hepta	multiversion_background_future_cell.hepta
+compile	13	future-0	multiversion_future.hepta	multiversion_future.hepta
+compile	13	future-0	native_filter_packer.hepta	native_filter_packer.hepta
+compile	13	future-0	result_value_binary64.hepta	result_value_binary64.hepta
+compile	13	future-0	result_value_core.hepta	result_value_core.hepta
+compile	13	future-0	result_value_export.hepta	result_value_export.hepta
+compile	13	future-0	result_value_import.hepta	result_value_import.hepta
+compile	13	future-0	result_value_owner.hepta	result_value_owner.hepta
+compile	13	future-0	result_value_packer.hepta	result_value_packer.hepta
+compile	13	future-0	selfhost.hepta	selfhost.hepta
+compile	13	future-0	source_build_packer.hepta	source_build_packer.hepta
+compile	13	future-0	source_native_filter_pack.hepta	source_native_filter_pack.hepta
+compile	13	future-0	source_release_kit.hepta	source_release_kit.hepta
+kit	13	source_native_filter_pack.hepta	native_filter_packer.hepta
+resource	13	docs/HIA_NATIVE_FUTURE_RELEASE_BUILD.json
+resource	13	tools/hia_background_optimizer_future_public_bridge.S
+resource	13	tools/hia_background_optimizer_future_public_observers_bridge.S
+resource	13	tools/hia_background_optimizer_future_public_observers_iterable_bridge.S
+resource	13	tools/hia_background_optimizer_future_public_observers_notify_bridge.S
+resource	13	tools/hia_result_value_bridge.S
+output	13	hia-result-value.core.bin
+output	13	hia-future-notify.core.bin
+output	13	hia-future-public.core.bin
+output	13	hia-future-observers.core.bin
+output	13	hia-future-iterable.core.bin
+output	13	hia-future-build.json
+framing	13	0	HIABFPP2	source-bound-matching-inherited-future-family
