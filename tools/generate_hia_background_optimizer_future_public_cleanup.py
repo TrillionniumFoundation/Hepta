@@ -24,7 +24,7 @@ C.update({
     'PENDING': 248, 'KNOWN': 256, 'TRANSFERRED': 264, 'RAW': 272,
     'MODE': 288, 'KIND': 296, 'NEXTREC': 304, 'SCAN': 312, 'TRY': 320,
     'RANDOM_USED': 328, 'ATTEMPT': 336, 'CONSUMED': 344, 'MAPPED': 352,
-    'STATUS': 360, 'CLAIMED': 392, 'FATE_UNKNOWN': 400, 'FEEDBACK': 448,
+    'STATUS': 360, 'POOL': 368, 'POOL_RESERVED': 376, 'CLAIMED': 392, 'FATE_UNKNOWN': 400, 'FEEDBACK': 448,
     'TEMP': 472, 'RESULT_CAP': 480, 'RESULT_BYTES': 504, 'RESULT_SLOTS': 512,
     'RANDOM': 704, 'FHEADER': 768, 'HEADER': 1024, 'ROW': 1280,
     'RQ': 4096, 'VP': 8192, 'FP': 16384,
@@ -144,6 +144,11 @@ def locate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,OP)==0:
             put(o,NEXTREC,get(o,CURSOR))
             put(o,SLOTS,word(s,96))
+            if get(o,F)!=0 and get(o,SLOTS)==16 and get(o,FHEADER+240)==2176 and get(o,FHEADER+232)==0:
+                put(o,POOL,1)
+                put(o,POOL_RESERVED,1)
+                put(o,RECORD,get(o,F)+512)
+                return write_pointer(o,116,get(o,F)+232,1)
             return allocate(o,200,128+get(o,SLOTS)*96)
         if get(o,CURSOR)==0:
             if get(o,OP)==3:
@@ -159,8 +164,15 @@ def locate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         n=get(o,HEADER+88)
         if n==0 or n>(MAX-160)//96 or get(o,HEADER+96)!=128+n*96:
             return fail(o,9)
-        if get(o,HEADER+72)>1 or get(o,HEADER+80)>1 or get(o,HEADER+112)>1:
+        if get(o,HEADER+72)>1 or get(o,HEADER+80)>1 or get(o,HEADER+112)>1 or get(o,HEADER+120)>1:
             return fail(o,9)
+        inline=get(o,HEADER+120)
+        if inline!=0:
+            if get(o,F)==0 or get(o,FHEADER+240)!=2176 or get(o,FHEADER+232)!=1 or get(o,RECORD)!=get(o,F)+512 or n!=16:
+                return fail(o,9)
+        elif get(o,F)!=0 and get(o,FHEADER+240)==2176 and get(o,RECORD)==get(o,F)+512:
+            return fail(o,9)
+        put(o,POOL,inline)
         put(o,SLOTS,n)
         put(o,PENDING,1)
         if get(o,OP)==3:
@@ -200,6 +212,9 @@ def locate(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==115:
         put(o,CLAIMED,0)
         return write_pointer(o,900,get(o,RECORD)+80,0)
+    if phase==116:
+        put(o,RANDOM_USED,0)
+        return random(o,201)
     return fail(o,9)
 
 def reserve(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -228,6 +243,7 @@ def reserve(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,HEADER+56,RANDOM,16)
         put(o,HEADER+88,get(o,SLOTS))
         put(o,HEADER+96,128+get(o,SLOTS)*96)
+        put(o,HEADER+120,get(o,POOL))
         return memory(o,202,3,HEADER,0,get(o,RECORD),128)
     if phase==202:
         put(o,INDEX,0)
@@ -255,6 +271,7 @@ def reserve(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,RESULT_BYTES,128+get(o,SLOTS)*96)
         put(o,RESULT_SLOTS,get(o,SLOTS))
         put(o,NEW,0)
+        put(o,POOL_RESERVED,0)
         put(o,PENDING,1)
         return fail(o,0)
     return fail(o,9)
@@ -452,7 +469,12 @@ def settle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return write_pointer(o,712,get(o,HEADER+48)+40,get(o,HEADER+40))
         return again(o,712)
     if phase==712:
+        if get(o,POOL)!=0:
+            zero(o,ROW,128)
+            return memory(o,714,3,ROW,0,get(o,RECORD),128)
         return deallocate(o,713,get(o,RECORD))
+    if phase==714:
+        return write_pointer(o,713,get(o,F)+232,0)
     if phase==713:
         put(o,RECORD,0)
         put(o,CLAIMED,0)
@@ -469,6 +491,9 @@ def settle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==900:
+        if get(o,POOL_RESERVED)!=0:
+            zero(o,ROW,128)
+            return memory(o,901,3,ROW,0,get(o,RECORD),128)
         if get(o,NEW)!=0:
             p=get(o,NEW)
             put(o,NEW,0)
@@ -476,6 +501,9 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,HELD)!=0:
             return unlock(o,980)
         return again(o,980)
+    if phase==901:
+        put(o,POOL_RESERVED,0)
+        return write_pointer(o,900,get(o,F)+232,0)
     if phase==980:
         return finish(o,get(o,ERROR))
     return finish(o,9)
