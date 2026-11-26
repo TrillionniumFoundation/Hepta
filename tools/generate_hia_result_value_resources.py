@@ -3,7 +3,7 @@ Q05 is a separate private lifecycle. Its binding is captured by the sole owner.
 """
 from tools.generate_hia_result_value_common import ROOT,document,render_assembly,resolve
 from tools.generate_hia_result_value_core import SOURCE as CORE
-from tools.generate_hia_result_value_classes import SOURCE as CLASSES,catalog_source
+from tools.generate_hia_result_value_classes import SOURCE as CLASSES,CATALOG,catalog_source
 from tools.generate_hia_result_value_records import SOURCE as RECORDS
 from tools.generate_hia_result_value_information import SOURCE as INFORMATION
 from tools.generate_hia_result_value_info_cache import SOURCE as INFO_CACHE
@@ -76,7 +76,7 @@ def resources_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         a=cap_lookup(w,readword(s,24),readword(s,32),readword(s,40))
         if a==0:
             return done(o,1)
-    elif op!=48:
+    elif op!=48 and op!=113:
         return done(o,1)
     put(o,G_A,a)
     if op==66:
@@ -99,7 +99,7 @@ def resources_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         put(o,G_TAG0,get(w,data+72))
         put(o,G_TAG1,get(w,data+80))
         return done(o,0)
-    if op==48 or op==50:
+    if op==48 or op==50 or op==113:
         i=0
         while i<2:
             at=48+i*24
@@ -110,13 +110,21 @@ def resources_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
                     return done(o,1)
             put(o,G_B+i*8,child)
             i=i+1
-        if op==48:
+        if op==48 or op==113:
             if get(o,1952)!=1 or get(o,1960)==0:
                 return done(o,6)
             if (get(o,2056)&(1<<readword(s,104)))==0:
                 return done(o,6)
             if readword(s,104)==4 and get(o,G_C)==0:
                 return done(o,2)
+            if op==113:
+                cls=get(o,G_C)
+                kind=readword(s,104)
+                id=choose(kind==1,20,choose(kind==7,37,29+kind))
+                if cls==0 or get(w,cls+8)!=10 or class_is_subclass(w,cls,get(w,160+(id-1)*8))==False:
+                    return done(o,2)
+                if get(w,get(w,cls+24)+32)!=0:
+                    return done(o,18)
         else:
             if get(w,a+8)!=10:
                 return done(o,2)
@@ -221,7 +229,7 @@ def resources_copy_dict(w:mutbuf,base:u64) -> u64:
     return obj
 
 def resources_create(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
-    resource=get(o,G_OP)==48
+    resource=get(o,G_OP)==48 or get(o,G_OP)==113
     cls=get(o,G_A)
     base=get(o,G_C)
     env=get(o,G_B)
@@ -236,6 +244,9 @@ def resources_create(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         env=get(o,G_A)
         base=get(o,G_B)
         bound=get(o,G_C)
+        if get(o,G_OP)==113:
+            cls=get(o,G_C)
+            bound=0
     else:
         layout=get(w,get(w,cls+24)+32)
         if layout==8:
@@ -335,7 +346,7 @@ def resources_info(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
 
 def resources_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     op=get(o,G_OP)
-    if op==48 or op==50:
+    if op==48 or op==50 or op==113:
         return resources_create(s,o,w)
     if op==60:
         return resources_information(s,o,w)
@@ -457,8 +468,41 @@ def resources_growth(o:mutbuf,w:mutbuf) -> u64:
     return action
 
 '''
+def resources_catalog_source():
+    # Same actual catalog layout; use the already constructed native parent's
+    # MRO for single inheritance. Multiple bases retain their original C3 list.
+    legacy=catalog_source()
+    at=legacy.index('def class_builtin_shape(')
+    result=[legacy[:at].rstrip(),'def class_builtin_shape(w:mutbuf,data:u64,obj:u64,id:u64) -> u64:']
+    for index,(name,bases,mro,layout,parser)in enumerate(CATALOG[:37],1):
+        if len(bases)==1:continue
+        result.append(f'    if id=={index}:')
+        for offset,value in((16,len(bases)),(24,len(mro)+1),(32,layout),(48,parser)):
+            result.append(f'        put(w,data+{offset},{value})')
+        for j,item in enumerate(bases):
+            result.append(f'        put(w,data+{64+j*8},get(w,{160+(item-1)*8}))')
+        result.append(f'        put(w,data+{64+len(bases)*8},obj)')
+        for j,item in enumerate(mro):
+            result.append(f'        put(w,data+{64+(len(bases)+1+j)*8},get(w,{160+(item-1)*8}))')
+        result.append('        return 0')
+    result+=['    base=0','    layout=0','    parser=0']
+    for index,(name,bases,mro,layout,parser)in enumerate(CATALOG[:37],1):
+        if len(bases)!=1:continue
+        result.append(f'    if id=={index}:')
+        result.append(f'        base={bases[0]}')
+        if layout:result.append(f'        layout={layout}')
+        if parser:result.append(f'        parser={parser}')
+    result+=['    if base==0:','        return 0',
+             '    parent=get(w,160+(base-1)*8)','    parent_data=get(w,parent+24)',
+             '    n=get(w,parent_data+24)',
+             '    put(w,data+16,1)','    put(w,data+24,n+1)',
+             '    put(w,data+32,layout)','    put(w,data+48,parser)',
+             '    put(w,data+64,parent)','    put(w,data+72,obj)',
+             '    copy(w,data+80,parent_data+64+get(w,parent_data+16)*8,n*8)',
+             '    return 0']
+    return '\n'.join(result)+'\n'
 def source_program():
-    return resolve('result_value_resources',SOURCE+'\n'+INFORMATION+'\n'+INFO_CACHE+'\n'+RECORDS+'\n'+CLASSES+'\n'+catalog_source()+'\n'+CORE)
+    return resolve('result_value_resources',SOURCE+'\n'+INFORMATION+'\n'+INFO_CACHE+'\n'+RECORDS+'\n'+CLASSES+'\n'+resources_catalog_source()+'\n'+CORE)
 def program():return document(source_program(),'result_value_resources')
 if __name__=='__main__':
     p=ROOT/'examples/hia_bootstrap/result_value_resources.hepta'
