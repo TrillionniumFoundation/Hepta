@@ -30,15 +30,30 @@ C={"MAGIC":int.from_bytes("HIAFPL01".encode(),'little'),
 "RAW":12288,
 "BUF":14336,
 "OUT":16384}
+C.update(MAGIC4=int.from_bytes(b'HIAFPL04','little'),MAGIC5=int.from_bytes(b'HIAFPL05','little'),
+ MAGIC6=int.from_bytes(b'HIAFPL06','little'),REPLY2=int.from_bytes(b'HIAFPLR2','little'),
+ VREQUEST5=int.from_bytes(b'HIABVQ05','little'),VREQUEST6=int.from_bytes(b'HIABVQ06','little'),
+ VDROP_REPLY=int.from_bytes(b'HIABVR02','little'),M_DEFER=312,M_UNMAP=320,M_QUEUE=328,
+ M_UNKNOWN=336,M_KEY_FAILED=344,M_STR_FAILED=352,M_CONSUMED=360)
 SOURCE=r'''
 def future_log(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(s)!=192 or length(o)<4096 or length(w)<256:
         return 4294967293
-    if readword(s,0)==MAGIC and length(o)<OUT:
+    if (readword(s,0)==MAGIC or readword(s,0)==MAGIC4) and length(o)<OUT:
         return 4294967293
     phase=get(o,PHASE)
     if phase==0:
         magic=readword(s,0)
+        deferred=False
+        if magic==MAGIC4:
+            magic=MAGIC
+            deferred=True
+        elif magic==MAGIC5:
+            magic=MAGIC2
+            deferred=True
+        elif magic==MAGIC6:
+            magic=MAGIC3
+            deferred=True
         if magic!=MAGIC and magic!=MAGIC2 and magic!=MAGIC3:
             return 4294967293
         if magic==MAGIC2 and (readword(s,8)==0 or readword(s,16)>4):
@@ -52,6 +67,8 @@ def future_log(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
                 return 4294967293
             at=at+8
         zero(o,128,choose(magic==MAGIC,OUT,4096)-128)
+        if deferred:
+            put(o,M_DEFER,1)
         if magic==MAGIC:
             copy_input(s,24,o,CAP,24)
         else:
@@ -99,9 +116,12 @@ def future_log(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return fail(o,107)
         return write(o,20,get(o,USED))
     if phase==30:
-        if ok(o)==False:
+        success=ok(o)
+        if (get(o,M_DEFER)==0 and success) or (get(o,M_DEFER)!=0 and get(o,M_CONSUMED)!=0):
+            zero(o,STR,24)
+        if success==False:
+            put(o,M_STR_FAILED,1)
             return fail(o,107)
-        zero(o,STR,24)
         if get(o,FIELD)==0:
             store(o,BUF,58)
             store(o,BUF+1,32)
@@ -176,9 +196,12 @@ def field(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,RQ+24,KEY,24)
         return value(o,w,3)
     if phase==3:
-        if ok(o)==False:
+        success=ok(o)
+        if (get(o,M_DEFER)==0 and success) or (get(o,M_DEFER)!=0 and get(o,M_CONSUMED)!=0):
+            zero(o,KEY,24)
+        if success==False:
+            put(o,M_KEY_FAILED,1)
             return fail(o,107)
-        zero(o,KEY,24)
         value_packet(o,7)
         within(o,RQ+24,STR,24)
         return value(o,w,4)
@@ -263,11 +286,11 @@ def write(o:mutbuf,next:u64,n:u64) -> u32:
     return again(o,10)
 def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==900:
-        if get(o,KEY)!=0:
+        if get(o,KEY)!=0 and (get(o,M_DEFER)==0 or (get(o,M_KEY_FAILED)==0 and get(o,M_UNKNOWN)==0)):
             value_packet(o,6)
             within(o,RQ+24,KEY,24)
             return value(o,w,901)
-        if get(o,STR)!=0:
+        if get(o,STR)!=0 and (get(o,M_DEFER)==0 or (get(o,M_STR_FAILED)==0 and get(o,M_UNKNOWN)==0)):
             value_packet(o,6)
             within(o,RQ+24,STR,24)
             return value(o,w,902)
@@ -278,32 +301,85 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==901:
         if ok(o)==False:
             put(o,ERROR,107)
-        zero(o,KEY,24)
+            put(o,M_KEY_FAILED,1)
+        if get(o,M_DEFER)==0 or get(o,M_CONSUMED)!=0:
+            zero(o,KEY,24)
         return again(o,900)
     if phase==902:
         if ok(o)==False:
             put(o,ERROR,107)
-        zero(o,STR,24)
+            put(o,M_STR_FAILED,1)
+        if get(o,M_DEFER)==0 or get(o,M_CONSUMED)!=0:
+            zero(o,STR,24)
         return again(o,900)
     return finish(o,107)
 def value_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,256)
     put(o,RQ,VREQUEST)
+    put(o,M_CONSUMED,0)
+    if get(o,M_DEFER)!=0:
+        put(o,RQ,VREQUEST6)
+        if op==6:
+            op=78
+            put(o,RQ,VREQUEST5)
     put(o,RQ+8,op)
     put(o,VIN,128)
     return 0
 def value(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return invoke(o,next,get(w,72),RQ,get(o,VIN),VP,8704,get(w,112),get(w,120))
 def ok(o:mutbuf) -> bool:
+    if get(o,M_DEFER)!=0 and get(o,RQ+8)==78:
+        return deferred_drop(o)
     return get(o,FEEDBACK)==0 and get(o,VP)==VREPLY and get(o,VP+8)==0
+
+def deferred_drop(o:mutbuf) -> bool:
+    put(o,M_CONSUMED,0)
+    if get(o,FEEDBACK)!=0 or get(o,VP)!=VDROP_REPLY or get(o,VP+88)!=1 or get(o,VP+120)!=1:
+        put(o,M_UNKNOWN,1)
+        return False
+    consumed=get(o,VP+96)
+    mapping=get(o,VP+104)
+    queued=get(o,VP+112)
+    pending=get(o,VP+80)
+    status=get(o,VP+8)
+    if consumed>1 or mapping>1 or queued>1 or pending!=choose(mapping!=0 or queued!=0,1,0):
+        put(o,M_UNKNOWN,1)
+        return False
+    if status!=0 and status!=1 and status!=6 and status!=11:
+        put(o,M_UNKNOWN,1)
+        return False
+    if consumed!=0 and status!=0 and status!=11:
+        put(o,M_UNKNOWN,1)
+        return False
+    if status==0 and consumed==0:
+        put(o,M_UNKNOWN,1)
+        return False
+    at=16
+    while at<80:
+        if get(o,VP+at)!=0:
+            put(o,M_UNKNOWN,1)
+            return False
+        at=at+8
+    put(o,M_CONSUMED,consumed)
+    if mapping!=0:
+        put(o,M_UNMAP,1)
+    if queued!=0:
+        put(o,M_QUEUE,1)
+    return consumed==1 and mapping==0 and (status==0 or (status==11 and queued!=0))
 def fail(o:mutbuf,status:u64) -> u32:
     put(o,ERROR,status)
     return again(o,900)
 def finish(o:mutbuf,status:u64) -> u32:
     zero(o,0,128)
-    put(o,0,REPLY)
+    put(o,0,choose(get(o,M_DEFER)!=0,REPLY2,REPLY))
     put(o,8,choose(status==0,0,1))
     put(o,16,status)
+    if get(o,M_DEFER)!=0:
+        within(o,24,KEY,24)
+        within(o,48,STR,24)
+        put(o,72,get(o,M_UNMAP))
+        put(o,80,get(o,M_QUEUE))
+        put(o,88,get(o,M_UNKNOWN))
     return 0
 
 def invoke(o:mutbuf,next:u64,fn:u64,src:u64,sn:u64,dest:u64,dn:u64,ctx:u64,cn:u64) -> u32:
