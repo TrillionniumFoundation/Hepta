@@ -18,7 +18,10 @@ def result_value_records(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if phase==30:
         return records_asdict_prepare(o,w)
     if phase==1:
-        if class_catalog(w)==False:
+        if get(o,G_OP)==100:
+            if class_catalog_llvm(w)==False:
+                return records_growth(o,w)
+        elif class_catalog(w)==False:
             return records_growth(o,w)
         put(o,G_PHASE,10)
     if get(o,G_PHASE)==10:
@@ -86,6 +89,20 @@ def records_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             if get(w,cls+8)!=10 or class_is_subclass(w,cls,get(w,440))==False:
                 return done(o,2)
         put(o,G_C,cls)
+    if op==100:
+        a=get(o,G_A)
+        if get(w,a+8)!=5 and get(w,a+8)!=11:
+            return done(o,2)
+        if get(w,a+16)!=9:
+            return done(o,7)
+        cls=0
+        if readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0:
+            cls=cap_lookup(w,readword(s,48),readword(s,56),readword(s,64))
+            if cls==0:
+                return done(o,1)
+            if get(w,cls+8)!=10 or class_is_subclass(w,cls,get(w,520))==False:
+                return done(o,2)
+        put(o,G_C,cls)
     if op==41:
         b=cap_lookup(w,readword(s,48),readword(s,56),readword(s,64))
         c=cap_lookup(w,readword(s,72),readword(s,80),readword(s,88))
@@ -124,7 +141,7 @@ def records_new(o:mutbuf,w:mutbuf,kind:u64,id:u64,source:u64,n:u64) -> u64:
     put(w,obj+24,data)
     put(w,obj+16,n)
     cls=get(w,160+(id-1)*8)
-    if id==36 and get(o,G_C)!=0:
+    if (id==36 or id==46) and get(o,G_C)!=0:
         cls=get(o,G_C)
     put(w,obj+40,cls)
     put(w,obj+48,id)
@@ -164,6 +181,9 @@ def records_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         fresh=True
     elif op==67:
         result=records_new(o,w,12,36,0,2)
+        fresh=True
+    elif op==100:
+        result=records_new(o,w,12,46,get(w,a+24),9)
         fresh=True
     elif op==42:
         result=records_new(o,w,12,30,get(w,a+24),12)
@@ -826,7 +846,7 @@ def records_name(w:mutbuf,data:u64,index:u64) -> u64:
 '''
 
 def source_program():
-    return resolve('result_value_records', SOURCE + '\n' + CLASSES + '\n' + catalog_source() + '\n' + CORE)
+    return resolve('result_value_records', SOURCE + '\n' + CLASSES + '\n' + catalog_source(47) + '\n' + CORE)
 
 def program():
     return document(source_program(), 'result_value_records')
