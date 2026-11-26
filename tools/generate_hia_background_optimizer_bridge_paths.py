@@ -15,14 +15,16 @@ C = dict(MAX=(1 << 64) - 1, BAD=4294967293,
          CLEAN=424, WRFD=432, WRAT=440, WRN=448, WRDONE=456, WRNEXT=464,
          RAWPOS=480, RAWCHUNK=488, RAWUSED=496,
          ROOTCAP=512, ITER=536, KEY=560, ITEM=584, COERCED=608,
-         ENV=632, BASE=656, NAME=680, RESOLVED=704, ERR_CAP=728, EXC_CAP=752,
+         ENV=632, BASE=656, NAME=680, RESOLVED=704, ERR_CAP=728, EXC_CAP=752, PATH_OBJECT=776,
          WRMODE=1000, COMPLETE=1008, ERRCODE=1016, ERRNO=1024, ERRCP=1032,
-         ERRSTART=1040, ERREND=1048, FEEDBACK=3840,
+         ERRSTART=1040, ERREND=1048, FACTORY_PENDING=1056, FEEDBACK=3840,
          RQ=8192, RP=16384, SY=49152, TMP=49408, BUF=65536, ENC=131072,
          ERQ=229376, ERO=230400, PATH_WORK=16384, ERROR_WORK=225280,
-         CONVERTER_WORK=4096, CODEC_WORK=2048)
+         CONVERTER_WORK=4096, CODEC_WORK=2048, FACTORY_WORK=12288)
 C.update({key: int.from_bytes(value.encode(), 'little') for key, value in {
     'MAGIC': 'HIABBPQ1', 'CONTEXT': 'HIABBPC1', 'REPLY': 'HIABBPR1',
+    'PUBLIC': 'HIABBPQ2', 'PUBLIC_CONTEXT': 'HIABBPC2',
+    'FACTORY_INPUT': 'HIANPX01', 'FACTORY_CONTEXT': 'HIANPXC1', 'FACTORY_REPLY': 'HIANPXR1',
     'VQ': 'HIABVQ01', 'VR': 'HIABVR01', 'VQ2': 'HIABVQ02', 'VR2': 'HIABVR02',
     'PQ': 'HIANPV01', 'PC': 'HIANPVC1', 'PR': 'HIANPVR1', 'NATIVE_INFO': 'HIAVNO01',
     'RESOLVE_INPUT': 'HIAPTH01', 'RESOLVE_REPLY': 'HIAPTR01',
@@ -58,7 +60,7 @@ def bridge_paths(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return quarantine(o,w,2,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if length(s)!=128 or word_load(s,0)!=MAGIC or word_load(s,8)>1:
+    if length(s)!=128 or (word_load(s,0)!=MAGIC and word_load(s,0)!=PUBLIC) or word_load(s,8)>1:
         return BAD
     if word_load(s,8)==1:
         if word_load(s,16)!=0 or word_load(s,24)!=0 or word_load(s,32)!=0:
@@ -70,13 +72,16 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if word_load(s,i)!=0:
             return BAD
         i=i+8
-    if get(w,0)!=CONTEXT or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
+    expected=choose(word_load(s,0)==PUBLIC,PUBLIC_CONTEXT,CONTEXT)
+    if get(w,0)!=expected or get(w,8)==0 or get(w,16)==0 or get(w,24)<256:
         return BAD
     if get(w,16)>MAX-get(w,24) or get(w,32)==0 or get(w,40)==0 or get(w,48)==0 or get(w,72)==0:
         return BAD
     if get(w,56)<2 or get(w,56)>2147483647 or get(w,64)>2:
         return BAD
-    i=80
+    if expected==PUBLIC_CONTEXT and get(w,80)==0:
+        return BAD
+    i=choose(expected==PUBLIC_CONTEXT,88,80)
     while i<128:
         if get(w,i)!=0:
             return BAD
@@ -98,6 +103,9 @@ def enter(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         from_work(w,o,128,256,1792)
         put(w,64,0)
         put(o,QUAR,0)
+        if get(o,FACTORY_PENDING)!=0:
+            request(o,FACTORY_INPUT,2)
+            return factory(o,w,112)
         if get(o,PATH_PENDING)!=0:
             request(o,PQ,2)
             return converter(o,w,23)
@@ -446,6 +454,17 @@ def decode_path(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,RP+16)!=4 or get(o,RP+24)==0:
             return quarantine(o,w,2,81)
         within(o,RESOLVED,RP+24,24)
+        if get(w,0)==PUBLIC_CONTEXT:
+            zero(w,FACTORY_WORK,4096)
+            put(w,FACTORY_WORK,FACTORY_CONTEXT)
+            put(w,FACTORY_WORK+8,get(w,8))
+            put(w,FACTORY_WORK+16,get(w,16))
+            put(w,FACTORY_WORK+24,get(w,24))
+            put(w,FACTORY_WORK+32,get(w,56))
+            request(o,FACTORY_INPUT,0)
+            within(o,RQ+16,RESOLVED,24)
+            put(o,FACTORY_PENDING,1)
+            return factory(o,w,112)
         return again(o,110)
     return fail(o,7,phase)
 
@@ -454,12 +473,29 @@ def insert_path(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         request(o,VQ,10)
         within(o,RQ+24,ROOTCAP,24)
         within(o,RQ+48,KEY,24)
-        within(o,RQ+72,RESOLVED,24)
+        within(o,RQ+72,choose(get(w,0)==PUBLIC_CONTEXT,PATH_OBJECT,RESOLVED),24)
         return value(o,w,111)
     if phase==111:
         if value_ok(o)==False:
             return dependency(o,w)
         return begin_cleanup(o,10)
+    if phase==112:
+        if get(o,FEEDBACK)!=0 or get(o,RP)!=FACTORY_REPLY or get(o,RP+96)>1 or get(o,RP+104)>1 or get(o,RP+120)!=0:
+            return quarantine(o,w,2,112)
+        if get(o,RP+96)!=0 or get(o,RP+104)!=0:
+            if cap_zero(o,RP+16)==False or cap_zero(o,RP+40)==False or cap_zero(o,RP+64)==False:
+                return quarantine(o,w,2,112)
+            return quarantine(o,w,choose(get(o,RP+104)!=0,2,1),get(o,RP+112))
+        put(o,FACTORY_PENDING,0)
+        status=get(o,RP+8)
+        if status==0:
+            if get(o,RP+16)==0 or get(o,PATH_OBJECT)!=0 or cap_zero(o,RP+40)==False or cap_zero(o,RP+64)==False:
+                return quarantine(o,w,2,112)
+            within(o,PATH_OBJECT,RP+16,24)
+            return again(o,110)
+        if (status!=3 and status!=4) or cap_zero(o,RP+16)==False or cap_zero(o,RP+40)==False or cap_zero(o,RP+64)==False:
+            return quarantine(o,w,2,112)
+        return fail(o,choose(status==3,5,7),get(o,RP+112))
     return fail(o,7,phase)
 
 def render_error(o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -557,7 +593,7 @@ def cleanup(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return again(o,402)
     if phase==500:
         i=get(o,CLEAN)
-        if i==11:
+        if i==12:
             if get(o,V_PENDING)!=0:
                 request(o,VQ2,31)
                 return value(o,w,502)
@@ -680,6 +716,9 @@ def value_n(o:mutbuf,w:mutbuf,next:u64,n:u64) -> u32:
 
 def converter(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return invoke(o,next,get(w,32),307,RQ,128,RP,32768,CONVERTER_WORK,4096)
+
+def factory(o:mutbuf,w:mutbuf,next:u64) -> u32:
+    return invoke(o,next,get(w,80),307,RQ,128,RP,32768,FACTORY_WORK,4096)
 
 def dependency(o:mutbuf,w:mutbuf) -> u32:
     status=get(o,RP+8)
