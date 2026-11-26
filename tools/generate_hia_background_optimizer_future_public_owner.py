@@ -75,6 +75,12 @@ C={
 "CP":32768,
 "OUT":65536,"LOG_REQUEST2":int.from_bytes(b"HIAFPL02","little"),"LOG_REPLY":int.from_bytes(b"HIAFPLR1","little"),"NOTIFY3":int.from_bytes(b"HIABFN03","little"),"NOTIFY_REPLY":int.from_bytes(b"HIABFNR1","little"),"EVAL_CAP":1536,"ERROR_CAP":1560,"MSG_CAP":1584,"KEY_CAP":1608,"CLASS_CAP":1632,"TYPE_CAP":1656,"EPTR":1680,"EN":1688,"EPREFIX":1696,"ETYPE_N":1704,"EOFF":1712,"ESTATE":1720,"ENOT":1728,"EMODE":1736,"EKIND":1744,"ECLASS":1752,"ETYPE":1760,"ETRUTH":1768,"EAFTER":1776,"EERROR":1784,"EKEYFIELD":1792,"EIDENT":1800,"ECOPY_N":1808,"ECLEAN":1840,"EVAL_AT":1848,"EACTIVE":1856,"EBUF":49152
 }
+C.update(VREQUEST2=int.from_bytes(b"HIABVQ02","little"), VREQUEST3=int.from_bytes(b"HIABVQ03","little"),
+         VDROP_REPLY=int.from_bytes(b"HIABVR02","little"), X_MAGIC=int.from_bytes(b"HIAFQTN1","little"),
+         X_PTR=1864, X_MODE=1872, X_AT=1880, X_CLASS=1888, X_KEY=1912, X_ATTR=1936,
+         X_NAMED=1960, X_DROP=1968, X_NEXT=1976, X_BAD=1984, X_PROBE=1992,
+         X_CLEAN_NEXT=2000, X_MAP_PENDING=2008, X_OVERRIDE=2016,
+         X_TAG0=2024, X_TAG1=2032, X_RECOVERY=2040)
 SOURCE=r'''
 def future_public(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<256:
@@ -82,6 +88,8 @@ def future_public(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,PHASE)
     if phase==0:
         return begin(s,o,w)
+    if phase>=1500:
+        return extended_value(s,o,w,phase)
     if phase>=1000:
         return inherited(s,o,w,phase)
     if phase<100:
@@ -170,6 +178,8 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return waddress(o,3,0)
     if phase==3:
         put(o,WPTR,get(o,FEEDBACK))
+        if get(w,208)!=get(o,WPTR):
+            return finish(o,1,107)
         return lock(o,20)
     if phase==4:
         if value_ok(o)==False:
@@ -179,6 +189,9 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         zero(w,0,64)
         put(w,0,STATE)
         put(w,8,get(o,PID))
+        return waddress(o,5,0)
+    if phase==5:
+        put(w,208,get(o,FEEDBACK))
         return finish(o,0,0)
     if phase==10:
         if get(o,FEEDBACK)==0:
@@ -198,6 +211,9 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return again(o,get(o,AFTER))
     if phase==20:
         if get(w,24)!=0:
+            return fail(o,1,107)
+        if get(w,200)!=0 and get(o,OP)!=20:
+            put(o,CLEANUP_FAILED,1)
             return fail(o,1,107)
         op=get(o,OP)
         if op==18:
@@ -222,6 +238,9 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==25:
         if get(o,CURSOR)==0:
             put(o,F,0)
+            if get(w,200)!=0:
+                put(o,CLEANUP_FAILED,1)
+                return fail(o,1,107)
             return fail(o,0,0)
         put(o,F,get(o,CURSOR))
         return memory(o,26,0,get(o,F),3,HEADER,256)
@@ -229,6 +248,8 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return write_pointer(o,27,get(o,F)+56,get(o,HEADER+56)+1)
     if phase==27:
         put(o,ACTIVE,1)
+        if get(o,HEADER+200)!=0:
+            return again(o,1600)
         if get(o,HEADER+112)==2:
             return again(o,30)
         return unlock(o,28)
@@ -667,6 +688,8 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==600:
         return memory(o,601,0,get(o,F),3,HEADER,256)
     if phase==601:
+        if get(o,HEADER+200)!=0:
+            return again(o,690)
         if get(o,HEADER+48)!=0 or get(o,HEADER+56)!=0:
             return again(o,690)
         if get(o,HEADER+96)!=0 or get(o,HEADER+104)!=0:
@@ -710,6 +733,8 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,F,0)
         return again(o,690)
     if phase==690:
+        if get(o,X_RECOVERY)==2:
+            return unlock(o,980)
         if get(o,OP)==20:
             put(o,CURSOR,get(o,RETRY_NEXT))
             return again(o,25)
@@ -1084,7 +1109,7 @@ def inherited_value(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,RQ+24,get(o,EVAL_AT),24)
         return value(o,w,1101)
     if phase==1101:
-        if value_ok(o)==False or get(o,VP+16)>7:
+        if value_ok(o)==False or get(o,VP+16)>12:
             return inherited_fail(o,107)
         typ=get(o,VP+16)
         put(o,ETYPE,typ)
@@ -1093,6 +1118,11 @@ def inherited_value(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return again(o,1110)
         if typ==0:
             put(o,ETRUTH,0)
+            return again(o,get(o,EAFTER))
+        if typ==8:
+            return extended_begin(o,1,get(o,EVAL_AT))
+        if typ==9 or typ==10 or typ==12:
+            put(o,ETRUTH,1)
             return again(o,get(o,EAFTER))
         if typ>=4:
             put(o,ETRUTH,choose(get(o,VP+48)!=0,1,0))
@@ -1141,9 +1171,11 @@ def inherited_value(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         within(o,RQ+24,EVAL_CAP,24)
         return value(o,w,1121)
     if phase==1121:
-        if value_ok(o)==False or get(o,VP+16)>7:
+        if value_ok(o)==False or get(o,VP+16)>12:
             return inherited_fail(o,107)
         put(o,ETYPE,get(o,VP+16))
+        if get(o,ETYPE)>=8:
+            return extended_begin(o,2,EVAL_CAP)
         kind=get(o,EKIND)
         typed=(kind==1 and get(o,ECLASS)>=2) or kind==2 or kind==3 or kind==5 or kind==6
         if typed==False:
@@ -1298,6 +1330,9 @@ def inherited_record(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def inherited_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==1400:
+        if get(o,X_PTR)!=0:
+            put(o,X_CLEAN_NEXT,1400)
+            return again(o,1570)
         i=EVAL_CAP
         while i<=TYPE_CAP:
             if get(o,i)!=0:
@@ -1775,6 +1810,396 @@ def inherited_literal_12(o:mutbuf,at:u64,index:u64) -> u64:
         store(o,at+4,115)
         return 5
     return 0
+'''
+
+
+SOURCE+=r'''
+def extended_begin(o:mutbuf,mode:u64,at:u64) -> u32:
+    if get(o,X_PTR)!=0:
+        return inherited_fail(o,107)
+    zero(o,X_PTR,184)
+    put(o,X_MODE,mode)
+    put(o,X_AT,at)
+    return system(o,1504,318,3,X_TAG0,16,0,0,0,0)
+
+def extended_value(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase>=1600:
+        return extended_retry(s,o,w,phase)
+    if phase<1510:
+        return extended_type(s,o,w,phase)
+    if phase<1560:
+        return extended_truth(s,o,w,phase)
+    return extended_cleanup(s,o,w,phase)
+
+def extended_type(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1504:
+        if get(o,FEEDBACK)!=16 or (get(o,X_TAG0)==0 and get(o,X_TAG1)==0):
+            return inherited_fail(o,103)
+        return system(o,1500,9,0,0,4096,3,34,MAX,0)
+    if phase==1500:
+        ptr=get(o,FEEDBACK)
+        if ptr==0 or ptr>=NEGATIVE:
+            return inherited_fail(o,103)
+        put(o,X_PTR,ptr)
+        value_packet(o,36)
+        put(o,RQ,VREQUEST3)
+        within(o,RQ+24,get(o,X_AT),24)
+        return value(o,w,1501)
+    if phase==1501:
+        if value_ok(o)==False or get(o,VP+16)!=10:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        within(o,X_CLASS,VP+24,24)
+        if get(o,X_MODE)==1:
+            return again(o,1510)
+        value_packet(o,38)
+        put(o,RQ,VREQUEST3)
+        within(o,RQ+24,X_CLASS,24)
+        return value(o,w,1502)
+    if phase==1502:
+        if value_ok(o)==False or get(o,VP+16)!=4:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        within(o,TYPE_CAP,VP+24,24)
+        put(o,X_NAMED,1)
+        return extended_drop(o,w,X_CLASS,1503)
+    if phase==1503:
+        value_packet(o,7)
+        within(o,RQ+24,TYPE_CAP,24)
+        return value(o,w,1125)
+    return inherited_fail(o,107)
+
+def extended_truth(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1510:
+        value_packet(o,2)
+        store(o,RQ+128,95)
+        store(o,RQ+129,95)
+        n=8
+        if get(o,X_PROBE)==0:
+            store(o,RQ+130,98)
+            store(o,RQ+131,111)
+            store(o,RQ+132,111)
+            store(o,RQ+133,108)
+            store(o,RQ+134,95)
+            store(o,RQ+135,95)
+        else:
+            n=7
+            store(o,RQ+130,108)
+            store(o,RQ+131,101)
+            store(o,RQ+132,110)
+            store(o,RQ+133,95)
+            store(o,RQ+134,95)
+        put(o,RQ+96,n)
+        put(o,RQ+104,4)
+        return value_wide(o,w,1511,128+n,8192)
+    if phase==1511:
+        if value_ok(o)==False:
+            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+        within(o,X_KEY,VP+24,24)
+        value_packet(o,39)
+        put(o,RQ,VREQUEST3)
+        within(o,RQ+24,X_CLASS,24)
+        within(o,RQ+48,X_KEY,24)
+        return value(o,w,1512)
+    if phase==1512:
+        if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY:
+            return inherited_fail(o,107)
+        status=get(o,VP+8)
+        if status==0:
+            within(o,X_ATTR,VP+24,24)
+            put(o,X_OVERRIDE,1)
+        elif status!=3:
+            return inherited_fail(o,choose(status==5,103,107))
+        return extended_drop(o,w,X_KEY,1513)
+    if phase==1513:
+        # Actual captured callable dispatch is a separate unresolved protocol.
+        # Never silently substitute default truth for an existing override.
+        if get(o,X_OVERRIDE)!=0:
+            return inherited_fail(o,107)
+        if get(o,X_PROBE)==0:
+            put(o,X_PROBE,1)
+            return again(o,1510)
+        value_packet(o,17)
+        within(o,RQ+24,get(o,X_AT),24)
+        return value(o,w,1514)
+    if phase==1514:
+        if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY:
+            return inherited_fail(o,107)
+        status=get(o,VP+8)
+        if status==0:
+            put(o,ETRUTH,choose(get(o,VP+48)!=0,1,0))
+        elif status==2:
+            put(o,ETRUTH,1)
+        else:
+            return inherited_fail(o,choose(status==5,103,107))
+        put(o,X_CLEAN_NEXT,get(o,EAFTER))
+        return again(o,1570)
+    return inherited_fail(o,107)
+
+def extended_drop(o:mutbuf,w:mutbuf,at:u64,next:u64) -> u32:
+    put(o,X_DROP,at)
+    put(o,X_NEXT,next)
+    value_packet(o,29)
+    put(o,RQ,VREQUEST2)
+    within(o,RQ+24,at,24)
+    return value(o,w,1560)
+
+def extended_drop_valid(o:mutbuf) -> bool:
+    if get(o,FEEDBACK)!=0 or get(o,VP)!=VDROP_REPLY:
+        return False
+    pending=get(o,VP+80)
+    known=get(o,VP+88)
+    consumed=get(o,VP+96)
+    if pending>1 or known>1 or consumed>1:
+        return False
+    at=16
+    while at<80:
+        if get(o,VP+at)!=0:
+            return False
+        at=at+8
+    at=104
+    while at<128:
+        if get(o,VP+at)!=0:
+            return False
+        at=at+8
+    status=get(o,VP+8)
+    if known==0:
+        return status==11 and pending==0 and consumed==0
+    if consumed!=0:
+        return status==11 or (status==0 and pending==0)
+    if status==1:
+        return pending==0
+    return status==6 or status==11
+
+def extended_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1560:
+        if extended_drop_valid(o)==False:
+            put(o,X_BAD,2)
+            return inherited_fail(o,107)
+        if get(o,VP+88)!=0 and get(o,VP+96)!=0:
+            zero(o,get(o,X_DROP),24)
+        if get(o,VP+8)==0:
+            return again(o,get(o,X_NEXT))
+        put(o,X_BAD,choose(get(o,VP+88)==0,2,1))
+        put(o,X_MAP_PENDING,get(o,VP+80))
+        return inherited_fail(o,107)
+    if phase==1570:
+        if get(o,X_BAD)!=0:
+            if get(o,HELD)!=0:
+                return again(o,1580)
+            return lock(o,1580)
+        at=X_CLASS
+        while at<=X_ATTR:
+            if get(o,at)!=0:
+                return extended_drop(o,w,at,1570)
+            at=at+24
+        if get(o,X_NAMED)!=0 and get(o,TYPE_CAP)!=0:
+            return extended_drop(o,w,TYPE_CAP,1570)
+        return system(o,1571,11,0,get(o,X_PTR),4096,0,0,0,0)
+    if phase==1571:
+        if get(o,FEEDBACK)!=0:
+            put(o,X_BAD,4)
+            put(o,X_MAP_PENDING,1)
+            return lock(o,1580)
+        put(o,X_PTR,0)
+        put(o,X_NAMED,0)
+        return again(o,get(o,X_CLEAN_NEXT))
+    if phase==1580:
+        return memory(o,1582,0,get(o,F),3,HEADER,256)
+    if phase==1582:
+        # Record identity is bound to the already authenticated Future registry,
+        # its capability tags, this context address and a fresh 128-bit nonce.
+        # w[200] is only a count. No context field becomes a raw record pointer.
+        zero(o,RQ,256)
+        put(o,RQ,X_MAGIC)
+        put(o,RQ+8,get(o,X_BAD))
+        put(o,RQ+16,get(o,X_DROP))
+        put(o,RQ+24,get(o,X_PTR))
+        within(o,RQ+32,X_CLASS,72)
+        if get(o,X_NAMED)!=0:
+            within(o,RQ+104,TYPE_CAP,24)
+        put(o,RQ+128,get(o,WPTR))
+        put(o,RQ+136,get(o,PID))
+        put(o,RQ+144,get(o,X_MAP_PENDING))
+        put(o,RQ+152,get(o,HEADER+200))
+        put(o,RQ+160,get(o,X_TAG0))
+        put(o,RQ+168,get(o,X_TAG1))
+        put(o,RQ+176,get(o,F))
+        within(o,RQ+184,HEADER+32,16)
+        within(o,RQ+200,HEADER+208,24)
+        put(o,RQ+224,4096)
+        put(o,RQ+232,4)
+        return memory(o,1581,3,RQ,0,get(o,X_PTR),256)
+    if phase==1581:
+        put(o,RQ,get(o,X_PTR))
+        put(o,RQ+8,get(o,X_TAG0))
+        put(o,RQ+16,get(o,X_TAG1))
+        put(o,RQ+24,4096)
+        return memory(o,1583,3,RQ,0,get(o,F)+200,32)
+    if phase==1583:
+        put(w,200,get(w,200)+1)
+        put(o,X_PTR,0)
+        zero(o,X_CLASS,72)
+        if get(o,X_NAMED)!=0:
+            zero(o,TYPE_CAP,24)
+        put(o,X_NAMED,0)
+        if get(o,RESULT_VALUE)!=0:
+            within(o,DISCARD_VALUE,RESULT_VALUE,24)
+            zero(o,RESULT_VALUE,24)
+        put(o,CLEANUP_FAILED,1)
+        put(o,ERROR,1)
+        put(o,RKIND,107)
+        return unlock(o,1400)
+    return inherited_fail(o,107)
+'''
+
+
+SOURCE+=r'''
+def extended_retry_fail(o:mutbuf) -> u32:
+    put(o,X_PTR,0)
+    put(o,X_NAMED,0)
+    put(o,X_RECOVERY,2)
+    put(o,CLEANUP_FAILED,1)
+    return fail(o,1,107)
+
+def extended_retry_valid(o:mutbuf,w:mutbuf) -> bool:
+    if get(o,NODE)!=X_MAGIC or get(o,NODE+24)!=get(o,X_PTR):
+        return False
+    if get(o,NODE+128)!=get(o,WPTR) or get(o,NODE+136)!=get(o,PID):
+        return False
+    if get(o,NODE+160)!=get(o,X_TAG0) or get(o,NODE+168)!=get(o,X_TAG1):
+        return False
+    if get(o,NODE+176)!=get(o,F) or get(o,NODE+184)!=get(o,HEADER+32) or get(o,NODE+192)!=get(o,HEADER+40):
+        return False
+    if get(o,NODE+224)!=4096 or get(o,NODE+232)!=4 or get(o,NODE+240)!=0 or get(o,NODE+248)!=0:
+        return False
+    bad=get(o,NODE+8)
+    if bad!=1 and bad!=2 and bad!=4:
+        return False
+    if get(o,NODE+144)>1:
+        return False
+    if get(o,NODE+152)==0:
+        if get(o,NODE+200)!=0 or get(o,NODE+208)!=0 or get(o,NODE+216)!=0:
+            return False
+    else:
+        if (get(o,NODE+152)&4095)!=0 or get(o,NODE+216)!=4096:
+            return False
+    at=32
+    while at<128:
+        if get(o,NODE+at)==0 and (get(o,NODE+at+8)!=0 or get(o,NODE+at+16)!=0):
+            return False
+        at=at+24
+    return True
+
+def extended_retry(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase<1610:
+        return extended_retry_read(s,o,w,phase)
+    if phase<1620:
+        return extended_retry_caps(s,o,w,phase)
+    return extended_retry_mapping(s,o,w,phase)
+
+def extended_retry_read(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1600:
+        if get(o,OP)!=20 or get(o,HELD)!=1 or get(o,ACTIVE)!=1 or get(w,200)==0:
+            return extended_retry_fail(o)
+        if get(o,HEADER)!=OBJECT or get(o,HEADER+8)!=get(o,PID):
+            return extended_retry_fail(o)
+        ptr=get(o,HEADER+200)
+        if ptr==0 or (ptr&4095)!=0 or ptr>MAX-4096 or get(o,HEADER+224)!=4096:
+            return extended_retry_fail(o)
+        put(o,X_PTR,ptr)
+        put(o,X_TAG0,get(o,HEADER+208))
+        put(o,X_TAG1,get(o,HEADER+216))
+        if get(o,X_TAG0)==0 and get(o,X_TAG1)==0:
+            return extended_retry_fail(o)
+        put(o,X_RECOVERY,1)
+        return address(o,1601,NODE)
+    if phase==1601:
+        # A bounded kernel copy cannot dereference a forged/unmapped pointer.
+        # The independent registry nonce/extent is checked before any write,
+        # cap retirement or munmap can use the captured allocation address.
+        put(o,RQ,get(o,FEEDBACK))
+        put(o,RQ+8,256)
+        put(o,RQ+16,get(o,X_PTR))
+        put(o,RQ+24,256)
+        return system(o,1602,310,204,get(o,PID),RQ,1,RQ+16,1,0)
+    if phase==1602:
+        if get(o,FEEDBACK)!=256 or extended_retry_valid(o,w)==False:
+            return extended_retry_fail(o)
+        put(o,X_DROP,NODE+32)
+        return again(o,1610)
+    return extended_retry_fail(o)
+
+def extended_retry_caps(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1610:
+        at=get(o,X_DROP)
+        if at>=NODE+128:
+            return again(o,1620)
+        if get(o,at)==0:
+            put(o,X_DROP,at+24)
+            return again(o,1610)
+        value_packet(o,7)
+        within(o,RQ+24,at,24)
+        return value(o,w,1611)
+    if phase==1611:
+        if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY:
+            return extended_retry_fail(o)
+        if get(o,VP+8)==1:
+            value_packet(o,31)
+            put(o,RQ,VREQUEST2)
+            return value(o,w,1614)
+        if get(o,VP+8)!=0:
+            return extended_retry_fail(o)
+        value_packet(o,29)
+        put(o,RQ,VREQUEST2)
+        within(o,RQ+24,get(o,X_DROP),24)
+        return value(o,w,1612)
+    if phase==1612:
+        if extended_drop_valid(o)==False:
+            return extended_retry_fail(o)
+        if get(o,VP+88)!=0 and get(o,VP+96)!=0:
+            zero(o,get(o,X_DROP),24)
+        put(o,X_MODE,choose(get(o,VP+8)==0,1,0))
+        put(o,NODE+8,choose(get(o,VP+88)==0,2,1))
+        put(o,NODE+144,get(o,VP+80))
+        return memory(o,1613,3,NODE,0,get(o,X_PTR),256)
+    if phase==1614:
+        # Absence of this exact ticket is independent of mapping retirement.
+        # The active-context refusal to retry confirms pending==0 separately;
+        # it is never reported as destruction of the live Value context.
+        if extended_drop_valid(o)==False or get(o,VP+8)!=6 or get(o,VP+80)!=0 or get(o,VP+88)!=1 or get(o,VP+96)!=0:
+            return extended_retry_fail(o)
+        zero(o,get(o,X_DROP),24)
+        put(o,X_MODE,1)
+        return memory(o,1613,3,NODE,0,get(o,X_PTR),256)
+    if phase==1613:
+        if get(o,X_MODE)!=1:
+            return extended_retry_fail(o)
+        put(o,X_DROP,get(o,X_DROP)+24)
+        return again(o,1610)
+    return extended_retry_fail(o)
+
+def extended_retry_mapping(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==1620:
+        value_packet(o,31)
+        put(o,RQ,VREQUEST2)
+        return value(o,w,1621)
+    if phase==1621:
+        if extended_drop_valid(o)==False or get(o,VP+8)!=6 or get(o,VP+80)!=0 or get(o,VP+88)!=1 or get(o,VP+96)!=0 or get(w,200)==0:
+            return extended_retry_fail(o)
+        return system(o,1622,11,0,get(o,X_PTR),4096,0,0,0,0)
+    if phase==1622:
+        if get(o,FEEDBACK)!=0:
+            return extended_retry_fail(o)
+        put(o,RQ,get(o,NODE+152))
+        within(o,RQ+8,NODE+200,24)
+        return memory(o,1623,3,RQ,0,get(o,F)+200,32)
+    if phase==1623:
+        put(w,200,get(w,200)-1)
+        put(o,X_PTR,0)
+        put(o,X_RECOVERY,0)
+        return memory(o,1630,0,get(o,F),3,HEADER,256)
+    if phase==1630:
+        return again(o,27)
+    return extended_retry_fail(o)
 '''
 
 def source_program():
