@@ -28,6 +28,9 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if length(s)>=8 and readword(s,0)==MAGIC7:
         if length(s)<128 or deferred_container_profile_allowed(readword(s,8))==False:
             return 4294967293
+    if length(s)>=8 and readword(s,0)==MAGIC8:
+        if length(s)<128 or readword(s,8)!=48:
+            return 4294967293
     if length(s)<128 or (request_magic(s)!=MAGIC and request_magic(s)!=MAGIC2 and request_magic(s)!=MAGIC3 and request_magic(s)!=MAGIC4 and request_magic(s)!=MAGIC5) or readword(s,16)!=0 or readword(s,120)!=0 or readword(s,96)!=length(s)-128:
         return 4294967293
     op=readword(s,8)
@@ -78,7 +81,7 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         put(o,P_DROP_KNOWN,1)
     return owner_start(s,o)
 def owner_start(s:readbuf,o:mutbuf) -> u64:
-    if readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7:
+    if readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or readword(s,0)==MAGIC8:
         put(o,P_PHASE,15)
         return 12
     return system(o,1,39,0,0,0,0,0,0,0)
@@ -385,7 +388,7 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
         if owned and get(o,P_HELD)!=0:
             pending=get(w,80)==1 or get(w,176)!=0 or get(w,184)!=0
             put(o,P_DROP_PENDING,choose(pending,1,0))
-            if request_magic(s)==MAGIC5 and (readword(s,8)==78 or (readword(s,8)>=91 and readword(s,8)<=93)):
+            if readword(s,0)==MAGIC8 or (request_magic(s)==MAGIC5 and (readword(s,8)==78 or (readword(s,8)>=91 and readword(s,8)<=93))):
                 put(o,2080,choose(get(w,80)==1,1,0))
                 resourcepending=get(w,176)!=0 or get(w,184)!=0
                 put(o,2088,choose(resourcepending,1,0))
@@ -429,7 +432,7 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
             put(o,40,get(o,G_TAG1))
             put(o,104,get(o,G_ID0))
             put(o,112,get(o,G_ID1))
-        if readword(s,8)==91:
+        if readword(s,8)==91 or readword(s,0)==MAGIC8:
             put(o,48,get(o,G_N))
             put(o,104,get(o,2080))
             put(o,112,get(o,2088))

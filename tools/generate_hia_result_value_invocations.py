@@ -270,7 +270,7 @@ def invoke_allowed(op:u64) -> bool:
 def invoke_request_scan(s:readbuf,w:mutbuf) -> u64:
     put(w,360,0)
     put(w,352,0)
-    if length(s)<128 or readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or invoke_allowed(readword(s,8))==False:
+    if length(s)<128 or readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or readword(s,0)==MAGIC8 or invoke_allowed(readword(s,8))==False:
         put(w,360,1)
         put(w,8,22)
         return 0
