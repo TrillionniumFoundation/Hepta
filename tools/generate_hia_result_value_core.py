@@ -33,6 +33,8 @@ def result_value_core(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return 10
     if phase==0:
         return prepare(s,o,w)
+    if phase==6:
+        return dictionary_conversion(o,w)
     if phase==4:
         work=allocate(w,8192)
         if work==0:
@@ -131,12 +133,38 @@ def input_integer_valid(s:readbuf,n:u64) -> bool:
     return True
 def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     zero(o,256,448)
-    op=readword(s,8)
+    op=input_operation(s)
     put(o,G_OP,op)
     put(w,16,0)
     if get(w,112)>=4096:
         collect(w)
     put(w,112,get(w,112)+1)
+    if op==25:
+        env=cap_lookup(w,readword(s,24),readword(s,32),readword(s,40))
+        if env==0:
+            return done(o,1)
+        put(o,G_A,env)
+        base=0
+        basekind=readword(s,104)
+        if basekind!=0:
+            base=cap_lookup(w,readword(s,48),readword(s,56),readword(s,64))
+            if base==0:
+                return done(o,1)
+            if get(w,base+8)!=basekind:
+                return done(o,2)
+        put(o,G_B,base)
+        name=cap_lookup(w,readword(s,72),readword(s,80),readword(s,88))
+        if name==0:
+            return done(o,1)
+        if get(w,name+8)!=4:
+            return done(o,2)
+        name_status=native_name(w,name)
+        if name_status!=0:
+            return done(o,name_status)
+        put(o,G_C,name)
+        put(o,G_COUNT,1)
+        put(o,G_PHASE,10)
+        return 10
     if op==2 or op==3 or op==4 or op==21:
         put(o,G_COUNT,1)
         put(o,G_PHASE,10)
@@ -187,6 +215,13 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         return done(o,1)
     put(o,G_A,a)
     object_kind_size(o,w,a)
+    if op==26:
+        if get(w,a+8)!=8:
+            return done(o,2)
+        if length(o)<8320:
+            put(o,G_REQUIRED,8320)
+            return done(o,13)
+        put(o,G_COUNT,3)
     if op==5:
         put(o,G_RESULT,a)
         put(o,G_COUNT,1)
@@ -217,6 +252,9 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             return done(o,2)
         found=dict_find(w,a,key)
         put(o,G_FOUND,found)
+        if op==10 and found==MAX and get(w,key+8)!=4 and get(w,a+120)==0:
+            put(o,G_PHASE,6)
+            return 10
         if found==MAX and op!=10:
             return done(o,3)
         if op==9:
@@ -239,10 +277,14 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             put(o,G_RESULT,get(w,get(w,a+24)+index*8))
             put(o,G_COUNT,1)
     if op==17:
-        if get(w,a+8)<4:
+        actual=native_base(w,a)
+        kind=get(w,actual+8)
+        if kind<4 or kind>7:
             return done(o,2)
     if op==19:
-        if get(w,a+8)==5 or get(w,a+8)==6:
+        actual=native_base(w,a)
+        kind=get(w,actual+8)
+        if kind==5 or kind==6 or kind>=8:
             return done(o,2)
         n=get(o,G_BYTES)
         offset=readword(s,104)
@@ -273,6 +315,13 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if count>(length(o)-8192)//64:
             return done(o,13)
         put(o,G_COUNT,count*choose(kind==6,2,1))
+    put(o,G_PHASE,10)
+    return 10
+def dictionary_conversion(o:mutbuf,w:mutbuf) -> u64:
+    obj=get(o,G_A)
+    if dict_general(w,obj)==False:
+        return growth(o,w)
+    put(o,G_FOUND,dict_find(w,obj,get(o,G_B)))
     put(o,G_PHASE,10)
     return 10
 def cleanup_done(o:mutbuf,w:mutbuf,status:u64) -> u64:
@@ -333,12 +382,24 @@ def publish_one(o:mutbuf,w:mutbuf,obj:u64) -> u64:
 def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     op=get(o,G_OP)
     a=get(o,G_A)
+    if op==25:
+        obj=native_create(s,o,w)
+        if obj==0:
+            return growth(o,w)
+        if publish_one(o,w,obj)!=0:
+            object_release(w,obj)
+            return growth(o,w)
+        return done(o,0)
+    if op==26:
+        return native_inspect(o,w)
     if op==21:
         if publish_one(o,w,0)!=0:
             return growth(o,w)
         return done(o,0)
     if op==22:
         cap_drop(w,get(o,G_RESULT))
+        if readword(s,0)==MAGIC2 and readword(s,8)==30:
+            put(o,P_DROP_CONSUMED,1)
         return done(o,0)
     if op==2 or op==3 or op==4:
         obj=0
@@ -366,6 +427,8 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         return done(o,0)
     if op==6:
         cap_drop(w,readword(s,24))
+        if readword(s,0)==MAGIC2 and readword(s,8)==29:
+            put(o,P_DROP_CONSUMED,1)
         put(o,G_ID0,0)
         put(o,G_ID1,0)
         return done(o,0)
@@ -380,6 +443,7 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if op>=13 and op<=16:
         return mutate_list(o,w)
     if op==19:
+        a=native_base(w,a)
         at=get(w,a+24)
         kind=get(w,a+8)
         if kind==1 or kind==3:
@@ -389,6 +453,77 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if op==23:
         return enumerate_values(o,w)
     return done(o,7)
+def native_name(w:mutbuf,name:u64) -> u64:
+    data=get(w,name+24)
+    n=get(w,name+32)
+    i=0
+    null=False
+    while i<n:
+        value=byte(w,data+i)
+        if value==237 and i+1<n and byte(w,data+i+1)>=160:
+            return 10
+        if value==0:
+            null=True
+        i=i+1
+    return choose(null,8,0)
+def native_create(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
+    obj=object_new(w,8)
+    if obj==0:
+        return 0
+    data=allocate(w,64)
+    if data==0:
+        object_unlink(w,obj)
+        return 0
+    zero(w,data,64)
+    put(w,obj+24,data)
+    put(w,data,readword(s,112))
+    basekind=readword(s,104)
+    put(w,data+8,basekind)
+    env=get(o,G_A)
+    base=get(o,G_B)
+    name=get(o,G_C)
+    put(w,data+16,env)
+    put(w,data+24,base)
+    put(w,data+32,name)
+    edge_add(w,env)
+    if base!=0:
+        edge_add(w,base)
+        put(w,obj+16,get(w,base+16))
+        put(w,obj+32,get(w,base+32))
+        put(w,obj+56,get(w,base+56))
+    else:
+        put(w,obj+56,(obj^get(w,get(o,G_RANDOM)))*11400714819323198485)
+    edge_add(w,name)
+    return obj
+def native_inspect(o:mutbuf,w:mutbuf) -> u64:
+    if cap_reserve(w,3)==False:
+        return growth(o,w)
+    obj=get(o,G_A)
+    data=get(w,obj+24)
+    zero(o,8192,128)
+    put(o,8192,NATIVE_INFO)
+    put(o,8200,get(w,data+8))
+    put(o,8208,get(w,data))
+    head=0
+    i=0
+    while i<3:
+        child=get(w,data+16+i*8)
+        if i==2 and get(w,data+40)!=0:
+            child=get(w,get(w,get(w,data+40)+24))
+        if child==0:
+            child=get(w,128)
+        cap=enum_cap(o,w,child,i,head,8224+i*24)
+        if cap==0:
+            enum_rollback(w,head)
+            return growth(o,w)
+        head=cap
+        i=i+1
+    while head!=0:
+        next=get(w,head+72)
+        cap_publish(w,head)
+        head=next
+    return done(o,0)
+
 def integer_binary(w:mutbuf,a:u64,b:u64,subtract:u64) -> u64:
     ap=get(w,a+24)
     bp=get(w,b+24)
@@ -621,3 +756,4 @@ def source_program():return resolve('result_value_core',SOURCE)
 def program():return document(source_program(),'result_value_core')
 if __name__=='__main__':
  p=ROOT/'examples/hia_bootstrap/result_value_core.hepta';p.write_text(render_assembly(program()));print(p.name,p.stat().st_size,flush=True)
+

@@ -175,6 +175,7 @@ def quoted(o:mutbuf,w:mutbuf,at:u64,n:u64) -> u64:
     emit(o,w,34)
     return 0
 def scalar(o:mutbuf,w:mutbuf,obj:u64,key:bool) -> u64:
+    obj=native_base(w,obj)
     kind=get(w,obj+8)
     if kind==4:
         return quoted(o,w,get(w,obj+24),get(w,obj+32))
@@ -290,3 +291,4 @@ def source_program():
 def program():return document(source_program(),'result_value_export')
 if __name__=='__main__':
  p=ROOT/'examples/hia_bootstrap/result_value_export.hepta';p.write_text(render_assembly(program()));print(p.name,p.stat().st_size,flush=True)
+
