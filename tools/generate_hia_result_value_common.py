@@ -4,7 +4,7 @@ import ast,re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_system_jobctl_request import document
 ROOT=Path(__file__).resolve().parents[1]
-C={'MAX':18446744073709551615,'ARENA':int.from_bytes(b'HIABVA01','little'),'BLOCK_FREE':int.from_bytes(b'HIAVFREE','little'),'BLOCK_USED':int.from_bytes(b'HIAVUSED','little'),'OBJECT':int.from_bytes(b'HIAVOBJ1','little'),'CAP_MAGIC':int.from_bytes(b'HIAVCAP1','little'),'REPLY':int.from_bytes(b'HIABVR01','little'),'MAGIC':int.from_bytes(b'HIABVQ01','little'),'MAGIC2':int.from_bytes(b'HIABVQ02','little'),'MAGIC3':int.from_bytes(b'HIABVQ03','little'),'MAGIC4':int.from_bytes(b'HIABVQ04','little'),'NATIVE_INFO':int.from_bytes(b'HIAVNO01','little'),'DROP_REPLY':int.from_bytes(b'HIABVR02','little'),'P_DROP_CONSUMED':736,'P_DROP_KNOWN':744,'P_DROP_PENDING':752,'STATE':int.from_bytes(b'HIABVC01','little'),'P_PHASE':128,'P_FEEDBACK':136,'P_PID':144,'P_HELD':152,'P_ERROR':160,'P_ARENA':168,'P_AN':176,'P_OLD':184,'P_ROLE':192,'P_SELECT':200,'P_ARG':208,'G_PHASE':256,'G_FEEDBACK':264,'G_RANDOM':272,'G_RN':280,'G_RUSED':288,'G_WANT':296,'G_PLAN':304,'G_A':312,'G_B':320,'G_C':328,'G_RESULT':336,'G_CAP':344,'G_KIND':352,'G_N':360,'G_BYTES':368,'G_INDEX':376,'G_FOUND':384,'G_COUNT':392,'G_REQUIRED':400,'G_DATA':408,'G_NEWOBJ':416,'G_TEMP':424,'G_ITER':432,'G_OP':440,'G_TAG0':448,'G_TAG1':456,'G_ID0':464,'G_ID1':472,'G_ALLOC_FAILED':480,'G_RETRY':488,'G_INPUT':496,'G_INPUT_N':504,'G_STACK':520,'G_AUX':528,'G_AUX_N':536,'G_ARENA':544,'G_ARENA_N':552,'G_PARSEW':560,'G_PARSEWN':568,'G_ROOT':576,'G_MODE':584,'G_WORK':592,'G_WORK_N':600,'G_OUT':608,'G_OUT_N':616,'G_PARSE_NODES':624,'G_PARSE_DEPTH':632,'G_PARSE_KEYS':640}
+C={'MAX':18446744073709551615,'ARENA':int.from_bytes(b'HIABVA01','little'),'BLOCK_FREE':int.from_bytes(b'HIAVFREE','little'),'BLOCK_USED':int.from_bytes(b'HIAVUSED','little'),'OBJECT':int.from_bytes(b'HIAVOBJ1','little'),'CAP_MAGIC':int.from_bytes(b'HIAVCAP1','little'),'REPLY':int.from_bytes(b'HIABVR01','little'),'MAGIC':int.from_bytes(b'HIABVQ01','little'),'MAGIC2':int.from_bytes(b'HIABVQ02','little'),'MAGIC3':int.from_bytes(b'HIABVQ03','little'),'MAGIC4':int.from_bytes(b'HIABVQ04','little'),'MAGIC5':int.from_bytes(b'HIABVQ05','little'),'NATIVE_INFO':int.from_bytes(b'HIAVNO01','little'),'DROP_REPLY':int.from_bytes(b'HIABVR02','little'),'P_DROP_CONSUMED':736,'P_DROP_KNOWN':744,'P_DROP_PENDING':752,'STATE':int.from_bytes(b'HIABVC01','little'),'P_PHASE':128,'P_FEEDBACK':136,'P_PID':144,'P_HELD':152,'P_ERROR':160,'P_ARENA':168,'P_AN':176,'P_OLD':184,'P_ROLE':192,'P_SELECT':200,'P_ARG':208,'G_PHASE':256,'G_FEEDBACK':264,'G_RANDOM':272,'G_RN':280,'G_RUSED':288,'G_WANT':296,'G_PLAN':304,'G_A':312,'G_B':320,'G_C':328,'G_RESULT':336,'G_CAP':344,'G_KIND':352,'G_N':360,'G_BYTES':368,'G_INDEX':376,'G_FOUND':384,'G_COUNT':392,'G_REQUIRED':400,'G_DATA':408,'G_NEWOBJ':416,'G_TEMP':424,'G_ITER':432,'G_OP':440,'G_TAG0':448,'G_TAG1':456,'G_ID0':464,'G_ID1':472,'G_ALLOC_FAILED':480,'G_RETRY':488,'G_INPUT':496,'G_INPUT_N':504,'G_STACK':520,'G_AUX':528,'G_AUX_N':536,'G_ARENA':544,'G_ARENA_N':552,'G_PARSEW':560,'G_PARSEWN':568,'G_ROOT':576,'G_MODE':584,'G_WORK':592,'G_WORK_N':600,'G_OUT':608,'G_OUT_N':616,'G_PARSE_NODES':624,'G_PARSE_DEPTH':632,'G_PARSE_KEYS':640}
 SOURCE=r'''
 def shrink_allocation(w:mutbuf,p:u64,n:u64) -> u64:
     at=p-32
@@ -269,6 +269,9 @@ def object_new(w:mutbuf,kind:u64) -> u64:
     put(w,104,get(w,104)+1)
     return p
 def object_unlink(w:mutbuf,p:u64) -> u64:
+    weak=get(w,p+8)==11 or (get(w,p+8)==12 and get(w,p+48)==30)
+    if weak and get(w,p+112)!=0:
+        weak_info_remove(w,get(w,p+112))
     previous=get(w,p+80)
     next=get(w,p+88)
     if previous!=0:
@@ -297,7 +300,7 @@ def managed_count(w:mutbuf,p:u64) -> u64:
     if data==0:
         return 0
     if kind==8:
-        return 4
+        return choose(get(w,data+56)!=0,5,4)
     if kind==9:
         return 1
     if kind==10:
@@ -309,6 +312,8 @@ def managed_child(w:mutbuf,p:u64,index:u64) -> u64:
     kind=get(w,p+8)
     data=get(w,p+24)
     if kind==8:
+        if index==4:
+            return get(w,data+136)
         return get(w,data+16+index*8)
     if kind==9:
         return get(w,data)
@@ -324,40 +329,43 @@ def object_release(w:mutbuf,p:u64) -> u64:
     while head!=0:
         p=head
         head=get(w,p+104)
-        kind=get(w,p+8)
-        n=get(w,p+16)
-        data=get(w,p+24)
-        if kind==5:
-            i=0
-            while i<n:
-                child=get(w,data+i*8)
-                if get(w,child+8)>1:
-                    put(w,child+72,get(w,child+72)-1)
-                    head=zero_queue(w,child,head)
-                i=i+1
-        if kind==6:
-            i=0
-            while i<get(w,p+112):
-                key=get(w,data+i*32)
-                if key!=0:
-                    value=get(w,data+i*32+8)
-                    if get(w,key+8)>1:
-                        put(w,key+72,get(w,key+72)-1)
-                        head=zero_queue(w,key,head)
-                    if get(w,value+8)>1:
-                        put(w,value+72,get(w,value+72)-1)
-                        head=zero_queue(w,value,head)
-                i=i+1
-        if kind>=8 and kind<=12 and data!=0:
-            count=managed_count(w,p)
-            i=0
-            while i<count:
-                child=managed_child(w,p,i)
-                if child!=0 and get(w,child+8)>1:
-                    put(w,child+72,get(w,child+72)-1)
-                    head=zero_queue(w,child,head)
-                i=i+1
-        object_unlink(w,p)
+        if native_resource(w,p):
+            resource_enqueue(w,p)
+        else:
+            kind=get(w,p+8)
+            n=get(w,p+16)
+            data=get(w,p+24)
+            if kind==5:
+                i=0
+                while i<n:
+                    child=get(w,data+i*8)
+                    if get(w,child+8)>1:
+                        put(w,child+72,get(w,child+72)-1)
+                        head=zero_queue(w,child,head)
+                    i=i+1
+            if kind==6:
+                i=0
+                while i<get(w,p+112):
+                    key=get(w,data+i*32)
+                    if key!=0:
+                        value=get(w,data+i*32+8)
+                        if get(w,key+8)>1:
+                            put(w,key+72,get(w,key+72)-1)
+                            head=zero_queue(w,key,head)
+                        if get(w,value+8)>1:
+                            put(w,value+72,get(w,value+72)-1)
+                            head=zero_queue(w,value,head)
+                    i=i+1
+            if kind>=8 and kind<=12 and data!=0:
+                count=managed_count(w,p)
+                i=0
+                while i<count:
+                    child=managed_child(w,p,i)
+                    if child!=0 and get(w,child+8)>1:
+                        put(w,child+72,get(w,child+72)-1)
+                        head=zero_queue(w,child,head)
+                    i=i+1
+            object_unlink(w,p)
     return 0
 def edge_drop(w:mutbuf,p:u64) -> u64:
     if get(w,p+8)<=1:
@@ -385,34 +393,23 @@ def collect(w:mutbuf) -> u64:
     while si<get(w,152):
         head=mark_add(w,get(w,160+si*8),head)
         si=si+1
-    head=mark_add(w,get(w,400),head)
+    head=mark_add(w,get(w,1024),head)
     while cap!=0:
         head=mark_add(w,get(w,cap+8),head)
         cap=get(w,cap+56)
-    while head!=0:
-        p=head
-        head=get(w,p+104)
-        kind=get(w,p+8)
-        data=get(w,p+24)
-        i=0
-        if kind==5:
-            while i<get(w,p+16):
-                head=mark_add(w,get(w,data+i*8),head)
-                i=i+1
-        if kind==6:
-            while i<get(w,p+112):
-                key=get(w,data+i*32)
-                if key!=0:
-                    head=mark_add(w,key,head)
-                    head=mark_add(w,get(w,data+i*32+8),head)
-                i=i+1
-        if kind>=8 and kind<=12 and data!=0:
-            count=managed_count(w,p)
-            while i<count:
-                child=managed_child(w,p,i)
-                if child!=0:
-                    head=mark_add(w,child,head)
-                i=i+1
+    queued=get(w,1040)
+    while queued!=0:
+        head=mark_add(w,queued,head)
+        queued=get(w,get(w,queued+24)+96)
+    mark_graph(w,head)
+    head=0
+    pending=get(w,96)
+    while pending!=0:
+        if get(w,pending+96)==0 and native_resource(w,pending):
+            resource_enqueue(w,pending)
+            head=mark_add(w,pending,head)
+        pending=get(w,pending+88)
+    mark_graph(w,head)
     p=get(w,96)
     while p!=0:
         next=get(w,p+88)
@@ -683,7 +680,7 @@ def native_base(w:mutbuf,p:u64) -> u64:
     if get(w,p+8)==8:
         data=get(w,p+24)
         kind=get(w,data+8)
-        if kind==4 or kind==7:
+        if kind==2 or kind==3 or kind==4 or kind==5 or kind==6 or kind==7 or kind==11:
             return get(w,data+24)
     return p
 def key_equal(w:mutbuf,a:u64,b:u64) -> bool:
@@ -835,13 +832,15 @@ def list_reserve(w:mutbuf,obj:u64) -> bool:
 def object_kind_size(o:mutbuf,w:mutbuf,p:u64) -> u64:
     kind=get(w,p+8)
     put(o,G_KIND,kind)
-    put(o,G_N,choose(kind>=4,get(w,p+16),0))
-    n=get(w,p+32)
-    if kind==0 or kind==5 or kind==6 or kind==9 or kind==10 or kind==11 or kind==12:
+    actual=native_base(w,p)
+    basekind=get(w,actual+8)
+    put(o,G_N,choose(basekind>=4,get(w,actual+16),0))
+    n=get(w,actual+32)
+    if basekind==0 or basekind==5 or basekind==6 or basekind==9 or basekind==10 or basekind==11 or basekind==12:
         n=0
-    if kind==1:
+    if basekind==1:
         n=1
-    if kind==3:
+    if basekind==3:
         n=8
     put(o,G_BYTES,n)
     if kind==9:
@@ -879,6 +878,87 @@ def role(o:mutbuf,id:u64,sr:u64,sa:u64,sn:u64,oreg:u64,oa:u64,on:u64,wr:u64,wa:u
     put(o,P_ARG+32,wa)
     put(o,P_ARG+40,wn)
     return 4
+def mark_graph(w:mutbuf,head:u64) -> u64:
+    while head!=0:
+        p=head
+        head=get(w,p+104)
+        kind=get(w,p+8)
+        data=get(w,p+24)
+        i=0
+        if kind==5:
+            while i<get(w,p+16):
+                head=mark_add(w,get(w,data+i*8),head)
+                i=i+1
+        if kind==6:
+            while i<get(w,p+112):
+                key=get(w,data+i*32)
+                if key!=0:
+                    head=mark_add(w,key,head)
+                    head=mark_add(w,get(w,data+i*32+8),head)
+                i=i+1
+        if kind>=8 and kind<=12 and data!=0:
+            count=managed_count(w,p)
+            while i<count:
+                child=managed_child(w,p,i)
+                if child!=0:
+                    head=mark_add(w,child,head)
+                i=i+1
+    return 0
+
+def native_resource(w:mutbuf,obj:u64) -> bool:
+    if obj==0 or get(w,obj+8)!=8:
+        return False
+    data=get(w,obj+24)
+    return data!=0 and get(w,data+48)==3544424519840123208
+
+def resource_enqueue(w:mutbuf,obj:u64) -> u64:
+    data=get(w,obj+24)
+    if get(w,data+88)!=0:
+        return 0
+    tail=get(w,1048)
+    put(w,data+88,1)
+    put(w,data+96,0)
+    put(w,data+104,tail)
+    if tail!=0:
+        put(w,get(w,tail+24)+96,obj)
+    else:
+        put(w,1040,obj)
+    put(w,1048,obj)
+    put(w,1056,get(w,1056)+1)
+    edge_add(w,obj)
+    return 0
+
+def resource_remove(w:mutbuf,obj:u64) -> u64:
+    data=get(w,obj+24)
+    previous=get(w,data+104)
+    next=get(w,data+96)
+    if previous!=0:
+        put(w,get(w,previous+24)+96,next)
+    else:
+        put(w,1040,next)
+    if next!=0:
+        put(w,get(w,next+24)+104,previous)
+    else:
+        put(w,1048,previous)
+    put(w,data+96,0)
+    put(w,data+104,0)
+    put(w,data+88,0)
+    put(w,1056,get(w,1056)-1)
+    return 0
+
+def weak_info_remove(w:mutbuf,entry:u64) -> u64:
+    previous=get(w,entry+24)
+    next=get(w,entry+32)
+    if previous!=0:
+        put(w,previous+32,next)
+    else:
+        head=get(w,entry+40)
+        put(w,choose(head==0,1032,head),next)
+    if next!=0:
+        put(w,next+24,previous)
+    deallocate(w,entry)
+    return 0
+
 '''
 def resolve(entry,source):
     text=source+'\n'+SOURCE
