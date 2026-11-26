@@ -328,12 +328,12 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
                         put(o,1984,get(o,P_ERROR))
                         copy(o,4352,256,512)
                         return resource_graph(o,w,250,58)
-                if get(w,56)==0:
-                    if get(o,P_ERROR)==0:
-                        if get(o,2016)==0:
-                            put(o,2016,1)
-                            put(o,G_PHASE,91)
-                            return graph_call(s,o,w,21,1)
+                retiring=input_operation(s)==6 or input_operation(s)==22 or resource_retry(s) or (drop_profile(s) and readword(s,8)==31)
+                if retiring and resource_bound(w):
+                    if get(w,56)==0 and get(o,P_ERROR)==0 and get(o,2016)==0:
+                        put(o,2016,1)
+                        put(o,G_PHASE,91)
+                        return graph_call(s,o,w,21,1)
         owned=drop_profile(s) or resource_capture(s)
         if owned and get(o,P_HELD)!=0:
             pending=get(w,80)==1 or get(w,176)!=0
