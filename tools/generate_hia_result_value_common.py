@@ -4,7 +4,7 @@ import ast,re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_system_jobctl_request import document
 ROOT=Path(__file__).resolve().parents[1]
-C={'MAX':18446744073709551615,'ARENA':int.from_bytes(b'HIABVA01','little'),'BLOCK_FREE':int.from_bytes(b'HIAVFREE','little'),'BLOCK_USED':int.from_bytes(b'HIAVUSED','little'),'OBJECT':int.from_bytes(b'HIAVOBJ1','little'),'CAP_MAGIC':int.from_bytes(b'HIAVCAP1','little'),'REPLY':int.from_bytes(b'HIABVR01','little'),'MAGIC':int.from_bytes(b'HIABVQ01','little'),'MAGIC2':int.from_bytes(b'HIABVQ02','little'),'MAGIC3':int.from_bytes(b'HIABVQ03','little'),'MAGIC4':int.from_bytes(b'HIABVQ04','little'),'MAGIC5':int.from_bytes(b'HIABVQ05','little'),'NATIVE_INFO':int.from_bytes(b'HIAVNO01','little'),'DROP_REPLY':int.from_bytes(b'HIABVR02','little'),'P_DROP_CONSUMED':736,'P_DROP_KNOWN':744,'P_DROP_PENDING':752,'STATE':int.from_bytes(b'HIABVC01','little'),'P_PHASE':128,'P_FEEDBACK':136,'P_PID':144,'P_HELD':152,'P_ERROR':160,'P_ARENA':168,'P_AN':176,'P_OLD':184,'P_ROLE':192,'P_SELECT':200,'P_ARG':208,'G_PHASE':256,'G_FEEDBACK':264,'G_RANDOM':272,'G_RN':280,'G_RUSED':288,'G_WANT':296,'G_PLAN':304,'G_A':312,'G_B':320,'G_C':328,'G_RESULT':336,'G_CAP':344,'G_KIND':352,'G_N':360,'G_BYTES':368,'G_INDEX':376,'G_FOUND':384,'G_COUNT':392,'G_REQUIRED':400,'G_DATA':408,'G_NEWOBJ':416,'G_TEMP':424,'G_ITER':432,'G_OP':440,'G_TAG0':448,'G_TAG1':456,'G_ID0':464,'G_ID1':472,'G_ALLOC_FAILED':480,'G_RETRY':488,'G_INPUT':496,'G_INPUT_N':504,'G_STACK':520,'G_AUX':528,'G_AUX_N':536,'G_ARENA':544,'G_ARENA_N':552,'G_PARSEW':560,'G_PARSEWN':568,'G_ROOT':576,'G_MODE':584,'G_WORK':592,'G_WORK_N':600,'G_OUT':608,'G_OUT_N':616,'G_PARSE_NODES':624,'G_PARSE_DEPTH':632,'G_PARSE_KEYS':640}
+C={'MAX':18446744073709551615,'ARENA':int.from_bytes(b'HIABVA01','little'),'BLOCK_FREE':int.from_bytes(b'HIAVFREE','little'),'BLOCK_USED':int.from_bytes(b'HIAVUSED','little'),'OBJECT':int.from_bytes(b'HIAVOBJ1','little'),'CAP_MAGIC':int.from_bytes(b'HIAVCAP1','little'),'REPLY':int.from_bytes(b'HIABVR01','little'),'MAGIC':int.from_bytes(b'HIABVQ01','little'),'MAGIC2':int.from_bytes(b'HIABVQ02','little'),'MAGIC3':int.from_bytes(b'HIABVQ03','little'),'MAGIC4':int.from_bytes(b'HIABVQ04','little'),'MAGIC5':int.from_bytes(b'HIABVQ05','little'),'MAGIC6':int.from_bytes(b'HIABVQ06','little'),'NATIVE_INFO':int.from_bytes(b'HIAVNO01','little'),'DROP_REPLY':int.from_bytes(b'HIABVR02','little'),'P_DROP_CONSUMED':736,'P_DROP_KNOWN':744,'P_DROP_PENDING':752,'STATE':int.from_bytes(b'HIABVC01','little'),'P_PHASE':128,'P_FEEDBACK':136,'P_PID':144,'P_HELD':152,'P_ERROR':160,'P_ARENA':168,'P_AN':176,'P_OLD':184,'P_ROLE':192,'P_SELECT':200,'P_ARG':208,'G_PHASE':256,'G_FEEDBACK':264,'G_RANDOM':272,'G_RN':280,'G_RUSED':288,'G_WANT':296,'G_PLAN':304,'G_A':312,'G_B':320,'G_C':328,'G_RESULT':336,'G_CAP':344,'G_KIND':352,'G_N':360,'G_BYTES':368,'G_INDEX':376,'G_FOUND':384,'G_COUNT':392,'G_REQUIRED':400,'G_DATA':408,'G_NEWOBJ':416,'G_TEMP':424,'G_ITER':432,'G_OP':440,'G_TAG0':448,'G_TAG1':456,'G_ID0':464,'G_ID1':472,'G_ALLOC_FAILED':480,'G_RETRY':488,'G_INPUT':496,'G_INPUT_N':504,'G_STACK':520,'G_AUX':528,'G_AUX_N':536,'G_ARENA':544,'G_ARENA_N':552,'G_PARSEW':560,'G_PARSEWN':568,'G_ROOT':576,'G_MODE':584,'G_WORK':592,'G_WORK_N':600,'G_OUT':608,'G_OUT_N':616,'G_PARSE_NODES':624,'G_PARSE_DEPTH':632,'G_PARSE_KEYS':640}
 SOURCE=r'''
 def shrink_allocation(w:mutbuf,p:u64,n:u64) -> u64:
     at=p-32
@@ -105,16 +105,37 @@ def numeric_key_byte(w:mutbuf,p:u64,index:u64) -> u64:
         return byte(w,get(w,p+24)+index)
     return byte(w,get(w,p+24)+32+index)
 
+def request_magic(s:readbuf) -> u64:
+    magic=readword(s,0)
+    if magic!=MAGIC6:
+        return magic
+    op=readword(s,8)
+    if op<=24:
+        return MAGIC
+    if op<=31:
+        return MAGIC2
+    if op<=39:
+        return MAGIC3
+    if op<=47:
+        return MAGIC4
+    return MAGIC5
 def input_operation(s:readbuf) -> u64:
     op=readword(s,8)
-    if readword(s,0)==MAGIC2:
+    if request_magic(s)==MAGIC5:
+        if op==78:
+            return 6
+        if op==92:
+            return 22
+        if op==93:
+            return 31
+    if request_magic(s)==MAGIC2:
         if op==29:
             return 6
         if op==30:
             return 22
     return op
 def drop_profile(s:readbuf) -> bool:
-    return readword(s,0)==MAGIC2 and readword(s,8)>=29 and readword(s,8)<=31
+    return (request_magic(s)==MAGIC2 and readword(s,8)>=29 and readword(s,8)<=31) or (request_magic(s)==MAGIC5 and ((readword(s,8)>=77 and readword(s,8)<=79) or readword(s,8)==92 or readword(s,8)==93))
 def get(w:mutbuf,at:u64) -> u64:
     v=0
     i=0
@@ -395,7 +416,8 @@ def collect(w:mutbuf) -> u64:
         si=si+1
     head=mark_add(w,get(w,1024),head)
     while cap!=0:
-        head=mark_add(w,get(w,cap+8),head)
+        if get(w,cap+40)==0:
+            head=mark_add(w,get(w,cap+8),head)
         cap=get(w,cap+56)
     queued=get(w,1040)
     while queued!=0:
@@ -519,6 +541,39 @@ def cap_publish(w:mutbuf,p:u64) -> u64:
     if obj!=0:
         put(w,obj+64,get(w,obj+64)+1)
     return p
+def cap_adopt(w:mutbuf,p:u64,owner:u64) -> u64:
+    obj=get(w,p+8)
+    put(w,obj+64,get(w,obj+64)-1)
+    edge_add(w,obj)
+    first=get(w,owner+112)
+    put(w,p+40,owner)
+    put(w,p+64,first)
+    put(w,p+72,0)
+    if first!=0:
+        put(w,first+72,p)
+    put(w,owner+112,p)
+    put(w,owner+120,get(w,owner+120)+1)
+    put(w,1072,get(w,1072)+1)
+    return 0
+def cap_managed_unlink(w:mutbuf,p:u64) -> u64:
+    owner=get(w,p+40)
+    previous=get(w,p+72)
+    next=get(w,p+64)
+    if previous==0:
+        put(w,owner+112,next)
+    else:
+        put(w,previous+64,next)
+    if next!=0:
+        put(w,next+72,previous)
+    put(w,p+40,0)
+    put(w,p+64,0)
+    put(w,p+72,0)
+    put(w,owner+120,get(w,owner+120)-1)
+    put(w,1072,get(w,1072)-1)
+    obj=get(w,p+8)
+    if get(w,obj+8)>1:
+        put(w,obj+72,get(w,obj+72)-1)
+    return 0
 def cap_drop(w:mutbuf,p:u64) -> u64:
     bucket=get(w,64)+cap_bucket(p,get(w,72))*8
     current=get(w,bucket)
@@ -539,12 +594,15 @@ def cap_drop(w:mutbuf,p:u64) -> u64:
     if next!=0:
         put(w,next+48,previous)
     obj=get(w,p+8)
-    if obj!=0:
+    managed=get(w,p+40)!=0
+    if managed:
+        cap_managed_unlink(w,p)
+    elif obj!=0:
         put(w,obj+64,get(w,obj+64)-1)
     put(w,88,get(w,88)-1)
     deallocate(w,p)
     object_release(w,obj)
-    if get(w,88)==0:
+    if get(w,88)==0 or get(w,1072)!=0 or managed:
         collect(w)
     return 0
 def bytes_hash(w:mutbuf,at:u64,n:u64) -> u64:
@@ -884,6 +942,11 @@ def mark_graph(w:mutbuf,head:u64) -> u64:
         head=get(w,p+104)
         kind=get(w,p+8)
         data=get(w,p+24)
+        if native_resource(w,p):
+            managed=get(w,p+112)
+            while managed!=0:
+                head=mark_add(w,get(w,managed+8),head)
+                managed=get(w,managed+64)
         i=0
         if kind==5:
             while i<get(w,p+16):

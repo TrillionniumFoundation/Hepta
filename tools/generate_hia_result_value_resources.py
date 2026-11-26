@@ -231,7 +231,7 @@ def resources_create(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     ownbase=False
     if resource:
         kind=readword(s,104)
-        id=choose(kind==1,20,29+kind)
+        id=choose(kind==1,20,choose(kind==7,37,29+kind))
         cls=get(w,160+(id-1)*8)
         env=get(o,G_A)
         base=get(o,G_B)
@@ -402,6 +402,10 @@ def resources_ack(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         put(o,2008,get(w,1056))
         return done(o,11)
     if (consumed==1 or get(o,2024)==3) and pending==0 and status==0:
+        if get(w,obj+112)!=0 or get(w,obj+120)!=0:
+            put(w,data+88,4)
+            put(o,2008,get(w,1056))
+            return done(o,11)
         resource_remove(w,obj)
         put(w,data+48,0)
         edge_drop(w,obj)
