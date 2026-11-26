@@ -2554,7 +2554,7 @@ def dag_source():
         if isinstance(node, ast.FunctionDef) and node.name in needed)
 
 
-RELEASE_DAGS = ('safe', 'constructor', 'core', 'additional', 'controller')
+RELEASE_DAGS = ('safe', 'constructor', 'core', 'additional', 'controller', 'runtime')
 
 
 def policy_source(*, stage=False):
