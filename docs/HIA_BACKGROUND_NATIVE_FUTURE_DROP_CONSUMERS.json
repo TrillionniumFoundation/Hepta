@@ -1,0 +1,109 @@
+{
+  "schema": "hepta.hia.future-cleanup-consumer-readonly-inventory.v1",
+  "scope": "Source inspection, not new execution or native qualification",
+  "new_explicit_drop_candidate": "9a0e39b5c427d79f1d87ce124294c8c785cba49e",
+  "whole_future_cleanup_closed": false,
+  "rows": [
+    {
+      "path": "tools/generate_hia_background_optimizer_future_public_owner.py",
+      "source_commit": "d118f47c189b3047b0457e7fca212e084ea1b93a",
+      "actual_author_bytes": 54391,
+      "actual_author_sha256": "553a7d8dad3793610d76c6751a4956cf44bf689f4204f06625f2dde0d2418888",
+      "function": "cleanup",
+      "phases": "900 -> 901",
+      "observation": "Drops FUTURE_TEMP using legacy cell op3; on any failed completion sets CLEANUP_FAILED and unconditionally zeros the temporary nonce.",
+      "writer": "slot",
+      "disposition": "open: retain an actual cleanup record on known preconsumption or unknown completion, and never redrop a known consumed nonce."
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_future_public_carrier.py",
+      "source_commit": "485a339defe2bc4b92e298610afff699d6c4eabf",
+      "actual_author_bytes": 20032,
+      "actual_author_sha256": "ab13484244aad01387d944a7f77fa960d93f59f50090868eacfe7f42ae96cc6e",
+      "function": "release",
+      "phases": "600 -> 601 -> 609",
+      "observation": "Drops captured environment using legacy value op6; a nonzero completion retains the same capability for carrier retirement retry.",
+      "writer": "slot",
+      "disposition": "open: use the exact V02 consumption result, clear a consumed environment before retry, and keep mapping/quarantine separately."
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_future_public_carrier.py",
+      "source_commit": "485a339defe2bc4b92e298610afff699d6c4eabf",
+      "actual_author_bytes": 20032,
+      "actual_author_sha256": "ab13484244aad01387d944a7f77fa960d93f59f50090868eacfe7f42ae96cc6e",
+      "function": "cleanup",
+      "phases": "900 -> 901/902/903",
+      "observation": "Temporary Future/return/environment capabilities are zeroed after either successful or failed legacy drops.",
+      "writer": "slot",
+      "disposition": "open: a failed preconsumption or unknown completion must retain actual custody, not only a diagnostic code."
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_future_public_observers.py",
+      "source_commit": "d118f47c189b3047b0457e7fca212e084ea1b93a",
+      "actual_author_bytes": 33085,
+      "actual_author_sha256": "c2132d5d5bd5882ad0bdadb354e5475df42a045c8a342796133e8377da9969c5",
+      "function": "capture",
+      "phases": "45 -> 46",
+      "observation": "A duplicate identity releases its independent retained Future via legacy public op6.",
+      "writer": "slot",
+      "disposition": "open: consume the exact new drop record before erasing the independently owned duplicate."
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_future_public_observers.py",
+      "source_commit": "d118f47c189b3047b0457e7fca212e084ea1b93a",
+      "actual_author_bytes": 33085,
+      "actual_author_sha256": "c2132d5d5bd5882ad0bdadb354e5475df42a045c8a342796133e8377da9969c5",
+      "function": "cleanup",
+      "phases": "1010/1012/1021 -> 1060..1064",
+      "observation": "Unregisters before releasing temporary and vector-owned references, records nonzero cleanup failures, then frees the owning arrays and node.",
+      "writer": "slot",
+      "disposition": "open: failed cleanup must preserve a real registry-held record and active ownership; unknown drop effects cannot be replayed."
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_future_public_observers_iterable.py",
+      "source_commit": "d118f47c189b3047b0457e7fca212e084ea1b93a",
+      "actual_author_bytes": 30083,
+      "actual_author_sha256": "3b6209be536f1c9bc2e10e176b244260343cbf2c6f19da8a8a3c33bf147332c7",
+      "function": "collection_release",
+      "phases": "550 -> 555",
+      "observation": "Releases each collected Future with legacy public op6 and frees the vector after any failed drops.",
+      "writer": "slot",
+      "disposition": "open: per-row consumption and retained cleanup custody must be explicit."
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_future_public_observers_iterable.py",
+      "source_commit": "d118f47c189b3047b0457e7fca212e084ea1b93a",
+      "actual_author_bytes": 30083,
+      "actual_author_sha256": "3b6209be536f1c9bc2e10e176b244260343cbf2c6f19da8a8a3c33bf147332c7",
+      "function": "cleanup",
+      "phases": "1010..1032 -> 1050..1052",
+      "observation": "Clears nested-array handles, temporary Future flags and owned value slots before their cleanup outcome is known; frees the node afterwards.",
+      "writer": "slot",
+      "disposition": "open: nested object fate and owned iterator/environment error identities need retained, non-replayed cleanup records."
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_submission.py",
+      "source_commit": "485a339defe2bc4b92e298610afff699d6c4eabf",
+      "actual_author_bytes": 38965,
+      "actual_author_sha256": "bafdfbc0a60c7bfa2484c77e3e9c6f8ff7f6da0fef9f7204ea987e413f7704f6",
+      "function": "cleanup",
+      "phases": "710 -> 713/714",
+      "observation": "Legacy Future/Job failed drop retains the original nonce for retry.",
+      "writer": "native_release_audit",
+      "disposition": "migration checkpoint reported 8fcb60654dddda1dfd356178f3eb86a8ba8ea3ce; source-verifier only, actual native qualification pending."
+    },
+    {
+      "path": "tools/generate_hia_background_optimizer_account.py",
+      "source_commit": "485a339defe2bc4b92e298610afff699d6c4eabf",
+      "actual_author_bytes": 24236,
+      "actual_author_sha256": "807aba1cfe66d9b281b9b2871352972de14398a85ab1d4f391bff54e1783e8e5",
+      "function": "cleanup",
+      "phases": "710 -> 711/712",
+      "observation": "Legacy Job/Future failed drop retains the original nonce for retry.",
+      "writer": "native_release_audit",
+      "disposition": "migration checkpoint reported 8fcb60654dddda1dfd356178f3eb86a8ba8ea3ce; source-verifier only, actual native qualification pending."
+    }
+  ],
+  "allocation_boundary": "The existing closed allocator deliberately traps on invalid or failed munmap. Such a failed deallocation does not return a structured success to the next HIA continuation. This inventory concerns structured callee-drop failures, not an invented resumable allocator failure.",
+  "remote_unknown_commands_replayed": false
+}

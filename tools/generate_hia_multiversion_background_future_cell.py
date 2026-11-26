@@ -10,19 +10,19 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
 ROOT=Path(__file__).resolve().parents[1]
 C={
-'MAGIC':int.from_bytes(b'HIABFQ01','little'),'MAGIC2':int.from_bytes(b'HIABFQ02','little'),'MAGIC3':int.from_bytes(b'HIABFQ03','little'),'REPLY':int.from_bytes(b'HIABFR01','little'),
+'MAGIC':int.from_bytes(b'HIABFQ01','little'),'MAGIC2':int.from_bytes(b'HIABFQ02','little'),'MAGIC3':int.from_bytes(b'HIABFQ03','little'),'MAGIC4':int.from_bytes(b'HIABFQ04','little'),'REPLY':int.from_bytes(b'HIABFR01','little'),'REPLY2':int.from_bytes(b'HIABFR02','little'),
 'STATE':int.from_bytes(b'HIABFS01','little'),'OBJECT':int.from_bytes(b'HIABFO01','little'),
 'NMAGIC':int.from_bytes(b'HIABFN01','little'),'PMAGIC':int.from_bytes(b'HIABFA01','little'),
 'BOXMAGIC':int.from_bytes(b'HIABFB01','little'),'FREQUEST':int.from_bytes(b'HIAMVFQ1','little'),
-'FREPLY':int.from_bytes(b'HIAMVFR1','little'),'FREQUEST2':int.from_bytes(b'HIAMVFQ2','little'),'VREQUEST':int.from_bytes(b'HIABVQ01','little'),
-'VREPLY':int.from_bytes(b'HIABVR01','little'),'MAX':(1<<64)-1,'NEGATIVE':(1<<64)-4095,
+'FREPLY':int.from_bytes(b'HIAMVFR1','little'),'FREQUEST2':int.from_bytes(b'HIAMVFQ2','little'),'VREQUEST':int.from_bytes(b'HIABVQ01','little'),'VREQUEST2':int.from_bytes(b'HIABVQ02','little'),
+'VREPLY':int.from_bytes(b'HIABVR01','little'),'VREPLY2':int.from_bytes(b'HIABVR02','little'),'MAX':(1<<64)-1,'NEGATIVE':(1<<64)-4095,
 'PHASE':128,'OP':136,'HELD':144,'ERROR':152,'AFTER':160,'PID':168,'OBJ':176,'CAP':184,
 'CURSOR':192,'NEWOBJ':200,'NEWREF':208,'RESULT':216,'TAG0':224,'TAG1':232,'RANDOM_USED':240,
 'ACTIVE':248,'PINPTR':256,'NEXT':264,'NEWBOX':272,'RETAINED_VALUE':280,'VALUE_RESULT':304,
 'VALUE_KIND':328,'KERNEL_STATUS':336,'KERNEL_STATE':344,'KERNEL_TOKEN':352,
 'KERNEL_VALUE':360,'KERNEL_SEEN':368,'KERNEL_CAUGHT':376,'BORROWED':384,'FINAL_STAGE':392,
 'FINAL_FAILED':400,'TEMP':408,'RANDOM':416,'FEEDBACK':448,'RESTORE':456,'BOXPTR':464,'CALL_OP':472,
-'RUNNING':480,'NOTIFIED':488,'COMPLETION_MODE':496,'VALUE_CLASS':504,'NODE':512,'HEADER':640,'BOX':768,'PIN':1024,'SAVED':1152,'RQ':4096,'FP':6144,'VP':8192,'OUT':16384}
+'RUNNING':480,'NOTIFIED':488,'COMPLETION_MODE':496,'VALUE_CLASS':504,'NODE':512,'HEADER':640,'BOX':768,'PIN':1024,'SAVED':1152,'DROP_CONSUMED':1216,'RETIRING_PENDING':1224,'RETIRING_KNOWN':1232,'VD_CONSUMED':1240,'VD_PENDING':1248,'VD_STATUS':1256,'RETIRE_MODE':1264,'BOX_PENDING':1272,'TOKEN_PENDING':1280,'VALUE_FENCED':1288,'RQ':4096,'FP':6144,'VP':8192,'OUT':16384}
 SOURCE=r'''
 
 def background_future_cell(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -62,6 +62,9 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     elif readword(s,0)==MAGIC3:
         if op<15 or op>19:
             return 4294967293
+    elif readword(s,0)==MAGIC4:
+        if op!=20 and op!=21:
+            return 4294967293
     else:
         return 4294967293
     at=16
@@ -73,6 +76,8 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             if at>=24 and at<=40:
                 used=True
         if op>=15 and op<=19 and at>=24 and at<=40:
+            used=True
+        if op==20 and at>=24 and at<=40:
             used=True
         if (op==15 or op==16) and ((at>=48 and at<=64) or at==80):
             used=True
@@ -147,6 +152,10 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if op==13:
             put(o,CURSOR,get(w,40))
             return again(o,180)
+        if op==21:
+            put(o,RETIRING_PENDING,choose(get(w,40)!=0,1,0))
+            put(o,RETIRING_KNOWN,1)
+            return fail(o,0)
         if op==1:
             return allocate(o,200,1024)
         if op==14:
@@ -178,7 +187,7 @@ def lookup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         op=get(o,OP)
         if op==2:
             return again(o,300)
-        if op==3:
+        if op==3 or op==20:
             return again(o,400)
         if op==6:
             put(o,BORROWED,get(o,OBJ)+512)
@@ -329,6 +338,13 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==404:
         return deallocate(o,405,get(o,CAP))
     if phase==405:
+        # The nonce has been unlinked from both registries and deallocated.
+        # Later retirement failures do not restore this reference.
+        if get(o,OP)==20:
+            put(o,DROP_CONSUMED,1)
+            return write_pointer(o,407,get(o,OBJ)+160,1)
+        return memory(o,406,0,get(o,OBJ),3,HEADER,128)
+    if phase==407:
         return memory(o,406,0,get(o,OBJ),3,HEADER,128)
     if phase==406:
         if get(o,HEADER+32)==0 and get(o,HEADER+56)==0:
@@ -447,6 +463,8 @@ def execute(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     return fail(o,9)
 
 def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase>=624 and phase<650:
+        return retire_values(o,w,phase)
     if phase==600:
         return write_pointer(o,601,get(o,OBJ)+40,0)
     if phase==601:
@@ -461,8 +479,17 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==604:
         return unlock(o,610)
     if phase==610:
-        return memory(o,617,0,get(o,OBJ),3,HEADER,160)
+        return memory(o,617,0,get(o,OBJ),3,HEADER,192)
     if phase==617:
+        # The Box scratch overlaps the tail of this extended capture. Keep
+        # the four persistent retirement facts before reading the Box.
+        put(o,RETIRE_MODE,get(o,HEADER+160))
+        put(o,BOX_PENDING,get(o,HEADER+168))
+        put(o,TOKEN_PENDING,get(o,HEADER+176))
+        put(o,VALUE_FENCED,get(o,HEADER+184))
+        if get(o,VALUE_FENCED)!=0:
+            put(o,FINAL_FAILED,1)
+            return lock(o,680)
         if get(o,HEADER+104)==0:
             return again(o,620)
         return memory(o,611,0,get(o,OBJ)+512+32,3,BOXPTR,8)
@@ -477,6 +504,9 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return lock(o,680)
         return write_pointer(o,618,get(o,OBJ)+112,1)
     if phase==618:
+        if get(o,RETIRE_MODE)==1 and get(o,BOX_PENDING)!=0:
+            value_packet(o,31)
+            return value(o,w,624)
         if get(o,BOXPTR)!=0:
             return memory(o,613,0,get(o,BOXPTR),3,BOX,128)
         return again(o,620)
@@ -484,10 +514,17 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(o,BOX)!=BOXMAGIC or get(o,BOX+8)!=get(o,PID):
             put(o,FINAL_FAILED,1)
             return lock(o,680)
-        value_packet(o,6)
+        if get(o,RETIRE_MODE)==1:
+            if get(o,BOX+24)==0:
+                return write_pointer(o,615,get(o,OBJ)+512+32,0)
+            value_packet(o,29)
+        else:
+            value_packet(o,6)
         within(o,RQ+24,BOX+24,24)
         return value(o,w,614)
     if phase==614:
+        if get(o,RETIRE_MODE)==1:
+            return retire_values(o,w,phase)
         if value_ok(o)==False:
             put(o,FINAL_FAILED,1)
             return lock(o,680)
@@ -498,14 +535,19 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,BOXPTR,0)
         return again(o,620)
     if phase==620:
+        if get(o,RETIRE_MODE)==1 and get(o,TOKEN_PENDING)!=0:
+            value_packet(o,31)
+            return value(o,w,631)
         return memory(o,621,0,get(o,OBJ)+64,3,BOX,24)
     if phase==621:
         if get(o,BOX)==0:
             return lock(o,650)
-        value_packet(o,22)
+        value_packet(o,choose(get(o,RETIRE_MODE)==1,30,22))
         within(o,RQ+24,BOX,24)
         return value(o,w,622)
     if phase==622:
+        if get(o,RETIRE_MODE)==1:
+            return retire_values(o,w,phase)
         if value_ok(o)==False:
             put(o,FINAL_FAILED,1)
             return lock(o,680)
@@ -545,6 +587,87 @@ def retire(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==681:
         return fail(o,9)
     return fail(o,9)
+
+def retire_values(o:mutbuf,w:mutbuf,phase:u64) -> u32:
+    if phase==614 or phase==622:
+        op=choose(phase==614,29,30)
+        if value_drop_record(o,op)==False:
+            return fence_value(o)
+        if get(o,VD_CONSUMED)==0:
+            if get(o,VD_PENDING)!=0:
+                return fence_value(o)
+            put(o,FINAL_FAILED,1)
+            return lock(o,680)
+        zero(o,BOX+24,24)
+        if phase==614:
+            return memory(o,627,3,BOX+24,0,get(o,BOXPTR)+24,24)
+        return memory(o,630,3,BOX+24,0,get(o,OBJ)+64,24)
+    if phase==627 or phase==630:
+        if get(o,VD_PENDING)!=0:
+            if phase==627:
+                return write_pointer(o,628,get(o,OBJ)+168,1)
+            return write_pointer(o,632,get(o,OBJ)+176,1)
+        if get(o,VD_STATUS)!=0:
+            # Consumption is known but no retryable mapping was captured.
+            return fence_value(o)
+        if phase==627:
+            return write_pointer(o,615,get(o,OBJ)+512+32,0)
+        return lock(o,650)
+    if phase==624 or phase==631:
+        if value_drop_record(o,31)==False:
+            return fence_value(o)
+        if get(o,VD_STATUS)!=0:
+            # A lock-before-error reply does not replace the actual pending
+            # mapping already captured by this object. Only success clears it.
+            put(o,FINAL_FAILED,1)
+            return lock(o,680)
+        if phase==624:
+            return write_pointer(o,629,get(o,OBJ)+168,0)
+        return write_pointer(o,633,get(o,OBJ)+176,0)
+    if phase==629:
+        return write_pointer(o,615,get(o,OBJ)+512+32,0)
+    if phase==633:
+        return lock(o,650)
+    if phase==626 or phase==628 or phase==632:
+        put(o,FINAL_FAILED,1)
+        return lock(o,680)
+    return fail(o,9)
+
+def fence_value(o:mutbuf) -> u32:
+    put(o,FINAL_FAILED,1)
+    return write_pointer(o,626,get(o,OBJ)+184,1)
+
+def value_drop_record(o:mutbuf,op:u64) -> bool:
+    if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY2:
+        return False
+    status=get(o,VP+8)
+    pending=get(o,VP+80)
+    known=get(o,VP+88)
+    consumed=get(o,VP+96)
+    if pending>1 or known!=1 or consumed>1:
+        return False
+    if status!=0 and status!=1 and status!=6 and status!=11:
+        return False
+    if op==31 and status==1:
+        return False
+    if status==1 and pending!=0:
+        return False
+    if consumed==1 and status!=0 and status!=11:
+        return False
+    at=16
+    while at<128:
+        if at!=80 and at!=88 and at!=96 and get(o,VP+at)!=0:
+            return False
+        at=at+8
+    if op==31:
+        if consumed!=0 or (status==0 and pending!=0):
+            return False
+    elif status==0 and (consumed!=1 or pending!=0):
+        return False
+    put(o,VD_CONSUMED,consumed)
+    put(o,VD_PENDING,pending)
+    put(o,VD_STATUS,status)
+    return True
 
 def pins(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==700:
@@ -640,7 +763,7 @@ def future_packet(o:mutbuf,op:u64) -> u64:
     return 0
 def value_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,128)
-    put(o,RQ,VREQUEST)
+    put(o,RQ,choose(op>=29,VREQUEST2,VREQUEST))
     put(o,RQ+8,op)
     return 0
 def future(o:mutbuf,w:mutbuf,next:u64) -> u32:
@@ -715,6 +838,7 @@ def fail(o:mutbuf,status:u64) -> u32:
     put(o,ERROR,status)
     return again(o,900)
 def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
+    op=get(o,OP)
     result=get(o,RESULT)
     t0=get(o,TAG0)
     t1=get(o,TAG1)
@@ -736,7 +860,13 @@ def finish(o:mutbuf,w:mutbuf,status:u64) -> u32:
     put(o,104,get(o,KERNEL_SEEN))
     put(o,112,get(o,KERNEL_CAUGHT))
     put(o,120,get(o,FINAL_FAILED))
-    if get(o,OP)>=15:
+    if op==20 or op==21:
+        put(o,0,REPLY2)
+        put(o,128,get(o,DROP_CONSUMED))
+        put(o,136,get(o,RETIRING_PENDING))
+        put(o,144,get(o,RETIRING_KNOWN))
+        put(o,152,0)
+    elif op>=15:
         put(o,128,get(o,RUNNING))
         put(o,136,get(o,NOTIFIED))
         put(o,144,get(o,COMPLETION_MODE))
