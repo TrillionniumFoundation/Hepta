@@ -260,7 +260,7 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,CURSOR,get(w,16))
             return again(o,25)
         if op==1:
-            return allocate(o,120,512)
+            return allocate(o,120,2176)
         put(o,CURSOR,get(w,16))
         return again(o,100)
     if phase==21:
@@ -474,6 +474,9 @@ def construct(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         zero(o,RQ,512)
         put(o,RQ,OBJECT)
         put(o,RQ+8,get(o,PID))
+        # One real inline cleanup record shares this owned mapping. Reserving
+        # it does not insert a new allocation before Future completion.
+        put(o,RQ+240,2176)
         return memory(o,121,3,RQ,0,get(o,F),512)
     if phase==121:
         value_packet(o,21)
