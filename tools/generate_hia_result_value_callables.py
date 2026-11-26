@@ -8,7 +8,7 @@ SOURCE=r'''
 def result_value_callables(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,G_PHASE)
     op=readword(s,8)
-    if phase>=100 or (phase==0 and ((op>=68 and op<=70) or op==85 or op==89 or op==90 or (op>=94 and op<=96))):
+    if phase>=100 or (phase==0 and ((op>=68 and op<=70) or op==97 or op==85 or op==89 or op==90 or (op>=94 and op<=96))):
         return invocation_graph(s,o,w)
     if phase==0:
         return callable_graph_prepare(s,o,w)

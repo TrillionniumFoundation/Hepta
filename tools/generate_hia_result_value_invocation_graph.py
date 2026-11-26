@@ -2,7 +2,7 @@
 
 SOURCE=r'''
 def invocation_graph(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
-    op=readword(s,8)
+    op=choose(readword(s,8)==97,70,readword(s,8))
     phase=get(o,G_PHASE)
     if phase==0:
         zero(o,256,448)
@@ -391,6 +391,7 @@ def invocation_scoped(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             cls=get(w,get(w,value+24)+40)
             if cls==0 or class_is_subclass(w,cls,get(w,320))==False:
                 return done(o,2)
+            put(o,G_INDEX,choose(class_is_subclass(w,cls,get(w,328)),1,2))
         put(o,G_A,value)
         put(o,G_PHASE,1)
         return 10

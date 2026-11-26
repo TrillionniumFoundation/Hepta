@@ -53,6 +53,9 @@ CATALOG = [
     ('StopIteration', (22,), (22, 21, 1), 21, 0),
     ('MultiversionRejected', (24,), (24, 22, 21, 1), 21, 0),
     ('HIAProgramRejected', (24,), (24, 22, 21, 1), 21, 0),
+    ('UnicodeError', (24,), (24, 22, 21, 1), 21, 0),
+    ('UnicodeEncodeError', (43,), (43, 24, 22, 21, 1), 21, 0),
+    ('HIAProgramLLVMRejected', (24,), (24, 22, 21, 1), 21, 0),
 ]
 
 SOURCE = r'''
@@ -61,7 +64,7 @@ def result_value_classes(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if phase==0:
         return class_prepare(s,o,w)
     if phase==1:
-        if get(o,G_OP)==87:
+        if get(o,G_OP)==87 or get(o,G_OP)==98:
             if class_catalog_extended(w)==False:
                 return growth(o,w)
         elif class_catalog(w)==False:
@@ -117,7 +120,7 @@ def class_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if get(w,112)>=4096:
         collect(w)
     put(w,112,get(w,112)+1)
-    if op!=32 and op!=87:
+    if op!=32 and op!=87 and op!=98:
         a=cap_lookup(w,readword(s,24),readword(s,32),readword(s,40))
         if a==0:
             return done(o,1)
@@ -231,7 +234,7 @@ def class_catalog(w:mutbuf) -> bool:
         put(w,152,id)
     return True
 def class_catalog_extended(w:mutbuf) -> bool:
-    while get(w,152)<42:
+    while get(w,152)<45:
         id=get(w,152)+1
         obj=class_builtin(w,id)
         if obj==0:
@@ -409,7 +412,7 @@ def class_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     op=get(o,G_OP)
     a=get(o,G_A)
     result=0
-    if op==32 or op==87:
+    if op==32 or op==87 or op==98:
         result=get(w,160+(readword(s,104)-1)*8)
     elif op==75:
         return class_exception(o,w)

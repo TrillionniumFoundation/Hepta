@@ -89,13 +89,18 @@ def result_value_invocations(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if get(w,16384+24)==0:
             return invoke_fail(o,w,11)
         invoke_primary(w,16384,get(w,64))
+        put(w,504,get(w,16384+56))
+        if (get(w,64)==1 and get(w,504)!=0) or (get(w,64)==2 and get(w,504)!=1 and get(w,504)!=2):
+            put(w,56,11)
         put(w,8,600)
         return 10
     return invoke_fail(o,w,11)
 
 def invoke_init(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     put(w,0,3544406888999373128)
-    put(w,16,readword(s,8))
+    put(w,16,choose(readword(s,8)==97,70,readword(s,8)))
+    put(w,496,choose(readword(s,8)==97,1,0))
+    put(w,504,0)
     put(w,24,length(w))
     put(w,32,get(o,7040))
     put(w,72,0)
@@ -260,12 +265,12 @@ def invoke_body_reply(o:mutbuf,w:mutbuf) -> u64:
     return invoke_helper(o,w,get(w,272),get(w,280),3,0,length(o))
 
 def invoke_allowed(op:u64) -> bool:
-    return (op>=1 and op<=19) or (op>=23 and op<=29) or (op>=32 and op<=44) or op==46 or op==50 or op==57 or op==62 or op==63 or (op>=67 and op<=70) or op==75 or op==87
+    return (op>=1 and op<=19) or (op>=23 and op<=29) or (op>=32 and op<=44) or op==46 or op==50 or op==57 or op==62 or op==63 or (op>=67 and op<=70) or op==75 or op==87 or op==98
 
 def invoke_request_scan(s:readbuf,w:mutbuf) -> u64:
     put(w,360,0)
     put(w,352,0)
-    if length(s)<128 or readword(s,0)==MAGIC6 or invoke_allowed(readword(s,8))==False:
+    if length(s)<128 or readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or invoke_allowed(readword(s,8))==False:
         put(w,360,1)
         put(w,8,22)
         return 0
@@ -377,6 +382,8 @@ def invoke_result(o:mutbuf,w:mutbuf,pending:u64) -> u64:
         copy_output(w,o,24,80,24)
         put(o,48,get(w,264))
         put(o,64,get(w,64))
+        if get(w,496)!=0:
+            put(o,56,get(w,504))
         put(o,96,1)
     put(o,80,pending)
     put(o,88,1)
