@@ -44,7 +44,7 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if resources_request_valid(s)==False:
             return 4294967293
         zero(o,0,8192)
-        if op==48 or ((op>=68 and op<=70) or op==97) or (op>=77 and op<=79) or op==89 or op==90 or (op>=91 and op<=96) or (op>=101 and op<=107):
+        if op==48 or ((op>=68 and op<=70) or op==97) or (op>=77 and op<=79) or op==89 or op==90 or (op>=91 and op<=96) or (op>=101 and op<=109):
             put(o,P_DROP_KNOWN,1)
         return owner_start(s,o)
     if request_magic(s)==MAGIC4:
@@ -186,7 +186,7 @@ def lifecycle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
         codebound=get(w,192)!=0 and get(w,200)!=0 and get(w,208)==256 and get(w,216)!=0
         put(o,7200,choose(codebound,1,0))
         if request_magic(s)==MAGIC5:
-            if op!=50 and op!=51 and op!=57 and op!=62 and op!=63 and op!=67 and op!=75 and op!=87 and op!=99 and op!=100 and (op<101 or op>107) and bound==False:
+            if op!=50 and op!=51 and op!=57 and op!=62 and op!=63 and op!=67 and op!=75 and op!=87 and op!=99 and op!=100 and (op<101 or op>109) and bound==False:
                 return owner_fail(o,6)
             if op==53:
                 put(w,160,0)
@@ -342,7 +342,7 @@ def records_request_valid(s:readbuf) -> bool:
 
 def graph_id(s:readbuf) -> u64:
     if request_magic(s)==MAGIC5:
-        if readword(s,8)>=101 and readword(s,8)<=107:
+        if readword(s,8)>=101 and readword(s,8)<=109:
             return 16
         if readword(s,8)==75 or readword(s,8)==87 or readword(s,8)==98 or readword(s,8)==99:
             return 9
@@ -440,7 +440,7 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
             put(o,40,get(o,G_TAG1))
             put(o,104,get(o,G_ID0))
             put(o,112,get(o,G_ID1))
-        if readword(s,8)>=101 and readword(s,8)<=107:
+        if readword(s,8)>=101 and readword(s,8)<=109:
             put(o,48,choose(consumed==1,get(o,G_N),0))
             put(o,64,choose(consumed==1,get(o,G_INDEX),0))
             put(o,104,status)
@@ -503,7 +503,7 @@ def system(o:mutbuf,next:u64,number:u64,selectors:u64,a:u64,b:u64,c:u64,d:u64,e:
     return 1
 def resources_request_valid(s:readbuf) -> bool:
     op=readword(s,8)
-    if (op<48 or op>57) and op!=60 and op!=61 and op!=62 and op!=63 and op!=64 and op!=65 and op!=66 and op!=67 and (op<68 or op>70) and op!=75 and op!=85 and op!=87 and op!=89 and op!=90 and (op<77 or op>80) and (op<91 or op>96) and op!=97 and op!=98 and op!=99 and op!=100 and (op<101 or op>107):
+    if (op<48 or op>57) and op!=60 and op!=61 and op!=62 and op!=63 and op!=64 and op!=65 and op!=66 and op!=67 and (op<68 or op>70) and op!=75 and op!=85 and op!=87 and op!=89 and op!=90 and (op<77 or op>80) and (op<91 or op>96) and op!=97 and op!=98 and op!=99 and op!=100 and (op<101 or op>109):
         return False
     tail=choose(op==48,24,0)
     if op==68:
@@ -556,6 +556,9 @@ def resources_request_valid(s:readbuf) -> bool:
     elif op==106 or op==107:
         if a>2 or b!=0:
             return False
+    elif op==109:
+        if a>4 or b!=0:
+            return False
     elif op==85:
         if (a!=1 and a!=2) or b!=0:
             return False
@@ -564,8 +567,8 @@ def resources_request_valid(s:readbuf) -> bool:
             return False
     elif a!=0 or b!=0:
         return False
-    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61 or op==62 or op==63 or op==64 or op==65 or op==66 or op==67 or ((op>=68 and op<=70) or op==97) or op==75 or op==85 or op==89 or op==90 or op==95 or op==96 or (op>=77 and op<=80) or op==91 or op==92 or op==100 or (op>=102 and op<=107)
-    hasb=op==48 or op==50 or op==61 or op==62 or op==64 or op==66 or op==67 or ((op>=68 and op<=70) or op==97) or op==75 or op==85 or op==89 or op==90 or op==77 or op==79 or op==100 or (op>=102 and op<=104) or op==106
+    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61 or op==62 or op==63 or op==64 or op==65 or op==66 or op==67 or ((op>=68 and op<=70) or op==97) or op==75 or op==85 or op==89 or op==90 or op==95 or op==96 or (op>=77 and op<=80) or op==91 or op==92 or op==100 or (op>=102 and op<=109)
+    hasb=op==48 or op==50 or op==61 or op==62 or op==64 or op==66 or op==67 or ((op>=68 and op<=70) or op==97) or op==75 or op==85 or op==89 or op==90 or op==77 or op==79 or op==100 or (op>=102 and op<=104) or op==106 or op==108
     hasc=op==48 or op==50 or op==67 or op==70 or op==75 or op==97
     if (hasa==False and (readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0)) or (hasb==False and (readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0)) or (hasc==False and (readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0)):
         return False
@@ -575,7 +578,7 @@ def resource_bound(w:mutbuf) -> bool:
     return get(w,128)!=0 and get(w,136)!=0 and get(w,144)==256 and get(w,152)!=0
 
 def resource_capture(s:readbuf) -> bool:
-    return request_magic(s)==MAGIC5 and (readword(s,8)==48 or ((readword(s,8)>=68 and readword(s,8)<=70) or readword(s,8)==97) or readword(s,8)==91 or (readword(s,8)>=101 and readword(s,8)<=107))
+    return request_magic(s)==MAGIC5 and (readword(s,8)==48 or ((readword(s,8)>=68 and readword(s,8)<=70) or readword(s,8)==97) or readword(s,8)==91 or (readword(s,8)>=101 and readword(s,8)<=109))
 
 def resource_retry(s:readbuf) -> bool:
     return request_magic(s)==MAGIC5 and (readword(s,8)==56 or readword(s,8)==93)

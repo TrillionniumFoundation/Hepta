@@ -80,7 +80,11 @@ def platform_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if get(w,b+8)!=11:
             return done(o,2)
         put(o,G_B,b)
-    if op>=105 and op<=107:
+    if op==108:
+        status=platform_unicode_prepare(s,o,w)
+        if status!=0:
+            return done(o,status)
+    if (op>=105 and op<=107) or op==109:
         obj=get(o,G_A)
         if get(w,obj+8)!=8:
             return done(o,2)
@@ -89,6 +93,12 @@ def platform_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             return done(o,2)
         if op==105 and readword(s,104)!=5 and class_is_subclass(w,get(w,data+40),get(w,class_slot(25)))==False:
             return done(o,2)
+        if op==109:
+            if get(w,data+56)!=8 or get(w,data+64)!=2:
+                return done(o,2)
+            slots=get(w,data+136)
+            if get(w,slots+16)!=13:
+                return done(o,2)
         if op==106:
             b=cap_lookup(w,readword(s,48),readword(s,56),readword(s,64))
             if b==0:
@@ -373,14 +383,83 @@ def platform_os_new(o:mutbuf,w:mutbuf) -> u64:
             object_release(w,newargs)
         return 0
     return obj
+def platform_unicode_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
+    args=get(o,G_A)
+    if get(w,args+8)!=11:
+        return 2
+    if get(w,args+16)!=5:
+        return 7
+    cls=0
+    encode=False
+    if readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0:
+        cls=cap_lookup(w,readword(s,48),readword(s,56),readword(s,64))
+        if cls==0:
+            return 1
+        if get(w,cls+8)!=10:
+            return 2
+        encode=class_is_subclass(w,cls,get(w,class_slot(44)))
+        if encode==False and class_is_subclass(w,cls,get(w,class_slot(70)))==False:
+            return 2
+    put(o,G_C,cls)
+    values=get(w,args+24)
+    i=0
+    while i<5:
+        field=get(w,values+i*8)
+        kind=get(w,native_base(w,field)+8)
+        if i==2 or i==3:
+            if kind!=1 and kind!=2:
+                if platform_has_index(w,field):
+                    return 27
+                return 2
+            platform_integer(o,w,field)
+            if get(o,1688)==0:
+                return 4
+        elif kind!=choose(i==1 and encode==False,7,4):
+            return 2
+        i=i+1
+    return 0
+def platform_unicode_new(o:mutbuf,w:mutbuf) -> u64:
+    args=get(o,G_A)
+    values=get(w,args+24)
+    start=platform_int_copy(w,get(w,values+16))
+    if start==0:
+        return 0
+    end=platform_int_copy(w,get(w,values+24))
+    if end==0:
+        object_release(w,start)
+        return 0
+    i=0
+    while i<13:
+        item=choose(i==7,get(w,136),get(w,128))
+        if i>=8:
+            item=get(w,values+(i-8)*8)
+        put(o,1600+i*8,item)
+        i=i+1
+    put(o,1680,start)
+    put(o,1688,end)
+    slots=platform_sequence(o,w,11,28,0,1600,13,True)
+    if slots==0:
+        object_release(w,start)
+        object_release(w,end)
+        return 0
+    cls=get(o,G_C)
+    if cls==0:
+        cls=get(w,class_slot(70))
+    obj=platform_exception(w,cls,args,slots,2)
+    if obj==0:
+        object_release(w,slots)
+    return obj
 def platform_chain_set(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     obj=get(o,G_A)
     olddata=get(w,obj+24)
     oldslots=0
     if get(w,olddata+56)==8:
         oldslots=get(w,olddata+136)
+    n=8
+    if oldslots!=0 and get(w,oldslots+16)==13:
+        n=13
     i=0
-    while i<8:
+    while i<n:
         item=choose(i==7,get(w,136),get(w,128))
         if oldslots!=0 and i<get(w,oldslots+16):
             item=get(w,get(w,oldslots+24)+i*8)
@@ -390,7 +469,7 @@ def platform_chain_set(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     put(o,1640+selector*8,get(o,G_B))
     if selector==0:
         put(o,1656,get(w,144))
-    slots=platform_sequence(o,w,11,28,0,1600,8,True)
+    slots=platform_sequence(o,w,11,28,0,1600,n,True)
     if slots==0:
         return platform_growth(o,w)
     data=olddata
@@ -432,6 +511,13 @@ def platform_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
             slots=get(w,data+136)
             if get(w,slots+16)>5+selector:
                 result=get(w,get(w,slots+24)+(5+selector)*8)
+    elif op==108:
+        result=platform_unicode_new(o,w)
+        fresh=True
+    elif op==109:
+        data=get(w,get(o,G_A)+24)
+        slots=get(w,data+136)
+        result=get(w,get(w,slots+24)+(8+readword(s,104))*8)
     elif op==101:
         result=get(w,class_slot(readword(s,104)))
     elif op==102 or op==103:
