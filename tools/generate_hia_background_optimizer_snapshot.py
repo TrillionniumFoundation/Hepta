@@ -640,7 +640,7 @@ LABELS={0:'schema',1:'closed',2:'max_pending',3:'outstanding',4:'queued',5:'acti
 10:'settled_jobs',11:'observed_submit_and_worker_ns',12:'execution_outcomes_at_accounting',13:'recent_limit',14:'recent_jobs',15:'scope',16:'supplied_prior_search_summed_again',
 20:'hepta.hia.background-optimization.v1',21:'submission plus worker elapsed before settlement; queue wait separate; outer lifecycle excluded',
 30:'published',31:'abstained',32:'stale',33:'rejected',34:'cancelled',35:'interrupted',40:'job'}
-def source_program():
+def source_program(symbolic=False):
     names={'mapping','request','invoke','memory','system','again','to_work','from_work','within','zero','get','put','choose'}
     helpers='\n'.join(ast.unparse(f)for f in ast.parse(BASE).body if isinstance(f,ast.FunctionDef)and f.name in names)
     s=SOURCE+'\n'+R.selected('release_begin','release_value','release_job','release_job_retry','release_value_retry')+'\n'+helpers+'\ndef literal(o:mutbuf,at:u64,id:u64) -> u64:\n'
@@ -649,7 +649,8 @@ def source_program():
         for i in range(0,len(raw),8):s+=f'        put(o,at+{i},{int.from_bytes(raw[i:i+8].ljust(8,bytes(1)),"little")})\n'
         s+=f'        return {len(raw)}\n'
     s+='    return 0\n'
-    for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
+    if not symbolic:
+     for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
     return s
 def program():return document(source_program(),'background_optimizer_snapshot')
 def main():

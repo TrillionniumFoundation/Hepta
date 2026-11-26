@@ -42,6 +42,8 @@ def future_log(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if (readword(s,0)==MAGIC or readword(s,0)==MAGIC4) and length(o)<OUT:
         return 4294967293
     phase=get(o,PHASE)
+    if readword(s,0)==MAGIC7:
+        return native_log(s,o,w,phase)
     if phase==0:
         magic=readword(s,0)
         deferred=False
@@ -649,6 +651,10 @@ def caught_running(o:mutbuf) -> u64:
     store(o,1024+67,10)
     return 68
 '''
+
+from tools import hia_future_native_exception_log_source as native_log_source
+C.update(native_log_source.C)
+SOURCE+=native_log_source.SOURCE
 
 def source_program():
  s=SOURCE

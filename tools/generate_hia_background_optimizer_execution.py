@@ -1363,7 +1363,7 @@ def digits(o:mutbuf,at:u64,value:u64) -> u64:
 '''
 SOURCE+='\n'+R.selected('release_begin','release_value','release_job','release_job_retry','release_value_retry')
 LABELS={1:'costs',2:'enqueued_ns',3:'queue_wait_ns',4:'candidates',5:'observations',6:'function',7:'bridge',8:'objective',9:'epoch',10:'generation',11:'timeout_ms',12:'bridge_timeout_s',13:'rank_call_wall_ns',14:'ranking',15:'reason',16:'status',17:'net_margin_ns',18:'resource_cap_ns',19:'selected_id',20:'prepare_ns',21:'publication',22:'submit_work_ns',23:'coordinator_before_publish_ns',24:'publication_budget_ns',25:'publication_call_wall_ns',26:'publication_prepare_ns',27:'net_margin_before_postcommit_reporting_ns',28:'search_and_preparation_ns',29:'publication_handoff_ns',30:'postcommit_runtime_return_ns',31:'abstained',32:'ranker_abstained',33:'coordinator_work_exhausted_net_or_resource_budget',34:'published',35:'fresh_proof_native_prepare_and_conditional_swap_passed',36:'actual_adapter_ns',37:'total_search_ns'}
-def source_program(entry='execute'):
+def source_program(entry='execute',symbolic=False):
  s=SOURCE
  for name in ('invoke','memory','system','again','to_work','from_work','copy_source','within','zero','get','put','choose'):
   node=next(x for x in ast.parse(BASE).body if isinstance(x,ast.FunctionDef)and x.name==name)
@@ -1376,7 +1376,8 @@ def source_program(entry='execute'):
   for at in range(0,len(raw)-len(raw)%8,8):s+='    put(o,at+'+str(at)+','+str(int.from_bytes(raw[at:at+8],'little'))+')\n'
   for at in range(len(raw)-len(raw)%8,len(raw)):s+='    store(o,at+'+str(at)+','+str(raw[at])+')\n'
   s+='    return '+str(len(raw))+'\n'
- for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
+ if not symbolic:
+  for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
  tree=ast.parse(s);functions={x.name:x for x in tree.body if isinstance(x,ast.FunctionDef)};chosen=set();todo=[entry]
  while todo:
   name=todo.pop()

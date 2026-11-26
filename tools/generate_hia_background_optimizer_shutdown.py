@@ -458,7 +458,7 @@ ERRORS=(
  b'{"class":"BackgroundOptimizationRejected","message":"E_HIA_BACKGROUND: shutdown flags must be exact booleans"}',
  b'{"class":"RuntimeError","message":"Failed joining thread"}',
 )
-def source_program():
+def source_program(symbolic=False):
     s=SOURCE
     for name in ('invoke','memory','system','again','to_work','from_work','copy_source','within','zero','get','put','choose'):
         node=next(x for x in ast.parse(BASE).body if isinstance(x,ast.FunctionDef) and x.name==name)
@@ -470,7 +470,8 @@ def source_program():
         for at in range(len(raw)-len(raw)%8,len(raw)):s+='        store(o,at+'+str(at)+','+str(raw[at])+')\n'
         s+='        return '+str(len(raw))+'\n'
     s+='    return 0\n'
-    for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
+    if not symbolic:
+     for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
     return s
 def main():
     tree=document(source_program(),'background_optimizer_shutdown')

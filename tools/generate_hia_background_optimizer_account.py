@@ -659,7 +659,7 @@ def clock_decimal(o:mutbuf,at:u64,seconds:u64,nanos:u64) -> u64:
     return n+9
 '''
 SOURCE+='\n'+R.SOURCE
-def source_program():
+def source_program(symbolic=False):
  s=SOURCE
  statuses=('published','abstained','stale','rejected','cancelled','interrupted')
  s+='\ndef status_number(o:mutbuf,at:u64,n:u64) -> u64:\n'
@@ -671,7 +671,8 @@ def source_program():
  for name in ('invoke','memory','system','again','to_work','from_work','copy_source','within','zero','get','put','choose'):
   node=next(x for x in tree.body if isinstance(x,ast.FunctionDef)and x.name==name)
   s+='\n'+ast.get_source_segment(BASE,node)+'\n'
- for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
+ if not symbolic:
+  for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
  return s
 def program():return document(source_program(),'background_optimizer_account')
 if __name__=='__main__':

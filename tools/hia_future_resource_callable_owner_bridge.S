@@ -233,11 +233,17 @@ hia_future_resource_callable_owner:
 .Lcomplete:
  mov rdi,[rsp+32]
  mov rsi,r13
- mov ecx,16
- cmp qword ptr [r13+1824],320
- jne .Lfixed_reply
- mov ecx,40
+ mov rcx,[r13+1824]
+ cmp rcx,128
+ je .Lfixed_reply
+ cmp rcx,160
+ je .Lfixed_reply
+ cmp rcx,320
+ jne .Lbad
 .Lfixed_reply:
+ cmp rcx,[rsp+40]
+ ja .Lshort
+ shr rcx,3
  cld
  rep movsq
  xor eax,eax

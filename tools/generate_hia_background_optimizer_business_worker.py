@@ -1170,7 +1170,7 @@ def again(o:mutbuf,next:u64) -> u32:
         put(o,MODULE,0)
     return 10
 '''
-def source_program(entry='business'):
+def source_program(entry='business',symbolic=False):
     own={n.name:ast.get_source_segment(SOURCE,n)for n in ast.parse(SOURCE).body if isinstance(n,ast.FunctionDef)}
     fallback={}
     for text in (E.SOURCE,E.BASE,E.R.SOURCE):
@@ -1206,7 +1206,8 @@ def source_program(entry='business'):
         own['literal_group_'+str(i)]=text+'    return 0\n'
     own['literal']+='    return 0\n'
     s='\n\n'.join(own.values())+'\n'
-    for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
+    if not symbolic:
+     for key,value in sorted(C.items(),key=lambda x:-len(x[0])):s=re.sub(r'\b'+key+r'\b',str(value),s)
     tree=ast.parse(s);functions={x.name:x for x in tree.body if isinstance(x,ast.FunctionDef)}
     chosen=set();todo=[entry]
     while todo:
