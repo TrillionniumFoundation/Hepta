@@ -1,5 +1,6 @@
 """Complete detached BG snapshot from the actual queue, worker and owned ledger."""
 from pathlib import Path
+from tools import hia_background_retirement_source as R
 import ast,re
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_multiversion_future import document
@@ -12,15 +13,17 @@ C=dict(MAX=(1<<64)-1,NEGATIVE=(1<<64)-4095,BAD=4294967293,
  CREATE_INDEX=448,INDEX=488,ROWINDEX=496,ROW_N=504,STREAMKIND=512,MAP=520,MAPN=528,
  GDICT=544,GKEYID=552,GVALUE=560,GAFTER=568,DROP_AT=576,DROP_AFTER=584,
  ENUM_INDEX=592,CLEAN=616,CLEAN_KIND=624,CLEAN_AT=632,
+ DROP_ACTIVE=640,DROP_KNOWN=648,VALUE_PENDING=656,JOB_PENDING=664,
  ROOT=768,COST=792,OUTCOMES=816,RECENT=840,FAILURE=864,ACTIVENUM=888,
  KEY=912,TEMP=936,EKEY=960,EVALUE=984,ACTIVE_JOB=1008,META=1032,FAILBORROW=1056,
  QHEAD=2048,SMALL=3500,FEEDBACK=3840,RQ=8192,RP=16384,ROWS=32768,
  LOUT=65536,WOUT=73728,QOUT=81920,SUBCAP=98304)
 C.update({k:int.from_bytes(v.encode(),'little')for k,v in dict(
  MAGIC='HIABSPQ1',REPLY='HIABSPR1',CONTEXT='HIABSPC1',VQ='HIABVQ01',VR='HIABVR01',
- QQ='HIABGQ02',QR='HIABGQR1',QCTX='HIABGQS1',LQ='HIABLG02',LR='HIABLGR1',
+ QQ='HIABGQ04',QR='HIABGQR2',QCTX='HIABGQS1',LQ='HIABLG02',LR='HIABLGR1',
  WQ='HIABGW01',WR='HIABGWO1',JQ='HIABJO01',JR='HIABJOR1',
  DQ='HIAMVU01',DR='HIAMVUR1',BQ='HIABPY01',BR='HIABPYR1',SUBCTX='HIABSSC1').items()})
+C.update(R.MAGICS)
 SOURCE=r"""
 def snapshot(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<262144 or length(w)<8192:
@@ -122,8 +125,18 @@ def capture(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if okay(o,QOUT,QR)==False:
             return fail(o,7,get(o,FEEDBACK))
         n=get(o,QOUT+56)
-        if n==1 and get(o,QOUT+64)==1:
+        owned=get(o,QOUT+64)
+        flags=get(o,QOUT+120)
+        if n>1 or owned!=choose(n==1,1,0) or flags>7:
+            put(o,QUAR,2)
+            return fail(o,9,4)
+        if n==1:
             within(o,ACTIVE_JOB,QOUT+512,24)
+        if (flags&4)!=0:
+            put(o,JOB_PENDING,1)
+        if (flags&2)!=0:
+            put(o,QUAR,2)
+            return fail(o,9,4)
         if get(o,QOUT+8)!=0:
             return fail(o,choose(get(o,QOUT+8)==5,5,7),get(o,QOUT+8))
         put(o,QCLOSED,get(o,QOUT+24))
@@ -434,6 +447,8 @@ def releasing(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 
 def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==700:
+        if get(o,DROP_ACTIVE)!=0 and get(o,DROP_KNOWN)!=1:
+            return quarantine(o,w,2,700)
         i=get(o,CLEAN)
         if i>=10:
             put(o,CLEAN,0)
@@ -446,13 +461,13 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             put(o,CLEAN,i+1)
             return again(o,700)
         put(o,CLEAN_AT,at)
-        request(o,VQ,6)
+        release_begin(o)
+        request(o,VALUE_DROP_INPUT,29)
         within(o,RQ+24,at,24)
         return value(o,w,701,128)
     if phase==701:
-        if value_ok(o)==False:
-            return quarantine(o,w,1,get(o,RP+8))
-        zero(o,get(o,CLEAN_AT),24)
+        if release_value(o,get(o,CLEAN_AT))==0:
+            return quarantine(o,w,choose(get(o,DROP_KNOWN)==1,1,2),get(o,RP+8))
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,700)
     if phase==720:
@@ -473,31 +488,52 @@ def cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         slot=choose(kind==1,128,152)
         return invoke(o,721,get(w,slot),51,RQ,128,RP,16384,get(w,slot+8),get(w,slot+16))
     if phase==721:
-        if okay(o,RP,choose(get(o,CLEAN_KIND)==1,DR,BR))==False or get(o,RP+8)!=0:
-            return quarantine(o,w,1,get(o,RP+8))
+        if okay(o,RP,choose(get(o,CLEAN_KIND)==1,DR,BR))==False:
+            return quarantine(o,w,2,get(o,FEEDBACK))
+        status=get(o,RP+8)
+        if status!=0:
+            return quarantine(o,w,choose(status==1 or status==5 or status==6,1,2),status)
         zero(o,get(o,CLEAN_AT),48)
         put(o,CLEAN,get(o,CLEAN)+1)
         return again(o,720)
     if phase==740:
         if get(o,ACTIVE_JOB)==0:
             return again(o,750)
-        request(o,JQ,3)
+        release_begin(o)
+        request(o,JOB_DROP_INPUT,11)
         within(o,RQ+24,ACTIVE_JOB,24)
         return invoke(o,741,get(w,104),51,RQ,128,RP,16384,get(w,112),get(w,120))
     if phase==741:
-        if okay(o,RP,JR)==False or get(o,RP+8)!=0:
-            return quarantine(o,w,1,get(o,RP+8))
-        zero(o,ACTIVE_JOB,24)
+        if release_job(o,ACTIVE_JOB)==0:
+            return quarantine(o,w,choose(get(o,DROP_KNOWN)==1,1,2),get(o,RP+8))
         return again(o,750)
     if phase==750:
         if get(o,MAP)==0:
-            return finish(o,get(o,ERROR))
+            return again(o,760)
         return system(o,751,11,0,get(o,MAP),get(o,MAPN),0,0,0,0)
     if phase==751:
         if get(o,FEEDBACK)!=0:
             return quarantine(o,w,1,get(o,FEEDBACK))
         zero(o,MAP,16)
+        return again(o,760)
+    if phase==760:
+        if get(o,JOB_PENDING)!=0:
+            release_begin(o)
+            request(o,JOB_DROP_INPUT,12)
+            return invoke(o,761,get(w,104),51,RQ,128,RP,16384,get(w,112),get(w,120))
+        if get(o,VALUE_PENDING)!=0:
+            release_begin(o)
+            request(o,VALUE_DROP_INPUT,31)
+            return value(o,w,762,128)
         return finish(o,get(o,ERROR))
+    if phase==761:
+        if release_job_retry(o)==0:
+            return quarantine(o,w,choose(get(o,DROP_KNOWN)==1,1,2),get(o,RP+8))
+        return again(o,760)
+    if phase==762:
+        if release_value_retry(o)==0:
+            return quarantine(o,w,choose(get(o,DROP_KNOWN)==1,1,2),get(o,RP+8))
+        return again(o,760)
     return quarantine(o,w,2,phase)
 
 def mutation(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
@@ -516,10 +552,9 @@ def mutation(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return value_failure(o)
         return drop(o,w,KEY,get(o,GAFTER))
     if phase==1100:
-        if value_ok(o)==False:
-            put(o,QUAR,1)
+        if release_value(o,get(o,DROP_AT))==0:
+            put(o,QUAR,choose(get(o,DROP_KNOWN)==1,1,2))
             return fail(o,7,get(o,RP+8))
-        zero(o,get(o,DROP_AT),24)
         return again(o,get(o,DROP_AFTER))
     return fail(o,7,phase)
 
@@ -532,7 +567,8 @@ def field(o:mutbuf,dict:u64,key:u64,val:u64,next:u64) -> u32:
 def drop(o:mutbuf,w:mutbuf,at:u64,next:u64) -> u32:
     put(o,DROP_AT,at)
     put(o,DROP_AFTER,next)
-    request(o,VQ,6)
+    release_begin(o)
+    request(o,VALUE_DROP_INPUT,29)
     within(o,RQ+24,at,24)
     return value(o,w,1100,128)
 def scalar(o:mutbuf,w:mutbuf,next:u64,kind:u64,number:u64,id:u64) -> u32:
@@ -553,6 +589,8 @@ def queue(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return invoke(o,next,get(w,32),51,RQ,128,QOUT,4096,get(w,40),get(w,48))
 def okay(o:mutbuf,at:u64,magic:u64) -> bool:
     return get(o,FEEDBACK)==0 and get(o,at)==magic
+def valid(o:mutbuf,at:u64,magic:u64) -> u64:
+    return choose(okay(o,at,magic),1,0)
 def value_ok(o:mutbuf) -> bool:
     return okay(o,RP,VR) and get(o,RP+8)==0
 def take_value(o:mutbuf,at:u64) -> bool:
@@ -605,7 +643,7 @@ LABELS={0:'schema',1:'closed',2:'max_pending',3:'outstanding',4:'queued',5:'acti
 def source_program():
     names={'mapping','request','invoke','memory','system','again','to_work','from_work','within','zero','get','put','choose'}
     helpers='\n'.join(ast.unparse(f)for f in ast.parse(BASE).body if isinstance(f,ast.FunctionDef)and f.name in names)
-    s=SOURCE+'\n'+helpers+'\ndef literal(o:mutbuf,at:u64,id:u64) -> u64:\n'
+    s=SOURCE+'\n'+R.selected('release_begin','release_value','release_job','release_job_retry','release_value_retry')+'\n'+helpers+'\ndef literal(o:mutbuf,at:u64,id:u64) -> u64:\n'
     for id,label in sorted(LABELS.items()):
         raw=label.encode();s+=f'    if id=={id}:\n'
         for i in range(0,len(raw),8):s+=f'        put(o,at+{i},{int.from_bytes(raw[i:i+8].ljust(8,bytes(1)),"little")})\n'

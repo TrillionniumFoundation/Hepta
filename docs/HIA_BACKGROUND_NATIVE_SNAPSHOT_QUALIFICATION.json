@@ -1,0 +1,560 @@
+{
+  "behavior": {
+    "build": {
+      "bytes": 19824,
+      "sha256": "16174cacf3bf1904e6972b982efc2c244b0763e0730f731f4045d922c0bc6ce4"
+    },
+    "cases": [
+      {
+        "active": null,
+        "case": "empty-original-fields",
+        "outstanding": 0,
+        "passed": true,
+        "queued": 0,
+        "recent": 0,
+        "settled": 0
+      },
+      {
+        "active": null,
+        "case": "queued-original-fields",
+        "outstanding": 2,
+        "passed": true,
+        "queued": 2,
+        "recent": 0,
+        "settled": 0
+      },
+      {
+        "active": 17,
+        "case": "active-job-is-real-retained-metadata",
+        "outstanding": 2,
+        "passed": true,
+        "queued": 1,
+        "recent": 0,
+        "settled": 0
+      },
+      {
+        "active": 17,
+        "case": "eighty-settlements-exact-bigint-and-last-sixty-four",
+        "outstanding": 2,
+        "passed": true,
+        "queued": 1,
+        "recent": 64,
+        "settled": 80
+      },
+      {
+        "active": 17,
+        "case": "worker-failure-detached-fields",
+        "outstanding": 2,
+        "passed": true,
+        "queued": 1,
+        "recent": 64,
+        "settled": 80
+      },
+      {
+        "active": 17,
+        "case": "returned-native-dictionaries-do-not-alias-owner-ledger",
+        "outstanding": 2,
+        "passed": true,
+        "queued": 1,
+        "recent": 64,
+        "settled": 80
+      },
+      {
+        "active": null,
+        "case": "closed-drained-snapshot-and-retained-history",
+        "outstanding": 0,
+        "passed": true,
+        "queued": 0,
+        "recent": 64,
+        "settled": 80
+      },
+      {
+        "case": "all-native-reference-registries-empty-after-last-close",
+        "passed": true
+      }
+    ],
+    "component_qualified": true,
+    "failed": 0,
+    "notes": [
+      "Native HIA compile and native HIA pack; only the component test loader resolves declared malloc/free/pthread platform imports.",
+      "Queue and ledger have actual native ownership; public BackgroundOptimizer construction and worker business remain separate integration gates."
+    ],
+    "original_source_sha256": "d5a3c81eb0d7907fe872565b6ca6605708f8a6f13fd5a8d55788a9a13a095f7b",
+    "passed": 8,
+    "schema": "hepta.hia.background-snapshot-native-retirement.v1",
+    "whole_background_qualified": false,
+    "whole_native_runtime_qualified": false
+  },
+  "compiler": {
+    "bytes": 813129,
+    "sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af"
+  },
+  "component_qualified": true,
+  "evidence": {
+    "build.json": {
+      "bytes": 19824,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/background-snapshot-native-v2/build.json",
+      "sha256": "16174cacf3bf1904e6972b982efc2c244b0763e0730f731f4045d922c0bc6ce4"
+    },
+    "results.json": {
+      "bytes": 2200,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/background-snapshot-native-v2/results.json",
+      "sha256": "75fd43b309d279496f9f96fdc37ecce684c8f2583c9a5db6723c3ba807d26ee1"
+    }
+  },
+  "future_build": {
+    "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/background-future-retirement-v3/build.json",
+    "products": {
+      "hia-future-notify.core.bin": {
+        "bytes": 80226,
+        "sha256": "4a06fc521a47285685a6632e0f17b876364ee5e934bb81f5eb3f4195dc263580"
+      },
+      "hia-future-public.core.bin": {
+        "bytes": 3481833,
+        "sha256": "94c527cadd669dae70e19ef90ed0ddc8e3c2066d18706bde68f3026a3b9158fe"
+      },
+      "hia-result-value.core.bin": {
+        "bytes": 1943959,
+        "sha256": "6aa48162de9636fd9a3a4552efce0cfa789e007db36aa261a1f3291134ea27b4"
+      }
+    },
+    "sha256": "a093b64ff57659c169af0ff85efa5e8d42b3a40bde802d3ee94e0c7b84ad09f2"
+  },
+  "modules": [
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 109044,
+      "flat_sha256": "fc9f7300250caf65350b533da119e6cd5e22604e91ce67eb78220bb522f4a23d",
+      "source_bytes": 79742,
+      "source_path": "examples/hia_bootstrap/multiversion_future.hepta",
+      "source_sha256": "218892f5f247ca6275e00f5e713af45604696c3a0d440b88573b31a9a7983145"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 35194,
+      "flat_sha256": "0cf412492a4503bb5f6a17735594bfd9bb03c52217cb724b951dfa0452ba2308",
+      "source_bytes": 32153,
+      "source_path": "examples/hia_bootstrap/multiversion_future_packer.hepta",
+      "source_sha256": "3a1d92480e729c5683268655f01760dccb23d07bc463953de8eb057493cf5dc9"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 104413,
+      "flat_sha256": "fba03514585a546e46887b3796767f91de947625bf1d1f46e787e8621787efc0",
+      "source_bytes": 76866,
+      "source_path": "examples/hia_bootstrap/multiversion_values.hepta",
+      "source_sha256": "7af216075ea250066c69a8e36525a7f971ccf736dd4d0fd4f4a8adc0975f6a91"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 34929,
+      "flat_sha256": "f07aca774bdf703fda1db510d99cd5dbe903058db97a17a356c3ee44c85913a8",
+      "source_bytes": 23744,
+      "source_path": "examples/hia_bootstrap/unsigned_decimal_values.hepta",
+      "source_sha256": "56fc5f659b5ef9f4f3dbe9229805eb04b520044f88255bc459e078fee0c2eee3"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 34656,
+      "flat_sha256": "6960cd4cf6887d2713a1c5328f232d07d741af75e8b82c03f70ec22df89c25df",
+      "source_bytes": 31503,
+      "source_path": "examples/hia_bootstrap/multiversion_values_packer.hepta",
+      "source_sha256": "02597086c64afa3d2f0eb4a461ae8f273580b779c94e062aad317335b980a4a3"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 84356,
+      "flat_sha256": "8e9c2b19c195ecf9ecfec3140e7392b57d11be7f120896d0776e88e716e3afa3",
+      "source_bytes": 61590,
+      "source_path": "examples/hia_bootstrap/multiversion_background_payload.hepta",
+      "source_sha256": "58b1ea0ec97e0d5e7e88118dfd6fb076218bc9df736a1afe889acb89d115591f"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 33834,
+      "flat_sha256": "eb3505f8e4a7996e6f4c739882164aeb0d4a39076e25740b52b8e36eb29105e6",
+      "source_bytes": 30714,
+      "source_path": "examples/hia_bootstrap/multiversion_background_payload_packer.hepta",
+      "source_sha256": "181d40131d81555b23a910da6b54b54a03cf9e9e0933dc91853c3feae4fad581"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 231698,
+      "flat_sha256": "5b72f88b2c18bea4e25625d77557446624461f95062101afd190c620b03dd66d",
+      "source_bytes": 174132,
+      "source_path": "examples/hia_bootstrap/multiversion_background_jobs.hepta",
+      "source_sha256": "eb3f7ba92d2788e65b8d8000814c200db3fe50bf1c343335e70ac8cc9d381de8"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 35038,
+      "flat_sha256": "8236e0c24e51c20227bbec71f229d968abebf35d68195b8a51a2a59db8f3ca29",
+      "source_bytes": 32003,
+      "source_path": "examples/hia_bootstrap/multiversion_background_jobs_packer.hepta",
+      "source_sha256": "fba5b81bb6f9cfb6c2bf5ceaddef5cda398b75e910e44447fecd3ace5d9cce79"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 29180,
+      "flat_sha256": "2858105f89503938391cd9121cbde35154223240fd5bab476277fc130b005881",
+      "source_bytes": 22814,
+      "source_path": "examples/hia_bootstrap/multiversion_background_job_refs.hepta",
+      "source_sha256": "64c6c913c424bce737acd2fe61d046e551466b83a3bd2377a817dbe535e31e82"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 32956,
+      "flat_sha256": "e8e3b9da8246eb93f80b893a31b2d1556d8f128184a6c40d4b7b1cf1331013a3",
+      "source_bytes": 29833,
+      "source_path": "examples/hia_bootstrap/multiversion_background_job_refs_packer.hepta",
+      "source_sha256": "32d55625f23c429cd31b0314b26be9f379584a8730ea829e623e7f934408d100"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 130960,
+      "flat_sha256": "7e3316b67bde5850f49f57e8aadd132ef2c548bb30fdaa4239a97eadc0191f85",
+      "source_bytes": 95785,
+      "source_path": "examples/hia_bootstrap/multiversion_background_queue.hepta",
+      "source_sha256": "31ecc7f872056630850c631fbffce4ab3cf1a3396cea80f7f79304905bb4fd51"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 31409,
+      "flat_sha256": "d6ce373ab45f189fb67d873c6b243a2ab900e22864f3a5db738ded3dd145d4c6",
+      "source_bytes": 28141,
+      "source_path": "examples/hia_bootstrap/multiversion_background_queue_packer.hepta",
+      "source_sha256": "8adbfb1297175b4a8a3454159c0db6382333348a3d65d2ab41947a78bc42d27e"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 120514,
+      "flat_sha256": "c549b900613c633d71ba897085d7bf3aa69766623dd203b9ad4acaeeda761393",
+      "source_bytes": 91676,
+      "source_path": "examples/hia_bootstrap/multiversion_background_ledger.hepta",
+      "source_sha256": "21ad40d7b4b549ad2932a5de71a07454e17b510f0c056c015d3ea413d1c9bbce"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 35211,
+      "flat_sha256": "6871505c5d233fb4608f359731222539cacb038819423105a3d1ff93177f96bc",
+      "source_bytes": 32191,
+      "source_path": "examples/hia_bootstrap/multiversion_background_ledger_packer.hepta",
+      "source_sha256": "5059b5fac83ced9ce26d3dea8a5e18902ce446262e30ee62a50d32863f1f3b02"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 78812,
+      "flat_sha256": "069b2d7656027e2cbf8515284a175c50720c535929047b3d0b75d06158473eef",
+      "source_bytes": 58217,
+      "source_path": "examples/hia_bootstrap/multiversion_background_worker.hepta",
+      "source_sha256": "7e8e8dd98d88cf523151dcf7a5bd0a99bb858dc5530e8fd334befe6c28118fca"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 36418,
+      "flat_sha256": "18b9249a8598febd49ebd8d02e8ba1b379b38275db714ce27f9cf969adf37ff8",
+      "source_bytes": 33516,
+      "source_path": "examples/hia_bootstrap/multiversion_background_worker_packer.hepta",
+      "source_sha256": "b9421717f456ae02c9fac6c1b5049729ea3da43abf6176a533404eaa85196c94"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 225588,
+      "flat_sha256": "b88ff48d0636e9c3f7166dcc5e5802e6303679d0e3bea8adc207f8689ca55166",
+      "source_bytes": 177731,
+      "source_path": "examples/hia_bootstrap/background_optimizer_snapshot.hepta",
+      "source_sha256": "c92769440fa073766895a76a9c6fe1016f26d245e47146c8a1ec735a06b52f58"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 33704,
+      "flat_sha256": "41e253fbbd56234544dfa6b55d5d596a6277b89205c8e5b7dbe9c387aad81ad0",
+      "source_bytes": 30668,
+      "source_path": "examples/hia_bootstrap/background_optimizer_snapshot_packer.hepta",
+      "source_sha256": "f6b6c8c0131c593795636bfef1b5c00a28188857b5040e076a99e4ef52a80518"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 403827,
+      "flat_sha256": "3e5094cf2ac302745cdc98f22d46ab6b57012c883a2169a3b503cc288f51da0e",
+      "source_bytes": 358514,
+      "source_path": "examples/hia_bootstrap/background_optimizer_business_worker.hepta",
+      "source_sha256": "f5a87601d2c8dbba83b2aae31a84bfde1b892e350fbaa40af86f99954b1d5cbe"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 312612,
+      "flat_sha256": "7337b2fc25962cd44f7059800760502663d78184a981d390f04550bdbc8f5800",
+      "source_bytes": 300895,
+      "source_path": "examples/hia_bootstrap/background_optimizer_business_worker_failure.hepta",
+      "source_sha256": "b5e6acc0db449b6e6a891a3f3a7edeae67d88cde28e1953efc261c91a61cf89d"
+    },
+    {
+      "double_compile_identical": true,
+      "flat_bytes": 38155,
+      "flat_sha256": "6ee9137c1cea1e88149756f96c0fb1ea2ecde80a211718edcf5b87805d889219",
+      "source_bytes": 35427,
+      "source_path": "examples/hia_bootstrap/background_optimizer_business_worker_packer.hepta",
+      "source_sha256": "6dcf9b2a2c20b94626e2b078a675af196a7f291baf9e6d33120d9856c9767ee7"
+    }
+  ],
+  "products": {
+    "background_optimizer_business_worker": {
+      "imports": [
+        [
+          497,
+          "malloc"
+        ],
+        [
+          508,
+          "free"
+        ]
+      ],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 717864,
+        "sha256": "ec1b7dae6be892233821a8f8196bd3478bf902ee508b9b05d7aeb6b5a1f402d3"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 732032,
+        "sha256": "e8ad0741a3ce6090ec7fe9ad77098effd76f026e080f938bc7a76f8bbf156e31"
+      },
+      "roles": [
+        "background_optimizer_business_worker",
+        "background_optimizer_business_worker_failure"
+      ]
+    },
+    "background_optimizer_snapshot": {
+      "imports": [],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 226760,
+        "sha256": "b3c86056e2496e50d1b14afc4d75541346dec399771d5a949bed1b848b0ac192"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 240160,
+        "sha256": "087f47831fe1ad980142cf29e0dc33fe6a99df17e1a1dd309c91382c533acd0d"
+      },
+      "roles": [
+        "background_optimizer_snapshot"
+      ]
+    },
+    "multiversion_background_job_refs": {
+      "imports": [],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 30336,
+        "sha256": "8644145c4d1b3e4079bbc797606663ce63379f89dea97116a21e0b8d4dab3f6a"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 43808,
+        "sha256": "a24c322fede30b453943a84f7da84d578e8ee0fc4a3dc9a0431a40341c2bd277"
+      },
+      "roles": [
+        "multiversion_background_job_refs"
+      ]
+    },
+    "multiversion_background_jobs": {
+      "imports": [
+        [
+          370,
+          "malloc"
+        ],
+        [
+          381,
+          "free"
+        ]
+      ],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 232960,
+        "sha256": "cf80a79eef45e897dc47ce41ee3c9f275215dcdb63a61bfd904ac691e0cfa002"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 244600,
+        "sha256": "bc50146d22c2463d371cc304401b2598f0ffe350da4c61a027e97380c81b77b5"
+      },
+      "roles": [
+        "multiversion_background_jobs"
+      ]
+    },
+    "multiversion_background_ledger": {
+      "imports": [
+        [
+          370,
+          "malloc"
+        ],
+        [
+          381,
+          "free"
+        ]
+      ],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 121784,
+        "sha256": "95247bbdafe9f89d8fc93624656c6fca0b18c7229e7a46fcaed88f42d67e6788"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 134008,
+        "sha256": "34e8dca1a704bc848f6596d0bd1a377c757c09b101e3cf3d79773b5fc210d069"
+      },
+      "roles": [
+        "multiversion_background_ledger"
+      ]
+    },
+    "multiversion_background_payload": {
+      "imports": [
+        [
+          301,
+          "malloc"
+        ],
+        [
+          312,
+          "free"
+        ]
+      ],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 85560,
+        "sha256": "e3c20e78c82cb5da59c9529055c0de6850eeeca043cfbfb51a0e76ac1d818685"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 97144,
+        "sha256": "944b5682b6ef9e365b9c42b725c1e022ce0e051bd7755321e1d6c954c721744c"
+      },
+      "roles": [
+        "multiversion_background_payload"
+      ]
+    },
+    "multiversion_background_queue": {
+      "imports": [],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 132000,
+        "sha256": "cc6b25640180d8a1d51061659a4564d730950b6076bcd9be99af69e038fe2f59"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 145952,
+        "sha256": "34f04137cd72c3e2d519665ca8953c9f9e1797f3b74730ac31a18b2e237d1dd5"
+      },
+      "roles": [
+        "multiversion_background_queue"
+      ]
+    },
+    "multiversion_background_worker": {
+      "imports": [
+        [
+          316,
+          "pthread_create"
+        ],
+        [
+          331,
+          "pthread_join"
+        ]
+      ],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 80144,
+        "sha256": "be3eb3e585b4433c6642bdc6cea76723d4280c6898e040a9bf8f12c6f030e89c"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 93064,
+        "sha256": "be712b07096b9d148e24d8d498927e645bbb79c4e507ed52554d1e9ed2ae1422"
+      },
+      "roles": [
+        "multiversion_background_worker"
+      ]
+    },
+    "multiversion_future": {
+      "imports": [
+        [
+          414,
+          "malloc"
+        ],
+        [
+          425,
+          "free"
+        ]
+      ],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 110312,
+        "sha256": "0febd53eb698188d33eb868f8443a74476a660d5d2f08a9bb7e46097d5a146bf"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 121712,
+        "sha256": "5d592e0507a21050b4078d2002a4b01ff5c347baf2193fcb698b21958805279b"
+      },
+      "roles": [
+        "multiversion_future"
+      ]
+    },
+    "multiversion_values": {
+      "imports": [
+        [
+          321,
+          "malloc"
+        ],
+        [
+          332,
+          "free"
+        ]
+      ],
+      "independent_reference_equal": true,
+      "native_object": {
+        "bytes": 140584,
+        "sha256": "ef0faebb98f957b809ef5d9fb3f88e85bbc34afdbd0bb297f88c5baf7c399e71"
+      },
+      "platform_resolved_test_image": {
+        "bytes": 154480,
+        "sha256": "c18bb55bdf1d2e32e5751b0006447a8bc2b5ef0a8f3a694869a6166bb404c7e7"
+      },
+      "roles": [
+        "multiversion_values",
+        "unsigned_decimal_values"
+      ]
+    }
+  },
+  "schema": "hepta.hia.background-snapshot-qualification.v1",
+  "scope": "Detached snapshots from the actual native queue/Jobs/worker/decimal/payload/ledger contexts; explicit Value and Job retirement. The final shared-arena BG constructor/worker/fusion gate remains separate.",
+  "sources": {
+    "examples/hia_bootstrap/background_optimizer_business_worker.hepta": "f5a87601d2c8dbba83b2aae31a84bfde1b892e350fbaa40af86f99954b1d5cbe",
+    "examples/hia_bootstrap/background_optimizer_business_worker_failure.hepta": "b5e6acc0db449b6e6a891a3f3a7edeae67d88cde28e1953efc261c91a61cf89d",
+    "examples/hia_bootstrap/background_optimizer_business_worker_packer.hepta": "6dcf9b2a2c20b94626e2b078a675af196a7f291baf9e6d33120d9856c9767ee7",
+    "examples/hia_bootstrap/background_optimizer_snapshot.hepta": "c92769440fa073766895a76a9c6fe1016f26d245e47146c8a1ec735a06b52f58",
+    "examples/hia_bootstrap/background_optimizer_snapshot_packer.hepta": "f6b6c8c0131c593795636bfef1b5c00a28188857b5040e076a99e4ef52a80518",
+    "examples/hia_bootstrap/multiversion_background_job_refs.hepta": "64c6c913c424bce737acd2fe61d046e551466b83a3bd2377a817dbe535e31e82",
+    "examples/hia_bootstrap/multiversion_background_job_refs_packer.hepta": "32d55625f23c429cd31b0314b26be9f379584a8730ea829e623e7f934408d100",
+    "examples/hia_bootstrap/multiversion_background_jobs.hepta": "eb3f7ba92d2788e65b8d8000814c200db3fe50bf1c343335e70ac8cc9d381de8",
+    "examples/hia_bootstrap/multiversion_background_jobs_packer.hepta": "fba5b81bb6f9cfb6c2bf5ceaddef5cda398b75e910e44447fecd3ace5d9cce79",
+    "examples/hia_bootstrap/multiversion_background_ledger.hepta": "21ad40d7b4b549ad2932a5de71a07454e17b510f0c056c015d3ea413d1c9bbce",
+    "examples/hia_bootstrap/multiversion_background_ledger_packer.hepta": "5059b5fac83ced9ce26d3dea8a5e18902ce446262e30ee62a50d32863f1f3b02",
+    "examples/hia_bootstrap/multiversion_background_payload.hepta": "58b1ea0ec97e0d5e7e88118dfd6fb076218bc9df736a1afe889acb89d115591f",
+    "examples/hia_bootstrap/multiversion_background_payload_packer.hepta": "181d40131d81555b23a910da6b54b54a03cf9e9e0933dc91853c3feae4fad581",
+    "examples/hia_bootstrap/multiversion_background_queue.hepta": "31ecc7f872056630850c631fbffce4ab3cf1a3396cea80f7f79304905bb4fd51",
+    "examples/hia_bootstrap/multiversion_background_queue_packer.hepta": "8adbfb1297175b4a8a3454159c0db6382333348a3d65d2ab41947a78bc42d27e",
+    "examples/hia_bootstrap/multiversion_background_worker.hepta": "7e8e8dd98d88cf523151dcf7a5bd0a99bb858dc5530e8fd334befe6c28118fca",
+    "examples/hia_bootstrap/multiversion_background_worker_packer.hepta": "b9421717f456ae02c9fac6c1b5049729ea3da43abf6176a533404eaa85196c94",
+    "examples/hia_bootstrap/multiversion_future.hepta": "218892f5f247ca6275e00f5e713af45604696c3a0d440b88573b31a9a7983145",
+    "examples/hia_bootstrap/multiversion_future_packer.hepta": "3a1d92480e729c5683268655f01760dccb23d07bc463953de8eb057493cf5dc9",
+    "examples/hia_bootstrap/multiversion_values.hepta": "7af216075ea250066c69a8e36525a7f971ccf736dd4d0fd4f4a8adc0975f6a91",
+    "examples/hia_bootstrap/multiversion_values_packer.hepta": "02597086c64afa3d2f0eb4a461ae8f273580b779c94e062aad317335b980a4a3",
+    "examples/hia_bootstrap/unsigned_decimal_values.hepta": "56fc5f659b5ef9f4f3dbe9229805eb04b520044f88255bc459e078fee0c2eee3",
+    "hepta/hia_background_optimizer.py": "d5a3c81eb0d7907fe872565b6ca6605708f8a6f13fd5a8d55788a9a13a095f7b",
+    "tools/generate_hia_background_optimizer_business_worker_packer.py": "0b4770c02670123e7696884db3f666fc31197505dce3baae5f7fb8dd2704efbb",
+    "tools/generate_hia_background_optimizer_snapshot.py": "5dd7c9c9579e7a6e6eea3f005f348367d3935b8996943cab39b7357d39f12a67",
+    "tools/generate_hia_background_optimizer_snapshot_packer.py": "67e367223f15ce2e131315244134a47a7af1a598e7550263b28edf0816b0c3ea",
+    "tools/generate_hia_multiversion_background_job_refs_packer.py": "10c8de136d70da60bf198c3fc5039f1b2cbd179564303e852037633d394ee90a",
+    "tools/generate_hia_multiversion_background_jobs_packer.py": "6e4f0ae023237e3856d5631f793d9237a29d7cd092311b612d7cff3e0646f3f7",
+    "tools/generate_hia_multiversion_background_ledger_packer.py": "b6a7eddf11c4c14ee66a52b6bd9f3c373a727e7ee02b150272b5f0a6111ea2ef",
+    "tools/generate_hia_multiversion_background_payload_packer.py": "b933156e9991296058e95be33dfe6f0d709b3bab3dbbf03abcd7603e854a2264",
+    "tools/generate_hia_multiversion_background_queue_packer.py": "4685380299c5bf6cefd0114623d22ef098fd1988a76d5a1fcf05ff8b2eb5124f",
+    "tools/generate_hia_multiversion_background_worker_packer.py": "650f485a86cc833ac70be817c2a226f09af8412507fc09ed44af2ead53c83f0d",
+    "tools/generate_hia_multiversion_future_packer.py": "b6b24eb35dd1237229512138e0c3113b042150574a271fd9e2c90744a58a4618",
+    "tools/generate_hia_multiversion_values_packer.py": "e4f7770d9d6e970baf234b2b2334fb3623053a4f889a6e0728ddd70502ec0f60",
+    "tools/hia_background_retirement_source.py": "ce1328e298484297a1817ff6301f728c18690cbfa1c986c8e42d3fe7e40bd43e",
+    "tools/qualify_hia_background_native_components.py": "0231af834c0f8d913be7fdcf5f7b11c5ee464409e67882d85381e5411dce1b2e"
+  },
+  "whole_background_qualified": false,
+  "whole_native_runtime_qualified": false
+}
