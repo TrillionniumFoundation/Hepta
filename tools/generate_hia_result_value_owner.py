@@ -424,11 +424,15 @@ def system(o:mutbuf,next:u64,number:u64,selectors:u64,a:u64,b:u64,c:u64,d:u64,e:
     return 1
 def resources_request_valid(s:readbuf) -> bool:
     op=readword(s,8)
-    if (op<48 or op>57) and op!=60 and op!=61:
+    if (op<48 or op>57) and op!=60 and op!=61 and op!=64 and op!=65 and op!=66:
         return False
     tail=choose(op==48,24,0)
     if op==61:
         tail=5136
+    if op==66:
+        if length(s)<=128:
+            return False
+        tail=length(s)-128
     if op==60:
         if length(s)<160:
             return False
@@ -445,7 +449,7 @@ def resources_request_valid(s:readbuf) -> bool:
     elif op==49:
         if a>6 or b!=0:
             return False
-    elif op==54 or op==55 or op==60:
+    elif op==54 or op==55 or op==60 or op==64 or op==66:
         if a==0 and b==0:
             return False
     elif op==57:
@@ -453,8 +457,8 @@ def resources_request_valid(s:readbuf) -> bool:
             return False
     elif a!=0 or b!=0:
         return False
-    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61
-    hasb=op==48 or op==50 or op==61
+    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61 or op==64 or op==65 or op==66
+    hasb=op==48 or op==50 or op==61 or op==64 or op==66
     hasc=op==48 or op==50
     if (hasa==False and (readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0)) or (hasb==False and (readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0)) or (hasc==False and (readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0)):
         return False

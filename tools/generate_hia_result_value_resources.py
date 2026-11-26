@@ -6,6 +6,7 @@ from tools.generate_hia_result_value_core import SOURCE as CORE
 from tools.generate_hia_result_value_classes import SOURCE as CLASSES,catalog_source
 from tools.generate_hia_result_value_records import SOURCE as RECORDS
 from tools.generate_hia_result_value_information import SOURCE as INFORMATION
+from tools.generate_hia_result_value_info_cache import SOURCE as INFO_CACHE
 
 SOURCE=r'''
 def result_value_resources(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
@@ -14,6 +15,8 @@ def result_value_resources(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,G_PHASE)
     if phase==60:
         return resources_information_prepare(s,o,w)
+    if phase==66:
+        return resources_runtime_cache_import(s,o,w)
     if phase==0:
         return resources_prepare(s,o,w)
     if phase==1:
@@ -76,6 +79,12 @@ def resources_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     elif op!=48:
         return done(o,1)
     put(o,G_A,a)
+    if op==66:
+        return resources_runtime_cache_prepare(s,o,w)
+    if op==64 or op==65:
+        cache=resources_cache_prepare(s,o,w,op)
+        if cache!=10:
+            return cache
     if op==49:
         if native_resource(w,a)==False:
             return done(o,2)
@@ -135,6 +144,45 @@ def resources_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     put(w,112,get(w,112)+1)
     put(o,G_PHASE,1)
     return 10
+
+def resources_cache_prepare(s:readbuf,o:mutbuf,w:mutbuf,op:u64) -> u64:
+    lease=get(o,G_A)
+    if native_resource(w,lease)==False:
+        return done(o,2)
+    data=get(w,lease+24)
+    if get(w,data+56)!=2:
+        return done(o,2)
+    if get(w,data+112)!=get(o,1960) or get(w,data+88)!=0:
+        return done(o,6)
+    runtime=get(w,data+16)
+    if native_resource(w,runtime)==False:
+        return done(o,2)
+    rd=get(w,runtime+24)
+    if get(w,rd+56)!=1 or get(w,rd+112)!=get(o,1960) or get(w,rd+88)!=0:
+        return done(o,6)
+    cached=get(w,data+24)
+    if op==65:
+        if cached==get(w,128):
+            return done(o,6)
+        if get(w,cached+8)!=12 or get(w,cached+48)!=30:
+            return done(o,11)
+        put(o,G_B,cached)
+        return 10
+    info=cap_lookup(w,readword(s,48),readword(s,56),readword(s,64))
+    if info==0:
+        return done(o,1)
+    if get(w,info+8)!=12 or get(w,info+48)!=30:
+        return done(o,2)
+    error=resources_info_identity(s,w,info)
+    if error!=0:
+        return done(o,error)
+    if cached!=get(w,128) and cached!=info:
+        return done(o,6)
+    if cached!=info:
+        edge_add(w,info)
+        put(w,data+24,info)
+        edge_drop(w,cached)
+    return done(o,0)
 
 def resources_base_kind(layout:u64) -> u64:
     if layout==0:
@@ -288,6 +336,12 @@ def resources_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         return resources_create(s,o,w)
     if op==60:
         return resources_information(s,o,w)
+    if op==66:
+        return resources_runtime_cache_commit(s,o,w)
+    if op==65:
+        if publish_one(o,w,get(o,G_B))!=0:
+            return resources_growth(o,w)
+        return resources_finish(o,w,0)
     if op==54 or op==55:
         return resources_info(s,o,w)
     if op==57:
@@ -394,7 +448,7 @@ def resources_growth(o:mutbuf,w:mutbuf) -> u64:
 
 '''
 def source_program():
-    return resolve('result_value_resources',SOURCE+'\n'+INFORMATION+'\n'+RECORDS+'\n'+CLASSES+'\n'+catalog_source()+'\n'+CORE)
+    return resolve('result_value_resources',SOURCE+'\n'+INFORMATION+'\n'+INFO_CACHE+'\n'+RECORDS+'\n'+CLASSES+'\n'+catalog_source()+'\n'+CORE)
 def program():return document(source_program(),'result_value_resources')
 if __name__=='__main__':
     p=ROOT/'examples/hia_bootstrap/result_value_resources.hepta'

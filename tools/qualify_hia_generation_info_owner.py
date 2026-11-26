@@ -256,14 +256,15 @@ def generation_strong_identity(path, files, parent):
     values.drop(first)
     # No user Info/ABI capability exists. The actual generation and runtime
     # still own these objects, just as the original Python owners do.
-    for i in range(24):
-        scratch = values.scalar('force-new-object-' + str(i))
-        values.drop(scratch)
+    churn = [values.scalar('hold-new-object-' + str(i)) for i in range(128)]
+    assert all(identity(values, cap) != first_id for cap in churn), 'live generation Info storage was reused'
     second = info_call(owner, values, lease)
     assert identity(values, second) == first_id, 'lease lost its actual strong GenerationInfo owner'
     values.drop(second)
     carrier.q(3, raw_lease)
     values.drop(lease)
+    churn.extend(values.scalar('hold-after-lease-' + str(i)) for i in range(128))
+    assert all(identity(values, cap) != first_id for cap in churn), 'selected generation Info storage was reused'
     raw_new = q.old.lease(carrier, raw_runtime)
     new_lease = capture(owner, values, 2, raw_new, runtime)
     third = info_call(owner, values, new_lease)
