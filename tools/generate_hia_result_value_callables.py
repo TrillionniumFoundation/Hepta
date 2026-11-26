@@ -1,10 +1,15 @@
 """Private native resource edges and actual weak identities for the unique Value arena."""
 from tools.generate_hia_result_value_common import ROOT, document, render_assembly, resolve
 from tools.generate_hia_result_value_core import SOURCE as CORE
+from tools.generate_hia_result_value_classes import SOURCE as CLASSES, catalog_source
+from tools.generate_hia_result_value_invocation_graph import SOURCE as INVOCATION_GRAPH
 
 SOURCE=r'''
 def result_value_callables(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,G_PHASE)
+    op=readword(s,8)
+    if phase>=100 or (phase==0 and ((op>=68 and op<=70) or op==85 or op==89 or op==90 or (op>=94 and op<=96))):
+        return invocation_graph(s,o,w)
     if phase==0:
         return callable_graph_prepare(s,o,w)
     if phase==1:
@@ -110,7 +115,7 @@ def callable_graph_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         return 10
     if op==78 or op==92:
         node=cap_lookup_node(w,readword(s,24),readword(s,32),readword(s,40))
-        if node==0 or (op==78 and get(w,node+8)==0) or (op==92 and get(w,node+8)!=0):
+        if node==0 or (op==78 and get(w,node+8)==0) or (op==92 and (get(w,node+8)!=0 or get(w,node+40)!=0)):
             return callable_graph_finish(o,w,1)
         cap_drop(w,node)
         put(o,P_DROP_CONSUMED,1)
@@ -147,7 +152,7 @@ def callable_graph_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
 '''
 
 def source_program():
-    return resolve('result_value_callables', SOURCE+'\n'+CORE)
+    return resolve('result_value_callables', SOURCE+'\n'+INVOCATION_GRAPH+'\n'+CLASSES+'\n'+catalog_source()+'\n'+CORE)
 
 def program():
     return document(source_program(), 'result_value_callables')

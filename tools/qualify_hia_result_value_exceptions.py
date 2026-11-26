@@ -7,7 +7,8 @@ from pathlib import Path
 import argparse, ctypes as C, hashlib, json, platform, queue, struct, threading
 from tools.qualify_hia_result_value_resources import Values as PriorValues, NativeEngine, frame as prior_frame, word, ZERO
 from tools.qualify_hia_native_callable_code_owner import deny_native
-from tools.generate_hia_result_value_callables_packer import BRIDGE, HOLES
+from tools import generate_hia_result_value_callables_packer as original_pack
+from tools import generate_hia_result_value_invocations_packer as invocation_pack
 from hepta.hia_program import HIAProgramRejected
 from hepta.hia_multiversion import MultiversionRejected
 
@@ -97,10 +98,14 @@ def main():
     sweep(v);rows.append(dict(case='exception-namespace-and-tuple-cycle-real-collection'))
     cls=v.builtin(23);arguments=v.tuple([v.scalar('x')]);namespace=v.dictionary([])
     before=word(v.raw(47),48)
-    prefix=bytearray(args.image.read_bytes()[:len(BRIDGE)])
-    for at in HOLES:prefix[at:at+4]=bytes(4)
-    assert bytes(prefix)==BRIDGE
-    sites=[i+2 for i in range(len(BRIDGE)-1)if BRIDGE[i:i+2]==b'\x0f\x05']
+    image=args.image.read_bytes();matches=[]
+    for candidate in (original_pack,invocation_pack):
+        prefix=bytearray(image[:len(candidate.BRIDGE)])
+        for at in candidate.HOLES:prefix[at:at+4]=bytes(4)
+        if bytes(prefix)==candidate.BRIDGE:matches.append(candidate)
+    assert len(matches)==1,[m.__name__ for m in matches]
+    bridge=matches[0].BRIDGE
+    sites=[i+2 for i in range(len(bridge)-1)if bridge[i:i+2]==b'\x0f\x05']
     assert len(sites)==1,sites
     ip=v.engine.image.address+sites[0]
     result=queue.Queue()

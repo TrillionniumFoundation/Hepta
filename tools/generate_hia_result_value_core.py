@@ -205,7 +205,7 @@ def prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         return 10
     if op==22:
         token=cap_lookup_node(w,readword(s,24),readword(s,32),readword(s,40))
-        if token==0 or get(w,token+8)!=0:
+        if token==0 or get(w,token+8)!=0 or get(w,token+40)!=0:
             return done(o,1)
         put(o,G_RESULT,token)
         put(o,G_PHASE,20)

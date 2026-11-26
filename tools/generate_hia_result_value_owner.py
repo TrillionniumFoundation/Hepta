@@ -1,5 +1,6 @@
 """Closed native ownership of the mutable-value arena and its actual effects."""
 from tools.generate_hia_result_value_common import ROOT,document,render_assembly,resolve
+from tools.generate_hia_result_value_invocation_owner import SOURCE as INVOCATION_OWNER
 SOURCE=r'''
 def result_value_owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<8192 or length(w)<256:
@@ -13,6 +14,10 @@ def result_value_owner(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         return lifecycle(s,o,w,phase)
     if phase<200:
         return graph_driver(s,o,w,phase)
+    if phase>=400:
+        return invocation_owner(s,o,w,phase)
+    if phase>=350:
+        return invocation_drain(s,o,w)
     if phase>=250:
         return resource_release(s,o,w,phase)
     return release(s,o,w,phase)
@@ -27,7 +32,7 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         if resources_request_valid(s)==False:
             return 4294967293
         zero(o,0,8192)
-        if op==48 or (op>=77 and op<=79) or (op>=91 and op<=93):
+        if op==48 or (op>=68 and op<=70) or (op>=77 and op<=79) or op==89 or op==90 or (op>=91 and op<=96):
             put(o,P_DROP_KNOWN,1)
         return owner_start(s,o)
     if request_magic(s)==MAGIC4:
@@ -163,6 +168,8 @@ def lifecycle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
         put(o,1968,get(w,120))
         put(o,1976,get(w,160))
         put(o,2056,get(w,168))
+        codebound=get(w,192)!=0 and get(w,200)!=0 and get(w,208)==256 and get(w,216)!=0
+        put(o,7200,choose(codebound,1,0))
         if request_magic(s)==MAGIC5:
             if op!=50 and op!=51 and op!=57 and op!=62 and op!=63 and op!=67 and op!=75 and op!=87 and bound==False:
                 return owner_fail(o,6)
@@ -170,7 +177,7 @@ def lifecycle(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
                 put(w,160,0)
                 return owner_fail(o,0)
         if op==31:
-            if get(w,176)!=0 and get(w,16)!=0 and bound:
+            if (get(w,176)!=0 or get(w,184)!=0) and get(w,16)!=0 and bound:
                 return owner_fail(o,0)
             if get(w,24)!=1:
                 return owner_fail(o,6)
@@ -228,7 +235,9 @@ def graph_driver(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
     if phase==100:
         action=get(o,P_FEEDBACK)
         if action==0:
-            if request_magic(s)==MAGIC5 and ((readword(s,8)>=77 and readword(s,8)<=80) or readword(s,8)==91 or readword(s,8)==92):
+            if request_magic(s)==MAGIC5 and ((readword(s,8)>=68 and readword(s,8)<=70) or (readword(s,8)>=94 and readword(s,8)<=96)):
+                put(w,184,get(o,2104))
+            if request_magic(s)==MAGIC5 and ((readword(s,8)>=77 and readword(s,8)<=80) or readword(s,8)==89 or readword(s,8)==90 or readword(s,8)==91 or readword(s,8)==92 or readword(s,8)==96):
                 put(w,176,get(o,2008))
             if request_magic(s)==MAGIC5 and readword(s,8)==52 and get(o,P_ERROR)==0:
                 put(w,160,1)
@@ -248,6 +257,8 @@ def graph_driver(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
         if action==4:
             put(o,P_PHASE,102)
             return 4
+        if action==6 and request_magic(s)==MAGIC5 and readword(s,8)>=68 and readword(s,8)<=70:
+            return system(o,102,9,0,0,get(o,G_WANT),3,34,MAX,0)
         if action==5:
             return system(o,102,318,1,get(o,G_RANDOM)+get(o,G_RUSED),get(o,G_RN)-get(o,G_RUSED),0,0,0,0)
         if drop_profile(s) or resource_capture(s):
@@ -318,7 +329,7 @@ def graph_id(s:readbuf) -> u64:
     if request_magic(s)==MAGIC5:
         if readword(s,8)==75 or readword(s,8)==87:
             return 9
-        if (readword(s,8)>=77 and readword(s,8)<=80) or readword(s,8)==91 or readword(s,8)==92:
+        if (readword(s,8)>=68 and readword(s,8)<=70) or (readword(s,8)>=77 and readword(s,8)<=80) or readword(s,8)==85 or readword(s,8)==89 or readword(s,8)==90 or (readword(s,8)>=91 and readword(s,8)<=96):
             return 14
         if readword(s,8)==62 or readword(s,8)==63:
             return 13
@@ -347,15 +358,17 @@ def owner_fail(o:mutbuf,status:u64) -> u64:
     return 10
 def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
     if phase==200:
-        deferred=get(o,8184)!=0 or (request_magic(s)==MAGIC5 and (readword(s,8)==61 or (readword(s,8)>=77 and readword(s,8)<=80) or (readword(s,8)>=91 and readword(s,8)<=93)))
+        deferred=get(o,8184)!=0 or (request_magic(s)==MAGIC5 and (readword(s,8)==61 or (readword(s,8)>=77 and readword(s,8)<=80) or (readword(s,8)>=91 and readword(s,8)<=96) or readword(s,8)==85 or readword(s,8)==89 or readword(s,8)==90))
         if get(o,P_HELD)!=0:
             if get(w,16)!=0:
-                if resource_bound(w) and deferred==False:
+                if resource_bound(w) and deferred==False and get(o,7040)==0:
                     if get(o,2000)==0:
                         put(o,2000,1)
                         put(o,1984,get(o,P_ERROR))
                         copy(o,4352,256,512)
                         return resource_graph(o,w,250,58)
+                if resource_bound(w) and deferred==False and get(o,7040)==0 and get(w,184)!=0 and get(o,7480)==0:
+                    return invocation_drain_start(o,w)
                 retiring=input_operation(s)==6 or input_operation(s)==22 or resource_retry(s) or (drop_profile(s) and readword(s,8)==31)
                 if retiring and resource_bound(w):
                     if get(w,56)==0 and get(o,P_ERROR)==0 and get(o,2016)==0:
@@ -364,11 +377,12 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
                         return graph_call(s,o,w,21,1)
         owned=drop_profile(s) or resource_capture(s)
         if owned and get(o,P_HELD)!=0:
-            pending=get(w,80)==1 or get(w,176)!=0
+            pending=get(w,80)==1 or get(w,176)!=0 or get(w,184)!=0
             put(o,P_DROP_PENDING,choose(pending,1,0))
             if request_magic(s)==MAGIC5 and (readword(s,8)==78 or (readword(s,8)>=91 and readword(s,8)<=93)):
                 put(o,2080,choose(get(w,80)==1,1,0))
-                put(o,2088,choose(get(w,176)!=0,1,0))
+                resourcepending=get(w,176)!=0 or get(w,184)!=0
+                put(o,2088,choose(resourcepending,1,0))
         if get(o,P_HELD)!=0:
             put(o,P_HELD,0)
             return atom(o,3,201,32,0,0)
@@ -378,6 +392,11 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
     return finish(s,o,get(o,P_ERROR))
 
 def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
+    if get(o,7040)!=0 and get(o,7464)==0:
+        put(o,P_PHASE,400)
+        return role(o,15,2,0,length(s),3,0,length(o),0,get(o,7040),get(o,7048))
+    if get(o,7464)!=0:
+        return invocation_finish_response(o)
     zero(o,0,128)
     put(o,0,REPLY)
     put(o,8,status)
@@ -460,9 +479,13 @@ def system(o:mutbuf,next:u64,number:u64,selectors:u64,a:u64,b:u64,c:u64,d:u64,e:
     return 1
 def resources_request_valid(s:readbuf) -> bool:
     op=readword(s,8)
-    if (op<48 or op>57) and op!=60 and op!=61 and op!=62 and op!=63 and op!=64 and op!=65 and op!=66 and op!=67 and op!=75 and op!=87 and (op<77 or op>80) and (op<91 or op>93):
+    if (op<48 or op>57) and op!=60 and op!=61 and op!=62 and op!=63 and op!=64 and op!=65 and op!=66 and op!=67 and (op<68 or op>70) and op!=75 and op!=85 and op!=87 and op!=89 and op!=90 and (op<77 or op>80) and (op<91 or op>96):
         return False
     tail=choose(op==48,24,0)
+    if op==68:
+        if length(s)<=128 or length(s)>1048704:
+            return False
+        tail=length(s)-128
     if op==61:
         tail=5136
     if op==66:
@@ -494,14 +517,17 @@ def resources_request_valid(s:readbuf) -> bool:
     elif op==87:
         if a<38 or a>42 or b!=0:
             return False
+    elif op==85:
+        if (a!=1 and a!=2) or b!=0:
+            return False
     elif op==80:
         if a>1 or b!=0:
             return False
     elif a!=0 or b!=0:
         return False
-    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61 or op==62 or op==63 or op==64 or op==65 or op==66 or op==67 or op==75 or (op>=77 and op<=80) or op==91 or op==92
-    hasb=op==48 or op==50 or op==61 or op==62 or op==64 or op==66 or op==67 or op==75 or op==77 or op==79
-    hasc=op==48 or op==50 or op==67 or op==75
+    hasa=op==48 or op==49 or op==50 or op==54 or op==55 or op==61 or op==62 or op==63 or op==64 or op==65 or op==66 or op==67 or (op>=68 and op<=70) or op==75 or op==85 or op==89 or op==90 or op==95 or op==96 or (op>=77 and op<=80) or op==91 or op==92
+    hasb=op==48 or op==50 or op==61 or op==62 or op==64 or op==66 or op==67 or (op>=68 and op<=70) or op==75 or op==85 or op==89 or op==90 or op==77 or op==79
+    hasc=op==48 or op==50 or op==67 or op==70 or op==75
     if (hasa==False and (readword(s,24)!=0 or readword(s,32)!=0 or readword(s,40)!=0)) or (hasb==False and (readword(s,48)!=0 or readword(s,56)!=0 or readword(s,64)!=0)) or (hasc==False and (readword(s,72)!=0 or readword(s,80)!=0 or readword(s,88)!=0)):
         return False
     return True
@@ -510,7 +536,7 @@ def resource_bound(w:mutbuf) -> bool:
     return get(w,128)!=0 and get(w,136)!=0 and get(w,144)==256 and get(w,152)!=0
 
 def resource_capture(s:readbuf) -> bool:
-    return request_magic(s)==MAGIC5 and (readword(s,8)==48 or readword(s,8)==91)
+    return request_magic(s)==MAGIC5 and (readword(s,8)==48 or (readword(s,8)>=68 and readword(s,8)<=70) or readword(s,8)==91)
 
 def resource_retry(s:readbuf) -> bool:
     return request_magic(s)==MAGIC5 and (readword(s,8)==56 or readword(s,8)==93)
@@ -592,7 +618,7 @@ def resource_release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
     return resource_restore(s,o,w,11)
 
 '''
-def source_program():return resolve('result_value_owner',SOURCE)
+def source_program():return resolve('result_value_owner',SOURCE+'\n'+INVOCATION_OWNER)
 def program():return document(source_program(),'result_value_owner')
 if __name__=='__main__':
  p=ROOT/'examples/hia_bootstrap/result_value_owner.hepta';p.write_text(render_assembly(program()));print(p.name,p.stat().st_size,flush=True)
