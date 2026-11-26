@@ -1,0 +1,674 @@
+{
+  "canonical_native_constructor_qualified": true,
+  "canonical_worker_acquire_qualified": true,
+  "cases": [
+    {
+      "actual_gc_edges": true,
+      "actual_weak_stale": true,
+      "case": "actual-self-result-cycle-native-finalizer-and-registry-retirement",
+      "native_finalizer": true,
+      "passed": true,
+      "same_physical_value_entry": true,
+      "value_image": {
+        "bytes": 3066003,
+        "sha256": "267d6ebf87a84077d37f9bd6e4de819d537157f5b566974c738eea4b0dfbd7aa"
+      }
+    },
+    {
+      "actual_managed_edge": true,
+      "case": "actual-Future-list-Future-cycle",
+      "native_finalizer": true,
+      "passed": true
+    },
+    {
+      "case": "actual-two-Future-mutual-cycle-with-live-weak-promotion",
+      "native_finalizers": 2,
+      "passed": true
+    },
+    {
+      "actual_managed_edge": true,
+      "case": "actual-self-exception-cycle",
+      "native_finalizer": true,
+      "passed": true
+    },
+    {
+      "case": "returned-result-is-external-root-until-its-real-last-drop",
+      "native_finalizer": true,
+      "passed": true
+    },
+    {
+      "actual_managed_edge": true,
+      "callback_invocations": 0,
+      "case": "pending-callback-environment-self-cycle-retires-without-invocation",
+      "native_finalizer": true,
+      "passed": true
+    },
+    {
+      "callback_fixture": "explicit-QA-oracle-only",
+      "case": "callback-execution-holds-real-Future-Value-pin-through-caller-drop",
+      "native_callable_dispatcher_closed": false,
+      "native_finalizer": true,
+      "passed": true
+    },
+    {
+      "callback_fixture": "explicit-QA-oracle-only",
+      "case": "caught-callback-error-native-diagnostic-and-all-temporary-custody",
+      "native_callable_dispatcher_closed": false,
+      "native_finalizer": true,
+      "native_utf8_diagnostic": "exception calling callback\nValueError: callback env cycle \u03a9\n",
+      "passed": true
+    },
+    {
+      "canonical_binding_before_return": true,
+      "case": "native-fresh-Future-constructor-true-class37-and-no-raw-alias-export",
+      "constructor_policy": "actual-HIA-production-code",
+      "native_finalizer": true,
+      "native_value_capture": true,
+      "passed": true
+    },
+    {
+      "case": "native-fresh-Futures-share-factory-with-distinct-canonical-identities",
+      "independent_finalizers": 2,
+      "passed": true
+    },
+    {
+      "case": "canonical-constructor-refusal-preserves-input-lease-and-retires-all-new-custody",
+      "controls": [
+        {
+          "actual_native_rollback": true,
+          "case": "absent-factory",
+          "passed": true
+        },
+        {
+          "actual_native_rollback": true,
+          "case": "wrong-factory-lease",
+          "passed": true
+        },
+        {
+          "actual_native_rollback": true,
+          "case": "kind7-binding-disabled",
+          "passed": true
+        }
+      ],
+      "passed": true
+    },
+    {
+      "actual_self_cycle_retired": true,
+      "canonical_identity_preserved": true,
+      "case": "native-canonical-acquire-owns-real-Value-pin-for-borrowed-worker-call",
+      "passed": true
+    },
+    {
+      "case": "canonical-acquire-rejects-nonresource-and-stale-real-Value-caps-without-new-custody",
+      "controls": 2,
+      "passed": true
+    },
+    {
+      "actual_acquires": 64,
+      "case": "eight-threads-64-actual-canonical-worker-acquires-and-read-calls",
+      "passed": true,
+      "threads": 8,
+      "unchanged_live_cap_count": true
+    }
+  ],
+  "component_qualified": true,
+  "construction": {
+    "actual_adapter_bridge_identical": true,
+    "compiler": {
+      "bytes": 813129,
+      "sha256": "494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af"
+    },
+    "component_qualified": false,
+    "independent_byte_comparison": true,
+    "modules": [
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 475165,
+          "sha256": "81e2f3d780d63458a2de34ffef85a372d2efc043e813c18bae7983d6e177c7e5"
+        },
+        "source": {
+          "bytes": 406117,
+          "sha256": "c9c5414098a53e710a9eb297bbf9ac673f55c41871c2b485a97ae4c07d7fa8fa"
+        },
+        "source_path": "examples/hia_bootstrap/background_optimizer_future_public_owner.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 302083,
+          "sha256": "27bdc93d43b5d20d4af4118a7caf76b3477cd53528a225fa69c8aca3ac197b3f"
+        },
+        "source": {
+          "bytes": 236416,
+          "sha256": "d21781aacdf5a9443cdf9ef6446b3957422d10f1b13fb34e689137ee64533f12"
+        },
+        "source_path": "examples/hia_bootstrap/background_optimizer_future_public_carrier.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 32984,
+          "sha256": "9397cbf9db277def3c1435c65139276d894953ea6f0b529b9d095c5e53b554e3"
+        },
+        "source": {
+          "bytes": 28910,
+          "sha256": "8a87ca1f97da661ce1c24e9eaf771568bfb02e477c0725987fab6eb08e8dc4a6"
+        },
+        "source_path": "examples/hia_bootstrap/background_optimizer_future_public_timeout.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 108120,
+          "sha256": "802bf8c7363ef32bd869f31cae6e31afdcb8eada651509a48af0cb18450ad9a7"
+        },
+        "source": {
+          "bytes": 107325,
+          "sha256": "43f004f7cb5328c2e87d798c005a11905748bc5b9b47ab1d88ee5a820535541a"
+        },
+        "source_path": "examples/hia_bootstrap/background_optimizer_future_public_log.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 368281,
+          "sha256": "abc98e1b8250582346a6a404e775728b87bd5985914d5f3219f6092ed4c58ec3"
+        },
+        "source": {
+          "bytes": 274367,
+          "sha256": "25af16f80a6ba922dd750113dc071f8b55f118a4725a5523a1412e4ad34d1a67"
+        },
+        "source_path": "examples/hia_bootstrap/multiversion_background_future_cell.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 109044,
+          "sha256": "fc9f7300250caf65350b533da119e6cd5e22604e91ce67eb78220bb522f4a23d"
+        },
+        "source": {
+          "bytes": 79742,
+          "sha256": "218892f5f247ca6275e00f5e713af45604696c3a0d440b88573b31a9a7983145"
+        },
+        "source_path": "examples/hia_bootstrap/multiversion_future.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 412532,
+          "sha256": "5ac03abef855707e7993d1b367ce5efa9eeabac8da1ceedabeea61719ff258c1"
+        },
+        "source": {
+          "bytes": 318074,
+          "sha256": "983bf37bd119ea70c03aa70a21cc7dc627fa7ac6b92c13c7b505234ee0e343ec"
+        },
+        "source_path": "examples/hia_bootstrap/background_optimizer_future_public_cleanup.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 126055,
+          "sha256": "b2bbdd4af50bf471a3c49bba00efe20b9cee99415bc08d48d2b07a8b52a39959"
+        },
+        "source": {
+          "bytes": 151371,
+          "sha256": "e3028df92c98ab5e0f8f19543e678a5393da905e1aa1e1d803340e5fd85d5a0f"
+        },
+        "source_path": "examples/hia_bootstrap/background_optimizer_future_public_cleanup_packer.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 345799,
+          "sha256": "7b06bb2f5db4fc4f820890ec4b2d19688c840e9a9c43580373edaee45948c3f4"
+        },
+        "source": {
+          "bytes": 255860,
+          "sha256": "5291813f261ca3d7056f8add75fec91a171ae5d0db4adb76322b302f7362f454"
+        },
+        "source_path": "examples/hia_bootstrap/future_resource_owner.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 54295,
+          "sha256": "5c53430e2b60caf0dab334d01d9fac421e0f078b8a90aed1aaee84f8358c3b59"
+        },
+        "source": {
+          "bytes": 53148,
+          "sha256": "21268e8148a4df282856c42bd6b34ac3089609a3f6d1e03b7b14ef983e0b2d3d"
+        },
+        "source_path": "examples/hia_bootstrap/future_resource_owner_packer.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 85803,
+          "sha256": "ce7ee6c8cd16341530871540516f6625165e02bf212654c1771fc99786fca01e"
+        },
+        "source": {
+          "bytes": 63212,
+          "sha256": "24f626391bca7ec550e5679b5afc56f8a0da5e2034bdea1691ffa59650f505e5"
+        },
+        "source_path": "examples/hia_bootstrap/future_resource_registry.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 33834,
+          "sha256": "4331a97669ab31e3999de5b4b531570d2255dfca133a5f4dadec7cce0b967bb1"
+        },
+        "source": {
+          "bytes": 30718,
+          "sha256": "3f95ad10021e969e5d7d1d185465735d9a865fac78d9fbe16bea7ce3dce7ef9a"
+        },
+        "source_path": "examples/hia_bootstrap/future_resource_registry_packer.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 48166,
+          "sha256": "7c39f9406e1908c2fadc7837ec5c18d5aa662644d48689b6460aab632815edb0"
+        },
+        "source": {
+          "bytes": 32597,
+          "sha256": "95540b07bd5d29083ab1714add03d52cd3840131dd5ea90eae4710cd781e0b8a"
+        },
+        "source_path": "examples/hia_bootstrap/future_resource_finalizer_adapter.hepta"
+      },
+      {
+        "double_compile_identical": true,
+        "flat": {
+          "bytes": 37163,
+          "sha256": "0fe690fd4bdcb8633e73c38f38ad3c7030f6dcb2081dc64c4740a95e808e8cf7"
+        },
+        "source": {
+          "bytes": 34325,
+          "sha256": "f856f2dbc7e67d792bfa452823a5a274b5c1dfd3cd937752b198947ae48d824f"
+        },
+        "source_path": "examples/hia_bootstrap/future_resource_finalizer_adapter_packer.hepta"
+      }
+    ],
+    "native_pack": true,
+    "notify_dependency": {
+      "build": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/future-managed-native-v14/build/build.json",
+      "build_pin": {
+        "bytes": 15099,
+        "sha256": "4f903ffc2354e470b2224b95311747f2f1ed4155a38af0a8e2249530b0fc477e"
+      },
+      "product": {
+        "bytes": 80226,
+        "sha256": "4a06fc521a47285685a6632e0f17b876364ee5e934bb81f5eb3f4195dc263580"
+      }
+    },
+    "products": {
+      "future-resource-adapter.o": {
+        "bytes": 49536,
+        "sha256": "e523143df0e0e7d0e541b24a4cfc6313ad677669dee608adcabe26ce5bb40398"
+      },
+      "future-resource-owner.o": {
+        "bytes": 433880,
+        "sha256": "26a56749b4dc04db14792dc1fd9b87c08220d3830a925ca39d9b342f1b685ef2"
+      },
+      "future-resource-registry.o": {
+        "bytes": 87008,
+        "sha256": "f4ec25fced8f6c103889b676f6a2977a020a220ae108b64895c13e3100e163d5"
+      },
+      "hia-future-notify.core.bin": {
+        "bytes": 80226,
+        "sha256": "4a06fc521a47285685a6632e0f17b876364ee5e934bb81f5eb3f4195dc263580"
+      },
+      "hia-future-public.core.bin": {
+        "bytes": 4957300,
+        "sha256": "00a2951ee05a349e916edad57e9b1521a642952b8ccc5d3cfc81acd9eee668f6"
+      },
+      "hia-future-public.o": {
+        "bytes": 4957992,
+        "sha256": "0871dd60dd1711d67b7eeeddd47207192505f43710cc6a7ed0adfa7ddb8ed9bb"
+      },
+      "hia-result-value.core.bin": {
+        "bytes": 3066003,
+        "sha256": "267d6ebf87a84077d37f9bd6e4de819d537157f5b566974c738eea4b0dfbd7aa"
+      }
+    },
+    "role_offsets": {
+      "carrier": 477952,
+      "cell": 921168,
+      "cleanup": 4544768,
+      "kernel": 1289456,
+      "log": 813040,
+      "notify": 4464528,
+      "owner": 2784,
+      "timeout": 780048,
+      "value": 1398512
+    },
+    "schema": "hepta.hia.future-managed-native-build.v2",
+    "source_files": {
+      "examples/hia_bootstrap/background_optimizer_future_public_carrier.hepta": {
+        "bytes": 236416,
+        "sha256": "d21781aacdf5a9443cdf9ef6446b3957422d10f1b13fb34e689137ee64533f12"
+      },
+      "examples/hia_bootstrap/background_optimizer_future_public_cleanup.hepta": {
+        "bytes": 318074,
+        "sha256": "983bf37bd119ea70c03aa70a21cc7dc627fa7ac6b92c13c7b505234ee0e343ec"
+      },
+      "examples/hia_bootstrap/background_optimizer_future_public_cleanup_packer.hepta": {
+        "bytes": 151371,
+        "sha256": "e3028df92c98ab5e0f8f19543e678a5393da905e1aa1e1d803340e5fd85d5a0f"
+      },
+      "examples/hia_bootstrap/background_optimizer_future_public_log.hepta": {
+        "bytes": 107325,
+        "sha256": "43f004f7cb5328c2e87d798c005a11905748bc5b9b47ab1d88ee5a820535541a"
+      },
+      "examples/hia_bootstrap/background_optimizer_future_public_owner.hepta": {
+        "bytes": 406117,
+        "sha256": "c9c5414098a53e710a9eb297bbf9ac673f55c41871c2b485a97ae4c07d7fa8fa"
+      },
+      "examples/hia_bootstrap/background_optimizer_future_public_timeout.hepta": {
+        "bytes": 28910,
+        "sha256": "8a87ca1f97da661ce1c24e9eaf771568bfb02e477c0725987fab6eb08e8dc4a6"
+      },
+      "examples/hia_bootstrap/future_resource_finalizer_adapter.hepta": {
+        "bytes": 32597,
+        "sha256": "95540b07bd5d29083ab1714add03d52cd3840131dd5ea90eae4710cd781e0b8a"
+      },
+      "examples/hia_bootstrap/future_resource_finalizer_adapter_packer.hepta": {
+        "bytes": 34325,
+        "sha256": "f856f2dbc7e67d792bfa452823a5a274b5c1dfd3cd937752b198947ae48d824f"
+      },
+      "examples/hia_bootstrap/future_resource_owner.hepta": {
+        "bytes": 255860,
+        "sha256": "5291813f261ca3d7056f8add75fec91a171ae5d0db4adb76322b302f7362f454"
+      },
+      "examples/hia_bootstrap/future_resource_owner_packer.hepta": {
+        "bytes": 53148,
+        "sha256": "21268e8148a4df282856c42bd6b34ac3089609a3f6d1e03b7b14ef983e0b2d3d"
+      },
+      "examples/hia_bootstrap/future_resource_registry.hepta": {
+        "bytes": 63212,
+        "sha256": "24f626391bca7ec550e5679b5afc56f8a0da5e2034bdea1691ffa59650f505e5"
+      },
+      "examples/hia_bootstrap/future_resource_registry_packer.hepta": {
+        "bytes": 30718,
+        "sha256": "3f95ad10021e969e5d7d1d185465735d9a865fac78d9fbe16bea7ce3dce7ef9a"
+      },
+      "examples/hia_bootstrap/multiversion_background_future_cell.hepta": {
+        "bytes": 274367,
+        "sha256": "25af16f80a6ba922dd750113dc071f8b55f118a4725a5523a1412e4ad34d1a67"
+      },
+      "examples/hia_bootstrap/multiversion_future.hepta": {
+        "bytes": 79742,
+        "sha256": "218892f5f247ca6275e00f5e713af45604696c3a0d440b88573b31a9a7983145"
+      },
+      "tools/generate_hia_background_optimizer_future_public_carrier.py": {
+        "bytes": 42841,
+        "sha256": "c0af54650c441b34ed08c599d4e7e99e91ca496d20dec49d6a62c641769b5431"
+      },
+      "tools/generate_hia_background_optimizer_future_public_cleanup.py": {
+        "bytes": 27907,
+        "sha256": "4f4134458a59c4fd9511d81a684569af97bedd11cf7e6c684ddf589b574740f7"
+      },
+      "tools/generate_hia_background_optimizer_future_public_cleanup_packer.py": {
+        "bytes": 11512,
+        "sha256": "f842b8ec66c6eeb9ab784d59a5a50043d9b705a38418bb9dc643c4295bb9e9a2"
+      },
+      "tools/generate_hia_background_optimizer_future_public_log.py": {
+        "bytes": 19031,
+        "sha256": "af32ed311e17eed3134877a0c094a3226080603740e94c5899868eceba8aee3a"
+      },
+      "tools/generate_hia_background_optimizer_future_public_owner.py": {
+        "bytes": 95693,
+        "sha256": "8bd0e26bb3c433753d3ff5b19a93979f68a543634854c86c877e74f417fe7cc1"
+      },
+      "tools/generate_hia_background_optimizer_future_public_timeout.py": {
+        "bytes": 6664,
+        "sha256": "6b977160c33fe085581e101b9b1233e9e90ab287596b03e9ed338b033a720966"
+      },
+      "tools/generate_hia_future_resource_finalizer_adapter.py": {
+        "bytes": 4859,
+        "sha256": "d990a962e7616f04b0cc404e1413614c206dfdaa345cfa2fb727540488009249"
+      },
+      "tools/generate_hia_future_resource_finalizer_adapter_packer.py": {
+        "bytes": 3533,
+        "sha256": "d7bbaafe8228e81b5e53596194e56fa963601ea8c9f074a68f77ae12c041cd16"
+      },
+      "tools/generate_hia_future_resource_owner.py": {
+        "bytes": 40113,
+        "sha256": "1830a4b886f3b6b67b5a85e1e29f569ee1ccacb6e05a3fa3f2f9fa3f54671378"
+      },
+      "tools/generate_hia_future_resource_owner_packer.py": {
+        "bytes": 6069,
+        "sha256": "815c3e42420826f17e4a9b8f883ffe3f35fa8fac1834a4f66d8a9f8a08d5f4e1"
+      },
+      "tools/generate_hia_future_resource_registry.py": {
+        "bytes": 2749,
+        "sha256": "f5b1525d8de7de36ec476791d1158c957dc95aa9fe58eeb3d70a9c2a53044fb8"
+      },
+      "tools/generate_hia_future_resource_registry_packer.py": {
+        "bytes": 3116,
+        "sha256": "37f43af02b2b2731d20e4a7830dfa909c79f847c9b8c9ff0656b6cd33cc8fb5c"
+      },
+      "tools/generate_hia_multiversion_background_future_cell.py": {
+        "bytes": 47329,
+        "sha256": "c52a94ef47a6f70a289dc64666da625cc52a4dcd2c148461f4fd2677595c1e3b"
+      },
+      "tools/generate_hia_multiversion_future.py": {
+        "bytes": 17935,
+        "sha256": "8aa901c479f1bd19cb232f11f9f406369a2a705dc200650d7b74dcef93bc8f88"
+      },
+      "tools/hia_background_optimizer_future_public_cleanup_bridge.S": {
+        "bytes": 16435,
+        "sha256": "a7aa922ad862ad172e4e09fdf43dc1323736cbd0d78d2752d97e4ab3f12117bc"
+      },
+      "tools/hia_future_resource_finalizer_adapter_bridge.S": {
+        "bytes": 2378,
+        "sha256": "2f76ac47f870bf88e66b4e3426adeb58d45306f2e0d232503f4c42bc4ef2e6fd"
+      },
+      "tools/hia_future_resource_owner_bridge.S": {
+        "bytes": 3845,
+        "sha256": "f441eab1a70bf8d3920059f1d9faf6c0ec078e4cb0fddc4d3ac686c84f093907"
+      },
+      "tools/hia_future_resource_registry_bridge.S": {
+        "bytes": 2467,
+        "sha256": "db7ff72669b8094c333dc3ddaf4228c0cba28d740479cb752d784bc8f2cfc5ac"
+      },
+      "tools/hia_multiversion_background_future_cell_bridge.S": {
+        "bytes": 2888,
+        "sha256": "4cab412a06377f4d4d0fbfcd7283ff54631216edad3227a9b0a319cb2a313632"
+      },
+      "tools/hia_multiversion_future_bridge.S": {
+        "bytes": 2727,
+        "sha256": "da297d4e793ae65bac083bd855456f5a82f6890181679fa9cdb00ab5aded5024"
+      }
+    },
+    "value_qualification": {
+      "frozen_commit": "154faaae294a01bb822f3b1d9d6439da5d0f4fe0",
+      "product": {
+        "bytes": 3066003,
+        "sha256": "267d6ebf87a84077d37f9bd6e4de819d537157f5b566974c738eea4b0dfbd7aa"
+      }
+    },
+    "whole_public_future_closed": false
+  },
+  "continuing_work": [
+    "production trusted sidecar initialization",
+    "native callable callbacks and custom truth protocols",
+    "background public worker, shutdown and finalizer integration",
+    "unknown-delivery recovery campaign",
+    "final-source original 27-group campaign"
+  ],
+  "evidence": {
+    "behavior": {
+      "bytes": 18869,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/future-managed-component-checkpoint-v1/report.json",
+      "sha256": "ade1f0bcd0684cb40aeb4988c5636858fa284801964804d53c3dff1dbeb5e916"
+    },
+    "construction": {
+      "bytes": 14179,
+      "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/future-managed-component-checkpoint-v1/build/build.json",
+      "sha256": "f411948870571b9babca06a25e52dc69c97751c9ddbd45d3fbbcd6d14c783499"
+    }
+  },
+  "native_callable_dispatcher_closed": false,
+  "production_trusted_initializer_closed": false,
+  "qualifier": {
+    "bytes": 29605,
+    "sha256": "77f8c3a2b806ed0387ba106bfb9b1eaa0a1b56bff887b625838dedbeba7989ca"
+  },
+  "retained_original_campaign": {
+    "bytes": 60493,
+    "groups": 27,
+    "passed": true,
+    "path": "/home/qian-qi/hia-followthrough-evidence-20261126-620a/future-managed-original-candidate-v2/qualification.json",
+    "same_current_source": false,
+    "scope": "Frozen pre-private-op30 source and product; final source requires fresh unchanged original campaign.",
+    "sha256": "40c6c9c7e8d0815c97ae97b50e9f3abcd49e646c7fe18542b30755427eaadff6"
+  },
+  "schema": "hepta.hia.future-managed-native-component.v2",
+  "source_files": {
+    "examples/hia_bootstrap/background_optimizer_future_public_carrier.hepta": {
+      "bytes": 236416,
+      "sha256": "d21781aacdf5a9443cdf9ef6446b3957422d10f1b13fb34e689137ee64533f12"
+    },
+    "examples/hia_bootstrap/background_optimizer_future_public_cleanup.hepta": {
+      "bytes": 318074,
+      "sha256": "983bf37bd119ea70c03aa70a21cc7dc627fa7ac6b92c13c7b505234ee0e343ec"
+    },
+    "examples/hia_bootstrap/background_optimizer_future_public_cleanup_packer.hepta": {
+      "bytes": 151371,
+      "sha256": "e3028df92c98ab5e0f8f19543e678a5393da905e1aa1e1d803340e5fd85d5a0f"
+    },
+    "examples/hia_bootstrap/background_optimizer_future_public_log.hepta": {
+      "bytes": 107325,
+      "sha256": "43f004f7cb5328c2e87d798c005a11905748bc5b9b47ab1d88ee5a820535541a"
+    },
+    "examples/hia_bootstrap/background_optimizer_future_public_owner.hepta": {
+      "bytes": 406117,
+      "sha256": "c9c5414098a53e710a9eb297bbf9ac673f55c41871c2b485a97ae4c07d7fa8fa"
+    },
+    "examples/hia_bootstrap/background_optimizer_future_public_timeout.hepta": {
+      "bytes": 28910,
+      "sha256": "8a87ca1f97da661ce1c24e9eaf771568bfb02e477c0725987fab6eb08e8dc4a6"
+    },
+    "examples/hia_bootstrap/future_resource_finalizer_adapter.hepta": {
+      "bytes": 32597,
+      "sha256": "95540b07bd5d29083ab1714add03d52cd3840131dd5ea90eae4710cd781e0b8a"
+    },
+    "examples/hia_bootstrap/future_resource_finalizer_adapter_packer.hepta": {
+      "bytes": 34325,
+      "sha256": "f856f2dbc7e67d792bfa452823a5a274b5c1dfd3cd937752b198947ae48d824f"
+    },
+    "examples/hia_bootstrap/future_resource_owner.hepta": {
+      "bytes": 255860,
+      "sha256": "5291813f261ca3d7056f8add75fec91a171ae5d0db4adb76322b302f7362f454"
+    },
+    "examples/hia_bootstrap/future_resource_owner_packer.hepta": {
+      "bytes": 53148,
+      "sha256": "21268e8148a4df282856c42bd6b34ac3089609a3f6d1e03b7b14ef983e0b2d3d"
+    },
+    "examples/hia_bootstrap/future_resource_registry.hepta": {
+      "bytes": 63212,
+      "sha256": "24f626391bca7ec550e5679b5afc56f8a0da5e2034bdea1691ffa59650f505e5"
+    },
+    "examples/hia_bootstrap/future_resource_registry_packer.hepta": {
+      "bytes": 30718,
+      "sha256": "3f95ad10021e969e5d7d1d185465735d9a865fac78d9fbe16bea7ce3dce7ef9a"
+    },
+    "examples/hia_bootstrap/multiversion_background_future_cell.hepta": {
+      "bytes": 274367,
+      "sha256": "25af16f80a6ba922dd750113dc071f8b55f118a4725a5523a1412e4ad34d1a67"
+    },
+    "examples/hia_bootstrap/multiversion_future.hepta": {
+      "bytes": 79742,
+      "sha256": "218892f5f247ca6275e00f5e713af45604696c3a0d440b88573b31a9a7983145"
+    },
+    "tools/generate_hia_background_optimizer_future_public_carrier.py": {
+      "bytes": 42841,
+      "sha256": "c0af54650c441b34ed08c599d4e7e99e91ca496d20dec49d6a62c641769b5431"
+    },
+    "tools/generate_hia_background_optimizer_future_public_cleanup.py": {
+      "bytes": 27907,
+      "sha256": "4f4134458a59c4fd9511d81a684569af97bedd11cf7e6c684ddf589b574740f7"
+    },
+    "tools/generate_hia_background_optimizer_future_public_cleanup_packer.py": {
+      "bytes": 11512,
+      "sha256": "f842b8ec66c6eeb9ab784d59a5a50043d9b705a38418bb9dc643c4295bb9e9a2"
+    },
+    "tools/generate_hia_background_optimizer_future_public_log.py": {
+      "bytes": 19031,
+      "sha256": "af32ed311e17eed3134877a0c094a3226080603740e94c5899868eceba8aee3a"
+    },
+    "tools/generate_hia_background_optimizer_future_public_owner.py": {
+      "bytes": 95693,
+      "sha256": "8bd0e26bb3c433753d3ff5b19a93979f68a543634854c86c877e74f417fe7cc1"
+    },
+    "tools/generate_hia_background_optimizer_future_public_timeout.py": {
+      "bytes": 6664,
+      "sha256": "6b977160c33fe085581e101b9b1233e9e90ab287596b03e9ed338b033a720966"
+    },
+    "tools/generate_hia_future_resource_finalizer_adapter.py": {
+      "bytes": 4859,
+      "sha256": "d990a962e7616f04b0cc404e1413614c206dfdaa345cfa2fb727540488009249"
+    },
+    "tools/generate_hia_future_resource_finalizer_adapter_packer.py": {
+      "bytes": 3533,
+      "sha256": "d7bbaafe8228e81b5e53596194e56fa963601ea8c9f074a68f77ae12c041cd16"
+    },
+    "tools/generate_hia_future_resource_owner.py": {
+      "bytes": 40113,
+      "sha256": "1830a4b886f3b6b67b5a85e1e29f569ee1ccacb6e05a3fa3f2f9fa3f54671378"
+    },
+    "tools/generate_hia_future_resource_owner_packer.py": {
+      "bytes": 6069,
+      "sha256": "815c3e42420826f17e4a9b8f883ffe3f35fa8fac1834a4f66d8a9f8a08d5f4e1"
+    },
+    "tools/generate_hia_future_resource_registry.py": {
+      "bytes": 2749,
+      "sha256": "f5b1525d8de7de36ec476791d1158c957dc95aa9fe58eeb3d70a9c2a53044fb8"
+    },
+    "tools/generate_hia_future_resource_registry_packer.py": {
+      "bytes": 3116,
+      "sha256": "37f43af02b2b2731d20e4a7830dfa909c79f847c9b8c9ff0656b6cd33cc8fb5c"
+    },
+    "tools/generate_hia_multiversion_background_future_cell.py": {
+      "bytes": 47329,
+      "sha256": "c52a94ef47a6f70a289dc64666da625cc52a4dcd2c148461f4fd2677595c1e3b"
+    },
+    "tools/generate_hia_multiversion_future.py": {
+      "bytes": 17935,
+      "sha256": "8aa901c479f1bd19cb232f11f9f406369a2a705dc200650d7b74dcef93bc8f88"
+    },
+    "tools/hia_background_optimizer_future_public_cleanup_bridge.S": {
+      "bytes": 16435,
+      "sha256": "a7aa922ad862ad172e4e09fdf43dc1323736cbd0d78d2752d97e4ab3f12117bc"
+    },
+    "tools/hia_future_resource_finalizer_adapter_bridge.S": {
+      "bytes": 2378,
+      "sha256": "2f76ac47f870bf88e66b4e3426adeb58d45306f2e0d232503f4c42bc4ef2e6fd"
+    },
+    "tools/hia_future_resource_owner_bridge.S": {
+      "bytes": 3845,
+      "sha256": "f441eab1a70bf8d3920059f1d9faf6c0ec078e4cb0fddc4d3ac686c84f093907"
+    },
+    "tools/hia_future_resource_registry_bridge.S": {
+      "bytes": 2467,
+      "sha256": "db7ff72669b8094c333dc3ddaf4228c0cba28d740479cb752d784bc8f2cfc5ac"
+    },
+    "tools/hia_multiversion_background_future_cell_bridge.S": {
+      "bytes": 2888,
+      "sha256": "4cab412a06377f4d4d0fbfcd7283ff54631216edad3227a9b0a319cb2a313632"
+    },
+    "tools/hia_multiversion_future_bridge.S": {
+      "bytes": 2727,
+      "sha256": "da297d4e793ae65bac083bd855456f5a82f6890181679fa9cdb00ab5aded5024"
+    },
+    "tools/qualify_hia_future_managed_edges.py": {
+      "bytes": 29605,
+      "sha256": "77f8c3a2b806ed0387ba106bfb9b1eaa0a1b56bff887b625838dedbeba7989ca"
+    }
+  },
+  "unknown_delivery_recovery_campaign_qualified": false,
+  "whole_background_closed": false,
+  "whole_public_future_closed": false
+}

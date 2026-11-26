@@ -97,6 +97,13 @@ C.update(VREQUEST2=int.from_bytes(b"HIABVQ02","little"), VREQUEST3=int.from_byte
          X_NAMED=1960, X_DROP=1968, X_NEXT=1976, X_BAD=1984, X_PROBE=1992,
          X_CLEAN_NEXT=2000, X_MAP_PENDING=2008, X_OVERRIDE=2016,
          X_TAG0=2024, X_TAG1=2032, X_RECOVERY=2040)
+C.update(MAGIC4=int.from_bytes(b'HIABFP04','little'),REPLY3=int.from_bytes(b'HIABFRP3','little'),
+ FREQUEST6=int.from_bytes(b'HIABFQ06','little'),FREPLY3=int.from_bytes(b'HIABFR03','little'),
+ VREQUEST5=int.from_bytes(b'HIABVQ05','little'),VREQUEST6=int.from_bytes(b'HIABVQ06','little'),
+ M_DEFER=872,M_QUEUE=880,M_UNMAP=848,M_BAD=856,M_NEXT=864)
+C.update(FREQUEST5=int.from_bytes(b'HIABFQ05','little'))
+C.update(CREQUEST2=int.from_bytes(b'HIAPFC02','little'),LOG_REQUEST5=int.from_bytes(b'HIAFPL05','little'),LOG_REPLY2=int.from_bytes(b'HIAFPLR2','little'))
+C.update(GMAGIC2=int.from_bytes(b'HIABFC02','little'),GREPLY2=int.from_bytes(b'HIABFCR2','little'),GOBJECT2=int.from_bytes(b'HIABFCT2','little'))
 SOURCE=r'''
 def future_public(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if length(o)<OUT or length(w)<256:
@@ -104,6 +111,9 @@ def future_public(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,PHASE)
     if phase==0:
         return begin(s,o,w)
+    if phase==1490:
+        managed_cell_ok(o)
+        return again(o,get(o,M_NEXT))
     if phase>=1700:
         return guarded(s,o,w,phase)
     if phase>=1500:
@@ -143,6 +153,9 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     elif readword(s,0)==MAGIC3:
         if op<26 or op>29:
             return 4294967293
+    elif readword(s,0)==MAGIC4:
+        if op>30:
+            return 4294967293
     else:
         return 4294967293
     at=16
@@ -152,27 +165,29 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             used=True
         if op>=2 and op<=17 and at>=16 and at<=56:
             used=True
-        if (op==19 or op==21 or (op>=22 and op<=27)) and at>=16 and at<=56:
+        if (op==19 or op==21 or op==30 or (op>=22 and op<=27)) and at>=16 and at<=56:
             used=True
         if op==28 and at>=16 and at<=32:
             used=True
-        if (op==12 or op==13 or op==22 or op==23) and at>=64 and at<=80:
+        if (op==12 or op==13 or op==22 or op==23 or op==30) and at>=64 and at<=80:
             used=True
         if (op==12 or op==22 or op==23) and at==96:
             used=True
-        if op==13 and at==88:
+        if (op==13 or op==30) and at==88:
             used=True
-        if (op==10 or op==11) and at>=104 and at<=120:
+        if (op==10 or op==11 or op==30) and at>=104 and at<=120:
             used=True
         if used==False and readword(s,at)!=0:
             return 4294967293
         at=at+8
     if (op==12 or op==22 or op==23) and (readword(s,96)<1 or readword(s,96)>3):
         return 4294967293
-    if op==13 and readword(s,88)==0:
+    if (op==13 or op==30) and readword(s,88)==0:
         return 4294967293
     zero(o,128,OUT-128)
     put(o,OP,op)
+    if readword(s,0)==MAGIC4:
+        put(o,M_DEFER,1)
     if op==26 or op==27 or op==29:
         put(o,DROP_KNOWN,1)
     return system(o,1,39,0,0,0,0,0,0,0)
@@ -214,7 +229,7 @@ def locks(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return lock(o,20)
     if phase==4:
         if value_ok(o)==False:
-            return finish(o,1,choose(get(o,VP+8)==5,103,107))
+            return finish(o,1,choose(value_local_status(o)==5,103,107))
         within(o,TOKEN,VP+24,24)
         copy_between(o,TOKEN,w,128,24)
         zero(w,0,64)
@@ -483,7 +498,7 @@ def construct(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return value(o,w,122)
     if phase==122:
         if value_ok(o)==False:
-            return fail(o,1,choose(get(o,VP+8)==5,103,107))
+            return fail(o,1,choose(value_local_status(o)==5,103,107))
         return memory(o,123,3,VP+24,0,get(o,F)+72,24)
     if phase==123:
         cell_packet(o,0)
@@ -604,6 +619,8 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==307:
         if cell_ok(o)==False:
             return cell_error(o)
+        if get(o,OP)==30:
+            put(o,KERNEL,get(o,FP+64))
         put(o,GNEXT,309)
         return unlock(o,1700)
     if phase==309:
@@ -652,9 +669,18 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return fail(o,0,2)
     if phase==310:
         op=get(o,OP)
+        if op==30:
+            cell_packet(o,22)
+            put(o,RQ,FREQUEST5)
+            within(o,RQ+24,FUTURE_TEMP,24)
+            copy_input(s,64,o,RQ+48,24)
+            put(o,RQ+72,readword(s,88))
+            copy_input(s,104,o,RQ+80,24)
+            put(o,RQ+104,get(o,KERNEL))
+            return cell(o,w,320)
         if op==13:
             copy_input(s,0,o,RQ,192)
-            put(o,RQ,CREQUEST)
+            put(o,RQ,choose(get(o,M_DEFER)!=0,CREQUEST2,CREQUEST))
             put(o,RQ+8,0)
             within(o,RQ+40,FUTURE_TEMP,24)
             return invoke(o,330,get(w,152),RQ,192,CP,32768,get(o,WPTR),256)
@@ -684,6 +710,11 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==320:
         if cell_ok(o)==False:
             return cell_error(o)
+        if get(o,OP)==30:
+            if get(o,FP+16)!=7 or get(o,FP+64)!=get(o,KERNEL):
+                return fail(o,1,107)
+            put(o,SCALAR,get(o,FP+64))
+            return fail(o,0,7)
         save_cell(o)
         op=get(o,OP)
         if op==10 or op==11:
@@ -732,6 +763,17 @@ def methods(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==330:
         if get(o,FEEDBACK)!=0 or get(o,CP)!=CREPLY:
             return fail(o,1,107)
+        if get(o,M_DEFER)!=0:
+            if get(o,CP+32)>1 or get(o,CP+40)>1 or get(o,CP+48)>1:
+                put(o,M_BAD,1)
+                return fail(o,1,107)
+            if get(o,CP+32)!=0:
+                put(o,M_UNMAP,1)
+            if get(o,CP+40)!=0:
+                put(o,M_QUEUE,1)
+            if get(o,CP+48)!=0:
+                put(o,M_BAD,1)
+                return fail(o,1,107)
         if get(o,CP+8)!=0:
             return fail(o,1,get(o,CP+16))
         return fail(o,0,0)
@@ -793,9 +835,9 @@ def results(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==500:
         if get(o,FEEDBACK)!=0 or get(o,VP)!=TREPLY:
             return fail(o,1,107)
-        if get(o,VP+8)!=0:
+        if value_local_status(o)!=0:
             put(o,EXTRA,get(o,VP+40))
-            return fail(o,get(o,VP+8),get(o,VP+16))
+            return fail(o,value_local_status(o),get(o,VP+16))
         put(o,WAIT_NS,get(o,VP+24))
         put(o,WAIT_INF,get(o,VP+32))
         return again(o,510)
@@ -1052,13 +1094,27 @@ def cell_packet(o:mutbuf,op:u64) -> u64:
     magic=choose(op>=15,FREQUEST3,FREQUEST)
     if op==20 or op==21:
         magic=FREQUEST4
-    put(o,RQ,magic)
+    put(o,RQ,choose(get(o,M_DEFER)!=0,FREQUEST6,magic))
     put(o,RQ+8,op)
     return 0
 def value_packet(o:mutbuf,op:u64) -> u64:
     zero(o,RQ,192)
     put(o,RQ,choose(op>=29,VREQUEST2,VREQUEST))
     put(o,RQ+8,op)
+    if get(o,M_DEFER)!=0:
+        put(o,RQ,VREQUEST6)
+        if op==6 or op==29:
+            put(o,RQ+8,78)
+            put(o,RQ,VREQUEST5)
+        elif op==22 or op==30:
+            put(o,RQ+8,92)
+            put(o,RQ,VREQUEST5)
+        elif op==31:
+            put(o,RQ+8,93)
+            put(o,RQ,VREQUEST5)
+        elif op==5:
+            put(o,RQ+8,91)
+            put(o,RQ,VREQUEST5)
     return 0
 def cell(o:mutbuf,w:mutbuf,next:u64) -> u32:
     if get(o,RQ+8)==3 and get(o,GPTR)!=0:
@@ -1066,6 +1122,9 @@ def cell(o:mutbuf,w:mutbuf,next:u64) -> u32:
         put(o,GNEXT,next)
         put(o,GKEEP,get(o,HELD))
         return guard_snapshot(o,1720)
+    if get(o,M_DEFER)!=0:
+        put(o,M_NEXT,next)
+        return invoke(o,1490,get(w,80),RQ,128,FP,16384,get(o,F)+256,256)
     return invoke(o,next,get(w,80),RQ,128,FP,16384,get(o,F)+256,256)
 def value(o:mutbuf,w:mutbuf,next:u64) -> u32:
     if get(o,RQ+8)==6 and get(o,GPTR)!=0:
@@ -1075,14 +1134,25 @@ def value(o:mutbuf,w:mutbuf,next:u64) -> u32:
         return guard_snapshot(o,1720)
     return invoke(o,next,get(w,72),RQ,128,VP,8192,get(w,112),get(w,120))
 def cell_ok(o:mutbuf) -> bool:
+    if get(o,M_DEFER)!=0:
+        return managed_cell_ok(o)
     return get(o,FEEDBACK)==0 and get(o,FP)==FREPLY and get(o,FP+8)==0
 def value_ok(o:mutbuf) -> bool:
-    return get(o,FEEDBACK)==0 and get(o,VP)==VREPLY and get(o,VP+8)==0
+    if get(o,M_DEFER)!=0 and get(o,RQ)==VREQUEST5:
+        if get(o,RQ+8)==91:
+            return managed_retain_ok(o)
+        if get(o,RQ+8)==78 or get(o,RQ+8)==92:
+            if managed_drop_record(o,True)==False:
+                return False
+            return get(o,VD_CONSUMED)==1
+    return get(o,FEEDBACK)==0 and get(o,VP)==VREPLY and value_local_status(o)==0
 def value_drop_record(o:mutbuf,op:u64) -> bool:
+    if get(o,M_DEFER)!=0:
+        return managed_drop_record(o,op!=31)
     if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY2:
         return False
-    status=get(o,VP+8)
-    pending=get(o,VP+80)
+    status=value_local_status(o)
+    pending=value_local_pending(o)
     known=get(o,VP+88)
     consumed=get(o,VP+96)
     if pending>1 or known!=1 or consumed>1:
@@ -1116,7 +1186,7 @@ def cell_error(o:mutbuf) -> u32:
         return fail(o,3,107)
     return fail(o,1,choose(get(o,FP+8)==4,103,107))
 def drop_record(o:mutbuf) -> u32:
-    if get(o,FEEDBACK)!=0 or get(o,FP)!=FREPLY2:
+    if get(o,FEEDBACK)!=0 or get(o,FP)!=choose(get(o,M_DEFER)!=0,FREPLY3,FREPLY2):
         return fail(o,1,107)
     status=get(o,FP+8)
     consumed=get(o,FP+128)
@@ -1197,6 +1267,11 @@ def finish(o:mutbuf,status:u64,kind:u64) -> u32:
         put(o,112,get(o,DROP_PENDING))
         if (get(o,OP)==27 or get(o,OP)==28) and get(o,DROP_PENDING)!=0:
             within(o,24,FACTORY_ID,24)
+    if get(o,M_DEFER)!=0:
+        put(o,0,REPLY3)
+        put(o,128,get(o,M_UNMAP))
+        put(o,136,get(o,M_QUEUE))
+        put(o,144,get(o,M_BAD))
     return 0
 def copy_between(a:mutbuf,at:u64,b:mutbuf,bt:u64,n:u64) -> u64:
     i=0
@@ -1348,7 +1423,7 @@ def inherited_error(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,EIDENT,get(o,FP+64))
         if get(o,EERROR)==2:
             zero(o,RQ,192)
-            put(o,RQ,LOG_REQUEST2)
+            put(o,RQ,choose(get(o,M_DEFER)!=0,LOG_REQUEST5,LOG_REQUEST2))
             put(o,RQ+8,get(o,EIDENT))
             put(o,RQ+16,state_code(get(o,ESTATE),get(o,ENOT),1))
             return invoke(o,1004,get(w,176),RQ,192,CP,16384,get(o,WPTR),256)
@@ -1374,8 +1449,15 @@ def inherited_error(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(o,EAFTER,1010)
         return again(o,1100)
     if phase==1004:
-        if get(o,FEEDBACK)!=0 or get(o,CP)!=LOG_REPLY or get(o,CP+8)!=0:
+        if get(o,FEEDBACK)!=0 or get(o,CP)!=choose(get(o,M_DEFER)!=0,LOG_REPLY2,LOG_REPLY) or get(o,CP+8)!=0:
             return inherited_fail(o,107)
+        if get(o,M_DEFER)!=0:
+            at=24
+            while at<128:
+                if get(o,CP+at)!=0:
+                    put(o,M_BAD,1)
+                    return inherited_fail(o,107)
+                at=at+8
         return again(o,1200)
     if phase==1021:
         if cell_ok(o)==False:
@@ -1479,7 +1561,7 @@ def inherited_value(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return value_wide(o,w,1122,128+n,8192)
     if phase==1122:
         if value_ok(o)==False:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         within(o,KEY_CAP,VP+24,24)
         value_packet(o,9)
         within(o,RQ+24,EVAL_CAP,24)
@@ -1487,7 +1569,7 @@ def inherited_value(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return value(o,w,1123)
     if phase==1123:
         if value_ok(o)==False:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         within(o,TYPE_CAP,VP+24,24)
         value_packet(o,6)
         within(o,RQ+24,KEY_CAP,24)
@@ -1558,7 +1640,7 @@ def inherited_message(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return invoke_absolute(o,1209,get(w,72),get(o,EPTR),128+get(o,EN),VP,8192,get(w,112),get(w,120))
     if phase==1209:
         if value_ok(o)==False:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         within(o,MSG_CAP,VP+24,24)
         ptr=get(o,EPTR)
         put(o,EPTR,0)
@@ -1571,7 +1653,7 @@ def inherited_record(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return value(o,w,1301)
     if phase==1301:
         if value_ok(o)==False:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         within(o,ERROR_CAP,VP+24,24)
         value_packet(o,2)
         n=inherited_literal(o,RQ+128,1+get(o,EERROR))
@@ -1580,7 +1662,7 @@ def inherited_record(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return value_wide(o,w,1302,128+n,8192)
     if phase==1302:
         if value_ok(o)==False:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         within(o,CLASS_CAP,VP+24,24)
         put(o,EKEYFIELD,0)
         return again(o,1303)
@@ -1592,7 +1674,7 @@ def inherited_record(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return value_wide(o,w,1304,128+n,8192)
     if phase==1304:
         if value_ok(o)==False:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         within(o,KEY_CAP,VP+24,24)
         value_packet(o,10)
         within(o,RQ+24,ERROR_CAP,24)
@@ -1604,7 +1686,7 @@ def inherited_record(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return value(o,w,1305)
     if phase==1305:
         if value_ok(o)==False:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         value_packet(o,6)
         within(o,RQ+24,KEY_CAP,24)
         return value(o,w,1306)
@@ -1680,7 +1762,7 @@ def guard_reserve(o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return fail(o,1,107)
         return memory(o,1704,0,get(o,GSCAN),3,NODE,128)
     if phase==1704:
-        if get(o,NODE)!=GOBJECT or get(o,NODE+8)!=get(o,PID) or get(o,NODE+16)!=get(o,F):
+        if get(o,NODE)!=choose(get(o,M_DEFER)!=0,GOBJECT2,GOBJECT) or get(o,NODE+8)!=get(o,PID) or get(o,NODE+16)!=get(o,F):
             put(o,CLEANUP_FAILED,1)
             return fail(o,1,107)
         if get(o,GSCAN)!=get(o,GCAP):
@@ -1728,7 +1810,10 @@ def guard_drop(o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==1722:
         at=choose(get(o,GKIND)==1,FP,VP)
         zero(o,at,128)
-        put(o,at,choose(get(o,GKIND)==1,FREPLY,VREPLY))
+        put(o,at,choose(get(o,GKIND)==1,choose(get(o,M_DEFER)!=0,FREPLY3,FREPLY),VREPLY))
+        if get(o,M_DEFER)!=0 and get(o,GKIND)==1:
+            put(o,FP+160,get(o,GOUTPUT+88))
+            put(o,FP+168,get(o,GOUTPUT+96))
         put(o,at+8,get(o,GSTATUS))
         put(o,FEEDBACK,0)
         return again(o,get(o,GNEXT))
@@ -1824,7 +1909,7 @@ def guard_shadow_cap(o:mutbuf,to:u64,kind:u64,at:u64) -> u64:
 
 def guard_packet(o:mutbuf,op:u64) -> u64:
     zero(o,GREQUEST,192)
-    put(o,GREQUEST,GMAGIC)
+    put(o,GREQUEST,choose(get(o,M_DEFER)!=0,GMAGIC2,GMAGIC))
     put(o,GREQUEST+8,op)
     within(o,GREQUEST+16,FACTORY_ID,24)
     if op==1 or op==2:
@@ -1838,7 +1923,7 @@ def guard_call(o:mutbuf,w:mutbuf,next:u64) -> u32:
     return invoke(o,next,get(w,216),GREQUEST,192,GOUTPUT,128,get(o,WPTR),256)
 
 def guard_record(o:mutbuf,op:u64) -> bool:
-    if get(o,FEEDBACK)!=0 or get(o,GOUTPUT)!=GREPLY:
+    if get(o,FEEDBACK)!=0 or get(o,GOUTPUT)!=choose(get(o,M_DEFER)!=0,GREPLY2,GREPLY):
         return False
     status=get(o,GOUTPUT+8)
     pending=get(o,GOUTPUT+40)
@@ -1856,6 +1941,15 @@ def guard_record(o:mutbuf,op:u64) -> bool:
     if taken==1 and status!=0 and status!=9:
         return False
     at=88
+    if get(o,M_DEFER)!=0:
+        if get(o,GOUTPUT+88)>1 or get(o,GOUTPUT+96)>1:
+            put(o,M_BAD,1)
+            return False
+        if get(o,GOUTPUT+88)!=0:
+            put(o,M_QUEUE,1)
+        if get(o,GOUTPUT+96)!=0:
+            put(o,M_UNMAP,1)
+        at=104
     while at<128:
         if get(o,GOUTPUT+at)!=0:
             return False
@@ -2367,22 +2461,22 @@ def extended_type(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return inherited_fail(o,103)
         put(o,X_PTR,ptr)
         value_packet(o,36)
-        put(o,RQ,VREQUEST3)
+        put(o,RQ,managed_value_magic(o,VREQUEST3))
         within(o,RQ+24,get(o,X_AT),24)
         return value(o,w,1501)
     if phase==1501:
         if value_ok(o)==False or get(o,VP+16)!=10:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         within(o,X_CLASS,VP+24,24)
         if get(o,X_MODE)==1:
             return again(o,1510)
         value_packet(o,38)
-        put(o,RQ,VREQUEST3)
+        put(o,RQ,managed_value_magic(o,VREQUEST3))
         within(o,RQ+24,X_CLASS,24)
         return value(o,w,1502)
     if phase==1502:
         if value_ok(o)==False or get(o,VP+16)!=4:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         within(o,TYPE_CAP,VP+24,24)
         put(o,X_NAMED,1)
         return extended_drop(o,w,X_CLASS,1503)
@@ -2417,17 +2511,17 @@ def extended_truth(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return value_wide(o,w,1511,128+n,8192)
     if phase==1511:
         if value_ok(o)==False:
-            return inherited_fail(o,choose(get(o,VP+8)==5,103,107))
+            return inherited_fail(o,choose(value_local_status(o)==5,103,107))
         within(o,X_KEY,VP+24,24)
         value_packet(o,39)
-        put(o,RQ,VREQUEST3)
+        put(o,RQ,managed_value_magic(o,VREQUEST3))
         within(o,RQ+24,X_CLASS,24)
         within(o,RQ+48,X_KEY,24)
         return value(o,w,1512)
     if phase==1512:
         if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY:
             return inherited_fail(o,107)
-        status=get(o,VP+8)
+        status=value_local_status(o)
         if status==0:
             within(o,X_ATTR,VP+24,24)
             put(o,X_OVERRIDE,1)
@@ -2448,7 +2542,7 @@ def extended_truth(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==1514:
         if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY:
             return inherited_fail(o,107)
-        status=get(o,VP+8)
+        status=value_local_status(o)
         if status==0:
             put(o,ETRUTH,choose(get(o,VP+48)!=0,1,0))
         elif status==2:
@@ -2463,14 +2557,16 @@ def extended_drop(o:mutbuf,w:mutbuf,at:u64,next:u64) -> u32:
     put(o,X_DROP,at)
     put(o,X_NEXT,next)
     value_packet(o,29)
-    put(o,RQ,VREQUEST2)
+    put(o,RQ,managed_value_magic(o,VREQUEST2))
     within(o,RQ+24,at,24)
     return value(o,w,1560)
 
 def extended_drop_valid(o:mutbuf) -> bool:
+    if get(o,M_DEFER)!=0:
+        return managed_drop_record(o,get(o,RQ+8)!=93)
     if get(o,FEEDBACK)!=0 or get(o,VP)!=VDROP_REPLY:
         return False
-    pending=get(o,VP+80)
+    pending=value_local_pending(o)
     known=get(o,VP+88)
     consumed=get(o,VP+96)
     if pending>1 or known>1 or consumed>1:
@@ -2485,7 +2581,7 @@ def extended_drop_valid(o:mutbuf) -> bool:
         if get(o,VP+at)!=0:
             return False
         at=at+8
-    status=get(o,VP+8)
+    status=value_local_status(o)
     if known==0:
         return status==11 and pending==0 and consumed==0
     if consumed!=0:
@@ -2501,10 +2597,10 @@ def extended_cleanup(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return inherited_fail(o,107)
         if get(o,VP+88)!=0 and get(o,VP+96)!=0:
             zero(o,get(o,X_DROP),24)
-        if get(o,VP+8)==0:
+        if value_local_status(o)==0:
             return again(o,get(o,X_NEXT))
         put(o,X_BAD,choose(get(o,VP+88)==0,2,1))
-        put(o,X_MAP_PENDING,get(o,VP+80))
+        put(o,X_MAP_PENDING,value_local_pending(o))
         return inherited_fail(o,107)
     if phase==1570:
         if get(o,X_BAD)!=0:
@@ -2667,14 +2763,14 @@ def extended_retry_caps(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==1611:
         if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY:
             return extended_retry_fail(o)
-        if get(o,VP+8)==1:
+        if value_local_status(o)==1:
             value_packet(o,31)
-            put(o,RQ,VREQUEST2)
+            put(o,RQ,managed_value_magic(o,VREQUEST2))
             return value(o,w,1614)
-        if get(o,VP+8)!=0:
+        if value_local_status(o)!=0:
             return extended_retry_fail(o)
         value_packet(o,29)
-        put(o,RQ,VREQUEST2)
+        put(o,RQ,managed_value_magic(o,VREQUEST2))
         within(o,RQ+24,get(o,X_DROP),24)
         return value(o,w,1612)
     if phase==1612:
@@ -2682,15 +2778,15 @@ def extended_retry_caps(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return extended_retry_fail(o)
         if get(o,VP+88)!=0 and get(o,VP+96)!=0:
             zero(o,get(o,X_DROP),24)
-        put(o,X_MODE,choose(get(o,VP+8)==0,1,0))
+        put(o,X_MODE,choose(value_local_status(o)==0,1,0))
         put(o,NODE+8,choose(get(o,VP+88)==0,2,1))
-        put(o,NODE+144,get(o,VP+80))
+        put(o,NODE+144,value_local_pending(o))
         return memory(o,1613,3,NODE,0,get(o,X_PTR),256)
     if phase==1614:
         # Absence of this exact ticket is independent of mapping retirement.
         # The active-context refusal to retry confirms pending==0 separately;
         # it is never reported as destruction of the live Value context.
-        if extended_drop_valid(o)==False or get(o,VP+8)!=6 or get(o,VP+80)!=0 or get(o,VP+88)!=1 or get(o,VP+96)!=0:
+        if extended_drop_valid(o)==False or value_local_status(o)!=6 or value_local_pending(o)!=0 or get(o,VP+88)!=1 or get(o,VP+96)!=0:
             return extended_retry_fail(o)
         zero(o,get(o,X_DROP),24)
         put(o,X_MODE,1)
@@ -2705,10 +2801,10 @@ def extended_retry_caps(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
 def extended_retry_mapping(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
     if phase==1620:
         value_packet(o,31)
-        put(o,RQ,VREQUEST2)
+        put(o,RQ,managed_value_magic(o,VREQUEST2))
         return value(o,w,1621)
     if phase==1621:
-        if extended_drop_valid(o)==False or get(o,VP+8)!=6 or get(o,VP+80)!=0 or get(o,VP+88)!=1 or get(o,VP+96)!=0 or get(w,200)==0:
+        if extended_drop_valid(o)==False or value_local_status(o)!=6 or value_local_pending(o)!=0 or get(o,VP+88)!=1 or get(o,VP+96)!=0 or get(w,200)==0:
             return extended_retry_fail(o)
         return system(o,1622,11,0,get(o,X_PTR),4096,0,0,0,0)
     if phase==1622:
@@ -2726,6 +2822,98 @@ def extended_retry_mapping(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         return again(o,27)
     return extended_retry_fail(o)
 '''
+
+MANAGED_SOURCE=r'''
+def managed_value_magic(o:mutbuf,ordinary:u64) -> u64:
+    if get(o,M_DEFER)==0:
+        return ordinary
+    op=get(o,RQ+8)
+    if op==78 or op==91 or op==92 or op==93:
+        return VREQUEST5
+    return VREQUEST6
+
+def value_local_pending(o:mutbuf) -> u64:
+    if get(o,M_DEFER)!=0 and get(o,VP)==VREPLY2 and get(o,VP+120)==1:
+        return get(o,VP+104)
+    return get(o,VP+80)
+
+def value_local_status(o:mutbuf) -> u64:
+    status=get(o,VP+8)
+    if get(o,M_DEFER)!=0 and get(o,VP+120)==1:
+        if get(o,VP+88)==1 and get(o,VP+96)==1 and get(o,VP+104)==0 and get(o,VP+112)==1 and status==11:
+            return 0
+    return status
+
+def managed_retain_ok(o:mutbuf) -> bool:
+    if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY or get(o,VP+88)!=1 or get(o,VP+96)!=1 or get(o,VP+120)!=1:
+        return False
+    if get(o,VP+80)>1 or get(o,VP+104)>1 or get(o,VP+112)>1:
+        return False
+    if get(o,VP+112)!=0:
+        put(o,M_QUEUE,1)
+    if get(o,VP+104)!=0:
+        put(o,M_UNMAP,1)
+    return True
+
+def managed_drop_record(o:mutbuf,allow_consumed:bool) -> bool:
+    if get(o,FEEDBACK)!=0 or get(o,VP)!=VREPLY2 or get(o,VP+88)!=1 or get(o,VP+120)!=1:
+        put(o,M_BAD,1)
+        return False
+    consumed=get(o,VP+96)
+    mapping=get(o,VP+104)
+    queued=get(o,VP+112)
+    pending=get(o,VP+80)
+    status=get(o,VP+8)
+    if consumed>1 or mapping>1 or queued>1 or pending>1:
+        put(o,M_BAD,1)
+        return False
+    if pending!=choose(mapping!=0 or queued!=0,1,0):
+        put(o,M_BAD,1)
+        return False
+    if allow_consumed==False and consumed!=0:
+        put(o,M_BAD,1)
+        return False
+    if consumed!=0 and status!=0 and status!=11:
+        put(o,M_BAD,1)
+        return False
+    if status!=0 and status!=1 and status!=6 and status!=11:
+        put(o,M_BAD,1)
+        return False
+    if status==0 and allow_consumed and consumed==0:
+        put(o,M_BAD,1)
+        return False
+    at=16
+    while at<80:
+        if get(o,VP+at)!=0:
+            put(o,M_BAD,1)
+            return False
+        at=at+8
+    put(o,VD_CONSUMED,consumed)
+    put(o,VD_PENDING,mapping)
+    put(o,VD_STATUS,status)
+    if queued!=0:
+        put(o,M_QUEUE,1)
+        if mapping==0 and status==11:
+            put(o,VD_STATUS,0)
+    if mapping!=0:
+        put(o,M_UNMAP,1)
+    return True
+
+def managed_cell_ok(o:mutbuf) -> bool:
+    if get(o,FEEDBACK)!=0 or get(o,FP)!=FREPLY3:
+        put(o,M_BAD,1)
+        return False
+    if get(o,FP+160)>1 or get(o,FP+168)>1:
+        put(o,M_BAD,1)
+        return False
+    if get(o,FP+160)!=0:
+        put(o,M_QUEUE,1)
+    if get(o,FP+168)!=0:
+        put(o,M_UNMAP,1)
+    return get(o,FP+8)==0
+
+'''
+SOURCE+=MANAGED_SOURCE
 
 def full_source_program():
  s=SOURCE
