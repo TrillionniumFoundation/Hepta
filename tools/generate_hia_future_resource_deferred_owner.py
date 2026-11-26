@@ -1,6 +1,8 @@
 """Native deferred canonical Future producer for enclosing BG critical sections.
 
 HIAFRD01 preserves the Q02/Q03 domains and uses Q08/48 only in its own domain.
+HIAFRD02 creates canonical _OptimizationFuture through fixed 114/113. It
+never relabels an existing Future37 or accepts a caller-selected class.
 Every returned reference remains governed by the real Value/native receipts.
 """
 from pathlib import Path
@@ -10,15 +12,15 @@ from tools.generate_hia_multiversion_future import document
 from tools import generate_hia_future_resource_owner as original
 ROOT=Path(__file__).resolve().parents[1]
 C=dict(original.C)
-C.update(D_REQUEST=int.from_bytes(b'HIAFRD01','little'),D_REPLY=int.from_bytes(b'HIAFRDR1','little'),
+C.update(O_REQUEST=int.from_bytes(b'HIAFRD02','little'),O_REPLY=int.from_bytes(b'HIAFRDR2','little'),D_REQUEST=int.from_bytes(b'HIAFRD01','little'),D_REPLY=int.from_bytes(b'HIAFRDR1','little'),
          V_CAPTURE_DEFER=int.from_bytes(b'HIABVQ08','little'),D_MODE=1896,D_NATIVE_PENDING=1904)
 def replace(text,before,after):
     assert text.count(before)==1,before
     return text.replace(before,after)
 def source_program():
     text=replace(original.SOURCE,'def future_resource_owner(','def future_resource_deferred_owner(')
-    text=replace(text,"""    elif word(s,0)==REQUEST4:""","""    elif word(s,0)==D_REQUEST:
-        if op>1:
+    text=replace(text,"""    elif word(s,0)==REQUEST4:""","""    elif word(s,0)==D_REQUEST or word(s,0)==O_REQUEST:
+        if op>1 or (word(s,0)==O_REQUEST and op!=0):
             return 4294967293
         family=choose(op==0,3,4)
         if op==0:
@@ -29,8 +31,8 @@ def source_program():
     elif word(s,0)==REQUEST4:""")
     text=replace(text,"""    put(o,REPLY_BYTES,128)
     if family==2:""","""    put(o,REPLY_BYTES,128)
-    if word(s,0)==D_REQUEST:
-        put(o,D_MODE,1)
+    if word(s,0)==D_REQUEST or word(s,0)==O_REQUEST:
+        put(o,D_MODE,choose(word(s,0)==O_REQUEST,2,1))
         put(o,OP,0)
         put(o,REPLY_BYTES,160)
     if family==2:""")
@@ -102,6 +104,10 @@ def source_program():
         if queue!=0:
             put(o,VALUE_QUEUE,1)
     status=get(o,VP+8)""")
+    # The class capability uses the existing actual Value-custody slot. Both
+    # capture failure and canonical rollback already retire or quarantine it.
+    text=replace(text,"def canonical(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:\n    if phase==900:","def canonical(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:\n    if phase==900 and get(o,D_MODE)==2:\n        if get(o,ROW+160)!=0:\n            return capture_failed(o,11)\n        value_packet(o,V_PRIVATE,114)\n        put(o,RQ+104,74)\n        return values(o,w,907)\n    if phase==907:\n        if value_valid(o)==False:\n            put(o,QUAR,1)\n            return capture_failed(o,11)\n        if get(o,VP+8)!=0:\n            if get(o,VP+24)!=0 or get(o,VP+32)!=0 or get(o,VP+40)!=0:\n                put(o,QUAR,1)\n            return capture_failed(o,11)\n        if get(o,VP+16)!=10 or get(o,VP+24)==0 or get(o,VP+32)==0 or get(o,VP+40)==0:\n            put(o,QUAR,1)\n            return capture_failed(o,11)\n        copy(o,ROW+160,VP+24,24)\n        return memory(o,908,3,ROW,0,get(o,PTR),512)\n    if phase==908:\n        value_packet(o,V_PRIVATE,113)\n        copy(o,RQ+72,ROW+160,24)\n        put(o,RQ+96,24)\n        put(o,RQ+104,7)\n        copy(o,RQ+128,CAP,24)\n        return values(o,w,901)\n    if phase==902 and get(o,D_MODE)==2 and get(o,ROW+160)!=0:\n        value_packet(o,V_TYPED,29)\n        copy(o,RQ+24,ROW+160,24)\n        return values(o,w,910)\n    if phase==910:\n        if value_drop(o,True)==False:\n            put(o,ROW+296,1)\n            return canonical_failed(o,11)\n        if get(o,VP+96)!=0:\n            zero(o,ROW+160,24)\n        if value_local_pending(o)!=0:\n            put(o,ROW+56,1)\n        if get(o,VP+96)!=1 or value_local_status(o)!=0 or value_local_pending(o)!=0:\n            return canonical_failed(o,11)\n        return memory(o,911,3,ROW,0,get(o,PTR),512)\n    if phase==911:\n        return again(o,902)\n    if phase==900:")
+    text=replace(text,"def values(o:mutbuf,w:mutbuf,next:u64) -> u32:\n    zero(o,VP,32768)\n    return role(o,next,13,3,RQ,choose(get(o,RQ+8)==48,152,128),3,VP,32768,0,get(w,64),256)","def values(o:mutbuf,w:mutbuf,next:u64) -> u32:\n    n=128\n    if get(o,RQ+8)==48:\n        n=152\n    if get(o,D_MODE)==2:\n        if get(o,RQ+8)==113:\n            n=152\n    zero(o,VP,32768)\n    return role(o,next,13,3,RQ,n,3,VP,32768,0,get(w,64),256)")
     text+="""
 def deferred_finish(o:mutbuf) -> u32:
     pending=get(o,PENDING)
@@ -114,7 +120,7 @@ def deferred_finish(o:mutbuf) -> u32:
     return deferred_reply(o)
 def deferred_reply(o:mutbuf) -> u32:
     zero(o,R_FINAL,160)
-    put(o,R_FINAL,D_REPLY)
+    put(o,R_FINAL,choose(get(o,D_MODE)==2,O_REPLY,D_REPLY))
     put(o,R_FINAL+8,get(o,STATUS))
     put(o,R_FINAL+16,get(o,KIND))
     copy(o,R_FINAL+24,RESULT,24)
