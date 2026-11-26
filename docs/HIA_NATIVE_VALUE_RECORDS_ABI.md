@@ -14,11 +14,12 @@ The standard 128-byte request layout uses `HIABVQ04`, capability triples A at 24
 | 41 | Construct an actual ScalarABI record from A=function, B=parameters, C=result. Constructor annotations do not validate the supplied values. |
 | 42 | Capture the twelve GenerationInfo fields from an exact native tuple/list. The actual record retains its own immutable field vector. |
 | 43 | Return an independently owned record field, with its field index at 104. |
+| 44 | Convert a GenerationInfo record to a fresh native dictionary, detach the ABI dictionaries and parameter lists, and parse nonempty loaded_mapping through the actual native JSON importer. |
 | 45 | Validate exact function and arguments against the actual admitted ABI, then capture the scalar call frame while the value mutex is held. |
 | 46 | Return the canonical tuple, ScalarABI or GenerationInfo class, catalog ID 28, 29 or 30 at 104. |
 | 47 | Read the actual independent capability-node count without allocating or consuming any reference. The initial context anchor is not counted. |
 
-Operation 44 is reserved pending the complete GenerationInfo.as_dict conversion. Tuple hash/equality protocols and public dataclass constructors require separate enclosing API completion. This checkpoint is not a complete public runtime qualification.
+Operation 44 preserves direct metadata field references and constructs fresh ABI dictionaries and parameter lists. The supported parameter iterables include list, tuple, str, bytes and dict keys; native class name strings never supply record authority. The actual JSON importer preserves arbitrary integer values, Unicode surrogates, binary64 values and NaN/Infinity. Nested importer calls preserve their six-argument continuation tuple before the enclosing owner reuses its own tuple. Arbitrary custom iterable protocols, tuple hash/equality, public dataclass constructor dispatch and runtime-owned GenerationInfo capture require separate enclosing API completion. This checkpoint is not a complete public runtime qualification.
 
 Tuple nodes have native kind 11 and frozen records kind 12. Their child vectors are inaccessible to mutation operations. Tuple indexing, length, enumeration and JSON array export use the existing native value operations. Empty tuples have one arena-owned canonical object. Existing frozen record fields may themselves reference mutable values, matching the shallow nature of frozen Python dataclasses.
 
