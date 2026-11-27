@@ -20,7 +20,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             finish_frame(w)
             return acquire_channel(o, w)
         put(w, 456, 0)
-        if mode == 4:
+        if mode >= 4:
             put(w, HISTORY_REPLY_BYTES, 0)
             put(w, HISTORY_STATUS, 1)
             put(w, HISTORY_REASON, 0)
@@ -59,7 +59,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if phase == 25:
         if result == NEG4:
             return acquire_channel(o, w)
-        if get(w,1920) == 4 and (result == NEG11 or result == NEG13):
+        if get(w,1920) >= 4 and (result == NEG11 or result == NEG13):
             return query_clock(o,w,6)
         if result != 0:
             return audit_fail(o, w)
@@ -78,7 +78,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return audit_fail(o, w)
         return write_packet(o, w)
     if phase == 40:
-        if get(w,1920) == 4:
+        if get(w,1920) >= 4:
             put(w,ARCHIVE_RECEIVE_RESULT,result)
             return query_clock(o,w,7)
         return received(o, w, result)
@@ -110,8 +110,8 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w,ARCHIVE_DEADLINE_NSEC,get(w,ARCHIVE_CLOCK+8))
         if history_frame(w) == False or get(w,1904) < 1 or get(w,1864) < 3:
             return audit_return(w)
-        put(w,AUDIT_WIRE,ARCHIVE_REQUEST_MAGIC)
-        put(w,AUDIT_WIRE+16,4)
+        put(w,AUDIT_WIRE,choose(get(w,1920) == 5,USAGE_REQUEST_MAGIC,ARCHIVE_REQUEST_MAGIC))
+        put(w,AUDIT_WIRE+16,get(w,1920))
         put(w,AUDIT_WIRE+256,get(w,ARCHIVE_DEADLINE_SEC))
         put(w,AUDIT_WIRE+264,get(w,ARCHIVE_DEADLINE_NSEC))
         return acquire_channel(o,w)
@@ -168,7 +168,7 @@ def prepare_channel(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
 # audit daemon's independent durable-store mutex; each worker holds its own
 # byte 64+slot lease until exit. A cancelled caller releases only its locks.
 def acquire_channel(o:mutbuf, w:mutbuf) -> u32:
-    if get(w,1920) == 4:
+    if get(w,1920) >= 4:
         return query_clock(o,w,1)
     return acquire_raw(o,w)
 
@@ -177,14 +177,14 @@ def acquire_raw(o:mutbuf,w:mutbuf) -> u32:
     put(w, 50112, 1)
     put(w, 50120, 1)
     put(w, 50128, 1)
-    return call(o, w, 25, 72, get(w, 416), choose(get(w,1920) == 4,6,7), 50112, 0, 0, 0, 48)
+    return call(o, w, 25, 72, get(w, 416), choose(get(w,1920) >= 4,6,7), 50112, 0, 0, 0, 48)
 
 def release_channel(o:mutbuf, w:mutbuf, phase:u64) -> u32:
     put(w, 50112, 2)
     return call(o, w, phase, 72, get(w, 416), 6, 50112, 0, 0, 0, 48)
 
 def write_packet(o:mutbuf, w:mutbuf) -> u32:
-    if get(w,1920) == 4:
+    if get(w,1920) >= 4:
         return query_clock(o,w,2)
     return write_raw(o,w)
 
@@ -192,7 +192,7 @@ def write_raw(o:mutbuf,w:mutbuf) -> u32:
     return call(o, w, 26, 44, get(w, 1864), AUDIT_WIRE, get(w, 1936), 16384, 0, 0, 12)
 
 def read_packet(o:mutbuf, w:mutbuf) -> u32:
-    if get(w,1920) == 4:
+    if get(w,1920) >= 4:
         return query_clock(o,w,3)
     return read_raw(o,w)
 
@@ -200,7 +200,7 @@ def read_raw(o:mutbuf,w:mutbuf) -> u32:
     return call(o, w, 40, 45, get(w, 1864), HISTORY_REPLY, 65601, 0, 0, 0, 12)
 
 def poll_channel(o:mutbuf, w:mutbuf, phase:u64, events:u64) -> u32:
-    if get(w,1920) == 4:
+    if get(w,1920) >= 4:
         return query_clock(o,w,choose(events == 4,4,5))
     return poll_raw(o,w,phase,events)
 
@@ -213,7 +213,7 @@ def received(o:mutbuf, w:mutbuf, result:u64) -> u32:
         return read_packet(o, w)
     if result == NEG11:
         return poll_channel(o, w, 41, 1)
-    if result >= 64 and result <= 65600 and (get(w, HISTORY_REPLY) == HISTORY_RESPONSE_MAGIC or get(w,HISTORY_REPLY) == ARCHIVE_RESPONSE_MAGIC):
+    if result >= 64 and result <= 65600 and (get(w, HISTORY_REPLY) == HISTORY_RESPONSE_MAGIC or get(w,HISTORY_REPLY) == ARCHIVE_RESPONSE_MAGIC or get(w,HISTORY_REPLY) == USAGE_RESPONSE_MAGIC):
         return history_received(o, w, result)
     if result == 512:
         copy_state(w, HISTORY_REPLY, AUDIT_REPLY, 512)
@@ -246,7 +246,7 @@ def history_received(o:mutbuf, w:mutbuf, size:u64) -> u32:
         return audit_fail(o, w)
     status = get(w, HISTORY_REPLY + 24)
     reason = get(w, HISTORY_REPLY + 32)
-    if status > 1 or (status == 0 and reason != 0) or (status == 1 and (reason == 0 or reason > choose(get(w,HISTORY_REPLY) == ARCHIVE_RESPONSE_MAGIC,38,36))):
+    if status > 1 or (status == 0 and reason != 0) or (status == 1 and (reason == 0 or reason > choose(get(w,HISTORY_REPLY) == HISTORY_RESPONSE_MAGIC,36,38))):
         return audit_fail(o, w)
     slot = get(w, HISTORY_REPLY + 40)
     generation = get(w, HISTORY_REPLY + 48)
@@ -254,8 +254,8 @@ def history_received(o:mutbuf, w:mutbuf, size:u64) -> u32:
         return audit_fail(o, w)
     if slot != get(w, 432) or generation != get(w, 448):
         return read_packet(o, w)
-    if get(w,1920) == 4:
-        if get(w,HISTORY_REPLY) != ARCHIVE_RESPONSE_MAGIC:
+    if get(w,1920) >= 4:
+        if get(w,HISTORY_REPLY) != choose(get(w,1920) == 5,USAGE_RESPONSE_MAGIC,ARCHIVE_RESPONSE_MAGIC):
             return audit_fail(o,w)
     elif get(w,1920) != 3 or get(w,HISTORY_REPLY) != HISTORY_RESPONSE_MAGIC:
         return audit_fail(o, w)
@@ -413,7 +413,10 @@ def finish_frame(w:mutbuf) -> u64:
 def history_frame(w:mutbuf) -> bool:
     if get(w, S_STATE_ROOT + 8) == 0 or get(w, S_STATE_ROOT + 8) > 4096 or get(w, S_AUDIT_OWNER + 8) != 64:
         return False
-    if get(w, HISTORY_LIMIT) == 0 or get(w, HISTORY_LIMIT) > 32 or (get(w, S_HISTORY_AFTER + 8) != 0 and get(w, S_HISTORY_AFTER + 8) != 64):
+    if get(w,1920) == 5:
+        if get(w,HISTORY_LIMIT) != 0 or get(w,S_HISTORY_AFTER+8) != 0:
+            return False
+    elif get(w, HISTORY_LIMIT) == 0 or get(w, HISTORY_LIMIT) > 32 or (get(w, S_HISTORY_AFTER + 8) != 0 and get(w, S_HISTORY_AFTER + 8) != 64):
         return False
     zero_frame(w, AUDIT_WIRE, 512)
     put(w, AUDIT_WIRE, HISTORY_REQUEST_MAGIC)
@@ -483,5 +486,7 @@ def source():
         'HISTORY_RESPONSE_MAGIC': int.from_bytes(b'HIAAHO01', 'little'),
         'ARCHIVE_REQUEST_MAGIC': int.from_bytes(b'HIARQY01', 'little'),
         'ARCHIVE_RESPONSE_MAGIC': int.from_bytes(b'HIARQO01', 'little'),
+        'USAGE_REQUEST_MAGIC': int.from_bytes(b'HIAUSQ01', 'little'),
+        'USAGE_RESPONSE_MAGIC': int.from_bytes(b'HIAUSO01', 'little'),
         'NEG13': (1 << 64)-13,
     })

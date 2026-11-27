@@ -82,7 +82,7 @@ def service_session(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if role == 5:
         if session_get(w, 56) == 0:
             return tool_missing(o, session_id(s, o, w))
-        if session_get(w, 56) == 12 or session_get(w, 56) == 13:
+        if session_get(w, 56) >= 12 and session_get(w, 56) <= 14:
             return session_dispatch(o, w, 2, modern)
         status = widen(route(s, o, w))
         if status != 88:

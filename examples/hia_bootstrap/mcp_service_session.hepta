@@ -322,13 +322,13 @@ block b62(v669:readbuf,v670:mutbuf,v671:mutbuf,v678:u64)
   v682:u64 = const() {"value":56}
   v683:u64 = call(v671,v682) {"function":"f4"}
   v684:u64 = const() {"value":12}
-  v685:bool = compare.eq(v683,v684)
-  branch v685 b64(v669,v670,v671,v678,v685) b63(v669,v670,v671,v678)
+  v685:bool = compare.ge(v683,v684)
+  branch v685 b63(v669,v670,v671,v678) b64(v669,v670,v671,v678,v685)
 block b63(v686:readbuf,v687:mutbuf,v688:mutbuf,v695:u64)
   v708:u64 = const() {"value":56}
   v709:u64 = call(v688,v708) {"function":"f4"}
-  v710:u64 = const() {"value":13}
-  v711:bool = compare.eq(v709,v710)
+  v710:u64 = const() {"value":14}
+  v711:bool = compare.le(v709,v710)
   jump b64(v686,v687,v688,v695,v711)
 block b64(v697:readbuf,v698:mutbuf,v699:mutbuf,v706:u64,v707:bool)
   branch v707 b65(v697,v698,v699,v706) b66(v697,v698,v699,v706)

@@ -128,7 +128,8 @@ def qualify(bundle,cases_path,oracle_path,output):
             'original_rust_case_count':len(cases),'public_exclusions':excluded,
             'fixture_is_not_an_installed_worker':True,'whole_cold_qualified':False,
             'observed_original_parameter_errors_equal':True,
-            'typed_diagnostic_decoded_string_limit':1048576,
+            'typed_diagnostic_small_buffer_bytes':1048576,
+            'large_diagnostics_streamed':True,
             'parameter_oracle_sha256':pin(parameter_path),
             'parameter_cases_sha256':pin(parameter_cases),'cases':rows}
     try:
@@ -188,10 +189,18 @@ def qualify(bundle,cases_path,oracle_path,output):
                 rows.append({'case':name,'diagnostic':True,'exact_text_checked':True,'passed':True})
                 print('NATIVE_HISTORY_PARAMETER_PASS',name,flush=True)
             refused=diagnostic.history(json.dumps({'limit':'x'*1048577}), 'diagnostic-string-cap')
-            assert refused.get('error')=={'code':-32602,'message':'Invalid params'},refused
+            large_path=cases_path.parent.parent/'hia_usage_oracle/diagnostics.json'
+            assert pin(large_path)=='8ee3539beb7f9987785a6ba86622f9feb7c030fecc9fc6a731c00d12d3a53d44'
+            baseline=next(item for item in json.loads(large_path.read_text())['cases']
+                          if item['id']=='ascii-over-1m')
+            error=refused.get('error',{})
+            message=error.get('message','').encode()
+            assert error.get('code')==baseline['code']
+            assert len(message)==baseline['message_bytes']
+            assert sha256(message).hexdigest()==baseline['message_sha256']
             assert snapshot(diagnostic.state)==before
             rows.append({'case':'diagnostic-string-cap','diagnostic':True,
-                         'bounded_fallback':True,'original_diagnostic_text_not_claimed':True,'passed':True})
+                         'streamed_exact_original_diagnostic':True,'passed':True})
         finally:
             diagnostic.close()
         # The public catalog is extended without changing the eleven Worker tools.
@@ -201,7 +210,7 @@ def qualify(bundle,cases_path,oracle_path,output):
             discovery=session.record('catalog',session.connection.read())
             tools=discovery['result']['tools']
             history=[row for row in tools if row['name']=='request_history']
-            assert len(tools)==12 and len(history)==1
+            assert len(tools)==14 and len(history)==1
             schema=json.loads((cases_path.parent/'oracle-params-schema.json').read_text())
             schema.pop('$schema',None)
             assert history[0]['inputSchema']==schema

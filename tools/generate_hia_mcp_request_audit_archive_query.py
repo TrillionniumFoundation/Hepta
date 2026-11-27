@@ -7,9 +7,10 @@ retains directory watches until the final content and namespace fence.
 from tools.generate_hia_mcp_request_audit_common import authored
 from tools.generate_hia_mcp_request_audit_codec import SOURCE as CODEC, TEXT as CODEC_TEXT
 from tools.generate_hia_mcp_request_audit_history import SOURCE as HISTORY, TEXT as HISTORY_TEXT
+from tools.generate_hia_mcp_request_audit_usage import SOURCE as USAGE, TEXT as USAGE_TEXT, C as USAGE_C
 
 TEXT = {
-    **CODEC_TEXT, **HISTORY_TEXT,
+    **CODEC_TEXT, **HISTORY_TEXT, **USAGE_TEXT,
     'archive_prefix': '{"archive_retention":"no_automatic_metadata_eviction","automatic_operation_retry":false,"contains_parameters_or_output":false,"coverage":"metadata_retained_at_archive_introduction_and_subsequent_admitted_requests","history_is_live":true,"next_after_id":',
     'archive_total': '],"total":',
     'proc_fd': '/proc/self/fd/',
@@ -39,6 +40,8 @@ def advance(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         save(w,2,0)
         save(w,5,0)
         save(w,6,0)
+        if get(w,CURRENT_PHASE) == 5:
+            usage_prepare(w)
     put(w,at+392,phase)
     put(w,at+384,get(w,8))
     return call(o,w,900,228,1,at+2048,0,0,0,0,12)
@@ -245,6 +248,8 @@ def unrelated_events(w:mutbuf,size:u64) -> bool:
     return at == size
 
 def select_record(w:mutbuf) -> bool:
+    if get(w,CURRENT_PHASE) == 5:
+        return usage_record(w)
     if equal(w,Q_RECORD+64,INPUT+128,64) == False:
         return True
     if local(w,6) == NONE:
@@ -270,6 +275,8 @@ def select_record(w:mutbuf) -> bool:
     return True
 
 def render_page(w:mutbuf) -> bool:
+    if get(w,CURRENT_PHASE) == 5:
+        return usage_render(w)
     count = local(w,5)
     more = count > get(w,INPUT+88)
     if more:
@@ -333,7 +340,8 @@ def cleanup(o:mutbuf,w:mutbuf) -> u32:
 def source():
     active = HISTORY[HISTORY.index('\ndef dispatch_active('):HISTORY.index('\ndef history(')]
     row = HISTORY[HISTORY.index('\ndef history_row('):]
-    return authored(SOURCE+active+row+'\n'+CODEC, text=TEXT, extra={
+    return authored(SOURCE+active+row+'\n'+USAGE+'\n'+CODEC, text=TEXT, extra={
+        **USAGE_C,
         'Q_PAGE': 17 << 20, 'Q_CURSOR': (17 << 20)+16384,
         'Q_RECORD': (17 << 20)+16640, 'Q_ID': (17 << 20)+16896,
         'Q_WATCHES': (17 << 20)+32768, 'Q_NAME': (17 << 20)+65536,

@@ -81,6 +81,9 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, row + 16, get(w, 1576))
         put(w, row + 24, 0)
         put(w, row + 32, 0)
+        tool = get(w,SCHEDULE_DESCRIPTOR+32)
+        metadata = get(w,SCHEDULE_DESCRIPTOR+8) == 2 and tool >= 13 and tool <= 15
+        put(w,row+40,choose(metadata,1,0))
         put(w, row + 64, get(w, 1672))
         put(w, row + 80, 0)
         put(w, row + 88, 0)
@@ -115,6 +118,8 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return scan_start(w)
     if phase >= 120 and phase <= 129:
         return publication(o, w, phase, result)
+    if phase == 131 or phase == 132:
+        return large_publication(o,w,phase,result)
     if phase >= 200 and phase <= 202:
         return cancellation(o, w, phase, result)
     return 0
@@ -201,7 +206,8 @@ def fallback(o:mutbuf, w:mutbuf) -> u32:
 
 def publication(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 120:
-        if failed(result) or get(w, 9264) < 2 or get(w, 9264) > 8389120:
+        maximum = choose(get(w,get(w,1624)+40) == 1,METADATA_REPLY_MAX,8389120)
+        if failed(result) or get(w, 9264) < 2 or get(w, 9264) > maximum:
             return fallback(o, w)
         put(w, 1640, get(w, 9264))
         if get(w, 1632) == get(w, get(w, 1624) + 8):
@@ -210,6 +216,8 @@ def publication(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     if phase == 122:
         if failed(result):
             return fallback(o, w)
+        if get(w,1640) > 8389120:
+            return large_begin(o,w)
         return read_result(o, w)
     if phase == 123:
         if result == NEG4:
@@ -313,6 +321,42 @@ def cancellation(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
             put(w, get(w, 1704) + 80, 1)
         return enter(w, 2, 30)
     return 0
+
+def large_begin(o:mutbuf,w:mutbuf) -> u32:
+    return large_read(o,w)
+
+def large_read(o:mutbuf,w:mutbuf) -> u32:
+    used = get(w,1656)
+    size = get(w,1640)-used
+    if size > 65536:
+        size = 65536
+    return call(o,w,131,17,get(w,1632),SESSION_OUT,size,used,0,0,12)
+
+def large_write(o:mutbuf,w:mutbuf) -> u32:
+    used = get(w,1648)
+    return call(o,w,132,1,1,SESSION_OUT+used,get(w,PUBLISH_CHUNK)-used,0,0,0,12)
+
+def large_publication(o:mutbuf,w:mutbuf,phase:u64,result:u64) -> u32:
+    if phase == 131:
+        if result == NEG4:
+            return large_read(o,w)
+        if failed(result) or result == 0 or result > 65536 or result > get(w,1640)-get(w,1656):
+            return 0
+        put(w,1656,get(w,1656)+result)
+        put(w,PUBLISH_CHUNK,result)
+        put(w,1648,0)
+        return large_write(o,w)
+    if result == NEG4:
+        return large_write(o,w)
+    if failed(result) or result == 0 or result > get(w,PUBLISH_CHUNK)-get(w,1648):
+        return 0
+    put(w,1648,get(w,1648)+result)
+    if get(w,1648) != get(w,PUBLISH_CHUNK):
+        return large_write(o,w)
+    if get(w,1656) < get(w,1640):
+        return large_read(o,w)
+    return call(o,w,125,3,get(w,get(w,1624)+8),0,0,0,0,0,0)
+
 '''
 
 
@@ -320,4 +364,6 @@ def source():
     return authored(SOURCE, text={'response': 'hia-mcp-response', 'failure': 'hia-mcp-failure',
         'error_prefix': '{"jsonrpc":"2.0","id":',
         'error_suffix': ',"error":{"code":-32603,"message":"Native HIA request observation unavailable; repeat only the original request"}}\n',
-        'cancel_suffix': ',"error":{"code":-32800,"message":"Request cancelled"}}\n'})
+        'cancel_suffix': ',"error":{"code":-32800,"message":"Request cancelled"}}\n'}, extra={
+        'METADATA_REPLY_MAX': (72 << 20)+512,
+        'PUBLISH_CHUNK': (128 << 20)+66000})
