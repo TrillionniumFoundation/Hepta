@@ -16,10 +16,15 @@ def stores(buffer,at,value,indent='    '):
     return '\n'.join(f'{indent}store({buffer}, {at}'+(f' + {i}' if i else '')+f', ({value} >> {i*8}) & 255)' for i in range(8))
 
 
-def accelerate(source, *, bulk=False):
+def accelerate(source, *, bulk=False, word=False):
     definitions={n.name:n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef)}
     if 'put' in definitions:
-        source=replace_function(source,'put','def put(w:mutbuf, at:u64, value:u64) -> u64:\n'+stores('w','at','value')+'\n    return 0')
+        prefix = 'def put(w:mutbuf, at:u64, value:u64) -> u64:\n'
+        if word:
+            prefix += ('    if at <= length(w) and 8 <= length(w) - at:\n'
+                       '        word_store(w, at, value)\n'
+                       '        return 0\n')
+        source=replace_function(source,'put',prefix+stores('w','at','value')+'\n    return 0')
     if 'copyw' in definitions:
         body='''def copyw(w:mutbuf, target:u64, source:u64, count:u64) -> u64:
     i = 0

@@ -22,6 +22,7 @@ PROFILE_SOURCE = {
     "bulk": "seed_bulk_backend", "div-bulk": "seed_div_bulk_backend",
     "word": "seed_word_backend", "endian": "seed_endian_backend",
     "cold-bulk": "seed_cold_bulk_backend", "cold-endian": "seed_cold_endian_backend",
+    "cold-bulk-word": "seed_cold_bulk_word_backend",
     "owned": "seed_owned_backend", "vm": "seed_vm_backend",
 }
 
@@ -108,13 +109,13 @@ class Builder:
         div = "int.div" in text or "int.rem" in text
         bulk = "buffer.move_within" in text
         word = "buffer.store.u64.le" in text or "buffer.store.u64.be" in text
-        endian = "buffer.load.u64.be" in text
+        endian = "buffer.load.u64.be" in text or "buffer.store.u64.be" in text
         if endian:
             assert not (div or bulk), (role, "undeclared combined endian profile")
             return "cold-endian"
         if word:
-            assert not (div or bulk), (role, "undeclared combined word profile")
-            return "word"
+            assert not div, (role, "undeclared combined word/div profile")
+            return "cold-bulk-word" if bulk else "word"
         return "div-bulk" if div and bulk else "div" if div else "cold-bulk" if bulk else "v1"
 
     def backend(self, profile):
@@ -179,7 +180,7 @@ class Builder:
         # the admitted independent native assembly/projector/backend/packer,
         # then preserve both the historical inputs and this exact new root.
         # No historical qualification or target compiler is inherited.
-        policy = self.flat("cold_qualification_driver", "cold-bulk")
+        policy = self.flat("cold_qualification_driver", "cold-bulk-word")
         driver_packer = self.tool("cold_qualification_driver_packer", "v1")
         driver = self.framed(driver_packer, "current-qualification-driver",
                              b"HIAQDP01", [policy, sha])
