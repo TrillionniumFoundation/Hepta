@@ -92,6 +92,21 @@ def terminal_receipt(directory,record,start,result,checkpoint,captured):
             "checkpoint_files":checkpoint["files"],"process_terminal":record["terminal"]}
 
 
+def _read_checkpoint_business_state(report,lane):
+    if lane=="original":
+        if (report["schema"]!="hepta.hia.service-bootstrap-finite-observations.v2"
+                or report["status"]!="CHECKPOINT_ORIGINAL_COMPLETE"):
+            raise ValueError("original observation checkpoint differs")
+        integer(report["differences"],0)
+    elif lane in ("unselected","vm","native"):
+        if (report["schema"]!="hepta.hia.service-bootstrap-finite-observations.v3"
+                or report["status"]!="CHECKPOINT_CANDIDATE_OBSERVED"
+                or report["differences"] is not None
+                or report.get("business_comparison")!="PENDING_PARENT_PROCESS_TERMINAL"):
+            raise ValueError("candidate equality was claimed before parent terminal comparison")
+    else:
+        raise ValueError("undeclared observation lane")
+
 def receipt(parent,label,record,captured,source,*,lane,seconds):
     directory=parent/label
     if record["label"]!=label:raise ValueError("terminal lane record label differs")
@@ -126,15 +141,12 @@ def receipt(parent,label,record,captured,source,*,lane,seconds):
     for suffix in ("stdout","stderr"):
         stream_identity(parent/(label+"."+suffix+".log"),result[suffix])
     integer(result["stderr"]["bytes"],0)
-    integer(report["differences"],0)
-    if (report["schema"]!="hepta.hia.service-bootstrap-finite-observations.v2"
-            or report["late_differences"] is not None
+    _read_checkpoint_business_state(report,lane)
+    if (report["late_differences"] is not None
             or report["process_terminal_required"] is not True
             or report["late_comparison"]!="PENDING_PROCESS_TERMINAL"):
         raise ValueError("child report does not declare a pending process-terminal checkpoint")
     if report["unraisables"]!=[]:raise ValueError("unraisable provider failure")
-    expected_status="CHECKPOINT_ORIGINAL_COMPLETE" if lane=="original" else "CHECKPOINT_CANDIDATE_COMPLETE"
-    if report["status"]!=expected_status:raise ValueError("finite checkpoint is not complete")
     entries=integer(report["native_or_VM_entries"])
     if lane in ("original","unselected"):
         integer(entries,0)
@@ -236,7 +248,7 @@ def read_finite(directory,authority_path,authority_pin,lane):
     directory=Path(directory);captured=[]
     authority,cases,(original_path,original_report),source=original_authority(authority_path,authority_pin,captured)
     comparison=capture(directory/"report.json",None,captured)
-    if comparison["schema"]!="hepta.hia.service-bootstrap-finite-comparison.v2" or comparison["status"]!="PASS_FINITE_ONLY":
+    if comparison["schema"]!="hepta.hia.service-bootstrap-finite-comparison.v3" or comparison["status"]!="PASS_FINITE_ONLY":
         raise ValueError("finite comparison report is incomplete")
     equal(comparison["authority"],authority_pin,"finite authority pin differs")
     equal(comparison["complete_inputs"],authority["complete_inputs"],"comparison input pin differs")
@@ -267,6 +279,27 @@ def read_finite(directory,authority_path,authority_pin,lane):
     ordering=capture(candidate_path/"ordering.json",report["files"]["ordering.json"],captured)
     equal(ordering,["source-and-inputs-captured","all-original-bytes-admitted","candidate-import-and-image"],
           "candidate imports preceded complete originals")
+    if (comparison["business_comparison_scope"]!="BOTH_NATURAL_PROCESS_TERMINALS"
+            or comparison["full_raw_byte_equality"] is not True):
+        raise ValueError("business equality was not established at both natural terminals")
+    integer(comparison["terminal_business_difference_count"],0)
+    integer(comparison["comparer_pid"])
+    integer(comparison["comparison_started_time_ns"])
+    integer(comparison["comparison_finished_time_ns"])
+    terminal=capture(candidate_path/"process-terminal.json",report["process_terminal"],captured)
+    if (comparison["comparer_pid"]==0 or comparison["comparer_pid"]==report["pid"]
+            or comparison["comparer_pid"]!=terminal["sealer_pid"]
+            or comparison["comparison_started_time_ns"]<terminal["sealed_time_ns"]
+            or comparison["comparison_finished_time_ns"]<comparison["comparison_started_time_ns"]):
+        raise ValueError("business comparison did not follow the owned child's terminal")
+    business_diff=comparison["terminal_business_differences"]
+    if (type(business_diff) is not dict
+            or set(business_diff)!={"relative","bytes","sha256"}
+            or business_diff["relative"]!="terminal-business-differences.jsonl"):
+        raise ValueError("terminal business difference file is not the declared owned file")
+    business_diff_pin={key:business_diff[key] for key in ("bytes","sha256")}
+    stream_identity(directory/business_diff["relative"],business_diff_pin)
+    integer(business_diff_pin["bytes"],0)
     integer(report["files"]["differences.jsonl"]["bytes"],0)
     integer(report["files"]["late-differences.jsonl"]["bytes"],0)
     if (comparison["late_comparison_scope"]!="BOTH_NATURAL_PROCESS_TERMINALS"

@@ -474,9 +474,10 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
         sys.__stderr__.write("bootstrap unraisable: "+json.dumps(row,ensure_ascii=True)+"\n")
         sys.__stderr__.flush()
     sys.unraisablehook = unraisable_hook
-    expected_stream = None if lane == "original" else (expected_directory/"observations.jsonl").open("rb")
-    expected_digest, expected_size = sha256(), 0
-    done, difference_count, total_entries = [], 0, 0
+    # All expected business/late bytes are compared by the parent only after
+    # natural process exit. Admission above still reads the full originals
+    # before any candidate import or effect.
+    done, total_entries = [], 0
     current_id = None
     fatal = None
     try:
@@ -493,19 +494,6 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
             actual_bytes, frozen_actual = seal_record(actual,late_sink)
             streams["observations.jsonl"].write(actual_bytes+b"\n")
             streams["raw-tracebacks.jsonl"].write(oracle.canonical(trace)+b"\n")
-            if expected_stream is not None:
-                expected_raw = expected_stream.readline()
-                if not expected_raw.endswith(b"\n"):
-                    raise ValueError("candidate expected stream ended before its complete input")
-                expected_digest.update(expected_raw);expected_size += len(expected_raw)
-                expected_value = support.parse(expected_raw)
-                if expected_value["id"] != current_id:
-                    raise ValueError("candidate expected input order differs")
-                if oracle.canonical(expected_value) != actual_bytes:
-                    difference_count += 1
-                    streams["differences.jsonl"].write(oracle.canonical({
-                        "id":current_id,"ordinal":ordinal,
-                        "differences":support.differences(expected_value,frozen_actual)})+b"\n")
             entries = 0 if backend is None else backend.image._entry.calls-before_entries
             total_entries += entries
             streams["entry-counts.jsonl"].write(oracle.canonical({
@@ -514,18 +502,10 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
             done.append(current_id)
             streams["progress.jsonl"].write(oracle.canonical({"event":"stop","ordinal":ordinal,"id":current_id})+b"\n")
             del actual, trace, frozen_actual
-        if expected_stream is not None:
-            if expected_stream.read(1):
-                raise ValueError("candidate did not consume every original record")
-            expected_identity = {"bytes":expected_size,"sha256":expected_digest.hexdigest()}
-            if expected_identity != expected_report["files"]["observations.jsonl"]:
-                raise ValueError("actual expected bytes consumed differ from their prior pin")
     except BaseException as error:
         fatal = {"id":current_id,"type":type(error).__name__,"text":str(error)}
         raise
     finally:
-        if expected_stream is not None:
-            expected_stream.close()
         support.write_json(output/"execution-progress.json", {
             "completed":len(done),"ordered_completed_ids":done,
             "expected_count":len(cases),"current_id":current_id,"fatal":fatal})
@@ -554,12 +534,13 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
     if done != [case["id"] for case in cases] or (lane in ("vm","native") and total_entries <= 0):
         raise AssertionError("complete input coverage or actual candidate entries are missing")
     files = {path.name:support.file_pin(path) for path in output.iterdir() if path.is_file()}
-    passed = difference_count == 0 and not unraisables
+    passed = not unraisables
     report = {
-        "schema":SCHEMA, **support.child_identity(), "lane":lane,
-        "status":("CHECKPOINT_ORIGINAL_COMPLETE" if lane=="original" else "CHECKPOINT_CANDIDATE_COMPLETE") if passed else "HOLD",
+        "schema":SCHEMA if lane=="original" else "hepta.hia.service-bootstrap-finite-observations.v3",
+        **support.child_identity(), "lane":lane,
+        "status":("CHECKPOINT_ORIGINAL_COMPLETE" if lane=="original" else "CHECKPOINT_CANDIDATE_OBSERVED") if passed else "HOLD",
         "input":input_pin,"source_before":source_before,"source_after":source_after,
-        "count":len(done),"ordered_ids":done,"differences":difference_count,
+        "count":len(done),"ordered_ids":done,"differences":0 if lane=="original" else None,
         "late_differences":late_differences,"unraisables":unraisables,
         "late_comparison":"PENDING_PROCESS_TERMINAL","process_terminal_required":True,
         "native_or_VM_entries":total_entries,"files":files,
@@ -572,6 +553,8 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
         "late_scope":"checkpoint prefix only; natural process exit and separate parent terminal seal are required before complete late comparison",
         "whole_native_stack_qualified":False,
     }
+    if lane != "original":
+        report["business_comparison"] = "PENDING_PARENT_PROCESS_TERMINAL"
     support.write_json(output/"report.json",report)
     return 0 if passed else 1
 

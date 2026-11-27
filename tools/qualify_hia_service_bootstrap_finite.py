@@ -21,6 +21,23 @@ def _exact_nonnegative_integer(value, expected=None):
     return value
 
 
+def _checkpoint_business_state(checkpoint, lane):
+    """A candidate observation checkpoint never claims business equality."""
+    if lane == "original":
+        if (checkpoint["schema"] != "hepta.hia.service-bootstrap-finite-observations.v2"
+                or checkpoint["status"] != "CHECKPOINT_ORIGINAL_COMPLETE"):
+            raise ValueError("original observation checkpoint differs")
+        _exact_nonnegative_integer(checkpoint["differences"], 0)
+    elif lane in ("unselected", "vm", "native"):
+        if (checkpoint["schema"] != "hepta.hia.service-bootstrap-finite-observations.v3"
+                or checkpoint["status"] != "CHECKPOINT_CANDIDATE_OBSERVED"
+                or checkpoint["differences"] is not None
+                or checkpoint.get("business_comparison") != "PENDING_PARENT_PROCESS_TERMINAL"):
+            raise ValueError("candidate business comparison is not pending its natural terminal")
+    else:
+        raise ValueError("undeclared observation lane")
+
+
 def _terminal_late_pin(path, checkpoint_pin):
     """Hash final bytes and the checkpoint prefix in the same bounded read."""
     checkpoint_pin = support.require_pin(checkpoint_pin)
@@ -75,15 +92,12 @@ def _seal_process_terminal(directory, label, lane, checkpoint_raw, checkpoint,
                    (start["cwd"], result["cwd"], checkpoint["cwd"]))):
         raise ValueError("process terminal seal requires an actual natural exit and empty owned group")
     checkpoint_pin = support.bytes_pin(checkpoint_raw)
-    if (checkpoint["schema"] != "hepta.hia.service-bootstrap-finite-observations.v2"
-            or checkpoint["status"] != ("CHECKPOINT_ORIGINAL_COMPLETE" if lane == "original"
-                                        else "CHECKPOINT_CANDIDATE_COMPLETE")
-            or checkpoint["lane"] != lane or checkpoint["process_terminal_required"] is not True
+    _checkpoint_business_state(checkpoint, lane)
+    if (checkpoint["lane"] != lane or checkpoint["process_terminal_required"] is not True
             or checkpoint["late_differences"] is not None
             or checkpoint["late_comparison"] != "PENDING_PROCESS_TERMINAL"
             or result["report"] != {"relative":"report.json", **checkpoint_pin}):
         raise ValueError("an explicit pending checkpoint is required before terminal sealing")
-    _exact_nonnegative_integer(checkpoint["differences"], 0)
     if checkpoint["unraisables"] != []:
         raise ValueError("unraisable provider failure at checkpoint")
     checkpoint_files = checkpoint["files"]
@@ -141,8 +155,8 @@ def _seal_process_terminal(directory, label, lane, checkpoint_raw, checkpoint,
     return terminal, terminal_pin, (path, terminal_raw)
 
 
-def _compare_terminal_late(actual_path, expected_path, actual_pin, expected_pin, output):
-    """Compare every final late row only after both owned processes exited."""
+def _compare_terminal_rows(actual_path, expected_path, actual_pin, expected_pin, output):
+    """Compare every exact final row only after both owned processes exited."""
     support.require_pin(actual_pin)
     support.require_pin(expected_pin)
     actual_digest, expected_digest = sha256(), sha256()
@@ -156,12 +170,12 @@ def _compare_terminal_late(actual_path, expected_path, actual_pin, expected_pin,
                     break
                 if left:
                     if not left.endswith(b"\n"):
-                        raise ValueError("original terminal late row is incomplete")
+                        raise ValueError("original terminal row is incomplete")
                     expected_digest.update(left)
                     expected_size += len(left)
                 if right:
                     if not right.endswith(b"\n"):
-                        raise ValueError("candidate terminal late row is incomplete")
+                        raise ValueError("candidate terminal row is incomplete")
                     actual_digest.update(right)
                     actual_size += len(right)
                 if left != right:
@@ -175,7 +189,7 @@ def _compare_terminal_late(actual_path, expected_path, actual_pin, expected_pin,
             or not support.same({"bytes":expected_size,"sha256":expected_digest.hexdigest()}, expected_pin)
             or not support.same(support.file_pin(actual_path), actual_pin)
             or not support.same(support.file_pin(expected_path), expected_pin)):
-        raise ValueError("consumed terminal late bytes differ from their prior fixed identities")
+        raise ValueError("consumed terminal bytes differ from their prior fixed identities")
     return count, support.file_pin(output)
 
 
@@ -193,10 +207,11 @@ def child(parent,label,lane,inputs,*,authority=None,authority_pin=None,manifest=
         command += ["--manifest",str(manifest)]
     seconds=600 if lane=="original" else 1800
     receipt,checkpoint,raw=support.run_child(parent,label,command,seconds=seconds)
+    _checkpoint_business_state(checkpoint, lane)
     if (checkpoint["lane"]!=lane or checkpoint["runtime"]!=sys.version
             or checkpoint["implementation"]!=sys.implementation.name
             or not support.same(checkpoint["source_before"],checkpoint["source_after"])
-            or checkpoint["differences"]!=0 or checkpoint["late_differences"] is not None
+            or checkpoint["late_differences"] is not None
             or checkpoint["unraisables"] or receipt["stderr"]["bytes"]!=0
             or (lane in ("original","unselected") and checkpoint["native_or_VM_entries"]!=0)
             or (lane in ("vm","native") and checkpoint["native_or_VM_entries"]<=0)):
@@ -336,6 +351,10 @@ def current_dispatch_child(output, lane, source, *, manifest=None):
     return record, captures
 
 
+def _compare_terminal_late(actual_path, expected_path, actual_pin, expected_pin, output):
+    return _compare_terminal_rows(actual_path, expected_path, actual_pin, expected_pin, output)
+
+
 def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
     if lane not in ("unselected","vm","native"):
         raise ValueError("candidate lane must explicitly name unselected, VM or Native")
@@ -365,15 +384,20 @@ def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
         raise ValueError("candidate does not cover the full same original domain")
     original_pin=expected_report["files"]["observations.jsonl"]
     actual_pin=report["files"]["observations.jsonl"]
-    if not support.identical_files(expected_directory/"observations.jsonl",
+    comparison_started_ns = time.time_ns()
+    business_count,business_diff_pin = _compare_terminal_rows(
+        output/"candidate/observations.jsonl",expected_directory/"observations.jsonl",
+        actual_pin,original_pin,output/"terminal-business-differences.jsonl")
+    if business_count == 0 and not support.identical_files(expected_directory/"observations.jsonl",
             output/"candidate/observations.jsonl",original_pin,actual_pin):
-        raise ValueError("complete candidate bytes are not identical to sealed originals")
+        raise ValueError("complete candidate bytes changed after terminal business comparison")
     late_count,late_diff_pin=_compare_terminal_late(
         output/"candidate/late-events.jsonl",expected_directory/"late-events.jsonl",
         report["files"]["late-events.jsonl"],expected_report["files"]["late-events.jsonl"],
         output/"terminal-late-differences.jsonl")
     current_record, current_captures = None, []
-    if late_count == 0:
+    comparison_finished_ns = time.time_ns()
+    if business_count == 0 and late_count == 0:
         current_record, current_captures = current_dispatch_child(
             output, lane, source_before, manifest=manifest)
     source_after=support.source_snapshot()
@@ -385,8 +409,8 @@ def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
         support.exact_reread(path,raw)
     if manifest_raw is not None:
         support.exact_reread(manifest,manifest_raw)
-    value={"schema":"hepta.hia.service-bootstrap-finite-comparison.v2",
-           "status":"PASS_FINITE_ONLY" if late_count==0 else "HOLD",
+    value={"schema":"hepta.hia.service-bootstrap-finite-comparison.v3",
+           "status":"PASS_FINITE_ONLY" if business_count==0 and late_count==0 else "HOLD",
            "lane":lane,"runtime":sys.version,
            "authority":authority_pin,"originals":str(Path(authority_path).resolve()),
            "complete_inputs":authority["complete_inputs"],
@@ -396,7 +420,12 @@ def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
            "candidate_terminal":record["terminal"],
            "original_terminal":expected_report["process_terminal"],
            "original_observations":original_pin,"actual_observations":actual_pin,
-           "full_raw_byte_equality":True,"complete_late_byte_equality":late_count==0,
+           "full_raw_byte_equality":business_count==0,"complete_late_byte_equality":late_count==0,
+           "business_comparison_scope":"BOTH_NATURAL_PROCESS_TERMINALS",
+           "comparer_pid":os.getpid(),"comparison_started_time_ns":comparison_started_ns,
+           "comparison_finished_time_ns":comparison_finished_ns,
+           "terminal_business_difference_count":business_count,
+           "terminal_business_differences":{"relative":"terminal-business-differences.jsonl",**business_diff_pin},
            "late_comparison_scope":"BOTH_NATURAL_PROCESS_TERMINALS",
            "terminal_late_difference_count":late_count,
            "terminal_late_differences":{"relative":"terminal-late-differences.jsonl",**late_diff_pin},
@@ -406,8 +435,8 @@ def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
            "source_before":source_before,"source_after":source_after,
            "manifest":manifest_pin,"whole_native_stack_qualified":False}
     support.write_json(output/"report.json",value)
-    if late_count:
-        raise ValueError("complete process-terminal late channels differ; every raw difference retained")
+    if business_count or late_count:
+        raise ValueError("complete process-terminal business/late channels differ; every raw difference retained")
     return value
 
 
