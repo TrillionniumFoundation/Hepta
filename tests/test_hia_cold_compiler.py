@@ -17,7 +17,11 @@ class ColdCompilerLocationTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name).resolve()
         self.cold = self.root / "cold.json"
-        self.image = b"\x7fELFsynthetic physical pin control; not executable"
+        # Exact first 32 bytes of B1/B2/B3 from run 46016875379, artifact
+        # 15207225917. The suffix keeps this a nonexecuted location-only fixture.
+        self.image = bytes.fromhex(
+            "554889e54883ec4048897dc0488975c8488955d048894dd84c8985e0ffffff4c"
+        ) + b"synthetic physical pin control; not executable"
         self.report = {"schema": "hepta.hia.selfhost-cold-replay.v2",
                        "generation_sha256": [sha256(self.image).hexdigest()] * 3}
         self.raw = json.dumps(self.report).encode()
@@ -39,6 +43,7 @@ class ColdCompilerLocationTests(unittest.TestCase):
                                      json.dumps(self.index if index is None else index).encode())
 
     def test_three_original_images_are_read_with_no_hosted_report_synthesis(self):
+        self.assertFalse(self.image.startswith(b"\x7fELF"))
         images = self.read()
         self.assertEqual(images, [(self.root / (name + ".flat"), self.image)
                                   for name in ("B1", "B2", "B3")])

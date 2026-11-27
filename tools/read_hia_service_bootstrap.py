@@ -985,6 +985,19 @@ SELECTIONS={
            "tests.test_hia_service_bootstrap_qualification.ServiceBootstrapQualificationSourceTests"),
  "native":("tests.test_hia_service_bootstrap_qualification.ServiceBootstrapNativeTests",
            "tests.test_hia_service_bootstrap_qualification.ServiceBootstrapResourceTests")}
+# Preserve the original six Source methods and name both reviewed additions.
+# Counting alone would allow one original method to be replaced by another.
+ORIGINAL_SOURCE_METHOD_IDS=(
+    SELECTIONS["source"][0]+".test_five_original_definitions_signatures_and_retained_prefix",
+    SELECTIONS["source"][0]+".test_complete_protocol_graph_and_effect_set",
+    SELECTIONS["source"][0]+".test_packaged_source_and_complete_original_caller_scope",
+    SELECTIONS["source"][1]+".test_01_generated_complete_graph_original_sources_and_actual_profile_limits",
+    SELECTIONS["source"][1]+".test_02_complete_prior_originals_and_all_derived_faults_through_VM",
+    SELECTIONS["source"][1]+".test_03_complete_unselected_public_domain_and_lazy_empty_refusal")
+SUPPLEMENTAL_SOURCE_METHOD_IDS=(
+    SELECTIONS["source"][0]+".test_reviewed_scope_proof_matches_physical_captures_and_independent_reader",
+    SELECTIONS["source"][0]+".test_historical_service_inverse_refuses_changed_physical_input")
+
 def method_ids(suite,captured):
     result=[]
     for selector in SELECTIONS[suite]:
@@ -994,7 +1007,12 @@ def method_ids(suite,captured):
         node=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name==classname)
         result.extend(module+"."+classname+"."+name for name in sorted(
             n.name for n in node.body if isinstance(n,ast.FunctionDef) and n.name.startswith("test_")))
-    integer(len(result),6 if suite=="source" else 12)
+    if suite=="source":
+        expected=ORIGINAL_SOURCE_METHOD_IDS+SUPPLEMENTAL_SOURCE_METHOD_IDS
+        integer(len(result),len(expected))
+        equal(sorted(result),sorted(expected),"source suite original/supplement method inventory differs")
+    else:
+        integer(len(result),12)
     return result
 
 def read_suite(directory,report_pin,*,require_cold):

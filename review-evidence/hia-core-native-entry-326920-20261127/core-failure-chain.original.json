@@ -1,0 +1,80 @@
+{
+  "cleanup_wall_limit_seconds": 3,
+  "cold_storage": "/home/runner/work/_temp/hia-cold.native-cold/chain",
+  "commands": [
+    {
+      "argv": [
+        "/home/runner/work/_temp/hia-cold.native-cold/build/toolchain/hia-cold",
+        "--source",
+        "/home/runner/work/_temp/hia-cold.native-cold/export/run/source",
+        "--output",
+        "/home/runner/work/_temp/hia-cold.native-cold/chain/cold",
+        "--toolchain",
+        "/home/runner/work/_temp/hia-cold.native-cold/build/toolchain",
+        "--bundle",
+        "/home/runner/work/_temp/hia-cold.native-cold/build/toolchain/cold-bundle.hiadat"
+      ],
+      "elapsed_ns": 196923685218,
+      "label": "full-cold",
+      "native_descendants_only": false,
+      "observed_entry_process_terminal": true,
+      "pid": 3816,
+      "read_only_resource_observation": {
+        "bytes": 67976,
+        "complete": true,
+        "error": null,
+        "path": "/home/runner/work/_temp/hia-cold.native-cold/chain/full-cold.resources.jsonl",
+        "sha256": "3828fb8a0e6a182540a68745a2687c44d6696d5e41276eb39223c05d66bd4932"
+      },
+      "returncode": 1,
+      "started_utc": "2026-11-27T14:38:13.084821+00:00",
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "trace_argv": [
+        "/usr/bin/strace",
+        "-D",
+        "-f",
+        "--seccomp-bpf",
+        "-e",
+        "trace=execve,execveat",
+        "-o",
+        "/home/runner/work/_temp/hia-cold.native-cold/chain/full-cold.exec.trace",
+        "--",
+        "/home/runner/work/_temp/hia-cold.native-cold/build/toolchain/hia-cold",
+        "--source",
+        "/home/runner/work/_temp/hia-cold.native-cold/export/run/source",
+        "--output",
+        "/home/runner/work/_temp/hia-cold.native-cold/chain/cold",
+        "--toolchain",
+        "/home/runner/work/_temp/hia-cold.native-cold/build/toolchain",
+        "--bundle",
+        "/home/runner/work/_temp/hia-cold.native-cold/build/toolchain/cold-bundle.hiadat"
+      ]
+    }
+  ],
+  "driver": {
+    "bytes": 31598,
+    "path": "/home/runner/work/Hepta/Hepta/tools/hia_native_cold_chain.py",
+    "sha256": "a33b15278bbe5a1b815d6a3453214b95bb96175454f79f11715acc009ad80489"
+  },
+  "error": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_native_cold_chain.py\", line 335, in main\n    cold_raw = run(\"full-cold\", [toolchain / \"hia-cold\", \"--source\", native_source,\n                                \"--output\", cold, \"--toolchain\", toolchain,\n                                \"--bundle\", toolchain / \"cold-bundle.hiadat\"])\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_native_cold_chain.py\", line 321, in run\n    assert child.returncode == 0 and not stderr, row\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: {'label': 'full-cold', 'argv': ['/home/runner/work/_temp/hia-cold.native-cold/build/toolchain/hia-cold', '--source', '/home/runner/work/_temp/hia-cold.native-cold/export/run/source', '--output', '/home/runner/work/_temp/hia-cold.native-cold/chain/cold', '--toolchain', '/home/runner/work/_temp/hia-cold.native-cold/build/toolchain', '--bundle', '/home/runner/work/_temp/hia-cold.native-cold/build/toolchain/cold-bundle.hiadat'], 'trace_argv': ['/usr/bin/strace', '-D', '-f', '--seccomp-bpf', '-e', 'trace=execve,execveat', '-o', '/home/runner/work/_temp/hia-cold.native-cold/chain/full-cold.exec.trace', '--', '/home/runner/work/_temp/hia-cold.native-cold/build/toolchain/hia-cold', '--source', '/home/runner/work/_temp/hia-cold.native-cold/export/run/source', '--output', '/home/runner/work/_temp/hia-cold.native-cold/chain/cold', '--toolchain', '/home/runner/work/_temp/hia-cold.native-cold/build/toolchain', '--bundle', '/home/runner/work/_temp/hia-cold.native-cold/build/toolchain/cold-bundle.hiadat'], 'started_utc': '2026-11-27T14:38:13.084821+00:00', 'native_descendants_only': False, 'pid': 3816, 'read_only_resource_observation': {'complete': True, 'error': None, 'path': '/home/runner/work/_temp/hia-cold.native-cold/chain/full-cold.resources.jsonl', 'bytes': 67976, 'sha256': '3828fb8a0e6a182540a68745a2687c44d6696d5e41276eb39223c05d66bd4932'}, 'returncode': 1, 'observed_entry_process_terminal': True, 'elapsed_ns': 196923685218, 'stdout': {'bytes': 0, 'sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}, 'stderr': {'bytes': 0, 'sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}}\n",
+  "native_source": "/home/runner/work/_temp/hia-cold.native-cold/export/run/source",
+  "ordinary_release_timeout_seconds": 1800,
+  "passed": false,
+  "production_activated": false,
+  "qualification_wall_limit_seconds": 180,
+  "resource_observation_affects_admission": false,
+  "schema": "hepta.hia.current-native-production-chain.v1",
+  "source": "/home/runner/work/Hepta/Hepta",
+  "source_head": "32692030505f2e81e9d33e22dbf6857c65af83ed",
+  "started_utc": "2026-11-27T14:38:12.061389+00:00",
+  "whole_cold_qualified": false,
+  "whole_native_delivery_qualified": false,
+  "whole_stack_rewritten_in_hia": false
+}

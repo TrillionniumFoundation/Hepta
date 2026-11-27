@@ -96,7 +96,9 @@ def read_native_locations(cold_path, cold_raw, index_raw):
                  "native generation index row differs from the original generation")
         path = _path(row["produced_image"])
         raw = _regular(path, MAX_COMPILER_BYTES)
-        _require(raw.startswith(b"\x7fELF") and len(raw) == row["produced_bytes"]
+        # B1/B2/B3 are flat compiler images consumed by the native observer.
+        # The location index binds bytes; complete cold admission below is the gate.
+        _require(len(raw) == row["produced_bytes"]
                  and sha256(raw).hexdigest() == row["produced_sha256"],
                  "physical native compiler bytes differ from the generation index")
         images.append((path, raw))

@@ -7,6 +7,7 @@ can be attacked independently. No fixture compiler bytes are executable.
 from contextlib import ExitStack
 from copy import deepcopy
 from hashlib import sha256
+import ast
 import importlib
 import json
 from pathlib import Path
@@ -251,6 +252,63 @@ class NativeColdCustodyReaderTests(unittest.TestCase):
                 with self.subTest(mutation=mutation), self.assertRaises(ValueError):
                     read()
                 build_path.write_text(json.dumps(report))
+
+
+    def test_source_suite_keeps_original_methods_and_both_explicit_supplements(self):
+        directory = self.base / 'source-suite'
+        directory.mkdir()
+        originals = {}
+        expected = []
+        for selector in bootstrap_reader.SELECTIONS['source']:
+            module, classname = selector.rsplit('.', 1)
+            path = directory / (module.replace('.', '/') + '.py')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            raw = (ROOT / path.relative_to(directory)).read_bytes()
+            path.write_bytes(raw)
+            originals[path] = (raw, classname)
+            node = next(n for n in ast.parse(raw).body
+                        if isinstance(n, ast.ClassDef) and n.name == classname)
+            expected.extend(selector + '.' + name for name in sorted(
+                n.name for n in node.body if isinstance(n, ast.FunctionDef)
+                and n.name.startswith('test_')))
+        self.assertEqual(len(expected), 8)
+        with patch.object(bootstrap_reader, 'ROOT', directory):
+            captured = []
+            self.assertEqual(bootstrap_reader.method_ids('source', captured), expected)
+            self.assertEqual({path for path, _ in captured}, set(originals))
+            for path, (raw, classname) in originals.items():
+                original_tree = ast.parse(raw)
+                node = next(n for n in original_tree.body
+                            if isinstance(n, ast.ClassDef) and n.name == classname)
+                methods = [n.name for n in node.body if isinstance(n, ast.FunctionDef)
+                           and n.name.startswith('test_')]
+                cases = [('omission', name) for name in methods]
+                cases += [('replacement', methods[0]), ('extra', methods[0]),
+                          ('duplicate_replaces_another', methods[0])]
+                for mutation, target in cases:
+                    tree = ast.parse(raw)
+                    node = next(n for n in tree.body
+                                if isinstance(n, ast.ClassDef) and n.name == classname)
+                    method = next(n for n in node.body
+                                  if isinstance(n, ast.FunctionDef) and n.name == target)
+                    if mutation == 'omission':
+                        node.body.remove(method)
+                    elif mutation == 'replacement':
+                        method.name = 'test_unreviewed_replacement'
+                    elif mutation == 'extra':
+                        node.body.append(ast.parse(
+                            'def test_unreviewed_extra(self): pass').body[0])
+                    else:
+                        other = next(n for n in node.body if isinstance(n, ast.FunctionDef)
+                                     and n.name.startswith('test_') and n.name != target)
+                        node.body.remove(other)
+                        node.body.append(deepcopy(method))
+                    path.write_text(ast.unparse(tree) + '\n')
+                    with self.subTest(module=path.name, mutation=mutation, target=target), \
+                            self.assertRaises(ValueError):
+                        bootstrap_reader.method_ids('source', [])
+                    path.write_bytes(raw)
+            self.assertEqual(bootstrap_reader.method_ids('source', []), expected)
 
 
 if __name__ == '__main__':
