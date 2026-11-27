@@ -323,12 +323,14 @@ class CliInspectNativeTests(unittest.TestCase):
             result = subprocess.run(argv, cwd=cwd, env=environment, capture_output=True, timeout=timeout)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             return result
+        from tests.hia_component_install_fixture import component_wheel, verify_component_install
+        component = component_wheel(source)
         run([sys.executable, '-B', 'setup.py', 'sdist', '--formats=gztar'], source)
         archives = list((source / 'dist').glob('*.tar.gz'))
         self.assertEqual(len(archives), 1)
         wheels = root / 'wheels'
         run([sys.executable, '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation',
-             str(archives[0]), '-w', str(wheels)])
+             str(component), '-w', str(wheels)])
         built = list(wheels.glob('*.whl'))
         self.assertEqual(len(built), 1)
         installed = root / 'site'
@@ -336,6 +338,8 @@ class CliInspectNativeTests(unittest.TestCase):
              '--target', str(installed), str(built[0])], timeout=60)
         self.assertEqual((installed / 'hepta/_data/examples/hia_bootstrap/cli_inspect.hepta').read_bytes(), SOURCE.read_bytes())
         self.assertFalse((installed / 'hepta/_data/tests/fixtures/hia_compiler_rename_reference.json.gz').exists())
+        record(root / 'current-component-install-custody.json',
+               verify_component_install(component, installed, installed_from=built[0]))
         input_path, expected_path = root / 'input.json', root / 'expected.txt'
         input_path.write_text(json.dumps(choose_loan()))
         expected_path.write_text(json.dumps(reference(choose_loan()), ensure_ascii=False, indent=2, sort_keys=True) + '\n')
@@ -372,3 +376,8 @@ print(json.dumps({'installed_actual_native_entries':len(calls),'resource_owned':
                       str(input_path), str(expected_path)], timeout=90)
         self.assertEqual(json.loads(result.stdout)['installed_actual_native_entries'], 1)
         record(root / 'installed-result.json', json.loads(result.stdout))
+        installed_source = installed / 'hepta/_data/examples/hia_bootstrap/cli_inspect.hepta'
+        self.assertEqual(installed_source.read_bytes(), SOURCE.read_bytes() + b'\n')
+        installed_source.write_bytes(SOURCE.read_bytes())
+        record(root / 'current-component-terminal-custody.json',
+               verify_component_install(component, installed, installed_from=built[0]))
