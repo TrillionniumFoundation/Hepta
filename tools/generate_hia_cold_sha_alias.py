@@ -12,6 +12,7 @@ import ast,copy,struct,subprocess,tempfile
 from tools.generate_hia_cold_sha256_stream import source_program as original_source,Builder as WordBuilder
 from tools.generate_hia_selfhost import compact_authoring_cfg,total_scalar_functions
 from hepta.hia_agent_assembly import render_assembly
+from tools.hia_cold_sha_blocks import complete_blocks_source
 
 ROOT=Path(__file__).resolve().parents[1]
 MAGIC=int.from_bytes(b'HIASHA01','little')
@@ -185,7 +186,7 @@ def nonalias_source():
     loops[2].test = ast.parse('i < 16',mode='eval').body
     fuse_schedule_round(fused,4)
     compression.body.insert(compression.body.index(loops[2])+1,fused)
-    return ast.unparse(ast.fix_missing_locations(module))+'\n'
+    return complete_blocks_source(ast.unparse(ast.fix_missing_locations(module))+'\n')
 
 def packer_source():
     prefix,old_hole,fast_hole=template()

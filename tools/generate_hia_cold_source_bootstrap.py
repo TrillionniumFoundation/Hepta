@@ -52,6 +52,7 @@ def independent_roots(s):
     independent_profile(s, "endian", "seed_endian_backend")
     independent_profile(s, "cold-bulk", "seed_cold_bulk_backend")
     independent_profile(s, "cold-endian", "seed_cold_endian_backend")
+    independent_profile(s, "cold-endian-shift", "seed_cold_endian_shift_backend")
     independent_profile(s, "cold-bulk-word", "seed_cold_bulk_word_backend")
     return s
 

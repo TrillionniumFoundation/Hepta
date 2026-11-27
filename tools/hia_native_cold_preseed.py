@@ -22,6 +22,7 @@ PROFILE_SOURCE = {
     "bulk": "seed_bulk_backend", "div-bulk": "seed_div_bulk_backend",
     "word": "seed_word_backend", "endian": "seed_endian_backend",
     "cold-bulk": "seed_cold_bulk_backend", "cold-endian": "seed_cold_endian_backend",
+    "cold-endian-shift": "seed_cold_endian_shift_backend",
     "cold-bulk-word": "seed_cold_bulk_word_backend",
     "owned": "seed_owned_backend", "vm": "seed_vm_backend",
 }
@@ -172,7 +173,7 @@ class Builder:
         contract = self.tool("source_contract_generate")
         self.publish("hia-source-contract", contract.read_bytes())
         fallback = self.flat("cold_sha256_stream", "word")
-        fast = self.flat("cold_sha256_nonalias", "cold-endian")
+        fast = self.flat("cold_sha256_nonalias", "cold-endian-shift")
         sha = self.framed(self.tool("cold_sha256_alias_packer", "word"),
                           "cold-sha-dispatch", b"HIASHA01", [fallback, fast])
         self.publish("tmp-cold-sha256-flat", sha, executable=False)
