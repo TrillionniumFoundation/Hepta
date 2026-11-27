@@ -64,6 +64,8 @@ advance:
     je module_archive_query
     cmp QWORD PTR [r15+16],17
     je module_batch
+    cmp QWORD PTR [r15+16],18
+    je module_index
     jmp invalid
 module_session:
     .byte 0xe8
@@ -155,6 +157,11 @@ module_batch:
 .global audit_batch_hole
 audit_batch_hole: .long 0
     jmp returned
+module_index:
+    .byte 0xe8
+.global audit_index_hole
+audit_index_hole: .long 0
+    jmp returned
 returned:
     mov eax,eax
     cmp eax,6
@@ -165,6 +172,8 @@ returned:
     je relocate_action
     cmp eax,4
     je json_action
+    cmp eax,8
+    je index_tree_action
     jmp invalid
 syscall_action:
     xor ebx,ebx
@@ -247,6 +256,11 @@ store_word:
     mov QWORD PTR [r15+8],0
     jmp advance
 json_action:
+    mov QWORD PTR [rsp+64],0
+    jmp native_buffers
+index_tree_action:
+    mov QWORD PTR [rsp+64],1
+native_buffers:
     xor ebx,ebx
     xor ebp,ebp
 buffer_pair:
@@ -271,9 +285,17 @@ buffer_pair:
     mov rcx,[rsp+24]
     mov r8,[rsp+32]
     mov r9,[rsp+40]
+    cmp QWORD PTR [rsp+64],0
+    jne index_tree_invoke
     .byte 0xe8
 .global audit_json_hole
 audit_json_hole: .long 0
+    jmp native_returned
+index_tree_invoke:
+    .byte 0xe8
+.global audit_index_tree_hole
+audit_index_tree_hole: .long 0
+native_returned:
     mov eax,eax
     mov [r15+8],rax
     jmp advance

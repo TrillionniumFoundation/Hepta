@@ -10,6 +10,7 @@ from tools.generate_hia_mcp_request_audit_codec import SOURCE as CODEC, TEXT as 
 from tools.generate_hia_mcp_request_audit_history import SOURCE as HISTORY, TEXT as HISTORY_TEXT
 from tools.generate_hia_mcp_request_audit_usage import SOURCE as USAGE, TEXT as USAGE_TEXT, C as USAGE_C
 from tools.generate_hia_mcp_request_audit_observation import SOURCE as OBSERVATION
+from tools.generate_hia_mcp_request_audit_index import C as INDEX_C
 
 TEXT = {
     **CODEC_TEXT, **HISTORY_TEXT, **USAGE_TEXT,
@@ -22,6 +23,10 @@ SOURCE = r'''
 def advance(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase = get(w,0)
     at = frame(w)
+    if phase == 44 and get(w,48) != NONE:
+        # The index now owns this exact watch even if the final deadline check
+        # refuses the response after publication.
+        save(w,0,NONE)
     if phase >= 980:
         return cleanup(o,w)
     if phase == 900:
@@ -65,6 +70,10 @@ def checked(o:mutbuf,w:mutbuf) -> u32:
             return query_error(o,w,38)
         return procedure(w,M_OPEN,0,1,0,0,0,0,0,0,0,0)
     if phase == 1:
+        if get(w,48) == NONE:
+            return query_error(o,w,38)
+        return procedure(w,M_INDEX,0,29,0,0,0,0,0,0,0,0)
+    if phase == 29:
         if get(w,48) == NONE:
             return query_error(o,w,38)
         select_member(w,0)
@@ -183,7 +192,7 @@ def checked(o:mutbuf,w:mutbuf) -> u32:
     if phase == 13:
         if get(w,48) != original_directory(w):
             return query_error(o,w,38)
-        return procedure(w,M_FILES,READ_FILE,14,original_directory(w),at+1024,READ_DATA,2048,0,0,0,1)
+        return procedure(w,M_FILES,READ_FILE,14,original_directory(w),at+1024,READ_DATA,2048,0,Q_STAMP,0,1)
     if phase == 14:
         if get(w,48) == NONE or get(w,48) > 2048:
             return query_error(o,w,38)
@@ -195,6 +204,10 @@ def checked(o:mutbuf,w:mutbuf) -> u32:
             return query_error(o,w,38)
         return step(w,16)
     if phase == 16:
+        return procedure(w,M_INDEX,1,17,Q_RECORD,Q_STAMP,0,0,0,0,0,0)
+    if phase == 17:
+        if get(w,48) == NONE:
+            return query_error(o,w,38)
         if get(w,B_ORIGINALS) == NONE:
             return query_error(o,w,38)
         put(w,B_ORIGINALS,get(w,B_ORIGINALS)+1)
@@ -238,10 +251,14 @@ def checked(o:mutbuf,w:mutbuf) -> u32:
         if result == NEG4:
             return step(w,41)
         if result == Q_AGAIN:
-            return step(w,980)
+            return procedure(w,M_INDEX,2,44,local(w,0),0,0,0,0,0,0,0)
         if failed(result) or result == 0 or result > 65536 or unrelated_events(w,result) == False:
             return query_error(o,w,38)
         return step(w,41)
+    if phase == 44:
+        if get(w,48) == NONE:
+            return query_error(o,w,38)
+        return step(w,980)
     return query_error(o,w,38)
 
 def watch_count(w:mutbuf) -> u64:
@@ -382,6 +399,8 @@ def cleanup(o:mutbuf,w:mutbuf) -> u32:
         descriptor = local(w,0)
         save(w,0,NONE)
         return call(o,w,981,3,descriptor,0,0,0,0,0,0)
+    if get(w,0) != 982 and get(w,I_NEW_READY) != 0:
+        return procedure(w,M_INDEX,3,982,0,0,0,0,0,0,0,0)
     return enter(w,M_RESPONSE,0)
 '''
 
@@ -395,9 +414,12 @@ def source():
                   lambda match: '(query_base(w)+'+str(offsets[match[0]])+')', body)
     return authored(body, text=TEXT, extra={
         **USAGE_C,
+        **INDEX_C,
         'Q_PAGE': 17 << 20, 'Q_CURSOR': (17 << 20)+16384,
-        'Q_RECORD': (17 << 20)+16640, 'Q_ID': (17 << 20)+16896,
+        'Q_RECORD': (17 << 20)+16640, 'Q_ID': (17 << 20)+17152,
+        'Q_STAMP': (17 << 20)+17216,
         'Q_WATCHES': (17 << 20)+32768, 'Q_NAME': (17 << 20)+65536,
         'Q_SCAN': 18 << 20, 'Q_EVENTS': 19 << 20,
         'Q_AGAIN': (1 << 64)-11,
         'WIRE_OVERHEAD': len(b'{"content":[{"type":"text","text":""}],"isError":false,"resultType":"complete"}')})
+
