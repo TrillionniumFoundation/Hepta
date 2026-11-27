@@ -354,7 +354,7 @@ class AgentQueryIntegrationTests(AgentQueryFixture, unittest.TestCase):
         with zipfile.ZipFile(wheel_files[0]) as wheel:
             self.assertEqual(wheel.read("hepta/_data/examples/hia_bootstrap/agent_query.hepta"), SOURCE.read_bytes())
             self.assertFalse(any(name.endswith("hia_compiler_rename_reference.json.gz") for name in wheel.namelist()))
-        call_checked([sys.executable, "-m", "pip", "install", "--no-index", "--no-deps",
+        call_checked([sys.executable, "-m", "pip", "install", "--no-index", "--no-deps", "--no-compile",
                       "--target", str(installed), str(wheel_files[0])],
                      cwd=directory, environment=environment, directory=directory, name="install", timeout=60)
         self.assertFalse(list((installed / "hepta/_data").rglob("hia_compiler_rename_reference.json.gz")))

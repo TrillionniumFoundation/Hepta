@@ -14,6 +14,7 @@ INPUTS = (
     "tests/hia_component_install_fixture.py",
     "tests/test_hia_query_cli_current_native.py",
     "tests/fixtures/hia_query_cli_component_install_preparation_v1.json",
+    "tests/fixtures/hia_query_cli_component_install_preparation_v2.json",
     "tests/fixtures/hia_query_cli_original_v1.tar.gz",
     "tools/hia_word_memory_cases.py",
     "tools/generate_hia_selfhost.py", "tools/generate_hia_sha256.py",

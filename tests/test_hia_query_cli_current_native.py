@@ -24,8 +24,8 @@ from tests import test_hia_cli_inspect_native as inspect_cases
 from tools.hia_word_memory_cases import acyclic_program, owned_program
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURE = "tests/fixtures/hia_query_cli_component_install_preparation_v1.json"
-FIXTURE_SHA256 = "03133866b6ed37ecd1647280719f603b7fd1b5ce03f349c1263882f9e4b238a8"
+FIXTURE = "tests/fixtures/hia_query_cli_component_install_preparation_v2.json"
+FIXTURE_SHA256 = "fe81dc5276740c5a189c36fa05ae319ddeb21ccf60e8d131cce91a668be70708"
 ARCHIVE_SHA256 = "e3f3fb7479cf57218a4f8128dc88b2e941a5f5b40618e0bd764b47189ba9b865"
 INSTALL_METHODS = {
     "AgentQueryIntegrationTests.test_actual_sdist_wheel_and_worker_bundle_need_no_per_call_environment",
@@ -80,6 +80,11 @@ class QueryCliPreparationSourceTests(unittest.TestCase):
         fixture_raw = (ROOT / FIXTURE).read_bytes()
         self.assertEqual(sha256(fixture_raw).hexdigest(), FIXTURE_SHA256)
         fixture = json.loads(fixture_raw)
+        previous = fixture["previous_preparation"]
+        self.assertEqual(_pin((ROOT / previous["path"]).read_bytes()),
+                         {key: previous[key] for key in ("bytes", "sha256")})
+        self.assertEqual(previous["sha256"],
+                         "03133866b6ed37ecd1647280719f603b7fd1b5ce03f349c1263882f9e4b238a8")
         self.assertFalse(fixture["public_native_distribution_qualified"])
         archive_raw = (ROOT / fixture["original_archive"]).read_bytes()
         self.assertEqual(sha256(archive_raw).hexdigest(), ARCHIVE_SHA256)
