@@ -124,7 +124,7 @@ def qemu(machine, image, expected_code, expected_serial):
     command = [
         "qemu-system-x86_64", "-machine", machine, "-cpu", "qemu64",
         "-m", "64M", "-accel", "tcg", "-display", "none", "-serial", "none",
-        "-monitor", "none", "-no-reboot", "-no-shutdown",
+        "-monitor", "none", "-no-reboot", "-action", "shutdown=poweroff",
         "-device", "isa-debug-exit,iobase=0xf4,iosize=0x04",
         "-debugcon", "stdio", "-global", "isa-debugcon.iobase=0xe9",
         "-kernel", str(image),

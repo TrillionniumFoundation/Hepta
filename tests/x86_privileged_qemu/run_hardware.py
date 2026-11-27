@@ -183,7 +183,7 @@ def execute_guest(elf: Path, machine: str, expected: tuple[int, str]) -> dict:
         "qemu-system-x86_64", "-machine", machine,
         "-m", "64M", "-smp", "1", "-kernel", str(elf),
         "-display", "none", "-serial", "none", "-monitor", "none",
-        "-no-reboot", "-no-shutdown",
+        "-no-reboot", "-action", "shutdown=poweroff",
         "-device", "isa-debug-exit,iobase=0xf4,iosize=0x04",
         "-debugcon", "stdio", "-global", "isa-debugcon.iobase=0xe9",
     ]
