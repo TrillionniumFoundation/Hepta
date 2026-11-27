@@ -132,7 +132,17 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
             raise AssertionError('fixed caller diagnostic dependency authority changed')
         cls.dependency = json.loads(dependency_raw)
         from tests import hia_native_transport_worker_successor as delivery
-        from tests.hia_historical_diagnostic_controls import historical_terminal_pair
+        from tests.hia_historical_diagnostic_controls import cold_control_source, historical_terminal_pair
+        cls.cold_adjustments = {}
+        for name in ('tests/hia_historical_diagnostic_controls.py',
+                     'tools/hia_frozen_component_sources.py'):
+            cls.source_raw[name] = (ROOT / name).read_bytes()
+        for name, raw in tuple(cls.corpus.items()):
+            if name in PRIOR_NAMES:
+                # Their current full-source readers already perform this inverse.
+                continue
+            cls.corpus[name] = cold_control_source(
+                ROOT, name, raw, cls.source_raw, cls.cold_adjustments)
         reviewed_pair = json.loads(cls.corpus[PAIR])['files']
         expected = {name: record['new'] for name, record in reviewed_pair.items()}
         expected[PRIOR_NAMES[2]] = json.loads(cls.corpus[EVALUATION])['record']['new']
@@ -143,14 +153,19 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
             return cls.source_raw[name]
         cls.corpus[DEPENDENCY_PATH] = delivery.reviewed_qualifier_dependency(
             cls.corpus[DEPENDENCY_PATH], capture)[0]
-        from tests.hia_installed_distribution_history import _records, predecessor
+        from tests.hia_installed_distribution_history import FIXTURE as installed_fixture, _records, predecessor
+        from tests.hia_component_authoring_history import FIXTURE as component_fixture
         from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, evaluate_records, reverse_exact
+        for name in (installed_fixture, component_fixture):
+            cls.corpus[name] = capture(name)
         inventory = cls.values['store']['unchanged_files']
         latest = {name for value in cls.values.values() for name in value['unchanged_files']}
         required = {*delivery.COMPONENT_PATHS, delivery.MACHINE_RECEIPT_CALLER,
                     'tests/test_hia_native_build_admission_native.py', *(_records().keys() & latest)}
         for name in required - cls.corpus.keys():
-            cls.corpus[name] = predecessor(name, capture(name))
+            raw = cold_control_source(ROOT, name, capture(name),
+                                      cls.source_raw, cls.cold_adjustments)
+            cls.corpus[name] = predecessor(name, raw)
         for name in (delivery.SQL_SOURCE_FIXTURE, delivery.SQL_EFFECT_TEST, delivery.EVALUATION_STORE_FIXTURE):
             cls.corpus[name] = capture(name)
         name = delivery.MACHINE_RECEIPT_CALLER
@@ -211,6 +226,7 @@ class CallerQualifierSuccessorSourceTests(unittest.TestCase):
             'retained_original_ids': cls.retained_ids, 'retained_original_count': 152,
             'additional_current_dependency_count': 126,
             'method_count': 2, 'source_before': {name: pin(raw) for name, raw in cls.source_raw.items()},
+            'reviewed_native_cold_source_adjustments': cls.cold_adjustments,
             'original_gates_replaced': False, 'production_source_exceptions': []})
 
     @classmethod

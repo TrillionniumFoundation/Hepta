@@ -629,8 +629,9 @@ QUALIFIER_STORE_CURRENT = {'bytes': 22723, 'sha256': '85f92bf60694e2d7950ced55e3
 
 def reviewed_qualifier_dependency(raw, capture):
     from tests.hia_installed_distribution_history import predecessor
-    raw = _installed_predecessor(QUALIFIER_DEPENDENCY_PATH, raw, root=ROOT,
-                      take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+    if type(raw) is not bytes or _pin(raw) != QUALIFIER_DEPENDENCY_CURRENT:
+        raw = _installed_predecessor(QUALIFIER_DEPENDENCY_PATH, raw, root=ROOT,
+                          take=lambda name: capture(name.relative_to(ROOT).as_posix()))
     sql_successor = _pin(raw)['sha256'] == 'fb0c4be8fc93e0a1658c4672f2110ab1298f5cfde85c72988843a449477a56a8'
     if sql_successor:
         raw = restore_sql_source(QUALIFIER_DEPENDENCY_PATH, raw, capture, {'bytes': 23506, 'sha256': '44b53db9a34ffe236652473d02ab45697d3612ba9b7ec556b0ea4e96d0568893'})
