@@ -45,6 +45,9 @@ class _VMEntry:
         owners = [self.owner(index + 1, bytearray(value)) for index, value in enumerate(values)]
         # Independent interpreter limits are explicit and unchanged by cases.
         machine = self.machine(self.program, 4_000_000, 16 << 20, None, 128)
+        # The Slot oracle interprets scalar and memory operations even when the
+        # installed wheel supplies a default image. Bind that choice per machine.
+        machine._package_integer = None
         code = machine.invoke(machine.functions['f0'],
             [self.view(owner, index != 0) for index, owner in enumerate(owners)])[0]
         if bytes(owners[0].data) != raw:
@@ -151,7 +154,7 @@ def prepare_backend(root, backend, manifest):
         if manifest is not None:
             raise ValueError('VM does not claim a compiled native manifest')
         from hepta.hia_agent_assembly import assemble_program
-        from hepta.hia_program_runtime import _Machine, _Owner, _View
+        from hepta.hia_program_runtime import _Owner, _View
         from hepta.hia_program_runtime_arithmetic import prepare_arithmetic_runtime
         program = assemble_program(native.SOURCE.read_bytes())
         program, machine_factory = prepare_arithmetic_runtime(program)
