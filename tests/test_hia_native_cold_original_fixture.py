@@ -77,6 +77,43 @@ def methods(raw):
 
 
 class NativeColdOriginalFixtureCustodyTests(unittest.TestCase):
+    def test_original_terminal_controls_keep_all_assertions_and_method_bodies(self):
+        name = 'tests/fixtures/hia_native_cold_control_object_preparation_v1.json'
+        raw = (ROOT / name).read_bytes()
+        self.assertEqual(preparation.pin(raw), {"bytes":2642,"sha256":"d6f979faeb6d218d63699698d8251ef63fd025faa838ad9913ffd99e4167f645"})
+        fixed = json.loads(raw)
+        versions = {"tests/test_hia_current_caller_source_history.py":{"before":{"bytes":9414,"sha256":"74219a669420ed0e72f3c88b3888a5a94318c2a0daca7e9c85ce08b08225f1cb"},"after":{"bytes":9610,"sha256":"6582781686612aeb68ed68464540feb429b2b9442a1f3ef26256d373e6660f49"},"tests":7},"tests/test_hia_current_terminal_admission_history.py":{"before":{"bytes":5872,"sha256":"75e1c1bdbc44962dd6b6cab309c34dc89042b7b495da618541a46ce7bedc4231"},"after":{"bytes":6210,"sha256":"0756aee47159e209af58873127af84cd6d542554b932c32b5602972d673c3941"},"tests":7}}
+        self.assertEqual(set(fixed['files']), set(versions))
+        class NormalizeNewCaptureCollections(ast.NodeTransformer):
+            def __init__(self):
+                self.removed = []
+            def visit_Assign(self, node):
+                if (len(node.targets) == 1 and isinstance(node.targets[0], ast.Attribute)
+                        and isinstance(node.targets[0].value, ast.Name)
+                        and node.targets[0].value.id == 'admitted'
+                        and node.targets[0].attr in ('_native_source_histories', '_slot_source_history')
+                        and isinstance(node.value, ast.Dict) and not node.value.keys):
+                    self.removed.append(node.targets[0].attr)
+                    return None
+                return self.generic_visit(node)
+        for name, version in versions.items():
+            with self.subTest(path=name):
+                current = (ROOT / name).read_bytes()
+                self.assertEqual(preparation.pin(current), version['after'])
+                old = engine.history_inverse(current, fixed['files'][name], version['before'])
+                before, after = methods(old), methods(current)
+                self.assertEqual(set(before), set(after))
+                self.assertEqual(len(before), version['tests'])
+                for method in before:
+                    normalizer = NormalizeNewCaptureCollections()
+                    updated = normalizer.visit(after[method])
+                    expected = ['_native_source_histories', '_slot_source_history'] if method.endswith((
+                        '.test_actual_terminal_capture_uses_explicit_root_and_retains_physical_bytes',
+                        '.test_actual_terminal_capture_refuses_missing_or_changed_local_history')) else []
+                    self.assertEqual(normalizer.removed, expected)
+                    self.assertEqual(ast.dump(before[method], include_attributes=False),
+                                     ast.dump(updated, include_attributes=False), method)
+
     def test_complete_preparation_inverse_preserves_original_test_bodies(self):
         raw = (ROOT / FIXTURE).read_bytes()
         self.assertEqual(preparation.pin(raw), FIXTURE_PIN)
