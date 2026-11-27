@@ -25,6 +25,16 @@ def pin(r,value,record):
     r.node(8,(r.length(value),r.q(record['bytes'])))
 
 
+def pin_kit_body(r,kit,record):
+    """Bind the verified ELF extent without confusing it with its object footer."""
+    # checked_kit retains the HIAKIMG1 frame after native footer, call-site and
+    # source/object comparisons. Its final 64 bytes are construction evidence;
+    # the retained receipt authenticates only the executable body.
+    r.node(8,(r.length(kit),r.q(record['bytes']+64)))
+    body=r.node(15,(kit,0,record['bytes']))
+    pin(r,body,record)
+
+
 def build_recipe():
     raw=(ROOT/RECEIPT).read_bytes();receipt=json.loads(raw)
     assert receipt['schema']=='hepta.hia.generation-lease-native-release-build.v1'
@@ -48,8 +58,8 @@ def build_recipe():
         pin(r,r.source(path),record)
     r.small_builder=r.checked_kit('native_filter_packer.hepta')
     r.wide_builder=r.checked_kit(WIDE_FILTER)
-    pin(r,r.small_builder,receipt['kits']['small'])
-    pin(r,r.wide_builder,receipt['kits']['wide'])
+    pin_kit_body(r,r.small_builder,receipt['kits']['small'])
+    pin_kit_body(r,r.wide_builder,receipt['kits']['wide'])
     wrappers={}
     for name,wide in (('generation_lease_owner_packer',True),
                       ('multiversion_runtime_linker',True),
