@@ -243,7 +243,7 @@ def read_finite(directory,authority_path,authority_pin,lane):
     candidate_path,report=receipt(directory,"candidate",comparison["candidate"],captured,source,lane=lane,seconds=1800)
     equal(report["expected_authority"],authority_pin,"candidate expected authority differs")
     equal(report["input"],authority["complete_inputs"],"candidate parsed input bytes differ")
-    _read_finite_source_domains(candidate_path, report, captured, source, lane)
+    _read_finite_source_domains(candidate_path, report, captured, source, lane, comparison)
     for _ in rows(candidate_path,report,cases):pass
     for channel in ("observations.jsonl","late-events.jsonl"):
         if not s.identical_files(original_path/channel,candidate_path/channel,
@@ -407,7 +407,7 @@ def _read_current_dispatch_control(value, expected_code, lane):
             raise ValueError('current invalid-source reference diagnostic differs')
     return value
 
-def _read_finite_source_domains(candidate_path, report, captured, source, lane):
+def _read_finite_source_domains(candidate_path, report, captured, source, lane, comparison):
     from tools import hia_bootstrap_source_history as history
     reader = captured_bytes(ROOT / history.HELPER, source[history.HELPER], captured)
     if Path(history.__file__).read_bytes() != reader:
@@ -416,20 +416,58 @@ def _read_finite_source_domains(candidate_path, report, captured, source, lane):
         captured_bytes(path, source[path.relative_to(ROOT).as_posix()], captured))
     expected.update(history.graph_bindings(saved[history.SOURCE], historical))
     equal(report['candidate_source_domain'],
-          'HISTORICAL_FIVE_BODY_COMPATIBILITY_WITH_CURRENT_DISPATCH_CONTROLS',
+          'HISTORICAL_FIVE_BODY_COMPATIBILITY',
           'Bootstrap candidate historical/current domain differs')
     proof = capture(candidate_path/'historical-source-binding.json',
                     report['files']['historical-source-binding.json'], captured)
     equal(proof, expected, 'complete historical source binding differs')
     equal(report['public_code_binding'], expected['historical_code']['public'],
           'historical public wrappers do not match the restored full source')
-    current = capture(candidate_path/'current-dispatch.json',
-                      report['files']['current-dispatch.json'], captured)
+    current = _read_current_dispatch_process(
+        candidate_path, report, captured, source, lane, comparison, expected['current_code'])
     equal(current['physical_source'], {'path':history.SOURCE, **history.CURRENT},
           'current dispatcher physical source differs')
-    _read_current_dispatch_control(current, expected['current_code'], lane)
     history.unchanged(ROOT, saved)
     return {'historical_source': proof, 'current_dispatch': current}
+
+
+def _read_current_dispatch_process(candidate_path, candidate, captured, source, lane, comparison, expected_code):
+    record = comparison['current_dispatch']
+    if (type(record) is not dict or set(record) != {'label', 'start', 'result', 'report'}
+            or record['label'] != 'current-dispatch'):
+        raise ValueError('current dispatcher owned process record differs')
+    parent = Path(candidate_path).parent
+    report, result, start = owned_child(
+        parent, 'current-dispatch', 'tests/hia_bootstrap_current_dispatch.py',
+        60, captured, fixed=record)
+    if (report['schema'] != 'hepta.hia.bootstrap-current-dispatch-process.v1'
+            or report['status'] != 'PASS_CURRENT_INIT_AND_PROGRAM_PROCESS_ONLY'
+            or report['lane'] != lane or report['whole_native_stack_qualified'] is not False):
+        raise ValueError('current dispatcher fresh process scope differs')
+    if (integer(report['pid']) == 0
+            or report['pid'] == candidate['pid']
+            or integer(report['pgid']) == candidate['pgid']):
+        raise ValueError('current dispatcher shares the historical process or group')
+    for field in ('source_before', 'source_after'):
+        equal(report[field], source, 'current dispatcher actual source differs')
+    equal(report['manifest'], comparison['manifest'], 'current dispatcher actual manifest differs')
+    terminal = capture(Path(candidate_path) / 'process-terminal.json',
+                       comparison['candidate_terminal'], captured)
+    if (integer(start['started_time_ns']) < integer(terminal['sealed_time_ns'])
+            or integer(result['ended_time_ns']) < start['started_time_ns']):
+        raise ValueError('current controls ran before historical natural-terminal admission')
+    command = [report['executable'], '-I', '-B',
+               str(ROOT / 'tests/hia_bootstrap_current_dispatch.py'),
+               '--lane', lane, '--output', str(parent / 'current-dispatch')]
+    if lane == 'native':
+        argv = candidate['argv']
+        if argv.count('--manifest') != 1 or argv.index('--manifest') + 1 >= len(argv):
+            raise ValueError('historical native manifest argument differs')
+        command += ['--manifest', argv[argv.index('--manifest') + 1]]
+    equal(start['command'], command, 'current controls do not use the declared exact invocation')
+    integer(result['stdout']['bytes'], 0)
+    current = report['current_dispatch']
+    return _read_current_dispatch_control(current, expected_code, lane)
 
 
 def owned_child(parent,label,filename,seconds,captured,*,fixed=None,stderr_empty=True):

@@ -458,11 +458,6 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
         backend = (UnselectedBackend(compatibility=True) if lane == "unselected"
                    else Backend(lane, manifest, compatibility=True))
         support.write_json(output/"historical-source-binding.json", backend.compatibility_proof)
-        from tests.hia_bootstrap_current_dispatch import current_dispatch_controls
-        current = UnselectedBackend() if lane == "unselected" else Backend(lane, manifest)
-        current_proof = current_dispatch_controls(current, lane)
-        support.write_json(output/"current-dispatch.json", current_proof)
-        del current
         ordering.append("candidate-import-and-image")
     support.write_json(output/"ordering.json", ordering)
     streams = {name:output_stream(output/name) for name in (
@@ -570,7 +565,7 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
         "native_or_VM_entries":total_entries,"files":files,
         "expected_authority":expected_pin,
         "public_code_binding":None if backend is None else backend.public_code,
-        "candidate_source_domain":None if backend is None else "HISTORICAL_FIVE_BODY_COMPATIBILITY_WITH_CURRENT_DISPATCH_CONTROLS",
+        "candidate_source_domain":None if backend is None else "HISTORICAL_FIVE_BODY_COMPATIBILITY",
         "explicit_unselected_cases":[] if backend is None else backend.unselected_cases,
         "original_code_objects_shared_within_lane":True,
         "scope":"finite frozen original methods and explicit provider namespace; raw traceback frames are separately retained, never normalized",

@@ -5,6 +5,11 @@ import itertools
 import json
 from pathlib import Path
 import types
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in (None, ''):
+    sys.path.insert(0, str(ROOT))
 from tools import hia_bootstrap_source_history as history
 
 OPTIONS = ('native_store', 'native_edit_query', 'native_candidate_import')
@@ -238,3 +243,48 @@ def current_dispatch_controls(backend, lane):
             'program_cases': len(PROGRAM_CASES), 'program_rows': program,
             'current_source_unchanged': True, 'retained_poison_calls': [],
             'complete_current_semantics_qualified': False, 'whole_native_stack_qualified': False}
+
+
+def main(argv=None):
+    """Observe the current public domain in its own fresh owned process."""
+    import argparse
+    from tests import hia_service_bootstrap_support as support
+    from tests.hia_service_bootstrap_observer import Backend, UnselectedBackend
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--lane', choices=('unselected', 'vm', 'native'), required=True)
+    parser.add_argument('--manifest', type=Path)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args(argv)
+    if (args.lane == 'native') != (args.manifest is not None):
+        parser.error('only the native lane requires its actual admitted manifest')
+    args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
+    source_before = support.source_snapshot()
+    manifest_raw = None
+    manifest_pin = None
+    if args.manifest is not None:
+        manifest_raw, manifest_value, manifest_pin = support.capture_json(args.manifest)
+        image_path = args.manifest.parent / manifest_value['image_path']
+        if support.file_pin(image_path)['sha256'] != manifest_value['image_sha256']:
+            raise ValueError('current dispatcher image differs from its actual manifest')
+    backend = UnselectedBackend() if args.lane == 'unselected' else Backend(args.lane, args.manifest)
+    proof = current_dispatch_controls(backend, args.lane)
+    source_after = support.source_snapshot()
+    if source_before != source_after:
+        raise ValueError('current dispatcher component source changed')
+    if manifest_raw is not None:
+        support.exact_reread(args.manifest, manifest_raw)
+    report = {
+        'schema': 'hepta.hia.bootstrap-current-dispatch-process.v1',
+        'status': 'PASS_CURRENT_INIT_AND_PROGRAM_PROCESS_ONLY',
+        **support.child_identity(), 'lane': args.lane,
+        'source_before': source_before, 'source_after': source_after,
+        'manifest': manifest_pin, 'current_dispatch': proof,
+        'whole_native_stack_qualified': False,
+    }
+    support.write_json(args.output / 'report.json', report)
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
