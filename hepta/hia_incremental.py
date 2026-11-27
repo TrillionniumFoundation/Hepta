@@ -111,6 +111,7 @@ def _policy():
         "byte_resources": sorted(core.BYTE_RESOURCES),
         "resources": sorted(core.RESOURCES), "types": sorted(core.TYPES),
         "effects": sorted(core.EFFECTS), "traps": sorted(core.TRAP_CODES),
+        "kernel_effects": sorted(core.KERNEL_EFFECTS),
         "reserved": sorted(core._RESERVED_FUNCTIONS),
         "identifier_pattern": core._IDENT.pattern,
         "limits": [core.MAX_BYTES, core.MAX_NODES, core.MAX_DEPTH,
@@ -125,6 +126,7 @@ def _policy():
             "owners": sorted(opcodes.OWNERS), "byte_resources": sorted(opcodes.BYTE_RESOURCES),
             "resources": sorted(opcodes.RESOURCES), "types": sorted(opcodes.TYPES),
             "effects": sorted(opcodes.EFFECTS), "traps": sorted(opcodes.TRAP_CODES),
+            "kernel_effects": sorted(opcodes.KERNEL_EFFECTS),
             "profiles": list(opcodes.PRIMITIVE_PROFILES.items()),
             # Opcode version admission uses the insertion order of the actual
             # expanded registry, not the public historical discovery catalog.

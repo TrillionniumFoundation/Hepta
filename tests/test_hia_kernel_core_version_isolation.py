@@ -91,6 +91,16 @@ class KernelCoreVersionIsolationTests(unittest.TestCase):
         document["functions"][0]["blocks"][0]["ops"] = []
         session = IncrementalVerifier(document)
         session.verify(document)
+        from hepta import hia_program as core
+        for module in (core, opcodes):
+            with self.subTest(kernel_effect_alias=module.__name__):
+                session.verify(document)
+                with patch.object(module, "KERNEL_EFFECTS", module.EFFECTS):
+                    checked, report = session.verify(document)
+                    self.assertEqual(report["mode"], "full")
+                    self.assertEqual(report["fallback_reason"], "verifier_or_registry_changed")
+                    self.assertEqual(report["functions_body_reused"], [])
+                    self.assertEqual(checked.canonical_bytes, verify_program(document).canonical_bytes)
         versions = dict(opcodes._KERNEL_VERSIONS)
         versions[schema.SCHEMA_V8] = 9
         with patch.object(opcodes, "_KERNEL_VERSIONS", versions):
