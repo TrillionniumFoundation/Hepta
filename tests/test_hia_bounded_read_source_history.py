@@ -24,6 +24,17 @@ class BoundedReadHistoryTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         prior_take(name, changed)
 
+    def test_three_complete_native_owner_views_and_late_bytes(self):
+        for name in ("hepta/hia_program_tools.py", "hepta/hia_bounded_read_native.py",
+                     "tools/generate_hia_bounded_read.py"):
+            actual = (ROOT / name).read_bytes()
+            with self.subTest(path=name):
+                self.assertEqual(prior_take(name, actual), (FIXTURES / (name + ".txt")).read_bytes())
+                self.assertEqual((ROOT / name).read_bytes(), actual)
+                for changed in (actual + b"\n", actual[:-1]):
+                    with self.assertRaises(ValueError):
+                        prior_take(name, changed)
+
     def test_undeclared_sources_and_mutable_inputs_are_refused(self):
         name = "tests/test_hia_program_tools.py"
         actual = (ROOT / name).read_bytes()

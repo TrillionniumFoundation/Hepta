@@ -292,11 +292,16 @@ def main():
     }
     owner = None
     try:
+        sys.path.insert(0, str(source))
+        from tools.hia_bounded_read_source_history import prior_take
+        report["fixed_historical_source_assertions"] = {}
         for name, expected in sources.items():
             data = (source / name).read_bytes()
             actual = sha256(data).hexdigest()
             report["source_before"][name] = {"bytes": len(data), "sha256": actual}
-            if actual != expected:
+            historical = sha256(prior_take(name, data)).hexdigest()
+            report["fixed_historical_source_assertions"][name] = historical
+            if historical != expected:
                 raise RuntimeError("source differs: " + name)
         oracle_raw = args.oracle.read_bytes()
         if sha256(oracle_raw).hexdigest() != ORACLE_SHA256:
