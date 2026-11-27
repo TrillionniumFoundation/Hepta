@@ -1017,6 +1017,8 @@ SOURCE_FILES = (
     'tools/hia_artifact_page_source_history.py',
     'tests/fixtures/hia_artifact_page_shared_source_history_v1.json',
     'tests/test_hia_artifact_page_source_history.py',
+    'tests/fixtures/hia_artifact_page_source_control_corpus_v1.json',
+    'tools/qualify_hia_current_worker_manifest.py',
     'hepta/hia_artifact_page_policy_native.py',
     'hepta/hia_artifact_page_worker_bundle.py',
     'tools/build_hia_artifact_page_worker.py',

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from hashlib import sha256
 import importlib.util
+import base64
+import zlib
 import json
 from pathlib import Path
 import tempfile
@@ -19,10 +21,22 @@ class ArtifactPageSourceHistoryTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name) / 'selected'
         self.root.mkdir()
+        # Only the isolated control root is prepared from the exact published
+        # Page domain. The current repository and physical product remain intact.
+        corpus_raw = (ROOT / 'tests/fixtures/hia_artifact_page_source_control_corpus_v1.json').read_bytes()
+        self.assertEqual(sha256(corpus_raw).hexdigest(), '86e23831df3e86a99881868dac8f4abdf9ecd1b21d76c3e70b63ef29c4fa965b')
+        corpus = json.loads(corpus_raw)
+        self.assertEqual(set(corpus['files']), set(history.CURRENT))
         for name in (*history.CURRENT, history.SELF, history.FIXTURE):
             target = self.root / name
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes((ROOT / name).read_bytes())
+            if name in history.CURRENT:
+                data = zlib.decompress(base64.b64decode(
+                    corpus['files'][name]['zlib_base64'], validate=True))
+                self.assertEqual(history._pin(data), history.CURRENT[name])
+            else:
+                data = (ROOT / name).read_bytes()
+            target.write_bytes(data)
         self.physical = {name: (self.root / name).read_bytes() for name in history.CURRENT}
 
     def test_complete_three_files_reverse_and_forward_with_physical_capture(self):
