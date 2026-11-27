@@ -9,6 +9,7 @@ from tools.generate_hia_mcp_request_audit_common import authored
 from tools.generate_hia_mcp_request_audit_codec import SOURCE as CODEC, TEXT as CODEC_TEXT
 from tools.generate_hia_mcp_request_audit_history import SOURCE as HISTORY, TEXT as HISTORY_TEXT
 from tools.generate_hia_mcp_request_audit_usage import SOURCE as USAGE, TEXT as USAGE_TEXT, C as USAGE_C
+from tools.generate_hia_mcp_request_audit_observation import SOURCE as OBSERVATION
 
 TEXT = {
     **CODEC_TEXT, **HISTORY_TEXT, **USAGE_TEXT,
@@ -186,10 +187,14 @@ def checked(o:mutbuf,w:mutbuf) -> u32:
     if phase == 14:
         if get(w,48) == NONE or get(w,48) > 2048:
             return query_error(o,w,38)
+        if observation_record(w,READ_DATA,get(w,48),Q_RECORD,Q_ID):
+            return step(w,16)
         return json_decode(o,w,15,READ_DATA,get(w,48))
     if phase == 15:
         if json_ok(w,result) == False or parse_record(w,Q_RECORD,Q_ID) == False:
             return query_error(o,w,38)
+        return step(w,16)
+    if phase == 16:
         if get(w,B_ORIGINALS) == NONE:
             return query_error(o,w,38)
         put(w,B_ORIGINALS,get(w,B_ORIGINALS)+1)
@@ -385,7 +390,7 @@ def source():
     row = HISTORY[HISTORY.index('\ndef history_row('):]
     offsets = {'Q_PAGE':0, 'Q_CURSOR':16384, 'U_TABLE':0, 'U_SORT':163840,
                'U_STATE':184320, 'U_FIRST':184576, 'U_LAST':184832}
-    body = SOURCE+active+row+'\n'+USAGE+'\n'+CODEC
+    body = SOURCE+active+row+'\n'+USAGE+'\n'+CODEC+'\n'+OBSERVATION
     body = re.sub(r'\b('+'|'.join(offsets)+r')\b',
                   lambda match: '(query_base(w)+'+str(offsets[match[0]])+')', body)
     return authored(body, text=TEXT, extra={
