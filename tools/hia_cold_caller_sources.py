@@ -5,7 +5,7 @@ The fixed authority never grants native qualification to host authoring code.
 """
 from hashlib import sha256
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 FIXTURE = 'tests/fixtures/hia_native_cold_caller_integration_20261127.json'
 SOURCE = 'tools/hia_cold_caller_sources.py'
@@ -18,6 +18,8 @@ PATHS = ('hepta/hia_agent_service.py', 'tests/hia_composite_function_fixture.py'
 
 
 def pin(raw):
+    if type(raw) is not bytes:
+        raise ValueError('native cold caller source requires immutable bytes')
     return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
 
 
@@ -72,39 +74,125 @@ def restore_caller_source(name, raw, relations):
     return restored
 
 
+def _relative_name(name):
+    if (type(name) is not str or not name or '\x00' in name or '\\' in name
+            or PurePosixPath(name).is_absolute() or '..' in PurePosixPath(name).parts
+            or str(PurePosixPath(name)) != name or name == '.'):
+        raise ValueError('native cold caller source path is not canonical')
+    return name
+
+
 def original_caller_source(root, name, raw, *, take=Path.read_bytes):
-    if name not in PATHS:
-        return raw
+    """Bind the complete supplied source to this root before and after inverse."""
     root = Path(root)
-    frozen, previous = take(root / FIXTURE), take(root / PREVIOUS_FIXTURE)
-    relations = read_relations(frozen, previous_raw=previous)
-    result = restore_caller_source(name, raw, relations)
-    if take(root / FIXTURE) != frozen or take(root / PREVIOUS_FIXTURE) != previous:
-        raise ValueError('native cold caller authority changed during original readback')
-    return result
+    name = _relative_name(name)
+    pin(raw)
+    captured = {}
+
+    def capture(current):
+        current = _relative_name(current)
+        data = take(root / current)
+        pin(data)
+        if current in captured and captured[current] != data:
+            raise ValueError('native cold caller physical input changed: ' + current)
+        captured[current] = data
+        return data
+
+    if capture(name) != raw:
+        raise ValueError('native cold caller supplied source differs from physical source')
+    try:
+        if name not in PATHS:
+            return raw
+        frozen, previous = capture(FIXTURE), capture(PREVIOUS_FIXTURE)
+        relations = read_relations(frozen, previous_raw=previous)
+        return restore_caller_source(name, raw, relations)
+    finally:
+        for current, expected in tuple(captured.items()):
+            if capture(current) != expected:
+                raise ValueError('native cold caller input changed during original readback')
 
 
-def journal_preparation_from_predecessor(root, physical, predecessor, expected):
-    """Run the unchanged historical source check on an exact inverse only."""
+def journal_preparation_from_predecessor(
+        root, physical, predecessor, expected, *, take=Path.read_bytes):
+    """Run the original gate on a declared view while capturing the physical root."""
     from tempfile import TemporaryDirectory
     from tests import hia_journal_installed_preparation as journal
     from tests.hia_installed_distribution_history import journal_preparation_source
-    root = Path(root)
-    if physical == predecessor:
-        return journal_preparation_source(root, physical, expected)
     from tests.hia_installed_distribution_history import FIXTURE as installed_fixture
     from tests.hia_component_authoring_history import FIXTURE as component_fixture
-    names = (*journal.SOURCE_PATHS, installed_fixture, component_fixture)
-    captured = {name: (root / name).read_bytes() for name in names}
-    if captured[journal.PATH] != physical:
+
+    root = Path(root).resolve(strict=True)
+    pin(physical)
+    pin(predecessor)
+    captured = {}
+
+    def capture(path):
+        path = Path(path)
+        try:
+            name = _relative_name(path.relative_to(root).as_posix())
+        except ValueError as error:
+            raise ValueError('Journal capture escaped the supplied physical root') from error
+        data = take(root / name)
+        pin(data)
+        if name in captured and captured[name] != data:
+            raise ValueError('Journal physical source changed between captures: ' + name)
+        captured[name] = data
+        return data
+
+    if capture(root / journal.PATH) != physical:
         raise ValueError('Journal physical source changed before historical admission')
-    with TemporaryDirectory(prefix='hia-native-cold-caller-history-') as temporary:
-        stage = Path(temporary)
-        for name, raw in captured.items():
-            target = stage / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(predecessor if name == journal.PATH else raw)
-        proof = journal_preparation_source(stage, predecessor, expected)
-    if any((root / name).read_bytes() != raw for name, raw in captured.items()):
-        raise ValueError('Journal physical source changed during historical admission')
-    return proof
+    try:
+        if physical != predecessor:
+            restored = original_caller_source(root, journal.PATH, physical, take=capture)
+            if restored != predecessor:
+                raise ValueError('Journal supplied predecessor is not the exact cold inverse')
+        names = (*journal.SOURCE_PATHS, installed_fixture, component_fixture)
+        inputs = {name: capture(root / name) for name in names}
+        if physical == predecessor:
+            # The canonical gate retains its original root. Its direct reads are
+            # covered by the complete physical capture and terminal reread here.
+            proof = journal_preparation_source(root, physical, expected, take=capture)
+            view = dict(inputs)
+        else:
+            view = {name: predecessor if name == journal.PATH else data
+                    for name, data in inputs.items()}
+            with TemporaryDirectory(prefix='hia-native-cold-caller-history-') as temporary:
+                stage = Path(temporary)
+                for name, data in view.items():
+                    target = stage / name
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(data)
+
+                def stage_take(path):
+                    try:
+                        name = _relative_name(Path(path).relative_to(stage).as_posix())
+                    except ValueError as error:
+                        raise ValueError('Journal historical read escaped its declared view') from error
+                    if name not in view:
+                        raise ValueError('Journal historical read was not captured: ' + name)
+                    current = capture(root / name)
+                    projected = predecessor if name == journal.PATH else current
+                    if projected != view[name] or (stage / name).read_bytes() != view[name]:
+                        raise ValueError('Journal declared historical source changed: ' + name)
+                    return view[name]
+
+                proof = journal_preparation_source(
+                    stage, predecessor, expected, take=stage_take)
+                for name in view:
+                    stage_take(stage / name)
+    finally:
+        for name, data in tuple(captured.items()):
+            if capture(root / name) != data:
+                raise ValueError('Journal physical source changed during historical admission')
+    return {
+        **proof,
+        'native_cold_source_projection': {
+            'path': journal.PATH,
+            'physical_current': pin(physical),
+            'declared_predecessor': pin(predecessor),
+            'actual_captured_files': {name: pin(data) for name, data in captured.items()},
+            'historical_view_files': {name: pin(data) for name, data in view.items()},
+            'terminal_reread_identical': True,
+            'whole_native_delivery_qualified': False,
+        },
+    }
