@@ -1013,6 +1013,7 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'hepta/hia_artifact_page_policy_native.py',
     'examples/hia_bootstrap/artifact_page.hepta',
     'hepta/hia_artifact_page_native.py',
     'tools/generate_hia_artifact_page.py',
