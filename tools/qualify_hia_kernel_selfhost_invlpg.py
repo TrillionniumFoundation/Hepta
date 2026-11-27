@@ -87,8 +87,12 @@ def candidate_layout():
         1004304: reserve("block_names", 256 * 24),
         1010448: reserve("exports", CANDIDATE_EXPORTS * 48),
     }
+    # The v9 schema word was placed after the old export table. Relocate
+    # it too: that original address falls inside the expanded call matrix.
+    # Otherwise the schema token creates spurious call edges at row 30.
+    reserve("schema_state", 8, "SCHEMA_STATE")
     # The current v9 constant cache is per-function: values and presence
-    # bytes have independent full extents and must follow the export table.
+    # bytes have independent full extents and follow the schema word.
     reserve("constant_values", 2048 * 8, "CONST_VALUES")
     reserve("constant_flags", 2048, "CONST_FLAGS")
     previous = 0

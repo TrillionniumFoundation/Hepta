@@ -48,6 +48,17 @@ class KernelCandidateAuthoringTests(unittest.TestCase):
         layout, _, intervals, bound = candidate.candidate_layout()
         sizes = {name: stop - start for name, start, stop in intervals}
         self.assertEqual(sizes["result_names"], 6 * 16)
+        self.assertEqual(sizes["schema_state"], 8)
+        # The first actual 192-function gate exposed the old schema address
+        # in graph row 30: token 405 wrote spurious edges to 48 and 49.
+        graph = layout["KERNEL_CALL_GRAPH"]
+        self.assertEqual(generation.SCHEMA_STATE - graph, 30 * 192 + 48)
+        self.assertFalse(graph <= layout["SCHEMA_STATE"] < graph + 192 ** 2)
+        self.assertLess(layout["SCHEMA_STATE"] + 7, layout["CONST_VALUES"])
+        # Six-result transport is intentionally still inside the original
+        # header. CALL_BUDGET is an emitted packed scalar, not an address.
+        self.assertLessEqual(generation.RESULT_OUTPUTS + 6 * 16, 2048)
+        self.assertLessEqual(generation.RESULT_RETURNED + 6 * 8, 2048)
         self.assertEqual(sizes["constant_values"], 2048 * 8)
         self.assertEqual(sizes["constant_flags"], 2048)
         self.assertEqual(sizes["kernel_call_graph"], 192 ** 2)
