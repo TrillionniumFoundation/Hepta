@@ -233,6 +233,30 @@ class NativeColdPhysicalHistoryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 module.prepare(root, {SOURCE: (root / SOURCE).read_bytes()})
 
+
+    def test_reader_bytes_cannot_change_after_import_before_first_prepare(self):
+        with self.tree() as root, tempfile.TemporaryDirectory(prefix='hia-reader-import-gap-') as directory:
+            module_path = Path(directory) / 'independent_reader.py'
+            original = (ROOT / subject.HISTORY_SOURCE).read_bytes()
+            module_path.write_bytes(original)
+            spec = importlib.util.spec_from_file_location('cold_import_boundary_control', module_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            changed = original + b'\n# changed after import, before first prepare\n'
+            module_path.write_bytes(changed)
+            (root / subject.HISTORY_SOURCE).write_bytes(changed)
+            with self.assertRaises(ValueError):
+                module.prepare(root, {SOURCE: (root / SOURCE).read_bytes()})
+            module_path.write_bytes(original)
+            (root / subject.HISTORY_SOURCE).write_bytes(original)
+            _, history = module.prepare(root, {SOURCE: (root / SOURCE).read_bytes()})
+            self.assertEqual(
+                history['captures'][subject.HISTORY_SOURCE], original)
+            module_path.write_bytes(changed)
+            (root / subject.HISTORY_SOURCE).write_bytes(changed)
+            with self.assertRaises(ValueError):
+                module.verify_unchanged(history)
+
     def test_typed_splices_pins_and_rebound_authority_cannot_use_numeric_aliases(self):
         raw = (ROOT / SECOND).read_bytes()
         for mode in ('offset-float', 'offset-bool', 'bytes-float'):

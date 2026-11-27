@@ -9,6 +9,10 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 
+# Bind only this executing module at import. No caller root or authority is read.
+_EXECUTED_MODULE_PATH = Path(__file__).resolve(strict=True)
+_EXECUTED_MODULE_BYTES = _EXECUTED_MODULE_PATH.read_bytes()
+
 SOURCE = 'tools/hia_cold_caller_sources.py'
 HISTORY_SOURCE = 'tools/hia_native_cold_caller_history.py'
 FIXTURE = 'tests/fixtures/hia_native_cold_caller_integration_20261127.json'
@@ -308,8 +312,8 @@ class _History:
         self.captures = {}
         self.proofs = {}
         self.records = None
-        self.module_path = Path(__file__).resolve(strict=True)
-        self.module_bytes = self.module_path.read_bytes()
+        self.module_path = _EXECUTED_MODULE_PATH
+        self.module_bytes = _EXECUTED_MODULE_BYTES
         self.review = {
             'schema': 'hepta.hia.native-cold-caller-history.v1',
             'native_cold_caller_sources': self.proofs,
@@ -451,6 +455,8 @@ def cold_caller_source(root, name, raw, *, take=Path.read_bytes):
 def bind_cold_caller_adjustment(entry, physical, proof):
     if proof is None:
         return entry
+    if _EXECUTED_MODULE_PATH.read_bytes() != _EXECUTED_MODULE_BYTES:
+        raise ValueError('native cold reader module changed after import')
     if (type(entry) is not dict or type(proof) is not dict
             or set(proof) != {'schema', 'path', 'physical_current', 'predecessor',
                 'authority', 'original_authority', 'helper', 'reader',
@@ -472,7 +478,7 @@ def bind_cold_caller_adjustment(entry, physical, proof):
         'authority': {'path': FIXTURE, **FIXTURE_PIN},
         'original_authority': {'path': PREVIOUS_FIXTURE, **PREVIOUS_PIN},
         'helper': {'path': SOURCE, **COLD_CALLER_HELPER_PIN},
-        'reader': {'path': HISTORY_SOURCE, **pin(Path(__file__).read_bytes())},
+        'reader': {'path': HISTORY_SOURCE, **pin(_EXECUTED_MODULE_BYTES)},
     }
     for key, expected in expected_maps.items():
         value = proof[key]
