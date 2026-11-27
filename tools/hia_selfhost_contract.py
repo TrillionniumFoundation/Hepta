@@ -1013,6 +1013,16 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'examples/hia_bootstrap/service_bootstrap_word.hepta',
+    'tests/fixtures/hia_bootstrap_current_source_relation_v2.json',
+    'tests/fixtures/hia_bootstrap_service_evaluation_successor_v1.json',
+    'tests/hia_bootstrap_compatibility.py',
+    'tests/hia_bootstrap_current_dispatch.py',
+    'tests/test_hia_bootstrap_source_history.py',
+    'tests/test_hia_service_bootstrap_word.py',
+    'tools/generate_hia_service_bootstrap_word.py',
+    'tools/hia_bootstrap_source_history.py',
+    'tools/qualify_hia_service_bootstrap_word.py',
     'tests/fixtures/hia_current_store_consumers_v1.json',
     'tools/hia_current_store_source_history.py',
     'tests/fixtures/hia_current_store_readback_preparation_v1.json',

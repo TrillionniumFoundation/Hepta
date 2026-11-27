@@ -16,10 +16,15 @@ from tools.hia_component_input_custody import capture_component_custody, verify_
 from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage
 
-SOURCE_NAME = 'examples/hia_bootstrap/service_bootstrap.hepta'
+SOURCE_NAME = 'examples/hia_bootstrap/service_bootstrap_word.hepta'
 INPUTS = ('tools/hia_component_input_custody.py',
     'examples/hia_bootstrap/service_bootstrap.hepta',
     'tools/generate_hia_service_bootstrap.py',
+    'examples/hia_bootstrap/service_bootstrap_word.hepta',
+    'tools/generate_hia_service_bootstrap_word.py',
+    'tools/generate_hia_cold_document.py',
+    'tools/qualify_hia_service_bootstrap_word.py',
+    'tests/test_hia_service_bootstrap_word.py',
     'tools/build_hia_service_bootstrap.py',
     'tools/qualify_hia_service_bootstrap_callers.py',
     'hepta/hia_service_bootstrap_native.py',
@@ -59,6 +64,13 @@ INPUTS = ('tools/hia_component_input_custody.py',
     'tests/hia_service_bootstrap_oracle.py',
     'tests/hia_service_bootstrap_support.py',
     'tests/hia_service_bootstrap_observer.py',
+    'tests/hia_bootstrap_compatibility.py',
+    'tests/hia_bootstrap_current_dispatch.py',
+    'tools/hia_bootstrap_source_history.py',
+    'tests/fixtures/hia_bootstrap_current_source_relation_v2.json',
+    'tests/fixtures/hia_bootstrap_service_evaluation_successor_v1.json',
+    'tests/test_hia_bootstrap_source_history.py',
+    'hepta/hia_program_tools.py',
     'tools/qualify_hia_service_bootstrap_finite.py',
     'tests/hia_service_bootstrap_controls.py',
     'tests/hia_service_bootstrap_resources.py',
