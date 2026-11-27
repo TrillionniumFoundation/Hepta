@@ -2848,6 +2848,10 @@ SOURCE_FILES = (
     'tests/test_hia_ndu_bridge.py',
     'tests/test_hia_observer_stream_retention.py',
     'tools/qualify_hia_cold_journal_preencode.py',
+    'tools/generate_hia_seed_cold_backend.py',
+    'tools/qualify_hia_seed_cold_backend.py',
+    'tests/test_hia_seed_cold_backend.py',
+    'docs/HIA_COLD_SEED_EDGE_PROFILE.md',
 )
 
 

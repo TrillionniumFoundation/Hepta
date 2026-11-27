@@ -21,6 +21,7 @@ PROFILE_SOURCE = {
     "v1": "seed_backend", "div": "seed_div_backend",
     "bulk": "seed_bulk_backend", "div-bulk": "seed_div_bulk_backend",
     "word": "seed_word_backend", "endian": "seed_endian_backend",
+    "cold-bulk": "seed_cold_bulk_backend", "cold-endian": "seed_cold_endian_backend",
     "owned": "seed_owned_backend", "vm": "seed_vm_backend",
 }
 
@@ -110,11 +111,11 @@ class Builder:
         endian = "buffer.load.u64.be" in text
         if endian:
             assert not (div or bulk), (role, "undeclared combined endian profile")
-            return "endian"
+            return "cold-endian"
         if word:
             assert not (div or bulk), (role, "undeclared combined word profile")
             return "word"
-        return "div-bulk" if div and bulk else "div" if div else "bulk" if bulk else "v1"
+        return "div-bulk" if div and bulk else "div" if div else "cold-bulk" if bulk else "v1"
 
     def backend(self, profile):
         if profile not in self.backends:
@@ -170,7 +171,7 @@ class Builder:
         contract = self.tool("source_contract_generate")
         self.publish("hia-source-contract", contract.read_bytes())
         fallback = self.flat("cold_sha256_stream", "word")
-        fast = self.flat("cold_sha256_nonalias", "endian")
+        fast = self.flat("cold_sha256_nonalias", "cold-endian")
         sha = self.framed(self.tool("cold_sha256_alias_packer", "word"),
                           "cold-sha-dispatch", b"HIASHA01", [fallback, fast])
         self.publish("tmp-cold-sha256-flat", sha, executable=False)
@@ -178,7 +179,7 @@ class Builder:
         # the admitted independent native assembly/projector/backend/packer,
         # then preserve both the historical inputs and this exact new root.
         # No historical qualification or target compiler is inherited.
-        policy = self.flat("cold_qualification_driver", "bulk")
+        policy = self.flat("cold_qualification_driver", "cold-bulk")
         driver_packer = self.tool("cold_qualification_driver_packer", "v1")
         driver = self.framed(driver_packer, "current-qualification-driver",
                              b"HIAQDP01", [policy, sha])
@@ -225,7 +226,7 @@ class Builder:
         self.save()
         self.publish("tmp-build-entry-policy", self.flat("cold_build_entry"), executable=False)
         self.publish("tmp-build-entry-packer", self.tool("cold_build_entry_packer").read_bytes())
-        self.publish("tmp-source-bootstrap-entry-policy", self.flat("cold_source_bootstrap_entry", "bulk"), executable=False)
+        self.publish("tmp-source-bootstrap-entry-policy", self.flat("cold_source_bootstrap_entry", "cold-bulk"), executable=False)
         self.publish("tmp-source-bootstrap-entry-packer", self.tool("cold_source_bootstrap_entry_packer", "v1").read_bytes())
         for name, expected in self.record["sources"].items():
             assert pin((self.source / name).read_bytes()) == expected, name

@@ -33,6 +33,7 @@ PROFILE_SOURCE = {
     "v1": "seed_backend", "div": "seed_div_backend",
     "bulk": "seed_bulk_backend", "div-bulk": "seed_div_bulk_backend",
     "word": "seed_word_backend", "endian": "seed_endian_backend",
+    "cold-bulk": "seed_cold_bulk_backend", "cold-endian": "seed_cold_endian_backend",
     "owned": "seed_owned_backend",
     "vm": "seed_vm_backend",
 }
@@ -239,12 +240,12 @@ class Stage:
         if endian:
             if div or bulk:
                 raise ValueError((role, "no combined endian/div/bulk constructor declared"))
-            return "endian"
+            return "cold-endian"
         if word:
             if div or bulk:
                 raise ValueError((role, "no combined word/div/bulk constructor declared"))
             return "word"
-        return "div-bulk" if div and bulk else "div" if div else "bulk" if bulk else "v1"
+        return "div-bulk" if div and bulk else "div" if div else "cold-bulk" if bulk else "v1"
 
     def core(self, role):
         source = self.source(BOOT + role + ".hepta")
@@ -370,7 +371,7 @@ def stage_semantic(build):
 
 def cold_sha(s):
     fallback = s.flat("cold_sha256_stream", "word")
-    fast = s.flat("cold_sha256_nonalias", "endian")
+    fast = s.flat("cold_sha256_nonalias", "cold-endian")
     image = s.framed(s.tool("cold_sha256_alias_packer", "word"),
                     b"HIASHA01", [fallback, fast],
                     "cold-SHA-exact-alias-dispatch-and-independent-policies")
@@ -416,7 +417,7 @@ def stage_orchestration(build, entry=True):
     if entry:
         s.publish(s.flat("cold_build_entry"), "tmp-build-entry-policy", executable=False)
         s.publish(s.tool("cold_build_entry_packer"), "tmp-build-entry-packer")
-        s.publish(s.flat("cold_source_bootstrap_entry", "bulk"),
+        s.publish(s.flat("cold_source_bootstrap_entry", "cold-bulk"),
                   "tmp-source-bootstrap-entry-policy", executable=False)
         s.publish(s.tool("cold_source_bootstrap_entry_packer", "v1"),
                   "tmp-source-bootstrap-entry-packer")
