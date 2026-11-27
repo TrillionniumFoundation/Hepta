@@ -17,6 +17,7 @@ PLATFORM_CLASSES=(
 SUBPROCESS_CLASSES=(('SubprocessError',22),('TimeoutExpired',71))
 BACKGROUND_CLASSES=(('BackgroundOptimizationRejected',24),)
 OPTIMIZATION_CLASSES=(('_OptimizationFuture',37),)
+HEAP_CLASSES=(('HIAHeapBoundRejected',24),)
 SOURCE=r'''
 def result_value_platform(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     phase=get(o,G_PHASE)
@@ -55,7 +56,7 @@ def platform_prepare(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     op=readword(s,8)
     put(o,G_OP,op)
     put(w,16,0)
-    if op!=101 and op!=110 and op!=112 and op!=114:
+    if op!=101 and op!=110 and op!=112 and op!=114 and op!=116:
         a=cap_lookup(w,readword(s,24),readword(s,32),readword(s,40))
         if a==0:
             return done(o,1)
@@ -131,6 +132,8 @@ def platform_catalog(o:mutbuf,w:mutbuf) -> bool:
         limit=73
     elif get(o,G_OP)==114:
         limit=74
+    elif get(o,G_OP)==116:
+        limit=75
     while get(w,152)<limit:
         id=get(w,152)+1
         obj=class_builtin(w,id)
@@ -528,7 +531,7 @@ def platform_execute(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         data=get(w,get(o,G_A)+24)
         slots=get(w,data+136)
         result=get(w,get(w,slots+24)+(8+readword(s,104))*8)
-    elif op==101 or op==110 or op==112 or op==114:
+    elif op==101 or op==110 or op==112 or op==114 or op==116:
         result=get(w,class_slot(readword(s,104)))
     elif op==102 or op==103:
         a=get(o,G_A)
@@ -569,7 +572,7 @@ def platform_catalog_source():
     result=['def platform_builtin_name(w:mutbuf,data:u64,id:u64) -> u64:',
             '    if id<48:','        return class_builtin_name(w,data,id)']
     catalog=list(CATALOG)
-    for index,(name,base)in enumerate(PLATFORM_CLASSES+SUBPROCESS_CLASSES+BACKGROUND_CLASSES+OPTIMIZATION_CLASSES,48):
+    for index,(name,base)in enumerate(PLATFORM_CLASSES+SUBPROCESS_CLASSES+BACKGROUND_CLASSES+OPTIMIZATION_CLASSES+HEAP_CLASSES,48):
         mro=(base,)+catalog[base-1][2]
         catalog.append((name,(base,),mro,0 if index==74 else index if index in(53,54)else 21,0))
         result.append('    if id=='+str(index)+':')
