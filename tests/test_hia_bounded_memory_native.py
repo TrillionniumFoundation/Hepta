@@ -157,13 +157,8 @@ class BoundedMemoryNativeTests(unittest.TestCase):
         if cold is not None:
             if not cold:
                 raise ValueError('bounded-memory cold report selector must not be empty')
-            report = json.loads(Path(cold).read_bytes())
-            if report['status'] != 'COLD_SELFHOST_REPLAY_PASS' or not all(report['checks'].values()):
-                raise ValueError('matching cold report did not pass')
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
-            if report['generation_sha256'] != [sha256(compiler.read_bytes()).hexdigest()] * 3:
-                raise ValueError('cold compiler identity differs')
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(cold)
         else:
             seed, _ = build_seed(cls.folder)
             source = SOURCE.with_name('selfhost.hepta').read_bytes()
