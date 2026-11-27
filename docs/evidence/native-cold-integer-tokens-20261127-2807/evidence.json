@@ -1,0 +1,75 @@
+{
+  "schema": "hepta.hia.native-integer-token-admission-fix.v1",
+  "base_commit": "5376308cf9efb8ca0e31c8ec46a3053070a8a467",
+  "scope": "Native-v2 development admission lexical agreement; original native functions executed separately",
+  "before": {
+    "command": "python -m unittest tests.test_hia_native_cold_component",
+    "returncode": 1,
+    "methods": 14,
+    "failures": 62,
+    "original_output_sha256": "767cc52f76d26032ce66ff56efc7e26d00bb5142e310190168134e2a6d0a0fda"
+  },
+  "after": {
+    "command": "python -B tools/run_hia_unittest_gate.py tests.test_hia_native_cold_component tests.test_hia_release_contract tests.test_hia_source_release_cold_admit_authority",
+    "returncode": 0,
+    "methods": 31,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "native_observation": {
+    "actual_calls": 12,
+    "passed": true,
+    "base_and_observed_function_ast_sha256": "777f466cdcb2fe6c4e3d3b099ee0a60cf542c8d90147fdfda1fef2ba9fadd0f3",
+    "function_source_identity_verified": true
+  },
+  "whole_cold_qualified": false,
+  "whole_native_delivery_qualified": false,
+  "source_files": [
+    {
+      "path": "tools/hia_native_cold_admission.py",
+      "sha256": "4e9107350c283f566e7e9f15f747444b2194d001389b005e19d90739839c2994"
+    },
+    {
+      "path": "tests/test_hia_native_cold_component.py",
+      "sha256": "51ec20cfeb8b22984d958d5bff2557e5806df4caac01d1cd8f40bf32a39bc9c6"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "after.stderr",
+      "bytes": 5749,
+      "sha256": "794616a1225ea36762951feb5969a61be18f0b8273d4593db499aa61d44f5964"
+    },
+    {
+      "path": "before.log.gz",
+      "bytes": 788,
+      "sha256": "9badc717b72c5f7fdccf2fe5a67063cb024c0e3f02e0616a964cb44c3afd794c"
+    },
+    {
+      "path": "construction.json",
+      "bytes": 1908,
+      "sha256": "a7fb67ce05cd9c24eff348de4a61280f37e73acee8fed5c074dd8ebd9a30c729"
+    },
+    {
+      "path": "integer-token-observer.flat",
+      "bytes": 8704,
+      "sha256": "31935e4c8b9ae281aaea28077a55c148769b8cae534eaec937e088ef93a95fda"
+    },
+    {
+      "path": "integer-token-observer.hepta",
+      "bytes": 7678,
+      "sha256": "fc9e2350975604c02431d9a0e73f310e3dabec33af0b42491412dab0b05f5ccf"
+    },
+    {
+      "path": "observation.json",
+      "bytes": 2836,
+      "sha256": "a2af826f78a0c7aa1c0e4c91e1e1583fef8d408411b10db3d1f377e0bc452cad"
+    },
+    {
+      "path": "observe_native_integers.py",
+      "bytes": 4142,
+      "sha256": "9b7b544517ad7276bf86cd5a0316c353fc11e197d696e2ffd98acca0bf64c538"
+    }
+  ]
+}

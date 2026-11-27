@@ -34,12 +34,15 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
     """
     from tools.hia_selfhost_contract import PROFILE
     from tools.hia_native_cold_admission import SCHEMA, admit_native_report, read_json
+    from tools.hia_release_contract import source_domain, validate_release_contract
     qualification = read_json(cold_bytes)
-    if type(qualification) is dict and qualification.get('schema') == SCHEMA:
-        from tools.hia_release_contract import validate_release_contract
+    contract = validate_release_contract(ROOT)
+    if source_domain(contract) == 'native':
+        if type(qualification) is not dict or qualification.get('schema') != SCHEMA:
+            raise ValueError('native source domain requires a native-v2 cold qualification')
         from tools.generate_hia_native_observer import reference_image
         return admit_native_report(compiler_bytes, cold_bytes,
-                                   contract=validate_release_contract(ROOT),
+                                   contract=contract,
                                    sources=current_sources(), observer_bytes=reference_image())
     compiler_sha = sha256(compiler_bytes).hexdigest()
     required_checks = {

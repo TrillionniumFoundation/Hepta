@@ -228,6 +228,16 @@ def main():
             values = [rng.getrandbits(64) for _ in range(count)]
             mapping = [rng.randrange(count) for _ in range(count)]
             cases.append(('random-fanout', fixture(values, mapping)))
+        # Independent u64 observations at every boundary where the compact
+        # immediate form could truncate or sign-extend a register incorrectly.
+        values = [0, 1, (1 << 31) - 1, 1 << 31, (1 << 32) - 1,
+                  1 << 32, (1 << 63) - 1, 1 << 63, MASK - 1, MASK]
+        identity = list(range(len(values)))
+        for mapping in (identity, identity[::-1], identity[1:] + identity[:1]):
+            for mode in ('jump', 'call'):
+                cases.append(('constant-width-' + mode, fixture(values, mapping, mode)))
+            for truth in (0, 1):
+                cases.append(('constant-width-branch', fixture(values, mapping, 'branch', condition=truth)))
         for profile in ('bulk', 'endian'):
             parent_source = captured['examples/hia_bootstrap/seed_' + profile + '_backend.hepta']
             candidate_source = captured['examples/hia_bootstrap/seed_cold_' + profile + '_backend.hepta']
