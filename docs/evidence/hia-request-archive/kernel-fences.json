@@ -1,0 +1,45 @@
+{
+  "schema": "hepta.hia.request-archive-kernel-fence.v1",
+  "passed": true,
+  "checks": [
+    {
+      "case": "content-restored-with-mtime",
+      "passed": true,
+      "status": 1,
+      "syscall": "getdents64",
+      "successful_watches": 2,
+      "stops": 155,
+      "barrier_seconds": 0.0013403960037976503
+    },
+    {
+      "case": "namespace-restored",
+      "passed": true,
+      "status": 1,
+      "syscall": "getdents64",
+      "successful_watches": 2,
+      "stops": 155,
+      "barrier_seconds": 0.00116395897930488
+    },
+    {
+      "case": "foreign-owner-content-restored",
+      "passed": true,
+      "status": 1,
+      "syscall": "getdents64",
+      "successful_watches": 2,
+      "stops": 155,
+      "barrier_seconds": 0.0014991110074333847
+    },
+    {
+      "case": "unrelated-root-child",
+      "passed": true,
+      "status": 0,
+      "syscall": "getdents64",
+      "successful_watches": 2,
+      "stops": 155,
+      "barrier_seconds": 0.0008796209876891226
+    }
+  ],
+  "audit_sha256": "f5d8596b6daaefd4961c245258e690704ab4d5200e9505fc057d80c7c392cb33",
+  "scope": "actual kernel boundary controls; no original instruction or result replacement",
+  "whole_cold_qualified": false
+}

@@ -72,8 +72,8 @@ def _review_scoped_caller(root, capture, name, raw, expected):
         relative = Path(path).relative_to(root).as_posix()
         if relative not in saved:
             saved[relative] = capture(relative)
-        elif (root / relative).read_bytes() != saved[relative]:
-            raise ValueError('scoped caller physical source changed between layers')
+        elif capture(relative) != saved[relative]:
+            raise ValueError('scoped caller selected source view changed between layers')
         return saved[relative]
     return history.predecessor(root, name, raw, expected, take=take)
 
@@ -83,7 +83,7 @@ def admit_original_scope(root, scope_name):
     allowed = {'ordinary': 112, 'journal': 21}
     if type(scope_name) is not str or scope_name not in allowed:
         raise ValueError('unknown complete verification caller scope')
-    root, captured = Path(root), {}
+    root, captured = Path(root).resolve(strict=True), {}
 
     def capture(name):
         raw = (root / name).read_bytes()
@@ -92,18 +92,37 @@ def admit_original_scope(root, scope_name):
         captured[name] = raw
         return raw
 
+    def capture_path(path):
+        return capture(Path(path).relative_to(root).as_posix())
+
     frozen = capture(FIXTURE)
     if sha256(frozen).hexdigest() != FIXTURE_SHA256:
         raise ValueError('caller scope bytes differ')
     scope = json.loads(frozen)['scopes'][scope_name]
     if len(scope['ordered_ids']) != allowed[scope_name]:
         raise ValueError('complete verification caller count differs')
+    from tools import hia_native_cold_caller_history as native_history
+    cold_histories, cold_adjustments = [], {}
     diagnostics, journals, predecessors = {}, {}, {}
     for name, expected in scope['files'].items():
         physical = capture(name)
-        raw, predecessor_review = _review_scoped_caller(root, capture, name, physical, expected)
+        selected, selected_take, cold_history = physical, capture_path, None
+        if _source_pin(physical) == native_history.KNOWN_CURRENT.get(name):
+            projected, cold_history = native_history.prepare(
+                root, {name: physical}, take=capture_path)
+            selected, selected_take = projected[name], cold_history['prior_take']
+            cold_histories.append(cold_history)
+        def prior_capture(relative):
+            return selected_take(root / relative)
+        raw, predecessor_review = _review_scoped_caller(
+            root, prior_capture, name, selected, expected)
         if predecessor_review is not None:
-            predecessors[name] = predecessor_review
+            predecessors[name] = (predecessor_review if cold_history is None else {
+                **predecessor_review, 'physical': _source_pin(physical),
+                'historical_input': _source_pin(selected),
+                'prior_scope_review': predecessor_review,
+                'physical_capture_rewritten': False,
+                'prior_projection_is_physical_source': False})
         if _source_pin(raw) == expected:
             continue
         if name == _DIAGNOSTICS_CALLER:
@@ -122,7 +141,11 @@ def admit_original_scope(root, scope_name):
             from tests import hia_journal_installed_preparation as journal
             if Path(journal.__file__).read_bytes() != helper:
                 raise ValueError('verification caller imported a different Journal admission')
-            if raw == physical:
+            if cold_history is not None:
+                from tools import hia_cold_caller_sources as cold_sources
+                proof = cold_sources.journal_preparation_from_predecessor(
+                    root, physical, selected, expected, take=capture_path)
+            elif raw == physical:
                 proof = journal.admit_source(root, name, raw, expected)
             else:
                 from tests.hia_installed_distribution_history import journal_preparation_source
@@ -137,6 +160,12 @@ def admit_original_scope(root, scope_name):
             journals[name] = proof
         else:
             raise ValueError('an original complete caller module changed: ' + name)
+    for history in cold_histories:
+        native_history.verify_unchanged(history)
+        for name, review in history['review']['native_cold_caller_sources'].items():
+            if name in cold_adjustments and cold_adjustments[name] != review:
+                raise ValueError('verification native cold source reviews disagree')
+            cold_adjustments[name] = review
     for name, raw in captured.items():
         if (root / name).read_bytes() != raw:
             raise ValueError('verification caller captured bytes changed: ' + name)
@@ -149,6 +178,8 @@ def admit_original_scope(root, scope_name):
         'reviewed_diagnostic_source_adjustments': diagnostics,
         'reviewed_journal_installed_preparation_source_adjustments': journals,
         **({'reviewed_scope_predecessors': predecessors} if predecessors else {}),
+        **({'reviewed_native_cold_caller_adjustments': cold_adjustments}
+           if cold_adjustments else {}),
         'captured_files': {name: _source_pin(raw) for name, raw in captured.items()},
         'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
         'production_source_exceptions': [], 'whole_native': False,

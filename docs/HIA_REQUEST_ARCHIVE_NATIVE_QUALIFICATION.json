@@ -1,0 +1,556 @@
+{
+  "base_source_commit": "95f81abe2381dd51d798436fe53725e0059897f9",
+  "batch_cohort_and_large_archive_concurrent_performance_qualified": false,
+  "checks": {
+    "audit_pack_refusals": 22,
+    "controller_product_refusals": 60,
+    "history_regression": 16,
+    "kernel_fences": 4,
+    "native_archive": 22,
+    "original_rust_fixtures": 11,
+    "original_rust_queries": 46,
+    "original_rust_repetitions": 2,
+    "public_additional": 3,
+    "public_original_archive_queries": 34,
+    "retention_regression": 16,
+    "v12_regression": 24
+  },
+  "composition": {
+    "magic": "HIARAU03",
+    "operation": 4,
+    "request": "HIARQY01",
+    "response": "HIARQO01",
+    "roles": 18,
+    "version": 1
+  },
+  "durable_jobs": {
+    "kernel_fences": "1a21dfaa57b-ffbe-54f0",
+    "native_qualified": "1a21df35725-ffbe-54e6",
+    "original_build": "1a21ddff512-ffbe-54cf",
+    "original_observations_v1": "1a21de3b857-ffbe-54d0",
+    "original_observations_v2": "1a21de7b6d1-ffbe-54d4",
+    "public_qualified": "1a21df7f342-ffbe-54ee"
+  },
+  "evidence": {
+    "docs/evidence/hia-request-archive/audit-construction.json": {
+      "bytes": 7889,
+      "sha256": "50d2d39653e5b44c0125adc2853b346052ac4e4f76070abe4a9b5c0ca5b82df2"
+    },
+    "docs/evidence/hia-request-archive/audit-native-calls.json.gz": {
+      "bytes": 6216,
+      "sha256": "39470762e663bf23bfb8d7aed533cad666145d432769ebc73d35c26ee50728d0"
+    },
+    "docs/evidence/hia-request-archive/history-regression.json": {
+      "bytes": 1585,
+      "sha256": "de6b8f8a0556f1025773670e9ab3a1bda2345b2165e8c68b6eac903b60520b33"
+    },
+    "docs/evidence/hia-request-archive/kernel-fences.json": {
+      "bytes": 1205,
+      "sha256": "d8b3ebefbbcf7b676f12dfb5e0301cc570f7e9a48336eac7f27b9b7c6f95840c"
+    },
+    "docs/evidence/hia-request-archive/native-attempt-v1.json": {
+      "bytes": 4338,
+      "sha256": "e11c91dfc269f08b7945210797d0ce218da8aa1089b8727046c6213db0226efe"
+    },
+    "docs/evidence/hia-request-archive/native-attempt-v2.json": {
+      "bytes": 737,
+      "sha256": "e6c0a93fc37af9759b5d9a849d3d57d211c720a925a4c9e714f2fb0a9408f7bd"
+    },
+    "docs/evidence/hia-request-archive/native-controls.json": {
+      "bytes": 2037,
+      "sha256": "605d8ba74e83ae77f727f6fb78aa13773c2da325159934d0c05fae5bb527db60"
+    },
+    "docs/evidence/hia-request-archive/native-observations.manifest.json": {
+      "bytes": 68614,
+      "sha256": "0cb8c7759aa2b959cdd42990798e542d544ea44c04bac5aa357914107b829f95"
+    },
+    "docs/evidence/hia-request-archive/native-observations.tar.gz": {
+      "bytes": 40266,
+      "sha256": "925beb9f240c52e365056bac05baf7c79c1ef29f9f76af9323969b9c627c39f1"
+    },
+    "docs/evidence/hia-request-archive/native-public-construction.json": {
+      "bytes": 46785,
+      "sha256": "ce7a947d19fe23d6db1c9c539a21befae6647ba8643c5919c456368951ab71c7"
+    },
+    "docs/evidence/hia-request-archive/native-qualified-v3.json": {
+      "bytes": 1172,
+      "sha256": "15f05278d7182159de9f9341bcde1c68e5e86b4bdd9f2b30f55f69f99b04376e"
+    },
+    "docs/evidence/hia-request-archive/public-attempt-v1.json": {
+      "bytes": 221,
+      "sha256": "29ebbb5bb0ef334672666a90b9f0ae2120238ca81cdc2b72ddb2461c79119103"
+    },
+    "docs/evidence/hia-request-archive/public-native-calls.json.gz": {
+      "bytes": 17706,
+      "sha256": "8639373c92e561833f704e891b79a4db9e6881cbf62f5320a72183d54dd2f07b"
+    },
+    "docs/evidence/hia-request-archive/public-original-comparison.json": {
+      "bytes": 6659,
+      "sha256": "d4b47ab1c85fcf75641572601981b6df099853edda2e190b0189e0878b72cf95"
+    },
+    "docs/evidence/hia-request-archive/public-qualified-v2.json": {
+      "bytes": 338,
+      "sha256": "204723e52976e4855786ca8d54a575c4d3793c97abf6f9ba828d1eee385ed64f"
+    },
+    "docs/evidence/hia-request-archive/retention-regression.json": {
+      "bytes": 4866,
+      "sha256": "166b3f5fcddfe5bd74b9b9d46652517f568da606e258559c3facfe507a639f95"
+    },
+    "docs/evidence/hia-request-archive/v12-regression.json": {
+      "bytes": 14773,
+      "sha256": "02f3513a1cf6f4ec68f48357ae7be619f9e0d0b98b8759f56f0a4b5d45a4c050"
+    }
+  },
+  "http_qualified": false,
+  "inherited_reachable_diagnostic_text_gap": {
+    "decoded_string_bytes_above": 1048576,
+    "native_result": "generic Invalid params",
+    "original_result": "full typed diagnostic",
+    "parity_claimed": false
+  },
+  "installed_worker_qualified": false,
+  "native_audit": {
+    "bytes": 1722341,
+    "sha256": "f5d8596b6daaefd4961c245258e690704ab4d5200e9505fc057d80c7c392cb33"
+  },
+  "native_service": {
+    "bytes": 8418717,
+    "sha256": "642a361e12828cc6687bebc36b3cbe9e11c6d266048c170cf969d0a67230e16b"
+  },
+  "new_native_sources": [
+    "examples/hia_bootstrap/mcp_request_audit_archive_query.hepta"
+  ],
+  "original_reference": {
+    "tests/fixtures/hia_request_archive_oracle/README.md": {
+      "bytes": 2316,
+      "sha256": "2be301729701f363d7242836fb4da86cab4c5d2e7908de0e734cf14d63b686b6"
+    },
+    "tests/fixtures/hia_request_archive_oracle/build-v1.receipt.json": {
+      "bytes": 5542,
+      "sha256": "d464567f219afaa32ab2a307f1f89341de2b4f1030116c7dc50debf9b9b15516"
+    },
+    "tests/fixtures/hia_request_archive_oracle/cases-v1.json": {
+      "bytes": 284301,
+      "sha256": "86feb3e773333491365c8d279c9ffad59da7ca236a162af0247a57a616d870c8"
+    },
+    "tests/fixtures/hia_request_archive_oracle/observations-v2.json": {
+      "bytes": 271885,
+      "sha256": "ae4ce6424bffdac9ee4d88f7fbc5caf0e69fbec244afc27e07122d0deda8fe3d"
+    },
+    "tests/fixtures/hia_request_archive_oracle/reference-project.json.gz": {
+      "bytes": 142315,
+      "sha256": "68fb619e85796a16768139429cd76a57041f29e4e76e8fe1e7784f3726058176"
+    }
+  },
+  "original_runtime_source": "ae1c7ea593da45f7299c692a2acd44605c35be09",
+  "passed": true,
+  "query_budget_seconds": 3,
+  "release_qualified": false,
+  "schema": "hepta.hia.request-archive-native-qualified-component.v1",
+  "scope": "independent seed-constructed native daemon and actual public stdio archive",
+  "shared_derivations": "Regenerate native source authority, Worker identity and release_stage_controller on final integrated HEAD; no older derivations copied.",
+  "source_pins": {
+    "examples/hia_bootstrap/agent_response_schema.hepta": {
+      "bytes": 322304,
+      "sha256": "8f985366cd213fc0869f6da1de907bf40728a3a17e7ae3cef2e49f4da6aa2241"
+    },
+    "examples/hia_bootstrap/agent_schema.hepta": {
+      "bytes": 364140,
+      "sha256": "5b4450daa59d49465eab5d5a8e572141b2c9cd9a21633c6a12653d7e542ae4b1"
+    },
+    "examples/hia_bootstrap/agent_verify_response_schema.hepta": {
+      "bytes": 314110,
+      "sha256": "1e4b10bf01ec52c5b5184e0480c162b01be9f2d1180fa30f5d115f3ef2a348ec"
+    },
+    "examples/hia_bootstrap/job_cancel.hepta": {
+      "bytes": 331293,
+      "sha256": "d7948e38ff34e06eb67951effbf56dd729cf17fd4d5b2da29cab18fb35d644c3"
+    },
+    "examples/hia_bootstrap/job_cancel_packer.hepta": {
+      "bytes": 21807,
+      "sha256": "fdbaa63ee6086fa42fe66252ad29b3161519a29cfd09530e6964b9b641b33b4b"
+    },
+    "examples/hia_bootstrap/job_entry.hepta": {
+      "bytes": 107935,
+      "sha256": "6f40fd9385b8d4169682bbad061a876a4f115a94aa9ecd2c7f5909aadc201662"
+    },
+    "examples/hia_bootstrap/job_entry_packer.hepta": {
+      "bytes": 21935,
+      "sha256": "fea2205cc5f8491a08c47ebf21988c47135af53b36adda0bde3401e9c6e5c413"
+    },
+    "examples/hia_bootstrap/job_launch.hepta": {
+      "bytes": 328684,
+      "sha256": "331794f98fd890d60d933fb62a913488da981b7f69457f84dd15012b352cf71c"
+    },
+    "examples/hia_bootstrap/job_launch_json.hepta": {
+      "bytes": 97924,
+      "sha256": "392b7e874dc50c47de20d9313ad66d1314acbaf10c82a9eef0fd9b1e2e3cbaee"
+    },
+    "examples/hia_bootstrap/job_launch_packer.hepta": {
+      "bytes": 24035,
+      "sha256": "684b3542e3a032d3f7b75d46eb8043d9164e218f22051d45902567eec33335bb"
+    },
+    "examples/hia_bootstrap/job_observation.hepta": {
+      "bytes": 436285,
+      "sha256": "2e1e34ec6f6059b0df8452ff02f4b8a89fe9b44afa6c207c8585f68262cee16e"
+    },
+    "examples/hia_bootstrap/job_observation_json.hepta": {
+      "bytes": 97929,
+      "sha256": "b145f407325ecca876fb3c4d7e47e2b0f2b3b42cc6e6764b9f84d2bcd202ce43"
+    },
+    "examples/hia_bootstrap/job_observation_packer.hepta": {
+      "bytes": 21484,
+      "sha256": "c88f7fdc1fc3268f301643f20af8090c52a9675666ce171d2925c862fba27e48"
+    },
+    "examples/hia_bootstrap/job_receipt.hepta": {
+      "bytes": 116234,
+      "sha256": "debb20a64cd2f12ebc62ae7fc7b572dba7d153b50a34d6ea889ddd7bfb0281a5"
+    },
+    "examples/hia_bootstrap/job_receipt_packer.hepta": {
+      "bytes": 41564,
+      "sha256": "ec2aec2ae7b4a8931286f3e677c7846ebd1fe74817a41b5cce05b6525688bf10"
+    },
+    "examples/hia_bootstrap/job_submit.hepta": {
+      "bytes": 288335,
+      "sha256": "31ae1983f7f43e4df21f214e167dc9c25a29783758ac7ec612f64dab72fb67fd"
+    },
+    "examples/hia_bootstrap/job_submit_json.hepta": {
+      "bytes": 97924,
+      "sha256": "ec8b8c38aad8362d3b3ffb50a60fceff82d8e220fc853094b06fad5e35a6bf7f"
+    },
+    "examples/hia_bootstrap/job_submit_launch.hepta": {
+      "bytes": 256405,
+      "sha256": "393176dcf857223a46a5337f0ebed68965622d219e62da7a73de3a7ffb48f243"
+    },
+    "examples/hia_bootstrap/job_submit_packer.hepta": {
+      "bytes": 25271,
+      "sha256": "e36482bb2cdfdf25fc5c872e28bd9f912e890b33f994625fc14eab5b5028d4e6"
+    },
+    "examples/hia_bootstrap/job_supervisor.hepta": {
+      "bytes": 380421,
+      "sha256": "d7975da0ea4e68c2f1c80f44d563f38659f6c7b5b30f302eb152435aaaeeabd8"
+    },
+    "examples/hia_bootstrap/job_supervisor_packer.hepta": {
+      "bytes": 21579,
+      "sha256": "37808b9672de93d5270e1443906466ab848433a4eea5b25c00e3c8dd286e5b19"
+    },
+    "examples/hia_bootstrap/job_terminal_receipt.hepta": {
+      "bytes": 110833,
+      "sha256": "dcea3705dc0068decfa1cf578ead8c2246631dd74b481599b22daddceb276a99"
+    },
+    "examples/hia_bootstrap/mcp_canonical.hepta": {
+      "bytes": 236108,
+      "sha256": "5fc2d1707ab7101e3e6ee06d8bcd699999c3512a11c7f6c23b423a69d4e7a941"
+    },
+    "examples/hia_bootstrap/mcp_catalog_wire.hepta": {
+      "bytes": 136846,
+      "sha256": "4249f85ec08afb799d06facf99d0986239c00241fbc64b2409534ad568568f13"
+    },
+    "examples/hia_bootstrap/mcp_input_diagnostic.hepta": {
+      "bytes": 406291,
+      "sha256": "e1280b6437d288bc643b949dec9a3cb041cbd56f22b8f42fae038d5a5a8142c4"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_audit.hepta": {
+      "bytes": 76511,
+      "sha256": "f08d38d581d802fbeacb8755d9d3c8943b7527bef845422ccb520b7188de4ef7"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_bootstrap.hepta": {
+      "bytes": 57537,
+      "sha256": "f15002bcf756da03811bdee9beaf59021c222429331c13a32dc98920c626bcca"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_compat.hepta": {
+      "bytes": 42299,
+      "sha256": "91abf59b104074da9722e2ad66fe42d03facd6e34c42b9852b4f569384afeca8"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_fence.hepta": {
+      "bytes": 81028,
+      "sha256": "e8b669c4b81687c6308981b2f21963428bed9a6bb0394674fb17c893004aed59"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_files.hepta": {
+      "bytes": 38618,
+      "sha256": "1466b4b947ef104c8839869aab82bae42de2132a519e033d99f0f138e31b3e6f"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_json.hepta": {
+      "bytes": 92103,
+      "sha256": "5282faba9c184ae9fa6a7b8149e46845e18c93705b19edcb7a84b63c8b267154"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_packer.hepta": {
+      "bytes": 33145,
+      "sha256": "f1e80804e135fadd74e6fb4ee6f63f6b7359bf21ad28fccd9ca7ff356cc2be2a"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_pages.hepta": {
+      "bytes": 66512,
+      "sha256": "c83a531e4bc515db46fedb96caaa619bccedd623da2faf4c3fdd6c2066e47d75"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_process.hepta": {
+      "bytes": 144142,
+      "sha256": "52f050bfcc2ec7e87a20cdc5be9b0459205b391b5f8a332abb15985bffdbca04"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_provider.hepta": {
+      "bytes": 177212,
+      "sha256": "a1e53880abc6bbf57fa5f419f877545786a4e9da49b07c7786372e5b90473ce9"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_registry.hepta": {
+      "bytes": 298525,
+      "sha256": "378a0808cbbfb72a9268495af98e5bbfa08b15d64a9db40eaa4b78f6f260f501"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_replay.hepta": {
+      "bytes": 67927,
+      "sha256": "77958b31c5a4aea1ff2e76c2a55d15839f2362ffb1e462d115db02385835c07c"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_result.hepta": {
+      "bytes": 213983,
+      "sha256": "334913a816c9a27efb305e8a001c2f3c2a362f5918d9485ed8fe6f6cb487f0b1"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_status.hepta": {
+      "bytes": 154090,
+      "sha256": "1064b7154d5ba03c5167437ddaaeb0d2f857ed8bc2b3c513b4faeab2e9eff68d"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_transactions.hepta": {
+      "bytes": 36108,
+      "sha256": "6d9f4671bd4b56f18d92a4af8c1db730f29bf316c22f6c4a57d470ee41526ef6"
+    },
+    "examples/hia_bootstrap/mcp_job_bridge_transport.hepta": {
+      "bytes": 75604,
+      "sha256": "1f11d0dae0f1a003c3da575754a975dfbf60a8826c8dc0a21a996081b2407fc5"
+    },
+    "examples/hia_bootstrap/mcp_negotiation.hepta": {
+      "bytes": 166216,
+      "sha256": "28486c36bd5c0a43eefe658db5da76449235b1ea801b589e5413a0ef3a4d6ccb"
+    },
+    "examples/hia_bootstrap/mcp_reply_wire.hepta": {
+      "bytes": 120704,
+      "sha256": "d6fe401794ff58f32c99f158a5a6d572ab3d6182ce39978eb1a530d256535860"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_archive.hepta": {
+      "bytes": 177349,
+      "sha256": "15bfe76d503676044c5499ea12eba07055d6020c66b58dd69972857394a26f10"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_archive_query.hepta": {
+      "bytes": 208976,
+      "sha256": "48582f9b0dd9b5fc405922aa4200d1a1ac006c860bb9d47ae71076ba1437b1b1"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_files.hepta": {
+      "bytes": 47727,
+      "sha256": "0fffe540b7a97798bf5cce65db15c87dcbf372c9d4f72173d91d445384402990"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_history.hepta": {
+      "bytes": 72720,
+      "sha256": "b984621368d1c5bcdd9fd0dc1cb4c008d16ecdec5543e0609cd40c5b05c727d9"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_intent.hepta": {
+      "bytes": 154584,
+      "sha256": "82d0921a73ea249f14382f059b3937366cce01d27f2c5b93848ed1768b46aa80"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_json.hepta": {
+      "bytes": 92106,
+      "sha256": "d3551f6938f6c7c90b053ab9d3769f6ab34b97512804064f8d5e8fd9d32c1dd2"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_layout.hepta": {
+      "bytes": 102410,
+      "sha256": "230b137f6172cd0131881d3e4d38ccd65a7fbd61be831c937a58afce1faf7b2a"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_leases.hepta": {
+      "bytes": 14679,
+      "sha256": "b06f210cfb23b56ee7f73f9dbab4896514fda6acd31a33834bc698b98a426a28"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_metadata.hepta": {
+      "bytes": 28937,
+      "sha256": "e24a968a73a6932a876a3ff40777881cdf540c1dd86c3b3c68a0b98cf59efccb"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_open.hepta": {
+      "bytes": 33309,
+      "sha256": "7c3898c4865c9450404ecd6902fa2b429f4030aa9bf9f8214d03f0f6d04d1e31"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_packer.hepta": {
+      "bytes": 25280,
+      "sha256": "caf8ccec12f70b14bf37fbe552e59ce06bbd2617120dab127cbd0127bf77461d"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_records.hepta": {
+      "bytes": 180472,
+      "sha256": "e1560ab02ea1a56c801227a527babb0e20fbeb5f76acc7ad1a4b9c92c061c72f"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_recovery.hepta": {
+      "bytes": 84928,
+      "sha256": "9acf9a9f826a2b7467a86ed6caa576a702868bdecb2a35d945d11aee089bc296"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_response.hepta": {
+      "bytes": 114890,
+      "sha256": "7c1031d66f2379f81c9223a2d69a7e26dc477610166588e9c5894bf20b96b989"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_retention.hepta": {
+      "bytes": 90880,
+      "sha256": "10b3043fc0b1665823f0f228a6860e69cdd154d8e150630db2c262282f3644fd"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_root.hepta": {
+      "bytes": 52726,
+      "sha256": "71e30c30ec036a4ed656defef23cecf4eff852bfa56b474cdc4a6c8c7692f294"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_scan.hepta": {
+      "bytes": 72688,
+      "sha256": "5f5eab97df0d392545b19e607d6ee01b85ba473d185bf030186c461334458c90"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_session.hepta": {
+      "bytes": 122054,
+      "sha256": "1f40be1e85beec98d9f326e111053a3740db29edaead0e09ad91c6c39d09bab7"
+    },
+    "examples/hia_bootstrap/mcp_request_audit_write.hepta": {
+      "bytes": 25939,
+      "sha256": "2a532cdb4bdff4d993d31402ef192e03764fe78ee4b0a7096b714e1e8f8585a8"
+    },
+    "examples/hia_bootstrap/mcp_request_route.hepta": {
+      "bytes": 146179,
+      "sha256": "dcb20ecb9b9a899a60f20844e49ee5c295a4cff246b5db054f5c4cfd917d1443"
+    },
+    "examples/hia_bootstrap/mcp_resource_uri.hepta": {
+      "bytes": 7526,
+      "sha256": "6c248b30aaa4e25c9a1ec4a0e5b84fe95242aec74eab87c2bbab3eb0aade20a3"
+    },
+    "examples/hia_bootstrap/mcp_sdk_request.hepta": {
+      "bytes": 313847,
+      "sha256": "62080e4300ca796b85b941e2c0fc4e67379815a06e2929be279c178a5a57cb59"
+    },
+    "examples/hia_bootstrap/mcp_service_admission.hepta": {
+      "bytes": 204687,
+      "sha256": "5dfdc7156d8de298a8676c11895c17a82fd7d6e76aca9ca42e29cd13aa6f2882"
+    },
+    "examples/hia_bootstrap/mcp_service_audit_transport.hepta": {
+      "bytes": 107253,
+      "sha256": "e7bcf60384318306c2c18aa574f36477a40884b7618905f3cd4a4e130ac33235"
+    },
+    "examples/hia_bootstrap/mcp_service_bootstrap.hepta": {
+      "bytes": 102699,
+      "sha256": "c4e116961796cb279d269de1bda3898314a478b9f8c991c40b2ac7a2fe1e108e"
+    },
+    "examples/hia_bootstrap/mcp_service_config.hepta": {
+      "bytes": 261220,
+      "sha256": "ee98094213612b2fadbccee52d2249368033b7b7fdb4a016de58ddc0f89fd34e"
+    },
+    "examples/hia_bootstrap/mcp_service_dispatch.hepta": {
+      "bytes": 413320,
+      "sha256": "a1a0ab709cebc600b06553390ca1e7c4474347f27f6adcb3f60b373c489dcb74"
+    },
+    "examples/hia_bootstrap/mcp_service_files.hepta": {
+      "bytes": 55851,
+      "sha256": "45cd484534bedeb5f3ecf1dc2d4a29c35258fc5969cf5d619b400707418fe512"
+    },
+    "examples/hia_bootstrap/mcp_service_json.hepta": {
+      "bytes": 92100,
+      "sha256": "37475fd30d30395ede76b98ae74eed208a1c0a666485889f9392972197abcb9e"
+    },
+    "examples/hia_bootstrap/mcp_service_packer.hepta": {
+      "bytes": 41180,
+      "sha256": "b1149bb77c6cfe31b344ae220eae888ff8a93dcb73f75981932d28a697967226"
+    },
+    "examples/hia_bootstrap/mcp_service_reply.hepta": {
+      "bytes": 170892,
+      "sha256": "296fb8b66990908845e8ca1d55937579ebf3077c14876b68c7abaf7305804781"
+    },
+    "examples/hia_bootstrap/mcp_service_response.hepta": {
+      "bytes": 102151,
+      "sha256": "bf7ef8d2692638beec583baf0a193257bfa9bd70ac3bae842da7860f6ab32129"
+    },
+    "examples/hia_bootstrap/mcp_service_scheduler.hepta": {
+      "bytes": 83226,
+      "sha256": "24a0e6983d0ff3dbb44958669aa988ca5ac47348dfbfaeff9bc356f9b77efe61"
+    },
+    "examples/hia_bootstrap/mcp_service_session.hepta": {
+      "bytes": 286349,
+      "sha256": "843c3542ce264e0c45de386e7423d68d28358743f2fa3dd4352db1c4ca4e71d3"
+    },
+    "examples/hia_bootstrap/mcp_service_setup.hepta": {
+      "bytes": 327340,
+      "sha256": "ed2136798bef29083a5673f3f0d2ed6cd740d267b4e3a357bd6dedccb7bb0451"
+    },
+    "examples/hia_bootstrap/mcp_service_state.hepta": {
+      "bytes": 73111,
+      "sha256": "c360aa6212cc4feaa5c5dd4f58e6108aaba741e0f615c44534448b1939c141a3"
+    },
+    "examples/hia_bootstrap/mcp_service_stream.hepta": {
+      "bytes": 25822,
+      "sha256": "b501566705c9ff701137ee2d2fbf203b9f6be28aeff691d1035e86c8bd6176b0"
+    },
+    "examples/hia_bootstrap/mcp_service_transport.hepta": {
+      "bytes": 60740,
+      "sha256": "66486c69499ed29c540873756f0f690983241c353388804083336b8b99c71d49"
+    },
+    "examples/hia_bootstrap/mcp_terminal_admission.hepta": {
+      "bytes": 203431,
+      "sha256": "442517a09b32564bf9e64f46c1fbccf5bf1537d221a09b41672a888c430088a9"
+    },
+    "examples/hia_bootstrap/native_filter_packer.hepta": {
+      "bytes": 14265,
+      "sha256": "63ec799f8b427e089c2a66bc345c1ca1ed6b022c12e6af5bfebd6953d66b4c2d"
+    },
+    "examples/hia_bootstrap/sha256_stream.hepta": {
+      "bytes": 31728,
+      "sha256": "80df3148e5dc8df8ab4c43e5d1edd1b4057dcdcffe5a06c3635bfee17a779054"
+    },
+    "examples/hia_bootstrap/worker_config_json.hepta": {
+      "bytes": 180237,
+      "sha256": "951d2661cf1b62e79ca88d945807a7ef6d397167b250ef8ed22f2aac178c2c44"
+    },
+    "examples/hia_bootstrap/worker_prepare.hepta": {
+      "bytes": 258725,
+      "sha256": "fea50deff508b586b137f2f89fda1defa83e3db13527baf62cdd74ef2cd83491"
+    },
+    "tools/generate_hia_mcp_request_audit.py": {
+      "bytes": 5923,
+      "sha256": "a8a573906db7f17c5ef813d77dc872996ef5a4c9ce7286dc0426f466ecc5b58e"
+    },
+    "tools/generate_hia_mcp_request_audit_archive_query.py": {
+      "bytes": 12219,
+      "sha256": "d8c7a034a0037f2116bf4ae605a2b0f0cb37c8b4423d6de8e5e4d24af98d12a0"
+    },
+    "tools/generate_hia_mcp_request_audit_common.py": {
+      "bytes": 11324,
+      "sha256": "7ed8b0066c193ef8e05c7de94f7eaaf1244551e18a1126036b98a05ba776a022"
+    },
+    "tools/generate_hia_mcp_request_audit_response.py": {
+      "bytes": 3745,
+      "sha256": "d41fe1f947cfe72d9dc00faec44ad0146168c4cc4f2c4a720751200dbe5fb77c"
+    },
+    "tools/generate_hia_mcp_request_audit_session.py": {
+      "bytes": 18861,
+      "sha256": "2409e42eb4865a1a6fc62b34211b0fb3c1b1a759f177d3a1f0b5e70ed487d2ec"
+    },
+    "tools/generate_hia_mcp_sdk_request.py": {
+      "bytes": 27117,
+      "sha256": "2f4271b79cf54d9475d47574296f92a638e6b627edc6703439136daf73a1e001"
+    },
+    "tools/generate_hia_mcp_service_audit_transport.py": {
+      "bytes": 18510,
+      "sha256": "9ad39e73ecb2167c788d3b89a4a682e5bd5f04c77fa3278c530c413334d03d24"
+    },
+    "tools/generate_hia_mcp_service_dispatch.py": {
+      "bytes": 16670,
+      "sha256": "60218b4653dbafcc95a86659a20ed04ff8adf49a624b0aacb71890de77673d8d"
+    },
+    "tools/generate_hia_mcp_service_owner_common.py": {
+      "bytes": 19174,
+      "sha256": "1b9a1aeabad4db914fac1630539e4bfe36402af2fc6361b90a644f38db6cae4c"
+    },
+    "tools/generate_hia_mcp_service_session.py": {
+      "bytes": 14620,
+      "sha256": "a2bae9d84cf714966f55f4c4ab1fbde1305c766e3accb18ebecf1bb3577f0374"
+    },
+    "tools/hia_mcp_request_audit_syscalls.S": {
+      "bytes": 4835,
+      "sha256": "70f448a9078ae0ecefb5364a34b03de530a913f326429d3c36fa79a6936d56c1"
+    },
+    "tools/qualify_hia_mcp_request_archive.py": {
+      "bytes": 11839,
+      "sha256": "81c79e032018ed7f337994bf844dc7c5adce07b6e8822c50a7b7acc55ac03c47"
+    },
+    "tools/qualify_hia_mcp_request_archive_fences.py": {
+      "bytes": 6119,
+      "sha256": "c41f9178e357cc732efc474f5b17d76787bbf13900456d1fad29187ae367dab3"
+    },
+    "tools/qualify_hia_mcp_request_archive_public.py": {
+      "bytes": 11059,
+      "sha256": "ca9071d094d6a1d983953a4957aba3aea5b8fc4abf2746d16d53974bbbda2344"
+    }
+  },
+  "usage_qualified": false,
+  "whole_cold_qualified": false
+}

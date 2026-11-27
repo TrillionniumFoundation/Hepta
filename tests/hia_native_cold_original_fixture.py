@@ -187,6 +187,22 @@ VERSIONS = {
         }
     }
 }
+SCOPED_FIXTURE = 'tests/fixtures/hia_scoped_evaluation_cold_preparation_v1.json'
+SCOPED_FIXTURE_PIN = {'bytes': 40763, 'sha256': '3b16b8a76f356df199da6ec95bb57b688351fd3482e34ef9fda5c59cc1e9b100'}
+SCOPED_CURRENT = {
+    "tools/qualify_hia_evaluation_callers.py": {
+        "bytes": 18675,
+        "sha256": "5cfefde3b54516320dab7f9b39fdf9673e7437f99ffba7b71df43192597c9330"
+    },
+    "tools/qualify_hia_service_discovery_callers.py": {
+        "bytes": 18425,
+        "sha256": "820d7b0d5404082a5ef07d27ce973015b7b8a87f7ce11b466f73ee000cc6e887"
+    },
+    "tools/qualify_hia_service_verification_callers.py": {
+        "bytes": 18193,
+        "sha256": "58a15fac7f5539c797398697605e7ba86ebd192981cfcf137dc51e4626efc4ee"
+    }
+}
 ENGINE = 'tools/hia_frozen_component_sources.py'
 ENGINE_PIN = {'bytes': 15561, 'sha256': '60a30ab07d6c58ef0523531636a3250cc9e75402bffe75a07115012efa5d0774'}
 
@@ -258,7 +274,7 @@ def original_view(root):
             raise ValueError('original source fixture transport inventory changed')
         names.add(name)
         names.update(json.loads(raw)['unchanged_files'])
-    names.update((SELF, FIXTURE, ENGINE, cold.HISTORY_SOURCE, *cold.DEPENDENCIES,
+    names.update((SELF, FIXTURE, SCOPED_FIXTURE, ENGINE, cold.HISTORY_SOURCE, *cold.DEPENDENCIES,
                   'tools/hia_selfhost_contract.py'))
     sources = {name: capture(name) for name in sorted(names)}
     # Original data readers name additional fixed authorities outside the
@@ -278,8 +294,28 @@ def original_view(root):
     for name in sorted(authority_names):
         sources[name] = capture(name)
     projected = dict(sources)
+    scoped_raw = capture(SCOPED_FIXTURE)
+    if pin(scoped_raw) != SCOPED_FIXTURE_PIN:
+        raise ValueError('original source fixture scoped qualifier relation changed')
+    scoped = json.loads(scoped_raw)
+    if (scoped.get('schema') != 'hepta.hia.scoped-evaluation-cold-test-preparation.v1'
+            or scoped.get('base_commit') != '322d93c44587986248bac21ad37243fa266517fc'
+            or scoped.get('native_product_execution_claimed') is not False
+            or scoped.get('original_test_methods_modified') is not False
+            or set(scoped.get('files', {})) != {
+                *SCOPED_CURRENT,
+                'tests/test_hia_scoped_caller_source_history.py',
+                'tests/test_hia_evaluation_caller_admission.py'}):
+        raise ValueError('original source fixture scoped qualifier domain differs')
+    for name, expected in SCOPED_CURRENT.items():
+        row = scoped['files'][name]
+        if (pin(sources[name]) != expected
+                or {'bytes': row['new_bytes'], 'sha256': row['new_sha256']} != expected
+                or {'bytes': row['old_bytes'], 'sha256': row['old_sha256']} != VERSIONS[name]['current']):
+            raise ValueError('original source fixture unreviewed scoped qualifier: ' + name)
+        projected[name] = engine.history_inverse(sources[name], row, VERSIONS[name]['current'])
     for name, expected in VERSIONS.items():
-        physical = sources[name]
+        physical = projected[name]
         row = value['files'][name]
         if pin(physical) != expected['current']:
             raise ValueError('unreviewed current source cannot enter the original fixture: ' + name)
@@ -295,6 +331,9 @@ def original_view(root):
         'actual_captured_files': {name: pin(raw) for name, raw in captured.items()},
         'historical_source_files': {name: pin(projected[name]) for name in cold.PATHS},
         'original_fixed_131_source_domain_restored': True,
+        'physical_scoped_qualifiers': dict(SCOPED_CURRENT),
+        'scoped_qualifier_historical_stage': {name: VERSIONS[name]['current'] for name in SCOPED_CURRENT},
+        'physical_capture_rewritten': False,
         'historical_view_is_current_repository': False,
         'native_product_execution_claimed': False,
         'terminal_reread_identical': False,

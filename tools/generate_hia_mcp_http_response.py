@@ -14,7 +14,8 @@ LITERALS['version10']='HTTP/1.0 '
 LITERALS['keep']='connection: keep-alive\r\n'
 
 def source():
- return authored(ast.unparse(ast.parse(SOURCE)),text=LITERALS)
+ from tools.generate_hia_mcp_http_metadata_stream import response_source
+ return authored(ast.unparse(ast.parse(response_source(SOURCE))),text=LITERALS)
 def render():
  return render_assembly(document(source(),'mcp_http_response'))
 if __name__=='__main__':

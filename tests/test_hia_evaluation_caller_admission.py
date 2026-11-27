@@ -35,6 +35,8 @@ ADDITIONAL_TEST_IDS = {
 class EvaluationCallerAdmissionSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        from tests.hia_scoped_evaluation_cold_preparation import install_view
+        install_view(cls, globals(), domain="evaluation")
         cls.frozen = (ROOT / qualifier.FIXTURE_NAME).read_bytes()
         if sha256(cls.frozen).hexdigest() != qualifier.FIXTURE_SHA256:
             raise AssertionError('complete original evaluation inventory changed')
@@ -44,7 +46,7 @@ class EvaluationCallerAdmissionSourceTests(unittest.TestCase):
         cls.actual_raws = {name: (ROOT / name).read_bytes()
                            for name in (*names, HISTORICAL, DIAGNOSTIC_FIXTURE, SQLITE_BOUNDARY_FIXTURE)}
         from tests.hia_installed_distribution_history import predecessor
-        cls.raws = {name: predecessor(name, cls.actual_raws[name]) for name in names}
+        cls.raws = {name: predecessor(name, cls.actual_raws[name], root=ROOT) for name in names}
         historical = cls.actual_raws[HISTORICAL]
         if sha256(historical).hexdigest() != HISTORICAL_SHA256:
             raise AssertionError('historical evaluation caller authority differs')

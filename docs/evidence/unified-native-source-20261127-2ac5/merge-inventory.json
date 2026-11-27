@@ -1,0 +1,1139 @@
+{
+  "schema": "hepta.hia.unified-native-source-merge.v1",
+  "base_commit": "7da3ff0f01d817a1f04813501aa418628e94186a",
+  "additional_parents": [
+    "636081d07c9cef5d22edf1f14c3b80d371a2a22e",
+    "e3fbbdcd3f34dfebdeabafe820dcd332f6c1f5d7",
+    "b990efc55bb53129f158bde67adbc792fe61f8ab",
+    "3674332323e9664c1d5b5bd4699aea11ecf76927"
+  ],
+  "native_incoming_count": 207,
+  "native_merge_conflicts": [
+    {
+      "path": "tools/hia_selfhost_contract.py",
+      "status": "modified",
+      "ours": "2a31024c6f2561de074bab39a46968ae5eb7832f",
+      "base": "c26afe26f7281eff0fa34ad27ff82a0fb4942c86",
+      "incoming": "873c653c3119b63d42090074b1e57cce9d240581"
+    }
+  ],
+  "resolution": "Preserve the complete current contract and add only the two incoming native source registrations; add three new source-control inputs. Preserve all other incoming complete files.",
+  "historical_test_preparation": "Use the immutable scoped/evaluation whole-file inverses for three qualifiers before the original 131-file test-view inverses. Actual physical captures and terminal rereads remain separate.",
+  "original_authorities_modified": false,
+  "original_assertions_removed": false,
+  "original_deadlines_modified": false,
+  "full_integrated_source_gate_executed": false,
+  "full_integrated_native_product_gate_executed": false,
+  "changed_entries": [
+    {
+      "path": "docs/HIA_COLD_NATIVE_SOURCE_FILES.json",
+      "mode": "100644",
+      "git_blob": "86689e5fa75550927b74aaa5befd3c69f657746a"
+    },
+    {
+      "path": "docs/HIA_NATIVE_SOURCE_AUTHORITY.json",
+      "mode": "100644",
+      "git_blob": "4a4e49ba7a89938763e3e71b9c401a32a88e0c2b"
+    },
+    {
+      "path": "docs/HIA_REQUEST_ARCHIVE_NATIVE.md",
+      "mode": "100644",
+      "git_blob": "ee41a08df82059d7333a2a5325f0bd18719440f5"
+    },
+    {
+      "path": "docs/HIA_REQUEST_ARCHIVE_NATIVE_QUALIFICATION.json",
+      "mode": "100644",
+      "git_blob": "71bbac0847bf42cf62959f7d4dd0091447e519a5"
+    },
+    {
+      "path": "docs/HIA_REQUEST_HISTORY_NATIVE.md",
+      "mode": "100644",
+      "git_blob": "9e315019e083d48b8e702deee15be56f55fa39e3"
+    },
+    {
+      "path": "docs/HIA_REQUEST_HISTORY_NATIVE_QUALIFICATION.json",
+      "mode": "100644",
+      "git_blob": "df2255aefd166889486ca0962cd54f65f2d0b566"
+    },
+    {
+      "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+      "mode": "100644",
+      "git_blob": "c50d585f5038b4645136eda42693927c56fda802"
+    },
+    {
+      "path": "docs/HIA_USAGE_NATIVE.md",
+      "mode": "100644",
+      "git_blob": "d2634abd221660bdaf876949fd2299cab4ec2a74"
+    },
+    {
+      "path": "docs/HIA_USAGE_NATIVE_QUALIFICATION.json",
+      "mode": "100644",
+      "git_blob": "1c39625c611636ba36df6ac1e585ba628081221c"
+    },
+    {
+      "path": "docs/HIA_WORKER_MANIFEST_RECORDS.json",
+      "mode": "100644",
+      "git_blob": "4090204432eab08397a42316d6d94c972424e9ba"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/audit-construction.json",
+      "mode": "100644",
+      "git_blob": "33958fe408745cf9543dd89130123a93c8eab63f"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/audit-native-calls.json.gz",
+      "mode": "100644",
+      "git_blob": "2ef1f0e1e1f06b2ae9cf226a48eb84de2683dbae"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/history-regression.json",
+      "mode": "100644",
+      "git_blob": "9ae3f1cb4ebb13f5906c804978593bcc446a4ad4"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/kernel-fences.json",
+      "mode": "100644",
+      "git_blob": "7ba91cf922e1483b86cbc800e5cb266f13e0bd5e"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/native-attempt-v1.json",
+      "mode": "100644",
+      "git_blob": "0524625b1d011ff1cadcea88078f9968721fdb9f"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/native-attempt-v2.json",
+      "mode": "100644",
+      "git_blob": "8b61b45e3756c54eda12baa86518b76866df6c67"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/native-controls.json",
+      "mode": "100644",
+      "git_blob": "5f30a4eba106659cccb8b7637b7b8a0498ad5c47"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/native-observations.manifest.json",
+      "mode": "100644",
+      "git_blob": "a68dfff531bcfcefbafe5c244fcb0d0a01b9adf1"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/native-observations.tar.gz",
+      "mode": "100644",
+      "git_blob": "19cb65bdff09ebb26028bd9c94cb3ab6ee4a8eea"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/native-public-construction.json",
+      "mode": "100644",
+      "git_blob": "b1be23eef7229a57cde27b8c36cecf3da2dc5414"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/native-qualified-v3.json",
+      "mode": "100644",
+      "git_blob": "0aecacf41b6ec5775d91602add4509789c0b8383"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/public-attempt-v1.json",
+      "mode": "100644",
+      "git_blob": "b6e340b60a9681dd1c4bb36a75556955505fb0ac"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/public-native-calls.json.gz",
+      "mode": "100644",
+      "git_blob": "36c4bde334da70cb3c6ed24a1c75846abc3291f3"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/public-original-comparison.json",
+      "mode": "100644",
+      "git_blob": "95751a785cee2b7072714d4eb5132d42ac483d84"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/public-qualified-v2.json",
+      "mode": "100644",
+      "git_blob": "f7d8d13506a13a3c3e2eabbb7864b3991cc48f48"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/retention-regression.json",
+      "mode": "100644",
+      "git_blob": "a28d92d5c138d9cbc703b3a03b02b14f2068ebe2"
+    },
+    {
+      "path": "docs/evidence/hia-request-archive/v12-regression.json",
+      "mode": "100644",
+      "git_blob": "8c2605bd87a7b8dbf360e8e17dc2fa4af2e0c796"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/archive-v12-process.json",
+      "mode": "100644",
+      "git_blob": "46cc81ec21ed8d7a8529d91143191fa734859884"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/audit-construction.json",
+      "mode": "100644",
+      "git_blob": "0bc4ddb0b3fc112a19c3f2fa53ffd6be481440c7"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/audit-native-calls.json.gz",
+      "mode": "100644",
+      "git_blob": "f6dce5fe6b3fbb408bb6de310cffd564b52b6ee2"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/diagnostic-native-calls.json.gz",
+      "mode": "100644",
+      "git_blob": "951889c2a327ea5050805cbf4c75e523d6b8c313"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/diagnostic-scalars.json",
+      "mode": "100644",
+      "git_blob": "c69ebbd0326b1f22e2eb6e60ed20a1b1939b27fc"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/div-word-native-calls.json.gz",
+      "mode": "100644",
+      "git_blob": "50df7a835c79f27e5ec24efb1ed577f2df2e8441"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/history-process.json",
+      "mode": "100644",
+      "git_blob": "867cf2264f68917e6aab940e90d6da2aa33938f3"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/independent-div-word.json",
+      "mode": "100644",
+      "git_blob": "1a0d9e1c6e3d978dfadc081658718f7282fe73c7"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/public-construction.json",
+      "mode": "100644",
+      "git_blob": "d44b3383a46e8cb0d078355f3dd413fb89286388"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/public-native-calls.json.gz",
+      "mode": "100644",
+      "git_blob": "5e2cadf4b1ae69b84d0f3acb9e4bfcb8fe5356d9"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/public-original-comparison.json",
+      "mode": "100644",
+      "git_blob": "460451d33f1cd8e4c4959d05f8995979dcc6d13b"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/retention-process.json",
+      "mode": "100644",
+      "git_blob": "f62e8972f6737dd9669709e9e31ef996c9c19843"
+    },
+    {
+      "path": "docs/evidence/hia-request-history/rust-parameter-oracle.json",
+      "mode": "100644",
+      "git_blob": "ff8c13673271ea625fbe36f99a3b2b708f081c4e"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-current-future/README.md",
+      "mode": "100644",
+      "git_blob": "587068d126de8dc94b1147651551f9ff21ebfdef"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-current-future/bootstrap-inputs.json",
+      "mode": "100644",
+      "git_blob": "2fd1b6aecf3ae707c2310d3fb08c1224039cd798"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-current-future/freeze.json",
+      "mode": "100644",
+      "git_blob": "c9db58a15af52544283ea106cb417eda8f74da88"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-current-future/materialization.json",
+      "mode": "100644",
+      "git_blob": "998ec73112e0c6eb39920d98b8140c7e42e0ee02"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-current-future/original-missing-root-receipt-failure.json",
+      "mode": "100644",
+      "git_blob": "94e83851b7aa6ede6c5b4b531b72e7dbaf43b2f5"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-current-future/preparation.json",
+      "mode": "100644",
+      "git_blob": "f77c9c5a76ba36a4f6d474582dffa3263d782370"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-current-future/preparation.stdout",
+      "mode": "100644",
+      "git_blob": "9b01219ca0b9e4ac982d95a35251dbb8825b5d43"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-current-future/preseed.json",
+      "mode": "100644",
+      "git_blob": "8d59fb5a22ff6713bb4f855e0dfd9d27b8875d02"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-current-future/preseed.stdout",
+      "mode": "100644",
+      "git_blob": "c6b5aed592ff990336432655c4b5787b801e7ccb"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-history-archive-integration/README.md",
+      "mode": "100644",
+      "git_blob": "4e0316aa4acf4b1f78e6b8709336ba717af5c286"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-history-archive-integration/complete-native-source-preparation.tar.gz",
+      "mode": "100644",
+      "git_blob": "9e55d3c8c5576a3250d63414478bb508257246f3"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-history-archive-integration/manifest.json",
+      "mode": "100644",
+      "git_blob": "d5516a30e38f6876d1cc50705ff350ad6dc3f992"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-usage-current-future-integration/README.md",
+      "mode": "100644",
+      "git_blob": "479171b990db6108ad4b23a874380c1a645baa20"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-usage-current-future-integration/complete-source-preparation.tar.gz",
+      "mode": "100644",
+      "git_blob": "f3308f99f47c6fb70446c2a9966c5708faec9f86"
+    },
+    {
+      "path": "docs/evidence/native-source-freeze/20261127-usage-current-future-integration/manifest.json",
+      "mode": "100644",
+      "git_blob": "6ee8d8c7f0e2dcebb7a6b08581e2099fc073ecef"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/archive-regression.json",
+      "mode": "100644",
+      "git_blob": "405a556f366765b905c93384af49f3f1de43e27c"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/audit-composition.json",
+      "mode": "100644",
+      "git_blob": "87c534a27f45b8db7a150a1808f63c5ec774d0ce"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/audit-construction.json",
+      "mode": "100644",
+      "git_blob": "4ff0027a9f78744e80b0e15e636645958ecafaa2"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/author-format-control.json",
+      "mode": "100644",
+      "git_blob": "2503eab79f1b8bc59a5d900d848f612350b2c7de"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/execution-receipts.json",
+      "mode": "100644",
+      "git_blob": "a189748ae0945952e83875d07452a60b12ffd8cf"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/large-diagnostics.json",
+      "mode": "100644",
+      "git_blob": "06d5df135af191cb5ca6c4a5c53e7a28ab18a58f"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/native-raw-observations-v1.manifest.json.gz",
+      "mode": "100644",
+      "git_blob": "20842fdaca519c01b3b3f381b5fddc4be963fef5"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/native-raw-observations-v1.tar.gz",
+      "mode": "100644",
+      "git_blob": "01dc96fd19852dc85bc9343643d6d42b47c140ce"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/original-parameter-regression.json",
+      "mode": "100644",
+      "git_blob": "4c47eff4c00dbeca3259e19cd3270b798def455d"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/public-composition.json",
+      "mode": "100644",
+      "git_blob": "5a1638299b4db1e272933f1c82a383084bcb2656"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/public-construction.json",
+      "mode": "100644",
+      "git_blob": "d90276e9ae0d12a7949fa2a7839e225cccd2eec5"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/publication-construction.json",
+      "mode": "100644",
+      "git_blob": "585005baa49b48ff4e36b4f6c7692f1d1e6c8ea8"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/publication-contract.json",
+      "mode": "100644",
+      "git_blob": "af670dd7fe4481ee1300d01137e572ece871c7fb"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/retained-attempts.json",
+      "mode": "100644",
+      "git_blob": "54bf34b3d996297c268253e19c408e65c9cc8b77"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/unknown-launch-observation.json",
+      "mode": "100644",
+      "git_blob": "bdc7270e72e42538e1f74294ffc46bf8eedb1812"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/usage-daemon.json",
+      "mode": "100644",
+      "git_blob": "61a138456e402dff48a033495bf9af470c231895"
+    },
+    {
+      "path": "docs/hia_usage_native_evidence/usage-public.json",
+      "mode": "100644",
+      "git_blob": "1fc333ce971f932514242b1ccd47c5b8b4d67bc0"
+    },
+    {
+      "path": "examples/hia_bootstrap/cold_build_recipe.hiadat",
+      "mode": "100644",
+      "git_blob": "bf6e893a5f88c5cdcc9261fe812d25a190dd6a93"
+    },
+    {
+      "path": "examples/hia_bootstrap/cold_build_sources.hiadat",
+      "mode": "100644",
+      "git_blob": "0149fec7d91a5558b2e51e4030e7682c525716d8"
+    },
+    {
+      "path": "examples/hia_bootstrap/cold_report_admit.hepta",
+      "mode": "100644",
+      "git_blob": "eac1b8bd4a84ed079723f1e39e14de2a2b1f4eb6"
+    },
+    {
+      "path": "examples/hia_bootstrap/cold_source_bootstrap_recipe.hiadat",
+      "mode": "100644",
+      "git_blob": "caacde0519e0f8592e6474f277b87c808456bca5"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_scheduler.hepta",
+      "mode": "100644",
+      "git_blob": "d2f3a43a6c344b2ae8e28e54a37a65faa7e288da"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_archive.hepta",
+      "mode": "100644",
+      "git_blob": "4d7afc8fe2ce28e38273e9e526f878f625f687a1"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_archive_query.hepta",
+      "mode": "100644",
+      "git_blob": "82e3c61130d771f6797bb488a639665a2e4da8b8"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_history.hepta",
+      "mode": "100644",
+      "git_blob": "7f6f9c9268a6df5bf1aeef23941c10e09669caaa"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_intent.hepta",
+      "mode": "100644",
+      "git_blob": "919716626a7b75705a2eca637c2cfe529c313b4d"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_open.hepta",
+      "mode": "100644",
+      "git_blob": "cf1029b8d39b621a04ee5fd39805e211dcd43e30"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_packer.hepta",
+      "mode": "100644",
+      "git_blob": "a175c761aaad084f9cae0c791c8cd806abc4d33d"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_records.hepta",
+      "mode": "100644",
+      "git_blob": "19170f465ed12a625d2951140e71b863a76f9fbe"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_response.hepta",
+      "mode": "100644",
+      "git_blob": "63d025d98ec747329b201029e32160926ebd63f5"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_retention.hepta",
+      "mode": "100644",
+      "git_blob": "6ed0e5b3bac2d2c1cbeebbc9e47011f1b75bec6d"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_scan.hepta",
+      "mode": "100644",
+      "git_blob": "92a203229b2e868c2d9e1ec1d12d7dacc1e4b8b1"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_request_audit_session.hepta",
+      "mode": "100644",
+      "git_blob": "cfa5daf3f92106e62e141c5bd46be6741843a0d9"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_sdk_request.hepta",
+      "mode": "100644",
+      "git_blob": "381c6c914e7eac2a3b38789f5bd335a18441ff3b"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_service_audit_transport.hepta",
+      "mode": "100644",
+      "git_blob": "f99e36397034c0b03a28ce5a8ece17226f49b2a6"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_service_dispatch.hepta",
+      "mode": "100644",
+      "git_blob": "5099c949edba39af685986b493ccbee3dacc59c3"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_service_response.hepta",
+      "mode": "100644",
+      "git_blob": "d623f5df37252c020ef7c34f0b7e4f2e9fda9ee1"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_service_scheduler.hepta",
+      "mode": "100644",
+      "git_blob": "72f952d4b4298492aa35aa5f37fa0d318f395833"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_service_session.hepta",
+      "mode": "100644",
+      "git_blob": "251001b74151982f9788229fa709f4381ff3d552"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_service_setup.hepta",
+      "mode": "100644",
+      "git_blob": "1aae9ee8fede5a12a92c10f351f7892c1c712066"
+    },
+    {
+      "path": "examples/hia_bootstrap/native_controller_delivery.hepta",
+      "mode": "100644",
+      "git_blob": "599c9831f1ccf95e8d2453331d5379c51a0c21ab"
+    },
+    {
+      "path": "examples/hia_bootstrap/release_stage_controller.hiastd",
+      "mode": "100644",
+      "git_blob": "763278afa1884c3a5e25748498357e34ead74398"
+    },
+    {
+      "path": "examples/hia_bootstrap/release_stage_sources.tsv",
+      "mode": "100644",
+      "git_blob": "62802fd6812f0072d887a3a4f3cfb03c37c054e2"
+    },
+    {
+      "path": "examples/hia_bootstrap/seed_div_word_backend.hepta",
+      "mode": "100644",
+      "git_blob": "b98e03e4e82eca2bf3bbe5243fa9c0101eaf2dd7"
+    },
+    {
+      "path": "examples/hia_bootstrap/source_release_cold_admit.hepta",
+      "mode": "100644",
+      "git_blob": "eac1b8bd4a84ed079723f1e39e14de2a2b1f4eb6"
+    },
+    {
+      "path": "examples/hia_bootstrap/source_worker_install_identity.hepta",
+      "mode": "100644",
+      "git_blob": "0575084c04ec6bbdd9263041e77d8c69b2830eb5"
+    },
+    {
+      "path": "examples/hia_bootstrap/source_worker_manifest.hepta",
+      "mode": "100644",
+      "git_blob": "923bd4193a5d8796e28faa18f3ca966d75f01ec3"
+    },
+    {
+      "path": "examples/hia_bootstrap/worker_install_identity_paths.hiastd",
+      "mode": "100644",
+      "git_blob": "02619ccb3e669657c0131610329eaf224f1e1527"
+    },
+    {
+      "path": "examples/hia_bootstrap/worker_manifest_tables.hiastd",
+      "mode": "100644",
+      "git_blob": "d0ff4d5943d24e2ef97e908c4c5743e9ced00ac7"
+    },
+    {
+      "path": "tests/fixtures/hia_request_archive_oracle/README.md",
+      "mode": "100644",
+      "git_blob": "bea092752b934bce4af0b1cd47678a26f28f1e95"
+    },
+    {
+      "path": "tests/fixtures/hia_request_archive_oracle/build-v1.receipt.json",
+      "mode": "100644",
+      "git_blob": "a991be49212d9068e4d67d735e576da4ccca7bc0"
+    },
+    {
+      "path": "tests/fixtures/hia_request_archive_oracle/cases-v1.json",
+      "mode": "100644",
+      "git_blob": "d65be1be8193e75ce55e48ac8b79ac731a82efe3"
+    },
+    {
+      "path": "tests/fixtures/hia_request_archive_oracle/observations-v2.json",
+      "mode": "100644",
+      "git_blob": "570c21fad680617b445d05f53ef7eb3dcb8b0d9b"
+    },
+    {
+      "path": "tests/fixtures/hia_request_archive_oracle/reference-project.json.gz",
+      "mode": "100644",
+      "git_blob": "625d65aa346a3719135e8de07132ec6434d6efdd"
+    },
+    {
+      "path": "tests/fixtures/hia_request_history_oracle/README.md",
+      "mode": "100644",
+      "git_blob": "f24146d91511b5f9443c1a1a693098416d3677ff"
+    },
+    {
+      "path": "tests/fixtures/hia_request_history_oracle/oracle-cases.jsonl.gz",
+      "mode": "100644",
+      "git_blob": "d727eaabd3cf80a4adbf29afc605ed5880684896"
+    },
+    {
+      "path": "tests/fixtures/hia_request_history_oracle/oracle-params-schema.json",
+      "mode": "100644",
+      "git_blob": "c8975300d948db96e4232200639dee3178681654"
+    },
+    {
+      "path": "tests/fixtures/hia_request_history_oracle/original-observations.json",
+      "mode": "100644",
+      "git_blob": "f50a1f3d6384080194f344bd7ef50b3a06e7d75f"
+    },
+    {
+      "path": "tests/fixtures/hia_request_history_oracle/params-cases-v2.jsonl",
+      "mode": "100644",
+      "git_blob": "0c46efcd26e1b85495ff6e01132fef9eac0238da"
+    },
+    {
+      "path": "tests/fixtures/hia_request_history_oracle/params-observations-v2.jsonl",
+      "mode": "100644",
+      "git_blob": "d2d99c645ffdb8397397fdb17b238d4073d3d0d6"
+    },
+    {
+      "path": "tests/fixtures/hia_request_history_oracle/reference-project.tar.gz",
+      "mode": "100644",
+      "git_blob": "cc8239fcc20de154655b95f73f5abada9964d9a0"
+    },
+    {
+      "path": "tests/fixtures/hia_usage_oracle/README.md",
+      "mode": "100644",
+      "git_blob": "2534e86256521bb9d90bf50da4b9dcabe7c258fd"
+    },
+    {
+      "path": "tests/fixtures/hia_usage_oracle/diagnostics.json",
+      "mode": "100644",
+      "git_blob": "92f2a7cf0848202882a84065d08585563f9e4ca4"
+    },
+    {
+      "path": "tests/fixtures/hia_usage_oracle/extended-cases.json",
+      "mode": "100644",
+      "git_blob": "4490a30a1ecd101014573d0551593a61d87caeeb"
+    },
+    {
+      "path": "tests/fixtures/hia_usage_oracle/extended-observations.json",
+      "mode": "100644",
+      "git_blob": "ed1df31fde4bd42b3d5966a2e82ddcbd82adeb49"
+    },
+    {
+      "path": "tests/fixtures/hia_usage_oracle/raw-observations-v1.manifest.json",
+      "mode": "100644",
+      "git_blob": "3ba789706d1b705630f5a9138a450564e552e451"
+    },
+    {
+      "path": "tests/fixtures/hia_usage_oracle/raw-observations-v1.tar.gz",
+      "mode": "100644",
+      "git_blob": "07ab070422f8315d01c208b172e3bf6320ec3e7a"
+    },
+    {
+      "path": "tests/fixtures/hia_usage_oracle/retained-fixture-failure.json",
+      "mode": "100644",
+      "git_blob": "1ee7e8faddee694a012fc9d84c4aa687a1459236"
+    },
+    {
+      "path": "tests/fixtures/hia_usage_oracle/usage-diagnostic.json",
+      "mode": "100644",
+      "git_blob": "02a3d7f9b722a77348676e1caccceb0ef02a849e"
+    },
+    {
+      "path": "tests/fixtures/hia_usage_oracle/usage-schema.json",
+      "mode": "100644",
+      "git_blob": "8e083d5215e0a5ed38777b0d9657e5fb140b024c"
+    },
+    {
+      "path": "tests/hia_request_audit_native_support.py",
+      "mode": "100644",
+      "git_blob": "fdd72f5866fc88a32eae376726877f84951a7c4b"
+    },
+    {
+      "path": "tools/build_hia_request_history_public_seed.py",
+      "mode": "100644",
+      "git_blob": "e767f524e92004f0d55828b7b6668a11791b551f"
+    },
+    {
+      "path": "tools/generate_hia_mcp_history_diagnostic.py",
+      "mode": "100644",
+      "git_blob": "e98f20a522be8e3e9dccca20307a1f0cb11d135a"
+    },
+    {
+      "path": "tools/generate_hia_mcp_history_diagnostic_stream.py",
+      "mode": "100644",
+      "git_blob": "05d910d8af59fb294b35212b0dae8b471a20291b"
+    },
+    {
+      "path": "tools/generate_hia_mcp_http_child.py",
+      "mode": "100644",
+      "git_blob": "15e630f6305e3d7196b2a829f0aa1697ec23a586"
+    },
+    {
+      "path": "tools/generate_hia_mcp_request_audit.py",
+      "mode": "100644",
+      "git_blob": "3da692e60d9b130ebcf7f2f447882e1fcec1c2df"
+    },
+    {
+      "path": "tools/generate_hia_mcp_request_audit_archive_query.py",
+      "mode": "100644",
+      "git_blob": "e32fe39a05abac09694222416b9d2756d5a2b490"
+    },
+    {
+      "path": "tools/generate_hia_mcp_request_audit_common.py",
+      "mode": "100644",
+      "git_blob": "2391d336dd6782e1c06862b52d5ef3d63cc6a2f9"
+    },
+    {
+      "path": "tools/generate_hia_mcp_request_audit_history.py",
+      "mode": "100644",
+      "git_blob": "e33a1932cc09bcbd2147badd90ad57f270cadb74"
+    },
+    {
+      "path": "tools/generate_hia_mcp_request_audit_open.py",
+      "mode": "100644",
+      "git_blob": "aa68a680a1ee10b712876c7e293cd898b792bba0"
+    },
+    {
+      "path": "tools/generate_hia_mcp_request_audit_response.py",
+      "mode": "100644",
+      "git_blob": "19b042b3e0f50293a7defeefa10ded9845717061"
+    },
+    {
+      "path": "tools/generate_hia_mcp_request_audit_retention.py",
+      "mode": "100644",
+      "git_blob": "f3e077c8cf517f41ebe503364ce401331947c740"
+    },
+    {
+      "path": "tools/generate_hia_mcp_request_audit_session.py",
+      "mode": "100644",
+      "git_blob": "fbd7119d724298e177957da217ec2752f86eb6e3"
+    },
+    {
+      "path": "tools/generate_hia_mcp_request_audit_usage.py",
+      "mode": "100644",
+      "git_blob": "345f57c063c8fff80064a952f91a35c28488d994"
+    },
+    {
+      "path": "tools/generate_hia_mcp_sdk_request.py",
+      "mode": "100644",
+      "git_blob": "2e30c16c039bfb6fa3b7593621e4f0cf7c4f4ab3"
+    },
+    {
+      "path": "tools/generate_hia_mcp_service_audit_transport.py",
+      "mode": "100644",
+      "git_blob": "7e98987da15571161bf4f9abce2cb93861d1db97"
+    },
+    {
+      "path": "tools/generate_hia_mcp_service_dispatch.py",
+      "mode": "100644",
+      "git_blob": "e6de1563f86fab50f071fe23be9a11ac54718eb6"
+    },
+    {
+      "path": "tools/generate_hia_mcp_service_owner_common.py",
+      "mode": "100644",
+      "git_blob": "f7c6603587208faf71589c22c3065d8e1182db44"
+    },
+    {
+      "path": "tools/generate_hia_mcp_service_scheduler.py",
+      "mode": "100644",
+      "git_blob": "22d6fc8912fbc32506bf22a69f5dc0a230bb8694"
+    },
+    {
+      "path": "tools/generate_hia_mcp_service_session.py",
+      "mode": "100644",
+      "git_blob": "883d96d30dd2daa3cff2f191ba6fc8810ad2c226"
+    },
+    {
+      "path": "tools/generate_hia_native_controller_release.py",
+      "mode": "100644",
+      "git_blob": "b2da44ffed3caeb1ca93852f466b62227794f32c"
+    },
+    {
+      "path": "tools/generate_hia_seed_div_word_backend.py",
+      "mode": "100644",
+      "git_blob": "9b94fcba8ddcc94bdb6092b169e552caca6ecf46"
+    },
+    {
+      "path": "tools/hia_mcp_request_audit_syscalls.S",
+      "mode": "100644",
+      "git_blob": "17a9a4bb70291835b6f74213801e5f951978cc99"
+    },
+    {
+      "path": "tools/hia_request_history_debug_ranges.json",
+      "mode": "100644",
+      "git_blob": "21c8eef549a20199a8f4fbac52f854f27f86076c"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_history_diagnostic_stream.py",
+      "mode": "100644",
+      "git_blob": "07ead6a8a1d72cdc9c7125e4d28164ad9c6968cf"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_metadata_parameter_regression.py",
+      "mode": "100644",
+      "git_blob": "e02dede6f2adb2deada22cc2fa80e3255d685102"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_metadata_publication.py",
+      "mode": "100644",
+      "git_blob": "d67ba2e227e11c5ab3759fba155c106331dc172f"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_request_archive.py",
+      "mode": "100644",
+      "git_blob": "09413e201ce1387a68f3fd1a0a017c40080181aa"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_request_archive_fences.py",
+      "mode": "100644",
+      "git_blob": "eebfcb85f31f9c965ff541256f88f33e0a85a621"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_request_archive_public.py",
+      "mode": "100644",
+      "git_blob": "0d8508ec0d0c9c53decd6a9a4e3acf06a2617eb3"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_request_audit_sources.py",
+      "mode": "100644",
+      "git_blob": "908e23e07a9946699cff7ad78c578ef073cd68d0"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_request_history.py",
+      "mode": "100644",
+      "git_blob": "64bb317e7fe459877c3a504d2a01a8ffea0abd03"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_request_history_public.py",
+      "mode": "100644",
+      "git_blob": "ee2fef3d5d8b41261efd0e500936d33a86961f32"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_request_history_seed.py",
+      "mode": "100644",
+      "git_blob": "f7c140a3837d9873231da1cb9ac2b9db10fb0fb9"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_usage.py",
+      "mode": "100644",
+      "git_blob": "a4d5bbe063400845389bd26652e6acdddf3f9dce"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_usage_public.py",
+      "mode": "100644",
+      "git_blob": "10f0f03573adca7c0af8b46fe56e86d8e52d76e8"
+    },
+    {
+      "path": "tools/qualify_hia_request_history_diagnostic.py",
+      "mode": "100644",
+      "git_blob": "af1dcecd21e20cd31d7aedfc9f0a5340318e35f9"
+    },
+    {
+      "path": "tools/qualify_hia_seed_div_word.py",
+      "mode": "100644",
+      "git_blob": "19e9fd939b7d3ed40198a61a4254deb194137596"
+    },
+    {
+      "path": "docs/HIA_HTTP_METADATA_NATIVE.md",
+      "mode": "100644",
+      "git_blob": "37f11cbb16a735bc71dea3a69cd886279e0df1b0"
+    },
+    {
+      "path": "docs/HIA_HTTP_METADATA_NATIVE_QUALIFICATION.json",
+      "mode": "100644",
+      "git_blob": "d1129029cc281227e96103d26847349ae9bf5002"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/audit-prerequisite-construction.json.gz",
+      "mode": "100644",
+      "git_blob": "811af2fc88eeca2cbdc4098be66068f5e2520e11"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/canonical-authorship-v1.json.gz",
+      "mode": "100644",
+      "git_blob": "5f104e3d1054ef000675ce0795758a9be54e792f"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/canonical-label-normalization-v1.json.gz",
+      "mode": "100644",
+      "git_blob": "9a0c465c54c978ebd4586b0302bafa450c36296a"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/controller-prerequisite-construction.json.gz",
+      "mode": "100644",
+      "git_blob": "cf269dcaa810e85c79dbd9f79a09e83a8a28fc7c"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/http-construction-v5.json.gz",
+      "mode": "100644",
+      "git_blob": "763d70c5b168d7a4338a8dd9f9f8da6f90f3b130"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/http-native-seed-calls-v5.json.gz",
+      "mode": "100644",
+      "git_blob": "44d261f7576566382f534d7c946af40a747a59b8"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/native-http-stream-construction-v4.json.gz",
+      "mode": "100644",
+      "git_blob": "eb42286a5e3cac0766022ca7fcca555b3d82e448"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/native-http-stream-v4.json.gz",
+      "mode": "100644",
+      "git_blob": "28cbefcb20da2da8e5fd51e1e39ab21acd16c353"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/native-scheduler-construction-v4.json.gz",
+      "mode": "100644",
+      "git_blob": "a001acb6057ff6400ae9a1ca7465648f6ddef22d"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/native-scheduler-v4.json.gz",
+      "mode": "100644",
+      "git_blob": "50f28a7c21a5f92e75c5628d57de10574cb737e3"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/public-http-authority-v2.json.gz",
+      "mode": "100644",
+      "git_blob": "82066ea073901bfe1f12d1ae28cb4fd1130e6833"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/public-http-v3.json.gz",
+      "mode": "100644",
+      "git_blob": "7184d39d7c13bce84aba0bda3c67f9495bf353f8"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/raw-observations-v1.manifest.json.gz",
+      "mode": "100644",
+      "git_blob": "31b92c31ec086fc4faeea62dcd0675025e415b5a"
+    },
+    {
+      "path": "docs/hia_http_metadata_native_evidence/raw-observations-v1.tar.gz",
+      "mode": "100644",
+      "git_blob": "004d25d156dca1863bf1c713b1cdcefcc0cf2c57"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_body.hepta",
+      "mode": "100644",
+      "git_blob": "cfbf84b04f8120f619b4129d81e48de509adcfd4"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_delivery.hepta",
+      "mode": "100644",
+      "git_blob": "6b5546b087a3f5ed51ba7723738350bc7b839eb7"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_dispatch.hepta",
+      "mode": "100644",
+      "git_blob": "4ad2c142242876c0bb897f456a2671b32c4ef391"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_events.hepta",
+      "mode": "100644",
+      "git_blob": "d244607693afa0ce22ef1c415c6ddf1599abd8bc"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_io.hepta",
+      "mode": "100644",
+      "git_blob": "3bf065121de5acc2c5b348fbfe30e3c7b7ae8689"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_lifecycle.hepta",
+      "mode": "100644",
+      "git_blob": "d5928eebef61c5b7142681b91dfb356b28e46e45"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_post.hepta",
+      "mode": "100644",
+      "git_blob": "d662f3c6b3b931e21034d58c5992564300d84793"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_response.hepta",
+      "mode": "100644",
+      "git_blob": "4ba63c9fc8a4ec401fa5806268c18cc6232807e9"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_session_policy.hepta",
+      "mode": "100644",
+      "git_blob": "6a9b3c86d26637b8a85665585820fefafbebbf1d"
+    },
+    {
+      "path": "examples/hia_bootstrap/mcp_http_setup.hepta",
+      "mode": "100644",
+      "git_blob": "5d7ac41a0a06bbadd61acd662e499d42a9ea2666"
+    },
+    {
+      "path": "tests/fixtures/hia_http_metadata_oracle/README.md",
+      "mode": "100644",
+      "git_blob": "9cdef2f3923d88d96df32b44403efb817e754222"
+    },
+    {
+      "path": "tests/fixtures/hia_http_metadata_oracle/del-near-http-4m.error.json.gz",
+      "mode": "100644",
+      "git_blob": "487868d64225d5c0cb2bb1194351dbcb5a90abab"
+    },
+    {
+      "path": "tests/fixtures/hia_http_metadata_oracle/del-near-http-4m.input.gz",
+      "mode": "100644",
+      "git_blob": "bd092a0cf7c93ffc8ea9da7fdc2683036f2c2e58"
+    },
+    {
+      "path": "tests/fixtures/hia_http_metadata_oracle/del-near-http-4m.stdout.gz",
+      "mode": "100644",
+      "git_blob": "3e9b0b215d9d32fdf75bb674d0184c55a6f7ba10"
+    },
+    {
+      "path": "tests/fixtures/hia_http_metadata_oracle/diagnostic.json",
+      "mode": "100644",
+      "git_blob": "fc49af22d97d6b50feec3612e177f6d0cc78b52f"
+    },
+    {
+      "path": "tests/fixtures/hia_http_metadata_oracle/manifest.json",
+      "mode": "100644",
+      "git_blob": "2f03a08981e1ef98509ecd1917f15489a64b5902"
+    },
+    {
+      "path": "tools/build_hia_metadata_http_public_seed.py",
+      "mode": "100644",
+      "git_blob": "c41b508ddf8ff1daac678852230eaf7a7eb446d9"
+    },
+    {
+      "path": "tools/generate_hia_mcp_http_common.py",
+      "mode": "100644",
+      "git_blob": "860ce739bed96b0e59b28df9bbe825b9cc8b4ec1"
+    },
+    {
+      "path": "tools/generate_hia_mcp_http_delivery.py",
+      "mode": "100644",
+      "git_blob": "0e25001d1dca9a22e2e6fca50301e69f1274bcd6"
+    },
+    {
+      "path": "tools/generate_hia_mcp_http_events.py",
+      "mode": "100644",
+      "git_blob": "4d1194347df23de7d6a381708e1f7987e702da57"
+    },
+    {
+      "path": "tools/generate_hia_mcp_http_metadata_stream.py",
+      "mode": "100644",
+      "git_blob": "8c6eb5b08db79fa72c27b0aa167a1d478d9fade8"
+    },
+    {
+      "path": "tools/generate_hia_mcp_http_post.py",
+      "mode": "100644",
+      "git_blob": "3fb786046ee6923aee6da896fdcf10278307b02f"
+    },
+    {
+      "path": "tools/generate_hia_mcp_http_response.py",
+      "mode": "100644",
+      "git_blob": "0e68855a223ba2903ca0253a904ea4adc29a51fb"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_http_authorship.py",
+      "mode": "100644",
+      "git_blob": "fdaa492fdbc6663fccdf9b098620ab2f291c7b54"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_http_metadata_stream.py",
+      "mode": "100644",
+      "git_blob": "9566bd0bbe84bce60c424d3774631f8efa7c83a1"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_metadata_http.py",
+      "mode": "100644",
+      "git_blob": "a46db3189fe45b39d4a87a75c32c96da815fccd0"
+    },
+    {
+      "path": "tools/qualify_hia_mcp_metadata_http_authority.py",
+      "mode": "100644",
+      "git_blob": "d11db7787ea89e11857f24a5311ca6d0c65e3700"
+    },
+    {
+      "path": "tests/fixtures/hia_scoped_evaluation_cold_preparation_v1.json",
+      "mode": "100644",
+      "git_blob": "71520725d66e321cac8387d3c6f3315fd6117532"
+    },
+    {
+      "path": "tests/hia_scoped_evaluation_cold_preparation.py",
+      "mode": "100644",
+      "git_blob": "6a1ce76cffa2976c5910fedeb02ea7980b18f4f9"
+    },
+    {
+      "path": "tests/test_hia_evaluation_caller_admission.py",
+      "mode": "100644",
+      "git_blob": "ceec9ce2f8359c7099f7eb7f51298191d7e5b003"
+    },
+    {
+      "path": "tests/test_hia_scoped_caller_source_history.py",
+      "mode": "100644",
+      "git_blob": "30187a7f5b6ec615429c6233ad993c02319092be"
+    },
+    {
+      "path": "tests/test_hia_scoped_evaluation_cold_admission.py",
+      "mode": "100644",
+      "git_blob": "0153140a9c4b558c2b543ecf0db38aad1cfe9661"
+    },
+    {
+      "path": "tools/qualify_hia_evaluation_callers.py",
+      "mode": "100644",
+      "git_blob": "0c06c30160708c98c0320fd1994dee1ecfe4100b"
+    },
+    {
+      "path": "tools/qualify_hia_service_discovery_callers.py",
+      "mode": "100644",
+      "git_blob": "7633c097033945cac081ee7f141e6610162780e7"
+    },
+    {
+      "path": "tools/qualify_hia_service_verification_callers.py",
+      "mode": "100644",
+      "git_blob": "64045c3ee9d5f847f9369c261e5994527b86650b"
+    },
+    {
+      "path": "qualification/native-complete-chain-04fe-20261127/README.md",
+      "mode": "100644",
+      "git_blob": "bfb501ea92985b185ca22f35c5ddfdac8df652f1"
+    },
+    {
+      "path": "qualification/native-complete-chain-04fe-20261127/complete-core-logs.tar.gz",
+      "mode": "100644",
+      "git_blob": "bbaa76273846f607c1e49efc1cb3e00c1967321f"
+    },
+    {
+      "path": "qualification/native-complete-chain-04fe-20261127/complete-manifest.json.gz",
+      "mode": "100644",
+      "git_blob": "f9ecb756b4fbf5ac28ebe169f5e11ae2ff15592c"
+    },
+    {
+      "path": "qualification/native-complete-chain-04fe-20261127/qualification.json",
+      "mode": "100644",
+      "git_blob": "c8478718e8d03bfefe1eb68cdac37e3210378ec8"
+    },
+    {
+      "path": "qualification/native-complete-chain-04fe-20261127/replica-verification.json",
+      "mode": "100644",
+      "git_blob": "73e957b8d3714c3d6f55c671f1540dffe8a7c6a8"
+    },
+    {
+      "path": "qualification/native-complete-chain-04fe-20261127/scratch-relocation-readback.json",
+      "mode": "100644",
+      "git_blob": "8aca240b0490617f5853fd6ae06d05bbfdc01e97"
+    },
+    {
+      "path": "tools/hia_selfhost_contract.py",
+      "mode": "100644",
+      "sha256": "e07781dbe58ee0b582589d403869943d8bd8dd053e5abb74f9a61fff5d232f4c"
+    },
+    {
+      "path": "tests/hia_native_cold_original_fixture.py",
+      "mode": "100644",
+      "sha256": "0aa8339733930df44755de10eaec844ef245bae2c4a0c3673c2e3ffe8386308b"
+    }
+  ]
+}

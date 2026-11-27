@@ -228,6 +228,9 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tests/test_hia_cnf_native.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
+    'tests/fixtures/hia_scoped_evaluation_cold_preparation_v1.json',
+    'tests/hia_scoped_evaluation_cold_preparation.py',
+    'tests/test_hia_scoped_evaluation_cold_admission.py',
     'tests/fixtures/hia_native_cold_control_object_preparation_v2.json',
     'tests/fixtures/hia_native_cold_control_object_preparation_v1.json',
     'tests/fixtures/hia_current_store_broad_cold_v1.json',
@@ -1063,7 +1066,9 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/mcp_job_bridge_status.hepta',
     'examples/hia_bootstrap/mcp_job_bridge_transport.hepta',
     'examples/hia_bootstrap/mcp_request_audit_archive.hepta',
+    'examples/hia_bootstrap/mcp_request_audit_archive_query.hepta',
     'examples/hia_bootstrap/mcp_request_audit_files.hepta',
+    'examples/hia_bootstrap/mcp_request_audit_history.hepta',
     'examples/hia_bootstrap/mcp_request_audit_intent.hepta',
     'examples/hia_bootstrap/mcp_request_audit_json.hepta',
     'examples/hia_bootstrap/mcp_request_audit_layout.hepta',

@@ -3,7 +3,7 @@ from tools.generate_hia_mcp_request_audit_common import authored
 SOURCE=r'''
 def advance(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     op = get(w,frame(w)+16)
-    if op == RETENTION_SNAPSHOT:
+    if op == RETENTION_SNAPSHOT or op == RETENTION_HISTORY:
         return snapshot(o,w)
     if op == RETENTION_TARGET:
         return target_pin(o,w)
@@ -71,6 +71,8 @@ def snapshot(o:mutbuf,w:mutbuf) -> u32:
             copy_state(w,at+656,at+512,144)
             return procedure(w,M_SCAN,0,2,get(w,HOTFD),HOT_NAMES,544,0,0,0,0,0)
         sort_hot(w)
+        if get(w,frame(w)+16) == RETENTION_HISTORY:
+            return done(w,0)
         save(w,2,0)
         return step(w,8)
     if phase == 8:

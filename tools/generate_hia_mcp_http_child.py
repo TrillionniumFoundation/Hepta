@@ -157,13 +157,29 @@ def scheduler_source():
         output_header(w,(row-TASK_TABLE)//TASK_BYTES,get(w,row+72),get(w,1640),0)
         return output_write(o,w,119)'''
     assert value.count(old)==1;value=value.replace(old,new)
+    value=replace_function(value,'large_begin',r'''
+def large_begin(o:mutbuf,w:mutbuf) -> u32:
+    row=get(w,1624)
+    output_header(w,(row-TASK_TABLE)//TASK_BYTES,get(w,row+72),get(w,1640),0)
+    return output_write(o,w,118)
+''')
+    value=value.replace('    if phase == 119:',r'''    if phase == 118:
+        ready=output_ready(w,result)
+        if ready==2:
+            return 0
+        if ready==0:
+            return output_write(o,w,118)
+        return large_read(o,w)
+    if phase == 119:''',1)
     value=http_scheduler_cancel(value)
     return authored(ast.unparse(ast.parse(value+OUTPUT)),text={
       'response':'hia-mcp-response','failure':'hia-mcp-failure',
       'error_prefix':'{"jsonrpc":"2.0","id":',
       'error_suffix':',"error":{"code":-32603,"message":"Native HIA request observation unavailable; repeat only the original request"}}\n',
       'cancel_suffix':',"error":{"code":-32800,"message":"Request cancelled"}}\n'},
-      extra={'OUTPUT_MAGIC':int.from_bytes(b'HIAHCO01','little')})
+      # Only held metadata requests can use the larger complete-file frame.
+      extra={'OUTPUT_MAGIC':int.from_bytes(b'HIAHCO01','little'),
+             'METADATA_REPLY_MAX':(72 << 20)+512,'PUBLISH_CHUNK':(128 << 20)+66000})
 
 def render():
     return {name:render_assembly(document(source(),'mcp_http_'+name)) for name,source in (
