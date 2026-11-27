@@ -105,7 +105,7 @@ class ArtifactContractTests(AgentToolCase):
         # Discovery must expose the exact current source-bound contract, not
         # merely a historically hard-coded profile label.
         self.assertEqual(support, validate_contract())
-        self.assertEqual(support["limits"]["function_results"], 3)
+        self.assertEqual(support["limits"]["function_results"], 6)
         self.assertEqual(support["limits"]["tail_self_call_additional_frames"], 0)
         backend = self.client.result("hia_describe", {"section": "backend"})
         self.assertIn(self.service.resources["self_hosting_core_support"], backend["resources"])
