@@ -60,6 +60,11 @@ EXTENDED_INSTALLED_HELPERS = (
     (9, 'bounded-read'), (10, 'json-pretty'),
     (14, 'artifact-page-policy'), (15, 'json-wire'),
 )
+# Independent HIAHLM03 roles; protocol-02 inventory remains unchanged.
+AGENT_INSTALLED_HELPERS = (
+    (20, 'agent-query'), (21, 'cli-inspect'),
+    (22, 'agent-native-metadata'), (23, 'agent-json-wire'),
+)
 CURRENT_INSTALLED_HELPERS = (*INSTALLED_HELPERS, *(kind for _, kind in EXTENDED_INSTALLED_HELPERS))
 ADDITIONAL_HELPERS = (
     'worker-request', 'agent-journal', 'execution-budget', 'candidate-budget',

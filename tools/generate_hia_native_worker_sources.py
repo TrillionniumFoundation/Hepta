@@ -11,7 +11,9 @@ AUTHORITY = 'docs/HIA_NATIVE_SOURCE_AUTHORITY.json'
 AUTHORITY_MODULES = ('tools.generate_hia_current_worker_manifest',
                      'tools.generate_hia_worker_install_identity',
                      'tools.generate_hia_worker_install_recipes')
-MODULES = ('tools.generate_hia_release_extension_catalog',
+MODULES = ('tools.generate_hia_source_agent_helper_manifest',
+           'tools.generate_hia_agent_helper_recipe',
+           'tools.generate_hia_release_extension_catalog',
            'tools.generate_hia_worker_install_bind', *AUTHORITY_MODULES)
 def main():
     p = argparse.ArgumentParser(description=__doc__)

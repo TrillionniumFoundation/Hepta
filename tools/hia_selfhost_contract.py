@@ -1013,6 +1013,12 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tools/generate_hia_source_agent_helper_manifest.py',
+    'tools/generate_hia_agent_helper_recipe.py',
+    'tests/test_hia_agent_helper_catalog.py',
+    'examples/hia_bootstrap/source_agent_helper_manifest.hepta',
+    'examples/hia_bootstrap/source_agent_helper_stage.hepta',
+    'examples/hia_bootstrap/release_stage_agent_helpers.hiastd',
     'examples/hia_bootstrap/agent_query.hepta',
     'examples/hia_bootstrap/cli_inspect.hepta',
     'hepta/hia_agent_query_native.py',

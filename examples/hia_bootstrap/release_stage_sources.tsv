@@ -1,4 +1,4 @@
-stage	15	92
+stage	16	100
 need	1	0	hia-source-build
 compile	1	proof	cnf.hepta	cnf.hepta
 compile	1	proof	core_admission.hepta	core_admission.hepta
@@ -445,6 +445,26 @@ output	15	artifact-page-policy.image.bin
 output	15	json-wire-manifest.json
 output	15	json-wire.image.bin
 framing	15	0	HIASTD01	source-bound-native-release-dag
+stage	16	native-release-dag-agent_helpers
+need	16	0	selfhost.image.bin
+resource	16	examples/hia_bootstrap/agent_json_wire.hepta
+resource	16	examples/hia_bootstrap/agent_native_metadata.hepta
+resource	16	examples/hia_bootstrap/agent_query.hepta
+resource	16	examples/hia_bootstrap/cli_inspect.hepta
+resource	16	examples/hia_bootstrap/release_stage_agent_helpers.hiastd
+resource	16	examples/hia_bootstrap/selfhost.hepta
+resource	16	examples/hia_bootstrap/source_agent_helper_manifest.hepta
+resource	16	examples/hia_bootstrap/source_agent_helper_stage.hepta
+resource	16	examples/hia_bootstrap/source_build_packer.hepta
+output	16	agent-query-manifest.json
+output	16	agent-query.image.bin
+output	16	cli-inspect-manifest.json
+output	16	cli-inspect.image.bin
+output	16	agent-native-metadata-manifest.json
+output	16	agent-native-metadata.image.bin
+output	16	agent-json-wire-manifest.json
+output	16	agent-json-wire.image.bin
+framing	16	0	HIASTD01	source-bound-native-release-dag
 stage	11	native-controllers
 need	11	0	hia-source-build
 need	11	0	selfhost.image.bin

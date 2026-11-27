@@ -71,6 +71,10 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 
 
 CANDIDATES = {
+    'agent-query': ('agent_query', 'agent-query'),
+    'cli-inspect': ('cli_inspect', 'cli-inspect'),
+    'agent-native-metadata': ('agent_native_metadata', 'agent-native-metadata'),
+    'agent-json-wire': ('agent_json_wire', 'agent-json-wire'),
     'bounded-read': ('bounded_read', 'bounded-read'),
     'json-pretty': ('json_pretty', 'json-pretty'),
     'artifact-page-policy': ('artifact_page', 'artifact-page-policy'),
@@ -286,6 +290,8 @@ CANDIDATES = {
 
 
 def image_manifest_schema(candidate, protocol):
+    if candidate == 'agent-native-metadata':
+        return 'hepta.hia.agent-native-metadata.v2'
     if candidate == 'bounded-read':
         return 'hepta.hia.bounded-read-native.v3'
     if candidate == 'artifact-page-policy':

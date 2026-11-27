@@ -30,6 +30,11 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/agent_native_metadata.hepta',
+    'examples/hia_bootstrap/agent_json_wire.hepta',
+    'examples/hia_bootstrap/source_agent_helper_manifest.hepta',
+    'examples/hia_bootstrap/source_agent_helper_stage.hepta',
+    'examples/hia_bootstrap/release_stage_agent_helpers.hiastd',
     'examples/hia_bootstrap/agent_query.hepta',
     'examples/hia_bootstrap/cli_inspect.hepta',
     'examples/hia_bootstrap/source_helper_extension_stage.hepta',
