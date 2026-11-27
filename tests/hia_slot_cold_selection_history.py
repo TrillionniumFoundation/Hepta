@@ -1,4 +1,4 @@
-"""Complete fixed source history for the original Slot15 cold-selector setup.
+"""Complete fixed source history for the original Slot15 cold-selector setup and rejection context.
 
 This host-only adapter restores complete predecessor files. It grants no native
 execution, original caller PASS, cold qualification, or delivery qualification.
@@ -9,11 +9,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = "tests/fixtures/hia_slot_cold_selection_history_v1.json"
-FIXTURE_SHA256 = "364bd147ac2747fec02d653fbca439e6079bb2477a05da692735bdbdfeb23dc2"
+FIXTURE_SHA256 = "f6a5268b28a8bd29a2c039b25d8aa98f565f4c3c7b7b48559438dc6e3a8c30aa"
 PREDECESSOR = "f765709ba3dc5e95878ec25ffd5e8d9c4b3675d1"
 EXPECTED = {
   "tests/hia_slot_operations_component_fixture.py": {
-    "hunks": 10,
+    "hunks": 4,
     "new": {
       "bytes": 8760,
       "sha256": "44be6a9bf2798b8798e834737e34dacf869ebced7f32b6ed1b5f573e1ba3f24a"
@@ -24,7 +24,7 @@ EXPECTED = {
     }
   },
   "tests/test_hia_slot_ledger_native.py": {
-    "hunks": 18,
+    "hunks": 2,
     "new": {
       "bytes": 32270,
       "sha256": "1bdfc91035d8a31c72da7c4fb068a204602f06bb058d0e9b5c557b79cdd7319c"
@@ -34,8 +34,19 @@ EXPECTED = {
       "sha256": "cfd2224fa96ef8c6a08a5aeb44f9d7576bf7fbaa611813ee0233edac7d5dcef8"
     }
   },
+  "tools/build_hia_slot_ledger.py": {
+    "hunks": 1,
+    "new": {
+      "bytes": 3198,
+      "sha256": "7d967e5d335fa612f907148ff57a59a30d127e2c6394828b1f187e87761051bb"
+    },
+    "old": {
+      "bytes": 3012,
+      "sha256": "c7e15d60f644526d82b0e29573067347bb69f078a0f67f8b8635f1f621a534a7"
+    }
+  },
   "tools/qualify_hia_slot_operations_callers.py": {
-    "hunks": 44,
+    "hunks": 7,
     "new": {
       "bytes": 13275,
       "sha256": "86efd8e30f129ffe274b80cd7192de6582d596110e532e94e4c09a5457b23e64"
@@ -117,7 +128,7 @@ def _inverse(name, raw, record):
 
 
 def reviewed(name, raw, *, root=None, take=Path.read_bytes):
-    """Require a complete old or new trio, and restore only the fixed new trio."""
+    """Require a complete old or new group, and restore only the fixed new group."""
     _require(name in EXPECTED, "unknown source path")
     pin(raw)
     root = ROOT if root is None else Path(root)
@@ -128,7 +139,7 @@ def reviewed(name, raw, *, root=None, take=Path.read_bytes):
              {"schema", "predecessor_commit", "source_kind", "whole_native_delivery_qualified", "files"}
              and value["schema"] == "hepta.hia.slot-native-cold-selection-history.v1"
              and value["predecessor_commit"] == PREDECESSOR
-             and value["source_kind"] == "HOST_SLOT_COLD_SELECTION_ONLY"
+             and value["source_kind"] == "HOST_SLOT_COLD_SELECTION_AND_REJECTION_CONTEXT_ONLY"
              and value["whole_native_delivery_qualified"] is False
              and type(value["files"]) is dict and set(value["files"]) == set(EXPECTED),
              "fixed source scope differs")
@@ -136,7 +147,7 @@ def reviewed(name, raw, *, root=None, take=Path.read_bytes):
     _require(captured[name] == raw, "provided bytes differ from captured source")
     old = all(pin(captured[path]) == expected["old"] for path, expected in EXPECTED.items())
     new = all(pin(captured[path]) == expected["new"] for path, expected in EXPECTED.items())
-    _require(old or new, "source trio is unknown, partially restored, or mixed")
+    _require(old or new, "source group is unknown, partially restored, or mixed")
     originals = ({path: _inverse(path, captured[path], value["files"][path]) for path in EXPECTED}
                  if new else dict(captured))
     _require(_read(root, FIXTURE, take) == frozen
@@ -147,9 +158,9 @@ def reviewed(name, raw, *, root=None, take=Path.read_bytes):
     return originals[name], {
         "path": name, "old": dict(EXPECTED[name]["old"]), "new": dict(EXPECTED[name]["new"]),
         "fixture": {"path": FIXTURE, "bytes": len(frozen), "sha256": FIXTURE_SHA256},
-        "complete_source_trio": {path: {"old": dict(expected["old"]), "new": dict(expected["new"])}
+        "complete_source_group": {path: {"old": dict(expected["old"]), "new": dict(expected["new"])}
                                  for path, expected in EXPECTED.items()},
         "complete_predecessors_restored": True, "complete_successors_replayed": True,
         "original_test_methods_assertions_budgets_preserved": True,
-        "source_kind": "HOST_SLOT_COLD_SELECTION_ONLY", "whole_native_delivery_qualified": False,
+        "source_kind": "HOST_SLOT_COLD_SELECTION_AND_REJECTION_CONTEXT_ONLY", "whole_native_delivery_qualified": False,
     }

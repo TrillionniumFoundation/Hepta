@@ -86,7 +86,7 @@ class SlotColdSelectionHistoryTests(unittest.TestCase):
             self.assertEqual(budgets(self.previous[name]), budgets(self.current[name]))
         self.assertIn(b"and sum(entries.values()) > 0 and elapsed < 1800)", self.current[q])
 
-    def test_unknown_and_partially_restored_source_trios_refuse(self):
+    def test_unknown_and_partially_restored_source_groups_refuse(self):
         first = next(iter(self.current))
         with tempfile.TemporaryDirectory(prefix="hia-slot-history-mixed-") as folder:
             root = self.copied(folder, self.current)
@@ -97,7 +97,7 @@ class SlotColdSelectionHistoryTests(unittest.TestCase):
                     path.write_bytes(other[name])
                     try:
                         with self.subTest(basis="new" if basis is self.current else "old", name=name):
-                            with self.assertRaisesRegex(ValueError, "trio"):
+                            with self.assertRaisesRegex(ValueError, "group"):
                                 history.reviewed(first, (root / first).read_bytes(), root=root)
                     finally:
                         path.write_bytes(basis[name])
@@ -106,7 +106,7 @@ class SlotColdSelectionHistoryTests(unittest.TestCase):
                 path = root / name
                 path.write_bytes(self.current[name] + b"\n# unknown source\n")
                 try:
-                    with self.subTest(unknown=name), self.assertRaisesRegex(ValueError, "trio"):
+                    with self.subTest(unknown=name), self.assertRaisesRegex(ValueError, "group"):
                         history.reviewed(first, (root / first).read_bytes(), root=root)
                 finally:
                     path.write_bytes(self.current[name])
