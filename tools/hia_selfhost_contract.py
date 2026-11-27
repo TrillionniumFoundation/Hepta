@@ -1013,6 +1013,7 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'examples/hia_bootstrap/source_helper_extension_stage.hepta',
     'tests/test_hia_helper_catalog_native.py',
     'tools/generate_hia_source_helper_manifest.py',
     'tools/generate_hia_helper_extension_recipe.py',

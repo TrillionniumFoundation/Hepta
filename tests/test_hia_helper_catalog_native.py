@@ -15,7 +15,8 @@ from tests.test_hia_release_member_check import check_packet
 
 ROOT = Path(__file__).resolve().parents[1]
 ENVIRONMENT = ('HIA_TEST_RELEASE_STAGE_PLANNER', 'HIA_TEST_HELPER_MANIFEST_OWNER',
-               'HIA_TEST_NATIVE_SOURCE_SEED', 'HIA_TEST_HELPER_EVIDENCE')
+               'HIA_TEST_NATIVE_SOURCE_SEED', 'HIA_TEST_HELPER_EVIDENCE',
+               'HIA_TEST_HELPER_EXTENSION_STAGE')
 
 
 @unittest.skipUnless(all(os.environ.get(k) for k in ENVIRONMENT),
@@ -24,6 +25,7 @@ class HelperCatalogNativeControls(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.planner = Path(os.environ[ENVIRONMENT[0]]).resolve()
+        cls.extension_planner = Path(os.environ[ENVIRONMENT[4]]).resolve()
         cls.owner = Path(os.environ[ENVIRONMENT[1]]).resolve()
         cls.seed = Path(os.environ[ENVIRONMENT[2]]).resolve()
         cls.evidence = Path(os.environ[ENVIRONMENT[3]]).resolve()
@@ -86,7 +88,8 @@ class HelperCatalogNativeControls(unittest.TestCase):
         parts = self.parts(kind)
         wire = check_packet(mode, role, [manifest, parts[0] if source is None else source,
             parts[1] if image is None else image, parts[3] if compiler is None else compiler])
-        result = self.invoke(self.planner, wire, accepted=accepted)
+        planner = self.extension_planner if mode == 13 else self.planner
+        result = self.invoke(planner, wire, accepted=accepted)
         if accepted:
             self.assertEqual(result, struct.pack('<8s3Q', b'HIASTOK1', mode, role, len(manifest)))
 
@@ -101,7 +104,7 @@ class HelperCatalogNativeControls(unittest.TestCase):
         for role, kind in EXTENDED_INSTALLED_HELPERS:
             with self.subTest(role=role, component=kind):
                 parts = self.parts(kind)
-                framed = self.invoke(self.planner, frame_request(4, 2, role, parts))
+                framed = self.invoke(self.extension_planner, frame_request(4, 2, role, parts))
                 self.assertEqual(framed, self.owner_wire(b'HIAHLM02', role, parts))
                 manifest = self.invoke(self.owner, framed)
                 self.assertEqual(json.loads(manifest), self.expected(kind))
@@ -115,7 +118,7 @@ class HelperCatalogNativeControls(unittest.TestCase):
             self.invoke(self.owner, self.owner_wire(b'HIAHLM01', role, parts), accepted=False)
         for role in (*range(9), 11, 12, 13, 16, (1 << 64) - 1):
             self.invoke(self.owner, self.owner_wire(b'HIAHLM02', role, parts), accepted=False)
-            self.invoke(self.planner, frame_request(4, 2, role, parts), accepted=False)
+            self.invoke(self.extension_planner, frame_request(4, 2, role, parts), accepted=False)
             self.check(13, role, 'bounded-read', manifest, accepted=False)
         self.invoke(self.planner, frame_request(4, 1, 9, parts), accepted=False)
         self.check(5, 9, 'bounded-read', manifest, accepted=False)
