@@ -1,0 +1,29 @@
+{
+  "bounds": {
+    "retained_image_bytes": 67108864,
+    "retained_images": 16,
+    "scope": "image-custody bounds, not all native process memory",
+    "single_image_bytes": 67108864
+  },
+  "changes": [
+    "Verified captured bytes copied into Linux memfd; all write/grow/shrink/seal protections; sealed bytes hashed before load",
+    "One process-lifetime thread-safe digest registry retained across module aliases",
+    "Loaded image fd/library retained even after instance close or required-entry admission failure",
+    "close waits for an admitted call and revokes this instance only",
+    "Source file revalidated on every construction, including cache hits; nonregular/malformed/overquota inputs fail closed"
+  ],
+  "independent_review": "One finding: FIFO open before regular-file check could block the registry. Fixed with O_NONBLOCK, followed by existing regular-file validation. Child-process regression now passes.",
+  "not_changed": [
+    "Original continuation.hepta",
+    "Pinned compiler and ABI files",
+    "Copy optimization is not adopted",
+    "No Cell model or runtime worker change by this agent"
+  ],
+  "qualification": "21 actual native methods and 175 subtests passed; zero failures, errors or skips. The original continuation/generated source/compiler are unchanged.",
+  "remaining_dependencies": [
+    "Trusted expected image digest supplied by caller",
+    "Compiler, linker, loader, libc, Linux sealing support and host hardware",
+    "A fresh process is needed to release registry capacity; no eviction is provided"
+  ],
+  "schema": "hepta.native-loader.review.v1"
+}
