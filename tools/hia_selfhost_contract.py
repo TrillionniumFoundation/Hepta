@@ -1013,6 +1013,20 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'examples/hia_bootstrap/agent_query.hepta',
+    'examples/hia_bootstrap/cli_inspect.hepta',
+    'hepta/hia_agent_query_native.py',
+    'hepta/hia_cli_inspect_native.py',
+    'tests/fixtures/hia_query_cli_original_v1.json',
+    'tests/fixtures/hia_query_cli_original_v1.tar.gz',
+    'tests/test_hia_agent_query_native.py',
+    'tests/test_hia_agent_query_native_integration.py',
+    'tests/test_hia_cli_inspect_native.py',
+    'tools/build_hia_agent_query.py',
+    'tools/build_hia_cli_inspect.py',
+    'tools/generate_hia_agent_query.py',
+    'tools/generate_hia_cli_inspect.py',
+    'tools/hia_current_native_leaf_build.py',
     'tools/generate_hia_release_extension_catalog.py',
     'tools/hia_release_stage_source_history.py',
     'tests/test_hia_release_extension_catalog.py',
