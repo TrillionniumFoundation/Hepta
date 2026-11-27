@@ -8,6 +8,8 @@ import subprocess
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--bootstrap', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--profile', choices=('bulk', 'cold-bulk'), default='bulk',
+                    help='explicit candidate emitter; original/default parent gates are unchanged')
 args = parser.parse_args()
 from tools.hia_native_seed_test_support import NativeSeeds
 from tools.generate_hia_cold_master_common import DECODER, helpers
@@ -23,7 +25,8 @@ from hepta.hia_json_preflight_native import NativeHiaJsonImage
 
 OUT = args.output.resolve()
 seeds = NativeSeeds(ROOT, args.bootstrap, OUT)
-report = {'scope': 'current private cold actor codec components, not full cold', 'passed': False, 'products': {}}
+report = {'scope': 'current private cold actor codec components, not full cold',
+          'candidate_profile': args.profile, 'passed': False, 'products': {}}
 
 
 def selected(source, names):
@@ -31,7 +34,8 @@ def selected(source, names):
     return '\n\n'.join(functions[name] for name in names)
 
 
-def build(name, source, profile='bulk', builder=bulk_document):
+def build(name, source, profile=None, builder=bulk_document):
+    profile = args.profile if profile is None else profile
     body = render_assembly(builder(source, name.replace("-", "_"))).encode()
     path = OUT / (name + '.hepta')
     path.write_bytes(body)

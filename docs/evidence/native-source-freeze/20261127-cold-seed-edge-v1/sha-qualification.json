@@ -1,0 +1,88 @@
+{
+  "schema": "hepta.hia.cold-sha-native-qualification.v1",
+  "passed": true,
+  "scope": "independent native component; not a completed cold replay",
+  "full_state_bytes_per_transition": 1184,
+  "source_pins": {
+    "tools/generate_hia_sha256_stream.py": "96beba869c4b7f692b3f79e41a68aa59771ada6af849240b60526968cdf7f58b",
+    "examples/hia_bootstrap/sha256_stream.hepta": "80df3148e5dc8df8ab4c43e5d1edd1b4057dcdcffe5a06c3635bfee17a779054",
+    "tools/generate_hia_cold_sha256_stream.py": "1f50ae1b118d17e4eb3d6a6e60a24b80b922a04887020eb8813020d10a8c94c6",
+    "examples/hia_bootstrap/cold_sha256_stream.hepta": "d2edf6e888abc06ae9dae60ee36f84772d5f9b49b52a40d0dc510265acbf955f",
+    "tests/fixtures/sha256_stream_a7710b5.hepta.txt": "5818184f4decbde6a56741238a9d017fda66a3ed41136f9ceb9533a81c552a20",
+    "tests/test_hia_sha256_stream_transition_equivalence.py": "c263ea809f7e91e64fc14d0161e69a5d8cd11370adffcea2c641065fee1d1124",
+    "tests/test_hia_sha256_stream_native.py": "bc155297381467183bda8b743246fc5a9931efbf8bdd266cc98ffd4f080320ff"
+  },
+  "images": {
+    "old": {
+      "path": "/tmp/hepta-seed-edge-experiment-20261127-2ac5/old.flat",
+      "sha256": "214aea20ce10da438d1a96e98b0a25ed1151776e1fd577047c336d57cd54ae19",
+      "bytes": 116455
+    },
+    "new": {
+      "path": "/tmp/hepta-seed-edge-experiment-20261127-2ac5/new.flat",
+      "sha256": "5f8806ce28c9707cda788e52dde1192944028c7241d5d7e4d32bf2187ca0ff91",
+      "bytes": 107635
+    }
+  },
+  "groups": {
+    "original-vm": 54,
+    "foreign-pointer-alias": 6,
+    "FIPS": 205,
+    "all-padding-splits": 6260,
+    "million-a": 1002,
+    "random-partitions": 19111,
+    "raw-protocol": 4,
+    "noncanonical-full-u64": 256,
+    "original-large-stream": 4,
+    "native-chunk-boundary": 7,
+    "concurrent-private-states": 128,
+    "copy-digest-reuse": 6
+  },
+  "benchmarks": [
+    {
+      "image": "old",
+      "bytes": 1048576,
+      "seconds": 0.025634550998802297,
+      "MiB_per_second": 39.00985041816111,
+      "sha256": "fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83"
+    },
+    {
+      "image": "new",
+      "bytes": 1048576,
+      "seconds": 0.02509491000091657,
+      "MiB_per_second": 39.84871832429269,
+      "sha256": "fbbab289f7f94b25736c58be46a994c441fd02552cc6022352e3d86d2fab7c83"
+    },
+    {
+      "image": "old",
+      "bytes": 4194304,
+      "seconds": 0.10944450900569791,
+      "MiB_per_second": 36.54820179047769,
+      "sha256": "2b07811057df887086f06a67edc6ebf911de8b6741156e7a2eb1416a4b8b1b2e"
+    },
+    {
+      "image": "new",
+      "bytes": 4194304,
+      "seconds": 0.12010248100705212,
+      "MiB_per_second": 33.304890677197,
+      "sha256": "2b07811057df887086f06a67edc6ebf911de8b6741156e7a2eb1416a4b8b1b2e"
+    },
+    {
+      "image": "old",
+      "bytes": 8388608,
+      "seconds": 0.3092687680036761,
+      "MiB_per_second": 25.867468130195768,
+      "sha256": "7d212b9c884f5c77896de960ae17cc341cda43b14d6a971f34ca29ebd4badf7f"
+    },
+    {
+      "image": "new",
+      "bytes": 8388608,
+      "seconds": 0.20000682800309733,
+      "MiB_per_second": 39.99863444600057,
+      "sha256": "7d212b9c884f5c77896de960ae17cc341cda43b14d6a971f34ca29ebd4badf7f"
+    }
+  ],
+  "elapsed_seconds": 12.641514037997695,
+  "evidence_sha256": "907f67ccc636af8da1779f2be196836499daf59cc9812904eef034b6df5dafcb",
+  "source_and_images_unchanged": true
+}

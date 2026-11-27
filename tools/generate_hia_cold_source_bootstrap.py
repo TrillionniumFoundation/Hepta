@@ -50,6 +50,8 @@ def independent_roots(s):
     independent_profile(s, "bulk", "seed_bulk_backend")
     independent_profile(s, "word", "seed_word_backend")
     independent_profile(s, "endian", "seed_endian_backend")
+    independent_profile(s, "cold-bulk", "seed_cold_bulk_backend")
+    independent_profile(s, "cold-endian", "seed_cold_endian_backend")
     return s
 
 
@@ -238,7 +240,7 @@ def rebuild_public_self(s):
     recipe = s.source(POST_RECIPE)
     pins = [p.sha256(authority), p.sha256(recipe)]
     pins.extend(p.sha256(s.boot(i)) for i in range(7))
-    policy = s.flat("cold_source_bootstrap_entry", "bulk")
+    policy = s.flat("cold_source_bootstrap_entry", "cold-bulk")
     sha = cold_sha(s)
     packer = s.tool("cold_source_bootstrap_entry_packer", "v1")
     rebuilt = s.framed(packer, b"HIASBP01", [policy, sha],
