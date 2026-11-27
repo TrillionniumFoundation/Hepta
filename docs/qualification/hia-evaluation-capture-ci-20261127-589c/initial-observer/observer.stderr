@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "/tmp/runtime-evaluation-capture-ci-controls-589c.py", line 89, in <module>
+    gate.current_sources()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/tmp/hepta-evaluation-capture-recovery-589c/tools/build_hia_json_preflight.py", line 22, in current_sources
+    contract = validate_contract()
+  File "/tmp/hepta-evaluation-capture-recovery-589c/tools/hia_selfhost_contract.py", line 4794, in validate_contract
+    expected = support_contract(root)
+  File "/tmp/hepta-evaluation-capture-recovery-589c/tools/hia_selfhost_contract.py", line 4772, in support_contract
+    "files": file_digests(root),
+             ~~~~~~~~~~~~^^^^^^
+  File "/tmp/hepta-evaluation-capture-recovery-589c/tools/hia_selfhost_contract.py", line 2863, in file_digests
+    return {path: sha256((root / path).read_bytes()).hexdigest() for path in paths}
+                         ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/pathlib/_abc.py", line 625, in read_bytes
+    with self.open(mode='rb') as f:
+         ~~~~~~~~~^^^^^^^^^^^
+  File "/usr/lib/python3.13/pathlib/_local.py", line 539, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/hepta-evaluation-capture-recovery-589c/.github/workflows/hia-ndu-feedback.yml'

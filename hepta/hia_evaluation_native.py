@@ -443,9 +443,18 @@ class EvaluationFrame:
         elif name == 'baseline':
             d['baseline_bytes'], d['baseline_meta'], d['baseline_program'] = s._native(args['baseline_artifact'], args['context'])
         elif name == 'candidate':
-            d['candidate_bytes'], d['candidate_meta'], d['candidate_program'] = s._native(args['candidate_artifact'], args['context'])
+            if api['_evaluation_owns_build_inputs'](s, args):
+                captured = api['_capture_evaluation_build_inputs'](s, args['candidate_artifact'], args['context'])
+                d['candidate_bytes'], d['candidate_meta'], d['candidate_program'] = captured.observation
+                d['candidate_build_capture'] = captured
+            else:
+                d['candidate_bytes'], d['candidate_meta'], d['candidate_program'] = s._native(args['candidate_artifact'], args['context'])
         elif name == 'build_receipt':
-            d['built'] = s._build_receipt(args['build_receipt'], args['context'], args['candidate_artifact'])
+            if 'candidate_build_capture' in d:
+                d['built'] = d.pop('candidate_build_capture').admit(
+                    s, args['build_receipt'], args['context'], args['candidate_artifact'])
+            else:
+                d['built'] = s._build_receipt(args['build_receipt'], args['context'], args['candidate_artifact'])
             if d['native_store']:
                 from .hia_native_helpers import pinned_evaluate_authority_executable
 

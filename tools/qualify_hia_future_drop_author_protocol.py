@@ -92,12 +92,20 @@ for label, stem, n, outn, magics in (
                 assert (ar, a, aw) == (br, b, bw), (label, magic, op, offset)
                 count += 1
     record(label + "-old-profile-admission-byte-exact", count)
+    # A direct finish probe bypasses begin. Carry the real admitted legacy
+    # profile fields into its patterned state so newer profiles are not selected.
+    legacy = bytearray(b"\xa5" * outn)
+    assert after["begin"](frame(n, magics[0], 0), legacy, bytearray(256)) == 1
+    profile_fields = [key for key in ("M_PROTOCOL", "M_DEFER", "M_NATIVE") if key in nc]
+    assert all(get(legacy, nc[key]) == 0 for key in profile_fields)
     count = 0
     for op in range(20 if n == 128 else 26):
         for status in range(12):
             a = bytearray((i * 7 + 3) & 255 for i in range(outn))
             put(a, bc["OP"], op)
             b = bytearray(a)
+            for key in profile_fields:
+                put(b, nc[key], get(legacy, nc[key]))
             if n == 128:
                 ar = before["finish"](a, bytearray(256), status)
                 br = after["finish"](b, bytearray(256), status)

@@ -1,0 +1,130 @@
+diff --git a/.github/workflows/hia-core.yml b/.github/workflows/hia-core.yml
+index 742ec4255e..433279dfd3 100644
+--- a/.github/workflows/hia-core.yml
++++ b/.github/workflows/hia-core.yml
+@@ -267,6 +267,7 @@ jobs:
+               'tests.test_hia_service_context_native.ServiceContextSourceTests',
+               'tests.test_hia_cost_ledger_native.CostLedgerSourceTests',
+               'tests.test_hia_evaluation_native.EvaluationSourceTests',
++              'tests.test_hia_evaluation_capture.CaptureSourceTests',
+               'tests.test_hia_native_build_admission_native.NativeBuildAdmissionSourceTests',
+               'tests.test_hia_native_build_dispatch.NativeBuildDispatchSourceTests',
+               'tests.test_hia_emission_native.EmissionSourceTests',
+@@ -1865,6 +1866,11 @@ jobs:
+           HEPTA_HIA_NATIVE_BUILD_DISPATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+           HEPTA_HIA_NATIVE_BUILD_DISPATCH_EVIDENCE: ${{ runner.temp }}/hia-native-build-dispatch
+         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_build_dispatch
++      - name: Candidate observation capture through four original caller routes
++        env:
++          HEPTA_HIA_EVALUATION_CAPTURE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
++          HEPTA_HIA_EVALUATION_CAPTURE_EVIDENCE: ${{ runner.temp }}/hia-evaluation-capture
++        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_evaluation_capture
+       - name: Complete original native build callers with all four retained bodies forbidden
+         run: >-
+           python -B tools/qualify_hia_native_build_admission_callers.py
+@@ -3273,6 +3279,7 @@ jobs:
+             ${{ runner.temp }}/hia-cost-ledger-callers/
+             ${{ runner.temp }}/hia-evaluation/
+             ${{ runner.temp }}/hia-evaluation-callers/
++            ${{ runner.temp }}/hia-evaluation-capture/
+             ${{ runner.temp }}/hia-native-build-admission/
+             ${{ runner.temp }}/hia-native-build-admission-callers/
+             ${{ runner.temp }}/hia-native-transport/
+@@ -3432,6 +3439,7 @@ jobs:
+               ('hia-emission-callers', common_patterns),
+               ('hia-evaluation', common_patterns),
+               ('hia-evaluation-callers', common_patterns),
++              ('hia-evaluation-capture', common_patterns),
+               ('hia-execution-budget', common_patterns),
+               ('hia-full-cost', common_patterns),
+               ('hia-full-cost-callers', common_patterns),
+diff --git a/tests/test_hia_evaluation_capture.py b/tests/test_hia_evaluation_capture.py
+index 7c63d9c3ed..cbbd4587ba 100644
+--- a/tests/test_hia_evaluation_capture.py
++++ b/tests/test_hia_evaluation_capture.py
+@@ -1,13 +1,15 @@
+ """Exact candidate capture, original public caller, and real selected owners.
+ 
+-The external component observer supplies actual development manifests. These
+-controls do not substitute for a fresh installed whole-source qualification.
++CI constructs both owners from the original matching cold admission. An
++external component observer may explicitly supply development manifests;
++that separate scope is not an installed whole-source qualification.
+ """
+ from __future__ import annotations
+ 
+ import ast
+ from contextlib import ExitStack, contextmanager
+ from copy import deepcopy
++import json
+ import os
+ from pathlib import Path
+ import sys
+@@ -24,6 +26,8 @@ from tests.hia_evaluation_oracle import reference_method
+ ROOT = Path(__file__).resolve().parents[1]
+ EVALUATION = 'HEPTA_HIA_EVALUATION_CAPTURE_DEVELOPMENT_MANIFEST'
+ ADMISSION = 'HEPTA_HIA_EVALUATION_CAPTURE_ADMISSION_DEVELOPMENT_MANIFEST'
++COLD = 'HEPTA_HIA_EVALUATION_CAPTURE_COLD_REPORT'
++EVIDENCE = 'HEPTA_HIA_EVALUATION_CAPTURE_EVIDENCE'
+ WORKLOAD = {'schema': 'hepta.hia.agent.workload.v1',
+             'cases': [{'function': 'transform', 'arguments': [250]}],
+             'warmup_iterations': 0, 'repetitions': 1}
+@@ -56,6 +60,37 @@ class CaptureSourceTests(unittest.TestCase):
+ 
+ 
+ class EvaluationCaptureTests(AgentToolCase):
++    @classmethod
++    def setUpClass(cls):
++        cls.cold_manifests = None
++        cold = os.environ.get(COLD)
++        if cold is None:
++            return
++        evidence = os.environ.get(EVIDENCE)
++        if (not cold or not evidence
++                or any(name in os.environ for name in (EVALUATION, ADMISSION))):
++            raise ValueError('cold capture controls require evidence and no development manifests')
++        from tools.build_hia_evaluation import build as build_evaluation
++        from tools.build_hia_native_build_admission import build as build_admission
++        from tools.build_hia_json_preflight import admit_cold_build, current_sources
++        cold_path = Path(cold)
++        cold_raw = cold_path.read_bytes()
++        outer = json.loads(cold_raw)
++        nested = json.loads(Path(outer['nested_report']).read_bytes())
++        compiler = Path(nested['generations'][-1]['produced_image'])
++        compiler_raw = compiler.read_bytes()
++        # This is the existing cold domain, without a development override or
++        # native-v2 alias. Unsupported current cold evidence must still refuse.
++        sources = admit_cold_build(compiler_raw, cold_raw)
++        root = Path(evidence).absolute()
++        root.mkdir(mode=0o700, exist_ok=False)
++        evaluation = build_evaluation(root / 'evaluation', compiler, cold_path)
++        admission = build_admission(root / 'admission', compiler, cold_path)
++        if (cold_path.read_bytes() != cold_raw or compiler.read_bytes() != compiler_raw
++                or current_sources() != sources):
++            raise ValueError('cold capture construction inputs changed')
++        cls.cold_manifests = {EVALUATION: str(evaluation), ADMISSION: str(admission)}
++
+     @contextmanager
+     def route(self, mode):
+         # Keep the public request, Store, real builders and execution budgets.
+@@ -64,14 +99,16 @@ class EvaluationCaptureTests(AgentToolCase):
+             os.environ.pop(native.SELECTOR, None)
+             os.environ.pop('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST', None)
+             if mode in ('native', 'native-admission'):
+-                manifest = os.environ.get(EVALUATION)
++                manifest = (self.cold_manifests[EVALUATION] if self.cold_manifests is not None
++                            else os.environ.get(EVALUATION))
+                 if not manifest:
+-                    raise ValueError('a real explicit development evaluation manifest is required')
++                    raise ValueError('a real evaluation manifest is required')
+                 os.environ[native.SELECTOR] = manifest
+             if mode == 'native-admission':
+-                manifest = os.environ.get(ADMISSION)
++                manifest = (self.cold_manifests[ADMISSION] if self.cold_manifests is not None
++                            else os.environ.get(ADMISSION))
+                 if not manifest:
+-                    raise ValueError('a real explicit development admission manifest is required')
++                    raise ValueError('a real admission manifest is required')
+                 os.environ['HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST'] = manifest
+             if mode == 'reference':
+                 store = self.service.store

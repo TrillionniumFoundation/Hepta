@@ -52,7 +52,8 @@ class Fixture:
           verify_raw='background_optimizer_verify_raw',structure_compat='background_optimizer_value_structure')
         for name,module in mapping.items():entries[name]=bare(name,a.constructor/(module+'.flat'))
         entries['decision']=obj('decision',E/'background-bound-chain-native-v1/decision_bound.o')
-        entries['rank']=bare('rank',Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-engine-native-v2/rank-engine.flat'))
+        rank=getattr(a,'rank',None) or Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125/ndu-rank-engine-native-v2/rank-engine.flat')
+        entries['rank']=bare('rank',rank)
         for name,module in [('admission','background_optimizer_admission'),('decision_policy','background_optimizer_decision')]:
             entries[name]=bare(name,a.pure/(module+'.flat'))
         entries['future_provider_deferred']=ptr(self.f.provider.entry)

@@ -267,6 +267,7 @@ jobs:
               'tests.test_hia_service_context_native.ServiceContextSourceTests',
               'tests.test_hia_cost_ledger_native.CostLedgerSourceTests',
               'tests.test_hia_evaluation_native.EvaluationSourceTests',
+              'tests.test_hia_evaluation_capture.CaptureSourceTests',
               'tests.test_hia_native_build_admission_native.NativeBuildAdmissionSourceTests',
               'tests.test_hia_native_build_dispatch.NativeBuildDispatchSourceTests',
               'tests.test_hia_emission_native.EmissionSourceTests',
@@ -1865,6 +1866,11 @@ jobs:
           HEPTA_HIA_NATIVE_BUILD_DISPATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_NATIVE_BUILD_DISPATCH_EVIDENCE: ${{ runner.temp }}/hia-native-build-dispatch
         run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_build_dispatch
+      - name: Candidate observation capture through four original caller routes
+        env:
+          HEPTA_HIA_EVALUATION_CAPTURE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EVALUATION_CAPTURE_EVIDENCE: ${{ runner.temp }}/hia-evaluation-capture
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_evaluation_capture
       - name: Complete original native build callers with all four retained bodies forbidden
         run: >-
           python -B tools/qualify_hia_native_build_admission_callers.py
@@ -2977,6 +2983,23 @@ jobs:
               raise SystemExit('complete Slot gate identities differ')
           raise SystemExit(0 if run_suite(suite) else 1)
           PYSLOT
+      - name: Additional Slot completed activation native regression
+        timeout-minutes: 30
+        env:
+          HEPTA_HIA_SLOT_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_OPERATIONS_EVIDENCE: ${{ runner.temp }}/hia-slot-completed-activation-native
+        run: |
+          set -euo pipefail
+          python -B - <<'PYSLOTEXTRA' 2>&1 | tee "$RUNNER_TEMP/hia-slot-completed-activation-native.log"
+          from tools.run_hia_unittest_gate import load_declared_suite, run_suite
+          expected = (
+              'tests.test_hia_slot_operations_native.SlotOperationsCompletedActivationTests.test_failed_execute_releases_completed_activation_and_sql_attempt',
+          )
+          suite, planned = load_declared_suite(('tests.test_hia_slot_operations_native.SlotOperationsCompletedActivationTests',))
+          if planned != expected or suite.countTestCases() != len(expected):
+              raise SystemExit('additional Slot activation gate identities differ')
+          raise SystemExit(0 if run_suite(suite) else 1)
+          PYSLOTEXTRA
       - name: Complete Slot operation-series resource delivery controls
         timeout-minutes: 30
         env:
@@ -3273,6 +3296,7 @@ jobs:
             ${{ runner.temp }}/hia-cost-ledger-callers/
             ${{ runner.temp }}/hia-evaluation/
             ${{ runner.temp }}/hia-evaluation-callers/
+            ${{ runner.temp }}/hia-evaluation-capture/
             ${{ runner.temp }}/hia-native-build-admission/
             ${{ runner.temp }}/hia-native-build-admission-callers/
             ${{ runner.temp }}/hia-native-transport/
@@ -3372,6 +3396,8 @@ jobs:
             ${{ runner.temp }}/hia-transaction-journal-controls.log
             ${{ runner.temp }}/hia-slot-operations-native/
             ${{ runner.temp }}/hia-slot-operations-native.log
+            ${{ runner.temp }}/hia-slot-completed-activation-native/
+            ${{ runner.temp }}/hia-slot-completed-activation-native.log
             ${{ runner.temp }}/hia-slot-operations-resource/
             ${{ runner.temp }}/hia-slot-operations-resource.log
             ${{ runner.temp }}/hia-slot-operations-callers/
@@ -3432,6 +3458,7 @@ jobs:
               ('hia-emission-callers', common_patterns),
               ('hia-evaluation', common_patterns),
               ('hia-evaluation-callers', common_patterns),
+              ('hia-evaluation-capture', common_patterns),
               ('hia-execution-budget', common_patterns),
               ('hia-full-cost', common_patterns),
               ('hia-full-cost-callers', common_patterns),
@@ -3514,6 +3541,8 @@ jobs:
               ('hia-transaction-journal-controls', transaction_patterns),
               ('hia-slot-operations-native.log', None),
               ('hia-slot-operations-native', transaction_patterns),
+              ('hia-slot-completed-activation-native.log', None),
+              ('hia-slot-completed-activation-native', transaction_patterns),
               ('hia-slot-operations-resource.log', None),
               ('hia-slot-operations-resource', transaction_patterns),
               ('hia-slot-operations-callers.log', None),

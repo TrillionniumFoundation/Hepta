@@ -1,0 +1,341 @@
+{
+  "schema": "hepta.explicit-slot-v5-component-observation.v2",
+  "scope": "Materialize a pinned component export and run original CPython v5 scopes plus an exact additional regression.\n\nThis is an explicit development component. It is neither a Git checkout nor\na complete native cold qualification. The immutable F checkout stays read-only.\n",
+  "passed": true,
+  "whole_native_qualified": false,
+  "started_utc": "2026-11-27T09:45:11.996889+00:00",
+  "interpreter": "/usr/local/bin/python",
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "operations": [
+    {
+      "label": "original-source-four",
+      "result": {
+        "command": {
+          "argv": [
+            "/usr/local/bin/python",
+            "-I",
+            "-B",
+            "-c",
+            "import sys,unittest;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.loadTestsFromNames(sys.argv[2:]);r=unittest.TextTestRunner(verbosity=2).run(suite);sys.exit(0 if r.wasSuccessful() else 1)",
+            "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/source",
+            "tests.test_hia_slot_worker_terminal.SlotWorkerTerminalSourceTests"
+          ],
+          "cwd": "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/source",
+          "timeout_seconds": 120,
+          "cleanup_seconds": 5,
+          "new_session": true,
+          "parent_pid": 892148,
+          "environment": {
+            "PATH": "/home/qian-qi/.cargo/bin:/home/qian-qi/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin",
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "pid": 907311,
+          "pgid": 907311,
+          "owned_initial_members": [
+            {
+              "pid": 907311,
+              "pgid": 907311,
+              "sid": 907311,
+              "state": "R",
+              "start_ticks": 11239566
+            }
+          ],
+          "effective_timeout_seconds": 120
+        },
+        "pid": 907311,
+        "exit_code": 0,
+        "timed_out": false,
+        "interruption": null,
+        "elapsed_seconds": 0.16978470100730192,
+        "owned_cleanup": {
+          "before": [],
+          "middle": [],
+          "after": [],
+          "signals": [],
+          "reaped": true,
+          "cleanup_elapsed_seconds": 0.037560336000751704
+        },
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "bytes": 960,
+          "sha256": "19d79c5695163db7a9aaed6d3f337422f123f7ca30bfaf19a461c9205feee750"
+        }
+      },
+      "passed": true
+    },
+    {
+      "label": "c-build",
+      "result": {
+        "command": {
+          "argv": [
+            "/usr/local/bin/python",
+            "-I",
+            "-B",
+            "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/source/tools/build_hia_slot_mechanical.py",
+            "--output",
+            "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/build",
+            "--in-place"
+          ],
+          "cwd": "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/source",
+          "timeout_seconds": 1800,
+          "cleanup_seconds": 5,
+          "new_session": true,
+          "parent_pid": 892148,
+          "environment": {
+            "PATH": "/home/qian-qi/.cargo/bin:/home/qian-qi/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin",
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "pid": 907359,
+          "pgid": 907359,
+          "owned_initial_members": [
+            {
+              "pid": 907359,
+              "pgid": 907359,
+              "sid": 907359,
+              "state": "R",
+              "start_ticks": 11239583
+            }
+          ],
+          "effective_timeout_seconds": 1800
+        },
+        "pid": 907359,
+        "exit_code": 0,
+        "timed_out": false,
+        "interruption": null,
+        "elapsed_seconds": 1.4148642850050237,
+        "owned_cleanup": {
+          "before": [],
+          "middle": [],
+          "after": [],
+          "signals": [],
+          "reaped": true,
+          "cleanup_elapsed_seconds": 0.03455070000200067
+        },
+        "stdout": {
+          "bytes": 1296,
+          "sha256": "7c57d2b783049da241f6a0962eb1f1ea78fe8d6b0f62cb2ae24efae16c775902"
+        },
+        "stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      "passed": true
+    },
+    {
+      "label": "original-v5-two-scopes",
+      "result": {
+        "command": {
+          "argv": [
+            "/usr/local/bin/python",
+            "-I",
+            "-B",
+            "-c",
+            "import sys,unittest;sys.path.insert(0,sys.argv[1]);suite=unittest.defaultTestLoader.loadTestsFromNames(sys.argv[2:]);r=unittest.TextTestRunner(verbosity=2).run(suite);sys.exit(0 if r.wasSuccessful() else 1)",
+            "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/source",
+            "tests.test_hia_slot_mechanical_native.SlotMechanicalV5NativeTests.test_01_full_public84_handled12_original_first_native_v5",
+            "tests.test_hia_slot_mechanical_native.SlotMechanicalV5NativeTests.test_02_complete_actual_admission_and_sealed_loader_controls"
+          ],
+          "cwd": "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/source",
+          "timeout_seconds": 3630,
+          "cleanup_seconds": 5,
+          "new_session": true,
+          "parent_pid": 892148,
+          "environment": {
+            "PATH": "/home/qian-qi/.cargo/bin:/home/qian-qi/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "HEPTA_HIA_SLOT_OPERATIONS_DEVELOPMENT_COMPILER": "/home/qian-qi/hia-native-current-20261127-0862/final-f-native-chain-v1/qualification/cold/qualification/base/B1.flat",
+            "HEPTA_HIA_SLOT_OPERATIONS_EVIDENCE": "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/component"
+          },
+          "pid": 907792,
+          "pgid": 907792,
+          "owned_initial_members": [
+            {
+              "pid": 907792,
+              "pgid": 907792,
+              "sid": 907792,
+              "state": "R",
+              "start_ticks": 11239725
+            }
+          ],
+          "effective_timeout_seconds": 3630
+        },
+        "pid": 907792,
+        "exit_code": 0,
+        "timed_out": false,
+        "interruption": null,
+        "elapsed_seconds": 14.424882997001987,
+        "owned_cleanup": {
+          "before": [],
+          "middle": [],
+          "after": [],
+          "signals": [],
+          "reaped": true,
+          "cleanup_elapsed_seconds": 0.18628666500444524
+        },
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "bytes": 485,
+          "sha256": "566ae4a90b747e7a44440a103a23e4c9d37fd752660deae6235ebf82182a0c8a"
+        }
+      },
+      "passed": true
+    },
+    {
+      "label": "additional-native-regression",
+      "result": {
+        "command": {
+          "argv": [
+            "/usr/local/bin/python",
+            "-I",
+            "-B",
+            "-c",
+            "import sys;sys.path.insert(0,sys.argv[1]);from tools.run_hia_unittest_gate import load_declared_suite,run_suite;suite,planned=load_declared_suite((sys.argv[2],));expected=(sys.argv[2]+'.test_failed_execute_releases_completed_activation_and_sql_attempt',);assert planned==expected and suite.countTestCases()==1;sys.exit(0 if run_suite(suite) else 1)",
+            "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/source",
+            "tests.test_hia_slot_operations_native.SlotOperationsCompletedActivationTests"
+          ],
+          "cwd": "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/source",
+          "timeout_seconds": 1800,
+          "cleanup_seconds": 5,
+          "new_session": true,
+          "parent_pid": 892148,
+          "environment": {
+            "PATH": "/home/qian-qi/.cargo/bin:/home/qian-qi/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin",
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "HEPTA_HIA_SLOT_OPERATIONS_DEVELOPMENT_COMPILER": "/home/qian-qi/hia-native-current-20261127-0862/final-f-native-chain-v1/qualification/cold/qualification/base/B1.flat",
+            "HEPTA_HIA_SLOT_OPERATIONS_EVIDENCE": "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/component"
+          },
+          "pid": 916827,
+          "pgid": 916827,
+          "owned_initial_members": [
+            {
+              "pid": 916827,
+              "pgid": 916827,
+              "sid": 916827,
+              "state": "R",
+              "start_ticks": 11241167
+            }
+          ],
+          "effective_timeout_seconds": 1800
+        },
+        "pid": 916827,
+        "exit_code": 0,
+        "timed_out": false,
+        "interruption": null,
+        "elapsed_seconds": 1.534139089009841,
+        "owned_cleanup": {
+          "before": [],
+          "middle": [],
+          "after": [],
+          "signals": [],
+          "reaped": true,
+          "cleanup_elapsed_seconds": 0.0943176299915649
+        },
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "bytes": 315,
+          "sha256": "c7129b2d1babd1722427fb6fcec20cb89ebdd226f7106972b4730c286ff07db6"
+        }
+      },
+      "passed": true
+    }
+  ],
+  "materialization": {
+    "manifest": {
+      "bytes": 1578712,
+      "sha256": "58c407c091b678788785fa5ac31aa615cca7e2986908f972851e1ba2ac3c9b1c"
+    },
+    "files": 6710,
+    "bytes": 440444424,
+    "overlay_files": 75,
+    "source_path": "/home/qian-qi/hia-native-current-20261127-0862/slot-mechanical-798316c5-v2/source",
+    "base_source_commit": "798316c5cf521340de06cdd969e2ada56fb8c386",
+    "base_source_tree": "85c270579f6aa96bb31882870a06019c1dafcbee",
+    "elapsed_ns": 105666835410,
+    "git_blob_and_sha256_every_path": true,
+    "full_git_checkout_claimed": false
+  },
+  "source_delta": {
+    "bundle": {
+      "bytes": 61961,
+      "sha256": "c66e96dc9f78e0e1b33774bfdf697411e071d12701ec017053092a676adfa5f3"
+    },
+    "paths": {
+      "tests/test_hia_slot_operations_native.py": {
+        "before": {
+          "bytes": 27163,
+          "sha256": "471e4ee11682d4a7d1e6905a8c72927eb63bed6eefa4c28ddc634fd4c6fde329"
+        },
+        "after": {
+          "bytes": 27541,
+          "sha256": "7fabc981814756c1b1baf5d918968b545e86bd4f65ed03d41567b7af33c09d79"
+        },
+        "mode": "100644",
+        "git_blob": "dc10d4e3ddcd29f734c270bbaebde277cc1724d6"
+      },
+      "tests/fixtures/hia_installed_distribution_sources.json": {
+        "before": {
+          "bytes": 95193,
+          "sha256": "acb33169bb76daa967f6a3b633f4344db6b28ca002b2406eab630123888fe860"
+        },
+        "after": {
+          "bytes": 97545,
+          "sha256": "53463541a43021b415bf5e01f8b65cd0ccde2f881065568609400488bb6874d3"
+        },
+        "mode": "100644",
+        "git_blob": "8d4a7c91f7f32e1c88316737df95a6ba36c75962"
+      },
+      "tests/hia_installed_distribution_history.py": {
+        "before": {
+          "bytes": 2991,
+          "sha256": "fdba2bcd8320ad3bb319ce6a638edf255a59a589485b5c36acad0ad3c9ca5e6e"
+        },
+        "after": {
+          "bytes": 2991,
+          "sha256": "1e9d10982e8d004ed02cf0ef624542613364ecdf58787f1df4c6ac987abe8235"
+        },
+        "mode": "100644",
+        "git_blob": "5ac55ace33545016a7aedf3fbe51a298f49c920f"
+      },
+      ".github/workflows/hia-core.yml": {
+        "before": {
+          "bytes": 240622,
+          "sha256": "696872c1df31d8d3fe5f83ab0de2c826d5b9e7130aa0c64b6b4b58a083d11eb7"
+        },
+        "after": {
+          "bytes": 241995,
+          "sha256": "a0cc0dfa9123f8af6cb53ff3c25a440720414040914f1ff84c860744fde344f6"
+        },
+        "mode": "100644",
+        "git_blob": "0fb8c237853cc9686936ca5c7ee16cc3e2649248"
+      }
+    },
+    "case_mapping": {
+      "old": "tests.test_hia_slot_operations_native.SlotOperationsNativeTests.test_failed_execute_releases_completed_activation_and_sql_attempt",
+      "new": "tests.test_hia_slot_operations_native.SlotOperationsCompletedActivationTests.test_failed_execute_releases_completed_activation_and_sql_attempt",
+      "ast_sha256": "22c5b209ade7d68a97730e3a3728ccd89dfe71adb9d4860817772bb2a0d41ce4",
+      "original_body_bytes": {
+        "bytes": 1816,
+        "sha256": "c9f18bf789431728da2c4a0322df4ea92a610d3aa270ea6e1a8a803a73270470"
+      },
+      "old_native6_class_ast_exact": true,
+      "new_additional_cases": 1
+    },
+    "bidirectional_original_proof": true
+  },
+  "original_slot_budgets": {
+    "method_seconds": 1800,
+    "cleanup_seconds": 5
+  },
+  "all_6710_source_paths_unchanged": true,
+  "finished_utc": "2026-11-27T09:47:17.607203+00:00"
+}

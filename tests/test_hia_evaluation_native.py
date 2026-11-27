@@ -104,6 +104,8 @@ class EvaluationSourceTests(unittest.TestCase):
                        if isinstance(node, ast.ClassDef) and node.name == 'HIAAgentService')
         retained = next(node for node in service.body
                         if isinstance(node, ast.FunctionDef) and node.name == '_hia_evaluate_reference')
+        from tests.hia_evaluation_capture_successor import original_reference
+        retained = original_reference(retained)
         retained.name = '_hia_evaluate'
         self.assertEqual(ast.dump(retained), ast.dump(ast.parse(FIXTURE.read_bytes()).body[0]))
         value = next(node for node in module.body

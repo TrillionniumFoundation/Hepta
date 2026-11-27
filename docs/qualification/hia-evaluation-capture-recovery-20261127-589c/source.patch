@@ -1,0 +1,428 @@
+diff --git a/hepta/hia_agent_service.py b/hepta/hia_agent_service.py
+index f9af1baf2f..4c7c5298d2 100644
+--- a/hepta/hia_agent_service.py
++++ b/hepta/hia_agent_service.py
+@@ -81,6 +81,80 @@ def _build_input_digest(data: bytes) -> str:
+     return sha256(data).hexdigest()
+ 
+ 
++def _evaluation_owns_build_inputs(service):
++    """Only the original built-in provider supports a bound observation.
++
++    Static lookup does not invoke a replacement descriptor before its original
++    foreign effect. Explicit replacement providers keep their existing calls.
++    """
++    from inspect import getattr_static
++
++    return all(getattr_static(service, name, None) is function
++               for name, function in _EVALUATION_BUILD_INPUT_BRIDGES)
++
++
++class _EvaluationBuildInputsCapture:
++    """One candidate observation, admitted at the original receipt boundary.
++
++    This private service view changes only the native-artifact provider used by
++    the existing build-input policy. It never mutates the real service or Store,
++    and both hosted and selected HIA admission still run their complete policy.
++    """
++
++    __slots__ = ('_service', '_context', '_artifact', '_context_items', '_artifact_items',
++                 '_observation', '_pid', '_thread', '_consumed', '_native_calls')
++
++    def __init__(self, service, context, artifact, observation):
++        import threading
++
++        self._service, self._context, self._artifact = service, context, artifact
++        self._context_items, self._artifact_items = tuple(context.items()), tuple(artifact.items())
++        self._observation = observation
++        self._pid, self._thread = os.getpid(), threading.get_ident()
++        self._consumed, self._native_calls = threading.Lock(), 0
++
++    @property
++    def observation(self):
++        return self._observation
++
++    def __getattr__(self, name):
++        if name == '_build_inputs_reference':
++            # Preserve the original dispatch to its component-aware successor.
++            return _ADMISSION_INPUTS_REFERENCE.__get__(self, type(self))
++        return getattr(self._service, name)
++
++    def _native(self, artifact, context=None):
++        if (artifact is not self._artifact or context is not self._context
++                or self._native_calls != 0):
++            reject('E_HIA_RECEIPT_BINDING', 'candidate observation is not the captured build input')
++        self._native_calls += 1
++        return self._observation
++
++    def admit(self, service, ref, context, artifact):
++        import threading
++
++        if not self._consumed.acquire(blocking=False):
++            reject('E_HIA_RECEIPT_BINDING', 'candidate build observation was already consumed')
++        if (service is not self._service or context is not self._context or artifact is not self._artifact
++                or os.getpid() != self._pid or threading.get_ident() != self._thread
++                or tuple(context.items()) != self._context_items
++                or tuple(artifact.items()) != self._artifact_items
++                or not _evaluation_owns_build_inputs(service)):
++            reject('E_HIA_RECEIPT_BINDING', 'candidate build observation changed before admission')
++        record, data, _object, program = _NATIVE_BUILD_INPUTS_BRIDGE(self, ref, context, artifact)
++        if (self._native_calls != 1 or data is not self._observation[0]
++                or program is not self._observation[2]):
++            reject('E_HIA_RECEIPT_BINDING', 'build admission did not consume the captured candidate')
++        return record
++
++
++def _capture_evaluation_build_inputs(service, artifact, context):
++    # Read at the original candidate boundary. In particular, a corrupt native
++    # artifact still rejects before a separately invalid build receipt is read.
++    observation = service._native(artifact, context)
++    return _EvaluationBuildInputsCapture(service, context, artifact, observation)
++
++
+ def _reference_finite_function(function):
+     from .hia_optimization import PURE
+ 
+@@ -2476,8 +2550,13 @@ class HIAAgentService:
+         started = time.monotonic_ns()
+         context = self._context(args["context"])
+         baseline_bytes, baseline_meta, baseline_program = self._native(args["baseline_artifact"], args["context"])
+-        candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
+-        built = self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
++        if _evaluation_owns_build_inputs(self):
++            captured = _capture_evaluation_build_inputs(self, args["candidate_artifact"], args["context"])
++            candidate_bytes, candidate_meta, candidate_program = captured.observation
++            built = captured.admit(self, args["build_receipt"], args["context"], args["candidate_artifact"])
++        else:
++            candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
++            built = self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
+         if baseline_meta["output_kind"] != "shared" or candidate_meta["output_kind"] != "shared":
+             reject("E_HIA_EXECUTION_PROFILE", "evaluation requires retained direct shared images", "execution")
+         if baseline_meta["signatures"] != candidate_meta["signatures"]:
+@@ -2656,8 +2735,13 @@ class HIAAgentService:
+         started = time.monotonic_ns()
+         context = self._context(args["context"])
+         baseline_bytes, baseline_meta, baseline_program = self._native(args["baseline_artifact"], args["context"])
+-        candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
+-        self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
++        if _evaluation_owns_build_inputs(self):
++            captured = _capture_evaluation_build_inputs(self, args["candidate_artifact"], args["context"])
++            candidate_bytes, candidate_meta, candidate_program = captured.observation
++            captured.admit(self, args["build_receipt"], args["context"], args["candidate_artifact"])
++        else:
++            candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
++            self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
+         if baseline_meta["output_kind"] != "shared" or candidate_meta["output_kind"] != "shared":
+             reject("E_HIA_EXECUTION_PROFILE", "evaluation requires retained direct shared images", "execution")
+         equal = selected_json_equality()
+@@ -3199,6 +3283,8 @@ _NATIVE_BUILD_INPUTS_BRIDGE = HIAAgentService._build_inputs
+ _NATIVE_BUILD_GLOBAL_BUILTINS = _signatures.__builtins__
+ _ADMISSION_NATIVE_REFERENCE = HIAAgentService._native_reference
+ _ADMISSION_INPUTS_REFERENCE = HIAAgentService._build_inputs_reference
++_EVALUATION_BUILD_INPUT_BRIDGES = tuple((name, getattr(HIAAgentService, name)) for name in (
++    '_build_receipt', '_build_receipt_reference', '_build_inputs', '_build_inputs_reference'))
+ 
+ # Preserve the original functions' bound builtins dictionary even if a caller
+ # later replaces the module's __builtins__ binding or an explicit provider.
+diff --git a/hepta/hia_evaluation_native.py b/hepta/hia_evaluation_native.py
+index 584a1d3c62..e9ff34d82d 100644
+--- a/hepta/hia_evaluation_native.py
++++ b/hepta/hia_evaluation_native.py
+@@ -443,9 +443,18 @@ class EvaluationFrame:
+         elif name == 'baseline':
+             d['baseline_bytes'], d['baseline_meta'], d['baseline_program'] = s._native(args['baseline_artifact'], args['context'])
+         elif name == 'candidate':
+-            d['candidate_bytes'], d['candidate_meta'], d['candidate_program'] = s._native(args['candidate_artifact'], args['context'])
++            if api['_evaluation_owns_build_inputs'](s):
++                captured = api['_capture_evaluation_build_inputs'](s, args['candidate_artifact'], args['context'])
++                d['candidate_bytes'], d['candidate_meta'], d['candidate_program'] = captured.observation
++                d['candidate_build_capture'] = captured
++            else:
++                d['candidate_bytes'], d['candidate_meta'], d['candidate_program'] = s._native(args['candidate_artifact'], args['context'])
+         elif name == 'build_receipt':
+-            d['built'] = s._build_receipt(args['build_receipt'], args['context'], args['candidate_artifact'])
++            if 'candidate_build_capture' in d:
++                d['built'] = d.pop('candidate_build_capture').admit(
++                    s, args['build_receipt'], args['context'], args['candidate_artifact'])
++            else:
++                d['built'] = s._build_receipt(args['build_receipt'], args['context'], args['candidate_artifact'])
+             if d['native_store']:
+                 from .hia_native_helpers import pinned_evaluate_authority_executable
+ 
+diff --git a/tests/hia_evaluation_capture_successor.py b/tests/hia_evaluation_capture_successor.py
+new file mode 100644
+index 0000000000..ebff1e764e
+--- /dev/null
++++ b/tests/hia_evaluation_capture_successor.py
+@@ -0,0 +1,34 @@
++"""Reverse only the reviewed candidate-capture splice, retaining the oracle."""
++from __future__ import annotations
++
++import ast
++from copy import deepcopy
++from hashlib import sha256
++
++
++REFERENCE_CAPTURE = '''if _evaluation_owns_build_inputs(self):
++    captured = _capture_evaluation_build_inputs(self, args["candidate_artifact"], args["context"])
++    candidate_bytes, candidate_meta, candidate_program = captured.observation
++    built = captured.admit(self, args["build_receipt"], args["context"], args["candidate_artifact"])
++else:
++    candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
++    built = self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
++'''
++REFERENCE_CAPTURE_SHA256 = '61913f4ecb4e06b10406cd29ec0d47d2d4ce8948831ee9227b9fc69b1dd31dba'
++
++
++def original_reference(retained):
++    """Restore precisely two original statements; all other AST stays visible."""
++    if sha256(REFERENCE_CAPTURE.encode()).hexdigest() != REFERENCE_CAPTURE_SHA256:
++        raise AssertionError('reviewed evaluation capture splice changed')
++    if type(retained) is not ast.FunctionDef or retained.name != '_hia_evaluate_reference':
++        raise AssertionError('expected the retained evaluation reference body')
++    expected = ast.parse(REFERENCE_CAPTURE).body[0]
++    positions = [index for index, node in enumerate(retained.body)
++                 if ast.dump(node) == ast.dump(expected)]
++    if len(positions) != 1:
++        raise AssertionError('evaluation capture source is not the exact reviewed successor')
++    restored = deepcopy(retained)
++    position, = positions
++    restored.body[position:position + 1] = deepcopy(expected.orelse)
++    return restored
+diff --git a/tests/test_hia_evaluation_capture.py b/tests/test_hia_evaluation_capture.py
+new file mode 100644
+index 0000000000..aae7a3f43c
+--- /dev/null
++++ b/tests/test_hia_evaluation_capture.py
+@@ -0,0 +1,218 @@
++"""Exact candidate capture, original public caller, and real selected owners.
++
++The external component observer supplies actual development manifests. These
++controls do not substitute for a fresh installed whole-source qualification.
++"""
++from __future__ import annotations
++
++import ast
++from contextlib import contextmanager
++from copy import deepcopy
++import os
++from pathlib import Path
++import sys
++import threading
++import unittest
++from unittest.mock import patch
++
++from hepta import hia_agent_service as api
++from hepta import hia_evaluation_native as native
++from tests.test_hia_agent_native_tools import AgentToolCase
++from tests.hia_evaluation_capture_successor import original_reference
++
++ROOT = Path(__file__).resolve().parents[1]
++EVALUATION = 'HEPTA_HIA_EVALUATION_CAPTURE_DEVELOPMENT_MANIFEST'
++ADMISSION = 'HEPTA_HIA_EVALUATION_CAPTURE_ADMISSION_DEVELOPMENT_MANIFEST'
++WORKLOAD = {'schema': 'hepta.hia.agent.workload.v1',
++            'cases': [{'function': 'transform', 'arguments': [250]}],
++            'warmup_iterations': 0, 'repetitions': 1}
++
++
++class CaptureSourceTests(unittest.TestCase):
++    def test_exact_successor_reconstructs_the_complete_original_reference_AST(self):
++        module = ast.parse((ROOT / 'hepta/hia_agent_service.py').read_bytes())
++        service = next(node for node in module.body if isinstance(node, ast.ClassDef)
++                       and node.name == 'HIAAgentService')
++        body = next(node for node in service.body if isinstance(node, ast.FunctionDef)
++                    and node.name == '_hia_evaluate_reference')
++        restored = original_reference(body)
++        restored.name = '_hia_evaluate'
++        expected = ast.parse((ROOT / 'tests/fixtures/hia_evaluate_19065.py.txt').read_bytes()).body[0]
++        self.assertEqual(ast.dump(restored), ast.dump(expected))
++        changed = deepcopy(body)
++        capture = next(node for node in changed.body if isinstance(node, ast.If)
++                       and isinstance(node.test, ast.Call)
++                       and isinstance(node.test.func, ast.Name)
++                       and node.test.func.id == '_evaluation_owns_build_inputs')
++        capture.body.pop()
++        with self.assertRaisesRegex(AssertionError, 'exact reviewed successor'):
++            original_reference(changed)
++        changed = deepcopy(body)
++        changed.body.append(ast.parse('raise RuntimeError("unreviewed")').body[0])
++        other = original_reference(changed)
++        other.name = '_hia_evaluate'
++        self.assertNotEqual(ast.dump(other), ast.dump(expected))
++
++
++class EvaluationCaptureTests(AgentToolCase):
++    @contextmanager
++    def route(self, mode):
++        # Keep the public request, Store, real builders and execution budgets.
++        # Only route selection differs between these independently run cases.
++        with patch.dict(os.environ):
++            os.environ.pop(native.SELECTOR, None)
++            os.environ.pop('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST', None)
++            if mode in ('native', 'native-admission'):
++                manifest = os.environ.get(EVALUATION)
++                if not manifest:
++                    raise ValueError('a real explicit development evaluation manifest is required')
++                os.environ[native.SELECTOR] = manifest
++            if mode == 'native-admission':
++                manifest = os.environ.get(ADMISSION)
++                if not manifest:
++                    raise ValueError('a real explicit development admission manifest is required')
++                os.environ['HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST'] = manifest
++            if mode == 'reference':
++                store = self.service.store
++                class OriginalStoreView:
++                    # The original Store object protocol has no typed-wire
++                    # capability. All real persistence methods still delegate
++                    # to the same actual Store; no ledger value is fabricated.
++                    def __getattr__(self, name):
++                        return getattr(store, name)
++                with patch.object(self.service, 'store', new=OriginalStoreView()):
++                    yield
++            else:
++                yield
++
++    def original_public_caller(self, mode):
++        # f587's original workload and business assertions are retained. The
++        # method-name assertion follows the explicit two-stage capture owner.
++        workload = {"schema": "hepta.hia.agent.workload.v1",
++            "cases": [{"function": "transform", "arguments": [250]}],
++            "warmup_iterations": 0, "repetitions": 1}
++        _base, _candidate, baseline, build, receipts = self.build_pair(workload=workload)
++        native_provider = self.service._native
++        calls = []
++        def observe(ref, context=None):
++            caller = sys._getframe(1)
++            calls.append((caller.f_globals.get('__name__'), caller.f_code.co_name, ref))
++            return native_provider(ref, context)
++        with self.route(mode), patch.object(self.service, '_native', new=observe):
++            evaluation = self.session.evaluate(baseline, build, receipts=receipts)
++        self.assertIn(evaluation["outcome"], {"improved", "unchanged", "regressed"})
++        self.assertTrue(evaluation["termination_confirmed"])
++        self.assertTrue(evaluation["planned_workload_complete"])
++        direct = [ref for module, owner, ref in calls if
++                  module == 'hepta.hia_agent_service' and owner in (
++                      '_hia_evaluate_reference', '_hia_evaluate_with_components')
++                  or module == 'hepta.hia_evaluation_native' and owner == 'effect']
++        self.assertEqual(direct, [baseline["native_artifact"]])
++        self.assertIn(('hepta.hia_agent_service', '_capture_evaluation_build_inputs', build["native_artifact"]), calls)
++        self.assertEqual([ref for _module, owner, ref in calls if owner == '_capture_evaluation_build_inputs'],
++                         [build['native_artifact']])
++
++    def test_evaluation_candidate_uses_exact_build_bound_native_observation(self):
++        self.original_public_caller('components')
++
++    def test_original_public_caller_in_hosted_reference_branch(self):
++        self.original_public_caller('reference')
++
++    def test_original_public_caller_with_actual_native_evaluation(self):
++        self.original_public_caller('native')
++
++    def test_original_public_caller_with_both_actual_native_owners(self):
++        self.original_public_caller('native-admission')
++
++    def test_unbound_first_candidate_cannot_be_hidden_by_a_second_native_read(self):
++        _base, _candidate, baseline, build, receipts = self.build_pair(workload=WORKLOAD)
++        provider = self.service._native
++        baseline_bytes = provider(baseline['native_artifact'], self.session.context)[0]
++        for mode in ('reference', 'components', 'native', 'native-admission'):
++            with self.subTest(mode=mode):
++                observed = []
++                def first_unbound(ref, context=None):
++                    values = provider(ref, context)
++                    if ref == build['native_artifact']:
++                        observed.append(values)
++                        if len(observed) == 1:
++                            return baseline_bytes, values[1], values[2]
++                    return values
++                with self.route(mode), patch.object(self.service, '_native', new=first_unbound), \
++                        patch('hepta.hia_agent_runner.run_reference_batch') as reference, \
++                        patch('hepta.hia_agent_runner.run_native_batch') as runner:
++                    args = self.session.arguments(baseline_artifact=baseline['native_artifact'],
++                        candidate_artifact=build['native_artifact'], build_receipt=build['build_receipt'],
++                        verification_receipts=receipts)
++                    rejected = self.reject('hia_evaluate', args)
++                self.assertEqual(rejected['error']['code'], 'E_HIA_RECEIPT_BINDING')
++                self.assertEqual(len(observed), 1)
++                reference.assert_not_called()
++                runner.assert_not_called()
++
++    def test_corrupt_candidate_still_precedes_wrong_receipt_type(self):
++        _base, _candidate, baseline, build, receipts = self.build_pair(workload=WORKLOAD)
++        candidate = build['native_artifact']
++        path = self.state_root / 'artifacts' / candidate['sha256']
++        path.chmod(0o600)
++        path.write_bytes(path.read_bytes() + b'corrupt-original-candidate')
++        original_get = self.service.store.get
++        for mode in ('reference', 'components', 'native', 'native-admission'):
++            with self.subTest(mode=mode):
++                observed = []
++                def get(ref, **kwargs):
++                    observed.append((ref, kwargs.get('kind')))
++                    return original_get(ref, **kwargs)
++                with self.route(mode), patch.object(self.service.store, 'get', new=get):
++                    args = self.session.arguments(baseline_artifact=baseline['native_artifact'],
++                        candidate_artifact=candidate, build_receipt=baseline['native_artifact'],
++                        verification_receipts=receipts)
++                    rejected = self.reject('hia_evaluate', args)
++                self.assertEqual(rejected['error']['code'], 'E_HIA_ARTIFACT_CORRUPT')
++                self.assertNotIn((baseline['native_artifact'], 'build-receipt'), observed)
++
++    def test_capture_is_bound_to_service_refs_thread_and_one_consumption(self):
++        _base, _candidate, _baseline, build, _receipts = self.build_pair(workload=WORKLOAD)
++        context, artifact, ref = self.session.context, build['native_artifact'], build['build_receipt']
++        capture = lambda: api._capture_evaluation_build_inputs(self.service, artifact, context)
++        observed = capture()
++        built = observed.admit(self.service, ref, context, artifact)
++        self.assertEqual(built['native_artifact'], artifact)
++        with self.assertRaisesRegex(api.AgentRejected, 'already consumed'):
++            observed.admit(self.service, ref, context, artifact)
++        for service, ctx, art in ((object(), context, artifact),
++                                  (self.service, dict(context), artifact),
++                                  (self.service, context, dict(artifact))):
++            with self.subTest(service=service is self.service, context=ctx is context, artifact=art is artifact):
++                observed = capture()
++                with self.assertRaisesRegex(api.AgentRejected, 'changed before admission'):
++                    observed.admit(service, ref, ctx, art)
++        observed = capture()
++        changed = artifact['sha256']
++        artifact['sha256'] = '0' * 64
++        try:
++            with self.assertRaisesRegex(api.AgentRejected, 'changed before admission'):
++                observed.admit(self.service, ref, context, artifact)
++        finally:
++            artifact['sha256'] = changed
++        observed = capture()
++        failures = []
++        def foreign_thread():
++            try:
++                observed.admit(self.service, ref, context, artifact)
++            except BaseException as error:
++                failures.append(error)
++        thread = threading.Thread(target=foreign_thread)
++        thread.start()
++        thread.join(10)
++        self.assertFalse(thread.is_alive())
++        self.assertEqual(len(failures), 1)
++        self.assertIsInstance(failures[0], api.AgentRejected)
++        observed = capture()
++        with patch.object(self.service, '_build_inputs_reference', side_effect=AssertionError('provider escaped')):
++            with self.assertRaisesRegex(api.AgentRejected, 'changed before admission'):
++                observed.admit(self.service, ref, context, artifact)
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/tests/test_hia_evaluation_native.py b/tests/test_hia_evaluation_native.py
+index 20501966a4..3c0022c5c0 100644
+--- a/tests/test_hia_evaluation_native.py
++++ b/tests/test_hia_evaluation_native.py
+@@ -104,6 +104,8 @@ class EvaluationSourceTests(unittest.TestCase):
+                        if isinstance(node, ast.ClassDef) and node.name == 'HIAAgentService')
+         retained = next(node for node in service.body
+                         if isinstance(node, ast.FunctionDef) and node.name == '_hia_evaluate_reference')
++        from tests.hia_evaluation_capture_successor import original_reference
++        retained = original_reference(retained)
+         retained.name = '_hia_evaluate'
+         self.assertEqual(ast.dump(retained), ast.dump(ast.parse(FIXTURE.read_bytes()).body[0]))
+         value = next(node for node in module.body

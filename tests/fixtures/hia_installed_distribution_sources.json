@@ -1504,8 +1504,8 @@
     },
     "tests/test_hia_slot_operations_native.py": {
       "current": {
-        "bytes": 25340,
-        "sha256": "366e255c6bb0631c395e83d1657390c69f211600cd666815ef3435865bbdf01b"
+        "bytes": 27541,
+        "sha256": "7fabc981814756c1b1baf5d918968b545e86bd4f65ed03d41567b7af33c09d79"
       },
       "original": {
         "bytes": 25198,
@@ -1531,6 +1531,11 @@
           "after": "            raw = installed_wheel_path(installed, name).read_bytes()\n",
           "before": "            raw = (installed / name).read_bytes()\n",
           "offset": 17567
+        },
+        {
+          "after": "class SlotOperationsCompletedActivationTests(ComponentFixture, unittest.TestCase):\n    \"\"\"Additional native regression; the original Native6 scope stays complete.\"\"\"\n    def setUp(self):\n        self.check_sources()\n        self.case = self.folder / self._testMethodName\n        self.case.mkdir(mode=0o700, exist_ok=False)\n\n    def tearDown(self):\n        self.check_sources()\n\n    def test_failed_execute_releases_completed_activation_and_sql_attempt(self):\n        from hepta.hia_native_delivery import ForeignCall\n        from hepta.hia_slot_ledger_native import NativeSlotLedgerStore\n        from hepta.hia_slot_operations_native import SlotOperationsFrame\n        from hepta.hia_slot_operations_selection import slot_operations_owner\n\n        class DB:\n            @property\n            def execute(self):\n                raise AttributeError('failed execute lookup')\n\n        class Store:\n            db = DB()\n\n        with slot_operations_owner(self.controller):\n            store = Store()\n            subject = NativeSlotLedgerStore(store, None)\n            try:\n                subject._execute(store.db, 'SELECT 1')\n            except AttributeError as error:\n                self.assertEqual(str(error), 'failed execute lookup')\n                trace = error.__traceback__\n                effects = []\n                ports = []\n                while trace is not None:\n                    frame = trace.tb_frame\n                    if frame.f_code is SlotOperationsFrame._effect_once.__code__:\n                        effects.append(frame)\n                    if frame.f_code is SlotOperationsFrame._port_execute_call.__code__:\n                        ports.append(frame.f_locals['self'])\n                    trace = trace.tb_next\n                self.assertEqual(len(effects), 1)\n                self.assertEqual(len(ports), 1)\n                self.assertIsNone(ports[0]._pending_foreign)\n                self.assertIsNone(ports[0]._sql_attempt)\n                self.assertFalse(any(isinstance(value, ForeignCall)\n                                     for value in effects[0].f_locals.values()))\n            else:\n                self.fail('the original execute lookup did not raise')\n\n\n",
+          "before": "",
+          "offset": 25140
         }
       ]
     },

@@ -1,0 +1,187 @@
+--- a/tests/test_hia_slot_operations_native.py
++++ b/tests/test_hia_slot_operations_native.py
+@@ -219,47 +219,6 @@
+         supplement(self.case / 'handled-traceback', 'native', 'handled-traceback',
+                    self.product_freeze, self.product_freeze_sha256, self.controller)
+ 
+-    def test_failed_execute_releases_completed_activation_and_sql_attempt(self):
+-        from hepta.hia_native_delivery import ForeignCall
+-        from hepta.hia_slot_ledger_native import NativeSlotLedgerStore
+-        from hepta.hia_slot_operations_native import SlotOperationsFrame
+-        from hepta.hia_slot_operations_selection import slot_operations_owner
+-
+-        class DB:
+-            @property
+-            def execute(self):
+-                raise AttributeError('failed execute lookup')
+-
+-        class Store:
+-            db = DB()
+-
+-        with slot_operations_owner(self.controller):
+-            store = Store()
+-            subject = NativeSlotLedgerStore(store, None)
+-            try:
+-                subject._execute(store.db, 'SELECT 1')
+-            except AttributeError as error:
+-                self.assertEqual(str(error), 'failed execute lookup')
+-                trace = error.__traceback__
+-                effects = []
+-                ports = []
+-                while trace is not None:
+-                    frame = trace.tb_frame
+-                    if frame.f_code is SlotOperationsFrame._effect_once.__code__:
+-                        effects.append(frame)
+-                    if frame.f_code is SlotOperationsFrame._port_execute_call.__code__:
+-                        ports.append(frame.f_locals['self'])
+-                    trace = trace.tb_next
+-                self.assertEqual(len(effects), 1)
+-                self.assertEqual(len(ports), 1)
+-                self.assertIsNone(ports[0]._pending_foreign)
+-                self.assertIsNone(ports[0]._sql_attempt)
+-                self.assertFalse(any(isinstance(value, ForeignCall)
+-                                     for value in effects[0].f_locals.values()))
+-            else:
+-                self.fail('the original execute lookup did not raise')
+-
+-
+     def control(self, group):
+         command = [sys.executable, '-I', '-B',
+             str(ROOT / 'tests/hia_slot_operations_transport_controls.py'),
+@@ -469,5 +428,56 @@
+             'complete_old_bundles_expanded': False, 'whole_native_stack_qualified': False})
+ 
+ 
++class SlotOperationsCompletedActivationTests(ComponentFixture, unittest.TestCase):
++    """Additional native regression; the original Native6 scope stays complete."""
++    def setUp(self):
++        self.check_sources()
++        self.case = self.folder / self._testMethodName
++        self.case.mkdir(mode=0o700, exist_ok=False)
++
++    def tearDown(self):
++        self.check_sources()
++
++    def test_failed_execute_releases_completed_activation_and_sql_attempt(self):
++        from hepta.hia_native_delivery import ForeignCall
++        from hepta.hia_slot_ledger_native import NativeSlotLedgerStore
++        from hepta.hia_slot_operations_native import SlotOperationsFrame
++        from hepta.hia_slot_operations_selection import slot_operations_owner
++
++        class DB:
++            @property
++            def execute(self):
++                raise AttributeError('failed execute lookup')
++
++        class Store:
++            db = DB()
++
++        with slot_operations_owner(self.controller):
++            store = Store()
++            subject = NativeSlotLedgerStore(store, None)
++            try:
++                subject._execute(store.db, 'SELECT 1')
++            except AttributeError as error:
++                self.assertEqual(str(error), 'failed execute lookup')
++                trace = error.__traceback__
++                effects = []
++                ports = []
++                while trace is not None:
++                    frame = trace.tb_frame
++                    if frame.f_code is SlotOperationsFrame._effect_once.__code__:
++                        effects.append(frame)
++                    if frame.f_code is SlotOperationsFrame._port_execute_call.__code__:
++                        ports.append(frame.f_locals['self'])
++                    trace = trace.tb_next
++                self.assertEqual(len(effects), 1)
++                self.assertEqual(len(ports), 1)
++                self.assertIsNone(ports[0]._pending_foreign)
++                self.assertIsNone(ports[0]._sql_attempt)
++                self.assertFalse(any(isinstance(value, ForeignCall)
++                                     for value in effects[0].f_locals.values()))
++            else:
++                self.fail('the original execute lookup did not raise')
++
++
+ if __name__ == '__main__':
+     unittest.main(verbosity=2)
+--- a/tests/fixtures/hia_installed_distribution_sources.json
++++ b/tests/fixtures/hia_installed_distribution_sources.json
+@@ -1504,8 +1504,8 @@
+     },
+     "tests/test_hia_slot_operations_native.py": {
+       "current": {
+-        "bytes": 25340,
+-        "sha256": "366e255c6bb0631c395e83d1657390c69f211600cd666815ef3435865bbdf01b"
++        "bytes": 27541,
++        "sha256": "7fabc981814756c1b1baf5d918968b545e86bd4f65ed03d41567b7af33c09d79"
+       },
+       "original": {
+         "bytes": 25198,
+@@ -1531,6 +1531,11 @@
+           "after": "            raw = installed_wheel_path(installed, name).read_bytes()\n",
+           "before": "            raw = (installed / name).read_bytes()\n",
+           "offset": 17567
++        },
++        {
++          "after": "class SlotOperationsCompletedActivationTests(ComponentFixture, unittest.TestCase):\n    \"\"\"Additional native regression; the original Native6 scope stays complete.\"\"\"\n    def setUp(self):\n        self.check_sources()\n        self.case = self.folder / self._testMethodName\n        self.case.mkdir(mode=0o700, exist_ok=False)\n\n    def tearDown(self):\n        self.check_sources()\n\n    def test_failed_execute_releases_completed_activation_and_sql_attempt(self):\n        from hepta.hia_native_delivery import ForeignCall\n        from hepta.hia_slot_ledger_native import NativeSlotLedgerStore\n        from hepta.hia_slot_operations_native import SlotOperationsFrame\n        from hepta.hia_slot_operations_selection import slot_operations_owner\n\n        class DB:\n            @property\n            def execute(self):\n                raise AttributeError('failed execute lookup')\n\n        class Store:\n            db = DB()\n\n        with slot_operations_owner(self.controller):\n            store = Store()\n            subject = NativeSlotLedgerStore(store, None)\n            try:\n                subject._execute(store.db, 'SELECT 1')\n            except AttributeError as error:\n                self.assertEqual(str(error), 'failed execute lookup')\n                trace = error.__traceback__\n                effects = []\n                ports = []\n                while trace is not None:\n                    frame = trace.tb_frame\n                    if frame.f_code is SlotOperationsFrame._effect_once.__code__:\n                        effects.append(frame)\n                    if frame.f_code is SlotOperationsFrame._port_execute_call.__code__:\n                        ports.append(frame.f_locals['self'])\n                    trace = trace.tb_next\n                self.assertEqual(len(effects), 1)\n                self.assertEqual(len(ports), 1)\n                self.assertIsNone(ports[0]._pending_foreign)\n                self.assertIsNone(ports[0]._sql_attempt)\n                self.assertFalse(any(isinstance(value, ForeignCall)\n                                     for value in effects[0].f_locals.values()))\n            else:\n                self.fail('the original execute lookup did not raise')\n\n\n",
++          "before": "",
++          "offset": 25140
+         }
+       ]
+     },
+--- a/tests/hia_installed_distribution_history.py
++++ b/tests/hia_installed_distribution_history.py
+@@ -5,7 +5,7 @@
+ from pathlib import Path
+ 
+ FIXTURE = 'tests/fixtures/hia_installed_distribution_sources.json'
+-FIXTURE_SHA256 = 'acb33169bb76daa967f6a3b633f4344db6b28ca002b2406eab630123888fe860'
++FIXTURE_SHA256 = '53463541a43021b415bf5e01f8b65cd0ccde2f881065568609400488bb6874d3'
+ 
+ 
+ @lru_cache(maxsize=1)
+--- a/.github/workflows/hia-core.yml
++++ b/.github/workflows/hia-core.yml
+@@ -2977,6 +2977,23 @@
+               raise SystemExit('complete Slot gate identities differ')
+           raise SystemExit(0 if run_suite(suite) else 1)
+           PYSLOT
++      - name: Additional Slot completed activation native regression
++        timeout-minutes: 30
++        env:
++          HEPTA_HIA_SLOT_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
++          HEPTA_HIA_SLOT_OPERATIONS_EVIDENCE: ${{ runner.temp }}/hia-slot-completed-activation-native
++        run: |
++          set -euo pipefail
++          python -B - <<'PYSLOTEXTRA' 2>&1 | tee "$RUNNER_TEMP/hia-slot-completed-activation-native.log"
++          from tools.run_hia_unittest_gate import load_declared_suite, run_suite
++          expected = (
++              'tests.test_hia_slot_operations_native.SlotOperationsCompletedActivationTests.test_failed_execute_releases_completed_activation_and_sql_attempt',
++          )
++          suite, planned = load_declared_suite(('tests.test_hia_slot_operations_native.SlotOperationsCompletedActivationTests',))
++          if planned != expected or suite.countTestCases() != len(expected):
++              raise SystemExit('additional Slot activation gate identities differ')
++          raise SystemExit(0 if run_suite(suite) else 1)
++          PYSLOTEXTRA
+       - name: Complete Slot operation-series resource delivery controls
+         timeout-minutes: 30
+         env:
+@@ -3372,6 +3389,8 @@
+             ${{ runner.temp }}/hia-transaction-journal-controls.log
+             ${{ runner.temp }}/hia-slot-operations-native/
+             ${{ runner.temp }}/hia-slot-operations-native.log
++            ${{ runner.temp }}/hia-slot-completed-activation-native/
++            ${{ runner.temp }}/hia-slot-completed-activation-native.log
+             ${{ runner.temp }}/hia-slot-operations-resource/
+             ${{ runner.temp }}/hia-slot-operations-resource.log
+             ${{ runner.temp }}/hia-slot-operations-callers/
+@@ -3514,6 +3533,8 @@
+               ('hia-transaction-journal-controls', transaction_patterns),
+               ('hia-slot-operations-native.log', None),
+               ('hia-slot-operations-native', transaction_patterns),
++              ('hia-slot-completed-activation-native.log', None),
++              ('hia-slot-completed-activation-native', transaction_patterns),
+               ('hia-slot-operations-resource.log', None),
+               ('hia-slot-operations-resource', transaction_patterns),
+               ('hia-slot-operations-callers.log', None),

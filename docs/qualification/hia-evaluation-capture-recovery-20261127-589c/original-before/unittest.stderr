@@ -1,0 +1,31 @@
+test_evaluation_candidate_uses_exact_build_bound_native_observation (__main__.OriginalEvaluationCaptureCaller.test_evaluation_candidate_uses_exact_build_bound_native_observation) ... FAIL
+
+======================================================================
+FAIL: test_evaluation_candidate_uses_exact_build_bound_native_observation (__main__.OriginalEvaluationCaptureCaller.test_evaluation_candidate_uses_exact_build_bound_native_observation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/runtime-evaluation-capture-before-589c/original-caller-successor.py", line 21, in test_evaluation_candidate_uses_exact_build_bound_native_observation
+    self.assertEqual(direct, [baseline["native_artifact"]])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [{'id[172 chars]4c8'}, {'id': 'a-329ae4e8cfaa4597a0e19f1f945a7[138 chars]ae'}] != [{'id[172 chars]4c8'}]
+
+First list contains 1 additional elements.
+First extra element 1:
+{'id': 'a-329ae4e8cfaa4597a0e19f1f945a7fb8', 'sha256': '30e86346cc263e58da246d5f46a1f036cb570a9d98a01bf1221ac34f02078727', 'uri': 'hia://artifacts/3e232dd443914d17a39f8a21e00032ae'}
+
+  [{'id': 'a-39eae50160184cf290f6e18bc9c8a686',
+    'sha256': 'e1f09150a0ca7fa1be59444ecb3c1f9f337559cbaff950a1a5418e7c5faa3224',
+-   'uri': 'hia://artifacts/7e9fb00e542b44c58040b5c9adc8b4c8'},
+?                                                             ^
+
++   'uri': 'hia://artifacts/7e9fb00e542b44c58040b5c9adc8b4c8'}]
+?                                                             ^
+
+-  {'id': 'a-329ae4e8cfaa4597a0e19f1f945a7fb8',
+-   'sha256': '30e86346cc263e58da246d5f46a1f036cb570a9d98a01bf1221ac34f02078727',
+-   'uri': 'hia://artifacts/3e232dd443914d17a39f8a21e00032ae'}]
+
+----------------------------------------------------------------------
+Ran 1 test in 4.474s
+
+FAILED (failures=1)

@@ -1,0 +1,36 @@
+test_exact_successor_reconstructs_the_complete_original_reference_AST (tests.test_hia_evaluation_capture.CaptureSourceTests.test_exact_successor_reconstructs_the_complete_original_reference_AST) ... ok
+test_capture_is_bound_to_service_refs_thread_and_one_consumption (tests.test_hia_evaluation_capture.EvaluationCaptureTests.test_capture_is_bound_to_service_refs_thread_and_one_consumption) ... ok
+test_corrupt_candidate_still_precedes_wrong_receipt_type (tests.test_hia_evaluation_capture.EvaluationCaptureTests.test_corrupt_candidate_still_precedes_wrong_receipt_type) ... ok
+test_evaluation_candidate_uses_exact_build_bound_native_observation (tests.test_hia_evaluation_capture.EvaluationCaptureTests.test_evaluation_candidate_uses_exact_build_bound_native_observation) ... ok
+test_original_public_caller_in_hosted_reference_branch (tests.test_hia_evaluation_capture.EvaluationCaptureTests.test_original_public_caller_in_hosted_reference_branch) ... ok
+test_original_public_caller_with_actual_native_evaluation (tests.test_hia_evaluation_capture.EvaluationCaptureTests.test_original_public_caller_with_actual_native_evaluation) ... ok
+test_original_public_caller_with_both_actual_native_owners (tests.test_hia_evaluation_capture.EvaluationCaptureTests.test_original_public_caller_with_both_actual_native_owners) ... FAIL
+test_unbound_first_candidate_cannot_be_hidden_by_a_second_native_read (tests.test_hia_evaluation_capture.EvaluationCaptureTests.test_unbound_first_candidate_cannot_be_hidden_by_a_second_native_read) ... ok
+test_independent_VM_precedes_native_mapping_and_matches_original_effects (tests.test_hia_evaluation_native.EvaluationSourceTests.test_independent_VM_precedes_native_mapping_and_matches_original_effects) ... ok
+test_source_retained_body_value_helper_and_original_inventory_are_exact (tests.test_hia_evaluation_native.EvaluationSourceTests.test_source_retained_body_value_helper_and_original_inventory_are_exact) ... ok
+test_unselected_route_is_lazy_and_unqualified_build_refuses (tests.test_hia_evaluation_native.EvaluationSourceTests.test_unselected_route_is_lazy_and_unqualified_build_refuses) ... ok
+test_actual_native_full_buffers_and_state_match_independent_VM (__main__.OriginalMethodsWithExplicitDevelopmentConstruction.test_actual_native_full_buffers_and_state_match_independent_VM) ... ok
+test_complete_111_original_foreign_effect_traces_and_first_errors (__main__.OriginalMethodsWithExplicitDevelopmentConstruction.test_complete_111_original_foreign_effect_traces_and_first_errors) ... ok
+
+======================================================================
+FAIL: test_original_public_caller_with_both_actual_native_owners (tests.test_hia_evaluation_capture.EvaluationCaptureTests.test_original_public_caller_with_both_actual_native_owners)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hepta-evaluation-capture-recovery-589c/tests/test_hia_evaluation_capture.py", line 122, in test_original_public_caller_with_both_actual_native_owners
+    self.original_public_caller('native-admission')
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/hepta-evaluation-capture-recovery-589c/tests/test_hia_evaluation_capture.py", line 107, in original_public_caller
+    self.assertEqual(direct, [baseline["native_artifact"]])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [{'id[172 chars]a5e'}, {'id': 'a-61bb26c6573447fab9995192627d8[321 chars]06'}] != [{'id[172 chars]a5e'}]
+
+First list contains 2 additional elements.
+First extra element 1:
+{'id': 'a-61bb26c6573447fab9995192627d848e', 'sha256': '30e86346cc263e58da246d5f46a1f036cb570a9d98a01bf1221ac34f02078727', 'uri': 'hia://artifacts/328f02eb9e7b4c41b3f3196c941f9106'}
+
+Diff is 776 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 13 tests in 86.453s
+
+FAILED (failures=1)

@@ -140,6 +140,11 @@ def worker_source():
     text=replace(worker.SOURCE,"def worker(","def worker_managed(")
     text=replace(text,"    if magic!=INPUT and magic!=INPUT2 and magic!=INPUT3:","    if magic!=INPUT3:")
     text=replace(text," or (magic==INPUT2 and readword(s,8)!=0)","")
+    # A public snapshot must observe physical thread completion. Keep the
+    # private HIABGW03 query observational; only the bound managed profile
+    # shares the existing serialized join when the worker announces exit.
+    text=replace(text,"        if op==2:",
+       "        if op==2 or (op==3 and get(w,24)==3):")
     text=replace(text,"            zero(w,0,512)",
        "            if readword(s,64)==0 or readword(s,72)==0 or readword(s,80)!=256:\n                return finish(o,4)\n            zero(w,0,512)")
     text=replace(text,"            put(w,104,readword(s,56))",

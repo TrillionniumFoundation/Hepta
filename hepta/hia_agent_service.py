@@ -81,6 +81,92 @@ def _build_input_digest(data: bytes) -> str:
     return sha256(data).hexdigest()
 
 
+def _evaluation_owns_build_inputs(service, arguments):
+    """Only the original built-in provider supports a bound observation.
+
+    Static lookup does not invoke a replacement descriptor before its original
+    foreign effect. Explicit replacement providers keep their existing calls.
+    """
+    from inspect import getattr_static
+
+    if (type(arguments) is not dict
+            or getattr_static(type(service), '__getattribute__', None) is not object.__getattribute__):
+        return False
+    for name in ('context', 'candidate_artifact'):
+        reference = arguments.get(name)
+        if (type(reference) is not dict
+                or any(type(key) is not str or type(value) is not str
+                       for key, value in reference.items())):
+            return False
+    return all(getattr_static(service, name, None) is function
+               for name, function in _EVALUATION_BUILD_INPUT_BRIDGES)
+
+
+class _EvaluationBuildInputsCapture:
+    """One candidate observation, admitted at the original receipt boundary.
+
+    This private service view changes only the native-artifact provider used by
+    the existing build-input policy. It never mutates the real service or Store,
+    and both hosted and selected HIA admission still run their complete policy.
+    """
+
+    __slots__ = ('_service', '_context', '_artifact', '_context_items', '_artifact_items',
+                 '_observation', '_pid', '_thread', '_consumed', '_native_calls')
+
+    def __init__(self, service, context, artifact, observation, context_items, artifact_items):
+        import threading
+
+        self._service, self._context, self._artifact = service, context, artifact
+        self._context_items, self._artifact_items = context_items, artifact_items
+        self._observation = observation
+        self._pid, self._thread = os.getpid(), threading.get_ident()
+        self._consumed, self._native_calls = threading.Lock(), 0
+
+    @property
+    def observation(self):
+        return self._observation
+
+    def __getattr__(self, name):
+        if name == '_build_inputs_reference':
+            # Preserve the original dispatch to its component-aware successor.
+            return _ADMISSION_INPUTS_REFERENCE.__get__(self, type(self))
+        return getattr(self._service, name)
+
+    def _native(self, artifact, context=None):
+        if (artifact is not self._artifact or context is not self._context
+                or self._native_calls != 0):
+            reject('E_HIA_RECEIPT_BINDING', 'candidate observation is not the captured build input')
+        self._native_calls += 1
+        return self._observation
+
+    def admit(self, service, ref, context, artifact):
+        import threading
+
+        if not self._consumed.acquire(blocking=False):
+            reject('E_HIA_RECEIPT_BINDING', 'candidate build observation was already consumed')
+        if (service is not self._service or context is not self._context or artifact is not self._artifact
+                or os.getpid() != self._pid or threading.get_ident() != self._thread
+                or tuple(context.items()) != self._context_items
+                or tuple(artifact.items()) != self._artifact_items
+                or not _evaluation_owns_build_inputs(service,
+                    {'context': context, 'candidate_artifact': artifact})):
+            reject('E_HIA_RECEIPT_BINDING', 'candidate build observation changed before admission')
+        record, data, _object, program = _NATIVE_BUILD_INPUTS_BRIDGE(self, ref, context, artifact)
+        if (self._native_calls != 1 or data is not self._observation[0]
+                or program is not self._observation[2]):
+            reject('E_HIA_RECEIPT_BINDING', 'build admission did not consume the captured candidate')
+        return record
+
+
+def _capture_evaluation_build_inputs(service, artifact, context):
+    # Read at the original candidate boundary. In particular, a corrupt native
+    # artifact still rejects before a separately invalid build receipt is read.
+    context_items, artifact_items = tuple(context.items()), tuple(artifact.items())
+    observation = service._native(artifact, context)
+    return _EvaluationBuildInputsCapture(service, context, artifact, observation,
+                                         context_items, artifact_items)
+
+
 def _reference_finite_function(function):
     from .hia_optimization import PURE
 
@@ -2476,8 +2562,13 @@ class HIAAgentService:
         started = time.monotonic_ns()
         context = self._context(args["context"])
         baseline_bytes, baseline_meta, baseline_program = self._native(args["baseline_artifact"], args["context"])
-        candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
-        built = self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
+        if _evaluation_owns_build_inputs(self, args):
+            captured = _capture_evaluation_build_inputs(self, args["candidate_artifact"], args["context"])
+            candidate_bytes, candidate_meta, candidate_program = captured.observation
+            built = captured.admit(self, args["build_receipt"], args["context"], args["candidate_artifact"])
+        else:
+            candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
+            built = self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
         if baseline_meta["output_kind"] != "shared" or candidate_meta["output_kind"] != "shared":
             reject("E_HIA_EXECUTION_PROFILE", "evaluation requires retained direct shared images", "execution")
         if baseline_meta["signatures"] != candidate_meta["signatures"]:
@@ -2656,8 +2747,13 @@ class HIAAgentService:
         started = time.monotonic_ns()
         context = self._context(args["context"])
         baseline_bytes, baseline_meta, baseline_program = self._native(args["baseline_artifact"], args["context"])
-        candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
-        self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
+        if _evaluation_owns_build_inputs(self, args):
+            captured = _capture_evaluation_build_inputs(self, args["candidate_artifact"], args["context"])
+            candidate_bytes, candidate_meta, candidate_program = captured.observation
+            captured.admit(self, args["build_receipt"], args["context"], args["candidate_artifact"])
+        else:
+            candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
+            self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
         if baseline_meta["output_kind"] != "shared" or candidate_meta["output_kind"] != "shared":
             reject("E_HIA_EXECUTION_PROFILE", "evaluation requires retained direct shared images", "execution")
         equal = selected_json_equality()
@@ -3199,6 +3295,8 @@ _NATIVE_BUILD_INPUTS_BRIDGE = HIAAgentService._build_inputs
 _NATIVE_BUILD_GLOBAL_BUILTINS = _signatures.__builtins__
 _ADMISSION_NATIVE_REFERENCE = HIAAgentService._native_reference
 _ADMISSION_INPUTS_REFERENCE = HIAAgentService._build_inputs_reference
+_EVALUATION_BUILD_INPUT_BRIDGES = tuple((name, getattr(HIAAgentService, name)) for name in (
+    '_build_receipt', '_build_receipt_reference', '_build_inputs', '_build_inputs_reference'))
 
 # Preserve the original functions' bound builtins dictionary even if a caller
 # later replaces the module's __builtins__ binding or an explicit provider.

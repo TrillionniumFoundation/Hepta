@@ -1,0 +1,106 @@
+{
+  "archive": {
+    "bytes": 761292,
+    "path": "/workspace/scratch/589c0a6dd85b/hepta-managed-worker04-full-evidence-20261127.tar.xz",
+    "sha256": "73a72a1532d269a22bb1c93aa0f03091f55d51f0f1d36f1e96e1150e8b353adc"
+  },
+  "archive_members_verified": 144,
+  "archive_original_bytes_verified": 6330780,
+  "base": "798316c5cf521340de06cdd969e2ada56fb8c386",
+  "before_counterexample": {
+    "error": "AssertionError('registered snapshot skipped physical pthread join')",
+    "expected_failure": true,
+    "passed": false,
+    "receipt": "original/registered-before-v1/report.json"
+  },
+  "cold_qualification": false,
+  "controls": [
+    {
+      "cases": 6,
+      "name": "original raw worker",
+      "passed": true
+    },
+    {
+      "cases": 6,
+      "name": "strict private03",
+      "passed": true
+    },
+    {
+      "actual_calls": 87,
+      "cases": 4,
+      "name": "managed04 physical/query/error/domain",
+      "passed": true
+    },
+    {
+      "cases": 1,
+      "concurrent_snapshots": 8,
+      "name": "registered public physical window",
+      "passed": true,
+      "physical_joins": 1
+    },
+    {
+      "cases": 5,
+      "name": "registered public original comparison",
+      "passed": true
+    },
+    {
+      "cases": 4,
+      "name": "original native Future callbacks",
+      "passed": true
+    },
+    {
+      "cases": 5,
+      "name": "original managed Jobs",
+      "passed": true
+    }
+  ],
+  "schema": "hia.root-worker04-integration-readback.v1",
+  "scope": "Source and evidence readback only; actual component execution remains in original producer reports; whole cold/delivery gates remain pending",
+  "source_commit": "75507363f89191897ed4b26b83e6d5aaca926166",
+  "source_tree": "e10d898d283add4ae249cfeef7ddc5f15bff4471",
+  "sources": [
+    {
+      "blob": "346c39e7abf684c5855f6cb02633e3b2a3aacf79",
+      "bytes": 72071,
+      "current_798_matches_reviewed_base": true,
+      "path": "examples/hia_bootstrap/background_optimizer_worker_managed.hepta",
+      "sha256": "214be7358aed98e5c5697afef7aa918cf387b8e1c1c67be8664abf64b03569d9"
+    },
+    {
+      "blob": "1334dccc2ac51beb3bdc762832d5590adc92eefb",
+      "bytes": 357207,
+      "current_798_matches_reviewed_base": true,
+      "path": "examples/hia_bootstrap/generation_future_callback_fusion_packer.hepta",
+      "sha256": "8cae605216f2e702458ad30554f5d8d7a7bde8f8d4cdbc857b27a220a90e4f3c"
+    },
+    {
+      "blob": "fe53f45525a47904e92ca31d64764b80311e9ae2",
+      "bytes": 10155,
+      "current_798_matches_reviewed_base": true,
+      "path": "tools/generate_hia_background_optimizer_managed_lifecycle.py",
+      "sha256": "3e14ede87e8d5215665dd4d2a56b3afcb2d19060ee69f4c92897e0780682e7ad"
+    },
+    {
+      "blob": "21b9e4ada59dc7ac6d5a2cb3a38c21bb2fce9a3e",
+      "bytes": 10330,
+      "current_798_matches_reviewed_base": true,
+      "path": "tools/qualify_hia_background_native_context.py",
+      "sha256": "3079dfd0514d944b62d8ab6ca2223db106171cf4791f2596077948bd9430516e"
+    },
+    {
+      "blob": "837cf1436115f68cd0e484066fd5fa7c8f934891",
+      "bytes": 9643,
+      "current_798_matches_reviewed_base": true,
+      "path": "tools/qualify_hia_background_registered_alive.py",
+      "sha256": "8373df04c47fc5164ea7b9b6b914c80ca6c021e5412b479e7025018167262b70"
+    },
+    {
+      "blob": "2ad85d46e103cea6e40df3468c4c55fbb1623137",
+      "bytes": 14454,
+      "current_798_matches_reviewed_base": true,
+      "path": "tools/qualify_hia_background_worker_managed_alive.py",
+      "sha256": "ae6baf6612775b76886971a1eed199161ffd48756a37ff1b91869b2a295a5389"
+    }
+  ],
+  "whole_background_closed": false
+}
