@@ -1,0 +1,70 @@
+test_replaced_type_names_after_private_instruction_read_keep_original_effects (__main__.V1TypeBindingControl.test_replaced_type_names_after_private_instruction_read_keep_original_effects) ... 
+  test_replaced_type_names_after_private_instruction_read_keep_original_effects (__main__.V1TypeBindingControl.test_replaced_type_names_after_private_instruction_read_keep_original_effects) (binding='type', private=False, fail_hash=False) ... FAIL
+  test_replaced_type_names_after_private_instruction_read_keep_original_effects (__main__.V1TypeBindingControl.test_replaced_type_names_after_private_instruction_read_keep_original_effects) (binding='type', private=False, fail_hash=True) ... FAIL
+  test_replaced_type_names_after_private_instruction_read_keep_original_effects (__main__.V1TypeBindingControl.test_replaced_type_names_after_private_instruction_read_keep_original_effects) (binding='type', private=True, fail_hash=False) ... FAIL
+  test_replaced_type_names_after_private_instruction_read_keep_original_effects (__main__.V1TypeBindingControl.test_replaced_type_names_after_private_instruction_read_keep_original_effects) (binding='str', private=True, fail_hash=False) ... FAIL
+
+======================================================================
+FAIL: test_replaced_type_names_after_private_instruction_read_keep_original_effects (__main__.V1TypeBindingControl.test_replaced_type_names_after_private_instruction_read_keep_original_effects) (binding='type', private=False, fail_hash=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-source-custody-20261127-2807/vm-opcode-membership-control-v2.py", line 240, in test_replaced_type_names_after_private_instruction_read_keep_original_effects
+    self.assertEqual(observe(runtime._Machine), observe(self.previous))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: ([('i[60 chars]out'), ('shadow-type-call', 1)], ('error', <cl[419 chars]',)}) != ([('i[60 chars]out')], ('returned', None), {'a': 2, 'z': 3, '[346 chars]',)})
+
+First differing element 0:
+[('it[27 chars]'), ('item', 'args'), ('item', 'out'), ('shadow-type-call', 1)]
+[('it[27 chars]'), ('item', 'args'), ('item', 'out')]
+
+Diff is 911 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_replaced_type_names_after_private_instruction_read_keep_original_effects (__main__.V1TypeBindingControl.test_replaced_type_names_after_private_instruction_read_keep_original_effects) (binding='type', private=False, fail_hash=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-source-custody-20261127-2807/vm-opcode-membership-control-v2.py", line 240, in test_replaced_type_names_after_private_instruction_read_keep_original_effects
+    self.assertEqual(observe(runtime._Machine), observe(self.previous))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: ([('i[60 chars]out'), ('shadow-type-call', 1)], ('error', <cl[419 chars]',)}) != ([('i[60 chars]out')], ('returned', None), {'a': 2, 'z': 3, '[346 chars]',)})
+
+First differing element 0:
+[('it[27 chars]'), ('item', 'args'), ('item', 'out'), ('shadow-type-call', 1)]
+[('it[27 chars]'), ('item', 'args'), ('item', 'out')]
+
+Diff is 911 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_replaced_type_names_after_private_instruction_read_keep_original_effects (__main__.V1TypeBindingControl.test_replaced_type_names_after_private_instruction_read_keep_original_effects) (binding='type', private=True, fail_hash=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-source-custody-20261127-2807/vm-opcode-membership-control-v2.py", line 240, in test_replaced_type_names_after_private_instruction_read_keep_original_effects
+    self.assertEqual(observe(runtime._Machine), observe(self.previous))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: ([('i[187 chars]), ('shadow-type-call', 1)], ('error', <class [415 chars]',)}) != ([('i[187 chars]), ('hash', 'int.add.checked'), ('equal', 'int[463 chars]',)})
+
+First differing element 0:
+[('it[186 chars]), ('shadow-type-call', 1)]
+[('it[186 chars]), ('hash', 'int.add.checked'), ('equal', 'int[72 chars] ())]
+
+Diff is 1113 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_replaced_type_names_after_private_instruction_read_keep_original_effects (__main__.V1TypeBindingControl.test_replaced_type_names_after_private_instruction_read_keep_original_effects) (binding='str', private=True, fail_hash=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-source-custody-20261127-2807/vm-opcode-membership-control-v2.py", line 240, in test_replaced_type_names_after_private_instruction_read_keep_original_effects
+    self.assertEqual(observe(runtime._Machine), observe(self.previous))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Tuples differ: ([('i[243 chars]ed', True), ('split', ('.',), ()), ('endswith'[406 chars]',)}) != ([('i[243 chars]ed', False), ('split', ('.',), ()), ('endswith[407 chars]',)})
+
+First differing element 0:
+[('it[242 chars]ed', True), ('split', ('.',), ()), ('endswith'[15 chars] ())]
+[('it[242 chars]ed', False), ('split', ('.',), ()), ('endswith[16 chars] ())]
+
+Diff is 1079 characters long. Set self.maxDiff to None to see it.
+
+----------------------------------------------------------------------
+Ran 1 test in 0.023s
+
+FAILED (failures=4)

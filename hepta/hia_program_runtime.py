@@ -294,7 +294,11 @@ class _Machine:
             result = [package_scalar.package_integer_operation(scalar_op, typ, args)]
         elif op == "const":
             result = [attrs["value"]]
-        elif op in {f"int.{a}.{m}" for a in ("add", "sub", "mul") for m in ("checked", "wrap")}:
+        elif op in ({"int.add.checked", "int.add.wrap", "int.sub.checked",
+                     "int.sub.wrap", "int.mul.checked", "int.mul.wrap"}
+                    # Literal types avoid mutable type/str globals and opcode hooks.
+                    if ().__class__.__class__(op) is "".__class__ else
+                    {f"int.{a}.{m}" for a in ("add", "sub", "mul") for m in ("checked", "wrap")}):
             a, b = args
             kind = op.split(".")[1]
             value = a + b if kind == "add" else a - b if kind == "sub" else a * b
