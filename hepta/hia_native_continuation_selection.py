@@ -78,10 +78,17 @@ def installed_native_continuation(manifest_path,namespace,*,kind='execution-obse
         raise ValueError('native continuation executable identity mismatch')
     policy=installed(str(basepath),namespace)
     loaded=policy._admitted_bundle
+    companion_names=('unpack','numeric_compare','integer') if kind=='core-lowering' else ()
+    companion_owners=tuple(getattr(policy,name) for name in companion_names)
     for previous_path,previous_raw,previous_loaded,previous_namespace,owner in _OWNER_CACHE:
-        if previous_path==str(path) and previous_raw==raw and previous_loaded is loaded and previous_namespace is namespace:
+        if (previous_path==str(path) and previous_raw==raw and previous_loaded is loaded and previous_namespace is namespace
+                and all(getattr(owner,name) is value for name,value in zip(companion_names,companion_owners))):
             return owner
-    owner=factory(loaded.images[1:],loaded.images[0],loaded.abi,namespace)
+    if kind=='core-lowering':
+        owner=factory(loaded.images[1:],loaded.images[0],loaded.abi,namespace,
+                      **dict(zip(companion_names,companion_owners)))
+    else:
+        owner=factory(loaded.images[1:],loaded.images[0],loaded.abi,namespace)
     owner._admitted_bundle=loaded
     if value['schema']==INPROCESS_SCHEMA:
         from .hia_native_continuation_inprocess import InProcessContinuation
