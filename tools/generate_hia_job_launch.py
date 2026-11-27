@@ -88,8 +88,10 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         put(w, 96, 0)
         return capture_start(o, w)
-    if phase >= 200 and phase <= 224:
+    if phase >= 200 and phase <= 227:
         return capture(s, o, w, phase, result)
+    if phase == 240 or phase == 241:
+        return executable_phase(o, w, phase, result)
     if phase == 30:
         if result >= 4294967292 or get(w, ARENA + 64) != 6 or request_values(w) == 0:
             return 0
@@ -395,9 +397,7 @@ def capture_start(o:mutbuf, w:mutbuf) -> u32:
     elif which == 3:
         end = text_supervisor_name(w, name)
     elif which == 4:
-        directory = NEG100
-        name = EXE_PATH
-        end = name + cstring_size(w, name, 8192)
+        return executable_start(o, w)
     else:
         end = text_stdin_name(w, name)
     store(w, end, 0)
@@ -405,6 +405,41 @@ def capture_start(o:mutbuf, w:mutbuf) -> u32:
     put(w, 1032, name)
     put(w, 1040, 0)
     return call(o, w, 200, 257, directory, name, 657408, 0, 0, 0, 12)
+
+def executable_start(o:mutbuf, w:mutbuf) -> u32:
+    # Preserve the selected spelling for argv[0] and bind its own entry before
+    # resolving aliases. Only the resolved physical final name is opened, with
+    # the same O_NOFOLLOW flags used by every other captured image.
+    size = cstring_size(w, EXE_PATH, 8192)
+    if size == 0:
+        return 0
+    copy_bytes(w, ROOT_PATH, EXE_PATH, size)
+    put(w, 456, 0)
+    put(w, 464, size)
+    put(w, 488, 0)
+    put(w, 496, 1)
+    return call(o, w, 240, 262, NEG100, EXE_PATH, STAT + 768, 256, 0, 0, 60)
+
+def executable_phase(o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
+    if failed(result):
+        return 0
+    if phase == 240:
+        if byte(w, EXE_PATH) == 47:
+            put(w, 472, 1)
+            store(w, ROOT_ACTUAL, 47)
+            store(w, ROOT_ACTUAL + 1, 0)
+            return realpath_step(o, w)
+        return call(o, w, 241, 79, ROOT_ACTUAL, 8193, 0, 0, 0, 0, 3)
+    if result < 2 or result > 8193:
+        return 0
+    put(w, 472, result - 1)
+    return realpath_step(o, w)
+
+def executable_open(o:mutbuf, w:mutbuf) -> u32:
+    put(w, 1024, NEG100)
+    put(w, 1032, ROOT_ACTUAL)
+    put(w, 1040, 0)
+    return call(o, w, 200, 257, NEG100, ROOT_ACTUAL, 657408, 0, 0, 0, 12)
 
 def capture(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
     which = get(w, 96)
@@ -428,6 +463,8 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         elif which == 4:
             maximum = 67108864
             minimum = 64
+            if mode & 73 == 0:
+                return 0
         elif which == 5:
             maximum = 536870912
         if size < minimum or size > maximum:
@@ -437,9 +474,16 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
         put(w, 1056, size)
         if which == 0:
             return capture_read(o, w)
-        end = text_capture_memfd(w, PATH_PART + 128)
-        store(w, end, 0)
-        return call(o, w, 202, 319, PATH_PART + 128, 3, 0, 0, 0, 0, 3)
+        if which == 4:
+            # Ask the kernel about effective-credential/ACL execution access
+            # to the retained descriptor, not merely any execute mode bit.
+            store(w, PATH_PART + 256, 0)
+            return call(o, w, 227, 439, get(w, 1048), PATH_PART + 256, 1, 4608, 0, 0, 12)
+        return capture_memfd(o, w)
+    if phase == 227:
+        if failed(result):
+            return 0
+        return capture_memfd(o, w)
     if phase == 202:
         if failed(result):
             return 0
@@ -500,6 +544,16 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
             return call(o, w, 214, 3, get(w, 1048), 0, 0, 0, 0, 0, 0)
         if which <= 3:
             return sha(o, w, 210, 2, 1)
+        if which == 4:
+            return call(o, w, 225, 262, NEG100, EXE_PATH, STAT + 1024, 0, 0, 0, 60)
+        return call(o, w, 211, 72, get(w, 1064), 1033, 15, 0, 0, 0, 0)
+    if phase == 225:
+        if failed(result) or same_stamp(w, STAT, STAT + 1024) == 0:
+            return 0
+        return call(o, w, 226, 262, NEG100, EXE_PATH, STAT + 1280, 256, 0, 0, 60)
+    if phase == 226:
+        if failed(result) or same_stamp(w, STAT + 768, STAT + 1280) == 0:
+            return 0
         return call(o, w, 211, 72, get(w, 1064), 1033, 15, 0, 0, 0, 0)
     if phase == 210:
         if result != 32:
@@ -541,6 +595,11 @@ def capture(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, result:u64) -> u32:
             return 0
         return capture_finished(s, o, w)
     return 0
+
+def capture_memfd(o:mutbuf, w:mutbuf) -> u32:
+    end = text_capture_memfd(w, PATH_PART + 128)
+    store(w, end, 0)
+    return call(o, w, 202, 319, PATH_PART + 128, 3, 0, 0, 0, 0, 3)
 
 def capture_read(o:mutbuf, w:mutbuf) -> u32:
     return call(o, w, 205, 17, get(w, 1048), 65537, 65536, get(w, 1040), 0, 0, 12)
@@ -634,6 +693,7 @@ def cwd_root(o:mutbuf, w:mutbuf) -> u32:
     put(w, 464, size)
     put(w, 472, 1)
     put(w, 488, 0)
+    put(w, 496, 0)
     store(w, ROOT_ACTUAL, 47)
     store(w, ROOT_ACTUAL + 1, 0)
     return realpath_step(o, w)
@@ -648,6 +708,9 @@ def realpath_step(o:mutbuf, w:mutbuf) -> u32:
         if at == size:
             depth = get(w, 488)
             if depth == 0:
+                if get(w, 496) != 0:
+                    put(w, 496, 0)
+                    return executable_open(o, w)
                 count = get(w, 472)
                 if count <= get(w, 408) and same_bytes(w, CWD_ACTUAL, ROOT_ACTUAL, count) != 0:
                     if count == 1 or count == get(w, 408) or byte(w, CWD_ACTUAL + count) == 47:
