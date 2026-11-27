@@ -1351,6 +1351,7 @@ SOURCE_FILES = (
     'tests/fixtures/hia_native_result_caller_history_v1.json',
     'tests/fixtures/hia_evaluation_window_history_v1.json',
     'tests/fixtures/hia_evaluation_caller_capture_history_v1.json',
+    'tests/fixtures/hia_evaluation_original_source_domains_v1.json',
     'tests/test_hia_native_result_caller_history.py',
     'tests/test_hia_evaluation_window_history.py',
     'tests/test_hia_installed_evaluation_source_history.py',
