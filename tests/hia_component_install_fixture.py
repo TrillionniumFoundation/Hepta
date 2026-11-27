@@ -250,6 +250,7 @@ def _snapshot(root, additional=()):
         "hepta/hia_agent_contract.py", "hepta/hia_executable_capture.py",
         "hepta/hia_nominal_program_native.py",
         "tests/hia_component_install_fixture.py",
+        "tests/test_hia_component_install_fixture.py",
         "tools/hia_component_input_custody.py",
         "tools/hia_native_worker_source_authority.py",
         "tools/build_hia_default_release.py",

@@ -201,8 +201,14 @@ class ComponentWheelControls(unittest.TestCase):
         rejected("symlink-installed-file", symlink, lambda: (
             (installed / member).unlink(), (installed / member).write_bytes(original)))
         copied = wheel.read_bytes()
-        rejected("changed-pip-wheel-copy", lambda: wheel.write_bytes(copied + b"extra"),
-                 lambda: wheel.write_bytes(copied))
+        copied_mode = wheel.stat().st_mode & 0o777
+        def changed_copy():
+            wheel.chmod(0o600)
+            wheel.write_bytes(copied + b"extra")
+        def restore_copy():
+            wheel.write_bytes(copied)
+            wheel.chmod(copied_mode)
+        rejected("changed-pip-wheel-copy", changed_copy, restore_copy)
         custody = item["custody_path"]
         custody_raw = custody.read_bytes()
         def forged_custody():
