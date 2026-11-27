@@ -1115,8 +1115,13 @@ class HIAAgentService:
         started = time.monotonic_ns()
         context = self._context(args["context"])
         baseline_bytes, baseline_meta, baseline_program = self._native(args["baseline_artifact"], args["context"])
-        candidate_bytes, candidate_meta, candidate_program = self._native(args["candidate_artifact"], args["context"])
-        built = self._build_receipt(args["build_receipt"], args["context"], args["candidate_artifact"])
+        # Capture the candidate through the existing full build-binding check.
+        # _build_inputs already re-reads and verifies the native artifact,
+        # validates all retained metadata and the exact object, and returns
+        # that same immutable observation. Do not re-run _native immediately
+        # beforehand and then execute bytes from a different observation.
+        candidate_meta, candidate_bytes, _candidate_object, candidate_program = self._build_inputs(
+            args["build_receipt"], args["context"], args["candidate_artifact"])
         if baseline_meta["output_kind"] != "shared" or candidate_meta["output_kind"] != "shared":
             reject("E_HIA_EXECUTION_PROFILE", "evaluation requires retained direct shared images", "execution")
         if baseline_meta["signatures"] != candidate_meta["signatures"]:
