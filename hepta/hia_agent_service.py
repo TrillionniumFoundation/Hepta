@@ -202,6 +202,11 @@ def _reference_finite_function(function):
 
 
 def _signatures(program, foreign_buffer_exports=()):
+    from .hia_agent_native_metadata_native import (selected_agent_metadata,
+                                                   call_admitted_metadata_object_image)
+    native = selected_agent_metadata()
+    if native is not None:
+        return call_admitted_metadata_object_image(native, program, foreign_buffer_exports)['signatures']
     selected = os.environ.get('HEPTA_HIA_NATIVE_BUILD_ADMISSION_MANIFEST')
     if selected is not None:
         from .hia_native_build_admission_native import installed_native_build_admission, NativeBuildAdmissionFrame
@@ -228,6 +233,10 @@ def _signatures_reference(program, foreign_buffer_exports=()):
                 "returns": fn["returns"], "abi": BUFFER_PROFILE,
                 "max_buffer_bytes": exports[fn["name"]]}
     return signatures
+
+# Preserve the original comparison entry as the same whole reference function.
+_reference_signatures = _signatures_reference
+
 
 
 def _vm_observation(program, case, *, steps=1_000_000, heap=16 * 1024 * 1024,
