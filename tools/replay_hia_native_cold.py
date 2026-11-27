@@ -162,6 +162,8 @@ def replay(output):
             raise ValueError("native source Git HEAD changed")
         if validate_release_contract(ROOT) != contract or regular(cold_path) != cold_raw:
             raise ValueError("native source or qualification changed before publication")
+        subprocess.run(["/usr/bin/git", "diff", "--exit-code", "HEAD", "--"], cwd=ROOT,
+                       env=environment, check=True, timeout=30, stdout=subprocess.DEVNULL)
         with requested.open("xb") as stream:
             stream.write(cold_raw)
         report.update(passed=True, native_report={"path": str(requested), **pin(cold_raw)},
