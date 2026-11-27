@@ -4,7 +4,6 @@ from hashlib import sha256
 from pathlib import Path
 
 from . import hia_native_helpers as authority
-from .hia_agent_store_native import RELEASE_IMAGES, capture_release_image, release_identity
 
 SCHEMA = 'hepta.hia.native-helpers.v4'
 EDIT_QUERY_SCHEMA = 'hepta.hia.native-helpers.v5'
@@ -44,9 +43,31 @@ SCHEMAS = (SCHEMA, EDIT_QUERY_SCHEMA, IMPORT_SCHEMA, *REFERENCE_SCHEMAS)
 PIN_FIELDS = ('store_sha256', 'artifact_sha256', 'capture_sha256')
 
 
+_STORE_EXPORTS = ('RELEASE_IMAGES', 'capture_release_image', 'release_identity')
+
+
+def _load_store_exports():
+    from . import hia_agent_store_native
+    namespace = globals()
+    for name in _STORE_EXPORTS:
+        namespace.setdefault(name, getattr(hia_agent_store_native, name))
+
+
+def __getattr__(name):
+    if name in _STORE_EXPORTS:
+        _load_store_exports()
+        return globals()[name]
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+
+
+def __dir__():
+    return sorted(set(globals()).union(_STORE_EXPORTS))
+
+
 def profile_images(schema):
     if schema not in SCHEMAS:
         raise ValueError('unsupported pinned native Store profile')
+    _load_store_exports()
     result = dict(zip(PIN_FIELDS, RELEASE_IMAGES, strict=True))
     if schema != SCHEMA:
         from .hia_agent_edit_query_native import EXECUTABLE
@@ -271,3 +292,6 @@ class NativeWorkerStoreBinding:
     def check(self):
         self.base_binding.check()
         self._check_release()
+
+
+__all__ = tuple(name for name in __dir__() if not name.startswith('_'))

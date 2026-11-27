@@ -484,9 +484,10 @@ class SlotOperationsFrame:
         if self.receipt.phase != ISSUED:
             raise SlotOperationsUnknown('Slot effect is not newly issued')
         self.call(CLAIM)
-        activation = self._delivery.foreign(capture_resources=True, weak_registered_resources=True)
-        self._pending_foreign = activation
-        with activation:
+        # A traceback can retain this method past the ACK. Keep its activation
+        # in the pending slot so the ACK can release it.
+        self._pending_foreign = self._delivery.foreign(capture_resources=True, weak_registered_resources=True)
+        with self._pending_foreign:
             return self.effect(self.receipt.port)
 
     def _complete(self):
@@ -510,6 +511,9 @@ class SlotOperationsFrame:
         # Real selected work in a finalizer still has the ambient activation.
         self._delivery.check(SlotOperationsUnknown)
         self._delivery.confirmed(terminal=True)
+        # A failed receiver lookup can leave a prepared SQL attempt here.
+        # The terminal receipt has retired its series and resource obligations.
+        self._sql_attempt = None
 
     def _exception_continuation(self):
         while self.receipt.phase == ISSUED:
@@ -785,15 +789,17 @@ class SlotOperationsFrame:
         d['fields'] = (ns['_decimal'](d['epoch']), ns['_decimal'](d['target']))
         return 0
 
-    def _port_begin_call_one(self):
-        d, ns = self.data, self.namespace
-        d['self']._call(7, d['fields'], flags=1, token=d['token'], state=d['workspace'], labels=('epoch',))
+    # Both HIA ports reach the same method lookup in the original _begin.
+    # Keep that one lookup site so CPython's adaptive attribute errors, including
+    # their name and receiver, follow the same sequence across both branches.
+    def _begin_call(self):
+        d = self.data
+        rollback = self.receipt.port == PORT['begin_call_two']
+        d['self']._call(7, d['fields'], flags=2 if rollback else 1, token=d['token'],
+                        state=d['workspace'], labels=('epoch', 'retained_generation') if rollback else ('epoch',))
         return 0
 
-    def _port_begin_call_two(self):
-        d, ns = self.data, self.namespace
-        d['self']._call(7, d['fields'], flags=2, token=d['token'], state=d['workspace'], labels=('epoch', 'retained_generation'))
-        return 0
+    _port_begin_call_one = _port_begin_call_two = _begin_call
 
     def _port_begin_result(self):
         d, ns = self.data, self.namespace
@@ -806,23 +812,19 @@ class SlotOperationsFrame:
         d['wire'] = wire
         return 0
 
-    def _port_evaluation_first(self):
-        d, ns = self.data, self.namespace
-        d['name'] = 'report_complete'
+    _evaluation_fields = {
+        PORT['evaluation_first']: 'report_complete',
+        PORT['evaluation_second']: 'planned_workload_complete',
+        PORT['evaluation_third']: 'termination_confirmed',
+    }
+
+    def _evaluation_field(self):
+        d = self.data
+        d['name'] = self._evaluation_fields[self.receipt.port]
         d['self']._call(17, (d['wire'](d['evaluation'][d['name']]),))
         return 0
 
-    def _port_evaluation_second(self):
-        d, ns = self.data, self.namespace
-        d['name'] = 'planned_workload_complete'
-        d['self']._call(17, (d['wire'](d['evaluation'][d['name']]),))
-        return 0
-
-    def _port_evaluation_third(self):
-        d, ns = self.data, self.namespace
-        d['name'] = 'termination_confirmed'
-        d['self']._call(17, (d['wire'](d['evaluation'][d['name']]),))
-        return 0
+    _port_evaluation_first = _port_evaluation_second = _port_evaluation_third = _evaluation_field
 
     def _port_evaluation_outcome(self):
         d, ns = self.data, self.namespace

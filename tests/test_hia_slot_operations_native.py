@@ -219,6 +219,47 @@ class SlotOperationsNativeTests(ComponentFixture, unittest.TestCase):
         supplement(self.case / 'handled-traceback', 'native', 'handled-traceback',
                    self.product_freeze, self.product_freeze_sha256, self.controller)
 
+    def test_failed_execute_releases_completed_activation_and_sql_attempt(self):
+        from hepta.hia_native_delivery import ForeignCall
+        from hepta.hia_slot_ledger_native import NativeSlotLedgerStore
+        from hepta.hia_slot_operations_native import SlotOperationsFrame
+        from hepta.hia_slot_operations_selection import slot_operations_owner
+
+        class DB:
+            @property
+            def execute(self):
+                raise AttributeError('failed execute lookup')
+
+        class Store:
+            db = DB()
+
+        with slot_operations_owner(self.controller):
+            store = Store()
+            subject = NativeSlotLedgerStore(store, None)
+            try:
+                subject._execute(store.db, 'SELECT 1')
+            except AttributeError as error:
+                self.assertEqual(str(error), 'failed execute lookup')
+                trace = error.__traceback__
+                effects = []
+                ports = []
+                while trace is not None:
+                    frame = trace.tb_frame
+                    if frame.f_code is SlotOperationsFrame._effect_once.__code__:
+                        effects.append(frame)
+                    if frame.f_code is SlotOperationsFrame._port_execute_call.__code__:
+                        ports.append(frame.f_locals['self'])
+                    trace = trace.tb_next
+                self.assertEqual(len(effects), 1)
+                self.assertEqual(len(ports), 1)
+                self.assertIsNone(ports[0]._pending_foreign)
+                self.assertIsNone(ports[0]._sql_attempt)
+                self.assertFalse(any(isinstance(value, ForeignCall)
+                                     for value in effects[0].f_locals.values()))
+            else:
+                self.fail('the original execute lookup did not raise')
+
+
     def control(self, group):
         command = [sys.executable, '-I', '-B',
             str(ROOT / 'tests/hia_slot_operations_transport_controls.py'),
