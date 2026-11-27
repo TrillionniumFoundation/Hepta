@@ -4,8 +4,9 @@ This component gate executes the original native compiler and HIA packers.
 The complete inherited campaign and syscall-failure gates remain independent.
 """
 from pathlib import Path
-import argparse,ctypes as C,hashlib,importlib,json,platform,struct,subprocess
+import argparse,ctypes as C,hashlib,importlib,json,platform,struct,subprocess,sys
 from tools import qualify_hia_future_value_kinds as kinds
+from tools.hia_native_value_profiles import qualified_value_profile, qualified_value_sources
 
 ROOT=Path(__file__).resolve().parents[1]
 BOOT=ROOT/'examples/hia_bootstrap'
@@ -23,6 +24,7 @@ AUTHORS=(
  'tools/generate_hia_background_optimizer_future_public_cleanup_packer.py',
  'tools/hia_background_optimizer_future_public_cleanup_bridge.S',
  'tools/qualify_hia_future_retirement.py','tools/qualify_hia_future_value_kinds.py',
+ 'tools/hia_native_value_profiles.py',
  'hepta/hia_background_optimizer.py','hepta/hia_multiversion.py',
 )
 def digest(raw):return hashlib.sha256(raw).hexdigest()
@@ -74,10 +76,10 @@ def build(compiler,output,*,value_qualification_path=None):
  if value_qualification_path is not None:
   qp=Path(value_qualification_path).resolve();qraw=qp.read_bytes();q=json.loads(qraw)
   assert qp.is_relative_to(ROOT) and q['component_qualified'] is True
-  assert q['value_protocol']=='HIABVP05' and q['original_six_campaigns_qualified'] is True
-  assert q['value_roles']==['owner','core','import','export','capture','format','number','dict_iterator','classes','class_mro','records','resources']
+  profile=qualified_value_profile(q)
+  assert profile.protocol in ('HIABVP05','HIABVP09')
   assert q['construction']['compiler']['sha256']==COMPILER_SHA and q['construction']['compiler']['bytes']==813129
-  value_roles=kinds.VALUE+('result_value_resources',);value_packer='result_value_resources_packer';value_protocol='HIABVP05'
+  value_roles=profile.roles;value_packer=profile.packer;value_protocol=profile.protocol
   assert q['value_packer']=='examples/hia_bootstrap/'+value_packer+'.hepta'
   table={row['source_path']:row for row in q['construction']['roles']}
   assert len(table)==len(q['construction']['roles'])
@@ -85,7 +87,7 @@ def build(compiler,output,*,value_qualification_path=None):
    path='examples/hia_bootstrap/'+name+'.hepta';row=table[path];raw=(ROOT/path).read_bytes()
    assert row['two_compile_byteequal'] is True and len(raw)==row['source_bytes'] and digest(raw)==row['source_sha256'],path
    admitted[name]={'bytes':row['bytes'],'sha256':row['sha256']}
-  for path,pin_value in q['source_files'].items():
+  for path,pin_value in qualified_value_sources(q).items():
    source_path=ROOT/path;assert source_path.resolve().is_relative_to(ROOT) and not source_path.is_symlink(),path
    source_raw=source_path.read_bytes()
    if isinstance(pin_value,dict):
@@ -233,6 +235,7 @@ def main():
  if args.build_only:return
  original,deferred=kinds.behavior(output);retirement=retirement_cases(output)
  report={'schema':'hepta.hia.future-retirement-qualification.v1','component_qualified':True,
+         'python_version':sys.version,'platform':platform.platform(),
          'whole_public_future_closed':False,'whole_background_qualified':False,'whole_native_runtime':False,
          'scope':'native nine-role construction, retained original default Value-kind semantics and normal retirement lifecycles',
          'compiler':result['compiler'],'modules':result['modules'],'source_files':result['source_files'],

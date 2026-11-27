@@ -13,6 +13,7 @@ import mmap
 from pathlib import Path
 import struct
 import subprocess
+from tools.hia_native_value_profiles import qualified_value_profile, qualified_value_sources
 
 ROOT = Path(__file__).resolve().parents[1]
 BOOT = 'examples/hia_bootstrap/'
@@ -80,18 +81,9 @@ def admitted_value_qualification(path):
     construction = receipt['construction']
     assert construction['compiler']['sha256'] == COMPILER_SHA256
     assert construction['compiler']['bytes'] == 813129
-    protocol = receipt.get('value_protocol', 'HIABVP04')
-    assert protocol in ('HIABVP04', 'HIABVP05')
-    roles = RECORD_VALUE_ROLES
-    packer = 'result_value_records_packer'
-    bridge_path = 'tools/hia_result_value_records_bridge.S'
-    if protocol == 'HIABVP05':
-        assert receipt['original_six_campaigns_qualified'] is True
-        assert receipt['value_roles'] == ['owner','core','import','export','capture','format','number','dict_iterator','classes','class_mro','records','resources']
-        assert receipt['value_packer'] == BOOT + 'result_value_resources_packer.hepta'
-        roles = RESOURCE_VALUE_ROLES
-        packer = 'result_value_resources_packer'
-        bridge_path = 'tools/hia_result_value_resources_bridge.S'
+    profile = qualified_value_profile(receipt)
+    protocol, roles, packer, bridge_path = (
+        profile.protocol, profile.roles, profile.packer, profile.bridge)
     rows = construction['roles']
     by_path = {row['source_path']: row for row in rows}
     assert len(by_path) == len(rows)
@@ -108,8 +100,9 @@ def admitted_value_qualification(path):
     product = construction['products']['value-component.flat']
     assert product['native_pack'] is True and product['independent_byte_comparison'] is True
     mechanical = {}
-    assert bridge_path in receipt['source_files']
-    for name, expected in receipt['source_files'].items():
+    source_files = qualified_value_sources(receipt)
+    assert bridge_path in source_files
+    for name, expected in source_files.items():
         candidate = ROOT / name
         assert candidate.resolve().is_relative_to(ROOT) and not candidate.is_symlink(), name
         raw = candidate.read_bytes()

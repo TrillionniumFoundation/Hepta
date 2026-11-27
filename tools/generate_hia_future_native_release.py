@@ -8,6 +8,7 @@ from hashlib import sha256
 from pathlib import Path
 import json
 from tools.generate_hia_native_controller_release import ControllerRecipe, BOOT, FILTER_POLICY
+from tools.hia_native_value_profiles import value_profile
 
 ROOT = Path(__file__).resolve().parents[1]
 RECIPE = BOOT + 'release_stage_future.hiastd'
@@ -40,13 +41,13 @@ def build_recipe():
     assert not any(receipt[name] for name in ('whole_public_future_closed',
         'whole_background_optimizer_closed', 'final_unified_dispatcher_qualified', 'production_activated'))
     protocol = receipt.get('value_protocol', 'HIABVP01')
-    assert protocol in ('HIABVP01', 'HIABVP04', 'HIABVP05')
-    if protocol in ('HIABVP04', 'HIABVP05'):
+    assert protocol in ('HIABVP01', 'HIABVP04', 'HIABVP05', 'HIABVP09')
+    if protocol != 'HIABVP01':
         assert receipt['inherited_behavior_requalified'] is True
         assert receipt['value_class_queries_qualified'] is True
         assert receipt['future_kind_qualification']['path'] in receipt['source_files']
-        value_roles = RESOURCE_VALUE_ROLES if protocol == 'HIABVP05' else RECORD_VALUE_ROLES
-        value_packer = 'result_value_resources_packer' if protocol == 'HIABVP05' else 'result_value_records_packer'
+        profile = value_profile(protocol)
+        value_roles, value_packer = profile.roles, profile.packer
         assert receipt['value_roles'] == list(value_roles)
         assert receipt['value_packer'] == value_packer
         assert receipt['value_qualification']['path'] in receipt['source_files']
