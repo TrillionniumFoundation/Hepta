@@ -1,8 +1,9 @@
 """Fresh-process complete Slot observer: immutable original or actual controller.
 
-No expected observation is read by a candidate child. The 36-file original
-observer definitions, methods, fake providers and case ordering are unchanged.
-Only the supervising entry glue selects the independently frozen input file.
+No expected observation is read by a candidate child. The original-v1 mode
+retains all frozen definitions. The explicit deferred-json-snapshots-v3 mode revises
+only observer snapshot capture and seal bookkeeping; original product methods,
+fake providers, case ordering and all 36 frozen source files remain unchanged.
 """
 from __future__ import annotations
 import argparse
@@ -99,7 +100,7 @@ class _VMSelection:
         return self.image
 
 
-def load_observer(oracle_root):
+def load_observer(oracle_root, capture_version='original-v1'):
     global _OBSERVER
     path = oracle_root / 'observe_originals.py'
     raw = regular_bytes(path)
@@ -110,12 +111,27 @@ def load_observer(oracle_root):
     if (not isinstance(final, ast.If)
             or ast.unparse(final.test) != "__name__ == '__main__'"):
         raise ValueError('independent observer entry guard differs')
-    # No definition is edited. The external driver replaces only the CLI entry
-    # to select original248/derived7574 and the actual public implementation.
+    # original-v1 changes only the CLI entry. The explicitly selected v3 also
+    # revises the two snapshot expressions and moves two seal bookkeeping lines.
     admitted = ast.Module(body=tree.body[:-1], type_ignores=tree.type_ignores)
+    capture = {'version': 'original-v1', 'changed_snapshot_expressions': 0,
+               'changed_seal_statements': 0, 'changed_product_expressions': 0,
+               'changed_case_inputs': 0}
+    if capture_version == 'deferred-json-snapshots-v3':
+        from tests.hia_slot_observer_capture import rewrite_snapshot_calls
+        capture = rewrite_snapshot_calls(admitted)
+        capture['implementation'] = {
+            'path': 'tests/hia_slot_observer_capture.py',
+            **pin(Path(__file__).with_name('hia_slot_observer_capture.py'))}
+    elif capture_version != 'original-v1':
+        raise ValueError('unknown observer snapshot revision')
     code = compile(admitted, str(path), 'exec', dont_inherit=True, optimize=sys.flags.optimize)
     namespace = {'__name__': '__main__', '__file__': str(path), '__package__': None}
     exec(code, namespace)
+    if capture_version == 'deferred-json-snapshots-v3':
+        from tests.hia_slot_observer_capture import bind_snapshot_functions
+        bind_snapshot_functions(namespace)
+    namespace['_HIA_OBSERVER_CAPTURE'] = capture
     _SETUP.extend((tree, admitted, code, namespace))
     _OBSERVER = namespace
     return namespace
@@ -317,6 +333,8 @@ def main():
     parser.add_argument('--group', choices=('original248', 'derived7574'), required=True)
     parser.add_argument('--backend', choices=('original', 'vm', 'native'), required=True)
     parser.add_argument('--manifest', type=Path)
+    parser.add_argument('--capture-version', choices=('original-v1', 'deferred-json-snapshots-v3'),
+                        default='original-v1')
     parser.add_argument('--product-freeze', type=Path, required=True)
     parser.add_argument('--product-freeze-sha256', required=True)
     parser.add_argument('--output', type=Path, required=True)
@@ -335,7 +353,7 @@ def main():
                'executable': sys.executable, 'pid': os.getpid(), 'ppid': os.getppid(),
                'pgid': os.getpgrp(), 'argv': sys.argv, 'backend': options.backend}
     write_json(output / 'runtime.json', runtime)
-    namespace = load_observer(oracle_root)
+    namespace = load_observer(oracle_root, options.capture_version)
     backend = prepare_backend(root, options.backend, options.manifest)
     writes = namespace['install_audit'](oracle_root, output)
     namespace['load_originals'](oracle_root)
@@ -378,7 +396,8 @@ def main():
         'independent_VM_controller': options.backend == 'vm',
         'all_SQL_and_decision_providers_explicitly_fake': True,
         'candidate_read_any_expected_observations': False,
-        'original_observer_definitions_or_cases_modified': False,
+        'original_observer_definitions_or_cases_modified': options.capture_version != 'original-v1',
+        'observer_capture': namespace['_HIA_OBSERVER_CAPTURE'],
         'no_GC_before_or_between_cases_beyond_declared_inputs': True,
         'post_seal_gc_is_separate_not_handler_qualification': True,
         'audit_output_writes': writes,
