@@ -1,0 +1,53 @@
+name: Isolated HIA KernelCode live CPL0 QEMU regression (not Linux closure)
+on:
+  push:
+    branches:
+      - 'automation/hia-core-closed-baseline-isolation-*'
+  pull_request:
+    paths:
+      - 'tests/test_hia_kernel_invlpg_qemu.py'
+      - 'hepta/hia_machine_x64.py'
+      - 'hepta/hia_program_native.py'
+      - 'tests/fixtures/hia_kernel_invlpg_qemu_boot.S'
+      - 'tests/fixtures/hia_kernel_invlpg_qemu.ld'
+      - '.github/workflows/hia-kernel-isolation-qemu.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  invlpg-guest-hardware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install QEMU TCG and independent native object tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends build-essential binutils qemu-system-x86
+      - name: Core verifier, 80 GNU as instruction oracles, dishonest control
+        run: |
+          python -B -m unittest tests.test_hia_kernel_fence_core tests.test_hia_kernel_invlpg_core -v
+      - name: Genuine HIA emitted code in isolated CPL0 QEMU PC and Q35
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m tests.test_hia_kernel_invlpg_qemu | tee hia-invlpg-qemu-evidence.json
+      - name: Keep evidence, including failed paths
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-isolated-invlpg-qemu-evidence
+          path: hia-invlpg-qemu-evidence.json
+          if-no-files-found: ignore
+      - name: Explicitly withhold selfhost / full Linux closure
+        run: |
+          echo 'Experimental verified Python-authored Core lowering + NON-HIA boot observer only'
+          echo 'HIA .hepta selfhost_elf backend: NOT_RUN'
+          echo 'FULL_LINUX_REWRITE: HOLD'

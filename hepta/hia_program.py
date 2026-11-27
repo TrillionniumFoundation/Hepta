@@ -31,12 +31,12 @@ from .hia_sha256_native import payload_sha256
 from .hia_capability_flow import (Capability as _Capability,
                                   CapabilityFlowRejected, rename_capabilities)
 from .hia_schema import (
-    COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, PROFILE, PROFILE_V2, PROFILE_V3,
+    COMPOSITE_SCHEMA, COMPOSITE_SCHEMAS, PRIMITIVE_SCHEMAS, ALL_PRIMITIVE_PROFILES, PROFILE, PROFILE_V2, PROFILE_V3,
     PROFILE_V4, PROFILE_V5, PROFILE_V6, PROFILE_V7, PROFILE_V8, PROFILE_V9, SCHEMA, SCHEMA_V2, SCHEMA_V3,
     SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8, SCHEMA_V9, profile_for_schema, supports_feature,
 )
 from .hia_opcodes import (
-    BYTE_RESOURCES, EFFECTS, OWNERS, RESOURCES, SCALARS, TRAP_CODES, TYPES, WIDTHS,
+    BYTE_RESOURCES, EFFECTS, KERNEL_EFFECTS, OWNERS, RESOURCES, SCALARS, TRAP_CODES, TYPES, WIDTHS,
     TERMINATORS, OpcodeRejected, check_instruction, opcode_spec,
     scalar_value_valid as _catalog_scalar_value_valid,
 )
@@ -522,6 +522,22 @@ def _function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
                                      parameter_loan_returns=parameter_loan_returns)
 
 
+def _kernel_function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
+    """Check explicit kernel effects separately from unchanged Core shape."""
+    if type(fn) is not dict or "effects" not in fn:
+        return _function_shape(fn, recursive_chain=recursive_chain,
+                               parameter_loan_returns=parameter_loan_returns)
+    effects = fn["effects"]
+    if (type(effects) is not list
+            or any(type(effect) is not str or effect not in KERNEL_EFFECTS for effect in effects)
+            or len(effects) != len(set(effects))):
+        _reject("unknown/duplicate function effect", "E_HIA_EFFECT")
+    shape = dict(fn)
+    shape["effects"] = [effect for effect in effects if effect in EFFECTS]
+    return _function_shape(shape, recursive_chain=recursive_chain,
+                           parameter_loan_returns=parameter_loan_returns)
+
+
 def _reference_function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
     fields = {"name", "params", "returns", "effects", "entry", "blocks"}
     if parameter_loan_returns and type(fn) is dict and "return_loans" in fn:
@@ -852,15 +868,38 @@ def _reference_primitive_structure(data):
     if type(data) is dict and "exports" in data:
         fields.add("exports")
     _keys(data, fields, "program")
-    if type(data["schema"]) is not str or data["schema"] not in PRIMITIVE_SCHEMAS:
+    if type(data["schema"]) is not str or data["schema"] not in ALL_PRIMITIVE_PROFILES:
         _reject("unsupported program schema", "E_HIA_SCHEMA")
     _ident(data["module"], "module")
     if type(data["functions"]) is not list or not 1 <= len(data["functions"]) <= MAX_FUNCTIONS:
         _reject("invalid function inventory", "E_HIA_FORMAT")
     functions, block_maps = {}, {}
+    shape_check = (_kernel_function_shape if data["schema"] in {
+        "hepta.hia.program.kernel-fence.v1", "hepta.hia.program.kernel-tlb.v1"} else _function_shape)
     for fn in data["functions"]:
-        blocks = _function_shape(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
-                                 parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
+        try:
+            blocks = shape_check(fn, recursive_chain=supports_feature(data["schema"], "recursive_chain"),
+                                     parameter_loan_returns=supports_feature(data["schema"], "parameter_loan_returns"))
+        except HIAProgramRejected as error:
+            # Retain the original typed shape failure and its ordering.
+            # A valid effect list can additionally name the missing explicit
+            # profile permission; it still grants no ordinary Core effect.
+            effects = fn.get("effects") if type(fn) is dict else None
+            if (getattr(error, "code", None) == "E_HIA_EFFECT"
+                    and shape_check is _function_shape and type(effects) is list
+                    and all(type(effect) is str and effect in KERNEL_EFFECTS for effect in effects)
+                    and len(effects) == len(set(effects))):
+                if "privilege" in effects:
+                    _reject("privilege effect requires an explicit kernel-tlb schema", "E_HIA_EFFECT")
+                if "atomic" in effects:
+                    _reject("atomic effect requires an explicit kernel effect schema", "E_HIA_EFFECT")
+            raise
+        # Container/effect types are checked before these profile permissions.
+        if data["schema"] not in {"hepta.hia.program.kernel-fence.v1",
+                                  "hepta.hia.program.kernel-tlb.v1"} and "atomic" in fn["effects"]:
+            _reject("atomic effect requires an explicit kernel effect schema", "E_HIA_EFFECT")
+        if data["schema"] != "hepta.hia.program.kernel-tlb.v1" and "privilege" in fn["effects"]:
+            _reject("privilege effect requires the explicit kernel-tlb schema", "E_HIA_EFFECT")
         if fn["name"] in functions:
             _reject("duplicate function", "E_HIA_NAME")
         functions[fn["name"]], block_maps[fn["name"]] = fn, blocks

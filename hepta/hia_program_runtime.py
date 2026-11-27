@@ -283,6 +283,10 @@ class _Machine:
         outputs = ins["out"]
         typ = outputs[0]["type"] if outputs else None
         result = []
+        if op == "x86.tlb.invlpg":
+            raise HIAProgramRejected("x86 INVLPG requires native CPL0 execution", "E_HIA_RUNTIME_UNSUPPORTED")
+        if op == "x86.fence.mfence":
+            raise HIAProgramRejected("x86 MFENCE requires native execution", "E_HIA_RUNTIME_UNSUPPORTED")
         scalar_op = "cast." + attrs["mode"] if op == "int.cast" else op
         package_scalar = None
         if self.scalar_reference is None and scalar_op in NATIVE_SCALAR_OPCODES:

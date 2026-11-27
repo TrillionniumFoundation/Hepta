@@ -1,0 +1,32 @@
+{
+  "new": {
+    "bytes": 36702,
+    "sha256": "1b2938ac9c4db462bfd0c916d4cc96ed47c10802a84587a2481a57f57c167e40"
+  },
+  "old": {
+    "bytes": 36272,
+    "git_blob": "68de87dcf5a7efe78f51717703ad9cc1622f2082",
+    "sha256": "a136785154a23788e12048aa5e90a14d7275784725ef76192a5cab1b83e5535c"
+  },
+  "parent": "6e2520bcf4fb71e25fa4e75728318084b4cfb609",
+  "path": "tests/test_hia_kernel_selfhost_invlpg_qemu.py",
+  "schema": "hia.kernel.irq-instruction-boundary-successor.v1",
+  "splices": [
+    {
+      "after": "from tests.test_hia_kernel_invlpg_qemu import BOOT, LINKER, invoke, qemu\nfrom tools.qualify_hia_kernel_selfhost_invlpg import instruction_occurrences\n",
+      "before": "from tests.test_hia_kernel_invlpg_qemu import BOOT, LINKER, invoke, qemu\n"
+    },
+    {
+      "after": "        irq_text = raw.read_bytes()\n        opcode = bytes.fromhex(entry[\"oracle_hex\"])\n        instruction_sites = instruction_occurrences(output, label + \"-hardware\", irq_text, opcode)\n",
+      "before": "        irq_text = raw.read_bytes()\n        opcode = bytes.fromhex(entry[\"oracle_hex\"])\n"
+    },
+    {
+      "after": "or opcode != bytes.fromhex(expected_hex) or len(instruction_sites) != 1",
+      "before": "or opcode != bytes.fromhex(expected_hex) or irq_text.count(opcode) != 1"
+    },
+    {
+      "after": "        instruction_site = instruction_sites[0]\n        irq_bad = irq_text[:instruction_site] + b\"\\x90\" + irq_text[instruction_site + 1:]\n        if instruction_occurrences(output, label + \"-hardware-nop\", irq_bad, opcode):\n            raise AssertionError(label + \" instruction remained after NOP mutation\")\n",
+      "before": "        irq_bad = irq_text.replace(opcode, b\"\\x90\", 1)\n"
+    }
+  ]
+}

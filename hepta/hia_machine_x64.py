@@ -359,6 +359,132 @@ class Code:
             result[offset:offset + 4] = _s32(self.labels[target] - (offset + 4))
         return bytes(result), [dict(row) for row in self.relocations]
 
+class PrivilegedCode(Code):
+    """Unpromoted privilege-encoding surface; ordinary Code stays fixture-identical."""
+    # Privileged x86-64 *encoding only*. No HIA Core operation or verifier
+    # currently authorizes a caller to reach these instructions. Do not execute
+    # them in a host process; eventual use requires a separately verified
+    # kernel target/effect profile and isolated hardware qualification.
+    def read_cr3(self, destination):
+        r = self._reg(destination)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x20" +
+                  bytes([0xd8 | (r & 7)]))
+
+    def write_cr3(self, source):
+        r = self._reg(source)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x22" +
+                  bytes([0xd8 | (r & 7)]))
+
+    def invlpg(self, base, disp=0):
+        r = self._reg(base)
+        _s32(disp)  # Reject bool, non-integer and out-of-range displacement.
+        # ModRM /7 is memory-only. rbp/r13 require a displacement even at 0;
+        # rsp/r12 require the SIB byte. Use the shortest admitted encoding.
+        if disp == 0 and (r & 7) != 5:
+            mod, displacement = 0, b""
+        elif -128 <= disp <= 127:
+            mod, displacement = 1, struct.pack("<b", disp)
+        else:
+            mod, displacement = 2, _s32(disp)
+        modrm = (mod << 6) | 0x38 | (r & 7)
+        sib = b"\x24" if (r & 7) == 4 else b""
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x01" +
+                  bytes([modrm]) + sib + displacement)
+
+
+    # Unpromoted machine-byte encoding only. CPL0 authority, CPU-feature
+    # constraints and the actual privilege effect are not inferred here.
+    def read_cr0(self, destination):
+        r = self._reg(destination)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x20" +
+                  bytes([0xc0 | (r & 7)]))
+
+    def write_cr0(self, source):
+        r = self._reg(source)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x22" +
+                  bytes([0xc0 | (r & 7)]))
+
+    def read_cr4(self, destination):
+        r = self._reg(destination)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x20" +
+                  bytes([0xe0 | (r & 7)]))
+
+    def write_cr4(self, source):
+        r = self._reg(source)
+        self.emit((b"\x41" if r >= 8 else b"") + b"\x0f\x22" +
+                  bytes([0xe0 | (r & 7)]))
+
+    def rdmsr(self):
+        # ECX selects the MSR; EDX:EAX receives the 64-bit value; bad ECX #GP.
+        self.emit(b"\x0f\x32")
+
+    def wrmsr(self):
+        # ECX selects the MSR; EDX:EAX supplies its value; invalid writes #GP.
+        self.emit(b"\x0f\x30")
+
+    def lock_cmpxchg64(self, base, replacement, disp=0):
+        """Atomically compare RAX with a 64-bit memory word; write replacement.
+
+        On success ZF=1; on failure ZF=0 and RAX receives the actual old
+        word.  This is only a machine-code primitive, not a HIA resource/
+        memory-order proof.  A complete kernel path must check the resulting
+        ZF and separately coordinate TLB, DMA and all CPUs.
+        """
+        b, s = self._reg(base), self._reg(replacement)
+        _s32(disp)
+        if base == "rax" or replacement == "rax" or base == replacement:
+            raise MachineEncodingError("CMPXCHG requires distinct address/replacement registers excluding implicit RAX")
+        if disp == 0 and (b & 7) != 5:
+            mod, displacement = 0, b""
+        elif -128 <= disp <= 127:
+            mod, displacement = 1, struct.pack("<b", disp)
+        else:
+            mod, displacement = 2, _s32(disp)
+        # LOCK + REX.W + 0F B1 /r; ModRM.reg = replacement, r/m = base.
+        # rsp/r12 use a mandatory SIB; rbp/r13 cannot use mod=00 without disp.
+        rex = 0x48 | ((s >> 3) << 2) | (b >> 3)
+        modrm = (mod << 6) | ((s & 7) << 3) | (b & 7)
+        sib = b"\x24" if (b & 7) == 4 else b""
+        self.emit(b"\xf0" + bytes([rex]) + b"\x0f\xb1" +
+                  bytes([modrm]) + sib + displacement)
+
+    def iretq(self):
+        # Long-mode 64-bit interrupt return, not a normal function return.
+        self.emit(b"\x48\xcf")
+
+
+class KernelCode(Code):
+    """Isolated x86 kernel instruction encoder, not the original Code ABI.
+
+    Direct Core kernel-only entrypoints use this typed instruction surface;
+    bare Code and its frozen native HIA equivalent remain byte-for-byte intact.
+    """
+
+    def mfence(self):
+        """Architectural x86-64 MFENCE; does not imply remote CPU acknowledgement."""
+        self.emit(b"\x0f\xae\xf0")
+   
+    def invlpg(self, base, disp=0):
+        """Encode CPL0 INVLPG m8 using validated register/displacement operands.
+   
+        Encoding does not authorize execution, authenticate a page table or
+        prove CPU privilege; those are separate HIA kernel obligations.
+        """
+        b = self._reg(base)
+        if type(disp) is not int or not -(1 << 31) <= disp < (1 << 31):
+            raise MachineEncodingError("INVLPG displacement must be signed 32-bit")
+        if disp == 0 and (b & 7) != 5:
+            mode, displacement = 0, b""
+        elif -128 <= disp <= 127:
+            mode, displacement = 1, struct.pack("<b", disp)
+        else:
+            mode, displacement = 2, _s32(disp)
+        modrm = (mode << 6) | (7 << 3) | (b & 7)
+        sib = b"\x24" if (b & 7) == 4 else b""
+        prefix = b"\x41" if b >= 8 else b""
+        self.emit(prefix + b"\x0f\x01" + bytes([modrm]) + sib + displacement)
+
+
 # Bind this executing module, including its top-level constants, to retained source.
 from .hia_loaded_source import register_loaded_module as _register_loaded_source
 _register_loaded_source(__name__)

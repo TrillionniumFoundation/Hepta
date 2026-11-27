@@ -1,0 +1,52 @@
+{
+  "guest_images_oracles_and_timeouts_changed": false,
+  "reason": "QEMU 9.1 debug-exit uses guest shutdown; require the existing exact exit-code oracle with shutdown=poweroff instead of pausing",
+  "records": [
+    {
+      "current": {
+        "bytes": 12317,
+        "sha256": "29587290910bdd2ef42e1eb4a995437261346c0eeb03e6dc74a84231c7efb39a"
+      },
+      "original": {
+        "bytes": 12301,
+        "git_blob": "28f3e81fe17fffadca3c1e888edc67be8e2da13f",
+        "sha256": "8d3da11e62ff080c4303b2f3dbe1ccc6065df5d3502c1f10edc3b059b0148c3d"
+      },
+      "path": "tests/x86_privileged_qemu/run_hardware.py",
+      "replace": {
+        "new": "\"-action\", \"shutdown=poweroff\"",
+        "old": "\"-no-shutdown\""
+      }
+    },
+    {
+      "current": {
+        "bytes": 8895,
+        "sha256": "d7609462c69db9cc1f4bb3609d54f9b0cadd858b49d0f1d9c4c290bddb1affcf"
+      },
+      "original": {
+        "bytes": 8879,
+        "git_blob": "3d35be7269ee6c3bf5125a9152e9f37cb301b5d1",
+        "sha256": "6e02735dd3335a1087567e11d517fe628d48798b872849f3f52d13f0c1c3d894"
+      },
+      "path": "tests/test_hia_kernel_invlpg_qemu.py",
+      "replace": {
+        "new": "\"-action\", \"shutdown=poweroff\"",
+        "old": "\"-no-shutdown\""
+      }
+    }
+  ],
+  "schema": "hepta.hia.kernel-qemu-shutdown-policy-successor.v1",
+  "source_commit": "d81f64528b06937dcb6fa670ef0d67e8555769aa",
+  "upstream": [
+    {
+      "git_blob": "ab6de69ce72ff9ae9661e7c3354aa6951f49b29f",
+      "note": "direct exit before change",
+      "url": "https://github.com/qemu/qemu/blob/v8.2.0/hw/misc/debugexit.c"
+    },
+    {
+      "git_blob": "c5c562fd93577fde31eaa8453f84436aa8811c54",
+      "note": "guest shutdown with original exit code",
+      "url": "https://github.com/qemu/qemu/blob/v9.1.0/hw/misc/debugexit.c"
+    }
+  ]
+}

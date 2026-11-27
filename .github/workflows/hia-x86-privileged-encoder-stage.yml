@@ -1,0 +1,32 @@
+name: HIA x86 privilege encoding stage (unpromoted)
+
+on:
+  push:
+    branches:
+      - "automation/hia-x86-privileged-encoder-*"
+  pull_request:
+    paths:
+      - "hepta/hia_machine_x64.py"
+      - "hepta/hia_x86_kernel_descriptor.py"
+      - "tests/test_hia_x86_kernel_descriptor.py"
+      - "tests/test_hia_machine_x64_privileged.py"
+      - ".github/workflows/hia-x86-privileged-encoder-stage.yml"
+
+jobs:
+  independent-byte-oracle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify independent ISA byte oracle and negative controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v as
+          command -v objcopy
+          command -v objdump
+          python -m unittest discover -s tests -p 'test_hia_machine_x64_privileged.py' -v
+          python -m unittest discover -s tests -p 'test_hia_x86_kernel_descriptor.py' -v
