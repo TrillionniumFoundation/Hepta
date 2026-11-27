@@ -10,7 +10,7 @@ build=json.loads((D/'build.json').read_text());parts=[]
 for row in build['roles']:
  b=Path(row['path']).read_bytes();assert sha(b)==row['sha256'];parts.append(b)
 wire=struct.pack('<QQ',p.MAGIC,len(parts))+b''.join(struct.pack('<Q',len(x)) for x in parts)+b''.join(parts)
-expected=p.reference_object(parts);pack=Image(D/'packer.flat');w=C.create_string_buffer(4096);rows=[]
+expected=p.reference_object(parts);packer_raw=(D/'packer.flat').read_bytes();assert len(packer_raw)==build['packer_bytes'] and sha(packer_raw)==build['packer_sha256'];pack=Image(D/'packer.flat');w=C.create_string_buffer(4096);rows=[]
 bads=[('empty',b''),('short-header',wire[:95]),('truncated',wire[:-1]),('tail',wire+b'0'),('magic',b'INVALID!'+wire[8:])]
 for count in (0,9,11,2**64-1):bads.append(('count/'+str(count),wire[:8]+struct.pack('<Q',count)+wire[16:]))
 for index in range(10):
@@ -103,6 +103,7 @@ for label,path,flags in [('directory',D,os.O_RDONLY|os.O_DIRECTORY),('regular-im
  fd=os.open(path,flags)
  rc,out,streams,elapsed=native.run(strict(raw,fd));assert rc==7 and get(out,248)==2,(label,rc);os.fstat(fd);os.close(fd)
  rows.append(dict(case='strict-custody/'+label,status=rc,elapsed_ns=elapsed))
+assert (D/'packer.flat').read_bytes()==packer_raw
 report=dict(schema='hepta.hia.multiversion-prepare-admission-lifetime-pack.v1',whole_native_runtime=False,image_sha256=build['image_sha256'],passed=len(rows),failed=0,qa_delay_fixture_sha256=sha(fixture),cases=rows)
 (D/'lifetime-pack-qualification.json').write_text(json.dumps(report,indent=2)+'\n')
 print('ADMISSION_LIFETIME_PACK_PASS',len(rows),flush=True)

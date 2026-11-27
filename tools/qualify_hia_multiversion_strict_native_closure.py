@@ -121,6 +121,9 @@ def main():
         (destination / (name + "-build.json")).write_text(
             json.dumps(record, indent=2) + "\n")
         if name == "admission":
+            # The original lifetime/pack gate invokes this actual compiled policy.
+            (destination / "packer.flat").write_bytes(policy)
+            record.update(packer_bytes=len(policy), packer_sha256=sha(policy))
             (destination / "build.json").write_text(json.dumps(record, indent=2) + "\n")
         report["components"][name] = record
         save()
