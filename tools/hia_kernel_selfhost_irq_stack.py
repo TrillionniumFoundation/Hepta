@@ -159,25 +159,56 @@ ENCODING = (irq.SAVE + irq.PRECHECK + DISPATCH[:_RELEASE] +
             bytes.fromhex("4c89f8") + irq.PRECHECK + DISPATCH[_RELEASE:] +
             frame.ENCODING[len(irq.PRECHECK):])
 
+
+# Separate ABI: never reinterpret the original 0/1 raw descriptor lease.
+GENERATION_WORD = "x86.irq.dispatch_gen_stack"
+_GENERATION_ACQUIRE = bytes.fromhex("498b442418a80174020f0b4883f8fe72020f0b488d6801f0490fb16c241874020f0b")
+_GENERATION_GS = bytes.fromhex("b9010100c00f3248c1e2204809d04c39e074020f0b")
+_GENERATION_RELEASE = bytes.fromhex("4889e8488d5501f0490fb154241874020f0b")
+_OLD_ACQUIRE = bytes.fromhex("4831c0ba01000000f0490fb154241874020f0b")
+_AFTER_CALLBACK = bytes.fromhex("4c39f474020f0b")
+_OLD_RELEASE = bytes.fromhex("b8010000004831d2f0490fb154241874020f0b")
+assert ENCODING.count(_OLD_ACQUIRE) == ENCODING.count(_AFTER_CALLBACK) == ENCODING.count(_OLD_RELEASE) == 1
+GENERATION_ENCODING = (ENCODING.replace(_OLD_ACQUIRE,_GENERATION_ACQUIRE)
+    .replace(_AFTER_CALLBACK,_AFTER_CALLBACK+_GENERATION_GS)
+    .replace(_OLD_RELEASE,_GENERATION_RELEASE))
+GENERATION_ORACLE = (ORACLE.replace("xorq %rax,%rax\nmovl $1,%edx\nlock cmpxchgq %rdx,24(%r12)\nguard je\n", 'movq 24(%r12),%rax\ntestb $1,%al\nguard jz\ncmpq $-2,%rax\nguard jb\nleaq 1(%rax),%rbp\nlock cmpxchgq %rbp,24(%r12)\nguard je\n')
+    .replace("cmpq %r14,%rsp\nguard je\n", "cmpq %r14,%rsp\nguard je\n"+'movl $0xc0000101,%ecx\nrdmsr\nshlq $32,%rdx\norq %rdx,%rax\ncmpq %r12,%rax\nguard je\n')
+    .replace("movl $1,%eax\nxorq %rdx,%rdx\nlock cmpxchgq %rdx,24(%r12)\nguard je\n", 'movq %rbp,%rax\nleaq 1(%rbp),%rdx\nlock cmpxchgq %rdx,24(%r12)\nguard je\n'))
+
+def emission_segments():
+    rest=ENCODING
+    for old,new in ((_OLD_ACQUIRE,_GENERATION_ACQUIRE),(_AFTER_CALLBACK,_AFTER_CALLBACK+_GENERATION_GS),(_OLD_RELEASE,_GENERATION_RELEASE)):
+        head,rest=rest.split(old,1)
+        yield head
+        yield (old,new)
+    yield rest
+
 def extend_source(source, replace_once):
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
+    if op == @x86.irq.dispatch_gen_stack@:
+        return 62
     if op == @x86.irq.dispatch_on_stack@:
         return 62""")
     source = replace_once(source,
         "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_kernel_frame@:",
-        "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_on_stack@:")
+        "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_gen_stack@:")
     sig = ("def mmio_instruction(s:readbuf, o:mutbuf, w:mutbuf, op:u64, n:u64, "
            "at:u64, t:u64, v:u64, bt:u64, a:u64, b:u64) -> u64:")
     source = replace_once(source, sig, sig + """
+    if op == @x86.irq.dispatch_gen_stack@:
+        return irq_stack_instruction(s, w, n, t, 5)
     if op == @x86.irq.dispatch_on_stack@:
-        return irq_stack_instruction(s, w, n, t)""")
+        return irq_stack_instruction(s, w, n, t, 4)""")
     anchor = "def export_wrapper(o:mutbuf, w:mutbuf, record:u64) -> u64:"
     source = replace_once(source, anchor, anchor + """
+    if get(w, 200) == 5:
+        return irq_stack_export(o, w, record)
     if get(w, 200) == 4:
         return irq_stack_export(o, w, record)""")
     source += """
-def irq_stack_instruction(s:readbuf, w:mutbuf, n:u64, t:u64) -> u64:
+def irq_stack_instruction(s:readbuf, w:mutbuf, n:u64, t:u64, mode:u64) -> u64:
     if get(w, 200) != 1 or n != 0 or t != 0 or get(w, 288) != 0:
         return fail(w, 65)
     if get(w, 72) != 0 or get(w, 88) != 0 or get(w, 112) != 1 or get(w, 648) != 1:
@@ -189,66 +220,77 @@ def irq_stack_instruction(s:readbuf, w:mutbuf, n:u64, t:u64) -> u64:
         return fail(w, 65)
     if get(w, 40) != 0:
         return 0
-    put(w, 200, 4)
+    put(w, 200, mode)
     return 0
 
 def irq_stack_export(o:mutbuf, w:mutbuf, record:u64) -> u64:
     put(w, record + 32, get(w, 56))
 """
-    for off in range(0,len(ENCODING),8):
-        chunk=ENCODING[off:off+8]
-        source+=f"    emit_bytes(o, w, {int.from_bytes(chunk,'little')}, {len(chunk)})\n"
+    def emit(data, indent):
+        return "".join(f"{indent}emit_bytes(o, w, {int.from_bytes(data[off:off+8],'little')}, {len(data[off:off+8])})\n" for off in range(0,len(data),8))
+    for segment in emission_segments():
+        if isinstance(segment, tuple):
+            old,new = segment
+            source += "    if get(w, 200) == 5:\n" + emit(new,"        ") + "    else:\n" + emit(old,"        ")
+        else:
+            source += emit(segment,"    ")
     return source+"    put(w, record + 40, get(w, 56) - get(w, record + 32))\n    return 0\n"
 
 def program(profile, **kw):
     kw.setdefault("effects", EFFECTS)
     return irq.program(profile, **kw).replace(b"x86.irq.dispatch_kernel_frame",WORD.encode())
 
-def qualify(exe, output, profile, legacy, compile_cli, text_bytes, digest):
+def qualify(exe, output, profile, legacy, compile_cli, text_bytes, digest, generation=False):
     import subprocess
-    subject = program(profile)
-    obj = compile_cli(exe, subject, output, "irq-stack-1")
-    assert obj == compile_cli(exe, subject, output, "irq-stack-2")
-    machine = text_bytes(output, "irq-stack", obj)
+    tag = "irq-generation-stack" if generation else "irq-stack"
+    encoding = GENERATION_ENCODING if generation else ENCODING
+    dispatch_oracle = GENERATION_ORACLE if generation else ORACLE
+    def p(*args, **kwargs):
+        result=program(*args, **kwargs)
+        return result.replace(WORD.encode(),GENERATION_WORD.encode()) if generation else result
+    subject = p(profile)
+    obj = compile_cli(exe, subject, output, tag+"-1")
+    assert obj == compile_cli(exe, subject, output, tag+"-2")
+    machine = text_bytes(output, tag, obj)
     prefix = irq.ORACLE_PREFIX.split("movq %rax,%rdi",1)[0]
     restore = frame.ORACLE.split(" testq %rax,%rax",1)[1]
     check, tail = restore.split(" movq %rax,%rsp",1)
-    dispatch = ORACLE.split(".endm\n",1)[1]
+    dispatch = dispatch_oracle.split(".endm\n",1)[1]
     marker = "/* release only after callback and canary checks */"
     assert dispatch.count(marker) == 1
     dispatch = dispatch.replace(marker, "movq %r15,%rax\n testq %rax,%rax"+check+marker)
-    asm = output/"irq-stack-oracle.S"
+    asm = output/(tag+"-oracle.S")
     asm.write_text(prefix+dispatch+" movq %rax,%rsp"+tail)
-    oracle = output/"irq-stack-oracle.o"
+    oracle = output/(tag+"-oracle.o")
     subprocess.run(["as","--64","-o",str(oracle),str(asm)],check=True)
-    actual = text_bytes(output,"irq-stack-oracle-copy",oracle.read_bytes())
-    assert actual == ENCODING
-    assert machine.count(ENCODING) == 1
+    actual = text_bytes(output,tag+"-oracle-copy",oracle.read_bytes())
+    assert actual == encoding
+    assert machine.count(encoding) == 1
     other = "fn f1() -> () effects() entry(b0)\nblock b0()\n  ret()\nend\n"
     bad = {
-        "legacy":program(legacy,effects=()),
-        "legacy-effects":program(legacy),
-        "flat":program(profile,module="selfhost",exports=None),
-        "no-export":program(profile,exports=None),
-        "parameter":program(profile,params="v0:u64"),
-        "result":program(profile,op="  v0:u64 = x86.irq.dispatch_on_stack()\n"),
-        "operand":program(profile,params="v0:u64",op="  _ = x86.irq.dispatch_on_stack(v0)\n"),
-        "attribute":program(profile,op='  _ = x86.irq.dispatch_on_stack() {"trust_me":true}\n'),
-        "ordinary-return":program(profile,terminator="ret()"),
-        "wrong-trap":program(profile,terminator="trap bounds"),
-        "return-value":program(profile,returns="u64"),
-        "extra-function":program(profile,extra=other),
-        "extra-export":program(profile,exports="f0,f1",extra=other),
+        "legacy":p(legacy,effects=()),
+        "legacy-effects":p(legacy),
+        "flat":p(profile,module="selfhost",exports=None),
+        "no-export":p(profile,exports=None),
+        "parameter":p(profile,params="v0:u64"),
+        "result":p(profile,op="  v0:u64 = x86.irq.dispatch_on_stack()\n"),
+        "operand":p(profile,params="v0:u64",op="  _ = x86.irq.dispatch_on_stack(v0)\n"),
+        "attribute":p(profile,op='  _ = x86.irq.dispatch_on_stack() {"trust_me":true}\n'),
+        "ordinary-return":p(profile,terminator="ret()"),
+        "wrong-trap":p(profile,terminator="trap bounds"),
+        "return-value":p(profile,returns="u64"),
+        "extra-function":p(profile,extra=other),
+        "extra-export":p(profile,exports="f0,f1",extra=other),
         "extra-block":subject.replace(b"end\n",b"block b1()\n  trap user\nend\n",1),
-        "preceding-op":program(profile,op='  v0:u64 = const() {"value":1}\n  _ = x86.irq.dispatch_on_stack()\n'),
-        "following-op":program(profile,op='  _ = x86.irq.dispatch_on_stack()\n  v0:u64 = const() {"value":1}\n'),
+        "preceding-op":p(profile,op='  v0:u64 = const() {"value":1}\n  _ = x86.irq.dispatch_on_stack()\n'),
+        "following-op":p(profile,op='  _ = x86.irq.dispatch_on_stack()\n  v0:u64 = const() {"value":1}\n'),
     }
     for effect in EFFECTS:
-        bad["missing-"+effect]=program(profile,effects=tuple(x for x in EFFECTS if x!=effect))
+        bad["missing-"+effect]=p(profile,effects=tuple(x for x in EFFECTS if x!=effect))
     for name, malformed in bad.items():
-        compile_cli(exe,malformed,output,"irq-stack-"+name,expected=2)
+        compile_cli(exe,malformed,output,tag+"-"+name,expected=2)
     return {"source_sha256":digest(subject),"elf_sha256":digest(obj),
-            "text_sha256":digest(machine),"encoding_hex":ENCODING.hex(),
+            "text_sha256":digest(machine),"encoding_hex":encoding.hex(),
             "refusals":sorted(bad),"raw_export_required":True,
             "fixed_stack_bytes":16384,"bottom_canary_bytes":512,
             "descriptor_bytes":32,"general_cpu_page_authority_proved":False}
