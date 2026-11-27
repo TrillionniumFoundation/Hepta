@@ -3,6 +3,14 @@
 No fixture/oracle is evaluated by this development author.  The checked-in
 HIA executor performs the operations in an immutable source-bound plan.  It
 retains every node and full process observation in a lossless binary journal.
+
+The private pre-encode index selects only bytes already observed in this same
+journal. A hit still requires the original encoded-boundary index, a read of
+the actual prior physical bytes, their original SHA-256, independent decoding,
+and exact comparison with the current raw bytes. Execution results are never
+reused. Index misses run the original encoder and all its checks. The index
+occupies 3932160..4194304, after the 65536-byte physical-read buffer, inside the
+original 4 MiB workspace. The wire profiles and bounded journal stay unchanged.
 """
 from pathlib import Path
 import ast
@@ -49,6 +57,7 @@ def admit_step(s:readbuf, o:mutbuf, w:mutbuf, p:u64, r:u64) -> u32:
         if request(s, w) == 0:
             return finish(o, w, 65)
         fill_range(w, 3342336, 524288, 0)
+        fill_range(w, 3932160, 262144, 0)
         return call(o, w, 1, 110, 0, 0, 0, 0, 0, 0, 0)
     if failed(r):
         return finish(o, w, 74)
@@ -900,6 +909,52 @@ def archive_step(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
             return resume(s, o, w, 1101)
         return reading(o, w, get(w, 1500256), 700000, count, get(w, 1500264), 1101)
     if phase == 1101:
+        count = get(w, 1500288)
+        if count >= 64:
+            fingerprint = chunk_fingerprint(w, 700000, count)
+            put(w, 1501280, fingerprint)
+            slot = 3932160 + (fingerprint & 4095) * 64
+            offset = get(w, slot + 8)
+            amount = get(w, slot + 24)
+            if get(w, slot) == fingerprint and get(w, slot + 16) == count and offset != 0 and amount >= 64 and amount <= 65536:
+                offset = offset - 1
+                if offset < get(w, 1500128) and amount <= get(w, 1500128) - offset:
+                    put(w, 1501296, offset)
+                    put(w, 1501304, amount)
+                    copyw(w, 1501320, slot + 32, 32)
+                    return reading(o, w, uint(s, 56), 3866624, amount, offset, 1130)
+        return resume(s, o, w, 1140)
+    if phase == 1130:
+        amount = get(w, 1501304)
+        fingerprint = chunk_fingerprint(w, 3866624, amount)
+        slot = chunk_cache_slot(fingerprint)
+        if get(w, slot) != fingerprint or get(w, slot + 8) != get(w, 1501296) + 1 or get(w, slot + 16) != amount or same(w, slot + 24, 1501320, 32) == 0:
+            return resume(s, o, w, 1140)
+        return sha(o, w, 1131, 0, 1)
+    if phase == 1131:
+        if r != 0:
+            return finish(o, w, 74)
+        copyw(w, 65537, 3866624, get(w, 1501304))
+        return sha(o, w, 1132, 1, get(w, 1501304) + 1)
+    if phase == 1132:
+        if r != 0:
+            return finish(o, w, 74)
+        return sha(o, w, 1133, 2, 1)
+    if phase == 1133:
+        if r != 32 or same(w, 4096, 1501320, 32) == 0:
+            return finish(o, w, 74)
+        copyw(w, 800000, 3866624, get(w, 1501304))
+        if unpack_chunk(w, get(w, 1501304)) != get(w, 1500288) or chunk_equal(w, get(w, 1500288)) == 0:
+            return resume(s, o, w, 1140)
+        put(w, 800000, MAGIC_BACKREF)
+        put(w, 800008, get(w, 1500288))
+        put(w, 800016, 8)
+        put(w, 800024, 3)
+        put(w, 800032, get(w, 1501296))
+        put(w, 1500296, 40)
+        put(w, 1501104, 0)
+        return archive_ready(o, w)
+    if phase == 1140:
         amount = pack_chunk(w, get(w, 1500288))
         if amount == 0 or unpack_chunk(w, amount) != get(w, 1500288) or chunk_equal(w, get(w, 1500288)) == 0:
             return finish(o, w, 74)
@@ -941,6 +996,7 @@ def archive_step(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         copyw(w, 800000, 3866624, amount)
         if unpack_chunk(w, amount) != get(w, 1500288) or chunk_equal(w, get(w, 1500288)) == 0:
             return finish(o, w, 74)
+        raw_cache_store(w, get(w, 1501120), amount)
         put(w, 800000, MAGIC_BACKREF)
         put(w, 800008, get(w, 1500288))
         put(w, 800016, 8)
@@ -964,6 +1020,7 @@ def archive_step(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         if get(w, 1501104) != 0:
             chunk_cache_store(w, get(w, 1501112), get(w, 1500128), get(w, 1500296))
             copyw(w, chunk_cache_slot(get(w, 1501112)) + 24, 1501160, 32)
+            raw_cache_store(w, get(w, 1500128), get(w, 1500296))
         amount = get(w, 1500288)
         put(w, 1500240, get(w, 1500240) + amount)
         put(w, 1500128, get(w, 1500128) + get(w, 1500296))
@@ -971,6 +1028,18 @@ def archive_step(s:readbuf, o:mutbuf, w:mutbuf, phase:u64, r:u64) -> u32:
         put(w, 1500272, get(w, 1500272) - amount)
         return resume(s, o, w, 1100)
     return finish(o, w, 65)
+
+def raw_cache_store(w:mutbuf, offset:u64, amount:u64) -> u64:
+    if get(w, 1500288) < 64 or amount < 64:
+        return 0
+    fingerprint = get(w, 1501280)
+    slot = 3932160 + (fingerprint & 4095) * 64
+    put(w, slot, fingerprint)
+    put(w, slot + 8, offset + 1)
+    put(w, slot + 16, get(w, 1500288))
+    put(w, slot + 24, amount)
+    copyw(w, slot + 32, 1501160, 32)
+    return 0
 
 def archive_ready(o:mutbuf, w:mutbuf) -> u32:
     if get(w, 1500248) == 0:
