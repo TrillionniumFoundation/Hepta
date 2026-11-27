@@ -17,6 +17,7 @@ if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.hia_component_input_custody import capture_component_custody, verify_component_custody
 from tools.build_hia_source_build import _check_pack_output
 from tools.hia_selfhost_contract import PROFILE
 from tools.qualify_hia_selfhost import compile_stage,invoke
@@ -25,17 +26,19 @@ from tools.generate_hia_artifact_publication import MAGIC
 from hepta.artifact_publication_native import NATIVE_PUBLICATION_OPERATIONS,NATIVE_PUBLICATION_SOURCES
 OPERATIONS=list(NATIVE_PUBLICATION_OPERATIONS)
 SOURCES=NATIVE_PUBLICATION_SOURCES
+INPUTS=tuple(dict.fromkeys((*SOURCES, 'tools/build_hia_artifact_publication.py',
+    'tools/hia_component_input_custody.py', 'hepta/artifact_publication_native.py')))
 
 
 def build(output:Path,compiler:Path,cold_report:Path):
-    paths=[compiler,cold_report,*(ROOT/name for name in SOURCES)]
+    paths=[compiler,cold_report,*(ROOT/name for name in INPUTS)]
     pins={path:path.read_bytes() for path in paths}
     try:
         sources=admit_cold_build(pins[compiler],pins[cold_report])
     except ValueError as exc:
         raise ValueError('completed matching-source cold qualification required for native publication') from exc
-    if any(name not in sources or sha256(pins[ROOT/name]).hexdigest()!=sources[name] for name in SOURCES):
-        raise ValueError('native publication input differs from admitted cold source')
+    captured={name:pins[ROOT/name] for name in INPUTS}
+    custody=capture_component_custody(pins[compiler],pins[cold_report],sources,captured,root=ROOT)
     output.mkdir(mode=0o700);images={};receipts={}
     for label,name in zip(('policy','packer','sha256'),SOURCES[:3]):
         image,receipts[label]=compile_stage(output,label,compiler,pins[ROOT/name])
@@ -56,11 +59,14 @@ def build(output:Path,compiler:Path,cold_report:Path):
     if (any(path.read_bytes()!=raw for path,raw in pins.items()) or current_sources()!=sources
             or any(path.read_bytes()!=raw for path,raw in images.values())):
         raise ValueError('native publication build custody changed')
+    verify_component_custody(custody,pins[compiler],pins[cold_report],sources,captured,root=ROOT)
     path=output/'hia-artifact'
     with path.open('xb') as stream:stream.write(executable)
     path.chmod(0o700)
     report={'schema':'hepta.hia.artifact-publication-build.v1','status':'NATIVE_ARTIFACT_PUBLICATION_BUILT',
         'profile':PROFILE,'source_manifest':sources,'source_sha256':{name:sha256(pins[ROOT/name]).hexdigest() for name in SOURCES},
+        'component_inputs':{name:sha256(raw).hexdigest() for name,raw in captured.items()},
+        'component_input_custody':custody,
         'compiler_sha256':sha256(pins[compiler]).hexdigest(),'cold_report_sha256':sha256(pins[cold_report]).hexdigest(),
         'executable_path':path.name,'executable_sha256':sha256(executable).hexdigest(),'executable':inspection,
         'public_executable_sha256':sha256(executable).hexdigest(),
