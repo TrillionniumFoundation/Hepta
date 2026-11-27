@@ -102,9 +102,8 @@ def main():
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     if args.cold_report is not None:
         from tools.build_hia_store_lifecycle import build
-        cold = json.loads(args.cold_report.read_bytes())
-        nested = json.loads(Path(cold['nested_report']).read_bytes())
-        manifest = build(args.evidence / 'qualified', Path(nested['generations'][-1]['produced_image']),
+        from tools.hia_cold_compiler import compiler_from_cold_report
+        manifest = build(args.evidence / 'qualified', compiler_from_cold_report(args.cold_report),
                          args.cold_report)
         scope = 'MATCHING_SOURCE_COLD_ORIGINAL_STORE_LIFECYCLE_CALLERS'
     else:

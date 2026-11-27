@@ -715,7 +715,10 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
             raw = restore_evaluation_store(raw, capture(EVALUATION_STORE_FIXTURE))
         if _pin(raw) != expected:
             raise ValueError('qualifier prior terminal source changed after its admission')
-    raw_sources = {path: capture(path) for path in QUALIFIER_PATHS}
+    from tests.hia_cold_caller_selection_history import reviewed as review_selection, bind_adjustment
+    selection_records = {path: review_selection(path, capture(path), root=ROOT,
+        take=lambda name: capture(name.relative_to(ROOT).as_posix())) for path in QUALIFIER_PATHS}
+    raw_sources = {path: entry[0] for path, entry in selection_records.items()}
     all_old = all(_pin(raw_sources[path]) == QUALIFIER_RECORDS[path]['old'] for path in QUALIFIER_PATHS)
     all_new = all(_pin(raw_sources[path]) == QUALIFIER_RECORDS[path]['new'] for path in QUALIFIER_PATHS)
     if not all_old and not all_new:
@@ -742,6 +745,8 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
                 'scope': QUALIFIER_SCOPE, 'exact_splice_count': 3,
                 'complete_original_inverse_verified': True, 'full_forward_replay_verified': True,
                 'production_source_exception': False}
+            adjustments[path] = bind_adjustment(adjustments[path], captured[path],
+                                                selection_records[path][1])
     if set(adjustments) - set(authorities[original_kind]['unchanged_files']):
         raise ValueError('qualifier source adjustment escaped its original caller inventory')
     if set(adjustments) & set(prior['source_adjustments']):
@@ -996,7 +1001,10 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
         raw, record = capture(path), value['files'][path]
         expected = DIAGNOSTIC_RECORDS[path]
         from tests.hia_installed_distribution_history import predecessor
-        reviewed = predecessor(path, raw)
+        from tests.hia_cold_caller_selection_history import reviewed as review_selection, bind_adjustment
+        selected, selection_proof = review_selection(path, raw, root=ROOT,
+            take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+        reviewed = predecessor(path, selected)
         caller_update = (path == 'tools/qualify_hia_evaluation_callers.py'
                          and sha256(reviewed).hexdigest() == '4ff2b72e17ff08e0016379cd5242b6293344ba644eb607ea490c85f3a4c1a339')
         if caller_update:
@@ -1038,6 +1046,7 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
                             'restores_reviewed_diagnostic_source_exactly': True,
                         },
                     })
+                adjustments[path] = bind_adjustment(adjustments[path], raw, selection_proof)
     if (set(adjustments) - set(authorities[original_kind]['unchanged_files'])
             or set(adjustments) & set(prior['source_adjustments'])):
         raise ValueError('delivery diagnostic source adjustment escaped or overlapped its fixed scope')
@@ -1359,6 +1368,9 @@ def _admit_ordinary_caller_sources(original_value, original_kind, prior, frozen)
     restored, states, adjustments = {}, {}, {}
     for path in ORDINARY_CALLER_PATHS:
         source, expected, record = capture(path), ORDINARY_CALLER_RECORDS[path], value['files'][path]
+        from tests.hia_cold_caller_selection_history import reviewed as review_selection, bind_adjustment
+        selected, selection_proof = review_selection(path, source, root=ROOT,
+            take=lambda name: capture(name.relative_to(ROOT).as_posix()))
         if _pin(source) == expected['old']:
             preview = _ordinary_caller_transform(source, record, path, reverse=False)
             restored[path] = reverse_ordinary_caller(preview, record, path)
@@ -1366,7 +1378,7 @@ def _admit_ordinary_caller_sources(original_value, original_kind, prior, frozen)
                 raise ValueError('ordinary caller literal original replay differs')
             states[path] = 'EXACT_ORIGINAL'
         else:
-            restored[path] = reverse_ordinary_caller(source, record, path)
+            restored[path] = reverse_ordinary_caller(selected, record, path)
             states[path] = 'EXACT_REVIEWED_SUCCESSOR'
             adjustments[path] = {
                 'path': path, 'original_bytes': expected['old']['bytes'],
@@ -1377,6 +1389,7 @@ def _admit_ordinary_caller_sources(original_value, original_kind, prior, frozen)
                 'complete_original_inverse_verified': True,
                 'complete_current_forward_replay_verified': True, 'production_source_exception': False,
             }
+            adjustments[path] = bind_adjustment(adjustments[path], source, selection_proof)
     if not adjustments:
         for path, raw in captured.items():
             if (ROOT / path).read_bytes() != raw:
