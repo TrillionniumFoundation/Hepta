@@ -239,6 +239,25 @@ def original_view(root):
             or Path(cold.__file__).read_bytes() != cold_raw):
         raise ValueError('original source fixture imported another source reader')
     names = set(contract.SOURCE_FILES) | set(cold.PATHS) | set(VERSIONS)
+    frozen_component_rows = engine._relations(capture(engine.FIXTURE))
+    names.update(frozen_component_rows)
+    names.update(engine.CURRENT)
+    names.update(engine.SOURCE_HISTORY_INPUTS)
+    names.add(engine.FIXTURE)
+    # Complete original transport inventories include production files that
+    # are intentionally outside the compiler's SOURCE_FILES tuple.
+    authorities = {
+        'tests/fixtures/native_delivery_original_9c46166.json': {
+            'bytes': 71708, 'sha256': 'a1f82e1c955ece21319cc49a0e3834658a2eeb0be7636d6f13690e1d6b83dea7'},
+        'tests/fixtures/store_native_delivery_original_c019.json': {
+            'bytes': 173802, 'sha256': '5fccb548e4b98fd6de5ad2eb4dc88e1adac41112b1f2c850e8254d6b10853b54'},
+    }
+    for name, expected in authorities.items():
+        raw = capture(name)
+        if pin(raw) != expected:
+            raise ValueError('original source fixture transport inventory changed')
+        names.add(name)
+        names.update(json.loads(raw)['unchanged_files'])
     names.update((SELF, FIXTURE, ENGINE, cold.HISTORY_SOURCE, *cold.DEPENDENCIES,
                   'tools/hia_selfhost_contract.py'))
     sources = {name: capture(name) for name in sorted(names)}
@@ -288,12 +307,24 @@ def original_view(root):
         review['terminal_reread_identical'] = True
 
 
-def install_original_view(test_class, namespace, *, subjects=()):
+def install_original_view(test_class, namespace, *, subjects=(), terminal_predecessor=False):
     """Bind only this source-test class and its explicit reader modules."""
     physical_root = Path(namespace['ROOT']).resolve(strict=True)
     stack = ExitStack()
     stage, review = stack.enter_context(original_view(physical_root))
     try:
+        if terminal_predecessor:
+            from tools import hia_native_cold_composition_history as composition
+            from tools import hia_terminal_admission_source_history as terminal
+            actual = (physical_root / terminal.PATH).read_bytes()
+            projected, history = composition.prepare(
+                physical_root, {terminal.PATH: actual})
+            if history is None or composition.pin(projected[terminal.PATH]) != terminal.CURRENT:
+                raise ValueError('original terminal fixture lost its complete fixed predecessor')
+            stack.callback(composition.verify_unchanged, history)
+            (stage / terminal.PATH).write_bytes(projected[terminal.PATH])
+            review['historical_terminal_predecessor'] = dict(terminal.CURRENT)
+            review['current_terminal_composition'] = history['review']
         prior_root = namespace['ROOT']
         namespace['ROOT'] = stage
         stack.callback(namespace.__setitem__, 'ROOT', prior_root)

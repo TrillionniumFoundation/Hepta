@@ -88,6 +88,8 @@ class CurrentCallerSourceHistoryTests(unittest.TestCase):
             admitted = terminal._CapturedAdmission.__new__(terminal._CapturedAdmission)
             admitted._root, admitted._captured, admitted._physical = root, {}, {}
             admitted._result_source_history = {}
+            admitted._native_source_histories = {}
+            admitted._slot_source_history = {}
             result = admitted._capture(current.RESULT_PATH)
             self.assertEqual(current.pin(result), current.RESULT_ORIGINAL)
             self.assertEqual(current.pin(admitted._physical[current.RESULT_PATH]),
@@ -116,6 +118,8 @@ class CurrentCallerSourceHistoryTests(unittest.TestCase):
                     admitted = terminal._CapturedAdmission.__new__(terminal._CapturedAdmission)
                     admitted._root, admitted._captured, admitted._physical = root, {}, {}
                     admitted._result_source_history = {}
+            admitted._native_source_histories = {}
+            admitted._slot_source_history = {}
                     with self.assertRaises((ValueError, OSError)):
                         admitted._capture(current.RESULT_PATH)
 

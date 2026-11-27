@@ -18,6 +18,13 @@ def write(root, name, raw):
 
 
 class CurrentTerminalHistoryTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from tests import hia_store_delivery_successor as store_delivery
+        from tests.hia_native_cold_original_fixture import install_original_view
+        install_original_view(cls, globals(), subjects=(transport, store_delivery),
+                              terminal_predecessor=True)
+
     def stage(self, root):
         for name in (history.PATH, *history.DEPENDENCIES):
             write(root, name, (ROOT / name).read_bytes())
