@@ -276,8 +276,96 @@ INVERSE_HELPER_PIN = {
     'sha256': '60a30ab07d6c58ef0523531636a3250cc9e75402bffe75a07115012efa5d0774',
 }
 
+
+EVALUATION_CAPTURE_PATH = 'tools/qualify_hia_evaluation_callers.py'
+EVALUATION_CAPTURE_FIXTURE = 'tests/fixtures/hia_evaluation_caller_capture_history_v1.json'
+EVALUATION_CAPTURE_FIXTURE_PIN = {
+    'bytes': 5804, 'sha256': '12ad0d799e09f93eddab590ed0d5e68a5053d44a1406a5f7bc2856a98d0fb157',
+}
+EVALUATION_CAPTURE_EXPECTED = {
+    "tools/qualify_hia_evaluation_callers.py": {
+        "old": {
+            "bytes": 15063,
+            "sha256": "29c40723460571b2d336e6f23adec005b3f4a89aead62c826efb391d9de762d9"
+        },
+        "new": {
+            "bytes": 15168,
+            "sha256": "8a0f66a01385fce272205551af0722c31dc92197346f86e757693565d7952757"
+        }
+    },
+    "tests/hia_installed_distribution_history.py": {
+        "old": {
+            "bytes": 4355,
+            "sha256": "8a69299935e247a8bab59c6c030d9356110c709c196cc187f986eef5df19613d"
+        },
+        "new": {
+            "bytes": 5991,
+            "sha256": "383bb1438318495782d0112349fe1be7284b7034093949f394cf658aba787fdb"
+        }
+    }
+}
+
+
+def _evaluation_capture_proof():
+    return {
+        'schema': 'hepta.hia.evaluation-caller-capture-source-review.v1',
+        'path': EVALUATION_CAPTURE_PATH,
+        'old': dict(EVALUATION_CAPTURE_EXPECTED[EVALUATION_CAPTURE_PATH]['old']),
+        'new': dict(EVALUATION_CAPTURE_EXPECTED[EVALUATION_CAPTURE_PATH]['new']),
+        'fixture': {'path': EVALUATION_CAPTURE_FIXTURE, **EVALUATION_CAPTURE_FIXTURE_PIN},
+        'complete_pair': {path: {version: dict(identity) for version, identity in pair.items()}
+                          for path, pair in EVALUATION_CAPTURE_EXPECTED.items()},
+        'original_complete_callers': 81,
+        'complete_predecessor_restored': True,
+        'complete_successor_replayed': True,
+        'physical_capture_rewritten': False,
+        'terminal_reread_identical': True,
+        'whole_native_delivery_qualified': False,
+    }
+
+
+def _evaluation_capture_predecessor(name, raw, root, take):
+    if name != EVALUATION_CAPTURE_PATH or pin(raw) != EVALUATION_CAPTURE_EXPECTED[name]['new']:
+        return raw, None, {}
+    saved = {}
+    def capture(selected):
+        value = take(root / selected)
+        if selected in saved and saved[selected] != value:
+            raise ValueError('evaluation caller capture history changed during read')
+        saved[selected] = value
+        return value
+    for path, expected in EVALUATION_CAPTURE_EXPECTED.items():
+        physical = capture(path)
+        if pin(physical) != expected['new'] or path == name and physical != raw:
+            raise ValueError('evaluation caller capture pair is mixed or not physical')
+    frozen = capture(EVALUATION_CAPTURE_FIXTURE)
+    engine = capture(INVERSE_HELPER)
+    if pin(frozen) != EVALUATION_CAPTURE_FIXTURE_PIN or pin(engine) != INVERSE_HELPER_PIN:
+        raise ValueError('evaluation caller capture history authority differs')
+    value = json.loads(frozen, object_pairs_hook=_pairs)
+    if (type(value) is not dict or set(value) != {'schema', 'predecessor_commit',
+            'original_fixed_fixtures_modified', 'historical_projection_is_physical_source', 'files'}
+            or value['schema'] != 'hepta.hia.evaluation-caller-capture-history.v1'
+            or value['predecessor_commit'] != '4dd6c9703b5d3b5fc5aeae91cc45c6a9f2baacda'
+            or value['original_fixed_fixtures_modified'] is not False
+            or value['historical_projection_is_physical_source'] is not False
+            or type(value['files']) is not dict
+            or set(value['files']) != set(EVALUATION_CAPTURE_EXPECTED)
+            or EVALUATION_CAPTURE_EXPECTED[name]['old'] != EXPECTED[name]['new']):
+        raise ValueError('evaluation caller capture history fixed scope differs')
+    from tools import hia_frozen_component_sources as inverse
+    if Path(inverse.__file__).read_bytes() != engine:
+        raise ValueError('evaluation caller capture imported another inverse engine')
+    prior = {}
+    for path, expected in EVALUATION_CAPTURE_EXPECTED.items():
+        prior[path] = inverse.history_inverse(saved[path], value['files'][path], expected['old'])
+    return prior[name], _evaluation_capture_proof(), saved
+
+
 def current_pin(name):
     """Return an explicitly frozen complete current qualifier identity."""
+    if name == EVALUATION_CAPTURE_PATH:
+        return dict(EVALUATION_CAPTURE_EXPECTED[name]['new'])
     return dict(INTEGRATED_EXPECTED.get(name, EXPECTED[name])['new'])
 
 def _integrated_version(version):
@@ -348,21 +436,26 @@ def _integrated_predecessor(name, raw, root, take):
     return selected, _integrated_proof(name, version), saved
 
 def reviewed(name, raw, *, root=None, take=Path.read_bytes):
-    """Restore exact integrated admission, then the unchanged v1 selection."""
+    """Restore exact current admissions before the immutable v1 selection."""
     pin(raw)
     root = ROOT if root is None else Path(root)
-    selected, integrated, saved = _integrated_predecessor(name, raw, root, take)
+    selected, evaluation, evaluation_saved = _evaluation_capture_predecessor(name, raw, root, take)
+    selected, integrated, saved = _integrated_predecessor(name, selected, root, take)
     original, proof = _review_selection(name, selected, root=root, take=take)
-    if integrated is None:
+    if integrated is None and evaluation is None:
         return original, proof
     if proof is None or pin(original) != EXPECTED[name]['old']:
         raise ValueError('integrated caller history lost the original full-file authority')
-    for path, captured in saved.items():
+    if integrated is not None and evaluation is not None:
+        raise ValueError('distinct current caller history domains overlap')
+    for path, captured in {**saved, **evaluation_saved}.items():
         if take(root / path) != captured:
             raise ValueError('integrated caller history terminal source capture differs')
+    current = evaluation if evaluation is not None else integrated
     return original, {
-        **proof, 'new': dict(integrated['new']),
-        'integrated_source_admission': integrated,
+        **proof, 'new': dict(current['new']),
+        **({'integrated_source_admission': integrated} if integrated is not None else {}),
+        **({'evaluation_caller_capture': evaluation} if evaluation is not None else {}),
     }
 
 def predecessor(name, raw, *, root=None, take=Path.read_bytes):
@@ -378,7 +471,19 @@ def bind_adjustment(entry, raw, proof):
     expected = EXPECTED[name]
     actual = pin(raw)
     integrated = proof.get('integrated_source_admission')
-    if integrated is None:
+    evaluation = proof.get('evaluation_caller_capture')
+    if evaluation is not None:
+        if (name != EVALUATION_CAPTURE_PATH or integrated is not None
+                or type(evaluation) is not dict or evaluation != _evaluation_capture_proof()
+                or evaluation.get('complete_predecessor_restored') is not True
+                or evaluation.get('complete_successor_replayed') is not True
+                or evaluation.get('physical_capture_rewritten') is not False
+                or evaluation.get('terminal_reread_identical') is not True
+                or evaluation.get('whole_native_delivery_qualified') is not False
+                or type(evaluation.get('original_complete_callers')) is not int):
+            raise ValueError('caller selection evaluation capture proof differs')
+        current = EVALUATION_CAPTURE_EXPECTED[name]['new']
+    elif integrated is None:
         current = expected['new']
     else:
         version = next((number for number in (3, 2)

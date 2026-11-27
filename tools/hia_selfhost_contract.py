@@ -2875,6 +2875,12 @@ SOURCE_FILES = (
     'tests/test_hia_current_terminal_admission_history.py',
     'tools/hia_scoped_caller_source_history.py',
     'tests/test_hia_scoped_caller_source_history.py',
+    'tools/hia_evaluation_window_history.py',
+    'tests/fixtures/hia_evaluation_window_history_v1.json',
+    'tests/fixtures/hia_evaluation_caller_capture_history_v1.json',
+    'tests/test_hia_evaluation_window_history.py',
+    'tests/test_hia_installed_evaluation_source_history.py',
+    'tests/test_hia_evaluation_caller_capture_history.py',
 )
 
 
