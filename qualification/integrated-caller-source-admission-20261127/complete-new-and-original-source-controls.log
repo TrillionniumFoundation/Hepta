@@ -1,0 +1,102 @@
+test_01_actual_current_sources_keep_complete_original_tables_and_distinct_proofs (tests.test_hia_integrated_caller_source_admission.IntegratedCallerSourceTests.test_01_actual_current_sources_keep_complete_original_tables_and_distinct_proofs) ... ok
+test_02_selected_root_missing_or_changed_history_cannot_use_default_repository (tests.test_hia_integrated_caller_source_admission.IntegratedCallerSourceTests.test_02_selected_root_missing_or_changed_history_cannot_use_default_repository) ... ok
+test_03_every_actual_capture_is_reread_and_refuses_terminal_drift (tests.test_hia_integrated_caller_source_admission.IntegratedCallerSourceTests.test_03_every_actual_capture_is_reread_and_refuses_terminal_drift) ... ok
+test_04_unknown_whole_sources_do_not_enter_fixed_history (tests.test_hia_integrated_caller_source_admission.IntegratedCallerSourceTests.test_04_unknown_whole_sources_do_not_enter_fixed_history) ... ok
+test_05_complete_reviewed_output_pin_cannot_be_substituted (tests.test_hia_integrated_caller_source_admission.IntegratedCallerSourceTests.test_05_complete_reviewed_output_pin_cannot_be_substituted) ... ok
+test_06_actual_capture_binding_retains_physical_current_bytes (tests.test_hia_integrated_caller_source_admission.IntegratedCallerSourceTests.test_06_actual_capture_binding_retains_physical_current_bytes) ... ok
+test_07_old_source_domains_do_not_gain_history_captures_or_proofs (tests.test_hia_integrated_caller_source_admission.IntegratedCallerSourceTests.test_07_old_source_domains_do_not_gain_history_captures_or_proofs) ... ok
+test_08_all_captured_members_refuse_missing_or_tampered_bytes (tests.test_hia_integrated_caller_source_admission.IntegratedCallerSourceTests.test_08_all_captured_members_refuse_missing_or_tampered_bytes) ... ok
+test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors) ... 
+  test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors) (scope='artifact132', current=False) ... ERROR
+  test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors) (scope='artifact132', current=True) ... ERROR
+test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors) ... ERROR
+test_02_every_capture_refuses_missing_tamper_cached_and_terminal_drift (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_02_every_capture_refuses_missing_tamper_cached_and_terminal_drift) ... ERROR
+test_03_actual_capture_maps_and_valid_source_swaps_cannot_bypass_binding (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_03_actual_capture_maps_and_valid_source_swaps_cannot_bypass_binding) ... ERROR
+test_complete_store_sources_old_current_and_drift_without_loading_tests (tests.test_hia_caller_diagnostics_admission.CallerDiagnosticsSourceTests.test_complete_store_sources_old_current_and_drift_without_loading_tests) ... ok
+test_exact_complete_source_inverse_and_independent_reader (tests.test_hia_caller_diagnostics_admission.CallerDiagnosticsSourceTests.test_exact_complete_source_inverse_and_independent_reader) ... ok
+test_unreviewed_source_provenance_and_expected_pin_are_refused (tests.test_hia_caller_diagnostics_admission.CallerDiagnosticsSourceTests.test_unreviewed_source_provenance_and_expected_pin_are_refused) ... ok
+
+======================================================================
+ERROR: test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors) (scope='artifact132', current=False)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 116, in test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors
+    actual, proof = admit(subject, self.root)
+                    ~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 45, in admit
+    return subject.admit_inventory(root, with_source_admission=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 91, in admit_inventory
+    relation = _admit_diagnostic_source(capture, record['path'], current, record['sha256'])
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 47, in _admit_diagnostic_source
+    raise ValueError('an original complete caller module changed: ' + name)
+ValueError: an original complete caller module changed: tests/test_hia_agent_assembly.py
+
+======================================================================
+ERROR: test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors) (scope='artifact132', current=True)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 116, in test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors
+    actual, proof = admit(subject, self.root)
+                    ~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 45, in admit
+    return subject.admit_inventory(root, with_source_admission=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 91, in admit_inventory
+    relation = _admit_diagnostic_source(capture, record['path'], current, record['sha256'])
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 47, in _admit_diagnostic_source
+    raise ValueError('an original complete caller module changed: ' + name)
+ValueError: an original complete caller module changed: tests/test_hia_agent_assembly.py
+
+======================================================================
+ERROR: test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 143, in test_01_whole_original_and_current_domains_preserve_all_ids_and_selectors
+    actual, proof = admit(subject, self.root)
+                    ~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 45, in admit
+    return subject.admit_inventory(root, with_source_admission=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 91, in admit_inventory
+    relation = _admit_diagnostic_source(capture, record['path'], current, record['sha256'])
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 47, in _admit_diagnostic_source
+    raise ValueError('an original complete caller module changed: ' + name)
+ValueError: an original complete caller module changed: tests/test_hia_agent_assembly.py
+
+======================================================================
+ERROR: test_02_every_capture_refuses_missing_tamper_cached_and_terminal_drift (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_02_every_capture_refuses_missing_tamper_cached_and_terminal_drift)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 149, in test_02_every_capture_refuses_missing_tamper_cached_and_terminal_drift
+    _, proof = admit(subject, self.root)
+               ~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 45, in admit
+    return subject.admit_inventory(root, with_source_admission=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 91, in admit_inventory
+    relation = _admit_diagnostic_source(capture, record['path'], current, record['sha256'])
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 47, in _admit_diagnostic_source
+    raise ValueError('an original complete caller module changed: ' + name)
+ValueError: an original complete caller module changed: tests/test_hia_agent_assembly.py
+
+======================================================================
+ERROR: test_03_actual_capture_maps_and_valid_source_swaps_cannot_bypass_binding (tests.test_hia_cost_artifact_caller_admission.CostArtifactCallerAdmissionSourceTests.test_03_actual_capture_maps_and_valid_source_swaps_cannot_bypass_binding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 177, in test_03_actual_capture_maps_and_valid_source_swaps_cannot_bypass_binding
+    _, proof = admit(subject, self.root)
+               ~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tests/test_hia_cost_artifact_caller_admission.py", line 45, in admit
+    return subject.admit_inventory(root, with_source_admission=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 91, in admit_inventory
+    relation = _admit_diagnostic_source(capture, record['path'], current, record['sha256'])
+  File "/home/qian-qi/hia-file-capture-native-reader-20261127-2ac5/tools/qualify_hia_artifact_delivery_callers.py", line 47, in _admit_diagnostic_source
+    raise ValueError('an original complete caller module changed: ' + name)
+ValueError: an original complete caller module changed: tests/test_hia_agent_assembly.py
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.090s
+
+FAILED (errors=5)
