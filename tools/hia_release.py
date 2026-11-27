@@ -6,15 +6,18 @@ from pathlib import Path
 import sys
 ROOT=Path(__file__).resolve().parents[1]
 if __package__ in {None,""}: sys.path.insert(0,str(ROOT))
-from tools.hia_selfhost_contract import SOURCE_FILES, CONTRACT_PATH, validate_contract
+from tools.hia_selfhost_contract import SOURCE_FILES, CONTRACT_PATH
+from tools.hia_release_contract import source_domain, validate_release_contract
 BOOTSTRAP_FILES=(*SOURCE_FILES,CONTRACT_PATH)
 
-def describe():
-    contract=validate_contract()
+def describe(root=ROOT):
+    contract=validate_release_contract(root)
+    domain=source_domain(contract)
     return {"schema":"hepta.hia.core-only-release.v1", "profile":contract["profile"],
             "source_identity":contract["source_identity"], "entry":"hia",
             "native_stdio_commands":["capabilities","verify","compile","render-assembly","assemble","check-assembly","catalog"],
-            "high_level_source_language":"removed", "host_build_requires_python":True,
+            "high_level_source_language":"removed", "source_contract_domain":domain,
+            "host_build_requires_python":domain == 'hosted',
             "agent_editing_and_persistence_native":False,
             "whole_native_delivery_qualified":False,"production_activated":False}
 
