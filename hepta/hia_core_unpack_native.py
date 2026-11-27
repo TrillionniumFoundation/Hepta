@@ -134,6 +134,13 @@ class UnpackSession:
         if self.busy:
             self._seal()
             raise RuntimeError('UNPACK primitive is already active')
+        try:
+            from .hia_native_helpers import check_core_companion_image
+            check_core_companion_image(self.image)
+        except BaseException:
+            self._seal()
+            self._abort()
+            raise
 
     def _pointer(self, slot):
         if type(slot) is not int or not 1 <= slot <= 9 or not self.cells[slot]:
@@ -364,7 +371,7 @@ class UnpackSession:
 
 
 class NativeUnpack:
-    """Explicit experimental composition; never loaded by a default selector."""
+    """Exact UNPACK owner selected explicitly or by the pinned Core Worker capsule."""
 
     def __init__(self, image):
         self.image = image
