@@ -1,25 +1,52 @@
-# HTTP source-build capacity checkpoint
+# HTTP compatibility with the actual release B3 compiler
 
-The actual ordinary-release source builder refused HTTP dispatch with native
-failure 54 at 8192 instructions and HTTP events with failure 37 at the 2048
-per-function value limit. The compiler and every capacity remain unchanged.
+The source checkpoint `66f2cdec48442b7e9f8bed278b54906a041916f6` fixes two real
+release compiler capacity failures without changing the compiler's 1 MiB ABI,
+8192-instruction limit, or 2048-value per-function limit. The original
+`checkpoint.json` is retained as the historical pre-qualification record.
 
-This source change packs the pinned first 908 Unicode ranges into 32-bit
-initialization records, expands them backwards within the original 7272-byte
-table, and retains the last wide range and the original lookup. It also moves
-the intact fourteen contiguous event replay phase bodies to a private function.
-The stdio dispatch receives the same diagnostic initializer.
+The diagnostic initializer packs the original 909 Unicode ranges, then expands
+them backwards into the same 7272-byte private table before lookup. The HTTP
+events author moves the fourteen intact replay phases into a separate function.
+The exact original release source-build ELF now compiles the complete captured
+twelve-unit bundle; the other ten unit sources and products are unchanged.
 
-The original captured twelve-unit sources bundle was rebuilt by the exact
-813129-byte source-build ELF (SHA256
-494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af).
-Only the two rejected source members were replaced. All twelve now compile,
-and every other source member and native product remains byte-for-byte equal.
-The full original failure, compiler, original input, changed input and complete
-24-member output are retained here. These are independent component evidence,
-not a new cold-source or whole-release qualification.
+## Completed independent controls
 
-Native Unicode/phase controls and complete public regression are continuing.
-This checkpoint does not qualify the separate metadata batch or pending index
-work. No new native source identity is introduced. Shared source authority and
-release identities must be regenerated from the eventual integrated HEAD.
+`qualified/qualification.json` links the complete raw reports and preserves the
+component scope. All 247 original public/native cases pass: native history 16,
+history public 74, archive public 37, usage public 22, large diagnostics 16, HTTP
+continuations 59, and real HTTP 23. These retain the original 3-second product
+query budget, 16 MiB SDK framing and 8 MiB canonical query bounds. Fixtures and
+executable products were on ROG `/tmp`; raw archives were copied to the external
+volume. This is not a storage-performance qualification.
+
+The new capacity observer additionally checks all 7272 initialized bytes and
+4107 Unicode boundaries, restores the complete original replay AST, and compares
+126 old/new phase-result combinations including each full 384 MiB private state
+and syscall plan. The original compiler rejects a short compiler workspace and
+an exclusive-resource alias without writing its output. Public process adapters
+own fixed complete, disjoint state buffers; no extra raw flat-ABI short/alias
+validation is claimed. The exact observer used for the successful run is
+`tools/qualify_hia_mcp_http_b3_capacity.py`.
+
+## Raw custody and failed attempts
+
+`qualified/artifact-manifest.json` pins every appended artifact. Complete output
+archives retain raw inputs, observations, products and original qualifications;
+`archive-inventory.json` records full archive readback. The source manifest pins
+every native source used by the three fresh component constructions against the
+exact source commit. Original orchestration payloads and stdout/stderr are kept.
+
+The preceding ENOSPC failure, missing sparse support import, missing sibling
+diagnostic fixture, and the first observer's regex failure are preserved beside
+the successful continuation. They were not overwritten or counted as passes.
+The product sources stayed byte-for-byte equal to the original source checkpoint
+during all corrected observer/fixture runs.
+
+## Remaining integration gates
+
+This checkpoint does not claim a new whole-cold qualification, ordinary release,
+installation, installed rebuild, metadata batching or pending-index completion.
+The canonical integration must regenerate its shared source authority and run
+the complete chain against its final source/distribution tuple.

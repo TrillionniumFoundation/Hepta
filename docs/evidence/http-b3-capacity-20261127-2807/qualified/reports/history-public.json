@@ -1,0 +1,482 @@
+{
+  "cases": [
+    {
+      "case": "empty",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "all",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "page-one",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "page-two",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "end",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "foreign",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "expired",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "other-owner",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "nulls",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "limit-zero",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "limit-33",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "limit-65535",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "limit-65536",
+      "exact_text_checked": true,
+      "native_rpc_message": "failed to deserialize parameters: invalid value: integer `65536`, expected u16",
+      "original_deserializer_message": "invalid value: integer `65536`, expected u16",
+      "outcome": "params_error",
+      "passed": true
+    },
+    {
+      "case": "limit-float",
+      "exact_text_checked": true,
+      "native_rpc_message": "failed to deserialize parameters: invalid type: floating point `1.0`, expected u16",
+      "original_deserializer_message": "invalid type: floating point `1.0`, expected u16",
+      "outcome": "params_error",
+      "passed": true
+    },
+    {
+      "case": "limit-neg-zero",
+      "exact_text_checked": true,
+      "native_rpc_message": "failed to deserialize parameters: invalid type: floating point `-0.0`, expected u16",
+      "original_deserializer_message": "invalid type: floating point `-0.0`, expected u16",
+      "outcome": "params_error",
+      "passed": true
+    },
+    {
+      "case": "limit-negative",
+      "exact_text_checked": true,
+      "native_rpc_message": "failed to deserialize parameters: invalid value: integer `-1`, expected u16",
+      "original_deserializer_message": "invalid value: integer `-1`, expected u16",
+      "outcome": "params_error",
+      "passed": true
+    },
+    {
+      "case": "limit-bool",
+      "exact_text_checked": true,
+      "native_rpc_message": "failed to deserialize parameters: invalid type: boolean `true`, expected u16",
+      "original_deserializer_message": "invalid type: boolean `true`, expected u16",
+      "outcome": "params_error",
+      "passed": true
+    },
+    {
+      "case": "limit-string",
+      "exact_text_checked": true,
+      "native_rpc_message": "failed to deserialize parameters: invalid type: string \"1\", expected u16",
+      "original_deserializer_message": "invalid type: string \"1\", expected u16",
+      "outcome": "params_error",
+      "passed": true
+    },
+    {
+      "case": "unknown",
+      "exact_text_checked": true,
+      "native_rpc_message": "failed to deserialize parameters: unknown field `owner`, expected `after_id` or `limit`",
+      "original_deserializer_message": "unknown field `owner`, expected `after_id` or `limit`",
+      "outcome": "params_error",
+      "passed": true
+    },
+    {
+      "case": "after-number",
+      "exact_text_checked": true,
+      "native_rpc_message": "failed to deserialize parameters: invalid type: integer `1`, expected a string",
+      "original_deserializer_message": "invalid type: integer `1`, expected a string",
+      "outcome": "params_error",
+      "passed": true
+    },
+    {
+      "case": "after-short",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "after-uppercase",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "duplicate-last",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "duplicate-first",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "time-18446744073709551615",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "time-18446744073709551616",
+      "exact_text_checked": true,
+      "outcome": "join_error",
+      "passed": true
+    },
+    {
+      "case": "time-340282366920938463463374607431768211455",
+      "exact_text_checked": true,
+      "outcome": "join_error",
+      "passed": true
+    },
+    {
+      "case": "elapsed-u64-max",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "full-page-0",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "full-page-1",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "full-page-2",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "full-page-3",
+      "exact_text_checked": true,
+      "outcome": "ok",
+      "passed": true
+    },
+    {
+      "case": "record-unknown",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "record-duplicate",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "record-time-overflow",
+      "exact_text_checked": true,
+      "outcome": "tool_error",
+      "passed": true
+    },
+    {
+      "case": "diagnostic-0",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-1",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-2",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-3",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-4",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-5",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-6",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-7",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-8",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-9",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-10",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-11",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-12",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-13",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-14",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-15",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-16",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-17",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-18",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-19",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-20",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-21",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-22",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-23",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-24",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-25",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-0",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-1",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-2",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-3",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-4",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-5",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-6",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-7",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-8",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-unicode-9",
+      "diagnostic": true,
+      "exact_text_checked": true,
+      "passed": true
+    },
+    {
+      "case": "diagnostic-string-cap",
+      "diagnostic": true,
+      "passed": true,
+      "streamed_exact_original_diagnostic": true
+    },
+    {
+      "case": "catalog-exact-schema-and-omitted-or-null-args",
+      "passed": true
+    },
+    {
+      "case": "stdio-owner-reconnect-isolation",
+      "passed": true
+    }
+  ],
+  "cases_sha256": "8d9bac08b840dd160a6f20ea1f3d0364cbc1abcccf18d89fc6f8a13d63d2f0db",
+  "fixture_is_not_an_installed_worker": true,
+  "large_diagnostics_streamed": true,
+  "manifest_sha256": "e97127b79c2a9aaa89bebb5dbb673cbf086274672d57a9443966aed1e782624c",
+  "observed_original_parameter_errors_equal": true,
+  "oracle_sha256": "f85b21ae1b4488d532f2257e15f050c62a20737324869461ae9c940c2138f91b",
+  "original_rust_case_count": 37,
+  "parameter_cases_sha256": "cd4f3e649b09482264c2f3d2a39ec650e48baf111c2555d6640fa257b527005c",
+  "parameter_diagnostic_cases": 37,
+  "parameter_oracle_sha256": "b5e2c9efaa7bf1a8854205e20e872795d15f84a85edca5e743b96505d6d2d76a",
+  "passed": true,
+  "public_additional_cases": 2,
+  "public_exclusions": {
+    "active-state": "real live kernel-ticket behavior covered by native daemon controls",
+    "invalid-owner": "trusted owner is not caller selectable; malformed owner covered by daemon protocol controls"
+  },
+  "public_oracle_cases": 35,
+  "schema": "hepta.hia.request-history-public-original-comparison.v1",
+  "scope": "actual public native stdio request_history behavior",
+  "service_sha256": "e711036c06edeb6b84cad124046e7d8d96196cb6b2633eda04f9f5554aab1820",
+  "typed_diagnostic_small_buffer_bytes": 1048576,
+  "whole_cold_qualified": false
+}

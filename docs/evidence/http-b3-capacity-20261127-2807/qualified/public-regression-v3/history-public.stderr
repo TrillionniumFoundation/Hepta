@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tools/qualify_hia_mcp_request_history_public.py", line 272, in <module>
+    main()
+    ~~~~^^
+  File "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tools/qualify_hia_mcp_request_history_public.py", line 266, in main
+    report=qualify(args.bundle.resolve(),args.cases.resolve(),args.oracle.resolve(),args.output.resolve())
+  File "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tools/qualify_hia_mcp_request_history_public.py", line 193, in qualify
+    assert pin(large_path)=='8ee3539beb7f9987785a6ba86622f9feb7c030fecc9fc6a731c00d12d3a53d44'
+           ~~~^^^^^^^^^^^^
+  File "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tools/qualify_hia_mcp_request_history_public.py", line 22, in pin
+    return sha256(path.read_bytes()).hexdigest()
+                  ~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 778, in read_bytes
+    with self.open(mode='rb', buffering=0) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 772, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/hia-http-b3-public-20261127-2807-v3/hia_usage_oracle/diagnostics.json'

@@ -1,0 +1,221 @@
+{
+  "schema": "hia.http-b3-independent-public-regression.v1",
+  "source_head": "66f2cdec48442b7e9f8bed278b54906a041916f6",
+  "source_tree": "c6aa9aff38d61810e63ad16d9e1754ae816c4597",
+  "steps": [
+    {
+      "name": "history-public",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_request_history_public",
+        "--bundle",
+        "/tmp/hia-http-b3-public-20261127-2807-v2/public/controller",
+        "--cases",
+        "/tmp/hia-http-b3-public-20261127-2807-v4/history-reference/oracle-cases.jsonl",
+        "--oracle",
+        "/tmp/hia-http-b3-public-20261127-2807-v4/history-reference/original-observations.json",
+        "--output",
+        "/tmp/hia-http-b3-public-20261127-2807-v4/history-public"
+      ],
+      "timeout_seconds": 600,
+      "returncode": 0,
+      "seconds": 52.088553884008434,
+      "stdout": {
+        "bytes": 3506,
+        "sha256": "2681c763407e075d1944e9bcc2512751ab2c642edad01d73bb2421de2c222e4a"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "qualification": {
+        "path": "/tmp/hia-http-b3-public-20261127-2807-v4/history-public/qualification.json",
+        "sha256": "20a4ac5a4e6c65558602a70c56a26d056fda6b7685783e20d5e5cb260081d9eb"
+      },
+      "complete_output_archive": {
+        "path": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v4/history-public.tar.gz",
+        "bytes": 192185,
+        "sha256": "b0a8e0aabdc17f95793348b3c45bf0270e289eb25392211ad9980498307ee05d"
+      }
+    },
+    {
+      "name": "archive-public",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_request_archive_public",
+        "--bundle",
+        "/tmp/hia-http-b3-public-20261127-2807-v2/public/controller",
+        "--cases",
+        "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tests/fixtures/hia_request_archive_oracle/cases-v1.json",
+        "--oracle",
+        "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tests/fixtures/hia_request_archive_oracle/observations-v2.json",
+        "--output",
+        "/tmp/hia-http-b3-public-20261127-2807-v4/archive-public"
+      ],
+      "timeout_seconds": 900,
+      "returncode": 0,
+      "seconds": 21.252745252015302,
+      "stdout": {
+        "bytes": 2290,
+        "sha256": "b97e6297c4abc8449579eef16282323ee833d74f598aee6052b3d5c845b450e2"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "qualification": {
+        "path": "/tmp/hia-http-b3-public-20261127-2807-v4/archive-public/qualification.json",
+        "sha256": "a9d81e987fcc3d2b41f812d2e25be39d75020b7809ebb0a687cb2a61b2d782c8"
+      },
+      "complete_output_archive": {
+        "path": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v4/archive-public.tar.gz",
+        "bytes": 122250,
+        "sha256": "ae586b36297cc4ab9faea10d230fb042e6c1012925b7c028707a8375689519e0"
+      }
+    },
+    {
+      "name": "usage-public",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_usage_public",
+        "--bundle",
+        "/tmp/hia-http-b3-public-20261127-2807-v2/public/controller",
+        "--original",
+        "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tests/fixtures/hia_request_archive_oracle",
+        "--extended",
+        "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tests/fixtures/hia_usage_oracle",
+        "--output",
+        "/tmp/hia-http-b3-public-20261127-2807-v4/usage-public"
+      ],
+      "timeout_seconds": 900,
+      "returncode": 0,
+      "seconds": 23.4068316219782,
+      "stdout": {
+        "bytes": 4897,
+        "sha256": "b94b14aab5c786227baa743a25f4366f95226d0311bc7be9adcfc0efdc31366b"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "qualification": {
+        "path": "/tmp/hia-http-b3-public-20261127-2807-v4/usage-public/qualification.json",
+        "sha256": "357820782a4dff27f43de1102e67570be15e81d150d3f723956406235bf30755"
+      },
+      "complete_output_archive": {
+        "path": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v4/usage-public.tar.gz",
+        "bytes": 252547,
+        "sha256": "c022a7cc1c0fce96c28e6d5605652299bfe8a80fd36aa7c2e372e525ce23c19f"
+      }
+    },
+    {
+      "name": "large-diagnostics",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_history_diagnostic_stream",
+        "--bundle",
+        "/tmp/hia-http-b3-public-20261127-2807-v2/public/controller",
+        "--reference",
+        "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tests/fixtures/hia_usage_oracle",
+        "--output",
+        "/tmp/hia-http-b3-public-20261127-2807-v4/large-diagnostics"
+      ],
+      "timeout_seconds": 600,
+      "returncode": 0,
+      "seconds": 26.909208933007903,
+      "stdout": {
+        "bytes": 8248,
+        "sha256": "c8b014f3d2de069ae62a8d4a45bb3669c4dd81fc86fa37dc6c0d7a8bde5640e6"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "qualification": {
+        "path": "/tmp/hia-http-b3-public-20261127-2807-v4/large-diagnostics/qualification.json",
+        "sha256": "115628645e0a55ed16a24c20eed6ddf47581ebed53f9d5e777afc95342fa1c92"
+      },
+      "complete_output_archive": {
+        "path": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v4/large-diagnostics.tar.gz",
+        "bytes": 18929,
+        "sha256": "17598e0e6c8c0269a0452bc4ad464006bdb8abb9cbabaf22f78aa03d22b3850d"
+      }
+    },
+    {
+      "name": "http-continuations",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_http_metadata_stream",
+        "--bootstrap",
+        "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/native/bootstrap/linux-x86_64/bin",
+        "--output",
+        "/tmp/hia-http-b3-public-20261127-2807-v4/http-continuations"
+      ],
+      "timeout_seconds": 240,
+      "returncode": 0,
+      "seconds": 1.8671040579793043,
+      "stdout": {
+        "bytes": 31,
+        "sha256": "a249793839602a855665039e7c137c57f2f4372353c95fff04236f3800da3289"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "qualification": {
+        "path": "/tmp/hia-http-b3-public-20261127-2807-v4/http-continuations/qualification.json",
+        "sha256": "488b09e6da6a9f390a8775a07182e0bc74033570ed59e2f322dd3864981e237a"
+      },
+      "complete_output_archive": {
+        "path": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v4/http-continuations.tar.gz",
+        "bytes": 535035,
+        "sha256": "1c77c7fb313ad2adbc7bd39480e3110d8faff8c79d1761c5d79cc8d3531b2f08"
+      }
+    },
+    {
+      "name": "http-public",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_metadata_http",
+        "--bundle",
+        "/tmp/hia-http-b3-public-20261127-2807-v2/http/controller",
+        "--reference",
+        "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tests/fixtures/hia_usage_oracle",
+        "--http-reference",
+        "/home/qian-qi/hia-http-b3-compat-20261127-2807/src/tests/fixtures/hia_http_metadata_oracle",
+        "--output",
+        "/tmp/hia-http-b3-public-20261127-2807-v4/http-public"
+      ],
+      "timeout_seconds": 600,
+      "returncode": 0,
+      "seconds": 25.61220702799619,
+      "stdout": {
+        "bytes": 1505,
+        "sha256": "870cfbba4bda3f9e6dfb71843695862f282d892f705cea93ec7c423cb606219b"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "qualification": {
+        "path": "/tmp/hia-http-b3-public-20261127-2807-v4/http-public/qualification.json",
+        "sha256": "85f0d7d49cf23dd3e73ccedff3fa7f3c294a67ebb9661dc260892b643f09b432"
+      },
+      "complete_output_archive": {
+        "path": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v4/http-public.tar.gz",
+        "bytes": 43295,
+        "sha256": "c71da0a933c2ce1c10b1e11cc1bf9d2bcc167f1f624a76c049025b7754e56bfe"
+      }
+    }
+  ],
+  "passed": true,
+  "whole_runtime_qualified": false,
+  "public_fixture_filesystem": "ROG /tmp tmpfs; original product deadline retained",
+  "durable_output": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v4"
+}
