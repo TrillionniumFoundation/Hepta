@@ -70,10 +70,9 @@ def run_child(args):
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     if args.cold_report is not None:
         from tools.build_hia_service_lease import build
-        outer = json.loads(args.cold_report.read_bytes())
-        nested = json.loads(Path(outer['nested_report']).read_bytes())
+        from tools.hia_cold_compiler import compiler_from_cold_report
         manifest = build(args.evidence / 'qualified',
-            Path(nested['generations'][-1]['produced_image']), args.cold_report)
+            compiler_from_cold_report(args.cold_report), args.cold_report)
         scope = 'MATCHING_SOURCE_COLD_COMPLETE_LEASE_CALLER_MODULES'
     else:
         manifest = args.development_manifest.resolve(strict=True)
