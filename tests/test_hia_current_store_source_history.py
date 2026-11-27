@@ -29,11 +29,17 @@ PATHS = (*frozen.CURRENT, *DEPENDENCIES, frozen.FIXTURE)
 
 COMPOSITION_FIXTURE = 'tests/fixtures/hia_current_store_evaluation_cold_v1.json'
 COMPOSITION_PIN = {"bytes":10114,"sha256":"1b2cea5f51d3f023f02ea7f64f3e07cc86b7aaa1995ebaa4a95c506a7ec7ce4c"}
-COMPOSITION_PATHS = {'tools/hia_current_store_source_history.py',
-                     'tests/test_hia_store_source_history.py'}
+COMPOSITION_LEGACY_PATHS = {'tools/hia_current_store_source_history.py',
+                            'tests/test_hia_store_source_history.py'}
+COMPOSITION_PATHS = COMPOSITION_LEGACY_PATHS | {'tools/read_hia_store_file_capture_callers.py'}
 
 
 def composition_predecessor(name, physical):
+    from tools import hia_current_store_broad_cold_preparation as preparation
+    original_physical = physical
+    physical = preparation.predecessor(name, physical, root=ROOT)
+    if name == 'tools/read_hia_store_file_capture_callers.py':
+        return preparation.consumer_predecessor(name, physical, root=ROOT)
     path = ROOT / COMPOSITION_FIXTURE
     raw = path.read_bytes()
     if current.pin(raw) != COMPOSITION_PIN:
@@ -43,12 +49,12 @@ def composition_predecessor(name, physical):
             or value.get('original_sixteen_test_methods_modified') is not False
             or value.get('original_fixed_fixtures_modified') is not False
             or value.get('prior_projection_is_physical_source') is not False
-            or set(value.get('files', {})) != COMPOSITION_PATHS):
+            or set(value.get('files', {})) != COMPOSITION_LEGACY_PATHS):
         raise ValueError('current Store evaluation composition scope differs')
     row = value['files'][name]
     reviewed = frozen.history_inverse(physical, row,
         {'bytes': row['old_bytes'], 'sha256': row['old_sha256']})
-    if path.read_bytes() != raw or (ROOT / name).read_bytes() != physical:
+    if path.read_bytes() != raw or (ROOT / name).read_bytes() != original_physical:
         raise ValueError('current Store evaluation composition changed during readback')
     return reviewed
 
@@ -293,7 +299,7 @@ assert current.pin(result)['sha256']=='673b1e330b48df5915a4a544188397e33055ac023
                 self.assertIs(core['original_callers_and_limits_modified'], False)
                 self.assertIs(core['whole_native_delivery_qualified'], False)
                 self.assertEqual(set(core['files']), {name})
-                reviewed = frozen.history_inverse(physical, core['files'][name],
+                reviewed = frozen.history_inverse(reviewed, core['files'][name],
                     {'bytes': row['new_bytes'], 'sha256': row['new_sha256']})
                 self.assertEqual(core_path.read_bytes(), core_raw)
             prior = frozen.history_inverse(reviewed, row,
