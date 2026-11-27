@@ -138,5 +138,43 @@ class NativeReleaseContractTests(unittest.TestCase):
                 validate_release_contract(self.root)
 
 
+    def test_public_contract_api_uses_native_authority_and_refuses_changed_source(self):
+        from tools.hia_selfhost_contract import validate_contract
+        with patch('tools.hia_selfhost_contract.support_contract',
+                   side_effect=AssertionError('public native validation used hosted closure')), \
+                patch('tools.hia_release_contract.support_contract',
+                      side_effect=AssertionError('native validation fell back to hosted')):
+            self.assertEqual(validate_contract(self.root), self.contract)
+            self.write(SOURCE, b'changed native source\\n')
+            with self.assertRaisesRegex(ValueError, 'current source closure'):
+                validate_contract(self.root)
+            (self.root / SOURCE).unlink()
+            with self.assertRaisesRegex(ValueError, 'missing'):
+                validate_contract(self.root)
+
+    def test_public_contract_api_preserves_complete_hosted_equality(self):
+        from tools.hia_selfhost_contract import validate_contract
+        hosted = {'source_identity': {'roles': {'seed_entry': HOSTED_SEED}, 'files': {}}}
+        self.write_json(CONTRACT_PATH, hosted)
+        with patch('tools.hia_release_contract.support_contract', return_value=hosted) as expected:
+            self.assertEqual(validate_contract(self.root), hosted)
+            expected.assert_called_once_with(self.root)
+        changed = copy.deepcopy(hosted)
+        changed['source_identity']['files']['source.py'] = '0' * 64
+        with patch('tools.hia_release_contract.support_contract', return_value=changed):
+            with self.assertRaisesRegex(ValueError, 'current source closure'):
+                validate_contract(self.root)
+
+    def test_public_contract_api_rejects_unknown_domain_and_duplicate_fields(self):
+        from tools.hia_selfhost_contract import validate_contract
+        self.write_json(CONTRACT_PATH, {'source_identity': {'roles': {'authoring_authority': 'old.json'}}})
+        with self.assertRaisesRegex(ValueError, 'unrecognized'):
+            validate_contract(self.root)
+        raw = json.dumps(self.contract).encode()
+        self.write(CONTRACT_PATH, raw[:-1] + b',"profile":"duplicate"}')
+        with self.assertRaisesRegex(ValueError, 'duplicate'):
+            validate_contract(self.root)
+
+
 if __name__ == '__main__':
     unittest.main()

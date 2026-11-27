@@ -4803,10 +4803,8 @@ def support_contract(root=ROOT):
 
 
 def validate_contract(root=ROOT):
-    root = Path(root)
-    path = root / CONTRACT_PATH
-    declared = json.loads(path.read_text())
-    expected = support_contract(root)
-    if declared != expected:
-        raise ValueError("Selfhost-Core support contract differs from the current source closure")
-    return declared
+    """Validate the declared native or hosted domain through the strict reader."""
+    # Import only at invocation: the release reader imports this module's
+    # constants and hosted constructor, but never calls this compatibility API.
+    from tools.hia_release_contract import validate_release_contract
+    return validate_release_contract(root)
