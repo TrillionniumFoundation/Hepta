@@ -813,9 +813,9 @@ def zip_installation(root,expected,captured):
     if expected["RECORD_file_bytes_expected_identical"] is not False:
         raise ValueError("pip RECORD is being misrepresented as byte-identical to wheel RECORD")
     equal(expected["installed_record"]["path"],record_name,"installed RECORD path differs")
-    packaged=installed/"hepta/_data/examples/hia_bootstrap/service_bootstrap.hepta"
+    packaged=installed/"hepta/_data/examples/hia_bootstrap/service_bootstrap_word.hepta"
     actual=captured_bytes(packaged,None,captured)
-    source=captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap.hepta",None,captured)
+    source=captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap_word.hepta",None,captured)
     if actual!=source:raise ValueError("installed bootstrap HIA source differs")
     return installed
 
@@ -1715,7 +1715,7 @@ def read_callers(directory,report_pin,*,require_cold):
     equal(s.bytes_pin(image)["sha256"],manifest["image_sha256"],"actual caller image changed")
     equal(manifest["image_sha256"],inner["actual_image_sha256"],"caller mapped another image")
     equal(manifest["compiler_sha256"],inner["compiler_sha256"],"caller compiler identity differs")
-    equal(manifest["source_sha256"],s.bytes_pin(captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap.hepta",None,captured))["sha256"],
+    equal(manifest["source_sha256"],s.bytes_pin(captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap_word.hepta",None,captured))["sha256"],
           "caller image current source differs")
     if inner["qualification_mode"]=="MATCHING_SOURCE_COLD_COMPLETE_CALLERS":
         if argv.count("--cold-report")!=1:raise ValueError("matching-cold caller command missing authority")
@@ -1738,7 +1738,7 @@ def read_callers(directory,report_pin,*,require_cold):
             equal(build["cold_report_sha256"],s.bytes_pin(inputs.report_bytes)["sha256"],
                   "caller native cold raw identity differs")
             native_component_custody(build,inputs,captured)
-            source_raw=captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap.hepta",None,captured)
+            source_raw=captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap_word.hepta",None,captured)
             verify_pack(manifest_path,manifest,build,inputs.compiler_bytes,source_raw,image,captured)
         else:
             contract_path=literal_assignment(ROOT/"tools/hia_selfhost_contract.py","CONTRACT_PATH",captured)
@@ -1765,7 +1765,7 @@ def read_callers(directory,report_pin,*,require_cold):
             nested=capture(cold["nested_report"],None,captured)
             compiler=captured_bytes(Path(nested["generations"][-1]["produced_image"]),None,captured)
             equal(s.bytes_pin(compiler)["sha256"],inner["compiler_sha256"],"actual caller cold compiler differs")
-            source_raw=captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap.hepta",None,captured)
+            source_raw=captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap_word.hepta",None,captured)
             verify_pack(manifest_path,manifest,build,compiler,source_raw,image,captured)
             for name,digest in build["component_inputs"].items():
                 if expected_full.get(name)!=digest:raise ValueError("caller build input lacks exact cold identity")

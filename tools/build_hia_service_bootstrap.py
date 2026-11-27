@@ -16,10 +16,15 @@ from tools.hia_component_input_custody import capture_component_custody, verify_
 from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage
 
-SOURCE_NAME = 'examples/hia_bootstrap/service_bootstrap.hepta'
+SOURCE_NAME = 'examples/hia_bootstrap/service_bootstrap_word.hepta'
 INPUTS = ('tools/hia_component_input_custody.py',
     'examples/hia_bootstrap/service_bootstrap.hepta',
     'tools/generate_hia_service_bootstrap.py',
+    'examples/hia_bootstrap/service_bootstrap_word.hepta',
+    'tools/generate_hia_service_bootstrap_word.py',
+    'tools/generate_hia_cold_document.py',
+    'tools/qualify_hia_service_bootstrap_word.py',
+    'tests/test_hia_service_bootstrap_word.py',
     'tools/build_hia_service_bootstrap.py',
     'tools/qualify_hia_service_bootstrap_callers.py',
     'hepta/hia_service_bootstrap_native.py',

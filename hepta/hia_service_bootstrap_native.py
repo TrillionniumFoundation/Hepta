@@ -23,12 +23,13 @@ from .hia_json_preflight_native import NativeHiaJsonImage, _source_resource_path
 from .hia_native_delivery import DeliveryRecord
 from .hia_store_lifecycle_native import _regular_bytes
 from .hia_service_bootstrap_protocol import (
-    SELECTOR, SCHEMA, SOURCE_NAME, REQUEST_MAGIC, RESULT_MAGIC, STATE_MAGIC,
+    SELECTOR, SCHEMA, SOURCE_NAME as ORIGINAL_SOURCE_NAME, REQUEST_MAGIC, RESULT_MAGIC, STATE_MAGIC,
     REQUEST_BYTES, OUTPUT_BYTES, STATE_BYTES, INITIALIZE, CLAIM, SUCCEEDED,
     RAISED, FINALIZE, RESUME_GENERATOR, THROW_GENERATOR, LEAVE_EXCEPTION,
     ISSUED, CLAIMED, RETURNED, PROPAGATE, READY_RETURN, READY_PROPAGATE,
     READY_YIELD, PAUSED, LEAVE_HANDLER, INIT, CLOSE, PROFILES, PROFILE, PROGRAM,
     GENERATOR_ROOTS, GENERATOR_DIRECTORIES, PORT, PORTS, MODE_RANGES)
+SOURCE_NAME = 'examples/hia_bootstrap/service_bootstrap_word.hepta'
 SOURCE = _source_resource_path(SOURCE_NAME)
 _BaseException, _StopIteration = BaseException, StopIteration
 _ITER, _NEXT, _TYPE, _TUPLE = iter, next, type, tuple

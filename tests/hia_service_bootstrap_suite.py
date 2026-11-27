@@ -10,7 +10,20 @@ SELECTIONS={
            "tests.test_hia_service_bootstrap_qualification.ServiceBootstrapQualificationSourceTests"),
  "native":("tests.test_hia_service_bootstrap_qualification.ServiceBootstrapNativeTests",
            "tests.test_hia_service_bootstrap_qualification.ServiceBootstrapResourceTests")}
-COUNTS={"source":6,"native":12}
+# Preserve the original six Source methods and name both reviewed additions.
+# Counting alone would allow one original method to be replaced by another.
+ORIGINAL_SOURCE_METHOD_IDS=(
+    SELECTIONS["source"][0]+".test_five_original_definitions_signatures_and_retained_prefix",
+    SELECTIONS["source"][0]+".test_complete_protocol_graph_and_effect_set",
+    SELECTIONS["source"][0]+".test_packaged_source_and_complete_original_caller_scope",
+    SELECTIONS["source"][1]+".test_01_generated_complete_graph_original_sources_and_actual_profile_limits",
+    SELECTIONS["source"][1]+".test_02_complete_prior_originals_and_all_derived_faults_through_VM",
+    SELECTIONS["source"][1]+".test_03_complete_unselected_public_domain_and_lazy_empty_refusal")
+SUPPLEMENTAL_SOURCE_METHOD_IDS=(
+    SELECTIONS["source"][0]+".test_reviewed_scope_proof_matches_physical_captures_and_independent_reader",
+    SELECTIONS["source"][0]+".test_historical_service_inverse_refuses_changed_physical_input")
+
+COUNTS={"source":8,"native":12}
 def static_ids(selectors):
     result=[]
     for selector in selectors:
@@ -20,6 +33,15 @@ def static_ids(selectors):
         result.extend(module+"."+classname+"."+name for name in sorted(
             n.name for n in cls.body if isinstance(n,ast.FunctionDef) and n.name.startswith("test_")))
     return result
+def declared_ids(suite):
+    result=static_ids(SELECTIONS[suite])
+    if suite=="source":
+        expected=ORIGINAL_SOURCE_METHOD_IDS+SUPPLEMENTAL_SOURCE_METHOD_IDS
+        if sorted(result)!=sorted(expected):
+            raise ValueError("source suite original/supplement method inventory differs")
+    if len(result)!=COUNTS[suite]:
+        raise ValueError("full declared method count changed")
+    return result
 def flatten(suite):
     for test in suite:
         if isinstance(test,unittest.TestSuite):yield from flatten(test)
@@ -27,8 +49,7 @@ def flatten(suite):
 def run(args):
     output=args.output;output.mkdir(mode=0o700,parents=True,exist_ok=False)
     source_before=support.source_snapshot()
-    expected=static_ids(SELECTIONS[args.suite])
-    if len(expected)!=COUNTS[args.suite]:raise ValueError("full declared method count changed")
+    expected=declared_ids(args.suite)
     planned=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromName(name)
                                for name in SELECTIONS[args.suite])
     if list(flatten(planned))!=expected:
