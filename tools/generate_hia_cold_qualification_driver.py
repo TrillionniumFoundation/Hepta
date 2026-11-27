@@ -20,7 +20,7 @@ import subprocess
 import tempfile
 
 from hepta.hia_agent_assembly import render_assembly
-from tools.generate_hia_cold_document import bulk_document as document
+from tools.generate_hia_cold_document import bulk_word_document as document
 from tools.generate_hia_native_filter import LINK_SOURCE
 from tools.generate_hia_release_owner import POLICY as RELEASE_HELPERS
 from tools.generate_hia_cold_qualification_codec_lz import CODEC
@@ -1069,7 +1069,7 @@ HELPERS = ('writing','writing_at','reading','copying','transfer','seal_buffer',
            'get','getn','put')
 
 
-def policy_source():
+def policy_source(*, word=True):
     nodes = {n.name: ast.get_source_segment(RELEASE_HELPERS,n)
              for n in ast.parse(RELEASE_HELPERS).body if isinstance(n,ast.FunctionDef)}
     helpers = '\n\n'.join(nodes[name] for name in HELPERS)
@@ -1078,7 +1078,7 @@ def policy_source():
     helpers = helpers.replace('put(w, 3072, r)\n        return writing(o, w, r, get(w, 3112), get(w, 3120), 1601)',
         'put(w, 3072, r)\n        return call(o, w, 1607, 91, r, 384, 0, 0, 0, 0, 0)\n    if phase == 1607:\n        return writing(o, w, get(w, 3072), get(w, 3112), get(w, 3120), 1601)')
     helpers = helpers.replace('return getn(w, at, 8)', 'return word_load(w, at)')
-    text = accelerate(SOURCE + '\n' + CODEC + '\n' + BACKREF_HELPERS + '\n' + helpers, bulk=True)
+    text = accelerate(SOURCE + '\n' + CODEC + '\n' + BACKREF_HELPERS + '\n' + helpers, bulk=True, word=word)
     words={};writes=[];cursor=600000
     for name,raw in {'MEMFD':b'hia-cold-plan','CHILD':b'hia-cold-child','EMPTY':b'',
                      'ENV_PATH':b'PATH=','ENV_LANG':b'LANG=C.UTF-8','ENV_LC':b'LC_ALL=C.UTF-8','ENV_TZ':b'TZ=UTC'}.items():

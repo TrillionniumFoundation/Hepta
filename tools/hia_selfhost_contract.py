@@ -273,6 +273,10 @@ WORKER_REQUEST_SDIST_FILES = (
     'tests/fixtures/hia_installed_distribution_sources.json',
     'tests/hia_component_authoring_history.py',
     'tests/fixtures/hia_component_authoring_successor_v1.json',
+    'tests/hia_cold_caller_selection_history.py',
+    'tests/fixtures/hia_cold_caller_selection_history_v1.json',
+    'tests/test_hia_cold_caller_selection_history.py',
+    'tests/test_hia_history_fixture_custody.py',
     'tools/hia_component_input_custody.py',
     'tools/hia_cold_compiler.py',
     'tools/hia_component_cold_readback.py',
@@ -4801,10 +4805,8 @@ def support_contract(root=ROOT):
 
 
 def validate_contract(root=ROOT):
-    root = Path(root)
-    path = root / CONTRACT_PATH
-    declared = json.loads(path.read_text())
-    expected = support_contract(root)
-    if declared != expected:
-        raise ValueError("Selfhost-Core support contract differs from the current source closure")
-    return declared
+    """Validate the declared native or hosted domain through the strict reader."""
+    # Import only at invocation: the release reader imports this module's
+    # constants and hosted constructor, but never calls this compatibility API.
+    from tools.hia_release_contract import validate_release_contract
+    return validate_release_contract(root)
