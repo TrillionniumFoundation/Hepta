@@ -1013,6 +1013,19 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tools/cell_bridge_native.py',
+    'tools/generate_cell_bridge_continuation.py',
+    'tools/qualify_cell_bridge_continuation.py',
+    'tools/build_hia_cell_bridge.py',
+    'tools/generate_hia_cell_bridge_image_packer.py',
+    'tools/qualify_hia_cell_bridge_native.py',
+    'tools/hia_cell_bridge_entry.S',
+    'tests/test_hia_cell_bridge.py',
+    'tests/hia_cell_native_fixture.py',
+    'tests/hia_cell_test_directory_preparation.py',
+    'tests/test_hia_cell_build_custody.py',
+    'tests/test_hia_cell_current_native.py',
+    'tests/test_hia_cell_test_directory_preparation.py',
     'tools/hia_bounded_read_source_history.py',
     'tests/test_hia_bounded_read_source_history.py',
     'tests/fixtures/hia_legacy_byte_components_ff636/tools/hia_core_reference.py.txt',
