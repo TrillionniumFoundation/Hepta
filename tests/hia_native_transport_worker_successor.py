@@ -580,8 +580,27 @@ QUALIFIER_STORE_DEPENDENCY_PIN = {'bytes': 13980, 'sha256': '99d25f2f21b71babf31
 QUALIFIER_STORE_CURRENT = {'bytes': 22723, 'sha256': '85f92bf60694e2d7950ced55e3632b0d6a9a078a1ae7762c4f491254d46ddb65'}
 
 
+CURRENT_TERMINAL_HISTORY_HELPER = 'tools/hia_terminal_admission_source_history.py'
+CURRENT_TERMINAL_HISTORY_HELPER_PIN = {"bytes":3529,"sha256":"405d93691921d8e5b324a00c15aa41e4a991450b3255d21e2afc2c6554bebca5"}
+CURRENT_TERMINAL_SOURCE_PIN = {"bytes":26873,"sha256":"0c902e969fdd89e27430c61089ae4071340bd9096a439c1a71d182c75a6e11e3"}
+
+
+def _current_terminal_dependency(raw, capture):
+    if _pin(raw) != CURRENT_TERMINAL_SOURCE_PIN:
+        return raw, None
+    helper = capture(CURRENT_TERMINAL_HISTORY_HELPER)
+    if _pin(helper) != CURRENT_TERMINAL_HISTORY_HELPER_PIN:
+        raise ValueError('current terminal dependency history helper changed')
+    from tools import hia_terminal_admission_source_history as history
+    if Path(history.__file__).read_bytes() != helper:
+        raise ValueError('current terminal dependency imported another history helper')
+    return history.predecessor(ROOT, QUALIFIER_DEPENDENCY_PATH, raw,
+        take=lambda path: capture(path.relative_to(ROOT).as_posix()))
+
+
 def reviewed_qualifier_dependency(raw, capture):
     from tests.hia_installed_distribution_history import predecessor
+    raw, _ = _current_terminal_dependency(raw, capture)
     raw = predecessor(QUALIFIER_DEPENDENCY_PATH, raw, root=ROOT,
                       take=lambda name: capture(name.relative_to(ROOT).as_posix()))
     sql_successor = _pin(raw)['sha256'] == 'fb0c4be8fc93e0a1658c4672f2110ab1298f5cfde85c72988843a449477a56a8'
@@ -622,6 +641,7 @@ def reviewed_qualifier_dependency(raw, capture):
 def _admit_qualifier_dependency(raw, capture):
     from tests.hia_store_delivery_successor import EVALUATE_FIXTURE, EVALUATE_FIXTURE_SHA256
     actual = _pin(raw)
+    raw, current_source_history = _current_terminal_dependency(raw, capture)
     raw, sql_successor, build_successor, emission_successor, store_successor = reviewed_qualifier_dependency(raw, capture)
     frozen = capture(QUALIFIER_DEPENDENCY_FIXTURE)
     if _pin(frozen) != QUALIFIER_DEPENDENCY_FIXTURE_PIN:
@@ -651,6 +671,8 @@ def _admit_qualifier_dependency(raw, capture):
             'exact_splice_count': 6, 'complete_original_inverse_verified': True,
             'complete_current_forward_replay_verified': True,
             'original_qualifier_authority_unchanged': True, 'production_source_exception': False}
+    if current_source_history is not None:
+        proof['current_terminal_source_history'] = current_source_history
     if sql_successor:
         proof['typed_delivery_sql'] = {'path': SQL_SOURCE_FIXTURE, **SQL_SOURCE_FIXTURE_PIN}
     if build_successor:

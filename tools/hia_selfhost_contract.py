@@ -2869,6 +2869,9 @@ SOURCE_FILES = (
     'tools/hia_current_caller_source_history.py',
     'tests/test_hia_current_caller_source_history.py',
     'tests/fixtures/hia_cold_caller_selection_history_v3.json',
+    'tools/hia_terminal_admission_source_history.py',
+    'tests/fixtures/hia_current_terminal_admission_history_v1.json',
+    'tests/test_hia_current_terminal_admission_history.py',
 )
 
 
