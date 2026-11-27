@@ -194,6 +194,46 @@ class NativeColdAdmissionTests(unittest.TestCase):
                 with self.subTest(schema=report['schema'], roles=roles), self.assertRaises(ValueError):
                     self.builder_admit(report, roles)
 
+    def admit_integer_token(self, path, token, *, extension=False):
+        changed = deepcopy(self.report)
+        if extension:
+            changed['extension'] = {'integer': None}
+        owner = changed
+        for key in path[:-1]:
+            owner = owner[key]
+        owner[path[-1]] = '__native_integer_token__'
+        raw = json.dumps(changed).encode()
+        marker = b'"__native_integer_token__"'
+        self.assertEqual(raw.count(marker), 1)
+        return admit_native_report(self.compiler, raw.replace(marker, token),
+            contract=self.contract, sources=self.sources, observer_bytes=self.observer)
+
+    def test_negative_zero_is_rejected_in_native_unsigned_integer_fields(self):
+        paths = [('cleanup_wall_elapsed_ns',), ('scheduler', 'peak_pending_archives')]
+        paths.extend(('phases', index, 'returncode')
+                     for index in range(len(self.report['phases'])))
+        for path in paths:
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                self.admit_integer_token(path, b'-0')
+
+    def test_native_top_level_exit_retains_hia_zero_integer_compatibility(self):
+        for token in (b'0', b'-0'):
+            with self.subTest(token=token):
+                self.assertEqual(self.admit_integer_token(('returncode',), token), self.sources)
+        for token in (b'0.0', b'-0.0', b'0e0', b'false', b'null', b'"-0"'):
+            with self.subTest(token=token), self.assertRaises(ValueError):
+                self.admit_integer_token(('returncode',), token)
+
+    def test_unused_native_extensions_keep_json_number_compatibility(self):
+        for token in (b'-0', b'-1', b'0.0', b'0e0'):
+            with self.subTest(token=token):
+                self.assertEqual(self.admit_integer_token(('extension', 'integer'), token,
+                                                         extension=True), self.sources)
+
+    def test_default_json_reader_keeps_hosted_negative_zero_compatibility(self):
+        self.assertEqual(read_json(b'{"returncode":-0,"cleanup_wall_elapsed_ns":-0}'),
+                         {'returncode': 0, 'cleanup_wall_elapsed_ns': 0})
+
 
 if __name__ == "__main__":
     unittest.main()

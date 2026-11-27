@@ -12,9 +12,10 @@ import re
 
 SCHEMA = "hepta.hia.selfhost-cold-replay.v2"
 STATUS = "NATIVE_COLD_SELFHOST_REPLAY_PASS"
+_NEGATIVE_ZERO = object()
 
 
-def read_json(raw):
+def read_json(raw, *, native_integer_tokens=False):
     def unique(pairs):
         result = {}
         for key, value in pairs:
@@ -26,7 +27,13 @@ def read_json(raw):
     def invalid(value):
         raise ValueError("non-JSON number in native cold report: " + value)
 
-    return json.loads(raw, object_pairs_hook=unique, parse_constant=invalid)
+    def integer_token(value):
+        # Native integer_field reads unsigned decimal tokens. Preserve the one
+        # signed integer spelling that int() would otherwise fold into range.
+        return _NEGATIVE_ZERO if value == "-0" else int(value)
+
+    options = {"parse_int": integer_token} if native_integer_tokens else {}
+    return json.loads(raw, object_pairs_hook=unique, parse_constant=invalid, **options)
 
 
 def require(condition, message):
@@ -50,11 +57,14 @@ def admit_native_report(compiler_bytes, cold_bytes, *, contract, sources,
     The caller supplies independently read current source and observer bytes;
     no report field can select a weaker contract, profile, catalog or budget.
     """
-    report = read_json(cold_bytes)
+    report = read_json(cold_bytes, native_integer_tokens=True)
     require(type(report) is dict and report.get("schema") == SCHEMA
             and report.get("status") == STATUS,
             "a completed native-v2 cold qualification is required")
-    require(integer(report.get("returncode"), 0, 0), "native cold exit is not zero")
+    # The top-level HIA zero_integer intentionally accepts both 0 and -0;
+    # phase exits and resource counters instead use unsigned integer_field.
+    require(report.get("returncode") is _NEGATIVE_ZERO
+            or integer(report.get("returncode"), 0, 0), "native cold exit is not zero")
     require(report.get("profile") == contract["profile"]
             and report.get("source_manifest") == sources,
             "native cold source/profile identity differs from current source")
