@@ -59,13 +59,38 @@ def predecessor(name, data, reverse=_restore, *, root=None, take=Path.read_bytes
         captured[path] = raw
         return raw
 
+    history = None
     try:
-        data = component_predecessor(name, data, root=root, take=capture)
-        record = _records(root=root, take=capture).get(name)
+        view = capture
+        if (name == 'tests/test_hia_agent_native_tools.py'
+                and sha256(data).hexdigest() ==
+                '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2'):
+            helper = capture(root / 'tools/hia_native_result_caller_history.py')
+            if (len(helper) != 2868 or sha256(helper).hexdigest() !=
+                    'e1e1edfcaeaf0f80f7b2b51604afff87908d45419f1aef87fbf8408589cc4248'):
+                raise ValueError('native result caller source-history reader differs')
+            from tools.hia_native_result_caller_history import unwrap
+            data = unwrap(root, name, data, take=capture)
+        if (name == 'tests/test_hia_evaluation_native.py'
+                and sha256(data).hexdigest() ==
+                '333abf8107aec87e42002c0a2f0218aeacdf9837642e443563f64272d6dc5083'):
+            helper = capture(root / 'tools/hia_evaluation_window_history.py')
+            if (len(helper) != 8876 or sha256(helper).hexdigest() !=
+                    '08054cf59af6e93453fc370d08c64d1b14e9072012f69652cfae747083346cfa'):
+                raise ValueError('evaluation composition source-history reader differs')
+            from tools import hia_evaluation_window_history as current
+            projected, history = current.prepare(root, {name: data}, take=capture)
+            view = history['prior_take']
+            from tools.hia_frozen_component_sources import restore_evaluation_test
+            data = restore_evaluation_test(projected[name], root=root, take=view)
+        data = component_predecessor(name, data, root=root, take=view)
+        record = _records(root=root, take=view).get(name)
         if record is None or sha256(data).hexdigest() != record['current']['sha256']:
             return data
         return reverse(data, record)
     finally:
+        if history is not None:
+            current.verify_unchanged(history)
         for path, raw in captured.items():
             if take(path) != raw:
                 raise ValueError('installed source-history fixture changed at terminal readback')

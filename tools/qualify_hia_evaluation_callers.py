@@ -66,7 +66,8 @@ def admit_original_sources(root, records, *, source_proof=None):
     installed_predecessors = {}
     for name, digest in records.items():
         physical = capture(name)
-        raw = predecessor(name, physical)
+        raw = predecessor(name, physical, root=root,
+                          take=lambda path: capture(Path(path).relative_to(root).as_posix()))
         if raw != physical:
             installed_predecessors[name] = sha256(raw).hexdigest()
         actual = sha256(raw).hexdigest()
