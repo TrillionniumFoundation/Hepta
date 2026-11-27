@@ -1,0 +1,39 @@
+# Inspect drive R3: actual-generation-bound Source18 stage
+
+This is an author-only successor to the complete shared runner dbd07c1c815641a0a55c4c2fcefef5d41034e369. It does not execute any product while being authored, and it does not modify any protected source or earlier result. A separate explicit authorization is required before using the frozen launch.
+
+## Actual predecessor
+
+The unique R3 materialization and generation session 85625 completed in 23.159560988 seconds. It made one independent byte-copy of all 3188 predecessor source files, inserted only the reviewed InspectProgramFrame.drive method, ran two real generations and the original --check under three independent 180+3 owners, then installed the three generated outputs at new per-path inodes. The actual final source tree is b7a3881a4d9f6d5a725d6e8d560fa492f6b26d96. The HIA assembly and ports bytes are unchanged; the 1426-byte data module was genuinely regenerated and binds the new runtime SHA 8bdc0f48ba8a48dc79afec36e62cad09d2f85ee6ae0c53bf640ba5b5058e5ed3 among all 13 actual host inputs.
+
+The generation is not a Source, Native, VM, current-source cold or whole-CLI qualification. The old R2 Source18 PASS, original-three and CLI43 results, and the failed R2 Native run remain attributed to their original source. In particular the old Native failure is 11 PASS and 1 ERROR among 12 methods, with five more Native methods and all twelve VM methods not started. Nonce 4's unknown retirement is not repaired or relabeled by this successor.
+
+Root's independent fd4f5cc07567550030820a6588b4c34331d1a7a0 readback is an additional fixed input. It is checked against the actual materialization/result/source-map/capture identities; it does not replace any direct full-byte reads performed by this runner.
+
+## Three protected source authorities
+
+The original BASE is still the 3187-file legacy source at v119-inspect-generation-only-r1/attempt-r1/source. PREDECESSOR adds the 3188-file busy-R2 source at v132-inspect-machine-entry-r1/successor-r2/materialization-attempt-r1/source. SOURCE is the actual independently generated R3 source at /dev/shm/hia-inspect-drive-r3-dda7/materialization-attempt-r1/source. The frozen plan names each root and complete tree. Each parent and child guard reads every current file, compares the whole path set, full bytes, Git mode, exact POSIX mode and all seven retained stat fields. Every current R3 inode must be unique, have nlink=1 and be disjoint from each of the two old trees. Nothing in this stage copies, links, unlinks, chmods or regenerates a source file.
+
+The original cooperative audit fence is retained. It additionally covers PREDECESSOR and the actual materialization and generation-outer evidence roots, and its protected-inode set includes all three complete captures. This remains a cooperative fixture fence, not a claim to isolate hostile Python code.
+
+## Direct predecessor consumption
+
+The unchanged frozen generation guard 1ed1526f6bd86f64eb54a92a4bddd75ab07fa332 is loaded from its complete captured bytes with its main guard false. Only its stdlib guard helpers run. Its exact plan and nine original inputs are checked, its authorities routine validates the actual independent materialization and original failure boundary, and all original fourteen kit files remain pinned. No generator, product, compiler, VM or subprocess is called by that guard import.
+
+The stage inputs contain the actual materialization RESULT, materialization source map/capture, generation RESULT/runtime/outer, installation, all three final source captures, final source map, original group designs and Root readback. The complete generation_evidence inventory consists of all 81 actual files from the materialization metadata (excluding its source tree), generation attempt and generation outer; every descriptor is consumed through the existing fixed_file full-byte/mode guard. They are 16,827,810 actual bytes, and include the complete COPY journal, three requests/commands/raw and returned owners/child results, complete raw streams, all guards and both three-output sets. No evidence is reconstructed from a future result.
+
+The bootstrap verifies the materialization map and capture through the original generation authority; matches the final legacy/predecessor/source identities; checks all three per-path install before/after records against their complete captures; compares both generated sets in full; proves only the three generated paths could differ after materialization; and retains the exact original three owner and child-result admissions. Numeric inode reuse across different paths is not prohibited: each installed path must differ from its own prior inode, and the final whole-tree uniqueness and disjointness guards still apply.
+
+## Exact execution proposal
+
+Only SOURCE-PLAN.json enables source-controls. It contains the exact original ten Source IDs followed by the exact original eight physical-entry Source IDs, in two separately supervised groups. There are 18 declared methods, 36 expected start/stop events and 21 fixed subtests: the first twelve retain the original Source10 projection; the Source8 group retains seven entry routes and two lost-return branches and their exact parameter values. Source8 is synthetic control work, not a Native17 result.
+
+The parent and child keep the original actual CPython 3.14.4 executable/library context, -I -B mode and explicit clean child/supervisor environment. Each owner retains 180 qualification seconds and 3 cleanup seconds. Source controls cannot spawn further product processes. Original tests, assertions, subtest observer, loading/event checks, cleanup requirements and first-failure stop are unchanged. A failing test, child, raw/returned owner, source guard or receipt immediately prevents the next owner; finally blocks retain available actual failures and the full guard evidence. No automatic retry exists.
+
+The new evidence scope is the already held/named /dev/shm/hia-inspect-drive-r3-dda7 root, device 38/inode 58226/0700/uid 1000/gid 1000, with executable filesystem required. The exact attempt and outer directories must be absent. The unchanged 1,073,741,824-byte floor is measured on that real output filesystem at entry and before each owner. The same 64 MiB Source-evidence estimate is a planning estimate, not a raised product limit, guarantee or permission to fill an unrelated filesystem. TMPDIR remains inside this exact new scope. There is no path, source, interpreter or directory fallback.
+
+## Minimal shared-runner delta and dormant later phase
+
+Only bootstrap, full_guard, protected_source_fence and child change; all twelve other existing top-level functions, including execute, main, test observation, stop handling, Native/VM request construction and admissions, are byte-for-byte preserved. The constants name the actual new scope/source/tree/generation guard and retained old roots. Complete ordered literal substitutions reverse the entire new runner back to dbd07, including whitespace. All group dictionaries, orders, compiler identity, product limits, original runtime and original two test-file pins are unchanged.
+
+The shared runner retains a dormant native-vm path. This Source plan sets source_predecessor to null and active_phase to source-controls, so it cannot start that path. A later separately reviewed Native plan must bind the actual successful R3 Source18 result and all of its original evidence before one development compilation, the original seven Native groups (17 methods) and two VM groups (12 methods) can be scheduled. No such successful Source pin is invented here. Original 20s/1MiB compiler, 128 functions/1536 blocks/8192 operations, VM 10M steps/8MiB heap/depth128 and 180+3 limits remain in the retained declaration. Matching-current-cold, whole native and CLI op10 remain false.

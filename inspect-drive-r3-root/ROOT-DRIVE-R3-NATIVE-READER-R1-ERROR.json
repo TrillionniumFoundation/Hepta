@@ -1,0 +1,13 @@
+{
+  "schema": "hia.root-terminal-reader-error.v1",
+  "product_executions": 0,
+  "reader_git": "d9fe1bde4191b2e9e48b06bd058e1ac64db1c2fb",
+  "error": {
+    "chunk_id": "80a1e6",
+    "wall_time_seconds": 0.000015002,
+    "exit_code": 1,
+    "original_token_count": 92,
+    "output": "Traceback (most recent call last):\n  File \"/tmp/hia-root-v141-dda7/verify_drive_r3_native_terminal.py\", line 114, in <module>\n    for name,sha in manifest['host_sources'].items():assert captures['source']['files'][name]['sha256']==sha\n                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\nKeyError: 'hia_exception_delivery.py'\n"
+  },
+  "diagnosis": "Root reader treated basename host manifest keys as repository-relative paths. Original manifest defines host filenames relative to hepta module directory. No product changed or replayed."
+}

@@ -1,0 +1,28 @@
+{
+  "patches": [
+    {
+      "after": "def capture_copied_materials(scope, files, *, bound=False):\n    \"\"\"Capture copied controls against the immutable capsule before consumption.\"\"\"\n    captures, records = {}, {}\n    copied_documents = set(DOCS.values())\n    for name, (expected_raw, expected_identity) in files.items():\n        if name.startswith('scope/') and not name.startswith('scope/candidate/source/'):\n            suffix = name[6:]\n            path = scope / relative(suffix)\n            if bound and suffix in copied_documents:\n                path = path.with_name(path.name + '.hosted-original')\n        elif name.startswith('custody/'):\n            path = scope / 'hosted-custody' / relative(name[8:])\n        elif name.startswith('plan/'):\n            path = scope / 'hosted-plan' / relative(name[5:])\n        else:\n            continue\n        raw, actual, observed_stat = read_regular(path)\n        require(raw == expected_raw and actual == expected_identity,\n                'copied fixed material differs from capsule: ' + name)\n        captures[name] = (raw, actual, observed_stat)\n        records[name] = {'path': str(path), 'identity': actual, 'stat': observed_stat}\n    return captures, records\n\n\ndef bind(args, out):\n",
+      "before": "def bind(args, out):\n"
+    },
+    {
+      "after": "    fixed_files, material_index = material_payload()\n    require(material_index == prepared['material_index'], 'prepared material capsule changed')\n    captured, material_before = capture_copied_materials(scope, fixed_files)\n    dump(out / 'FIXED-MATERIALS-BEFORE.json', material_before)\n    allow = json.loads(captured['plan/JSON-POINTER-ALLOWLIST.json'][0])\n",
+      "before": "    allow = load(scope / 'hosted-plan/JSON-POINTER-ALLOWLIST.json')\n"
+    },
+    {
+      "after": "    require(records['harness_controls'] == controls, 'archive verifier harness differs')\n    old_policy = json.loads(captured['scope/' + DOCS['storage']][0])['completed_artifact_storage']\n",
+      "before": "    old_policy = load(scope / DOCS['storage'])['completed_artifact_storage']\n"
+    },
+    {
+      "after": "        raw, original_identity, _ = captured['scope/' + DOCS[name]]\n",
+      "before": "        raw, original_identity, _ = read_regular(path)\n"
+    },
+    {
+      "after": "        path.rename(original_path)\n        saved_raw, saved_identity, _ = read_regular(original_path)\n        require(saved_raw == raw and saved_identity == original_identity, 'copied JSON changed after capture')\n",
+      "before": "        path.rename(original_path)\n"
+    },
+    {
+      "after": "    _, material_after = capture_copied_materials(scope, fixed_files, bound=True)\n    dump(out / 'FIXED-MATERIALS-AFTER.json', material_after)\n    require(capture_runtime()['runtime'] == current['runtime'], 'runtime drift during binding')\n",
+      "before": "    require(capture_runtime()['runtime'] == current['runtime'], 'runtime drift during binding')\n"
+    }
+  ]
+}

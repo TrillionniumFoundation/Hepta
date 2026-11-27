@@ -1,0 +1,87 @@
+{
+  "Native_steps": 123,
+  "Python": "3.14.4",
+  "R19_comparison": {
+    "archive": "/workspace/scratch/dda74a4fae35/v116-source-parser-r19-original/combined-source.zip",
+    "member": "raw/terminal-worktree-bytes/02a0e2704cdc93e9fbfb3e55768c134e393df764.blob",
+    "workflow": {
+      "bytes": 115637,
+      "git_blob": "02a0e2704cdc93e9fbfb3e55768c134e393df764",
+      "sha256": "3856fc2189e91f5095f8b370727c4c6f9782eecb6dc9ef5d9d93dd00ff916935"
+    }
+  },
+  "all_step_bytes_conditions_budgets_unchanged": true,
+  "always_upload_steps": [
+    121,
+    122,
+    123
+  ],
+  "branch_filters": null,
+  "checkout_identity": "New product commit equals event GITHUB_SHA in both independent jobs.",
+  "complete_R19_native_fragment_exact": true,
+  "event": "push",
+  "explicit_checkout_ref": null,
+  "missing_matching_cold_input": {
+    "Source_and_bounded62_are_not_a_substitute": true,
+    "currently_available": false,
+    "producer_command": "- run: python -B tools/replay_hia_selfhost_cold.py --output \"$RUNNER_TEMP/hia-cold.json\"",
+    "producer_step": 6,
+    "raw": "$RUNNER_TEMP/hia-cold.cold/",
+    "report": "$RUNNER_TEMP/hia-cold.json",
+    "required": "Actual current-source authority, B1/B2/B3, receipts and unchanged original admission guards."
+  },
+  "native_fragment": {
+    "bytes": 91242,
+    "git_blob": "fbeb8e622bf118b0569ee19a0fc640973b3803ed",
+    "sha256": "0db477b786729d7a60a7af46099ba63f58d8a9206fb2c84cd76fa8d82a63de3d"
+  },
+  "new_report_command": "      - name: Native verified report bundle with matching cold and original 43 plus 140 observations\n        run: |\n          python -B tools/qualify_hia_cli_verified_report_bundle.py \\\n            --cold-report \"$RUNNER_TEMP/hia-cold.json\" \\\n            --evidence \"$RUNNER_TEMP/hia-cli-verified-report-matching-cold\"\n",
+  "new_roundtrip_command": "      - name: Native Linux file roundtrip with matching cold and original 140 controls\n        run: |\n          python -B tools/qualify_hia_linux_file_roundtrip.py \\\n            --cold-report \"$RUNNER_TEMP/hia-cold.json\" \\\n            --evidence \"$RUNNER_TEMP/hia-linux-file-roundtrip-matching-cold\"\n",
+  "no_new_harness_or_rewritten_business_steps": true,
+  "normal_failure_behavior": "A failing Native gate keeps failure and skips later normal steps; all three original always uploads remain.",
+  "ordered_steps": {
+    "bytes": 27598,
+    "git_blob": "91961292b1038aab933e4be5b9e324f4bb523160",
+    "sha256": "ae3a14b7b6aa0f90f87614997cb145d18811ad07a4db20c56fe14d33a23fee43"
+  },
+  "other_workflows": [
+    {
+      "path": ".github/workflows/hia-candidate-bindings.yml",
+      "pin": {
+        "bytes": 6162,
+        "git_blob": "48bc86a5e2fb198f39eba8753cd46ba3b9b9e007",
+        "sha256": "d6b10a9c4344819d0f759cabb804160e5eba9b066251ec86b8f7fb1ed8c6e117"
+      },
+      "proposed_branch_push_matches": false
+    },
+    {
+      "path": ".github/workflows/hia-compiler-extension.yml",
+      "pin": {
+        "bytes": 6516,
+        "git_blob": "5212a6e9d3b302ea170f754cfb95a1636bec0ff3",
+        "sha256": "e2a090e09e39c96be76b943da5eb71828cb494daddd3aaab5d5d63a66a05f371"
+      },
+      "proposed_branch_push_matches": false
+    },
+    {
+      "path": ".github/workflows/hia-ndu-feedback.yml",
+      "pin": {
+        "bytes": 4947,
+        "git_blob": "3ee2ca8de11324dbdd4f424c5ff3c4a5c5dbdfdb",
+        "sha256": "97807c4266faf651b7d9e8467521d36e4119a1a3a5dd80a90e8045d3bbe36d94"
+      },
+      "proposed_branch_push_matches": false
+    }
+  ],
+  "path_filters": null,
+  "report_step": 119,
+  "roundtrip_step": 120,
+  "source_and_native_jobs_independent": true,
+  "workflow": {
+    "bytes": 115811,
+    "git_blob": "9df942bd4bc6ffc76b2d67a8d7e14d0992f6547c",
+    "path": ".github/workflows/hia-core.yml",
+    "sha256": "9b06c318d4cb8bbcf5c7a6a6f774e568e410f826baf23827b2283a07ff2fc105"
+  },
+  "workflow_permissions_and_job_timeout": "No edits or new values; exact existing workflow governs."
+}

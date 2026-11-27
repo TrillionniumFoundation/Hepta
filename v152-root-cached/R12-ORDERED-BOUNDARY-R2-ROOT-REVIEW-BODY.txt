@@ -1,0 +1,68 @@
+R=Path('/tmp/hia-r12-ordered-read-controls-author-r2-dda7')
+def native_fixed(row):
+ b,a=read(row['path']);wanted=row['identity'];s=a['stat']
+ assert pin(b)=={k:wanted[k] for k in ('bytes','sha256','git_blob')}
+ assert a['pin']['mode']==wanted['git_mode'] and stat.S_IMODE(s['st_mode'])==wanted['mode']
+ assert [s[k] for k in ('st_dev','st_ino','st_mode','st_nlink','st_size','st_mtime_ns','st_ctime_ns')]==row['seven_stats']
+ return b
+hraw,hrow=read(R/'HANDOFF.json');h=json.loads(hraw)
+assert pin(hraw)['git_blob']=='c3282c3853953e42857ca3b5076c100f0200fb88'
+assert h['status']=='AUTHORING_ONLY_NOT_EXECUTED' and h['products']==h['actual_directory_opens']==0
+assert sorted(str(p.relative_to(R)) for p in R.rglob('*') if p.is_file())==sorted([*h['files'],'HANDOFF.json'])
+raws={name:native_fixed(row) for name,row in h['files'].items()}
+oldhraw=native_fixed(h['old_handoff']);oldh=json.loads(oldhraw)
+assert oldhraw==raws['before-r1/HANDOFF.json']
+for name,row in oldh['files'].items():assert native_fixed(row)==raws['before-r1/'+name]
+reviewraw,reviewrow=read(ROOT/'R12-ORDERED-BOUNDARY-ROOT-REVIEW.json');review=json.loads(reviewraw)
+assert review['status']=='PASS_ROOT_STATIC_R12_ORDERED_READ_BOUNDARY_AUTHOR_ONLY' and reviewraw==raws['Root-R1/R12-ORDERED-BOUNDARY-ROOT-REVIEW.json']
+assert review['case_pairs']==2268 and review['maximum_VM_calls']==4536
+praw=native_fixed(h['plan']);p=json.loads(praw);oldpraw=raws['before-r1/EXECUTION-PLAN.json'];oldp=json.loads(oldpraw)
+assert pin(praw)['git_blob']=='f20dd3fd2b250d18bbd6af7e7a7e568a66b3c939'
+assert set(p)==set(oldp)
+changed=['execution_root','environment','output_ancestors','author_files','authorization_pin']
+assert sorted(k for k in p if p[k]!=oldp[k])==sorted(changed)
+back=dict(p)
+for key in changed:back[key]=oldp[key]
+assert back==oldp and enc(back)==oldpraw
+assert p['fixed_controls']==oldp['fixed_controls'] and len(p['fixed_controls'])==153
+for row in p['fixed_controls'].values():native_fixed(row)
+for name,expected in p['author_files'].items():assert h['files'][name]['identity']==expected
+assert p['execution_root']=='/home/agent/hia-r12-ordered-read-controls-r2-dda7'
+assert p['environment']=={**oldp['environment'],'HOME':p['execution_root']}
+assert set(p['output_ancestors'])=={'/','/home','/home/agent'}
+assert p['budgets']==review['budgets'] and p['minimum_free_bytes']==3221225472 and p['conservative_new_evidence_bytes']==536870912
+mat=dict(p);claimed=mat.pop('authorization_pin');assert pin(enc(mat))['sha256']==claimed
+for name in ('CASES.json','boundary_cases.py','ordered_logic.py','run_ordered_read_gate.py','runtime_body.py.txt','trace_machine.py'):
+ assert raws[name]==raws['before-r1/'+name],name
+old=raws['before-r1/ordered_support.py'];new=raws['ordered_support.py']
+of,nf=functions(old),functions(new)
+assert set(of)==set(nf) and [k for k in of if of[k]!=nf[k]]==['open_output_parent','output_parent_snapshot']
+back=new
+for name in ('open_output_parent','output_parent_snapshot'):
+ assert back.count(nf[name])==1;back=back.replace(nf[name],of[name])
+assert back==old and ast.dump(ast.parse(back))==ast.dump(ast.parse(old))
+assert raws['output_parent_functions.py.txt'].strip()==(nf['open_output_parent']+b'\n'+nf['output_parent_snapshot']).strip()
+ns={};exec(compile(raws['static_parent_controls.py'],'pure-descriptor-model','exec'),ns)
+model=ns['controls'](raws['output_parent_functions.py.txt'].decode())
+assert model==json.loads(raws['STATIC-PARENT-CONTROLS.json']) and len(model['scenarios'])==21
+assert model['products']==model['project_imports']==model['filesystem_mutations']==model['real_directory_opens']==0
+def require(x,m):
+ if not x:raise AssertionError(m)
+parent_ns={'os':os,'stat':stat,'Path':Path,'require':require}
+exec(compile(raws['output_parent_functions.py.txt'],'reviewed-actual-output-parent-preflight','exec'),parent_ns)
+fd=parent_ns['open_output_parent'](p)
+try:
+ fs=os.fstatvfs(fd);s=os.fstat(fd);free=fs.f_bavail*fs.f_frsize
+ assert free>=3221225472 and not fs.f_flag&os.ST_NOEXEC and s.st_dev==41
+finally:os.close(fd)
+lraw=native_fixed(h['launch']);l=json.loads(lraw);oldl=json.loads(raws['before-r1/LAUNCH.json'])
+assert sorted(k for k in l if l[k]!=oldl[k])==['argv','outer_root','plan','runner']
+assert l['argv']==['/usr/bin/env','-i']+[k+'='+v for k,v in p['environment'].items()]+[p['runtime']['executable']['path'],'-I','-S','-B',str(R/'run_ordered_read_gate.py'),'--plan-sha256',claimed]
+assert native_fixed(l['plan'])==praw and native_fixed(l['runner'])==raws['run_ordered_read_gate.py']
+assert l['outer_root']=='/home/agent/hia-r12-ordered-read-controls-outer-r2-dda7'
+assert l['outer_seconds']==1800 and l['actual_owner_seconds']==180 and l['outer_cleanup_seconds']==l['actual_cleanup_seconds']==3
+assert l['one_attempt'] and not l['automatic_retry']
+assert not os.path.lexists(p['execution_root']) and not os.path.lexists(l['outer_root'])
+out={'status':'PASS_ROOT_STATIC_R12_ORDERED_READ_R2_PARENT_PROJECTION_ONLY','prior_complete_review':reviewrow,'handoff':hrow,'plan':pin(praw),'launch':pin(lraw),'runner':pin(raws['run_ordered_read_gate.py']),'support':pin(new),'exactly_two_output_parent_helpers_changed':True,'remaining_15_helpers_and_entire_runner_cases_observer_equal':True,'whole_support_plan_launch_inverses':True,'model_scenarios':21,'actual_readonly_parent_fd_preflight':True,'free_bytes_before':free,'source_runtime_fixed_controls_equal':True,'fixed_controls_full_reads':153,'case_pairs':2268,'maximum_VM_calls':4536,'original_floor':3221225472,'original_new_evidence_allowance':536870912,'budgets':p['budgets'],'products':0,'VM_calls':0,'whole_native':False,'full_reads':READS}
+with (ROOT/'R12-ORDERED-BOUNDARY-R2-ROOT-REVIEW.json').open('xb')as f:f.write(enc(out))
+print(json.dumps({k:v for k,v in out.items() if k not in ('full_reads','handoff','prior_complete_review')},sort_keys=True))

@@ -1,0 +1,17 @@
+--- before/hepta/hia_inspect_program_native.py
++++ after/hepta/hia_inspect_program_native.py
+@@ -33,11 +33,9 @@
+ 
+ 
+ class InspectProgramFrame(FrontFrame):
+-    def __init__(self, image, mode, arguments, captures=(), *, witness=None):
+-        # This is a mechanical call lease, not a HIA effect permission.
+-        # It exists before the inherited constructor can perform cleanup.
+-        self._machine_busy = False
+-        super().__init__(image, mode, arguments, captures, witness=witness)
++    # Inherit construction without an extra argument-retaining frame.
++    # Each physical call shadows this idle default on its own instance.
++    _machine_busy = False
+ 
+     def _require_machine_idle(self):
+         if self._machine_busy is not False:

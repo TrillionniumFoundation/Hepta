@@ -1,0 +1,26 @@
+--- R1/verify_terminal.py
++++ R2/verify_terminal.py
+@@ -202,7 +202,14 @@
+     need(frozen_roles['reference_count']==len(frozen_roles['roles'])==962 and
+          set(frozen_roles['roles'])==set(plan['fixed_inputs']),'actual admission role set differs')
+     original_fresh=j(ADMISSION/'FULL-FRESH-6777.json','8e7671a3b37465c66e63af409f50578d2dc75fd6')
+-    need(original_fresh=={'groups':mapping['groups'],'extra_authorities':mapping['extra_authorities'],
++    need(all(set(row)=={'identity','roles','seven_stats'}
++             for group in mapping['groups'] for row in group['files'].values()) and
++         all(set(row)=={'path','identity','roles','seven_stats'} for row in mapping['extra_authorities']),
++         'original mapping row schema differs')
++    observed_groups=[{**group,'files':{name:{k:v for k,v in row.items() if k!='roles'}
++                     for name,row in group['files'].items()}} for group in mapping['groups']]
++    observed_extras=[{k:v for k,v in row.items() if k!='roles'} for row in mapping['extra_authorities']]
++    need(original_fresh=={'groups':observed_groups,'extra_authorities':observed_extras,
+          'files':6777,'bytes':948620735},'actual original-domain admission map differs')
+     material=dict(plan);authorization=material.pop('authorization_pin')
+     need(pin(canonical(material))['sha256']==authorization and plan['minimum_free_bytes']==3221225472,
+@@ -545,6 +552,6 @@
+         finally: LEDGER=None
+ 
+ if __name__=='__main__':
+-    p=argparse.ArgumentParser();p.add_argument('--out',type=Path,default=Path('/tmp/hia-r9-controls-terminal-readback-r1-dda7'))
++    p=argparse.ArgumentParser();p.add_argument('--out',type=Path,default=Path('/tmp/hia-r9-controls-terminal-readback-r2-dda7'))
+     a=p.parse_args();need(a.out.is_absolute() and not a.out.exists(),'new absolute reader output required')
+     raise SystemExit(main(a.out))

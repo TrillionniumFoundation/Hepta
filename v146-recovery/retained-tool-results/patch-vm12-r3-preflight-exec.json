@@ -1,0 +1,13 @@
+{
+  "schema": "hepta.recovered.pre-reset-tool-result.v1",
+  "persistent_key": "v146.patch.vm12.r3.preflight.exec",
+  "original_filesystem_current": false,
+  "original_local_raw_available": false,
+  "observed_tool_result": {
+    "chunk_id": "980d35",
+    "wall_time_seconds": 0.672875179,
+    "exit_code": 1,
+    "original_token_count": 488,
+    "output": "Traceback (most recent call last):\n  File \"/tmp/hia-root-v141-dda7/verify_patch_vm12_r3_binding_preflight.py\", line 45, in <module>\n    assert named_assign(binder,name)==named_assign(original_support,name)\n           ~~~~~~~~~~~~^^^^^^^^^^^^^\n  File \"/tmp/hia-root-v141-dda7/verify_patch_vm12_r3_binding_preflight.py\", line 43, in named_assign\n    return next(ast.literal_eval(n.value) for n in ast.parse(raw).body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id==name)\n  File \"/tmp/hia-root-v141-dda7/verify_patch_vm12_r3_binding_preflight.py\", line 43, in <genexpr>\n    return next(ast.literal_eval(n.value) for n in ast.parse(raw).body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id==name)\n                ~~~~~~~~~~~~~~~~^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v94-cli-parser-context-r11-r2/graph-probe-r2/interpreter/lib/python3.14/ast.py\", line 106, in literal_eval\n    return _convert(node_or_string)\n  File \"/workspace/scratch/dda74a4fae35/v94-cli-parser-context-r11-r2/graph-probe-r2/interpreter/lib/python3.14/ast.py\", line 105, in _convert\n    return _convert_signed_num(node)\n  File \"/workspace/scratch/dda74a4fae35/v94-cli-parser-context-r11-r2/graph-probe-r2/interpreter/lib/python3.14/ast.py\", line 79, in _convert_signed_num\n    return _convert_num(node)\n  File \"/workspace/scratch/dda74a4fae35/v94-cli-parser-context-r11-r2/graph-probe-r2/interpreter/lib/python3.14/ast.py\", line 70, in _convert_num\n    _raise_malformed_node(node)\n    ~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v94-cli-parser-context-r11-r2/graph-probe-r2/interpreter/lib/python3.14/ast.py\", line 67, in _raise_malformed_node\n    raise ValueError(msg + f': {node!r}')\nValueError: malformed node or string on line 45: BinOp(left=Constant(value=8, kind=None), op=LShift(), right=Constant(value=20, kind=None))\n"
+  }
+}

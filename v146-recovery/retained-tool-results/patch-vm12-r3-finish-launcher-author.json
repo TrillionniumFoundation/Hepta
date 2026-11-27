@@ -1,0 +1,13 @@
+{
+  "schema": "hepta.recovered.pre-reset-tool-result.v1",
+  "persistent_key": "v146.patch.vm12.r3.finish.launcher.author",
+  "original_filesystem_current": false,
+  "original_local_raw_available": false,
+  "observed_tool_result": {
+    "chunk_id": "8b4fe7",
+    "wall_time_seconds": 0.000025097,
+    "exit_code": 0,
+    "original_token_count": 558,
+    "output": "\"\"\"One fixed PatchResult VM12 R3 final metadata readback command, no product launch.\"\"\"\nimport hashlib,json,os,subprocess,time\nfrom pathlib import Path\nD=Path('/tmp/hia-root-v141-dda7');B=Path('/tmp/hia-patch-result-execution-r1-dda7/vm12-r3');O=Path('/tmp/hia-root-patch-vm12-r3-finish-dda7')\ndef pin(raw):return {'bytes':len(raw),'git_blob':hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\\0'+raw).hexdigest(),'sha256':hashlib.sha256(raw).hexdigest()}\ndef put(name,v):\n raw=v if type(v)is bytes else (json.dumps(v,sort_keys=True,indent=2)+'\\n').encode()\n with (O/name).open('xb') as f:f.write(raw)\nlaunch_raw=(B/'TERMINAL-READBACK-LAUNCH.json').read_bytes();launch=json.loads(launch_raw)\nassert pin(launch_raw)['git_blob']=='94b9ab3edf51ccffaff657242cf814adeac73e46'\nassert pin((B/'AUTHORITY.json').read_bytes())['git_blob']=='b277e061c45f6ace1074177261f9747958cddad7'\nassert pin((B/'bind_vm12.py').read_bytes())['git_blob']=='827b1caabac47aeb1fb61795fba02c205d45941d'\nassert pin((D/'patch-vm12-r3-root-terminal.json').read_bytes())['git_blob']=='99d7f25a5146fe002182d2deb63c78addf7a9c83'\nauth=(D/'patch-vm12-r3-root-finish-authorization.json').read_bytes()\nassert not os.path.lexists(O) and not os.path.lexists(launch['output'])\nO.mkdir(mode=0o700);put('LAUNCH.json',launch_raw);put('AUTHORIZATION.json',auth)\nstart=time.monotonic_ns()\nwith (O/'stdout.raw').open('xb') as stdout,(O/'stderr.raw').open('xb') as stderr:\n child=subprocess.Popen(launch['argv'],cwd=launch['cwd'],env=launch['environment'],stdout=stdout,stderr=stderr)\n put('STARTED.json',{'pid':child.pid,'started_ns':start,'readback_attempts':1,'products':0})\n rc=child.wait()\nend=time.monotonic_ns()\nresult={'schema':'hepta.root.patch-vm12-r3-finish-outer.v1','status':'EXITED','returncode':rc,'readback_attempts':1,'product_calls':0,'automatic_retry':False,'started_ns':start,'finished_ns':end,'elapsed_ns':end-start,'launch':pin(launch_raw),'authorization':pin(auth),'stdout.raw':pin((O/'stdout.raw').read_bytes()),'stderr.raw':pin((O/'stderr.raw').read_bytes())}\nput('OUTER.json',result);print(json.dumps(result,sort_keys=True));raise SystemExit(rc)\n\n{\"bytes\": 2119, \"git_blob\": \"09dadbd20684d341a688fc19f4811d59f734e027\", \"products\": 0, \"whole_inverse\": true}\n"
+  }
+}

@@ -1,0 +1,11 @@
+--- verify_readback.py
++++ verify_readback_r2.py
+@@ -21,7 +21,7 @@
+  names.append(name);raw=base64.b64decode(row['base64'],validate=True);p=Path(value['root'])/name
+  assert pin(raw)=={k:row[k]for k in ('bytes','sha256','git_blob')}and raw==p.read_bytes()
+  assert stat.S_IMODE(p.lstat().st_mode)==row['mode'];total+=len(raw)
+-assert len(names)==capsule['files']==39 and total==capsule['raw_file_bytes']==5572647
++assert len(names)==capsule['files']==48 and total==capsule['raw_file_bytes']==1321112
+ assert names==sorted(str(p.relative_to(value['root']))for p in Path(value['root']).rglob('*')if p.is_file())
+ proof={'status':'PASS_GIT_FULL_GET_AND_COMPLETE_48_AUTHOR_FILE_DECODE','published_leaves':verified,
+  'author_files':48,'author_bytes':total,'all_file_bytes_modes_pathset_exact':True,

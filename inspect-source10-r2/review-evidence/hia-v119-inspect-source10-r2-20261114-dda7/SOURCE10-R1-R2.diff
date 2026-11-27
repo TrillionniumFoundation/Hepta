@@ -1,0 +1,62 @@
+--- frozen-r1/run_source10_only.py
++++ authored-r2/run_source10_only_r2.py
+@@ -96,16 +96,33 @@
+     is refused. The complete before/after byte and stat guards remain required.
+     """
+     roots = (BASE, SOURCE, KIT, GEN)
+-    exact = (Path(__file__).absolute(), HERE / 'SOURCE10-PLAN.json', HERE / 'SOURCE10-CONTRACT.md')
+-
+-    def check(path):
++    exact = (Path(__file__).absolute(), HERE / 'SOURCE10-PLAN.json',
++             HERE / 'SOURCE10-PLAN-R2.json', HERE / 'SOURCE10-CONTRACT.md')
++
++    def check(path, directory_fd=None):
+         if type(path) is int:
+             current = os.fstat(path)
+             require((current.st_dev, current.st_ino) not in protected_inodes,
+                     'write to shared/frozen source descriptor refused')
+             return
+         require(type(path) in (str, bytes), 'exact filesystem argument required')
+-        value = Path(os.path.abspath(os.fsdecode(path)))
++        named = Path(os.fsdecode(path))
++        if named.is_absolute() or directory_fd in (None, -1, -100):
++            value = Path(os.path.abspath(named))
++        else:
++            # rmtree's descriptor-relative removal must be resolved against
++            # the actual held directory, never against the source cwd.
++            require(type(directory_fd) is int, 'exact directory descriptor required')
++            held = os.fstat(directory_fd)
++            require(stat.S_ISDIR(held.st_mode), 'directory descriptor is not a directory')
++            directory = os.readlink('/proc/self/fd/' + str(directory_fd))
++            require(directory.startswith('/') and not directory.endswith(' (deleted)'),
++                    'held directory pathname is unavailable')
++            bound = Path(directory)
++            named_directory = bound.stat()
++            require((named_directory.st_dev, named_directory.st_ino) == (held.st_dev, held.st_ino),
++                    'held directory and named directory differ')
++            value = Path(os.path.abspath(bound / named))
+         resolved = value.resolve(strict=False)
+         require(value not in exact and resolved not in exact
+                 and not any(value.is_relative_to(root) or resolved.is_relative_to(root) for root in roots),
+@@ -123,12 +140,18 @@
+             if (type(flags) is int and flags & (os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC|os.O_APPEND)) or (
+                     type(mode) is str and any(c in mode for c in 'wax+')):
+                 check(path)
+-        elif event in ('os.remove','os.rmdir','os.mkdir','os.chmod','os.chown','os.utime','os.truncate'):
++        elif event in ('os.remove','os.rmdir'):
++            check(arguments[0],arguments[1])
++        elif event in ('os.mkdir','os.chmod'):
++            check(arguments[0],arguments[2])
++        elif event in ('os.chown','os.utime'):
++            check(arguments[0],arguments[3])
++        elif event == 'os.truncate':
+             check(arguments[0])
+         elif event in ('os.rename','os.link'):
+-            check(arguments[0]); check(arguments[1])
++            check(arguments[0],arguments[2]); check(arguments[1],arguments[3])
+         elif event == 'os.symlink':
+-            check(arguments[1])
++            check(arguments[1],arguments[2])
+         elif event == 'subprocess.Popen' or event in ('os.system','os.exec','os.posix_spawn','os.fork','os.forkpty'):
+             raise AssertionError('Source10 child cannot start another product process')
+     sys.addaudithook(audit)

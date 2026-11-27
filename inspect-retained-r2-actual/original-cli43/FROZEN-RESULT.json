@@ -1,0 +1,28 @@
+{
+  "compiler_after": {
+    "bytes": 673413,
+    "git_blob": "315c6b5f36a1ec679deb68abdca24bd4d1bef9f8",
+    "mode": "100644",
+    "sha256": "bfd603dd2b40974d2083b567b4295fb3975938da8435dd636514fc197c485de0"
+  },
+  "compiler_unchanged": true,
+  "group": "original-cli43",
+  "kind": "tests",
+  "matching_current_cold": false,
+  "product_execution": "ACTUAL_IF_INVOKED",
+  "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+  "request_pin": {
+    "bytes": 8127,
+    "git_blob": "2fc1fd179c97b78c5f36f1298aacfe0201128f7c",
+    "mode": "100644",
+    "sha256": "6f8267120c25eb836d9e0393e5fae743ad748ad7024caacce2c34cde84a245c7"
+  },
+  "schema": "hepta.hia.inspect-development-child-result.v1",
+  "scope": "FIXED_OLD_B3_DEVELOPMENT_NOT_MATCHING_CURRENT_SOURCE_COLD",
+  "source_after_tree": "7df49dd24bbba4ba3210168e639d6ea35a76a475",
+  "source_before_tree": "7df49dd24bbba4ba3210168e639d6ea35a76a475",
+  "source_unchanged": true,
+  "status": "FAIL",
+  "traceback": "Traceback (most recent call last):\n  File \"/workspace/scratch/dda74a4fae35/v119-inspect-policy-execution-r1/run_inspect_development.py\", line 194, in child\n    result['tests'] = run_exact_tests(request['ids'], Path(request['output']).with_name('TESTS.json'))\n                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v119-inspect-policy-execution-r1/inspect_exec_support.py\", line 364, in run_exact_tests\n    require(type(result.testsRun) is int and result.testsRun == len(ids)\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            and report['started_ids'] == list(ids) == report['stopped_ids']\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            and report['events'] == [event for name in ids for event in (['start', name], ['stop', name])]\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            and not any(report[key] for key in ('failures','errors','skipped','expected_failures','unexpected_successes')),\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            'exact executed tests contain missing IDs, failures, errors, skips or exceptions')\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/dda74a4fae35/v119-inspect-policy-execution-r1/inspect_exec_support.py\", line 38, in require\n    raise AssertionError(message)\nAssertionError: exact executed tests contain missing IDs, failures, errors, skips or exceptions\n",
+  "whole_cli_native": false
+}

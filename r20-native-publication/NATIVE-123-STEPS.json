@@ -1,0 +1,740 @@
+[
+  {
+    "bytes": 34,
+    "first_line": "      - uses: actions/checkout@v4",
+    "ordinal": 1,
+    "sha256": "207a9539d296067d4e28fe7e6e2da0fdf0aa77c84493336e915201bb1042bb90"
+  },
+  {
+    "bytes": 87,
+    "first_line": "      - uses: actions/setup-python@v5",
+    "ordinal": 2,
+    "sha256": "9e666567597a4272238b1007c1703453291f08eef0b8655e79645dcb1573440f"
+  },
+  {
+    "bytes": 929,
+    "first_line": "      - name: Install qualified Clang 20 native execution prerequisites",
+    "ordinal": 3,
+    "sha256": "5e4f7604ac9b5ca88cb0345995254f503b5a46e14162e04ffdd98c79f4223201"
+  },
+  {
+    "bytes": 107,
+    "first_line": "      - run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0",
+    "ordinal": 4,
+    "sha256": "0a8686711fa7d19ea9dca359eebc912f5a06aca091c7255ee38a63fd04a4cbab"
+  },
+  {
+    "bytes": 539,
+    "first_line": "      - name: Prepare original locked Rust caller dependencies",
+    "ordinal": 5,
+    "sha256": "14d64e12f365c9c7e05a13b400ee5e3244af93f431f8af0fe9538066e1306331"
+  },
+  {
+    "bytes": 95,
+    "first_line": "      - run: python -B tools/replay_hia_selfhost_cold.py --output \"$RUNNER_TEMP/hia-cold.json\"",
+    "ordinal": 6,
+    "sha256": "d870aa52a1b2ce51c1c9fb248d7a85212e0708ce16ce8ea3dca83ca923bd8951"
+  },
+  {
+    "bytes": 187,
+    "first_line": "      - name: Original call graph and native convergence controls",
+    "ordinal": 7,
+    "sha256": "98957d2b940ef58881d5469398741eff8d3c06b5b473f8c71ed7f52746abab20"
+  },
+  {
+    "bytes": 110,
+    "first_line": "      - run: python -B tests/test_hia_selfhost_language_coverage.py --output \"$RUNNER_TEMP/hia-language.json\"",
+    "ordinal": 8,
+    "sha256": "15a4e825490663a3975f1037e09f5723fad53ca1f720c739f79974a69c6493d3"
+  },
+  {
+    "bytes": 121,
+    "first_line": "      - name: Prepare isolated continuation-family evidence",
+    "ordinal": 9,
+    "sha256": "0c300d7d777b396ec6ce20cac6fbdcb83b7f646a1179ac8eb01b10103b03c9ea"
+  },
+  {
+    "bytes": 254,
+    "first_line": "      - name: Native selected release launch with matching cold and original kernel controls",
+    "ordinal": 10,
+    "sha256": "3bbc460899549b649047e537a766228616e6dfa4e1ba7311fb022cec9db3f14e"
+  },
+  {
+    "bytes": 232,
+    "first_line": "      - name: Native candidate build with matching cold and all original 55 images",
+    "ordinal": 11,
+    "sha256": "9fe935c122c7987713664caf104cdee2e53e06b4c2c8f1658d461c5c3502ec0d"
+  },
+  {
+    "bytes": 380,
+    "first_line": "      - name: Native Store lifecycle with matching cold and all original controls",
+    "ordinal": 12,
+    "sha256": "8cf45f0bd86f3a49d35bdd0ba02018821baa310b85bfea034c9652546ff10616"
+  },
+  {
+    "bytes": 236,
+    "first_line": "      - name: Native Store lifecycle original agent callers",
+    "ordinal": 13,
+    "sha256": "af34161c9fb7864fd0fb9e852cd50cd1d11a25d8c09087e082fa3aba3b43f008"
+  },
+  {
+    "bytes": 248,
+    "first_line": "      - name: Native Store lifecycle original namespace callers",
+    "ordinal": 14,
+    "sha256": "9df8fbebee04c9cb5c6f0b39730c3330d21d08c282e89381ea9b1ab1587e13db"
+  },
+  {
+    "bytes": 239,
+    "first_line": "      - name: Native Store lifecycle original ledger callers",
+    "ordinal": 15,
+    "sha256": "aaa07551ad146e36355ae13253705a5365bb5b8d88ec20fa330cd1fc5b4e1d25"
+  },
+  {
+    "bytes": 236,
+    "first_line": "      - name: Native Linux stdio with matching cold and all original 69 controls",
+    "ordinal": 16,
+    "sha256": "08ca1241a38c0e58f270478b539cf994d096e00e25f676525ea80ecffb6d36dc"
+  },
+  {
+    "bytes": 257,
+    "first_line": "      - name: Native CLI discovery JSON with matching cold and all original four groups",
+    "ordinal": 17,
+    "sha256": "6d2ec9d25ea5c9a89efb65b8397c2df16cb5105b30c9734c4ffe95f356cf9eac"
+  },
+  {
+    "bytes": 243,
+    "first_line": "      - name: Native Linux process with matching cold and all original 130 controls",
+    "ordinal": 18,
+    "sha256": "6a9e4032cb6a6b1e8de2d7b1fc0cccf781e35c9c42a5a60bc6af5d9bca2d98a5"
+  },
+  {
+    "bytes": 273,
+    "first_line": "      - name: Native CLI discovery bundle with matching cold and all original 43 plus nine controls",
+    "ordinal": 19,
+    "sha256": "cd228f34bcd8f67878123d9ef9775d046551351fdf172b7db636b336b721a0e2"
+  },
+  {
+    "bytes": 2811,
+    "first_line": "      - name: Native linked loader and compiler receipt bindings",
+    "ordinal": 20,
+    "sha256": "a3a3f59d39c89be32716001690df367e230cabc4bfd56535a5b2072f2f5e699e"
+  },
+  {
+    "bytes": 3605,
+    "first_line": "      - name: Native applications and actual Core memory controls",
+    "ordinal": 21,
+    "sha256": "ab5378a03007badd507777d19890cffcccdbaefc5f666f0d6f1e41ae0863c7f2"
+  },
+  {
+    "bytes": 269,
+    "first_line": "      - name: Native HIA multi-image scheduling and source-bound installed entry",
+    "ordinal": 22,
+    "sha256": "95814a75c994fb369ec2ff777c9cd43327a8c4d6838ea1126efe2ed90b424385"
+  },
+  {
+    "bytes": 362,
+    "first_line": "      - name: Five-family native in-process worker scheduling custody",
+    "ordinal": 23,
+    "sha256": "05f03ef57045cf2db8d4f33429865ebf5e8a360f6cfbf36ae59b1e4037578bda"
+  },
+  {
+    "bytes": 271,
+    "first_line": "      - name: All original runtime callers with HIA-owned internal scheduling",
+    "ordinal": 24,
+    "sha256": "0bf37ac575e16058757077fbc7e8e1248f748f06ff2b888002a2cda0fe688d90"
+  },
+  {
+    "bytes": 296,
+    "first_line": "      - name: Original runtime callers through in-process HIA native scheduling",
+    "ordinal": 25,
+    "sha256": "af99be665c75a157766ce71fc07dec3963721c2471b9cd2254be175fae0c71bd"
+  },
+  {
+    "bytes": 260,
+    "first_line": "      - name: Original no-child compiler scripts through four in-process HIA schedulers",
+    "ordinal": 26,
+    "sha256": "317cdc38aa84ace24f7effa30c2aed765f7a0243723c499513c2237efec0f5c6"
+  },
+  {
+    "bytes": 849,
+    "first_line": "      - name: Native execution ledger policy and installed real runtime callers",
+    "ordinal": 27,
+    "sha256": "55096b9dcc4791314e773c42b5d5cadc4f1145b2410ccf471f08858d7e4955fe"
+  },
+  {
+    "bytes": 257,
+    "first_line": "      - name: Actual original runtime callers with retained ledger policy forbidden",
+    "ordinal": 28,
+    "sha256": "2fde30ad69e2d54ea1ad4edae4cdc1ae3c72f95de447fe411156064f20e26008"
+  },
+  {
+    "bytes": 889,
+    "first_line": "      - name: Native ELF object writer and actual source-bound installed controls",
+    "ordinal": 29,
+    "sha256": "097d5cc25c5a96b86971630233d6485ddcbae974cdd684a9e1ca75f58019782c"
+  },
+  {
+    "bytes": 251,
+    "first_line": "      - name: Actual original machine and Core callers with complete HIA ELF object control",
+    "ordinal": 30,
+    "sha256": "ce2cd697bb7925225341e464b5b6673beb7e042629bdbe04f4e70d95e1cb2b5f"
+  },
+  {
+    "bytes": 334,
+    "first_line": "      - name: Actual original callers with native ELF byte wrapper Emitter and Function control together",
+    "ordinal": 31,
+    "sha256": "4e99dfb4882557dd1733e0b7a248e16b9788e30522746ff4e29f99d7945d1344"
+  },
+  {
+    "bytes": 876,
+    "first_line": "      - name: Native byte wrapper and actual source-bound installed controls",
+    "ordinal": 32,
+    "sha256": "fded90ac4bc121e4a88b0de2157cbe5ec8a6f33fb52d8390f7ce8984e0f92e6d"
+  },
+  {
+    "bytes": 250,
+    "first_line": "      - name: Actual original machine and Core callers with complete HIA borrowed-byte control",
+    "ordinal": 33,
+    "sha256": "2fa53b723851bc646368fe2669e9d724cab43d3619b6ec20aadc9179d6502cff"
+  },
+  {
+    "bytes": 306,
+    "first_line": "      - name: Actual original callers with native byte wrapper Emitter and Function control together",
+    "ordinal": 34,
+    "sha256": "9ce87f2e852002fec6594dfabc8cfe5958dcd951ff123cde5a3af6c947f9f7db"
+  },
+  {
+    "bytes": 876,
+    "first_line": "      - name: Native Core emitter and actual source-bound installed controls",
+    "ordinal": 35,
+    "sha256": "9477d2831607d689828e890faee0eb6d4d4987669aa57af0a58da7d51df64162"
+  },
+  {
+    "bytes": 244,
+    "first_line": "      - name: Actual original machine and Core callers with complete HIA Emitter control",
+    "ordinal": 36,
+    "sha256": "e6cd2e822eaebcd94b27f1b9b62c746ffb1ba95627ca252b6f656cee2e5a8fa1"
+  },
+  {
+    "bytes": 269,
+    "first_line": "      - name: Actual original callers with both native Emitter and Function control",
+    "ordinal": 37,
+    "sha256": "3e9e5405fd537b1c901f4505f3a54a05fe4267d2e67f90cecb5f491874b51b2a"
+  },
+  {
+    "bytes": 881,
+    "first_line": "      - name: Native Core lowering and actual source-bound installed controls",
+    "ordinal": 38,
+    "sha256": "6efafb2ad96e3cf67fd6e139425774c6ac123a8fbe442c2a116f8d5367d2fca4"
+  },
+  {
+    "bytes": 247,
+    "first_line": "      - name: Actual original machine and Core callers with complete HIA Function control",
+    "ordinal": 39,
+    "sha256": "8900cf83232568917ced2664c2d1530053a5c7ec3060246366ec736f337be47c"
+  },
+  {
+    "bytes": 876,
+    "first_line": "      - name: Native machine plan and actual source-bound installed controls",
+    "ordinal": 40,
+    "sha256": "ba50c690938a6328b59142f24ca5cc8ccf7cd2dd499cb1573ebcf89b3c7064c3"
+  },
+  {
+    "bytes": 277,
+    "first_line": "      - name: Actual original callers with HIA machine plans",
+    "ordinal": 41,
+    "sha256": "6e14842cbcfcff5fce6e47d9135af615a54b507d337a3f76498a428e8366dfb6"
+  },
+  {
+    "bytes": 896,
+    "first_line": "      - name: Native machine encoding and actual source-bound installed controls",
+    "ordinal": 42,
+    "sha256": "54afd59d9d8fd6eeeaad1e6cdb7878ead89dbb4feaf844a6d2aead5273d85dd0"
+  },
+  {
+    "bytes": 881,
+    "first_line": "      - name: Native machine state and actual source-bound installed controls",
+    "ordinal": 43,
+    "sha256": "784bcf82b42eb43dbdeb892bfc9998398289a8b9f85e7f6f478c4226fdbfa3a6"
+  },
+  {
+    "bytes": 916,
+    "first_line": "      - name: Native machine instructions and actual source-bound installed controls",
+    "ordinal": 44,
+    "sha256": "5c96000bf9efc4c248fdbf479d9c23a7d8d1711c24bc230f090af8ef146b09f0"
+  },
+  {
+    "bytes": 234,
+    "first_line": "      - name: Actual original callers with HIA machine encoding",
+    "ordinal": 45,
+    "sha256": "943aa2b7458450339ae0422c4a0894ba6f8a56caa6eca1bd40956b7b911df3ee"
+  },
+  {
+    "bytes": 218,
+    "first_line": "      - name: Actual original callers with HIA machine state",
+    "ordinal": 46,
+    "sha256": "278613e08160dcfd81f70c2c9bde20451b9c8fa2e2c4502f29e6c5c1dfe8dee2"
+  },
+  {
+    "bytes": 239,
+    "first_line": "      - name: Actual original callers with HIA machine instructions",
+    "ordinal": 47,
+    "sha256": "a7408b68a8c5be1cddb13fbbfe832fe321a77f775206510c901f6a3ad68afe24"
+  },
+  {
+    "bytes": 891,
+    "first_line": "      - name: Native worker policy and pinned multi-image custody",
+    "ordinal": 48,
+    "sha256": "dea09d20f3a62f1b64ab30167240d1ad94f56d9a39f289e5c79dab29af11f121"
+  },
+  {
+    "bytes": 328,
+    "first_line": "      - name: Native fifteen-action CLI current selfhost routing and installed resources",
+    "ordinal": 49,
+    "sha256": "d86863567dd28d767e585555ca7f1a240c1b1231b1e78df6adc7535b1513e950"
+  },
+  {
+    "bytes": 351,
+    "first_line": "      - name: Native Core module graph and actual workspace projects",
+    "ordinal": 50,
+    "sha256": "e398f48dc545806a4b91fc3d49ce7e9a1c15e64aaeb078b20b366d676baf0bc1"
+  },
+  {
+    "bytes": 343,
+    "first_line": "      - name: Native Core workspace JSON materialization and actual ABI",
+    "ordinal": 51,
+    "sha256": "92252a1721912cc32910467eb1571bb416b2d996855251d92cf357b614874f22"
+  },
+  {
+    "bytes": 259,
+    "first_line": "      - name: Native Core capability edge policy and actual CFG",
+    "ordinal": 52,
+    "sha256": "d431ea29feb3a2e3f1c9505b2752d9dd6c473604284d903dc0294a0dce9ab617"
+  },
+  {
+    "bytes": 322,
+    "first_line": "      - name: Native explicit workspace facts and semantic ELF materialization",
+    "ordinal": 53,
+    "sha256": "6b04bc9155d3a8a830c013b0e2fd620a531a35d62312364e1ab99e4c0843355b"
+  },
+  {
+    "bytes": 250,
+    "first_line": "      - name: Native full Core function declarations SSA and CFG",
+    "ordinal": 54,
+    "sha256": "bc299491b8f5f29e6eabd3a2edd1f941faf5c4a23db8261fef806a01f77ee9a9"
+  },
+  {
+    "bytes": 266,
+    "first_line": "      - name: Native whole primitive Core declaration SSA CFG and export admission",
+    "ordinal": 55,
+    "sha256": "410ebc730d159eaa1f182f290c99c30b7d2069641815df13411f82ccd29beaf7"
+  },
+  {
+    "bytes": 248,
+    "first_line": "      - name: Native complete local instruction policy",
+    "ordinal": 56,
+    "sha256": "bd3a34c82e05cca9c094d176e47d48e16451ebfdeb4cde252e549f0d5226ccad"
+  },
+  {
+    "bytes": 992,
+    "first_line": "      - name: Native streaming SHA complete retained state controls",
+    "ordinal": 57,
+    "sha256": "584732c45c52e7c0f45cdf85d994067de5637846dfb6ea8c834032c9227943a2"
+  },
+  {
+    "bytes": 357,
+    "first_line": "      - name: Native exact-byte artifact publication and real kernel races",
+    "ordinal": 58,
+    "sha256": "86a9965ee1667dc43b6750042d0642ea5e8821d07275b052bc1240d64cec03ec"
+  },
+  {
+    "bytes": 260,
+    "first_line": "      - name: Native whole primitive Core admission and body resource flow",
+    "ordinal": 59,
+    "sha256": "a53857b1dd98e94cdb0d3d35be26dc7c8965cfb5e82dbdc22d4b9d970168b918"
+  },
+  {
+    "bytes": 246,
+    "first_line": "      - name: Standalone native complete Core admission CLI",
+    "ordinal": 60,
+    "sha256": "85bf3f00ff8e70e79635fcbaff547193c91dab3ff230e022d7e84f4932b5cce1"
+  },
+  {
+    "bytes": 358,
+    "first_line": "      - name: Native snapshot-bound edits and complete Core patch CLI",
+    "ordinal": 61,
+    "sha256": "aecd5bfbb53d8d8d4fa423bb5a4cd3bac80e090525c03ae7420890b17543db2b"
+  },
+  {
+    "bytes": 391,
+    "first_line": "      - name: Native ordinary Agent candidate bytes diagnostics and real crash cuts",
+    "ordinal": 62,
+    "sha256": "60e7de39a2dd929c1f510ef5aebd2a7c3a161652a012e0075eaec8048a379776"
+  },
+  {
+    "bytes": 1261,
+    "first_line": "      - name: Native full Core execution and installed worker bindings",
+    "ordinal": 63,
+    "sha256": "3937fd425aeb6aa0cc7371fdf79e5019df985cd2eaaadfa552c39f2270b54d2c"
+  },
+  {
+    "bytes": 1411,
+    "first_line": "      - name: Native structural budgets arbitrary precision and installed composition",
+    "ordinal": 64,
+    "sha256": "cebe7a040b82453f575403254645819970d0ae7d9a642dad30b60cec2d418bb9"
+  },
+  {
+    "bytes": 1200,
+    "first_line": "      - name: Native public live heap payload bounds and installed composition",
+    "ordinal": 65,
+    "sha256": "a70e557a5767d59cbfccbd85e5f1100939cbb447bdef799bccb286056dd540fa"
+  },
+  {
+    "bytes": 2142,
+    "first_line": "      - name: Native complete nominal types helpers constructor functions and outer lowering",
+    "ordinal": 66,
+    "sha256": "cfe3dbf3c4d380eeac09eaa7ba62d23a7d4712e0f5226ff255680b2e81c9a44b"
+  },
+  {
+    "bytes": 3861,
+    "first_line": "      - name: Native complete nominal continuation families retained from a733",
+    "ordinal": 67,
+    "sha256": "63eb562faea8f88ebcefd89784f9c47a96d92bac1867a9c041f4fbe4dc5a9cee"
+  },
+  {
+    "bytes": 1466,
+    "first_line": "      - name: Native durable execution budgets request journal and artifact namespace",
+    "ordinal": 68,
+    "sha256": "707faa9e905c2d31f1e597be89650aba2023837e6cc55405b01a3efb03356200"
+  },
+  {
+    "bytes": 861,
+    "first_line": "      - name: Native retained retirement state and actual resource custody",
+    "ordinal": 69,
+    "sha256": "5271a33a0914134219348945f48e6a9f4fc2705f5acde852a9a7e1bf46a6d1b8"
+  },
+  {
+    "bytes": 1113,
+    "first_line": "      - name: Native worker request admission and ordinary request continuity",
+    "ordinal": 70,
+    "sha256": "51dc6373f93db4f8f930b8a4c1bb2f46f4291962935c877c9fd8bd444dad3476"
+  },
+  {
+    "bytes": 1030,
+    "first_line": "      - name: Native worker pinned helper custody and journal composition",
+    "ordinal": 71,
+    "sha256": "b4ad217c551a7ad7fb5409c9dcd4cdb5952f5d95e84146ed9d891f109d3c5f31"
+  },
+  {
+    "bytes": 787,
+    "first_line": "      - name: Native request journal decisions and actual SQL crash controls",
+    "ordinal": 72,
+    "sha256": "58f39b2c93cf8a48ab61a9ff7d7fcc7051fd87e0cb2745537e32d598bd059a7b"
+  },
+  {
+    "bytes": 876,
+    "first_line": "      - name: Native execution budgets and both request-journal lifecycles",
+    "ordinal": 73,
+    "sha256": "9a29365f2665fb793253f3f9b37e5f99882e8ea5ba5b34641af12023dc7ec376"
+  },
+  {
+    "bytes": 881,
+    "first_line": "      - name: Native candidate budgets and pinned state owner composition",
+    "ordinal": 74,
+    "sha256": "daac0275a79d8bf3bed77407e9fc077e97145c0f21ccfce11375cfbd5bdd1a8c"
+  },
+  {
+    "bytes": 786,
+    "first_line": "      - name: Native slot versions leases and original Agent transactions",
+    "ordinal": 75,
+    "sha256": "dca1295a0d00d7153bff0de04d1ae04cafbb2b588ed73273a2a3952d2b939afe"
+  },
+  {
+    "bytes": 1040,
+    "first_line": "      - name: Ordinary Agent callers with native journal and retained owner forbidden",
+    "ordinal": 76,
+    "sha256": "30d059d83e38889dd861a84930d43b48c8231db7fc41192da54d81467b16f560"
+  },
+  {
+    "bytes": 874,
+    "first_line": "      - name: Native immutable release installation and recovery observations",
+    "ordinal": 77,
+    "sha256": "03e32398fb634ce7870f1e8b5ec5bd306332a91c7e9de60af186581b30f53adb"
+  },
+  {
+    "bytes": 966,
+    "first_line": "      - name: Native release selection CAS rollback and crash recovery",
+    "ordinal": 78,
+    "sha256": "b2a010235fd33cbc19d2534ca170781c6ccf3c8338bb2c6ff4478b8434645439"
+  },
+  {
+    "bytes": 885,
+    "first_line": "      - name: Native retained retirement and real resource release controls",
+    "ordinal": 79,
+    "sha256": "2ad31c7d25569ae82e7cea21f16afec76e0a59e6224c11233be0b771afc4c52b"
+  },
+  {
+    "bytes": 854,
+    "first_line": "      - name: Native assembly source build and self-repacking",
+    "ordinal": 80,
+    "sha256": "7b2fc41e5bb0b780df574fed766c1279df8023df76effad90d8d30adb0fae32c"
+  },
+  {
+    "bytes": 1050,
+    "first_line": "      - name: Native raw JSON nominal packets and actual constructor ingress",
+    "ordinal": 81,
+    "sha256": "9c0583a38dc517a1585a665093060a0bbefa6fb038b480958e1d9489b943ab86"
+  },
+  {
+    "bytes": 1539,
+    "first_line": "      - name: Native source admission build and explicit public compiler",
+    "ordinal": 82,
+    "sha256": "dc4164eabffea24f7391a6b808a8a5666902450ccb4e688fde0850fb7a834f24"
+  },
+  {
+    "bytes": 1300,
+    "first_line": "      - name: Native complete CLI arguments formatting and continuations",
+    "ordinal": 83,
+    "sha256": "c115f7fb0ae402f153e88481c308f9e4eb15470ea71d54a103fc38ba8512d956"
+  },
+  {
+    "bytes": 1994,
+    "first_line": "      - name: Native complete machine Code owners and exception custody",
+    "ordinal": 84,
+    "sha256": "4bd9c1e7bba70501b7a9e7977739b032b44c3ac3a1c13c17004bb39ef17eb956"
+  },
+  {
+    "bytes": 315,
+    "first_line": "      - name: Native machine instructions through complete original callers",
+    "ordinal": 85,
+    "sha256": "b70e7e1a6c02a7a861b5e83aa642ffe56b1ad3bef84fb75dc4551d1bd3b4120c"
+  },
+  {
+    "bytes": 1317,
+    "first_line": "      - name: Native machine ELF writer and exact exception custody",
+    "ordinal": 86,
+    "sha256": "61e81c56f8a2df8b67f4adb17a8cd267ed6a1ee26305824b3ec93e554620b92a"
+  },
+  {
+    "bytes": 278,
+    "first_line": "      - name: Native machine ELF through complete original callers",
+    "ordinal": 87,
+    "sha256": "b618889c84be4964ee138056ced519f48710ac4a6514ce75f089141d19e079ce"
+  },
+  {
+    "bytes": 1368,
+    "first_line": "      - name: Native machine plan policy and original object lifetimes",
+    "ordinal": 88,
+    "sha256": "3788e1c3af75e412b56770317591eb27037221b545024e107820d7567381ca40"
+  },
+  {
+    "bytes": 411,
+    "first_line": "      - name: Native machine plan through complete original callers",
+    "ordinal": 89,
+    "sha256": "0c8cf9d5872e85c6cf6e8bfec7f7550fca284d2b25ef99ed5e536e29de1dc3e7"
+  },
+  {
+    "bytes": 1345,
+    "first_line": "      - name: Native service context policy integers and held proof identity",
+    "ordinal": 90,
+    "sha256": "78fa3f5808eb5cae8d36ac3be6b3755500672d74376f10913d4e83ffa7664c39"
+  },
+  {
+    "bytes": 293,
+    "first_line": "      - name: Native service context through all original Agent callers",
+    "ordinal": 91,
+    "sha256": "2d8a673c5624c517ea3d7f8a45d936cf3237c22ed78b7961c638623bbf7f14fc"
+  },
+  {
+    "bytes": 331,
+    "first_line": "      - name: Native complete Core lowering through all original machine and Core callers",
+    "ordinal": 92,
+    "sha256": "7e0bc6101410cd10fb928f4f17fbea74f218a79ff56afb2b89da584dccf74fc1"
+  },
+  {
+    "bytes": 1252,
+    "first_line": "      - name: Native shared frame Call and short circuit ownership",
+    "ordinal": 93,
+    "sha256": "f871e5655e0bdb9f9be5e3f03dd219c23a7a8d888fa4c34f0d880a777c531a08"
+  },
+  {
+    "bytes": 1466,
+    "first_line": "      - name: Native service emission continuation and exception custody",
+    "ordinal": 94,
+    "sha256": "1d4f335640ba55dc218e061ec88aa985eb3da6a8406d6579e0e38b496a182233"
+  },
+  {
+    "bytes": 296,
+    "first_line": "      - name: Native service emission through all original Agent callers",
+    "ordinal": 95,
+    "sha256": "f7208da35a1862900be022eb344066f099fdbb9198f341c017b69905eee9a91a"
+  },
+  {
+    "bytes": 328,
+    "first_line": "      - name: Native complete Core emitter through all original machine and Core callers",
+    "ordinal": 96,
+    "sha256": "5eefcb918fb15a887332bb523dc998ae940b959ba271c7a43d85b16fe1a89123"
+  },
+  {
+    "bytes": 1351,
+    "first_line": "      - name: Native borrowed byte ABI complete policy and whole emission custody",
+    "ordinal": 97,
+    "sha256": "ba21c82bc3c4577967f5db77ab5bf8ea18996e25fc724954cc21388315688546"
+  },
+  {
+    "bytes": 309,
+    "first_line": "      - name: Native borrowed byte ABI through all original byte and Agent buffer callers",
+    "ordinal": 98,
+    "sha256": "3d9c5613402b6b633a842bc1380a178a99e94266a1dc880545268cb73ae88f29"
+  },
+  {
+    "bytes": 1286,
+    "first_line": "      - name: Native complete build coordinator and installation custody",
+    "ordinal": 99,
+    "sha256": "66964f0ccaeb5e053760571444b7ff5f53b67395e65c72aea5f15dd3df9e239f"
+  },
+  {
+    "bytes": 294,
+    "first_line": "      - name: Native complete build coordinator through all original 114 callers",
+    "ordinal": 100,
+    "sha256": "7adb2cd498b28f50f868733f0863b96fea9f3d164a276c8d428fa7efd39430f9"
+  },
+  {
+    "bytes": 1474,
+    "first_line": "      - name: Native service verification complete policy and default replay",
+    "ordinal": 101,
+    "sha256": "49a9872937548f2d025738be95dd0670b0894f342dc81d312e2908397cefecd7"
+  },
+  {
+    "bytes": 308,
+    "first_line": "      - name: Native service verification through all original Agent callers",
+    "ordinal": 102,
+    "sha256": "c82c796fa9e067198777c63155941bd098f547c3f2f903b073c48a6df96417f3"
+  },
+  {
+    "bytes": 1383,
+    "first_line": "      - name: Native proof contract complete public policy and held capability",
+    "ordinal": 103,
+    "sha256": "adc45a021eda05736c35eea0e3bbf9c6e7e4903e498710f7d605fa0a7b94c267"
+  },
+  {
+    "bytes": 308,
+    "first_line": "      - name: Native proof contract through all original 22 proof and 18 machine callers",
+    "ordinal": 104,
+    "sha256": "dcb01256adf538a38b061c8bdd077f9b76a5e47ede2419abad4c76bdcb551417"
+  },
+  {
+    "bytes": 1382,
+    "first_line": "      - name: Native eight-body service requests complete component",
+    "ordinal": 105,
+    "sha256": "3f10281798062e4eb942e12dfacd793fdf97c741aee6c65af73fda6fa5c638fc"
+  },
+  {
+    "bytes": 270,
+    "first_line": "      - name: Native requests through all original 48 Agent callers",
+    "ordinal": 106,
+    "sha256": "8224d7fbfab958d58351283d8db54367cd6e914718ddb87fd4d52cd96b93ea97"
+  },
+  {
+    "bytes": 282,
+    "first_line": "      - name: Native requests through all original 35 namespace callers",
+    "ordinal": 107,
+    "sha256": "7c8b15a3df285d46c95afc23f4852b0c344712dc14ab0e1ea8d418f81dfd83ca"
+  },
+  {
+    "bytes": 273,
+    "first_line": "      - name: Native requests through all original 48 ledger callers",
+    "ordinal": 108,
+    "sha256": "2d6f3c06719e865e7c99153de9ecf032a7f6229486d4308a28a11c066aecaf92"
+  },
+  {
+    "bytes": 1390,
+    "first_line": "      - name: Native six-body service artifacts complete component",
+    "ordinal": 109,
+    "sha256": "adedaabc75ea6a078ab1c708999ef80cef7eabfd8e2a991d0d995dc1b380b04f"
+  },
+  {
+    "bytes": 273,
+    "first_line": "      - name: Native artifacts through all original 48 Agent callers",
+    "ordinal": 110,
+    "sha256": "222b29ec7ae44b79228c43e2135bb298266f0314d35beee35600fbff99e5d105"
+  },
+  {
+    "bytes": 285,
+    "first_line": "      - name: Native artifacts through all original 35 namespace callers",
+    "ordinal": 111,
+    "sha256": "209864385f72e73ca3c07ce8c038881d0a5a24e8970695a4581beae704e7a4c0"
+  },
+  {
+    "bytes": 276,
+    "first_line": "      - name: Native artifacts through all original 48 ledger callers",
+    "ordinal": 112,
+    "sha256": "d4ce134a1a87da410baee389a3d5a0b7d0c87b9efd526360861b72c086462798"
+  },
+  {
+    "bytes": 1401,
+    "first_line": "      - name: Native nine-body service evaluation complete component",
+    "ordinal": 113,
+    "sha256": "f96a7ce27e41822a82545bf512fea0e23fdee39067d1956ae0b517b9e3906577"
+  },
+  {
+    "bytes": 276,
+    "first_line": "      - name: Native evaluation through all original 48 Agent callers",
+    "ordinal": 114,
+    "sha256": "2c6ae9b37444d6a0b6604993b6349f9ad39e6154ed5a2f4092ebb91fc8fcdb8e"
+  },
+  {
+    "bytes": 288,
+    "first_line": "      - name: Native evaluation through all original 35 namespace callers",
+    "ordinal": 115,
+    "sha256": "72c160eb106709dd01fe86ca91dff88c8e334e380d78dfbde023e36d266f3c39"
+  },
+  {
+    "bytes": 279,
+    "first_line": "      - name: Native evaluation through all original 48 ledger callers",
+    "ordinal": 116,
+    "sha256": "11944a6bfc154a3940252da2f905d8f5ecf501ec874705e824f45a5141366a95"
+  },
+  {
+    "bytes": 609,
+    "first_line": "      - name: Native JSON wire entry, exact graph budgets, key cache and installed resources",
+    "ordinal": 117,
+    "sha256": "4a32de97d9d89d35e63954b7badff3ce5df959e31af86ef4610341e7ae18dcbe"
+  },
+  {
+    "bytes": 320,
+    "first_line": "      - name: Original ordinary callers through HIA JSON wire",
+    "ordinal": 118,
+    "sha256": "0dac210cf84cc61cc292f660db479d5d8c5ffd6d1b37ffe4d425d42d8ea6b2f7"
+  },
+  {
+    "bytes": 319,
+    "first_line": "      - name: Native verified report bundle with matching cold and original 43 plus 140 observations",
+    "ordinal": 119,
+    "sha256": "07969f4ace16c7fee1fdee152d2aaa10e73498cb408207a1d512bf7b02bb93fc"
+  },
+  {
+    "bytes": 300,
+    "first_line": "      - name: Native Linux file roundtrip with matching cold and original 140 controls",
+    "ordinal": 120,
+    "sha256": "f9137668dade113014aa266e140f92cd99edebc52373fa9d0cf5b5521f814f2d"
+  },
+  {
+    "bytes": 8372,
+    "first_line": "      - name: Preserve actual cold failure and stage evidence",
+    "ordinal": 121,
+    "sha256": "e139ef8817a2cd72c080634dbc779cd5d349dd76cfe45de2e76b6fc2559e8ecf"
+  },
+  {
+    "bytes": 647,
+    "first_line": "      - name: Preserve final JSON wire caller evidence",
+    "ordinal": 122,
+    "sha256": "f3adf33c26c08f2ce9947ca41067d4ad7199ef9fc62355a20769a59c457a5943"
+  },
+  {
+    "bytes": 453,
+    "first_line": "      - name: Preserve actual Linux process qualification evidence",
+    "ordinal": 123,
+    "sha256": "2db8cc8d779e1611b079cb120da5dcb2464072bdc5048fa9ba0ba491f7b6d104"
+  }
+]

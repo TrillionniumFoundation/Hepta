@@ -1,0 +1,132 @@
+--- actual-R11-generator.py
++++ AUTHORED-R12-generator.py
+@@ -21,7 +21,7 @@
+ from tools import generate_hia_selfhost as compiler
+ from hepta.hia_agent_assembly import render_assembly
+ 
+-SOURCE = 'examples/hia_bootstrap/file_render_checker_word64_ascii.hepta'
++SOURCE = 'examples/hia_bootstrap/file_render_checker_word64_eqbytes.hepta'
+ PARENT_EXPANDED = 'fff28420e62b771a51518ed5e78d99275f8adb8a8deee90076c5854b085dba87'
+ COUNTS = {'functions': 256, 'blocks': 4096, 'operations': 16384,
+           'list_items': 256, 'SSA_per_function': 32768, 'block_parameters_total': 32768}
+@@ -1612,6 +1612,106 @@
+                    'public_compiler_or_VM_changed': False, 'machine_size_or_fuel_PASS_claim': False}
+ 
+ 
++READ32_R11_SOURCE_BYTES = 396167
++READ32_R11_SOURCE_SHA256 = 'a7b1efb2fd4c021caadbe8480f53598f9ba0396c2e51b6add4c221704b45a0ff'
++READ32_BEFORE_COUNTS = {'functions':107,'blocks':1456,'ops':6270}
++READ32_AFTER_COUNTS = {'functions':109,'blocks':1458,'ops':6308}
++READ32_EXPECTED_SITES = [{'function_index': 14, 'block_index': 0, 'block_id': 'b0', 'block': {'id': 'b0', 'params': [{'name': 'v0', 'type': 'mutbuf'}], 'ops': [{'op': 'const', 'args': [], 'out': [{'name': 'v1', 'type': 'usize'}], 'attrs': {'value': 24}}, {'op': 'call', 'args': ['v0', 'v1'], 'out': [{'name': 'v2', 'type': 'usize'}], 'attrs': {'function': 'f25'}}, {'op': 'const', 'args': [], 'out': [{'name': 'v3', 'type': 'usize'}], 'attrs': {'value': 120}}, {'op': 'call', 'args': ['v0', 'v3'], 'out': [{'name': 'v4', 'type': 'usize'}], 'attrs': {'function': 'f25'}}, {'op': 'compare.ne', 'args': ['v2', 'v4'], 'out': [{'name': 'v5', 'type': 'bool'}], 'attrs': {}}], 'term': {'op': 'branch', 'cond': 'v5', 'then': {'target': 'b1', 'args': ['v0']}, 'else': {'target': 'b3', 'args': ['v0']}}}, 'after_ops': [{'op': 'const', 'args': [], 'out': [{'name': 'v1', 'type': 'usize'}], 'attrs': {'value': 24}}, {'op': 'call', 'args': ['v0', 'v1'], 'out': [{'name': 'v12', 'type': 'bool'}], 'attrs': {'function': 'f108'}}, {'op': 'bool.not', 'args': ['v12'], 'out': [{'name': 'v5', 'type': 'bool'}], 'attrs': {}}], 'kept_prefix_ops': 1, 'first_args': ['v0', 'v1'], 'fixed_second_offset': 120, 'new_helper': 'f108', 'result_name': 'v5', 'invert_result': True}, {'function_index': 106, 'block_index': 5, 'block_id': 'b5', 'block': {'id': 'b5', 'params': [{'name': 'v34', 'type': 'readbuf'}, {'name': 'v35', 'type': 'mutbuf'}, {'name': 'v36', 'type': 'usize'}, {'name': 'v37', 'type': 'usize'}], 'ops': [{'op': 'const', 'args': [], 'out': [{'name': 'v42', 'type': 'usize'}], 'attrs': {'value': 643328}}, {'op': 'const', 'args': [], 'out': [{'name': 'v43', 'type': 'usize'}], 'attrs': {'value': 33}}, {'op': 'int.mul.wrap', 'args': ['v37', 'v43'], 'out': [{'name': 'v44', 'type': 'usize'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v42', 'v44'], 'out': [{'name': 'v45', 'type': 'usize'}], 'attrs': {}}, {'op': 'call', 'args': ['v35', 'v45'], 'out': [{'name': 'v46', 'type': 'usize'}], 'attrs': {'function': 'f25'}}, {'op': 'const', 'args': [], 'out': [{'name': 'v47', 'type': 'usize'}], 'attrs': {'value': 0}}, {'op': 'call', 'args': ['v35', 'v47'], 'out': [{'name': 'v48', 'type': 'usize'}], 'attrs': {'function': 'f25'}}, {'op': 'compare.eq', 'args': ['v46', 'v48'], 'out': [{'name': 'v49', 'type': 'bool'}], 'attrs': {}}], 'term': {'op': 'branch', 'cond': 'v49', 'then': {'target': 'b7', 'args': ['v34', 'v35', 'v37']}, 'else': {'target': 'b9', 'args': ['v34', 'v35', 'v36']}}}, 'after_ops': [{'op': 'const', 'args': [], 'out': [{'name': 'v42', 'type': 'usize'}], 'attrs': {'value': 643328}}, {'op': 'const', 'args': [], 'out': [{'name': 'v43', 'type': 'usize'}], 'attrs': {'value': 33}}, {'op': 'int.mul.wrap', 'args': ['v37', 'v43'], 'out': [{'name': 'v44', 'type': 'usize'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v42', 'v44'], 'out': [{'name': 'v45', 'type': 'usize'}], 'attrs': {}}, {'op': 'call', 'args': ['v35', 'v45'], 'out': [{'name': 'v49', 'type': 'bool'}], 'attrs': {'function': 'f107'}}], 'kept_prefix_ops': 4, 'first_args': ['v35', 'v45'], 'fixed_second_offset': 0, 'new_helper': 'f107', 'result_name': 'v49', 'invert_result': False}, {'function_index': 106, 'block_index': 14, 'block_id': 'b18', 'block': {'id': 'b18', 'params': [{'name': 'v137', 'type': 'readbuf'}, {'name': 'v138', 'type': 'mutbuf'}, {'name': 'v139', 'type': 'usize'}, {'name': 'v141', 'type': 'usize'}], 'ops': [{'op': 'call', 'args': ['v138', 'v141'], 'out': [{'name': 'v142', 'type': 'usize'}], 'attrs': {'function': 'f25'}}, {'op': 'const', 'args': [], 'out': [{'name': 'v143', 'type': 'usize'}], 'attrs': {'value': 120}}, {'op': 'call', 'args': ['v138', 'v143'], 'out': [{'name': 'v144', 'type': 'usize'}], 'attrs': {'function': 'f25'}}, {'op': 'compare.eq', 'args': ['v142', 'v144'], 'out': [{'name': 'v145', 'type': 'bool'}], 'attrs': {}}], 'term': {'op': 'branch', 'cond': 'v145', 'then': {'target': 'b19', 'args': ['v137', 'v138', 'v139', 'v141']}, 'else': {'target': 'b22', 'args': ['v137', 'v138']}}}, 'after_ops': [{'op': 'call', 'args': ['v138', 'v141'], 'out': [{'name': 'v145', 'type': 'bool'}], 'attrs': {'function': 'f108'}}], 'kept_prefix_ops': 0, 'first_args': ['v138', 'v141'], 'fixed_second_offset': 120, 'new_helper': 'f108', 'result_name': 'v145', 'invert_result': False}]
++READ32_NEW_FUNCTIONS = [{'name': 'f107', 'params': [{'name': 'v0', 'type': 'mutbuf'}, {'name': 'v1', 'type': 'usize'}], 'returns': ['bool'], 'effects': ['read', 'write', 'trap'], 'entry': 'b0', 'blocks': [{'id': 'b0', 'params': [{'name': 'v0', 'type': 'mutbuf'}, {'name': 'v1', 'type': 'usize'}], 'ops': [{'op': 'buffer.load', 'args': ['v0', 'v1'], 'out': [{'name': 'v2', 'type': 'u8'}], 'attrs': {}}, {'op': 'const', 'args': [], 'out': [{'name': 'v3', 'type': 'usize'}], 'attrs': {'value': 1}}, {'op': 'int.add.wrap', 'args': ['v1', 'v3'], 'out': [{'name': 'v4', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v4'], 'out': [{'name': 'v5', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v4', 'v3'], 'out': [{'name': 'v6', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v6'], 'out': [{'name': 'v7', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v6', 'v3'], 'out': [{'name': 'v8', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v8'], 'out': [{'name': 'v9', 'type': 'u8'}], 'attrs': {}}, {'op': 'const', 'args': [], 'out': [{'name': 'v10', 'type': 'usize'}], 'attrs': {'value': 0}}, {'op': 'buffer.load', 'args': ['v0', 'v10'], 'out': [{'name': 'v11', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v10', 'v3'], 'out': [{'name': 'v12', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v12'], 'out': [{'name': 'v13', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v12', 'v3'], 'out': [{'name': 'v14', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v14'], 'out': [{'name': 'v15', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v14', 'v3'], 'out': [{'name': 'v16', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v16'], 'out': [{'name': 'v17', 'type': 'u8'}], 'attrs': {}}, {'op': 'compare.eq', 'args': ['v2', 'v11'], 'out': [{'name': 'v18', 'type': 'bool'}], 'attrs': {}}, {'op': 'compare.eq', 'args': ['v5', 'v13'], 'out': [{'name': 'v19', 'type': 'bool'}], 'attrs': {}}, {'op': 'compare.eq', 'args': ['v7', 'v15'], 'out': [{'name': 'v20', 'type': 'bool'}], 'attrs': {}}, {'op': 'compare.eq', 'args': ['v9', 'v17'], 'out': [{'name': 'v21', 'type': 'bool'}], 'attrs': {}}, {'op': 'bool.and', 'args': ['v18', 'v19'], 'out': [{'name': 'v22', 'type': 'bool'}], 'attrs': {}}, {'op': 'bool.and', 'args': ['v22', 'v20'], 'out': [{'name': 'v23', 'type': 'bool'}], 'attrs': {}}, {'op': 'bool.and', 'args': ['v23', 'v21'], 'out': [{'name': 'v24', 'type': 'bool'}], 'attrs': {}}], 'term': {'op': 'ret', 'values': ['v24']}}]}, {'name': 'f108', 'params': [{'name': 'v0', 'type': 'mutbuf'}, {'name': 'v1', 'type': 'usize'}], 'returns': ['bool'], 'effects': ['read', 'write', 'trap'], 'entry': 'b0', 'blocks': [{'id': 'b0', 'params': [{'name': 'v0', 'type': 'mutbuf'}, {'name': 'v1', 'type': 'usize'}], 'ops': [{'op': 'buffer.load', 'args': ['v0', 'v1'], 'out': [{'name': 'v2', 'type': 'u8'}], 'attrs': {}}, {'op': 'const', 'args': [], 'out': [{'name': 'v3', 'type': 'usize'}], 'attrs': {'value': 1}}, {'op': 'int.add.wrap', 'args': ['v1', 'v3'], 'out': [{'name': 'v4', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v4'], 'out': [{'name': 'v5', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v4', 'v3'], 'out': [{'name': 'v6', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v6'], 'out': [{'name': 'v7', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v6', 'v3'], 'out': [{'name': 'v8', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v8'], 'out': [{'name': 'v9', 'type': 'u8'}], 'attrs': {}}, {'op': 'const', 'args': [], 'out': [{'name': 'v10', 'type': 'usize'}], 'attrs': {'value': 120}}, {'op': 'buffer.load', 'args': ['v0', 'v10'], 'out': [{'name': 'v11', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v10', 'v3'], 'out': [{'name': 'v12', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v12'], 'out': [{'name': 'v13', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v12', 'v3'], 'out': [{'name': 'v14', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v14'], 'out': [{'name': 'v15', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.add.wrap', 'args': ['v14', 'v3'], 'out': [{'name': 'v16', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v16'], 'out': [{'name': 'v17', 'type': 'u8'}], 'attrs': {}}, {'op': 'compare.eq', 'args': ['v2', 'v11'], 'out': [{'name': 'v18', 'type': 'bool'}], 'attrs': {}}, {'op': 'compare.eq', 'args': ['v5', 'v13'], 'out': [{'name': 'v19', 'type': 'bool'}], 'attrs': {}}, {'op': 'compare.eq', 'args': ['v7', 'v15'], 'out': [{'name': 'v20', 'type': 'bool'}], 'attrs': {}}, {'op': 'compare.eq', 'args': ['v9', 'v17'], 'out': [{'name': 'v21', 'type': 'bool'}], 'attrs': {}}, {'op': 'bool.and', 'args': ['v18', 'v19'], 'out': [{'name': 'v22', 'type': 'bool'}], 'attrs': {}}, {'op': 'bool.and', 'args': ['v22', 'v20'], 'out': [{'name': 'v23', 'type': 'bool'}], 'attrs': {}}, {'op': 'bool.and', 'args': ['v23', 'v21'], 'out': [{'name': 'v24', 'type': 'bool'}], 'attrs': {}}], 'term': {'op': 'ret', 'values': ['v24']}}]}]
++READ32_EXPECTED_F25 = {'name': 'f25', 'params': [{'name': 'v0', 'type': 'mutbuf'}, {'name': 'v1', 'type': 'usize'}], 'returns': ['usize'], 'effects': ['read', 'write', 'trap'], 'entry': 'b0', 'blocks': [{'id': 'b0', 'params': [{'name': 'v0', 'type': 'mutbuf'}, {'name': 'v1', 'type': 'usize'}], 'ops': [{'op': 'buffer.load', 'args': ['v0', 'v1'], 'out': [{'name': 'v2', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.cast', 'args': ['v2'], 'out': [{'name': 'v3', 'type': 'usize'}], 'attrs': {'mode': 'wrap'}}, {'op': 'const', 'args': [], 'out': [{'name': 'v4', 'type': 'usize'}], 'attrs': {'value': 1}}, {'op': 'int.add.wrap', 'args': ['v1', 'v4'], 'out': [{'name': 'v5', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v5'], 'out': [{'name': 'v6', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.cast', 'args': ['v6'], 'out': [{'name': 'v7', 'type': 'usize'}], 'attrs': {'mode': 'wrap'}}, {'op': 'int.add.wrap', 'args': ['v5', 'v4'], 'out': [{'name': 'v8', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v8'], 'out': [{'name': 'v9', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.cast', 'args': ['v9'], 'out': [{'name': 'v10', 'type': 'usize'}], 'attrs': {'mode': 'wrap'}}, {'op': 'int.add.wrap', 'args': ['v8', 'v4'], 'out': [{'name': 'v11', 'type': 'usize'}], 'attrs': {}}, {'op': 'buffer.load', 'args': ['v0', 'v11'], 'out': [{'name': 'v12', 'type': 'u8'}], 'attrs': {}}, {'op': 'int.cast', 'args': ['v12'], 'out': [{'name': 'v13', 'type': 'usize'}], 'attrs': {'mode': 'wrap'}}, {'op': 'const', 'args': [], 'out': [{'name': 'v14', 'type': 'usize'}], 'attrs': {'value': 8}}, {'op': 'int.shl.checked', 'args': ['v13', 'v14'], 'out': [{'name': 'v15', 'type': 'usize'}], 'attrs': {}}, {'op': 'bit.or', 'args': ['v15', 'v10'], 'out': [{'name': 'v16', 'type': 'usize'}], 'attrs': {}}, {'op': 'int.shl.checked', 'args': ['v16', 'v14'], 'out': [{'name': 'v17', 'type': 'usize'}], 'attrs': {}}, {'op': 'bit.or', 'args': ['v17', 'v7'], 'out': [{'name': 'v18', 'type': 'usize'}], 'attrs': {}}, {'op': 'int.shl.checked', 'args': ['v18', 'v14'], 'out': [{'name': 'v19', 'type': 'usize'}], 'attrs': {}}, {'op': 'bit.or', 'args': ['v19', 'v3'], 'out': [{'name': 'v20', 'type': 'usize'}], 'attrs': {}}], 'term': {'op': 'ret', 'values': ['v20']}}]}
++
++def _read32_packing_certificate(function):
++    """Exact old f25 has no packing trap after its original u8 loads."""
++    if function != READ32_EXPECTED_F25:
++        raise ValueError('ordered compare original full f25 differs')
++    ops=function['blocks'][0]['ops']
++    if [op['op'] for op in ops] != [
++        'buffer.load','int.cast','const','int.add.wrap','buffer.load','int.cast',
++        'int.add.wrap','buffer.load','int.cast','int.add.wrap','buffer.load','int.cast',
++        'const','int.shl.checked','bit.or','int.shl.checked','bit.or','int.shl.checked','bit.or']:
++        raise ValueError('ordered compare old read/pack sequence differs')
++    if (ops[2]['attrs']!={'value':1} or ops[12]['attrs']!={'value':8}
++            or any(ops[i]['attrs']!={'mode':'wrap'} for i in (1,5,8,11))):
++        raise ValueError('ordered compare original cast/shift/address constants differ')
++    return {'original_scalar_casts':'u8 -> usize wrap; range0..255',
++        'actual_typed_load_result_range':[0,255],
++        'shift_counts':[8,8,8],
++        'packing_result_bounds':[
++            ['v15',0,65280],['v16',0,65535],['v17',0,16776960],
++            ['v18',0,16777215],['v19',0,4294967040],['v20',0,4294967295]],
++        'all_shifts_below_word_bits':True,'all_intermediates_fit_u64':True,
++        'no_postload_address_increment':True,'no_packing_side_effect':True,
++        'possible_packing_failure':'original fuel exhaustion or host interruption only; not an HIA arithmetic/range trap',
++        'public_scalar_validation':'every old returned usize is <=2**32-1; every new result is bool'}
++
++def _read32_compare_core_document(original):
++    """Keep all eight reads, replace only unnecessary scalar reconstruction."""
++    from hepta.hia_opcodes import WIDTHS
++    from hepta.hia_program import verify_program
++    if WIDTHS['usize']!=64 or WIDTHS['u8']!=8:
++        raise ValueError('ordered compare requires the fixed actual scalar widths')
++    def counts(value):
++        return {'functions':len(value['functions']),
++            'blocks':sum(len(f['blocks']) for f in value['functions']),
++            'ops':sum(len(b['ops']) for f in value['functions'] for b in f['blocks'])}
++    before=copy.deepcopy(original)
++    raw=render_assembly(before).encode()
++    if (len(raw)!=READ32_R11_SOURCE_BYTES or sha256(raw).hexdigest()!=READ32_R11_SOURCE_SHA256
++            or counts(before)!=READ32_BEFORE_COUNTS
++            or [f['name'] for f in before['functions']]!=['f'+str(i) for i in range(107)]):
++        raise ValueError('ordered compare exact actual R11 preimage differs')
++    certificate=_read32_packing_certificate(before['functions'][25])
++    after=copy.deepcopy(before);edits=[]
++    for spec in READ32_EXPECTED_SITES:
++        fi,bi=spec['function_index'],spec['block_index']
++        if before['functions'][fi]['blocks'][bi]!=spec['block']:
++            raise ValueError('ordered compare full block preimage differs')
++        old=before['functions'][fi]['blocks'][bi]['ops'];new=copy.deepcopy(spec['after_ops'])
++        if old[:spec['kept_prefix_ops']]!=new[:spec['kept_prefix_ops']]:
++            raise ValueError('ordered compare changed a pre-call instruction')
++        edits.append({'path':['functions',fi,'blocks',bi,'ops'],
++            'before':copy.deepcopy(old),'after':copy.deepcopy(new),
++            'first_call_at_same_original_instruction':True,
++            'fixed_second_offset':spec['fixed_second_offset'],'new_helper':spec['new_helper']})
++        after['functions'][fi]['blocks'][bi]['ops']=new
++    after['functions'].extend(copy.deepcopy(READ32_NEW_FUNCTIONS))
++    restored=copy.deepcopy(after)
++    if restored['functions'][107:]!=READ32_NEW_FUNCTIONS:
++        raise ValueError('ordered compare appended helper changed')
++    del restored['functions'][107:]
++    for edit in reversed(edits):
++        parent=restored
++        for key in edit['path'][:-1]:parent=parent[key]
++        key=edit['path'][-1]
++        if parent[key]!=edit['after']:raise ValueError('ordered compare inverse block differs')
++        parent[key]=copy.deepcopy(edit['before'])
++    if restored!=before or counts(after)!=READ32_AFTER_COUNTS:
++        raise ValueError('ordered compare full inverse or exact counts differ')
++    if any(after['functions'][i]!=before['functions'][i] for i in range(107) if i not in (14,106)):
++        raise ValueError('ordered compare changed an unrelated original function')
++    verify_program(after)
++    encode=lambda value:json.dumps(value,sort_keys=True,separators=(',',':')).encode()
++    return after,{'schema':'hia.R12.ordered-eight-byte-comparison-Core-projection.v1',
++        'original_counts':counts(before),'after_counts':counts(after),
++        'original_core_sha256':sha256(encode(before)).hexdigest(),
++        'after_core_sha256':sha256(encode(after)).hexdigest(),'full_word_bits':64,
++        'edits':edits,'new_functions':copy.deepcopy(READ32_NEW_FUNCTIONS),
++        'original_f25_pack_certificate':certificate,
++        'read_sequence':'a0,a1,a2,a3,b0,b1,b2,b3; each address increment wraps u64',
++        'all_eight_original_byte_loads_retained':True,
++        'original_first_call_position_and_depth_retained':True,
++        'new_helper_contains_no_calls_or_writes':True,
++        'all_original_107_function_ABIs_and_CFG_edges_unchanged':True,
++        'all_105_other_original_functions_unchanged':True,
++        'original_f25_f24_bodies_unchanged':True,'whole_inverse_equal':True,
++        'new_field_range_cache_or_initialization_invariant':False,
++        'original_source_scan_or_semantic_pass_removed':False,
++        'public_error_type_code_message_preserved_except_fuel_timing':True,
++        'private_function_names_and_Counted_call_histogram_changed':True,
++        'complete_original_Core_verifier_returned':True,
++        'public_compiler_or_VM_changed':False,'machine_size_or_fuel_PASS_claim':False}
++
++
+ def document():
+     namespace = dict(compiler.document.__globals__, source_program=source_program, Builder=DenseReplayBuilder)
+     method = FunctionType(compiler.document.__code__, namespace, compiler.document.__name__)
+@@ -1625,11 +1725,12 @@
+     doc, word64_proof = _word64_core_document(doc)
+     doc, scalar_byte_proof = _scalar_byte_core_document(doc)
+     doc, ascii_guard_proof = _ascii_guard_core_document(doc)
++    doc, read32_compare_proof = _read32_compare_core_document(doc)
+     counts = {'functions': len(doc['functions']), 'blocks': sum(len(f['blocks']) for f in doc['functions']),
+               'ops': sum(len(b['ops']) for f in doc['functions'] for b in f['blocks'])}
+     if counts['functions'] > 128 or counts['blocks'] > 1536 or counts['ops'] > 8192:
+         raise ValueError('compact resident exceeds unchanged compiler author limits: ' + repr(counts))
+-    return doc, dict(counts, word64_projection=word64_proof, scalar_byte_projection=scalar_byte_proof, ascii_predicate_projection=ascii_guard_proof)
++    return doc, dict(counts, word64_projection=word64_proof, scalar_byte_projection=scalar_byte_proof, ascii_predicate_projection=ascii_guard_proof, ordered_read32_compare_projection=read32_compare_proof)
+ 
+ def main(argv=None):
+     parser = argparse.ArgumentParser(description=__doc__)

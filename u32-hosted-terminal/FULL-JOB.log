@@ -1,0 +1,782 @@
+﻿2026-11-14T09:12:00.7086955Z Current runner version: '2.338.2'
+2026-11-14T09:12:00.7102256Z ##[group]Runner Image Provisioner
+2026-11-14T09:12:00.7102793Z Hosted Compute Agent
+2026-11-14T09:12:00.7103188Z Version: 20261103.629
+2026-11-14T09:12:00.7103617Z Commit: 15dbd9ccb5dbf34fae002b6ed1a2670f52df37bc
+2026-11-14T09:12:00.7104059Z Build Date: 2026-11-03T17:26:59Z
+2026-11-14T09:12:00.7104464Z Worker ID: {d450ae92-be6d-45bc-8256-4e635b089a6f}
+2026-11-14T09:12:00.7104942Z Region: centralus
+2026-11-14T09:12:00.7105347Z Cloud: Azure
+2026-11-14T09:12:00.7105718Z ##[endgroup]
+2026-11-14T09:12:00.7106711Z ##[group]Operating System
+2026-11-14T09:12:00.7107212Z Ubuntu
+2026-11-14T09:12:00.7107596Z 24.04.5
+2026-11-14T09:12:00.7107942Z LTS
+2026-11-14T09:12:00.7108281Z ##[endgroup]
+2026-11-14T09:12:00.7108632Z ##[group]Runner Image
+2026-11-14T09:12:00.7109002Z Image: ubuntu-24.04
+2026-11-14T09:12:00.7109390Z Version: 20261111.370.1
+2026-11-14T09:12:00.7110198Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261111.370/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-14T09:12:00.7111110Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261111.370
+2026-11-14T09:12:00.7111677Z ##[endgroup]
+2026-11-14T09:12:00.7112455Z ##[group]GITHUB_TOKEN Permissions
+2026-11-14T09:12:00.7113621Z Actions: read
+2026-11-14T09:12:00.7114038Z Contents: read
+2026-11-14T09:12:00.7114384Z Metadata: read
+2026-11-14T09:12:00.7114752Z ##[endgroup]
+2026-11-14T09:12:00.7116019Z Secret source: Actions
+2026-11-14T09:12:00.7116621Z Cache mode: write
+2026-11-14T09:12:00.7117043Z Prepare workflow directory
+2026-11-14T09:12:00.7322656Z Prepare all required actions
+2026-11-14T09:12:00.7355196Z Getting action download info
+2026-11-14T09:12:01.0034520Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-14T09:12:01.1176939Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-14T09:12:01.2645432Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-14T09:12:01.5306615Z Complete job name: frozen-r2-full-qualification
+2026-11-14T09:12:01.5863418Z ##[group]Run actions/checkout@v4
+2026-11-14T09:12:01.5863859Z with:
+2026-11-14T09:12:01.5864104Z   path: harness
+2026-11-14T09:12:01.5864380Z   persist-credentials: false
+2026-11-14T09:12:01.5864703Z   repository: TrillionniumFoundation/Hepta
+2026-11-14T09:12:01.5867046Z   token: ***
+2026-11-14T09:12:01.5867498Z   ssh-strict: true
+2026-11-14T09:12:01.5867759Z   ssh-user: git
+2026-11-14T09:12:01.5868010Z   clean: true
+2026-11-14T09:12:01.5868278Z   sparse-checkout-cone-mode: true
+2026-11-14T09:12:01.5868587Z   fetch-depth: 1
+2026-11-14T09:12:01.5868846Z   fetch-tags: false
+2026-11-14T09:12:01.5869110Z   show-progress: true
+2026-11-14T09:12:01.5869382Z   lfs: false
+2026-11-14T09:12:01.5869632Z   submodules: false
+2026-11-14T09:12:01.5869898Z   set-safe-directory: true
+2026-11-14T09:12:01.5870200Z   allow-unsafe-pr-checkout: false
+2026-11-14T09:12:01.5870626Z ##[endgroup]
+2026-11-14T09:12:01.8079565Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-14T09:12:01.8080987Z ##[group]Getting Git version info
+2026-11-14T09:12:01.8081648Z Working directory is '/home/runner/work/Hepta/Hepta/harness'
+2026-11-14T09:12:01.8082601Z [command]/usr/bin/git version
+2026-11-14T09:12:01.8164137Z git version 2.56.1
+2026-11-14T09:12:01.8177865Z ##[endgroup]
+2026-11-14T09:12:01.8188012Z Temporarily overriding HOME='/home/runner/work/_temp/4873a044-74fd-4b4c-b538-b9170d444687' before making global git config changes
+2026-11-14T09:12:01.8189253Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-14T09:12:01.8191683Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/harness
+2026-11-14T09:12:01.8238692Z ##[group]Initializing the repository
+2026-11-14T09:12:01.8250529Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/harness
+2026-11-14T09:12:01.8337982Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-14T09:12:01.8339063Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-14T09:12:01.8339871Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-14T09:12:01.8340310Z hint: call:
+2026-11-14T09:12:01.8340550Z hint:
+2026-11-14T09:12:01.8340869Z hint: 	git config --global init.defaultBranch <name>
+2026-11-14T09:12:01.8341240Z hint:
+2026-11-14T09:12:01.8341660Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-14T09:12:01.8342399Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-14T09:12:01.8342825Z hint:
+2026-11-14T09:12:01.8343069Z hint: 	git branch -m <name>
+2026-11-14T09:12:01.8343345Z hint:
+2026-11-14T09:12:01.8343713Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-14T09:12:01.8346873Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/harness/.git/
+2026-11-14T09:12:01.8356037Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-14T09:12:01.8482330Z ##[endgroup]
+2026-11-14T09:12:01.8483134Z ##[group]Disabling automatic garbage collection
+2026-11-14T09:12:01.8484378Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-14T09:12:01.8498809Z ##[endgroup]
+2026-11-14T09:12:01.8499428Z ##[group]Setting up auth
+2026-11-14T09:12:01.8499885Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-14T09:12:01.8501706Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-14T09:12:01.8831022Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-14T09:12:01.8872320Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-14T09:12:01.9064223Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-14T09:12:01.9099872Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-14T09:12:01.9299356Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-14T09:12:01.9341273Z ##[endgroup]
+2026-11-14T09:12:01.9341859Z ##[group]Fetching the repository
+2026-11-14T09:12:01.9350611Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +de4afa1f7f4cb1fc2d5284965f7f2a7c55632d2a:refs/remotes/origin/codex/hia-u32-full-hosted-v134-r2-20261114-dda7
+2026-11-14T09:12:02.7027545Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-14T09:12:02.7029770Z  * [new ref]         de4afa1f7f4cb1fc2d5284965f7f2a7c55632d2a -> origin/codex/hia-u32-full-hosted-v134-r2-20261114-dda7
+2026-11-14T09:12:02.7033661Z ##[endgroup]
+2026-11-14T09:12:02.7034934Z ##[group]Determining the checkout info
+2026-11-14T09:12:02.7036370Z ##[endgroup]
+2026-11-14T09:12:02.7039270Z [command]/usr/bin/git sparse-checkout disable
+2026-11-14T09:12:02.7105627Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-14T09:12:02.7141641Z ##[group]Checking out the ref
+2026-11-14T09:12:02.7144491Z [command]/usr/bin/git checkout --progress --force -B codex/hia-u32-full-hosted-v134-r2-20261114-dda7 refs/remotes/origin/codex/hia-u32-full-hosted-v134-r2-20261114-dda7
+2026-11-14T09:12:02.7308819Z Switched to a new branch 'codex/hia-u32-full-hosted-v134-r2-20261114-dda7'
+2026-11-14T09:12:02.7314855Z branch 'codex/hia-u32-full-hosted-v134-r2-20261114-dda7' set up to track 'origin/codex/hia-u32-full-hosted-v134-r2-20261114-dda7'.
+2026-11-14T09:12:02.7319394Z ##[endgroup]
+2026-11-14T09:12:02.7360300Z [command]/usr/bin/git log -1 --format=%H
+2026-11-14T09:12:02.7390010Z de4afa1f7f4cb1fc2d5284965f7f2a7c55632d2a
+2026-11-14T09:12:02.7398067Z ##[group]Removing auth
+2026-11-14T09:12:02.7400856Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-14T09:12:02.7436216Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-14T09:12:02.7635315Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-14T09:12:02.7665358Z http.https://github.com/.extraheader
+2026-11-14T09:12:02.7670903Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-14T09:12:02.7705688Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-14T09:12:02.7890053Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-14T09:12:02.7922284Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-14T09:12:02.8105469Z ##[endgroup]
+2026-11-14T09:12:02.8388172Z ##[group]Run actions/checkout@v4
+2026-11-14T09:12:02.8388860Z with:
+2026-11-14T09:12:02.8389434Z   repository: TrillionniumFoundation/Hepta
+2026-11-14T09:12:02.8390255Z   ref: 26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d
+2026-11-14T09:12:02.8391041Z   path: original-r20
+2026-11-14T09:12:02.8391664Z   persist-credentials: false
+2026-11-14T09:12:02.8397692Z   token: ***
+2026-11-14T09:12:02.8398227Z   ssh-strict: true
+2026-11-14T09:12:02.8398778Z   ssh-user: git
+2026-11-14T09:12:02.8399312Z   clean: true
+2026-11-14T09:12:02.8399883Z   sparse-checkout-cone-mode: true
+2026-11-14T09:12:02.8400563Z   fetch-depth: 1
+2026-11-14T09:12:02.8401107Z   fetch-tags: false
+2026-11-14T09:12:02.8401673Z   show-progress: true
+2026-11-14T09:12:02.8402252Z   lfs: false
+2026-11-14T09:12:02.8402773Z   submodules: false
+2026-11-14T09:12:02.8403350Z   set-safe-directory: true
+2026-11-14T09:12:02.8404015Z   allow-unsafe-pr-checkout: false
+2026-11-14T09:12:02.8404694Z ##[endgroup]
+2026-11-14T09:12:02.8996789Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-14T09:12:02.8999002Z ##[group]Getting Git version info
+2026-11-14T09:12:02.9000525Z Working directory is '/home/runner/work/Hepta/Hepta/original-r20'
+2026-11-14T09:12:02.9017030Z [command]/usr/bin/git version
+2026-11-14T09:12:02.9051505Z git version 2.56.1
+2026-11-14T09:12:02.9064942Z ##[endgroup]
+2026-11-14T09:12:02.9073787Z Temporarily overriding HOME='/home/runner/work/_temp/b779934c-f8ee-466f-9af8-8ae7449aa73e' before making global git config changes
+2026-11-14T09:12:02.9076900Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-14T09:12:02.9079772Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/original-r20
+2026-11-14T09:12:02.9107904Z ##[group]Initializing the repository
+2026-11-14T09:12:02.9110730Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/original-r20
+2026-11-14T09:12:02.9148786Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-14T09:12:02.9151062Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-14T09:12:02.9153188Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-14T09:12:02.9154809Z hint: call:
+2026-11-14T09:12:02.9155776Z hint:
+2026-11-14T09:12:02.9156897Z hint: 	git config --global init.defaultBranch <name>
+2026-11-14T09:12:02.9158379Z hint:
+2026-11-14T09:12:02.9159669Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-14T09:12:02.9161702Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-14T09:12:02.9163434Z hint:
+2026-11-14T09:12:02.9164429Z hint: 	git branch -m <name>
+2026-11-14T09:12:02.9165472Z hint:
+2026-11-14T09:12:02.9167196Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-14T09:12:02.9169467Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/original-r20/.git/
+2026-11-14T09:12:02.9173273Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-14T09:12:02.9188912Z ##[endgroup]
+2026-11-14T09:12:02.9190393Z ##[group]Disabling automatic garbage collection
+2026-11-14T09:12:02.9191744Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-14T09:12:02.9218802Z ##[endgroup]
+2026-11-14T09:12:02.9220184Z ##[group]Setting up auth
+2026-11-14T09:12:02.9223136Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-14T09:12:02.9253573Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-14T09:12:02.9519147Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-14T09:12:02.9557848Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-14T09:12:02.9768483Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-14T09:12:02.9805543Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-14T09:12:02.9999909Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-14T09:12:03.0041254Z ##[endgroup]
+2026-11-14T09:12:03.0046944Z ##[group]Fetching the repository
+2026-11-14T09:12:03.0049059Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d
+2026-11-14T09:12:06.2829730Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-14T09:12:06.2830148Z  * branch            26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d -> FETCH_HEAD
+2026-11-14T09:12:06.2833371Z ##[endgroup]
+2026-11-14T09:12:06.2833663Z ##[group]Determining the checkout info
+2026-11-14T09:12:06.2835372Z ##[endgroup]
+2026-11-14T09:12:06.2840309Z [command]/usr/bin/git sparse-checkout disable
+2026-11-14T09:12:06.2884142Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-14T09:12:06.2919146Z ##[group]Checking out the ref
+2026-11-14T09:12:06.2921673Z [command]/usr/bin/git checkout --progress --force 26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d
+2026-11-14T09:12:06.5996880Z Note: switching to '26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d'.
+2026-11-14T09:12:06.5997355Z 
+2026-11-14T09:12:06.5997542Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-14T09:12:06.5997964Z changes and commit them, and you can discard any commits you make in this
+2026-11-14T09:12:06.5998422Z state without impacting any branches by switching back to a branch.
+2026-11-14T09:12:06.5998665Z 
+2026-11-14T09:12:06.5998824Z If you want to create a new branch to retain commits you create, you may
+2026-11-14T09:12:06.5999237Z do so (now or later) by using -c with the switch command. Example:
+2026-11-14T09:12:06.5999462Z 
+2026-11-14T09:12:06.5999564Z   git switch -c <new-branch-name>
+2026-11-14T09:12:06.5999716Z 
+2026-11-14T09:12:06.5999822Z Or undo this operation with:
+2026-11-14T09:12:06.5999961Z 
+2026-11-14T09:12:06.6000043Z   git switch -
+2026-11-14T09:12:06.6000177Z 
+2026-11-14T09:12:06.6000759Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-14T09:12:06.6001026Z 
+2026-11-14T09:12:06.6001256Z HEAD is now at 26fd6c4 HIA: run exact R20 source candidate through complete Native qualification
+2026-11-14T09:12:06.6024974Z ##[endgroup]
+2026-11-14T09:12:06.6073555Z [command]/usr/bin/git log -1 --format=%H
+2026-11-14T09:12:06.6104012Z 26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d
+2026-11-14T09:12:06.6112506Z ##[group]Removing auth
+2026-11-14T09:12:06.6115810Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-14T09:12:06.6151211Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-14T09:12:06.6345961Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-14T09:12:06.6374852Z http.https://github.com/.extraheader
+2026-11-14T09:12:06.6381616Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-14T09:12:06.6419350Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-14T09:12:06.6612169Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-14T09:12:06.6645507Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-14T09:12:06.6841405Z ##[endgroup]
+2026-11-14T09:12:06.6985265Z ##[group]Run actions/setup-python@v5
+2026-11-14T09:12:06.6985420Z with:
+2026-11-14T09:12:06.6985540Z   python-version: 3.14.4
+2026-11-14T09:12:06.6985675Z   check-latest: false
+2026-11-14T09:12:06.6987054Z   token: ***
+2026-11-14T09:12:06.6987371Z   update-environment: true
+2026-11-14T09:12:06.6987516Z   allow-prereleases: false
+2026-11-14T09:12:06.6987647Z   freethreaded: false
+2026-11-14T09:12:06.6987771Z ##[endgroup]
+2026-11-14T09:12:06.7883898Z ##[group]Installed versions
+2026-11-14T09:12:06.7974027Z Version 3.14.4 was not found in the local cache
+2026-11-14T09:12:06.8100545Z (node:2390) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-14T09:12:06.8101021Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-14T09:12:07.7108987Z Version 3.14.4 is available for downloading
+2026-11-14T09:12:07.7110307Z Download from "https://github.com/actions/python-versions/releases/download/3.14.4-25113653268/python-3.14.4-linux-24.04-x64.tar.gz"
+2026-11-14T09:12:08.4202068Z Extract downloaded archive
+2026-11-14T09:12:08.4427632Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/fa19336d-cec5-4299-af18-1491de447821 -f /home/runner/work/_temp/cb9a5c52-a559-4519-acc9-af6e9145fc74
+2026-11-14T09:12:10.1272338Z Execute installation script
+2026-11-14T09:12:10.1401984Z Check if Python hostedtoolcache folder exist...
+2026-11-14T09:12:10.1402209Z Create Python 3.14.4 folder
+2026-11-14T09:12:10.1413582Z Copy Python binaries to hostedtoolcache folder
+2026-11-14T09:12:10.5232215Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-14T09:12:10.5267034Z Upgrading pip...
+2026-11-14T09:12:12.5651017Z Looking in links: /tmp/tmp50kdw0ha
+2026-11-14T09:12:12.5652291Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/site-packages (26.0.1)
+2026-11-14T09:12:13.8896176Z Collecting pip
+2026-11-14T09:12:13.9735583Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-14T09:12:13.9967677Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-14T09:12:14.1996480Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 10.8 MB/s  0:00:00
+2026-11-14T09:12:14.1996757Z 
+2026-11-14T09:12:14.2143906Z Installing collected packages: pip
+2026-11-14T09:12:14.2144854Z Attempting uninstall: pip
+2026-11-14T09:12:14.2159520Z Found existing installation: pip 26.0.1
+2026-11-14T09:12:14.2356304Z Uninstalling pip-26.0.1:
+2026-11-14T09:12:14.2393663Z Successfully uninstalled pip-26.0.1
+2026-11-14T09:12:15.0909738Z Successfully installed pip-26.3
+2026-11-14T09:12:15.1323573Z Create complete file
+2026-11-14T09:12:15.1355140Z Successfully set up CPython (3.14.4)
+2026-11-14T09:12:15.1355900Z ##[endgroup]
+2026-11-14T09:12:15.1579054Z ##[group]Run set -euo pipefail
+2026-11-14T09:12:15.1579288Z [36;1mset -euo pipefail[0m
+2026-11-14T09:12:15.1579510Z [36;1mmkdir -p "$GITHUB_WORKSPACE/evidence/toolchain-setup"[0m
+2026-11-14T09:12:15.1579904Z [36;1mexec > >(tee "$GITHUB_WORKSPACE/evidence/toolchain-setup/stdout.log") 2> >(tee "$GITHUB_WORKSPACE/evidence/toolchain-setup/stderr.log" >&2)[0m
+2026-11-14T09:12:15.1580402Z [36;1mcurl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key[0m
+2026-11-14T09:12:15.1580859Z [36;1mfingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')[0m
+2026-11-14T09:12:15.1581221Z [36;1mtest "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421[0m
+2026-11-14T09:12:15.1581523Z [36;1msudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc[0m
+2026-11-14T09:12:15.1582059Z [36;1mprintf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list[0m
+2026-11-14T09:12:15.1582489Z [36;1msudo apt-get update[0m
+2026-11-14T09:12:15.1582704Z [36;1msudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace[0m
+2026-11-14T09:12:15.1583014Z [36;1mprintf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"[0m
+2026-11-14T09:12:15.1583350Z [36;1mcp "$RUNNER_TEMP/hia-llvm.asc" "$GITHUB_WORKSPACE/evidence/toolchain-setup/hia-llvm.asc"[0m
+2026-11-14T09:12:15.1605896Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-14T09:12:15.1606090Z env:
+2026-11-14T09:12:15.1606246Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:15.1606484Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-14T09:12:15.1606718Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:15.1606936Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:15.1607364Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:15.1607581Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-14T09:12:15.1607763Z ##[endgroup]
+2026-11-14T09:12:15.1756825Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-11-14T09:12:15.1757546Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-11-14T09:12:15.1757837Z 
+2026-11-14T09:12:15.2539222Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-11-14T09:12:15.2539612Z 100  3167  100  3167    0     0  40424      0 --:--:-- --:--:-- --:--:-- 40602
+2026-11-14T09:12:15.3014521Z gpg: directory '/home/runner/.gnupg' created
+2026-11-14T09:12:15.3016136Z gpg: keybox '/home/runner/.gnupg/pubring.kbx' created
+2026-11-14T09:12:15.3535697Z gpg: /home/runner/.gnupg/trustdb.gpg: trustdb created
+2026-11-14T09:12:15.3690456Z deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main
+2026-11-14T09:12:15.5122489Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-11-14T09:12:15.5393311Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-11-14T09:12:15.5581000Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-11-14T09:12:15.5581456Z Get:7 https://apt.llvm.org/noble llvm-toolchain-noble-20 InRelease [5554 B]
+2026-11-14T09:12:15.5685496Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-11-14T09:12:15.5735669Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-11-14T09:12:15.5784609Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-11-14T09:12:15.6399500Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [702 kB]
+2026-11-14T09:12:15.6558154Z Get:9 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [772 kB]
+2026-11-14T09:12:15.7498597Z Get:10 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 Packages [13.2 kB]
+2026-11-14T09:12:15.7761466Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1450 kB]
+2026-11-14T09:12:15.7819852Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [315 kB]
+2026-11-14T09:12:15.7838971Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1713 kB]
+2026-11-14T09:12:15.7907929Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [345 kB]
+2026-11-14T09:12:15.7930083Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1883 kB]
+2026-11-14T09:12:15.8004330Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [430 kB]
+2026-11-14T09:12:15.8025688Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [14.6 kB]
+2026-11-14T09:12:15.8585050Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1195 kB]
+2026-11-14T09:12:15.8633494Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [238 kB]
+2026-11-14T09:12:15.8650776Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1228 kB]
+2026-11-14T09:12:15.9124247Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [248 kB]
+2026-11-14T09:12:15.9142563Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1788 kB]
+2026-11-14T09:12:15.9225528Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [411 kB]
+2026-11-14T09:12:22.6902996Z Fetched 13.1 MB in 1s (11.6 MB/s)
+2026-11-14T09:12:23.3969324Z Reading package lists...
+2026-11-14T09:12:23.4348973Z Reading package lists...
+2026-11-14T09:12:23.6007902Z Building dependency tree...
+2026-11-14T09:12:23.6013374Z Reading state information...
+2026-11-14T09:12:23.7079337Z binutils is already the newest version (2.42-4ubuntu2.10).
+2026-11-14T09:12:23.7079906Z gcc is already the newest version (4:13.2.0-7ubuntu1).
+2026-11-14T09:12:23.7080349Z strace is already the newest version (6.8-0ubuntu2).
+2026-11-14T09:12:23.7080752Z strace set to manually installed.
+2026-11-14T09:12:23.7081127Z The following additional packages will be installed:
+2026-11-14T09:12:23.7083171Z   clang-tools-20 libclang-common-20-dev libclang-cpp20 libclang1-20 libllvm20
+2026-11-14T09:12:23.7084799Z   llvm-20 llvm-20-dev llvm-20-linker-tools llvm-20-runtime llvm-20-tools
+2026-11-14T09:12:23.7088185Z Suggested packages:
+2026-11-14T09:12:23.7088418Z   clang-20-doc wasi-libc llvm-20-doc
+2026-11-14T09:12:23.7472060Z The following NEW packages will be installed:
+2026-11-14T09:12:23.7472556Z   clang-20 clang-tools-20 libclang-common-20-dev libclang-cpp20
+2026-11-14T09:12:23.7474678Z   libclang-rt-20-dev libclang1-20 llvm-20 llvm-20-dev llvm-20-linker-tools
+2026-11-14T09:12:23.7475204Z   llvm-20-runtime llvm-20-tools
+2026-11-14T09:12:23.7477906Z The following packages will be upgraded:
+2026-11-14T09:12:23.7480191Z   libllvm20
+2026-11-14T09:12:23.8031970Z 1 upgraded, 11 newly installed, 0 to remove and 20 not upgraded.
+2026-11-14T09:12:23.8032202Z Need to get 142 MB of archives.
+2026-11-14T09:12:23.8032397Z After this operation, 703 MB of additional disk space will be used.
+2026-11-14T09:12:23.8032829Z Get:1 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libllvm20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [30.6 MB]
+2026-11-14T09:12:24.1430712Z Get:2 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-cpp20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [14.3 MB]
+2026-11-14T09:12:24.2345555Z Get:3 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-common-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [780 kB]
+2026-11-14T09:12:24.2484346Z Get:4 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-linker-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [1381 kB]
+2026-11-14T09:12:24.2663296Z Get:5 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang1-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [8379 kB]
+2026-11-14T09:12:24.3235292Z Get:6 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [121 kB]
+2026-11-14T09:12:24.3339010Z Get:7 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 clang-tools-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [9631 kB]
+2026-11-14T09:12:24.3987939Z Get:8 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 libclang-rt-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [4740 kB]
+2026-11-14T09:12:24.4361409Z Get:9 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-runtime amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [601 kB]
+2026-11-14T09:12:24.4486681Z Get:10 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20 amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [19.8 MB]
+2026-11-14T09:12:24.5720477Z Get:11 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-tools amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [558 kB]
+2026-11-14T09:12:24.5858378Z Get:12 https://apt.llvm.org/noble llvm-toolchain-noble-20/main amd64 llvm-20-dev amd64 1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139 [51.0 MB]
+2026-11-14T09:12:25.3277976Z Fetched 142 MB in 1s (104 MB/s)
+2026-11-14T09:12:25.4576895Z (Reading database ... 
+2026-11-14T09:12:25.4577405Z (Reading database ... 5%
+2026-11-14T09:12:25.4577895Z (Reading database ... 10%
+2026-11-14T09:12:25.4578074Z (Reading database ... 15%
+2026-11-14T09:12:25.4578214Z (Reading database ... 20%
+2026-11-14T09:12:25.4578342Z (Reading database ... 25%
+2026-11-14T09:12:25.4578532Z (Reading database ... 30%
+2026-11-14T09:12:25.4578657Z (Reading database ... 35%
+2026-11-14T09:12:25.4578783Z (Reading database ... 40%
+2026-11-14T09:12:25.4578909Z (Reading database ... 45%
+2026-11-14T09:12:25.4579032Z (Reading database ... 50%
+2026-11-14T09:12:25.4931344Z (Reading database ... 55%
+2026-11-14T09:12:25.8294115Z (Reading database ... 60%
+2026-11-14T09:12:26.1266332Z (Reading database ... 65%
+2026-11-14T09:12:26.3942645Z (Reading database ... 70%
+2026-11-14T09:12:26.6761270Z (Reading database ... 75%
+2026-11-14T09:12:27.2160687Z (Reading database ... 80%
+2026-11-14T09:12:27.7354991Z (Reading database ... 85%
+2026-11-14T09:12:28.4059329Z (Reading database ... 90%
+2026-11-14T09:12:29.1424064Z (Reading database ... 95%
+2026-11-14T09:12:29.1424315Z (Reading database ... 100%
+2026-11-14T09:12:29.1424528Z (Reading database ... 216752 files and directories currently installed.)
+2026-11-14T09:12:29.1462933Z Preparing to unpack .../00-libllvm20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:29.1563455Z Unpacking libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) over (1:20.1.2-0ubuntu1~24.04.3) ...
+2026-11-14T09:12:30.2376350Z Selecting previously unselected package libclang-cpp20.
+2026-11-14T09:12:30.2490724Z Preparing to unpack .../01-libclang-cpp20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:30.2498219Z Unpacking libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:30.7698552Z Selecting previously unselected package libclang-common-20-dev:amd64.
+2026-11-14T09:12:30.7817572Z Preparing to unpack .../02-libclang-common-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:30.7825762Z Unpacking libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:30.9076604Z Selecting previously unselected package llvm-20-linker-tools.
+2026-11-14T09:12:30.9190798Z Preparing to unpack .../03-llvm-20-linker-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:30.9199022Z Unpacking llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:30.9723731Z Selecting previously unselected package libclang1-20.
+2026-11-14T09:12:30.9836925Z Preparing to unpack .../04-libclang1-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:30.9844342Z Unpacking libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:31.2819492Z Selecting previously unselected package clang-20.
+2026-11-14T09:12:31.2932842Z Preparing to unpack .../05-clang-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:31.2940555Z Unpacking clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:31.3334784Z Selecting previously unselected package clang-tools-20.
+2026-11-14T09:12:31.3445528Z Preparing to unpack .../06-clang-tools-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:31.3453074Z Unpacking clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:31.6807052Z Selecting previously unselected package libclang-rt-20-dev.
+2026-11-14T09:12:31.6921198Z Preparing to unpack .../07-libclang-rt-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:31.6928390Z Unpacking libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:32.0216973Z Selecting previously unselected package llvm-20-runtime.
+2026-11-14T09:12:32.0332355Z Preparing to unpack .../08-llvm-20-runtime_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:32.0340357Z Unpacking llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:32.0617406Z Selecting previously unselected package llvm-20.
+2026-11-14T09:12:32.0731731Z Preparing to unpack .../09-llvm-20_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:32.0739802Z Unpacking llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:32.7173639Z Selecting previously unselected package llvm-20-tools.
+2026-11-14T09:12:32.7289379Z Preparing to unpack .../10-llvm-20-tools_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:32.7298113Z Unpacking llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:32.8283938Z Selecting previously unselected package llvm-20-dev.
+2026-11-14T09:12:32.8400593Z Preparing to unpack .../11-llvm-20-dev_1%3a20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139_amd64.deb ...
+2026-11-14T09:12:32.8408723Z Unpacking llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.2855941Z Setting up libclang-common-20-dev:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.2876945Z Setting up libclang-rt-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.2896087Z Setting up libllvm20:amd64 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.2917280Z Setting up libclang1-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.2935468Z Setting up llvm-20-runtime (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.2963028Z Setting up llvm-20-linker-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.2982477Z Setting up llvm-20-tools (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.3000622Z Setting up libclang-cpp20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.3018745Z Setting up llvm-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.3036572Z Setting up llvm-20-dev (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.3054217Z Setting up clang-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.3071236Z Setting up clang-tools-20 (1:20.1.8~++20250804090239+87f0227cb601-1~exp1~20250804210352.139) ...
+2026-11-14T09:12:35.3090384Z Processing triggers for systemd (255.4-1ubuntu8.18) ...
+2026-11-14T09:12:35.3369700Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-11-14T09:12:35.3505532Z Not building database; man-db/auto-update is not 'true'.
+2026-11-14T09:12:35.3515843Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-11-14T09:12:38.2615720Z 
+2026-11-14T09:12:38.2616300Z Running kernel seems to be up-to-date.
+2026-11-14T09:12:38.2616596Z 
+2026-11-14T09:12:38.2616708Z No services need to be restarted.
+2026-11-14T09:12:38.2616862Z 
+2026-11-14T09:12:38.2616959Z No containers need to be restarted.
+2026-11-14T09:12:38.2617259Z 
+2026-11-14T09:12:38.2617368Z No user sessions are running outdated binaries.
+2026-11-14T09:12:38.2617553Z 
+2026-11-14T09:12:38.2617719Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-11-14T09:12:38.9670581Z ##[group]Run set -euo pipefail
+2026-11-14T09:12:38.9670775Z [36;1mset -euo pipefail[0m
+2026-11-14T09:12:38.9670953Z [36;1mmkdir -p "$GITHUB_WORKSPACE/evidence/python-setup"[0m
+2026-11-14T09:12:38.9671311Z [36;1mexec > >(tee "$GITHUB_WORKSPACE/evidence/python-setup/stdout.log") 2> >(tee "$GITHUB_WORKSPACE/evidence/python-setup/stderr.log" >&2)[0m
+2026-11-14T09:12:38.9671737Z [36;1mpython3.14 -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0[0m
+2026-11-14T09:12:38.9671999Z [36;1mpython3.14 -m pip freeze --all[0m
+2026-11-14T09:12:38.9689076Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-14T09:12:38.9689260Z env:
+2026-11-14T09:12:38.9689412Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:38.9689651Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-14T09:12:38.9689884Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:38.9690102Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:38.9690313Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:38.9690522Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-14T09:12:38.9690707Z   CLANG: /usr/bin/clang-20
+2026-11-14T09:12:38.9690843Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-14T09:12:38.9690985Z ##[endgroup]
+2026-11-14T09:12:39.8071968Z Collecting setuptools==78.1.1
+2026-11-14T09:12:39.8782293Z   Downloading setuptools-78.1.1-py3-none-any.whl.metadata (6.5 kB)
+2026-11-14T09:12:39.9150113Z Collecting wheel==0.46.3
+2026-11-14T09:12:39.9273414Z   Downloading wheel-0.46.3-py3-none-any.whl.metadata (2.4 kB)
+2026-11-14T09:12:39.9541088Z Collecting z3-solver==4.15.4.0
+2026-11-14T09:12:39.9668754Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-14T09:12:39.9903022Z Collecting jsonschema==4.26.0
+2026-11-14T09:12:40.0026647Z   Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+2026-11-14T09:12:40.0267057Z Collecting packaging>=24.0 (from wheel==0.46.3)
+2026-11-14T09:12:40.0390229Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+2026-11-14T09:12:40.0732732Z Collecting attrs>=22.2.0 (from jsonschema==4.26.0)
+2026-11-14T09:12:40.0855818Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+2026-11-14T09:12:40.1082071Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema==4.26.0)
+2026-11-14T09:12:40.1204678Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+2026-11-14T09:12:40.1446814Z Collecting referencing>=0.28.4 (from jsonschema==4.26.0)
+2026-11-14T09:12:40.1569660Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+2026-11-14T09:12:40.3115136Z Collecting rpds-py>=0.25.0 (from jsonschema==4.26.0)
+2026-11-14T09:12:40.3242519Z   Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+2026-11-14T09:12:40.6583970Z Downloading setuptools-78.1.1-py3-none-any.whl (1.3 MB)
+2026-11-14T09:12:40.7163643Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 39.4 MB/s  0:00:00
+2026-11-14T09:12:40.7288432Z Downloading wheel-0.46.3-py3-none-any.whl (30 kB)
+2026-11-14T09:12:40.7426196Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-14T09:12:40.9817055Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 122.3 MB/s  0:00:00
+2026-11-14T09:12:40.9944056Z Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+2026-11-14T09:12:41.0086112Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-11-14T09:12:41.0224308Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+2026-11-14T09:12:41.0363350Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+2026-11-14T09:12:41.0504945Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+2026-11-14T09:12:41.0641625Z Downloading rpds_py-2026.9.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+2026-11-14T09:12:41.1330273Z Installing collected packages: z3-solver, setuptools, rpds-py, packaging, attrs, wheel, referencing, jsonschema-specifications, jsonschema
+2026-11-14T09:12:42.2894802Z 
+2026-11-14T09:12:42.2905100Z Successfully installed attrs-26.1.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 packaging-26.3 referencing-0.37.0 rpds-py-2026.9.1 setuptools-78.1.1 wheel-0.46.3 z3-solver-4.15.4.0
+2026-11-14T09:12:42.4859478Z attrs==26.1.0
+2026-11-14T09:12:42.4859710Z jsonschema==4.26.0
+2026-11-14T09:12:42.4859945Z jsonschema-specifications==2025.9.1
+2026-11-14T09:12:42.4860235Z packaging==26.3
+2026-11-14T09:12:42.4860412Z pip==26.3
+2026-11-14T09:12:42.4860580Z referencing==0.37.0
+2026-11-14T09:12:42.4860761Z rpds-py==2026.9.1
+2026-11-14T09:12:42.4860940Z setuptools==78.1.1
+2026-11-14T09:12:42.4861115Z wheel==0.46.3
+2026-11-14T09:12:42.4861291Z z3-solver==4.15.4.0
+2026-11-14T09:12:42.5130240Z ##[group]Run python3.14 -I -S -B harness/tools/materialize_hosted.py prepare --baseline "$GITHUB_WORKSPACE/original-r20" --scope "$RUNNER_TEMP/u32-frozen-r2" --evidence "$GITHUB_WORKSPACE/evidence"
+2026-11-14T09:12:42.5130962Z [36;1mpython3.14 -I -S -B harness/tools/materialize_hosted.py prepare --baseline "$GITHUB_WORKSPACE/original-r20" --scope "$RUNNER_TEMP/u32-frozen-r2" --evidence "$GITHUB_WORKSPACE/evidence"[0m
+2026-11-14T09:12:42.5147780Z shell: /usr/bin/bash -e {0}
+2026-11-14T09:12:42.5147916Z env:
+2026-11-14T09:12:42.5148069Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:42.5148307Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-14T09:12:42.5148544Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:42.5148747Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:42.5148950Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:42.5149177Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-14T09:12:42.5149360Z   CLANG: /usr/bin/clang-20
+2026-11-14T09:12:42.5149495Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-14T09:12:42.5149641Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-14T09:12:42.5149777Z ##[endgroup]
+2026-11-14T09:12:43.8103538Z {"elapsed_ns": 1249393864, "exit_code": 0, "stage": "prepare", "status": "FIXED_R2_SOURCE_MATERIALIZED_NOT_EXECUTED"}
+2026-11-14T09:12:43.8235848Z ##[group]Run python3.14 -I -S -B harness/tools/download_originals.py --archives "$RUNNER_TEMP/u32-original-artifacts" --evidence "$GITHUB_WORKSPACE/evidence"
+2026-11-14T09:12:43.8236429Z [36;1mpython3.14 -I -S -B harness/tools/download_originals.py --archives "$RUNNER_TEMP/u32-original-artifacts" --evidence "$GITHUB_WORKSPACE/evidence"[0m
+2026-11-14T09:12:43.8252965Z shell: /usr/bin/bash -e {0}
+2026-11-14T09:12:43.8253100Z env:
+2026-11-14T09:12:43.8253248Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:43.8253484Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-14T09:12:43.8253709Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:43.8253911Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:43.8254112Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:43.8254318Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-14T09:12:43.8254524Z   CLANG: /usr/bin/clang-20
+2026-11-14T09:12:43.8254660Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-14T09:12:43.8256472Z   GITHUB_TOKEN: ***
+2026-11-14T09:12:43.8256599Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-14T09:12:43.8256736Z ##[endgroup]
+2026-11-14T09:12:57.4960985Z {"elapsed_ns": 13611252564, "exit_code": 0, "outer_bytes": 431745519, "status": "TWO_ORIGINAL_ZIPS_FULL_SHA_AND_ALL_MEMBER_CRC_PASS"}
+2026-11-14T09:12:57.5522669Z ##[group]Run python3.14 -I -S -B harness/tools/materialize_hosted.py bind --scope "$RUNNER_TEMP/u32-frozen-r2" --archives "$RUNNER_TEMP/u32-original-artifacts" --evidence "$GITHUB_WORKSPACE/evidence"
+2026-11-14T09:12:57.5523411Z [36;1mpython3.14 -I -S -B harness/tools/materialize_hosted.py bind --scope "$RUNNER_TEMP/u32-frozen-r2" --archives "$RUNNER_TEMP/u32-original-artifacts" --evidence "$GITHUB_WORKSPACE/evidence"[0m
+2026-11-14T09:12:57.5540364Z shell: /usr/bin/bash -e {0}
+2026-11-14T09:12:57.5540505Z env:
+2026-11-14T09:12:57.5540659Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:57.5540901Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-14T09:12:57.5541135Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:57.5541349Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:57.5541571Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:57.5541805Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-14T09:12:57.5541994Z   CLANG: /usr/bin/clang-20
+2026-11-14T09:12:57.5542215Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-14T09:12:57.5542364Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-14T09:12:57.5542505Z ##[endgroup]
+2026-11-14T09:12:58.4527225Z {"elapsed_ns": 710896567, "exit_code": 0, "stage": "bind", "status": "ACTUAL_HOSTED_BINDINGS_FROZEN_PRODUCT_NOT_EXECUTED"}
+2026-11-14T09:12:58.4664479Z ##[group]Run python3.14 -I -S -B harness/tools/materialize_hosted.py launch --scope "$RUNNER_TEMP/u32-frozen-r2" --evidence "$GITHUB_WORKSPACE/evidence"
+2026-11-14T09:12:58.4665038Z [36;1mpython3.14 -I -S -B harness/tools/materialize_hosted.py launch --scope "$RUNNER_TEMP/u32-frozen-r2" --evidence "$GITHUB_WORKSPACE/evidence"[0m
+2026-11-14T09:12:58.4681778Z shell: /usr/bin/bash -e {0}
+2026-11-14T09:12:58.4681914Z env:
+2026-11-14T09:12:58.4682065Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:58.4682310Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-14T09:12:58.4682536Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:58.4682744Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:58.4682948Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:12:58.4683152Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-14T09:12:58.4683365Z   CLANG: /usr/bin/clang-20
+2026-11-14T09:12:58.4683498Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-14T09:12:58.4683642Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-14T09:12:58.4683781Z ##[endgroup]
+2026-11-14T09:15:11.7075753Z {"elapsed_ns": 133193627602, "exit_code": 0, "stage": "launch", "status": "ORIGINAL_R2_PROCESS_AND_OUTER_PASS_FIXED_SCOPE_ONLY"}
+2026-11-14T09:15:11.7200902Z ##[group]Run python3.14 -I -S -B harness/tools/materialize_hosted.py collect --scope "$RUNNER_TEMP/u32-frozen-r2" --archives "$RUNNER_TEMP/u32-original-artifacts" --evidence "$GITHUB_WORKSPACE/evidence" --collection "$GITHUB_WORKSPACE/retained"
+2026-11-14T09:15:11.7201982Z [36;1mpython3.14 -I -S -B harness/tools/materialize_hosted.py collect --scope "$RUNNER_TEMP/u32-frozen-r2" --archives "$RUNNER_TEMP/u32-original-artifacts" --evidence "$GITHUB_WORKSPACE/evidence" --collection "$GITHUB_WORKSPACE/retained"[0m
+2026-11-14T09:15:11.7219576Z shell: /usr/bin/bash -e {0}
+2026-11-14T09:15:11.7219722Z env:
+2026-11-14T09:15:11.7219881Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:15:11.7220138Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-14T09:15:11.7220380Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:15:11.7220599Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:15:11.7220836Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:15:11.7221057Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-14T09:15:11.7221255Z   CLANG: /usr/bin/clang-20
+2026-11-14T09:15:11.7221399Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-14T09:15:11.7221557Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-14T09:15:11.7221703Z ##[endgroup]
+2026-11-14T09:15:14.7462558Z {"elapsed_ns": 2976380831, "exit_code": 0, "stage": "collect", "status": "ALL_EXISTING_LOGICAL_NODES_RECORDED_FOR_ARTIFACT_UPLOAD"}
+2026-11-14T09:15:14.7628858Z ##[group]Run actions/upload-artifact@v4
+2026-11-14T09:15:14.7629022Z with:
+2026-11-14T09:15:14.7629152Z   name: u32-frozen-r2-full-43579403463-1
+2026-11-14T09:15:14.7629317Z   path: retained
+evidence/collect
+
+2026-11-14T09:15:14.7629473Z   include-hidden-files: true
+2026-11-14T09:15:14.7629613Z   if-no-files-found: error
+2026-11-14T09:15:14.7629745Z   compression-level: 0
+2026-11-14T09:15:14.7629867Z   retention-days: 90
+2026-11-14T09:15:14.7629986Z   overwrite: false
+2026-11-14T09:15:14.7630097Z env:
+2026-11-14T09:15:14.7630247Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:15:14.7630501Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib/pkgconfig
+2026-11-14T09:15:14.7630734Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:15:14.7630943Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:15:14.7631147Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.4/x64
+2026-11-14T09:15:14.7631376Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.4/x64/lib
+2026-11-14T09:15:14.7631561Z   CLANG: /usr/bin/clang-20
+2026-11-14T09:15:14.7631695Z   HEPTA_CLANG: /usr/bin/clang-20
+2026-11-14T09:15:14.7631833Z ##[endgroup]
+2026-11-14T09:15:14.8739684Z (node:11063) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-14T09:15:14.8740218Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-14T09:15:15.2253989Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-14T09:15:15.2255757Z The least common ancestor is /home/runner/work/Hepta/Hepta. This will be the root directory of the artifact
+2026-11-14T09:15:15.2256462Z With the provided path, there will be 4945 files uploaded
+2026-11-14T09:15:15.2260539Z Artifact name is valid!
+2026-11-14T09:15:15.2260843Z Root directory input is valid!
+2026-11-14T09:15:15.5633292Z Beginning upload of artifact content to blob storage
+2026-11-14T09:15:15.6123282Z (node:11063) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-14T09:15:16.0151628Z Uploaded bytes 8388608
+2026-11-14T09:15:16.1609290Z Uploaded bytes 16777216
+2026-11-14T09:15:16.1859057Z Uploaded bytes 25165824
+2026-11-14T09:15:16.3142951Z Uploaded bytes 33554432
+2026-11-14T09:15:16.3448555Z Uploaded bytes 41943040
+2026-11-14T09:15:16.3649556Z Uploaded bytes 50331648
+2026-11-14T09:15:16.4206495Z Uploaded bytes 58720256
+2026-11-14T09:15:16.4901646Z Uploaded bytes 67108864
+2026-11-14T09:15:16.5083213Z Uploaded bytes 75497472
+2026-11-14T09:15:16.5865699Z Uploaded bytes 83886080
+2026-11-14T09:15:16.6297036Z Uploaded bytes 92274688
+2026-11-14T09:15:16.6434349Z Uploaded bytes 100663296
+2026-11-14T09:15:16.7091112Z Uploaded bytes 109051904
+2026-11-14T09:15:16.7675243Z Uploaded bytes 117440512
+2026-11-14T09:15:16.7909645Z Uploaded bytes 125829120
+2026-11-14T09:15:16.8126644Z Uploaded bytes 134217728
+2026-11-14T09:15:16.8752567Z Uploaded bytes 142606336
+2026-11-14T09:15:16.9371123Z Uploaded bytes 150994944
+2026-11-14T09:15:16.9501692Z Uploaded bytes 159383552
+2026-11-14T09:15:16.9557388Z Uploaded bytes 167772160
+2026-11-14T09:15:17.0388704Z Uploaded bytes 176160768
+2026-11-14T09:15:17.0691963Z Uploaded bytes 184549376
+2026-11-14T09:15:17.1554803Z Uploaded bytes 192937984
+2026-11-14T09:15:17.1628404Z Uploaded bytes 201326592
+2026-11-14T09:15:17.2045807Z Uploaded bytes 209715200
+2026-11-14T09:15:17.2105722Z Uploaded bytes 218103808
+2026-11-14T09:15:17.2772565Z Uploaded bytes 226492416
+2026-11-14T09:15:17.2993838Z Uploaded bytes 234881024
+2026-11-14T09:15:17.3360412Z Uploaded bytes 243269632
+2026-11-14T09:15:17.3604033Z Uploaded bytes 251658240
+2026-11-14T09:15:17.4033306Z Uploaded bytes 260046848
+2026-11-14T09:15:17.4421964Z Uploaded bytes 268435456
+2026-11-14T09:15:17.4610077Z Uploaded bytes 276824064
+2026-11-14T09:15:17.5197394Z Uploaded bytes 285212672
+2026-11-14T09:15:17.5256062Z Uploaded bytes 293601280
+2026-11-14T09:15:17.5870997Z Uploaded bytes 301989888
+2026-11-14T09:15:17.5957675Z Uploaded bytes 310378496
+2026-11-14T09:15:17.6547782Z Uploaded bytes 318767104
+2026-11-14T09:15:17.6859718Z Uploaded bytes 327155712
+2026-11-14T09:15:17.7540466Z Uploaded bytes 335544320
+2026-11-14T09:15:17.7592258Z Uploaded bytes 343932928
+2026-11-14T09:15:17.8981988Z Uploaded bytes 352321536
+2026-11-14T09:15:17.9186848Z Uploaded bytes 360710144
+2026-11-14T09:15:17.9249177Z Uploaded bytes 369098752
+2026-11-14T09:15:17.9604302Z Uploaded bytes 377487360
+2026-11-14T09:15:18.1083181Z Uploaded bytes 385875968
+2026-11-14T09:15:18.1604285Z Uploaded bytes 394264576
+2026-11-14T09:15:18.1921200Z Uploaded bytes 402653184
+2026-11-14T09:15:18.1975330Z Uploaded bytes 411041792
+2026-11-14T09:15:18.3098243Z Uploaded bytes 419430400
+2026-11-14T09:15:18.3379346Z Uploaded bytes 427819008
+2026-11-14T09:15:18.3837251Z Uploaded bytes 436207616
+2026-11-14T09:15:18.4388708Z Uploaded bytes 444596224
+2026-11-14T09:15:18.5010078Z Uploaded bytes 452984832
+2026-11-14T09:15:18.5661498Z Uploaded bytes 461373440
+2026-11-14T09:15:18.6121056Z Uploaded bytes 469762048
+2026-11-14T09:15:18.6346332Z Uploaded bytes 478150656
+2026-11-14T09:15:18.7296203Z Uploaded bytes 486539264
+2026-11-14T09:15:18.7490945Z Uploaded bytes 494927872
+2026-11-14T09:15:18.8183701Z Uploaded bytes 503316480
+2026-11-14T09:15:18.8475044Z Uploaded bytes 511705088
+2026-11-14T09:15:18.9211971Z Uploaded bytes 520093696
+2026-11-14T09:15:18.9625867Z Uploaded bytes 528482304
+2026-11-14T09:15:19.0402982Z Uploaded bytes 536870912
+2026-11-14T09:15:19.0784937Z Uploaded bytes 545259520
+2026-11-14T09:15:19.1389315Z Uploaded bytes 553648128
+2026-11-14T09:15:19.2018881Z Uploaded bytes 562036736
+2026-11-14T09:15:19.2440723Z Uploaded bytes 570425344
+2026-11-14T09:15:19.2649624Z Uploaded bytes 578813952
+2026-11-14T09:15:19.3910730Z Uploaded bytes 587202560
+2026-11-14T09:15:19.4061646Z Uploaded bytes 595591168
+2026-11-14T09:15:19.4841910Z Uploaded bytes 603979776
+2026-11-14T09:15:19.5087369Z Uploaded bytes 612368384
+2026-11-14T09:15:19.6029036Z Uploaded bytes 620756992
+2026-11-14T09:15:19.6553113Z Uploaded bytes 629145600
+2026-11-14T09:15:19.6707952Z Uploaded bytes 637534208
+2026-11-14T09:15:19.6765215Z Uploaded bytes 645922816
+2026-11-14T09:15:19.8300692Z Uploaded bytes 654311424
+2026-11-14T09:15:19.8417980Z Uploaded bytes 662700032
+2026-11-14T09:15:19.8640062Z Uploaded bytes 671088640
+2026-11-14T09:15:19.9099371Z Uploaded bytes 679477248
+2026-11-14T09:15:20.0589666Z Uploaded bytes 687865856
+2026-11-14T09:15:20.1166653Z Uploaded bytes 696254464
+2026-11-14T09:15:20.1330954Z Uploaded bytes 704643072
+2026-11-14T09:15:20.1504227Z Uploaded bytes 713031680
+2026-11-14T09:15:20.2608185Z Uploaded bytes 721420288
+2026-11-14T09:15:20.3627832Z Uploaded bytes 729808896
+2026-11-14T09:15:20.3913597Z Uploaded bytes 738197504
+2026-11-14T09:15:20.3988111Z Uploaded bytes 746586112
+2026-11-14T09:15:20.4113188Z Uploaded bytes 754974720
+2026-11-14T09:15:20.5540234Z Uploaded bytes 763363328
+2026-11-14T09:15:20.6255470Z Uploaded bytes 771751936
+2026-11-14T09:15:20.6464163Z Uploaded bytes 780140544
+2026-11-14T09:15:20.6670308Z Uploaded bytes 788529152
+2026-11-14T09:15:20.7537934Z Uploaded bytes 796917760
+2026-11-14T09:15:20.8075532Z Uploaded bytes 805306368
+2026-11-14T09:15:20.8429168Z Uploaded bytes 813694976
+2026-11-14T09:15:20.9386121Z Uploaded bytes 822083584
+2026-11-14T09:15:20.9487590Z Uploaded bytes 830472192
+2026-11-14T09:15:20.9863952Z Uploaded bytes 838860800
+2026-11-14T09:15:21.0227305Z Uploaded bytes 847249408
+2026-11-14T09:15:21.1760211Z Uploaded bytes 855638016
+2026-11-14T09:15:21.2095132Z Uploaded bytes 864026624
+2026-11-14T09:15:21.2267920Z Uploaded bytes 872415232
+2026-11-14T09:15:21.2610245Z Uploaded bytes 880803840
+2026-11-14T09:15:21.3969067Z Uploaded bytes 889192448
+2026-11-14T09:15:21.4024902Z Uploaded bytes 897581056
+2026-11-14T09:15:21.4668883Z Uploaded bytes 905969664
+2026-11-14T09:15:21.4756369Z Uploaded bytes 914358272
+2026-11-14T09:15:21.5832812Z Uploaded bytes 922746880
+2026-11-14T09:15:21.6118181Z Uploaded bytes 931135488
+2026-11-14T09:15:21.6847733Z Uploaded bytes 939524096
+2026-11-14T09:15:21.7569176Z Uploaded bytes 947912704
+2026-11-14T09:15:21.7808523Z Uploaded bytes 956301312
+2026-11-14T09:15:21.7925200Z Uploaded bytes 964689920
+2026-11-14T09:15:21.8737758Z Uploaded bytes 973078528
+2026-11-14T09:15:21.9383516Z Uploaded bytes 981467136
+2026-11-14T09:15:21.9442607Z Uploaded bytes 989855744
+2026-11-14T09:15:22.0090848Z Uploaded bytes 998244352
+2026-11-14T09:15:22.0527625Z Uploaded bytes 1006632960
+2026-11-14T09:15:22.0604565Z Uploaded bytes 1015021568
+2026-11-14T09:15:22.0868657Z Uploaded bytes 1023410176
+2026-11-14T09:15:22.1334188Z Uploaded bytes 1031798784
+2026-11-14T09:15:22.1837047Z Uploaded bytes 1040187392
+2026-11-14T09:15:22.2077967Z Uploaded bytes 1048576000
+2026-11-14T09:15:22.2287940Z Uploaded bytes 1056964608
+2026-11-14T09:15:22.2598317Z Uploaded bytes 1065353216
+2026-11-14T09:15:22.3043187Z Uploaded bytes 1073741824
+2026-11-14T09:15:22.3611806Z Uploaded bytes 1082130432
+2026-11-14T09:15:22.3772056Z Uploaded bytes 1090519040
+2026-11-14T09:15:22.3887713Z Uploaded bytes 1098907648
+2026-11-14T09:15:22.4266230Z Uploaded bytes 1107296256
+2026-11-14T09:15:22.5168654Z Uploaded bytes 1115684864
+2026-11-14T09:15:22.5229231Z Uploaded bytes 1124073472
+2026-11-14T09:15:22.5282690Z Uploaded bytes 1132462080
+2026-11-14T09:15:22.5456984Z Uploaded bytes 1140850688
+2026-11-14T09:15:22.6538108Z Uploaded bytes 1149239296
+2026-11-14T09:15:22.6683398Z Uploaded bytes 1157627904
+2026-11-14T09:15:22.6812504Z Uploaded bytes 1166016512
+2026-11-14T09:15:22.6897976Z Uploaded bytes 1174405120
+2026-11-14T09:15:22.7862408Z Uploaded bytes 1182793728
+2026-11-14T09:15:22.8245049Z Uploaded bytes 1191182336
+2026-11-14T09:15:22.8369515Z Uploaded bytes 1199570944
+2026-11-14T09:15:22.8506719Z Uploaded bytes 1207959552
+2026-11-14T09:15:22.9765745Z Uploaded bytes 1216348160
+2026-11-14T09:15:22.9926705Z Uploaded bytes 1224736768
+2026-11-14T09:15:23.0305518Z Uploaded bytes 1233125376
+2026-11-14T09:15:23.0349693Z Uploaded bytes 1241513984
+2026-11-14T09:15:23.1629255Z Uploaded bytes 1249902592
+2026-11-14T09:15:23.1681317Z Uploaded bytes 1258291200
+2026-11-14T09:15:23.1777951Z Uploaded bytes 1266679808
+2026-11-14T09:15:23.2757280Z Uploaded bytes 1270286664
+2026-11-14T09:15:23.3248868Z Finished uploading artifact content to blob storage!
+2026-11-14T09:15:23.3251730Z SHA256 digest of uploaded artifact zip is f318593523cc6294e9507aae9ef351d64231a2ead829d325e2e563a96176fb02
+2026-11-14T09:15:23.3253196Z Finalizing artifact upload
+2026-11-14T09:15:23.9034993Z Artifact u32-frozen-r2-full-43579403463-1.zip successfully finalized. Artifact ID 14108215158
+2026-11-14T09:15:23.9036249Z Artifact u32-frozen-r2-full-43579403463-1 has been successfully uploaded! Final size is 1270286664 bytes. Artifact ID is 14108215158
+2026-11-14T09:15:23.9040617Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43579403463/artifacts/14108215158
+2026-11-14T09:15:23.9452533Z Post job cleanup.
+2026-11-14T09:15:24.0242494Z (node:11076) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-14T09:15:24.0242913Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-14T09:15:24.0388216Z Post job cleanup.
+2026-11-14T09:15:24.1013365Z [command]/usr/bin/git version
+2026-11-14T09:15:24.1078052Z git version 2.56.1
+2026-11-14T09:15:24.1102032Z Temporarily overriding HOME='/home/runner/work/_temp/bba9f526-6b07-4de6-9ba7-e73d587181e6' before making global git config changes
+2026-11-14T09:15:24.1103070Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-14T09:15:24.1105340Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/original-r20
+2026-11-14T09:15:24.1148307Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-14T09:15:24.1180481Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-14T09:15:24.1393233Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-14T09:15:24.1423933Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-14T09:15:24.1637711Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-14T09:15:24.1677376Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-14T09:15:24.2018952Z Post job cleanup.
+2026-11-14T09:15:24.2657564Z [command]/usr/bin/git version
+2026-11-14T09:15:24.2707626Z git version 2.56.1
+2026-11-14T09:15:24.2734765Z Temporarily overriding HOME='/home/runner/work/_temp/8fc1f183-ff62-4373-a84a-17d856b4e4ba' before making global git config changes
+2026-11-14T09:15:24.2740353Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-14T09:15:24.2748158Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/harness
+2026-11-14T09:15:24.2794954Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-14T09:15:24.2832598Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-14T09:15:24.3103773Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-14T09:15:24.3168817Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-14T09:15:24.3358823Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-14T09:15:24.3399347Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-14T09:15:24.3727883Z Cleaning up orphan processes
+2026-11-14T09:15:24.3991994Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

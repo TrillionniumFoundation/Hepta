@@ -1,0 +1,19 @@
+{
+  "schema": "hepta.root.patch-result-source-blocker.v1",
+  "status": "BLOCKED_BEFORE_GENERATION",
+  "plan_git_blob": "55b62f415db8f77d7c3dc69e1bc0c2837451015d",
+  "source_packet_git_blob": "730aadffe99e044e3586e13225a4ad8eca7c6c98",
+  "reader_git_blob": "691f0100e81fba677dd14aaa2d7be2d07eba92b6",
+  "actual_reader_exit": {
+    "chunk_id": "0c0d46",
+    "wall_time_seconds": 0.00001354,
+    "exit_code": 1,
+    "original_token_count": 365,
+    "output": "Traceback (most recent call last):\n  File \"/tmp/hia-root-v141-dda7/verify_patch_generation_r3_preflight.py\", line 115, in <module>\n    for name in policy_names:assert normalized(original_codes[name])==normalized(definition_codes[name]),name\n                                    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/hia-root-v141-dda7/verify_patch_generation_r3_preflight.py\", line 110, in normalized\n    if isinstance(value,types.CodeType):return ('code',tuple((k,normalized(getattr(value,k))) for k in fields),normalized(value.co_consts))\n                                                                                                               ~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/tmp/hia-root-v141-dda7/verify_patch_generation_r3_preflight.py\", line 111, in normalized\n    if type(value) is tuple:return ('tuple',tuple(normalized(x) for x in value))\n                                            ^^^^^\n  File \"/tmp/hia-root-v141-dda7/verify_patch_generation_r3_preflight.py\", line 111, in <genexpr>\n    if type(value) is tuple:return ('tuple',tuple(normalized(x) for x in value))\n                                                  ~~~~~~~~~~^^^\n  File \"/tmp/hia-root-v141-dda7/verify_patch_generation_r3_preflight.py\", line 112, in normalized\n    assert type(value) in (bool,int,str,bytes,type(None)) or value is Ellipsis,type(value)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: <class 'slice'>\n"
+  },
+  "finding": "Compile-only of the actual original _check_patch_interface under fixed CPython3.14.4 yields an exact slice constant; _constant_equal in the authored passive definition module has no slice case and must reject it. Root normalizer deliberately used that same finite type domain and stopped at slice. No project module or policy body executed.",
+  "fix_required": "Support exact slice by recursively checking start/stop/step with the existing finite type comparator; preserve every code field and unknown-constant refusal.",
+  "source_native_vm_generator_calls": 0,
+  "old_source_preserved": true,
+  "whole_native": false
+}

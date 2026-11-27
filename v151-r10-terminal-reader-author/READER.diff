@@ -1,0 +1,348 @@
+--- R9/verify_terminal.py
++++ R10/verify_terminal.py
+@@ -1,6 +1,7 @@
+ """Independent complete data readback. No project import or product execution."""
+ from pathlib import Path
+ import argparse
++import ast
+ import hashlib
+ import json
+ import os
+@@ -8,22 +9,24 @@
+ import time
+ import traceback
+ 
+-AUTHOR = Path('/tmp/hia-r8-r9-controls-author-r1-dda7')
+-PRODUCT = Path('/hia-r8-r9-controls-20261114-dda7')
+-OUTER = Path('/tmp/hia-r9-controls-outer-r1-dda7')
+-ADMISSION = Path('/tmp/hia-r9-controls-fresh-admission-r1-dda7')
++AUTHOR = Path('/tmp/hia-r10-controls-author-r1-dda7')
++PRODUCT = Path('/workspace/hia-r10-controls-r1-dda7')
++OUTER = Path('/tmp/hia-r10-controls-outer-r1-dda7')
++ADMISSION = Path('/tmp/hia-r10-controls-fresh-admission-r1-dda7')
+ MAPPING = Path('/tmp/hia-u32-r8-r4-admission-author-r1-dda7/EXPECTED-MAPPING.json')
+-ROOT_AUTHOR = Path('/tmp/hia-progress-v149-20261114-dda7')
+-CUSTODY = Path('/tmp/hia-r9-controls-complete-custody-r1-dda7')
+-PREVIOUS = Path('/dev/shm/hia-u32-r8-controls-r4-dda7')
+-PREVIOUS_READER = Path('/tmp/hia-u32-r8-r4-terminal-readback-r1-dda7')
++ROOT_AUTHOR = Path('/tmp/hia-progress-v150-20261114-dda7')
++HISTORICAL_ROOT_AUTHOR = Path('/tmp/hia-progress-v149-20261114-dda7')
++PREVIOUS_OUTER = Path('/tmp/hia-r9-controls-outer-r1-dda7')
++CUSTODY = Path('/workspace/hia-r10-controls-complete-custody-r1-dda7')
++PREVIOUS = Path('/hia-r8-r9-controls-20261114-dda7')
++PREVIOUS_READER = Path('/tmp/hia-r9-controls-terminal-readback-r2-dda7')
+ KEYS = ('st_dev','st_ino','st_mode','st_nlink','st_size','st_mtime_ns','st_ctime_ns')
+ TREE = '4c62be4ed66ff107fa6f88c6131313a354868bd9'
+ NAMES = ('source','output','workspace')
+ STARTED = ('public-R5-refusal','native162','semantic-edge-vm','semantic-remaining-vm')
+ SKIPPED = ('kernel130','observer-build','pipeline7','tail2')
+-VM_STEPS = (4028084,2974291,7746379,192888,275860,10000001)
+-PREVIOUS_VM_STEPS = (4426100,3267145,8506363,216015,302985,10000001)
++VM_STEPS = (3774295,2779096,7285022,188901,254951,10000001)
++PREVIOUS_VM_STEPS = (4028084,2974291,7746379,192888,275860,10000001)
+ READS = {}
+ INODES = {}
+ LEDGER = None
+@@ -176,29 +179,29 @@
+     return after
+ 
+ def verify(output):
+-    plan=j(AUTHOR/'EXECUTION-PLAN.json','125dc522389049145d6f63166b39ed9754993327')
++    plan=j(AUTHOR/'EXECUTION-PLAN.json','64437dc3c669d41867c645128632481d386f89c4')
+     mapping=j(MAPPING,'7b3e66803be1c566f87ab7abfaac67d3a4db1a50')
+-    top=j(PRODUCT/'RESULT.json','e71435798df5407edcb472bd8b80aedcffa20876')
+-    admission=j(ADMISSION/'RESULT.json','ab25ae2113554b444c38f09e23ca36bd75d5eb57')
+-    need(admission['status']=='PASS_FULL_FRESH_R9_EIGHT_GROUP_ADMISSION_ONLY' and
++    top=j(PRODUCT/'RESULT.json','0ba3f9fa101729ad9e194fbbb3507234dbc981d8')
++    admission=j(ADMISSION/'RESULT.json','9440c2f2b55858faee16f9aa952d467ef715ff52')
++    need(admission['status']=='PASS_FULL_FRESH_R10_EIGHT_GROUP_ADMISSION_ONLY' and
+          admission['full_original_domain_files']==6777 and admission['full_original_domain_bytes']==948620735 and
+          admission['free_bytes_at_admission']>=3221225472 and admission['new_controls']==67 and
+          admission['all962_full_roles'] is True and admission['old948_roles_exact'] is True,
+-         'actual R9 fresh admission differs')
+-    sealed=j(CUSTODY/'MANIFEST.json','2849d18a18a46d01e8150738fcd173101361255e')
+-    need(sealed['file_count']==2213 and sealed['logical_bytes']==1122457162,'sealed R9 denominator differs')
++         'actual R10 fresh admission differs')
++    sealed=j(CUSTODY/'MANIFEST.json','5e7e12a4a92f1312a818e0b6730548ea685e3de8')
++    need(sealed['file_count']==2217 and sealed['logical_bytes']==1122002129,'sealed R10 denominator differs')
+     for logical,wanted in sealed['files'].items():
+-        if logical.startswith(('root_author/','r9_author/')):
++        if logical.startswith(('root_author/','r10_author/')):
+             full(wanted['source_path'],{**wanted['identity'],'mode':wanted['mode']},wanted['seven_stats'])
+     original_plan=j(Path('/tmp/hia-u32-r8-post-reset-r4-dda7/EXECUTION-PLAN.json'),
+                     '2374488181b268a9ea557832302025c135e63f36')
+     need(len(original_plan['fixed_inputs'])==948 and len(plan['fixed_inputs'])==962 and
+          all(plan['fixed_inputs'][name]==row for name,row in original_plan['fixed_inputs'].items()),
+          'original 948 role bindings differ')
+-    new_roles=plan['R9_explicit_successor']['actual_candidate_roles']
++    new_roles=plan['R10_explicit_successor']['actual_candidate_roles']
+     need(set(new_roles)==set(plan['fixed_inputs'])-set(original_plan['fixed_inputs']) and len(new_roles)==14,
+-         'explicit R9 14-role additions differ')
+-    frozen_roles=j(ADMISSION/'ALL-962-FULL-ROLES.json','2e9a901ca157392f1a764f677a2f856bd52245c7')
++         'explicit R10 14-role additions differ')
++    frozen_roles=j(ADMISSION/'ALL-962-FULL-ROLES.json','17a5975a47dc826557b3990dbcb0c1d399bfb724')
+     need(frozen_roles['reference_count']==len(frozen_roles['roles'])==962 and
+          set(frozen_roles['roles'])==set(plan['fixed_inputs']),'actual admission role set differs')
+     original_fresh=j(ADMISSION/'FULL-FRESH-6777.json','8e7671a3b37465c66e63af409f50578d2dc75fd6')
+@@ -239,10 +242,10 @@
+     original_input_count=len(input_rows)
+     original_input_bytes=sum(r['identity']['bytes'] for r in input_rows.values())
+     need(set(admission['controls'])==set(plan['controls']) and len(plan['controls'])==67,
+-         'all R9 control admission names differ')
++         'all R10 control admission names differ')
+     for name,wanted in plan['controls'].items():
+         observed=admission['controls'][name]
+-        need(observed['identity']==wanted,'R9 control admission identity differs')
++        need(observed['identity']==wanted,'R10 control admission identity differs')
+         path=str(AUTHOR/name)
+         need(path not in input_rows,'new control aliases original input path')
+         input_rows[path]=full(path,wanted,observed['seven_stats'])
+@@ -250,10 +253,10 @@
+         observed=admission['new_candidate_roles'][name]
+         need(observed=={'identity':wanted['identity'],'seven_stats':wanted['seven_stats']} and
+              {k:v for k,v in plan['fixed_inputs'][name].items() if k!='phases'}==
+-             {'path':wanted['path'],'identity':wanted['identity']},'R9 candidate role admission differs')
+-        need(wanted['path'] not in input_rows,'R9 role aliases original/control path')
++             {'path':wanted['path'],'identity':wanted['identity']},'R10 candidate role admission differs')
++        need(wanted['path'] not in input_rows,'R10 role aliases original/control path')
+         input_rows[wanted['path']]=full(wanted['path'],wanted['identity'],wanted['seven_stats'])
+-    need(len(input_rows)==6777+67+14,'post-run original plus R9 extension denominator differs')
++    need(len(input_rows)==6777+67+14,'post-run original plus R10 extension denominator differs')
+     role_readback={}
+     for name,wanted in plan['fixed_inputs'].items():
+         observed=frozen_roles['roles'][name]
+@@ -262,17 +265,17 @@
+              'full actual role differs from pre-run admission')
+         role_readback[name]={'path':wanted['path'],'identity':actual['identity'],'seven_stats':actual['seven_stats'],
+                              'phases':wanted['phases']}
+-    need(sum(row['identity']['bytes'] for row in role_readback.values())==frozen_roles['reference_bytes']==724909501,
++    need(sum(row['identity']['bytes'] for row in role_readback.values())==frozen_roles['reference_bytes']==725196980,
+          'all 962 full role-reference bytes differ')
+     dump(output/'ALL-962-ROLE-READBACK.json',role_readback)
+-    prefix=plan['R9_explicit_successor']['prefix_plan']
++    prefix=plan['R10_explicit_successor']['prefix_plan']
+     prefix_plan=json.loads(full(prefix['path'],prefix['identity'],prefix['seven_stats'],contents=True))
+     prefix_root=Path(prefix['path']).parent;prefix_readback={}
+     prefix_expected={name:row for name,row in prefix_plan['fixed_controls'].items()}
+     for name,identity in prefix_plan['author_files'].items():
+         need('author:'+name not in prefix_expected,'prefix authority name collision')
+         prefix_expected['author:'+name]={'path':str(prefix_root/name),'identity':identity}
+-    need(set(prefix_expected)==set(admission['prefix_controls']) and len(prefix_expected)==43,
++    need(set(prefix_expected)==set(admission['prefix_controls']) and len(prefix_expected)==78,
+          'all prefix-admission authority names differ')
+     for name,wanted in prefix_expected.items():
+         observed=admission['prefix_controls'][name]
+@@ -287,7 +290,7 @@
+     raw_trees={};raw_inventory={}
+     for label,root in roots:
+         state=tree_state(root);raw_trees[label]=state
+-        sealed_label={'product':'r9_actual','outer':'r9_outer','fresh_admission':'fresh_admission'}[label]
++        sealed_label={'product':'r10_actual','outer':'r10_outer','fresh_admission':'fresh_admission'}[label]
+         wanted_paths={n[len(sealed_label)+1:] for n in sealed['files'] if n.startswith(sealed_label+'/')}
+         need(set(state['files'])==wanted_paths,'complete actual raw pathset differs from sealed original')
+         for name,wanted in state['files'].items():
+@@ -297,32 +300,60 @@
+             raw_inventory[label+'/'+name]=full(root/name,
+                 {**frozen_row['identity'],'mode':frozen_row['mode']},wanted)
+     product_rows={n:r for n,r in raw_inventory.items() if n.startswith(('product/','outer/'))}
+-    need(len(product_rows)==2105 and sum(r['identity']['bytes'] for r in product_rows.values())==1110456844,
++    need(len(product_rows)==2105 and sum(r['identity']['bytes'] for r in product_rows.values())==1110455563,
+          'complete actual product/outer original denominator differs')
+     dump(output/'FULL-RAW-INVENTORY.json',raw_inventory);dump(output/'DIRECTORIES-BEFORE.json',raw_trees)
+     outer=j(OUTER/'RESULT.json');intent=j(OUTER/'INTENT.json')
+     need(outer['status']=='FAIL' and outer['returncode']==1 and outer['timeout'] is False and
+          outer['ECHILD'] is True and outer['process_group_absent'] is True and
+          outer['direct_restored_interpreter_invocations']==outer['maximum_attempts']==1,'outer terminal differs')
+-    launch=j(AUTHOR/'PRODUCT-LAUNCH.json','acd6c350f3eec17941292d92da1989390e1b24aa')
+-    correction=j(ROOT_AUTHOR/'R9-CONTROLS-ROOT-LAUNCHER-R1-FAILURE-RETAINED.json',
++    launch=j(AUTHOR/'PRODUCT-LAUNCH.json','5e94c203c66348f8579b7029b97dfdaf07398231')
++    correction=j(HISTORICAL_ROOT_AUTHOR/'R9-CONTROLS-ROOT-LAUNCHER-R1-FAILURE-RETAINED.json',
+                  'c72d69134afefc2d8c43d85c9bb032f7bc45a27c')
+-    first=read(ROOT_AUTHOR/'launch_r9_controls_r1.py');second=read(ROOT_AUTHOR/'launch_r9_controls_r2.py')
++    first=read(HISTORICAL_ROOT_AUTHOR/'launch_r9_controls_r1.py');second=read(HISTORICAL_ROOT_AUTHOR/'launch_r9_controls_r2.py')
+     old_literal=correction['before_literal'].encode();new_literal=correction['after_literal'].encode()
+     need(pin(first)==correction['before'] and pin(second)==correction['after'] and
+          first.count(old_literal)==second.count(new_literal)==1 and
+          first.replace(old_literal,new_literal)==second and second.replace(new_literal,old_literal)==first,
+          'actual Root launcher one-literal whole inverse differs')
+-    first_return=j(ROOT_AUTHOR/'R9-CONTROLS-EXEC.json','df85fd758536fc23f57a906bb227984ebfd51138')
+-    need(pin(read(ROOT_AUTHOR/'R9-CONTROLS-EXEC.json'))==correction['failure_exec_receipt'] and
++    first_return=j(HISTORICAL_ROOT_AUTHOR/'R9-CONTROLS-EXEC.json','df85fd758536fc23f57a906bb227984ebfd51138')
++    need(pin(read(HISTORICAL_ROOT_AUTHOR/'R9-CONTROLS-EXEC.json'))==correction['failure_exec_receipt'] and
+          first_return['exit_code']==1 and 'AssertionError' in first_return['output'] and
+          correction['prior_product_child_launches']==correction['original_eight_group_attempts_so_far']==0 and
+          correction['prior_outer_directory_absent'] is True and correction['prior_product_directory_absent'] is True,
+          'original zero-child launcher failure record differs')
+-    started=j(ROOT_AUTHOR/'R9-CONTROLS-R2-EXEC.json','6decad95ad59fce058d38564864c2c58d83fe184')
+-    returned=j(ROOT_AUTHOR/'R9-CONTROLS-R2-RETURN.json','483d8855ff9863be324504386826f1418317b295')
+-    need(started['session_id']==79468 and returned['exit_code']==1 and json.loads(returned['output'])==outer,
++    started=j(HISTORICAL_ROOT_AUTHOR/'R9-CONTROLS-R2-EXEC.json','6decad95ad59fce058d38564864c2c58d83fe184')
++    returned=j(HISTORICAL_ROOT_AUTHOR/'R9-CONTROLS-R2-RETURN.json','483d8855ff9863be324504386826f1418317b295')
++    need(started['session_id']==79468 and returned['exit_code']==1 and json.loads(returned['output'])==j(PREVIOUS_OUTER/'RESULT.json'),
+          'actual tool execution/terminal does not bind outer')
++    inverse=j(ROOT_AUTHOR/'R10-CONTROLS-R1-ROOT-OUTER-INVERSE.json',
++              'ff0fd51d6c32390dbbd90d5b42a1ead8bc2c6465')
++    actual_launcher=read(ROOT_AUTHOR/'launch_r10_controls_r1.py')
++    need(pin(second)==inverse['before']['identity'] and pin(actual_launcher)==inverse['after'],
++         'R10 actual launcher before/after differs')
++    inserted=inverse['helper_gate_assertion_insert'].encode()
++    need(pin(inserted)==inverse['helper_gate_insert_identity'] and actual_launcher.count(inserted)==1,
++         'actual helper predecessor assertion differs')
++    reconstructed=actual_launcher.replace(inserted,b'',1)
++    for edit in reversed(inverse['literal_replacements']):
++        after=edit['after'].encode();before=edit['before'].encode()
++        need(reconstructed.count(after)==edit['count'],'R10 launcher literal inverse count differs')
++        reconstructed=reconstructed.replace(after,before)
++    need(reconstructed==second and ast.dump(ast.parse(reconstructed))==ast.dump(ast.parse(second)),
++         'R10 launcher is not the complete original owner/subreaper body')
++    helper_raw=read(Path('/tmp/hia-r10-helper-independent-readback-r1-dda7/RESULT.json'))
++    need(pin(helper_raw)==inverse['actual_helper_proof'] and
++         inverse['actual_fresh_admission']==pin(read(ADMISSION/'RESULT.json')),
++         'actual R10 helper/admission proof binding differs')
++    helper=json.loads(helper_raw)
++    need(helper['status']=='PASS_INDEPENDENT_R10_HELPER_TERMINAL_ONLY' and helper['errors']==[] and
++         helper['case_pairs']==553 and helper['actual_VM_calls']==1106 and
++         helper['logical_before_after_buffers']==2212 and helper['all_original_budgets_kept'] is True and
++         helper['full_original_domain_files']==6777,'R10 helper predecessor is not the actual complete PASS')
++    current_started=j(ROOT_AUTHOR/'R10-CONTROLS-R1-EXEC.json','631f146b8cdb7b530ddbfff686c6360d0f0c536a')
++    current_returned=j(ROOT_AUTHOR/'R10-CONTROLS-R1-RETURN.json','201ba031b5a2db8513a0912adc557d3b51c4ed0b')
++    need(current_started['session_id']==66583 and current_returned['exit_code']==1 and
++         json.loads(current_returned['output'])==outer,'actual R10 execution/terminal does not bind outer')
+     need(intent['admission']==pin(read(ADMISSION/'RESULT.json')) and
+          intent['argv']==launch['argv'] and intent['cwd']==launch['cwd']==plan['source']['path'] and
+          intent['outer_watchdog_seconds']==launch['outer_seconds']==1800 and
+@@ -331,7 +362,7 @@
+          launch['outer_root']==str(OUTER) and launch['output']==str(PRODUCT) and
+          launch['plan']==admission['plan'] and intent['launch_seven_stats']==admission['launch']['seven_stats'] and
+          launch['argv'][-2:]==['--plan-sha256',authorization],
+-         'Root actual R9 launch/admission/request binding differs')
++         'Root actual R10 launch/admission/request binding differs')
+     need(intent['launch']==pin(read(AUTHOR/'PRODUCT-LAUNCH.json')) and intent['original_owner_seconds']==180
+          and intent['cleanup_seconds']==3 and intent['maximum_attempts']==1,'actual launch differs')
+     for label in ('stdout','stderr'): need(pin(read(OUTER/(label+'.bin')))==outer[label],'outer stream pin differs')
+@@ -391,7 +422,7 @@
+     need(refusal['status']=='EXPECTED_PUBLIC_R5_REFUSAL' and refusal['provider_calls']==0 and
+          refusal['VM_execution_reached'] is False and refusal['public_profile_pass'] is False,'public refusal differs')
+     native_root=PRODUCT/plan['phases'][1]['out'];image=PRODUCT/'semantic/evidence/compact-build-r1/checker.image.bin'
+-    full(image,plan['fixed_inputs']['R9-image']['identity'])
++    full(image,plan['fixed_inputs']['R10-image']['identity'])
+     report=reports['native162']
+     need(report['status']=='PASS' and report['count']==report['actual_native_entries']==162 and report['failures']==[] and
+          report['each_native_wall_seconds']==20 and [r['group']+'/'+r['name'] for r in report['rows']]==plan['original_native162_order'],
+@@ -423,7 +454,7 @@
+     need(ef['calls_or_logical_rows']==len(ef['rows'])==1 and ef['VM_reruns']==0 and ef['required_complete'] is True,'edge VM count differs')
+     edge_buffers=vm_frames(edge,'edge-256-reversed-origin',edge_initial,ef['rows'][0],False)
+     edge_vm=j(edge/'VM-REPORT.json');er=reports['semantic-edge-vm']
+-    need(edge_vm['status']=='returned' and edge_vm['steps']==7746379 and edge_vm['values']==[0] and er['status']=='PASS' and
++    need(edge_vm['status']=='returned' and edge_vm['steps']==7285022 and edge_vm['values']==[0] and er['status']=='PASS' and
+          er['VM_steps']==edge_vm['steps'] and er['new_native_executions']==1 and er['VM_step_limit']==10000000,'edge VM differs')
+     need(all(b==bytes.fromhex(edge_native[n+'_hex']) for n,b in zip(NAMES,edge_buffers,strict=True)),'edge full Native/VM differs')
+     need(sum(r['exclusive_steps'] for r in j(edge/'STEP-COUNTS.json'))==edge_vm['steps']==er['exclusive_step_sum'],'edge step accounting differs')
+@@ -434,7 +465,7 @@
+     need([[x['group'],x['name']] for x in r['rows']]==plan['original_semantic_six_order'],'six VM original order differs')
+     vf=j(remaining/'VM-SIX-BUFFER-READBACK.json')
+     need(vf['calls_or_logical_rows']==len(vf['rows'])==6 and vf['VM_reruns']==0 and vf['required_complete'] is False,'VM frame scope differs')
+-    previous_proof=j(PREVIOUS_READER/'RESULT.json','4b8c87f5f98161f0dc92530a9ee73947ab0633ba')
++    previous_proof=j(PREVIOUS_READER/'RESULT.json','858f8a4096028555c4040c53f758b97b9dd62148')
+     previous_inventory=json.loads(read(PREVIOUS_READER/'FULL-RAW-INVENTORY.json',previous_proof['raw_inventory']))
+     def previous_raw(path):
+         path=Path(path)
+@@ -445,15 +476,15 @@
+         return full(path,old['identity'],old['seven_stats'],contents=True)
+     previous_folder=PREVIOUS/plan['phases'][3]['out']
+     previous_report=json.loads(previous_raw(previous_folder/'REPORT.json'))
+-    need(pin(previous_raw(previous_folder/'REPORT.json'))['git_blob']=='868d44d6e34fce5e02bcf0339c3aeb3039f6a508' and
++    need(pin(previous_raw(previous_folder/'REPORT.json'))['git_blob']=='b4ff2f9569679c4fced58d26f0a511ed7312c013' and
+          previous_report['status']=='FAIL' and previous_report['count']==6 and
+          previous_report['failures']==['root-v8-cross-target-loans'] and
+          [[x['group'],x['name']] for x in previous_report['rows']]==plan['original_semantic_six_order'],
+-         'actual R4 six-case report differs')
++         'actual R9 six-case report differs')
+     previous_frames=json.loads(previous_raw(previous_folder/'VM-SIX-BUFFER-READBACK.json'))
+     need(previous_frames['calls_or_logical_rows']==len(previous_frames['rows'])==6 and
+          previous_frames['VM_reruns']==0 and previous_frames['required_complete'] is False,
+-         'actual R4 six-frame report differs')
++         'actual R9 six-frame report differs')
+     predecessor_comparison=[];vm_rows=[]
+     for index,(row,frame) in enumerate(zip(r['rows'],vf['rows'],strict=True)):
+         name=row['name'];folder=remaining/name;prior=native_root/row['group']/name
+@@ -461,22 +492,22 @@
+         actual=j(prior/'native/OBSERVATION.json');reused=name=='edge-256-reversed-origin'
+         previous_frame=previous_frames['rows'][index];previous_row=previous_report['rows'][index]
+         need(previous_frame['name']==previous_row['name']==name and previous_frame['complete_six_buffers'] is True and
+-             previous_frame['exact_current_R8_edge_reused'] is reused,'R4/R9 case identity differs')
++             previous_frame['exact_current_R8_edge_reused'] is reused,'R9/R10 case identity differs')
+         before_pins=[]
+         for label,value in zip(NAMES,initial,strict=True):
+             old_before=previous_frame['frames'][label+'.before']
+             old_bytes=previous_raw(old_before['path'])
+             need(old_before=={'path':old_before['path'],**pin(old_bytes)} and old_bytes==value,
+-                 'R4/R9 complete actual VM initial buffer differs')
++                 'R9/R10 complete actual VM initial buffer differs')
+             before_pins.append({'name':label,**pin(value)})
+         old_vm=json.loads(previous_raw(previous_folder/name/'VM-REPORT.json'))
+         old_result=json.loads(previous_raw(previous_folder/name/'RESULT.json'))
+         need(old_result==previous_row and old_vm['steps']==previous_row['VM_steps']==PREVIOUS_VM_STEPS[index],
+-             'R4 actual VM steps/result differ')
++             'R9 actual VM steps/result differ')
+         predecessor_comparison.append({'name':name,'same_complete_initial_buffers':True,'initial_buffers':before_pins,
+-            'R4_steps':old_vm['steps'],'R9_steps':VM_STEPS[index],'difference_R9_minus_R4':VM_STEPS[index]-old_vm['steps'],
+-            'R4_status':old_vm['status'],'R4_phase':previous_row['phase_word'],'R4_error':previous_row['semantic_error_word'],
+-            'R9_phase':row['phase_word'],'R9_error':row['semantic_error_word'],
++            'R9_steps':old_vm['steps'],'R10_steps':VM_STEPS[index],'difference_R10_minus_R9':VM_STEPS[index]-old_vm['steps'],
++            'R9_status':old_vm['status'],'R9_phase':previous_row['phase_word'],'R9_error':previous_row['semantic_error_word'],
++            'R10_phase':row['phase_word'],'R10_error':row['semantic_error_word'],
+             'not_a_general_fuel_monotonicity_or_performance_claim':True})
+         buffers=vm_frames(folder,name,initial,frame,reused);vm=j(folder/'VM-REPORT.json')
+         need(row==j(folder/'RESULT.json') and row['VM_steps']==vm['steps']==VM_STEPS[index] and
+@@ -506,12 +537,12 @@
+                 need(vm['status']=='returned' and state['error'] is None and not (folder/'EXCEPTION.txt').exists(),'unexpected VM failure')
+         vm_rows.append({'name':name,'steps':vm['steps'],'status':vm['status'],'current_edge_reused':reused,'checks':checks})
+     need(sum(row['pass'] for row in r['rows'])==5,'actual six-VM pass denominator differs')
+-    dump(output/'R4-R9-ACTUAL-VM-INPUT-COMPARISON.json',predecessor_comparison)
++    dump(output/'R9-R10-ACTUAL-VM-INPUT-COMPARISON.json',predecessor_comparison)
+ 
+     for path,row in READS.items(): need(seven(Path(path).lstat())==row['seven_stats'],'final current stat differs: '+path)
+     for group in mapping['groups']: need(tree_state(group['root'])==input_trees[group['name']],'input pathset changed while reading')
+     for label,root in roots: need(tree_state(root)==raw_trees[label],'actual raw tree changed while reading')
+-    return {'schema':'hepta.r8.r9.independent-terminal-readback.v1','status':'PASS_READBACK_OF_ACTUAL_R9_VM_FUEL_FAILURE',
++    return {'schema':'hepta.r8.r10.independent-terminal-readback.v1','status':'PASS_READBACK_OF_ACTUAL_R10_VM_FUEL_FAILURE',
+         'qualification':'FAIL','groups_started':4,'groups_passed':3,'failed_group':'semantic-remaining-vm','not_started':list(SKIPPED),
+         'Native162_passed':162,'edge_native_passed':1,'actual_new_Native_calls':163,'Native_six_logical_frames':978,
+         'Native_physical_canary_spans':489,'actual_VM_calls':6,'semantic_logical_cases':6,'VM_PASS':5,'VM_FAIL':1,
+@@ -523,9 +554,9 @@
+         'post_run_input_full_fresh_files':len(input_rows),
+         'post_run_input_full_fresh_bytes':sum(x['identity']['bytes'] for x in input_rows.values()),
+         'all_fixed_role_references':len(role_readback),'fixed_role_reference_bytes':frozen_roles['reference_bytes'],
+-        'fresh_prefix_authorities':len(prefix_readback),'R4_R9_actual_VM_comparison':predecessor_comparison,
++        'fresh_prefix_authorities':len(prefix_readback),'R9_R10_actual_VM_comparison':predecessor_comparison,
+         'input_source_runtime_author_and_R3_failure_unchanged':True,'actual_product_outer_files':len(product_rows),
+-        'actual_product_outer_bytes':1110456844,'raw_with_admission_files':len(raw_inventory),
++        'actual_product_outer_bytes':1110455563,'raw_with_admission_files':len(raw_inventory),
+         'raw_with_admission_bytes':sum(x['identity']['bytes'] for x in raw_inventory.values()),
+         'raw_inventory':pin(read(output/'FULL-RAW-INVENTORY.json')),'input_readback':pin(read(output/'INPUT-READBACK.json')),
+         'owner_count':4,'owner_seconds':180,'cleanup_seconds':3,'all_owner_ECHILD':True,'outer_ECHILD':True,
+@@ -535,7 +566,7 @@
+ def main(output):
+     global LEDGER
+     output.mkdir(mode=0o700,exist_ok=False);start=time.monotonic_ns()
+-    dump(output/'INTENT.json',{'schema':'hepta.r8.r9.terminal-reader.intent.v1','root':str(PRODUCT),'outer':str(OUTER),
++    dump(output/'INTENT.json',{'schema':'hepta.r8.r10.terminal-reader.intent.v1','root':str(PRODUCT),'outer':str(OUTER),
+          'product_executions':0,'project_imports':0,'CI':0,'expected_qualification':'FAIL','no_retry':True,
+          'all_actual_raw_preserved':True,'full_fresh_prior_inputs':6777})
+     with (output/'READ-LEDGER.jsonl').open('x',encoding='utf-8') as ledger:
+@@ -546,12 +577,12 @@
+             print(json.dumps({'status':result['status'],'qualification':'FAIL','result':pin((output/'RESULT.json').read_bytes())},sort_keys=True))
+             return 0
+         except BaseException:
+-            dump(output/'READER-FAILURE.json',{'status':'FAIL_READER','qualification':'ORIGINAL_R9_FAIL_UNCHANGED',
++            dump(output/'READER-FAILURE.json',{'status':'FAIL_READER','qualification':'ORIGINAL_R10_FAIL_UNCHANGED',
+                  'traceback':traceback.format_exc(),'full_unique_reads_so_far':len(READS),'products':0,'partial_preserved':True})
+             raise
+         finally: LEDGER=None
+ 
+ if __name__=='__main__':
+-    p=argparse.ArgumentParser();p.add_argument('--out',type=Path,default=Path('/tmp/hia-r9-controls-terminal-readback-r2-dda7'))
++    p=argparse.ArgumentParser();p.add_argument('--out',type=Path,default=Path('/workspace/hia-r10-controls-terminal-readback-r1-dda7'))
+     a=p.parse_args();need(a.out.is_absolute() and not a.out.exists(),'new absolute reader output required')
+     raise SystemExit(main(a.out))

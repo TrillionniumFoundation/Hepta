@@ -1,0 +1,51 @@
+--- actual-product-custody-reader
++++ terminal-readback-custody-reader
+@@ -18,7 +18,7 @@
+  return b,stat.S_IMODE(s.st_mode),a
+ def dump(name,value):
+  with (R/name).open('x') as f:json.dump(value,f,sort_keys=True,indent=2);f.write('\n')
+-def actual_get(path,expected):
++def actual_get(path,expected,local_path=None):
+  stem=''.join(c if c.isalnum() or c in '_-' else '_' for c in path)
+  ack=json.loads(read(R/'git-receipts'/(stem+'.POST.json'))[0])
+  got=json.loads(read(R/'git-receipts'/(stem+'.GET.json'))[0])
+@@ -28,14 +28,15 @@
+  b=got['structuredContent']['content'].encode()
+  need(pin(b)=={k:expected[k] for k in ('bytes','sha256','git_blob')},'GET wrapper bytes differ')
+  need(receipt['identity']==expected and receipt['POST_ACK'] is True and receipt['full_GET'] is True,'GET receipt differs')
+- need(b==read(R/path)[0],'local wrapper differs from actual full GET')
++ need(b==read(Path(local_path) if local_path is not None else R/path)[0],'local wrapper differs from actual full GET')
+  return b
+ def main():
+  start=time.monotonic_ns()
+  publication=json.loads(read(R/'PUBLICATION-INPUTS.json')[0]);rows={x['path']:x for x in publication['files']}
+- need(len(rows)==len(publication['files'])==46,'initial publication denominator differs')
+- for item in publication['files']:actual_get(item['path'],item['identity'])
++ need(len(rows)==len(publication['files']),'initial publication pathset differs')
++ for item in publication['files']:actual_get(item['path'],item['identity'],item.get('local_path'))
+  index=json.loads(actual_get('TRANSPORT-INDEX.json',rows['TRANSPORT-INDEX.json']['identity']))
++ need(len(rows)==16+len(index['parts']),'fixed 16 metadata plus complete parts denominator differs')
+  target=R/'GIT-RECONSTRUCTED.tar.gz';offset=0
+  with target.open('xb') as f:
+   for i,item in enumerate(index['parts']):
+@@ -71,14 +72,16 @@
+      compared+=1;byte_total+=len(raw)
+   while gz.read(1048576):pass
+  need(seen=={'MANIFEST.json'}|{'objects/'+x for x in objects},'complete member pathset differs')
+- need(compared==manifest['file_count']==2213 and byte_total==manifest['logical_bytes']==1122457162,'full logical original denominator differs')
++ need(compared==manifest['file_count']==33 and byte_total==manifest['logical_bytes']==10674864,'full logical original denominator differs')
+  for row in manifest['files'].values():need(st(row['source_path'])==row['seven_stats'],'original final stat drift')
+- result={'schema':'hepta.r8.r9.complete-originals.actual-Git-readback.v1','status':'PASS_ALL_ACTUAL_FULL_GET_AND_COMPLETE_ORIGINAL_BYTES',
++ result={'schema':'hepta.r9.terminal-readback.complete-originals.actual-Git-readback.v1','status':'PASS_ALL_ACTUAL_FULL_GET_AND_COMPLETE_ORIGINAL_BYTES',
+   'qualification':'FAIL','all_initial_full_GET_leaves':len(rows),'parts':len(index['parts']),'archive':index['archive'],'manifest':index['manifest'],
+   'CAS_objects':len(objects),'archive_members':len(seen),'full_gzip_footer_CRC':True,
+   'logical_files_complete_byte_compared':compared,'logical_bytes':byte_total,'all_modes_and_seven_stats_exact':True,
+-  'Native163_full_frames_present':True,'VM6_including_original_fuel_failure_present':True,
+-  'all_four_owners_and_source_control_guards_present':True,'all_fresh_admission_and_author_records_present':True,
++  'all9_actual_terminal_readback_outputs_present':True,'all20_author_files_including_R1_failure_present':True,
++  'all4_Root_review_execution_originals_present':True,'terminal_readback':'PASS_READBACK_OF_ACTUAL_R9_VM_FUEL_FAILURE',
++  'actual_full_buffer_payload_recipe':'90fa722cc35d3eec283193dcb4e7d72c59d9a36f',
++  'additional_reader_executions':0,
+   'product_executions':0,'CI':0,'refs':0,'signed_access_credentials_included':False,'elapsed_ns':time.monotonic_ns()-start}
+  dump('GIT-FULL-READBACK.json',result);print(json.dumps(result,sort_keys=True))
+ if __name__=='__main__':

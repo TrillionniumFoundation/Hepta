@@ -1,0 +1,47 @@
+{
+  "functions": {
+    "_digest": {
+      "text": "def _digest(raw):\n    return sha256(raw).hexdigest()\n"
+    },
+    "_elf_structure": {
+      "text": "def _elf_structure(elf, images):\n    \"\"\"Inspect actual HIA output; this function emits no instruction or ELF byte.\"\"\"\n    _frame(images)\n    offsets = []\n    cursor = 1024\n    for image in images:\n        offsets.append(cursor)\n        cursor = (cursor + len(image) + 15) & -16\n    size = (offsets[-1] + len(images[-1]) + 4095) & -4096\n    if (type(elf) is not bytes or not 4096 <= len(elf) <= CAPACITY or len(elf) != size\n            or struct.unpack_from('<16sHHIQQQIHHHHHH', elf) !=\n               (b'\\x7fELF\\x02\\x01\\x01' + bytes(9), 2, 62, 1, 0x400000 + 232,\n                64, 0, 0, 64, 56, 3, 0, 0, 0)\n            or struct.unpack_from('<IIQQQQQQ', elf, 64) !=\n               (1, 5, 0, 0x400000, 0x400000, size, size, 4096)\n            or struct.unpack_from('<IIQQQQQQ', elf, 120) !=\n               (1, 6, size, 0x600000, 0x600000, 0, 0x1204000, 4096)\n            or struct.unpack_from('<IIQQQQQQ', elf, 176) !=\n               (0x6474e551, 6, 0, 0, 0, 0, 0, 16)):\n        raise ValueError('HIA-produced ELF differs from the fixed entry/segment contract')\n    regions = []\n    for i, (label, offset, image) in enumerate(zip(LABELS, offsets, images, strict=True)):\n        end = offset + len(image)\n        next_offset = offsets[i + 1] if i < 2 else size\n        if elf[offset:end] != image or any(elf[end:next_offset]):\n            raise ValueError('actual HIA image bytes or alignment padding differ')\n        regions.append({'label': label, 'offset': offset, 'bytes': len(image), 'sha256': _digest(image)})\n    return {'file_bytes': size, 'entry_offset': 232, 'regions': regions,\n        'elf_interpreter': False, 'writable_executable_segment': False, 'executable_stack': False,\n        'buffer_extents': [8388609, CAPACITY, CAPACITY], 'buffer_addresses': [0x602000, 0xe03000, 0xf03000],\n        'startup_capability_page': 0x600000, 'stack_guard_address': 0x1003000,\n        'stack_extent': 8 * CAPACITY,\n        'resident_call_targets': [0x400000 + x for x in offsets[1:]],\n        'component_authority': 'two fixed captured images; no arbitrary call target'}\n"
+    },
+    "_frame": {
+      "text": "def _frame(images):\n    if type(images) is not tuple or len(images) != 3 or any(type(x) is not bytes for x in images):\n        raise TypeError('exact controller/representation/semantic-checker image tuple required')\n    if any(not 0 < len(x) <= CAPACITY - 1024 for x in images):\n        raise ValueError('each nonempty component must leave room for the ELF entry')\n    raw = struct.pack('<6Q', PACK_MAGIC, 1, *(len(x) for x in images), 0) + b''.join(images)\n    if len(raw) > CAPACITY:\n        raise ValueError('the complete three-image frame exceeds the original 1 MiB bound')\n    return raw\n"
+    }
+  },
+  "original_builder": "/workspace/scratch/dda74a4fae35/v120-union-r20/source/tools/build_hia_linux_file_roundtrip_program.py",
+  "original_builder_identity": {
+    "bytes": 10589,
+    "git_blob": "a08f127749390e98b6ba1b8221ae9f1cadb38810",
+    "git_mode": "100644",
+    "mode": 420,
+    "sha256": "493e92afeeca5b253611c9f022f0fd79bebebeb48d0c673b5166544ff6d47ea0"
+  },
+  "production_checked_components_not_called_or_modified": true,
+  "replacement_is_private_packing_only": true,
+  "unchanged_loader_files": {
+    "retained_buffer_child.py": {
+      "captured_identity": {
+        "bytes": 3276,
+        "git_blob": "a3da487704abaa8adcebaf186e21fb615166fd9e",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "7cb753661bad24fccb55f6a2fa10c957adc950463702e9ad28ff54707fa21ce5"
+      },
+      "origin": "/workspace/scratch/dda74a4fae35/v117-dense-token-r8-r1/authoring/retained_buffer_child.py",
+      "original_whole_file_bytes_equal": true
+    },
+    "retained_buffer_observer.py": {
+      "captured_identity": {
+        "bytes": 2208,
+        "git_blob": "668818c20f3a0934a6d330be6b17a3123a455a19",
+        "git_mode": "100644",
+        "mode": 420,
+        "sha256": "a64d97a41655dadc2c8c826b22836d6833e513993566c667f7a675e5ccf39fa6"
+      },
+      "origin": "/workspace/scratch/dda74a4fae35/v117-dense-token-r8-r1/authoring/retained_buffer_observer.py",
+      "original_whole_file_bytes_equal": true
+    }
+  }
+}

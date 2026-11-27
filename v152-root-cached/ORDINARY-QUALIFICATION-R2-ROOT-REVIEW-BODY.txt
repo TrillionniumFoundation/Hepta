@@ -1,0 +1,59 @@
+R=Path('/home/agent/hia-cli-owner-bundle-qualification-author-r2-20261115-dda7')
+hraw,hrow=read(R/'HANDOFF.json');h=json.loads(hraw)
+assert pin(hraw)['git_blob']=='40a37b37062cdfbdec8ed76bdd6cc1ff39c1f5a0'
+oldreview_raw,oldreview_row=read(ROOT/'ORDINARY-QUALIFICATION-ROOT-REVIEW.json');oldreview=json.loads(oldreview_raw)
+assert oldreview['status']=='PASS_ROOT_STATIC_ORDINARY_SELECTOR_QUALIFICATION_AUTHOR_ONLY'
+oldh=json.loads(fixed(h['original_R1_handoff']));assert h['original_R1_handoff']==oldreview['handoff']
+praw=fixed(h['plan']);p=json.loads(praw);oldraw=fixed(oldh['plan']);old=json.loads(oldraw)
+lraw=fixed(h['preparation_launch']);l=json.loads(lraw);oldlraw=fixed(oldh['preparation_launch']);oldl=json.loads(oldlraw)
+inv=json.loads(fixed(h['inverse']))
+assert inv['status']=='PASS_STATIC_PATH_AND_DESCRIPTOR_PROJECTION_ONLY' and inv['products_executed']==inv['binders_executed']==0
+assert p['controls']==h['controls'] and len(p['controls'])==17
+assert h['products_executed']==h['binders_executed']==0 and not h['source_copy'] and not h['whole_native']
+assert set(p)==set(old) and sorted(k for k in p if p[k]!=old[k])==inv['plan_changed_fields']==['attempt','author_ancestors','controls','scope','scope_ancestors']
+assert p['scope']==h['new_output_scope']=='/home/agent/hia-cli-owner-bundle-qualification-r2-20261115-dda7'
+assert p['attempt']==str(Path(p['scope'])/'attempt-r1')
+back=dict(p)
+for key in inv['plan_changed_fields']:back[key]=old[key]
+assert back==old and enc(back)==oldraw
+assert len(inv['controls'])==15
+def defs(raw):
+ lines=raw.splitlines(keepends=True)
+ return {n.name:b''.join(lines[n.lineno-1:n.end_lineno]) for n in ast.parse(raw).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
+count=0
+for name,row in p['controls'].items():
+ before=fixed(old['controls'][name]);after=fixed(row)
+ if name.endswith('.py'):
+  assert row['path']==str(R/'controls'/name)
+  if name=='qualification_support.py':
+   a=b"FIXED_SCOPE = Path('/workspace/hia-cli-owner-bundle-qualification-r1-20261115-dda7')"
+   b=b"FIXED_SCOPE = Path('/home/agent/hia-cli-owner-bundle-qualification-r2-20261115-dda7')"
+   assert before.count(a)==after.count(b)==1 and before.replace(a,b)==after and after.replace(b,a)==before
+  else:assert before==after,name
+  assert defs(before)==defs(after);count+=len(defs(before))
+ else:assert row==old['controls'][name] and before==after
+assert count==110==inv['original_function_class_bodies_full_text_unchanged']
+for key in ('author_ancestors','scope_ancestors'):
+ for row in p[key]:
+  st=Path(row['path']).lstat();actual={'path':row['path'],'dev':st.st_dev,'ino':st.st_ino,'mode':st.st_mode,'uid':st.st_uid,'gid':st.st_gid}
+  assert stat.S_ISDIR(st.st_mode) and actual==row
+assert set(l)==set(oldl) and sorted(k for k in l if l[k]!=oldl[k])==inv['launch_changed_fields']
+back=dict(l)
+for key in inv['launch_changed_fields']:back[key]=oldl[key]
+assert back==oldl and enc(back)==oldlraw
+assert l['cwd']==str(R) and l['environment']=={**oldl['environment'],'HOME':str(R),'TMPDIR':str(R/'parent-tmp')}
+assert l['command']==[p['runtime']['launch_executable'],'-I','-B',p['controls']['prepare_qualification.py']['path'],'--plan',h['plan']['path'],'--plan-sha256',h['plan']['pin']['sha256']]
+assert l['exact_clean_env_argv']==['/usr/bin/env','-i']+[k+'='+l['environment'][k] for k in sorted(l['environment'])]+l['command']
+assert fixed(l['plan'])==praw and l['parent']==p['controls']['prepare_qualification.py']
+assert l['future_product_launch']==str(Path(p['scope'])/'PRODUCT-LAUNCH.json')
+assert l['outer_directory']==h['new_preparation_outer']=='/home/agent/hia-cli-owner-bundle-preparation-outer-r2-20261115-dda7'
+assert l['qualification_seconds']==180 and l['cleanup_seconds']==3 and not l['automatic_retry']
+assert h['owner_count']==18 and h['method_invocations']==85 and h['new_actual_builds_required']==9
+assert p['limits']==oldreview['original_limits'] and p['selector_limits']==oldreview['selector_limits']
+assert p['storage_floor']==1073741824 and p['source_tree']==oldreview['source_tree']
+for path in (p['scope'],p['attempt'],l['outer_directory'],h['suggested_product_outer']):assert not os.path.lexists(path)
+fs=os.statvfs(Path(p['scope']).parent)
+assert fs.f_bavail*fs.f_frsize>=p['storage_floor'] and not fs.f_flag&os.ST_NOEXEC
+out={'status':'PASS_ROOT_STATIC_ORDINARY_QUALIFICATION_R2_PATH_PROJECTION_ONLY','prior_complete_review':oldreview_row,'handoff':hrow,'plan':pin(praw),'launch':pin(lraw),'whole_control_functions_classes_unchanged':110,'one_FIXED_SCOPE_literal_changed':True,'whole_plan_and_launch_inverse':True,'source_files':3225,'source_tree':p['source_tree'],'source_copies':0,'binders':0,'products':0,'whole_native':False,'owner_count':18,'method_invocations':85,'required_builds':9,'limits':p['limits'],'original_floor':1073741824,'observed_free_bytes':fs.f_bavail*fs.f_frsize,'all_original_R1_inputs_left_unchanged':True,'full_reads':READS}
+with (ROOT/'ORDINARY-QUALIFICATION-R2-ROOT-REVIEW.json').open('xb')as f:f.write(enc(out))
+print(json.dumps({k:v for k,v in out.items() if k not in ('full_reads','handoff','prior_complete_review')},sort_keys=True))

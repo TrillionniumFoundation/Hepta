@@ -1,0 +1,293 @@
+--- original/read_terminal.py
++++ op8/read_terminal.py
+@@ -3,11 +3,13 @@
+ import argparse,ast,hashlib,json,os,stat,time
+ from pathlib import Path
+ 
+-SCOPE=Path('/workspace/hia-patch-terminal-quarantine-execution-r1-dda7')
+-AUTHOR=Path('/workspace/hia-patch-terminal-quarantine-generation-author-r1-dda7')
+-OUTER=Path('/workspace/hia-patch-terminal-quarantine-generation-outer-r1-dda7')
++SCOPE=Path('/workspace/hia-cli-as-dict-generation-r1-dda7')
++AUTHOR=Path('/workspace/hia-cli-as-dict-generation-author-r1-dda7')
++OUTER=Path('/workspace/hia-cli-as-dict-generation-outer-r1-dda7')
+ FIELDS=('st_dev','st_ino','st_mode','st_size','st_mtime_ns','st_ctime_ns','st_nlink')
+-GENERATED=('examples/hia_bootstrap/patch_result.hepta','hepta/hia_patch_result_ports.py','hepta/hia_patch_result_data.py')
++GENERATED=('examples/hia_bootstrap/inspect_program.hepta', 'hepta/hia_inspect_program_ports.py', 'hepta/hia_inspect_program_data.py', 'examples/hia_bootstrap/patch_result.hepta', 'hepta/hia_patch_result_ports.py', 'hepta/hia_patch_result_data.py')
++COMPONENTS={'inspect': {'generated_paths': ['examples/hia_bootstrap/inspect_program.hepta', 'hepta/hia_inspect_program_ports.py', 'hepta/hia_inspect_program_data.py'], 'generator_relative': 'tools/generate_hia_inspect_program.py', 'host_source_files': ['hia_program_tools.py', 'hia_program.py', 'hia_schema.py', 'hia_opcodes.py', 'hia_front_runtime.py', 'hia_front_continuation.py', 'hia_exception_delivery.py', 'hia_json_preflight_native.py', 'hia_machine_transport.py', 'hia_optional_profiles.py', 'hia_native_build_foreign.py', 'hia_inspect_program_native.py', 'hia_inspect_program_ports.py']}, 'patch': {'generated_paths': ['examples/hia_bootstrap/patch_result.hepta', 'hepta/hia_patch_result_ports.py', 'hepta/hia_patch_result_data.py'], 'generator_relative': 'tools/generate_hia_patch_result.py', 'host_source_files': ['hia_program_tools.py', 'hia_program.py', 'hia_schema.py', 'hia_opcodes.py', 'hia_front_runtime.py', 'hia_front_continuation.py', 'hia_exception_delivery.py', 'hia_json_preflight_native.py', 'hia_machine_transport.py', 'hia_optional_profiles.py', 'hia_patch_result_definitions.py', 'hia_patch_result_native.py', 'hia_patch_result_ports.py']}}
++STAGES=('inspect-generate-1', 'inspect-generate-2', 'inspect-check', 'patch-generate-1', 'patch-generate-2', 'patch-check')
+ READS=0;BYTES=0;SEEN={}
+ 
+ def require(v,m):
+@@ -110,6 +112,31 @@
+         require(stat.S_IMODE(s['st_mode'])==r['mode'],'runtime POSIX mode differs')
+         read(root/r['path'],{**r['pin'],'mode':'100755'if r['mode']&0o111 else'100644'},s)
+     require(metadata(root)==before,'runtime changed after full read')
++    for key in ('mother_source','prior_base'):
++        value=plan[key];mapped=decode(fixed(value['map']));saved=decode(fixed(value['state']))
++        complete_source(value['root'],mapped,saved,value['files'],value['tree'])
++    for r in plan['external_tests'].values():fixed(r)
++    fixed(plan['r5_before']);fixed(plan['patch14_before']);fixed(plan['patch14_historical'])
++    old=decode(fixed(plan['generation_evidence']));old_states={}
++    require(old['schema']=='hepta.hia.patch-terminal.generation-evidence.v1'
++            and old['product_execution']==0,'original predecessor evidence map differs')
++    for root in old['roots']:
++        state=metadata(root['path'])
++        state={n:r for n,r in state.items()if not any(n==p or n.startswith(p+'/')for p in root['exclude'])}
++        require(state==root['state'],'complete original predecessor pathset/stat differs')
++        old_states[root['path']]=state
++    for r in old['files']:fixed(r)
++    for r in old['directories']:
++        require(seven(Path(r['path']).lstat())==r['stat'],'old directory stat differs')
++    for root in old['roots']:
++        state=metadata(root['path'])
++        state={n:r for n,r in state.items()if not any(n==p or n.startswith(p+'/')for p in root['exclude'])}
++        require(state==old_states[root['path']],'original predecessor changed during full read')
++    earlier=decode(fixed(plan['generation_result']));terminal=decode(fixed(plan['generation_terminal']))
++    require(earlier['status']=='PASS_GENERATION_ONLY_TWO_RUNS_AND_ORIGINAL_CHECK'
++            and terminal['status']=='PASS_COMPLETE_GENERATION_TERMINAL_READBACK'
++            and terminal['source_files']==3211 and terminal['actual_owners']==3
++            and terminal['source_tree']==plan['mother_source']['tree'],'historical generation authority differs')
+     return base_inodes
+ 
+ def publish(path,value):
+@@ -124,9 +151,10 @@
+         'LANG':'C.UTF-8','LC_ALL':'C.UTF-8','TZ':'UTC','PYTHONDONTWRITEBYTECODE':'1','PYTHONHASHSEED':'0',
+         'LD_LIBRARY_PATH':bound['runtime']['library_directory']}
+     require(env==expected_env and decode(read(attempt/'RUNTIME.json'))==bound['runtime'],'actual runtime/environment differs')
+-    labels=['generate-1','generate-2','check'];require([s['label']for s in result['stages']]==labels,'three original stage order differs')
++    labels=list(STAGES);require([s['label']for s in result['stages']]==labels,'six original stage order differs')
+     source_map=decode(fixed(bound['source_map']));output_sets=[]
+     for i,label in enumerate(labels):
++        component,phase=label.split('-',1);spec=COMPONENTS[component]
+         directory=attempt/('%02d-'%(i+1)+label)
+         stage=decode(read(directory/'STAGE.json'));child=decode(read(directory/'RESULT.json'))
+         request_raw=read(directory/'REQUEST.json');request=decode(request_raw);command=decode(read(directory/'COMMAND.json'))
+@@ -134,11 +162,11 @@
+         require(not any('error'in k for k in stage) and not child['terminal_guard_errors'],'stage guard failed')
+         require(request['limits']==plan['limits'] and request['stage']==label and decode(fixed(request['plan']))==bound,'actual request binding differs')
+         outputs=child['outputs'];require(outputs==stage['outputs'],'parent/child output descriptors differ')
+-        target=attempt/'02-generate-2'/'outputs'if label=='check'else directory/'outputs'
+-        paths={'assembly':str(target/'patch_result.hepta'),'ports':str(target/'hia_patch_result_ports.py'),
+-            'identity':str(target/'hia_patch_result_data.py')}
+-        argv=[str(Path(bound['source'])/plan['generator_relative']),'--output',paths['assembly'],
+-            '--ports',paths['ports'],'--identity',paths['identity']]+(['--check']if label=='check'else[])
++        second_label=component+'-generate-2';second_index=STAGES.index(second_label)
++        target=attempt/('%02d-'%(second_index+1)+second_label)/'outputs'if phase=='check'else directory/'outputs'
++        paths={k:str(target/Path(n).name)for k,n in zip(('assembly','ports','identity'),spec['generated_paths'])}
++        argv=[str(Path(bound['source'])/spec['generator_relative']),'--output',paths['assembly'],
++            '--ports',paths['ports'],'--identity',paths['identity']]+(['--check']if phase=='check'else[])
+         require(request['outputs']==paths and request['generator_argv']==child['generator_argv']==argv,'original generator argv changed')
+         expected_command=[bound['runtime']['launch_executable'],'-I','-B',plan['controls']['run_generation_child.py']['path'],
+             '--request',str(directory/'REQUEST.json'),'--request-sha256',hashlib.sha256(request_raw).hexdigest()]
+@@ -170,43 +198,51 @@
+         require(all(outputs[k]['path']==paths[k]for k in paths),'actual output location differs')
+         require(metadata(target)==child['output_metadata_after'],'actual generated output stats differ')
+         printed=ast.literal_eval(read(directory/'stdout.raw').decode())
+-        require(read(directory/'stderr.raw')==b'' and printed['source_sha256']==hashlib.sha256(full['assembly']).hexdigest()
++        stderr=read(directory/'stderr.raw')
++        require(printed['source_sha256']==hashlib.sha256(full['assembly']).hexdigest()
+             and printed['ports_sha256']==hashlib.sha256(full['ports']).hexdigest()
+             and printed['compatibility_sha256']==hashlib.sha256(full['identity']).hexdigest(),'original stdout identity differs')
+-        if label=='check':require(request['check_outputs']==outputs==result['stages'][1]['outputs'],'check modified second triple')
++        if phase=='check':require(request['check_outputs']==outputs==result['stages'][second_index]['outputs'],'check modified second triple')
+         else:require(request['check_outputs']is None,'generation unexpectedly used check inputs')
+-    require(output_sets[0]==output_sets[1]==output_sets[2],'actual triples differ byte-for-byte')
+-    return output_sets[1]
++    require(output_sets[0]==output_sets[1]==output_sets[2]
++            and output_sets[3]==output_sets[4]==output_sets[5],'both actual triples differ byte-for-byte')
++    return {'inspect':output_sets[1],'patch':output_sets[4]}
+ 
+ def verify(output):
+     started=time.monotonic_ns()
+-    require(output==Path('/workspace/hia-patch-terminal-quarantine-generation-terminal-actual-r1-dda7')
++    require(output==Path('/workspace/hia-cli-as-dict-generation-terminal-actual-r1-dda7')
+             and not os.path.lexists(output),'fixed new independent reader output required')
+     output.mkdir(mode=0o700)
+     result={'status':'FAIL','product_execution':0,'project_imports':0,'whole':False,'started_ns':started}
+     try:
+-        plan=decode(read(AUTHOR/'GENERATION-PLAN-R2.json',{'bytes':30794,'git_blob':'35114c9be6fdebe0392e28e26762284017022e4c',
+-            'sha256':'ec6a9c62c9e94139826b81af17c5a010c8ad39213f82b7529a47c32a62eb8450'}))
+-        launch=decode(read(AUTHOR/'GENERATION-LAUNCH-R2.json'))
+-        actual_raw=read(SCOPE/'generation-attempt-r1/RESULT.json',{'bytes':32379,'git_blob':'ba0bb71338e1cbb91d8cbf280898dd518ada8f6a',
+-            'sha256':'7dda441a400a9da7fd4c586452e15571f7494955a182f3490b5eb7140c7e4c43'})
++        plan=decode(read(AUTHOR/'GENERATION-PLAN.json',{'bytes': 57820, 'sha256': '1bf2ffd83c625b46b3211361fc4db0892d409ee68107cfb33cf1ecdcb3cac829', 'git_blob': 'cfe6d4146b1f077dbaa2a086cb9e3ccea2d4f5a9'}))
++        launch=decode(read(AUTHOR/'GENERATION-LAUNCH.json',{'bytes': 3698, 'sha256': '36c83c64eb05082029cec5786b0a96f958565672c740790e1009a86a2bf5110e', 'git_blob': '71bd0fc35217ba66d3cd397094c58c8cc45aa5b5'}))
++        actual_raw=read(SCOPE/'generation-attempt-r1/RESULT.json')
+         actual=decode(actual_raw);bound=decode(read(SCOPE/'BOUND-GENERATION-PLAN.json'))
+-        require(actual['status']=='PASS_GENERATION_ONLY_TWO_RUNS_AND_ORIGINAL_CHECK'
+-            and actual['copy_rows']==3211 and actual['actual_owner_launch_attempts']==3
++        require(actual['status']=='PASS_GENERATION_ONLY_BOTH_TWO_RUNS_AND_ORIGINAL_CHECKS'
++            and actual['copy_rows']==3210 and actual['actual_owner_launch_attempts']==6
+             and actual['tests_run']==actual['compilations']==actual['native_calls']==actual['vm_calls']==0
+             and actual['immutable_before']==actual['immutable_after'],'actual generation terminal differs')
+         require('source_copy_performed'not in bound and 'project_imports'not in bound,'author-only markers leaked into actual bound plan')
+         require(bound['runtime']==plan['previous_runtime_context'],'actual runtime context changed')
++        preserved={k:v for k,v in plan.items()if k not in {'schema','state','source_copy_performed','project_imports'}}
++        require(all(bound[k]==v for k,v in preserved.items())and set(bound)==set(preserved)|{
++            'schema','state','source_map','source_state','scope_ancestors','preparation_plan','copies','runtime'},
++            'actual bound plan changed a fixed original author field')
++        require(bound['schema']==plan['schema'].removesuffix('.preparation')+'.bound'
++                and bound['state']=='BOUND_FOR_GENERATION_ONLY'
++                and decode(fixed(bound['preparation_plan']))==plan,'actual plan schema/original identity differs')
+         scope_before=metadata(SCOPE);outer_before=metadata(OUTER)
+         base_inodes=inputs(plan);directories(bound['scope_ancestors'])
+         material=decode(fixed(actual['materialization']))
+-        require(material['source_copy']is True and material['hardlinks']==0 and material['source_files']==3211
++        require(material['source_copy']is True and material['hardlinks']==0 and material['source_files']==3210
+             and material['products_executed']==0 and decode(fixed(material['plan']))==bound,'actual materialization result differs')
+         origins=decode(fixed(plan['origin_rows']));copies=decode(fixed(material['copies']))
+         copy_lines=[decode(line)for line in read(SCOPE/'COPY-ROWS.jsonl').splitlines()]
+         pre=decode(fixed(bound['source_map']));prestate=decode(fixed(bound['source_state']))
+-        require(copies==copy_lines and len(copies)==len(origins)==3211
++        require(copies==copy_lines and len(copies)==len(origins)==3210
+             and [r['relative']for r in copies]==[r['relative']for r in origins]==sorted(pre),'complete actual copy journal differs')
++        base_inodes|={(r['descriptor']['stat']['st_dev'],r['descriptor']['stat']['st_ino'])for r in origins}
+         born=set()
+         for origin,row in zip(origins,copies):
+             n=row['relative'];require(row['origin']==origin['descriptor'],'source origin changed')
+@@ -216,31 +252,48 @@
+             inode=(created['stat']['st_dev'],created['stat']['st_ino'])
+             require(inode not in base_inodes|born,'source copy aliases original or another path');born.add(inode)
+         final=actual['final_source'];final_map=decode(fixed(final['map']));final_state=decode(fixed(final['state']))
+-        require(final['tree']=='aa2608ca25c3a9736a62d549c3130b98893542ff'
+-            and final['changed_bytes']==['hepta/hia_patch_result_data.py'],'final actual delta differs')
+-        complete_source(final['source'],final_map,final_state,3211,final['tree'])
++        require(final['source']==bound['source'] and final['files']==3210
++            and final['changed_bytes']==['hepta/hia_inspect_program_data.py','hepta/hia_patch_result_data.py']
++            and final['replaced_paths']==list(GENERATED)and final['future_products_executed']==0,
++            'final actual delta differs')
++        require(final['tree']==tree(final_map),'actual generated map/tree differs')
++        complete_source(final['source'],final_map,final_state,3210,final['tree'])
+         parent_dirs={str(Path(n).parent)for n in GENERATED}
+         for n,s in prestate.items():
+             if n in GENERATED:continue
+             if n in parent_dirs:require(all(s[k]==final_state[n][k]for k in ('st_dev','st_ino','st_mode','st_nlink')),'output parent authority changed')
+             else:require(s==final_state[n],'unrelated source seven stats changed')
+         full=stages(plan,bound,actual)
+-        for n,k in zip(GENERATED,('assembly','ports','identity')):
+-            require(read(Path(final['source'])/n,final_map[n],final_state[n])==full[k],'installed complete output differs')
++        derived=dict(pre)
++        for component in ('inspect','patch'):
++            for n,k in zip(COMPONENTS[component]['generated_paths'],('assembly','ports','identity')):
++                raw=full[component][k];derived[n]=pin(raw,pre[n]['mode'])
++                require(read(Path(final['source'])/n,final_map[n],final_state[n])==raw,'installed complete output differs')
++        require(final_map==derived,'complete final map was not derived from actual six output bytes')
+         intent=decode(read(Path(plan['attempt'])/'INSTALL-INTENT.json'))
+         journal=[decode(line)for line in read(Path(plan['attempt'])/'INSTALL-JOURNAL.jsonl').splitlines()]
+-        require([r['relative']for r in intent['rows']]==[r['relative']for r in journal]==list(GENERATED),'three install rows differ')
++        require([r['relative']for r in intent['rows']]==[r['relative']for r in journal]==list(GENERATED),'six install rows differ')
++        require(intent['all_staged_before_replace']is True and intent['multi_path_atomic']is False
++                and intent['automatic_retry']is False,'original installation failure contract differs')
++        staged_inodes=set()
+         for before,after in zip(intent['rows'],journal):
+             n=after['relative'];require(before['previous']==after['previous'] and before['output']==after['generated'], 'install provenance differs')
+             require(before['previous']['stat']==prestate[n] and before['previous']['pin']==pre[n],'original private output differs')
+-            fixed(after['installed']);require(after['installed']['stat']==final_state[n],'installed current stat differs')
++            fixed(before['output']);fixed(after['installed'])
++            require(after['installed']['stat']==final_state[n],'installed current stat differs')
++            key=(before['staged']['stat']['st_dev'],before['staged']['stat']['st_ino'])
++            require(key not in staged_inodes and before['staged']['pin']==after['installed']['pin'],
++                    'staged new inode alias or bytes drift')
++            staged_inodes.add(key)
+             require((before['staged']['stat']['st_dev'],before['staged']['stat']['st_ino'])not in born
+                 and all(before['staged']['stat'][k]==after['installed']['stat'][k]for k in ('st_dev','st_ino','st_mode','st_size','st_mtime_ns','st_nlink')),
+                 'staged new inode was not actually installed')
+-        data={n.targets[0].id:ast.literal_eval(n.value)for n in ast.parse(full['identity']).body if isinstance(n,ast.Assign)}
+-        hosts={n:hashlib.sha256(read(Path(final['source'])/'hepta'/n)).hexdigest()for n in plan['host_source_files']}
+-        require(data['SOURCE_BYTES']==len(full['assembly']) and data['SOURCE_SHA256']==hashlib.sha256(full['assembly']).hexdigest()
+-            and list(data['HOST_SOURCE_SHA256'])==plan['host_source_files']and data['HOST_SOURCE_SHA256']==hosts,'generated13 host binding differs')
++        host_checks={}
++        for component in ('inspect','patch'):
++            host_checks[component]=compatibility(plan,final,full[component],component)
++            require(actual['compatibility'][component]['actual_host_sha256']==host_checks[component]['hashes'],
++                    'parent compatibility report differs from independent actual host reads')
++        authority=authority_maps(plan,bound,actual,final_map)
+         outer=decode(read(OUTER/'RESULT.json'));outer_intent=decode(read(OUTER/'INTENT.json'))
+         require(outer_intent['argv']==launch['exact_clean_env_argv']and outer_intent['cwd']==launch['cwd']
+             and outer_intent['outer_watchdog_seconds']==1800 and outer_intent['cleanup_seconds']==3
+@@ -253,13 +306,13 @@
+                 if stat.S_ISREG(s['st_mode'])and not(root==SCOPE and name.startswith('source/')):
+                     p=root/name;read(p,expected_stat=s);raw_inventory.append(SEEN[str(p)])
+         require(metadata(SCOPE)==scope_before and metadata(OUTER)==outer_before,'actual evidence pathset/stats changed')
+-        inputs(plan);complete_source(final['source'],final_map,final_state,3211,final['tree'])
++        inputs(plan);complete_source(final['source'],final_map,final_state,3210,final['tree'])
+         for p,row in SEEN.items():require(seven(Path(p).lstat())==row['stat'],'terminal input identity changed')
+         publish(output/'RAW-INVENTORY.json',raw_inventory);publish(output/'READ-INPUTS.json',list(SEEN.values()))
+-        result.update(status='PASS_COMPLETE_GENERATION_TERMINAL_READBACK',source_files=3211,source_tree=final['tree'],
+-            actual_owners=3,raw_files=len(raw_inventory),raw_bytes=sum(r['pin']['bytes']for r in raw_inventory),
+-            generated_triples_full_bytes_equal=True,original_check_output_stats_equal=True,actual_new_installations=3,
+-            only_generated_data_bytes_changed=True,all13hosts_current=True,protected_R3=3210,protected_R8=3180,
++        result.update(status='PASS_COMPLETE_OP8_TWO_GENERATOR_TERMINAL_READBACK',source_files=3210,source_tree=final['tree'],
++            actual_owners=6,raw_files=len(raw_inventory),raw_bytes=sum(r['pin']['bytes']for r in raw_inventory),
++            generated_triples_full_bytes_equal=True,original_check_output_stats_equal=True,actual_new_installations=6,
++            only_generated_data_bytes_changed=True,all26host_bindings_current=True,host_checks=host_checks,actual_authority_maps=authority,protected_mother=3211,protected_R3=3210,protected_R8=3180,
+             runtime_files=2496,all_current_pathsets_and_seven_stats_equal=True,compile_execution=0,
+             Native_execution=0,VM_execution=0,tests=0,original_Native11_still_failed=True)
+     except BaseException:
+@@ -268,7 +321,65 @@
+     finally:
+         result.update(finished_ns=time.monotonic_ns(),fresh_reads=READS,read_bytes=BYTES,unique_paths=len(SEEN))
+         publish(output/'RESULT.json',result)
+-    return 0 if result['status']=='PASS_COMPLETE_GENERATION_TERMINAL_READBACK'else 1
++    return 0 if result['status']=='PASS_COMPLETE_OP8_TWO_GENERATOR_TERMINAL_READBACK'else 1
++
++
++
++def compatibility(plan, final, full, component):
++    data={}
++    for node in ast.parse(full['identity']).body:
++        if isinstance(node,ast.Assign):
++            require(len(node.targets)==1 and isinstance(node.targets[0],ast.Name),'generated assignment shape differs')
++            key=node.targets[0].id;require(key not in data,'duplicate generated assignment')
++            data[key]=ast.literal_eval(node.value)
++        else:
++            require(isinstance(node,ast.Expr)and isinstance(node.value,ast.Constant)
++                    and type(node.value.value)is str,'unknown generated compatibility statement')
++    spec=COMPONENTS[component];names=spec['host_source_files']
++    require(len(names)==len(set(names))==13 and plan['components'][component]==spec,'complete original host order differs')
++    hosts={n:hashlib.sha256(read(Path(final['source'])/'hepta'/n)).hexdigest()for n in names}
++    require(set(data)=={'SOURCE_BYTES','SOURCE_SHA256','HOST_SOURCE_SHA256'}
++            and data['SOURCE_BYTES']==len(full['assembly'])and data['SOURCE_SHA256']==hashlib.sha256(full['assembly']).hexdigest()
++            and type(data['HOST_SOURCE_SHA256'])is dict and list(data['HOST_SOURCE_SHA256'])==names
++            and data['HOST_SOURCE_SHA256']==hosts,'generated actual thirteen-host binding differs')
++    return {'ordered_hosts':names,'hashes':hosts,'actual_identity':pin(full['identity']),
++            'manual_generated_identity':False}
++
++
++def authority_maps(plan, bound, actual, final_map):
++    recorded=decode(read(Path(plan['attempt'])/'ACTUAL-AUTHORITY-MAPS.json'))
++    require(recorded==actual['actual_authority_maps']
++            and recorded['status']=='ACTUAL_GENERATED_AUTHORITY_MAPS_NOT_QUALIFICATION',
++            'actual authority result relation differs')
++    old_r5_raw=fixed(plan['r5_before']);old_patch_raw=fixed(plan['patch14_before'])
++    require(fixed(recorded['r5_before'])==old_r5_raw and fixed(recorded['patch14_before'])==old_patch_raw,
++            'prior full authority maps were rewritten')
++    r5=decode(old_r5_raw);patch=decode(old_patch_raw)
++    now_r5=decode(fixed(recorded['r5_actual']));now_patch=decode(fixed(recorded['patch14_actual']))
++    base=decode(fixed(plan['base_source']['map']))
++    cli={'hepta/hia_cli_patch_result_native.py','hepta/hia_patch_cli_records.py',
++         'tests/hia_patch_cli_support.py','tests/test_hia_patch_cli_source.py','tests/test_hia_patch_cli_native.py'}
++    require(len(r5)==len(now_r5)==3191 and len(patch)==len(now_patch)==14 and len(final_map)==3210
++            and set(now_r5)==set(r5)and set(now_patch)==set(patch)
++            and set(final_map)==set(base)==set(r5)|set(patch)|cli and not set(r5)&set(patch),
++            'original full3191/14/3210 authority domains differ')
++    require(now_r5=={n:final_map[n]for n in r5}and now_patch=={n:final_map[n]for n in patch},
++            'new authority maps do not contain every actual generated source byte identity')
++    require(all(base[n]==p for n,p in r5.items())and all(base[n]==p for n,p in patch.items()),
++            'retained authority preimages differ from actual base')
++    require({n for n in r5 if r5[n]!=now_r5[n]}==set(plan['changed_source_paths'])|{'hepta/hia_inspect_program_data.py'}
++            and {n for n in patch if patch[n]!=now_patch[n]}=={'hepta/hia_patch_result_data.py'},
++            'actual new map changes exceed the reviewed hosts/generated data')
++    require(all(final_map[n]==base[n]for n in base if n.startswith('tests/'))
++            and recorded['all_old_test_files_complete_bytes_unchanged']is True
++            and recorded['source_files']==3210 and recorded['r5_files']==3191 and recorded['patch14_files']==14
++            and recorded['source_map']==actual['final_source']['map']and recorded['source_tree']==tree(final_map)
++            and recorded['historical_patch14']==plan['patch14_historical']
++            and recorded['external_tests']==plan['external_tests']
++            and recorded['future_qualification_executed']is False
++            and recorded['old_R5_or_Patch14_PASS_transferred']is False,'actual qualification boundary differs')
++    return {'r5':recorded['r5_actual'],'patch14':recorded['patch14_actual'],'source':recorded['source_map'],
++            'complete_actual_domains':[3191,14,3210],'old_PASS_transferred':False}
+ 
+ if __name__=='__main__':
+     p=argparse.ArgumentParser();p.add_argument('--output',required=True);a=p.parse_args()

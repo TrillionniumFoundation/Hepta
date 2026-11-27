@@ -1,0 +1,410 @@
+{
+  "schema": "hepta.root-adjacent-runtime-readonly-audit.v1",
+  "observed_at_utc": "2026-11-14 08:22:13 UTC",
+  "scope": "Read-only Git source and declared-evidence audit; no product execution, external branch mutation, deployment identification, or new qualification",
+  "runtime_repository": "TrillionniumFoundation/hepta-runtime",
+  "default_branch": {
+    "name": "hepta-runtime-base",
+    "commit": "ba574f2a6a1b74e85191c58d7bec011720736bb9"
+  },
+  "hia_pr": {
+    "number": 121,
+    "url": "https://github.com/TrillionniumFoundation/hepta-runtime/pull/121",
+    "state": "open",
+    "draft": true,
+    "head": "codex/hia-runtime-native-20261114-bd947b55",
+    "head_sha": "008036843625e12c21b6dc533be5cf3115cda579",
+    "base": "codex/hia-archive-source-retention-20261111-f9aa",
+    "base_sha": "a0dcdda1991ec536d5e2d252c006a778993fa566",
+    "body": "## Why\nThe current runtime has 125 registered MCP handlers whose implementations still depend on the original Rust/Python stack. This migration establishes executable HIA owners with source-bound evidence before switching production ownership or deleting the existing implementation.\n\n## Implemented\n- Native Linux x86-64 static ELF transport and a persistent MCP protocol subset with initialization, strict JSON-RPC and two implemented auxiliary tools.\n- Original byte/line operations, text budgeting, typed line endpoints, Myers deltas, SHA256/Base64 codecs and deterministic policy operations in HIA.\n- Native read-only descriptor custody with bounded reads, exact stat tuples, checked continuation records, cleanup and fault controls. Persistent startup-root custody is explicitly distinguished from the original per-call path reopening.\n- Exact Hepta compiler pin d3e2c90173cf733e42b299d0c4274df4b593a12f, from companion compiler PR #898. Every qualification runs the complete fresh upstream cold replay with its unchanged 180-second deadline and three-second cleanup budget.\n- Retained original failure observations, full source exports, owned-process receipts, images and native result corpora. CI uploads include hidden source directories required to revalidate the cold export.\n\n## Validation\nThe newest local native phase passed all 11 verification processes: the full cold replay, eight component suites, transport controls and reporting regression tests. Cold replay passed all 11 outer and 5,049 nested checks in 175.823 seconds. Native IO passed 13 test groups, including 113 actual ELF requests and eight direct comparisons with the retained original Python implementation.\n\nCI requires all six independent original Rust/reference comparisons in addition to the native phase; the Python IO comparison domain is accounted separately. The exact published commit 3e6574dc9753dce651b979dc478f9f41a3ac6e81 passed the full native CI, all six Rust comparisons, and the separately accounted Python IO reference domain: aggregate PASS after 24 verification processes. Run: https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/43570663309. Original evidence artifact: https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/43570663309/artifacts/14104193646. The only change after the recorded local run is the artifact-upload setting that preserves the cold export's hidden workflow files; CI will replay the complete exact published source.\n\n## Remaining scope\nThis PR remains draft. The 125 original production tool handlers have not yet been replaced; remote transport, durable state, process ownership, production activation and removal of the old stack remain incomplete. Pure native components and a read-only IO dependency are not counted as complete original tool replacements. Subsequent commits are composing these owners into actual MCP service handlers.\n\nThis PR is stacked on #120 to preserve the latest existing runtime functionality."
+  },
+  "actual_read_native_subtree": {
+    "sha": "68f5961e09ac2b589cc85bd8b50a49722fb71c1e",
+    "full_entries": 40,
+    "truncated": false,
+    "Git_tree_recomputed_exact": true,
+    "entries": [
+      {
+        "path": "README.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "f5135a619a950988093d9cab6740f67172169237",
+        "size": 23532,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/f5135a619a950988093d9cab6740f67172169237"
+      },
+      {
+        "path": "binary_codec.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "c0abe3665e88dc6a341ca3107226b0a296b51541",
+        "size": 61996,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/c0abe3665e88dc6a341ca3107226b0a296b51541"
+      },
+      {
+        "path": "binary_codec_abi.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "00b10f98f89de43975b92da076989eb6381faea8",
+        "size": 8663,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/00b10f98f89de43975b92da076989eb6381faea8"
+      },
+      {
+        "path": "binary_codec_composition.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3124deea20d486331ef76ac5dd2a385d9236fa3d",
+        "size": 904,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/3124deea20d486331ef76ac5dd2a385d9236fa3d"
+      },
+      {
+        "path": "binary_codec_independent_comparison.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7623f3671783e31fe84a5e9d1b20e8efdb661182",
+        "size": 4510,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/7623f3671783e31fe84a5e9d1b20e8efdb661182"
+      },
+      {
+        "path": "compiler_cold_observation.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "0f8f0786c9be7fdecd236facb3e64ed042da14eb",
+        "size": 2390,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/0f8f0786c9be7fdecd236facb3e64ed042da14eb"
+      },
+      {
+        "path": "compiler_compact_cold_observation.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a7100d87960850dd52f52fea104d4e21a97d130c",
+        "size": 2048,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/a7100d87960850dd52f52fea104d4e21a97d130c"
+      },
+      {
+        "path": "composition_abi.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "5d7ca0eb28f1ec4616cef43204b80678caa998f3",
+        "size": 7216,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/5d7ca0eb28f1ec4616cef43204b80678caa998f3"
+      },
+      {
+        "path": "composition_observation.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b3663598c9b8cc5cd04bd602d82cf5b98bd93c61",
+        "size": 2259,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/b3663598c9b8cc5cd04bd602d82cf5b98bd93c61"
+      },
+      {
+        "path": "composition_packer.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "37eb04784d7144762782c7bc12a26b0bb43fef16",
+        "size": 83877,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/37eb04784d7144762782c7bc12a26b0bb43fef16"
+      },
+      {
+        "path": "delta.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "1c3412cc5478ca68f852363865489b09c5ad7b0f",
+        "size": 69101,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/1c3412cc5478ca68f852363865489b09c5ad7b0f"
+      },
+      {
+        "path": "delta_abi.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "2fa91a393223cc8e48f4f732a332fd2206b9e332",
+        "size": 9111,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/2fa91a393223cc8e48f4f732a332fd2206b9e332"
+      },
+      {
+        "path": "delta_original_rust_comparison.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a7a33057ab01d8c622fd71fd6575af948f919f64",
+        "size": 1808,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/a7a33057ab01d8c622fd71fd6575af948f919f64"
+      },
+      {
+        "path": "endpoint_original_rust_comparison.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "9e3ff96fcd03f3b1548d64fce3d44ebbc2208bf0",
+        "size": 3000,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/9e3ff96fcd03f3b1548d64fce3d44ebbc2208bf0"
+      },
+      {
+        "path": "filter_packer.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "49a1236ae6b4a3ffedc007c532c15fc46fa564f4",
+        "size": 14266,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/49a1236ae6b4a3ffedc007c532c15fc46fa564f4"
+      },
+      {
+        "path": "io.abi.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "823d1aab693302c0ed3377c0bae940b4f5ec16c8",
+        "size": 7580,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/823d1aab693302c0ed3377c0bae940b4f5ec16c8"
+      },
+      {
+        "path": "io_packer.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "6fb133eb74b6e97fb55fdfe32583a6ad8b951edc",
+        "size": 40910,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/6fb133eb74b6e97fb55fdfe32583a6ad8b951edc"
+      },
+      {
+        "path": "io_policy.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "556b41b41dae0d00b67a63e052b287c92801b282",
+        "size": 66113,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/556b41b41dae0d00b67a63e052b287c92801b282"
+      },
+      {
+        "path": "line_endpoint.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "d883014ab83f99c1932452529ab3806a7c622b5b",
+        "size": 40604,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/d883014ab83f99c1932452529ab3806a7c622b5b"
+      },
+      {
+        "path": "line_endpoint_abi.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "2b085f5ec55f357bdd04c5ff1c627007c2d143d1",
+        "size": 2457,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/2b085f5ec55f357bdd04c5ff1c627007c2d143d1"
+      },
+      {
+        "path": "local_service.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7e9b2b1e1b465d4bc500913bf8e6554382bcb702",
+        "size": 359992,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/7e9b2b1e1b465d4bc500913bf8e6554382bcb702"
+      },
+      {
+        "path": "local_service_composition.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "92f293a6a31856e6c31117bed4b70d445665a006",
+        "size": 5730,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/92f293a6a31856e6c31117bed4b70d445665a006"
+      },
+      {
+        "path": "local_service_observation.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ead3d06e0554099ee651eebc70936f30e2a621ef",
+        "size": 5417,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/ead3d06e0554099ee651eebc70936f30e2a621ef"
+      },
+      {
+        "path": "migration.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "d531874932e7653df15f08f9695c78c38afec1c0",
+        "size": 29618,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/d531874932e7653df15f08f9695c78c38afec1c0"
+      },
+      {
+        "path": "original_rust_comparison.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "507915751f6852ae08091a19b75111a50b6f967b",
+        "size": 1638,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/507915751f6852ae08091a19b75111a50b6f967b"
+      },
+      {
+        "path": "policy.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "cea7937447df8dcf9cad7e254e247e9008063c84",
+        "size": 166842,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/cea7937447df8dcf9cad7e254e247e9008063c84"
+      },
+      {
+        "path": "policy_abi.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "14c0b04f41f5b5a8c607bfdc7f5ab60011235bc1",
+        "size": 12709,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/14c0b04f41f5b5a8c607bfdc7f5ab60011235bc1"
+      },
+      {
+        "path": "policy_original_rust_comparison.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "70b18658d9a7f0d3831986181ac8a8eeabd3492f",
+        "size": 1930,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/70b18658d9a7f0d3831986181ac8a8eeabd3492f"
+      },
+      {
+        "path": "policy_provenance.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "5b07ccb82ec8f321e91750947551d84361206ecc",
+        "size": 889,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/5b07ccb82ec8f321e91750947551d84361206ecc"
+      },
+      {
+        "path": "runtime_bytes.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "01e89eede6ef5b466c2a4a5abb9e0fc414e1c061",
+        "size": 15815,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/01e89eede6ef5b466c2a4a5abb9e0fc414e1c061"
+      },
+      {
+        "path": "runtime_bytes_abi.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "f3d32dd9eb372634fe9dda20ffde0c3903af2bde",
+        "size": 7651,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/f3d32dd9eb372634fe9dda20ffde0c3903af2bde"
+      },
+      {
+        "path": "runtime_protocol.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "abed4e9971b5892e6b48bd30a16c74aebdc30282",
+        "size": 262157,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/abed4e9971b5892e6b48bd30a16c74aebdc30282"
+      },
+      {
+        "path": "service_contract.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "3f4af390eff7dd8067c5dd05c00e8b8325b178e9",
+        "size": 9387,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/3f4af390eff7dd8067c5dd05c00e8b8325b178e9"
+      },
+      {
+        "path": "stat_version.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "99b4651353b3e53ef323f6093f704c0131d98f40",
+        "size": 26089,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/99b4651353b3e53ef323f6093f704c0131d98f40"
+      },
+      {
+        "path": "stat_version_abi.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7248b050a7d06229e0368b022c84d646e7d32b7f",
+        "size": 4482,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/7248b050a7d06229e0368b022c84d646e7d32b7f"
+      },
+      {
+        "path": "stat_version_original_python_comparison.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "ed5f19d5c9abd2ec3644af18885454ebbbf62499",
+        "size": 2777,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/ed5f19d5c9abd2ec3644af18885454ebbbf62499"
+      },
+      {
+        "path": "stdio_packer.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "4e45a39383fb1e8e3d41963b0dba3253c93c98b6",
+        "size": 17222,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/4e45a39383fb1e8e3d41963b0dba3253c93c98b6"
+      },
+      {
+        "path": "text_budget.hepta",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "53446a668847b04353833c240feab89aa115b5ad",
+        "size": 47464,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/53446a668847b04353833c240feab89aa115b5ad"
+      },
+      {
+        "path": "text_budget_abi.md",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "7b96390ac799b13f17bc7d0fa0ac6dc2081ddd38",
+        "size": 5380,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/7b96390ac799b13f17bc7d0fa0ac6dc2081ddd38"
+      },
+      {
+        "path": "text_original_rust_comparison.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "4c90a6472772f8698693d5814fd26e43ed7374fb",
+        "size": 1809,
+        "url": "https://api.github.com/repos/TrillionniumFoundation/hepta-runtime/git/blobs/4c90a6472772f8698693d5814fd26e43ed7374fb"
+      }
+    ]
+  },
+  "selected_source_documents": [
+    {
+      "path": "native/local_service_observation.json",
+      "git_blob": "ead3d06e0554099ee651eebc70936f30e2a621ef",
+      "sha256": "bc439d7b80b833def90911efc226bfbf8684d6327aae3b57be2ca9d69f98512b",
+      "bytes": 5417,
+      "complete_utf8": "{\n  \"compiler_commit\": \"d3e2c90173cf733e42b299d0c4274df4b593a12f\",\n  \"compiler_sha256\": \"bfd603dd2b40974d2083b567b4295fb3975938da8435dd636514fc197c485de0\",\n  \"composition_provenance_sha256\": \"4ef126d732eca3509c0b99dc0d1ae432b045c4d0363e894c273f4dcfcc4b8f9c\",\n  \"counts\": {\n    \"domain_errors\": 21,\n    \"elf_requests\": 234,\n    \"native_controller_calls\": 7,\n    \"original_read_comparisons\": 118,\n    \"protocol_errors\": 20\n  },\n  \"declared_profile\": \"explicit administrator-owned native-local read-only Linux root; no SSH alias reinterpretation\",\n  \"executable_sha256\": \"8991eee8440a216db0faa783478bcf922e8705df4c135f5cb8420e5c4c1d61b6\",\n  \"full_original_remote_tool_parity\": false,\n  \"inspection\": {\n    \"bytes\": 961072,\n    \"dynamic_loader\": false,\n    \"elf_type\": \"ET_EXEC\",\n    \"entry\": 4194480,\n    \"interpreter\": null,\n    \"libc\": false,\n    \"machine\": \"EM_X86_64\",\n    \"program_headers\": [\n      \"PT_LOAD_RX\",\n      \"PT_GNU_STACK_RW\"\n    ],\n    \"sha256\": \"8991eee8440a216db0faa783478bcf922e8705df4c135f5cb8420e5c4c1d61b6\"\n  },\n  \"manifest_sha256\": \"2dd4bc2c065bcf25fd40be4888f7f72fdeecc7adb351d434a56153f1e24c8261\",\n  \"modules\": [\n    {\n      \"image_sha256\": \"b1181a4cae335ef0099be9fda9e1f1bee3ce7d5e74725e9560c3b70d333cb722\",\n      \"manifest\": \"module_00.json\",\n      \"manifest_sha256\": \"6b746895bf85c5edc602aa138c9ea843431bf35dec88eb581acb87307ee6c2e7\",\n      \"source_sha256\": \"3b6b86ded004fbe772f7833004e669f43454a3d232cb2eec27d5aeeeb0b62833\"\n    },\n    {\n      \"image_sha256\": \"9c98db6df5b235ec4026a6a860b51e6f33cb09140eb28443f5e0cb4bb317d155\",\n      \"manifest\": \"module_01.json\",\n      \"manifest_sha256\": \"48b97cfcdac41cfb357ccc6ac2c920ff927566c05a3a3583d09be02a4f07d034\",\n      \"source_sha256\": \"57d64450b81a46b92687a3efec056e2491e4c4a4ffde57a0999124d6bb0736d0\"\n    },\n    {\n      \"image_sha256\": \"469f2b555224499b2d9d3c95cc3d772f65fcbe6705fb79804f31fa7c473debe2\",\n      \"manifest\": \"module_02.json\",\n      \"manifest_sha256\": \"a566b5b8a857a80642190472509e9b7fe463b57184bbb24cb8e8e38b8ab135b4\",\n      \"source_sha256\": \"f58ab824ecb47545f19cd1d0daded9e41fca5457110693677d84e393e3098f23\"\n    },\n    {\n      \"image_sha256\": \"bcb02d86fd4988c61b93f53a62b4abcefeab85ba02a47d31e37cb2515109066a\",\n      \"manifest\": \"module_03.json\",\n      \"manifest_sha256\": \"3838345e8554f8e6ba35b989a3f7f6d8cf50362eb76cfa03cff11dcf4bbd2fb0\",\n      \"source_sha256\": \"239cab72da727e2e9c64bca6d7c0479f98aac86d36ded24574cc21bfd4f4836b\"\n    },\n    {\n      \"image_sha256\": \"ba085e60df861dc2ba9baafb3c0a0860d977c93dad93463df0c35bc69b3e2f93\",\n      \"manifest\": \"module_04.json\",\n      \"manifest_sha256\": \"a07fb5728d23a915477a764ec7b7b84e18d99b65d21f26e1e251671808ce8c5b\",\n      \"source_sha256\": \"d5fedc22505bed6a6f8b12dffcfa699be46aeffb890d8a821710c05f0aaf3a3f\"\n    }\n  ],\n  \"original_helper_sha256\": \"c15e8900b0ab867b221ff08d5a10401c8b656c87676f57b478b9a21219f7fe12\",\n  \"packer\": {\n    \"image_sha256\": \"2578ec13f5890b1aff0597ef09cae65a5ba0b26b386599cf0e1a2bfc45d0fe38\",\n    \"manifest\": \"packer.json\",\n    \"manifest_sha256\": \"9166293d28fcd59434475038cb4bb777475ee2b911a71c94d56df5c57e8d5901\",\n    \"source_sha256\": \"22cabea4df5b0f594d1eea033dc1d5a9e23c6f394ce00fc8af8584eff1fa17b5\"\n  },\n  \"profile\": [\n    {\n      \"call_mask\": 30,\n      \"flags\": 1,\n      \"id\": 0,\n      \"input_capacity\": 8388608,\n      \"name\": \"local-service\",\n      \"output_capacity\": 8388608,\n      \"source_sha256\": \"3b6b86ded004fbe772f7833004e669f43454a3d232cb2eec27d5aeeeb0b62833\",\n      \"workspace_capacity\": 33554432\n    },\n    {\n      \"call_mask\": 0,\n      \"flags\": 0,\n      \"id\": 1,\n      \"input_capacity\": 8388608,\n      \"name\": \"policy\",\n      \"output_capacity\": 8388608,\n      \"source_sha256\": \"57d64450b81a46b92687a3efec056e2491e4c4a4ffde57a0999124d6bb0736d0\",\n      \"workspace_capacity\": 33554432\n    },\n    {\n      \"call_mask\": 0,\n      \"flags\": 0,\n      \"id\": 2,\n      \"input_capacity\": 8388608,\n      \"name\": \"codec\",\n      \"output_capacity\": 8388608,\n      \"source_sha256\": \"f58ab824ecb47545f19cd1d0daded9e41fca5457110693677d84e393e3098f23\",\n      \"workspace_capacity\": 33554432\n    },\n    {\n      \"call_mask\": 0,\n      \"flags\": 2,\n      \"id\": 3,\n      \"input_capacity\": 8388608,\n      \"name\": \"io\",\n      \"output_capacity\": 8388608,\n      \"source_sha256\": \"239cab72da727e2e9c64bca6d7c0479f98aac86d36ded24574cc21bfd4f4836b\",\n      \"workspace_capacity\": 81920\n    },\n    {\n      \"call_mask\": 0,\n      \"flags\": 0,\n      \"id\": 4,\n      \"input_capacity\": 8388608,\n      \"name\": \"stat-version\",\n      \"output_capacity\": 8388608,\n      \"source_sha256\": \"d5fedc22505bed6a6f8b12dffcfa699be46aeffb890d8a821710c05f0aaf3a3f\",\n      \"workspace_capacity\": 33554432\n    }\n  ],\n  \"schema\": \"hepta.runtime.native-local-service-observation.v1\",\n  \"source_sha256\": \"3b6b86ded004fbe772f7833004e669f43454a3d232cb2eec27d5aeeeb0b62833\",\n  \"status\": \"pass\",\n  \"test_sha256\": \"eeb0c8a875d38ea3fb774ec745ce684e7bceea26346f474e3a17f425ff74e192\",\n  \"tests\": {\n    \"actual_elf_requests\": 234,\n    \"elapsed_seconds\": 5.28,\n    \"elf_path_environment\": \"empty\",\n    \"lifecycle_startup_acknowledgement\": \"explicit test fixture, no file operation\",\n    \"native_controller_lifecycle_calls\": 7,\n    \"original_helper_read_comparisons\": 118,\n    \"original_runtime_commit\": \"a0dcdda1991ec536d5e2d252c006a778993fa566\",\n    \"process_exit_status\": 0,\n    \"protocol_refusals\": 20,\n    \"stdout_status\": \"pass\",\n    \"suites\": 6,\n    \"tool_domain_refusals\": 21\n  },\n  \"whole_runtime_replaced\": false\n}\n"
+    },
+    {
+      "path": "native/service_contract.md",
+      "git_blob": "3f4af390eff7dd8067c5dd05c00e8b8325b178e9",
+      "sha256": "889f3b5c00c812ec47a7e85532c5a1e9e51441cf6b2d078cda860a976f18f8e9",
+      "bytes": 9387,
+      "complete_utf8": "# Native local read service contract\n\nRun the static executable as `native-local-read.elf --local-read-profile ROOT`.\nThe CLI must contain that explicit profile selector and one root argument.\nProtocol input and output are newline-delimited JSON-RPC over stdin/stdout.\nThe root argument is copied into a read-only mapping before startup; the\ncontroller never takes configuration from an MCP request.\n\nThis service is an explicit `native-local` read-only Linux profile. The\nadministrator supplies its absolute capability root at process startup, before\nstdin is read. It does not load an SSH alias or reinterpret an original remote\nhost as the local machine. Its implementation owns `host_list` and `binary_read`\nfor this declared profile; remote host transport and the complete original\nruntime remain separate migration owners.\n\n## Original semantic sources\n\nAll original bodies refer to `TrillionniumFoundation/hepta-runtime` at commit\n`a0dcdda1991ec536d5e2d252c006a778993fa566`:\n\n- `src/mcp/server.rs`: MCP tools, annotations and `Result<String, String>`.\n- `src/mcp/runtime/inspect.rs`: empty `HostListParams` and `render_host_list`.\n- `src/mcp/runtime/config.rs`: immutable installed policy, host lookup, operator\n  mode and remote path checks.\n- `src/mcp/runtime/binary.rs`: `BinaryReadParams`, operator-host admission,\n  longest permitted root, default and clamped limit.\n- `src/mcp/runtime/binary_file.py`: descriptor-relative file admission, exact\n  version comparison, cursor bounds, stable read, Base64 and SHA256.\n- `src/mcp/runtime/ssh.rs`: remote subprocess errors are wrapped with SSH target,\n  stdout and Python stderr; those remote diagnostics are not fabricated by a\n  local native transport.\n\n## Tool parameters and result ownership\n\n`host_list` accepts an empty object. Its text content is the original pretty JSON\nprojection with `hosts` in configured-name order. The fixed local profile reports\n`name: native-local`, `platform: linux`, `execution_mode: operator`,\n`operator_tools: true`, all of `allow_execute`, `allow_pty`, `allow_write` false,\nand `privileged_actions: []`. These are administrator-selected profile values;\nrequest fields cannot change them or the capability root.\n\n`binary_read` requires string `host` and `path`, with optional `offset: u64`,\n`limit: u64` and `expected_version: string`. Unknown fields are refused.\nMissing or JSON-null options mean `None`. Offset defaults to zero. Limit defaults\nto 32768 and is clamped to 1..65536, including explicit zero and `u64::MAX`.\nFloating point numbers, negative numbers and integers above `u64::MAX` do not\ninhabit the parameter type.\n\nThe semantic order is:\n\n1. Decode the complete parameter object.\n2. Find the configured host by name; require operator mode.\n3. Apply the original native policy owner to the exact decoded path.\n4. Select the allowed root, then admit the path through the IO owner.\n5. Open a regular file and obtain its descriptor version.\n6. Compare `expected_version`, if present, with the exact original version\n   string. A string with leading zeroes, signs or otherwise noncanonical spelling\n   is a mismatch here; it is not a parameter error and does not preempt an open\n   failure. This check precedes cursor bounds and file content reads.\n7. Require `offset <= size`; read at most the clamped limit and remaining size.\n8. Verify the file version after reading and complete descriptor cleanup.\n9. Encode the actual returned bytes and their independent SHA256 digest.\n\nThe success text is a compact JSON object with exactly `path`, `size`, `version`,\n`offset`, `next_offset`, `eof`, `data_base64`, and `chunk_sha256`. It is delivered\nas one MCP text content item, with `isError: false`; tool-domain refusals use\nthe same text-content envelope and `isError: true`. Parameter and protocol\nerrors are JSON-RPC errors. No `structuredContent` is added to these original\nstring-returning tools.\n\n## Component boundaries\n\nThe HIA service controller keeps the original request bytes and parsed JSON\ngraph stable while it invokes separately compiled, pinned HIA images. Policy\ninput is constructed from the immutable startup profile. Only the IO image can\nrequest the bridge's closed OS primitives. The codec and stat-version images\nreceive typed byte frames and do not acquire filesystem authority.\n\nNative stdio publishes a complete response only after the controller finishes.\nCapacity refusal cannot advance MCP initialization or publish a partial body.\nEOF invokes the IO owner's root-descriptor close path. No Python or Rust code\ndispatches requests or computes results in the runtime executable.\n\nThe IO owner pins the opened root inode for the process lifetime. The original\nPython helper reopens its root pathname per request. Root replacement semantics\ntherefore belong to this explicit local profile, and are not claimed as exact\nremote transport parity. UTF-8 paths are limited to 4095 bytes by the IO boundary.\n\n## HIA controller and continuation ABI\n\n`local_service.hepta` exports the standard\n`f0(readbuf input, mutbuf output, mutbuf workspace) -> u32`. Its workspace is\n32 MiB and both input and output capacities are at most 8 MiB. The immutable\nbridge table admits these component identities:\n\n| ID | Component | Calls it may request |\n|---|---|---|\n| 0 | Local service controller | 1, 2, 3, 4 |\n| 1 | Native configuration policy | None |\n| 2 | Native binary codec | None |\n| 3 | Native descriptor IO | Its closed OS effects only |\n| 4 | Native stat-version codec | None |\n\nThe controller returns `0xffffffe0` for a child call. Its descriptor starts at\n`B = length(workspace) - 256`; every field below is a little-endian u64:\n\n| Offset | Value |\n|---|---|\n| 0 | ASCII `HIACAL01` |\n| 8 | Monotonically increasing sequence, starting at 1 |\n| 16 | Child module ID |\n| 24, 32, 40 | Input region, offset and extent |\n| 48, 56, 64 | Output region, offset and capacity |\n| 72 | Reserved zero |\n| 80 | Returned child u32 status or output extent |\n| 88, 96, 104 | Completed sequence, completed flag, bridge status |\n| 120 | Bridge-owned invocation kind: 0 startup, 1 frame, 2 EOF |\n| 128, 136 | Bridge-owned current module ID and nesting depth |\n\nInput region 0 is the unchanged current input, 1 the current output, 2 the\ncontroller workspace, and 3 the immutable administrator root. Outputs may use\nregions 1 or 2. The controller checks every completion sequence, flag and bridge\nstatus before accepting any child output. Only bridge status zero is accepted.\nThe generic bridge independently checks target permission, region extents,\noverlap, recursion and the footer reservation. It performs no tool-name or JSON\ndispatch.\n\nThe decoded JSON graph remains below byte 25,165,824. Dedicated disjoint spans\nhold child input at 25,165,824 (131,072 bytes), child output at 25,296,896\n(131,072 bytes), retained file data at 25,427,968 (65,536 bytes), Base64 at\n25,493,504 (87,384 bytes), version text at 25,583,616 (122 bytes), and the\nadministrator root at 26,214,400 (4,095 bytes). The final 4,096 workspace bytes\nhold persistent protocol state, per-request continuation state and the bridge\nfooter. No parsed request is allowed to overwrite these spans.\n\nStartup asks module 3 to admit the immutable root and completes only after its\ndescriptor custody is established. EOF asks module 3 to close that descriptor.\nPer read, the controller calls policy operation 6, optional stat-version parsing,\nIO operation 1, stat-version formatting, codec operation 7 and codec operation 2.\nThe additive IO expected-version flag 2 denotes a guaranteed mismatch, admitted\nonly with seven zero version words. Its check occurs after file admission and\nfstat, before cursor bounds and reading. Thus noncanonical strings retain the\noriginal error order without being normalized into accepted versions.\n\n## Source and validation evidence\n\n`local_service_composition.json` pins each relevant original source and proves\nthat the complete strict JSON decoder closure is unchanged from\n`native/runtime_protocol.hepta`, after function-name and direct-call relocation.\nRequest routing, continuation state and result formatting are new HIA owners.\n\n`test_local_service.py` requires `HIA_SERVICE_MANIFEST` and `HIA_HEPTA_DIR`.\nIts default source/repository locations are relative to `tests/hia_native`.\nDevelopment may set `HIA_RUNTIME_REPO` and `HIA_SERVICE_SOURCE`; the aggregate\nqualifier must supply its own admitted values. The controller manifest is read\nfrom the same composition manifest as the tested ELF. Optional\n`HIA_SERVICE_RESULT` records the exact observed manifest/executable identities.\n\nThe first complete run passed six suites in 7.60 seconds: 234 actual static-ELF\nrequests, 118 direct comparisons with the unchanged original Python read helper,\n20 protocol refusals, 21 tool-domain refusals, and seven direct native controller\ncalls for initialization capacity and acknowledgement checks. Each actual ELF\nruns with an empty `PATH`. Tests cover whole binary data, chunking, exact result\ntext, Unicode/control-character path escaping, hardlinks, symlink refusal,\ndefaults/nulls, `u64` bounds, stale and noncanonical versions, open-error\nprecedence, root replacement, fragmented transport, final EOF frames and clean\nshutdown. The isolated controller lifecycle test explicitly supplies a simulated\nstartup acknowledgement; no simulated read is included in the filesystem\ncoverage counts.\n"
+    }
+  ],
+  "actual_recorded_scope": {
+    "handlers": [
+      "host_list",
+      "binary_read"
+    ],
+    "profile": "explicit native-local read-only Linux startup root",
+    "external_source_record_status": "pass",
+    "original_remote_tool_parity": false,
+    "observed_counts_from_record": {
+      "domain_errors": 21,
+      "elf_requests": 234,
+      "native_controller_calls": 7,
+      "original_read_comparisons": 118,
+      "protocol_errors": 20
+    },
+    "complete_raw_corpus_independently_replayed_by_this_audit": false,
+    "all_125_original_handlers_replaced": false,
+    "production_binary_revision_and_SHA_observed": false,
+    "root_lifetime": "Native profile holds startup root descriptor; original remote helper reopens pathname per request"
+  },
+  "compiler_pr898": {
+    "number": 898,
+    "url": "https://github.com/TrillionniumFoundation/Hepta/pull/898",
+    "head_sha": "d3e2c90173cf733e42b299d0c4274df4b593a12f",
+    "base_sha": "f33d8da316de8fdf27b504371f1a5310997ff548",
+    "state": "open",
+    "draft": false,
+    "changed_files": 2,
+    "body": "## Problem\n\nWhile qualifying the HIA-native runtime against the pinned compiler, the source-only cold replay completed all 38 phase archives by 179.260 seconds but missed the unchanged 180-second outer deadline while finishing its large aggregate evidence. The original attempt remains a failure (6/11 outer checks); it is not relabelled.\n\n## Change\n\nUse compact JSON for the complete phase and aggregate reports, preserving every field, observation, ordering rule and value. Refresh the source-owned support contract for the changed qualifier bytes.\n\nNo qualification family, native invocation, source check, timeout, cleanup requirement or compiler implementation changes. Human-facing command summaries remain unchanged.\n\n## Observed validation\n\n- Fresh source-only cold replay: **11/11 outer checks and 5,049/5,049 inner checks passed in 173.028696298 seconds**, within the original 180-second limit.\n- Owned process completed before the deadline; leader and descendants were reaped and cleanup completed.\n- B1/B2/B3 remain byte-identical with SHA-256 `bfd603dd2b40974d2083b567b4295fb3975938da8435dd636514fc197c485de0`.\n- The modified-compiler chain still changes code generation and reaches its separate fixed point.\n- Existing support-contract and qualification-entrypoint tests: 8 passed.\n- Generated support contract check: passed.\n- A retained 12,441,650-byte phase report decoded identically after compact encoding (4,674,125 bytes); observed serialization time decreased from 0.407 s to 0.043 s on this host.\n\nFresh outer-report SHA-256: `458b43c5faff323306f5b789174e401d353ad0f402db8b370546c527c4f2966f`.\nFresh complete nested-report SHA-256: `db54d4f01ac62d13578104eecf36b6fba741a3b2e55f7be285c0864f485d3ad2` (33,453,193 bytes).\n\nThis evidence is for the declared bounded Selfhost-Core Linux x86-64 profile; it does not claim complete HIA-language or runtime replacement.",
+    "qualifier_patch": {
+      "patch": {
+        "filename": "tools/qualify_hia_selfhost.py",
+        "patch": "@@ -1008,7 +1008,9 @@ def phase_observations(family):\n             \"Linux x86-64 hardware, caller-owned exclusive buffers and resource limits\"],\n         \"scope\": \"fixed canonical HIA v8 subset documented in docs/HIA_SELF_HOSTING_CORE.md\",\n     }\n-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + \"\\n\")\n+    # Preserve every evidence field without spending the fixed wall budget on\n+    # indentation of the large aggregate and its repeated observation objects.\n+    output.write_text(json.dumps(report, separators=(\",\", \":\"), sort_keys=True) + \"\\n\")\n     return report\n \n \n@@ -1019,7 +1021,7 @@ def main():\n     arguments = parser.parse_args()\n     if arguments.phase_request is not None:\n         report = qualification_phase(arguments.phase_request)\n-        arguments.output.write_text(json.dumps(report, indent=2, sort_keys=True) + \"\\n\")\n+        arguments.output.write_text(json.dumps(report, separators=(\",\", \":\"), sort_keys=True) + \"\\n\")\n         print(json.dumps({\"status\": report[\"status\"], \"family\": report[\"family\"],\n                           \"compiler_label\": report[\"compiler_label\"],\n                           \"checks_passed\": sum(report[\"checks\"].values()), \"checks_total\": len(report[\"checks\"])}))"
+      }
+    }
+  },
+  "boundaries": [
+    "PR121 body cites earlier CI commit 3e6574dc9753dce651b979dc478f9f41a3ac6e81; its result is not inherited by current observed head 008036843625e12c21b6dc533be5cf3115cda579",
+    "PR898 recorded 5049-check cold scope differs from the frozen u32 5052-check qualification; its source/report encoding and result are not substituted",
+    "Default branch, open HIA development branch, candidate source pair and actual deployed binary are distinct; deployed identity remains unobserved",
+    "A full repository recursive-tree read did not complete; the separate native 40-entry subtree read and recomputation completed",
+    "No claims of full runtime, whole CLI, whole native qualification or production retirement"
+  ],
+  "whole_native": false,
+  "production_legacy_retired": false
+}

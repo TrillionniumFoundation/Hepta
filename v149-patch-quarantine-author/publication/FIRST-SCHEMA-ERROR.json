@@ -1,0 +1,15 @@
+{
+  "schema": "hepta.hia.patch-terminal-quarantine.publication-schema-error.v1",
+  "status": "METADATA_GUARD_ERROR_NO_PRODUCT",
+  "error": "Error: actual GET bytes mismatch RUNTIME.diff",
+  "cause": "Initial publisher additionally required structuredContent.sha in fetch_blob. The observed response exposes only structuredContent.content. Actual complete returned bytes match all required pins.",
+  "post_ack": "49278ffe15955fcfdcce646e47202b04400d014a",
+  "actual_full_get": {
+    "bytes": 1059,
+    "git_blob": "49278ffe15955fcfdcce646e47202b04400d014a",
+    "sha256": "9884eb8ff0614a0d8f8b0f5371e372f944a2895590cbf118338500dff2981ca9"
+  },
+  "fix": "Validate returned content bytes and independently computed Git/SHA/length; retain the actual successful GET, do not repeat POST.",
+  "candidate_changed": false,
+  "products": 0
+}

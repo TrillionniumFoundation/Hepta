@@ -1,0 +1,21 @@
+{
+  "scope": "Root read-only verifier error, not a new product failure or product execution",
+  "prior_reader_git": "551efbab009f17efa6008b7b8aa32bb65b99874b",
+  "initial_exec": {
+    "chunk_id": "74863e",
+    "wall_time_seconds": 1.001646572,
+    "session_id": 73739,
+    "original_token_count": 0,
+    "output": ""
+  },
+  "terminal": {
+    "chunk_id": "eb0f8c",
+    "wall_time_seconds": 0.000019509,
+    "exit_code": 1,
+    "original_token_count": 65,
+    "output": "Traceback (most recent call last):\n  File \"/tmp/hia-root-v141-dda7/verify_native_terminal_failure.py\", line 82, in <module>\n    tests=obj(d/'TESTS.json');assert tests==child['tests']\n                                            ~~~~~^^^^^^^^^\nKeyError: 'tests'\n"
+  },
+  "cause": "The original failed child publishes raw TESTS.json before raising; its child RESULT therefore has no tests key. R1 incorrectly assumed the successful-child result shape.",
+  "correction": "Read exact failed TESTS.json directly; require failed child tests key absent and original assertion traceback; successful child still requires exact tests equality.",
+  "products": 0
+}

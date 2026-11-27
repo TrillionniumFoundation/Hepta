@@ -1,0 +1,768 @@
+{
+  "fraction_of_original_charged_prefix": 0.05705189429481057,
+  "future_not_authored_or_adopted": [
+    {
+      "constraint": "Keep every buffer.store and all bounds/order; keep cp16 upper-range compare and fail path. For any unsigned64 x, wrap_u8(x & 255) == wrap_u8(x). Full verifier/inverse and original size/controls remain required.",
+      "idea": "Eliminate redundant bit.and 255 immediately consumed only by int.cast wrap to u8 in original write helpers.",
+      "not_done": "No code patch, generation, size estimate or fuel qualification."
+    },
+    {
+      "constraint": "Prove equal 64-bit modular addresses, retain each load/store and their order, preserve every original error/partial write. No assumed zero scratch or skipped read.",
+      "idea": "Share constant 1 in successive wrapping address increments within unrolled byte helpers.",
+      "not_done": "No second optimization added to frozen R9."
+    }
+  ],
+  "hotspots": [
+    {
+      "calls": 52759,
+      "exclusive_steps": 1530011,
+      "function": "f25",
+      "inclusive_steps": 1530011,
+      "source_function": "state_get32"
+    },
+    {
+      "calls": 6394,
+      "exclusive_steps": 1107378,
+      "function": "f16",
+      "inclusive_steps": 2739291,
+      "source_function": "next_token_original"
+    },
+    {
+      "calls": 28124,
+      "exclusive_steps": 899968,
+      "function": "f24",
+      "inclusive_steps": 899968,
+      "source_function": "state_put32"
+    },
+    {
+      "calls": 63237,
+      "exclusive_steps": 822081,
+      "function": "f91",
+      "inclusive_steps": 822081,
+      "source_function": "cx16"
+    },
+    {
+      "calls": 2064,
+      "exclusive_steps": 676054,
+      "function": "f79",
+      "inclusive_steps": 1023466,
+      "source_function": "identifier"
+    },
+    {
+      "calls": 11306,
+      "exclusive_steps": 658301,
+      "function": "f106",
+      "inclusive_steps": 4736752,
+      "source_function": "next_token"
+    },
+    {
+      "calls": 29220,
+      "exclusive_steps": 525960,
+      "function": "f92",
+      "inclusive_steps": 525960,
+      "source_function": "cp16"
+    },
+    {
+      "calls": 7169,
+      "exclusive_steps": 437254,
+      "function": "f23",
+      "inclusive_steps": 437254,
+      "source_function": "get"
+    },
+    {
+      "calls": 2745,
+      "exclusive_steps": 420146,
+      "function": "f19",
+      "inclusive_steps": 420146,
+      "source_function": "keyword"
+    },
+    {
+      "calls": 1,
+      "exclusive_steps": 401367,
+      "function": "f90",
+      "inclusive_steps": 401367,
+      "source_function": "assembly_limits"
+    },
+    {
+      "calls": 74,
+      "exclusive_steps": 376550,
+      "function": "f87",
+      "inclusive_steps": 1300046,
+      "source_function": "discover_blocks"
+    },
+    {
+      "calls": 10591,
+      "exclusive_steps": 301314,
+      "function": "f95",
+      "inclusive_steps": 312013,
+      "source_function": "vxget"
+    }
+  ],
+  "interpretation": "Exact dynamic count for these 28 sites in the observed old prefix; a lower bound for all 317 removed sites, not a full-run fuel prediction.",
+  "new_VM_Native_compile_generator_calls": 0,
+  "no_fuel_PASS_claim": true,
+  "no_per_function_static_count_times_calls_for_branched_loops": true,
+  "old_failed_prefix_steps": 10000001,
+  "old_product_status": "FAIL",
+  "original_failure_relabelled": false,
+  "other_static_cast_sites_not_costed": 289,
+  "phase_boundary": "Original final phase=0, signature phase=0. Phase1 remains unobserved; no whole-run step bound follows.",
+  "proven_removed_dynamic_ticks_in_observed_prefix": 570519,
+  "runtime_input_scope": "original frozen3180 plus executable/libpython two-file guards; not current-cold",
+  "schema": "hepta.r8.actual-cross-counted-word64-static-cost.v1",
+  "selected_function_exclusive_sum": 4253098,
+  "selected_functions": [
+    {
+      "actual_exclusive_steps": 1530011,
+      "calls": 52759,
+      "function": "f25",
+      "normal_path_ticks": 29,
+      "partial_charged_ticks": 0,
+      "partial_successfully_executed_removed_casts": 0,
+      "proven_complete_calls": 52759,
+      "proven_removed_dynamic_ticks_in_old_prefix": 211036,
+      "removed_sites": [
+        {
+          "block": "b0",
+          "function": "f25",
+          "operation": {
+            "args": [
+              "v1"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v2",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 0
+        },
+        {
+          "block": "b0",
+          "function": "f25",
+          "operation": {
+            "args": [
+              "v6"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v7",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 5
+        },
+        {
+          "block": "b0",
+          "function": "f25",
+          "operation": {
+            "args": [
+              "v14"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v15",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 13
+        },
+        {
+          "block": "b0",
+          "function": "f25",
+          "operation": {
+            "args": [
+              "v22"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v23",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 21
+        }
+      ],
+      "removed_static_cast_sites": 4,
+      "source_function": "state_get32"
+    },
+    {
+      "actual_exclusive_steps": 899968,
+      "calls": 28124,
+      "function": "f24",
+      "normal_path_ticks": 32,
+      "partial_charged_ticks": 0,
+      "partial_successfully_executed_removed_casts": 0,
+      "proven_complete_calls": 28124,
+      "proven_removed_dynamic_ticks_in_old_prefix": 112496,
+      "removed_sites": [
+        {
+          "block": "b0",
+          "function": "f24",
+          "operation": {
+            "args": [
+              "v1"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v5",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 2
+        },
+        {
+          "block": "b0",
+          "function": "f24",
+          "operation": {
+            "args": [
+              "v8"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v12",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 10
+        },
+        {
+          "block": "b0",
+          "function": "f24",
+          "operation": {
+            "args": [
+              "v15"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v19",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 18
+        },
+        {
+          "block": "b0",
+          "function": "f24",
+          "operation": {
+            "args": [
+              "v22"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v26",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 26
+        }
+      ],
+      "removed_static_cast_sites": 4,
+      "source_function": "state_put32"
+    },
+    {
+      "actual_exclusive_steps": 822081,
+      "calls": 63237,
+      "function": "f91",
+      "normal_path_ticks": 13,
+      "partial_charged_ticks": 0,
+      "partial_successfully_executed_removed_casts": 0,
+      "proven_complete_calls": 63237,
+      "proven_removed_dynamic_ticks_in_old_prefix": 126474,
+      "removed_sites": [
+        {
+          "block": "b0",
+          "function": "f91",
+          "operation": {
+            "args": [
+              "v1"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v2",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 0
+        },
+        {
+          "block": "b0",
+          "function": "f91",
+          "operation": {
+            "args": [
+              "v6"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v7",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 5
+        }
+      ],
+      "removed_static_cast_sites": 2,
+      "source_function": "cx16"
+    },
+    {
+      "actual_exclusive_steps": 525960,
+      "calls": 29220,
+      "function": "f92",
+      "normal_path_ticks": 18,
+      "partial_charged_ticks": 0,
+      "partial_successfully_executed_removed_casts": 0,
+      "proven_complete_calls": 29220,
+      "proven_removed_dynamic_ticks_in_old_prefix": 58440,
+      "removed_sites": [
+        {
+          "block": "b2",
+          "function": "f92",
+          "operation": {
+            "args": [
+              "v9"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v15",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 2
+        },
+        {
+          "block": "b2",
+          "function": "f92",
+          "operation": {
+            "args": [
+              "v18"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v21",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 9
+        }
+      ],
+      "removed_static_cast_sites": 2,
+      "source_function": "cp16"
+    },
+    {
+      "actual_exclusive_steps": 437254,
+      "calls": 7169,
+      "function": "f23",
+      "normal_path_ticks": 61,
+      "partial_charged_ticks": 6,
+      "partial_successfully_executed_removed_casts": 1,
+      "proven_complete_calls": 7168,
+      "proven_removed_dynamic_ticks_in_old_prefix": 57345,
+      "removed_sites": [
+        {
+          "block": "b0",
+          "function": "f23",
+          "operation": {
+            "args": [
+              "v1"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v2",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 0
+        },
+        {
+          "block": "b0",
+          "function": "f23",
+          "operation": {
+            "args": [
+              "v6"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v7",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 5
+        },
+        {
+          "block": "b0",
+          "function": "f23",
+          "operation": {
+            "args": [
+              "v14"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v15",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 13
+        },
+        {
+          "block": "b0",
+          "function": "f23",
+          "operation": {
+            "args": [
+              "v22"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v23",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 21
+        },
+        {
+          "block": "b0",
+          "function": "f23",
+          "operation": {
+            "args": [
+              "v30"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v31",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 29
+        },
+        {
+          "block": "b0",
+          "function": "f23",
+          "operation": {
+            "args": [
+              "v38"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v39",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 37
+        },
+        {
+          "block": "b0",
+          "function": "f23",
+          "operation": {
+            "args": [
+              "v46"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v47",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 45
+        },
+        {
+          "block": "b0",
+          "function": "f23",
+          "operation": {
+            "args": [
+              "v54"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v55",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 53
+        }
+      ],
+      "removed_static_cast_sites": 8,
+      "source_function": "get"
+    },
+    {
+      "actual_exclusive_steps": 37824,
+      "calls": 591,
+      "function": "f22",
+      "normal_path_ticks": 64,
+      "partial_charged_ticks": 0,
+      "partial_successfully_executed_removed_casts": 0,
+      "proven_complete_calls": 591,
+      "proven_removed_dynamic_ticks_in_old_prefix": 4728,
+      "removed_sites": [
+        {
+          "block": "b0",
+          "function": "f22",
+          "operation": {
+            "args": [
+              "v1"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v5",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 2
+        },
+        {
+          "block": "b0",
+          "function": "f22",
+          "operation": {
+            "args": [
+              "v8"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v12",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 10
+        },
+        {
+          "block": "b0",
+          "function": "f22",
+          "operation": {
+            "args": [
+              "v15"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v19",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 18
+        },
+        {
+          "block": "b0",
+          "function": "f22",
+          "operation": {
+            "args": [
+              "v22"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v26",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 26
+        },
+        {
+          "block": "b0",
+          "function": "f22",
+          "operation": {
+            "args": [
+              "v29"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v33",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 34
+        },
+        {
+          "block": "b0",
+          "function": "f22",
+          "operation": {
+            "args": [
+              "v36"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v40",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 42
+        },
+        {
+          "block": "b0",
+          "function": "f22",
+          "operation": {
+            "args": [
+              "v43"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v47",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 50
+        },
+        {
+          "block": "b0",
+          "function": "f22",
+          "operation": {
+            "args": [
+              "v50"
+            ],
+            "attrs": {
+              "mode": "wrap"
+            },
+            "op": "int.cast",
+            "out": [
+              {
+                "name": "v54",
+                "type": "usize"
+              }
+            ]
+          },
+          "original_op_index": 58
+        }
+      ],
+      "removed_static_cast_sites": 8,
+      "source_function": "put"
+    }
+  ],
+  "selected_static_cast_sites": 28,
+  "status": "SOURCE_AND_ACTUAL_COUNT_ANALYSIS_ONLY",
+  "unknowns": [
+    "dynamic counts of remaining 289 sites",
+    "work after the original stopped prefix",
+    "complete phase1 cost",
+    "R9 full-buffer semantic and 10M outcome"
+  ]
+}

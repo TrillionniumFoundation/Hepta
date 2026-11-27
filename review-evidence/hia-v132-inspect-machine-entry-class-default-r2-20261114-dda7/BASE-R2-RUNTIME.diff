@@ -1,0 +1,51 @@
+--- before/hepta/hia_inspect_program_native.py
++++ after/hepta/hia_inspect_program_native.py
+@@ -33,6 +33,48 @@
+ 
+ 
+ class InspectProgramFrame(FrontFrame):
++    # Inherit construction without an extra argument-retaining frame.
++    # Each physical call shadows this idle default on its own instance.
++    _machine_busy = False
++
++    def _require_machine_idle(self):
++        if self._machine_busy is not False:
++            raise FrontUnknown('inspect machine entry is already active')
++
++    def _invoke(self, command, flag=0, error=0, op=0):
++        # A callback can reenter before the actual HIA entry has started.
++        # Claim this physical interval before its header or count is written.
++        self._require_machine_idle()
++        self._machine_busy = True
++        try:
++            return super()._invoke(command, flag, error, op)
++        finally:
++            # The inherited caller still owns uncertain/lost-ACK handling.
++            # Clearing this lease is never an acknowledgement or replay grant.
++            self._machine_busy = False
++
++    def step(self):
++        # Refuse before the inherited exception handler can close an active
++        # frame in response to this separate, rejected reentrant request.
++        self._require_machine_idle()
++        return super().step()
++
++    def service(self, issued):
++        self._require_machine_idle()
++        return super().service(issued)
++
++    def take(self, *, yielded=False):
++        self._require_machine_idle()
++        return super().take(yielded=yielded)
++
++    def close(self, *, release=True):
++        self._require_machine_idle()
++        return super().close(release=release)
++
++    def _retire(self):
++        self._require_machine_idle()
++        return super()._retire()
++
+     def _call(self, args, raw):
+         if raw == (0, 253):
+             if len(args) != 2 or _TYPE(self._get(args[0])) is not dict:

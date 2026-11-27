@@ -1,0 +1,14 @@
+{
+  "schema": "hepta.root-reader-only-inverse.v1",
+  "before_git": "cbb2cb146338a954041a5970e4ace613dd8f2a5c",
+  "after_git": "70954b2372bb8713ae0b67dcd03ee4a8187e84a1",
+  "replacements": [
+    {
+      "before": "assert p['expected']==expected\n",
+      "after": "assert set(expected)-set(p['expected'])=={'original_function_explicit_source_projection','original_method_executed','original_method_id'}\nassert p['expected']=={k:v for k,v in expected.items() if k in p['expected']}\nassert expected['original_function_explicit_source_projection'] is True and expected['original_method_executed'] is False\nassert expected['original_method_id']=='tests.test_hia_selfhost.SelfhostNativeTests.test_entry_last_and_middle_whole_compilers_self_reproduce_and_preserve_owned_flow'\n"
+    }
+  ],
+  "inverse_equal": true,
+  "product_changes": 0,
+  "product_executions": 0
+}

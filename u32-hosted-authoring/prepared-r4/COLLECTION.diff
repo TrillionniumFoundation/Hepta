@@ -1,0 +1,27 @@
+--- prepared-r3/tools/materialize_hosted.py
++++ prepared-r4/tools/materialize_hosted.py
+@@ -601,12 +601,13 @@
+         stable = ('st_dev', 'st_ino', 'st_mode', 'st_size', 'st_mtime_ns')
+         require(total == opened.st_size and all(getattr(before, key) == getattr(ended, key) == getattr(named, key)
+                 for key in stable), 'collection source identity or bytes changed')
++        require(ended.st_nlink == named.st_nlink, 'collection source link count changed after capture')
+         if method == 'stream-copy-after-gate':
+             require(before.st_ctime_ns == ended.st_ctime_ns, 'cross-filesystem source changed')
+         # A hardlink changes ctime/nlink after the product has terminated. Keep
+         # both observations; never rewrite an original product receipt.
+         return {'bytes': total, 'sha256': digest.hexdigest(), 'git_blob': git.hexdigest(),
+-                'transport': method, 'stat_after': stamp(ended)}
++                'transport': method, 'stat_after': stamp(ended), 'nlink_after': ended.st_nlink}
+     finally:
+         for fd in (target_fd, source_fd):
+             if fd is not None:
+@@ -647,7 +648,8 @@
+                         'reason': 'not a fixed harness material, source file, or product execution artifact'})
+                 continue
+             before = path.lstat()
+-            row = {'path': logical, 'mode': stat.S_IMODE(before.st_mode), 'stat_before': stamp(before)}
++            row = {'path': logical, 'mode': stat.S_IMODE(before.st_mode), 'stat_before': stamp(before),
++                   'nlink_before': before.st_nlink}
+             if path in completed_archives:
+                 item = completed_archives[path]
+                 require(stamp(before) == item['post_verification_stat'], 'completed original ZIP changed before collection')

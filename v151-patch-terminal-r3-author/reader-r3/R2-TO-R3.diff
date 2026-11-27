@@ -1,0 +1,374 @@
+--- R2/read_terminal.py
++++ R3/read_terminal.py
+@@ -1,11 +1,12 @@
+ """Independent complete actual terminal reader. Only stdlib; no project execution."""
+ from __future__ import annotations
+-import argparse,ast,hashlib,json,os,stat,time,re,struct,zlib
++import argparse,ast,hashlib,json,os,stat,time,re,struct,zlib,sqlite3,itertools
++from collections.abc import Mapping
+ from pathlib import Path
+-AUTHOR=Path('/workspace/hia-patch-terminal-quarantine-qualification-terminal-reader-r2-dda7')
++AUTHOR=Path('/workspace/hia-patch-terminal-quarantine-qualification-terminal-reader-r3-dda7')
+ SCOPE=Path('/workspace/hia-patch-terminal-quarantine-qualification-r2-dda7')
+ OUTER=Path('/workspace/hia-patch-terminal-quarantine-qualification-outer-r2-dda7')
+-OUTPUT=Path('/workspace/hia-patch-terminal-quarantine-qualification-terminal-actual-r2-dda7')
++OUTPUT=Path('/workspace/hia-patch-terminal-quarantine-qualification-terminal-actual-r3-dda7')
+ TREE='b4f7d4862d6b391781808d603547ce3a504ffc83'
+ SCHEMA='hepta.hia.patch-terminal.qualification.v1'
+ SUCCESS='PASS_ALL_SIX_EXPLICIT_COHORTS_AND_EIGHT_DEVELOPMENT_BUILDS'
+@@ -15,7 +16,7 @@
+ FRAME_NAMES=tuple(a+'_'+b for a in('source','output','workspace')for b in('before','after'))
+ FIELDS=('st_dev','st_ino','st_mode','st_size','st_mtime_ns','st_ctime_ns','st_nlink')
+ LIMITS={'cleanup_seconds':3,'compile_seconds':20,'native_capacity':1048576,'owner_seconds':180,'vm_call_depth':128,'vm_heap':8388608,'vm_steps':10000000}
+-READS=0;BYTES=0;SEEN={};OBSERVED_READS=[]
++READS=0;BYTES=0;SEEN=None;OBSERVED_READS=None;LEDGER=None
+ 
+ def require(v,m):
+     if not v:raise AssertionError(m)
+@@ -65,7 +66,7 @@
+ 
+ 
+ def metadata(root):
+-    root=Path(root);out={'.':seven(root.lstat())};require(stat.S_ISDIR(out['.']['st_mode']),'ordinary root required')
++    root=Path(root);out=LEDGER.mapping('physical-path-state');out['.']=seven(root.lstat());require(stat.S_ISDIR(out['.']['st_mode']),'ordinary root required')
+     def walk(p,prefix):
+         for e in sorted(os.scandir(p),key=lambda x:x.name):
+             s=e.stat(follow_symlinks=False);name=prefix+e.name
+@@ -108,18 +109,183 @@
+         require({'path':r['path'],'dev':s.st_dev,'ino':s.st_ino,'mode':s.st_mode,'uid':s.st_uid,'gid':s.st_gid}==r,'ancestor authority changed')
+ 
+ 
++class Ledger:
++    """Private metadata only. No input payload is cached or returned by this index."""
++    def __init__(self,root):
++        self.root=Path(root);self.db_path=self.root/'BOOKKEEPING.sqlite'
++        fd=os.open(self.db_path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
++        os.close(fd)
++        self.db=sqlite3.connect(str(self.db_path))
++        self.db.execute('PRAGMA journal_mode=DELETE')
++        self.db.execute('PRAGMA synchronous=FULL')
++        self.db.execute('PRAGMA temp_store=FILE')
++        self.db.execute('PRAGMA mmap_size=0')
++        self.db.execute('PRAGMA cache_size=-8192')
++        self.db.execute('CREATE TABLE collections (id INTEGER PRIMARY KEY, label TEXT NOT NULL)')
++        self.db.execute('CREATE TABLE records (collection INTEGER NOT NULL, key TEXT NOT NULL, ordinal INTEGER NOT NULL, value TEXT NOT NULL, PRIMARY KEY (collection,key), UNIQUE(collection,ordinal))')
++        self.db.commit();self.next_collection=0;self.pending=0;self.read_count=0
++        self.read_log_path=self.root/'FULL-READS.jsonl'
++        self.read_log=self.read_log_path.open('xb',buffering=65536)
++        self.read_log_bytes=0;self.read_log_sha=hashlib.sha256()
++    def change(self):
++        self.pending+=1
++        if self.pending>=2048:
++            self.db.commit();self.read_log.flush();self.pending=0
++    def collection(self,label):
++        self.next_collection+=1
++        self.db.execute('INSERT INTO collections VALUES (?,?)',(self.next_collection,label))
++        self.change();return self.next_collection
++    def mapping(self,label,*,full_reads=False):return DiskMap(self,label,full_reads=full_reads)
++    def sequence(self,label):return DiskSequence(self,label)
++    def record_read(self,row):
++        raw=(json.dumps({'ordinal':self.read_count,'descriptor':row},sort_keys=True)+'\n').encode()
++        self.read_log.write(raw);self.read_log_bytes+=len(raw);self.read_log_sha.update(raw);self.read_count+=1
++    def close_and_capture(self):
++        self.db.commit();self.db.close();self.read_log.flush();self.read_log.close()
++        records=[]
++        for path in (self.db_path,self.read_log_path):
++            descriptor=stream_file_pin(path)
++            if path==self.read_log_path:
++                require(descriptor['pin']['bytes']==self.read_log_bytes
++                    and descriptor['pin']['sha256']==self.read_log_sha.hexdigest(),
++                    'complete fresh-read ledger independent full-byte readback differs')
++            records.append(descriptor)
++        return {'files':records,'metadata_collections':self.next_collection,
++            'fresh_read_rows':self.read_count,'sqlite_cache_kib':8192,'sqlite_mmap_bytes':0,
++            'input_payload_cache':False,'metadata_only':True}
++
++
++class DiskMap(Mapping):
++    def __init__(self,ledger,label,*,full_reads=False):
++        self.ledger=ledger;self.collection=ledger.collection(label);self.size=0;self.full_reads=full_reads
++    def __len__(self):return self.size
++    def __iter__(self):
++        for row in self.ledger.db.execute('SELECT key FROM records WHERE collection=? ORDER BY ordinal',(self.collection,)):
++            yield row[0]
++    def __contains__(self,key):
++        return self.ledger.db.execute('SELECT 1 FROM records WHERE collection=? AND key=?',(self.collection,key)).fetchone()is not None
++    def __getitem__(self,key):
++        row=self.ledger.db.execute('SELECT value FROM records WHERE collection=? AND key=?',(self.collection,key)).fetchone()
++        if row is None:raise KeyError(key)
++        return decode(row[0])
++    def __setitem__(self,key,value):
++        require(type(key)is str,'disk metadata key must be an exact string')
++        raw=json.dumps(value,sort_keys=True,separators=(',',':'))
++        old=self.ledger.db.execute('SELECT ordinal FROM records WHERE collection=? AND key=?',(self.collection,key)).fetchone()
++        if old is None:
++            self.ledger.db.execute('INSERT INTO records VALUES (?,?,?,?)',(self.collection,key,self.size,raw));self.size+=1
++        else:self.ledger.db.execute('UPDATE records SET value=? WHERE collection=? AND key=?',(raw,self.collection,key))
++        if self.full_reads:self.ledger.record_read(value)
++        self.ledger.change()
++    def items(self):
++        for key,raw in self.ledger.db.execute('SELECT key,value FROM records WHERE collection=? ORDER BY ordinal',(self.collection,)):
++            yield key,decode(raw)
++    def sorted_items(self):
++        for key,raw in self.ledger.db.execute('SELECT key,value FROM records WHERE collection=? ORDER BY key COLLATE BINARY',(self.collection,)):
++            yield key,decode(raw)
++    def values(self):
++        for row in self.ledger.db.execute('SELECT value FROM records WHERE collection=? ORDER BY ordinal',(self.collection,)):
++            yield decode(row[0])
++    def __eq__(self,other):
++        if not isinstance(other,Mapping):return False
++        if len(self)!=len(other):return False
++        return all(key in other and value==other[key]for key,value in self.items())
++    def __ne__(self,other):return not self==other
++
++
++class DiskSequence:
++    def __init__(self,ledger,label):self.rows=ledger.mapping(label)
++    def __len__(self):return len(self.rows)
++    def __iter__(self):return self.rows.values()
++    def append(self,value):self.rows[str(len(self.rows))]=value
++    def extend(self,values):
++        for value in values:self.append(value)
++
++
++class DiskSet:
++    def __init__(self,ledger,label):self.rows=ledger.mapping(label)
++    def __contains__(self,key):return key in self.rows
++    def add(self,key):
++        if key not in self.rows:self.rows[key]=True
++
++
++class StreamValues:
++    def __init__(self,mapping):self.mapping=mapping
++    def __len__(self):return len(self.mapping)
++    def __iter__(self):return self.mapping.values()
++
++
++def sequence_equal(left,right):
++    sentinel=object()
++    for a,b in itertools.zip_longest(left,right,fillvalue=sentinel):
++        if a is sentinel or b is sentinel or a!=b:return False
++    return True
++
++
++def json_chunks(value,level=0,*,allow_nan=True):
++    """Exact original sort_keys=True/indent=2 formatting, including nested disk views."""
++    if isinstance(value,Mapping):
++        if not value:yield '{}';return
++        yield '{'
++        items=value.sorted_items()if isinstance(value,DiskMap)else sorted(value.items())
++        for i,(key,item)in enumerate(items):
++            require(type(key)is str,'report JSON object keys must be exact strings')
++            yield (','if i else'')+'\n'+'  '*(level+1)
++            yield json.dumps(key);yield ': '
++            yield from json_chunks(item,level+1,allow_nan=allow_nan)
++        yield '\n'+'  '*level+'}'
++    elif isinstance(value,(list,tuple,DiskSequence,StreamValues)):
++        if not len(value):yield '[]';return
++        yield '['
++        for i,item in enumerate(value):
++            yield (','if i else'')+'\n'+'  '*(level+1)
++            yield from json_chunks(item,level+1,allow_nan=allow_nan)
++        yield '\n'+'  '*level+']'
++    else:
++        yield json.dumps(value,sort_keys=True,indent=2,allow_nan=allow_nan)
++
++
++def stream_json_pin(value,*,allow_nan=True):
++    length=0;first=hashlib.sha256()
++    for text in json_chunks(value,allow_nan=allow_nan):
++        raw=text.encode();length+=len(raw);first.update(raw)
++    length+=1;first.update(b'\n');second=hashlib.sha256()
++    git=hashlib.sha1(b'blob '+str(length).encode()+b'\0');count=0
++    for text in json_chunks(value,allow_nan=allow_nan):
++        raw=text.encode();count+=len(raw);second.update(raw);git.update(raw)
++    count+=1;second.update(b'\n');git.update(b'\n')
++    require(count==length and second.digest()==first.digest(),'streamed ordered JSON metadata changed between passes')
++    return {'bytes':length,'sha256':second.hexdigest(),'git_blob':git.hexdigest()}
++
++
++def stream_file_pin(path):
++    path=Path(path);fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK)
++    try:
++        s=os.fstat(fd);before=seven(s)
++        require(stat.S_ISREG(s.st_mode)and s.st_nlink==1 and before==seven(path.lstat()),'ordinary held/named ledger file required')
++        length=0;sha=hashlib.sha256();git=hashlib.sha1(b'blob '+str(s.st_size).encode()+b'\0')
++        while True:
++            raw=os.read(fd,1048576)
++            if not raw:break
++            length+=len(raw);sha.update(raw);git.update(raw)
++        require(length==s.st_size and before==seven(os.fstat(fd))==seven(path.lstat()),'complete ledger output changed around independent stream read')
++    finally:os.close(fd)
++    return {'path':str(path),'pin':{'bytes':length,'sha256':sha.hexdigest(),'git_blob':git.hexdigest(),
++        'mode':'100755'if s.st_mode&0o111 else'100644'},'stat':before}
++
++
+ def publish(path,value):
+     # Same JSONEncoder options, ordering, indentation and trailing LF as R1.
+     # Count the exact encoding before creation so the Git header is known.
+     expected_bytes=0;expected_sha=hashlib.sha256()
+-    for text in json.JSONEncoder(sort_keys=True,indent=2).iterencode(value):
++    for text in json_chunks(value):
+         chunk=text.encode();expected_bytes+=len(chunk);expected_sha.update(chunk)
+     expected_bytes+=1;expected_sha.update(b'\n')
+     written_bytes=0;written_sha=hashlib.sha256()
+     written_git=hashlib.sha1(b'blob '+str(expected_bytes).encode()+b'\0')
+     fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o644)
+     with os.fdopen(fd,'wb')as stream:
+-        for text in json.JSONEncoder(sort_keys=True,indent=2).iterencode(value):
++        for text in json_chunks(value):
+             chunk=text.encode();stream.write(chunk);written_bytes+=len(chunk)
+             written_sha.update(chunk);written_git.update(chunk)
+         stream.write(b'\n');written_bytes+=1;written_sha.update(b'\n');written_git.update(b'\n')
+@@ -376,11 +542,11 @@
+ 
+ 
+ def frames_readback(attempt,images,vm_buffers=None):
+- journals=[];referenced=set();decoded={}
++ journals=LEDGER.sequence('native-journal-summaries');referenced=DiskSet(LEDGER,'native-referenced-buffers');decoded=LEDGER.mapping('native-decoded-physical-metadata')
+  for frames in sorted(attempt.rglob('frames')):
+   require(frames.is_dir()and not frames.is_symlink(),'invalid frames directory');journal=frames.parent;entries=sorted(frames.iterdir());require(all(re.fullmatch(r'[0-9]{8}-(BEFORE|AFTER)\.json',p.name)for p in entries),'unknown frame file')
+   starts=[p for p in entries if p.name.endswith('-BEFORE.json')];require([int(p.name[:8])for p in starts]==list(range(len(starts))),'frame starts not contiguous');afters={int(p.name[:8])for p in entries if p.name.endswith('-AFTER.json')};require(afters<=set(range(len(starts))),'AFTER without BEFORE')
+-  rows=[];complete=0;unknown=[];missing=[]
++  rows=LEDGER.sequence('native-after-records:'+str(journal));complete=0;unknown=[];missing=[]
+   for i,bp in enumerate(starts):
+    before,bdesc,_=jsread(bp,'frame-BEFORE');require(before['index']==i and before['returned']is False and before['image_sha256']in images,'BEFORE/image identity differs');spans={}
+    for name in('source_before','output_before','workspace_before'):
+@@ -403,12 +569,12 @@
+    rows.append(after)
+   ip=journal/'INDEX.json';index_desc=None
+   if ip.exists():
+-   idx,index_desc,_=jsread(ip,'journal-INDEX');require(idx['frames']==rows and idx['started_calls']==len(starts)and idx['complete_calls']==len(rows),'INDEX differs from actual frame records')
++   idx,index_desc,_=jsread(ip,'journal-INDEX');require(sequence_equal(idx['frames'],rows) and idx['started_calls']==len(starts)and idx['complete_calls']==len(rows),'INDEX differs from actual frame records')
+    if'image_sha256'in idx:require(idx['image_sha256']in images,'INDEX image differs')
+    if'all_complete'in idx:require(idx['all_complete']==(not missing),'INDEX completeness differs')
+    if'all_source_unchanged'in idx:require(idx['all_source_unchanged']==all(x.get('source_unchanged')is True for x in rows),'INDEX source assertion differs')
+   journals.append({'path':str(journal),'actual_started_calls':len(starts),'actual_after_records':len(rows),'actual_full_returned_calls':complete,'index':index_desc,'missing':missing,'unreturned':unknown,'all_frames_retired':False})
+- orphans=[]
++ orphans=LEDGER.sequence('native-orphan-metadata')
+  for buffers in sorted(attempt.rglob('buffers')):
+   if vm_buffers is not None and buffers==vm_buffers:continue
+   require(buffers.is_dir()and not buffers.is_symlink(),'invalid buffer directory')
+@@ -416,7 +582,7 @@
+    require(re.fullmatch(r'[0-9a-f]{64}\.zlib',path.name),'invalid buffer object name')
+    if str(path)in referenced:continue
+    compressed,desc=observed_read(path,'orphan-buffer-compressed',maximum=path.lstat().st_size);stream=zlib.decompressobj();raw=stream.decompress(compressed);require(stream.eof and not stream.unused_data and not stream.unconsumed_tail,'orphan zlib incomplete');identity=physical_pin(raw);require(identity['sha256']==path.stem,'orphan full bytes differ from filename');orphans.append({'compressed':desc,'decoded':identity,'reference_missing':True})
+- return {'journals':journals,'actual_calls':sum(x['actual_started_calls']for x in journals),'actual_full_returned_calls':sum(x['actual_full_returned_calls']for x in journals),'unfinalized_journals':[x['path']for x in journals if x['index']is None],'decoded_physical_objects':list(decoded.values()),'orphan_objects':orphans,'all_frames_retired':False,'every_reference_fresh_read':True,'result_cache_used':False,'VM_execution':0}
++ return {'journals':journals,'actual_calls':sum(x['actual_started_calls']for x in journals),'actual_full_returned_calls':sum(x['actual_full_returned_calls']for x in journals),'unfinalized_journals':[x['path']for x in journals if x['index']is None],'decoded_physical_objects':StreamValues(decoded),'orphan_objects':orphans,'all_frames_retired':False,'every_reference_fresh_read':True,'result_cache_used':False,'VM_execution':0}
+ 
+ 
+ def physical_pin(raw,mode='100644'):
+@@ -637,25 +803,26 @@
+     stage=next(r for r in stages['stages']if r['label']=='patch-vm12')
+     directory=Path(stage['directory']);successful=stage['status']=='PASS'
+     predecessor=stages['predecessor'];value=decode(observed_fixed(predecessor,'VM-actual-native-predecessor'))
+-    native_directory=Path(value['directory']);native_state=decode(observed_fixed(value['state'],'native-predecessor-state'))
++    native_directory=Path(value['directory']);native_state=LEDGER.mapping('VM-native-predecessor-state')
++    for key,entry in decode(observed_fixed(value['state'],'native-predecessor-state')).items():native_state[key]=entry
+     require(native_directory==Path(bound['attempt'])/'06-patch-native12'
+         and value['schema']==SCHEMA+'.actual-native-predecessor'
+         and value['source_map']==bound['source_map']and value['source_state']==bound['source_state']
+         and value['every_original_file_retained']is True and value['all_frames_retired']is False
+         and metadata(native_directory)==native_state,'actual Native12 complete snapshot differs')
+-    native_rows=[]
++    native_rows=LEDGER.sequence('complete-VM-native-predecessor-rows')
+     for shard in value['shards']:
+         raw=observed_fixed(shard,'native-predecessor-shard');require(len(raw)<=4<<20,'original 4 MiB predecessor shard cap differs')
+         native_rows.extend(decode(raw))
+-    ordered=(json.dumps(native_rows,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()
+-    require(len(native_rows)==value['files']and physical_pin(ordered)==value['ordered_rows_pin']
+-        and [r['path']for r in native_rows]==[str(native_directory/n)for n,s in sorted(native_state.items())if stat.S_ISREG(s['st_mode'])],
++    ordered_identity={**stream_json_pin(native_rows,allow_nan=False),'mode':'100644'}
++    require(len(native_rows)==value['files']and ordered_identity==value['ordered_rows_pin']
++        and sequence_equal((r['path']for r in native_rows),(str(native_directory/n)for n,s in native_state.sorted_items()if stat.S_ISREG(s['st_mode']))),
+         'complete ordered Native12 snapshot differs')
+     for row in native_rows:
+         require(row['stat']==native_state[str(Path(row['path']).relative_to(native_directory))],'snapshot row stat differs')
+         observed_fixed(row,'complete-VM-native-predecessor')
+     image=stages['components']['patch']['image']['pin']['sha256']
+-    journals=[];other=[];all_rows=[];inputs=[]
++    journals=[];other=[];all_rows=LEDGER.sequence('VM-all-native-catalog-rows');inputs=[]
+     for descriptor in native_rows:
+         path=Path(descriptor['path'])
+         if path.name!='INDEX.json':continue
+@@ -692,8 +859,11 @@
+         'lost-claim':lambda r:r['case']=='lost-claim'and r['command']==2 and r['result']==4}
+     selected={}
+     for key in VM_KEYS:
+-        matches=[row for row in all_rows if predicates[key](row['frame'])]
+-        require(matches,'missing original actual Native predicate: '+key);selected[key]=matches[0]
++        first=None
++        for row in all_rows:
++            matches=predicates[key](row['frame'])
++            if matches and first is None:first=row
++        require(first is not None,'missing original actual Native predicate: '+key);selected[key]=first
+     require(catalog=={'schema':'hepta.hia.patch-result.native-vm-catalog.v1','selection_order':list(VM_KEYS),
+         'selected':selected,'inputs':inputs,'image_sha256':image,'actual_native_frames':len(all_rows),
+         'selected_frames':12,'max_steps':10000000,'heap_bytes':8388608,'call_depth':128,
+@@ -705,7 +875,7 @@
+     found={p.stem:p for p in root.glob('*.json')if p.name!='INDEX.json'}
+     require(set(found)<=set(VM_KEYS),'unknown VM observation')
+     if successful:require(set(found)==set(VM_KEYS),'original twelve VM records required')
+-    references=set();decoded={};rows=[];reference_reads=0
++    references=DiskSet(LEDGER,'VM-referenced-buffers');decoded=LEDGER.mapping('VM-decoded-physical-metadata');rows=[];reference_reads=0
+     for key in VM_KEYS:
+         if key not in found:continue
+         row=decode(read(found[key]));chosen=selected[key];native=chosen['frame'];same=True;actual_spans={}
+@@ -734,7 +904,7 @@
+             'observations':rows,'max_steps_per_frame':10000000,'all_native_frames_replayed':False},
+             'VM final INDEX differs from all actual ordered observations')
+     else:require(not successful,'successful VM lacks final INDEX')
+-    vm_orphans=[]
++    vm_orphans=LEDGER.sequence('VM-orphan-metadata')
+     for path in sorted((root/'buffers').iterdir()):
+         require(re.fullmatch(r'[0-9a-f]{64}\.zlib',path.name),'invalid VM physical buffer member')
+         if str(path)in references:continue
+@@ -753,7 +923,7 @@
+     result.update(actual_vm_observations=len(rows),complete_selected_equal=successful,
+         original_native_snapshot_files=len(native_rows),original_native_frames=len(all_rows),
+         catalog_first_match_predicates_complete=True,buffer_reference_reads=reference_reads,
+-        physical_buffers=list(decoded.values()),orphan_buffers=vm_orphans)
++        physical_buffers=StreamValues(decoded),orphan_buffers=vm_orphans)
+     return result
+ 
+ def frame_reports_readback(parent,frames):
+@@ -830,10 +1000,13 @@
+     return result
+ 
+ def verify_terminal(plan_path,expected_sha,output):
++    global SEEN,OBSERVED_READS,LEDGER
+     started=time.monotonic_ns()
+     require(plan_path==AUTHOR/'READBACK-PLAN.json'and output==OUTPUT and not os.path.lexists(output),
+         'fixed independent plan and new output required')
+     output.mkdir(mode=0o700)
++    LEDGER=Ledger(output);SEEN=LEDGER.mapping('unique-input-descriptors',full_reads=True)
++    OBSERVED_READS=LEDGER.sequence('ordered-observation-reads')
+     report={'schema':'hepta.hia.patch-terminal.independent-terminal-result.v1','status':'FAIL',
+         'product_execution':0,'project_imports':0,'binder_execution':0,'source_copy':False,
+         'all_frames_retired':False,'full_compile_workspaces_observed':False,'whole_native':False,
+@@ -861,9 +1034,9 @@
+         frames=frames_readback(attempt,images,vm_buffer_root)
+         frame_reports=frame_reports_readback(parent,frames)
+         vm=vm_readback(bound,stage_result,parent)
+-        raw_inventory=[]
++        raw_inventory=LEDGER.sequence('complete-actual-raw-inventory')
+         for prefix,root,original in (('attempt',attempt,initial_attempt),('outer',OUTER,initial_outer)):
+-            for relative,s in sorted(original.items()):
++            for relative,s in original.sorted_items():
+                 if not stat.S_ISREG(s['st_mode']):continue
+                 path=root/relative;read(path,expected_stat=s)
+                 raw_inventory.append({'logical':prefix+'/'+relative,**SEEN[str(path)]})
+@@ -923,9 +1096,12 @@
+     finally:
+         report.update(finished_ns=time.monotonic_ns(),fresh_full_reads=READS,fresh_full_bytes=BYTES,
+             unique_input_paths=len(SEEN),every_reference_fresh=True,result_cache_used=False)
+-        publish(output/'READ-INPUTS.json',list(SEEN.values()))
++        publish(output/'READ-INPUTS.json',StreamValues(SEEN))
+         with (output/'OBSERVATION-READS.jsonl').open('xb')as stream:
+             for row in OBSERVED_READS:stream.write((json.dumps(row,sort_keys=True)+'\n').encode())
++        require(LEDGER.read_count==READS,'complete full-read ledger row count differs')
++        report['disk_bookkeeping']=LEDGER.close_and_capture()
++        report['input_payload_cache_used']=False
+         publish(output/'RESULT.json',report)
+     return 0 if report['status']in('PASS_COMPLETE_QUALIFICATION_TERMINAL_READBACK','PASS_FAILURE_EVIDENCE_VERIFIED')else 1
+ 

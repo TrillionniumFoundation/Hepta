@@ -1,0 +1,48 @@
+--- before/hepta/hia_verified_report_native.py
++++ overlay/hepta/hia_verified_report_native.py
+@@ -173,3 +173,16 @@
+         frame = self.prepare('report', (method.__self__,))
+         method = None
+         return self.finish(frame)
++
++    def invoke_bound_as_dict(self, method):
++        # The caller already made its original .as_dict lookup. Preserve a
++        # foreign callable as the actual operand, without a second lookup or
++        # probing its metadata. The exact original method uses existing mode 6.
++        original = self._definitions['as_dict']
++        if (_TYPE(method) is not MethodType or method.__func__ is not original[1]
++                or original[1].__code__ is not original[2]
++                or not self._ordinary_attribute(method.__self__, 'as_dict')):
++            return (method, (method := None))[0]()
++        frame = self.prepare('as_dict', (method.__self__,))
++        method = None
++        return self.finish(frame)
+--- before/hepta/hia_cli_verified_report_native.py
++++ overlay/hepta/hia_cli_verified_report_native.py
+@@ -88,6 +88,15 @@
+                 current = held_session()
+                 if current is None:
+                     raise RuntimeError('verified-report CLI session is no longer live')
++                if operation == 8:
++                    # Keep the original effect prefix and its temporary method
++                    # owners. A discovery capability retains its own legacy port.
++                    if current.discovery_permission is not None:
++                        return current.discovery_permission.consume_legacy_port(current, operation, a, b, c, d)
++                    value, register, field, argument = current.value, current.register, current.field, current.argument
++                    zero = (0, 0, 0)
++                    result = report_owner.invoke_bound_as_dict(value(a).as_dict)
++                    return register(result), 0, 0
+                 if operation != 9 or current.discovery_permission is not None:
+                     return _ORIGINAL_EFFECT(current, operation, a, b, c, d)
+                 result = report_owner.invoke_bound_report(current.value(a).report)
+--- before/hepta/hia_optional_profiles.py
++++ overlay/hepta/hia_optional_profiles.py
+@@ -18,7 +18,7 @@
+ # This explicit release compatibility anchor binds the actual authored report adapters.
+ # It is independent of a selected image manifest. It excludes this file itself
+ # to avoid a self-referential digest; current-cold closure binds this file too.
+-VERIFIED_REPORT_HOST_PINS = {'hepta/hia_program.py': '858cfa25387af02d54dad96f63f51652fb1eb2f92341411cc35a23bf22b68c84', 'hepta/hia_schema.py': 'b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253', 'hepta/hia_opcodes.py': 'c95b050174d8b08a5af61b50bf21e5af87d6dbd154d0a242c4c01c170b56d217', 'hepta/hia_front_runtime.py': '59161c439b2382c22b04ccb0321cde50e48990d0428beea74cedc17b30351059', 'hepta/hia_front_continuation.py': 'd0a429525404a15cedf9c14cdeabca49ed1029d7e866e89acf77a63871f4c9e0', 'hepta/hia_exception_delivery.py': '65c61a71fa90c2a757fc24aef8eca5e36af6e6b355d2537c63345e98f8d338d2', 'hepta/hia_json_preflight_native.py': '73034735b8c4cc012c6c66c3efaff059018bfba7378dfd87065a619709663664', 'hepta/hia_machine_transport.py': '385ff8acf769fd1a3b7c004ca1986812639d66fd09aa0452f4e3b6fcc3025905', 'hepta/hia_verified_report_native.py': '76ccaee0b457cb9d0abe6606a0f8aa60e6813a1aaf66bc065ae0a853fb5690f2', 'hepta/hia_verified_report_ports.py': 'c95cca6b49db860c86c5e175ab4e4c205515dd87bf31804624d2f3ae30c9c465', 'hepta/hia_cli_verified_report_native.py': 'a98703b045c25a7cd293789aa950f569a059f19d87608d65ec3d9e5a2bb0b55b'}
++VERIFIED_REPORT_HOST_PINS = {'hepta/hia_program.py': '858cfa25387af02d54dad96f63f51652fb1eb2f92341411cc35a23bf22b68c84', 'hepta/hia_schema.py': 'b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253', 'hepta/hia_opcodes.py': 'c95b050174d8b08a5af61b50bf21e5af87d6dbd154d0a242c4c01c170b56d217', 'hepta/hia_front_runtime.py': '59161c439b2382c22b04ccb0321cde50e48990d0428beea74cedc17b30351059', 'hepta/hia_front_continuation.py': 'd0a429525404a15cedf9c14cdeabca49ed1029d7e866e89acf77a63871f4c9e0', 'hepta/hia_exception_delivery.py': '65c61a71fa90c2a757fc24aef8eca5e36af6e6b355d2537c63345e98f8d338d2', 'hepta/hia_json_preflight_native.py': '73034735b8c4cc012c6c66c3efaff059018bfba7378dfd87065a619709663664', 'hepta/hia_machine_transport.py': '385ff8acf769fd1a3b7c004ca1986812639d66fd09aa0452f4e3b6fcc3025905', 'hepta/hia_verified_report_native.py': 'a87575f2e1cc06c39e8cad8a665c3c64fad8193f4613cc8646061cb029a2b2c9', 'hepta/hia_verified_report_ports.py': 'c95cca6b49db860c86c5e175ab4e4c205515dd87bf31804624d2f3ae30c9c465', 'hepta/hia_cli_verified_report_native.py': 'a97d08e13ac2bc3af4660f36c6507af76116d3837883059a360b88c0eb708219'}
+ 
+ OPTIONAL_PROFILE_FILES = {'hepta.hia.core-representation.v1': ('examples/hia_bootstrap/assembly_reparse.hepta', 'examples/hia_bootstrap/core_representation_internal.hepta', 'examples/hia_bootstrap/core_representation_private.hepta'), 'hepta.hia.linux-file-roundtrip.v2': ('examples/hia_bootstrap/selfhost_linux_file_roundtrip.hepta', 'examples/hia_bootstrap/linux_file_roundtrip_entry_packer.hepta', 'examples/hia_bootstrap/native_file_roundtrip.hepta', 'examples/hia_bootstrap/core_representation_private.hepta', 'examples/hia_bootstrap/file_render_checker_v4.hepta'), 'hepta.hia.cli-verified-report-bundle.v2': ('examples/hia_bootstrap/verified_report.hepta',)}
+ 

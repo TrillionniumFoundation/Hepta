@@ -1,0 +1,16 @@
+{
+  "patches": [
+    {
+      "after": "        require(ended.st_nlink == named.st_nlink, 'collection source link count changed after capture')\n        if method == 'stream-copy-after-gate':\n",
+      "before": "        if method == 'stream-copy-after-gate':\n"
+    },
+    {
+      "after": "                'transport': method, 'stat_after': stamp(ended), 'nlink_after': ended.st_nlink}\n",
+      "before": "                'transport': method, 'stat_after': stamp(ended)}\n"
+    },
+    {
+      "after": "            row = {'path': logical, 'mode': stat.S_IMODE(before.st_mode), 'stat_before': stamp(before),\n                   'nlink_before': before.st_nlink}\n",
+      "before": "            row = {'path': logical, 'mode': stat.S_IMODE(before.st_mode), 'stat_before': stamp(before)}\n"
+    }
+  ]
+}

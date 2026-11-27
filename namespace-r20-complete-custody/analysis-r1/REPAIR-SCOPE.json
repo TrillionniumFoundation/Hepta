@@ -1,0 +1,1370 @@
+{
+  "conclusion": "The existing call-local admission already removes repeated admission inside each public Store call. No safe and sufficiently fast product patch follows from these observations alone.",
+  "deadline": {
+    "admission_overhead_outside_fresh_ns": 144837206,
+    "complete_span_totals": {
+      "client-stage": {
+        "calls": 3,
+        "wall_ns": 2326812958
+      },
+      "code-admission": {
+        "calls": 47,
+        "wall_ns": 2990008460
+      },
+      "fresh-admission": {
+        "calls": 47,
+        "wall_ns": 2845171254
+      },
+      "public-store": {
+        "calls": 47,
+        "wall_ns": 3214414245
+      },
+      "publication-effect": {
+        "calls": 112,
+        "wall_ns": 117299469
+      },
+      "service": {
+        "calls": 34,
+        "wall_ns": 3340341042
+      },
+      "subprocess": {
+        "calls": 112,
+        "wall_ns": 100156729
+      },
+      "tool-call": {
+        "calls": 4,
+        "wall_ns": 2326703648
+      }
+    },
+    "current_mean_fresh_ns": 60535558.595744684,
+    "fresh_reduction_fraction_lower_bound": 0.1906339357384777,
+    "gap_ns": 542386194,
+    "logical_fresh_bytes": 2755952865,
+    "maximum_mean_fresh_at_exact_deadline_ns": 48995426.80851064,
+    "nested_totals_must_not_be_added": true,
+    "required_mean_fresh_saving_ns": 11540131.787234042,
+    "scope": "First remaining-time check only. First compile, second emission and encoding were not reached; no complete-method success estimate.",
+    "timeline": {
+      "budget": {
+        "cost_policy": {
+          "id": "a-b3ef5fa6acb04751b0a6797190ea87e3",
+          "sha256": "8432bf9f24bc4ff5281ae068a76234ddd6a41425c013a3d4151471398275d4ca",
+          "uri": "hia://artifacts/04aa5544f2454aec8881775630f26717"
+        },
+        "max_candidates": 128,
+        "max_memory_bytes": "536870912",
+        "max_model_tokens": 0,
+        "max_native_wall_ms": 1000,
+        "max_total_wall_ms": 3000
+      },
+      "complete_fresh_scans_after_created_before_remaining": 47,
+      "context_id": "ctx-576583d74cbb4914b2087e3850fe3142",
+      "created_ns": 1794639939897485506,
+      "created_to_first_emit_ns": 2334575936,
+      "created_to_remaining_zero_ns": 3542386194,
+      "first_emit_start_wallclock_ns": 1794639942232061442,
+      "remaining_check_start_wallclock_ns": 1794639943439871700,
+      "remaining_ms": 0,
+      "source_of_created_ns": "unchanged stored value read by the two original diagnostic SELECT observers",
+      "those_fresh_spans_wall_ns": 2845171254
+    },
+    "total_reduction_fraction_lower_bound": 0.15311323054461973
+  },
+  "excluded": [
+    "cross-public-call memo/cache",
+    "prior rejected memo R1/R2/R3 or renamed carrier",
+    "manifest pruning or previous cold hashes",
+    "hoisted mutable provider/SHA binding",
+    "read/hash reordering, parallel batch or hashing before close",
+    "memoryview/mmap replacing the bytes argument",
+    "one admission per Session instead of public Store call",
+    "changing created_ns or deadlines",
+    "_sha2 provider substitution"
+  ],
+  "inputs": {
+    "case": {
+      "bytes": 1441664,
+      "git_blob": "121e6ebaf9ac58ab49b3e27c7b3ca21623ab1599",
+      "path": "/workspace/scratch/dda74a4fae35/v131-namespace-r20-phase-r1/actual/raw/Hepta/Hepta/evidence/case-0/observations/REPORT.json",
+      "sha256": "23751d6e073acad5aaf0ba3e947a6ff4501261ed1b209c3deb349473b676f251"
+    },
+    "manifest": {
+      "bytes": 842688,
+      "git_blob": "9094a23b34d332dd115c79371b9400c3a34573bc",
+      "path": "/workspace/scratch/dda74a4fae35/v131-namespace-r20-phase-r1/prepared-r2/harness/inputs/SOURCE-MANIFEST.json",
+      "sha256": "2ac3e2566fe846536833bf1f4fc907f86d86e6e3c7cc1cd20fced275f0db205d"
+    },
+    "old_components": {
+      "bytes": 40880,
+      "git_blob": "fb44d09c3b3f8e3d603ba25df5cd3fe495db9f0c",
+      "path": "/workspace/scratch/dda74a4fae35/v94-native-namespace-budget-r1/ci-components-r1/actual/raw/evidence/REPORT.json",
+      "sha256": "9dfea070a7643632b0f60cd8e58799182a8652a9475d972f977cc867acca652e"
+    },
+    "old_guard": {
+      "bytes": 38421,
+      "git_blob": "63f0b424004d5d410a3fb12867236792f62da90f",
+      "path": "/workspace/scratch/dda74a4fae35/v94-native-namespace-budget-r1/ci-guard-r2/actual/raw/evidence/REPORT.json",
+      "sha256": "1f5abdec84c6bc14b4882ec8eb675d237775293ace4eb1830d7b9c34fffe01df"
+    },
+    "old_memo": {
+      "bytes": 2917,
+      "git_blob": "1c10f8c78ad4d781d9820eb521ee16e549dd7eb0",
+      "path": "/workspace/scratch/dda74a4fae35/v94-native-namespace-budget-r1/memo-handoff-r1/SUMMARY.json",
+      "sha256": "2b9a2781ae379bae7dbbcec22a3132c759df7e6c994ebc6ea0bf0b9c3e69d6bf"
+    },
+    "readback": {
+      "bytes": 22920,
+      "git_blob": "91ea846fa417cf1e303695401704551e2b21ab7c",
+      "path": "/workspace/scratch/dda74a4fae35/v131-namespace-r20-phase-r1/actual/ACTUAL-READBACK.json",
+      "sha256": "261ba1a7cf9ea5fc8545e318d514d137f38204b40682fa7064105fd12d4a5d9b"
+    }
+  },
+  "job": 132370075133,
+  "new_experiments": [],
+  "old_results_not_rerun": {
+    "capabilities": {
+      "OPENSSL_ia32cap": null,
+      "available_cpus": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "cpu_count": 4,
+      "cpu_flag_sets": [
+        [
+          "fpu",
+          "vme",
+          "de",
+          "pse",
+          "tsc",
+          "msr",
+          "pae",
+          "mce",
+          "cx8",
+          "apic",
+          "sep",
+          "mtrr",
+          "pge",
+          "mca",
+          "cmov",
+          "pat",
+          "pse36",
+          "clflush",
+          "mmx",
+          "fxsr",
+          "sse",
+          "sse2",
+          "ht",
+          "syscall",
+          "nx",
+          "mmxext",
+          "fxsr_opt",
+          "pdpe1gb",
+          "rdtscp",
+          "lm",
+          "constant_tsc",
+          "rep_good",
+          "nopl",
+          "tsc_reliable",
+          "nonstop_tsc",
+          "cpuid",
+          "extd_apicid",
+          "aperfmperf",
+          "tsc_known_freq",
+          "pni",
+          "pclmulqdq",
+          "ssse3",
+          "fma",
+          "cx16",
+          "pcid",
+          "sse4_1",
+          "sse4_2",
+          "movbe",
+          "popcnt",
+          "aes",
+          "xsave",
+          "avx",
+          "f16c",
+          "rdrand",
+          "hypervisor",
+          "lahf_lm",
+          "cmp_legacy",
+          "svm",
+          "cr8_legacy",
+          "abm",
+          "sse4a",
+          "misalignsse",
+          "3dnowprefetch",
+          "osvw",
+          "topoext",
+          "vmmcall",
+          "fsgsbase",
+          "bmi1",
+          "avx2",
+          "smep",
+          "bmi2",
+          "erms",
+          "invpcid",
+          "rdseed",
+          "adx",
+          "smap",
+          "clflushopt",
+          "clwb",
+          "sha_ni",
+          "xsaveopt",
+          "xsavec",
+          "xgetbv1",
+          "xsaves",
+          "user_shstk",
+          "clzero",
+          "xsaveerptr",
+          "rdpru",
+          "arat",
+          "npt",
+          "nrip_save",
+          "tsc_scale",
+          "vmcb_clean",
+          "flushbyasid",
+          "decodeassists",
+          "pausefilter",
+          "pfthreshold",
+          "v_vmsave_vmload",
+          "umip",
+          "vaes",
+          "vpclmulqdq",
+          "rdpid",
+          "fsrm"
+        ]
+      ],
+      "cpu_models": [
+        "AMD EPYC 7763 64-Core Processor"
+      ],
+      "cpu_vendors": [
+        "AuthenticAMD"
+      ],
+      "cpuinfo": {
+        "bytes": 5228,
+        "git_blob": "570f5e58934d4d023a60c9ab86d975aa115a67f9",
+        "sha256": "f014159c4032ca7a80afeedd20c6f741ee93e9717575be786f44b3320b06d72b"
+      },
+      "hardware_flags_do_not_prove_runtime_dispatch": true,
+      "hashlib_is_openssl_sha256": true,
+      "hashlib_sha256": {
+        "block_size": 64,
+        "digest_size": 32,
+        "empty_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "function_type": "builtin_function_or_method",
+        "hash_module": "_hashlib",
+        "hash_type": "HASH",
+        "module": "_hashlib",
+        "name": "openssl_sha256"
+      },
+      "mapped_libcrypto_files": [
+        {
+          "bytes": 5309400,
+          "git_blob": "9fd8149d6cd9a2ab8881ab408a3dc8a55127e4b3",
+          "path": "/usr/lib/x86_64-linux-gnu/libcrypto.so.3",
+          "sha256": "6866ed711dab8927e1bf82bf1cd30e828bdfc34f3cc1e83b1c9eb01ce6c37d9a"
+        }
+      ],
+      "module_files": {
+        "_hashlib": {
+          "bytes": 336896,
+          "git_blob": "12704a1fc9f96541a623227bb14cd5aea6155bfe",
+          "path": "/opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/lib-dynload/_hashlib.cpython-314-x86_64-linux-gnu.so",
+          "sha256": "711b69bfcedb5196a109c027413357e12c6a93d1a3494aeb9136797c54dc4489"
+        },
+        "_sha2": {
+          "bytes": 1529072,
+          "git_blob": "83adcb60490528f276c5c12bc2c42b49e0da00f2",
+          "path": "/opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/lib-dynload/_sha2.cpython-314-x86_64-linux-gnu.so",
+          "sha256": "e3b6341606981b9e518c10ba7fea9e868f937b0373442893796b24cc5a328150"
+        },
+        "hashlib": {
+          "bytes": 9459,
+          "git_blob": "0e9bd98aa1fc31b5dccef0d34780b86ae05f6ab3",
+          "path": "/opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/hashlib.py",
+          "sha256": "88fa624821fbdee7eb2ef87c2437b207afe328cf117c7463367e2db5eb1af492"
+        },
+        "ssl": {
+          "bytes": 52715,
+          "git_blob": "8889aff92fa6c0c221282f8c6347ed97fd5dfb75",
+          "path": "/opt/hostedtoolcache/Python/3.14.4/x64/lib/python3.14/ssl.py",
+          "sha256": "21d28174e953bcfd042b328676c52584fcd8b4f0457a4db582b7f0acd78854d5"
+        }
+      },
+      "openssl_version": "OpenSSL 3.0.13 30 Jan 2024",
+      "openssl_version_info": [
+        3,
+        0,
+        0,
+        13,
+        0
+      ],
+      "sha2_sha256": {
+        "block_size": 64,
+        "digest_size": 32,
+        "empty_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "function_type": "builtin_function_or_method",
+        "hash_module": "_sha2",
+        "hash_type": "SHA256Type",
+        "module": "_sha2",
+        "name": "sha256"
+      }
+    },
+    "component_scope": "1429 paths / 51971962 bytes, not an R20 per-component profile",
+    "guard_means": {
+      "full-fresh-map": {
+        "A": 42905882.0,
+        "B": 41929837.75,
+        "observed_reduction_fraction": 0.022748495183014805
+      },
+      "guard": {
+        "A": 3244.8327,
+        "B": 2769.9950375,
+        "observed_reduction_fraction": 0.14633656228254854
+      }
+    },
+    "hardware_flags_do_not_prove_dispatch": true,
+    "memo_summary": {
+      "baseline_all_3055_bytes_modes_unchanged": true,
+      "business_tests_rerun": 0,
+      "conclusion": "No memo source change is proposed for integration. No LOAD_FAST_AND_CLEAR or other bytecode rewriting was attempted. No performance benchmark is used to qualify the failing candidate.",
+      "guard_asts": [
+        {
+          "revision": "memo-r1",
+          "unchanged_guard_and_io_functions": [
+            "_source_capture_protocol",
+            "_source_protocol_current",
+            "_source_lexical_read",
+            "_source_relative_name"
+          ]
+        },
+        {
+          "revision": "memo-r2",
+          "unchanged_guard_and_io_functions": [
+            "_source_capture_protocol",
+            "_source_protocol_current",
+            "_source_lexical_read",
+            "_source_relative_name"
+          ]
+        },
+        {
+          "revision": "memo-r3",
+          "unchanged_guard_and_io_functions": [
+            "_source_capture_protocol",
+            "_source_protocol_current",
+            "_source_lexical_read",
+            "_source_relative_name"
+          ]
+        }
+      ],
+      "memoryerror_scope": "Foreign SHA and hex real MemoryError identity/context controls and injected private commit MemoryError passed in R2. No physical allocator-exhaustion experiment; _testcapi unavailable locally. No broad allocation-lifetime equivalence claim.",
+      "native_compilations": 0,
+      "original_budgets_modified": false,
+      "original_source_commit": "abeef212e34023534d91f8f952280e2a8d0cbde6",
+      "original_source_tree": "f2bc61c11104136d3f56e3c4aefa00a4dada910b",
+      "python_runtime": "3.12.14 local for memo controls; no actual314 memo run",
+      "qualification": false,
+      "r1": {
+        "counterexample": "mid-open foreign SHA sees input refcount 3 versus original 2",
+        "status": "FAIL"
+      },
+      "r2": {
+        "additional_controls": {
+          "errors": 0,
+          "failures": 1,
+          "loaded": 16,
+          "passed": 15,
+          "run": 16,
+          "skips": 0
+        },
+        "failure": "active sys.monitoring canonical SHA argument refcounts [4,4] versus original [3,3]",
+        "original_freshness": {
+          "errors": 0,
+          "loaded": 9,
+          "passed": 9,
+          "run": 9,
+          "skips": 0
+        },
+        "r1_refcount_counterexample": "PASS exact [2] versus [2]"
+      },
+      "r3": {
+        "carrier_moves_input": "canonical SHA argument refcount [3,3] matches",
+        "counterexample": "standard open audit callback enables monitoring after early check; extra dict.pop CALL is observable; same observer raises marker MemoryError only on new route before SHA, original returns map",
+        "first_observer_limit": "bound-method-only pop observer missed actual method-descriptor CALL and originally reported PASS; original output retained, correction and successor actual FAIL retained",
+        "source_gate_run": false,
+        "support_metadata": "inherited R2 bytes, not regenerated or claimed valid for R3"
+      },
+      "schema": "hepta.exact-byte-memo-bounded-investigation.v1",
+      "status": "NOT_ADOPTED_SEMANTIC_COUNTEREXAMPLES",
+      "whole_native": false
+    },
+    "pure_hash": [
+      {
+        "kind": "hashlib.sha256",
+        "map": {
+          "bytes": 155087,
+          "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+          "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+        },
+        "owned_bytes": 51971962,
+        "owned_paths": 1429,
+        "paths": 1429,
+        "process_cpu_ns": 33941395,
+        "provider": "hashlib.sha256",
+        "status": "MATCH",
+        "wall_ns": 33949958
+      },
+      {
+        "kind": "_sha2.sha256",
+        "map": {
+          "bytes": 155087,
+          "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+          "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+        },
+        "owned_bytes": 51971962,
+        "owned_paths": 1429,
+        "paths": 1429,
+        "process_cpu_ns": 204028079,
+        "provider": "_sha2.sha256",
+        "status": "MATCH",
+        "wall_ns": 204066488
+      },
+      {
+        "kind": "_sha2.sha256",
+        "map": {
+          "bytes": 155087,
+          "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+          "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+        },
+        "owned_bytes": 51971962,
+        "owned_paths": 1429,
+        "paths": 1429,
+        "process_cpu_ns": 204228011,
+        "provider": "_sha2.sha256",
+        "status": "MATCH",
+        "wall_ns": 204262637
+      },
+      {
+        "kind": "hashlib.sha256",
+        "map": {
+          "bytes": 155087,
+          "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+          "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+        },
+        "owned_bytes": 51971962,
+        "owned_paths": 1429,
+        "paths": 1429,
+        "process_cpu_ns": 34175011,
+        "provider": "hashlib.sha256",
+        "status": "MATCH",
+        "wall_ns": 34181133
+      }
+    ],
+    "scans": [
+      {
+        "kind": "original",
+        "map": {
+          "bytes": 155087,
+          "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+          "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+        },
+        "paths": 1429,
+        "process_cpu_ns": 98380880,
+        "wall_ns": 98390416
+      },
+      {
+        "components": {
+          "all_lexical_completions_precede_hash": true,
+          "inclusive_totals": {
+            "digest": {
+              "count": 1429,
+              "process_cpu_ns": 36175784,
+              "wall_ns": 37725185
+            },
+            "guard": {
+              "count": 1687,
+              "process_cpu_ns": 16653698,
+              "wall_ns": 18588263
+            },
+            "lexical_inclusive": {
+              "count": 1429,
+              "process_cpu_ns": 50277141,
+              "wall_ns": 51878297
+            },
+            "open": {
+              "count": 1429,
+              "process_cpu_ns": 10771091,
+              "wall_ns": 12458810
+            },
+            "read": {
+              "count": 1429,
+              "process_cpu_ns": 8987244,
+              "wall_ns": 10658821
+            }
+          },
+          "lexical_residual_includes": "close/context manager, argument dispatch, row allocation and timer overhead; not an exact close timer",
+          "lexical_residual_wall_ns": 12528461
+        },
+        "events": {
+          "bytes": 1570417,
+          "git_blob": "cdf3934fee8e06832372c3f9dfbe05bdb60db504",
+          "sha256": "7383369d5637d2ca27216339f37836ef985f24374a3600170b5d04c86be6b4c1"
+        },
+        "kind": "instrumented",
+        "map": {
+          "bytes": 155087,
+          "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+          "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+        },
+        "paths": 1429,
+        "process_cpu_ns": 96834475,
+        "wall_ns": 96852693
+      },
+      {
+        "components": {
+          "all_lexical_completions_precede_hash": true,
+          "inclusive_totals": {
+            "digest": {
+              "count": 1429,
+              "process_cpu_ns": 36240860,
+              "wall_ns": 37800699
+            },
+            "guard": {
+              "count": 1687,
+              "process_cpu_ns": 17356518,
+              "wall_ns": 19261677
+            },
+            "lexical_inclusive": {
+              "count": 1429,
+              "process_cpu_ns": 50417540,
+              "wall_ns": 51995115
+            },
+            "open": {
+              "count": 1429,
+              "process_cpu_ns": 10651049,
+              "wall_ns": 12270481
+            },
+            "read": {
+              "count": 1429,
+              "process_cpu_ns": 9000171,
+              "wall_ns": 10608878
+            }
+          },
+          "lexical_residual_includes": "close/context manager, argument dispatch, row allocation and timer overhead; not an exact close timer",
+          "lexical_residual_wall_ns": 12170896
+        },
+        "events": {
+          "bytes": 1570402,
+          "git_blob": "d2f1347a5f6c3a76d74e178b6258e15511af284b",
+          "sha256": "109bb4110ce6059349141e8fe00d2fd2800febd3482cdb323c7373a46423258a"
+        },
+        "kind": "instrumented",
+        "map": {
+          "bytes": 155087,
+          "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+          "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+        },
+        "paths": 1429,
+        "process_cpu_ns": 96703641,
+        "wall_ns": 96719333
+      },
+      {
+        "kind": "original",
+        "map": {
+          "bytes": 155087,
+          "git_blob": "c64620e66ddb95815c27c3c978792b6e6eef5a74",
+          "sha256": "15be6855159bcd514aa324bd3238a03b06bd8da9fdc3946d0bff5d0811425885"
+        },
+        "paths": 1429,
+        "process_cpu_ns": 67794585,
+        "wall_ns": 67801852
+      }
+    ]
+  },
+  "original_outcome": "FAIL",
+  "original_test_id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+  "product_edits": [],
+  "product_executions": 0,
+  "public_admissions": {
+    "calls_with_duplicate_admission": 0,
+    "distinct_public_calls": 109,
+    "mapping": [
+      {
+        "admission": 6,
+        "label": "initial_without_public_store",
+        "public_span": null
+      },
+      {
+        "admission": 9,
+        "label": "profile",
+        "public_span": 8
+      },
+      {
+        "admission": 20,
+        "label": "profile",
+        "public_span": 19
+      },
+      {
+        "admission": 31,
+        "label": "profile",
+        "public_span": 30
+      },
+      {
+        "admission": 42,
+        "label": "profile",
+        "public_span": 41
+      },
+      {
+        "admission": 53,
+        "label": "profile",
+        "public_span": 52
+      },
+      {
+        "admission": 64,
+        "label": "profile",
+        "public_span": 63
+      },
+      {
+        "admission": 75,
+        "label": "profile",
+        "public_span": 74
+      },
+      {
+        "admission": 86,
+        "label": "json",
+        "public_span": 85
+      },
+      {
+        "admission": 97,
+        "label": "json",
+        "public_span": 96
+      },
+      {
+        "admission": 108,
+        "label": "json",
+        "public_span": 107
+      },
+      {
+        "admission": 119,
+        "label": "json",
+        "public_span": 118
+      },
+      {
+        "admission": 130,
+        "label": "json",
+        "public_span": 129
+      },
+      {
+        "admission": 141,
+        "label": "json",
+        "public_span": 140
+      },
+      {
+        "admission": 152,
+        "label": "put",
+        "public_span": 151
+      },
+      {
+        "admission": 163,
+        "label": "put",
+        "public_span": 162
+      },
+      {
+        "admission": 174,
+        "label": "put",
+        "public_span": 173
+      },
+      {
+        "admission": 185,
+        "label": "put",
+        "public_span": 184
+      },
+      {
+        "admission": 196,
+        "label": "put",
+        "public_span": 195
+      },
+      {
+        "admission": 207,
+        "label": "put",
+        "public_span": 206
+      },
+      {
+        "admission": 218,
+        "label": "put",
+        "public_span": 217
+      },
+      {
+        "admission": 229,
+        "label": "put",
+        "public_span": 228
+      },
+      {
+        "admission": 240,
+        "label": "put",
+        "public_span": 239
+      },
+      {
+        "admission": 251,
+        "label": "put",
+        "public_span": 250
+      },
+      {
+        "admission": 262,
+        "label": "json",
+        "public_span": 261
+      },
+      {
+        "admission": 273,
+        "label": "json",
+        "public_span": 272
+      },
+      {
+        "admission": 284,
+        "label": "json",
+        "public_span": 283
+      },
+      {
+        "admission": 295,
+        "label": "json",
+        "public_span": 294
+      },
+      {
+        "admission": 307,
+        "label": "profile",
+        "public_span": 306
+      },
+      {
+        "admission": 319,
+        "label": "get",
+        "public_span": 318
+      },
+      {
+        "admission": 329,
+        "label": "check_profile",
+        "public_span": 328
+      },
+      {
+        "admission": 336,
+        "label": "put",
+        "public_span": 335
+      },
+      {
+        "admission": 349,
+        "label": "check_profile",
+        "public_span": 348
+      },
+      {
+        "admission": 356,
+        "label": "put",
+        "public_span": 355
+      },
+      {
+        "admission": 369,
+        "label": "check_profile",
+        "public_span": 368
+      },
+      {
+        "admission": 376,
+        "label": "put",
+        "public_span": 375
+      },
+      {
+        "admission": 390,
+        "label": "check_profile",
+        "public_span": 389
+      },
+      {
+        "admission": 398,
+        "label": "check_profile",
+        "public_span": 397
+      },
+      {
+        "admission": 405,
+        "label": "get_json",
+        "public_span": 404
+      },
+      {
+        "admission": 412,
+        "label": "get_json",
+        "public_span": 411
+      },
+      {
+        "admission": 419,
+        "label": "get_json",
+        "public_span": 418
+      },
+      {
+        "admission": 426,
+        "label": "json",
+        "public_span": 425
+      },
+      {
+        "admission": 440,
+        "label": "check_profile",
+        "public_span": 439
+      },
+      {
+        "admission": 447,
+        "label": "put",
+        "public_span": 446
+      },
+      {
+        "admission": 460,
+        "label": "get_json",
+        "public_span": 459
+      },
+      {
+        "admission": 468,
+        "label": "check_profile",
+        "public_span": 467
+      },
+      {
+        "admission": 476,
+        "label": "check_profile",
+        "public_span": 475
+      },
+      {
+        "admission": 483,
+        "label": "get",
+        "public_span": 482
+      },
+      {
+        "admission": 490,
+        "label": "put",
+        "public_span": 489
+      },
+      {
+        "admission": 501,
+        "label": "json",
+        "public_span": 500
+      },
+      {
+        "admission": 515,
+        "label": "check_profile",
+        "public_span": 514
+      },
+      {
+        "admission": 522,
+        "label": "put",
+        "public_span": 521
+      },
+      {
+        "admission": 533,
+        "label": "check_profile",
+        "public_span": 532
+      },
+      {
+        "admission": 540,
+        "label": "put",
+        "public_span": 539
+      },
+      {
+        "admission": 551,
+        "label": "check_profile",
+        "public_span": 550
+      },
+      {
+        "admission": 558,
+        "label": "put",
+        "public_span": 557
+      },
+      {
+        "admission": 570,
+        "label": "check_profile",
+        "public_span": 569
+      },
+      {
+        "admission": 578,
+        "label": "check_profile",
+        "public_span": 577
+      },
+      {
+        "admission": 585,
+        "label": "get_json",
+        "public_span": 584
+      },
+      {
+        "admission": 592,
+        "label": "get_json",
+        "public_span": 591
+      },
+      {
+        "admission": 599,
+        "label": "get_json",
+        "public_span": 598
+      },
+      {
+        "admission": 607,
+        "label": "get",
+        "public_span": 606
+      },
+      {
+        "admission": 614,
+        "label": "json",
+        "public_span": 613
+      },
+      {
+        "admission": 628,
+        "label": "check_profile",
+        "public_span": 627
+      },
+      {
+        "admission": 635,
+        "label": "put",
+        "public_span": 634
+      },
+      {
+        "admission": 648,
+        "label": "get_json",
+        "public_span": 647
+      },
+      {
+        "admission": 656,
+        "label": "check_profile",
+        "public_span": 655
+      },
+      {
+        "admission": 664,
+        "label": "check_profile",
+        "public_span": 663
+      },
+      {
+        "admission": 671,
+        "label": "get",
+        "public_span": 670
+      },
+      {
+        "admission": 678,
+        "label": "put",
+        "public_span": 677
+      },
+      {
+        "admission": 689,
+        "label": "json",
+        "public_span": 688
+      },
+      {
+        "admission": 703,
+        "label": "get_json",
+        "public_span": 702
+      },
+      {
+        "admission": 711,
+        "label": "check_profile",
+        "public_span": 710
+      },
+      {
+        "admission": 719,
+        "label": "check_profile",
+        "public_span": 718
+      },
+      {
+        "admission": 727,
+        "label": "get_json",
+        "public_span": 726
+      },
+      {
+        "admission": 735,
+        "label": "check_profile",
+        "public_span": 734
+      },
+      {
+        "admission": 743,
+        "label": "check_profile",
+        "public_span": 742
+      },
+      {
+        "admission": 751,
+        "label": "check_profile",
+        "public_span": 750
+      },
+      {
+        "admission": 759,
+        "label": "get",
+        "public_span": 758
+      },
+      {
+        "admission": 766,
+        "label": "json",
+        "public_span": 765
+      },
+      {
+        "admission": 777,
+        "label": "json",
+        "public_span": 776
+      },
+      {
+        "admission": 788,
+        "label": "json",
+        "public_span": 787
+      },
+      {
+        "admission": 802,
+        "label": "get_json",
+        "public_span": 801
+      },
+      {
+        "admission": 810,
+        "label": "check_profile",
+        "public_span": 809
+      },
+      {
+        "admission": 818,
+        "label": "check_profile",
+        "public_span": 817
+      },
+      {
+        "admission": 826,
+        "label": "get_json",
+        "public_span": 825
+      },
+      {
+        "admission": 834,
+        "label": "check_profile",
+        "public_span": 833
+      },
+      {
+        "admission": 842,
+        "label": "check_profile",
+        "public_span": 841
+      },
+      {
+        "admission": 850,
+        "label": "check_profile",
+        "public_span": 849
+      },
+      {
+        "admission": 858,
+        "label": "get",
+        "public_span": 857
+      },
+      {
+        "admission": 865,
+        "label": "json",
+        "public_span": 864
+      },
+      {
+        "admission": 876,
+        "label": "json",
+        "public_span": 875
+      },
+      {
+        "admission": 887,
+        "label": "json",
+        "public_span": 886
+      },
+      {
+        "admission": 901,
+        "label": "get_json",
+        "public_span": 900
+      },
+      {
+        "admission": 909,
+        "label": "check_profile",
+        "public_span": 908
+      },
+      {
+        "admission": 917,
+        "label": "check_profile",
+        "public_span": 916
+      },
+      {
+        "admission": 926,
+        "label": "check_profile",
+        "public_span": 925
+      },
+      {
+        "admission": 934,
+        "label": "get_json",
+        "public_span": 933
+      },
+      {
+        "admission": 942,
+        "label": "check_profile",
+        "public_span": 941
+      },
+      {
+        "admission": 950,
+        "label": "check_profile",
+        "public_span": 949
+      },
+      {
+        "admission": 958,
+        "label": "get",
+        "public_span": 957
+      },
+      {
+        "admission": 965,
+        "label": "get_json",
+        "public_span": 964
+      },
+      {
+        "admission": 973,
+        "label": "check_profile",
+        "public_span": 972
+      },
+      {
+        "admission": 981,
+        "label": "get",
+        "public_span": 980
+      },
+      {
+        "admission": 989,
+        "label": "get_json",
+        "public_span": 988
+      },
+      {
+        "admission": 997,
+        "label": "check_profile",
+        "public_span": 996
+      },
+      {
+        "admission": 1005,
+        "label": "check_profile",
+        "public_span": 1004
+      },
+      {
+        "admission": 1012,
+        "label": "get_json",
+        "public_span": 1011
+      },
+      {
+        "admission": 1019,
+        "label": "get_json",
+        "public_span": 1018
+      },
+      {
+        "admission": 1027,
+        "label": "check_profile",
+        "public_span": 1026
+      }
+    ],
+    "routes": {
+      "check_profile": 35,
+      "get": 8,
+      "get_json": 18,
+      "initial_without_public_store": 1,
+      "json": 20,
+      "profile": 8,
+      "put": 20
+    }
+  },
+  "qualification": false,
+  "reviewable_ranges": [
+    {
+      "functions": "_source_capture_protocol / _source_protocol_current",
+      "limit": "No new candidate. Prior guard whole-scan gain 2.27485 percent is already known and cannot establish the required R20 gain.",
+      "scope": "Immutable bookkeeping only; every per-read mutable-provider check, fallback, exact bytes lifetime and read-close-hash ordering must remain."
+    },
+    {
+      "functions": "support_contract / validate_contract / current_sources",
+      "limit": "Entire measured non-fresh admission overhead is 144837206 ns, less than the 542386194 ns first-check gap.",
+      "scope": "Internal construction only, preserving fresh dictionaries and both temporally separate contract reads with all provider semantics."
+    },
+    {
+      "functions": "Implementation behind the same admitted _hashlib.openssl_sha256 callable",
+      "limit": "No backend defect or disabled dispatch is established. No provider substitution or new hash/ABBA experiment is proposed.",
+      "scope": "A runtime/library issue would require separate exact binary/dispatch evidence while preserving callable identity, argument/refcount boundary and ordering."
+    }
+  ],
+  "run": 43569339563,
+  "schema": "hepta.namespace-r20-readonly-repair-scope.v1",
+  "small_inputs_before_after_exact": true,
+  "source_commit": "26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d",
+  "source_function_ranges": {
+    "hepta/artifact_publication_native.py": {
+      "bytes": 13266,
+      "function_lines": {
+        "_admitted_code": [
+          [
+            88,
+            118
+          ]
+        ],
+        "_execute_native": [
+          [
+            142,
+            184
+          ]
+        ],
+        "_validated_code": [
+          [
+            121,
+            126
+          ]
+        ],
+        "admit_artifact_store": [
+          [
+            135,
+            139
+          ]
+        ]
+      },
+      "git_blob": "ab08dc91053336d8582522841b8740e53979055b",
+      "sha256": "c0fdb4f26aa2a8285db9d763e3e19c03457684995e61fd12d1f2e7489499701e"
+    },
+    "hepta/hia_agent_service.py": {
+      "bytes": 160929,
+      "function_lines": {
+        "_compile_reference": [
+          [
+            1207,
+            1233
+          ]
+        ],
+        "_hia_emit_reference": [
+          [
+            1241,
+            1275
+          ]
+        ],
+        "_remaining_ms": [
+          [
+            579,
+            583
+          ]
+        ]
+      },
+      "git_blob": "0b756a36589d19084b4373390dba0490870c48f2",
+      "sha256": "1aafda7eba8e7fd8d00efdc1cd516806aeca7bbfb11c482ad018c2c47f8d33d2"
+    },
+    "hepta/hia_agent_store.py": {
+      "bytes": 28244,
+      "function_lines": {
+        "_native_artifact_admission": [
+          [
+            254,
+            260
+          ]
+        ],
+        "_native_artifact_file": [
+          [
+            263,
+            272
+          ]
+        ],
+        "_put_reference": [
+          [
+            489,
+            533
+          ]
+        ]
+      },
+      "git_blob": "f13e349e7d5f4a4655e59375f963280764cda4e0",
+      "sha256": "02f024e6f8cc948a7f5b0d96f6f9fa3365d0bd03c83882f1fec02467eb488c04"
+    },
+    "hepta/hia_artifact_namespace_native.py": {
+      "bytes": 36181,
+      "function_lines": {
+        "_drive": [
+          [
+            472,
+            549
+          ]
+        ],
+        "_invoke": [
+          [
+            451,
+            456
+          ]
+        ],
+        "_operate": [
+          [
+            357,
+            445
+          ]
+        ]
+      },
+      "git_blob": "1176af2119a532948c580ed1c72f227bd68667b5",
+      "sha256": "6b167575d9444244716f8191e1a0cdf603ee8a631cb9298342688e3402541206"
+    },
+    "tests/test_hia_agent_native_tools.py": {
+      "bytes": 42759,
+      "function_lines": {
+        "build_pair": [
+          [
+            55,
+            71
+          ]
+        ],
+        "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner": [
+          [
+            656,
+            678
+          ]
+        ]
+      },
+      "git_blob": "016621eacf28492569b7332ac84a6d0775060311",
+      "sha256": "5e6e26c4adb9100f6c25cb2bdbdfbd4c9752c15017e851dee3723b7451ae28ee"
+    },
+    "tools/build_hia_json_preflight.py": {
+      "bytes": 11064,
+      "function_lines": {
+        "current_sources": [
+          [
+            20,
+            24
+          ]
+        ]
+      },
+      "git_blob": "31a86adf3389125a58bd0b9c06cae81d76bdf3ca",
+      "sha256": "e1586b4adecf2ebf4675888f639b64c9d144ab202cbb5506e27037dad5b212fe"
+    },
+    "tools/hia_selfhost_contract.py": {
+      "bytes": 207102,
+      "function_lines": {
+        "_source_capture_protocol": [
+          [
+            1672,
+            1720
+          ]
+        ],
+        "_source_lexical_read": [
+          [
+            1768,
+            1779
+          ]
+        ],
+        "_source_protocol_current": [
+          [
+            1726,
+            1751
+          ]
+        ],
+        "_source_relative_name": [
+          [
+            1754,
+            1765
+          ]
+        ],
+        "file_digests": [
+          [
+            1782,
+            1800
+          ]
+        ],
+        "support_contract": [
+          [
+            1803,
+            3413
+          ]
+        ],
+        "validate_contract": [
+          [
+            3416,
+            3423
+          ]
+        ]
+      },
+      "git_blob": "fd474cb99412b5bbfe8402e4a121363c4a2f1e8b",
+      "sha256": "6aed26f33428349ccd2a7dcde9a5685fbda1057156c1591f3ecd56478893a168"
+    }
+  },
+  "source_tree": "84df4b42f1e20fd7d0c7229e658cf3b458984ffb",
+  "status": "NO_ADOPTABLE_SUFFICIENT_PATCH_PROVEN",
+  "whole_native": false
+}

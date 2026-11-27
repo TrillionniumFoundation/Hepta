@@ -1,0 +1,1414 @@
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Install qualified Clang 20 native execution prerequisites
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace
+          printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
+      - run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Prepare original locked Rust caller dependencies
+        run: |
+          set -euo pipefail
+          cargo --version
+          rustc --version
+          sha256sum rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock > "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
+          cargo fetch --locked --manifest-path rust/hia-core-shadow/Cargo.toml
+          sha256sum --check "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
+          git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
+      - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: Original call graph and native convergence controls
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_selfhost_call_graph_efficiency.CallGraphNativeTests
+      - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
+      - name: Prepare isolated continuation-family evidence
+        run: mkdir -p "$RUNNER_TEMP/hia-continuation-family"
+      - name: Native selected release launch with matching cold and original kernel controls
+        run: python -B tools/qualify_hia_release_launch.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/hia-release-launch-matching-cold"
+      - name: Native candidate build with matching cold and all original 55 images
+        run: python -B -m tools.qualify_hia_candidate_build --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/hia-candidate-build"
+      - name: Native Store lifecycle with matching cold and all original controls
+        env:
+          HEPTA_HIA_STORE_LIFECYCLE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STORE_LIFECYCLE_EVIDENCE: ${{ runner.temp }}/hia-store-lifecycle
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_store_lifecycle_native.StoreLifecycleNativeTests
+      - name: Native Store lifecycle original agent callers
+        run: python -B tools/qualify_hia_store_lifecycle.py --caller-group agent --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/hia-store-lifecycle-agent"
+      - name: Native Store lifecycle original namespace callers
+        run: python -B tools/qualify_hia_store_lifecycle.py --caller-group namespace --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/hia-store-lifecycle-namespace"
+      - name: Native Store lifecycle original ledger callers
+        run: python -B tools/qualify_hia_store_lifecycle.py --caller-group ledger --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/hia-store-lifecycle-ledger"
+      - name: Native Linux stdio with matching cold and all original 69 controls
+        run: python -B tools/qualify_hia_linux_stdio.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/hia-linux-stdio-matching-cold"
+      - name: Native CLI discovery JSON with matching cold and all original four groups
+        run: python -B tools/qualify_hia_cli_discovery_json.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/hia-cli-discovery-json-matching-cold"
+      - name: Native Linux process with matching cold and all original 130 controls
+        run: python -B tools/qualify_hia_linux_process.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/hia-linux-process-matching-cold"
+      - name: Native CLI discovery bundle with matching cold and all original 43 plus nine controls
+        run: python -B -m tools.qualify_hia_cli_discovery_bundle --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/hia-cli-discovery-bundle-matching-cold"
+      - name: Native linked loader and compiler receipt bindings
+        run: |
+          python -B - <<'PYBINDINGS'
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+          import unittest
+          from tools.build_hia_json_preflight import admit_cold_build
+          cold_path = Path(os.environ['HEPTA_HIA_LINKED_OBSERVER_COLD_REPORT'])
+          cold_bytes = cold_path.read_bytes()
+          cold = json.loads(cold_bytes)
+          nested_bytes = Path(cold['nested_report']).read_bytes()
+          if sha256(nested_bytes).hexdigest() != cold['nested_report_sha256']:
+              raise ValueError('current cold nested report changed before receipt controls')
+          nested = json.loads(nested_bytes)
+          compiler = Path(nested['generations'][-1]['produced_image'])
+          compiler_bytes = compiler.read_bytes()
+          admit_cold_build(compiler_bytes, cold_bytes)
+          os.environ['HEPTA_HIA_COMPILE_RECEIPT_COMPILER'] = str(compiler)
+          os.environ['HEPTA_HIA_COMPILE_RECEIPT_COMPILER_SHA256'] = sha256(compiler_bytes).hexdigest()
+          names = (
+              'tests.test_hia_selfhost_linked_observer.LinkedObserverNativeTests',
+              'tests.test_hia_original_select_fragments.CompleteOutputObservationTests',
+              'tests.test_hia_compile_receipt_binding.CompileReceiptNativeTests',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 37:
+              raise AssertionError('complete linked-loader and receipt control inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          unchanged = (compiler.read_bytes() == compiler_bytes
+                       and cold_path.read_bytes() == cold_bytes
+                       and Path(cold['nested_report']).read_bytes() == nested_bytes)
+          passed = (result.wasSuccessful() and result.testsRun == 37 and unchanged
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYBINDINGS
+        env:
+          HEPTA_HIA_LINKED_OBSERVER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_LINKED_OBSERVER_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-linked-observer
+          HEPTA_HIA_COMPILE_RECEIPT_OBSERVATIONS: ${{ runner.temp }}/hia-continuation-family/hia-compile-receipts
+      - name: Native applications and actual Core memory controls
+        run: |
+          python -B - <<'PYTEST'
+          import unittest
+          names = (
+              'tests.test_hia_agent_stdio',
+              'tests.test_hia_agent_snapshot_native',
+              'tests.test_hia_agent_snapshot_json_native',
+              'tests.test_hia_core_json_cli',
+              'tests.test_hia_program_selfhost.SelfhostBuildNativeTests',
+              'tests.test_hia_elf_linker',
+              'tests.test_hia_agent_identity_native',
+              'tests.test_hia_agent_slice_native',
+              'tests.test_hia_agent_installed_resources',
+              'tests.test_hia_native_child_limits',
+              'tests.test_hia_native_seccomp',
+              'tests.test_hia_native_side_effects',
+              'tests.test_hia_native_cleanup',
+              'tests.test_hia_native_mapping_identity',
+              'tests.test_hia_native_startup_isolation',
+              'tests.test_hia_json_preflight_native',
+              'tests.test_hia_selfhost_emitter_words',
+              'tests.test_hia_host_region',
+              'tests.test_hia_host_region_admission_transaction',
+              'tests.test_hia_host_region_borrow_admission',
+              'tests.test_hia_host_region_borrow_rollback_receipt',
+              'tests.test_hia_host_region_completed_pin_retirement',
+              'tests.test_hia_host_region_finalization_receipt',
+              'tests.test_hia_host_region_job_identity',
+              'tests.test_hia_host_region_lease_authority',
+              'tests.test_hia_host_region_lease_identity_collision',
+              'tests.test_hia_host_region_lease_mprotect_receipt',
+              'tests.test_hia_host_region_lease_token_revocation',
+              'tests.test_hia_host_region_owner_registry_identity',
+              'tests.test_hia_host_region_owner_retirement',
+              'tests.test_hia_host_region_prestart_admission',
+              'tests.test_hia_host_region_prestart_pin_release_receipt',
+              'tests.test_hia_host_region_prestart_retirement_receipt',
+              'tests.test_hia_host_region_public_release_receipt',
+              'tests.test_hia_host_region_quarantine_receipt',
+              'tests.test_hia_host_region_race',
+              'tests.test_hia_host_region_recovery_mprotect_receipt',
+              'tests.test_hia_host_region_recovery_receipt',
+              'tests.test_hia_host_region_recovery_snapshot',
+              'tests.test_hia_host_region_recovery_zero_fault',
+              'tests.test_hia_host_region_write_receipt',
+              'tests.test_hia_agent_data_json_native',
+              'tests.test_hia_agent_binary64_native',
+              'tests.test_hia_agent_binary64_format_native',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYTEST
+        env:
+          HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_IDENTITY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native HIA multi-image scheduling and source-bound installed entry
+        env:
+          HEPTA_HIA_NATIVE_CONTINUATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_continuation_native
+      - name: Five-family native in-process worker scheduling custody
+        env:
+          HEPTA_HIA_WORKER_SCHEDULING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_SCHEDULING_FIXTURE_EVIDENCE: ${{ runner.temp }}/worker-scheduling-fixture
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_worker_scheduling_bundle
+      - name: All original runtime callers with HIA-owned internal scheduling
+        run: python -B tools/qualify_hia_execution_observation_callers.py --native-continuation --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/native-continuation-callers"
+      - name: Original runtime callers through in-process HIA native scheduling
+        run: python -B tools/qualify_hia_execution_observation_callers.py --native-continuation --in-process --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/native-inprocess-continuation-callers"
+      - name: Original no-child compiler scripts through four in-process HIA schedulers
+        run: python -B tools/qualify_hia_continuation_no_child.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/native-no-child-continuation-callers"
+      - name: Native execution ledger policy and installed real runtime callers
+        run: |
+          python -B - <<'PYOBSERVE'
+          import unittest
+          suite=unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_execution_observation_native')
+          expected=suite.countTestCases()
+          result=unittest.TextTestRunner(verbosity=2).run(suite)
+          clean=not(result.errors or result.failures or result.skipped or result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if expected>0 and result.testsRun==expected and clean and result.wasSuccessful() else 1)
+          PYOBSERVE
+        env:
+          HEPTA_HIA_EXECUTION_OBSERVATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EXECUTION_OBSERVATION_FIXTURE_EVIDENCE: ${{ runner.temp }}/execution-observation-fixture
+      - name: Actual original runtime callers with retained ledger policy forbidden
+        run: python -B tools/qualify_hia_execution_observation_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/execution-observation-callers"
+      - name: Native ELF object writer and actual source-bound installed controls
+        run: |
+          python -B - <<'PYMACHINE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_machine_object_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYMACHINE
+        env:
+          HEPTA_HIA_MACHINE_OBJECT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_OBJECT_FIXTURE_EVIDENCE: ${{ runner.temp }}/machine-object-fixture
+      - name: Actual original machine and Core callers with complete HIA ELF object control
+        run: python -B tools/qualify_hia_machine_object_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/machine-object-callers"
+      - name: Actual original callers with native ELF byte wrapper Emitter and Function control together
+        run: python -B tools/qualify_hia_machine_object_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --with-core-lowering --with-core-emitter --with-byte-wrapper --evidence "$RUNNER_TEMP/machine-object-composed-callers"
+      - name: Native byte wrapper and actual source-bound installed controls
+        run: |
+          python -B - <<'PYMACHINE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_byte_wrapper_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYMACHINE
+        env:
+          HEPTA_HIA_BYTE_WRAPPER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_BYTE_WRAPPER_FIXTURE_EVIDENCE: ${{ runner.temp }}/byte-wrapper-fixture
+      - name: Actual original machine and Core callers with complete HIA borrowed-byte control
+        run: python -B tools/qualify_hia_byte_wrapper_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/byte-wrapper-callers"
+      - name: Actual original callers with native byte wrapper Emitter and Function control together
+        run: python -B tools/qualify_hia_byte_wrapper_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --with-core-lowering --with-core-emitter --evidence "$RUNNER_TEMP/byte-wrapper-composed-callers"
+      - name: Native Core emitter and actual source-bound installed controls
+        run: |
+          python -B - <<'PYMACHINE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_core_emitter_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYMACHINE
+        env:
+          HEPTA_HIA_CORE_EMITTER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_EMITTER_FIXTURE_EVIDENCE: ${{ runner.temp }}/core-emitter-fixture
+      - name: Actual original machine and Core callers with complete HIA Emitter control
+        run: python -B tools/qualify_hia_core_emitter_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/core-emitter-callers"
+      - name: Actual original callers with both native Emitter and Function control
+        run: python -B tools/qualify_hia_core_emitter_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --with-core-lowering --evidence "$RUNNER_TEMP/core-emitter-function-callers"
+      - name: Native Core lowering and actual source-bound installed controls
+        run: |
+          python -B - <<'PYMACHINE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_core_lowering_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYMACHINE
+        env:
+          HEPTA_HIA_CORE_LOWERING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_LOWERING_FIXTURE_EVIDENCE: ${{ runner.temp }}/core-lowering-fixture
+      - name: Actual original machine and Core callers with complete HIA Function control
+        run: python -B tools/qualify_hia_core_lowering_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/core-lowering-callers"
+      - name: Native machine plan and actual source-bound installed controls
+        run: |
+          python -B - <<'PYMACHINE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_machine_plan_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYMACHINE
+        env:
+          HEPTA_HIA_MACHINE_PLAN_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE: ${{ runner.temp }}/machine-plan-fixture
+      - name: Actual original callers with HIA machine plans
+        run: python -B tools/qualify_hia_machine_plan_native_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/machine-plan-callers.json" --evidence-dir "$RUNNER_TEMP/machine-plan-callers"
+      - name: Native machine encoding and actual source-bound installed controls
+        run: |
+          python -B - <<'PYMACHINE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_machine_encoding_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYMACHINE
+        env:
+          HEPTA_HIA_MACHINE_ENCODING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_ENCODING_FIXTURE_EVIDENCE: ${{ runner.temp }}/machine-encoding-fixture
+      - name: Native machine state and actual source-bound installed controls
+        run: |
+          python -B - <<'PYMACHINE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_machine_state_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYMACHINE
+        env:
+          HEPTA_HIA_MACHINE_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_STATE_FIXTURE_EVIDENCE: ${{ runner.temp }}/machine-state-fixture
+      - name: Native machine instructions and actual source-bound installed controls
+        run: |
+          python -B - <<'PYMACHINE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_machine_instructions_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYMACHINE
+        env:
+          HEPTA_HIA_MACHINE_INSTRUCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_INSTRUCTIONS_FIXTURE_EVIDENCE: ${{ runner.temp }}/machine-instructions-fixture
+      - name: Actual original callers with HIA machine encoding
+        run: python -B tools/qualify_hia_machine_encoding_native_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/machine-encoding-callers"
+      - name: Actual original callers with HIA machine state
+        run: python -B tools/qualify_hia_machine_state_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/machine-state-callers"
+      - name: Actual original callers with HIA machine instructions
+        run: python -B tools/qualify_hia_machine_instructions_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --evidence "$RUNNER_TEMP/machine-instructions-callers"
+      - name: Native worker policy and pinned multi-image custody
+        run: |
+          python -B - <<'PYWORKER'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_worker_report_native.WorkerReportNativeTests')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYWORKER
+        env:
+          HEPTA_HIA_WORKER_REPORT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_REPORT_FIXTURE_EVIDENCE: ${{ runner.temp }}/worker-report-fixture
+      - name: Native fifteen-action CLI current selfhost routing and installed resources
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_cli_native
+        env:
+          HEPTA_HIA_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CLI_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-cli-native
+      - name: Native Core module graph and actual workspace projects
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_module_graph_native
+        env:
+          HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS: ${{ runner.temp }}/hia-module-projects
+      - name: Native Core workspace JSON materialization and actual ABI
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_workspace_json_native tests.test_hia_core_workspace_json_cli tests.test_hia_core_workspace_pipeline
+        env:
+          HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native Core capability edge policy and actual CFG
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_capability_renaming_native
+        env:
+          HEPTA_HIA_CAPABILITY_RENAMING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native explicit workspace facts and semantic ELF materialization
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_workspace_facts_native tests.test_hia_core_workspace_materialize_native
+        env:
+          HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native full Core function declarations SSA and CFG
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_function_shape_native
+        env:
+          HEPTA_HIA_FUNCTION_SHAPE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native whole primitive Core declaration SSA CFG and export admission
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_program_shape_native
+        env:
+          HEPTA_HIA_PROGRAM_SHAPE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native complete local instruction policy
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_instruction_policy_native
+        env:
+          HEPTA_HIA_INSTRUCTION_POLICY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native streaming SHA complete retained state controls
+        run: |
+          python -B - <<'PYSTREAM'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_sha256_stream_native')
+          if suite.countTestCases() != 9:
+              raise AssertionError('complete streaming SHA control inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 9 and not result.skipped
+                    and not result.expectedFailures and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYSTREAM
+      - name: Native exact-byte artifact publication and real kernel races
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_artifact_publication_native tests.test_hia_artifact_publication_route tests.test_hia_agent_artifact_store_native
+        env:
+          HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native whole primitive Core admission and body resource flow
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_admission_native
+        env:
+          HEPTA_HIA_CORE_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Standalone native complete Core admission CLI
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_admission_cli
+        env:
+          HEPTA_HIA_CORE_ADMISSION_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native snapshot-bound edits and complete Core patch CLI
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_core_patch_native tests.test_hia_core_patch_cli
+        env:
+          HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_PATCH_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native ordinary Agent candidate bytes diagnostics and real crash cuts
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_agent_candidate_native tests.test_hia_core_patch_result_cli
+        env:
+          HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_PATCH_RESULT_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native full Core execution and installed worker bindings
+        run: |
+          python -B - <<'PYEXECUTION'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_program_execution_native',
+              'tests.test_hia_program_execution_scalars',
+              'tests.test_hia_program_execution_integration',
+          ))
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (result.wasSuccessful() and not result.skipped and not result.expectedFailures) and complete and clean else 1)
+          PYEXECUTION
+        env:
+          HEPTA_HIA_PROGRAM_EXECUTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_PROGRAM_EXECUTION_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-program-execution
+          HEPTA_HIA_PROGRAM_EXECUTION_SCALARS_OBSERVATIONS: ${{ runner.temp }}/hia-continuation-family/hia-program-execution-scalars
+      - name: Native structural budgets arbitrary precision and installed composition
+        run: |
+          python -B - <<'PYSTATIC'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_static_budget_native',
+              'tests.test_hia_static_budget_integration',
+              'tests.test_hia_native_bigints',
+              'tests.test_hia_heap_graphs_native',
+              'tests.test_hia_native_binary_graph',
+          ))
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (result.wasSuccessful() and not result.skipped and not result.expectedFailures) and complete and clean else 1)
+          PYSTATIC
+        env:
+          HEPTA_HIA_STATIC_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_STATIC_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-static-budget
+          HEPTA_HIA_BIGINT_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-static-bigints
+          HEPTA_HIA_HEAP_GRAPHS_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-static-graphs
+      - name: Native public live heap payload bounds and installed composition
+        run: |
+          python -B - <<'PYHEAP'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_heap_bound_native',
+              'tests.test_hia_heap_bound_integration',
+              'tests.test_hia_heap_live_engine_native',
+          ))
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (result.wasSuccessful() and not result.skipped and not result.expectedFailures) and complete and clean else 1)
+          PYHEAP
+        env:
+          HEPTA_HIA_HEAP_BOUND_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_HEAP_BOUND_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-heap-bound
+          HEPTA_HIA_HEAP_LIVE_ENGINE_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-heap-live-engine
+      - name: Native complete nominal types helpers constructor functions and outer lowering
+        run: |
+          python -B - <<'PYTYPES'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_composite_types_native',
+              'tests.test_hia_composite_origins_native',
+              'tests.test_hia_composite_signatures_native',
+              'tests.test_hia_task_helpers_native',
+              'tests.test_hia_composite_native_composition',
+              'tests.test_hia_composite_function_tokens',
+              'tests.test_hia_composite_function_admission',
+              'tests.test_hia_composite_function_protocol_audit',
+              'tests.test_hia_composite_function_terms_native',
+              'tests.test_hia_composite_functions_native',
+              'tests.test_hia_composite_public_lifecycle',
+              'tests.test_hia_composite_constructor_native',
+              'tests.test_hia_composite_constructor_integration',
+              'tests.test_hia_composite_outer_native',
+              'tests.test_hia_composite_outer_integration',
+              'tests.test_hia_composite_nominal_lifecycle'))
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYTYPES
+        env:
+          HEPTA_HIA_COMPOSITE_TYPES_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_TASK_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FUNCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_CONSTRUCTOR_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_OUTER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-nominal-fixture
+      - name: Native complete nominal continuation families retained from a733
+        run: |
+          python -B - <<'PYTYPES'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_composite_types_native',
+              'tests.test_hia_composite_origins_native',
+              'tests.test_hia_composite_signatures_native',
+              'tests.test_hia_task_helpers_native',
+              'tests.test_hia_composite_native_composition',
+              'tests.test_hia_enum_match_native',
+              'tests.test_hia_enum_operations_native',
+              'tests.test_hia_record_operations_native',
+              'tests.test_hia_record_transitions_native',
+              'tests.test_hia_task_operations_native',
+              'tests.test_hia_composite_function_tokens',
+              'tests.test_hia_composite_function_admission',
+              'tests.test_hia_composite_function_protocol_audit',
+              'tests.test_hia_composite_function_terms_native',
+              'tests.test_hia_composite_functions_native',
+              'tests.test_hia_composite_public_lifecycle',
+              'tests.test_hia_composite_constructor_native',
+              'tests.test_hia_composite_constructor_integration',
+              'tests.test_hia_composite_outer_native',
+              'tests.test_hia_composite_outer_integration',
+              'tests.test_hia_composite_nominal_lifecycle',
+              'tests.test_hia_native_value_graph',
+              'tests.test_hia_nominal_owner_routes',
+              'tests.test_hia_call_primitive_native',
+              'tests.test_hia_nominal_terminators_native',
+              'tests.test_hia_nominal_module_native',
+              'tests.test_hia_nominal_admission_native',
+              'tests.test_hia_nominal_function_native',
+              'tests.test_hia_task_helper_cache_native',
+          ))
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (result.wasSuccessful() and not result.skipped and not result.expectedFailures) and complete and clean else 1)
+          PYTYPES
+        env:
+          HEPTA_HIA_COMPOSITE_TYPES_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_TASK_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_ENUM_MATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_ENUM_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RECORD_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RECORD_TRANSITIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_TASK_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FUNCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_CONSTRUCTOR_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_OUTER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-nominal-fixture
+          HEPTA_HIA_CALL_PRIMITIVE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_TERMINATORS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_MODULE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_FUNCTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_TASK_HELPER_CACHE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native durable execution budgets request journal and artifact namespace
+        run: |
+          python -B - <<'PYJOURNAL'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_execution_budget_native',
+              'tests.test_hia_request_journal_native',
+              'tests.test_hia_artifact_namespace_native',
+              'tests.test_hia_slot_ledger_continuation_native',
+          ))
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (result.wasSuccessful() and not result.skipped and not result.expectedFailures) and complete and clean else 1)
+          PYJOURNAL
+        env:
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_REQUEST_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_ARTIFACT_NAMESPACE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_LEDGER_CONTINUATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_LEDGER_CONTINUATION_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-slot-ledger-continuation
+      - name: Native retained retirement state and actual resource custody
+        run: |
+          python -B - <<'PYRETIRE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_retirement_state_native')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (result.wasSuccessful() and not result.skipped and not result.expectedFailures) and complete and clean else 1)
+          PYRETIRE
+        env:
+          HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native worker request admission and ordinary request continuity
+        run: |
+          python -B - <<'PYREQUEST'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_worker_request_native',
+              'tests.test_hia_worker_request_review',
+              'tests.test_hia_worker_native_helpers',
+              'tests.test_hia_checker_identity',
+              'tests.test_hia_checker_identity_agent',
+          ))
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYREQUEST
+        env:
+          HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_IDENTITY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native worker pinned helper custody and journal composition
+        run: |
+          python -B - <<'PYHELPERS'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_worker_native_helpers')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYHELPERS
+        env:
+          HEPTA_HIA_WORKER_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native request journal decisions and actual SQL crash controls
+        run: |
+          python -B - <<'PYJOURNAL'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_agent_journal_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYJOURNAL
+        env:
+          HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native execution budgets and both request-journal lifecycles
+        run: |
+          python -B - <<'PYBUDGET'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_execution_budget_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYBUDGET
+        env:
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-execution-budget
+      - name: Native candidate budgets and pinned state owner composition
+        run: |
+          python -B - <<'PYCANDIDATE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_candidate_budget_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYCANDIDATE
+        env:
+          HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-candidate-budget
+      - name: Native slot versions leases and original Agent transactions
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_slot_ledger_native tests.test_hia_slot_ledger_native_integration
+        env:
+          HEPTA_HIA_SLOT_LEDGER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_LEDGER_EVIDENCE: ${{ runner.temp }}/hia-slot-ledger
+      - name: Ordinary Agent callers with native journal and retained owner forbidden
+        run: |
+          python -B tools/qualify_hia_agent_journal_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-journal-callers.json" \
+            --module tests.test_hia_agent_native_tools \
+            --module tests.test_hia_agent_native_proof_contract \
+            --module tests.test_hia_agent_native_lease_snapshot \
+            --module tests.test_hia_agent_native_machine_choices \
+            --module tests.test_hia_agent_native_campaign \
+            --module tests.test_hia_agent_candidate_native \
+            --module tests.test_hia_worker_request_native \
+            --module tests.test_hia_worker_request_review
+        env:
+          HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_PATCH_RESULT_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native immutable release installation and recovery observations
+        run: |
+          python -B - <<'PYINSTALL'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_release_install')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYINSTALL
+        env:
+          HEPTA_HIA_RELEASE_INSTALL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RELEASE_INSTALL_OBSERVATIONS: ${{ runner.temp }}/hia-release-install
+      - name: Native release selection CAS rollback and crash recovery
+        run: |
+          python -B - <<'PYSELECTION'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_release_selection',
+              'tests.test_hia_release_selection_review',
+          ))
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYSELECTION
+        env:
+          HEPTA_HIA_RELEASE_SELECTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RELEASE_SELECTION_OBSERVATIONS: ${{ runner.temp }}/hia-release-selection
+      - name: Native retained retirement and real resource release controls
+        run: |
+          python -B - <<'PYRETIREMENT'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_retirement_state_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYRETIREMENT
+        env:
+          HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RETIREMENT_STATE_EVIDENCE: ${{ runner.temp }}/hia-retirement-state
+      - name: Native assembly source build and self-repacking
+        run: |
+          python -B - <<'PYSOURCEBUILD'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_source_build')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYSOURCEBUILD
+        env:
+          HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS: ${{ runner.temp }}/hia-source-build
+      - name: Native raw JSON nominal packets and actual constructor ingress
+        run: |
+          python -B - <<'PYNOMINALJSON'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_nominal_json_native',
+              'tests.test_hia_nominal_json_constructor_ingress'))
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYNOMINALJSON
+        env:
+          HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_JSON_EVIDENCE: ${{ runner.temp }}/hia-nominal-json
+          HEPTA_HIA_NOMINAL_JSON_INGRESS_EVIDENCE: ${{ runner.temp }}/hia-nominal-json-ingress
+      - name: Native source admission build and explicit public compiler
+        run: |
+          python -B - <<'PYSOURCEBUILD'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_source_build',
+              'tests.test_hia_program_selfhost',
+              'tests.test_hia_source_release_integration',
+              'tests.test_hia_source_admission_native',
+          ))
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and not result.skipped
+                    and not result.expectedFailures and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYSOURCEBUILD
+        env:
+          HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS: ${{ runner.temp }}/hia-continuation-family/hia-source-build
+          HEPTA_HIA_SELFHOST_BUILD_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-selfhost-build
+          HEPTA_HIA_SOURCE_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SOURCE_ADMISSION_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-source-admission
+      - name: Native complete CLI arguments formatting and continuations
+        run: |
+          python -B - <<'PYCLI75'
+          import unittest
+          names = (
+              'tests.test_hia_cli_native',
+              'tests.test_hia_cli_continuation_native',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 43:
+              raise AssertionError('complete native component test inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 43
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYCLI75
+        env:
+          HEPTA_HIA_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CLI_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-cli-native
+      - name: Native complete machine Code owners and exception custody
+        run: |
+          python -B - <<'PYCODE75'
+          import unittest
+          names = (
+              'tests.test_hia_machine_encoding_native',
+              'tests.test_hia_machine_state_native',
+              'tests.test_hia_machine_instructions_native',
+              'tests.test_hia_machine_code_composition',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 44:
+              raise AssertionError('complete native component test inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 44
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYCODE75
+        env:
+          HEPTA_HIA_MACHINE_ENCODING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_INSTRUCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_ENCODING_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-machine-encoding
+          HEPTA_HIA_MACHINE_STATE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-machine-state
+          HEPTA_HIA_MACHINE_INSTRUCTIONS_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-machine-instructions
+          HEPTA_HIA_MACHINE_CODE_COMPOSITION_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-machine-code-composition
+      - name: Native machine instructions through complete original callers
+        run: |
+          python -B tools/qualify_hia_machine_instructions_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-continuation-family/hia-machine-instructions-callers"
+      - name: Native machine ELF writer and exact exception custody
+        run: |
+          python -B - <<'PYELF76'
+          import unittest
+          names = (
+              'tests.test_hia_machine_elf_native',
+              'tests.test_hia_machine_elf_protocol',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 37:
+              raise AssertionError('complete native component test inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 37
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYELF76
+        env:
+          HEPTA_HIA_MACHINE_ELF_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_ELF_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-machine-elf
+      - name: Native machine ELF through complete original callers
+        run: |
+          python -B tools/qualify_hia_machine_elf.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-continuation-family/hia-machine-elf-callers"
+      - name: Native machine plan policy and original object lifetimes
+        run: |
+          python -B - <<'PYPLAN76'
+          import unittest
+          names = (
+              'tests.test_hia_machine_plan_control_native',
+              'tests.test_hia_machine_plan_control_lifecycle',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 23:
+              raise AssertionError('complete native component test inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 23
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYPLAN76
+        env:
+          HEPTA_HIA_MACHINE_PLAN_CONTROL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_PLAN_CONTROL_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-machine-plan-control
+      - name: Native machine plan through complete original callers
+        run: |
+          python -B tools/qualify_hia_machine_plan_control_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-continuation-family/hia-machine-plan-control-callers.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-continuation-family/hia-machine-plan-control-callers"
+      - name: Native service context policy integers and held proof identity
+        run: |
+          python -B - <<'PYCONTEXT76'
+          import unittest
+          names = (
+              'tests.test_hia_service_context_native',
+              'tests.test_hia_service_context_builder',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 52:
+              raise AssertionError('complete native component test inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 52
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYCONTEXT76
+        env:
+          HEPTA_HIA_SERVICE_CONTEXT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_CONTEXT_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-service-context
+      - name: Native service context through all original Agent callers
+        run: |
+          python -B -m tools.qualify_hia_service_context \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-context-callers"
+      - name: Native complete Core lowering through all original machine and Core callers
+        run: |
+          python -B tools/qualify_hia_core_lowering_control_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-continuation-family/hia-core-lowering-control-callers"
+      - name: Native shared frame Call and short circuit ownership
+        run: |
+          python -B - <<'PYFRAME78'
+          import unittest
+          names = ('tests.test_hia_machine_frame_shared_native',)
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 5:
+              raise AssertionError('complete shared-frame control inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 5
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYFRAME78
+        env:
+          HEPTA_HIA_CORE_LOWERING_CONTROL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_FRAME_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-shared-frame
+      - name: Native service emission continuation and exception custody
+        run: |
+          python -B - <<'PYEMISSION78'
+          import unittest
+          names = (
+              'tests.test_hia_service_emission_native',
+              'tests.test_hia_service_emission_builder',
+              'tests.test_hia_service_emission_qualifier',
+              'tests.test_hia_service_emission_lifetimes',
+          )
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          if suite.countTestCases() != 52:
+              raise AssertionError('complete native component test inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 52
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYEMISSION78
+        env:
+          HEPTA_HIA_SERVICE_EMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_EMISSION_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-service-emission
+      - name: Native service emission through all original Agent callers
+        run: |
+          python -B tools/qualify_hia_service_emission.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-emission-callers"
+      - name: Native complete Core emitter through all original machine and Core callers
+        run: |
+          python -B tools/qualify_hia_core_emitter_control_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-continuation-family/hia-core-emitter-control-callers"
+      - name: Native borrowed byte ABI complete policy and whole emission custody
+        run: |
+          python -B - <<'PYBYTE79'
+          import unittest
+          names = ('tests.test_hia_native_byte_abi_native', 'tests.test_hia_native_byte_abi_integration',)
+          loader = unittest.defaultTestLoader
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 33:
+              raise AssertionError('complete joint owner component inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 33
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYBYTE79
+        env:
+          HEPTA_HIA_NATIVE_BYTE_ABI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_BYTE_ABI_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-native-byte-abi
+      - name: Native borrowed byte ABI through all original byte and Agent buffer callers
+        run: |
+          python -B tools/qualify_hia_native_byte_abi.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-continuation-family/hia-native-byte-abi-callers"
+      - name: Native complete build coordinator and installation custody
+        run: |
+          python -B - <<'PYBUILD79'
+          import unittest
+          names = ('tests.test_hia_native_build_native',)
+          loader = unittest.defaultTestLoader
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 26:
+              raise AssertionError('complete joint owner component inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 26
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYBUILD79
+        env:
+          HEPTA_HIA_NATIVE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_BUILD_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-native-build
+      - name: Native complete build coordinator through all original 114 callers
+        run: |
+          python -B tools/qualify_hia_native_build.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-continuation-family/hia-native-build-callers"
+      - name: Native service verification complete policy and default replay
+        run: |
+          python -B - <<'PYVERIFY79'
+          import unittest
+          names = ('tests.test_hia_service_verification_native', 'tests.test_hia_service_verification_builder', 'tests.test_hia_service_verification_qualifier', 'tests.test_hia_service_verification_default_replay',)
+          loader = unittest.defaultTestLoader
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 46:
+              raise AssertionError('complete joint owner component inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 46
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYVERIFY79
+        env:
+          HEPTA_HIA_SERVICE_VERIFICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_VERIFICATION_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-service-verification
+      - name: Native service verification through all original Agent callers
+        run: |
+          python -B tools/qualify_hia_service_verification.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-verification-callers"
+      - name: Native proof contract complete public policy and held capability
+        run: |
+          python -B - <<'PYPROOF79'
+          import unittest
+          names = ('tests.test_hia_proof_contract_native', 'tests.test_hia_proof_contract_builder', 'tests.test_hia_proof_contract_qualifier')
+          loader = unittest.defaultTestLoader
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 46:
+              raise AssertionError('complete joint proof component inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 46
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYPROOF79
+        env:
+          HEPTA_HIA_PROOF_CONTRACT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_PROOF_CONTRACT_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-proof-contract
+      - name: Native proof contract through all original 22 proof and 18 machine callers
+        run: |
+          python -B tools/qualify_hia_proof_contract.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-continuation-family/hia-proof-contract-callers"
+      - name: Native eight-body service requests complete component
+        run: |
+          python -B - <<'PYREQUESTS81'
+          import unittest
+          names = ('tests.test_hia_service_requests_native', 'tests.test_hia_service_requests_builder', 'tests.test_hia_service_requests_qualifier')
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 41:
+              raise AssertionError('complete requests component inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 41
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYREQUESTS81
+        env:
+          HEPTA_HIA_SERVICE_REQUESTS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_REQUESTS_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-service-requests
+      - name: Native requests through all original 48 Agent callers
+        run: python -B tools/qualify_hia_service_requests.py --cold-report "$RUNNER_TEMP/hia-cold.json" --caller-group agent --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-requests-agent"
+      - name: Native requests through all original 35 namespace callers
+        run: python -B tools/qualify_hia_service_requests.py --cold-report "$RUNNER_TEMP/hia-cold.json" --caller-group namespace --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-requests-namespace"
+      - name: Native requests through all original 48 ledger callers
+        run: python -B tools/qualify_hia_service_requests.py --cold-report "$RUNNER_TEMP/hia-cold.json" --caller-group ledger --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-requests-ledger"
+      - name: Native six-body service artifacts complete component
+        run: |
+          python -B - <<'PYARTIFACTS82'
+          import unittest
+          names = ('tests.test_hia_service_artifacts_native', 'tests.test_hia_service_artifacts_builder', 'tests.test_hia_service_artifacts_qualifier')
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 41:
+              raise AssertionError('complete artifacts component inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 41
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYARTIFACTS82
+        env:
+          HEPTA_HIA_SERVICE_ARTIFACTS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_ARTIFACTS_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-service-artifacts
+      - name: Native artifacts through all original 48 Agent callers
+        run: python -B tools/qualify_hia_service_artifacts.py --cold-report "$RUNNER_TEMP/hia-cold.json" --caller-group agent --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-artifacts-agent"
+      - name: Native artifacts through all original 35 namespace callers
+        run: python -B tools/qualify_hia_service_artifacts.py --cold-report "$RUNNER_TEMP/hia-cold.json" --caller-group namespace --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-artifacts-namespace"
+      - name: Native artifacts through all original 48 ledger callers
+        run: python -B tools/qualify_hia_service_artifacts.py --cold-report "$RUNNER_TEMP/hia-cold.json" --caller-group ledger --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-artifacts-ledger"
+      - name: Native nine-body service evaluation complete component
+        run: |
+          python -B - <<'PYEVALUATION82'
+          import unittest
+          names = ('tests.test_hia_service_evaluation_native', 'tests.test_hia_service_evaluation_builder', 'tests.test_hia_service_evaluation_qualifier')
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromNames(names)
+          if loader.errors or suite.countTestCases() != 48:
+              raise AssertionError('complete evaluation component inventory changed')
+          _loaded_count = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          passed = (result.wasSuccessful() and result.testsRun == 48
+                    and not result.skipped and not result.expectedFailures
+                    and not result.unexpectedSuccesses)
+          complete = result.testsRun == _loaded_count and _loaded_count > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if (passed) and complete and clean else 1)
+          PYEVALUATION82
+        env:
+          HEPTA_HIA_SERVICE_EVALUATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SERVICE_EVALUATION_EVIDENCE: ${{ runner.temp }}/hia-continuation-family/hia-service-evaluation
+      - name: Native evaluation through all original 48 Agent callers
+        run: python -B tools/qualify_hia_service_evaluation.py --cold-report "$RUNNER_TEMP/hia-cold.json" --caller-group agent --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-evaluation-agent"
+      - name: Native evaluation through all original 35 namespace callers
+        run: python -B tools/qualify_hia_service_evaluation.py --cold-report "$RUNNER_TEMP/hia-cold.json" --caller-group namespace --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-evaluation-namespace"
+      - name: Native evaluation through all original 48 ledger callers
+        run: python -B tools/qualify_hia_service_evaluation.py --cold-report "$RUNNER_TEMP/hia-cold.json" --caller-group ledger --evidence "$RUNNER_TEMP/hia-continuation-family/hia-service-evaluation-ledger"
+      - name: Native JSON wire entry, exact graph budgets, key cache and installed resources
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_json_wire_native tests.test_hia_json_wire_entry tests.test_hia_json_wire_cache
+        env:
+          HEPTA_HIA_JSON_WIRE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_JSON_WIRE_FIXTURE_EVIDENCE: ${{ runner.temp }}/json-wire-fixture
+          HEPTA_HIA_JSON_WIRE_ENTRY_FIXTURE_EVIDENCE: ${{ runner.temp }}/json-wire-entry-fixture
+          HEPTA_HIA_JSON_WIRE_CACHE_FIXTURE_EVIDENCE: ${{ runner.temp }}/json-wire-cache-fixture
+      - name: Original ordinary callers through HIA JSON wire
+        run: >-
+          python -B tools/qualify_hia_json_wire_native_callers.py
+          --cold-report "$RUNNER_TEMP/hia-cold.json"
+          --output "$RUNNER_TEMP/hia-json-wire-callers.json"
+          --evidence-dir "$RUNNER_TEMP/hia-json-wire-callers"
+      - name: Native verified report bundle with matching cold and original 43 plus 140 observations
+        run: |
+          python -B tools/qualify_hia_cli_verified_report_bundle.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-cli-verified-report-matching-cold"
+      - name: Native Linux file roundtrip with matching cold and original 140 controls
+        run: |
+          python -B tools/qualify_hia_linux_file_roundtrip.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence "$RUNNER_TEMP/hia-linux-file-roundtrip-matching-cold"
+      - name: Preserve actual cold failure and stage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-native-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-cold.json
+            ${{ runner.temp }}/hia-cold.cold/
+            ${{ runner.temp }}/hia-language.json
+            ${{ runner.temp }}/hia-language.assertions.json
+            ${{ runner.temp }}/hia-language.evidence/
+            ${{ runner.temp }}/hia-nominal-fixture/
+            ${{ runner.temp }}/hia-module-projects/
+            ${{ runner.temp }}/hia-release-install/
+            ${{ runner.temp }}/hia-release-selection/
+            ${{ runner.temp }}/hia-retirement-state/
+            ${{ runner.temp }}/hia-source-build/
+            ${{ runner.temp }}/hia-execution-budget/
+            ${{ runner.temp }}/hia-candidate-budget/
+            ${{ runner.temp }}/hia-slot-ledger/
+            ${{ runner.temp }}/hia-nominal-json/
+            ${{ runner.temp }}/hia-nominal-json-ingress/
+            ${{ runner.temp }}/hia-journal-callers.json
+            ${{ runner.temp }}/hia-continuation-family/hia-nominal-fixture/
+            ${{ runner.temp }}/hia-continuation-family/hia-module-projects/
+            ${{ runner.temp }}/hia-continuation-family/hia-slot-ledger-continuation/
+            ${{ runner.temp }}/hia-continuation-family/hia-program-execution/
+            ${{ runner.temp }}/hia-continuation-family/hia-program-execution-scalars/
+            ${{ runner.temp }}/hia-continuation-family/hia-static-budget/
+            ${{ runner.temp }}/hia-continuation-family/hia-static-bigints/
+            ${{ runner.temp }}/hia-continuation-family/hia-static-graphs/
+            ${{ runner.temp }}/hia-continuation-family/hia-heap-bound/
+            ${{ runner.temp }}/hia-continuation-family/hia-heap-live-engine/
+            ${{ runner.temp }}/hia-continuation-family/hia-linked-observer/
+            ${{ runner.temp }}/hia-continuation-family/hia-compile-receipts/
+            ${{ runner.temp }}/hia-continuation-family/hia-release-install/
+            ${{ runner.temp }}/hia-continuation-family/hia-release-selection/
+            ${{ runner.temp }}/hia-release-launch-matching-cold/
+            ${{ runner.temp }}/hia-candidate-build/
+            ${{ runner.temp }}/hia-store-lifecycle/
+            ${{ runner.temp }}/hia-store-lifecycle-agent/
+            ${{ runner.temp }}/hia-store-lifecycle-namespace/
+            ${{ runner.temp }}/hia-store-lifecycle-ledger/
+            ${{ runner.temp }}/hia-linux-stdio-matching-cold/
+            ${{ runner.temp }}/hia-linux-process-matching-cold/
+            ${{ runner.temp }}/hia-cli-discovery-json-matching-cold/
+            ${{ runner.temp }}/hia-cli-discovery-bundle-matching-cold/
+            ${{ runner.temp }}/hia-continuation-family/hia-source-build/
+            ${{ runner.temp }}/hia-continuation-family/hia-selfhost-build/
+            ${{ runner.temp }}/hia-continuation-family/hia-source-admission/
+            ${{ runner.temp }}/hia-continuation-family/hia-cli-native/
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-encoding/
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-state/
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-instructions/
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-code-composition/
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-instructions-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-elf/
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-elf-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-plan-control/
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-plan-control-callers.json
+            ${{ runner.temp }}/hia-continuation-family/hia-machine-plan-control-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-context/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-context-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-core-lowering-control-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-shared-frame/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-emission/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-emission-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-core-emitter-control-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-native-byte-abi/
+            ${{ runner.temp }}/hia-continuation-family/hia-native-byte-abi-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-native-build/
+            ${{ runner.temp }}/hia-continuation-family/hia-native-build-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-verification/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-verification-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-proof-contract/
+            ${{ runner.temp }}/hia-continuation-family/hia-proof-contract-callers/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-requests/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-requests-agent/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-requests-namespace/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-requests-ledger/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-artifacts/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-artifacts-agent/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-artifacts-namespace/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-artifacts-ledger/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-evaluation/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-evaluation-agent/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-evaluation-namespace/
+            ${{ runner.temp }}/hia-continuation-family/hia-service-evaluation-ledger/
+            ${{ runner.temp }}/worker-scheduling-fixture/
+            ${{ runner.temp }}/native-continuation-callers/
+            ${{ runner.temp }}/native-inprocess-continuation-callers/
+            ${{ runner.temp }}/native-no-child-continuation-callers/
+            ${{ runner.temp }}/execution-observation-fixture/
+            ${{ runner.temp }}/execution-observation-callers/
+            ${{ runner.temp }}/machine-object-fixture/
+            ${{ runner.temp }}/machine-object-callers/
+            ${{ runner.temp }}/machine-object-composed-callers/
+            ${{ runner.temp }}/byte-wrapper-fixture/
+            ${{ runner.temp }}/byte-wrapper-callers/
+            ${{ runner.temp }}/byte-wrapper-composed-callers/
+            ${{ runner.temp }}/core-emitter-fixture/
+            ${{ runner.temp }}/core-emitter-callers/
+            ${{ runner.temp }}/core-emitter-function-callers/
+            ${{ runner.temp }}/core-lowering-fixture/
+            ${{ runner.temp }}/core-lowering-callers/
+            ${{ runner.temp }}/machine-plan-fixture/
+            ${{ runner.temp }}/machine-plan-callers.json
+            ${{ runner.temp }}/machine-plan-callers/
+            ${{ runner.temp }}/machine-encoding-fixture/
+            ${{ runner.temp }}/machine-state-fixture/
+            ${{ runner.temp }}/machine-instructions-fixture/
+            ${{ runner.temp }}/machine-encoding-callers/
+            ${{ runner.temp }}/machine-state-callers/
+            ${{ runner.temp }}/machine-instructions-callers/
+            ${{ runner.temp }}/worker-report-fixture/
+            ${{ runner.temp }}/hia-cli-native/
+            ${{ runner.temp }}/hia-cli-verified-report-matching-cold/
+            ${{ runner.temp }}/hia-linux-file-roundtrip-matching-cold/
+            ${{ runner.temp }}/json-wire-fixture/
+            ${{ runner.temp }}/json-wire-entry-fixture/
+            ${{ runner.temp }}/json-wire-cache-fixture/
+            ${{ runner.temp }}/hia-json-wire-callers.json
+            ${{ runner.temp }}/hia-json-wire-callers/
+            ${{ runner.temp }}/hia-llvm.asc
+            ${{ runner.temp }}/hia-rust-caller-inputs.sha256
+      - name: Preserve final JSON wire caller evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-json-wire-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-cold.json
+            ${{ runner.temp }}/json-wire-fixture/
+            ${{ runner.temp }}/json-wire-entry-fixture/
+            ${{ runner.temp }}/json-wire-cache-fixture/
+            ${{ runner.temp }}/hia-json-wire-callers.json
+            ${{ runner.temp }}/hia-json-wire-callers/
+      - name: Preserve actual Linux process qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-linux-process-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-cold.json
+            ${{ runner.temp }}/hia-linux-process-matching-cold/

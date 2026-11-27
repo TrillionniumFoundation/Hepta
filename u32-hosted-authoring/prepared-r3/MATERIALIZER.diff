@@ -1,0 +1,79 @@
+--- prepared-r2/tools/materialize_hosted.py
++++ prepared-r3/tools/materialize_hosted.py
+@@ -357,6 +357,30 @@
+     pointer_value(doc, parts[:-1])[parts[-1]] = value
+ 
+ 
++def capture_copied_materials(scope, files, *, bound=False):
++    """Capture copied controls against the immutable capsule before consumption."""
++    captures, records = {}, {}
++    copied_documents = set(DOCS.values())
++    for name, (expected_raw, expected_identity) in files.items():
++        if name.startswith('scope/') and not name.startswith('scope/candidate/source/'):
++            suffix = name[6:]
++            path = scope / relative(suffix)
++            if bound and suffix in copied_documents:
++                path = path.with_name(path.name + '.hosted-original')
++        elif name.startswith('custody/'):
++            path = scope / 'hosted-custody' / relative(name[8:])
++        elif name.startswith('plan/'):
++            path = scope / 'hosted-plan' / relative(name[5:])
++        else:
++            continue
++        raw, actual, observed_stat = read_regular(path)
++        require(raw == expected_raw and actual == expected_identity,
++                'copied fixed material differs from capsule: ' + name)
++        captures[name] = (raw, actual, observed_stat)
++        records[name] = {'path': str(path), 'identity': actual, 'stat': observed_stat}
++    return captures, records
++
++
+ def bind(args, out):
+     scope = absolute(args.scope)
+     archive_root = absolute(args.archives)
+@@ -364,11 +388,16 @@
+     require(prepared['status'] == 'FIXED_R2_SOURCE_MATERIALIZED_NOT_EXECUTED', 'preparation did not complete')
+     controls = harness_guard()
+     require(controls == prepared['harness_controls'], 'prepared harness controls changed')
+-    allow = load(scope / 'hosted-plan/JSON-POINTER-ALLOWLIST.json')
++    fixed_files, material_index = material_payload()
++    require(material_index == prepared['material_index'], 'prepared material capsule changed')
++    captured, material_before = capture_copied_materials(scope, fixed_files)
++    dump(out / 'FIXED-MATERIALS-BEFORE.json', material_before)
++    allow = json.loads(captured['plan/JSON-POINTER-ALLOWLIST.json'][0])
+     archive_report_raw, archive_report_identity, _ = read_regular(archive_root / 'VERIFIED-ARCHIVES.json')
+     records = json.loads(archive_report_raw)
+     require(records['status'] == 'TWO_ORIGINAL_ZIPS_FULL_SHA_AND_ALL_MEMBER_CRC_PASS', 'original ZIP verification is incomplete')
+-    old_policy = load(scope / DOCS['storage'])['completed_artifact_storage']
++    require(records['harness_controls'] == controls, 'archive verifier harness differs')
++    old_policy = json.loads(captured['scope/' + DOCS['storage']][0])['completed_artifact_storage']
+     require(set(records['archives']) == {row['key'] for row in old_policy['archives']}, 'original ZIP set differs')
+     for row in old_policy['archives']:
+         item = records['archives'][row['key']]
+@@ -428,7 +457,7 @@
+         raise AssertionError('unrecognized binding source')
+     for name in ('generation', 'storage', 'projection', 'full'):
+         path = scope / DOCS[name]
+-        raw, original_identity, _ = read_regular(path)
++        raw, original_identity, _ = captured['scope/' + DOCS[name]]
+         expected = allow['documents'][name]
+         require(original_identity == expected['original_identity'], 'original binding document changed')
+         original = json.loads(raw)
+@@ -451,6 +480,8 @@
+         original_path = path.with_name(path.name + '.hosted-original')
+         require(not original_path.exists(), 'unique binding attempt required')
+         path.rename(original_path)
++        saved_raw, saved_identity, _ = read_regular(original_path)
++        require(saved_raw == raw and saved_identity == original_identity, 'copied JSON changed after capture')
+         write_new(path, encode(bound), original_identity['mode'])
+         after_raw, after_identity, _ = read_regular(path)
+         require(after_raw == encode(bound), 'bound JSON write/readback differs')
+@@ -468,6 +499,8 @@
+         require(read_regular(Path(record['path']))[1] == record['identity'], 'final actual control binding differs: ' + name)
+     for name, item in records['archives'].items():
+         require(stamp(Path(item['path']).lstat()) == item['post_verification_stat'], 'verified ZIP identity changed')
++    _, material_after = capture_copied_materials(scope, fixed_files, bound=True)
++    dump(out / 'FIXED-MATERIALS-AFTER.json', material_after)
+     require(capture_runtime()['runtime'] == current['runtime'], 'runtime drift during binding')
+     require(harness_guard() == controls, 'harness drift during binding')
+     require(read_regular(archive_root / 'VERIFIED-ARCHIVES.json')[1] == archive_report_identity,

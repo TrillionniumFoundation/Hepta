@@ -1,0 +1,163 @@
+class Ledger:
+    """Private metadata only. No input payload is cached or returned by this index."""
+    def __init__(self,root):
+        self.root=Path(root);self.db_path=self.root/'BOOKKEEPING.sqlite'
+        fd=os.open(self.db_path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
+        os.close(fd)
+        self.db=sqlite3.connect(str(self.db_path))
+        self.db.execute('PRAGMA journal_mode=DELETE')
+        self.db.execute('PRAGMA synchronous=FULL')
+        self.db.execute('PRAGMA temp_store=FILE')
+        self.db.execute('PRAGMA mmap_size=0')
+        self.db.execute('PRAGMA cache_size=-8192')
+        self.db.execute('CREATE TABLE collections (id INTEGER PRIMARY KEY, label TEXT NOT NULL)')
+        self.db.execute('CREATE TABLE records (collection INTEGER NOT NULL, key TEXT NOT NULL, ordinal INTEGER NOT NULL, value TEXT NOT NULL, PRIMARY KEY (collection,key), UNIQUE(collection,ordinal))')
+        self.db.commit();self.next_collection=0;self.pending=0;self.read_count=0
+        self.read_log_path=self.root/'FULL-READS.jsonl'
+        self.read_log=self.read_log_path.open('xb',buffering=65536)
+        self.read_log_bytes=0;self.read_log_sha=hashlib.sha256()
+    def change(self):
+        self.pending+=1
+        if self.pending>=2048:
+            self.db.commit();self.read_log.flush();self.pending=0
+    def collection(self,label):
+        self.next_collection+=1
+        self.db.execute('INSERT INTO collections VALUES (?,?)',(self.next_collection,label))
+        self.change();return self.next_collection
+    def mapping(self,label,*,full_reads=False):return DiskMap(self,label,full_reads=full_reads)
+    def sequence(self,label):return DiskSequence(self,label)
+    def record_read(self,row):
+        raw=(json.dumps({'ordinal':self.read_count,'descriptor':row},sort_keys=True)+'\n').encode()
+        self.read_log.write(raw);self.read_log_bytes+=len(raw);self.read_log_sha.update(raw);self.read_count+=1
+    def close_and_capture(self):
+        self.db.commit();self.db.close();self.read_log.flush();self.read_log.close()
+        records=[]
+        for path in (self.db_path,self.read_log_path):
+            descriptor=stream_file_pin(path)
+            if path==self.read_log_path:
+                require(descriptor['pin']['bytes']==self.read_log_bytes
+                    and descriptor['pin']['sha256']==self.read_log_sha.hexdigest(),
+                    'complete fresh-read ledger independent full-byte readback differs')
+            records.append(descriptor)
+        return {'files':records,'metadata_collections':self.next_collection,
+            'fresh_read_rows':self.read_count,'sqlite_cache_kib':8192,'sqlite_mmap_bytes':0,
+            'input_payload_cache':False,'metadata_only':True}
+
+
+class DiskMap(Mapping):
+    def __init__(self,ledger,label,*,full_reads=False):
+        self.ledger=ledger;self.collection=ledger.collection(label);self.size=0;self.full_reads=full_reads
+    def __len__(self):return self.size
+    def __iter__(self):
+        for row in self.ledger.db.execute('SELECT key FROM records WHERE collection=? ORDER BY ordinal',(self.collection,)):
+            yield row[0]
+    def __contains__(self,key):
+        return self.ledger.db.execute('SELECT 1 FROM records WHERE collection=? AND key=?',(self.collection,key)).fetchone()is not None
+    def __getitem__(self,key):
+        row=self.ledger.db.execute('SELECT value FROM records WHERE collection=? AND key=?',(self.collection,key)).fetchone()
+        if row is None:raise KeyError(key)
+        return decode(row[0])
+    def __setitem__(self,key,value):
+        require(type(key)is str,'disk metadata key must be an exact string')
+        raw=json.dumps(value,sort_keys=True,separators=(',',':'))
+        old=self.ledger.db.execute('SELECT ordinal FROM records WHERE collection=? AND key=?',(self.collection,key)).fetchone()
+        if old is None:
+            self.ledger.db.execute('INSERT INTO records VALUES (?,?,?,?)',(self.collection,key,self.size,raw));self.size+=1
+        else:self.ledger.db.execute('UPDATE records SET value=? WHERE collection=? AND key=?',(raw,self.collection,key))
+        if self.full_reads:self.ledger.record_read(value)
+        self.ledger.change()
+    def items(self):
+        for key,raw in self.ledger.db.execute('SELECT key,value FROM records WHERE collection=? ORDER BY ordinal',(self.collection,)):
+            yield key,decode(raw)
+    def sorted_items(self):
+        for key,raw in self.ledger.db.execute('SELECT key,value FROM records WHERE collection=? ORDER BY key COLLATE BINARY',(self.collection,)):
+            yield key,decode(raw)
+    def values(self):
+        for row in self.ledger.db.execute('SELECT value FROM records WHERE collection=? ORDER BY ordinal',(self.collection,)):
+            yield decode(row[0])
+    def __eq__(self,other):
+        if not isinstance(other,Mapping):return False
+        if len(self)!=len(other):return False
+        return all(key in other and value==other[key]for key,value in self.items())
+    def __ne__(self,other):return not self==other
+
+
+class DiskSequence:
+    def __init__(self,ledger,label):self.rows=ledger.mapping(label)
+    def __len__(self):return len(self.rows)
+    def __iter__(self):return self.rows.values()
+    def append(self,value):self.rows[str(len(self.rows))]=value
+    def extend(self,values):
+        for value in values:self.append(value)
+
+
+class DiskSet:
+    def __init__(self,ledger,label):self.rows=ledger.mapping(label)
+    def __contains__(self,key):return key in self.rows
+    def add(self,key):
+        if key not in self.rows:self.rows[key]=True
+
+
+class StreamValues:
+    def __init__(self,mapping):self.mapping=mapping
+    def __len__(self):return len(self.mapping)
+    def __iter__(self):return self.mapping.values()
+
+
+def sequence_equal(left,right):
+    sentinel=object()
+    for a,b in itertools.zip_longest(left,right,fillvalue=sentinel):
+        if a is sentinel or b is sentinel or a!=b:return False
+    return True
+
+
+def json_chunks(value,level=0,*,allow_nan=True):
+    """Exact original sort_keys=True/indent=2 formatting, including nested disk views."""
+    if isinstance(value,Mapping):
+        if not value:yield '{}';return
+        yield '{'
+        items=value.sorted_items()if isinstance(value,DiskMap)else sorted(value.items())
+        for i,(key,item)in enumerate(items):
+            require(type(key)is str,'report JSON object keys must be exact strings')
+            yield (','if i else'')+'\n'+'  '*(level+1)
+            yield json.dumps(key);yield ': '
+            yield from json_chunks(item,level+1,allow_nan=allow_nan)
+        yield '\n'+'  '*level+'}'
+    elif isinstance(value,(list,tuple,DiskSequence,StreamValues)):
+        if not len(value):yield '[]';return
+        yield '['
+        for i,item in enumerate(value):
+            yield (','if i else'')+'\n'+'  '*(level+1)
+            yield from json_chunks(item,level+1,allow_nan=allow_nan)
+        yield '\n'+'  '*level+']'
+    else:
+        yield json.dumps(value,sort_keys=True,indent=2,allow_nan=allow_nan)
+
+
+def stream_json_pin(value,*,allow_nan=True):
+    length=0;first=hashlib.sha256()
+    for text in json_chunks(value,allow_nan=allow_nan):
+        raw=text.encode();length+=len(raw);first.update(raw)
+    length+=1;first.update(b'\n');second=hashlib.sha256()
+    git=hashlib.sha1(b'blob '+str(length).encode()+b'\0');count=0
+    for text in json_chunks(value,allow_nan=allow_nan):
+        raw=text.encode();count+=len(raw);second.update(raw);git.update(raw)
+    count+=1;second.update(b'\n');git.update(b'\n')
+    require(count==length and second.digest()==first.digest(),'streamed ordered JSON metadata changed between passes')
+    return {'bytes':length,'sha256':second.hexdigest(),'git_blob':git.hexdigest()}
+
+
+def stream_file_pin(path):
+    path=Path(path);fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC|os.O_NONBLOCK)
+    try:
+        s=os.fstat(fd);before=seven(s)
+        require(stat.S_ISREG(s.st_mode)and s.st_nlink==1 and before==seven(path.lstat()),'ordinary held/named ledger file required')
+        length=0;sha=hashlib.sha256();git=hashlib.sha1(b'blob '+str(s.st_size).encode()+b'\0')
+        while True:
+            raw=os.read(fd,1048576)
+            if not raw:break
+            length+=len(raw);sha.update(raw);git.update(raw)
+        require(length==s.st_size and before==seven(os.fstat(fd))==seven(path.lstat()),'complete ledger output changed around independent stream read')
+    finally:os.close(fd)
+    return {'path':str(path),'pin':{'bytes':length,'sha256':sha.hexdigest(),'git_blob':git.hexdigest(),
+        'mode':'100755'if s.st_mode&0o111 else'100644'},'stat':before}

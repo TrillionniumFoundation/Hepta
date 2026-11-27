@@ -1,0 +1,532 @@
+{
+  "candidate_performance": null,
+  "deadline_fixed": false,
+  "evidence_authorities": [
+    {
+      "bytes": 15013,
+      "file": "inputs/SAFE-RECIPE.json",
+      "git_blob": "2cbbc6a0fbf1497f88f428362bc02a47a5fbb4a1",
+      "sha256": "e6540bf96b338c43b3f9f3607600da53f3b9a65bbcb1ab7544f3177b098c393a"
+    },
+    {
+      "bytes": 236337,
+      "file": "inputs/R20-FORMAL-REPORT.json",
+      "git_blob": "037dd52b11f300e2cff029b1cbc2fee1f15c7191",
+      "sha256": "def5ece4101503e00e9e309767372dc3ef57e007a9f88ecdccccaa31ba95be77"
+    },
+    {
+      "bytes": 13946,
+      "file": "inputs/R20-TRIAGE.json",
+      "git_blob": "5e1ca7a3bd5c758e43e325423744e4be7a977a53",
+      "sha256": "321a633244933502ff82c0ee62c973d6aa28a45ea01196b1f34bdce4bea5b2dd"
+    },
+    {
+      "bytes": 1441664,
+      "file": "inputs/SINGLE-METHOD-REPORT.json",
+      "git_blob": "121e6ebaf9ac58ab49b3e27c7b3ca21623ab1599",
+      "sha256": "23751d6e073acad5aaf0ba3e947a6ff4501261ed1b209c3deb349473b676f251"
+    },
+    {
+      "bytes": 36730,
+      "file": "inputs/PREVIOUS-REPAIR-SCOPE.json",
+      "git_blob": "11c9be6dea4d157905b2433e6c19fbe3a22a400c",
+      "sha256": "4aa8f2e86d0f927cbe523e7521e73916ce50bb91afa629d38c567d451994bfc7"
+    },
+    {
+      "bytes": 754568,
+      "file": "inputs/FRESH-COMPONENTS.json",
+      "git_blob": "fe52c22a757ba18043268c596888bfc312116aae",
+      "sha256": "fd61ccaf6c41a4636bf407ce07ce1e66557745f0b269d3319fe474c116c35d70"
+    },
+    {
+      "bytes": 1443,
+      "file": "inputs/FRESH-REPORT.json",
+      "git_blob": "6d8ae0b3fe2dcc37d6802805b8a77a328d2ee891",
+      "sha256": "032f608facb8a1c4d63c447b349a59686b5546ee12985f60ffd0e8de74cf7e5f"
+    },
+    {
+      "bytes": 3679,
+      "file": "inputs/FRESH-PARENT.json",
+      "git_blob": "934f1770e82a9fb57fb1749ae013a6e8999f0144",
+      "sha256": "e4258ef8d3ba13b06eee9f27de882578c0414e60ae1b30e52a0a7f68d8a41903"
+    },
+    {
+      "bytes": 207102,
+      "file": "inputs/R20-hia_selfhost_contract.py",
+      "git_blob": "fd474cb99412b5bbfe8402e4a121363c4a2f1e8b",
+      "sha256": "6aed26f33428349ccd2a7dcde9a5685fbda1057156c1591f3ecd56478893a168"
+    }
+  ],
+  "formal": {
+    "actual_source_tree": "84df4b42f1e20fd7d0c7229e658cf3b458984ffb",
+    "errors": 0,
+    "failures": [
+      {
+        "actual_traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 657, in test_expired_evaluation_is_rejected_before_any_reference_or_native_runner\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n    baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-2f7ede410124f15bf5f37252bab5695c7e2bf2982a63e515a67b6bcc5a583257\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n",
+        "classification": "baseline_codegen_deadline",
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner"
+      },
+      {
+        "actual_traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 572, in test_native_timeout_is_incomplete_terminated_and_not_adoptable\n    self.assertLess(time.monotonic() - started, 5)\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 6.1432236370000055 not less than 5\n",
+        "classification": "evaluate_wall_assertion",
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable"
+      },
+      {
+        "actual_traceback": "Traceback (most recent call last):\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 591, in test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline\n    _base, _candidate, baseline, build, receipts = self.build_pair(\n                                                   ~~~~~~~~~~~~~~~^\n        document=looping, candidate=looping, workload=workload,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        budget={\"max_total_wall_ms\": 3000, \"max_native_wall_ms\": 1000})\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tests/test_hia_agent_native_tools.py\", line 67, in build_pair\n    baseline_build = session.emit(base, receipts=[base_check[\"verification_receipt\"]])\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 265, in emit\n    return self.client.result(\"hia_emit\", self.arguments(candidate=candidate,\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        backend_profile=self.backend, output_kind=kind, codegen=codegen,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        verification_receipts=list(receipts)))\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 162, in result\n    return self.call(tool, arguments)[\"result\"]\n           ~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/home/runner/work/Hepta/Hepta/tools/hia_agent_native_qualification.py\", line 157, in call\n    raise QualificationFailure(f\"{tool}: expected {expected_status}, got \"\n                               + json.dumps(response, ensure_ascii=False))\ntools.hia_agent_native_transport.QualificationFailure: hia_emit: expected completed, got {\"contract_version\": \"hepta.hia.agent-native.v1\", \"request_id\": \"r-756bb592f158ce30c23b1be42f19223ecc8605ca6b747429c7e62b7996efcd2b\", \"status\": \"rejected\", \"error\": {\"code\": \"E_HIA_BUDGET\", \"phase\": \"codegen\", \"message\": \"frozen context deadline expired before emission\", \"retry_action\": \"correct_input\", \"details_artifact\": null}}\n",
+        "classification": "baseline_codegen_deadline",
+        "id": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline"
+      }
+    ],
+    "group_limit_seconds": 1800,
+    "ids_in_actual_loaded_order": [
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+      "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+      "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+      "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+      "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+      "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+      "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+      "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute"
+    ],
+    "job": 132343657673,
+    "original_test_budgets_changed": false,
+    "passes": 32,
+    "report": {
+      "bytes": 236337,
+      "git_blob": "037dd52b11f300e2cff029b1cbc2fee1f15c7191",
+      "sha256": "def5ece4101503e00e9e309767372dc3ef57e007a9f88ecdccccaa31ba95be77"
+    },
+    "run": 43560753071,
+    "source_commit": "26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d",
+    "tests_run": 35
+  },
+  "fresh_observation": {
+    "calls": 1,
+    "fresh_bytes": 58637295,
+    "fresh_paths": 1551,
+    "full_zip_readback": "ZIP-READBACK.json",
+    "inclusive_totals": {
+      "c:context_exit": {
+        "calls": 1552,
+        "inclusive_cpu_ns": 8649784,
+        "inclusive_wall_ns": 8672885
+      },
+      "c:hexdigest": {
+        "calls": 1552,
+        "inclusive_cpu_ns": 5757726,
+        "inclusive_wall_ns": 5690203
+      },
+      "c:open": {
+        "calls": 1553,
+        "inclusive_cpu_ns": 15931533,
+        "inclusive_wall_ns": 15911510
+      },
+      "c:read": {
+        "calls": 1552,
+        "inclusive_cpu_ns": 14411024,
+        "inclusive_wall_ns": 14435127
+      },
+      "c:sha256": {
+        "calls": 1552,
+        "inclusive_cpu_ns": 43143505,
+        "inclusive_wall_ns": 43170659
+      },
+      "python:_source_lexical_read": {
+        "calls": 1551,
+        "inclusive_cpu_ns": 171837464,
+        "inclusive_wall_ns": 171835706
+      },
+      "python:_source_protocol_current": {
+        "calls": 1823,
+        "inclusive_cpu_ns": 107253269,
+        "inclusive_wall_ns": 107207108
+      },
+      "python:_source_relative_name": {
+        "calls": 271,
+        "inclusive_cpu_ns": 19169840,
+        "inclusive_wall_ns": 19164118
+      },
+      "python:current_sources": {
+        "calls": 1,
+        "inclusive_cpu_ns": 270738624,
+        "inclusive_wall_ns": 270752930
+      },
+      "python:file_digests": {
+        "calls": 1,
+        "inclusive_cpu_ns": 268415524,
+        "inclusive_wall_ns": 268425974
+      },
+      "python:support_contract": {
+        "calls": 1,
+        "inclusive_cpu_ns": 268673827,
+        "inclusive_wall_ns": 268684318
+      },
+      "python:validate_contract": {
+        "calls": 1,
+        "inclusive_cpu_ns": 270277313,
+        "inclusive_wall_ns": 270287619
+      }
+    },
+    "observer_overhead_included": true,
+    "protocol_guards": 1823,
+    "qualification": false,
+    "report": {
+      "bytes": 1443,
+      "git_blob": "6d8ae0b3fe2dcc37d6802805b8a77a328d2ee891",
+      "sha256": "032f608facb8a1c4d63c447b349a59686b5546ee12985f60ffd0e8de74cf7e5f"
+    },
+    "returned_paths": 1552,
+    "run": 43595690951,
+    "source_guard_warmed_cache": true
+  },
+  "freshness_ids": [
+    "tests.test_hia_selfhost_contract.SelfhostContractTests.test_fresh_path_allocation_preserves_complete_original_map_and_order",
+    "tests.test_hia_selfhost_contract.SelfhostContractTests.test_fresh_path_allocation_preserves_lexical_roots_and_foreign_path_lifetime",
+    "tests.test_hia_selfhost_contract.SelfhostContractTests.test_fresh_path_allocation_keeps_all_eleven_ordered_freshness_controls",
+    "tests.test_hia_selfhost_contract.SelfhostContractTests.test_fresh_lexical_standard_provider_uses_exact_runtime_buffer_mode",
+    "tests.test_hia_selfhost_contract.SelfhostContractTests.test_fresh_lexical_preimport_provider_replacements_use_original_protocol",
+    "tests.test_hia_selfhost_contract.SelfhostContractTests.test_fresh_lexical_foreign_kwdefault_is_not_compared_during_admission",
+    "tests.test_hia_selfhost_contract.SelfhostContractTests.test_fresh_lexical_real_file_errors_keep_original_identity_fields_and_context",
+    "tests.test_hia_selfhost_contract.SelfhostContractTests.test_fresh_lexical_fast_route_observes_same_size_same_mtime_and_inventory_changes",
+    "tests.test_hia_selfhost_contract.SelfhostContractTests.test_fresh_lexical_mid_open_provider_changes_keep_complete_original_sequence"
+  ],
+  "namespace_native_ids": [
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_all_seven_apis_dedup_restart_and_original_namespace_authority",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_metadata_is_frozen_once_and_get_checks_the_content_binding",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_main_qualified_rows_ignore_temp_artifacts_and_profiles",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_profile_row_cannot_substitute_another_artifact_or_kind",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_concurrent_dedup_returns_one_exact_issued_reference",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_original_transaction_rollback_and_commit_keep_namespace_rows_atomic",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_machine_matches_independent_vm_states_and_rejects_replayed_launches",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_native_bad_tokens_and_corrupted_state_emit_no_effect_claim",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_byte_admission_can_cancel_only_before_any_effect",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_read_refusal_is_known_but_mutating_refusal_stays_unknown",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_publisher_return_loss_retains_file_without_index_or_replay",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_sql_insert_return_loss_retains_committed_row_and_pending_owner",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_native_receipt_store_loss_cannot_restart_the_completed_operation",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_legacy_scope_lost_begin_commit_and_rollback_never_repeat",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_scope_cleanup_claim_precedes_fence_store_and_cannot_rebind",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_reentry_is_refused_without_overwriting_the_outer_operation",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_atomic_request_and_legacy_scope_share_lock_order_and_revoke_capability",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_original_agent_tools_and_campaign_with_all_three_owners_and_no_namespace_reference",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_original_payload_quota_and_invalid_payload_precedes_other_inputs",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_unknown_namespace_effect_rolls_back_request_rows_and_keeps_original_intent",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceNativeTests.test_actual_installed_wheel_namespace_request_atomicity_and_restart_without_authoring"
+  ],
+  "new_candidate": "candidate/STATIC-PROOF.json",
+  "original_namespace_ir_text_counts": {
+    "blocks": 1007,
+    "functions": 50,
+    "ops": 3243
+  },
+  "product_calls": 0,
+  "schema": "hepta.namespace-r20-hotspot-source-analysis.v1",
+  "single_method_diagnostic": {
+    "deadline_window": {
+      "actual_fresh_span_ids": [
+        629,
+        636,
+        649,
+        657,
+        665,
+        672,
+        679,
+        690,
+        704,
+        712,
+        720,
+        728,
+        736,
+        744,
+        752,
+        760,
+        767,
+        778,
+        789,
+        803,
+        811,
+        819,
+        827,
+        835,
+        843,
+        851,
+        859,
+        866,
+        877,
+        888,
+        902,
+        910,
+        918,
+        927,
+        935,
+        943,
+        951,
+        959,
+        966,
+        974,
+        982,
+        990,
+        998,
+        1006,
+        1013,
+        1020,
+        1028
+      ],
+      "check_ns": 1794639943439871700,
+      "created_ns": 1794639939897485506,
+      "elapsed_ns": 3542386194,
+      "fresh_inclusive_ns": 2845171254,
+      "fresh_scans": 47,
+      "gap_ns": 542386194,
+      "logical_read_bytes": 2755952865,
+      "original_budget_ns": 3000000000
+    },
+    "limitation": "Instrumented single method in a new process; not same-order formal35 or an uninstrumented speed result. Inclusive nested timings cannot be added. Entire NamespaceState.call time is smaller than this first-check gap; no closed-method gain follows.",
+    "namespace_all_calls": {
+      "calls": 1341,
+      "process_cpu_ns": 147540129,
+      "raises": 0,
+      "wall_ns": 149788020
+    },
+    "native_samples": [
+      {
+        "actual_calls": 1341,
+        "actual_total_returned_bytes": 2856208,
+        "family": "NativeArtifactNamespaceImage",
+        "raises": 0,
+        "sample_count": 21,
+        "sample_every": 64,
+        "sample_max_ns": 109972,
+        "sample_median_ns": 86748,
+        "sample_min_ns": 74670,
+        "samples_not_extrapolated": true
+      },
+      {
+        "actual_calls": 12,
+        "actual_total_returned_bytes": 1992,
+        "family": "NativeExecutionBudgetImage",
+        "raises": 0,
+        "sample_count": 1,
+        "sample_every": 64,
+        "sample_max_ns": 486195,
+        "sample_median_ns": 486195,
+        "sample_min_ns": 486195,
+        "samples_not_extrapolated": true
+      },
+      {
+        "actual_calls": 218,
+        "actual_total_returned_bytes": 185337,
+        "family": "NativeRequestJournalImage",
+        "raises": 0,
+        "sample_count": 4,
+        "sample_every": 64,
+        "sample_max_ns": 70834,
+        "sample_median_ns": 64735.0,
+        "sample_min_ns": 41171,
+        "samples_not_extrapolated": true
+      },
+      {
+        "actual_calls": 1210,
+        "actual_total_returned_bytes": 3025,
+        "family": "NativeStoreLifecycleImage",
+        "raises": 0,
+        "sample_count": 19,
+        "sample_every": 64,
+        "sample_max_ns": 19218,
+        "sample_median_ns": 5528,
+        "sample_min_ns": 3755,
+        "samples_not_extrapolated": true
+      }
+    ],
+    "report": {
+      "bytes": 1441664,
+      "git_blob": "121e6ebaf9ac58ab49b3e27c7b3ca21623ab1599",
+      "sha256": "23751d6e073acad5aaf0ba3e947a6ff4501261ed1b209c3deb349473b676f251"
+    }
+  },
+  "source_ids": [
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_generated_source_matches_verified_hia",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_generated_cfg_respects_the_existing_bootstrap_arity_profile",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_independent_vm_full_namespace_identity_and_json_binding",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_independent_vm_profile_checks_both_rows_and_file",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_invalid_selected_owner_refuses_before_store_creation",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_independent_vm_scope_guard_consumes_epoch_even_when_observed_closed",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_bad_cold_builder_refuses_before_output_or_compilation",
+    "tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests.test_explicit_cold_fixture_never_enters_development_build"
+  ],
+  "source_reads": [
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 36025,
+      "git_blob": "0aab927439ce8c3b77518f9734b0691786cb8efb",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tools/generate_hia_artifact_namespace.py",
+      "path": "tools/generate_hia_artifact_namespace.py",
+      "sha256": "839e5aa2e42821621ee9ef3acddab237904a8373473f5f56fb0c68e832a1d831"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 219822,
+      "git_blob": "c9f17d1b322a24898bdbdd8d42ec7137f152e646",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/examples/hia_bootstrap/artifact_namespace.hepta",
+      "path": "examples/hia_bootstrap/artifact_namespace.hepta",
+      "sha256": "c85ff0afc91aeb84dcb93524f8385189ec684abd7350f99f0f28ad6da6202579"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 86627,
+      "git_blob": "073f641cf9217f050313a46de7c2bf1334e82858",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tools/generate_hia_selfhost.py",
+      "path": "tools/generate_hia_selfhost.py",
+      "sha256": "7a8f100e32bd9475948712a61b8cf166531f4314ca1d203f1ee41e0c1f19ca48"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 36770,
+      "git_blob": "d1c95d4ea30fe9cc5a368017a61439049c74d925",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/hepta/hia_program_runtime.py",
+      "path": "hepta/hia_program_runtime.py",
+      "sha256": "fd47a108d8fcf55f1e0688ef1e7682b5ca808ec3dc83b751f50d4ae8e717924f"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 13266,
+      "git_blob": "ab08dc91053336d8582522841b8740e53979055b",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/hepta/artifact_publication_native.py",
+      "path": "hepta/artifact_publication_native.py",
+      "sha256": "c0fdb4f26aa2a8285db9d763e3e19c03457684995e61fd12d1f2e7489499701e"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 160929,
+      "git_blob": "0b756a36589d19084b4373390dba0490870c48f2",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/hepta/hia_agent_service.py",
+      "path": "hepta/hia_agent_service.py",
+      "sha256": "1aafda7eba8e7fd8d00efdc1cd516806aeca7bbfb11c482ad018c2c47f8d33d2"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 28244,
+      "git_blob": "f13e349e7d5f4a4655e59375f963280764cda4e0",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/hepta/hia_agent_store.py",
+      "path": "hepta/hia_agent_store.py",
+      "sha256": "02f024e6f8cc948a7f5b0d96f6f9fa3365d0bd03c83882f1fec02467eb488c04"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 36181,
+      "git_blob": "1176af2119a532948c580ed1c72f227bd68667b5",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/hepta/hia_artifact_namespace_native.py",
+      "path": "hepta/hia_artifact_namespace_native.py",
+      "sha256": "6b167575d9444244716f8191e1a0cdf603ee8a631cb9298342688e3402541206"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 42759,
+      "git_blob": "016621eacf28492569b7332ac84a6d0775060311",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tests/test_hia_agent_native_tools.py",
+      "path": "tests/test_hia_agent_native_tools.py",
+      "sha256": "5e6e26c4adb9100f6c25cb2bdbdfbd4c9752c15017e851dee3723b7451ae28ee"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 9345,
+      "git_blob": "15a12392cae76a4fddd3ed22c52436037f180a0d",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tests/test_hia_agent_native_campaign.py",
+      "path": "tests/test_hia_agent_native_campaign.py",
+      "sha256": "472e3a0020c1532c217db21a9d087f128dcc0aec1902425698bd5c1d869b765b"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 59531,
+      "git_blob": "0ddacc16986a5c4e1fa1f323bfd17a250cb82a77",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tests/test_hia_artifact_namespace_native.py",
+      "path": "tests/test_hia_artifact_namespace_native.py",
+      "sha256": "ee49fdc193f9bfb3875075228715e51f4d67e9871c9d2a78b4c8acab113ba32e"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 39675,
+      "git_blob": "3f9006002e999371d53368085f37a7005e859096",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tests/test_hia_selfhost_contract.py",
+      "path": "tests/test_hia_selfhost_contract.py",
+      "sha256": "2f73dcce404392a47b775cbd29644ee5ce283031ec0a69f6d5d207019243d108"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 21980,
+      "git_blob": "198912e5a1f32c9fe83ac808a0de69ad3e8a9c44",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tools/hia_agent_native_qualification.py",
+      "path": "tools/hia_agent_native_qualification.py",
+      "sha256": "edd4f6c4347febb929b3f9f858da4eeb399a76e154418d08b1c3609c3a7c49f8"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 11064,
+      "git_blob": "31a86adf3389125a58bd0b9c06cae81d76bdf3ca",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tools/build_hia_json_preflight.py",
+      "path": "tools/build_hia_json_preflight.py",
+      "sha256": "e1586b4adecf2ebf4675888f639b64c9d144ab202cbb5506e27037dad5b212fe"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 39724,
+      "git_blob": "1471d72b20a07cac1cc14f819d6230c44cd227be",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tools/qualify_hia_store_lifecycle.py",
+      "path": "tools/qualify_hia_store_lifecycle.py",
+      "sha256": "6d42cd4f1fdf0bf9a1c891400df53dee512d2db0fb9b325113a41bd8c7c712cf"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 14842,
+      "git_blob": "720425385dd2ee12e0e60c3b5e1d66bfe35cc210",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tools/generate_hia_artifact_publication.py",
+      "path": "tools/generate_hia_artifact_publication.py",
+      "sha256": "80f66021e7b3fdb97360bab5d2624561822937d3952a4d36972a17ffdffcf56b"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 13554,
+      "git_blob": "7687690813fbed626d1c9b61dfc6304ae52df6e4",
+      "new_read_path": "/tmp/hia-r8-source-recovery-20261114-r1/source/tools/hia_artifact_publication_syscalls.S",
+      "path": "tools/hia_artifact_publication_syscalls.S",
+      "sha256": "0042cf07a91f7a61ca2dd440ec838e0aaafc9d986d584acaa2c0c7dfbb80ddbf"
+    },
+    {
+      "R20_actual_manifest_equal": true,
+      "bytes": 207102,
+      "git_blob": "fd474cb99412b5bbfe8402e4a121363c4a2f1e8b",
+      "new_read_path": "/tmp/hia-namespace-budget-analysis-r1-dda7/inputs/R20-hia_selfhost_contract.py",
+      "note": "Restored by full Git GET. Frozen3180 local copy differed and was not used for this function analysis.",
+      "path": "tools/hia_selfhost_contract.py",
+      "sha256": "6aed26f33428349ccd2a7dcde9a5685fbda1057156c1591f3ecd56478893a168"
+    }
+  ],
+  "status": "ANALYSIS_AND_CANDIDATE_ONLY"
+}

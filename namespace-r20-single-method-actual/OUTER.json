@@ -1,0 +1,92 @@
+{
+  "cases": [
+    {
+      "method": "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "observation_status": "OBSERVATIONS_COMPLETE",
+      "original_outcome": "FAIL",
+      "process": {
+        "argv": [
+          "/opt/hostedtoolcache/Python/3.14.4/x64/bin/python",
+          "-B",
+          "/home/runner/work/Hepta/Hepta/harness/tools/observe_case.py",
+          "--source",
+          "/home/runner/work/Hepta/Hepta/source",
+          "--inputs",
+          "/home/runner/work/Hepta/Hepta/harness/inputs/INPUTS.json",
+          "--retained",
+          "/home/runner/work/Hepta/Hepta/evidence/retained-original-inputs",
+          "--evidence",
+          "/home/runner/work/Hepta/Hepta/evidence/case-0/observations",
+          "--method",
+          "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner"
+        ],
+        "cleanup_seconds": 3,
+        "cwd": "/home/runner/work/Hepta/Hepta/source",
+        "elapsed_ns": 10234104542,
+        "original_group_seconds": 1800,
+        "pid": 3143,
+        "remaining_group_seconds": 1799.999939371,
+        "returncode": 0,
+        "same_process_group_absent": true,
+        "timed_out": false
+      },
+      "report_identity": {
+        "bytes": 1441664,
+        "git_blob": "121e6ebaf9ac58ab49b3e27c7b3ca21623ab1599",
+        "sha256": "23751d6e073acad5aaf0ba3e947a6ff4501261ed1b209c3deb349473b676f251"
+      },
+      "report_path": "case-0/observations/REPORT.json",
+      "tests_run": 1
+    }
+  ],
+  "group_elapsed_ns": 10242615761,
+  "group_started_ns": 146106193682,
+  "new_fixture_compilations": 0,
+  "original_method_ast": {
+    "test_expired_evaluation_is_rejected_before_any_reference_or_native_runner": "FunctionDef(name='test_expired_evaluation_is_rejected_before_any_reference_or_native_runner', args=arguments(args=[arg(arg='self')]), body=[Assign(targets=[Tuple(elts=[Name(id='_base', ctx=Store()), Name(id='_candidate', ctx=Store()), Name(id='baseline', ctx=Store()), Name(id='build', ctx=Store()), Name(id='receipts', ctx=Store())], ctx=Store())], value=Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='build_pair', ctx=Load()), keywords=[keyword(arg='budget', value=Dict(keys=[Constant(value='max_total_wall_ms'), Constant(value='max_native_wall_ms')], values=[Constant(value=3000), Constant(value=1000)]))])), Assign(targets=[Name(id='context', ctx=Store())], value=Call(func=Name(id='dict', ctx=Load()), args=[Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='session', ctx=Load()), attr='context', ctx=Load())])), Assign(targets=[Name(id='context_row', ctx=Store())], value=Call(func=Attribute(value=Call(func=Attribute(value=Attribute(value=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='service', ctx=Load()), attr='store', ctx=Load()), attr='db', ctx=Load()), attr='execute', ctx=Load()), args=[Constant(value='SELECT created_ns FROM contexts WHERE id=?'), Tuple(elts=[Subscript(value=Name(id='context', ctx=Load()), slice=Constant(value='id'), ctx=Load())], ctx=Load())]), attr='fetchone', ctx=Load()))), Assign(targets=[Name(id='created_ns', ctx=Store())], value=Subscript(value=Name(id='context_row', ctx=Load()), slice=Constant(value='created_ns'), ctx=Load())), Assign(targets=[Name(id='deadline_ns', ctx=Store())], value=BinOp(left=Call(func=Name(id='int', ctx=Load()), args=[Name(id='created_ns', ctx=Load())]), op=Add(), right=Constant(value=3000000000))), Expr(value=Call(func=Attribute(value=Name(id='time', ctx=Load()), attr='sleep', ctx=Load()), args=[Call(func=Name(id='max', ctx=Load()), args=[Constant(value=0), BinOp(left=BinOp(left=BinOp(left=Name(id='deadline_ns', ctx=Load()), op=Sub(), right=Call(func=Attribute(value=Name(id='time', ctx=Load()), attr='time_ns', ctx=Load()))), op=Div(), right=Constant(value=1000000000)), op=Add(), right=Constant(value=0.01))])])), With(items=[withitem(context_expr=Call(func=Name(id='patch', ctx=Load()), args=[Constant(value='hepta.hia_agent_runner.run_reference_batch')], keywords=[keyword(arg='side_effect', value=Call(func=Name(id='AssertionError', ctx=Load()), args=[Constant(value='expired reference started')]))])), withitem(context_expr=Call(func=Name(id='patch', ctx=Load()), args=[Constant(value='hepta.hia_agent_runner.run_native_batch')], keywords=[keyword(arg='side_effect', value=Call(func=Name(id='AssertionError', ctx=Load()), args=[Constant(value='expired native started')]))]))], body=[Assign(targets=[Name(id='response', ctx=Store())], value=Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='reject', ctx=Load()), args=[Constant(value='hia_evaluate'), Call(func=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='session', ctx=Load()), attr='arguments', ctx=Load()), keywords=[keyword(arg='baseline_artifact', value=Subscript(value=Name(id='baseline', ctx=Load()), slice=Constant(value='native_artifact'), ctx=Load())), keyword(arg='candidate_artifact', value=Subscript(value=Name(id='build', ctx=Load()), slice=Constant(value='native_artifact'), ctx=Load())), keyword(arg='build_receipt', value=Subscript(value=Name(id='build', ctx=Load()), slice=Constant(value='build_receipt'), ctx=Load())), keyword(arg='verification_receipts', value=Name(id='receipts', ctx=Load()))])]))]), Expr(value=Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='assertEqual', ctx=Load()), args=[Subscript(value=Subscript(value=Name(id='response', ctx=Load()), slice=Constant(value='error'), ctx=Load()), slice=Constant(value='code'), ctx=Load()), Constant(value='E_HIA_BUDGET')])), Expr(value=Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='assertEqual', ctx=Load()), args=[Subscript(value=Subscript(value=Name(id='response', ctx=Load()), slice=Constant(value='error'), ctx=Load()), slice=Constant(value='phase'), ctx=Load()), Constant(value='context')])), Expr(value=Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='assertEqual', ctx=Load()), args=[Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='session', ctx=Load()), attr='context', ctx=Load()), Name(id='context', ctx=Load())])), Expr(value=Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='assertEqual', ctx=Load()), args=[Subscript(value=Call(func=Attribute(value=Call(func=Attribute(value=Attribute(value=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='service', ctx=Load()), attr='store', ctx=Load()), attr='db', ctx=Load()), attr='execute', ctx=Load()), args=[Constant(value='SELECT created_ns FROM contexts WHERE id=?'), Tuple(elts=[Subscript(value=Name(id='context', ctx=Load()), slice=Constant(value='id'), ctx=Load())], ctx=Load())]), attr='fetchone', ctx=Load())), slice=Constant(value='created_ns'), ctx=Load()), Name(id='created_ns', ctx=Load())])), Assign(targets=[Name(id='execution', ctx=Store())], value=Call(func=Attribute(value=Call(func=Attribute(value=Attribute(value=Attribute(value=Attribute(value=Name(id='self', ctx=Load()), attr='service', ctx=Load()), attr='store', ctx=Load()), attr='db', ctx=Load()), attr='execute', ctx=Load()), args=[Constant(value='SELECT used_native_ns,owner FROM execution_budgets WHERE context_id=?'), Tuple(elts=[Subscript(value=Name(id='context', ctx=Load()), slice=Constant(value='id'), ctx=Load())], ctx=Load())]), attr='fetchone', ctx=Load()))), Expr(value=Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='assertEqual', ctx=Load()), args=[Subscript(value=Name(id='execution', ctx=Load()), slice=Constant(value='used_native_ns'), ctx=Load()), Constant(value='0')])), Expr(value=Call(func=Attribute(value=Name(id='self', ctx=Load()), attr='assertIsNone', ctx=Load()), args=[Subscript(value=Name(id='execution', ctx=Load()), slice=Constant(value='owner'), ctx=Load())]))])"
+  },
+  "original_native_job": 132343657673,
+  "original_run": 43560753071,
+  "original_test_file": {
+    "bytes": 42759,
+    "git_blob": "016621eacf28492569b7332ac84a6d0775060311",
+    "sha256": "5e6e26c4adb9100f6c25cb2bdbdfbd4c9752c15017e851dee3723b7451ae28ee"
+  },
+  "prerequisites": {
+    "jsonschema": "4.26.0",
+    "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+    "tools": {
+      "clang": {
+        "bytes": 132448,
+        "path": "/usr/lib/llvm-20/bin/clang",
+        "sha256": "b1ca2b35b07cb5cb7db47247f329151ed22692a19de2763859b0867e6323e2fe",
+        "version": "Ubuntu clang version 20.1.8 (++20250804090239+87f0227cb601-1~exp1~20250804210352.139)\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/lib/llvm-20/bin\n"
+      },
+      "ld": {
+        "bytes": 1359128,
+        "path": "/usr/bin/x86_64-linux-gnu-ld.bfd",
+        "sha256": "e9ceb054c12207970f2726dfc07e9a66b411602748628baf27399f02a9bbb31b",
+        "version": "GNU ld (GNU Binutils for Ubuntu) 2.42\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis program is free software; you may redistribute it under the terms of\nthe GNU General Public License version 3 or (at your option) a later version.\nThis program has absolutely no warranty.\n"
+      }
+    },
+    "z3": [
+      4,
+      15,
+      4,
+      0
+    ]
+  },
+  "python": "3.14.4 (main, Apr 29 2026, 14:14:57) [GCC 13.3.0]",
+  "qualification": false,
+  "retained_inputs_unchanged": true,
+  "runtime_executables": {
+    "cc": "/usr/bin/cc",
+    "clang": "/usr/bin/clang"
+  },
+  "schema": "hepta.original-namespace-single-method-diagnostic.v2",
+  "source_commit": "26fd6c4c1a71dc970ae11b00c8a9ff74c5c8508d",
+  "source_tree": "84df4b42f1e20fd7d0c7229e658cf3b458984ffb",
+  "source_unchanged": true,
+  "status": "OBSERVATIONS_COMPLETE",
+  "whole_native": false
+}

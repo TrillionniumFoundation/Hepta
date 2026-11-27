@@ -1,0 +1,26 @@
+--- before/hepta/hia_patch_result_native.py
++++ source/hepta/hia_patch_result_native.py
+@@ -126,6 +126,8 @@
+                         yield value
+                 finally:
+                     value = None
++                    if frame._uncertain is True:
++                        frame._retire()
+             return native_generator()
+         raise FrontUnknown('public-front closure shape is outside its frozen inventory')
+ 
+@@ -252,6 +254,14 @@
+         if _TYPE(arguments) is not tuple or len(arguments) != arity:
+             raise TypeError('front argument binding differs')
+         return PatchResultFrame(self, mode, arguments, witness=witness)
++
++    def finish(self, frame):
++        try:
++            return super().finish(frame)
++        finally:
++            if (_TYPE(frame) is PatchResultFrame and frame.image is self
++                    and frame._uncertain is True):
++                frame._retire()
+ 
+     def invoke_bound_apply(self, provider, document, request):
+         if not self.definition_current('apply_program_patch', provider):
