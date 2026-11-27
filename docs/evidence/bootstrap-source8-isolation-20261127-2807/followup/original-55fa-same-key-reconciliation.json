@@ -1,0 +1,37 @@
+{
+  "audit_recorded": true,
+  "job": {
+    "args": [
+      "-I",
+      "-B",
+      "-c",
+      "from pathlib import Path\nimport sys,json,os,time,traceback,hashlib\nspec=json.load(sys.stdin);scope=Path('/home/qian-qi/hia-bootstrap-closure-20261127-2807');root=scope/'src'\ndata=Path('/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-bootstrap-closure-20261127-2807')\nfor name,pin in spec['pins'].items():\n raw=(root/name).read_bytes();assert len(raw)==pin['bytes'] and hashlib.sha256(raw).hexdigest()==pin['sha256'],name\nassert os.statvfs(data).f_bavail*os.statvfs(data).f_frsize>8_000_000_000\nfor key in list(os.environ):\n if key.startswith(('HEPTA_HIA_','PYTHON')):del os.environ[key]\nos.environ['TMPDIR']=str(scope/'temporary')\nos.chdir(root);sys.path.insert(0,str(root))\nfrom tests import hia_service_bootstrap_support as support\nfrom tools.qualify_hia_service_bootstrap_finite import originals,compare_candidate\nfrom tools.read_hia_service_bootstrap import read_finite\nout=data/'isolated-current-v2-full-unselected';out.mkdir(mode=0o700)\nbefore=support.source_snapshot();start=time.monotonic();record={'schema':'hepta.hia.bootstrap-isolated-current-observation.v1','started_time_ns':time.time_ns(),'source_before':before,'original_inner_seconds':600,'candidate_inner_seconds':1800,'cleanup_seconds':3,'original_source_suite_executed':False,'whole_native_stack_qualified':False}\ntry:\n authority,pin=originals(out/'originals')\n record['authority']={'path':str(authority),**pin}\n print(json.dumps({'event':'complete_fresh_originals_terminal','authority':record['authority'],'seconds':time.monotonic()-start},sort_keys=True),flush=True)\n report=compare_candidate(authority,pin,out/'unselected',lane='unselected')\n record['comparison']={key:report[key] for key in ('status','count','full_raw_byte_equality','complete_late_byte_equality','terminal_late_difference_count','current_dispatch')}\n print(json.dumps({'event':'complete_unselected_comparison_terminal','comparison':record['comparison'],'seconds':time.monotonic()-start},sort_keys=True),flush=True)\n record['independent_reader']=read_finite(out/'unselected',authority,pin,'unselected')\n record['status']='PASS_FULL_UNSELECTED_AND_CURRENT_OWNED_PROCESS_ONLY'\nexcept BaseException as error:\n record['status']='HOLD';record['error']={'type':type(error).__name__,'message':str(error)}\n traceback.print_exc()\nfinally:\n record['source_after']=support.source_snapshot();assert record['source_after']==before\n record['ended_time_ns']=time.time_ns();record['seconds']=time.monotonic()-start\n support.write_json(out/'observation.json',record)\n print(json.dumps({'event':'fresh_unselected_terminal','status':record['status'],'seconds':record['seconds'],'error':record.get('error'),'record':support.file_pin(out/'observation.json')},sort_keys=True),flush=True)\nsys.exit(0 if record['status'].startswith('PASS_') else 1)\n"
+    ],
+    "created_unix_ms": 1795808815119,
+    "cwd": null,
+    "env_keys": [],
+    "executable": "/usr/bin/python3",
+    "execution_mode": "operator",
+    "host": "rog",
+    "id": "1a21e8be80f-ffbe-55fa",
+    "idempotency_key": "hia-bootstrap-isolated-current-full-originals-unselected-20261127-2807-v2",
+    "launch_error": "Remote launch outcome unavailable",
+    "launch_state": "launch_unknown",
+    "remote_job_dir": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a21e8be80f-ffbe-55fa",
+    "request_digest": "69801fec50d8c84a8d058522c426d42f0030873ffbc6b6a4a57c7d18a3520be4",
+    "request_fingerprint": 7602111270830524490,
+    "ssh_target": "rog-ts",
+    "system_jobctl": false,
+    "unit": "hepta-runtime-job-1a21e8be80f-ffbe-55fa"
+  },
+  "launch": null,
+  "retried_launch": false,
+  "reused": true,
+  "status": {
+    "automatic_retry": false,
+    "job_id": "1a21e8be80f-ffbe-55fa",
+    "outcome": "unknown",
+    "state": "status_unavailable",
+    "status_authoritative": false
+  }
+}
