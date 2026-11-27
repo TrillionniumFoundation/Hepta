@@ -21,3 +21,11 @@ SHA-256 is d3ab8c87da8514ac3341bed99fa3d05d2f43a6cef38b5607ef92f88b6b627a0a.
 This is structural/physical/Git validation with deliberately synthetic compiler
 fixtures. No new native cold or complete transport campaign was executed.
 The earlier 3ad78 evidence is preserved without relabelling its tested bytes.
+
+A follow-up whole-patch review also restored the original workflow step cap
+from 35 to 11 minutes. Every original job/step timeout in hia-core.yml now
+matches the canonical base exactly. AST inspection of every changed production
+Python file finds only one new budget call: the separate 900-second bridge
+build. The complete 240-second cold owner, 180+3 inner gate, and 11-minute step
+are all required. The preceding 74 controls executed the same Python product
+bytes; this workflow limit correction is a static check, not an execution claim.
