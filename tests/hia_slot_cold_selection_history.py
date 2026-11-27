@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = "tests/fixtures/hia_slot_cold_selection_history_v1.json"
-FIXTURE_SHA256 = "f6a5268b28a8bd29a2c039b25d8aa98f565f4c3c7b7b48559438dc6e3a8c30aa"
+FIXTURE_SHA256 = "e697baffc1a9af41e6c97817e65b0425b257c886343aa039ed847b924e0e2fae"
 PREDECESSOR = "f765709ba3dc5e95878ec25ffd5e8d9c4b3675d1"
 EXPECTED = {
   "tests/hia_slot_operations_component_fixture.py": {
@@ -46,10 +46,10 @@ EXPECTED = {
     }
   },
   "tools/qualify_hia_slot_operations_callers.py": {
-    "hunks": 7,
+    "hunks": 4,
     "new": {
-      "bytes": 13275,
-      "sha256": "86efd8e30f129ffe274b80cd7192de6582d596110e532e94e4c09a5457b23e64"
+      "bytes": 14239,
+      "sha256": "9df34e255caa814cef81b6dbc17f195bda560f9bf27c7ec81e50de7f0e2d386a"
     },
     "old": {
       "bytes": 12742,

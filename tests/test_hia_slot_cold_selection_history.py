@@ -203,6 +203,67 @@ class SlotColdSelectionHistoryTests(unittest.TestCase):
                 history.reviewed(first, self.current[first], root=root,
                                  take=lambda path: path.read_text() if path.name.endswith(".py") else path.read_bytes())
 
+    def test_qualifier_binds_history_and_loading_to_the_same_physical_sources(self):
+        from tools import qualify_hia_slot_operations_callers as caller
+        from tools import run_hia_unittest_gate as unittest_gate
+        from tools import hia_selfhost_contract, build_hia_slot_operations
+        import sys
+
+        required = {*history.EXPECTED, history.FIXTURE,
+                    "tools/hia_cold_compiler.py", "tests/hia_slot_cold_selection_history.py",
+                    "tests/test_hia_slot_cold_selection_history.py"}
+        with tempfile.TemporaryDirectory(prefix="hia-slot-caller-source-boundary-") as folder:
+            root = Path(folder).resolve()
+            for name in required:
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((ROOT / name).read_bytes())
+            reviewed = history.reviewed
+            loader = unittest_gate.load_declared_suite
+            for boundary in ("review", "load"):
+                for name in (*history.EXPECTED, history.FIXTURE):
+                    target = root / name
+                    before = target.read_bytes()
+                    reached = False
+                    def checked_review(*args, **kwargs):
+                        nonlocal reached
+                        value = reviewed(*args, **kwargs)
+                        if boundary == "review":
+                            target.write_bytes(before + b"\n# changed after source-history capture\n")
+                            reached = True
+                        return value
+                    def checked_load(*args, **kwargs):
+                        nonlocal reached
+                        value = loader(*args, **kwargs)
+                        if boundary == "load":
+                            target.write_bytes(before + b"\n# changed after real suite loading\n")
+                            reached = True
+                        return value
+                    try:
+                        with self.subTest(boundary=boundary, path=name), \
+                                patch.object(caller, "ROOT", root), \
+                                patch.object(hia_selfhost_contract, "file_digests", return_value={}), \
+                                patch.object(build_hia_slot_operations, "INPUTS", tuple(history.EXPECTED)), \
+                                patch.object(build_hia_slot_operations, "build") as build, \
+                                patch.object(history, "reviewed", side_effect=checked_review), \
+                                patch.object(unittest_gate, "load_declared_suite", side_effect=checked_load) as load, \
+                                patch.object(sys, "argv", ["slot15-source-boundary",
+                                    "--cold-report", str(root / "not-read.json"),
+                                    "--evidence", str(root / "must-not-exist")]):
+                            expected = "initial source pins" if boundary == "review" else "loading the original suite"
+                            with self.assertRaisesRegex(ValueError, expected):
+                                caller.main()
+                            self.assertTrue(reached)
+                            self.assertNotEqual(target.read_bytes(), before)
+                            build.assert_not_called()
+                            if boundary == "review":
+                                load.assert_not_called()
+                            else:
+                                load.assert_called_once()
+                            self.assertFalse((root / "must-not-exist").exists())
+                    finally:
+                        target.write_bytes(before)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
