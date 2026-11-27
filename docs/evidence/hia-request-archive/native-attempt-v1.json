@@ -1,0 +1,103 @@
+{
+  "schema": "hepta.hia.request-archive-native-run.v1",
+  "base_commit": "95f81abe2381dd51d798436fe53725e0059897f9",
+  "packet_sha256": "e37a1f25e3b1b037df62f8e1fc55b1532402e7bfdb09673af46950ad822d2d8a",
+  "author_sources": {
+    "tools/generate_hia_mcp_request_audit_archive_query.py": {
+      "before_sha256": null,
+      "after_sha256": "d8c7a034a0037f2116bf4ae605a2b0f0cb37c8b4423d6de8e5e4d24af98d12a0"
+    },
+    "tools/generate_hia_mcp_request_audit_common.py": {
+      "before_sha256": "eb859b49dd948dbdaad3c40cd35950f5fded4164aae0247c49f056a52b2d49eb",
+      "after_sha256": "266d13e3cefeab08b5504543a7719a3090fa6f1eefda66ed3e49ec6625d54e4b"
+    },
+    "tools/generate_hia_mcp_request_audit.py": {
+      "before_sha256": "115f076c36287450eacf1ce15f4b6fa5a62f9fb591e9c665abb4a70ab5d0ae58",
+      "after_sha256": "d32f7138751be57aca568c5befe2dda85e368c2e2c9dc3f2fdd72ba02571d59c"
+    },
+    "tools/generate_hia_mcp_request_audit_session.py": {
+      "before_sha256": "ec3cd427fcc48f78cf515f0d8a1b62c3aaa2b76a6d096b9c2f643eb736784706",
+      "after_sha256": "b1114fde4c8f17882e876b0006d94c3116c31ce26d5d5fe32bebe64bc235810f"
+    },
+    "tools/generate_hia_mcp_request_audit_response.py": {
+      "before_sha256": "9f4c2e1ed93c084757bf86c011378cb24904850dca1e75323d986563c0086c0b",
+      "after_sha256": "130764912bb90e1556274a120423656e9b3506700c1be78fb8463de21253185a"
+    },
+    "tools/generate_hia_mcp_service_owner_common.py": {
+      "before_sha256": "99c08a21b9d978c3a4bd747ef4c065a21097a89f9ec93b71dd24dc1bed15c125",
+      "after_sha256": "18c84455fd244982179d8953ae56fd510a5b250cb2cd3acf15204608839a8c31"
+    },
+    "tools/generate_hia_mcp_sdk_request.py": {
+      "before_sha256": "74c2cf0c3e8ee00969d8beed52277ee41a4a91fb50f4b1ba32f9ed0eba8bc61f",
+      "after_sha256": "0a0c854c1bca91a5717e7e33c023fe2a7110ff629fcaa9ca58fa9d23760b83eb"
+    },
+    "tools/generate_hia_mcp_service_session.py": {
+      "before_sha256": "40dd93a4dde94a0f988faf29d2d32f8252a26f033eb9d1733dda456e0f51eccd",
+      "after_sha256": "c2e801abdee755af80da0b553afbb13abb396f8fc8763be3c2a663e81f7a25e1"
+    },
+    "tools/generate_hia_mcp_service_dispatch.py": {
+      "before_sha256": "66fa8d850c2bf0d256c6465361a95d8085eb87c6f9a75425be25c393e324109a",
+      "after_sha256": "12eb8bb9e0e9690d186e5d9d7fad9a5add4283465580d27220937f0b3ab82a9e"
+    },
+    "tools/generate_hia_mcp_service_audit_transport.py": {
+      "before_sha256": "75ca79978b5afe900232614682b244bad6a8584cdc61c23019920ffde71f6f12",
+      "after_sha256": "49ca6d12c556b4863fc0509880df66006ca500dbe1404b5d42552785ba1e7c8e"
+    },
+    "tools/qualify_hia_mcp_request_archive.py": {
+      "before_sha256": null,
+      "after_sha256": "81c79e032018ed7f337994bf844dc7c5adce07b6e8822c50a7b7acc55ac03c47"
+    }
+  },
+  "phases": [
+    {
+      "name": "render-audit-v1",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.generate_hia_mcp_request_audit"
+      ],
+      "returncode": 0,
+      "seconds": 4.93397811599425
+    },
+    {
+      "name": "render-service-v1",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.generate_hia_mcp_service"
+      ],
+      "returncode": 0,
+      "seconds": 3.7262598020024598
+    },
+    {
+      "name": "render-companions-v1",
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "from pathlib import Path; from tools import generate_hia_mcp_sdk_request as sdk, generate_hia_mcp_service_session as session; Path('examples/hia_bootstrap/mcp_sdk_request.hepta').write_text(sdk.render()); Path('examples/hia_bootstrap/mcp_service_session.hepta').write_text(session.render())"
+      ],
+      "returncode": 0,
+      "seconds": 1.5179752639960498
+    },
+    {
+      "name": "compile-audit-v1",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_request_history_seed",
+        "--source",
+        "/home/qian-qi/hia-request-archive-20261127-2807/src",
+        "--bootstrap",
+        "/home/qian-qi/hia-request-archive-20261127-2807/src/native/bootstrap/linux-x86_64/bin",
+        "--output",
+        "/home/qian-qi/hia-request-archive-20261127-2807/native-audit-v1"
+      ],
+      "returncode": 1,
+      "seconds": 0.7656158759782556
+    }
+  ],
+  "whole_cold_qualified": false,
+  "public_mcp_qualified": false,
+  "passed": false,
+  "error": "compile-audit-v1 failed"
+}

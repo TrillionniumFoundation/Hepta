@@ -1,0 +1,194 @@
+{
+  "status": "PASS",
+  "image": "/home/qian-qi/hia-request-archive-20261127-2807/native-audit-v3/hia-mcp-request-audit",
+  "image_sha256": "f5d8596b6daaefd4961c245258e690704ab4d5200e9505fc057d80c7c392cb33",
+  "case_count": 16,
+  "cases": [
+    {
+      "case": "legacy-u128-and-missing-optional",
+      "status": "PASS",
+      "accepted": 340282366920938463463374607431768211455
+    },
+    {
+      "case": "owner-128",
+      "status": "PASS",
+      "hot_count": 128,
+      "victim": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "case": "global-512",
+      "status": "PASS",
+      "hot_count": 512,
+      "victim": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "case": "active-oldest-protected",
+      "status": "PASS"
+    },
+    {
+      "case": "read-pin-owner-isolation",
+      "status": "PASS",
+      "denied": {
+        "phase": 1,
+        "status": 1,
+        "reason": 23,
+        "id": null,
+        "hot": 0,
+        "accepted": 0,
+        "elapsed_present": 0,
+        "elapsed": 0,
+        "slot": 2,
+        "generation": 3,
+        "error": "request unavailable to this scope",
+        "daemon_rc": null
+      }
+    },
+    {
+      "case": "full-owner-bad-archive-preserves-hot",
+      "status": "PASS",
+      "hot_count": 128
+    },
+    {
+      "case": "real-worker-cancel-and-slot-reuse",
+      "status": "PASS"
+    },
+    {
+      "case": "held-hot-directory-completion",
+      "status": "PASS"
+    },
+    {
+      "case": "anchor-replacement-ticket-custody",
+      "status": "PASS",
+      "old_finish": {
+        "phase": 2,
+        "status": 1,
+        "reason": 24,
+        "id": "f159750318d7d6ca0391428723356b1ea3f4f0ece2dc2a811f73dc1e84788e26",
+        "hot": 1,
+        "accepted": 1795798835830,
+        "elapsed_present": 1,
+        "elapsed": 1,
+        "slot": 0,
+        "generation": 1,
+        "error": "request archive anchor binding changed",
+        "daemon_rc": null
+      }
+    },
+    {
+      "case": "terminal-archive-immutable",
+      "status": "PASS",
+      "finish": {
+        "phase": 2,
+        "status": 1,
+        "reason": 21,
+        "id": "bbb308cb2fcd5c1d9206297ed5ffce82cc841b7cbba4885c804b281c677cf0a5",
+        "hot": 1,
+        "accepted": 1795798835879,
+        "elapsed_present": 1,
+        "elapsed": 1,
+        "slot": 0,
+        "generation": 1,
+        "error": "request archive terminal outcome changed",
+        "daemon_rc": null
+      }
+    },
+    {
+      "case": "invalid-staging-no-descriptor-leak",
+      "status": "PASS",
+      "before": 8,
+      "after": 8,
+      "refusals": 32
+    },
+    {
+      "case": "unknown-record-field",
+      "status": "PASS",
+      "refusal": {
+        "phase": 0,
+        "status": 1,
+        "reason": 6,
+        "id": null,
+        "hot": 0,
+        "accepted": 0,
+        "elapsed_present": 0,
+        "elapsed": 0,
+        "slot": 18446744073709551615,
+        "generation": 0,
+        "error": "request audit metadata identity refused",
+        "daemon_rc": null
+      }
+    },
+    {
+      "case": "duplicate-record-field",
+      "status": "PASS",
+      "refusal": {
+        "phase": 0,
+        "status": 1,
+        "reason": 6,
+        "id": null,
+        "hot": 0,
+        "accepted": 0,
+        "elapsed_present": 0,
+        "elapsed": 0,
+        "slot": 18446744073709551615,
+        "generation": 0,
+        "error": "request audit metadata identity refused",
+        "daemon_rc": null
+      }
+    },
+    {
+      "case": "symlink-hot-record",
+      "status": "PASS",
+      "refusal": {
+        "phase": 0,
+        "status": 2,
+        "reason": 31,
+        "id": null,
+        "hot": 0,
+        "accepted": 0,
+        "elapsed_present": 0,
+        "elapsed": 0,
+        "slot": 18446744073709551615,
+        "generation": 0,
+        "error": "request audit I/O unavailable",
+        "daemon_rc": 74
+      }
+    },
+    {
+      "case": "wrong-hot-mode",
+      "status": "PASS",
+      "refusal": {
+        "phase": 0,
+        "status": 1,
+        "reason": 4,
+        "id": null,
+        "hot": 0,
+        "accepted": 0,
+        "elapsed_present": 0,
+        "elapsed": 0,
+        "slot": 18446744073709551615,
+        "generation": 0,
+        "error": "private request audit inode refused",
+        "daemon_rc": 65
+      }
+    },
+    {
+      "case": "excess-hot-records",
+      "status": "PASS",
+      "refusal": {
+        "phase": 0,
+        "status": 1,
+        "reason": 14,
+        "id": null,
+        "hot": 0,
+        "accepted": 0,
+        "elapsed_present": 0,
+        "elapsed": 0,
+        "slot": 18446744073709551615,
+        "generation": 0,
+        "error": "unexpected private request audit entry",
+        "daemon_rc": 65
+      }
+    }
+  ],
+  "scope": "Real native durable begin/finish, original retention/custody and live lease behavior; metadata query API not covered"
+}

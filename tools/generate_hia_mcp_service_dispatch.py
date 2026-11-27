@@ -22,7 +22,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if action != 2 and action != 5:
             return 0
         if action == 2:
-            if get(w, 264) == 13:
+            if get(w, 264) == 13 or get(w, 264) == 14:
                 if get(w, 296) == 0:
                     end = text_empty_object(w, PURE_INPUT)
                     return pure(o, w, 30, P_CANONICAL, PURE_INPUT, end - PURE_INPUT, PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
@@ -41,7 +41,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return enter(w, 5, 0)
         if status == 2:
             return history_unavailable(w)
-        return audit(w, 3, 32, 3)
+        return audit(w, 3, 32, choose(get(w,264) == 14,4,3))
     if phase == 32:
         if get(w, 2016) != 0:
             return history_unavailable(w)
@@ -143,7 +143,7 @@ def descriptor(w:mutbuf) -> bool:
     put(w, 296, size)
     bind(w, S_URI, REQUEST + at, choose(get(w, 256) == 5, size, 0))
     if get(w, 256) == 2 or get(w, 256) == 5:
-        if get(w, 264) < 1 or get(w, 264) > 13 or (get(w, 256) == 5 and get(w, 264) != 12):
+        if get(w, 264) < 1 or get(w, 264) > 14 or (get(w, 256) == 5 and get(w, 264) != 12):
             return False
         start = get(w, 64)
         end = tool_json(w, get(w, 264), start)
@@ -191,7 +191,10 @@ def history_params(w:mutbuf) -> u64:
     return 0
 
 def history_unavailable(w:mutbuf) -> u32:
-    end = text_history_unavailable(w, PURE_OUTPUT)
+    if get(w,264) == 14:
+        end = text_archive_unavailable(w, PURE_OUTPUT)
+    else:
+        end = text_history_unavailable(w, PURE_OUTPUT)
     return history_reply(w, PURE_OUTPUT, end - PURE_OUTPUT, 1)
 
 def history_reply(w:mutbuf, source:u64, size:u64, error:u64) -> u32:
@@ -327,6 +330,7 @@ def source():
                       'maximum': 65535, 'default': None}}, 'additionalProperties': False},
         'annotations': {'readOnlyHint': True, 'destructiveHint': False,
                         'idempotentHint': True, 'openWorldHint': False}}
+    archive_tool = dict(history_tool, name='request_archive', title='Page Retained Request Metadata Archive', description='Page private dispatch metadata retained at archive introduction and all subsequent admitted native requests. This archive is not automatically evicted with the hot request_history cache. At most 32 records per page, independent after_id cursors; no parameters or output are stored. Uses the same native stdio session ownership. History is live, and observed completion proves neither delivery nor business success. No dispatch or replay occurs.')
     text = {'control_prefix': '{"jsonrpc":"2.0","id":', 'control_result': ',"result":',
         'control_close': '}}\n',
         'control_public': '"cacheScope":"public",', 'control_private': '"cacheScope":"private",',
@@ -339,14 +343,15 @@ def source():
         'audit_error': '{"code":-32603,"message":"request audit unavailable; dispatch refused"}',
         'resource_audit_error': '{"code":-32603,"message":"HIA resource audit unavailable; dispatch refused"}',
         'bridge_error': '{"code":-32603,"message":"HIA native job bridge unavailable; repeat the identical request to observe its original binding"}',
-        'history_catalog': ',' + json.dumps(history_tool, separators=(',', ':')) + ']}',
+        'history_catalog': ',' + json.dumps(history_tool, separators=(',', ':')) + ',' + json.dumps(archive_tool, separators=(',', ':')) + ']}',
+        'archive_unavailable': 'archive index preparing or validation unavailable; repeat only this metadata query',
         'history_unavailable': 'request history unavailable to this session or private metadata refused',
         'history_result': ',"result":{"content":[{"type":"text","text":',
         'history_error': '}],"isError":',
         'history_modern': ',"resultType":"complete","_meta":{"io.modelcontextprotocol/serverInfo":{"name":"hepta-hia","version":"1"}}'}
     text.update(DIAGNOSTIC_TEXT)
     code = SOURCE + diagnostic_source() + '\ndef tool_json(w:mutbuf, role:u64, at:u64) -> u64:\n'
-    for index, name in enumerate((*tool_names(), 'hia_resource_read', 'request_history'), 1):
+    for index, name in enumerate((*tool_names(), 'hia_resource_read', 'request_history', 'request_archive'), 1):
         text['tool_' + str(index)] = '"' + name + '"'
         code += f'    if role == {index}:\n        return text_tool_{index}(w, at)\n'
     code += '    return at\n\ndef bridge_role(index:u64) -> u64:\n'

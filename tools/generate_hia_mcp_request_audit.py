@@ -7,9 +7,9 @@ from tools.generate_hia_mcp_service import document
 from tools.generate_hia_json_decode import source_program as generic_json
 from tools.generate_hia_native_filter import LINK_SOURCE
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENTS = ('session','files','records','archive','layout','retention','root','scan','write','recovery','leases','open','response','metadata','intent','history')
+COMPONENTS = ('session','files','records','archive','layout','retention','root','scan','write','recovery','leases','open','response','metadata','intent','history','archive_query')
 ROLES = COMPONENTS + ('json',)
-PACK_MAGIC = b'HIARAU02'
+PACK_MAGIC = b'HIARAU03'
 
 def adapter_source():
     source = '''/* Mechanical Linux syscall/byte-ABI translation. All request,
