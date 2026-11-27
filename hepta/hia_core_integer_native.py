@@ -155,6 +155,8 @@ class IntegerSession:
 
     def step(self, packet):
         try:
+            from .hia_native_helpers import check_core_companion_image
+            check_core_companion_image(self.image)
             if (self._closed or self.finished or self.busy or self.pending or self.next_packet is None
                     or packet is not self.next_packet or _TYPE(packet) is not _BYTES
                     or len(packet) != INPUT_BYTES):
@@ -233,6 +235,8 @@ class IntegerSession:
 
     def observe(self):
         try:
+            from .hia_native_helpers import check_core_companion_image
+            check_core_companion_image(self.image)
             if self._closed or self.finished or self.busy or not self.pending or self.request is None:
                 raise RuntimeError('integer operation has no observation permission')
             self.pending = False
@@ -291,6 +295,8 @@ class IntegerSession:
 
     def finish(self):
         try:
+            from .hia_native_helpers import check_core_companion_image
+            check_core_companion_image(self.image)
             if self._closed or self.busy or not self.finished or not self.finish_pending:
                 raise RuntimeError('integer operation has no result permission')
             # Result allocation is itself one-use. A failure must not retry it.
@@ -335,11 +341,7 @@ class IntegerSession:
 
 
 class NativeInteger:
-    """A value owner constructed only after independent image admission.
-
-    Image loading/source/compiler/ABI admission is deliberately not supplied
-    by this source draft. A future selector must bind all of those originals.
-    """
+    """An exact integer owner with independently admitted source, ABI and image."""
 
     def __init__(self, image):
         self.image = image

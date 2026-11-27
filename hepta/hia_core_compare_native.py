@@ -148,6 +148,8 @@ class NumericCompareSession:
 
     def step(self, packet):
         try:
+            from .hia_native_helpers import check_core_companion_image
+            check_core_companion_image(self.image)
             if (self._closed or self.finished or self.busy or self.pending or self.next_packet is None
                     or packet is not self.next_packet or _TYPE(packet) is not bytes
                     or len(packet) != INPUT_BYTES):
@@ -204,6 +206,8 @@ class NumericCompareSession:
 
     def observe(self):
         try:
+            from .hia_native_helpers import check_core_companion_image
+            check_core_companion_image(self.image)
             if self._closed or self.finished or self.busy or not self.pending or self.request is None:
                 raise RuntimeError('numeric comparison has no observation permission')
             self.pending = False
@@ -230,6 +234,8 @@ class NumericCompareSession:
 
     def finish(self):
         try:
+            from .hia_native_helpers import check_core_companion_image
+            check_core_companion_image(self.image)
             if self._closed or self.busy or not self.finished or not self.finish_pending:
                 raise RuntimeError('numeric comparison has no result permission')
             epoch = self._epoch

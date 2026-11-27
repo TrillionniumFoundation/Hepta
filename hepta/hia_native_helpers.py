@@ -121,6 +121,55 @@ _MECHANICAL_SCOPE = None
 _MECHANICAL_SELECTED = False
 
 
+def _core_companion_binding():
+    from .hia_core_companion_worker_bundle import NativeCoreCompanionWorkerBinding
+    if type(_ACTIVE) is NativeCoreCompanionWorkerBinding:
+        return _ACTIVE
+    binding = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+    return binding if type(binding) is NativeCoreCompanionWorkerBinding else None
+
+
+def _scheduling_owner_binding():
+    from .hia_core_companion_worker_bundle import NativeCoreCompanionWorkerBinding
+    if type(_ACTIVE) is NativeCoreCompanionWorkerBinding:
+        scheduling = _ACTIVE.base_binding
+    else:
+        scheduling = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+        if type(scheduling) is NativeCoreCompanionWorkerBinding:
+            scheduling = scheduling.base_binding
+    # Page is optional in an old source/package. Its named extension imports
+    # only when that exact module's object is actually present.
+    if type(scheduling).__module__ == __package__ + '.hia_artifact_page_worker_bundle':
+        from .hia_artifact_page_worker_bundle import NativeArtifactPageWorkerBinding
+        if type(scheduling) is not NativeArtifactPageWorkerBinding:
+            raise ValueError('unknown artifact-page scheduling binding type')
+        scheduling = scheduling.base_binding
+    return scheduling
+
+
+def pinned_core_companion(manifest_path, kind, compiler_sha256):
+    _check_scope_owner()
+    if _SCOPE_OWNER is None:
+        return None
+    binding = _core_companion_binding()
+    if binding is None:
+        raise ValueError('Core companion is outside the pinned Worker capsule')
+    return binding.selected_owner(manifest_path, kind, compiler_sha256)
+
+
+def check_core_companion_image(image):
+    """Keep a captured session with its original live Worker scope."""
+    _check_scope_owner()
+    bound = getattr(image, '_worker_core_companions', None)
+    if bound is None and _SCOPE_OWNER is None:
+        return
+    binding = _core_companion_binding()
+    if binding is None or bound is not binding or _SCOPE_OWNER is None:
+        raise ValueError('Core companion image belongs to its original Worker scope')
+    binding.check_image(image)
+
+
+
 def _digest(value):
     return type(value) is str and re.fullmatch("[0-9a-f]{64}", value) is not None
 
@@ -184,7 +233,7 @@ def check_native_scheduling_scope(owner=None, *, engine=None, constructing=False
     registered worker-report/wire companions use their existing v2 custody.
     """
     _check_scope_owner()
-    scheduling = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+    scheduling = _scheduling_owner_binding()
     bound = getattr(owner, '_worker_scheduling_binding', None)
     if bound is not None and (bound is not scheduling or _SCOPE_OWNER is None):
         raise ValueError('native scheduling owner belongs to its original worker scope')
@@ -208,7 +257,7 @@ def pinned_scheduling(manifest_path, kind, namespace):
     _check_scope_owner()
     if _SCOPE_OWNER is None:
         return None
-    scheduling = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+    scheduling = _scheduling_owner_binding()
     lookup = getattr(scheduling, 'scheduling_owner', None)
     if lookup is None:
         raise ValueError('native scheduling bundle is outside the pinned worker bundle')
@@ -327,6 +376,9 @@ class NativeHelpersBinding:
 
 def _base_binding(captured, expected_sha256, record):
     schema = record.get('schema') if type(record) is dict else None
+    if schema == 'hepta.hia.core-companion-worker-bundle.v1':
+        from .hia_core_companion_worker_bundle import NativeCoreCompanionWorkerBinding
+        return NativeCoreCompanionWorkerBinding(captured, expected_sha256)
     if schema == 'hepta.hia.native-helpers.v3':
         from .hia_worker_scheduling_bundle import NativeWorkerSchedulingBinding
         return NativeWorkerSchedulingBinding(captured, expected_sha256)

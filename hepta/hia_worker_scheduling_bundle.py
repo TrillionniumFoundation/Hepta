@@ -23,11 +23,42 @@ FAMILIES = {
 }
 
 
+def _companion_selections(page_companion, core_companions):
+    """Admit only the two explicitly typed source-captured extensions."""
+    result = {}
+    if page_companion is not None:
+        from .hia_artifact_page_worker_bundle import NativeArtifactPageWorkerBinding, PAGE_SELECTOR
+        if type(page_companion) is not NativeArtifactPageWorkerBinding:
+            raise ValueError('the Page scheduling companion must have its exact custody type')
+        selected = page_companion.check_scheduling_companion()
+        if (type(selected) is not dict or set(selected) != {PAGE_SELECTOR}
+                or type(selected[PAGE_SELECTOR]) is not str or not selected[PAGE_SELECTOR]):
+            raise ValueError('invalid Page scheduling companion selection')
+        result.update(selected)
+    if core_companions is not None:
+        from .hia_core_companion_worker_bundle import NativeCoreCompanionWorkerBinding, SELECTORS
+        if type(core_companions) is not NativeCoreCompanionWorkerBinding:
+            raise ValueError('Core scheduling companions must have their exact custody type')
+        selected = core_companions.check_scheduling_companion()
+        if (type(selected) is not dict or set(selected) != set(SELECTORS)
+                or any(type(value) is not str or not value for value in selected.values())):
+            raise ValueError('invalid Core scheduling companion selections')
+        if set(result).intersection(selected):
+            raise ValueError('duplicate scheduling companion selector')
+        result.update(selected)
+    return result
+
+
 class NativeWorkerSchedulingBinding:
-    def __init__(self, snapshot, expected_sha256):
+    def __init__(self, snapshot, expected_sha256, *, page_companion=None, core_companions=None):
         self.owner = (authority.os.getpid(), authority.threading.get_ident())
         self.sha256 = expected_sha256
         self.snapshots = []
+        self._page_companion = page_companion
+        self._core_companions = core_companions
+        self._complete_input_capture = False
+        self._companion_selections = MappingProxyType(
+            _companion_selections(page_companion, core_companions))
         self.schedulers = {}
         self._registrations = []
         if (not authority._digest(expected_sha256)
@@ -67,6 +98,12 @@ class NativeWorkerSchedulingBinding:
         # All sources, runtime, ABI, unit images and aggregate containers have
         # been captured and re-read before the first new executable mapping.
         self.check_files()
+        core_capture = next((row for row in captures if row[0] == 'core-lowering'), None)
+        if core_companions is not None and (
+                core_capture is None
+                or core_capture[2]['compiler_sha256'] != core_companions.compiler_sha256):
+            raise ValueError('three Core companions require the exact captured Core scheduler/compiler')
+        self._complete_input_capture = True
         base_record = authority._decode(base.raw)
         if base_record['schema'] == authority.SCHEMA:
             self.legacy = authority.NativeHelpersBinding(str(base.path), record['base_bundle_sha256'])
@@ -74,6 +111,13 @@ class NativeWorkerSchedulingBinding:
             from .hia_worker_bundle import NativeWorkerBundleBinding
             self.legacy = NativeWorkerBundleBinding(base, record['base_bundle_sha256'])
         self.selections = dict(self.legacy.selections)
+        if page_companion is not None and 'HEPTA_HIA_JSON_WIRE_MANIFEST' not in self.selections:
+            raise ValueError('the Page scheduling companion requires the pinned legacy wire selector')
+        if set(self.selections).intersection(self._companion_selections):
+            raise ValueError('a scheduling companion overlaps an original helper selector')
+        self.selections.update(self._companion_selections)
+        if core_companions is not None:
+            core_companions.map_scheduling_companions(self, core_capture[2]['compiler_sha256'])
         self.images = dict(self.legacy.images)
         self.bundles = dict(getattr(self.legacy, 'bundles', {}))
         from .hia_native_continuation_selection import _FAMILIES, _RUNTIME, INPROCESS_SCHEMA
@@ -96,7 +140,9 @@ class NativeWorkerSchedulingBinding:
                 raise ValueError('nested native scheduling construction')
             authority._SCHEDULER_BUILD = (self, owner)
             try:
-                factory.__init__(owner, images[1:], images[0], abi, namespace)
+                arguments = (core_companions.scheduler_arguments(self)
+                             if kind == 'core-lowering' and core_companions is not None else {})
+                factory.__init__(owner, images[1:], images[0], abi, namespace, **arguments)
                 owner._admitted_bundle = loaded
                 owner._continuation = InProcessContinuation(aggregate.raw, value['image_sha256'],
                     pool_bytes=abi['pool_bytes'], owner=owner)
@@ -244,6 +290,8 @@ class NativeWorkerSchedulingBinding:
 
     def check_files(self):
         self.check_owner()
+        if _companion_selections(self._page_companion, self._core_companions) != dict(self._companion_selections):
+            raise ValueError('the exact scheduling companion selections changed')
         for original, limit in self.snapshots:
             if authority._read(original.path, limit) != original:
                 raise ValueError('native scheduling capsule inputs changed; observe the original operation')
@@ -282,6 +330,8 @@ class NativeWorkerSchedulingBinding:
                 or owner._continuation is not registration[2]
                 or (engine is not None and engine is not registration[2])):
             raise ValueError('native scheduling owner or engine is outside the pinned worker capsule')
+        if self._core_companions is not None and registration[0][1] == 'core-lowering':
+            self._core_companions.check_scheduler(self, owner)
 
 # Bind the actual selected native-input custody route.
 from .hia_loaded_source import register_loaded_module as _register_loaded_source
