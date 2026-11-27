@@ -237,6 +237,46 @@ class EvaluationReceipt:
     failed: int
 
 
+
+class _EvaluationWallWindow:
+    """One synchronous service observation with this frame's HIA arithmetic.
+
+    A copied Context may retain the object after the call. Its inactive flag
+    then prevents it from reviving this frame or changing another window.
+    """
+    def __init__(self, frame):
+        from .hia_agent_service import _EVALUATION_WALL_WINDOW
+        self.frame, self.binding = frame, _EVALUATION_WALL_WINDOW
+        self.service = frame.service
+        self.context = frame.data['context']
+        self.created_ns = frame.data['context_created_ns']
+        self.active = False
+        self.token = None
+
+    def __enter__(self):
+        self.frame._delivery.check(EvaluationUnknown)
+        self.token = self.binding.set(self)
+        self.active = True
+        return self
+
+    def __exit__(self, kind, error, traceback):
+        self.active = False
+        self.binding.reset(self.token)
+        return False
+
+    def matches(self, service, context, created_ns):
+        return (self.active and self.frame._delivery.current()
+                and service is self.service and context is self.context
+                and created_ns is self.created_ns)
+
+    def observe(self):
+        frame = self.frame
+        frame._delivery.check(EvaluationUnknown)
+        delta = frame._math(2, frame.data['context_deadline'],
+                            frame.namespace['time'].time_ns())
+        remaining = frame._math(8, frame._math(4, delta, 1_000_000))
+        return frame._math(5, 0, delta), remaining
+
 class EvaluationFrame:
     def __init__(self, image, service, args, *, namespace=None):
         if type(image) is not NativeEvaluation:
@@ -403,8 +443,14 @@ class EvaluationFrame:
         return value
 
     def _remaining_total_ms(self):
-        remaining = self._math(2, self.data['context_deadline'], self.namespace['time'].time_ns())
-        return self._math(8, self._math(4, remaining, 1_000_000))
+        # Use the service's real frozen-window boundary. The invocation-local
+        # owner keeps its exact integer arithmetic in this admitted HIA image;
+        # selecting evaluation does not select a companion identity image.
+        with _EvaluationWallWindow(self):
+            window = self.service._wall_window(self.data['context'],
+                created_ns=self.data['context_created_ns'])
+            self._delivery.check(EvaluationUnknown)
+            return window[1]
 
     def _run(self, cases, warmup, repetitions):
         d, api = self.data, self.namespace
@@ -535,6 +581,7 @@ class EvaluationFrame:
                                                      (args['context']['id'],)).fetchone()
         elif name == 'deadline':
             created = int(d['context_row']['created_ns'])
+            d['context_created_ns'] = created
             budget = self._math(3, d['context']['budget']['max_total_wall_ms'], 1_000_000)
             d['context_deadline'] = self._math(1, created, budget)
         elif name == 'references_init':
