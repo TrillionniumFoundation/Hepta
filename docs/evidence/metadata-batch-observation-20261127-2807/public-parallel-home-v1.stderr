@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch_public.py", line 204, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch_public.py", line 201, in main
+    a=p.parse_args();r=qualify(a.bundle.resolve(),a.http_bundle.resolve(),a.output.resolve())
+                       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch_public.py", line 172, in qualify
+    try:check_queries(parallel(queries,tool),queries,rows,http_owner)
+        ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch_public.py", line 89, in check_queries
+    value=tool_result(results[q['id']],q['id'])
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch_public.py", line 22, in tool_result
+    assert value.get('isError') is False,response
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'jsonrpc': '2.0', 'id': 'http-request_archive-3', 'result': {'content': [{'type': 'text', 'text': 'archive metadata query total deadline exceeded; repeat only the metadata query'}], 'isError': True}}

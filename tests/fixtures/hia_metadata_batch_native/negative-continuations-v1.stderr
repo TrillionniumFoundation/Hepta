@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch_continuations.py", line 212, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch_continuations.py", line 210, in main
+    r=qualify(a.bootstrap.resolve(),a.output.resolve());print(json.dumps({'passed':r['passed'],'checks':len(r['checks'])}))
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch_continuations.py", line 92, in qualify
+    recv_error('recvmsg-eio',NEG5)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch_continuations.py", line 81, in recv_error
+    assert get(8)==value and get('B_MESSAGE_OK')==1,(label,'lost receive failure',get(8),get('B_MESSAGE_OK'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('recvmsg-eio', 'lost receive failure', 18446744073709551611, 0)

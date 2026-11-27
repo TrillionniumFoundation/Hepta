@@ -4,11 +4,14 @@ Atomic packets and slot generations preserve independent request cancellation.
 The daemon retains shared layout capabilities and each live ticket descriptor.
 """
 from tools.generate_hia_mcp_service_owner_common import authored
+from tools.generate_hia_mcp_metadata_channel import C as METADATA_C, SOURCE as METADATA_SOURCE
 
 SOURCE = r'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = get(w, 0)
     result = get(w, 8)
+    if phase >= 200:
+        return metadata_advance(o,w)
     if phase == 0:
         put(w, 2016, 1)
         put(w, 2024, 0)
@@ -110,11 +113,14 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w,ARCHIVE_DEADLINE_NSEC,get(w,ARCHIVE_CLOCK+8))
         if history_frame(w) == False or get(w,1904) < 1 or get(w,1864) < 3:
             return audit_return(w)
-        put(w,AUDIT_WIRE,choose(get(w,1920) == 5,USAGE_REQUEST_MAGIC,ARCHIVE_REQUEST_MAGIC))
+        put(w,AUDIT_WIRE,choose(get(w,1920) == 5,MQ_USAGE_IN,MQ_ARCHIVE_IN))
+        put(w,AUDIT_WIRE+8,2)
+        put(w,AUDIT_WIRE+272,get(w,ARCHIVE_CLOCK))
+        put(w,AUDIT_WIRE+280,get(w,ARCHIVE_CLOCK+8))
         put(w,AUDIT_WIRE+16,get(w,1920))
         put(w,AUDIT_WIRE+256,get(w,ARCHIVE_DEADLINE_SEC))
         put(w,AUDIT_WIRE+264,get(w,ARCHIVE_DEADLINE_NSEC))
-        return acquire_channel(o,w)
+        return metadata_start(o,w)
     if phase == 91:
         if failed(result):
             return audit_fail(o,w)
@@ -448,6 +454,8 @@ def archive_timeout(o:mutbuf,w:mutbuf) -> u32:
     put(w,HISTORY_STATUS,1)
     put(w,HISTORY_REASON,37)
     put(w,2016,0)
+    if get(w,MQ_ACTIVE) != 0:
+        return metadata_close(o,w)
     if get(w,2024) != 0:
         return release_channel(o,w,50)
     return audit_return(w)
@@ -477,8 +485,9 @@ def audit_return(w:mutbuf) -> u32:
 
 
 def source():
-    return authored(SOURCE, text={'helper': 'hia-mcp-request-audit', 'read': 'hia_read',
+    return authored(SOURCE+'\n'+METADATA_SOURCE, text={'helper': 'hia-mcp-request-audit', 'read': 'hia_read',
         'archive_timeout': 'archive metadata query total deadline exceeded; repeat only the metadata query'}, extra={
+        **METADATA_C,
         'AUDIT_BEGIN_MAGIC': int.from_bytes(b'HIAAUD01', 'little'),
         'AUDIT_FINISH_MAGIC': int.from_bytes(b'HIAAUF01', 'little'),
         'AUDIT_RESPONSE_MAGIC': int.from_bytes(b'HIAAUO01', 'little'),

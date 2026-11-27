@@ -7,9 +7,9 @@ from tools.generate_hia_mcp_service import document
 from tools.generate_hia_json_decode import source_program as generic_json
 from tools.generate_hia_native_filter import LINK_SOURCE
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENTS = ('session','files','records','archive','layout','retention','root','scan','write','recovery','leases','open','response','metadata','intent','history','archive_query')
-ROLES = COMPONENTS + ('json',)
-PACK_MAGIC = b'HIARAU03'
+COMPONENTS = ('session','files','records','archive','layout','retention','root','scan','write','recovery','leases','open','response','metadata','intent','history','archive_query','batch','index')
+ROLES = COMPONENTS + ('index_tree','json')
+PACK_MAGIC = b'HIARAU05'
 
 def adapter_source():
     source = '''/* Mechanical Linux syscall/byte-ABI translation. All request,
@@ -54,13 +54,22 @@ advance:
     je advance
     cmp eax,1
     je syscall_action
+    cmp eax,2
+    je relocate_action
     cmp eax,4
     je json_action
+    cmp eax,8
+    je index_tree_action
     jmp invalid
 '''
     original=(ROOT/'tools/hia_mcp_service_syscalls.S').read_text()
-    source += original[original.index('syscall_action:'):original.index('relocate_action:')]
+    source += original[original.index('syscall_action:'):original.index('json_action:')]
     source += '''json_action:
+    mov QWORD PTR [rsp+64],0
+    jmp native_buffers
+index_tree_action:
+    mov QWORD PTR [rsp+64],1
+native_buffers:
     xor ebx,ebx
     xor ebp,ebp
 buffer_pair:
@@ -85,9 +94,17 @@ buffer_pair:
     mov rcx,[rsp+24]
     mov r8,[rsp+32]
     mov r9,[rsp+40]
+    cmp QWORD PTR [rsp+64],0
+    jne index_tree_invoke
     .byte 0xe8
 .global audit_json_hole
 audit_json_hole: .long 0
+    jmp native_returned
+index_tree_invoke:
+    .byte 0xe8
+.global audit_index_tree_hole
+audit_index_tree_hole: .long 0
+native_returned:
     mov eax,eax
     mov [r15+8],rax
     jmp advance
@@ -159,3 +176,4 @@ def main():
         path.write_text(text);print(path.name,len(text))
     (ROOT/'tools/hia_mcp_request_audit_syscalls.S').write_text(adapter_source())
 if __name__=='__main__':main()
+

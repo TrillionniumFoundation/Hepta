@@ -13,6 +13,8 @@ def advance(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         put(w,HOTFD,NONE)
         return step(w,2)
     if phase == 2:
+        if get(w,B_ACTIVE) != 0:
+            return enter(w,M_BATCH,1000)
         build_response(w)
         if get(w,LOCKED) != 0:
             flock_bytes(w,271600,2,0)

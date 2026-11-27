@@ -1,0 +1,136 @@
+{
+  "schema": "hia.metadata-batch-current-observation-build.v1",
+  "stage": {
+    "schema": "hia.metadata-batch-observation-stage.v1",
+    "parent": "434bb381ca2d80ea98110f670f894a4cedaeb5ca",
+    "authors": {
+      "generate_hia_mcp_request_audit_observation.py": "6fa53cbd61271edec1a5a87415a6732cadb20418ae165f8a7b3b44851ee13b65",
+      "generate_hia_mcp_request_audit_archive_query.py": "7041e32f014722d0ccd5f98b0467060158ee6e91d41cdf303cb513897fd75c38",
+      "qualify_hia_mcp_record_observation.py": "e1fe693e22f86c9e04cd61cb788ab671a67ed436f313e8aa265b716b0c2faa6b"
+    },
+    "passed": true,
+    "generated": {
+      "bytes": 290038,
+      "sha256": "1f51c14848847b2966312c5aab33b848e910cd40269372517766bdaadbe5a236"
+    },
+    "returncode": 0,
+    "seconds": 1.7666505560046062,
+    "argv": [
+      "/usr/bin/python3",
+      "-m",
+      "tools.qualify_hia_mcp_record_observation",
+      "--bootstrap",
+      "/home/qian-qi/hia-usage-native-20261127-2807/src/native/bootstrap/linux-x86_64/bin",
+      "--baseline",
+      "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/native-v2",
+      "--output",
+      "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/observation-controls-v1"
+    ]
+  },
+  "steps": [
+    {
+      "name": "native-build-v3",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_request_history_seed",
+        "--source",
+        "/home/qian-qi/hia-usage-native-20261127-2807/src",
+        "--bootstrap",
+        "/home/qian-qi/hia-usage-native-20261127-2807/src/native/bootstrap/linux-x86_64/bin",
+        "--output",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/native-v3"
+      ],
+      "timeout_seconds": 180,
+      "returncode": 0,
+      "seconds": 5.582826000987552,
+      "stdout": {
+        "bytes": 923,
+        "sha256": "195bd66b0764bc13809c378620d2f7f0e51544b3476aa25ace4e5ddc9dd20d97"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "public-build-v2",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.build_hia_request_history_public_seed",
+        "--bootstrap",
+        "/home/qian-qi/hia-usage-native-20261127-2807/src/native/bootstrap/linux-x86_64/bin",
+        "--audit",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/native-v3/hia-mcp-request-audit",
+        "--output",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/public-v2"
+      ],
+      "timeout_seconds": 240,
+      "returncode": 0,
+      "seconds": 27.256430909998016,
+      "stdout": {
+        "bytes": 5530,
+        "sha256": "762be682e38a1de73648b70db657770a012d9257990b95cfb0246db9feaf528b"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "http-build-v2",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.build_hia_metadata_http_public_seed",
+        "--bootstrap",
+        "/home/qian-qi/hia-usage-native-20261127-2807/src/native/bootstrap/linux-x86_64/bin",
+        "--existing",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/public-v2/controller",
+        "--audit",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/native-v3/hia-mcp-request-audit",
+        "--output",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/http-v2"
+      ],
+      "timeout_seconds": 240,
+      "returncode": 0,
+      "seconds": 15.89022276099422,
+      "stdout": {
+        "bytes": 15118,
+        "sha256": "b8be3651c79c0d5f08638f96960ef115bbcd79cb793896093919d2046b0a4bc6"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "public-parallel-home-v2",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_metadata_batch_public",
+        "--bundle",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/public-v2/controller",
+        "--http-bundle",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/http-v2/controller",
+        "--output",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/qualified-home-parallel-v2"
+      ],
+      "timeout_seconds": 600,
+      "returncode": 0,
+      "seconds": 32.71522683600779,
+      "stdout": {
+        "bytes": 616,
+        "sha256": "9cad281d5c63d420cd49963fa3bc267e84affd174d345c1eb1e579108538ce06"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "passed": true,
+  "whole_runtime_qualified": false
+}

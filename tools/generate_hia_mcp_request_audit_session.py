@@ -63,21 +63,52 @@ def receive(o:mutbuf,w:mutbuf) -> u32:
         put(w,ID_PRESENT,0)
         put(w,HOT_OWNED,0)
         put(w,QUERY_BYTES,0)
-        return call(o,w,11,0,0,INPUT,4609,0,0,0,12)
+        put(w,B_MEMBER,0)
+        put(w,B_PEER,NONE)
+        put(w,B_RECEIVE_NEXT,11)
+        put(w,B_RECEIVE_FLAGS,0)
+        if get(w,B_DEFERRED_SIZE) != 0:
+            size = get(w,B_DEFERRED_SIZE)
+            copy_state(w,B_DEFERRED,INPUT,size)
+            put(w,B_DEFERRED_SIZE,0)
+            put(w,B_PEER,get(w,B_DEFERRED_PEER))
+            put(w,B_DEFERRED_PEER,NONE)
+            put(w,B_MESSAGE_OK,1)
+            put(w,B_RECEIVE_SIZE,size)
+            return resume_receive(w)
+        return enter(w,M_BATCH,0)
     if phase == 11:
         if result == NEG4:
             return enter(w,M_SESSION,10)
+        if get(w,B_MESSAGE_OK) != 1:
+            return step(w,10)
         if result == 0:
             return call(o,w,19,60,0,0,0,0,0,0,0)
         if failed(result):
             return call(o,w,19,60,74,0,0,0,0,0,0)
         put(w,PACKET_SIZE,result)
+        private = result >= 8 and (get(w,INPUT) == B_ARCHIVE_MAGIC or get(w,INPUT) == B_USAGE_MAGIC)
         if result > 4608 or protocol(w) == False:
+            if get(w,B_PEER) != NONE:
+                put(w,B_RECEIVE_NEXT,18)
+                return enter(w,M_BATCH,80)
+            if private:
+                return step(w,10)
             return session_error(w,1,0)
+        if private != (get(w,B_PEER) != NONE):
+            if get(w,B_PEER) != NONE:
+                put(w,B_RECEIVE_NEXT,18)
+                return enter(w,M_BATCH,80)
+            return step(w,10)
         if get(w,CURRENT_PHASE) == 0:
             return enter(w,M_SESSION,20)
         if get(w,READY) != 1 or shared_ok(w) == False:
+            if private:
+                put(w,B_RECEIVE_NEXT,18)
+                return enter(w,M_BATCH,80)
             return session_error(w,30,0)
+        if private:
+            return enter(w,M_BATCH,100)
         if get(w,CURRENT_PHASE) >= 4:
             return call(o,w,14,228,1,frame(w)+2048,0,0,0,0,12)
         flock_bytes(w,271600,1,0)
@@ -123,12 +154,47 @@ def receive(o:mutbuf,w:mutbuf) -> u32:
         if failed(result) and result != NEG4:
             return session_error(w,38,0)
         return call(o,w,14,228,1,frame(w)+2048,0,0,0,0,12)
+    if phase == 17:
+        if result == 18446744073709551605:
+            return enter(w,M_BATCH,114)
+        if get(w,B_MESSAGE_OK) != 1:
+            return enter(w,M_BATCH,110)
+        if failed(result) or result == 0:
+            put(w,96,38)
+            put(w,B_FROZEN,1)
+            select_member(w,0)
+            return enter(w,M_RESPONSE,0)
+        put(w,PACKET_SIZE,result)
+        private = result >= 8 and (get(w,INPUT) == B_ARCHIVE_MAGIC or get(w,INPUT) == B_USAGE_MAGIC)
+        if protocol(w) == False:
+            if get(w,B_PEER) == NONE and private == False:
+                return enter(w,M_BATCH,115)
+            put(w,B_RECEIVE_NEXT,16)
+            return enter(w,M_BATCH,80)
+        if private != (get(w,B_PEER) != NONE):
+            put(w,B_RECEIVE_NEXT,16)
+            return enter(w,M_BATCH,80)
+        if private and get(w,CURRENT_PHASE) == get(w,B_KIND):
+            index = 0
+            while index < get(w,B_COUNT):
+                member = B_MEMBERS+index*512
+                if get(w,member+48) == get(w,CURRENT_SLOT) and get(w,member+64) == get(w,CURRENT_GEN):
+                    put(w,B_RECEIVE_NEXT,16)
+                    return enter(w,M_BATCH,80)
+                index = index+1
+            return enter(w,M_BATCH,112)
+        return enter(w,M_BATCH,115)
+    if phase == 16:
+        return enter(w,M_BATCH,110)
+    if phase == 18:
+        return step(w,10)
     return call(o,w,19,60,74,0,0,0,0,0,0)
 
 def protocol(w:mutbuf) -> bool:
     size = get(w,PACKET_SIZE)
-    if size >= 8 and (get(w,INPUT) == ARCHIVE_QUERY_MAGIC or get(w,INPUT) == USAGE_QUERY_MAGIC):
-        put(w,CURRENT_PHASE,choose(get(w,INPUT) == USAGE_QUERY_MAGIC,5,4))
+    if size >= 8 and (get(w,INPUT) == ARCHIVE_QUERY_MAGIC or get(w,INPUT) == USAGE_QUERY_MAGIC or get(w,INPUT) == B_ARCHIVE_MAGIC or get(w,INPUT) == B_USAGE_MAGIC):
+        usage = get(w,INPUT) == USAGE_QUERY_MAGIC or get(w,INPUT) == B_USAGE_MAGIC
+        put(w,CURRENT_PHASE,choose(usage,5,4))
         if size >= 72:
             put(w,CURRENT_SLOT,get(w,INPUT+48))
             put(w,CURRENT_GEN,get(w,INPUT+64))
@@ -194,10 +260,16 @@ def history_protocol(w:mutbuf,size:u64) -> bool:
     return get(w,INPUT+32) == get(w,STATE_FD) and get(w,INPUT+40) == get(w,DAEMON_AUDITFD) and path == get(w,ROOT_PATH_LEN) and equal(w,INPUT+512,ROOT_PATH,path)
 
 def archive_query_protocol(w:mutbuf,size:u64) -> bool:
-    if size < 512 or get(w,INPUT+8) != 1 or get(w,INPUT+16) != get(w,CURRENT_PHASE) or get(w,INPUT+24) != size:
+    version = choose(get(w,INPUT) == B_ARCHIVE_MAGIC or get(w,INPUT) == B_USAGE_MAGIC,2,1)
+    if size < 512 or get(w,INPUT+8) != version or get(w,INPUT+16) != get(w,CURRENT_PHASE) or get(w,INPUT+24) != size:
         return False
     path = get(w,INPUT+80)
-    if path == 0 or path > 4096 or size != 512+path or zeroes(w,INPUT+104,24) == False or zeroes(w,INPUT+272,240) == False:
+    if path == 0 or path > 4096 or size != 512+path or zeroes(w,INPUT+104,24) == False:
+        return False
+    if version == 2:
+        if zeroes(w,INPUT+288,224) == False or get(w,INPUT+272) > 9223372036854775804 or get(w,INPUT+280) >= 1000000000:
+            return False
+    elif zeroes(w,INPUT+272,240) == False:
         return False
     if get(w,CURRENT_SLOT) >= 32 or get(w,CURRENT_GEN) == 0 or get(w,CURRENT_WORKER) <= 1 or get(w,INPUT+72) != get(w,DAEMON_CONTROLLER):
         return False

@@ -4,6 +4,7 @@ The emitted HIA owns policy, continuation frames, exact record bytes and all
 filesystem ordering. The adapter only translates the bounded Linux syscall ABI.
 """
 import re
+from tools.generate_hia_mcp_request_audit_batch_common import C as BATCH_C, COMMON as BATCH_COMMON
 from tools.generate_hia_mcp_service_owner_common import authored as service_authored
 
 NONE = (1 << 64) - 1
@@ -48,6 +49,8 @@ C.update(M_LEASES=10, M_OPEN=11, M_RESPONSE=12, M_METADATA=13, M_INTENT=14,
          ROOT_PATH=16384, TICKETS=7 << 20, SESSION_CLOCK=271424,
          SESSION_ENTROPY=271360, LAYOUT_IDS=569344,
          LAYOUT_NAMES=(2 << 20)+131072)
+
+C.update(BATCH_C)
 
 ERRORS = {
     1: 'invalid request audit protocol',
@@ -285,5 +288,5 @@ def flock_bytes(w:mutbuf, at:u64, kind:u64, start:u64) -> u64:
 
 def authored(source, *, text=None, extra=None):
     values = {**C, **(extra or {})}
-    combined = re.sub(r'text_(\w+)\(w,\s*', r'text_\1(w, ', source + '\n' + COMMON)
+    combined = re.sub(r'text_(\w+)\(w,\s*', r'text_\1(w, ', source + '\n' + COMMON + '\n' + BATCH_COMMON)
     return service_authored(combined, text={**TEXT, **(text or {})}, extra=values)

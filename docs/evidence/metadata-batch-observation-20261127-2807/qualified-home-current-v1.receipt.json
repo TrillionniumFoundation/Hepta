@@ -1,0 +1,3696 @@
+{
+  "schema": "hia.metadata-batch-current-controls.v1",
+  "stage": {
+    "schema": "hia.metadata-batch-observation-stage.v1",
+    "parent": "434bb381ca2d80ea98110f670f894a4cedaeb5ca",
+    "authors": {
+      "generate_hia_mcp_request_audit_observation.py": "6fa53cbd61271edec1a5a87415a6732cadb20418ae165f8a7b3b44851ee13b65",
+      "generate_hia_mcp_request_audit_archive_query.py": "7041e32f014722d0ccd5f98b0467060158ee6e91d41cdf303cb513897fd75c38",
+      "qualify_hia_mcp_record_observation.py": "e1fe693e22f86c9e04cd61cb788ab671a67ed436f313e8aa265b716b0c2faa6b"
+    },
+    "passed": true,
+    "generated": {
+      "bytes": 290038,
+      "sha256": "1f51c14848847b2966312c5aab33b848e910cd40269372517766bdaadbe5a236"
+    },
+    "returncode": 0,
+    "seconds": 1.7666505560046062,
+    "argv": [
+      "/usr/bin/python3",
+      "-m",
+      "tools.qualify_hia_mcp_record_observation",
+      "--bootstrap",
+      "/home/qian-qi/hia-usage-native-20261127-2807/src/native/bootstrap/linux-x86_64/bin",
+      "--baseline",
+      "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/native-v2",
+      "--output",
+      "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/observation-controls-v1"
+    ]
+  },
+  "steps": [
+    {
+      "name": "current-native-v1",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_metadata_batch",
+        "--audit",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/native-v3/hia-mcp-request-audit",
+        "--output",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/qualified-home-current-v1/native"
+      ],
+      "observer_orchestration_limit_seconds": 300,
+      "returncode": 0,
+      "seconds": 23.762218674004544,
+      "stdout": {
+        "bytes": 2381,
+        "sha256": "1a91f7235ef6f1a4d216aaf72558d90fb338201f2d3b2fa5c9c9f24ff01d184c"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "current-continuations-v1",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_metadata_batch_continuations",
+        "--bootstrap",
+        "/home/qian-qi/hia-usage-native-20261127-2807/src/native/bootstrap/linux-x86_64/bin",
+        "--output",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/qualified-home-current-v1/continuations"
+      ],
+      "observer_orchestration_limit_seconds": 180,
+      "returncode": 0,
+      "seconds": 1.7668636789894663,
+      "stdout": {
+        "bytes": 31,
+        "sha256": "b2c01b0ea630ebaac3eab24301537e458b70038a63dc272c7331c854c5e069e4"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "current-archive-v1",
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "from pathlib import Path;from tools.qualify_hia_mcp_request_archive_public import qualify;qualify(Path('/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/public-v2/controller'),Path('/home/qian-qi/hia-usage-native-20261127-2807/src/tests/fixtures/hia_request_archive_oracle/cases-v1.json'),Path('/home/qian-qi/hia-usage-native-20261127-2807/src/tests/fixtures/hia_request_archive_oracle/observations-v2.json'),Path('/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/qualified-home-current-v1/archive'))"
+      ],
+      "observer_orchestration_limit_seconds": 900,
+      "returncode": 0,
+      "seconds": 23.6535620020004,
+      "stdout": {
+        "bytes": 2215,
+        "sha256": "12c3bc199a98d9fb8df47bb46c0b213871fc89e81cdb248c9d5bada0e63f910c"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "current-usage-v1",
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "from pathlib import Path;from tools.qualify_hia_mcp_usage_public import qualify;qualify(Path('/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/public-v2/controller'),Path('/home/qian-qi/hia-usage-native-20261127-2807/src/tests/fixtures/hia_request_archive_oracle'),Path('/home/qian-qi/hia-usage-native-20261127-2807/src/tests/fixtures/hia_usage_oracle'),Path('/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/qualified-home-current-v1/usage'))"
+      ],
+      "observer_orchestration_limit_seconds": 900,
+      "returncode": 0,
+      "seconds": 32.77160630901926,
+      "stdout": {
+        "bytes": 1231,
+        "sha256": "f0c5d28e50156152db76484613eee4539ec61d5787a9034f4413427416e19141"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "current-http-v1",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_metadata_http",
+        "--bundle",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/http-v2/controller",
+        "--reference",
+        "/home/qian-qi/hia-usage-native-20261127-2807/src/tests/fixtures/hia_usage_oracle",
+        "--http-reference",
+        "/home/qian-qi/hia-usage-native-20261127-2807/src/tests/fixtures/hia_http_metadata_oracle",
+        "--output",
+        "/home/qian-qi/hia-usage-native-20261127-2807/metadata-batch-work/qualified-home-current-v1/http"
+      ],
+      "observer_orchestration_limit_seconds": 600,
+      "returncode": 0,
+      "seconds": 26.80802342199604,
+      "stdout": {
+        "bytes": 1505,
+        "sha256": "870cfbba4bda3f9e6dfb71843695862f282d892f705cea93ec7c423cb606219b"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "passed": true,
+  "whole_runtime_qualified": false,
+  "query_budget_seconds": 3,
+  "qualifications": {
+    "native": {
+      "sha256": "00b27a194ab67ecab3f10cd1d55d1b637207b29180f49d8057e7dd3bea6f3246",
+      "report": {
+        "schema": "hepta.hia.metadata-batch-native.component.v3",
+        "passed": true,
+        "checks": [
+          {
+            "case": "private-v2-empty-both-kinds-and-original-history",
+            "passed": true
+          },
+          {
+            "case": "zero-datagram-does-not-terminate-live-audit-channel",
+            "passed": true
+          },
+          {
+            "case": "missing-reply-right-does-not-publish-on-common-channel",
+            "passed": true
+          },
+          {
+            "case": "metadata-query-does-not-acquire-complete-exchange-lock",
+            "passed": true
+          },
+          {
+            "case": "shared-custody-refusal-closes-private-right-without-common-response",
+            "passed": true
+          },
+          {
+            "case": "bad-version-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "bad-operation-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "bad-reserved-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "bad-slot-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "bad-generation-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "bad-worker-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "bad-root-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "bad-owner-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "bad-entered-nanoseconds-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "body-truncation-refused-and-owned-fds-closed",
+            "passed": true
+          },
+          {
+            "case": "multiple-rights-all-visible-descriptors-closed",
+            "passed": true
+          },
+          {
+            "case": "ctrunc-rights-all-visible-descriptors-closed",
+            "passed": true
+          },
+          {
+            "case": "entered-time-and-original-three-second-budget-not-rebased",
+            "passed": true
+          },
+          {
+            "case": "real-peer-close-ends-daemon-normally",
+            "passed": true
+          },
+          {
+            "case": "small-archives-do-not-collect",
+            "passed": true
+          },
+          {
+            "case": "large-hint-follows-complete-16385-original-observation",
+            "passed": true,
+            "seconds": 0.3097227329853922
+          },
+          {
+            "case": "eight-private-page-projections-share-complete-observation",
+            "passed": true,
+            "freeze": {
+              "active": 1,
+              "count": 8,
+              "member": 0,
+              "kind": 4,
+              "deadline": [
+                152285,
+                637365415
+              ],
+              "cutoff": [
+                152282,
+                639365415
+              ],
+              "archive_large": 1,
+              "usage_large": 0,
+              "originals": 34,
+              "frozen": 1,
+              "sealed": 0
+            }
+          },
+          {
+            "case": "local-cursor-error-remains-private-until-common-fence",
+            "passed": true,
+            "freeze": {
+              "active": 1,
+              "count": 8,
+              "member": 0,
+              "kind": 4,
+              "deadline": [
+                152286,
+                21975463
+              ],
+              "cutoff": [
+                152283,
+                23975463
+              ],
+              "archive_large": 1,
+              "usage_large": 0,
+              "originals": 39,
+              "frozen": 1,
+              "sealed": 0
+            }
+          },
+          {
+            "case": "eight-usage-projections-preserve-all-three-original-states",
+            "passed": true,
+            "freeze": {
+              "active": 1,
+              "count": 8,
+              "member": 6,
+              "kind": 5,
+              "deadline": [
+                152286,
+                631541277
+              ],
+              "cutoff": [
+                152283,
+                632541277
+              ],
+              "archive_large": 1,
+              "usage_large": 1,
+              "originals": 36,
+              "frozen": 1,
+              "sealed": 0
+            }
+          },
+          {
+            "case": "expired-unregistered-member-keeps-seven-valid-private-results",
+            "passed": true,
+            "freeze": {
+              "active": 1,
+              "count": 7,
+              "member": 0,
+              "kind": 4,
+              "deadline": [
+                152286,
+                997523578
+              ],
+              "cutoff": [
+                152283,
+                999523578
+              ],
+              "archive_large": 1,
+              "usage_large": 1,
+              "originals": 39,
+              "frozen": 1,
+              "sealed": 0
+            }
+          },
+          {
+            "case": "ninth-private-request-sees-real-later-completion-without-result-reuse",
+            "passed": true,
+            "freeze": {
+              "active": 1,
+              "count": 8,
+              "member": 0,
+              "kind": 4,
+              "deadline": [
+                152287,
+                339304118
+              ],
+              "cutoff": [
+                152284,
+                341304118
+              ],
+              "archive_large": 1,
+              "usage_large": 1,
+              "originals": 37,
+              "frozen": 1,
+              "sealed": 0
+            }
+          },
+          {
+            "case": "late-content-change-discards-entire-group-and-fresh-read-recovers",
+            "passed": true,
+            "freeze": {
+              "active": 1,
+              "count": 8,
+              "member": 2,
+              "kind": 4,
+              "deadline": [
+                152287,
+                929692095
+              ],
+              "cutoff": [
+                152284,
+                931692095
+              ],
+              "archive_large": 1,
+              "usage_large": 1,
+              "originals": 33,
+              "frozen": 1,
+              "sealed": 0
+            }
+          },
+          {
+            "case": "late-inode-replacement-discards-entire-group-and-fresh-read-recovers",
+            "passed": true,
+            "freeze": {
+              "active": 1,
+              "count": 8,
+              "member": 0,
+              "kind": 4,
+              "deadline": [
+                152288,
+                419697896
+              ],
+              "cutoff": [
+                152285,
+                421697896
+              ],
+              "archive_large": 1,
+              "usage_large": 1,
+              "originals": 33,
+              "frozen": 1,
+              "sealed": 0
+            }
+          },
+          {
+            "case": "cancelled-member-does-not-release-original-custody-or-other-replies",
+            "passed": true,
+            "freeze": {
+              "active": 1,
+              "count": 8,
+              "member": 0,
+              "kind": 4,
+              "deadline": [
+                152289,
+                12913697
+              ],
+              "cutoff": [
+                152286,
+                14913697
+              ],
+              "archive_large": 1,
+              "usage_large": 1,
+              "originals": 229,
+              "frozen": 1,
+              "sealed": 0
+            }
+          },
+          {
+            "case": "earliest-original-member-deadline-refuses-whole-group",
+            "passed": true,
+            "freeze": {
+              "active": 1,
+              "count": 8,
+              "member": 4,
+              "kind": 4,
+              "deadline": [
+                152287,
+                116617630
+              ],
+              "cutoff": [
+                152286,
+                618617630
+              ],
+              "archive_large": 1,
+              "usage_large": 1,
+              "originals": 37,
+              "frozen": 1,
+              "sealed": 0
+            }
+          }
+        ],
+        "scope": "independent real native component",
+        "whole_runtime_qualified": false,
+        "whole_cold_qualified": false,
+        "audit_sha256": "acfca75385c6afed68a52806cc7d6bef4eeb09d27d76ceff72443078d3908fc3",
+        "original_bounds": {
+          "metadata_members": 8,
+          "usage_window_ns": 1000000,
+          "archive_window_ns": 2000000,
+          "query_budget_seconds": 3
+        },
+        "passed_count": 30
+      }
+    },
+    "continuations": {
+      "sha256": "521c4e5ae97a6ee16518ced809dfc3b708357fba1b1e8aaaf56e8bb3686eb11b",
+      "report": {
+        "checks": [
+          {
+            "case": "recvmsg-eio-preserves-full-ssize",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 18446744073709551611,
+              "96": 0
+            },
+            "message_ok": 1,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "recvmsg-eio-terminates-original-channel",
+            "input_words": {
+              "0": 11,
+              "104": 0,
+              "16": 0,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 1,
+              "8": 18446744073709551611,
+              "96": 0
+            },
+            "message_ok": 1,
+            "module": 0,
+            "passed": true,
+            "phase": 19,
+            "plan": [
+              60,
+              74,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "session",
+            "status": 1
+          },
+          {
+            "case": "recvmsg-ebadf-preserves-full-ssize",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 18446744073709551607,
+              "96": 0
+            },
+            "message_ok": 1,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "recvmsg-ebadf-terminates-original-channel",
+            "input_words": {
+              "0": 11,
+              "104": 0,
+              "16": 0,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 1,
+              "8": 18446744073709551607,
+              "96": 0
+            },
+            "message_ok": 1,
+            "module": 0,
+            "passed": true,
+            "phase": 19,
+            "plan": [
+              60,
+              74,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "session",
+            "status": 1
+          },
+          {
+            "case": "recvmsg-eagain-keeps-signed-result",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 18446744073709551605,
+              "96": 0
+            },
+            "message_ok": 1,
+            "module": 0,
+            "passed": true,
+            "phase": 17,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "eagain-collection-keeps-original-cutoff",
+            "input_words": {
+              "0": 17,
+              "104": 0,
+              "16": 0,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 1,
+              "8": 18446744073709551605,
+              "96": 0
+            },
+            "message_ok": 1,
+            "module": 17,
+            "passed": true,
+            "phase": 114,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "session",
+            "status": 6
+          },
+          {
+            "case": "recvmsg-eintr-restarts-clean-message",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 18446744073709551612,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 0,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "recvmsg-installs-cloexec-atomically",
+            "input_words": {
+              "0": 3,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 4,
+            "plan": [
+              47,
+              0,
+              23077120,
+              1073741888,
+              0,
+              0,
+              0,
+              12
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "ancillary-truncation-closes-visible-right",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "ancillary-truncation-does-not-reuse-common-response",
+            "input_words": {
+              "0": 80,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "body-truncation-closes-visible-right",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "body-truncation-does-not-reuse-common-response",
+            "input_words": {
+              "0": 80,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "multiple-rights-close-first",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "multiple-rights-close-second",
+            "input_words": {
+              "0": 80,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              45,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "multiple-rights-finish-private-refusal",
+            "input_words": {
+              "0": 80,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "multiple-cmsgs-close-first",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "multiple-cmsgs-close-second",
+            "input_words": {
+              "0": 80,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              45,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "multiple-cmsgs-remain-refused",
+            "input_words": {
+              "0": 80,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "unknown-cmsg-does-not-hide-later-right",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              45,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "unknown-cmsg-refuses-after-visible-cleanup",
+            "input_words": {
+              "0": 80,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "invalid-cmsg-length-0",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "invalid-cmsg-length-15",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "invalid-cmsg-length-25",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "one-right-validates-socket-type",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 5,
+            "plan": [
+              55,
+              44,
+              1,
+              3,
+              23078144,
+              23078152,
+              0,
+              960
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "stream-socket-refused",
+            "input_words": {
+              "0": 5,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 44,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "type-syscall-error-closes-right",
+            "input_words": {
+              "0": 5,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 44,
+              "23068816": 0,
+              "8": 18446744073709551611,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "domain-syscall-error-closes-right",
+            "input_words": {
+              "0": 6,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 44,
+              "23068816": 0,
+              "8": 18446744073709551611,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "credentials-syscall-error-closes-right",
+            "input_words": {
+              "0": 7,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 44,
+              "23068816": 0,
+              "8": 18446744073709551611,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "lease-syscall-error-closes-right",
+            "input_words": {
+              "0": 8,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 44,
+              "23068816": 0,
+              "8": 18446744073709551611,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 80,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "zero-byte-receive-checks-peer-close",
+            "input_words": {
+              "0": 4,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 10,
+            "plan": [
+              7,
+              23077600,
+              1,
+              0,
+              0,
+              0,
+              0,
+              3
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "zero-byte-poll-eintr-keeps-check",
+            "input_words": {
+              "0": 10,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 18446744073709551612,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 10,
+            "plan": [
+              7,
+              23077600,
+              1,
+              0,
+              0,
+              0,
+              0,
+              3
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "zero-datagram-remains-malformed",
+            "input_words": {
+              "0": 10,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "closed-peer-publishes-eof",
+            "input_words": {
+              "0": 10,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 1,
+              "96": 0
+            },
+            "message_ok": 1,
+            "module": 0,
+            "passed": true,
+            "phase": 11,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "real-eof-exits-cleanly",
+            "input_words": {
+              "0": 11,
+              "104": 0,
+              "16": 0,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 1,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 1,
+            "module": 0,
+            "passed": true,
+            "phase": 19,
+            "plan": [
+              60,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "session",
+            "status": 1
+          },
+          {
+            "case": "fixed-window-carry-kind-4",
+            "input_words": {
+              "0": 101,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 1,
+              "23068704": 103,
+              "23068712": 999500000,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 110,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "fixed-window-carry-kind-5",
+            "input_words": {
+              "0": 101,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 1,
+              "23068704": 103,
+              "23068712": 999500000,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 110,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "expired-unregistered-member-cannot-poison-group",
+            "input_words": {
+              "0": 116,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 7,
+              "23068704": 103,
+              "23068712": 0,
+              "23068720": 101,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 115,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "cutoff-equality-defers-late-member",
+            "input_words": {
+              "0": 116,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 1,
+              "23068704": 103,
+              "23068712": 0,
+              "23068720": 100,
+              "23068728": 2000000,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 17,
+            "passed": true,
+            "phase": 115,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "batch",
+            "status": 6
+          },
+          {
+            "case": "eighth-member-freezes-before-ninth-receive",
+            "input_words": {
+              "0": 111,
+              "104": 0,
+              "16": 17,
+              "2208": 0,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 0,
+              "23068680": 8,
+              "23068704": 103,
+              "23068712": 0,
+              "23068720": 101,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 0,
+            "passed": true,
+            "phase": 14,
+            "plan": [
+              228,
+              1,
+              67584,
+              0,
+              0,
+              0,
+              0,
+              12
+            ],
+            "role": "batch",
+            "status": 1
+          },
+          {
+            "case": "sendmsg-eintr-keeps-original-deadline",
+            "input_words": {
+              "0": 204,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 45,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 18446744073709551612,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 210,
+            "plan": [
+              228,
+              1,
+              50288,
+              0,
+              0,
+              0,
+              0,
+              12
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "sendmsg-eagain-keeps-original-deadline",
+            "input_words": {
+              "0": 204,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 45,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 18446744073709551605,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 210,
+            "plan": [
+              228,
+              1,
+              50288,
+              0,
+              0,
+              0,
+              0,
+              12
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "short-atomic-send-closes-peer",
+            "input_words": {
+              "0": 204,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 45,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 599,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 220,
+            "plan": [
+              3,
+              45,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "short-atomic-send-closes-private-receiver",
+            "input_words": {
+              "0": 220,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 220,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "short-atomic-send-returns-failure",
+            "input_words": {
+              "0": 220,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 15,
+            "passed": true,
+            "phase": 17,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 6
+          },
+          {
+            "case": "complete-send-drops-only-transferred-peer",
+            "input_words": {
+              "0": 204,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 45,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 600,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 205,
+            "plan": [
+              3,
+              45,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "private-receive-clock-follows-transfer",
+            "input_words": {
+              "0": 205,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 210,
+            "plan": [
+              228,
+              1,
+              50288,
+              0,
+              0,
+              0,
+              0,
+              12
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "receive-eintr-records-full-ssize",
+            "input_words": {
+              "0": 206,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 18446744073709551612,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 210,
+            "plan": [
+              228,
+              1,
+              50288,
+              0,
+              0,
+              0,
+              0,
+              12
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "receive-eintr-does-not-reset-budget",
+            "input_words": {
+              "0": 210,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 210,
+            "plan": [
+              228,
+              1,
+              50288,
+              0,
+              0,
+              0,
+              0,
+              12
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "receive-eagain-records-full-ssize",
+            "input_words": {
+              "0": 206,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 18446744073709551605,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 210,
+            "plan": [
+              228,
+              1,
+              50288,
+              0,
+              0,
+              0,
+              0,
+              12
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "receive-eagain-does-not-reset-budget",
+            "input_words": {
+              "0": 210,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 210,
+            "plan": [
+              228,
+              1,
+              50288,
+              0,
+              0,
+              0,
+              0,
+              12
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "private-reply-correct-closes-channel",
+            "input_words": {
+              "0": 210,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 220,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "private-reply-correct-cannot-leak-to-reused-slot",
+            "input_words": {
+              "0": 220,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 15,
+            "passed": true,
+            "phase": 17,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 6
+          },
+          {
+            "case": "private-reply-old-generation-closes-channel",
+            "input_words": {
+              "0": 210,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 220,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "private-reply-old-generation-cannot-leak-to-reused-slot",
+            "input_words": {
+              "0": 220,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 15,
+            "passed": true,
+            "phase": 17,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 6
+          },
+          {
+            "case": "private-reply-wrong-slot-closes-channel",
+            "input_words": {
+              "0": 210,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 220,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "private-reply-wrong-slot-cannot-leak-to-reused-slot",
+            "input_words": {
+              "0": 220,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 15,
+            "passed": true,
+            "phase": 17,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 6
+          },
+          {
+            "case": "private-query-at-original-deadline-closes-peer",
+            "input_words": {
+              "0": 210,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 45,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 220,
+            "plan": [
+              3,
+              45,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "deadline-closes-receiver-once",
+            "input_words": {
+              "0": 220,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 220,
+            "plan": [
+              3,
+              44,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 1
+          },
+          {
+            "case": "deadline-returns-after-capability-cleanup",
+            "input_words": {
+              "0": 220,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 18446744073709551615,
+              "2248": 18446744073709551615,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 15,
+            "passed": true,
+            "phase": 17,
+            "plan": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "role": "worker",
+            "status": 6
+          },
+          {
+            "case": "metadata-starts-private-channel-without-exchange-lock",
+            "input_words": {
+              "0": 90,
+              "104": 0,
+              "16": 9,
+              "2208": 103,
+              "2216": 0,
+              "2240": 44,
+              "2248": 45,
+              "2256": 1,
+              "23068680": 0,
+              "23068704": 0,
+              "23068712": 0,
+              "23068720": 0,
+              "23068728": 0,
+              "23068768": 18446744073709551615,
+              "23068816": 0,
+              "8": 0,
+              "96": 0
+            },
+            "message_ok": 0,
+            "module": 9,
+            "passed": true,
+            "phase": 200,
+            "plan": [
+              53,
+              1,
+              526341,
+              0,
+              57152,
+              0,
+              0,
+              192
+            ],
+            "role": "worker",
+            "status": 1
+          }
+        ],
+        "last_observation": {
+          "input_words": {
+            "0": 90,
+            "104": 0,
+            "16": 9,
+            "2208": 103,
+            "2216": 0,
+            "2240": 44,
+            "2248": 45,
+            "2256": 1,
+            "23068680": 0,
+            "23068704": 0,
+            "23068712": 0,
+            "23068720": 0,
+            "23068728": 0,
+            "23068768": 18446744073709551615,
+            "23068816": 0,
+            "8": 0,
+            "96": 0
+          },
+          "message_ok": 0,
+          "module": 9,
+          "phase": 200,
+          "plan": [
+            53,
+            1,
+            526341,
+            0,
+            57152,
+            0,
+            0,
+            192
+          ],
+          "role": "worker",
+          "status": 1
+        },
+        "passed": true,
+        "passed_checks": 60,
+        "real_kernel_results_claimed": false,
+        "schema": "hepta.hia.metadata-batch-native-continuations.v1",
+        "sources": {
+          "examples/hia_bootstrap/mcp_request_audit_batch.hepta": {
+            "image_bytes": 106165,
+            "image_sha256": "d2e50855a9d006a8c8968f3d76ccfca28c93abc1b90801be052fc2f17e5d2471",
+            "source_bytes": 103962,
+            "source_sha256": "0534cdfa6b620cbd1183265b76df8d8fcd1b1606601f2b6db7d8123a62813e23"
+          },
+          "examples/hia_bootstrap/mcp_request_audit_session.hepta": {
+            "image_bytes": 155628,
+            "image_sha256": "29dd1fde2758760334c79fc30b5351367feb74b22b132bbec0cd81be0ee9455a",
+            "source_bytes": 141407,
+            "source_sha256": "88ed150b5065a96eb97168628b5e2760c4f6e037100c061e709739f83fd3f238"
+          },
+          "examples/hia_bootstrap/mcp_service_audit_transport.hepta": {
+            "image_bytes": 147802,
+            "image_sha256": "dc9b4e702a157e2c3a99a74ca67660a80937ead1e2a357f2c7456122bed00f1b",
+            "source_bytes": 132385,
+            "source_sha256": "2b0265b80df5a5d7c2a5c1417c3f329cfee9496ff0db7e417c427a4a57da3430"
+          }
+        },
+        "whole_cold_qualified": false
+      }
+    },
+    "archive": {
+      "sha256": "1fa66d3cebee98a9fabba985b85f0000fccacc3bfa50c2b02a0ecbc80d636cc7",
+      "report": {
+        "additional_controls": 3,
+        "cases_sha256": "86feb3e773333491365c8d279c9ffad59da7ca236a162af0247a57a616d870c8",
+        "checks": [
+          {
+            "case": "empty",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "default"
+          },
+          {
+            "case": "empty",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "limit-one"
+          },
+          {
+            "case": "empty",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "nulls"
+          },
+          {
+            "case": "owner-states",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "all"
+          },
+          {
+            "case": "owner-states",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "first"
+          },
+          {
+            "case": "owner-states",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "second"
+          },
+          {
+            "case": "owner-states",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "third"
+          },
+          {
+            "case": "owner-states",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "end"
+          },
+          {
+            "case": "owner-states",
+            "exact_text_equal": true,
+            "kind": "tool_error",
+            "passed": true,
+            "query": "foreign-cursor"
+          },
+          {
+            "case": "owner-states",
+            "exact_text_equal": true,
+            "kind": "tool_error",
+            "passed": true,
+            "query": "missing-cursor"
+          },
+          {
+            "case": "retained-after-hot-eviction",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "first-page"
+          },
+          {
+            "case": "retained-after-hot-eviction",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "after-evicted"
+          },
+          {
+            "case": "retained-after-hot-eviction",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "last-page"
+          },
+          {
+            "case": "beyond-global-hot-bound",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "first-page"
+          },
+          {
+            "case": "beyond-global-hot-bound",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "middle"
+          },
+          {
+            "case": "mixed-legacy-shards",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "first"
+          },
+          {
+            "case": "mixed-legacy-shards",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "cursor"
+          },
+          {
+            "case": "all-256-shards",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "first"
+          },
+          {
+            "case": "all-256-shards",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "last"
+          },
+          {
+            "case": "parameter-refusals",
+            "exact_text_equal": true,
+            "kind": "tool_error",
+            "passed": true,
+            "query": "limit-zero"
+          },
+          {
+            "case": "parameter-refusals",
+            "exact_text_equal": true,
+            "kind": "tool_error",
+            "passed": true,
+            "query": "limit-33"
+          },
+          {
+            "case": "parameter-refusals",
+            "exact_text_equal": true,
+            "kind": "parameter_error",
+            "passed": true,
+            "query": "limit-65536"
+          },
+          {
+            "case": "parameter-refusals",
+            "exact_text_equal": true,
+            "kind": "parameter_error",
+            "passed": true,
+            "query": "negative"
+          },
+          {
+            "case": "parameter-refusals",
+            "exact_text_equal": true,
+            "kind": "parameter_error",
+            "passed": true,
+            "query": "string-limit"
+          },
+          {
+            "case": "parameter-refusals",
+            "exact_text_equal": true,
+            "kind": "parameter_error",
+            "passed": true,
+            "query": "float-limit"
+          },
+          {
+            "case": "parameter-refusals",
+            "exact_text_equal": true,
+            "kind": "tool_error",
+            "passed": true,
+            "query": "upper-cursor"
+          },
+          {
+            "case": "parameter-refusals",
+            "exact_text_equal": true,
+            "kind": "tool_error",
+            "passed": true,
+            "query": "short-cursor"
+          },
+          {
+            "case": "parameter-refusals",
+            "exact_text_equal": true,
+            "kind": "parameter_error",
+            "passed": true,
+            "query": "unknown"
+          },
+          {
+            "case": "u128-order-and-failure",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "low-prefix"
+          },
+          {
+            "case": "u128-order-and-failure",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "skip-high-to-end"
+          },
+          {
+            "case": "u128-order-and-failure",
+            "exact_text_equal": true,
+            "kind": "tool_error",
+            "passed": true,
+            "query": "selected-overflow"
+          },
+          {
+            "case": "u128-order-and-failure",
+            "exact_text_equal": true,
+            "kind": "tool_error",
+            "passed": true,
+            "query": "after-overflow"
+          },
+          {
+            "case": "empty-owner-projection",
+            "exact_text_equal": true,
+            "kind": "success",
+            "passed": true,
+            "query": "empty-page"
+          },
+          {
+            "case": "empty-owner-projection",
+            "exact_text_equal": true,
+            "kind": "tool_error",
+            "passed": true,
+            "query": "foreign"
+          },
+          {
+            "case": "catalog-original-schema-and-null-or-omitted-arguments",
+            "passed": true
+          },
+          {
+            "case": "absolute-three-second-public-deadline-and-stale-response-drain",
+            "passed": true,
+            "seconds": 3.1060711570025887
+          },
+          {
+            "case": "fresh-stdio-owner-cannot-project-prior-retained-metadata",
+            "passed": true
+          }
+        ],
+        "http_qualified": false,
+        "installed_worker_claimed": false,
+        "live_registry_exclusion": "actual native live kernel-ticket control is separate",
+        "manifest_sha256": "e97127b79c2a9aaa89bebb5dbb673cbf086274672d57a9443966aed1e782624c",
+        "oracle_sha256": "ae4ce6424bffdac9ee4d88f7fbc5caf0e69fbec244afc27e07122d0deda8fe3d",
+        "original_archive_queries": 34,
+        "original_source_ref": "ae1c7ea593da45f7299c692a2acd44605c35be09",
+        "over_limit_error_text_parity_claimed": false,
+        "passed": true,
+        "query_budget_seconds": 3,
+        "schema": "hepta.hia.request-archive-public-original-comparison.v1",
+        "scope": "actual native stdio request_archive",
+        "service_sha256": "f9756294e00f7e2008ae481aaa5e96780a54f1c2db5ca5584c4c643542c59b91",
+        "typed_diagnostic_small_buffer_bytes": 1048576,
+        "usage_queries_excluded": true,
+        "whole_cold_qualified": false
+      }
+    },
+    "usage": {
+      "sha256": "71fa4da11f4cd080b1b38d7b592f3bbaa831e2716e61738f17afb6b3cc835669",
+      "report": {
+        "schema": "hepta.hia.usage-public-original-comparison.v1",
+        "passed": true,
+        "scope": "actual native stdio usage_stats",
+        "checks": [
+          {
+            "case": "empty",
+            "query": "usage-empty",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "owner-states",
+            "query": "usage",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "retained-after-hot-eviction",
+            "query": "total",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "beyond-global-hot-bound",
+            "query": "total",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "mixed-legacy-shards",
+            "query": "usage",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "all-256-shards",
+            "query": "usage",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "parameter-refusals",
+            "query": "usage-unknown",
+            "kind": "parameter_error",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "u128-usage-failure",
+            "query": "usage",
+            "kind": "tool_error",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "u128-usage-failure",
+            "query": "second",
+            "kind": "tool_error",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "empty-owner-projection",
+            "query": "empty-counts",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools64-508",
+            "query": "first",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools64-508",
+            "query": "second",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools64-509",
+            "query": "first",
+            "kind": "tool_error",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools64-509",
+            "query": "second",
+            "kind": "tool_error",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools64-600",
+            "query": "first",
+            "kind": "tool_error",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools64-600",
+            "query": "second",
+            "kind": "tool_error",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools3-963",
+            "query": "first",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools3-963",
+            "query": "second",
+            "kind": "success",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools3-964",
+            "query": "first",
+            "kind": "tool_error",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "distinct-tools3-964",
+            "query": "second",
+            "kind": "tool_error",
+            "exact_original_text_equal": true,
+            "passed": true
+          },
+          {
+            "case": "original-schema-and-null-or-omitted-arguments",
+            "passed": true
+          },
+          {
+            "case": "absolute-three-second-deadline-and-stale-generation-drain",
+            "seconds": 3.106641527992906,
+            "passed": true
+          }
+        ],
+        "original_source_ref": "ae1c7ea593da45f7299c692a2acd44605c35be09",
+        "service_sha256": "f9756294e00f7e2008ae481aaa5e96780a54f1c2db5ca5584c4c643542c59b91",
+        "manifest_sha256": "e97127b79c2a9aaa89bebb5dbb673cbf086274672d57a9443966aed1e782624c",
+        "whole_cold_qualified": false,
+        "installed_worker_claimed": false,
+        "http_qualified": false,
+        "live_registry_scope": "original live registry excluded here; real native kernel-ticket control is separate",
+        "query_budget_seconds": 3,
+        "references": {
+          "original": {
+            "cases_sha256": "86feb3e773333491365c8d279c9ffad59da7ca236a162af0247a57a616d870c8",
+            "oracle_sha256": "ae4ce6424bffdac9ee4d88f7fbc5caf0e69fbec244afc27e07122d0deda8fe3d"
+          },
+          "extended": {
+            "cases_sha256": "b8279c61b00268f60fcd2c59e1ebf9edcbb19fd17876d91ed51a348de701487c",
+            "oracle_sha256": "b257887e4d27f27d0b405cbbb26400b25d4c59f3fb796831e53ece9fc80e51c6"
+          }
+        },
+        "passed_checks": 22
+      }
+    },
+    "http": {
+      "sha256": "07ec31428653310d8b2f2132ac637fa07a727bcac830ad145333108565b8b98b",
+      "report": {
+        "schema": "hepta.hia.metadata-http-public.v1",
+        "passed": true,
+        "checks": [
+          {
+            "case": "empty-request_history",
+            "passed": true,
+            "response": {
+              "jsonrpc": "2.0",
+              "id": "request_history",
+              "result": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"automatic_operation_retry\":false,\"cross_session_resume\":false,\"history_is_live\":true,\"next_after_id\":null,\"requests\":[],\"retention\":{\"global\":512,\"per_session\":128},\"session_scope\":\"native_mcp_session_only\",\"status_semantics\":\"native_request_dispatch_observation_not_side_effect_delivery_or_business_success\"}"
+                  }
+                ],
+                "isError": false
+              }
+            },
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:49 GMT"
+              },
+              "bytes": 484,
+              "sha256": "d1bb3d3045317ca546696fdfcbf6415bdd8709a1107ca37746ba7c01ecddffa9",
+              "seconds": 0.10092201401130296
+            }
+          },
+          {
+            "case": "empty-request_archive",
+            "passed": true,
+            "response": {
+              "jsonrpc": "2.0",
+              "id": "request_archive",
+              "result": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"archive_retention\":\"no_automatic_metadata_eviction\",\"automatic_operation_retry\":false,\"contains_parameters_or_output\":false,\"coverage\":\"metadata_retained_at_archive_introduction_and_subsequent_admitted_requests\",\"history_is_live\":true,\"next_after_id\":null,\"requests\":[],\"total\":0}"
+                  }
+                ],
+                "isError": false
+              }
+            },
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:49 GMT"
+              },
+              "bytes": 451,
+              "sha256": "0044f8427c2e2899c93e7caff7ea87b1466ee0c5a52f7907d028f9f1b7faf160",
+              "seconds": 0.10129772598156705
+            }
+          },
+          {
+            "case": "empty-usage_stats",
+            "passed": true,
+            "response": {
+              "jsonrpc": "2.0",
+              "id": "usage_stats",
+              "result": {
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "{\"active\":0,\"completed\":0,\"contains_parameters_or_output\":false,\"coverage\":\"metadata_retained_at_archive_introduction_and_subsequent_admitted_requests\",\"failed\":0,\"first_accepted_unix_ms\":null,\"last_accepted_unix_ms\":null,\"retention\":\"archive_metadata_not_evicted_with_hot_cache\",\"schema\":\"hepta-private-usage-v1\",\"scope\":\"same_verified_credential_or_native_session\",\"semantics\":\"dispatch_observation_not_transport_delivery_or_business_success\",\"tool_counts\":{},\"total_requests\":0,\"unknown\":0}"
+                  }
+                ],
+                "isError": false
+              }
+            },
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:49 GMT"
+              },
+              "bytes": 676,
+              "sha256": "d04bb81d4780e2990392a8b6a8028ee5a1156e4b55537f5d6702c758edb1a9fa",
+              "seconds": 0.10117435600841418
+            }
+          },
+          {
+            "case": "catalog-metadata-discovery",
+            "passed": true,
+            "names": [
+              "hia_adopt",
+              "hia_artifact",
+              "hia_candidate",
+              "hia_context",
+              "hia_describe",
+              "hia_emit",
+              "hia_evaluate",
+              "hia_inspect",
+              "hia_read",
+              "hia_rollback",
+              "hia_verify",
+              "request_history",
+              "request_archive",
+              "usage_stats"
+            ]
+          },
+          {
+            "case": "original-private-token-authentication-before-metadata",
+            "passed": true
+          },
+          {
+            "case": "request_history-ascii-over-1m",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:49 GMT"
+              },
+              "bytes": 1048785,
+              "sha256": "ee8d8d6255baecf9b7d6605bc7e53220accd74a855b022a20d1ea6c85743e8ab",
+              "seconds": 0.6675317159970291
+            },
+            "exact_original_error_equal": true,
+            "code": -32602,
+            "message_bytes": 1048648,
+            "message_sha256": "8971e55436ba0cb395d600c3d59c157870dcd02a8999aaebb95c236281b00452",
+            "error_json_sha256": "85d2ed4245365c000770b1b487205e71921082b1d16a7ab7496849378f12997f"
+          },
+          {
+            "case": "request_history-del-near-http-4m",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:50 GMT"
+              },
+              "bytes": 29353171,
+              "sha256": "d4ea784aea9777142d0fcc76b1d4b44acef7f8becbb430134ebab60ecad24e90",
+              "seconds": 2.127789561985992
+            },
+            "exact_original_error_equal": true,
+            "code": -32602,
+            "message_bytes": 25159751,
+            "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+            "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+          },
+          {
+            "case": "request_history-del-near-http-4m-replay-0",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:53 GMT"
+              },
+              "bytes": 29353171,
+              "sha256": "d4ea784aea9777142d0fcc76b1d4b44acef7f8becbb430134ebab60ecad24e90",
+              "seconds": 0.06680802701157518
+            }
+          },
+          {
+            "case": "request_history-del-near-http-4m-replay-1",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:53 GMT"
+              },
+              "bytes": 29353143,
+              "sha256": "2bc03da7a8fb16f5bb5c55645ddfedeefc4ef4f4572b544e1b083853761117e1",
+              "seconds": 0.06658601100207306
+            }
+          },
+          {
+            "case": "request_history-del-near-http-4m-replay-2",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:53 GMT"
+              },
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "seconds": 8.286599768325686e-05
+            }
+          },
+          {
+            "case": "request_archive-ascii-over-1m",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:54 GMT"
+              },
+              "bytes": 1048785,
+              "sha256": "33b9ebeab6db4da23eabdaecc78c415f1dc851ab3256b2d87a21139dc05d0130",
+              "seconds": 0.5656737129902467
+            },
+            "exact_original_error_equal": true,
+            "code": -32602,
+            "message_bytes": 1048648,
+            "message_sha256": "8971e55436ba0cb395d600c3d59c157870dcd02a8999aaebb95c236281b00452",
+            "error_json_sha256": "85d2ed4245365c000770b1b487205e71921082b1d16a7ab7496849378f12997f"
+          },
+          {
+            "case": "request_archive-del-near-http-4m",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:55 GMT"
+              },
+              "bytes": 29353171,
+              "sha256": "5a24e9f97533534d3bd3cc2bb92f5a1acb832071f06e3d0c7d8cc02370652b1d",
+              "seconds": 2.2759820090141147
+            },
+            "exact_original_error_equal": true,
+            "code": -32602,
+            "message_bytes": 25159751,
+            "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+            "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+          },
+          {
+            "case": "request_archive-del-near-http-4m-replay-0",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:57 GMT"
+              },
+              "bytes": 29353171,
+              "sha256": "5a24e9f97533534d3bd3cc2bb92f5a1acb832071f06e3d0c7d8cc02370652b1d",
+              "seconds": 0.07748407102189958
+            }
+          },
+          {
+            "case": "request_archive-del-near-http-4m-replay-1",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:58 GMT"
+              },
+              "bytes": 29353143,
+              "sha256": "d4e02ab6e2efc8ee920bfe734d184011f052c75b880ff79ae34ecf5d1c023e1a",
+              "seconds": 0.07070875898352824
+            }
+          },
+          {
+            "case": "request_archive-del-near-http-4m-replay-2",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:52:58 GMT"
+              },
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "seconds": 0.00011397301568649709
+            }
+          },
+          {
+            "case": "usage-large-unknown",
+            "passed": true,
+            "exact_original_error_equal": true,
+            "code": -32602,
+            "message_bytes": 1048648,
+            "message_sha256": "040958028a482caf366e404f7f5e9a805ba07d69f1cfcf72213bd1371c2a9a8f",
+            "error_json_sha256": "0cefadbb227fe3dbd64cc63d74ec2e3d90f25af772c79b97fd1db9bac6d08c29"
+          },
+          {
+            "case": "stateless-complete-metadata",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "transfer-encoding": "chunked",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:53:01 GMT"
+              },
+              "bytes": 29353130,
+              "sha256": "1a8f637e09210ec8027c51782d0b9e0ba7b809613b6f3269d85685b08f5e77b3",
+              "seconds": 0.07046269800048321
+            },
+            "exact_original_error_equal": true,
+            "code": -32602,
+            "message_bytes": 25159751,
+            "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+            "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+          },
+          {
+            "case": "stateless-missing-capabilities",
+            "passed": true,
+            "http": {
+              "status": 400,
+              "headers": {
+                "content-type": "application/json",
+                "content-length": "193",
+                "connection": "close",
+                "date": "Fri, 27 Nov 2026 20:53:03 GMT"
+              },
+              "bytes": 193,
+              "sha256": "b709b2d2c26ee91982ce20624579f9e09e234a6b3633d007162b405f8a5110ad",
+              "seconds": 0.00037321800482459366
+            },
+            "original_metadata_validation_precedes_parameter_diagnostic": true
+          },
+          {
+            "case": "http10-large-complete",
+            "passed": true,
+            "http": {
+              "status": 200,
+              "headers": {
+                "content-type": "text/event-stream",
+                "cache-control": "no-cache",
+                "x-accel-buffering": "no",
+                "date": "Fri, 27 Nov 2026 20:53:03 GMT"
+              },
+              "bytes": 29353160,
+              "sha256": "2c0f3083f3f55350d96942a7dc6835e5fa76d7df5ca223db66b11b11f9d7b333",
+              "seconds": 2.1272142300149426
+            },
+            "exact_original_error_equal": true,
+            "code": -32602,
+            "message_bytes": 25159751,
+            "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+            "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+          },
+          {
+            "case": "unchanged-exact-four-mib-http-input-and-one-byte-over-refusal",
+            "passed": true
+          },
+          {
+            "case": "partial-private-output-complete-seals-before-publication",
+            "passed": true,
+            "private_bytes": 65655,
+            "complete_error_equal": true,
+            "final_seals": 15,
+            "code": -32602,
+            "message_bytes": 25159751,
+            "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+            "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+          },
+          {
+            "case": "cancel-partial-never-publishes-diagnostic-and-retains-original-tombstone",
+            "passed": true,
+            "private_bytes": 65656
+          },
+          {
+            "case": "absolute-three-second-query-deadline-and-stale-response-drain",
+            "passed": true,
+            "seconds": 3.105685361981159
+          }
+        ],
+        "scope": "real native HTTP metadata routes and exact original diagnostics",
+        "executable_sha256": "8c893e65b0db3e5589b060f6af8182435a18b51e5292805ea769d94238e24f61",
+        "manifest_sha256": "e97127b79c2a9aaa89bebb5dbb673cbf086274672d57a9443966aed1e782624c",
+        "original_source": "ae1c7ea593da45f7299c692a2acd44605c35be09",
+        "whole_cold_qualified": false,
+        "installed_worker_claimed": false,
+        "http_input_bytes": 4194304,
+        "query_budget_seconds": 3,
+        "references": {
+          "existing": "8ee3539beb7f9987785a6ba86622f9feb7c030fecc9fc6a731c00d12d3a53d44",
+          "http_large": "0f028dea059cbcef900673cdf8bdba16ad7a0859519139bdb4dc76a47f8d670e"
+        },
+        "passed_checks": 23
+      }
+    }
+  }
+}
