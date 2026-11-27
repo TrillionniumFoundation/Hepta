@@ -29,6 +29,9 @@ class KernelCoreVersionIsolationTests(unittest.TestCase):
         cls.original = json.loads(raw)
 
     def test_all_nine_complete_ordinary_catalogs_and_registry_unchanged(self):
+        from hepta.hia_opcodes import EFFECTS, KERNEL_EFFECTS
+        self.assertEqual(EFFECTS, {"alloc", "read", "write", "trap"})
+        self.assertEqual(KERNEL_EFFECTS, EFFECTS | {"atomic", "privilege"})
         for name, expected in self.original["catalogs"].items():
             with self.subTest(schema=name):
                 self.assertEqual(wire(opcodes.opcode_catalog(name)), wire(expected))

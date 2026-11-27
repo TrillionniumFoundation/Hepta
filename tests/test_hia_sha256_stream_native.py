@@ -89,7 +89,7 @@ class Sha256StreamSourceTests(unittest.TestCase):
                         [view, body.const('usize', i)]) for i in range(32)]
             body.effect('loan.end', [view])
             body.effect('owner.drop', [owner])
-            source = ('hia-asm.v1 hepta.hia.program.v8 word_reference\n'
+            source = ('hia-asm.v1 hepta.hia.program.v9 word_reference\n'
                       'fn observe() -> (' + ','.join(['u64'] * 3 + ['u8'] * 32) +
                       ') effects(alloc,read,write,trap) entry(b0)\nblock b0()\n' +
                       body.text() + '  ret(' + ','.join([old, code, new, *observed]) +
