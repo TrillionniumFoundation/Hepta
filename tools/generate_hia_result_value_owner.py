@@ -46,6 +46,9 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
     if length(s)>=8 and readword(s,0)==MAGIC13:
         if length(s)<128 or (readword(s,8)!=62 and readword(s,8)!=63):
             return 4294967293
+    if length(s)>=8 and readword(s,0)==MAGIC14:
+        if length(s)<128 or (readword(s,8)!=60 and readword(s,8)!=64 and readword(s,8)!=65 and readword(s,8)!=66):
+            return 4294967293
     if length(s)<128 or (request_magic(s)!=MAGIC and request_magic(s)!=MAGIC2 and request_magic(s)!=MAGIC3 and request_magic(s)!=MAGIC4 and request_magic(s)!=MAGIC5) or readword(s,16)!=0 or readword(s,120)!=0 or readword(s,96)!=length(s)-128:
         return 4294967293
     op=readword(s,8)
@@ -96,7 +99,7 @@ def owner_begin(s:readbuf,o:mutbuf,w:mutbuf) -> u64:
         put(o,P_DROP_KNOWN,1)
     return owner_start(s,o)
 def owner_start(s:readbuf,o:mutbuf) -> u64:
-    if readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or readword(s,0)==MAGIC8 or readword(s,0)==MAGIC9 or readword(s,0)==MAGIC10 or readword(s,0)==MAGIC11 or readword(s,0)==MAGIC12 or readword(s,0)==MAGIC13:
+    if readword(s,0)==MAGIC6 or readword(s,0)==MAGIC7 or readword(s,0)==MAGIC8 or readword(s,0)==MAGIC9 or readword(s,0)==MAGIC10 or readword(s,0)==MAGIC11 or readword(s,0)==MAGIC12 or readword(s,0)==MAGIC13 or readword(s,0)==MAGIC14:
         put(o,P_PHASE,15)
         return 12
     return system(o,1,39,0,0,0,0,0,0,0)
@@ -406,7 +409,7 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
                         put(o,2016,1)
                         put(o,G_PHASE,91)
                         return graph_call(s,o,w,21,1)
-        if (readword(s,0)==MAGIC11 or readword(s,0)==MAGIC12 or readword(s,0)==MAGIC13 or (request_magic(s)==MAGIC5 and (readword(s,8)==113 or readword(s,8)==114 or readword(s,8)==115))) and get(o,P_HELD)!=0 and get(o,8152)==0 and get(w,16)!=0:
+        if (readword(s,0)==MAGIC11 or readword(s,0)==MAGIC12 or readword(s,0)==MAGIC13 or readword(s,0)==MAGIC14 or (request_magic(s)==MAGIC5 and (readword(s,8)==113 or readword(s,8)==114 or readword(s,8)==115))) and get(o,P_HELD)!=0 and get(o,8152)==0 and get(w,16)!=0:
             put(o,8152,1)
             put(o,G_PHASE,93)
             return graph_call(s,o,w,203,1)
@@ -419,7 +422,7 @@ def release(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u64:
                 resourcepending=get(w,176)!=0 or get(w,184)!=0
                 put(o,2088,choose(resourcepending,1,0))
         if get(o,P_HELD)!=0:
-            if (readword(s,0)==MAGIC11 or readword(s,0)==MAGIC12 or readword(s,0)==MAGIC13 or (request_magic(s)==MAGIC5 and (readword(s,8)==113 or readword(s,8)==114 or readword(s,8)==115))) and get(o,8160)==1:
+            if (readword(s,0)==MAGIC11 or readword(s,0)==MAGIC12 or readword(s,0)==MAGIC13 or readword(s,0)==MAGIC14 or (request_magic(s)==MAGIC5 and (readword(s,8)==113 or readword(s,8)==114 or readword(s,8)==115))) and get(o,8160)==1:
                 put(o,8168,choose(get(w,80)==1,1,0))
                 queued=get(w,176)!=0 or get(w,184)!=0
                 put(o,8176,choose(queued,1,0))
@@ -514,7 +517,7 @@ def finish(s:readbuf,o:mutbuf,status:u64) -> u64:
         put(o,72,get(o,G_REQUIRED))
     return deferred_finish(s,o)
 def deferred_finish(s:readbuf,o:mutbuf) -> u64:
-    if readword(s,0)==MAGIC11 or readword(s,0)==MAGIC12 or readword(s,0)==MAGIC13 or (request_magic(s)==MAGIC5 and (readword(s,8)==113 or readword(s,8)==114 or readword(s,8)==115)):
+    if readword(s,0)==MAGIC11 or readword(s,0)==MAGIC12 or readword(s,0)==MAGIC13 or readword(s,0)==MAGIC14 or (request_magic(s)==MAGIC5 and (readword(s,8)==113 or readword(s,8)==114 or readword(s,8)==115)):
         put(o,128,0x3130445642414948)
         put(o,136,get(o,8160))
         put(o,144,get(o,8168))

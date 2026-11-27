@@ -3279,39 +3279,42 @@ block b0(v0:readbuf)
   v23:u64 = const() {"value":3688819000713759048}
   v24:bool = compare.ne(v2,v23)
   v25:bool = bool.and(v22,v24)
-  branch v25 b1(v0,v2) b2(v0)
-block b1(v26:readbuf,v27:u64)
-  ret(v27)
-block b2(v28:readbuf)
-  v30:u64 = const() {"value":8}
-  v31:u64 = call(v28,v30) {"function":"f27"}
-  v32:u64 = const() {"value":24}
-  v33:bool = compare.le(v31,v32)
-  branch v33 b3(v28) b4(v28,v31)
-block b3(v34:readbuf)
-  v40:u64 = const() {"value":3544422337661192520}
-  ret(v40)
-block b4(v37:readbuf,v39:u64)
-  v41:u64 = const() {"value":31}
-  v42:bool = compare.le(v39,v41)
-  branch v42 b5(v37) b6(v37,v39)
-block b5(v43:readbuf)
-  v49:u64 = const() {"value":3616479931699120456}
-  ret(v49)
-block b6(v46:readbuf,v48:u64)
-  v50:u64 = const() {"value":39}
-  v51:bool = compare.le(v48,v50)
-  branch v51 b7(v46) b8(v46,v48)
-block b7(v52:readbuf)
-  v58:u64 = const() {"value":3688537525737048392}
-  ret(v58)
-block b8(v55:readbuf,v57:u64)
-  v59:u64 = const() {"value":47}
-  v60:bool = compare.le(v57,v59)
-  v61:u64 = const() {"value":3760595119774976328}
-  v62:u64 = const() {"value":3832652713812904264}
-  v63:u64 = select(v60,v61,v62)
-  ret(v63)
+  v26:u64 = const() {"value":3760876594751686984}
+  v27:bool = compare.ne(v2,v26)
+  v28:bool = bool.and(v25,v27)
+  branch v28 b1(v0,v2) b2(v0)
+block b1(v29:readbuf,v30:u64)
+  ret(v30)
+block b2(v31:readbuf)
+  v33:u64 = const() {"value":8}
+  v34:u64 = call(v31,v33) {"function":"f27"}
+  v35:u64 = const() {"value":24}
+  v36:bool = compare.le(v34,v35)
+  branch v36 b3(v31) b4(v31,v34)
+block b3(v37:readbuf)
+  v43:u64 = const() {"value":3544422337661192520}
+  ret(v43)
+block b4(v40:readbuf,v42:u64)
+  v44:u64 = const() {"value":31}
+  v45:bool = compare.le(v42,v44)
+  branch v45 b5(v40) b6(v40,v42)
+block b5(v46:readbuf)
+  v52:u64 = const() {"value":3616479931699120456}
+  ret(v52)
+block b6(v49:readbuf,v51:u64)
+  v53:u64 = const() {"value":39}
+  v54:bool = compare.le(v51,v53)
+  branch v54 b7(v49) b8(v49,v51)
+block b7(v55:readbuf)
+  v61:u64 = const() {"value":3688537525737048392}
+  ret(v61)
+block b8(v58:readbuf,v60:u64)
+  v62:u64 = const() {"value":47}
+  v63:bool = compare.le(v60,v62)
+  v64:u64 = const() {"value":3760595119774976328}
+  v65:u64 = const() {"value":3832652713812904264}
+  v66:u64 = select(v63,v64,v65)
+  ret(v66)
 end
 fn f25(v0:readbuf) -> (u64) effects(read,write,trap) entry(b0)
 block b0(v0:readbuf)
