@@ -194,6 +194,17 @@ class CallerTerminalAdmissionSourceTests(unittest.TestCase):
                      'tests/fixtures/store_caller_worker_helpers_successor.json'):
             cls.seed[name] = (ROOT / name).read_bytes()
         cls.physical = dict(cls.seed)
+        from tests.hia_historical_diagnostic_controls import cold_control_source
+        cls.cold_adjustments = {}
+        for name in ('tests/hia_historical_diagnostic_controls.py',
+                     'tools/hia_frozen_component_sources.py'):
+            cls.physical[name] = (ROOT / name).read_bytes()
+        for name, raw in tuple(cls.seed.items()):
+            if name in CURRENT:
+                # Their current full-source readers already perform this inverse.
+                continue
+            cls.seed[name] = cold_control_source(
+                ROOT, name, raw, cls.physical, cls.cold_adjustments)
         historical_terminal_callers(ROOT, cls.seed, source_records(cls.originals[PROFILE_ORIGINAL], 'store'))
         historical_terminal_pair(ROOT, cls.seed, CURRENT, cls.physical)
         for name, expected in CURRENT.items():
@@ -232,6 +243,7 @@ class CallerTerminalAdmissionSourceTests(unittest.TestCase):
             'actual_source_root': str(ROOT),
             'actual_input_files': {name: pin(raw) for name, raw in cls.physical.items()},
             'reviewed_control_inputs': {name: pin(raw) for name, raw in cls.seed.items()},
+            'reviewed_native_cold_source_adjustments': cls.cold_adjustments,
             'actual_control_code': {name: pin(raw) for name, raw in cls.code.items()},
             'original_test_bytes_restored': {name: pin(raw) for name, raw in cls.legacy.items()},
             'copied_source_execution': False})
