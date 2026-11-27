@@ -20,10 +20,21 @@ class StoreSourceHistoryTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         names = (*history.CURRENT, history.SOURCE_HISTORY_FIXTURE,
                  history.HOST_SUPPORT, history.EVALUATION_QUALIFIER, history.FIXTURE)
+        actual = {name: (ROOT / name).read_bytes() for name in names}
+        from tools import hia_evaluation_window_history as window
+        if any(history.history_pin(actual[name]) == expected
+               for name, expected in window.CURRENT.items()):
+            # These original sixteen controls exercise their unchanged v2
+            # domain. Verify the actual successor first, then stage its
+            # explicit prior bytes only in this test-owned historical fixture.
+            projected, composition = window.prepare(
+                ROOT, {name: actual[name] for name in history.CURRENT})
+            window.verify_unchanged(composition)
+            actual.update(projected)
         for name in names:
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes((ROOT / name).read_bytes())
+            path.write_bytes(actual[name])
         self.current = {name: (self.root / name).read_bytes() for name in history.CURRENT}
         self.prior, self.review = history.restore(self.current, root=self.root)
 

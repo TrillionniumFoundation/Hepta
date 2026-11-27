@@ -7,7 +7,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tools.hia_cold_compiler import compiler_from_cold_report, read_native_locations
+from tools.hia_cold_compiler import (compiler_from_cold_report, read_native_locations,
+                                     read_cold_build_inputs)
 
 
 class ColdCompilerLocationTests(unittest.TestCase):
@@ -16,7 +17,11 @@ class ColdCompilerLocationTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name).resolve()
         self.cold = self.root / "cold.json"
-        self.image = bytes.fromhex('554889e54883ec4048897dc0488975c8') + b'synthetic physical pin control'
+        # Exact first 32 bytes of B1/B2/B3 from run 46016875379, artifact
+        # 15207225917. The suffix keeps this a nonexecuted location-only fixture.
+        self.image = bytes.fromhex(
+            "554889e54883ec4048897dc0488975c8488955d048894dd84c8985e0ffffff4c"
+        ) + b"synthetic physical pin control; not executable"
         self.report = {"schema": "hepta.hia.selfhost-cold-replay.v2",
                        "generation_sha256": [sha256(self.image).hexdigest()] * 3}
         self.raw = json.dumps(self.report).encode()
@@ -38,6 +43,7 @@ class ColdCompilerLocationTests(unittest.TestCase):
                                      json.dumps(self.index if index is None else index).encode())
 
     def test_three_original_images_are_read_with_no_hosted_report_synthesis(self):
+        self.assertFalse(self.image.startswith(b"\x7fELF"))
         images = self.read()
         self.assertEqual(images, [(self.root / (name + ".flat"), self.image)
                                   for name in ("B1", "B2", "B3")])
@@ -52,6 +58,58 @@ class ColdCompilerLocationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "complete actual cold report required"):
                 compiler_from_cold_report(self.cold)
         gate.assert_called_once_with(self.image, self.raw)
+
+    def test_admitted_view_retains_original_native_and_hosted_domains(self):
+        index_path = self.cold.with_suffix(".generations.json")
+        index_path.write_text(json.dumps(self.index))
+        sources = {"examples/control.hepta": "1" * 64}
+        with patch("tools.build_hia_json_preflight.admit_cold_build", return_value=sources):
+            native = read_cold_build_inputs(self.cold)
+            self.assertTrue(native.native)
+            self.assertEqual(native.source_head, self.index["source_head"])
+            self.assertEqual(native.report_bytes, self.raw)
+            self.assertEqual(native.report, self.report)
+            self.assertEqual(native.location, self.index)
+            self.assertEqual(native.sources, sources)
+            self.assertEqual(native.compiler, self.root / "B3.flat")
+            self.assertEqual(native.compiler_bytes, self.image)
+            self.assertEqual(len(native.files), 5)
+            self.assertNotIn("checks", native.report)
+            self.assertNotIn("nested_report", native.report)
+            nested = self.root / "legacy.json"
+            nested_raw = json.dumps({"generations": self.index["generations"]}).encode()
+            nested.write_bytes(nested_raw)
+            outer = {"schema": "hepta.hia.selfhost-cold-replay.v1",
+                     "nested_report": str(nested), "nested_report_sha256": sha256(nested_raw).hexdigest()}
+            self.cold.write_text(json.dumps(outer))
+            legacy = read_cold_build_inputs(self.cold)
+            self.assertFalse(legacy.native)
+            self.assertIsNone(legacy.source_head)
+            self.assertEqual(legacy.report, outer)
+            self.assertEqual(legacy.location_path, nested)
+            self.assertEqual(legacy.location_bytes, nested_raw)
+            self.assertEqual(legacy.compiler, native.compiler)
+
+    def test_every_original_input_is_reread_after_admission_and_at_use(self):
+        index_path = self.cold.with_suffix(".generations.json")
+        index_path.write_text(json.dumps(self.index))
+        paths = [self.cold, index_path, *(self.root / (name + ".flat") for name in ("B1", "B2", "B3"))]
+        for path in paths:
+            original = path.read_bytes()
+            def change(*_):
+                path.write_bytes(original + b" ")
+                return {}
+            with self.subTest(path=path.name, phase="admission"), \
+                    patch("tools.build_hia_json_preflight.admit_cold_build", side_effect=change), \
+                    self.assertRaisesRegex(ValueError, "inputs changed"):
+                read_cold_build_inputs(self.cold)
+            path.write_bytes(original)
+            with patch("tools.build_hia_json_preflight.admit_cold_build", return_value={}):
+                admitted = read_cold_build_inputs(self.cold)
+            path.write_bytes(original + b" ")
+            with self.subTest(path=path.name, phase="use"), self.assertRaisesRegex(ValueError, "inputs changed"):
+                admitted.unchanged()
+            path.write_bytes(original)
 
     def test_missing_or_false_authority_fields_are_rejected(self):
         for key in self.index:

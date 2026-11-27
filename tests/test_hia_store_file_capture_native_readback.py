@@ -10,8 +10,10 @@ import unittest
 
 from tests import test_hia_component_cold_readback as native_controls
 from tools import hia_frozen_component_sources as history
+from tools import hia_current_store_source_history as current_history
 from tools import read_hia_store_file_capture_callers as reader
 from tools.hia_component_input_custody import capture_component_custody
+from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -36,7 +38,9 @@ class FileCaptureNativeCustodyTests(unittest.TestCase):
             builder: ("SOURCE_NAME = " + repr(reader.SOURCE) + "\nINPUTS = (SOURCE_NAME, "
                       + repr(reader.READER) + ", " + repr(builder) + ")\n").encode(),
         }
-        for name, raw in files.items():
+        self.development = {name: ('# fixed unexecuted development input: ' + name).encode()
+                            for name in NATIVE_CUSTODY_INPUTS}
+        for name, raw in {**files, **self.development}.items():
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(raw)
@@ -58,6 +62,11 @@ class FileCaptureNativeCustodyTests(unittest.TestCase):
         for args in (('add', '.'), ('-c', 'user.name=Control', '-c',
                      'user.email=control@example.invalid', 'commit', '-qm', 'synthetic component')):
             subprocess.run(['git', *args], cwd=self.root, check=True, capture_output=True)
+        index_path = self.cold.with_suffix('.generations.json')
+        index = json.loads(index_path.read_bytes())
+        index['source_head'] = subprocess.check_output(
+            ['git', 'rev-parse', 'HEAD'], cwd=self.root, text=True).strip()
+        index_path.write_bytes(encoded(index))
         self.inputs = files
         self.current = {name: sha256(raw).hexdigest() for name, raw in files.items()}
         image = b'synthetic component bytes; never executed'
@@ -87,10 +96,12 @@ class FileCaptureNativeCustodyTests(unittest.TestCase):
             'source_manifest': self.fixture.sources,
             'cold_report_sha256': sha256(self.cold.read_bytes()).hexdigest(),
             'manifest': self.manifest, 'component_inputs': self.current,
+            'development_inputs': {name: sha256(raw).hexdigest()
+                                   for name, raw in self.development.items()},
             'native_compile_receipt': self.receipt,
             'component_input_custody': capture_component_custody(
                 self.fixture.compiler, self.cold.read_bytes(), self.fixture.sources,
-                self.inputs, root=self.root),
+                {**self.inputs, **self.development}, root=self.root),
         }
         (self.directory / self.manifest['image_path']).write_bytes(image)
         (self.directory / 'store_file_capture.output.bin').write_bytes(image)
@@ -156,6 +167,21 @@ class FileCaptureNativeCustodyTests(unittest.TestCase):
                     self.admit()
 
 
+    def test_native_component_keeps_index_commit_and_all_physical_generations(self):
+        self.admit()
+        index_path = self.cold.with_suffix('.generations.json')
+        original = index_path.read_bytes()
+        changed = json.loads(original)
+        changed['source_head'] = '1' * 40
+        index_path.write_bytes(encoded(changed))
+        with self.assertRaisesRegex(ValueError, 'authoring commit'):
+            self.admit()
+        index_path.write_bytes(original)
+        self.fixture.images[0].write_bytes(self.fixture.compiler + b'changed original B1')
+        with self.assertRaises(ValueError):
+            self.admit()
+
+
 class FileCaptureCurrentSourceTests(unittest.TestCase):
     def test_literal_catalog_reads_named_nested_expansions_without_execution(self):
         raw = b"A = ('first',)\nB = [*A, 'second']\nSOURCE_FILES = (*A, *B, 'last')\n"
@@ -195,7 +221,7 @@ class FileCaptureCurrentSourceTests(unittest.TestCase):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(raw)
             current = {name: (root / name).read_bytes() for name in history.CURRENT}
-            prior, _ = history.restore(current, root=root)
+            prior, _ = current_history.restore(current, root=root)
             (root / history.EVALUATION_TEST).write_bytes(prior[history.EVALUATION_TEST])
             with self.assertRaisesRegex(ValueError, 'partially reverted'):
                 reader.original_callers(root, reader.Captures())

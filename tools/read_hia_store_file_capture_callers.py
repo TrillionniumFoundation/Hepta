@@ -21,10 +21,15 @@ if __package__ in (None, ''):
     sys.path.insert(0, str(ROOT))
 
 from tools.hia_native_cold_admission import SCHEMA as NATIVE_COLD_SCHEMA
-from tools.hia_component_cold_readback import native_cold_compiler, read_component_inputs
-from tools.hia_frozen_component_sources import (
-    history_inverse, restore_reader_evaluation_test, reviewed_source,
+from tools.hia_component_cold_readback import (
+    native_cold_compiler, native_cold_inputs, read_component_inputs,
 )
+from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS
+from tools.hia_frozen_component_sources import history_inverse
+from tools.hia_current_store_source_history import (
+    restore_reader_evaluation_test, reviewed_source,
+)
+from tools import hia_current_caller_source_history as current_history
 
 CONTRACT = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
 COLD_PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
@@ -165,6 +170,15 @@ def source_map(repository, captures):
     contract_raw = captures.raw[absolute(repository / CONTRACT)]
     files = contract['source_identity']['files']
     require(type(files) is dict and files, 'current source contract is empty')
+    from tools.hia_release_contract import source_domain, validate_release_contract
+    if source_domain(contract) == 'native':
+        require(repository == ROOT and validate_release_contract(repository) == contract,
+                'native readback must bind this exact current source checkout')
+        for name, expected in files.items():
+            captures.take(relative(repository, name), expected)
+        require(SOURCE in files and READER not in files and QUALIFIER not in files,
+                'native implementation or separate host observation domain differs')
+        return {**files, CONTRACT: digest(contract_raw)}
     source_decl = captures.take(repository / 'tools/hia_selfhost_contract.py')
     declared = literal_assignment(source_decl, 'SOURCE_FILES')
     require(type(declared) in (tuple, list)
@@ -234,9 +248,19 @@ def worker_caller_source(repository, captures, raw, expected):
             'whole_original_restored_and_replayed': True}
 
 
-def cold_build(cold_path, captures, current):
+def cold_build(cold_path, captures, current, *, repository=None):
     cold = captures.json(cold_path)
     cold_raw = captures.raw[absolute(cold_path)]
+    from tools.hia_native_cold_admission import SCHEMA
+    if type(cold) is dict and cold.get('schema') == SCHEMA:
+        inputs = native_cold_inputs(ROOT if repository is None else repository,
+                                    cold_path, read=captures.take)
+        require(inputs.report_bytes == cold_raw and canonical(inputs.sources) == canonical(current),
+                'native cold source/report differs from the current readback')
+        for path, raw in inputs.files:
+            require(captures.take(path) == raw, 'native cold input changed during readback')
+        inputs.unchanged()
+        return inputs.compiler_bytes, digest(cold_raw)
     require(cold['schema'] == 'hepta.hia.selfhost-cold-replay.v1'
             and cold['profile'] == COLD_PROFILE
             and cold['status'] == 'COLD_SELFHOST_REPLAY_PASS',
@@ -309,6 +333,8 @@ def builder_inputs(repository, captures):
 
 def component_build(repository, evidence, captures, current, compiler, cold_sha,
                     *, native_cold_path=None, native_sources=None):
+    require((native_cold_path is None) == (native_sources is None),
+            'native cold path and source authority must be paired')
     directory = absolute(evidence / 'qualified')
     manifest = captures.json(directory / 'manifest.json')
     build = captures.json(directory / 'build.json')
@@ -324,9 +350,18 @@ def component_build(repository, evidence, captures, current, compiler, cold_sha,
     require(canonical(build['component_inputs']) == canonical({name: current[name] for name in inputs}),
             'complete component inputs are not the same frozen source')
     if native_cold_path is not None:
+        require(type(build.get('development_inputs')) is dict
+                and set(build['development_inputs']) == set(NATIVE_CUSTODY_INPUTS),
+                'native component development dependencies differ')
         consumed = read_component_inputs(repository, build, compiler, native_cold_path,
                                          read=captures.take)
         require(set(consumed) == set(inputs), 'native custody omits or adds a builder input')
+        admitted = native_cold_inputs(repository, native_cold_path, read=captures.take)
+        require(admitted.compiler_bytes == compiler and admitted.sources == native_sources,
+                'component compiler or source differs from its admitted native cold')
+        require(build['component_input_custody']['source_head'] == admitted.source_head,
+                'component authoring commit differs from the native cold campaign')
+        admitted.unchanged()
     source = captures.take(repository / SOURCE, current[SOURCE])
     image_path = relative(directory, manifest['image_path'])
     require(image_path.parent == directory, 'component image escapes its bundle')
@@ -625,9 +660,20 @@ def original_callers(repository, captures, *, terminal_evidence=None):
         known_diagnostic = name == _DIAGNOSTIC_PATH and pin(raw) == _DIAGNOSTIC_CURRENT
         if not (count_only or known_terminal or known_diagnostic):
             physical = raw
+            if (name == current_history.RESULT_PATH
+                    and pin(raw) == current_history.RESULT_CURRENT):
+                helper = captures.take(relative(repository, 'tools/hia_current_caller_source_history.py'))
+                require(pin(helper) == {'bytes': 3838, 'sha256':
+                            '9f773647bacc0a59f8ddff7b45e27f9d5474bb96a7f2368fa7e18a2a98141558'}
+                        and Path(current_history.__file__).read_bytes() == helper,
+                        'current caller source composition helper differs')
+            raw, result_history = current_history.result_predecessor(
+                repository, name, raw, take=captures.take)
             raw = reviewed_source(repository, name, raw, take=captures.take)
             successor_sources[name] = {'physical': pin(physical), 'reviewed': pin(raw),
-                                      'fixed_complete_source_relation': True}
+                                      'fixed_complete_source_relation': True,
+                                      **({'native_result_source_history': result_history}
+                                         if result_history is not None else {})}
             if digest(raw) == expected:
                 continue
         if name == _DIAGNOSTIC_PATH:
@@ -760,7 +806,11 @@ def read_callers(repository, evidence, cold_path, producer_log):
     native_sources = None
     if native:
         current = hosted_source_map(repository, captured, original)
-        _, compiler, native_sources = native_cold_compiler(repository, cold_path, read=captured.take)
+        admitted = native_cold_inputs(repository, cold_path, read=captured.take)
+        compiler, native_sources = admitted.compiler_bytes, admitted.sources
+        authoring = {name: captured.take(relative(repository, name))
+                     for name in sorted(set(current) | set(NATIVE_CUSTODY_INPUTS))}
+        host_custody = admitted.capture_custody(authoring, root=repository)
         cold_sha = digest(captured.raw[cold_path])
     else:
         current = source_map(repository, captured)
@@ -825,6 +875,8 @@ def read_callers(repository, evidence, cold_path, producer_log):
             repository, cold_path, read=captured.take)
         require(terminal_compiler == compiler and terminal_native == native_sources,
                 'complete native cold authority changed at terminal')
+        require(canonical(admitted.capture_custody(authoring, root=repository))
+                == canonical(host_custody), 'native caller authoring Git custody changed at terminal')
     captured.unchanged()
     return {'schema': 'hepta.hia.store-file-capture-caller-readback.v1',
         'status': 'PASS_READBACK_ONLY', 'scope': report['scope'],

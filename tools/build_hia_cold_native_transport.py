@@ -90,12 +90,18 @@ def build(output, compiler, compiler_sha256, python_library, *, cc, cold_report=
         raise ValueError("noncanonical runtime extension suffix")
     cc_path = Path(shutil.which(str(cc)) or str(cc)).resolve(strict=True)
     cc_raw = capture.raw(cc_path)
-    cold_raw, sources = None, None
+    cold_raw, sources, custody, development_inputs = None, None, None, {}
     if cold_report is not None:
         from tools.build_hia_json_preflight import admit_cold_build
         cold_raw = capture.raw(cold_report)
         sources = admit_cold_build(compiler_raw, cold_raw)
-        if any(sources.get(name) != data_pin(raw)["sha256"] for name, raw in inputs.items()):
+        from tools.hia_native_cold_admission import SCHEMA as NATIVE_SCHEMA
+        if parse(cold_raw).get("schema") == NATIVE_SCHEMA:
+            from tools.hia_cold_native_transport_cold import DEVELOPMENT_INPUTS, capture_transport_custody
+            development_inputs = {name: capture.raw(ROOT / name) for name in DEVELOPMENT_INPUTS}
+            custody = capture_transport_custody(compiler_raw, cold_raw, sources,
+                                                {**inputs, **development_inputs}, root=ROOT)
+        elif any(sources.get(name) != data_pin(raw)["sha256"] for name, raw in inputs.items()):
             raise ValueError("cold source manifest does not bind every transport input")
     output.mkdir(mode=0o700)
     write_json(output / "before.json", {"inputs": {name: data_pin(raw) for name, raw in inputs.items()},
@@ -147,10 +153,17 @@ def build(output, compiler, compiler_sha256, python_library, *, cc, cold_report=
         from tools.build_hia_json_preflight import current_sources
         if current_sources() != sources:
             raise ValueError("cold source set changed during build")
+    if custody is not None:
+        if custody != capture_transport_custody(compiler_raw, cold_raw, sources,
+                                                 {**inputs, **development_inputs}, root=ROOT):
+            raise ValueError("transport source custody changed during build")
     capture.unchanged()
     manifest = {
         "schema": SCHEMA, "status": "BUILT_NOT_QUALIFIED_EXPLICIT_DEVELOPMENT",
         "whole_native": False, "source_root": str(ROOT),
+        "development_observation_only": True, "host_bridge_is_native_release": False,
+        "component_input_custody": custody,
+        "development_inputs": {name: data_pin(raw) for name, raw in development_inputs.items()},
         "inputs": {name: data_pin(raw) for name, raw in inputs.items()},
         "runtime": {"path": str(runtime), "version": sys.version, "pin": data_pin(runtime_raw),
                     "subprocess_path": str(subprocess_path), "subprocess_pin": data_pin(subprocess_raw)},

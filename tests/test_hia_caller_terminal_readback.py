@@ -7,7 +7,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from tools import read_hia_store_file_capture_callers as reader
-from tools.hia_frozen_component_sources import FIXTURE as RELATION, reviewed_source
+from tools.hia_frozen_component_sources import FIXTURE as RELATION
+from tools.hia_current_store_source_history import reviewed_source
 
 ROOT = Path(__file__).resolve().parents[1]
 TRANSPORT = 'tests/test_hia_native_transport_failures.py'
@@ -91,7 +92,15 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
             cls.evidence = Path(configured)
             cls.evidence.mkdir(parents=True, exist_ok=False)
         cls.physical = {name: (ROOT / name).read_bytes() for name in (*FIXED, RELATION)}
-        cls.seed = {name: reviewed_source(ROOT, name, cls.physical[name]) for name in FIXED}
+        def capture_history(path):
+            name = path.relative_to(ROOT).as_posix()
+            raw = path.read_bytes()
+            if name in cls.physical and cls.physical[name] != raw:
+                raise AssertionError('reader source preparation changed: ' + name)
+            cls.physical[name] = raw
+            return raw
+        cls.seed = {name: reviewed_source(ROOT, name, cls.physical[name], take=capture_history)
+                    for name in FIXED}
         for name, expected in FIXED.items():
             if pin(cls.seed[name]) != expected:
                 raise AssertionError('fixed reader control source differs: ' + name)
@@ -101,7 +110,7 @@ class CallerTerminalReadbackSourceTests(unittest.TestCase):
             raise AssertionError('original17 reader control inventory differs')
         for name in (*cls.records, DELIVERY):
             cls.physical[name] = (ROOT / name).read_bytes()
-            cls.seed[name] = reviewed_source(ROOT, name, cls.physical[name])
+            cls.seed[name] = reviewed_source(ROOT, name, cls.physical[name], take=capture_history)
         for name, expected in CURRENT.items():
             if pin(cls.seed[name]) != expected:
                 raise AssertionError('reviewed current reader source differs: ' + name)

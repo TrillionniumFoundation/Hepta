@@ -922,11 +922,30 @@ jobs:
           sha256sum --check "$RUNNER_TEMP/hia-rust-caller-inputs.sha256"
           git diff --exit-code -- rust/hia-core-shadow/Cargo.toml rust/hia-core-shadow/Cargo.lock
       - id: worker_unknown_cold_authority
-        run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+        run: python -B tools/replay_hia_native_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - name: Build matching-native-cold decoder and CNF manifests
+        run: |
+          set -euo pipefail
+          python -B - <<'PY'
+          import os
+          from pathlib import Path
+          from tools.build_hia_json_preflight import build
+          from tools.hia_cold_compiler import compiler_from_cold_report
+          parent = Path(os.environ['RUNNER_TEMP'])
+          cold = parent / 'hia-cold.json'
+          compiler = compiler_from_cold_report(cold)
+          manifests = {
+              'HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST': build(parent / 'core-verified-decoder', compiler, cold, candidate='safe-core-x64-decode'),
+              'HEPTA_HIA_CNF_MANIFEST': build(parent / 'core-verified-cnf', compiler, cold, candidate='cnf'),
+          }
+          with Path(os.environ['GITHUB_ENV']).open('a') as stream:
+              for key, path in manifests.items():
+                  stream.write(key + '=' + str(path) + '\n')
+          PY
       - name: Validate native execution ledger
         run: |
           set -euo pipefail
-          compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
+          compiler=$(python -B -m tools.hia_cold_compiler --cold-report "$RUNNER_TEMP/hia-cold.json")
           test -n "$compiler"
           python -B -m tools.build_hia_json_preflight --candidate execution-ledger \
             --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
@@ -935,7 +954,7 @@ jobs:
       - name: Build source-bound native SQLite components
         run: |
           set -euo pipefail
-          compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
+          compiler=$(python -B -m tools.hia_cold_compiler --cold-report "$RUNNER_TEMP/hia-cold.json")
           test -n "$compiler"
           for candidate in sqlite-wal-snapshot sqlite-rowid-lookup sqlite-record-layout sqlite-agent-row-import sqlite-agent-import-batch sqlite-agent-cost-sequence sqlite-agent-artifact-catalog sqlite-agent-catalog; do
             python -B -m tools.build_hia_json_preflight --candidate "$candidate" \
@@ -978,7 +997,7 @@ jobs:
       - name: Package, select and run the native Core, Agent Store and migration components
         run: |
           set -euo pipefail
-          compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
+          compiler=$(python -B -m tools.hia_cold_compiler --cold-report "$RUNNER_TEMP/hia-cold.json")
           test -n "$compiler"
           package="$RUNNER_TEMP/agent-store-package"
           mkdir -m 0700 "$package" "$package/stage" "$package/installed"
@@ -1302,7 +1321,8 @@ jobs:
             python -B -m unittest tests.test_hia_cnf_native.CnfStandaloneTests
           python -B -m tests.test_hia_worker_terminal_runtime "$installed/hia-worker-terminal"
           (
-            cd "$RUNNER_TEMP/hia-cold.cold/source"
+            # The native-only cold export excludes this Python observation harness.
+            cd "$GITHUB_WORKSPACE"
             unset PYTHONPATH
             python -B -m tests.test_hia_core_edit_runtime "$installed"
             python -B -m tests.test_hia_core_publication_runtime "$installed"
@@ -1369,9 +1389,10 @@ jobs:
           from tools.build_hia_json_preflight import admit_cold_build
           cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
           cold_bytes = cold.read_bytes()
-          nested = Path(json.loads(cold_bytes)['nested_report']).resolve(strict=True)
-          nested_bytes = nested.read_bytes()
-          compiler = Path(json.loads(nested_bytes)['generations'][-1]['produced_image']).resolve(strict=True)
+          from tools.hia_cold_compiler import compiler_from_cold_report
+          index = cold.with_suffix('.generations.json')
+          index_bytes = index.read_bytes()
+          compiler = compiler_from_cold_report(cold)
           compiler_bytes = compiler.read_bytes()
           admit_cold_build(compiler_bytes, cold_bytes)
           output = Path(os.environ['RUNNER_TEMP']) / 'hia-word-memory-v9'
@@ -1382,7 +1403,7 @@ jobs:
           if (report.get('complete') is not True
                   or report.get('compiler_sha256') != sha256(compiler_bytes).hexdigest()
                   or compiler.read_bytes() != compiler_bytes
-                  or cold.read_bytes() != cold_bytes or nested.read_bytes() != nested_bytes):
+                  or cold.read_bytes() != cold_bytes or index.read_bytes() != index_bytes):
               raise ValueError('v9 word-memory qualification or exact cold custody changed')
           admit_cold_build(compiler_bytes, cold_bytes)
           PY_WORD_MEMORY
@@ -1424,9 +1445,10 @@ jobs:
           from tools.build_hia_vm_integer_divrem import build
           cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
           cold_raw = cold.read_bytes()
-          nested_path = Path(json.loads(cold_raw)['nested_report']).resolve(strict=True)
-          nested_raw = nested_path.read_bytes()
-          compiler = Path(json.loads(nested_raw)['generations'][-1]['produced_image']).resolve(strict=True)
+          from tools.hia_cold_compiler import compiler_from_cold_report
+          index_path = cold.with_suffix('.generations.json')
+          index_raw = index_path.read_bytes()
+          compiler = compiler_from_cold_report(cold)
           compiler_raw = compiler.read_bytes()
           manifest_path = build(
               Path(os.environ['RUNNER_TEMP']) / 'hia-vm-integer-divrem',
@@ -1441,7 +1463,7 @@ jobs:
           assert build_report['cold_report_sha256'] == sha256(cold_raw).hexdigest()
           assert build_report['manifest'] == manifest
           assert build_report['manifest_sha256'] == sha256(manifest_raw).hexdigest()
-          assert cold.read_bytes() == cold_raw and nested_path.read_bytes() == nested_raw
+          assert cold.read_bytes() == cold_raw and index_path.read_bytes() == index_raw
           assert compiler.read_bytes() == compiler_raw
           digest = sha256(manifest_raw).hexdigest()
           with Path(os.environ['GITHUB_OUTPUT']).open('a') as stream:
@@ -1449,7 +1471,7 @@ jobs:
           (manifest_path.parent / 'operator-pins.json').write_text(json.dumps({
               'manifest': {'bytes': len(manifest_raw), 'sha256': digest},
               'cold': {'bytes': len(cold_raw), 'sha256': sha256(cold_raw).hexdigest()},
-              'nested': {'bytes': len(nested_raw), 'sha256': sha256(nested_raw).hexdigest()},
+              'generation_index': {'bytes': len(index_raw), 'sha256': sha256(index_raw).hexdigest()},
               'compiler': {'bytes': len(compiler_raw), 'sha256': sha256(compiler_raw).hexdigest()},
               'build_report': {'bytes': len(build_raw), 'sha256': sha256(build_raw).hexdigest()},
               'development': False}, indent=2, sort_keys=True) + '\n')
@@ -1508,9 +1530,10 @@ jobs:
           from tools.build_hia_vm_integer_arithmetic import build
           cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
           cold_raw = cold.read_bytes()
-          nested_path = Path(json.loads(cold_raw)['nested_report']).resolve(strict=True)
-          nested_raw = nested_path.read_bytes()
-          compiler = Path(json.loads(nested_raw)['generations'][-1]['produced_image']).resolve(strict=True)
+          from tools.hia_cold_compiler import compiler_from_cold_report
+          index_path = cold.with_suffix('.generations.json')
+          index_raw = index_path.read_bytes()
+          compiler = compiler_from_cold_report(cold)
           compiler_raw = compiler.read_bytes()
           manifest_path = build(
               Path(os.environ['RUNNER_TEMP']) / 'hia-vm-integer-arithmetic',
@@ -1525,7 +1548,7 @@ jobs:
           assert build_report['cold_report_sha256'] == sha256(cold_raw).hexdigest()
           assert build_report['manifest'] == manifest
           assert build_report['manifest_sha256'] == sha256(manifest_raw).hexdigest()
-          assert cold.read_bytes() == cold_raw and nested_path.read_bytes() == nested_raw
+          assert cold.read_bytes() == cold_raw and index_path.read_bytes() == index_raw
           assert compiler.read_bytes() == compiler_raw
           digest = sha256(manifest_raw).hexdigest()
           with Path(os.environ['GITHUB_OUTPUT']).open('a') as stream:
@@ -1533,7 +1556,7 @@ jobs:
           (manifest_path.parent / 'operator-pins.json').write_text(json.dumps({
               'manifest': {'bytes': len(manifest_raw), 'sha256': digest},
               'cold': {'bytes': len(cold_raw), 'sha256': sha256(cold_raw).hexdigest()},
-              'nested': {'bytes': len(nested_raw), 'sha256': sha256(nested_raw).hexdigest()},
+              'generation_index': {'bytes': len(index_raw), 'sha256': sha256(index_raw).hexdigest()},
               'compiler': {'bytes': len(compiler_raw), 'sha256': sha256(compiler_raw).hexdigest()},
               'build_report': {'bytes': len(build_raw), 'sha256': sha256(build_raw).hexdigest()},
               'development': False}, indent=2, sort_keys=True) + '\n')
@@ -1592,9 +1615,10 @@ jobs:
           from tools.build_hia_vm_integer_scalar import build
           cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
           cold_raw = cold.read_bytes()
-          nested_path = Path(json.loads(cold_raw)['nested_report']).resolve(strict=True)
-          nested_raw = nested_path.read_bytes()
-          compiler = Path(json.loads(nested_raw)['generations'][-1]['produced_image']).resolve(strict=True)
+          from tools.hia_cold_compiler import compiler_from_cold_report
+          index_path = cold.with_suffix('.generations.json')
+          index_raw = index_path.read_bytes()
+          compiler = compiler_from_cold_report(cold)
           compiler_raw = compiler.read_bytes()
           manifest_path = build(
               Path(os.environ['RUNNER_TEMP']) / 'hia-vm-integer-scalar',
@@ -1609,7 +1633,7 @@ jobs:
           assert build_report['cold_report_sha256'] == sha256(cold_raw).hexdigest()
           assert build_report['manifest'] == manifest
           assert build_report['manifest_sha256'] == sha256(manifest_raw).hexdigest()
-          assert cold.read_bytes() == cold_raw and nested_path.read_bytes() == nested_raw
+          assert cold.read_bytes() == cold_raw and index_path.read_bytes() == index_raw
           assert compiler.read_bytes() == compiler_raw
           digest = sha256(manifest_raw).hexdigest()
           with Path(os.environ['GITHUB_OUTPUT']).open('a') as stream:
@@ -1617,7 +1641,7 @@ jobs:
           (manifest_path.parent / 'operator-pins.json').write_text(json.dumps({
               'manifest': {'bytes': len(manifest_raw), 'sha256': digest},
               'cold': {'bytes': len(cold_raw), 'sha256': sha256(cold_raw).hexdigest()},
-              'nested': {'bytes': len(nested_raw), 'sha256': sha256(nested_raw).hexdigest()},
+              'generation_index': {'bytes': len(index_raw), 'sha256': sha256(index_raw).hexdigest()},
               'compiler': {'bytes': len(compiler_raw), 'sha256': sha256(compiler_raw).hexdigest()},
               'build_report': {'bytes': len(build_raw), 'sha256': sha256(build_raw).hexdigest()},
               'development': False}, indent=2, sort_keys=True) + '\n')
@@ -1676,9 +1700,10 @@ jobs:
           from tools.build_hia_executable_capture import build
           cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
           cold_raw = cold.read_bytes()
-          nested_path = Path(json.loads(cold_raw)['nested_report']).resolve(strict=True)
-          nested_raw = nested_path.read_bytes()
-          compiler = Path(json.loads(nested_raw)['generations'][-1]['produced_image']).resolve(strict=True)
+          from tools.hia_cold_compiler import compiler_from_cold_report
+          index_path = cold.with_suffix('.generations.json')
+          index_raw = index_path.read_bytes()
+          compiler = compiler_from_cold_report(cold)
           compiler_raw = compiler.read_bytes()
           manifest_path = build(
               Path(os.environ['RUNNER_TEMP']) / 'hia-executable-capture',
@@ -1688,7 +1713,7 @@ jobs:
           assert manifest['scope'] == 'MATCHING_SOURCE_COLD_COMPONENT'
           assert manifest['compiler_sha256'] == sha256(compiler_raw).hexdigest()
           assert manifest['cold_report_sha256'] == sha256(cold_raw).hexdigest()
-          assert cold.read_bytes() == cold_raw and nested_path.read_bytes() == nested_raw
+          assert cold.read_bytes() == cold_raw and index_path.read_bytes() == index_raw
           assert compiler.read_bytes() == compiler_raw
           digest = sha256(manifest_raw).hexdigest()
           with Path(os.environ['GITHUB_OUTPUT']).open('a') as stream:
@@ -1696,7 +1721,7 @@ jobs:
           (manifest_path.parent / 'operator-pins.json').write_text(json.dumps({
               'manifest': {'bytes': len(manifest_raw), 'sha256': digest},
               'cold': {'bytes': len(cold_raw), 'sha256': sha256(cold_raw).hexdigest()},
-              'nested': {'bytes': len(nested_raw), 'sha256': sha256(nested_raw).hexdigest()},
+              'generation_index': {'bytes': len(index_raw), 'sha256': sha256(index_raw).hexdigest()},
               'compiler': {'bytes': len(compiler_raw), 'sha256': sha256(compiler_raw).hexdigest()},
               'development': False}, indent=2, sort_keys=True) + '\n')
           PYCAPTURE
@@ -2027,11 +2052,10 @@ jobs:
               captured[value] = data
           cold_path = parent / 'hia-cold.json'
           cold_raw = cold_path.read_bytes()
-          outer = json.loads(cold_raw)
-          nested_path = Path(outer['nested_report'])
-          nested_raw = nested_path.read_bytes()
-          nested = json.loads(nested_raw)
-          compiler_path = Path(nested['generations'][-1]['produced_image'])
+          from tools.hia_cold_compiler import compiler_from_cold_report
+          index_path = cold_path.with_suffix('.generations.json')
+          index_raw = index_path.read_bytes()
+          compiler_path = compiler_from_cold_report(cold_path)
           compiler_raw = compiler_path.read_bytes()
           if (sha256(compiler_raw).hexdigest() != authority['compiler_sha256']
                   or compiler_path.resolve() != Path(authority['compiler']).resolve()):
@@ -2050,7 +2074,7 @@ jobs:
               with (parent / name).open('x') as stream:
                   stream.write(json.dumps(value, sort_keys=True, indent=2) + '\n')
           if (path.read_bytes() != raw or cold_path.read_bytes() != cold_raw
-                  or nested_path.read_bytes() != nested_raw or compiler_path.read_bytes() != compiler_raw
+                  or index_path.read_bytes() != index_raw or compiler_path.read_bytes() != compiler_raw
                   or any(Path(name).read_bytes() != value for name, value in captured.items())
                   or authority['sources'] != current_sources()):
               raise SystemExit('ServiceSlot caller input custody changed')
@@ -2449,7 +2473,7 @@ jobs:
       - name: Native artifact read-page and ordinary Agent callers
         run: |
           set -euo pipefail
-          compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
+          compiler=$(python -B -m tools.hia_cold_compiler --cold-report "$RUNNER_TEMP/hia-cold.json")
           python -B -m tools.build_hia_json_preflight --candidate agent-read-page \
             --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" \
             --output "$RUNNER_TEMP/agent-read-page"
@@ -2482,7 +2506,7 @@ jobs:
             --native-release "$installed"
       - name: Cold-built standalone HIA direct call
         run: |
-          compiler=$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)
+          compiler=$(python -B -m tools.hia_cold_compiler --cold-report "$RUNNER_TEMP/hia-cold.json")
           test -n "$compiler"
           python -B -m tools.build_hia_direct_call --compiler "$compiler" \
             --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/direct-call"
@@ -2695,7 +2719,7 @@ jobs:
         run: python -B tools/qualify_hia_machine_plan_native_callers.py --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/machine-plan-callers.json" --evidence-dir "$RUNNER_TEMP/machine-plan-callers"
       - name: HIA verified shared linkage and independent HIA x86 and ELF readers
         run: |
-          compiler="$(find "$RUNNER_TEMP/hia-cold.cold" -name B3.image.bin -print -quit)"
+          compiler="$(python -B -m tools.hia_cold_compiler --cold-report "$RUNNER_TEMP/hia-cold.json")"
           for candidate in safe-core-x64-decode safe-core-elf-inventory elf-verified-linker; do
             python -B -m tools.build_hia_json_preflight --candidate "$candidate" \
               --compiler "$compiler" --cold-report "$RUNNER_TEMP/hia-cold.json" --output "$RUNNER_TEMP/$candidate"
@@ -3327,7 +3351,10 @@ jobs:
             ${{ runner.temp }}/execution-observation-fixture/
             ${{ runner.temp }}/hia-candidate-budget/
             ${{ runner.temp }}/hia-cli-native/
-            ${{ runner.temp }}/hia-cold.cold/
+            ${{ runner.temp }}/hia-cold.native-cold/
+            ${{ runner.temp }}/hia-cold.generations.json
+            ${{ runner.temp }}/core-verified-decoder/
+            ${{ runner.temp }}/core-verified-cnf/
             ${{ runner.temp }}/hia-cold.json
             ${{ runner.temp }}/hia-execution-budget/
             ${{ runner.temp }}/hia-journal-callers.json
@@ -3420,6 +3447,7 @@ jobs:
           exact_files = (
               'hia-bounded-memory.log',
               'hia-cold.json',
+              'hia-cold.generations.json',
               'hia-generation-retention.log',
               'hia-journal-callers.json',
               'hia-json-wire-callers.json',
@@ -3456,7 +3484,9 @@ jobs:
               ('hia-cli-discovery-callers', common_patterns),
               ('hia-cli-discovery-json', common_patterns),
               ('hia-cli-native', common_patterns),
-              ('hia-cold.cold', common_patterns),
+              ('hia-cold.native-cold', common_patterns),
+              ('core-verified-decoder', common_patterns),
+              ('core-verified-cnf', common_patterns),
               ('hia-cost-ledger', common_patterns),
               ('hia-cost-ledger-callers', common_patterns),
               ('hia-default-release', common_patterns),
@@ -3706,12 +3736,13 @@ jobs:
           from tools.build_hia_json_preflight import admit_cold_build
           cold = Path(os.environ['RUNNER_TEMP']) / 'hia-cold.json'
           cold_raw = cold.read_bytes()
-          nested_path = Path(json.loads(cold_raw)['nested_report']).resolve(strict=True)
-          nested_raw = nested_path.read_bytes()
-          compiler = Path(json.loads(nested_raw)['generations'][-1]['produced_image']).resolve(strict=True)
+          from tools.hia_cold_compiler import compiler_from_cold_report
+          index_path = cold.with_suffix('.generations.json')
+          index_raw = index_path.read_bytes()
+          compiler = compiler_from_cold_report(cold)
           compiler_raw = compiler.read_bytes()
           admitted = admit_cold_build(compiler_raw, cold_raw)
-          if cold.read_bytes() != cold_raw or nested_path.read_bytes() != nested_raw or compiler.read_bytes() != compiler_raw:
+          if cold.read_bytes() != cold_raw or index_path.read_bytes() != index_raw or compiler.read_bytes() != compiler_raw:
               raise ValueError('current-cold compiler authority changed')
           env = {k: v for k, v in os.environ.items()
                  if not k.startswith('HEPTA_HIA_') and not k.startswith('PYTHON')}
@@ -3796,6 +3827,7 @@ jobs:
           python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport.ColdNativeTransportSourceTests
           python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport.ColdNativeTransportLibraryPathTests
           python -B tools/run_hia_unittest_gate.py tests.test_hia_cold_native_transport_controls.ColdNativeTransportControlsSourceTests
+          python -B tools/run_hia_unittest_gate.py tests.test_hia_native_cold_ci tests.test_hia_cold_compiler tests.test_hia_native_cold_custody_readers
       - name: Complete fresh-source cold with explicit native parent lifecycle
         id: cold_transport_whole
         if: ${{ !cancelled() && steps.cold_transport_source.outcome == 'success' }}
@@ -3805,33 +3837,19 @@ jobs:
           mkdir -p "$RUNNER_TEMP/hia-cold-native-r3"
           python -B tools/qualify_hia_cold_native_transport.py \
             --scope cold --output "$RUNNER_TEMP/hia-cold-native-r3/fresh"
-      - name: Freeze actual development build binding without promoting cold HOLD
+      - name: Bind completed native cold to the explicit development transport component
         id: cold_transport_binding
         if: ${{ !cancelled() && steps.cold_transport_source.outcome == 'success' }}
         run: |
           set -euo pipefail
           python -B - <<'PY'
-          from hashlib import sha256
           import json, os
           from pathlib import Path
+          from tools.hia_cold_native_transport_cold import read_native_transport_binding
           directory = Path(os.environ['RUNNER_TEMP']) / 'hia-cold-native-r3'
-          cold_dir = directory / 'fresh/cold.cold'
-          manifest_path = cold_dir / 'qualification.evidence/native-transport-build/manifest.json'
-          raw = manifest_path.read_bytes()
-          manifest = json.loads(raw)
-          source = (cold_dir / 'source').resolve(strict=True)
-          if Path(manifest['source_root']).resolve(strict=True) != source:
-              raise ValueError('native transport build is not from this fresh cold export')
-          if manifest['whole_native'] is not False:
-              raise ValueError('native lifecycle build cannot claim whole-native')
-          compiler = Path(manifest['compiler']['path']).resolve(strict=True)
-          compiler_raw = compiler.read_bytes()
-          if {'bytes': len(compiler_raw), 'sha256': sha256(compiler_raw).hexdigest()} != manifest['compiler']['pin']:
-              raise ValueError('actual fresh compiler differs')
-          binding = {'manifest': str(manifest_path.resolve()), 'bytes': len(raw),
-                     'sha256': sha256(raw).hexdigest(), 'source': str(source),
-                     'compiler': str(compiler), 'whole_native': False,
-                     'scope': 'EXPLICIT_DEVELOPMENT_REGRESSION_ONLY'}
+          binding = read_native_transport_binding(
+              directory / 'fresh/native-transport-build/manifest.json',
+              directory / 'fresh/cold.json')
           (directory / 'regression-binding.json').write_text(json.dumps(binding, indent=2, sort_keys=True) + '\n')
           with open(os.environ['GITHUB_ENV'], 'a') as stream:
               for key, value in (('HCT_R3_MANIFEST', binding['manifest']),

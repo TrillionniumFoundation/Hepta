@@ -26,14 +26,15 @@ class ColdCallerSelectionHistoryTests(unittest.TestCase):
         for name, expected in history.EXPECTED.items():
             current = self.source(name)
             original, proof = history.reviewed(name, current)
-            self.assertEqual(history.pin(current), expected['new'], name)
+            self.assertEqual(history.pin(current), history.current_pin(name), name)
             self.assertEqual(history.pin(original), expected['old'], name)
             self.assertEqual(proof['exact_selection_splices'], 2)
             self.assertFalse(proof['whole_native_delivery_qualified'])
             definitions = lambda raw: [(type(node).__name__, node.name)
                 for node in ast.walk(ast.parse(raw))
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
-            self.assertEqual(definitions(original), definitions(current), name)
+            selection, _, _ = history._integrated_predecessor(name, current, ROOT, Path.read_bytes)
+            self.assertEqual(definitions(original), definitions(selection), name)
 
     def test_an_unknown_source_byte_cannot_borrow_the_original_full_file_pin(self):
         for name, expected in history.EXPECTED.items():
@@ -47,7 +48,7 @@ class ColdCallerSelectionHistoryTests(unittest.TestCase):
                 self.assertNotEqual(history.pin(restored), expected['old'])
 
     def test_earlier_and_unrelated_sources_keep_their_original_authorities(self):
-        name = next(iter(history.EXPECTED))
+        name = 'tools/qualify_hia_emission_callers.py'
         original = history.predecessor(name, self.source(name))
         for selected, raw in ((name, original), ('unrelated.py', b'original\n')):
             restored, proof = history.reviewed(selected, raw,
@@ -58,7 +59,7 @@ class ColdCallerSelectionHistoryTests(unittest.TestCase):
             history.reviewed(name, False)
 
     def test_explicit_reader_root_and_captures_are_used_for_the_entire_fixture(self):
-        name = next(iter(history.EXPECTED))
+        name = 'tools/qualify_hia_emission_callers.py'
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             path = root / history.FIXTURE
@@ -76,7 +77,7 @@ class ColdCallerSelectionHistoryTests(unittest.TestCase):
                 history.reviewed(name, self.source(name), root=root, take=take)
 
     def test_fixture_change_after_first_capture_is_refused(self):
-        name = next(iter(history.EXPECTED))
+        name = 'tools/qualify_hia_emission_callers.py'
         calls = []
         def take(path):
             calls.append(path)
@@ -86,7 +87,7 @@ class ColdCallerSelectionHistoryTests(unittest.TestCase):
         self.assertEqual(len(calls), 2)
 
     def test_rebound_fixture_cannot_change_the_fixed_whole_source_pins(self):
-        name = next(iter(history.EXPECTED))
+        name = 'tools/qualify_hia_emission_callers.py'
         value = json.loads(self.fixture())
         value['files'][name]['old']['bytes'] += 1
         changed = (json.dumps(value, indent=2) + '\n').encode()
@@ -95,7 +96,7 @@ class ColdCallerSelectionHistoryTests(unittest.TestCase):
                 history.reviewed(name, self.source(name), take=lambda path: changed)
 
     def test_invalid_offsets_and_splice_bytes_never_recover_a_predecessor(self):
-        name = next(iter(history.EXPECTED))
+        name = 'tools/qualify_hia_emission_callers.py'
         for value in (False, -1, 1 << 30):
             fixture = json.loads(self.fixture())
             fixture['files'][name]['hunks'][0]['new_offset'] = value
@@ -120,7 +121,7 @@ class ColdCallerSelectionHistoryTests(unittest.TestCase):
                      'original_methods_budgets_and_order_unchanged': True}
             current = history.bind_adjustment(prior, raw, proof)
             self.assertEqual(current['current_bytes'], len(raw))
-            self.assertEqual(current['current_sha256'], expected['new']['sha256'])
+            self.assertEqual(current['current_sha256'], history.current_pin(name)['sha256'])
             self.assertEqual(current['original_sha256'], prior['original_sha256'])
             self.assertEqual(current['original_bytes'], prior['original_bytes'])
             self.assertTrue(current['original_methods_budgets_and_order_unchanged'])

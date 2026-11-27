@@ -7,6 +7,7 @@ to the administrator-configured runtime authority, not a model-supplied user ID.
 from __future__ import annotations
 
 import base64
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from hashlib import sha256
 import itertools
@@ -35,6 +36,11 @@ from .hia_worker_report_native import selected_json_equality, selected_json_ineq
 from .hia_proof_contract import (PROOF_SCHEMA, PROVED_MEANING, proof_subject, proof_result,
     assumptions_document, proof_contract_description, SAFE_CORE_METHOD, SAFE_CORE_DOMAIN,
     SAFE_CORE_SERVICE_PROFILE)
+
+
+# Only an active synchronous evaluation window supplies this arithmetic owner.
+# The unselected service and unrelated contexts retain their own policy.
+_EVALUATION_WALL_WINDOW = ContextVar('hia_agent_evaluation_wall_window', default=None)
 
 
 def _now():
@@ -737,6 +743,9 @@ class HIAAgentService:
     def _wall_window(self, context, *, created_ns=None):
         from .hia_agent_store import _native_agent_identity
 
+        evaluation = _EVALUATION_WALL_WINDOW.get()
+        if evaluation is not None and evaluation.matches(self, context, created_ns):
+            return evaluation.observe()
         if created_ns is None:
             created_ns = self.store.context_created_ns(context["ref"]["id"])
         now_ns = time.time_ns()

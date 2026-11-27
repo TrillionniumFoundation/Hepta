@@ -193,6 +193,10 @@ class CallerTerminalAdmissionSourceTests(unittest.TestCase):
                      delivery.MACHINE_RECEIPT_FIXTURE, delivery.COMPONENT_FIXTURE, composition.EVALUATE_FIXTURE,
                      'tests/fixtures/store_caller_worker_helpers_successor.json'):
             cls.seed[name] = (ROOT / name).read_bytes()
+        # These original source-history dependencies belong to every copied root.
+        for name in ('tests/fixtures/hia_installed_distribution_sources.json',
+                     'tests/fixtures/hia_component_authoring_successor_v1.json'):
+            cls.seed[name] = (ROOT / name).read_bytes()
         cls.physical = dict(cls.seed)
         historical_terminal_callers(ROOT, cls.seed, source_records(cls.originals[PROFILE_ORIGINAL], 'store'))
         historical_terminal_pair(ROOT, cls.seed, CURRENT, cls.physical)

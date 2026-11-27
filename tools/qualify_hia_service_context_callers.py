@@ -39,6 +39,68 @@ def _source_pin(raw):
     return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
 
 
+_INTEGRATED_CURRENT = {
+    'tests/test_hia_agent_native_tools.py': {
+        'bytes': 47052, 'sha256': '64462e8735d8be3838396808dc05391e4437b2dba093fcc265468df6abb4cb70'},
+    'tests/test_hia_agent_native_machine_validation.py': {
+        'bytes': 23623, 'sha256': '0c03b958462d2d2b8f7304b52bf419a9832037c3db4e51fa940053176fad0cbb'},
+}
+_INTEGRATED_REVIEWED = {
+    'tests/test_hia_agent_native_tools.py': {
+        'bytes': 46518, 'sha256': 'b98c24327639363d266eb5e263c042e0a20d82a8f2e8cc08ffafb8f34f73f355'},
+    'tests/test_hia_agent_native_machine_validation.py': {
+        'bytes': 22171, 'sha256': 'f8e60f923d5b462c3a98f11cb00b0e5a65fb9bc1db2a17a03d55933eb944aada'},
+}
+_INTEGRATED_HELPER = 'tools/hia_frozen_component_sources.py'
+_INTEGRATED_HELPER_PIN = {
+    'bytes': 15561, 'sha256': '60a30ab07d6c58ef0523531636a3250cc9e75402bffe75a07115012efa5d0774'}
+_INTEGRATED_AUTHORITY = 'tests/fixtures/hia_frozen_component_source_relations.json'
+_INTEGRATED_AUTHORITY_PIN = {
+    'bytes': 18122, 'sha256': 'acd25ffa7c6bea270fcb56cde74a60d7993899cb2e77173b97a814a3bcce14b9'}
+
+
+def _admit_integrated_source(root, capture, name, raw):
+    """Restore two exact complete caller successors as data before old admission."""
+    def pin(value):
+        return {'bytes': len(value), 'sha256': sha256(value).hexdigest()}
+
+    physical, result_history = raw, None
+    if (name == 'tests/test_hia_agent_native_tools.py'
+            and pin(raw) == {'bytes': 47052, 'sha256':
+                '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2'}):
+        source_history_name = 'tools/hia_current_caller_source_history.py'
+        source_history_raw = capture(source_history_name)
+        if pin(source_history_raw) != {'bytes': 3838, 'sha256':
+                '9f773647bacc0a59f8ddff7b45e27f9d5474bb96a7f2368fa7e18a2a98141558'}:
+            raise ValueError('native result caller composition helper differs')
+        from tools import hia_current_caller_source_history as current_history
+        if Path(current_history.__file__).read_bytes() != source_history_raw:
+            raise ValueError('native result caller imported a different composition helper')
+        raw, result_history = current_history.result_predecessor(
+            root, name, raw,
+            take=lambda path: capture(Path(path).relative_to(root).as_posix()))
+    if pin(raw) != _INTEGRATED_CURRENT.get(name):
+        return raw, None
+    helper, authority = capture(_INTEGRATED_HELPER), capture(_INTEGRATED_AUTHORITY)
+    if pin(helper) != _INTEGRATED_HELPER_PIN or pin(authority) != _INTEGRATED_AUTHORITY_PIN:
+        raise ValueError('integrated caller source history authority differs')
+    from tools import hia_frozen_component_sources as history
+    if Path(history.__file__).read_bytes() != helper:
+        raise ValueError('integrated caller imported different source history')
+    restored = history.reviewed_source(
+        root, name, raw,
+        take=lambda path: capture(Path(path).relative_to(root).as_posix()))
+    if pin(restored) != _INTEGRATED_REVIEWED[name]:
+        raise ValueError('integrated caller did not restore its complete reviewed source')
+    return restored, {
+        'path': name, 'physical': pin(physical), 'reviewed_predecessor': pin(restored),
+        **({'native_result_source_history': result_history} if result_history is not None else {}),
+        'helper': {'path': _INTEGRATED_HELPER, **pin(helper)},
+        'authority': {'path': _INTEGRATED_AUTHORITY, **pin(authority)},
+        'complete_source_history_only': True, 'whole_native_delivery_qualified': False,
+    }
+
+
 def admit_original_callers(root):
     """Retain all fifty callers and admit only the fixed diagnostic successor."""
     root, captured = Path(root), {}
@@ -57,9 +119,12 @@ def admit_original_callers(root):
     if (expected.get('schema') != 'hepta.hia.service-context-original-callers.v1'
             or len(expected['ordered_ids']) != 50):
         raise ValueError('complete original context caller source or denominator differs')
-    diagnostics = {}
+    diagnostics, integrated = {}, {}
     for name, digest in expected['source_sha256'].items():
         raw = capture(name)
+        raw, history = _admit_integrated_source(root, capture, name, raw)
+        if history is not None:
+            integrated[name] = history
         if sha256(raw).hexdigest() == digest:
             continue
         if name != _DIAGNOSTICS_CALLER:
@@ -82,6 +147,7 @@ def admit_original_callers(root):
         'original_modules': list(expected['modules']),
         'original_ordered_ids': list(expected['ordered_ids']),
         'reviewed_diagnostic_source_adjustments': diagnostics,
+        **({'reviewed_integrated_source_adjustments': integrated} if integrated else {}),
         'captured_files': {name: _source_pin(raw) for name, raw in captured.items()},
         'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
         'production_source_exceptions': [], 'whole_native': False,

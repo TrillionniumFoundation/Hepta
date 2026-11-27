@@ -150,6 +150,7 @@ class _CapturedAdmission:
         self._root = Path(root)
         self._captured = {}
         self._physical = {}
+        self._result_source_history = {}
         self._consumed = []
         self._accepted = set()
         self._accepted_distribution = set()
@@ -177,11 +178,32 @@ class _CapturedAdmission:
         self._admit_reviewed_components()
         self._admit_store_admin_helpers()
 
+    def _capture_path(self, path):
+        name = Path(path).relative_to(self._root).as_posix()
+        raw = Path(path).read_bytes()
+        if name in self._physical and self._physical[name] != raw:
+            raise ValueError('caller terminal physical source changed between captures: ' + name)
+        self._physical[name] = raw
+        return raw
+
     def _capture(self, name):
         from tests.hia_installed_distribution_history import predecessor
+        from tools import hia_current_caller_source_history as current_history
         if name not in self._captured:
-            self._physical[name] = (self._root / name).read_bytes()
-            self._captured[name] = predecessor(name, self._physical[name])
+            physical = self._capture_path(self._root / name)
+            if (name == current_history.RESULT_PATH
+                    and _pin(physical) == current_history.RESULT_CURRENT):
+                helper = self._capture_path(self._root / 'tools/hia_current_caller_source_history.py')
+                if (_pin(helper) != {'bytes': 3838, 'sha256':
+                        '9f773647bacc0a59f8ddff7b45e27f9d5474bb96a7f2368fa7e18a2a98141558'}
+                        or Path(current_history.__file__).read_bytes() != helper):
+                    raise ValueError('caller terminal current source history helper differs')
+            selected, result_history = current_history.result_predecessor(
+                self._root, name, physical, take=self._capture_path)
+            if result_history is not None:
+                self._result_source_history[name] = result_history
+            self._captured[name] = predecessor(
+                name, selected, root=self._root, take=self._capture_path)
         return self._captured[name]
 
     def _admit_pair_and_evaluation(self):
@@ -444,6 +466,8 @@ class _CapturedAdmission:
                 'ordered_consumed_original_sources': list(self._consumed),
                 'reviewed_test_source_adjustments': dict(self._allowed),
                 'reviewed_diagnostic_source_adjustments': dict(self._diagnostics),
+                **({'native_result_source_admission': dict(self._result_source_history)}
+                   if self._result_source_history else {}),
                 'captured_files': {name: _pin(raw) for name, raw in self._physical.items()},
                 'installed_distribution_predecessors': {name: _pin(raw) for name, raw in self._captured.items()
                                                        if raw != self._physical[name]},

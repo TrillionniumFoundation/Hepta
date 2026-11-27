@@ -12,9 +12,10 @@ import unittest
 from tests import test_hia_native_cold_component as native_controls
 from tools.hia_component_cold_readback import (
     AUTHORITY, CONTRACT, METADATA, native_cold_compiler, read_component_inputs,
-    read_native_cold,
+    read_native_cold, native_cold_inputs,
 )
 from tools.hia_component_input_custody import capture_component_custody
+from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -207,6 +208,65 @@ native_cold_compiler(pathlib.Path(sys.argv[2]),pathlib.Path(sys.argv[3]),read=pa
         result = subprocess.run([sys.executable, '-I', '-B', '-c', code,
             str(ROOT), str(self.root), str(self.cold)], capture_output=True, timeout=15)
         self.assertEqual(result.returncode, 0, result.stderr.decode())
+
+
+    def test_admitted_context_retains_original_report_index_and_all_generations(self):
+        inputs = native_cold_inputs(self.root, self.cold, read=Path.read_bytes)
+        self.assertTrue(inputs.native)
+        self.assertEqual(inputs.report_bytes, self.cold.read_bytes())
+        self.assertEqual(inputs.location_bytes, self.cold.with_suffix('.generations.json').read_bytes())
+        self.assertEqual(inputs.source_head, '1' * 40)
+        self.assertEqual(inputs.sources, self.sources)
+        self.assertEqual(tuple(path for path, _ in inputs.files),
+                         (self.cold, self.cold.with_suffix('.generations.json'), *self.images))
+        self.assertTrue(all(raw == self.compiler for _, raw in inputs.generations))
+        inputs.unchanged()
+        self.images[0].write_bytes(self.compiler + b'changed after complete readback')
+        with self.assertRaises(ValueError):
+            inputs.unchanged()
+
+    def test_optional_development_inputs_have_a_fixed_separate_git_whitelist(self):
+        development = {name: ('# unexecuted fixed development dependency: ' + name).encode()
+                       for name in NATIVE_CUSTODY_INPUTS}
+        for name, raw in development.items():
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(raw)
+        subprocess.run(['git', 'add', '.'], cwd=self.root, check=True, capture_output=True)
+        subprocess.run(['git', '-c', 'user.name=Control', '-c',
+            'user.email=control@example.invalid', 'commit', '-qm', 'fixed development inputs'],
+            cwd=self.root, check=True, capture_output=True)
+        build = deepcopy(self.build)
+        build['development_inputs'] = {name: sha256(raw).hexdigest()
+                                       for name, raw in development.items()}
+        build['component_input_custody'] = capture_component_custody(
+            self.compiler, self.cold.read_bytes(), self.sources,
+            {**self.inputs, **development}, root=self.root)
+        self.assertEqual(self.read_inputs(build), self.inputs)
+        for mutation in ('omitted-map', 'missing-input', 'arbitrary-input', 'changed-digest'):
+            changed = deepcopy(build)
+            if mutation == 'omitted-map':
+                changed.pop('development_inputs')
+            elif mutation == 'missing-input':
+                changed['development_inputs'].pop(NATIVE_CUSTODY_INPUTS[0])
+            elif mutation == 'arbitrary-input':
+                changed['development_inputs']['author.py'] = sha256(self.inputs['author.py']).hexdigest()
+            else:
+                changed['development_inputs'][NATIVE_CUSTODY_INPUTS[0]] = '0' * 64
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                self.read_inputs(changed)
+        build.pop('component_input_custody')
+        build['source_manifest'] = None
+        build['cold_report_sha256'] = None
+        with self.assertRaises(ValueError):
+            self.read_inputs(build, cold=False)
+        legacy = {'schema': 'hepta.hia.selfhost-cold-replay.v1',
+                  'source_manifest': dict(build['component_inputs'])}
+        self.cold.write_bytes(encoded(legacy))
+        build['source_manifest'] = legacy['source_manifest']
+        build['cold_report_sha256'] = sha256(self.cold.read_bytes()).hexdigest()
+        with self.assertRaises(ValueError):
+            self.read_inputs(build)
 
 
 if __name__ == '__main__':
