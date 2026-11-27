@@ -19,6 +19,8 @@ SCHEMA_V6 = "hepta.hia.program.v6"
 SCHEMA_V7 = "hepta.hia.program.v7"
 SCHEMA_V8 = "hepta.hia.program.v8"
 SCHEMA_V9 = "hepta.hia.program.v9"
+KERNEL_FENCE_SCHEMA = "hepta.hia.program.kernel-fence.v1"
+KERNEL_TLB_SCHEMA = "hepta.hia.program.kernel-tlb.v1"
 PROFILE = "closed-ssa-integer-byte-resources-64-v1"
 PROFILE_V2 = "closed-ssa-integer-byte-resources-bulk-64-v2"
 PROFILE_V3 = "closed-ssa-integer-byte-resources-overlap-64-v3"
@@ -28,6 +30,8 @@ PROFILE_V6 = "closed-ssa-integer-byte-resources-range-fill-64-v6"
 PROFILE_V7 = "closed-ssa-integer-recursive-buffer-chain-64-v7"
 PROFILE_V8 = "closed-ssa-parameter-loan-returns-64-v8"
 PROFILE_V9 = "closed-ssa-fixed-width-byte-memory-64-v9"
+KERNEL_FENCE_PROFILE = "closed-ssa-v8-plus-x86-mfence-atomic-effect-experimental"
+KERNEL_TLB_PROFILE = "closed-ssa-v8-plus-x86-invlpg-privilege-effect-experimental"
 
 COMPOSITE_SCHEMA = "hepta.hia.composite.v1"
 COMPOSITE_PROFILE = "nominal-products-enums-cooperative-tasks-over-closed-ssa-v6"
@@ -70,6 +74,13 @@ PRIMITIVE_PROFILES = MappingProxyType({
     SCHEMA_V7: PROFILE_V7, SCHEMA_V8: PROFILE_V8, SCHEMA_V9: PROFILE_V9,
 })
 PRIMITIVE_SCHEMAS = frozenset(PRIMITIVE_PROFILES)
+# Explicit experimental profiles never enter ordinary discovery or its version order.
+KERNEL_PRIMITIVE_PROFILES = MappingProxyType({
+    KERNEL_FENCE_SCHEMA: KERNEL_FENCE_PROFILE,
+    KERNEL_TLB_SCHEMA: KERNEL_TLB_PROFILE,
+})
+KERNEL_PRIMITIVE_SCHEMAS = frozenset(KERNEL_PRIMITIVE_PROFILES)
+ALL_PRIMITIVE_PROFILES = MappingProxyType({**PRIMITIVE_PROFILES, **KERNEL_PRIMITIVE_PROFILES})
 _FEATURE_ORDER = ("bulk_memory", "inplace_memory", "byte_swap", "offset_copy", "range_fill", "recursive_chain", "parameter_loan_returns", "fixed_width_byte_memory")
 PRIMITIVE_FEATURES = MappingProxyType({
     schema: frozenset(_FEATURE_ORDER[:index])
@@ -81,7 +92,7 @@ def profile_for_schema(schema: str) -> str:
     """Return the exact declared grammar profile; unknown schemas raise KeyError."""
     if schema in COMPOSITE_PROFILES:
         return COMPOSITE_PROFILES[schema]
-    return PRIMITIVE_PROFILES[schema]
+    return ALL_PRIMITIVE_PROFILES[schema]
 
 
 def composite_core_schema(schema: str) -> str:
@@ -92,6 +103,8 @@ def composite_core_schema(schema: str) -> str:
 
 def supports_feature(schema: str, feature: str) -> bool:
     """Report primitive grammar support, without making a safety assertion."""
+    if schema in KERNEL_PRIMITIVE_PROFILES:
+        schema = SCHEMA_V8
     return feature in PRIMITIVE_FEATURES.get(schema, ())
 
 
