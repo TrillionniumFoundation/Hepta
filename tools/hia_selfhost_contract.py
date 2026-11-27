@@ -962,6 +962,7 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
     'tools/qualify_hia_release_cold_admit.py',
     'tools/qualify_hia_release_finalize.py',
     'tools/qualify_hia_release_owner.py',
+    'tools/qualify_hia_release_kit_extent.py',
 )
 
 SOURCE_FILES = (

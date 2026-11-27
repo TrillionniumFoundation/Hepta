@@ -8,7 +8,7 @@ import subprocess
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--bootstrap', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
-parser.add_argument('--profile', choices=('bulk', 'cold-bulk'), default='bulk',
+parser.add_argument('--profile', choices=('bulk', 'cold-bulk', 'cold-bulk-word'), default='bulk',
                     help='explicit candidate emitter; original/default parent gates are unchanged')
 args = parser.parse_args()
 from tools.hia_native_seed_test_support import NativeSeeds
@@ -18,7 +18,7 @@ from tools.generate_hia_cold_qualification_driver import policy_source
 from tools.generate_hia_cold_master_archive import source as archive_source
 from tools.generate_hia_cold_qualification_codec import ENTRY as OLD_ENTRY, CODEC as OLD_CODEC, HELPERS as OLD_HELPERS
 from tools.generate_hia_cold_qualification_codec_lz import ENTRY
-from tools.generate_hia_cold_document import bulk_document, document
+from tools.generate_hia_cold_document import bulk_document, bulk_word_document, document
 from tools.qualify_hia_cold_qualification_codec_lz import qualify, chunk
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
@@ -34,8 +34,9 @@ def selected(source, names):
     return '\n\n'.join(functions[name] for name in names)
 
 
-def build(name, source, profile=None, builder=bulk_document):
+def build(name, source, profile=None, builder=None):
     profile = args.profile if profile is None else profile
+    builder = (bulk_word_document if profile == 'cold-bulk-word' else bulk_document) if builder is None else builder
     body = render_assembly(builder(source, name.replace("-", "_"))).encode()
     path = OUT / (name + '.hepta')
     path.write_bytes(body)
@@ -48,7 +49,7 @@ def build(name, source, profile=None, builder=bulk_document):
 
 try:
     build('legacy-public', OLD_ENTRY + '\n' + OLD_CODEC + '\n' + OLD_HELPERS, 'v1', document)
-    production = policy_source()
+    production = policy_source(word=args.profile == 'cold-bulk-word')
     names = ('pack_chunk_rle', 'unpack_chunk_rle', 'pack_lz', 'pack_chunk', 'unpack_chunk',
              'copy_forward', 'chunk_equal', 'get', 'put', 'copyw')
     # All actual cold actors admit exactly 4 MiB. This observer wrapper uses

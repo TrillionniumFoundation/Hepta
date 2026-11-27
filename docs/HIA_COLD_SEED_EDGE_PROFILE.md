@@ -1,4 +1,4 @@
-# Native cold seed profiles with identity-edge elision
+# Native cold seed profiles with identity edges and compact constants
 
 The cold construction graph explicitly selects two separate native profiles:
 `seed_cold_bulk_backend.hepta` and `seed_cold_endian_backend.hepta`. Their
@@ -7,6 +7,14 @@ bulk and endian seeds. The original v1, word, bulk, division/bulk and endian
 sources remain unchanged. The old qualification plans, 60 phases, 479,882
 nodes, 180-second cold limit, 3-second cleanup limit and scheduler capacities
 are unchanged.
+
+The two cold profiles also select the existing 32-bit MOV encoding when an
+immediate value is less than 2**32. Writing a 32-bit general register clears
+its upper 32 bits, so the complete u64 value equals the original 64-bit MOV.
+Both forms preserve flags. Registers eight through fifteen keep the original
+REX.B prefix. Values at least 2**32, including wrapped negative u64 values,
+retain the original 64-bit form. The encoder and its admission checks are
+unchanged; the author rejects an unexpected parent helper shape.
 
 ## The transformation
 
@@ -47,10 +55,11 @@ cold qualification from either their parents or the initial compiler roots.
 `tools/qualify_hia_seed_cold_backend.py` creates reference wire directly,
 without using the authoring CFG or its register assignment. An independent
 tuple-assignment oracle supplies the expected full-u64 output. Each profile
-executes 463 valid cases, covering all maps on zero through four values,
+executes 475 valid cases, covering all maps on zero through four values,
 identity and empty edges, swaps, cycles, fanout, both conditional directions,
 17-step loop backedges, consecutive calls, 64-argument and 2,048-register
-boundaries. Thirteen invalid-wire controls retain the original complete
+boundaries, plus complete u64 observations around 2**31, 2**32, 2**63 and the
+u64 maximum through jumps, calls and both branch directions. Thirteen invalid-wire controls retain the original complete
 refusal observations. Five actual SIGILL cases compare the original bounds
 failure and every byte written before the trap.
 
@@ -70,3 +79,10 @@ Python authors and observers remain development inputs outside the native
 export. Native preparation regenerates the real construction plans and source
 contract, and the seven-stage construction rebuilds and compares the newly
 matched bootstrap driver before the full cold can be admitted.
+
+The compact-immediate evidence is retained under
+`docs/evidence/cold-compact-immediates-20261127-2807/`. The same-input native
+emitter observation reduces the three sampled cold tool images by about six
+percent. Its timings exclude projection and process launch and do not qualify
+the complete cold deadline. `tools/qualify_hia_cold_seed_emitter.py` reproduces
+that bounded observation against an explicit baseline Git commit.

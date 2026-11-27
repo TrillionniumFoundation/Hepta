@@ -26,9 +26,9 @@ def functions(source):
 
 class ColdCodecLoopScopeTests(unittest.TestCase):
     def test_all_four_native_sources_are_reproducible(self):
-        for name, source in [('cold_master_archive', archive.source()),
-                             ('cold_qualification_driver', driver.policy_source())]:
-            self.assertEqual(render_assembly(bulk_document(source, name)).encode(),
+        for name, source, document in [('cold_master_archive', archive.source(), bulk_document),
+                                       ('cold_qualification_driver', driver.policy_source(), driver.document)]:
+            self.assertEqual(render_assembly(document(source, name)).encode(),
                              (ROOT / 'examples/hia_bootstrap' / (name + '.hepta')).read_bytes())
         for division, name in [(False, 'seed_bulk_backend'), (True, 'seed_div_bulk_backend')]:
             self.assertEqual(render_assembly(seed_document(seed.program(division=division), name)).encode(),
