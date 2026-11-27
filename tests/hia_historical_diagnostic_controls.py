@@ -29,7 +29,8 @@ def historical_caller_dependencies(root, sources, expected):
         sources[name] = predecessor(name, raw, root=root)
     from tools.hia_artifact_caller_source_history import predecessor as artifact_predecessor
     for name in ('tests/test_hia_agent_assembly.py',
-                 'tests/test_hia_artifact_publication_native.py'):
+                 'tests/test_hia_artifact_publication_native.py',
+                 'tests/test_hia_artifact_publication_route.py'):
         if name in expected and name in sources:
             sources[name] = artifact_predecessor(root, name, sources[name])
     machine = delivery.MACHINE_RECEIPT_CALLER

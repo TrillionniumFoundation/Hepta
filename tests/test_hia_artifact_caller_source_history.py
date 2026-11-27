@@ -50,7 +50,7 @@ class ArtifactCompleteSourceHistoryTests(unittest.TestCase):
         self.assertEqual([group['selector'] for group in groups],
                          [None, subject.PUBLIC_SELECTOR, subject.STORE_SELECTOR])
         self.assertEqual(set(proof['reviewed_integrated_source_adjustments']),
-                         {history.ASSEMBLY, history.PUBLICATION, history.NATIVE_TOOLS})
+                         {history.ASSEMBLY, history.PUBLICATION, history.NATIVE_TOOLS, history.ROUTE})
         for name, raw in self.files.items():
             self.assertEqual(proof['captured_files'][name], history.pin(raw))
         self.assertFalse(proof['whole_native'])
@@ -107,7 +107,7 @@ class ArtifactCompleteSourceHistoryTests(unittest.TestCase):
             self.assertGreaterEqual(len(reads), 2)
 
     def test_05_current_whole_sources_are_bound_to_requested_root_and_reader(self):
-        for name in (history.ASSEMBLY, history.PUBLICATION, history.NATIVE_TOOLS):
+        for name in (history.ASSEMBLY, history.PUBLICATION, history.NATIVE_TOOLS, history.ROUTE):
             raw = self.files[name]
             target = self.root / name
             target.write_bytes(raw + b'\n')
@@ -223,6 +223,45 @@ class ArtifactCompleteSourceHistoryTests(unittest.TestCase):
             observed.extend(ids)
         self.assertEqual(observed, planned)
         self.assertEqual(len(observed), 134)
+
+    def test_10_route_successor_only_selects_the_verified_compiler_and_keeps_every_assertion(self):
+        raw = self.files[history.ROUTE]
+        prior, proof = history.reviewed(self.root, history.ROUTE, raw)
+        self.assertEqual(history.pin(prior), history.REVIEWED[history.ROUTE])
+        self.assertIs(proof['strict_cold_compiler_selection_only'], True)
+        self.assertEqual(proof['added_ordered_ids'], [])
+        old, new = ast.parse(prior), ast.parse(raw)
+        def methods(tree):
+            return {cls.name + '.' + node.name: node
+                    for cls in tree.body if isinstance(cls, ast.ClassDef)
+                    for node in cls.body if isinstance(node, ast.FunctionDef)}
+        previous, current = methods(old), methods(new)
+        self.assertEqual(set(previous), set(current))
+        target = 'PublicationRouteNativeTests.test_real_selected_API_uses_sealed_code_and_native_filesystem_only'
+        for name in previous:
+            if name != target:
+                self.assertEqual(ast.dump(previous[name]), ast.dump(current[name]), name)
+        def selected_branch(node):
+            matches = [item for item in ast.walk(node) if isinstance(item, ast.If)
+                       and isinstance(item.test, ast.Name) and item.test.id == 'cold_path']
+            self.assertEqual(len(matches), 1)
+            return matches[0]
+        before, after = selected_branch(previous[target]), selected_branch(current[target])
+        expected = ast.parse(
+            "from tools.hia_cold_compiler import compiler_from_cold_report\n"
+            "compiler=compiler_from_cold_report(Path(cold_path))\n"
+            "app=build(root/'build',compiler,Path(cold_path))\n").body
+        self.assertEqual([ast.dump(item) for item in after.body],
+                         [ast.dump(item) for item in expected])
+        before.body, after.body = [], []
+        self.assertEqual(ast.dump(old), ast.dump(new))
+        original, admission = self.admit()
+        for changed in (False, 1, None):
+            invalid = deepcopy(admission)
+            invalid['reviewed_integrated_source_adjustments'][history.ROUTE][
+                'strict_cold_compiler_selection_only'] = changed
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                subject.declared_execution_groups(original, invalid)
 
 
 if __name__ == '__main__':

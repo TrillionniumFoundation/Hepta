@@ -64,8 +64,9 @@ def bind_admission_to_source_capture(proof, source_digests):
 
 
 _HISTORY_HELPER = 'tools/hia_artifact_caller_source_history.py'
-_HISTORY_HELPER_PIN = {'bytes': 10362, 'sha256': 'd2e9e9ee425e8be44023ca169c5d3a887a3bcbb0b7bab28e91b6f4642bc3fe1e'}
+_HISTORY_HELPER_PIN = {"bytes":12141,"sha256":"13faf26a77ad26be57648644d4a8507ad2ba7ec5044db7939e7687a9af6ba8c4"}
 _HISTORY_CURRENT = {
+    'tests/test_hia_artifact_publication_route.py': {"bytes":14742,"sha256":"32026b1a35fd73feb127c5940025bde37312948894b68615d5452317203c7d49"},
     'tests/test_hia_agent_assembly.py': {
         'bytes': 15006, 'sha256': '367ba5cf0280d2a0cca2f42d20387d81982b5b2b45f439d3898fb51905eff339'},
     'tests/test_hia_artifact_publication_native.py': {
@@ -132,6 +133,11 @@ def declared_execution_groups(original, admission):
                 or proof['terminal_reread_identical'] is not True
                 or proof['whole_native_delivery_qualified'] is not False):
             raise ValueError('artifact execution history is not bound to exact captured source')
+        if name == 'tests/test_hia_artifact_publication_route.py':
+            if proof.get('strict_cold_compiler_selection_only') is not True:
+                raise ValueError('artifact route lacks exact cold-selection source history')
+        elif 'strict_cold_compiler_selection_only' in proof:
+            raise ValueError('artifact route history cannot authorize another caller')
         if name == _DIAGNOSTICS_CALLER:
             has_six = proof['physical'] == _HISTORY_NATIVE_SIX
             assertion = proof.get('native_result_assertion_successor')

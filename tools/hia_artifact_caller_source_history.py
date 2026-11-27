@@ -6,6 +6,9 @@ from pathlib import Path
 ASSEMBLY = 'tests/test_hia_agent_assembly.py'
 PUBLICATION = 'tests/test_hia_artifact_publication_native.py'
 NATIVE_TOOLS = 'tests/test_hia_agent_native_tools.py'
+ROUTE = 'tests/test_hia_artifact_publication_route.py'
+ROUTE_FIXTURE = 'tests/fixtures/hia_artifact_route_cold_selection_v1.json'
+ROUTE_FIXTURE_PIN = {"bytes":1667,"sha256":"651610e574f34fbe56bc877a88f478b6c537faac5b5930275fa13a08526bdd0d"}
 ASSEMBLY_FIXTURE = 'tests/fixtures/hia_artifact_assembly_source_successor_v1.json'
 ASSEMBLY_FIXTURE_PIN = {'bytes': 8990, 'sha256': '703d2db853fe87d2ea10c31803a2969245d7c8714622d631cbfe130a1c614f86'}
 PUBLICATION_FIXTURE = 'tests/fixtures/hia_artifact_publication_native_cold_successor_v1.json'
@@ -18,6 +21,7 @@ FROZEN_FIXTURE = 'tests/fixtures/hia_frozen_component_source_relations.json'
 FROZEN_FIXTURE_PIN = {
     'bytes': 18122, 'sha256': 'acd25ffa7c6bea270fcb56cde74a60d7993899cb2e77173b97a814a3bcce14b9'}
 CURRENT = {
+    ROUTE: {"bytes":14742,"sha256":"32026b1a35fd73feb127c5940025bde37312948894b68615d5452317203c7d49"},
     ASSEMBLY: {'bytes': 15006, 'sha256': '367ba5cf0280d2a0cca2f42d20387d81982b5b2b45f439d3898fb51905eff339'},
     PUBLICATION: {'bytes': 19607, 'sha256': 'de92f2dc85c187fb0834de801899801c6cb1c36ab03909dab07554bcf15ee0dc'},
     NATIVE_TOOLS: {'bytes': 47052, 'sha256': '64462e8735d8be3838396808dc05391e4437b2dba093fcc265468df6abb4cb70'},
@@ -30,6 +34,7 @@ NATIVE_SIX_FIXTURE = 'tests/fixtures/hia_native_result_caller_history_v1.json'
 NATIVE_SIX_FIXTURE_PIN = {
     'bytes': 1087, 'sha256': 'dccd8c04824fdaa3ac7cf638fd487622a8ecfd198236cf0108ef8dc2edb10130'}
 REVIEWED = {
+    ROUTE: {"bytes":14759,"sha256":"55b8c074a57a58e66ea561a89f930f0302f877182f9597f67d7db40b1425d765"},
     ASSEMBLY: {'bytes': 11095, 'sha256': '2f429e970da879bb5e4e65f414c415cfe4df6577cfb3d9618a9c8a64d992c7f7'},
     PUBLICATION: {'bytes': 19670, 'sha256': '0e0b139387f69152c54b7d5f4f4533a87bfcd539552badb613c1bef60dc3ed2a'},
     NATIVE_TOOLS: {'bytes': 46518, 'sha256': 'b98c24327639363d266eb5e263c042e0a20d82a8f2e8cc08ffafb8f34f73f355'},
@@ -126,6 +131,23 @@ def reviewed(root, name, raw, *, take=Path.read_bytes):
         replay.append(restored[old_end:])
         if b''.join(replay) != raw:
             raise ValueError('artifact native-tool complete forward replay differs')
+    elif name == ROUTE:
+        authority_name, authority_pin = ROUTE_FIXTURE, ROUTE_FIXTURE_PIN
+        authority = capture(authority_name, authority_pin)
+        value = json.loads(authority, object_pairs_hook=_pairs)
+        if (set(value) != {'schema', 'path', 'predecessor_commit', 'scope',
+                          'original_method_identities_unchanged', 'original_assertions_unchanged',
+                          'original_deadlines_unchanged', 'whole_native_delivery_qualified', 'record'}
+                or value['schema'] != 'hepta.hia.artifact-route-cold-selection.v1'
+                or value['path'] != ROUTE
+                or value['predecessor_commit'] != '1213225f6a554f236dd7d6ed76607e799fd068e5'
+                or value['scope'] != 'STRICT_COLD_COMPILER_SELECTION_ONLY'
+                or value['original_method_identities_unchanged'] is not True
+                or value['original_assertions_unchanged'] is not True
+                or value['original_deadlines_unchanged'] is not True
+                or value['whole_native_delivery_qualified'] is not False):
+            raise ValueError('artifact route cold-selection history scope differs')
+        restored = frozen.history_inverse(raw, value['record'], REVIEWED[name])
     else:
         authority_name, authority_pin = (
             (ASSEMBLY_FIXTURE, ASSEMBLY_FIXTURE_PIN) if name == ASSEMBLY
@@ -173,6 +195,7 @@ def reviewed(root, name, raw, *, take=Path.read_bytes):
         'helper': {'path': FROZEN_HELPER, **FROZEN_HELPER_PIN},
         'authority': {'path': authority_name, **authority_pin},
         'added_ordered_ids': added,
+        **({'strict_cold_compiler_selection_only': True} if name == ROUTE else {}),
         **({'native_result_assertion_successor': assertion_successor}
            if assertion_successor is not None else {}),
         'complete_original_inverse_verified': True,

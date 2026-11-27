@@ -188,8 +188,9 @@ class PublicationRouteNativeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='hia-publication-real-route-') as folder:
             root=Path(folder)
             if cold_path:
-                outer=json.loads(Path(cold_path).read_bytes());inner=json.loads(Path(outer['nested_report']).read_bytes())
-                app=build(root/'build',Path(inner['generations'][-1]['produced_image']),Path(cold_path))
+                from tools.hia_cold_compiler import compiler_from_cold_report
+                compiler=compiler_from_cold_report(Path(cold_path))
+                app=build(root/'build',compiler,Path(cold_path))
             else:
                 # Actual current HIA compilation using B0/B1/B2; this explicit
                 # development receipt does NOT invent a passed cold replay.
