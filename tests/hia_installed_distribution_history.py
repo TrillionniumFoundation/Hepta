@@ -4,6 +4,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = 'tests/fixtures/hia_installed_distribution_sources.json'
 FIXTURE_SHA256 = '6b81c5c6f611e4b75fc3228936a32b1753ca33649706cda37bbae6007f69001d'
 
@@ -15,9 +16,14 @@ def _parse_records(data):
     return json.loads(data)['files']
 
 
-def _records():
-    data = (Path(__file__).resolve().parents[1] / FIXTURE).read_bytes()
-    return _parse_records(data)
+def _records(*, root=None, take=Path.read_bytes):
+    root = ROOT if root is None else Path(root)
+    path = root / FIXTURE
+    data = take(path)
+    records = _parse_records(data)
+    if take(path) != data:
+        raise ValueError('installed-distribution fixture changed at terminal readback')
+    return records
 
 
 def _restore(data, record):
@@ -40,34 +46,61 @@ def _restore(data, record):
     return original
 
 
-def predecessor(name, data, reverse=_restore):
-    """Unwrap only the exact reviewed file. Prior authorities check their own full bytes."""
+def predecessor(name, data, reverse=_restore, *, root=None, take=Path.read_bytes):
+    """Unwrap exact reviewed bytes using only the caller's captured source root."""
     from tests.hia_component_authoring_history import predecessor as component_predecessor
-    data = component_predecessor(name, data)
-    record = _records().get(name)
-    if record is None or sha256(data).hexdigest() != record['current']['sha256']:
-        return data
-    return reverse(data, record)
+    root = ROOT if root is None else Path(root)
+    captured = {}
+
+    def capture(path):
+        raw = take(path)
+        if path in captured and captured[path] != raw:
+            raise ValueError('installed source-history fixture changed between captures')
+        captured[path] = raw
+        return raw
+
+    try:
+        data = component_predecessor(name, data, root=root, take=capture)
+        record = _records(root=root, take=capture).get(name)
+        if record is None or sha256(data).hexdigest() != record['current']['sha256']:
+            return data
+        return reverse(data, record)
+    finally:
+        for path, raw in captured.items():
+            if take(path) != raw:
+                raise ValueError('installed source-history fixture changed at terminal readback')
 
 
-def journal_preparation_source(root, raw, original_pin):
+def journal_preparation_source(root, raw, original_pin, *, take=Path.read_bytes):
     """Verify the earlier journal preparation against its complete source image."""
     from tempfile import TemporaryDirectory
     from tests import hia_journal_installed_preparation as journal
 
-    prior = predecessor(journal.PATH, raw)
-    if prior == raw:
-        return journal.admit_source(root, journal.PATH, raw, original_pin)
-    inputs = {name: (root / name).read_bytes() for name in journal.SOURCE_PATHS}
-    if inputs[journal.PATH] != raw:
-        raise ValueError('the current Journal caller differs from its supplied source')
-    with TemporaryDirectory(prefix='hia-previous-journal-source-') as temporary:
-        stage = Path(temporary)
-        for name, data in inputs.items():
-            target = stage / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(prior if name == journal.PATH else data)
-        proof = journal.admit_source(stage, journal.PATH, prior, original_pin)
-    if any((root / name).read_bytes() != data for name, data in inputs.items()):
-        raise ValueError('the current Journal source inputs changed during admission')
-    return proof
+    root = Path(root)
+    captured = {}
+
+    def capture(path):
+        data = take(path)
+        if path in captured and captured[path] != data:
+            raise ValueError('journal source-history input changed between captures')
+        captured[path] = data
+        return data
+
+    try:
+        prior = predecessor(journal.PATH, raw, root=root, take=capture)
+        if prior == raw:
+            return journal.admit_source(root, journal.PATH, raw, original_pin)
+        inputs = {name: capture(root / name) for name in journal.SOURCE_PATHS}
+        if inputs[journal.PATH] != raw:
+            raise ValueError('the current Journal caller differs from its supplied source')
+        with TemporaryDirectory(prefix='hia-previous-journal-source-') as temporary:
+            stage = Path(temporary)
+            for name, data in inputs.items():
+                target = stage / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(prior if name == journal.PATH else data)
+            return journal.admit_source(stage, journal.PATH, prior, original_pin)
+    finally:
+        for path, data in captured.items():
+            if take(path) != data:
+                raise ValueError('the current Journal source inputs changed during admission')

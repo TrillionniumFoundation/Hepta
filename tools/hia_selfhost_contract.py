@@ -276,6 +276,7 @@ WORKER_REQUEST_SDIST_FILES = (
     'tests/hia_cold_caller_selection_history.py',
     'tests/fixtures/hia_cold_caller_selection_history_v1.json',
     'tests/test_hia_cold_caller_selection_history.py',
+    'tests/test_hia_history_fixture_custody.py',
     'tools/hia_component_input_custody.py',
     'tools/hia_cold_compiler.py',
     'tools/hia_component_cold_readback.py',
