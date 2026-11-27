@@ -233,7 +233,8 @@ def _restore_composition_successor(captured, approved, shared):
                                        {'sha256': previous['new_sha256'], 'bytes': previous['new_bytes']})
     for name in LATER_SHARED_PATHS:
         record = value['shared_dependencies'][name]
-        reverse_exact(source[name], record, shared[name])
+        from tests.hia_component_authoring_history import predecessor as component_predecessor
+        reverse_exact(component_predecessor(name, source[name]), record, shared[name])
         current[name] = record
     current.update(evaluate_current)
     return restored, current, fixture, extensions, evaluate_fixture

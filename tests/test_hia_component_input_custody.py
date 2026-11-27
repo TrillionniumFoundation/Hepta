@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import zlib
 
 from tools.hia_component_input_custody import capture_component_custody, verify_component_custody
 
@@ -53,6 +54,13 @@ class ComponentInputCustodyTests(unittest.TestCase):
         verify_component_custody(custody, self.compiler, self.raw(), self.sources,
                                  self.captured, root=self.root)
 
+    def corrupt_loose_object(self, identity, kind, raw):
+        path = self.root / ".git/objects" / identity[:2] / identity[2:]
+        self.assertTrue(path.is_file())
+        path.chmod(0o600)
+        path.write_bytes(zlib.compress(kind.encode("ascii") + b" "
+                                       + str(len(raw)).encode("ascii") + b"\0" + raw))
+
     def test_exact_real_git_blobs_separate_native_and_authoring_domains(self):
         receipt = self.capture()
         self.verify(receipt)
@@ -83,6 +91,45 @@ class ComponentInputCustodyTests(unittest.TestCase):
         (self.root / name).write_bytes(self.captured[name])
         self.assertEqual(self.git("status", "--porcelain", "--untracked-files=no"), b"")
         with self.assertRaises(ValueError):
+            self.capture()
+
+    def test_corrupt_loose_blob_cannot_borrow_its_original_object_name(self):
+        name = "tools/author.py"
+        identity = self.git("rev-parse", "HEAD:" + name).decode().strip()
+        self.git("update-index", "--assume-unchanged", name)
+        self.captured[name] = b"# altered authoring control\n"
+        (self.root / name).write_bytes(self.captured[name])
+        self.corrupt_loose_object(identity, "blob", self.captured[name])
+        self.assertEqual(self.git("status", "--porcelain", "--untracked-files=no"), b"")
+        # Git cat-file returns the requested name even when its object body
+        # hashes differently; the custody gate must verify that binding itself.
+        self.assertEqual(self.git("cat-file", "blob", identity), self.captured[name])
+        with self.assertRaisesRegex(ValueError, "Git blob identity"):
+            self.capture()
+
+    def test_corrupt_head_commit_body_is_rejected_even_with_unchanged_tree(self):
+        identity = self.git("rev-parse", "HEAD").decode().strip()
+        raw = self.git("cat-file", "commit", identity)
+        self.corrupt_loose_object(identity, "commit", raw + b"changed message\n")
+        self.assertEqual(self.git("status", "--porcelain", "--untracked-files=no"), b"")
+        with self.assertRaises(ValueError):
+            self.capture()
+
+    def test_corrupt_root_tree_body_is_rejected_with_identical_logical_entries(self):
+        identity = self.git("rev-parse", "HEAD^{tree}").decode().strip()
+        raw = self.git("cat-file", "tree", identity)
+        # Leading zeroes leave Git's interpreted mode and logical entries
+        # unchanged, while changing the actual tree object bytes and hash.
+        self.corrupt_loose_object(identity, "tree", b"0" + raw)
+        with self.assertRaises(ValueError):
+            self.capture()
+
+    def test_corrupt_intermediate_tree_cannot_borrow_a_valid_parent_link(self):
+        identity = self.git("rev-parse", "HEAD:tools").decode().strip()
+        raw = self.git("cat-file", "tree", identity)
+        self.corrupt_loose_object(identity, "tree", b"0" + raw)
+        self.assertEqual(self.git("status", "--porcelain", "--untracked-files=no"), b"")
+        with self.assertRaisesRegex(ValueError, "Git tree identity"):
             self.capture()
 
     def test_changed_physical_mode_is_rejected_even_when_git_ignores_modes(self):

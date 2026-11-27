@@ -103,9 +103,8 @@ def build_images(directory):
     captures=[]
     if cold is not None:
         raw,outer,_=support.capture_json(cold);captures.append((Path(cold),raw))
-        nested_path=Path(outer["nested_report"])
-        raw,nested,_=support.capture_json(nested_path);captures.append((nested_path,raw))
-        compiler=Path(nested["generations"][-1]["produced_image"])
+        from tools.hia_cold_compiler import compiler_from_cold_report
+        compiler=compiler_from_cold_report(cold)
     else:
         compiler=Path(dev)
     compiler_raw=compiler.read_bytes()
