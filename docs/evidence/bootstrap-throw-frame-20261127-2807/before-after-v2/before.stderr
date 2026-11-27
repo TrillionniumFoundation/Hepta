@@ -1,0 +1,32 @@
+test_directories_successful_throw_releases_only_mechanical_frame (__main__.GeneratorMechanicalLifetimeTests.test_directories_successful_throw_releases_only_mechanical_frame) ... FAIL
+test_roots_successful_throw_releases_only_mechanical_frame (__main__.GeneratorMechanicalLifetimeTests.test_roots_successful_throw_releases_only_mechanical_frame) ... FAIL
+test_z_failed_ack_retains_the_unconfirmed_owner (__main__.GeneratorMechanicalLifetimeTests.test_z_failed_ack_retains_the_unconfirmed_owner) ... ok
+
+======================================================================
+FAIL: test_directories_successful_throw_releases_only_mechanical_frame (__main__.GeneratorMechanicalLifetimeTests.test_directories_successful_throw_releases_only_mechanical_frame)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/controls-v2/frame-lifetime-control.py", line 84, in test_directories_successful_throw_releases_only_mechanical_frame
+    self.success(native.GENERATOR_DIRECTORIES)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/controls-v2/frame-lifetime-control.py", line 64, in success
+    self.assertIsNone(frames[0](),'completed mechanical frame is retained by the original throw traceback')
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: <hepta.hia_service_bootstrap_native.ServiceBootstrapFrame object at 0x7dc345f1c590> is not None : completed mechanical frame is retained by the original throw traceback
+
+======================================================================
+FAIL: test_roots_successful_throw_releases_only_mechanical_frame (__main__.GeneratorMechanicalLifetimeTests.test_roots_successful_throw_releases_only_mechanical_frame)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/controls-v2/frame-lifetime-control.py", line 82, in test_roots_successful_throw_releases_only_mechanical_frame
+    self.success(native.GENERATOR_ROOTS)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/controls-v2/frame-lifetime-control.py", line 64, in success
+    self.assertIsNone(frames[0](),'completed mechanical frame is retained by the original throw traceback')
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: <hepta.hia_service_bootstrap_native.ServiceBootstrapFrame object at 0x7dc34691b4d0> is not None : completed mechanical frame is retained by the original throw traceback
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.222s
+
+FAILED (failures=2)

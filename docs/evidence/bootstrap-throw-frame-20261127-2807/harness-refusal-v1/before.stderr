@@ -1,0 +1,87 @@
+test_directories_successful_throw_releases_only_mechanical_frame (__main__.GeneratorMechanicalLifetimeTests.test_directories_successful_throw_releases_only_mechanical_frame) ... FAIL
+test_roots_successful_throw_releases_only_mechanical_frame (__main__.GeneratorMechanicalLifetimeTests.test_roots_successful_throw_releases_only_mechanical_frame) ... ERROR
+test_z_failed_ack_retains_the_unconfirmed_owner (__main__.GeneratorMechanicalLifetimeTests.test_z_failed_ack_retains_the_unconfirmed_owner) ... ERROR
+
+======================================================================
+ERROR: test_roots_successful_throw_releases_only_mechanical_frame (__main__.GeneratorMechanicalLifetimeTests.test_roots_successful_throw_releases_only_mechanical_frame)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/controls/frame-lifetime-control.py", line 80, in test_roots_successful_throw_releases_only_mechanical_frame
+    self.success(native.GENERATOR_ROOTS)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/controls/frame-lifetime-control.py", line 49, in success
+    yielded=next(generator)
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 234, in _bootstrap_generator
+    while frame.advance_generator():
+          ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 588, in advance_generator
+    phase = self._owned_segment()
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 521, in _owned_segment
+    observed = self._drive(generator_throw=generator_throw)
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 486, in _drive
+    self._exception_continuation()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 481, in _drive
+    observed = self._effect_once()
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 444, in _effect_once
+    return self.effect(self.receipt.port)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 677, in effect
+    return getattr(self, '_port_' + PORTS[port - 1])()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 1096, in _port_generator_root_value
+    self.result=self.import_ports['generator_root_value'](self.data['root'])
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_agent_service.py", line 4088, in _service_bootstrap_literal_generator_root_value
+    return Path(root).absolute().resolve(strict=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+TypeError: RootValue.resolve() got an unexpected keyword argument 'strict'
+
+======================================================================
+ERROR: test_z_failed_ack_retains_the_unconfirmed_owner (__main__.GeneratorMechanicalLifetimeTests.test_z_failed_ack_retains_the_unconfirmed_owner)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/controls/frame-lifetime-control.py", line 93, in test_z_failed_ack_retains_the_unconfirmed_owner
+    yielded=next(generator)
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 234, in _bootstrap_generator
+    while frame.advance_generator():
+          ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 588, in advance_generator
+    phase = self._owned_segment()
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 521, in _owned_segment
+    observed = self._drive(generator_throw=generator_throw)
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 486, in _drive
+    self._exception_continuation()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 481, in _drive
+    observed = self._effect_once()
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 444, in _effect_once
+    return self.effect(self.receipt.port)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 677, in effect
+    return getattr(self, '_port_' + PORTS[port - 1])()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_service_bootstrap_native.py", line 1096, in _port_generator_root_value
+    self.result=self.import_ports['generator_root_value'](self.data['root'])
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/src/hepta/hia_agent_service.py", line 4088, in _service_bootstrap_literal_generator_root_value
+    return Path(root).absolute().resolve(strict=True)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+TypeError: RootValue.resolve() got an unexpected keyword argument 'strict'
+
+======================================================================
+FAIL: test_directories_successful_throw_releases_only_mechanical_frame (__main__.GeneratorMechanicalLifetimeTests.test_directories_successful_throw_releases_only_mechanical_frame)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/controls/frame-lifetime-control.py", line 82, in test_directories_successful_throw_releases_only_mechanical_frame
+    self.success(native.GENERATOR_DIRECTORIES)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-throw-frame-20261127-2807/controls/frame-lifetime-control.py", line 50, in success
+    self.assertIs(yielded,roots[0]() if mode==native.GENERATOR_ROOTS else True)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not True
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.187s
+
+FAILED (failures=1, errors=2)

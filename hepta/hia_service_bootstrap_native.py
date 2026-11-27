@@ -239,6 +239,10 @@ def _bootstrap_generator(image, mode, iterator, namespace, global_builtins, impo
             yield frame.__dict__.pop('result')
         except _BaseException:
             frame.throw_generator()
+            # The native throw segment has completed and retired. Preserve the
+            # original slots in this Python traceback without retaining its
+            # completed mechanical owner and delivery bookkeeping as well.
+            del frame
             raise
         else:
             # Normal resume still releases in the existing HIA segment before
