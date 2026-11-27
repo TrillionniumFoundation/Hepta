@@ -165,6 +165,29 @@ class EvaluateReferenceWireTests(unittest.TestCase):
                 self.compare(m(f("apply", params, [result_type], ["trap"], [
                     b("entry", params, [operation], ret("out"))])), "apply")
 
+    def test_large_scalar_graph_native_projection_without_hosted_fallback(self):
+        # Keep this deterministic stress gate in the same self-hosted image suite.
+        # These independently verified graphs exercise increasing register/SSA
+        # pressure and packet sizes beyond the small hand-written examples.
+        import random
+        for size in range(1, 101):
+            rng = random.Random(20261123 + size)
+            value = "x"
+            ops = []
+            for step in range(size * 2):
+                immediate = f"k{step}"
+                result = f"z{step}"
+                ops.append(c(immediate, "i32", rng.randint(-50000, 50000)))
+                ops.append(i("int.add.wrap", [value, immediate], [(result, "i32")]))
+                value = result
+            checked = verify_program(m(f("compute", [("x", "i32")], ["i32"], ["trap"], [
+                b("start", [("x", "i32")], ops, ret(value))])))
+            canonical = checked.canonical_bytes
+            expected = program_wire(canonical, "compute")
+            self.assertIsNotNone(expected)
+            with self.subTest(size=size), native_helpers_scope(str(self.bundle), self.bundle_digest),                  patch.object(scalar_wire, "program_wire", side_effect=AssertionError("hosted scalar fallback")):
+                self.assertEqual(scalar_wire.selected_program_wire(canonical, "compute"), expected)
+
     def test_argument_bounce_and_unused_resource_parameter(self):
         params = [(f"arg{n}", "u32") for n in range(5)]
         accept = f("accept", params, [], [], [b("start", params, [], ret())])
