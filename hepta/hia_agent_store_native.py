@@ -131,6 +131,15 @@ _SLOT_MOVE = _write_plan(2, _UPDATES, b'HIAUPB01')
 _LEASE_LOOKUP = _query_plan(8)
 _LEASE_RETAIN = _write_plan(4, _INSERTS, b'HIAINS01')
 _LEASE_RELEASE = _write_plan(3, _UPDATES, b'HIAUPB01')
+# The public ledger's fixed provider arguments identify these ten typed Store
+# effects. Return the same one-pass cursor shape to both database providers.
+_SLOT_CURSOR_PLANS = {
+    _SELECTS[9][0]: _SLOT_LOOKUP, _SELECTS[12][0]: _VERSION_LOOKUP,
+    _SELECTS[10][0]: _SLOT_LEASE_COUNT, _SELECTS[15][0]: _SLOT_GENERATIONS,
+    _SELECTS[7][0]: _LEASE_LOOKUP, _INSERTS[6][0]: _SLOT_CREATE,
+    _INSERTS[7][0]: _VERSION_RETAIN, _INSERTS[3][0]: _LEASE_RETAIN,
+    _UPDATES[1][0]: _SLOT_MOVE, _UPDATES[2][0]: _LEASE_RELEASE,
+}
 _STATEMENTS = {
     **{row[0]: _query_plan(i) for i, row in enumerate(_SELECTS, 1)},
     **{row[0]: _write_plan(i, _INSERTS, b'HIAINS01') for i, row in enumerate(_INSERTS, 1)},
@@ -699,6 +708,11 @@ class NativeStoreConnection:
         self.in_transaction = False
 
     def execute(self, sql, values=()):
+        # Slot providers call their original cursor API. The ten established
+        # requests go straight to the admitted Store plan with the same cursor.
+        plan = _SLOT_CURSOR_PLANS.get(sql) if type(sql) is str else None
+        if plan is not None:
+            return self._typed_operation(plan, values)
         with self.lock:
             return self._execute(sql, values)
 

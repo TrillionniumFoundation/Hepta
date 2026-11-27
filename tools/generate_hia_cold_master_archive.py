@@ -4,6 +4,7 @@ from hashlib import sha256
 from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_cold_document import bulk_document as document
 from tools.hia_cold_byte_loops import accelerate
+from tools.hia_cold_codec_loops import specialize
 from tools.hia_cold_journal_backrefs import HELPERS as BACKREF_HELPERS, REF_MAGIC
 from tools.generate_hia_cold_master_common import helpers,packer,DECODER
 ROOT=Path(__file__).resolve().parents[1]
@@ -557,7 +558,7 @@ def copy_input(s:readbuf,w:mutbuf,a:u64,b:u64,n:u64) -> u64:
 def source():
  text=SOURCE+'\n'+DECODER+'\n'+BACKREF_HELPERS+'\n'+helpers()
  for key,raw in [('REQUEST',b'HIAQARQ1'),('DRIVER_OK',b'HIAQOK01'),('JOURNAL',b'HIAQJL01'),('ARCHIVE',b'HIAQAR01'),('SUCCESS',b'HIAQAS01'),('BACKREF',b'HIAQAZ03'),('AZ01',b'HIAQAZ01'),('AZ02',b'HIAQAZ02')]:text=text.replace('@'+key+'@',str(int.from_bytes(raw,'little')))
- return accelerate(text,bulk=True)
+ return specialize(accelerate(text,bulk=True))
 
 def main():
  for name,text in [('cold_master_archive',source()),('cold_master_archive_packer',packer(b'HIAQAP01'))]:

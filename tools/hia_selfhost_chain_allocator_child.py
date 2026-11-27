@@ -37,6 +37,13 @@ def shared(path, size, initial=b""):
 def main():
     request = json.loads(Path(sys.argv[1]).read_text())
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    # RLIMIT_CORE alone does not suppress Linux piped crash collectors. Keep
+    # intentional allocator traps as real signals without collecting buffers.
+    process_libc = ctypes.CDLL(None, use_errno=True)
+    process_libc.prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
+    process_libc.prctl.restype = ctypes.c_int
+    if process_libc.prctl(4, 0, 0, 0, 0) or process_libc.prctl(3, 0, 0, 0, 0) != 0:
+        raise OSError(ctypes.get_errno(), "disable disposable native child core dumps")
     resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
     resource.setrlimit(resource.RLIMIT_AS, (256 << 20, 256 << 20))
     resource.setrlimit(resource.RLIMIT_STACK, (8 << 20, 8 << 20))

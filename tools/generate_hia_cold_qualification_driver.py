@@ -17,6 +17,7 @@ from tools.generate_hia_native_filter import LINK_SOURCE
 from tools.generate_hia_release_owner import POLICY as RELEASE_HELPERS
 from tools.generate_hia_cold_qualification_codec_lz import CODEC
 from tools.hia_cold_byte_loops import accelerate
+from tools.hia_cold_codec_loops import specialize
 from tools.hia_cold_journal_backrefs import HELPERS as BACKREF_HELPERS
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1036,7 +1037,7 @@ def policy_source():
                     raise ValueError('unexpected get call shape')
                 node.func = ast.copy_location(ast.Name(id='word_load', ctx=ast.Load()), node.func)
             return node
-    return ast.unparse(ast.fix_missing_locations(InlineWordReads().visit(tree)))+'\n'
+    return specialize(ast.unparse(ast.fix_missing_locations(InlineWordReads().visit(tree))), packing=True)
 
 
 def template():

@@ -1200,7 +1200,7 @@ def qualify(output, *, native_transport=False):
         report["qualification_scheduling"]["parent_native_transport"] = "explicit HIA R3 policy with mechanical C effects; real Popen finalizer remains hosted"
         report["trusted_dependencies"].append(
             "explicit CPython 3.14 canonical Popen owner/finalizer, current headers and C compiler for the HIA lifecycle mechanical bridge")
-    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    output.write_text(json.dumps(report, separators=(",", ":"), sort_keys=True) + "\n")
     return report
 
 
@@ -1212,7 +1212,7 @@ def main():
     arguments = parser.parse_args()
     if arguments.phase_request is not None:
         report = qualification_phase(arguments.phase_request, native_transport=arguments.native_transport)
-        arguments.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+        arguments.output.write_text(json.dumps(report, separators=(",", ":"), sort_keys=True) + "\n")
         print(json.dumps({"status": report["status"], "family": report["family"],
                           "compiler_label": report["compiler_label"],
                           "checks_passed": sum(report["checks"].values()), "checks_total": len(report["checks"])}))

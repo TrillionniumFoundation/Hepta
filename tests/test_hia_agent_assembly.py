@@ -36,6 +36,48 @@ def v6(program):
     return result
 
 
+def integer_attribute_cases():
+    """Retain syntax, host digit policy and whole-Core refusal ordering."""
+    template = '''hia-asm.v1 hepta.hia.program.v8 digit_probe
+exports(main)
+fn main() -> (u64) effects() entry(entry)
+block entry()
+  value:u64 = const() {"value":REPLACE}
+  ret(value)
+end
+'''
+    cases = []
+    for digits in (19, 20, 21, 639, 640, 641, 4299, 4300, 4301, 5000, 16000):
+        for sign in ('', '-'):
+            cases.append((f'integer-{digits}-' + ('negative' if sign else 'positive'),
+                          template.replace('REPLACE', sign + '9' * digits)))
+    for label, token in (
+            ('zero', '0'), ('negative-zero', '-0'), ('one', '1'),
+            ('u64-maximum', str((1 << 64) - 1)),
+            ('long-string', json.dumps('9' * 5000)),
+            ('escaped-string', json.dumps('\\"' + '9' * 5000)),
+            ('string-followed-integer', '"' + '9' * 5000 + '","extra":' + '9' * 641),
+            ('two-integers', '9' * 641 + ',"extra":' + '9' * 4301),
+            ('duplicate-key', '9' * 4301 + ',"value":1'),
+            ('nonfinite', 'NaN'), ('trailing-invalid', '9' * 4301 + ',"other":]')):
+        cases.append((label, template.replace('REPLACE', token)))
+    for label, old, new in (
+            ('earlier-core-error-and-integer', 'effects()', 'effects(weird)'),
+            ('earlier-syntax-error-and-integer', 'block entry()', 'block ???'),
+            ('later-syntax-error-and-integer', 'ret(value)', 'not syntax')):
+        cases.append((label, template.replace(old, new).replace('REPLACE', '9' * 4301)))
+    # Each attribute object stays below its own 2048-node bound; their complete
+    # generated Core tree crosses 262144 nodes. The original JSON integer
+    # conversion still precedes Core's whole-document structural check.
+    padding = '[' + ','.join(['0'] * 2040) + ']'
+    operations = '\n'.join(f'  v{index}:u64 = const() {{"value":0,"padding":{padding}}}'
+                           for index in range(130))
+    large = template.replace('  value:u64 = const() {"value":REPLACE}', operations).replace('ret(value)', 'ret(v0)')
+    cases.append(('whole-core-node-bound', large))
+    cases.append(('integer-before-whole-core-node-bound', large.replace('"value":0', '"value":' + '9' * 641, 1)))
+    return cases
+
+
 class HIAAgentAssemblyTests(unittest.TestCase):
     def test_actual_mathematical_wide_sum_and_canonical_rerender(self):
         program = assemble_program(SOURCE)
@@ -43,6 +85,30 @@ class HIAAgentAssemblyTests(unittest.TestCase):
             self.assertEqual(execute_program(program, "total", [a, b])["result"], a + b)
         self.assertEqual(render_assembly(program), SOURCE)
         self.assertEqual(assemble_program(SOURCE.encode()).canonical_bytes, program.canonical_bytes)
+
+    def test_package_syntax_document_still_requires_whole_core_admission(self):
+        from hepta import hia_agent_assembly as assembly
+        data = assembly._parse_assembly_document(SOURCE)
+        data["functions"][0]["blocks"][0]["term"]["values"] = ["unbound"]
+        with patch('hepta.hia_default_native.default_assembly_document', return_value=data) as syntax:
+            with self.assertRaises(HIAAssemblyRejected) as caught:
+                assemble_program(SOURCE)
+            syntax.assert_called_once_with(SOURCE, verify=True)
+        self.assertEqual(caught.exception.phase, 'core_verification')
+        self.assertIsNone(caught.exception.line)
+        self.assertIsInstance(caught.exception.__cause__, HIAProgramRejected)
+
+    def test_package_renderer_keeps_independent_roundtrip_and_profile_errors(self):
+        checked = assemble_program(SOURCE)
+        with patch('hepta.hia_default_native.default_assembly_text', return_value=SOURCE) as owner:
+            self.assertEqual(render_assembly(checked), SOURCE)
+            owner.assert_called_once_with(checked.canonical_bytes)
+        with patch('hepta.hia_default_native.default_assembly_text', return_value=SOURCE.replace('sums', 'changed')):
+            with self.assertRaisesRegex(HIAAssemblyRejected, 'renderer changed canonical Core'):
+                render_assembly(checked)
+        with patch('hepta.hia_default_native.default_assembly_text', side_effect=AssertionError('image entered')):
+            with self.assertRaisesRegex(HIAAssemblyRejected, 'requires explicit primitive'):
+                render_assembly(arithmetic('int.add.checked', 'u8'))
 
     def test_checked_overflow_and_declared_trap_are_not_dropped(self):
         original = verify_program(v6(arithmetic("int.add.checked", "u8")))

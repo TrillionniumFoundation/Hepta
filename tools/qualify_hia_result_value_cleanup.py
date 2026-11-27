@@ -100,6 +100,14 @@ class Native:
         row=dict(op=op,status=word(out,8),pending=word(out,80),known=word(out,88),consumed=word(out,96))
         assert all(row[k]in(0,1)for k in('pending','known','consumed'))
         assert row['known']or not row['consumed']
+        status,known,consumed,pending=(row[k]for k in('status','known','consumed','pending'))
+        assert status in ((0,6,11)if op==31 else(0,1,6,11)),row
+        if status==0:assert (known,consumed,pending)==(1,0 if op==31 else 1,0),row
+        if status==1:assert (known,consumed,pending)==(1,0,0),row
+        if status==6:assert (known,consumed)==(1,0),row
+        if consumed:assert status in(0,11),row
+        if not known:assert op!=31 and(status,consumed,pending)==(11,0,0),row
+        if op==31:assert(known,consumed)==(1,0),row
         assert out[16:80]==bytes(64) and out[104:128]==bytes(24)
         if want is not None:
             actual=tuple(row[k]for k in('status','known','consumed','pending'))

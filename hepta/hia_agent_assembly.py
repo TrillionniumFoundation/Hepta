@@ -289,7 +289,7 @@ def _native_assembly_document(syntax, presenter, source):
         extent = syntax._entry(raw, len(raw), ctypes.addressof(ctypes.c_char.from_buffer(output)), len(output),
                                arena, len(arena))
         if 0 < extent <= len(output):
-            return json.loads(output[:extent])
+            return output[:extent]
         reason, line = struct.unpack_from('<2Q', arena, 256)
     state = ctypes.create_string_buffer(4096)
     struct.pack_into('<Q', state, 104, extent)
@@ -306,11 +306,15 @@ def assemble_program(source: str | bytes) -> VerifiedProgram:
     explicit adapters, and nominal layouts require their existing elaborator.
     """
     from .hia_default_native import default_assembly_document
-    document = default_assembly_document(source)
-    if document is None:
-        document = _parse_assembly_document(source)
     try:
+        document = default_assembly_document(source, verify=True)
+        if isinstance(document, VerifiedProgram):
+            return document
+        if document is None:
+            document = _parse_assembly_document(source)
         return verify_program(document)
+    except HIAAssemblyRejected:
+        raise
     except HIAProgramRejected as exc:
         # Core errors are kept as Core errors. An absent location is honest:
         # assigning a guessed syntax line would misidentify cross-block errors.

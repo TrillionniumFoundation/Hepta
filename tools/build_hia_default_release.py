@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
-from hepta.hia_default_native import (ADMISSION_BUNDLE_RESOURCE, ADMISSION_OWNER, ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE, BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
+from hepta.hia_default_native import (ADMISSION_BUNDLE_RESOURCE, ADMISSION_OWNER, ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE, ASSEMBLY_CANONICAL_RESOURCE, ASSEMBLY_CORE_JSON_RESOURCE, BINDER_RESOURCE, BUNDLE_RESOURCE, CLI_BUNDLE_RESOURCE, CORE_ELF_OWNERS, CORE_PROOF_OWNERS,
                                      CORE_WIRE_OWNER, INTEGER_BUNDLE_RESOURCE, INTEGER_OWNER,
                                      LEDGER_BUNDLE_RESOURCE, LEDGER_OWNER, GRAPH_BUNDLE_RESOURCE, GRAPH_OWNER, OWNED_VM_RESOURCE,
                                      PIN_RESOURCE, PIN_SCHEMA, PROOF_BUNDLE_RESOURCE, SCOPES, SELECTOR,
@@ -175,6 +175,7 @@ def _native_cli_scripts(directory, compiler, cold_report, distribution, *, sourc
         'examples/hia_bootstrap/core_cli/assembly_render.hepta': ('hia-render-assembly', ASSEMBLY_RENDER_RESOURCE),
         'examples/hia_bootstrap/core_cli/assembly_syntax_diagnostics.hepta': ('hia-import-assembly', ASSEMBLY_SYNTAX_RESOURCE),
         'examples/hia_bootstrap/core_cli/assembly_diagnostic_report.hepta': ('hia-import-assembly', ASSEMBLY_DIAGNOSTIC_RESOURCE),
+        'examples/hia_bootstrap/json_canonical.hepta': ('hia-import-assembly', ASSEMBLY_CANONICAL_RESOURCE),
     }
     captured = {}
     def retain(source, image):
@@ -240,6 +241,30 @@ def _wheel_record_images(directory, compiler, sources, cold_bytes):
             raise ValueError('wheel record compiler inputs changed')
         images.append(image_type(compiled, receipt['produced_sha256']))
     return tuple(images)
+
+
+def _assembly_core_json_image(directory, compiler, sources, cold_bytes):
+    """Bind assembly's integer policy to the same actual cold compiler/source."""
+    from tools.build_hia_source_build import _check_compile_receipt
+    from tools.qualify_hia_selfhost import compile_stage
+    from tools.replay_hia_selfhost_cold import cold_compiler_observer
+
+    relative = 'examples/hia_bootstrap/core_json_bytes.hepta'
+    path = ROOT / relative
+    raw, compiler_raw = path.read_bytes(), compiler.read_bytes()
+    if sha256(raw).hexdigest() != sources.get(relative):
+        raise ValueError('assembly Core JSON source differs from its admitted identity')
+    observer = cold_compiler_observer(cold_bytes)
+    directory.mkdir(mode=0o700)
+    image, receipt = compile_stage(directory, 'core_json_bytes', compiler, raw, flat_observer=observer)
+    compiled = image.read_bytes()
+    _check_compile_receipt(receipt, compiler=compiler_raw, source=raw, produced=compiled)
+    receipt_path = directory / 'core_json_bytes.receipt.json'
+    inputs = {path: raw, compiler: compiler_raw, image: compiled,
+              receipt_path: receipt_path.read_bytes()}
+    if any(item.read_bytes() != original for item, original in inputs.items()):
+        raise ValueError('assembly Core JSON compiler inputs or output changed')
+    return compiled, inputs
 
 
 def _wheel_record_row(encoder, name, size, digest=None):
@@ -506,10 +531,16 @@ def build(output, compiler, cold_report=None, *, development=False):
             output / 'native-cli', compiler, cold_report, distribution, sources=sources)
         owner_members.update(cli_scripts)
         owner_inputs.update(cli_inputs)
-        for resource in (ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE):
+        for resource in (ASSEMBLY_RENDER_RESOURCE, ASSEMBLY_SYNTAX_RESOURCE, ASSEMBLY_DIAGNOSTIC_RESOURCE,
+                         ASSEMBLY_CANONICAL_RESOURCE):
             raw = assembly_images[resource]
             owner_members['hepta/' + resource] = raw
             pin += (sha256(raw).hexdigest(),)
+        front_raw, front_inputs = _assembly_core_json_image(
+            output / 'assembly-core-json', compiler, sources, cold_bytes)
+        owner_members['hepta/' + ASSEMBLY_CORE_JSON_RESOURCE] = front_raw
+        owner_inputs.update(front_inputs)
+        pin += (sha256(front_raw).hexdigest(),)
         owner_members[PACKAGE_DIRECTORY + '/cold-report.json'] = cold_bytes
     pin_raw = render_pin_data(pin)
     build_tag = '1hiafullcostdev' if development else '1hiafullcostcold'
