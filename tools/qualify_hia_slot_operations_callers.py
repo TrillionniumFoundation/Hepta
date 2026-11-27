@@ -50,20 +50,14 @@ def main():
     if (args.cold_report is not None and args.development_compiler is not None
             or args.development_manifest is not None and args.development_compiler is None):
         raise ValueError('choose matching cold or both explicit development controller and compiler')
-    from tests.hia_slot_cold_selection_history import reviewed
-    actual_test = (ROOT / ORIGINAL_FILE).read_bytes()
-    original_test, source_history = reviewed(ORIGINAL_FILE, actual_test, root=ROOT)
-    if sha256(original_test).hexdigest() != ORIGINAL_SHA256:
-        raise ValueError('complete original Slot15 test file changed')
+    from tests.hia_slot_cold_selection_history import (
+        EXPECTED as HISTORY_FILES, FIXTURE as HISTORY_FIXTURE,
+        FIXTURE_SHA256 as HISTORY_FIXTURE_SHA256, reviewed)
     from tools.run_hia_unittest_gate import load_declared_suite
     from tools.hia_selfhost_contract import file_digests
     from tools.build_hia_slot_operations import INPUTS, build
     from tools.build_hia_json_preflight import admit_cold_build
     from tools.hia_cold_compiler import compiler_from_cold_report
-    suite, planned = load_declared_suite((ORIGINAL_MODULE,))
-    planned = list(planned)
-    if planned != list(ORIGINAL_IDS):
-        raise ValueError('complete original Slot15 ordered method identities changed')
 
     def pins():
         specific = (*INPUTS, ORIGINAL_FILE, 'tools/qualify_hia_slot_operations_callers.py',
@@ -74,6 +68,23 @@ def main():
         return {**file_digests(), **{name: sha256((ROOT / name).read_bytes()).hexdigest()
                                    for name in specific}}
     before = pins()
+    actual_test = (ROOT / ORIGINAL_FILE).read_bytes()
+    original_test, source_history = reviewed(ORIGINAL_FILE, actual_test, root=ROOT)
+    if sha256(original_test).hexdigest() != ORIGINAL_SHA256:
+        raise ValueError('complete original Slot15 test file changed')
+    version = 'new' if source_history is not None else 'old'
+    if (before[ORIGINAL_FILE] != sha256(actual_test).hexdigest()
+            or before[HISTORY_FIXTURE] != HISTORY_FIXTURE_SHA256
+            or any(before[name] != expected[version]['sha256']
+                   for name, expected in HISTORY_FILES.items())
+            or pins() != before):
+        raise ValueError('Slot15 source-history capture differs from initial source pins')
+    suite, planned = load_declared_suite((ORIGINAL_MODULE,))
+    planned = list(planned)
+    if planned != list(ORIGINAL_IDS):
+        raise ValueError('complete original Slot15 ordered method identities changed')
+    if pins() != before:
+        raise ValueError('complete Slot15 sources changed while loading the original suite')
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     cold_bytes = nested_bytes = nested_path = None
     if args.cold_report is not None:
@@ -165,7 +176,11 @@ def main():
         os.environ.update(original_env)
     elapsed = time.monotonic() - started_at
     after = pins()
-    stable = (before == after and compiler.read_bytes() == compiler_bytes
+    terminal_test = (ROOT / ORIGINAL_FILE).read_bytes()
+    terminal_original, terminal_history = reviewed(ORIGINAL_FILE, terminal_test, root=ROOT)
+    stable = (before == after and terminal_test == actual_test
+              and terminal_original == original_test and terminal_history == source_history
+              and compiler.read_bytes() == compiler_bytes
               and manifest.read_bytes() == manifest_bytes and image_path.read_bytes() == image_bytes)
     if args.cold_report is not None:
         from tools.build_hia_json_preflight import current_sources
