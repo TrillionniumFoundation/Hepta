@@ -355,15 +355,11 @@ def _build_fixture(scope, paths, *, evidence_destination=None):
                 from tools.build_hia_composite_outer import build as build_outer
                 from tools.build_hia_json_preflight import build, current_sources, ROOT as build_root
                 cold = Path(paths[0])
-                cold_bytes = cold.read_bytes()
-                report = json.loads(cold_bytes)
-                nested_path = Path(report['nested_report'])
-                nested_bytes = nested_path.read_bytes()
-                nested = json.loads(nested_bytes)
-                compiler = Path(nested['generations'][-1]['produced_image'])
-                extra_pins = {cold: sha256(cold_bytes).hexdigest(),
-                              nested_path: sha256(nested_bytes).hexdigest(),
-                              compiler: sha256(compiler.read_bytes()).hexdigest()}
+                from tools.hia_cold_compiler import read_cold_build_inputs
+                cold_inputs = read_cold_build_inputs(cold)
+                compiler = cold_inputs.compiler
+                extra_pins = {path: sha256(raw).hexdigest()
+                              for path, raw in cold_inputs.files}
                 # A warm fixture must preserve the complete admitted source
                 # closure as well as its eleven executable images.
                 extra_pins.update({build_root / name: digest

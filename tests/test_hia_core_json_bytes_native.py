@@ -141,9 +141,8 @@ class CoreJSONBytesNativeTests(unittest.TestCase):
         if cold:
             from tools.build_hia_core_json_bytes import build as build_front
             from tools.build_hia_nominal_json import build as build_nominal
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            cls.compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.compiler = compiler_from_cold_report(Path(cold))
             cls.front_manifest = build_front(cls.folder / 'cold-front', cls.compiler, Path(cold))
             cls.nominal_manifest = build_nominal(cls.folder / 'cold-nominal', cls.compiler, Path(cold))
             cls.scope = 'MATCHING_SOURCE_COLD'

@@ -196,9 +196,8 @@ class CliNativeTests(unittest.TestCase):
             cls.addClassCleanup(cls.temporary.cleanup)
         if cold:
             from tools.build_hia_cli_native import build
-            outer = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(outer["nested_report"]).read_bytes())
-            cls.compiler = Path(nested["generations"][-1]["produced_image"])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.compiler = compiler_from_cold_report(Path(cold))
             cls.manifest = build(cls.folder / "qualified", cls.compiler, Path(cold))
             cls.scope = "MATCHING_SOURCE_COLD_BUILD"
         else:

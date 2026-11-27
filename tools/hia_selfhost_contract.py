@@ -228,6 +228,9 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tests/test_hia_cnf_native.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
+    'tools/hia_cold_caller_sources.py',
+    'tests/fixtures/hia_native_cold_caller_relations_20261127.json',
+    'tests/test_hia_native_cold_caller_sources.py',
     'tests/hia_bootstrap_caller_predecessors.py',
     'tests/hia_independent_vm.py',
     'examples/hia_bootstrap/source_named_packet.hepta',

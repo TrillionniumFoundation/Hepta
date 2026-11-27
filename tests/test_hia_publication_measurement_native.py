@@ -170,9 +170,8 @@ class PublicationMeasurementNativeTests(unittest.TestCase):
             {name: sha256(raw).hexdigest() for name, raw in cls.before.items()}, indent=2, sort_keys=True) + '\n')
         from tools.build_hia_publication_measurement import build
         if cold:
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            cls.compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.compiler = compiler_from_cold_report(Path(cold))
             cls.manifest = build(cls.folder / 'candidate', cls.compiler, Path(cold))
         else:
             if development:

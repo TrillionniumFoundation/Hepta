@@ -94,8 +94,8 @@ def main():
     if args.cold_report is not None:
         from tools.build_hia_json_preflight import admit_cold_build
         cold_bytes = args.cold_report.read_bytes()
-        outer = json.loads(cold_bytes)
-        nested = json.loads(Path(outer['nested_report']).read_bytes())
+        from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(args.cold_report); outer = _cold_inputs.report
+        nested = _cold_inputs.location
         compiler = Path(nested['generations'][-1]['produced_image'])
         admit_cold_build(compiler.read_bytes(), cold_bytes)
         scope = 'MATCHING_SOURCE_COLD_D0_D3_' + args.group.upper()

@@ -21,6 +21,10 @@ def reviewed_source(root, name, raw, *, take=Path.read_bytes):
     if relation is None:
         return raw
     actual = sha256(raw).hexdigest()
+    if actual not in (relation['physical_sha256'], relation['reviewed_sha256']):
+        from tools.hia_cold_caller_sources import original_caller_source
+        raw = original_caller_source(root, name, raw, take=take)
+        actual = sha256(raw).hexdigest()
     # f377c5de keeps the v5 owner from importing an unselected store profile.
     # Reverse only its complete reviewed physical file, then retain the frozen
     # predecessor relation and original reviewed bytes below unchanged.
@@ -47,6 +51,19 @@ def reviewed_source(root, name, raw, *, take=Path.read_bytes):
         actual = sha256(raw).hexdigest()
         if actual != '4ee6a95691db4266c71fbb01543c81ed66fdbf382e9a7ff35797c368a8cb8da1':
             raise ValueError('Slot deferred-store source predecessor differs')
+    # 72740bd bound Evaluate's retained oracle to its exact candidate capture.
+    # Reconstruct only this complete reviewed successor before the unchanged
+    # original component relation; production service/callers are never edited.
+    if (name == 'tests/test_hia_evaluation_native.py' and actual ==
+            'ee3a01914f902f92cb5f440acd224926c92322d346e76e14fde081516b51fbe5'):
+        splice = (b"        from tests.hia_evaluation_capture_successor import original_reference\n"
+                  b"        retained = original_reference(retained)\n")
+        if raw.count(splice) != 1:
+            raise ValueError('evaluation capture source predecessor is ambiguous')
+        raw = raw.replace(splice, b'', 1)
+        actual = sha256(raw).hexdigest()
+        if actual != '732379cfe3bcb3d41688669d83d6b610ca63e4954d56b9c2398b5e0f5291fe6b':
+            raise ValueError('evaluation capture whole source predecessor differs')
     if actual == relation['reviewed_sha256']:
         return raw
     if actual != relation['physical_sha256']:

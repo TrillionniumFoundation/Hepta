@@ -204,8 +204,8 @@ class ServiceVerificationNativeTests(unittest.TestCase):
             cls.root=Path(evidence).absolute();cls.root.mkdir(mode=0o700,parents=True,exist_ok=False)
         cls.cold=cold;cls.sources=current_sources()
         if cold is not None:
-            outer=json.loads(Path(cold).read_bytes());nested=json.loads(Path(outer['nested_report']).read_bytes())
-            cls.compiler=Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.compiler=compiler_from_cold_report(Path(cold))
         else:cls.compiler=Path(development)
         cls.compiler_raw=cls.compiler.read_bytes()
         cls.manifest=build(cls.root/'verification',cls.compiler,cold,development=cold is None)

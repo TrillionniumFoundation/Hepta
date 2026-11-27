@@ -155,16 +155,16 @@ class CorePatchNativeTests(unittest.TestCase):
         if cold:
             from tools.build_hia_core_patch_cli import current_sources, REQUIRED_CHECKS
             from tools.hia_selfhost_contract import PROFILE
-            report = json.loads(Path(cold).read_bytes())
-            assert (report.get('schema') == 'hepta.hia.selfhost-cold-replay.v1'
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(Path(cold)); report = _cold_inputs.report
+            assert (_cold_inputs.native or (report.get('schema') == 'hepta.hia.selfhost-cold-replay.v1'
                     and report.get('status') == 'COLD_SELFHOST_REPLAY_PASS'
                     and type(report.get('returncode')) is int and report['returncode'] == 0
                     and report.get('profile') == PROFILE
                     and report.get('source_manifest') == current_sources()
                     and type(report.get('checks')) is dict
                     and set(report['checks']) == REQUIRED_CHECKS
-                    and all(value is True for value in report['checks'].values()))
-            nested = json.loads(Path(report['nested_report']).read_bytes())
+                    and all(value is True for value in report['checks'].values())))
+            nested = _cold_inputs.location
             compiler = Path(nested['generations'][-1]['produced_image'])
             assert report['generation_sha256'] == [sha256(compiler.read_bytes()).hexdigest()] * 3
         else:

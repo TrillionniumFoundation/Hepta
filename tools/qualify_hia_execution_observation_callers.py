@@ -53,10 +53,9 @@ def main():
             from tools.build_hia_native_continuation import build
         else:
             from tools.build_hia_execution_observation import build
-        cold=json.loads(args.cold_report.read_bytes())
-        nested=json.loads(Path(cold['nested_report']).read_bytes())
+        from tools.hia_cold_compiler import compiler_from_cold_report
         kwargs={'in_process':args.in_process} if args.native_continuation else {}
-        manifest=build(args.evidence/'qualified',Path(nested['generations'][-1]['produced_image']),args.cold_report,**kwargs)
+        manifest=build(args.evidence/'qualified',compiler_from_cold_report(args.cold_report),args.cold_report,**kwargs)
         scope='MATCHING_SOURCE_COLD_ORIGINAL_RUNTIME_CALLERS'
     else:
         manifest=args.development_manifest.resolve(strict=True)

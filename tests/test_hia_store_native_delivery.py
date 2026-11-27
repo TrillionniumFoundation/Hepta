@@ -186,10 +186,13 @@ class StoreNativeDeliveryNativeTests(unittest.TestCase):
         if cold is None:
             compiler = Path(development)
         else:
-            outer = json.loads(cls.cold_raw)
-            cls.nested = Path(outer['nested_report'])
-            cls.nested_raw = cls.nested.read_bytes()
-            compiler = Path(json.loads(cls.nested_raw)['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cls.cold_inputs = read_cold_build_inputs(cold)
+            if cls.cold_raw != cls.cold_inputs.report_bytes:
+                raise ValueError('Store cold report changed during admission')
+            cls.nested = cls.cold_inputs.location_path
+            cls.nested_raw = cls.cold_inputs.location_bytes
+            compiler = cls.cold_inputs.compiler
         cls.compiler, cls.compiler_raw = compiler, compiler.read_bytes()
         cls.before, cls.manifests = source_pins(), {}
         for owner in OWNERS:
@@ -241,7 +244,8 @@ class StoreNativeDeliveryNativeTests(unittest.TestCase):
                   and all(sha256(Path(path).read_bytes()).hexdigest() == digest
                           for path, digest in cls.built.items())
                   and (cls.cold is None or (Path(cls.cold).read_bytes() == cls.cold_raw
-                                           and cls.nested.read_bytes() == cls.nested_raw)))
+                                           and cls.nested.read_bytes() == cls.nested_raw
+                                      and all(path.read_bytes() == raw for path, raw in cls.cold_inputs.files))))
         record = {'schema': 'hepta.hia.store-native-delivery-custody.v1',
                   'scope': 'DEVELOPMENT_COMPONENT' if cls.cold is None else 'MATCHING_SOURCE_COLD_COMPONENT',
                   'matching_cold_report': cls.cold,

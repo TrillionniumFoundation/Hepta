@@ -91,14 +91,24 @@ def admit_original_scope(root, scope_name):
         raise ValueError('caller scope bytes differ')
     scope = json.loads(frozen)['scopes'][scope_name]
     from tests.hia_bootstrap_caller_predecessors import bootstrap_caller_predecessor
+    from tools import hia_cold_caller_sources as cold_history
+    relation_raw = capture(cold_history.FIXTURE)
+    relation_reader = capture(cold_history.SOURCE)
+    if Path(cold_history.__file__).read_bytes() != relation_reader:
+        raise ValueError('native cold caller relation reader differs from captured source')
+    cold_relations = cold_history.read_relations(relation_raw)
+    cold_adjustments = {}
 
     adjustments = {}
     journal_adjustments = {}
     predecessors = {}
     for name, expected in scope['files'].items():
         physical = capture(name)
-        raw = bootstrap_caller_predecessor(root, name, physical, expected, capture)
-        if raw != physical:
+        cold_predecessor = cold_history.restore_caller_source(name, physical, cold_relations)
+        if cold_predecessor != physical:
+            cold_adjustments[name] = {'physical': _source_pin(physical), 'predecessor': _source_pin(cold_predecessor)}
+        raw = bootstrap_caller_predecessor(root, name, cold_predecessor, expected, capture)
+        if raw != cold_predecessor:
             predecessors[name] = {'physical': _source_pin(physical), 'predecessor': _source_pin(raw)}
         if _source_pin(raw) == expected:
             continue
@@ -119,8 +129,8 @@ def admit_original_scope(root, scope_name):
             if raw == physical:
                 detail = preparation.admit_source(root, name, raw, expected)
             else:
-                from tests.hia_installed_distribution_history import journal_preparation_source
-                detail = journal_preparation_source(root, physical, expected)
+                detail = cold_history.journal_preparation_from_predecessor(
+                    root, physical, cold_predecessor, expected)
 
             actual = {item: _source_pin(captured[item]) for item in
                       (_JOURNAL_CALLER, _JOURNAL_HELPER, _JOURNAL_FIXTURE, _JOURNAL_ARCHIVE)}
@@ -162,6 +172,8 @@ def admit_original_scope(root, scope_name):
         'production_source_exceptions': [],
         'whole_native': False,
     }
+    if cold_adjustments:
+        proof['reviewed_native_cold_caller_adjustments'] = cold_adjustments
     if predecessors:
         proof['reviewed_scope_predecessors'] = predecessors
     if journal_adjustments:
@@ -203,8 +215,8 @@ def main():
     bind_scope_admission_to_source_capture(source_admission,before)
     args.evidence.mkdir(mode=0o700,parents=True,exist_ok=False)
     if args.cold_report is not None:
-        outer=json.loads(args.cold_report.read_bytes());nested=json.loads(Path(outer['nested_report']).read_bytes())
-        compiler=Path(nested['generations'][-1]['produced_image'])
+        from tools.hia_cold_compiler import compiler_from_cold_report
+        compiler=compiler_from_cold_report(args.cold_report)
         manifest=build(args.evidence/'bootstrap',compiler,args.cold_report)
         mode='MATCHING_SOURCE_COLD_COMPLETE_CALLERS'
     else:

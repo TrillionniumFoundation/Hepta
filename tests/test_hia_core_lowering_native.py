@@ -220,9 +220,8 @@ class CoreLoweringNativeTests(unittest.TestCase):
             cls.folder = Path(temporary.name)
         if cold:
             from tools.build_hia_core_lowering import build
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            cls.manifest = build(cls.folder / 'qualified', Path(nested['generations'][-1]['produced_image']), Path(cold))
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.manifest = build(cls.folder / 'qualified', compiler_from_cold_report(Path(cold)), Path(cold))
             cls.scope = 'MATCHING_SOURCE_COLD_BUILD'
         elif development:
             cls.manifest = Path(development).resolve(strict=True)

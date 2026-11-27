@@ -327,9 +327,8 @@ class ReleaseInstallerKernelTests(unittest.TestCase):
         cold_path = os.environ.get('HEPTA_HIA_RELEASE_INSTALL_COLD_REPORT')
         if cold_path:
             from tools.build_hia_release_install import build
-            outer = json.loads(Path(cold_path).read_bytes())
-            inner = json.loads(Path(outer['nested_report']).read_bytes())
-            cls.app = build(cls.folder/'build', Path(inner['generations'][-1]['produced_image']), Path(cold_path))
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.app = build(cls.folder/'build', compiler_from_cold_report(Path(cold_path)), Path(cold_path))
         else:
             # Real independent VM execution precedes B0. This is development
             # evidence, never a replacement for a completed matching cold run.

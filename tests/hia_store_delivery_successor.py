@@ -131,7 +131,13 @@ def retained_bootstrap_service(raw):
     records = [json.loads(captures[COMPOSITION_SUCCESSOR])['files'][SERVICE_PATH],
                json.loads(captures[RETAINED_READ])['patch'],
                checked['files'][SERVICE_PATH], *checked['service_followups']]
-    restored = raw
+    from tools import hia_cold_caller_sources as cold_history
+    for name in (cold_history.FIXTURE, cold_history.SOURCE):
+        captures[ROOT / name] = (ROOT / name).read_bytes()
+    if captures[ROOT / cold_history.SOURCE] != Path(cold_history.__file__).read_bytes():
+        raise ValueError('Bootstrap service predecessor reader differs')
+    relations = cold_history.read_relations(captures[ROOT / cold_history.FIXTURE])
+    restored = cold_history.restore_caller_source(SERVICE_PATH, raw, relations)
     for record in reversed(records):
         restored = reverse_exact(restored, record, {
             'bytes': record['old_bytes'], 'sha256': record['old_sha256']})

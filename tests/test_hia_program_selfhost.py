@@ -151,9 +151,8 @@ class SelfhostBuildNativeTests(unittest.TestCase):
                              "or explicit HEPTA_HIA_SELFHOST_BUILD_DEVELOPMENT_COMPILER")
         cls.cold_report = Path(cold) if cold else None
         if cold:
-            outer = json.loads(cls.cold_report.read_bytes())
-            inner = json.loads(Path(outer["nested_report"]).read_bytes())
-            cls.compiler = Path(inner["generations"][-1]["produced_image"])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.compiler = compiler_from_cold_report(cls.cold_report)
             from tools.build_hia_core_json_cli import build
             cls.executable = build(cls.folder / "qualified", cls.compiler,
                                    cls.cold_report, output_profile="elf")

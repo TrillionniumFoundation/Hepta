@@ -255,9 +255,8 @@ class CompositeTypesNativeTests(unittest.TestCase):
             cls.fixture_scope = 'DEVELOPMENT_ONLY'
         elif cold:
             from tools.build_hia_json_preflight import build
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
             cls.manifest = build(cls.folder / 'qualified', compiler, Path(cold), candidate='composite-types')
             cls.fixture_scope = 'MATCHING_SOURCE_COLD_BUILD'
         else:

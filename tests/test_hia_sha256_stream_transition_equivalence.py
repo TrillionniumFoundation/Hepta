@@ -61,6 +61,11 @@ def recheck_cold_binding(binding):
     if binding is None:
         return
     from tools.build_hia_json_preflight import current_sources
+    if 'native_inputs' in binding:
+        binding['native_inputs'].unchanged()
+        custody=binding['native_inputs'].capture_custody(binding['captured'],root=ROOT)
+        if custody!=binding['component_custody']:
+            raise ValueError('stream component authoring custody changed')
     if (binding['report_path'].read_bytes() != binding['report_bytes']
             or binding['nested_path'].read_bytes() != binding['nested_bytes']
             or binding['compiler_path'].read_bytes() != binding['compiler_bytes']
@@ -73,6 +78,20 @@ def bind_cold_compiler(report_path, captured):
     report_path = Path(report_path)
     report_bytes = report_path.read_bytes()
     report = json.loads(report_bytes)
+    if report.get('schema') == 'hepta.hia.selfhost-cold-replay.v2':
+        from tools.hia_cold_compiler import read_cold_build_inputs
+        inputs = read_cold_build_inputs(report_path)
+        if inputs.report_bytes != report_bytes:
+            raise ValueError('stream cold report changed during admission')
+        held = {name: captured[name] for name in COLD_INPUTS}
+        custody = inputs.capture_custody(held,root=ROOT)
+        binding = {'report_path':inputs.report_path,'report_bytes':inputs.report_bytes,
+                   'nested_path':inputs.location_path,'nested_bytes':inputs.location_bytes,
+                   'compiler_path':inputs.compiler,'compiler_bytes':inputs.compiler_bytes,
+                   'sources':inputs.sources,'native_inputs':inputs,'captured':held,
+                   'component_custody':custody}
+        recheck_cold_binding(binding)
+        return binding
     nested_path = Path(report['nested_report'])
     nested_bytes = nested_path.read_bytes()
     nested = json.loads(nested_bytes)

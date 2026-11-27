@@ -616,8 +616,8 @@ class AgentInstalledResourceTests(unittest.TestCase):
         from tools.hia_selfhost_contract import PROFILE
         cls.publication=cls.native/'publication';cold_path=os.environ.get('HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT')
         if cold_path:
-            cold=json.loads(Path(cold_path).read_bytes());nested=json.loads(Path(cold['nested_report']).read_bytes())
-            qualified=Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            qualified=compiler_from_cold_report(Path(cold_path))
             assert qualified.read_bytes()==second.read_bytes()
             build(cls.publication,qualified,Path(cold_path))
         else:
@@ -644,9 +644,8 @@ class AgentInstalledResourceTests(unittest.TestCase):
         nominal_cold=os.environ.get('HEPTA_HIA_NOMINAL_JSON_COLD_REPORT')
         if nominal_cold:
             from tools.build_hia_nominal_json import build as build_nominal
-            outer=json.loads(Path(nominal_cold).read_bytes())
-            nested=json.loads(Path(outer['nested_report']).read_bytes())
-            qualified=Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            qualified=compiler_from_cold_report(Path(nominal_cold))
             assert qualified.read_bytes()==second.read_bytes()
             cls.nominal_manifest=build_nominal(cls.native/'nominal-cold',qualified,Path(nominal_cold))
         else:
@@ -659,9 +658,8 @@ class AgentInstalledResourceTests(unittest.TestCase):
         source_build_cold=os.environ.get('HEPTA_HIA_SOURCE_BUILD_COLD_REPORT')
         if source_build_cold:
             from tools.build_hia_source_build import build as build_sources
-            outer=json.loads(Path(source_build_cold).read_bytes())
-            nested=json.loads(Path(outer['nested_report']).read_bytes())
-            qualified=Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            qualified=compiler_from_cold_report(Path(source_build_cold))
             assert qualified.read_bytes()==second.read_bytes()
             cls.source_builder=build_sources(cls.source_build,qualified,Path(source_build_cold))
         else:

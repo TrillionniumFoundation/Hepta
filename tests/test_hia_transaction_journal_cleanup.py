@@ -64,15 +64,24 @@ class TransactionJournalCleanupNativeTests(unittest.TestCase):
         cls.cold_raw = None if cold is None else cls.cold_path.read_bytes()
         if cold is not None:
             from tools.build_hia_json_preflight import admit_cold_build
-            outer = json.loads(cls.cold_raw)
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
-            cls.compiler = Path(nested['generations'][-1]['produced_image']).resolve(strict=True)
-            cls.compiler_raw = cls.compiler.read_bytes()
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cls.cold_inputs = read_cold_build_inputs(cls.cold_path)
+            if cls.cold_inputs.report_bytes != cls.cold_raw:
+                raise ValueError('journal/TX cold report changed during admission')
+            cls.compiler = cls.cold_inputs.compiler
+            cls.compiler_raw = cls.cold_inputs.compiler_bytes
             admitted = admit_cold_build(cls.compiler_raw, cls.cold_raw)
-            for name in (*TEST_FILES, 'hepta/hia_agent_journal_native.py',
-                         'hepta/hia_store_transaction_native.py', 'hepta/hia_native_delivery.py'):
-                if admitted.get(name) != cls.before[name]:
-                    raise ValueError('new journal/TX controls are not part of this current cold: ' + name)
+            names = (*TEST_FILES, 'hepta/hia_agent_journal_native.py',
+                     'hepta/hia_store_transaction_native.py', 'hepta/hia_native_delivery.py')
+            if cls.cold_inputs.native:
+                captured = {name: (ROOT / name).read_bytes() for name in names}
+                if any(sha256(raw).hexdigest() != cls.before[name] for name, raw in captured.items()):
+                    raise ValueError('journal/TX controls changed during authoring custody')
+                cls.cold_inputs.capture_custody(captured, root=ROOT)
+            else:
+                for name in names:
+                    if admitted.get(name) != cls.before[name]:
+                        raise ValueError('new journal/TX controls are not part of this current cold: ' + name)
             cls.scope = 'MATCHING_SOURCE_COLD_COMPONENT'
         else:
             cls.compiler = Path(development).resolve(strict=True)
@@ -115,7 +124,9 @@ class TransactionJournalCleanupNativeTests(unittest.TestCase):
     @classmethod
     def _finish_custody(cls):
         after = source_pins()
-        cold_stable = cls.cold_path is None or cls.cold_path.read_bytes() == cls.cold_raw
+        cold_stable = cls.cold_path is None or (
+            cls.cold_path.read_bytes() == cls.cold_raw
+            and all(path.read_bytes() == raw for path, raw in cls.cold_inputs.files))
         stable = (after == cls.before and cls.compiler.read_bytes() == cls.compiler_raw
                   and cold_stable and all(sha256(Path(path).read_bytes()).hexdigest() == digest
                                           for path, digest in cls.built.items()))

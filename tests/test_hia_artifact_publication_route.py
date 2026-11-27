@@ -188,7 +188,7 @@ class PublicationRouteNativeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='hia-publication-real-route-') as folder:
             root=Path(folder)
             if cold_path:
-                outer=json.loads(Path(cold_path).read_bytes());inner=json.loads(Path(outer['nested_report']).read_bytes())
+                from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(Path(cold_path)); outer = _cold_inputs.report;inner = _cold_inputs.location
                 app=build(root/'build',Path(inner['generations'][-1]['produced_image']),Path(cold_path))
             else:
                 # Actual current HIA compilation using B0/B1/B2; this explicit

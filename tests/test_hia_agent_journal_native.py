@@ -117,9 +117,8 @@ class JournalNativeTests(unittest.TestCase):
         cls.folder = Path(cls.temp.name)
         if cold:
             from tools.build_hia_json_preflight import build
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
             cls.manifest = build(cls.folder / 'build', compiler, Path(cold), candidate='agent-journal')
             cls.scope = 'MATCHING_SOURCE_COLD_BUILD'
         elif development:
@@ -508,8 +507,8 @@ class JournalNativeTests(unittest.TestCase):
         from tools.qualify_hia_selfhost import compile_stage
         cold = os.environ.get(COLD)
         if cold:
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(Path(cold)); report = _cold_inputs.report
+            nested = _cold_inputs.location
             compiler = Path(nested['generations'][-1]['produced_image'])
         else:
             # Development composition uses the explicit build's retained raw

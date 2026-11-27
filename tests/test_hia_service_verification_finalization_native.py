@@ -42,11 +42,14 @@ class ServiceVerificationChildFinalizeNativeTests(unittest.TestCase):
         if cls.cold is None:
             cls.compiler=Path(dev)
         else:
-            outer=json.loads(cls.cold_raw)
-            nested_raw=Path(outer['nested_report']).read_bytes()
-            cls.compiler=Path(json.loads(nested_raw)['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cls.cold_inputs=read_cold_build_inputs(cls.cold)
+            if cls.cold_raw!=cls.cold_inputs.report_bytes:
+                raise ValueError('FINALIZE cold report changed during admission')
+            cls.compiler=cls.cold_inputs.compiler
         cls.compiler_raw=cls.compiler.read_bytes()
         cls.captured={}
+        if cls.cold is not None:cls.captured.update(cls.cold_inputs.files)
         manifests={}
         for name,builder in (('verification',build),('store',store_build),('context',context_build)):
             path=builder(cls.root/name,cls.compiler,cold,development=cold is None)

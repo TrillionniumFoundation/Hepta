@@ -68,13 +68,12 @@ def main():
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     cold_bytes = nested_bytes = nested_path = None
     if args.cold_report is not None:
-        cold_bytes = args.cold_report.read_bytes()
-        outer = json.loads(cold_bytes)
-        nested_path = Path(outer['nested_report']).resolve(strict=True)
-        nested_bytes = nested_path.read_bytes()
-        nested = json.loads(nested_bytes)
-        compiler = Path(nested['generations'][-1]['produced_image']).resolve(strict=True)
-        compiler_bytes = compiler.read_bytes()
+        from tools.hia_cold_compiler import read_cold_build_inputs
+        cold_inputs = read_cold_build_inputs(args.cold_report)
+        cold_bytes = cold_inputs.report_bytes
+        nested_path, nested_bytes = cold_inputs.location_path, cold_inputs.location_bytes
+        compiler = cold_inputs.compiler
+        compiler_bytes = cold_inputs.compiler_bytes
         admitted = admit_cold_build(compiler_bytes, cold_bytes)
         manifest = build(args.evidence / 'controller', compiler, args.cold_report)
         scope = 'MATCHING_SOURCE_COLD_COMPLETE_ORIGINAL_SLOT15'
@@ -166,6 +165,7 @@ def main():
         from tools.build_hia_json_preflight import current_sources
         stable = (stable and args.cold_report.read_bytes() == cold_bytes
                   and nested_path.read_bytes() == nested_bytes
+                  and all(path.read_bytes() == raw for path, raw in cold_inputs.files)
                   and admit_cold_build(compiler_bytes, cold_bytes) == admitted
                   and current_sources() == admitted)
     anomalies = {name: getattr(result, name)
