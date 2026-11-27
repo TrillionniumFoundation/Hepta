@@ -34,9 +34,13 @@ class EvaluationWindowHistoryTests(unittest.TestCase):
     def setUpClass(cls):
         cls.fixture = (ROOT / window.FIXTURE).read_bytes()
         cls.relation = json.loads(cls.fixture)
+        from tools import hia_evaluation_cold_source_history as cold
+        physical = {name: (ROOT / name).read_bytes() for name in window.ORIGINAL}
+        prior_view, cold_history = cold.prepare(ROOT, physical)
+        cold.verify_unchanged(cold_history)
         cls.old, cls.new = {}, {}
         for name, expected in window.ORIGINAL.items():
-            raw = (ROOT / name).read_bytes()
+            raw = prior_view[name]
             if window.pin(raw) == window.CURRENT[name]:
                 raw = window._inverse(raw, cls.relation["files"][name], expected)
             if window.pin(raw) != expected:
