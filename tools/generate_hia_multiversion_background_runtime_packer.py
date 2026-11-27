@@ -13,7 +13,7 @@ OUTER_HOLES={'provider':131,'effects':320,'handles':330,'payload':340}
 OUTER_RELOCATIONS=((508,'malloc'),(519,'free'))
 IMPORTS=base.IMPORTS
 ROLES=('provider','payload')+base.ROLES
-MAGIC=int.from_bytes(b'HIAMVBK1','little')
+MAGIC=int.from_bytes(b'HIAMVBK2','little')
 EXPORT_SIZE=len(OUTER)
 def bridges():
     raw=bytearray(OUTER);raw.extend(bytes((-len(raw))%16));pa=len(raw);raw.extend(payload.BRIDGE)

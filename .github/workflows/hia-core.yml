@@ -3831,7 +3831,7 @@ jobs:
       - name: Complete fresh-source cold with explicit native parent lifecycle
         id: cold_transport_whole
         if: ${{ !cancelled() && steps.cold_transport_source.outcome == 'success' }}
-        timeout-minutes: 35
+        timeout-minutes: 11
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/hia-cold-native-r3"

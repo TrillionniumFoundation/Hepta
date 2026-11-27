@@ -34,6 +34,7 @@ PROFILE_SOURCE = {
     "bulk": "seed_bulk_backend", "div-bulk": "seed_div_bulk_backend",
     "word": "seed_word_backend", "endian": "seed_endian_backend",
     "cold-bulk": "seed_cold_bulk_backend", "cold-endian": "seed_cold_endian_backend",
+    "cold-bulk-word": "seed_cold_bulk_word_backend",
     "owned": "seed_owned_backend",
     "vm": "seed_vm_backend",
 }
@@ -236,15 +237,15 @@ class Stage:
         div = "int.div" in text or "int.rem" in text
         bulk = "buffer.move_within" in text
         word = "buffer.store.u64.le" in text or "buffer.store.u64.be" in text
-        endian = "buffer.load.u64.be" in text
+        endian = "buffer.load.u64.be" in text or "buffer.store.u64.be" in text
         if endian:
             if div or bulk:
                 raise ValueError((role, "no combined endian/div/bulk constructor declared"))
             return "cold-endian"
         if word:
-            if div or bulk:
-                raise ValueError((role, "no combined word/div/bulk constructor declared"))
-            return "word"
+            if div:
+                raise ValueError((role, "no combined word/div constructor declared"))
+            return "cold-bulk-word" if bulk else "word"
         return "div-bulk" if div and bulk else "div" if div else "cold-bulk" if bulk else "v1"
 
     def core(self, role):

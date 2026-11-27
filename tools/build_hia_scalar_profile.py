@@ -12,11 +12,12 @@ if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.hia_component_input_custody import capture_component_custody, verify_component_custody
 from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage
 
 SOURCE_NAME = 'examples/hia_bootstrap/scalar_profile.hepta'
-INPUTS = (SOURCE_NAME, 'tools/generate_hia_scalar_profile.py', 'tools/build_hia_scalar_profile.py',
+INPUTS = ('tools/hia_component_input_custody.py', SOURCE_NAME, 'tools/generate_hia_scalar_profile.py', 'tools/build_hia_scalar_profile.py',
           'tools/generate_hia_artifact_publication.py', 'hepta/hia_multiversion.py',
           'hepta/hia_scalar_profile_native.py', 'hepta/hia_json_preflight_native.py',
           'tests/fixtures/scalar_profile_698cc280.py.txt')
@@ -30,9 +31,8 @@ def build(output, compiler, cold_report=None, *, development=False):
     captured = {name: (ROOT / name).read_bytes() for name in INPUTS}
     cold_bytes = None if development else Path(cold_report).read_bytes()
     sources = None if development else admit_cold_build(compiler_bytes, cold_bytes)
-    if sources is not None and any(sources.get(name) != sha256(raw).hexdigest()
-                                   for name, raw in captured.items()):
-        raise ValueError('scalar-profile inputs are not bound by current cold source')
+    custody = None if development else capture_component_custody(
+        compiler_bytes, cold_bytes, sources, captured, root=ROOT)
     output.mkdir(mode=0o700)
     source = captured[SOURCE_NAME]
     image, receipt = compile_stage(output, 'scalar-profile', compiler, source)
@@ -44,6 +44,8 @@ def build(output, compiler, cold_report=None, *, development=False):
             or (sources is not None and (Path(cold_report).read_bytes() != cold_bytes
                                         or current_sources() != sources))):
         raise ValueError('scalar-profile construction inputs or output changed')
+    if not development:
+        verify_component_custody(custody, compiler_bytes, cold_bytes, sources, captured, root=ROOT)
     manifest = {'schema': 'hepta.hia.scalar-profile-native.v1',
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image_bytes).hexdigest(),
@@ -56,6 +58,8 @@ def build(output, compiler, cold_report=None, *, development=False):
               'cold_report_sha256': None if cold_bytes is None else sha256(cold_bytes).hexdigest(),
               'core_verification_totality_proofs_and_native_effects_hosted': True,
               'whole_stack_rewritten_in_hia': False, 'all_input_equivalence_proved': False}
+    if custody is not None:
+        report['component_input_custody'] = custody
     (output / 'build.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
     return output / 'manifest.json'
 

@@ -33,7 +33,7 @@ def _path(value):
     return path
 
 
-def _regular(path, limit):
+def _regular(path, limit, *, allow_empty=False):
     path = _path(str(path))
     parent = os.open(path.anchor, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     descriptor = None
@@ -45,7 +45,7 @@ def _regular(path, limit):
         descriptor = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
                              dir_fd=parent)
         before = os.fstat(descriptor)
-        _require(stat.S_ISREG(before.st_mode) and 0 < before.st_size <= limit,
+        _require(stat.S_ISREG(before.st_mode) and (0 if allow_empty else 1) <= before.st_size <= limit,
                  "cold location is not a bounded regular file")
         with os.fdopen(descriptor, "rb") as stream:
             descriptor = None
@@ -96,8 +96,9 @@ def read_native_locations(cold_path, cold_raw, index_raw):
                  "native generation index row differs from the original generation")
         path = _path(row["produced_image"])
         raw = _regular(path, MAX_COMPILER_BYTES)
-        # B1/B2/B3 are flat compiler images consumed by the native observer.
-        # The location index binds bytes; complete cold admission below is the gate.
+        # B1/B2/B3 are raw flat x86-64 compiler images, not ELF containers.
+        # This index grants no format/qualification authority: the complete
+        # cold gate below independently admits their exact shared byte hash.
         _require(len(raw) == row["produced_bytes"]
                  and sha256(raw).hexdigest() == row["produced_sha256"],
                  "physical native compiler bytes differ from the generation index")

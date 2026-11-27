@@ -230,7 +230,9 @@ SCALAR_REFERENCE_SDIST_FILES = (
 WORKER_REQUEST_SDIST_FILES = (
     'tools/hia_cold_caller_sources.py',
     'tests/fixtures/hia_native_cold_caller_relations_20261127.json',
+    'tests/fixtures/hia_native_cold_caller_integration_20261127.json',
     'tests/test_hia_native_cold_caller_sources.py',
+    'tests/test_hia_native_cold_caller_integration.py',
     'tests/hia_bootstrap_caller_predecessors.py',
     'tests/hia_independent_vm.py',
     'examples/hia_bootstrap/source_named_packet.hepta',
@@ -274,6 +276,16 @@ WORKER_REQUEST_SDIST_FILES = (
     'tests/hia_distribution_fixture.py',
     'tests/hia_installed_distribution_history.py',
     'tests/fixtures/hia_installed_distribution_sources.json',
+    'tests/hia_component_authoring_history.py',
+    'tests/fixtures/hia_component_authoring_successor_v1.json',
+    'tests/hia_cold_caller_selection_history.py',
+    'tests/fixtures/hia_cold_caller_selection_history_v1.json',
+    'tests/test_hia_cold_caller_selection_history.py',
+    'tests/test_hia_history_fixture_custody.py',
+    'tools/hia_component_input_custody.py',
+    'tools/hia_cold_compiler.py',
+    'tools/hia_component_cold_readback.py',
+    'tests/test_hia_component_cold_readback.py',
     'tools/hia_frozen_component_sources.py',
     'tests/fixtures/hia_frozen_component_source_relations.json',
 )
@@ -951,6 +963,7 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
     'tools/qualify_hia_release_cold_admit.py',
     'tools/qualify_hia_release_finalize.py',
     'tools/qualify_hia_release_owner.py',
+    'tools/qualify_hia_release_kit_extent.py',
 )
 
 SOURCE_FILES = (
@@ -4797,10 +4810,8 @@ def support_contract(root=ROOT):
 
 
 def validate_contract(root=ROOT):
-    root = Path(root)
-    path = root / CONTRACT_PATH
-    declared = json.loads(path.read_text())
-    expected = support_contract(root)
-    if declared != expected:
-        raise ValueError("Selfhost-Core support contract differs from the current source closure")
-    return declared
+    """Validate the declared native or hosted domain through the strict reader."""
+    # Import only at invocation: the release reader imports this module's
+    # constants and hosted constructor, but never calls this compatibility API.
+    from tools.hia_release_contract import validate_release_contract
+    return validate_release_contract(root)

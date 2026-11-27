@@ -16,7 +16,7 @@ def _relations(raw):
     return json.loads(raw)['files']
 
 
-COLD_CALLER_HELPER_PIN = {'bytes': 9779, 'sha256': '9029ce4503d864351f71fdda28fffbbc9810a23a4e595bd439567c3caff87bda'}
+COLD_CALLER_HELPER_PIN = {'bytes': 11616, 'sha256': '533ac5680937b82ffe3b951bd568e8cf4e103b08b8f302297f442b4119f17480'}
 
 
 def cold_caller_source(root, name, raw, *, take=Path.read_bytes):
@@ -31,7 +31,8 @@ def cold_caller_source(root, name, raw, *, take=Path.read_bytes):
         # Missing new authority grants no source exception. The unchanged
         # historical complete-file gates retain responsibility for this input.
         return raw, None
-    records = cold.read_relations(frozen)
+    previous = take(root / cold.PREVIOUS_FIXTURE)
+    records = cold.read_relations(frozen, previous_raw=previous)
     record = records[name]
     if history_pin(raw) != record['current']:
         return raw, None
@@ -53,7 +54,8 @@ def cold_caller_source(root, name, raw, *, take=Path.read_bytes):
         displacement += len(predecessor) - len(current)
     if b''.join((*pieces, prior[end:])) != raw:
         raise ValueError('native cold caller complete forward replay differs')
-    captured = {name: raw, cold.FIXTURE: frozen, cold.SOURCE: helper}
+    captured = {name: raw, cold.FIXTURE: frozen, cold.PREVIOUS_FIXTURE: previous,
+                cold.SOURCE: helper}
     for path, data in captured.items():
         if take(root / path) != data:
             raise ValueError('native cold caller physical input changed at terminal: ' + path)
@@ -62,6 +64,7 @@ def cold_caller_source(root, name, raw, *, take=Path.read_bytes):
         'path': name, 'physical_current': history_pin(raw),
         'predecessor': dict(record['predecessor']),
         'authority': {'path': cold.FIXTURE, **history_pin(frozen)},
+        'original_authority': {'path': cold.PREVIOUS_FIXTURE, **history_pin(previous)},
         'helper': {'path': cold.SOURCE, **COLD_CALLER_HELPER_PIN},
         'complete_predecessor_restored': True, 'complete_current_replayed': True,
         'actual_captured_files': {path: history_pin(data) for path, data in captured.items()},
@@ -86,7 +89,7 @@ def reviewed_source(root, name, raw, *, take=Path.read_bytes):
         raw = restore_reader_evaluation_test(raw, root=root, take=take)
     relation = _relations(take(root / FIXTURE)).get(name)
     if relation is None:
-        return raw
+        return cold_caller_source(root, name, raw, take=take)[0]
     actual = sha256(raw).hexdigest()
     if actual not in (relation['physical_sha256'], relation['reviewed_sha256']):
         raw, _ = cold_caller_source(root, name, raw, take=take)

@@ -8,6 +8,8 @@ import ast
 from hashlib import sha256
 import json
 from pathlib import Path
+from tests.hia_store_source_history import restore as restore_source_history
+from tests.hia_store_source_history import restore_service, verify_unchanged
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/store_delivery_successor_provenance.json'
@@ -121,6 +123,8 @@ def evaluate_records(frozen):
 
 def retained_bootstrap_service(raw):
     """Verify and reverse each physical service update back to the original Bootstrap prefix."""
+    physical = raw
+    raw = restore_service(raw, root=ROOT)
     captures = {ROOT / EVALUATE_FIXTURE: (ROOT / EVALUATE_FIXTURE).read_bytes(),
                 RETAINED_READ: RETAINED_READ.read_bytes(),
                 COMPOSITION_SUCCESSOR: COMPOSITION_SUCCESSOR.read_bytes()}
@@ -141,7 +145,7 @@ def retained_bootstrap_service(raw):
     for record in reversed(records):
         restored = reverse_exact(restored, record, {
             'bytes': record['old_bytes'], 'sha256': record['old_sha256']})
-    if ((ROOT / SERVICE_PATH).read_bytes() != raw
+    if ((ROOT / SERVICE_PATH).read_bytes() != physical
             or any(path.read_bytes() != value for path, value in captures.items())):
         raise ValueError('Bootstrap service source changed during admission')
     return restored
@@ -201,7 +205,7 @@ def _restore_composition_successor(captured, approved, shared):
         raise ValueError('later Store composition changes its reviewed scope')
     for name in LATER_SHARED_PATHS:
         captured[name] = (ROOT / name).read_bytes()
-    source = dict(captured)
+    source, source_history = restore_source_history(captured, root=ROOT)
     evaluate_fixture = None
     evaluate_current = {}
     if sha256(source[EVALUATION_PATH]).hexdigest() == EVALUATION_PLANNER_SHA256:
@@ -239,10 +243,17 @@ def _restore_composition_successor(captured, approved, shared):
                                        {'sha256': previous['new_sha256'], 'bytes': previous['new_bytes']})
     for name in LATER_SHARED_PATHS:
         record = value['shared_dependencies'][name]
-        reverse_exact(source[name], record, shared[name])
+        from tests.hia_component_authoring_history import predecessor as component_predecessor
+        reverse_exact(component_predecessor(name, source[name]), record, shared[name])
         current[name] = record
     current.update(evaluate_current)
-    return restored, current, fixture, extensions, evaluate_fixture
+    if source_history is not None:
+        for name, expected in source_history['review']['complete_current'].items():
+            if name in current:
+                current[name] = {**current[name], 'new_bytes': expected['bytes'],
+                                 'new_sha256': expected['sha256']}
+    verify_unchanged(source_history)
+    return restored, current, fixture, extensions, evaluate_fixture, source_history
 
 
 def _restore_extension(path, raw, predecessor):
@@ -308,11 +319,11 @@ def admit_composition(original_value):
     # There is no process-global cache: every admission binds all thirteen complete files.
     approved = current = value['files']
     predecessor = captured
-    later_fixture = evaluate_fixture = None
+    later_fixture = evaluate_fixture = source_history = None
     extensions = {}
     if any((len(captured[path]), sha256(captured[path]).hexdigest()) !=
            (approved[path]['new_bytes'], approved[path]['new_sha256']) for path in PATHS):
-        predecessor, current, later_fixture, extensions, evaluate_fixture = _restore_composition_successor(
+        predecessor, current, later_fixture, extensions, evaluate_fixture, source_history = _restore_composition_successor(
             captured, approved, inventory['shared_dependency_review'])
     restored = {path: reverse_exact(predecessor[path], approved[path], originals[path])
                 for path in PATHS}
@@ -324,6 +335,7 @@ def admit_composition(original_value):
             or any(COMPOSITION_EXTENSIONS[path][0].read_bytes() != raw for path, raw in extensions.items())
             or any((ROOT / path).read_bytes() != raw for path, raw in captured.items())):
         raise ValueError('successor composition changed during admission')
+    verify_unchanged(source_history)
     composition = {path: current[path]['new_sha256'] for path in PATHS}
     fixture_sha256 = COMPOSITION_SUCCESSOR_SHA256 if later_fixture is not None else FIXTURE_SHA256
     adjustments = {path: {'path': path, 'original_sha256': sha256(restored[path]).hexdigest(),
@@ -346,7 +358,10 @@ def admit_composition(original_value):
     if later_fixture is not None:
         for path in LATER_SHARED_PATHS:
             shared[path] = {'bytes': current[path]['new_bytes'], 'sha256': current[path]['new_sha256']}
-    return {'source_adjustments': {path: adjustments[path] for path in SOURCE_PATHS},
+    if source_history is not None:
+        shared['hepta/hia_native_host_support.py'] = dict(source_history['review']['host_support'])
+    return {'source_history_review': None if source_history is None else source_history['review'],
+            'source_adjustments': {path: adjustments[path] for path in SOURCE_PATHS},
             'shared_adjustments': {path: adjustments[path] for path in SHARED_PATHS},
             'shared_dependency_review': shared,
             'adapter_source_adjustments': {ADAPTER_PATH: adjustments[ADAPTER_PATH]},

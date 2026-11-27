@@ -216,25 +216,27 @@ class NativeColdCustodyReaderTests(unittest.TestCase):
         self.assertEqual(json.loads(self.cold.read_bytes()), self.report)
 
     def test_file_capture_reader_preserves_physical_native_files_and_rejects_source_substitution(self):
-        with patch('tools.build_hia_json_preflight.admit_cold_build', return_value=self.sources):
+        with patch('tools.hia_component_cold_readback.read_native_cold', return_value=self.sources):
             captured = file_reader.Captures()
-            compiler, digest = file_reader.cold_build(self.cold, captured, self.sources)
+            compiler, digest = file_reader.cold_build(self.cold, captured, self.sources, repository=self.root)
             self.assertEqual(compiler, self.image)
             self.assertEqual(digest, sha256(self.cold.read_bytes()).hexdigest())
             self.assertEqual(set(captured.raw), {self.cold, self.cold.with_suffix('.generations.json'),
                 *(self.base / (name + '.flat') for name in ('B1', 'B2', 'B3'))})
             with self.assertRaisesRegex(ValueError, 'current readback'):
-                file_reader.cold_build(self.cold, file_reader.Captures(), {})
+                file_reader.cold_build(self.cold, file_reader.Captures(), {}, repository=self.root)
 
     def test_file_capture_component_reader_keeps_pack_controls_and_separate_input_custody(self):
         evidence = self.base / 'file-capture-evidence'
         evidence.mkdir()
         manifest, report = self.build('store_file_capture', directory=evidence / 'qualified')
         build_path = manifest.parent / 'build.json'
-        with patch('tools.build_hia_json_preflight.admit_cold_build', return_value=self.sources):
+        with patch('tools.hia_component_cold_readback.read_native_cold', return_value=self.sources):
             def read():
                 return file_reader.component_build(self.root, evidence, file_reader.Captures(),
-                    self.sources, self.image, sha256(self.cold.read_bytes()).hexdigest(), cold_path=self.cold)
+                    {name: sha256(raw).hexdigest() for name, raw in self.raw_inputs.items()},
+                    self.image, sha256(self.cold.read_bytes()).hexdigest(),
+                    native_cold_path=self.cold, native_sources=self.sources)
             self.assertEqual(read(), (manifest.parent, report['manifest']))
             for mutation in ('input', 'dependency', 'scope', 'pack-status'):
                 bad = deepcopy(report)

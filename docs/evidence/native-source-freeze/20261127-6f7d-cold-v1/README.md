@@ -1,0 +1,13 @@
+# Actual native 6f7d cold qualification
+
+The exact source commit 6f7dfb2defd8852d2fe58e02ff8c5cf78c5e7807 completed the original native cold gate on ROG. All 60 phases and 479,882 nodes were retained and independently checked; all fourteen cold checks passed. Native qualification took 178,065,100,738 ns and cleanup took 27,849,084 ns under the unchanged 180 second and 3 second limits. The scheduler remained 2 phase workers, 1 archive worker, at most 2 pending archives and 4 unsealed phases.
+
+The seven stage toolchain was constructed from the declared native roots, the 1,284 source entries were exported without a hosted language toolchain, and cold B1/B2/B3 were built afresh. Each generation is 641,344 bytes with SHA256 acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9. These are the actual flat machine images, not ELF files. Each original path was read separately, with its distinct device/inode identity retained in original-generation-readback.json.
+
+The same uninterrupted campaign then passed the one-stage, 1,916-node native post-bootstrap, publishing all eight declared entries. It continued directly into ordinary release. The retained chain snapshot was taken while ordinary release was active. This evidence does not claim release/install/rebuild completion, whole Worker or public API qualification, legacy retirement, or a green CI run.
+
+qualified-cold-handoff.tar.gz preserves 23 files including the unchanged native report, original owner receipt, source pins, construction/export reports, resource observations and the post-bootstrap snapshot. original-generation-images.tar.gz contains B1, B2 and B3, each copied from its own original path; it also retains the path/inode readback and member hashes. Every member of both archives was re-read after transfer and checked against its manifest. Full phase journals and archives remain at the ROG root named in EVIDENCE.json; their exact physical pins are preserved in the original cold and chain reports. They have not been represented as downloaded in full.
+
+The canonical handoff index is only a locator for the genuine native generations. It does not manufacture a legacy hosted report. A consumer can relocate its own copies using a new explicitly local index while retaining the original cold report and original generation readback byte for byte.
+
+The same source also ran in GitHub Actions and exceeded the original 180 second cold limit there. Its complete artifact and failure readback are preserved separately under ../20261127-ci6f7d-cold-v1/. The ROG success does not rewrite or cancel that CI failure. Older 2f4/de0 and CI1818 failures also remain unchanged.

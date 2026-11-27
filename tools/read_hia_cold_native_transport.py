@@ -300,8 +300,77 @@ OBSERVER_SUCCESSORS = {
 }
 
 
+COLD_CALLER_OBSERVER_NAME = 'tests/test_hia_selfhost_linked_observer.py'
+COLD_CALLER_OBSERVER = {
+    "current": {
+        "bytes": 53252,
+        "sha256": "591e3ffb99d78491738ce5b097892723ade7fc0d6f414ea3068d2f9b2dd50cce"
+    },
+    "predecessor": {
+        "bytes": 52986,
+        "sha256": "b093864e5e5830c724d99d421e22878480f3dcbcac965d31575ba0f2baca86c4"
+    },
+    "splices": [
+        {
+            "current_hex": "20202020202020202020202066726f6d20746f6f6c732e6869615f636f6c645f636f6d70696c657220696d706f727420726561645f636f6c645f6275696c645f696e707574730a202020202020202020202020636c732e636f6c645f696e707574733d726561645f636f6c645f6275696c645f696e7075747328636f6c64290a202020202020202020202020636c732e636f6c645f62797465733d636c732e636f6c645f696e707574732e7265706f72745f62797465730a202020202020202020202020636f6d70696c65723d636c732e636f6c645f696e707574732e636f6d70696c65720a202020202020202020202020636c732e636f6d70696c65725f62797465733d636c732e636f6c645f696e707574732e636f6d70696c65725f62797465730a",
+            "offset": 12850,
+            "predecessor_hex": "202020202020202020202020636c732e636f6c645f62797465733d5061746828636f6c64292e726561645f627974657328290a2020202020202020202020206f757465723d6a736f6e2e6c6f61647328636c732e636f6c645f6279746573293b6e65737465643d6a736f6e2e6c6f6164732850617468286f757465725b226e65737465645f7265706f7274225d292e726561645f62797465732829290a202020202020202020202020636f6d70696c65723d50617468286e65737465645b2267656e65726174696f6e73225d5b2d315d5b2270726f64756365645f696d616765225d290a202020202020202020202020636c732e636f6d70696c65725f62797465733d636f6d70696c65722e726561645f627974657328290a"
+        },
+        {
+            "current_hex": "2020202020202020202020206966206e6f7420636c732e636f6c645f696e707574732e6e617469766520616e6420616e79286e616d65206e6f7420696e20636c732e636f6c645f736f757263657320666f72206e616d6520696e204f574e4544293a0a",
+            "offset": 13223,
+            "predecessor_hex": "202020202020202020202020696620616e79286e616d65206e6f7420696e20636c732e636f6c645f736f757263657320666f72206e616d6520696e204f574e4544293a0a"
+        },
+        {
+            "current_hex": "2020202020202020696620636c732e636f6c645f6279746573206973206e6f74204e6f6e6520616e6420636c732e636f6c645f696e707574732e6e61746976653a0a202020202020202020202020636c732e636f6c645f696e707574732e636170747572655f637573746f647928636c732e696e707574732c726f6f743d524f4f54290a",
+            "offset": 14353,
+            "predecessor_hex": ""
+        },
+        {
+            "current_hex": "20202020202020202020202068656c643d68656c6420616e6420616c6c28706174682e726561645f627974657328293d3d72617720666f7220706174682c72617720696e20636c732e636f6c645f696e707574732e66696c6573290a",
+            "offset": 16091,
+            "predecessor_hex": ""
+        }
+    ]
+}
+
+
+def _cold_observer_predecessor(name, data):
+    """Independently reconstruct the caller predecessor from exact segments."""
+    if name != COLD_CALLER_OBSERVER_NAME:
+        return data
+    row = COLD_CALLER_OBSERVER
+    require(type(data) is bytes and pin(data) == row["current"]
+            and row["predecessor"] == OBSERVER_SUCCESSORS[name]["current"],
+            "native cold observer complete caller source differs")
+    pieces, entries, cursor, displacement = [], [], 0, 0
+    for item in row["splices"]:
+        at = item["offset"]
+        after, before = bytes.fromhex(item["current_hex"]), bytes.fromhex(item["predecessor_hex"])
+        require(type(at) is int and cursor <= at <= at + len(after) <= len(data)
+                and data[at:at + len(after)] == after and before != after,
+                "native cold observer caller segments differ")
+        pieces.extend((data[cursor:at], before))
+        entries.append((at + displacement, before, after))
+        cursor = at + len(after)
+        displacement += len(before) - len(after)
+    restored = b"".join((*pieces, data[cursor:]))
+    require(pin(restored) == row["predecessor"],
+            "native cold observer inverse does not restore the whole predecessor")
+    pieces, cursor = [], 0
+    for at, before, after in entries:
+        require(restored[at:at + len(before)] == before,
+                "native cold observer restored forward segment differs")
+        pieces.extend((restored[cursor:at], after))
+        cursor = at + len(before)
+    require(b"".join((*pieces, restored[cursor:])) == data,
+            "native cold observer forward replay differs from actual source")
+    return restored
+
+
 def restore_observer_source(name, data, original_pin):
     """Independent segment construction; never import the producer/helper."""
+    data = _cold_observer_predecessor(name, data)
     if name not in OBSERVER_SUCCESSORS:
         require(pin(data) == original_pin, "unchanged original observer/test source differs")
         return data
@@ -370,8 +439,11 @@ def observer_source_profile(root, capture):
         "original_method_ids": list(originals),
         "current_method_ids": current,
         "additional_method_ids": list(OBSERVER_ADDITIONAL_IDS),
-        "source_relations": {name: {"original": row["old"], "current": row["current"],
-            "exact_splices": len(row["splices"]), "whole_inverse_and_forward_verified": True}
+        "source_relations": {name: {"original": row["old"],
+            "current": COLD_CALLER_OBSERVER["current"] if name == COLD_CALLER_OBSERVER_NAME else row["current"],
+            "exact_splices": len(row["splices"]) + (len(COLD_CALLER_OBSERVER["splices"])
+                if name == COLD_CALLER_OBSERVER_NAME else 0),
+            "whole_inverse_and_forward_verified": True}
             for name, row in OBSERVER_SUCCESSORS.items()},
         "original_execute_functions_unchanged": True,
         "selection_tails_unchanged": True,

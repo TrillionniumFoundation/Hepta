@@ -12,7 +12,7 @@ OUTER_HOLES={'handles': 114, 'effects': 273}
 OUTER_RELOCATIONS=((408, 'malloc'), (419, 'free'))
 IMPORTS=effects.IMPORTS
 ROLES=('handles',)+effects.ROLES
-MAGIC=int.from_bytes(b'HIAMVHK2','little')
+MAGIC=int.from_bytes(b'HIAMVHK3','little')
 EXPORT_SIZE=len(OUTER)
 SIZE_HOLE=((len(OUTER)+15)&~15)+effects.SIZE_HOLE
 def bridges():
