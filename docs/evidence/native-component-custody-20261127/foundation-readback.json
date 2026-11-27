@@ -1,0 +1,106 @@
+{
+  "archive": {
+    "bytes": 288696,
+    "path": "local-development-original-caller-failure.tar.gz",
+    "sha256": "9a0302a42bc6f18271b18e253771ce47cded6184b76f0e5f1481c78263941fa0"
+  },
+  "base": "516e9973cdd902c04ffba90016472597224d90d8",
+  "controls": {
+    "actual_cold_qualification": false,
+    "actual_tests": 25,
+    "command": "python -B tools/run_hia_unittest_gate.py tests.test_hia_component_input_custody tests.test_hia_cold_compiler tests.test_hia_native_cold_component",
+    "status": "PASS"
+  },
+  "local_actual_component": {
+    "actual_tests": 36,
+    "construction_scope": "DEVELOPMENT_COMPONENT",
+    "failure_reason": "three unchanged actual-Clang comparisons could not run: compiler absent",
+    "gate_status": "FAIL",
+    "input_and_output_pins": [
+      {
+        "bytes": 13374,
+        "path": "built/bounded-memory.image.bin",
+        "sha256": "0d24e0405f6b21643440820ad3af3d7a898df574affe76fc6f39d68d6839537e"
+      },
+      {
+        "bytes": 8131,
+        "path": "built/bounded-memory.input.bin",
+        "sha256": "03e02ae7051ff9f12c1f55f7caf70d1b01c3a0999dc2458e34f930d69f998bc1"
+      },
+      {
+        "bytes": 1048576,
+        "path": "built/bounded-memory.output.bin",
+        "sha256": "225211599b26051cb46e82b548adaa75c77d03738df3fcf75a5fd69ca4fb640b"
+      },
+      {
+        "bytes": 1660,
+        "path": "built/bounded-memory.receipt.json",
+        "sha256": "96baacb93967b69eb8887f6f16e842b217aef2b36a23d41e677c77659b446191"
+      },
+      {
+        "bytes": 517,
+        "path": "built/bounded-memory.request.json",
+        "sha256": "ba60356b258bec80c8b0c0685392ca924f9c17c9895fe2400311baa3efa403be"
+      },
+      {
+        "bytes": 0,
+        "path": "built/bounded-memory.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 943,
+        "path": "built/bounded-memory.stdout.log",
+        "sha256": "2453b9d794a886a8fb799f4a93ba9d4e83e7c0c0ab0b05c2e26e5c2ff77d6ec4"
+      },
+      {
+        "bytes": 3396,
+        "path": "built/build.json",
+        "sha256": "82c6e2a10acba219203e64362626cf5d7e245ff1f72e9b835cea4f42aa7d1f64"
+      },
+      {
+        "bytes": 359,
+        "path": "built/manifest.json",
+        "sha256": "ac7d92b7b1a2d4ff18ddd2a50633e04621cbde8b306001c4ca771f83a54af6d9"
+      },
+      {
+        "bytes": 641344,
+        "path": "development-B1.flat",
+        "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+      },
+      {
+        "bytes": 379659,
+        "path": "original-six-callers/report.json",
+        "sha256": "eb3b8ca93521f5b804e76ea30b61efb465df9270e5de16114b553d67cbb4283d"
+      },
+      {
+        "bytes": 6160,
+        "path": "original-six-callers/tests.log",
+        "sha256": "f16aaeae6903b39dcf72e93f9ed0a88a2547dfdd703f77290ed61809a850aab2"
+      }
+    ],
+    "native_image_sha256": "0d24e0405f6b21643440820ad3af3d7a898df574affe76fc6f39d68d6839537e",
+    "original_caller_modules": 6,
+    "passed_tests": 33,
+    "skipped": [
+      [
+        "tests.test_hia_bulk_memory.BulkMemoryV2Tests.test_actual_emitted_llvm_host_execution_and_trap",
+        "Linux x86-64 with Clang required for native smoke"
+      ],
+      [
+        "tests.test_hia_overlap_move.HIAOverlapMoveTests.test_real_llvm_host_overlap_and_bounds_abort",
+        "actual Linux x86-64 Clang required"
+      ],
+      [
+        "tests.test_hia_range_fill_v6.V6RangeFillTests.test_real_emitted_llvm_native_and_abort",
+        "native x86-64 LLVM execution requires Clang"
+      ]
+    ]
+  },
+  "matching_source_cold_qualified": false,
+  "native_contract_check": "PASS",
+  "native_contract_source_files": 1281,
+  "old_stack_removable": false,
+  "schema": "hepta.hia.component-custody.foundation-readback.v1",
+  "source_domain": "native",
+  "whole_native_stack_qualified": false
+}

@@ -20,8 +20,12 @@ jobs:
         run: python -m pip install z3-solver==4.15.4.0
       - name: Check source identity
         run: python -B tools/generate_hia_selfhost_contract.py --check
-      - name: Check native cold admission refusal controls
-        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_cold_component
+      - name: Check native cold and component custody refusal controls
+        run: >-
+          python -B tools/run_hia_unittest_gate.py
+          tests.test_hia_native_cold_component
+          tests.test_hia_component_input_custody
+          tests.test_hia_cold_compiler
       - name: Construct and qualify the actual native cold compiler
         shell: bash
         run: |
@@ -33,17 +37,13 @@ jobs:
         run: |
           set -euo pipefail
           python -B - <<'PY'
-          import json, os
-          from hashlib import sha256
+          import os
           from pathlib import Path
           from tools.build_hia_json_preflight import build
+          from tools.hia_cold_compiler import compiler_from_cold_report
           parent = Path(os.environ['RUNNER_TEMP'])
           report = parent / 'verified-native-cold.json'
-          index = json.loads((parent / 'verified-native-cold.generations.json').read_bytes())
-          assert index['schema'] == 'hepta.hia.native-cold-generation-index.v1'
-          assert index['location_index_only'] is True
-          assert index['native_report']['sha256'] == sha256(report.read_bytes()).hexdigest()
-          compiler = Path(index['generations'][-1]['produced_image'])
+          compiler = compiler_from_cold_report(report)
           manifests = {
               'HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST': build(parent / 'verified-decoder', compiler, report, candidate='safe-core-x64-decode'),
               'HEPTA_HIA_CNF_MANIFEST': build(parent / 'verified-cnf', compiler, report, candidate='cnf'),

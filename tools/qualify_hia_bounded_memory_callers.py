@@ -42,6 +42,9 @@ def main():
     def source_pins():
         return {**file_digests(ROOT),
                 'tools/qualify_hia_bounded_memory_callers.py': sha256(Path(__file__).read_bytes()).hexdigest(),
+                **{path: sha256((ROOT / path).read_bytes()).hexdigest() for path in (
+                    'tools/hia_cold_compiler.py', 'tools/hia_component_input_custody.py',
+                    'tools/hia_native_cold_admission.py')},
                 **{path: sha256((ROOT / path).read_bytes()).hexdigest() for path in INPUTS},
                 **{module.replace('.', '/') + '.py': sha256(
                     (ROOT / (module.replace('.', '/') + '.py')).read_bytes()).hexdigest()
@@ -53,10 +56,9 @@ def main():
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     if args.cold_report:
         from tools.build_hia_bounded_memory import build
-        cold = json.loads(args.cold_report.read_bytes())
-        nested = json.loads(Path(cold['nested_report']).read_bytes())
+        from tools.hia_cold_compiler import compiler_from_cold_report
         manifest = build(args.evidence / 'qualified',
-            Path(nested['generations'][-1]['produced_image']), args.cold_report)
+            compiler_from_cold_report(args.cold_report), args.cold_report)
         scope = 'MATCHING_SOURCE_COLD_ORIGINAL_VM_MEMORY_CALLERS'
     else:
         manifest = args.development_manifest.resolve(strict=True)
