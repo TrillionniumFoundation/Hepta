@@ -71,6 +71,10 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 
 
 CANDIDATES = {
+    'bounded-read': ('bounded_read', 'bounded-read'),
+    'json-pretty': ('json_pretty', 'json-pretty'),
+    'artifact-page-policy': ('artifact_page', 'artifact-page-policy'),
+    'json-wire': ('json_wire', 'json-wire'),
     'machine-plan': ('machine_plan', 'machine-plan'),
     'safe-core-x64-decode': ('safe_core_x64_decode', 'safe-core-x64-decode'),
     'core-proof-wire': ('core_proof_wire', 'core-proof-wire'),
@@ -281,9 +285,17 @@ CANDIDATES = {
 }
 
 
-def _image_manifest(candidate, protocol, source, image, image_name, compiler_sha):
+def image_manifest_schema(candidate, protocol):
+    if candidate == 'bounded-read':
+        return 'hepta.hia.bounded-read-native.v3'
+    if candidate == 'artifact-page-policy':
+        return 'hepta.hia.artifact-page-native.v2'
     version = '2' if candidate in ('agent-journal', 'machine-encoding') else '1'
-    return {'schema': 'hepta.hia.' + protocol + '-native.v' + version,
+    return 'hepta.hia.' + protocol + '-native.v' + version
+
+
+def _image_manifest(candidate, protocol, source, image, image_name, compiler_sha):
+    return {'schema': image_manifest_schema(candidate, protocol),
             'source_sha256': sha256(source).hexdigest(), 'image_path': image_name,
             'image_sha256': sha256(image).hexdigest(), 'compiler_sha256': compiler_sha}
 

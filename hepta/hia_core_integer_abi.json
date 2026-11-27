@@ -1,0 +1,96 @@
+{
+  "schema": "hepta.hia.core-integer-abi.v1",
+  "protocol": "HIAINT01",
+  "input_bytes": 256,
+  "output_bytes": 256,
+  "workspace_bytes": 640,
+  "header_bytes": 128,
+  "limb_bits": 32,
+  "window_limbs": 32,
+  "operations": {
+    "ADD": 1,
+    "SUB": 2,
+    "NEG": 3,
+    "INVERT": 4
+  },
+  "entry_statuses": {
+    "DONE": 0,
+    "READ": 1,
+    "WRITE": 2,
+    "REFUSAL": 4294967293
+  },
+  "integer_value_policy_cap": null,
+  "descriptor": "comparison-compatible exact-int (kind=2, magnitude_limb_count, sign_bit6 | top_limb_width)",
+  "representable_input_limb_max": 4611686018427387902,
+  "representable_limit_reason": "(max_operand_words+1)*4 and all byte offsets must fit u64; not a new value-domain policy limit",
+  "result": "HIA-generated little-endian two's-complement bytes; one extra full output word; DONE chooses exact minimal signed-byte extent",
+  "INIT_input_header": [
+    "magic",
+    "0",
+    "0",
+    "operation",
+    "left_kind",
+    "left_words",
+    "left_sign_top",
+    "right_kind",
+    "right_words",
+    "right_sign_top",
+    "zero[6]"
+  ],
+  "READ_output_header": [
+    "magic",
+    "sequence",
+    "1",
+    "side",
+    "start_words",
+    "count_words",
+    "zero[10]"
+  ],
+  "READ_ACK_input_header": [
+    "magic",
+    "1",
+    "sequence",
+    "side",
+    "start_words",
+    "count_words",
+    "zero[10]"
+  ],
+  "WRITE_output_header": [
+    "magic",
+    "sequence",
+    "2",
+    "start_words",
+    "count_words",
+    "zero[11]"
+  ],
+  "WRITE_ACK_input_header": [
+    "magic",
+    "2",
+    "sequence",
+    "start_words",
+    "count_words",
+    "zero[11]"
+  ],
+  "DONE_output_header": [
+    "magic",
+    "sequence",
+    "0",
+    "operation",
+    "canonical_bytes",
+    "emitted_words",
+    "negative",
+    "emitted_bytes",
+    "zero[8]"
+  ],
+  "READ_ACK_payload": "count_words*4 source bytes then zero padding to 128 bytes",
+  "WRITE_payload": "count_words*4 result bytes then zero padding to 128 bytes",
+  "other_payloads": "all 128 bytes zero",
+  "exact_types": [
+    "int"
+  ],
+  "bool_subclass_float_foreign_and_inplace": "retained original target dispatch; never silently coerced to int",
+  "ordinary_Core_packet_bytes_unchanged": 128,
+  "ordinary_Core_images_unchanged": true,
+  "Python_object_registry_allocation_materialization_and_refcount_still_hosted": true,
+  "status": "OPTIONAL_CORE_COMPANION_DEVELOPMENT"
+}

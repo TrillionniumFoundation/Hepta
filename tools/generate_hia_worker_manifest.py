@@ -423,8 +423,25 @@ def native_source_policy(source: str) -> str:
     return source
 
 
-def render(root: Path, native_source_authority=None):
-    m = model(root, native_source_authority)
+def current_model(root: Path, native_source_authority=None) -> dict:
+    from tools.build_hia_worker_release import EXTENDED_INSTALLED_HELPERS
+    from tools.build_hia_json_preflight import CANDIDATES, image_manifest_schema
+    result = model(root)
+    for _, candidate in EXTENDED_INSTALLED_HELPERS:
+        source, protocol = CANDIDATES[candidate]
+        result['helpers'].append(dict(
+            role=len(result['helpers']) + 1, name=candidate,
+            source='examples/hia_bootstrap/' + source + '.hepta',
+            image_path=protocol + '.image.bin',
+            schema=image_manifest_schema(candidate, protocol), installed=True))
+    if native_source_authority is not None:
+        from tools.hia_native_worker_source_authority import native_model
+        return native_model(result, native_source_authority)
+    return result
+
+
+def render(root: Path, native_source_authority=None, *, helper_extensions=False):
+    m = current_model(root, native_source_authority) if helper_extensions else model(root, native_source_authority)
     entries = recipes(m)
     if native_source_authority is not None:
         for recipe in entries:
@@ -432,12 +449,14 @@ def render(root: Path, native_source_authority=None):
                     or len(recipe.validators) > 512):
                 raise ValueError('native source authority exceeds the unchanged manifest recipe budget')
     payload = b''.join(r.encode() for r in entries)
-    table = struct.pack('<8s3Q', b'HIAWMT01', 1, len(entries), 32 + len(payload)) + payload
+    table_magic = b'HIAWMT02' if helper_extensions else b'HIAWMT01'
+    request_magic = b'HIAWMF02' if helper_extensions else b'HIAWMF01'
+    table = struct.pack('<8s3Q', table_magic, 1, len(entries), 32 + len(payload)) + payload
     if len(table) > 1048576:
         raise ValueError('Worker manifest table exceeds the original 1 MiB budget')
     pin = sha256(table).digest()
     source = POLICY_SOURCE if native_source_authority is None else native_source_policy(POLICY_SOURCE)
-    for name, value in dict(MAGIC_REQUEST=b'HIAWMF01', MAGIC_TABLE=b'HIAWMT01',
+    for name, value in dict(MAGIC_REQUEST=request_magic, MAGIC_TABLE=table_magic,
                             MAGIC_SPI=b'HIASPI01', MAGIC_INPROCESS=b'HIAINP01').items():
         source = source.replace(name, str(int.from_bytes(value, 'little')))
     source += '\ndef table_pin(o:mutbuf) -> u64:\n'
@@ -456,9 +475,9 @@ def render(root: Path, native_source_authority=None):
         functions.append(dict(name=names[node.name], params=[b.param(a) for a in b.params],
             returns=[b.returns], effects=['read', 'write', 'trap'], entry='b0', blocks=b.blocks))
     document = compact_authoring_cfg(dict(schema='hepta.hia.program.v9',
-        module='source_worker_manifest', functions=functions))
+        module='source_worker_manifest_current' if helper_extensions else 'source_worker_manifest', functions=functions))
     assembly = render_assembly(document)
-    spec = dict(schema='hepta.hia.worker-manifest-records.v1', request='HIAWMF01',
+    spec = dict(schema='hepta.hia.worker-manifest-records.v2' if helper_extensions else 'hepta.hia.worker-manifest-records.v1', request=request_magic.decode('ascii'),
         table_path=TABLE_PATH, table_sha256=pin.hex(), table_bytes=len(table),
         source_path=SOURCE_PATH, source_sha256=sha256(assembly.encode()).hexdigest(),
         table_piece='Append the exact tables bytes as the last length-prefixed piece in every request.',

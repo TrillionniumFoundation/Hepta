@@ -65,6 +65,46 @@ class Sha256StreamSourceTests(unittest.TestCase):
             self.assertEqual(vm_stream(chunks), sha256(b''.join(chunks)).digest())
 
 
+    def test_word_helpers_preserve_full_u64_and_neighboring_bytes(self):
+        # Inspect actual generated helper transitions, including nonzero high
+        # halves used by total-length and other stream metadata words.
+        from tools.hia_selfhost_bulk import Body
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program import execute_program
+        for offset, value in ((0, 0), (1, 0x0123456789abcdef),
+                              (7, 1 << 63), (24, (1 << 64) - 1)):
+            body = Body(0)
+            owner = body.value('buffer', 'buffer.new', [body.const('usize', 32)])
+            view = body.value('mutbuf', 'borrow.mut', [owner])
+            initial = bytes((i * 17 + 3) & 255 for i in range(32))
+            for i, byte in enumerate(initial):
+                body.effect('buffer.store', [view, body.const('usize', i),
+                                            body.const('u8', byte)])
+            at = body.const('u64', offset)
+            old = body.value('u64', 'call', [view, at], {'function': 'f3'})
+            code = body.value('u64', 'call', [view, at, body.const('u64', value)],
+                              {'function': 'f4'})
+            new = body.value('u64', 'call', [view, at], {'function': 'f3'})
+            observed = [body.value('u8', 'buffer.load',
+                        [view, body.const('usize', i)]) for i in range(32)]
+            body.effect('loan.end', [view])
+            body.effect('owner.drop', [owner])
+            source = ('hia-asm.v1 hepta.hia.program.v9 word_reference\n'
+                      'fn observe() -> (' + ','.join(['u64'] * 3 + ['u8'] * 32) +
+                      ') effects(alloc,read,write,trap) entry(b0)\nblock b0()\n' +
+                      body.text() + '  ret(' + ','.join([old, code, new, *observed]) +
+                      ')\nend\n' + SOURCE.read_text().split('\n', 1)[1])
+            result = execute_program(assemble_program(source), 'observe', [],
+                                     max_steps=2000000)
+            self.assertEqual(result['status'], 'returned', result)
+            expected = bytearray(initial)
+            expected[offset:offset + 8] = value.to_bytes(8, 'little')
+            self.assertEqual(result['values'][:3],
+                             [int.from_bytes(initial[offset:offset + 8], 'little'),
+                              0, value])
+            self.assertEqual(bytes(result['values'][3:]), bytes(expected))
+
+
 class Sha256StreamNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

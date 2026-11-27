@@ -55,6 +55,12 @@ INSTALLED_HELPERS = (
     'agent-schema', 'agent-response-schema', 'agent-verify-response-schema',
     'agent-discovery', 'agent-inspection', 'agent-identity', 'elf-shared-linker', 'scalar-reference',
 )
+# These roles are carried by HIAHLM02, never by the original eight-role wire.
+EXTENDED_INSTALLED_HELPERS = (
+    (9, 'bounded-read'), (10, 'json-pretty'),
+    (14, 'artifact-page-policy'), (15, 'json-wire'),
+)
+CURRENT_INSTALLED_HELPERS = (*INSTALLED_HELPERS, *(kind for _, kind in EXTENDED_INSTALLED_HELPERS))
 ADDITIONAL_HELPERS = (
     'worker-request', 'agent-journal', 'execution-budget', 'candidate-budget',
     'agent-read-page', 'agent-read-request', 'inspection-request', 'slot-ledger', 'execution-ledger', 'scalar-symbolic',
@@ -769,8 +775,9 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
                                      candidates=tuple(candidate for candidate in ADDITIONAL_HELPERS
                                                       if candidate not in HELPER_BUILDERS))
         helpers = []
-        for candidate in (*INSTALLED_HELPERS, *ADDITIONAL_HELPERS):
-            if candidate in INSTALLED_HELPERS:
+        for candidate in (*INSTALLED_HELPERS, *ADDITIONAL_HELPERS,
+                          *(kind for _, kind in EXTENDED_INSTALLED_HELPERS)):
+            if candidate in CURRENT_INSTALLED_HELPERS:
                 manifest = release / (candidate + '-manifest.json')
             else:
                 builder = HELPER_BUILDERS.get(candidate)

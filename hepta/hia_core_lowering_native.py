@@ -13,6 +13,10 @@ import operator
 import struct
 from types import MappingProxyType
 
+from .hia_core_compare_native import eligible as _numeric_comparison_eligible
+from .hia_core_integer_native import eligible_binary as _integer_binary_eligible
+from .hia_core_integer_native import eligible_unary as _integer_unary_eligible
+
 from .hia_native_helpers import check_native_scheduling_scope
 
 MAGIC = int.from_bytes(b'HIALOW01', 'little')
@@ -45,6 +49,25 @@ def _not_in(left, right):
 
 
 _COMPARE.update({7: _in, 8: _not_in})
+
+
+def _host_unpack(observed, count):
+    """Retained opcode-14 value policy, independent of the HIA companion."""
+    if count == 1:
+        a, = observed
+        results = (a,)
+    elif count == 2:
+        a, b = observed
+        results = (a, b)
+    elif count == 3:
+        a, b, c = observed
+        results = (a, b, c)
+    elif count == 4:
+        a, b, c, d = observed
+        results = (a, b, c, d)
+    else:
+        raise RuntimeError('native lowering unpack arity differs')
+    return 0, results
 
 
 def _decode_pool(raw, expected_count):
@@ -304,28 +327,45 @@ class LoweringSession:
             return int(bool(get(value))), ()
         if opcode == 11:
             operation, left, right = args
+            if self.owner.integer is not None:
+                # Match original callable lookup, left read, right read order.
+                # The eligibility guard never re-reads operands or the registry.
+                target = _BINARY[operation]
+                observed_left = get(left)
+                observed_right = get(right)
+                if _integer_binary_eligible(operation, target, observed_left, observed_right):
+                    return 0, (self.owner.integer.binary(operation, observed_left, observed_right),)
+                return 0, (target(observed_left, observed_right),)
             return 0, (_BINARY[operation](get(left), get(right)),)
         if opcode == 12:
             operation, value = args
+            if self.owner.integer is not None:
+                target = _UNARY[operation]
+                observed = get(value)
+                if _integer_unary_eligible(operation, target, observed):
+                    return 0, (self.owner.integer.unary(operation, observed),)
+                return 0, (target(observed),)
             return 0, (_UNARY[operation](get(value)),)
         if opcode == 13:
             operation, left, right = args
+            if self.owner.numeric_compare is not None:
+                # The target lookup precedes both original operand reads.
+                # A callback changing the registry during get cannot replace
+                # that already-bound callable. Each get still occurs once.
+                target = _COMPARE[operation]
+                observed_left = get(left)
+                observed_right = get(right)
+                if _numeric_comparison_eligible(operation, target, observed_left, observed_right):
+                    return 0, (self.owner.numeric_compare.compare(
+                        operation, observed_left, observed_right),)
+                return 0, (target(observed_left, observed_right),)
             return 0, (_COMPARE[operation](get(left), get(right)),)
         if opcode == 14:
             value, count = args
             observed = get(value)
-            if count == 1:
-                a, = observed
-                results = (a,)
-            elif count == 2:
-                a, b = observed
-                results = (a, b)
-            elif count == 3:
-                a, b, c = observed
-                results = (a, b, c)
-            else:
-                raise RuntimeError('native lowering unpack arity differs')
-            return 0, results
+            if self.owner.unpack is not None:
+                return 0, self.owner.unpack.unpack(observed, count)
+            return _host_unpack(observed, count)
         if opcode == 15:
             low, high, step = args
             return 0, (slice(get(low), get(high), get(step)),)
@@ -358,7 +398,7 @@ class NativeCoreLowering:
 
     ABI_SCHEMA = 'hepta.hia.core-lowering-abi.v1'
 
-    def __init__(self, images, pool, abi, namespace):
+    def __init__(self, images, pool, abi, namespace, *, unpack=None, numeric_compare=None, integer=None):
         check_native_scheduling_scope(self, constructing=True)
         if type(abi) is not dict or abi.get('schema') != self.ABI_SCHEMA:
             raise ValueError('native lowering ABI metadata differs')
@@ -373,6 +413,9 @@ class NativeCoreLowering:
             raise ValueError('native lowering private extents differ')
         self.modes = abi['modes']
         self.namespace = namespace
+        self.unpack = unpack
+        self.numeric_compare = numeric_compare
+        self.integer = integer
         output = ctypes.create_string_buffer(abi['pool_bytes'])
         empty = ctypes.create_string_buffer(1)
         count = pool._entry(empty, 0, output, len(output), empty, 0)
