@@ -276,5 +276,46 @@ assert current.pin(result)['sha256']=='673b1e330b48df5915a4a544188397e33055ac023
         self.assertEqual(fixture.read_bytes(), raw)
 
 
+    def test_readback_preparation_keeps_original_test_ids_assertions_and_method_bodies(self):
+        path = ROOT / 'tests/fixtures/hia_current_store_readback_preparation_v1.json'
+        raw = path.read_bytes()
+        self.assertEqual({'bytes': len(raw), 'sha256': sha256(raw).hexdigest()},
+                         {"bytes":3245,"sha256":"ae4fdf817db1b65b243e837be948262d33dc739b3fa82d67b35c3ba1696a14c5"})
+        value = json.loads(raw)
+        self.assertEqual(value['schema'], 'hepta.hia.current-store-readback-preparation-history.v1')
+        self.assertIs(value['original_test_assertions_and_ids_modified'], False)
+        self.assertIs(value['original_fixed_fixtures_modified'], False)
+        self.assertIs(value['historical_projection_is_physical_source'], False)
+        self.assertEqual(set(value['files']), {
+            'tools/hia_current_store_source_history.py',
+            'tests/test_hia_caller_terminal_readback.py',
+            'tests/test_hia_store_file_capture_native_readback.py'})
+        for name, row in value['files'].items():
+            physical = (ROOT / name).read_bytes()
+            original = frozen.history_inverse(physical, row,
+                {'bytes': row['old_bytes'], 'sha256': row['old_sha256']})
+            if name.startswith('tests/'):
+                def methods(source):
+                    return {cls.name + '.' + node.name: node
+                            for cls in ast.parse(source).body if isinstance(cls, ast.ClassDef)
+                            for node in cls.body if isinstance(node, ast.FunctionDef)}
+                before, after = methods(original), methods(physical)
+                self.assertEqual(set(before), set(after))
+                for key in before:
+                    previous = before[key]
+                    if key == 'FileCaptureCurrentSourceTests.test_actual_complete_reader_refuses_mixed_evaluation_root':
+                        count = 0
+                        for node in ast.walk(previous):
+                            if (isinstance(node, ast.Attribute) and node.attr == 'restore'
+                                    and isinstance(node.value, ast.Name) and node.value.id == 'history'):
+                                node.value.id = 'current_history'
+                                count += 1
+                        self.assertEqual(count, 1)
+                    self.assertEqual(ast.dump(previous, include_attributes=False),
+                                     ast.dump(after[key], include_attributes=False), key)
+            self.assertEqual((ROOT / name).read_bytes(), physical)
+        self.assertEqual(path.read_bytes(), raw)
+
+
 if __name__ == '__main__':
     unittest.main()

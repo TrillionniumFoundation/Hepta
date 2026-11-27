@@ -87,7 +87,11 @@ def _view(captured, root, take):
     if Path(window.__file__).read_bytes() != helper:
         raise ValueError('current Store imported another evaluation source reader')
     affected = {name: raw for name, raw in source.items() if name in frozen.CURRENT}
-    projected, history = window.prepare(root, affected, take=capture)
+    try:
+        projected, history = window.prepare(root, affected, take=capture)
+    except ValueError as error:
+        raise ValueError('Store history partially reverted or unreviewed composition: '
+                         + str(error)) from error
     if history['review']['successor_applied'] is not True:
         raise ValueError('current Store successor did not bind the current complete group')
     source.update(projected)

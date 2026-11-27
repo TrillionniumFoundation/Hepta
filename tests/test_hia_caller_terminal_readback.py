@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from tools import read_hia_store_file_capture_callers as reader
 from tools.hia_frozen_component_sources import FIXTURE as RELATION
-from tools.hia_current_caller_source_history import reviewed_source
+from tools.hia_current_store_source_history import reviewed_source
 
 ROOT = Path(__file__).resolve().parents[1]
 TRANSPORT = 'tests/test_hia_native_transport_failures.py'

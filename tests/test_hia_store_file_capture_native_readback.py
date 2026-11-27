@@ -10,6 +10,7 @@ import unittest
 
 from tests import test_hia_component_cold_readback as native_controls
 from tools import hia_frozen_component_sources as history
+from tools import hia_current_store_source_history as current_history
 from tools import read_hia_store_file_capture_callers as reader
 from tools.hia_component_input_custody import capture_component_custody
 from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS
@@ -220,7 +221,7 @@ class FileCaptureCurrentSourceTests(unittest.TestCase):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(raw)
             current = {name: (root / name).read_bytes() for name in history.CURRENT}
-            prior, _ = history.restore(current, root=root)
+            prior, _ = current_history.restore(current, root=root)
             (root / history.EVALUATION_TEST).write_bytes(prior[history.EVALUATION_TEST])
             with self.assertRaisesRegex(ValueError, 'partially reverted'):
                 reader.original_callers(root, reader.Captures())
