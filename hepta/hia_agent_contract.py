@@ -30,6 +30,10 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/release_stage_helper_extensions.hiastd',
+    'examples/hia_bootstrap/source_worker_manifest_current.hepta',
+    'examples/hia_bootstrap/worker_manifest_current_tables.hiastd',
+    'examples/hia_bootstrap/artifact_page.hepta',
     'examples/hia_bootstrap/bounded_read.hepta',
     'examples/hia_bootstrap/json_pretty.hepta',
     'hepta/hia_bounded_read_abi.json',

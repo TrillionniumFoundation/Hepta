@@ -3334,9 +3334,16 @@ HIAAgentService._hia_artifact = _service_artifact_dispatch
 _SERVICE_READ_REFERENCE = HIAAgentService._hia_read
 _SERVICE_READ_GLOBAL_BUILTINS = _SERVICE_READ_REFERENCE.__builtins__
 HIAAgentService._hia_read_reference = _SERVICE_READ_REFERENCE
+HIAAgentService._reference_hia_read = _SERVICE_READ_REFERENCE
 
 
 def _selected_hia_read(self, arguments):
+    page_selector = os.environ.get('HEPTA_HIA_ARTIFACT_PAGE_MANIFEST')
+    if page_selector is not None:
+        if 'HEPTA_HIA_SERVICE_READ_MANIFEST' in os.environ:
+            raise ValueError('artifact page and complete service read require separate explicit selections')
+        from .hia_artifact_page_native import installed_artifact_page
+        return installed_artifact_page(page_selector).read(self, arguments)
     selector = os.environ.get('HEPTA_HIA_SERVICE_READ_MANIFEST')
     if selector is None:
         if (not issubclass(type(self), HIAAgentService)
