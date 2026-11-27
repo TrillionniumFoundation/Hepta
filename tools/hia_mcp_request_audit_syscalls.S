@@ -60,6 +60,8 @@ advance:
     je module_intent
     cmp QWORD PTR [r15+16],15
     je module_history
+    cmp QWORD PTR [r15+16],16
+    je module_archive_query
     jmp invalid
 module_session:
     .byte 0xe8
@@ -140,6 +142,11 @@ module_history:
     .byte 0xe8
 .global audit_history_hole
 audit_history_hole: .long 0
+    jmp returned
+module_archive_query:
+    .byte 0xe8
+.global audit_archive_query_hole
+audit_archive_query_hole: .long 0
     jmp returned
 returned:
     mov eax,eax

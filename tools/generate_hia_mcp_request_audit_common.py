@@ -37,7 +37,7 @@ C = dict(STATE_BYTES=32 << 20, ARENA=8 << 20, ARENA_BYTES=4 << 20,
          O_PATH=2097152, O_NONBLOCK=2048,
          NEG2=(1 << 64)-2, NEG4=(1 << 64)-4, NEG17=(1 << 64)-17)
 C.update(M_LEASES=10, M_OPEN=11, M_RESPONSE=12, M_METADATA=13, M_INTENT=14,
-         M_HISTORY=15, QUERY_OUTPUT=16 << 20, QUERY_BYTES=400, STORE_POISONED=408,
+         M_HISTORY=15, M_ARCHIVE_QUERY=16, QUERY_OUTPUT=16 << 20, QUERY_BYTES=400, STORE_POISONED=408,
          QUERY_ROWS=(16 << 20) + 131072,
          INTENT_IDS=577536, INTENT_OLD=585728,
          DAEMON_AUDITFD=256, DAEMON_CONTROLLER=264, READY=272,
@@ -86,6 +86,8 @@ ERRORS = {
     34: 'request history wire page limit exceeded',
     35: 'request history unavailable to this session',
     36: 'request audit state lock unavailable',
+    37: 'archive metadata query total deadline exceeded; repeat only the metadata query',
+    38: 'archive index preparing or validation unavailable; repeat only this metadata query',
 }
 TEXT = dict(hot='request-audit\0', legacy='request-archive-v11\0',
             anchor11='.request-archive-v11-anchor.json\0',

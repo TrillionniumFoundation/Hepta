@@ -634,7 +634,7 @@ def sdk_finite(s:readbuf, w:mutbuf, at:u64, size:u64) -> u64:
 
 
 def program():
-    public_tools = (*tool_names(), 'request_history')
+    public_tools = (*tool_names(), 'request_history', 'request_archive')
     tokens = tuple(dict.fromkeys((*KEYS, *METHODS, *STANDARD, *public_tools, *VERSIONS, '2.0', 'light', 'dark', 'ref/resource', 'ref/prompt')))
     token = {name: i + 1 for i, name in enumerate(tokens)}
     source = SOURCE
