@@ -117,10 +117,48 @@ class Captures:
 
 
 def literal_assignment(raw, name):
-    nodes = [node for node in ast.parse(raw).body if isinstance(node, ast.Assign)
-             and any(isinstance(target, ast.Name) and target.id == name for target in node.targets)]
-    require(len(nodes) == 1, 'source declaration is not unique: ' + name)
-    return ast.literal_eval(nodes[0].value)
+    """Read constant source catalogs, including explicit named tuple expansions."""
+    module = ast.parse(raw)
+    active = set()
+
+    def declaration(key):
+        require(key not in active, 'source declaration contains a cycle: ' + key)
+        nodes = [node for node in module.body if isinstance(node, ast.Assign)
+                 and any(isinstance(target, ast.Name) and target.id == key for target in node.targets)]
+        require(len(nodes) == 1 and len(nodes[0].targets) == 1,
+                'source declaration is not unique: ' + key)
+        require(not any(isinstance(node, (ast.AugAssign, ast.AnnAssign))
+                        and isinstance(node.target, ast.Name) and node.target.id == key
+                        for node in module.body), 'source declaration has another write: ' + key)
+        active.add(key)
+        try:
+            return value(nodes[0].value)
+        finally:
+            active.remove(key)
+
+    def value(node):
+        if isinstance(node, ast.Constant) and type(node.value) is str:
+            return node.value
+        if isinstance(node, ast.Name):
+            return declaration(node.id)
+        if isinstance(node, (ast.Tuple, ast.List)):
+            result = []
+            for item in node.elts:
+                if isinstance(item, ast.Starred):
+                    expanded = value(item.value)
+                    require(type(expanded) in (tuple, list), 'source expansion is not a literal sequence')
+                    result.extend(expanded)
+                else:
+                    result.append(value(item))
+            return tuple(result) if isinstance(node, ast.Tuple) else result
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left, right = value(node.left), value(node.right)
+            require(type(left) is type(right) and type(left) in (str, tuple, list),
+                    'source literal concatenation types differ')
+            return left + right
+        raise ValueError('source catalog contains a nonliteral expression')
+
+    return declaration(name)
 
 def source_map(repository, captures):
     contract = captures.json(repository / CONTRACT)

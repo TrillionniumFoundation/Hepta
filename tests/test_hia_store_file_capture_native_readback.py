@@ -157,6 +157,24 @@ class FileCaptureNativeCustodyTests(unittest.TestCase):
 
 
 class FileCaptureCurrentSourceTests(unittest.TestCase):
+    def test_literal_catalog_reads_named_nested_expansions_without_execution(self):
+        raw = b"A = ('first',)\nB = [*A, 'second']\nSOURCE_FILES = (*A, *B, 'last')\n"
+        self.assertEqual(reader.literal_assignment(raw, 'SOURCE_FILES'),
+                         ('first', 'first', 'second', 'last'))
+
+    def test_catalog_refuses_calls_cycles_duplicate_writes_and_string_spreads(self):
+        cases = (
+            b"SOURCE_FILES = tuple(['x'])\n",
+            b"A = B\nB = A\nSOURCE_FILES = (*A,)\n",
+            b"A = ('x',)\nA = ('y',)\nSOURCE_FILES = (*A,)\n",
+            b"SOURCE_FILES = ('x',)\nSOURCE_FILES += ('y',)\n",
+            b"SOURCE_FILES = (*'hidden',)\n",
+        )
+        for raw in cases:
+            with self.subTest(raw=raw):
+                with self.assertRaises(ValueError):
+                    reader.literal_assignment(raw, 'SOURCE_FILES')
+
     def test_complete_current_source_restores_all_original_callers(self):
         captures = reader.Captures()
         original, planned, sources, adjustments = reader.original_callers(ROOT, captures)

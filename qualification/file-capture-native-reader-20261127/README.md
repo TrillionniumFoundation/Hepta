@@ -18,8 +18,8 @@ Native compile receipts, all counters, the full raw unittest log, the producer
 CLI terminal, bundle membership and terminal rereads remain mandatory.
 The legacy cold path and original source-control return API remain available.
 
-Seven new focused controls plus the existing eight native-cold readback
-controls passed, as did the complete original two caller-source control
+Nine new focused controls plus the existing eight native-cold readback
+controls passed, including exact constant-catalog expansion without executing its module. So did the complete original two caller-source control
 methods and all sixteen Store source-history controls. Synthetic test records
 grant no native execution qualification. The original mixed-state refusal,
 the initial synthetic fixture's missing native authority and the real
