@@ -1,0 +1,73 @@
+{
+  "schema": "hepta.hia.worker-release-recipe-drift-regression.v1",
+  "original_head": "8ec7e3bfa7b98f1833eae48a873f506b99711f32",
+  "test_bytes": 1362,
+  "test_sha256": "51a143277dd8224d0f6657184ee110008bf30a95aa923d33031dc00efa1582a0",
+  "old_failure_expected": true,
+  "commands": [
+    {
+      "label": "old-negative",
+      "argv": [
+        "/usr/bin/python3",
+        "-I",
+        "-B",
+        "-c",
+        "import sys;sys.path.insert(0,'/home/qian-qi/hia-final-native-integration-20261127-2807/src');__file__='/home/qian-qi/hia-final-native-integration-20261127-2807/src/tests/test_hia_worker_release_recipe_closure.py';exec(compile('\"\"\"Guard the installed Worker\\'s checked HIA policies against release-plan drift.\"\"\"\\nfrom hashlib import sha256\\nfrom pathlib import Path\\nimport unittest\\n\\nfrom hepta.hia_agent_assembly import render_assembly\\nfrom tools.generate_hia_artifact_publication import document\\nfrom tools import generate_hia_worker_install_owner as author\\n\\nROOT = Path(__file__).resolve().parents[1]\\n\\n\\nclass WorkerReleaseRecipeClosureTests(unittest.TestCase):\\n    def test_all_checked_worker_policies_match_the_complete_release_generator(self):\\n        cases = (\\n            (\"worker_install_owner\", author.policy_source()),\\n            (\"worker_install_dag\", author.policy_source(stage=True)),\\n            (\"worker_install_owner_packer\", author.packer_source()),\\n        )\\n        for name, source in cases:\\n            with self.subTest(policy=name):\\n                expected = render_assembly(document(source, name)).encode()\\n                actual = (ROOT / \"examples/hia_bootstrap\" / (name + \".hepta\")).read_bytes()\\n                self.assertTrue(\\n                    actual == expected,\\n                    f\"{name}: checked {len(actual)} bytes / {sha256(actual).hexdigest()} \"\\n                    f\"differs from current release plan {len(expected)} bytes / \"\\n                    f\"{sha256(expected).hexdigest()}\",\\n                )\\n\\n\\nif __name__ == \"__main__\":\\n    unittest.main()\\n',__file__,'exec'))"
+      ],
+      "returncode": 1,
+      "elapsed_ns": 3671241088,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1832,
+        "sha256": "224ab18cb47f1b60474ec5f06181f111fc5f5de10607e8e3512d92cd32d35412"
+      }
+    },
+    {
+      "label": "candidate-controls",
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "unittest",
+        "-v",
+        "tests.test_hia_release_owner",
+        "tests.test_hia_worker_release_recipe_closure"
+      ],
+      "returncode": 0,
+      "elapsed_ns": 3792645171,
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "bytes": 1116,
+        "sha256": "bec7b7a841882040f053c8eac82e5470422c6eb469a2037ff329dba0c62538f2"
+      }
+    },
+    {
+      "label": "candidate-generator-check",
+      "argv": [
+        "/usr/bin/python3",
+        "-B",
+        "-m",
+        "tools.generate_hia_worker_install_owner",
+        "--check"
+      ],
+      "returncode": 0,
+      "elapsed_ns": 3459532713,
+      "stdout": {
+        "bytes": 533,
+        "sha256": "9d19fafa1e45924c724e330483201a21286059ec52ea86bc49dac81563a229a0"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "whole_worker_qualified": false,
+  "passed": true
+}
