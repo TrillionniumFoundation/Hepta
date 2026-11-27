@@ -62,6 +62,8 @@ advance:
     je module_history
     cmp QWORD PTR [r15+16],16
     je module_archive_query
+    cmp QWORD PTR [r15+16],17
+    je module_batch
     jmp invalid
 module_session:
     .byte 0xe8
@@ -148,12 +150,19 @@ module_archive_query:
 .global audit_archive_query_hole
 audit_archive_query_hole: .long 0
     jmp returned
+module_batch:
+    .byte 0xe8
+.global audit_batch_hole
+audit_batch_hole: .long 0
+    jmp returned
 returned:
     mov eax,eax
     cmp eax,6
     je advance
     cmp eax,1
     je syscall_action
+    cmp eax,2
+    je relocate_action
     cmp eax,4
     je json_action
     jmp invalid
@@ -200,6 +209,42 @@ argument_ready:
     mov r9,[rsp+40]
     syscall
     mov [r15+8],rax
+    jmp advance
+relocate_action:
+    mov rbx,[r14]
+    mov rbp,[r14+8]
+    mov rdx,[r14+16]
+    test rbp,rbp
+    jz invalid
+    cmp rbp,4099
+    ja invalid
+    cmp rbx,STATE_BYTES
+    jae invalid
+    cmp rdx,STATE_BYTES
+    jae invalid
+    lea rax,[rbx+rbp*8]
+    cmp rax,STATE_BYTES
+    ja invalid
+    lea rax,[rdx+rbp*8]
+    cmp rax,STATE_BYTES
+    ja invalid
+relocate_word:
+    mov rax,[r15+rbx]
+    cmp rax,-1
+    je null_word
+    cmp rax,STATE_BYTES
+    jae invalid
+    add rax,r15
+    jmp store_word
+null_word:
+    xor eax,eax
+store_word:
+    mov [r15+rdx],rax
+    add rbx,8
+    add rdx,8
+    dec rbp
+    jnz relocate_word
+    mov QWORD PTR [r15+8],0
     jmp advance
 json_action:
     xor ebx,ebx

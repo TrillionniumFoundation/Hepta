@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch.py", line 235, in <module>
+    if __name__=='__main__':main()
+                            ~~~~^^
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch.py", line 233, in main
+    r=qualify(a.audit.resolve(),a.output.resolve());print(json.dumps({'passed':r['passed'],'passed_count':r.get('passed_count')}))
+  File "/home/qian-qi/hia-usage-native-20261127-2807/src/tools/qualify_hia_mcp_metadata_batch.py", line 182, in qualify
+    assert result['requests'][0]['state']=='unknown',result
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'archive_retention': 'no_automatic_metadata_eviction', 'automatic_operation_retry': False, 'contains_parameters_or_output': False, 'coverage': 'metadata_retained_at_archive_introduction_and_subsequent_admitted_requests', 'history_is_live': True, 'next_after_id': None, 'requests': [{'accepted_unix_ms': 1795810266574, 'elapsed_ms': None, 'request_id': '72d25b3ba25ca6d4ef33dd9b6b4a4ebe44481fc8c3b61f0ac82530226ddb1c58', 'state': 'accepted', 'tool_name': 'hia_describe'}], 'total': 12289}

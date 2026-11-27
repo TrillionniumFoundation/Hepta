@@ -7,9 +7,9 @@ from tools.generate_hia_mcp_service import document
 from tools.generate_hia_json_decode import source_program as generic_json
 from tools.generate_hia_native_filter import LINK_SOURCE
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENTS = ('session','files','records','archive','layout','retention','root','scan','write','recovery','leases','open','response','metadata','intent','history','archive_query')
+COMPONENTS = ('session','files','records','archive','layout','retention','root','scan','write','recovery','leases','open','response','metadata','intent','history','archive_query','batch')
 ROLES = COMPONENTS + ('json',)
-PACK_MAGIC = b'HIARAU03'
+PACK_MAGIC = b'HIARAU04'
 
 def adapter_source():
     source = '''/* Mechanical Linux syscall/byte-ABI translation. All request,
@@ -54,12 +54,14 @@ advance:
     je advance
     cmp eax,1
     je syscall_action
+    cmp eax,2
+    je relocate_action
     cmp eax,4
     je json_action
     jmp invalid
 '''
     original=(ROOT/'tools/hia_mcp_service_syscalls.S').read_text()
-    source += original[original.index('syscall_action:'):original.index('relocate_action:')]
+    source += original[original.index('syscall_action:'):original.index('json_action:')]
     source += '''json_action:
     xor ebx,ebx
     xor ebp,ebp

@@ -12,7 +12,7 @@ def advance(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     if phase == 1:
         index = local(w,0)
         if index == 32:
-            if get(w,CURRENT_PHASE) == 0:
+            if get(w,CURRENT_PHASE) == 0 or get(w,B_ACTIVE) != 0:
                 return done(w,0)
             flock_bytes(w,at+512,1,64+get(w,CURRENT_SLOT))
             return call(o,w,6,72,get(w,DAEMON_AUDITFD),5,at+512,0,0,0,48)
