@@ -1,0 +1,35 @@
+test_complete_protocol_graph_and_effect_set (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_complete_protocol_graph_and_effect_set) ... ok
+test_five_original_definitions_signatures_and_retained_prefix (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_five_original_definitions_signatures_and_retained_prefix) ... ERROR
+test_historical_service_inverse_refuses_changed_physical_input (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_historical_service_inverse_refuses_changed_physical_input) ... ok
+test_packaged_source_and_complete_original_caller_scope (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_packaged_source_and_complete_original_caller_scope) ... ok
+test_reviewed_scope_proof_matches_physical_captures_and_independent_reader (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_reviewed_scope_proof_matches_physical_captures_and_independent_reader) ... ok
+setUpClass (tests.test_hia_caller_terminal_readback.CallerTerminalReadbackSourceTests) ... ERROR
+
+======================================================================
+ERROR: test_five_original_definitions_signatures_and_retained_prefix (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_five_original_definitions_signatures_and_retained_prefix)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/test_hia_service_bootstrap_sources.py", line 21, in test_five_original_definitions_signatures_and_retained_prefix
+    historical=retained_bootstrap_service(raw)
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/hia_store_delivery_successor.py", line 136, in retained_bootstrap_service
+    restored = reverse_exact(restored, record, {
+        'bytes': record['old_bytes'], 'sha256': record['old_sha256']})
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/hia_store_delivery_successor.py", line 86, in reverse_exact
+    raise ValueError('successor whole-file identity differs')
+ValueError: successor whole-file identity differs
+
+======================================================================
+ERROR: setUpClass (tests.test_hia_caller_terminal_readback.CallerTerminalReadbackSourceTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/test_hia_caller_terminal_readback.py", line 104, in setUpClass
+    cls.seed[name] = reviewed_source(ROOT, name, cls.physical[name])
+                     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/hia_frozen_component_sources.py", line 53, in reviewed_source
+    raise ValueError('unreviewed physical component source: ' + name)
+ValueError: unreviewed physical component source: tests/test_hia_evaluation_native.py
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.192s
+
+FAILED (errors=2)

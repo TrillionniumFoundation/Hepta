@@ -3,6 +3,7 @@
 The native location index is only a path/byte binding. Every public selection
 still passes the unchanged complete native or legacy cold admission gate.
 """
+from dataclasses import dataclass
 from hashlib import sha256
 import os
 from pathlib import Path
@@ -15,6 +16,7 @@ from tools.hia_native_cold_admission import SCHEMA as NATIVE_SCHEMA, read_json
 INDEX_SCHEMA = "hepta.hia.native-cold-generation-index.v1"
 MAX_REPORT_BYTES = 16 * 1024 * 1024
 MAX_COMPILER_BYTES = 1024 * 1024
+NATIVE_CUSTODY_INPUTS = ("tools/hia_cold_compiler.py", "tools/hia_component_input_custody.py")
 
 
 def _require(condition, message):
@@ -107,8 +109,66 @@ def read_native_locations(cold_path, cold_raw, index_raw):
     return images
 
 
-def compiler_from_cold_report(cold_report, *, generation_index=None):
-    """Return B3 only after complete admission and all physical inputs are reread."""
+@dataclass(frozen=True)
+class ColdBuildInputs:
+    """Admitted original inputs; this is not a synthesized qualification report.
+
+    ``location`` is the original native location index or the original hosted
+    nested report. Callers must use ``native`` when interpreting its fields.
+    """
+
+    report_path: Path
+    report_bytes: bytes
+    report: dict
+    location_path: Path
+    location_bytes: bytes
+    location: dict
+    generations: tuple
+    sources: dict
+    source_head: str | None
+
+    @property
+    def native(self):
+        return self.report["schema"] == NATIVE_SCHEMA
+
+    @property
+    def compiler(self):
+        return self.generations[-1][0]
+
+    @property
+    def compiler_bytes(self):
+        return self.generations[-1][1]
+
+    @property
+    def files(self):
+        return ((self.report_path, self.report_bytes),
+                (self.location_path, self.location_bytes), *self.generations)
+
+    def unchanged(self):
+        _require(_regular(self.report_path, MAX_REPORT_BYTES) == self.report_bytes
+                 and _regular(self.location_path, MAX_REPORT_BYTES) == self.location_bytes
+                 and all(_regular(path, MAX_COMPILER_BYTES) == raw
+                         for path, raw in self.generations),
+                 "cold generation inputs changed after complete admission")
+
+    def capture_custody(self, captured, *, root):
+        """Keep explicit host authoring inputs tied to this exact native campaign."""
+        from tools.hia_component_input_custody import capture_component_custody
+        custody = capture_component_custody(self.compiler_bytes, self.report_bytes,
+                                             self.sources, captured, root=root)
+        if self.native:
+            _require(custody["source_head"] == self.source_head,
+                     "component authoring commit differs from the native cold campaign")
+        self.unchanged()
+        return custody
+
+
+def read_cold_build_inputs(cold_report, *, generation_index=None):
+    """Admit both original domains and retain every actual source/generation input.
+
+    No qualification fields or hosted report are manufactured. The native
+    domain is always admitted through its complete unchanged HIA cold gate.
+    """
     cold_path = Path(cold_report).absolute()
     cold_raw = _regular(cold_path, MAX_REPORT_BYTES)
     report = read_json(cold_raw)
@@ -119,6 +179,8 @@ def compiler_from_cold_report(cold_report, *, generation_index=None):
         index_raw = _regular(index_path, MAX_REPORT_BYTES)
         images = read_native_locations(cold_path, cold_raw, index_raw)
         supporting_path, supporting_raw = index_path, index_raw
+        location = read_json(index_raw)
+        source_head = location["source_head"]
     else:
         _require(report.get("schema") == "hepta.hia.selfhost-cold-replay.v1"
                  and generation_index is None, "unrecognized cold source domain")
@@ -142,10 +204,27 @@ def compiler_from_cold_report(cold_report, *, generation_index=None):
                  and all(raw == images[-1][1] for _, raw in images),
                  "legacy cold generations are not distinct identical outputs")
         supporting_path, supporting_raw = nested_path, nested_raw
+        location, source_head = nested, None
     from tools.build_hia_json_preflight import admit_cold_build
-    admit_cold_build(images[-1][1], cold_raw)
-    _require(_regular(cold_path, MAX_REPORT_BYTES) == cold_raw
-             and _regular(supporting_path, MAX_REPORT_BYTES) == supporting_raw
-             and all(_regular(path, MAX_COMPILER_BYTES) == raw for path, raw in images),
-             "cold generation inputs changed after complete admission")
-    return images[-1][0]
+    sources = admit_cold_build(images[-1][1], cold_raw)
+    inputs = ColdBuildInputs(cold_path, cold_raw, report, supporting_path, supporting_raw,
+                             location, tuple(images), sources, source_head)
+    inputs.unchanged()
+    return inputs
+
+
+def compiler_from_cold_report(cold_report, *, generation_index=None):
+    """Return physical B3 only after complete admission and input readback."""
+    return read_cold_build_inputs(cold_report, generation_index=generation_index).compiler
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--cold-report", type=Path, required=True)
+    args = parser.parse_args()
+    print(compiler_from_cold_report(args.cold_report))
+
+
+if __name__ == "__main__":
+    main()

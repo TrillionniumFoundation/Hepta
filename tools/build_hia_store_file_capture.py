@@ -65,8 +65,19 @@ def build(output, compiler, cold_report=None, *, development=False):
     captured = {name: (ROOT / name).read_bytes() for name in INPUTS}
     cold_bytes = None if development else Path(cold_report).read_bytes()
     sources = None if development else admit_cold_build(compiler_bytes, cold_bytes)
-    custody = None if development else capture_component_custody(
-        compiler_bytes, cold_bytes, sources, captured, root=ROOT)
+    cold_inputs, custody, development_inputs = None, None, {}
+    if sources is not None:
+        from tools.hia_native_cold_admission import SCHEMA, read_json
+        if read_json(cold_bytes).get('schema') == SCHEMA:
+            from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS, read_cold_build_inputs
+            cold_inputs = read_cold_build_inputs(cold_report)
+            if cold_inputs.compiler_bytes != compiler_bytes or cold_inputs.sources != sources:
+                raise ValueError('component compiler or source differs from the admitted cold inputs')
+            development_inputs = {name: (ROOT / name).read_bytes() for name in NATIVE_CUSTODY_INPUTS}
+            custody = cold_inputs.capture_custody({**captured, **development_inputs}, root=ROOT)
+        else:
+            custody = capture_component_custody(
+                compiler_bytes, cold_bytes, sources, captured, root=ROOT)
     output.mkdir(mode=0o700)
     source = captured[SOURCE_NAME]
     image, receipt = compile_stage(output, 'store_file_capture', compiler, source)
@@ -79,7 +90,10 @@ def build(output, compiler, cold_report=None, *, development=False):
                                         or current_sources() != sources))):
         raise ValueError('store file capture construction inputs or output changed')
     if not development:
-        verify_component_custody(custody, compiler_bytes, cold_bytes, sources, captured, root=ROOT)
+        verify_component_custody(custody, compiler_bytes, cold_bytes, sources,
+                                 {**captured, **development_inputs}, root=ROOT)
+    if cold_inputs is not None:
+        cold_inputs.unchanged()
     manifest = {'schema': 'hepta.hia.store-file-capture.v2',
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image_bytes).hexdigest(),
@@ -116,6 +130,7 @@ def build(output, compiler, cold_report=None, *, development=False):
     }
     if custody is not None:
         report['component_input_custody'] = custody
+        report['development_inputs'] = {name: sha256(raw).hexdigest() for name, raw in development_inputs.items()}
     (output / 'build.json').write_text(json.dumps(report, sort_keys=True, indent=2) + '\n')
     return output / 'manifest.json'
 

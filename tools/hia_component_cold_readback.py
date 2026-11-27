@@ -9,7 +9,9 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
-from tools.hia_cold_compiler import MAX_REPORT_BYTES, _regular, read_native_locations
+from tools.hia_cold_compiler import (
+    ColdBuildInputs, MAX_REPORT_BYTES, NATIVE_CUSTODY_INPUTS, _regular, read_native_locations,
+)
 from tools.hia_component_input_custody import verify_component_custody
 from tools.hia_native_cold_admission import SCHEMA, admit_native_report, read_json
 from tools.hia_native_worker_source_authority import checked_paths
@@ -98,15 +100,27 @@ def read_native_cold(root, cold_path, compiler_path, compiler_bytes, *, read):
     return sources
 
 
-def native_cold_compiler(root, cold_path, *, read):
-    """Locate B3, then independently admit its complete native source domain."""
+def native_cold_inputs(root, cold_path, *, read):
+    """Retain the five original physical inputs after independent full admission."""
     cold_path = Path(cold_path).absolute()
     cold_raw = _physical(cold_path, read, limit=MAX_REPORT_BYTES)
-    index_raw = _physical(cold_path.with_suffix('.generations.json'), read, limit=MAX_REPORT_BYTES)
+    index_path = cold_path.with_suffix('.generations.json')
+    index_raw = _physical(index_path, read, limit=MAX_REPORT_BYTES)
     images = read_native_locations(cold_path, cold_raw, index_raw)
     path, raw = images[-1]
     sources = read_native_cold(root, cold_path, path, raw, read=read)
-    return path, raw, sources
+    location = read_json(index_raw)
+    inputs = ColdBuildInputs(cold_path, cold_raw, read_json(cold_raw), index_path,
+                             index_raw, location, tuple(images), sources,
+                             location['source_head'])
+    inputs.unchanged()
+    return inputs
+
+
+def native_cold_compiler(root, cold_path, *, read):
+    """Locate B3, then independently admit its complete native source domain."""
+    inputs = native_cold_inputs(root, cold_path, read=read)
+    return inputs.compiler, inputs.compiler_bytes, inputs.sources
 
 
 def read_component_inputs(root, build, compiler_bytes, cold_path, *, read):
@@ -119,7 +133,7 @@ def read_component_inputs(root, build, compiler_bytes, cold_path, *, read):
                  for name, digest in names.items()), 'physical component input differs from its build')
     if cold_path is None:
         _require(build.get('source_manifest') is None and build.get('cold_report_sha256') is None
-                 and 'component_input_custody' not in build,
+                 and 'component_input_custody' not in build and 'development_inputs' not in build,
                  'development component invented cold or native authoring authority')
         return captured
     cold_raw = _physical(Path(cold_path), read, limit=MAX_REPORT_BYTES)
@@ -130,10 +144,20 @@ def read_component_inputs(root, build, compiler_bytes, cold_path, *, read):
              'component build does not bind the exact admitted cold bytes')
     if cold.get('schema') == SCHEMA:
         _require('component_input_custody' in build, 'native component omitted separate authoring custody')
+        development = {}
+        if 'development_inputs' in build:
+            pins = build['development_inputs']
+            _require(type(pins) is dict and set(pins) == set(NATIVE_CUSTODY_INPUTS)
+                     and not set(pins).intersection(cold['source_manifest']),
+                     'native component development input whitelist or source domain differs')
+            development = {name: _physical(root / name, read, allow_empty=True) for name in pins}
+            _require(all(type(digest) is str and sha256(development[name]).hexdigest() == digest
+                         for name, digest in pins.items()),
+                     'physical component development input differs from its build')
         verify_component_custody(build['component_input_custody'], compiler_bytes, cold_raw,
-                                 cold['source_manifest'], captured, root=root)
+                                 cold['source_manifest'], {**captured, **development}, root=root)
     else:
-        _require('component_input_custody' not in build
+        _require('component_input_custody' not in build and 'development_inputs' not in build
                  and all(cold['source_manifest'].get(name) == digest for name, digest in names.items()),
                  'legacy component input is not in the complete admitted cold source')
     return captured

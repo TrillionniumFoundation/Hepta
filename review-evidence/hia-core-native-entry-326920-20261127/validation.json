@@ -1,0 +1,227 @@
+{
+  "actual": {
+    "after": {
+      "admitted": true,
+      "complete_admission_passed": true,
+      "five_original_inputs": 5,
+      "images": [
+        {
+          "bytes": 641344,
+          "name": "B1",
+          "prefix_hex": "554889e54883ec4048897dc0488975c8488955d048894dd84c8985e0ffffff4c",
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+        },
+        {
+          "bytes": 641344,
+          "name": "B2",
+          "prefix_hex": "554889e54883ec4048897dc0488975c8488955d048894dd84c8985e0ffffff4c",
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+        },
+        {
+          "bytes": 641344,
+          "name": "B3",
+          "prefix_hex": "554889e54883ec4048897dc0488975c8488955d048894dd84c8985e0ffffff4c",
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+        }
+      ],
+      "original_cold_sha256": "c40e0736b58b00644a5176467d08063421a3fb581caa35fb8b49099cb98628d6",
+      "original_index_sha256": "d171637b4f95805b62629be876df104b294f39ee53d626c5fde13adfc26ad5f9",
+      "original_source_head": "32692030505f2e81e9d33e22dbf6857c65af83ed",
+      "phase": "after",
+      "qualification_mocks_used": false,
+      "relocated_index": "/tmp/hia-core-wiring-validation-v2-326920-2807/after.relocated.generations.json",
+      "relocation_scope": "Location-index paths only; original cold and images unchanged; no qualification fields synthesized",
+      "report_schema": "hepta.hia.selfhost-cold-replay.v2",
+      "selector_sha256": "9c582212d97010868e00fedfebbb11d8469e8857c8b3f218d737d1d6cb6cabcb",
+      "source_count": 1284,
+      "source_head": "32692030505f2e81e9d33e22dbf6857c65af83ed"
+    },
+    "before": {
+      "admitted": false,
+      "complete_admission_passed": false,
+      "error": "ValueError: physical native compiler bytes differ from the generation index",
+      "images": [
+        {
+          "bytes": 641344,
+          "name": "B1",
+          "prefix_hex": "554889e54883ec4048897dc0488975c8488955d048894dd84c8985e0ffffff4c",
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+        },
+        {
+          "bytes": 641344,
+          "name": "B2",
+          "prefix_hex": "554889e54883ec4048897dc0488975c8488955d048894dd84c8985e0ffffff4c",
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+        },
+        {
+          "bytes": 641344,
+          "name": "B3",
+          "prefix_hex": "554889e54883ec4048897dc0488975c8488955d048894dd84c8985e0ffffff4c",
+          "sha256": "acb6478d1a466d17210611c5fcbbd5aeec3109b0813e917f0bb5c8419f3c33a9"
+        }
+      ],
+      "original_cold_sha256": "c40e0736b58b00644a5176467d08063421a3fb581caa35fb8b49099cb98628d6",
+      "original_index_sha256": "d171637b4f95805b62629be876df104b294f39ee53d626c5fde13adfc26ad5f9",
+      "original_source_head": "32692030505f2e81e9d33e22dbf6857c65af83ed",
+      "phase": "before",
+      "qualification_mocks_used": false,
+      "relocated_index": "/tmp/hia-core-wiring-validation-v2-326920-2807/before.relocated.generations.json",
+      "relocation_scope": "Location-index paths only; original cold and images unchanged; no qualification fields synthesized",
+      "selector_sha256": "0687e0ae06602d040dbbcbbaac1467ab1430a3de8ce9ffddc50a42c5eeaab3cc"
+    }
+  },
+  "base_head": "32692030505f2e81e9d33e22dbf6857c65af83ed",
+  "before_regressions": {
+    "error_ids": [
+      "tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_admitted_view_retains_original_native_and_hosted_domains",
+      "tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_every_original_input_is_reread_after_admission_and_at_use",
+      "tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_three_original_images_are_read_with_no_hosted_report_synthesis",
+      "tests.test_hia_native_cold_custody_readers.NativeColdCustodyReaderTests.test_source_suite_keeps_original_methods_and_both_explicit_supplements"
+    ],
+    "errors": 4,
+    "expected_failures": 0,
+    "failed_ids": [
+      "tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_every_original_input_is_reread_after_admission_and_at_use (path='cold.json', phase='admission')",
+      "tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_index_cannot_qualify_an_unadmitted_report"
+    ],
+    "failures": 2,
+    "passed": false,
+    "planned": 11,
+    "run": 11,
+    "scope": "before-regressions",
+    "selectors": [
+      "tests.test_hia_cold_compiler",
+      "tests.test_hia_native_cold_custody_readers.NativeColdCustodyReaderTests.test_source_suite_keeps_original_methods_and_both_explicit_supplements"
+    ],
+    "skips": 0,
+    "unexpected_successes": 0,
+    "wall_elapsed_ns": 191762564
+  },
+  "changed_files": {
+    "tests/test_hia_cold_compiler.py": {
+      "bytes": 9725,
+      "sha256": "4534eb389b79e6983a04f5a0ac3f64f8aa062a8fd308ee9f8751e353906d2596"
+    },
+    "tests/test_hia_native_cold_custody_readers.py": {
+      "bytes": 18634,
+      "sha256": "663ade8bbd363c9f29fdea7dd88130c30946b59d39a9cb30e5fee32f0c979a2e"
+    },
+    "tools/hia_cold_compiler.py": {
+      "bytes": 10577,
+      "sha256": "9c582212d97010868e00fedfebbb11d8469e8857c8b3f218d737d1d6cb6cabcb"
+    },
+    "tools/read_hia_service_bootstrap.py": {
+      "bytes": 110941,
+      "sha256": "f2ef05dde388e48f0477f3f76714c761a7cac16a7481cce93b651bff19b88f1e"
+    }
+  },
+  "logs": {
+    "after.actual-compiler.json": {
+      "bytes": 1562,
+      "sha256": "099c6e04c1265ed7282a45ed60918d6f7ab507ff37855d0281f6ee96962321a3"
+    },
+    "after.driver.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "after.driver.stdout": {
+      "bytes": 1424,
+      "sha256": "119fba54bc2dc16bc8fd30c69d5a35bdff73aeff79c944b56f80c3145958229d"
+    },
+    "after.relocated.generations.json": {
+      "bytes": 1278,
+      "sha256": "30df6278d39bcd37429fd9853a3be182006795cf3f02e6e97845eebeb1e93dbf"
+    },
+    "before.actual-compiler.json": {
+      "bytes": 1486,
+      "sha256": "d7e4d1bb0ce0cbb6ff46b7f61879b0797a49a014038e016078e2ef138ee89f6b"
+    },
+    "before.driver.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "before.driver.stdout": {
+      "bytes": 1354,
+      "sha256": "d1899a1ed0db81de023e84df482630de4848d359d0380105446ed99a85e0c0fc"
+    },
+    "before.relocated.generations.json": {
+      "bytes": 1278,
+      "sha256": "30df6278d39bcd37429fd9853a3be182006795cf3f02e6e97845eebeb1e93dbf"
+    },
+    "read_actual_compiler.py": {
+      "bytes": 3267,
+      "sha256": "466428ab629c6a377489ebae95ee38412487ad1e43b6a5a71edf5b4da596b23f"
+    },
+    "run_controls.py": {
+      "bytes": 955,
+      "sha256": "bbd716a6ae75f69fefe9264fd1de57345ab0d202cceacaa0ba813e103970ffb0"
+    },
+    "strict.driver.stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "strict.driver.stdout": {
+      "bytes": 622,
+      "sha256": "6e1252568a8c276ea2e2d87b65bf6fb25438fac9bdd27e064ebb3478de364ed8"
+    },
+    "strict.json": {
+      "bytes": 682,
+      "sha256": "e712da34285d59b2962d35922981fdfbd06ccb604986184f98c21071fb00becd"
+    },
+    "strict.log": {
+      "bytes": 10389,
+      "sha256": "40b567c2a9ba7e036b6dca9639f13fee9f94b81655f512253eb452ff7005083d"
+    }
+  },
+  "native_cold_rerun": false,
+  "prior_attempt_limitations": [
+    "Initial readback harness wrote a literal backslash-n after its relocated index; neither initial actual-admission observation is qualification evidence.",
+    "First inventory repair used a set with a JSON-based equality helper; the resulting TypeError was retained and repaired with sorted lists."
+  ],
+  "prior_attempt_sha256": "dbb265dde2280dc46a9700ecc587a714f2f5e9e0f10976da14df2fefb7518744",
+  "retained_predecessor": {
+    "error_ids": [
+      "tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_five_original_definitions_signatures_and_retained_prefix",
+      "setUpClass (tests.test_hia_caller_terminal_readback.CallerTerminalReadbackSourceTests)"
+    ],
+    "errors": 2,
+    "expected_failures": 0,
+    "failed_ids": [],
+    "failures": 0,
+    "passed": false,
+    "planned": 7,
+    "run": 5,
+    "scope": "retained-predecessor-controls",
+    "selectors": [
+      "tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests",
+      "tests.test_hia_caller_terminal_readback.CallerTerminalReadbackSourceTests"
+    ],
+    "skips": 0,
+    "unexpected_successes": 0,
+    "wall_elapsed_ns": 192150313
+  },
+  "strict": {
+    "error_ids": [],
+    "errors": 0,
+    "expected_failures": 0,
+    "failed_ids": [],
+    "failures": 0,
+    "passed": true,
+    "planned": 50,
+    "run": 50,
+    "scope": "strict",
+    "selectors": [
+      "tests.test_hia_cold_compiler",
+      "tests.test_hia_native_cold_ci",
+      "tests.test_hia_component_input_custody",
+      "tests.test_hia_native_cold_custody_readers",
+      "tests.test_hia_cold_native_transport.ColdNativeTransportSourceTests",
+      "tests.test_hia_cold_native_transport.ColdNativeTransportLibraryPathTests",
+      "tests.test_hia_cold_native_transport_controls.ColdNativeTransportControlsSourceTests"
+    ],
+    "skips": 0,
+    "unexpected_successes": 0,
+    "wall_elapsed_ns": 2229690259
+  },
+  "whole_native_delivery_qualified": false
+}

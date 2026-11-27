@@ -247,7 +247,22 @@ assert current.pin(result)['sha256']=='673b1e330b48df5915a4a544188397e33055ac023
             'tools/read_hia_store_file_capture_callers.py'})
         for name, row in value['files'].items():
             physical = (ROOT / name).read_bytes()
-            prior = frozen.history_inverse(physical, row,
+            reviewed = physical
+            if name == 'tools/read_hia_store_file_capture_callers.py':
+                core_path = ROOT / 'tests/fixtures/hia_current_store_core_reader_v1.json'
+                core_raw = core_path.read_bytes()
+                self.assertEqual({'bytes': len(core_raw), 'sha256': sha256(core_raw).hexdigest()},
+                                 {"bytes":8315,"sha256":"09aa48b2a4304b80e9999819d2364e28fd4db94dfa0947b236550c261b88afb0"})
+                core = json.loads(core_raw)
+                self.assertEqual(core['schema'], 'hepta.hia.current-store-core-reader-source-history.v1')
+                self.assertIs(core['original_source_history_fixtures_modified'], False)
+                self.assertIs(core['original_callers_and_limits_modified'], False)
+                self.assertIs(core['whole_native_delivery_qualified'], False)
+                self.assertEqual(set(core['files']), {name})
+                reviewed = frozen.history_inverse(physical, core['files'][name],
+                    {'bytes': row['new_bytes'], 'sha256': row['new_sha256']})
+                self.assertEqual(core_path.read_bytes(), core_raw)
+            prior = frozen.history_inverse(reviewed, row,
                 {'bytes': row['old_bytes'], 'sha256': row['old_sha256']})
             if name == 'tests/test_hia_store_source_history.py':
                 def methods(source):
