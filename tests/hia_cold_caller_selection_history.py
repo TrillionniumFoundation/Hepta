@@ -1,7 +1,8 @@
 """Exact source history for strict native-cold selection in seven caller qualifiers.
 
-Only the two fixed selection splices are reversed. Every prior full-file
-inventory, method, assertion, budget and terminal-capture check remains active.
+The fixed v1 selection relation and a separate immutable v2 source-admission
+relation are reversed in order. Every prior full-file inventory, method,
+assertion, budget and terminal-capture check remains active.
 This data-only helper grants source-history admission, never caller execution.
 """
 from hashlib import sha256
@@ -97,7 +98,7 @@ def _pairs(items):
         value[key] = item
     return value
 
-def reviewed(name, raw, *, root=None, take=Path.read_bytes):
+def _review_selection(name, raw, *, root=None, take=Path.read_bytes):
     """Restore only a fixed complete successor and retain its explicit proof."""
     actual = pin(raw)
     expected = EXPECTED.get(name)
@@ -161,20 +162,161 @@ def reviewed(name, raw, *, root=None, take=Path.read_bytes):
         'whole_native_delivery_qualified': False,
     }
 
+
+INTEGRATED_FIXTURE = 'tests/fixtures/hia_cold_caller_selection_history_v2.json'
+INTEGRATED_FIXTURE_PIN = {'bytes': 33797, 'sha256': '4746d645ffb37c63f7fb7cb20eaa3c884d6e1a7b364da5b97f31dc162e1f31f7'}
+INTEGRATED_EXPECTED = {
+    "tools/qualify_hia_cost_ledger_callers.py": {
+        "old": {
+            "bytes": 10465,
+            "sha256": "bd9682ab67948b2632523b55d595becfed7fe1f860b2544bd8449f1c052a20a1"
+        },
+        "new": {
+            "bytes": 13175,
+            "sha256": "e9acf21baa7a49bbf54fceb0ade491d08ab5ba4c61fb428883fb9e605fdd85ba"
+        }
+    },
+    "tools/qualify_hia_service_context_callers.py": {
+        "old": {
+            "bytes": 11881,
+            "sha256": "c4de90f655d57d0036313f5a454863bfd85b40adfbe73a16efb16ce13eff2d6f"
+        },
+        "new": {
+            "bytes": 14591,
+            "sha256": "1e3616ea50a545ee510dd21c7a4ba71a347ffa218eeb5eac7665ab944321327a"
+        }
+    },
+    "tools/qualify_hia_store_lifecycle_callers.py": {
+        "old": {
+            "bytes": 10080,
+            "sha256": "2d49a7ae102d1ac11015a394a4bdf5cb71a3642b4d6818755097a699e65c3a04"
+        },
+        "new": {
+            "bytes": 13084,
+            "sha256": "8564aa10ae521d3cd3ead9d0a4b3bdda97167cfd07c869d0c75c991479a71a6c"
+        }
+    }
+}
+INTEGRATED_CALLERS = {
+    'tools/qualify_hia_cost_ledger_callers.py': 81,
+    'tools/qualify_hia_service_context_callers.py': 50,
+    'tools/qualify_hia_store_lifecycle_callers.py': 50,
+}
+INVERSE_HELPER = 'tools/hia_frozen_component_sources.py'
+INVERSE_HELPER_PIN = {
+    'bytes': 15561,
+    'sha256': '60a30ab07d6c58ef0523531636a3250cc9e75402bffe75a07115012efa5d0774',
+}
+
+def current_pin(name):
+    """Return an explicitly frozen complete current qualifier identity."""
+    return dict(INTEGRATED_EXPECTED.get(name, EXPECTED[name])['new'])
+
+def _integrated_proof(name):
+    expected = INTEGRATED_EXPECTED[name]
+    return {
+        'schema': 'hepta.hia.integrated-caller-source-admission-review.v2',
+        'path': name,
+        'old': dict(expected['old']), 'new': dict(expected['new']),
+        'fixture': {'path': INTEGRATED_FIXTURE, **INTEGRATED_FIXTURE_PIN},
+        'inverse_helper': {'path': INVERSE_HELPER, **INVERSE_HELPER_PIN},
+        'original_caller_count': INTEGRATED_CALLERS[name],
+        'complete_predecessor_restored': True, 'complete_successor_replayed': True,
+        'terminal_reread_identical': True, 'whole_native_delivery_qualified': False,
+    }
+
+def _integrated_predecessor(name, raw, root, take):
+    expected = INTEGRATED_EXPECTED.get(name)
+    if expected is None or pin(raw) != expected['new']:
+        return raw, None, {}
+    saved = {}
+    def capture(selected):
+        value = take(root / selected)
+        if selected in saved and value != saved[selected]:
+            raise ValueError('integrated caller history source changed during capture')
+        saved[selected] = value
+        return value
+    if capture(name) != raw:
+        raise ValueError('integrated caller history differs from selected-root source')
+    frozen, helper = capture(INTEGRATED_FIXTURE), capture(INVERSE_HELPER)
+    if pin(frozen) != INTEGRATED_FIXTURE_PIN or pin(helper) != INVERSE_HELPER_PIN:
+        raise ValueError('integrated caller history fixed fixture or inverse helper differs')
+    value = json.loads(frozen, object_pairs_hook=_pairs)
+    if (type(value) is not dict
+            or set(value) != {'schema', 'predecessor_commit', 'successor_commit',
+                             'source_kind', 'original_callers',
+                             'whole_native_delivery_qualified', 'files'}
+            or value['schema'] != 'hepta.hia.integrated-caller-source-admission-history.v2'
+            or value['predecessor_commit'] != '241551d273c98561225263750ba98d11d93bf81c'
+            or value['successor_commit'] != 'dd8f96ca7f2fa97f7711dc96dba5d5f43fbad2a4'
+            or value['source_kind'] != 'HOST_QUALIFIER_SOURCE_ADMISSION_ONLY'
+            or value['original_callers'] != INTEGRATED_CALLERS
+            or value['whole_native_delivery_qualified'] is not False
+            or type(value['files']) is not dict
+            or set(value['files']) != set(INTEGRATED_EXPECTED)):
+        raise ValueError('integrated caller history scope differs')
+    record = value['files'][name]
+    if (type(record) is not dict or set(record) != {'old', 'new', 'hunks'}
+            or record['old'] != expected['old'] or record['new'] != expected['new']
+            or expected['old'] != EXPECTED[name]['new']):
+        raise ValueError('integrated caller history fixed source chain differs')
+    from tools import hia_frozen_component_sources as inverse
+    if Path(inverse.__file__).read_bytes() != helper:
+        raise ValueError('integrated caller history imported another inverse helper')
+    selected = inverse.history_inverse(raw, {
+        'old_bytes': record['old']['bytes'], 'old_sha256': record['old']['sha256'],
+        'new_bytes': record['new']['bytes'], 'new_sha256': record['new']['sha256'],
+        'hunks': record['hunks'],
+    }, expected['old'])
+    return selected, _integrated_proof(name), saved
+
+def reviewed(name, raw, *, root=None, take=Path.read_bytes):
+    """Restore exact integrated admission, then the unchanged v1 selection."""
+    pin(raw)
+    root = ROOT if root is None else Path(root)
+    selected, integrated, saved = _integrated_predecessor(name, raw, root, take)
+    original, proof = _review_selection(name, selected, root=root, take=take)
+    if integrated is None:
+        return original, proof
+    if proof is None or pin(original) != EXPECTED[name]['old']:
+        raise ValueError('integrated caller history lost the original full-file authority')
+    for path, captured in saved.items():
+        if take(root / path) != captured:
+            raise ValueError('integrated caller history terminal source capture differs')
+    return original, {
+        **proof, 'new': dict(INTEGRATED_EXPECTED[name]['new']),
+        'integrated_source_admission': integrated,
+    }
+
 def predecessor(name, raw, *, root=None, take=Path.read_bytes):
     return reviewed(name, raw, root=root, take=take)[0]
 
 def bind_adjustment(entry, raw, proof):
-    """Bind a previously admitted original source to the actual new whole file."""
+    """Bind the actual complete source through both fixed history layers."""
     if proof is None:
         return entry
+    if type(proof) is not dict or proof.get('path') not in EXPECTED:
+        raise ValueError('caller selection source adjustment has no fixed path')
     name = proof['path']
     expected = EXPECTED[name]
-    prior = {'bytes': entry['current_bytes'], 'sha256': entry['current_sha256']}
+    actual = pin(raw)
+    integrated = proof.get('integrated_source_admission')
+    if integrated is None:
+        current = expected['new']
+    else:
+        if (name not in INTEGRATED_EXPECTED or type(integrated) is not dict
+                or integrated != _integrated_proof(name)
+                or integrated.get('complete_predecessor_restored') is not True
+                or integrated.get('complete_successor_replayed') is not True
+                or integrated.get('terminal_reread_identical') is not True
+                or integrated.get('whole_native_delivery_qualified') is not False):
+            raise ValueError('caller selection integrated source proof differs')
+        current = INTEGRATED_EXPECTED[name]['new']
+    prior = {'bytes': entry.get('current_bytes'), 'sha256': entry.get('current_sha256')}
     if (entry.get('path') != name
-            or pin(raw) != expected['new'] or proof['old'] != expected['old']
-            or proof['new'] != expected['new']
-            or prior not in (expected['old'], expected['new'])):
+            or actual != current or proof.get('old') != expected['old']
+            or proof.get('new') != current
+            or prior not in (expected['old'], expected['new'], current)):
         raise ValueError('caller selection source adjustment lost its admitted predecessor')
     return {**entry, 'current_bytes': len(raw), 'current_sha256': sha256(raw).hexdigest(),
             'native_cold_selection_source': proof}
