@@ -85,6 +85,7 @@ def main():
             raw, actual = read(source / name)
             source_pins[name] = pin(raw)
             actual_inputs[name] = raw
+        sys.path.insert(0, str(source))
         from tools.hia_bounded_read_source_history import prior_take
         historical_pins = {name: pin(prior_take(name, actual_inputs[name]))
                            for name in ("tests/test_hia_program_tools.py",

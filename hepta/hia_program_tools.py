@@ -79,6 +79,8 @@ def _native_selected_read_bounded(path, limit=MAX_INPUT_BYTES):
     return owner.read(arguments.pop(0), arguments.pop(0),
                       reference=_READ_BOUNDED_REFERENCE)
 
+_native_selected_read_bounded.__name__ = "read_bounded"
+_native_selected_read_bounded.__qualname__ = "read_bounded"
 read_bounded = _native_selected_read_bounded
 
 
