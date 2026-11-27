@@ -20,6 +20,38 @@ jobs:
         run: python -m pip install z3-solver==4.15.4.0
       - name: Check source identity
         run: python -B tools/generate_hia_selfhost_contract.py --check
+      - name: Check native cold admission refusal controls
+        run: python -B tools/run_hia_unittest_gate.py tests.test_hia_native_cold_component
+      - name: Construct and qualify the actual native cold compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v strace
+          python -B tools/replay_hia_native_cold.py --output "$RUNNER_TEMP/verified-native-cold.json"
+      - name: Build source-bound decoder and CNF manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B - <<'PY'
+          import json, os
+          from hashlib import sha256
+          from pathlib import Path
+          from tools.build_hia_json_preflight import build
+          parent = Path(os.environ['RUNNER_TEMP'])
+          report = parent / 'verified-native-cold.json'
+          index = json.loads((parent / 'verified-native-cold.generations.json').read_bytes())
+          assert index['schema'] == 'hepta.hia.native-cold-generation-index.v1'
+          assert index['location_index_only'] is True
+          assert index['native_report']['sha256'] == sha256(report.read_bytes()).hexdigest()
+          compiler = Path(index['generations'][-1]['produced_image'])
+          manifests = {
+              'HEPTA_HIA_SAFE_CORE_X64_DECODE_MANIFEST': build(parent / 'verified-decoder', compiler, report, candidate='safe-core-x64-decode'),
+              'HEPTA_HIA_CNF_MANIFEST': build(parent / 'verified-cnf', compiler, report, candidate='cnf'),
+          }
+          with Path(os.environ['GITHUB_ENV']).open('a') as stream:
+              for key, path in manifests.items():
+                  stream.write(key + '=' + str(path) + '\n')
+          PY
       - name: Final ELF, ABI, range, SIMD and negative controls
         shell: bash
         run: |
@@ -74,4 +106,22 @@ jobs:
         with:
           name: verified-kernel-tests
           path: verified-kernel-tests.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verified-native-cold-evidence
+          path: |
+            ${{ runner.temp }}/verified-native-cold.json
+            ${{ runner.temp }}/verified-native-cold.generations.json
+            ${{ runner.temp }}/verified-native-cold.native-cold/campaign.json
+            ${{ runner.temp }}/verified-native-cold.native-cold/*.stdout
+            ${{ runner.temp }}/verified-native-cold.native-cold/*.stderr
+            ${{ runner.temp }}/verified-native-cold.native-cold/preseed/report.json
+            ${{ runner.temp }}/verified-native-cold.native-cold/preparation/
+            ${{ runner.temp }}/verified-native-cold.native-cold/build/qualification.json
+            ${{ runner.temp }}/verified-native-cold.native-cold/export/qualification.json
+            ${{ runner.temp }}/verified-native-cold.native-cold/chain/
+            ${{ runner.temp }}/verified-decoder/
+            ${{ runner.temp }}/verified-cnf/
           if-no-files-found: warn

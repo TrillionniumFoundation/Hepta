@@ -18,8 +18,9 @@ if __package__ in {None, ''}:
 
 
 def current_sources():
-    from tools.hia_selfhost_contract import CONTRACT_PATH, validate_contract
-    contract = validate_contract()
+    from tools.hia_selfhost_contract import CONTRACT_PATH
+    from tools.hia_release_contract import validate_release_contract
+    contract = validate_release_contract(ROOT)
     return {**contract['source_identity']['files'],
             CONTRACT_PATH: sha256((ROOT / CONTRACT_PATH).read_bytes()).hexdigest()}
 
@@ -32,7 +33,14 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
     source map before publishing executable bytes.
     """
     from tools.hia_selfhost_contract import PROFILE
-    qualification = json.loads(cold_bytes)
+    from tools.hia_native_cold_admission import SCHEMA, admit_native_report, read_json
+    qualification = read_json(cold_bytes)
+    if type(qualification) is dict and qualification.get('schema') == SCHEMA:
+        from tools.hia_release_contract import validate_release_contract
+        from tools.generate_hia_native_observer import reference_image
+        return admit_native_report(compiler_bytes, cold_bytes,
+                                   contract=validate_release_contract(ROOT),
+                                   sources=current_sources(), observer_bytes=reference_image())
     compiler_sha = sha256(compiler_bytes).hexdigest()
     required_checks = {
         'export_manifest_matches_qualification', 'isolated_python_without_site',
