@@ -16,10 +16,11 @@ from hepta.hia_vm_integer_divrem_protocol import (ARITHMETIC_SCHEMA as SCHEMA,
     ARITHMETIC_IMAGE_NAME as IMAGE_NAME,
     ARITHMETIC_COMPONENT_INPUTS as COMPONENT_INPUTS)
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.hia_component_input_custody import capture_component_custody, verify_component_custody
 from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage
 
-INPUTS = (*COMPONENT_INPUTS, "setup.py", "MANIFEST.in",
+INPUTS = ('tools/hia_component_input_custody.py', *COMPONENT_INPUTS, "setup.py", "MANIFEST.in",
           "tests/test_hia_agent_installed_resources.py", "tools/build_hia_vm_integer_arithmetic.py",
           "tools/qualify_hia_vm_integer_arithmetic.py",
           "tools/read_hia_vm_integer_arithmetic.py",
@@ -48,9 +49,8 @@ def build(output, compiler, cold_report=None, *, development=False):
     captured = {name: (ROOT / name).read_bytes() for name in INPUTS}
     cold_bytes = None if development else Path(cold_report).read_bytes()
     sources = None if development else admit_cold_build(compiler_bytes, cold_bytes)
-    if sources is not None and any(sources.get(name) != sha256(raw).hexdigest()
-                                   for name, raw in captured.items()):
-        raise ValueError("div/rem inputs are not in the actual current cold source")
+    custody = None if development else capture_component_custody(
+        compiler_bytes, cold_bytes, sources, captured, root=ROOT)
     output.mkdir(mode=0o700)
     source = captured[SOURCE_NAME]
     image, receipt = compile_stage(output, "vm-integer-arithmetic", compiler, source)
@@ -65,6 +65,8 @@ def build(output, compiler, cold_report=None, *, development=False):
                                        or current_sources() != sources)):
         raise ValueError("div/rem build inputs or complete output changed")
     scope = "DEVELOPMENT_COMPONENT" if development else "MATCHING_SOURCE_COLD_COMPONENT"
+    if not development:
+        verify_component_custody(custody, compiler_bytes, cold_bytes, sources, captured, root=ROOT)
     manifest = {
         "schema": SCHEMA, "scope": scope, "source_sha256": sha256(source).hexdigest(),
         "image_path": image.name, "image_sha256": sha256(image_bytes).hexdigest(),
@@ -83,6 +85,8 @@ def build(output, compiler, cold_report=None, *, development=False):
         "whole_vm_native": False, "whole_stack_rewritten_in_hia": False,
         "all_input_equivalence_proved": False,
     }
+    if custody is not None:
+        report['component_input_custody'] = custody
     (output / "build.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return output / "manifest.json"
 

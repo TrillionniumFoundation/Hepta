@@ -12,11 +12,12 @@ if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.hia_component_input_custody import capture_component_custody, verify_component_custody
 from tools.build_hia_source_build import _check_pack_output
 from tools.qualify_hia_selfhost import compile_stage
 
 SOURCE_NAME = 'examples/hia_bootstrap/generation_retention.hepta'
-INPUTS = (SOURCE_NAME, 'tools/generate_hia_generation_retention.py',
+INPUTS = ('tools/hia_component_input_custody.py', SOURCE_NAME, 'tools/generate_hia_generation_retention.py',
           'tools/build_hia_generation_retention.py', 'hepta/hia_multiversion.py',
           'hepta/hia_generation_retention_native.py', 'hepta/hia_json_preflight_native.py')
 
@@ -29,9 +30,8 @@ def build(output, compiler, cold_report=None, *, development=False):
     captured = {name: (ROOT / name).read_bytes() for name in INPUTS}
     cold_bytes = None if development else Path(cold_report).read_bytes()
     sources = None if development else admit_cold_build(compiler_bytes, cold_bytes)
-    if sources is not None and any(sources.get(name) != sha256(raw).hexdigest()
-                                   for name, raw in captured.items()):
-        raise ValueError('generation retention inputs are not bound by current cold source')
+    custody = None if development else capture_component_custody(
+        compiler_bytes, cold_bytes, sources, captured, root=ROOT)
     output.mkdir(mode=0o700)
     source = captured[SOURCE_NAME]
     image, receipt = compile_stage(output, 'generation-retention', compiler, source)
@@ -43,6 +43,8 @@ def build(output, compiler, cold_report=None, *, development=False):
             or (sources is not None and (Path(cold_report).read_bytes() != cold_bytes
                                         or current_sources() != sources))):
         raise ValueError('generation retention construction inputs or output changed')
+    if not development:
+        verify_component_custody(custody, compiler_bytes, cold_bytes, sources, captured, root=ROOT)
     manifest = {'schema': 'hepta.hia.generation-retention-native.v1',
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image_bytes).hexdigest(),
@@ -59,6 +61,8 @@ def build(output, compiler, cold_report=None, *, development=False):
               'reference_count_fixed_width': False,
               'uncertain_transition_replay_permitted': False,
               'whole_stack_rewritten_in_hia': False, 'all_input_equivalence_proved': False}
+    if custody is not None:
+        report['component_input_custody'] = custody
     (output / 'build.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
     return output / 'manifest.json'
 

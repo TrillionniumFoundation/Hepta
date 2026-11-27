@@ -42,6 +42,8 @@ def _restore(data, record):
 
 def predecessor(name, data, reverse=_restore):
     """Unwrap only the exact reviewed file. Prior authorities check their own full bytes."""
+    from tests.hia_component_authoring_history import predecessor as component_predecessor
+    data = component_predecessor(name, data)
     record = _records().get(name)
     if record is None or sha256(data).hexdigest() != record['current']['sha256']:
         return data
