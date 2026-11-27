@@ -78,15 +78,15 @@ def receive(o:mutbuf,w:mutbuf) -> u32:
             return enter(w,M_SESSION,20)
         if get(w,READY) != 1 or shared_ok(w) == False:
             return session_error(w,30,0)
-        if get(w,CURRENT_PHASE) == 4:
+        if get(w,CURRENT_PHASE) >= 4:
             return call(o,w,14,228,1,frame(w)+2048,0,0,0,0,12)
         flock_bytes(w,271600,1,0)
         return call(o,w,12,72,get(w,DAEMON_AUDITFD),7,271600,0,0,0,48)
     if phase == 12:
-        if get(w,CURRENT_PHASE) == 4 and (result == 18446744073709551605 or result == 18446744073709551603):
+        if get(w,CURRENT_PHASE) >= 4 and (result == 18446744073709551605 or result == 18446744073709551603):
             return call(o,w,15,7,0,0,10,0,0,0,0)
         if result == NEG4:
-            if get(w,CURRENT_PHASE) == 4:
+            if get(w,CURRENT_PHASE) >= 4:
                 return call(o,w,14,228,1,frame(w)+2048,0,0,0,0,12)
             flock_bytes(w,271600,1,0)
             return call(o,w,12,72,get(w,DAEMON_AUDITFD),7,271600,0,0,0,48)
@@ -103,7 +103,7 @@ def receive(o:mutbuf,w:mutbuf) -> u32:
             return enter(w,M_SESSION,100)
         if get(w,CURRENT_PHASE) == 3:
             return enter(w,M_HISTORY,0)
-        if get(w,CURRENT_PHASE) == 4:
+        if get(w,CURRENT_PHASE) >= 4:
             return enter(w,M_ARCHIVE_QUERY,0)
         return enter(w,M_SESSION,200)
     if phase == 14:
@@ -127,8 +127,8 @@ def receive(o:mutbuf,w:mutbuf) -> u32:
 
 def protocol(w:mutbuf) -> bool:
     size = get(w,PACKET_SIZE)
-    if size >= 8 and get(w,INPUT) == ARCHIVE_QUERY_MAGIC:
-        put(w,CURRENT_PHASE,4)
+    if size >= 8 and (get(w,INPUT) == ARCHIVE_QUERY_MAGIC or get(w,INPUT) == USAGE_QUERY_MAGIC):
+        put(w,CURRENT_PHASE,choose(get(w,INPUT) == USAGE_QUERY_MAGIC,5,4))
         if size >= 72:
             put(w,CURRENT_SLOT,get(w,INPUT+48))
             put(w,CURRENT_GEN,get(w,INPUT+64))
@@ -194,14 +194,17 @@ def history_protocol(w:mutbuf,size:u64) -> bool:
     return get(w,INPUT+32) == get(w,STATE_FD) and get(w,INPUT+40) == get(w,DAEMON_AUDITFD) and path == get(w,ROOT_PATH_LEN) and equal(w,INPUT+512,ROOT_PATH,path)
 
 def archive_query_protocol(w:mutbuf,size:u64) -> bool:
-    if size < 512 or get(w,INPUT+8) != 1 or get(w,INPUT+16) != 4 or get(w,INPUT+24) != size:
+    if size < 512 or get(w,INPUT+8) != 1 or get(w,INPUT+16) != get(w,CURRENT_PHASE) or get(w,INPUT+24) != size:
         return False
     path = get(w,INPUT+80)
     if path == 0 or path > 4096 or size != 512+path or zeroes(w,INPUT+104,24) == False or zeroes(w,INPUT+272,240) == False:
         return False
     if get(w,CURRENT_SLOT) >= 32 or get(w,CURRENT_GEN) == 0 or get(w,CURRENT_WORKER) <= 1 or get(w,INPUT+72) != get(w,DAEMON_CONTROLLER):
         return False
-    if get(w,INPUT+88) == 0 or get(w,INPUT+88) > 32 or lowerhex(w,INPUT+128,64) == False or get(w,INPUT+256) > 9223372036854775804 or get(w,INPUT+264) >= 1000000000:
+    limit = get(w,INPUT+88)
+    if (get(w,CURRENT_PHASE) == 4 and (limit == 0 or limit > 32)) or (get(w,CURRENT_PHASE) == 5 and (limit != 0 or get(w,INPUT+96) != 0)):
+        return False
+    if lowerhex(w,INPUT+128,64) == False or get(w,INPUT+256) > 9223372036854775804 or get(w,INPUT+264) >= 1000000000:
         return False
     cursor = get(w,INPUT+96)
     if cursor != 0 and cursor != 64:
@@ -458,4 +461,5 @@ def source():
         'FINISH_MAGIC':int.from_bytes(b'HIAAUF01','little'),
         'HISTORY_MAGIC':int.from_bytes(b'HIAAHQ01','little'),
         'ARCHIVE_QUERY_MAGIC':int.from_bytes(b'HIARQY01','little'),
+        'USAGE_QUERY_MAGIC':int.from_bytes(b'HIAUSQ01','little'),
         'SHARED_MAGIC':int.from_bytes(b'HIAAUS01','little')})

@@ -66,13 +66,13 @@ def build_response(w:mutbuf) -> u64:
 
 def history_response(w:mutbuf) -> u64:
     fill_range(w,QUERY_OUTPUT,64,0)
-    put(w,QUERY_OUTPUT,choose(get(w,CURRENT_PHASE) == 4,ARCHIVE_OUT_MAGIC,HISTORY_OUT_MAGIC))
+    put(w,QUERY_OUTPUT,choose(get(w,CURRENT_PHASE) == 5,USAGE_OUT_MAGIC,choose(get(w,CURRENT_PHASE) == 4,ARCHIVE_OUT_MAGIC,HISTORY_OUT_MAGIC)))
     put(w,QUERY_OUTPUT+8,1)
     if get(w,96) != 0:
         put(w,QUERY_OUTPUT+24,1)
         put(w,QUERY_OUTPUT+32,get(w,96))
         end = QUERY_OUTPUT+64
-        if get(w,CURRENT_PHASE) == 4:
+        if get(w,CURRENT_PHASE) >= 4:
             if get(w,96) == 37:
                 end = text_audit_error_37(w,end)
             else:
@@ -95,4 +95,5 @@ SOURCE+='    return text_audit_error_1(w,at)\n'
 def source():return authored(SOURCE,extra={
     'OUT_MAGIC':int.from_bytes(b'HIAAUO01','little'),
     'HISTORY_OUT_MAGIC':int.from_bytes(b'HIAAHO01','little'),
-    'ARCHIVE_OUT_MAGIC':int.from_bytes(b'HIARQO01','little')})
+    'ARCHIVE_OUT_MAGIC':int.from_bytes(b'HIARQO01','little'),
+    'USAGE_OUT_MAGIC':int.from_bytes(b'HIAUSO01','little')})

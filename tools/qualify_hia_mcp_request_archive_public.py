@@ -83,7 +83,7 @@ def qualify(bundle,cases_path,oracle_path,output):
             'service_sha256':pin(bundle/'hia-mcp-service'),'manifest_sha256':pin(bundle/'hia-controller.json'),
             'whole_cold_qualified':False,'installed_worker_claimed':False,'http_qualified':False,
             'usage_queries_excluded':True,'live_registry_exclusion':'actual native live kernel-ticket control is separate',
-            'query_budget_seconds':3,'typed_diagnostic_decoded_string_limit':1048576,
+            'query_budget_seconds':3,'typed_diagnostic_small_buffer_bytes':1048576,
             'over_limit_error_text_parity_claimed':False,'checks':rows}
     try:
         for index,case in enumerate(cases):
@@ -126,7 +126,7 @@ def qualify(bundle,cases_path,oracle_path,output):
             result=discovery.record('catalog',discovery.connection.read())
             tools=result['result']['tools']
             archive=[r for r in tools if r['name']=='request_archive']
-            assert len(tools)==13 and len(archive)==1
+            assert len(tools)==14 and len(archive)==1
             schema=json.loads((cases_path.parent.parent/'hia_request_history_oracle/oracle-params-schema.json').read_text())
             schema.pop('$schema',None)
             assert archive[0]['inputSchema']==schema

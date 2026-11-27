@@ -4,6 +4,7 @@ The Unicode 17 ranges were observed from Rust 1.96.1 string Debug over every
 valid scalar. They are development input only: the native dispatch contains
 the bounded HIA lookup table and never reads this table at execution time.
 """
+from tools.generate_hia_mcp_history_diagnostic_stream import SOURCE as STREAM_SOURCE, TEXT as STREAM_TEXT
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -12,6 +13,7 @@ RANGES = Path(__file__).with_name('hia_request_history_debug_ranges.json')
 RANGES_SHA256 = 'f44fa079024a38570608fd2701793896a19040ca575b7c2df4f9584313142588'
 MAX_DIAGNOSTIC_STRING_BYTES = 1 << 20
 TEXT = {
+    **STREAM_TEXT,
     'history_param_prefix': 'failed to deserialize parameters: ',
     'history_param_type': 'invalid type: ',
     'history_param_value': 'invalid value: ',
@@ -27,6 +29,7 @@ TEXT = {
     'history_param_text': ', expected a string',
     'history_param_unknown': 'unknown field `',
     'history_param_fields': '`, expected `after_id` or `limit`',
+    'usage_param_fields': '`, there are no fields',
     'history_param_error': '{"code":-32602,"message":',
 }
 SOURCE = r'''
@@ -47,17 +50,20 @@ def history_parameter_fallback(w:mutbuf) -> u64:
 def history_unknown_parameter(w:mutbuf, row:u64) -> u64:
     size = get(w, row + 48)
     if size > 1048576:
-        return history_parameter_fallback(w)
+        return history_stream_begin(w,ARENA+get(w,row+40),size,1,0)
     at = text_history_param_prefix(w, PURE_INPUT)
     at = text_history_param_unknown(w, at)
     at = copy_state(w, ARENA + get(w, row + 40), at, size)
-    at = text_history_param_fields(w, at)
+    if get(w,264) == 15:
+        at = text_usage_param_fields(w, at)
+    else:
+        at = text_history_param_fields(w, at)
     return history_finish_parameter_error(w, at)
 
 def history_type_error(w:mutbuf, row:u64, expected:u64) -> u64:
     kind = get(w, row)
     if kind == 4 and get(w, row + 32) > 1048576:
-        return history_parameter_fallback(w)
+        return history_stream_begin(w,ARENA+get(w,row+24),get(w,row+32),2,expected)
     is_float = False
     start = 0
     size = 0
@@ -170,7 +176,7 @@ def source_program():
     # Each independent seed frame retains at most 2048 scalar slots. Keep the
     # constant initialization in small functions without changing that budget.
     banks=[ranges[index:index+64] for index in range(0,len(ranges),64)]
-    value = SOURCE + '\ndef history_debug_init(w:mutbuf) -> u64:\n'
+    value = SOURCE + STREAM_SOURCE + '\ndef history_debug_init(w:mutbuf) -> u64:\n'
     for bank in range(len(banks)):
         value += f'    history_debug_bank_{bank}(w)\n'
     value += '    return 0\n'
