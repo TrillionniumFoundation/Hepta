@@ -1,0 +1,40 @@
+{
+  "calls": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-I",
+        "-B",
+        "/home/qian-qi/hia-native-current-future-20261127-2ac5/source/tools/hia_native_cold_preseed.py",
+        "--source",
+        "/home/qian-qi/hia-native-current-future-20261127-2ac5/source",
+        "--output",
+        "/home/qian-qi/hia-native-current-future-20261127-2ac5/freeze-preseed-v1",
+        "--root-receipt",
+        "/home/qian-qi/hia-native-current-future-20261127-2ac5/freeze-bootstrap-inputs-v1.json"
+      ],
+      "elapsed_ns": 113974044,
+      "label": "freeze-preseed-v1",
+      "returncode": 1,
+      "stderr": {
+        "bytes": 1204,
+        "sha256": "d20d973a305b73a92e4158f47011f8c8cf253f222a1628e024e8b480dd2d6824"
+      },
+      "stdout": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "disk_free": 3198103552,
+  "error": "Traceback (most recent call last):\n  File \"<stdin>\", line 20, in <module>\n  File \"<stdin>\", line 17, in run\nAssertionError: Traceback (most recent call last):\n  File \"/home/qian-qi/hia-native-current-future-20261127-2ac5/source/tools/hia_native_cold_preseed.py\", line 254, in <module>\n    main()\n    ~~~~^^\n  File \"/home/qian-qi/hia-native-current-future-20261127-2ac5/source/tools/hia_native_cold_preseed.py\", line 245, in main\n    builder = Builder(args.source, args.output, args.root_receipt)\n  File \"/home/qian-qi/hia-native-current-future-20261127-2ac5/source/tools/hia_native_cold_preseed.py\", line 51, in __init__\n    \"initial_root_receipt\": {\"path\": str(root_receipt), **pin(Path(root_receipt).read_bytes())},\n                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/usr/lib/python3.14/pathlib/__init__.py\", line 778, in read_bytes\n    with self.open(mode='rb', buffering=0) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/lib/python3.14/pathlib/__init__.py\", line 772, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/home/qian-qi/hia-native-current-future-20261127-2ac5/freeze-bootstrap-inputs-v1.json'\n\n",
+  "native_authority": {
+    "bytes": 74614,
+    "sha256": "d4ce301cdd38c8e33178302cc27a21679081acd3dc4cbd7670b9a4eeaa41f560"
+  },
+  "passed": false,
+  "schema": "hepta.hia.current-future-native-freeze-campaign.v1",
+  "source_head": "e84b65009ebc442d85b1f4e8d8cd66d9237addc0",
+  "whole_cold_qualified": false,
+  "whole_native_delivery_qualified": false
+}
