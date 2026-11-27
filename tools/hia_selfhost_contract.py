@@ -1008,6 +1008,8 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tests/fixtures/hia_kernel_irq_instruction_boundary_successor_v1.json',
+    'tests/test_hia_kernel_hardware_oracle_history.py',
     # Isolated kernel authoring, original ISA/guest observers and source controls.
     'experiments/hia_kernel_tlb_effects_staging.py',
     'experiments/hia_x86_privileged_effect_lowering.py',

@@ -12,6 +12,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from tests.test_hia_kernel_invlpg_qemu import BOOT, LINKER, invoke, qemu
+from tools.qualify_hia_kernel_selfhost_invlpg import instruction_occurrences
 
 def digest(data):
     return sha256(data).hexdigest()
@@ -263,13 +264,17 @@ def run(output):
         irq_native = obj.read_bytes()
         irq_text = raw.read_bytes()
         opcode = bytes.fromhex(entry["oracle_hex"])
+        instruction_sites = instruction_occurrences(output, label + "-hardware", irq_text, opcode)
         if (digest(irq_native) != entry["elf_sha256"] or digest(irq_text) != entry["text_sha256"]
                 or digest(src.read_bytes()) != entry["source_sha256"]
                 or set(entry["refusals"]) != {"no-effect", "legacy", "operand", "result", "attribute", "wrong-module"}
-                or opcode != bytes.fromhex(expected_hex) or irq_text.count(opcode) != 1
+                or opcode != bytes.fromhex(expected_hex) or len(instruction_sites) != 1
                 or dump_text(obj, output / (label + "-original-readback.text")) != irq_text):
             raise AssertionError(label + " native custody or opcode failure")
-        irq_bad = irq_text.replace(opcode, b"\x90", 1)
+        instruction_site = instruction_sites[0]
+        irq_bad = irq_text[:instruction_site] + b"\x90" + irq_text[instruction_site + 1:]
+        if instruction_occurrences(output, label + "-hardware-nop", irq_bad, opcode):
+            raise AssertionError(label + " instruction remained after NOP mutation")
         mutation = output / (label + "-dishonest.text")
         mutation.write_bytes(irq_bad)
         bad_irq_obj = output / (label + "-dishonest.o")
