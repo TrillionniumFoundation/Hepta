@@ -1,4 +1,4 @@
-stage	14	84
+stage	15	92
 need	1	0	hia-source-build
 compile	1	proof	cnf.hepta	cnf.hepta
 compile	1	proof	core_admission.hepta	core_admission.hepta
@@ -425,6 +425,26 @@ framing	10	2	HIAMGIS1	hia-wire-policy-checks-required
 framing	10	3	HIAMGEL1	hia-wire-policy-checks-required
 framing	10	4	HIAMGPL1	hia-wire-policy-checks-required
 framing	10	5	HIAMGCL1	hia-wire-policy-checks-required
+stage	15	native-release-dag-helper_extensions
+need	15	0	selfhost.image.bin
+resource	15	examples/hia_bootstrap/artifact_page.hepta
+resource	15	examples/hia_bootstrap/bounded_read.hepta
+resource	15	examples/hia_bootstrap/json_pretty.hepta
+resource	15	examples/hia_bootstrap/json_wire.hepta
+resource	15	examples/hia_bootstrap/release_stage_helper_extensions.hiastd
+resource	15	examples/hia_bootstrap/selfhost.hepta
+resource	15	examples/hia_bootstrap/source_build_packer.hepta
+resource	15	examples/hia_bootstrap/source_helper_extension_stage.hepta
+resource	15	examples/hia_bootstrap/source_helper_manifest.hepta
+output	15	bounded-read-manifest.json
+output	15	bounded-read.image.bin
+output	15	json-pretty-manifest.json
+output	15	json-pretty.image.bin
+output	15	artifact-page-policy-manifest.json
+output	15	artifact-page-policy.image.bin
+output	15	json-wire-manifest.json
+output	15	json-wire.image.bin
+framing	15	0	HIASTD01	source-bound-native-release-dag
 stage	11	native-controllers
 need	11	0	hia-source-build
 need	11	0	selfhost.image.bin

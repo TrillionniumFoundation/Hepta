@@ -3,7 +3,7 @@ from pathlib import Path
 import argparse,ast,json,struct
 from hashlib import sha256
 from tools.generate_hia_release_core_recipe import CoreRecipe
-from tools.generate_hia_worker_manifest import model
+from tools.generate_hia_worker_manifest import current_model as model
 from tools.generate_hia_worker_install_owner import STAGES
 from tools.generate_hia_worker_install_bind import PROFILE_IMAGES,REFERENCES
 from tools.generate_hia_worker_capsule_check import KINDS
@@ -48,9 +48,9 @@ class WorkerRecipe(CoreRecipe):
     def lp(self,*parts):return self.concat(*(item for part in parts for item in (self.length(part),part)))
     def wire(self,magic,words,parts):return self.concat(self.literal(magic+struct.pack('<'+'Q'*len(words),*words)),self.lp(*parts))
     def manifest(self,mode,role,*parts):
-        if not hasattr(self,'framer'):self.framer=self.leaf('source_worker_manifest.hepta')
-        if not hasattr(self,'tables'):self.tables=self.source(str(BOOT/'worker_manifest_tables.hiastd'))
-        return self.run(self.framer,self.wire(b'HIAWMF01',(mode,role,len(parts)+1),(*parts,self.tables)))
+        if not hasattr(self,'framer'):self.framer=self.leaf('source_worker_manifest_current.hepta')
+        if not hasattr(self,'tables'):self.tables=self.source(str(BOOT/'worker_manifest_current_tables.hiastd'))
+        return self.run(self.framer,self.wire(b'HIAWMF02',(mode,role,len(parts)+1),(*parts,self.tables)))
     def bind(self,mode,role,*parts):
         if not hasattr(self,'binder'):self.binder=self.leaf('source_worker_install_bind.hepta')
         return self.run(self.binder,self.wire(b'HIAWIB01',(mode,role,len(parts)),parts))
@@ -91,6 +91,8 @@ def report(r,m):
         r.publish('report/'+name+'/'+protocol+'.image.bin',image);r.publish('report/'+name+'/manifest.json',manifest)
     bundle=r.manifest(4,0,*manifests);r.publish('report/manifest.json',bundle)
     r.publish('report.json',r.manifest(5,0,r.import_product('helpers.json'),bundle))
+    from tools.hia_artifact_page_worker_recipe import publish_page
+    publish_page(r)
 
 def scheduler(r,family):
     paths=[u['source'] for u in family['units']];r.compile_paths(paths+['examples/hia_bootstrap/continuation_policy.hepta']);manifests=[];images=[]
@@ -116,7 +118,9 @@ def profile(r,m):
     for name,path in REFERENCES:
         product=Path(path).name;raw=r.import_product(product);refs.append(raw)
         if name!='journal_cost':r.publish(path,raw,0o500)
-    value=r.bind(1,0,r.package(),scheduling,*(r.import_product(name) for _,name,_ in PROFILE_IMAGES),*refs)
+    from tools.hia_artifact_page_worker_recipe import wrap_page
+    page=wrap_page(r,scheduling)
+    value=r.bind(1,0,r.package(),page,*(r.import_product(name) for _,name,_ in PROFILE_IMAGES),*refs)
     r.publish('worker.json',value)
 
 def backend_sources():
@@ -138,7 +142,7 @@ def identity(r,m):
         parts.extend((r.literal(BACKEND_DOMAIN),worker_pin,r.literal(b'\0')))
     else:
         for name in backend_sources():parts.extend((r.literal(name.encode()+b'\0'),r.source('hepta/'+name),r.literal(b'\0')))
-    # The complete 37-helper profile deliberately has no machine-encoding selector.
+    # The complete 41-helper profile deliberately has no machine-encoding selector.
     parts.append(r.literal(b'native-machine-encoding\0\0'))
     plan=r.concat(r.hexdigest(r.source('examples/hia_bootstrap/machine_plan.hepta')),r.literal(b':'),r.hexdigest(r.import_product('machine-plan/machine-plan.image.bin')))
     parts.extend((r.literal(b'native-machine-plan\0'),plan,r.literal(b'\0')))

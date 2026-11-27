@@ -71,7 +71,7 @@ def main():
     from hepta.hia_agent_service import HIAAgentService
     from hepta.hia_agent_journal_native import TOOLS
     from hepta.hia_artifact_page_native import SELECTOR, NativeArtifactPage, PageSession, installed_artifact_page
-    from tools.build_hia_artifact_page import build
+    from tools.build_hia_artifact_page import build, INPUTS as PAGE_INPUTS
     from tools.build_hia_json_preflight import current_sources
     with ExitStack() as stack:
         if args.evidence_dir is None:
@@ -89,9 +89,11 @@ def main():
             manifest = args.manifest.resolve(strict=True)
             scope = 'DEVELOPMENT_SELECTED_CALLERS_NOT_COLD_QUALIFICATION'
         source_manifest = current_sources() if args.cold_report else None
+        source_names = tuple(sorted(set(SOURCE_NAMES) | set(PAGE_INPUTS) |
+                                    {name.replace('.', '/') + '.py' for name in DEFAULT_MODULES}))
+        source_before = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in source_names}
         owner = installed_artifact_page(manifest)
         identities_before = bundle_identities(manifest)
-        source_before = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in SOURCE_NAMES}
         modules = args.module or DEFAULT_MODULES
         loaded = list(flatten(unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromName(name) for name in modules)))
         loaded_ids = [test.id() for test in loaded]
@@ -144,7 +146,7 @@ def main():
             selected.enter_context(patch.object(PageSession, 'step', step))
             selected.enter_context(patch.object(HIAAgentService, 'call', call))
             result = unittest.TextTestRunner(verbosity=2, resultclass=Result).run(unittest.TestSuite(loaded))
-        source_after = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in SOURCE_NAMES}
+        source_after = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in source_names}
         identities_after = bundle_identities(manifest)
         stable = source_before == source_after and identities_before == identities_after
         cold_stable = current_sources() == source_manifest if args.cold_report else None

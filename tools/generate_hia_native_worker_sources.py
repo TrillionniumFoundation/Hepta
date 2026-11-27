@@ -1,4 +1,4 @@
-"""Regenerate the three Worker assets from one explicit native authority.
+"""Regenerate the current Worker assets from one explicit native authority.
 
 This is development-only authoring. Published builds use the emitted HIA
 policies, pinned tables and recipes; they do not execute this module.
@@ -8,9 +8,11 @@ from hashlib import sha256
 import argparse, json, subprocess, sys
 ROOT = Path(__file__).resolve().parents[1]
 AUTHORITY = 'docs/HIA_NATIVE_SOURCE_AUTHORITY.json'
-MODULES = ('tools.generate_hia_worker_manifest',
-           'tools.generate_hia_worker_install_identity',
-           'tools.generate_hia_worker_install_recipes')
+AUTHORITY_MODULES = ('tools.generate_hia_current_worker_manifest',
+                     'tools.generate_hia_worker_install_identity',
+                     'tools.generate_hia_worker_install_recipes')
+MODULES = ('tools.generate_hia_release_extension_catalog',
+           'tools.generate_hia_worker_install_bind', *AUTHORITY_MODULES)
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--native-source-authority', type=Path, default=ROOT / AUTHORITY)
@@ -21,7 +23,9 @@ def main():
     from tools.hia_native_worker_source_authority import load_native_source_authority
     paths = load_native_source_authority(path)
     for module in MODULES:
-        command = [sys.executable, '-m', module, '--native-source-authority', str(path)]
+        command = [sys.executable, '-m', module]
+        if module in AUTHORITY_MODULES:
+            command.extend(('--native-source-authority', str(path)))
         if args.check:
             command.append('--check')
         subprocess.run(command, cwd=ROOT, check=True)

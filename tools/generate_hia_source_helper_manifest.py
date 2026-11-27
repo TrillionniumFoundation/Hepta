@@ -2,7 +2,8 @@
 
 The complete v1 HIA sources remain fixed test inputs. HIAHLM01 and stage-4
 operation 1 retain roles 1..8. HIAHLM02, stage-4 operation 2 and check mode 13
-admit only the four named extension roles. The original byte limits, parser,
+admit only the four named extension roles through an isolated stage kit.
+The complete original stage file remains byte-identical. The original byte limits, parser,
 SHA256, compiler comparison and publication rules are retained.
 """
 from __future__ import annotations
@@ -27,6 +28,7 @@ FIXTURES = {
 OUTPUTS = {
     "helper": "examples/hia_bootstrap/source_helper_manifest.hepta",
     "stage": "examples/hia_bootstrap/source_release_stage_plan.hepta",
+    "extension_stage": "examples/hia_bootstrap/source_helper_extension_stage.hepta",
 }
 # Core's 11/12/13 roles have an independent eight-field contract.
 EXTENSIONS = (
@@ -194,6 +196,13 @@ def schema_tail(o:mutbuf, p:u64, role:u64) -> u64:
 
 def stage_program():
     document = original("stage")
+    document["module"] = "source_helper_extension_stage"
+    entry = function(document, "f0")
+    plan_calls = [o for b in entry["blocks"] for o in b["ops"]
+                  if o["op"] == "call" and o["attrs"].get("function") == "f1"]
+    if len(plan_calls) != 1:
+        raise ValueError("original stage entry changed")
+    plan_calls[0]["attrs"]["function"] = "reject_plan"
     check = function(document, "f26")
     current = deepcopy(check)
     check["name"] = "check_prior"
@@ -210,6 +219,9 @@ def stage_program():
     function(document, "f21")["name"] = "frame_kind_prior"
     function(document, "f57")["name"] = "manifest_value_prior"
     source = f"""
+def reject_plan(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    return 16
+
 def invalid_extended_role(role:u64) -> bool:
     return role != 9 and role != 10 and role != 14 and role != 15
 
@@ -217,7 +229,7 @@ def f26(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) >= 16:
         if f23(s, 8, 8) == 13:
             return check_current(s, o, w)
-    return check_prior(s, o, w)
+    return 16
 
 def f21(w:mutbuf) -> u64:
     if f24(w, 128) == 4 and f24(w, 136) == 2:
@@ -225,12 +237,10 @@ def f21(w:mutbuf) -> u64:
             return 0
         f25(w, 176, 3)
         return {int.from_bytes(b"HIAHLM02", "little")}
-    return frame_kind_prior(w)
+    return 0
 
 def f57(s:readbuf, w:mutbuf, key:u64) -> u64:
     role = f24(w, 136)
-    if role >= 1 and role <= 8:
-        return manifest_value_prior(s, w, key)
     p = f24(w, 16016)
     n = f24(w, 16024)
 """
@@ -241,12 +251,30 @@ def f57(s:readbuf, w:mutbuf, key:u64) -> u64:
         source += exact_view(f"image_{role}", (image + ".image.bin").encode("ascii"), "f23")
         source += exact_view(f"schema_{role}", f"hepta.hia.{schema}-native.v{version}".encode("ascii"), "f23")
     append_functions(document, source)
+    # The original 1..11 planner remains byte-identical in its own file.
+    # This kit retains only complete functions reachable from its strict
+    # extension entry; no compiler capacity or parser limit is enlarged.
+    functions = {f["name"]: f for f in document["functions"]}
+    reachable, pending = set(), ["f0"]
+    while pending:
+        name = pending.pop()
+        if name in reachable:
+            continue
+        if name not in functions:
+            raise ValueError("missing extension callee: " + name)
+        reachable.add(name)
+        pending.extend(o["attrs"]["function"] for b in functions[name]["blocks"]
+                       for o in b["ops"] if o["op"] == "call")
+    document["functions"] = [f for f in document["functions"] if f["name"] in reachable]
+    if sum(len(f["blocks"]) for f in document["functions"]) >= 1536:
+        raise ValueError("isolated helper stage exceeds the original compiler capacity")
     return document
 
 
 def generated_files():
     return {OUTPUTS["helper"]: render_assembly(helper_program()).encode("ascii"),
-            OUTPUTS["stage"]: render_assembly(stage_program()).encode("ascii")}
+            OUTPUTS["stage"]: (ROOT / FIXTURES["stage"][0]).read_bytes(),
+            OUTPUTS["extension_stage"]: render_assembly(stage_program()).encode("ascii")}
 
 
 def main():

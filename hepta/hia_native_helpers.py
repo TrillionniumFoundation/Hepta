@@ -383,6 +383,9 @@ def _base_binding(captured, expected_sha256, record):
     if schema == 'hepta.hia.core-companion-worker-bundle.v1':
         from .hia_core_companion_worker_bundle import NativeCoreCompanionWorkerBinding
         return NativeCoreCompanionWorkerBinding(captured, expected_sha256)
+    if schema == 'hepta.hia.artifact-page-worker-bundle.v1':
+        from .hia_artifact_page_worker_bundle import NativeArtifactPageWorkerBinding
+        return NativeArtifactPageWorkerBinding(captured, expected_sha256)
     if schema == 'hepta.hia.native-helpers.v3':
         from .hia_worker_scheduling_bundle import NativeWorkerSchedulingBinding
         return NativeWorkerSchedulingBinding(captured, expected_sha256)

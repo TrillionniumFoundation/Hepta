@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 
 from tools.build_hia_json_preflight import ROOT, current_sources
@@ -26,7 +27,9 @@ INPUTS = (
     'tools/generate_hia_selfhost.py', 'tools/generate_hia_sha256.py',
     'tools/generate_hia_worker_request.py', 'tools/qualify_hia_selfhost.py',
     'tools/build_hia_source_build.py', 'tools/build_hia_json_preflight.py',
-    'hepta/hia_artifact_page_native.py', 'hepta/hia_json_wire_native.py',
+    'hepta/hia_artifact_page_native.py', 'hepta/hia_artifact_page_policy_native.py',
+    'hepta/hia_artifact_page_worker_bundle.py', 'tools/build_hia_artifact_page_worker.py',
+    'hepta/hia_worker_bundle.py', 'hepta/hia_json_wire_native.py',
     'hepta/hia_json_preflight_native.py', 'hepta/hia_native_delivery.py',
     'hepta/hia_agent_store.py', 'hepta/hia_agent_store_native.py',
     'hepta/hia_agent_service.py', 'hepta/hia_agent_contract.py',
@@ -38,6 +41,14 @@ INPUTS = (
 
 def _json(value):
     return (json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + '\n').encode()
+
+
+def _private_write(path, raw):
+    # All outputs are new files inside the newly created private build root.
+    # Explicit mode retains ordinary-file custody even under a group umask.
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC, 0o600)
+    with os.fdopen(fd, 'wb') as stream:
+        stream.write(raw)
 
 
 def _build(output, compiler, cold_report=None):
@@ -70,14 +81,18 @@ def _build(output, compiler, cold_report=None):
         if _check_pack_output(receipt, full, artifact=compiler_raw,
                               source=captured[source_name]) != image_raw:
             raise ValueError('artifact-page native compile output differs')
+        installed_name = ('artifact-page-policy' if name == 'policy' else 'json-wire') + '.image.bin'
+        installed_image = target / installed_name
+        _private_write(installed_image, image_raw)
+        observed[installed_image] = image_raw
         manifest = {
             'schema': schema, 'source_sha256': sha256(captured[source_name]).hexdigest(),
-            'image_path': image.name, 'image_sha256': sha256(image_raw).hexdigest(),
+            'image_path': installed_image.name, 'image_sha256': sha256(image_raw).hexdigest(),
             'compiler_sha256': sha256(compiler_raw).hexdigest(),
         }
         path = target / 'manifest.json'
         raw = _json(manifest)
-        path.write_bytes(raw)
+        _private_write(path, raw)
         observed.update({image: image_raw, full_path: full, path: raw})
         children[name] = path
         receipts[name] = receipt
@@ -87,7 +102,7 @@ def _build(output, compiler, cold_report=None):
         bundle[name + '_manifest_sha256'] = sha256(observed[child]).hexdigest()
     path = output / 'manifest.json'
     bundle_raw = _json(bundle)
-    path.write_bytes(bundle_raw)
+    _private_write(path, bundle_raw)
     observed[path] = bundle_raw
     report = {
         'schema': 'hepta.hia.artifact-page-build.v2',
@@ -122,7 +137,7 @@ def _build(output, compiler, cold_report=None):
     }
     report_path = output / 'build.json'
     report_raw = _json(report)
-    report_path.write_bytes(report_raw)
+    _private_write(report_path, report_raw)
     observed[report_path] = report_raw
     if (compiler.read_bytes() != compiler_raw
             or any((ROOT / name).read_bytes() != raw for name, raw in captured.items())):

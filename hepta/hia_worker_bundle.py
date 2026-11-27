@@ -96,16 +96,35 @@ class NativeWorkerBundleBinding:
         self.legacy = authority.NativeHelpersBinding(str(base.path), value['helpers_bundle_sha256'])
         self.selections = dict(self.legacy.selections)
         self.images = dict(self.legacy.images)
+        # New installed single-image profiles may already select JSON wire.
+        # A report may share that exact source/image/compiler identity only;
+        # it must never replace a different explicitly pinned wire.
+        if WIRE_SELECTOR in self.selections:
+            existing = authority._read(authority._path(self.selections[WIRE_SELECTOR]),
+                                       authority.MAX_MANIFEST_BYTES)
+            selected_wire = authority._decode(existing.raw)
+            expected_wire = captures['wire'][3]
+            if (type(selected_wire) is not dict
+                    or any(selected_wire.get(name) != expected_wire[name]
+                           for name in ('schema', 'source_sha256', 'image_sha256', 'compiler_sha256'))):
+                raise ValueError('native worker report and helper wire identities differ')
+            self.snapshots.append((existing, authority.MAX_MANIFEST_BYTES))
         loaded = {}
         for name, (manifest, source, image, image_record, factory) in captures.items():
-            loaded[name] = factory(image.raw, image_record['image_sha256'])
             key = (str(manifest.path.resolve(strict=True)), str(source.path.resolve(strict=True)),
                    image_record['schema'], factory)
             if key in self.images:
-                raise ValueError('duplicate native worker image binding')
-            self.images[key] = loaded[name]
+                mapped = self.images[key]
+                if (name != 'wire' or type(mapped) is not factory
+                        or mapped.image_sha256 != image_record['image_sha256']):
+                    raise ValueError('duplicate native worker image binding')
+            else:
+                mapped = factory(image.raw, image_record['image_sha256'])
+                mapped.admitted_source_sha256 = image_record['source_sha256']
+                self.images[key] = mapped
+            loaded[name] = mapped
         self.selections[REPORT_SELECTOR] = str(report.path)
-        self.selections[WIRE_SELECTOR] = str(captures['wire'][0].path)
+        self.selections.setdefault(WIRE_SELECTOR, str(captures['wire'][0].path))
         bundle_key = (str(report.path.resolve(strict=True)), worker.SCHEMA, worker.NativeWorkerReport)
         self.bundles = {bundle_key: worker.NativeWorkerReport(loaded['policy'], loaded['wire'])}
         self.check_files()
