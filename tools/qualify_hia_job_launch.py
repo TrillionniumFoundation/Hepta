@@ -1,17 +1,19 @@
-"""Compare the bound native launcher with the unmodified v25 Python runner.
+"""Compare the bound native launcher with the supplied unmodified Python runner.
 
 All fixture authors and comparison code run outside the product process. Native
 cases execute with an empty PATH and may execute only the launcher, supervisor,
-and the original static subprocess test payload.
+and the explicitly requested workload. The /bin/sh case is a declared workload.
 """
 from __future__ import annotations
 
 import argparse
 import ast
+import fcntl
 from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import struct
 import subprocess
@@ -24,11 +26,68 @@ FLAGS = ('terminal_supervisor','owner_publication','workdir_authority','loop_aut
          'owner_file_lock','owner_marker_observation','owner_custody','native_job_owner')
 
 
+class ExecutableLease:
+    """Change only an owned fixture after its initial lstat, during source open.
+
+    A kernel lease-break signal is the barrier. A missing signal fails the case;
+    a timing-only pathname change never counts as a race observation.
+    """
+    def __init__(self, selected, kind):
+        self.selected = Path(selected)
+        self.kind = kind
+        self.original = os.readlink(self.selected)
+        self.before = self.selected.lstat()
+        self.triggered = False
+        self.changed = False
+        self.fd = os.open(self.selected.resolve(strict=True), os.O_RDWR | os.O_CLOEXEC)
+        self.previous = signal.signal(signal.SIGIO, self.signal)
+        try:
+            fcntl.fcntl(self.fd, fcntl.F_SETOWN, os.getpid())
+            fcntl.fcntl(self.fd, fcntl.F_SETLEASE, fcntl.F_WRLCK)
+        except BaseException:
+            os.close(self.fd)
+            signal.signal(signal.SIGIO, self.previous)
+            raise
+
+    def signal(self, _number, _frame):
+        self.triggered = True
+
+    def change_when_blocked(self, process):
+        deadline = time.monotonic() + 5
+        while not self.triggered and process.poll() is None and time.monotonic() < deadline:
+            time.sleep(.005)
+        if not self.triggered:
+            raise AssertionError('source open did not reach the owned lease barrier')
+        replacement = 'replacement' if self.kind == 'retarget' else self.original
+        self.selected.unlink()
+        self.selected.symlink_to(replacement)
+        self.after = self.selected.lstat()
+        self.changed = True
+
+    def close(self):
+        try:
+            fcntl.fcntl(self.fd, fcntl.F_SETLEASE, fcntl.F_UNLCK)
+        finally:
+            os.close(self.fd)
+            signal.signal(signal.SIGIO, self.previous)
+
+    def evidence(self):
+        def stamp(info):
+            return [info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_nlink,
+                    info.st_size, info.st_mtime_ns, info.st_ctime_ns]
+        return {'kind': self.kind, 'lease_break_observed': self.triggered,
+                'selected_replaced': self.changed, 'selected_before': stamp(self.before),
+                'selected_after': stamp(self.after) if self.changed else None}
+
+
 def main():
     parser=argparse.ArgumentParser()
     for name in ('executable','runtime-source','encoder','writer','supervisor','output'):
         parser.add_argument('--'+name,required=True,type=Path)
     parser.add_argument('--large',action='store_true')
+    parser.add_argument('--case',action='append',default=[],help='Run only this named pair; repeat for several cases.')
+    parser.add_argument('--allow-untraced-observations',action='store_true',
+                        help='Collect real behavior where ptrace is unavailable; result is explicitly not qualified.')
     args=parser.parse_args()
     out=args.output.resolve();out.mkdir(mode=0o700,parents=False,exist_ok=False)
     root=Path(__file__).resolve().parents[1]
@@ -49,11 +108,16 @@ def main():
     subprocess.run(['/usr/bin/as','--64',str(out/'fixture.S'),'-o',str(out/'fixture.o')],check=True,capture_output=True)
     subprocess.run(['/usr/bin/ld','-nostdlib',str(out/'fixture.o'),'-o',str(out/'fixture')],check=True,capture_output=True)
     fixture=out/'fixture';fixture.chmod(0o500)
+    entry_fixture=out/'entry-fixture'
+    entry_source=root/'tools/hia_job_launch_executable_fixture.c'
+    subprocess.run(['/usr/bin/cc','-std=c11','-O2','-Wall','-Wextra','-Werror','-static',
+                    str(entry_source),'-o',str(entry_fixture)],check=True,capture_output=True)
+    entry_fixture.chmod(0o500)
     images={name:getattr(args,name).read_bytes() for name in ('encoder','writer','supervisor')}
     pins={name:sha256(data).hexdigest() for name,data in images.items()}
     rows=[]
 
-    def run(name,native,mutate=None,after=None,environ=None,backend='detached',cancel=False):
+    def run(name,native,mutate=None,after=None,environ=None,backend='detached',cancel=False,lease=None):
         label=name+('-native' if native else '-reference')
         area=out/label;area.mkdir(mode=0o700)
         state=area/'state';state.mkdir(mode=0o700)
@@ -80,11 +144,20 @@ def main():
         command += [str(job),json.dumps(binding,sort_keys=True)]
         if backend is not None:command.append(backend)
         trace=area/'exec.trace'
-        if native:command=['/usr/bin/strace','-f','-qq','-s','160','-e','trace=execve,execveat','-o',str(trace),*command]
+        if native and not args.allow_untraced_observations:
+            command=['/usr/bin/strace','-f','-qq','-s','160','-e','trace=execve,execveat','-o',str(trace),*command]
         environment={'PATH':'','LANG':'C.UTF-8',**(environ or {})}
         started=time.monotonic()
-        process=subprocess.Popen(command,cwd=area,env=environment,stdin=subprocess.DEVNULL,
-                                 stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        guarded=ExecutableLease(req['executable'],lease) if lease else None
+        lease_error=None
+        try:
+            process=subprocess.Popen(command,cwd=area,env=environment,stdin=subprocess.DEVNULL,
+                                     stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            if guarded:
+                try:guarded.change_when_blocked(process)
+                except Exception as exc:lease_error=str(exc)
+        finally:
+            if guarded:guarded.close()
         if cancel:
             deadline=time.monotonic()+5
             while not (job/'child.json').is_file() and process.poll() is None and time.monotonic()<deadline:
@@ -101,25 +174,37 @@ def main():
             witness=json.loads((job/'exit.witness.json').read_bytes())
             assert witness['exit_sha256']==sha256((job/'exit.json').read_bytes()).hexdigest()
             assert len((job/'native-exit.bin').read_bytes())==128
-        if native:
-            text=trace.read_text()
-            assert 'python' not in text.lower() and '/bin/sh' not in text
         row={'name':name,'native':native,'returncode':process.returncode,'child_started':child,
              'seconds':round(time.monotonic()-started,6),'stdout_sha256':sha256(stdout).hexdigest(),
              'stdout_bytes':len(stdout),'stderr_sha256':sha256(stderr).hexdigest(),'stderr_bytes':len(stderr),
              'wire_stdout':wireout.decode('utf8','replace'),'wire_stderr':wireerr.decode('utf8','replace'),
-             'terminal':terminal,'job':str(job)}
+             'terminal':terminal,'job':str(job),'requested_executable':req['executable'],
+             'lease':guarded.evidence() if guarded else None,
+             'exec_trace_requested':native and not args.allow_untraced_observations}
         rows.append(row)
         (out/'partial.json').write_text(json.dumps(rows,indent=2)+'\n')
+        assert lease_error is None,(name,lease_error,row)
+        if native and not args.allow_untraced_observations:
+            text=trace.read_text()
+            assert 'python' not in text.lower()
+            assert len(re.findall(r'\bexecve\(',text))==1,text
+            if req['executable']=='/bin/sh':
+                assert len(re.findall(r'\bexecveat\(',text))==2,text
+            else:
+                assert '/bin/sh' not in text,text
         return row,stdout,stderr
 
-    def compare(name,mutate=None,after=None,expected=True,normalize=None,**kw):
+    def compare(name,mutate=None,after=None,expected=True,normalize=None,verify=None,**kw):
+        if args.case and name not in args.case:return
         old=run(name,False,mutate,after,**kw)
         new=run(name,True,mutate,after,**kw)
         assert old[0]['child_started']==expected,(name,'oracle',old[0])
         assert new[0]['child_started']==expected,(name,'native',new[0])
         if expected:
             assert old[0]['returncode']==new[0]['returncode'],(name,old[0],new[0])
+            if verify:
+                verify(old)
+                verify(new)
             left,right=old[1:],new[1:]
             if normalize:left,right=normalize(left),normalize(right)
             assert left==right,(name,'streams',left,right)
@@ -217,10 +302,57 @@ def main():
             ('terminal-readable',lambda r,b,j,a:(j/'hia-terminal-writer').chmod(0o640)),
             ('terminal-content',lambda r,b,j,a:(j/'hia-terminal-supervisor').write_bytes(b'x'*64)),
             ('terminal-hardlink',lambda r,b,j,a:os.link(j/'hia-terminal-encoder',a/'linked')),
-            ('workload-symlink',lambda r,b,j,a:((a/'alias').symlink_to(fixture),r.update(executable=str(a/'alias')))),
             ('private-mode',lambda r,b,j,a:j.chmod(0o755)),
         ):
             compare(name,mutate,expected=False)
+        # The supplied current runner accepts stable selected symlinks and
+        # independently requires effective execution access to the source fd.
+        # The extracted runner bytes above remain the unmodified oracle.
+        compare('workload-symlink',lambda r,b,j,a:((a/'alias').symlink_to(fixture),r.update(executable=str(a/'alias'))))
+        def executable_case(kind):
+            def apply(r,b,j,a):
+                target=a/'payload';target.write_bytes(entry_fixture.read_bytes());target.chmod(0o500)
+                selected=target
+                if kind in ('relative-target','relative-selection','chain','retarget','replace-same-target','surrogate'):
+                    selected=a/('alias-\udcff' if kind=='surrogate' else 'alias')
+                    selected.symlink_to('payload')
+                if kind=='chain':
+                    selected.unlink();selected.symlink_to('link-0')
+                    for index in range(6):(a/('link-'+str(index))).symlink_to('link-'+str(index+1) if index<5 else 'payload')
+                if kind=='parent':
+                    directory=a/'physical';directory.mkdir();target.rename(directory/'payload');target=directory/'payload'
+                    (a/'directory').symlink_to('physical',target_is_directory=True);selected=a/'directory/payload'
+                if kind=='dotdot':
+                    (a/'nested').mkdir();selected=a/'alias';selected.symlink_to('nested/../payload')
+                if kind in ('retarget','replace-same-target'):
+                    target.chmod(0o700)
+                    other=a/'replacement';other.write_bytes(entry_fixture.read_bytes());other.chmod(0o500)
+                if kind=='no-execute':target.chmod(0o400)
+                if kind=='effective-denied':
+                    assert os.geteuid()!=0,'effective-owner denial requires an ordinary uid'
+                    target.chmod(0o401)
+                    assert not os.access(target,os.X_OK,effective_ids=True)
+                if kind=='group-writable':target.chmod(0o520)
+                if kind=='world-writable':target.chmod(0o502)
+                if kind=='dangling':selected=a/'alias';selected.symlink_to('absent')
+                if kind=='cycle':selected=a/'alias';selected.symlink_to('alias')
+                info=target.stat()
+                r.update(executable=os.path.relpath(selected,j) if kind=='relative-selection' else str(selected),
+                         args=[str(info.st_dev),str(info.st_ino)])
+                r['env']['HIA_EXPECTED_ARGV0']=r['executable']
+            return apply
+        def entry_output(result):
+            row,stdout,stderr=result
+            assert row['returncode']==0 and stderr==b'',result
+            assert stdout==b'argv0-ok\nentry-anchor-ok\n',result
+        for kind in ('regular','relative-target','relative-selection','chain','parent','dotdot','surrogate'):
+            compare('workload-entry-'+kind,executable_case(kind),verify=entry_output)
+        for kind in ('no-execute','effective-denied','group-writable','world-writable','dangling','cycle'):
+            compare('workload-'+kind,executable_case(kind),expected=False)
+        for kind in ('retarget','replace-same-target'):
+            compare('workload-race-'+kind,executable_case(kind),lease=kind,expected=False)
+        compare('workload-system-shell',setreq(executable='/bin/sh',
+                args=['-c','printf shell-out; printf shell-err >&2; exit 7']))
         compare('request-writable',after=lambda r,b,j,a:(j/'request.json').chmod(0o666),expected=False)
         compare('request-hardlink',after=lambda r,b,j,a:os.link(j/'request.json',a/'linked'),expected=False)
         def duplicate(r,b,j,a):
@@ -271,13 +403,21 @@ def main():
                 return apply
             compare('workload-64MiB',large_executable(64<<20))
             compare('workload-over-64MiB',large_executable((64<<20)+1),expected=False)
-        report={'schema':'hepta.hia.job-launch-qualification.v1','success':True,
+        if args.case:
+            assert {row['name'] for row in rows}==set(args.case),'unknown or unexecuted named cases'
+        report={'schema':'hepta.hia.job-launch-qualification.v1','success':not args.allow_untraced_observations,
+                'status':'BEHAVIOR_PASS_EXEC_TRACE_OPEN' if args.allow_untraced_observations else 'COMPONENT_QUALIFIED',
+                'behavior_pairs_passed':True,'exec_trace_qualified':not args.allow_untraced_observations,
+                'scope':'NAMED_COMPONENT_CASES' if args.case else 'FULL_LAUNCH_COMPONENT',
+                'requested_cases':args.case,'effective_uid':os.geteuid(),
                 'runtime_source_sha256':sha256(runtime.encode()).hexdigest(),
                 'oracle_sha256':sha256(reference.encode()).hexdigest(),
                 'executable_sha256':sha256(args.executable.read_bytes()).hexdigest(),
-                'images':pins,'cases':len(rows)//2,'rows':rows}
+                'images':pins,'entry_fixture_source_sha256':sha256(entry_source.read_bytes()).hexdigest(),
+                'entry_fixture_sha256':sha256(entry_fixture.read_bytes()).hexdigest(),
+                'cases':len(rows)//2,'rows':rows}
         (out/'result.json').write_text(json.dumps(report,indent=2)+'\n')
-        print('PASS',report['cases'],'original/native pairs',flush=True)
+        print(report['status'],report['cases'],'original/native pairs',flush=True)
     except BaseException:
         (out/'failure.json').write_text(json.dumps({'error':traceback.format_exc(),'rows':rows},indent=2)+'\n')
         raise

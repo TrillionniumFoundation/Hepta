@@ -821,6 +821,7 @@ NATIVE_JOB_LIFECYCLE_FILES = (
     'tools/hia_job_launch_syscalls.S',
     'tools/hia_job_observation_syscalls.S',
     'tools/qualify_hia_job_launch.py',
+    'tools/hia_job_launch_executable_fixture.c',
     'tools/qualify_hia_job_observation.py',
     'tools/qualify_hia_job_sources.py',
 )
@@ -2840,6 +2841,7 @@ SOURCE_FILES = (
     'tests/test_hia_cost_context_caller_delivery_source.py',
     'tests/test_hia_ndu_bridge.py',
     'tests/test_hia_observer_stream_retention.py',
+    'tools/qualify_hia_cold_journal_preencode.py',
 )
 
 

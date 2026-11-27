@@ -27,6 +27,23 @@ The supplied executable and stdin keep the existing 64 MiB and 512 MiB limits.
 The terminal image limit remains 1 MiB, and encoded request metadata remains
 limited to 4 MiB.
 
+The selected workload path may be a stable symlink, including a relative target
+or a symlink in a parent directory. HIA records the selected entry before resolving
+the physical pathname, then opens the physical final name with `O_NOFOLLOW`.
+After capture, the source descriptor, physical final entry, followed selected
+target, and selected entry are rechecked. Replacing the selected symlink, even
+with another link to the same target, refuses the launch. The original selected
+spelling remains `argv[0]`; the retained Worker entry descriptor identifies the
+physical source file, not the sealed executable copy.
+
+The physical source must have an execute mode bit and pass kernel execution
+access for the effective credentials through
+`faccessat2(fd, "", X_OK, AT_EMPTY_PATH | AT_EACCESS)`. This preserves permission,
+ACL, and mount checks before the copy can become executable. Unsupported kernel
+interfaces and denied access refuse the launch. Existing regular-file, write
+permission, size, ELF, snapshot, and sealed-descriptor requirements remain in
+force for executable aliases.
+
 Metadata decoding preserves last-key-wins object keys, escaped and raw lone
 surrogates, Python's byte-input UTF-8/16/32 detection, and nonfinite JSON atoms.
 A separate normalized UTF-8/WTF-8 buffer supplies decoder spans; the encoded
@@ -71,13 +88,29 @@ Linux x86-64 ELF. The source compiler and packer run natively; the Python author
 tool regenerates checked-in HIA during development only.
 
 `tools/qualify_hia_job_launch.py` extracts the unmodified runner and private
-directory functions from a supplied v25 runtime jobs.rs, builds the original
-static subprocess fixture, and executes fresh original/native pairs. A native
-case receives an empty PATH and an exec trace. It must execute only native
-images. The comparison covers child admission, complete workload streams,
-terminal fields, native receipt length, and witness binding.
+directory functions from the supplied runtime jobs.rs, builds independent
+workload fixtures, and executes fresh original/native pairs. A native case
+receives an empty PATH and an exec trace. Only the launcher, supervisor, and
+explicitly requested workload may execute; the ordinary `/bin/sh` case requests
+that shell as its workload. The comparison covers child admission, complete
+workload streams, terminal fields, native receipt length, and witness binding.
 
-The shared metadata qualification passed 98 original/native pairs, including:
+Executable capture cases additionally check the original `argv[0]`, source
+descriptor device/inode identity, stable aliases, relative selection, parent
+aliases, dot-dot, surrogateescape, missing execution permission, effective-owner
+denial despite another execute bit, unsafe write permissions, dangling links,
+cycles, and an ordinary shell. Two races use a kernel file lease to block the
+actual source open after the initial entry observation: one changes the target,
+and the other replaces the selected symlink with a new entry to the same target.
+Both must refuse before creating a workload child. A missing lease-break signal
+fails the case rather than counting a timing-only mutation as race coverage.
+
+`--case` restricts a run to explicitly named pairs. The optional
+`--allow-untraced-observations` collects actual behavior on hosts that deny
+`ptrace`; it records `success: false` and `BEHAVIOR_PASS_EXEC_TRACE_OPEN`, and
+cannot supply an exec-trace qualification. The normal mode requires the trace.
+
+The earlier shared metadata qualification passed 98 original/native pairs, including:
 
 - all sixteen authority flags and changed job, directory, nonce, and image pins;
 - arguments and environments at their original count/byte boundaries;
@@ -92,6 +125,22 @@ The shared metadata qualification passed 98 original/native pairs, including:
 The qualified ELF SHA256 was
 `44347a0c7d35ead4d7cfe54763b4c03d19daf00bd5c6a96a00a798aca6e257ac`
 (592126 bytes). Qualification outputs are external to the source tree.
+
+The executable capture revision was separately built through the pinned native
+seed frontend, projector, backend, and HIA packers, then qualified on ROG against
+the unmodified runtime runner at `fb42bd643458e3e1435a0584ba4690ea98071838`.
+All 114 original/native pairs passed, including the full earlier boundary suite,
+the 512 MiB stdin and 64 MiB executable boundaries, and the new executable cases.
+The revised ELF is 522392 bytes with SHA256
+`d5cfd680842886bc54ce25ed9d06d96ab6f9eb3c1d54836791b08ace2ae1c8f3`.
+The source HIA SHA256 is
+`331794f98fd890d60d933fb62a913488da981b7f69457f84dd15012b352cf71c`.
+The complete report, raw exec traces and terminal evidence, original failing
+controls, and native build call receipts are retained under
+`docs/qualification/hia-job-launch-executable-capture-20261127-2ac5/`.
+This is a launcher component qualification; the changed source still requires
+the combined source freeze, cold qualification, release binding, and public
+START/STATUS integration gates.
 
 This checkpoint replaces the bound runner component. The remote START
 submission owner, controller integration, ordinary release registration, and
