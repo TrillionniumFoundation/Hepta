@@ -1,0 +1,88 @@
+{
+  "scope": "independent Cloud Git source readback; not caller execution",
+  "fixture_sha256": "a9c3182285be62898e01b1a836a0ac7a471dbf6a286b0ca0dccdc4b70eb859fc",
+  "files": [
+    {
+      "path": "tools/qualify_hia_cost_ledger_callers.py",
+      "old_bytes": 10516,
+      "new_bytes": 10465,
+      "splices": 2,
+      "old_matches_exact_b332": true,
+      "new_matches_exact_4ed": true,
+      "reverse_and_forward_byte_exact": true
+    },
+    {
+      "path": "tools/qualify_hia_emission_callers.py",
+      "old_bytes": 10894,
+      "new_bytes": 10831,
+      "splices": 2,
+      "old_matches_exact_b332": true,
+      "new_matches_exact_4ed": true,
+      "reverse_and_forward_byte_exact": true
+    },
+    {
+      "path": "tools/qualify_hia_evaluation_callers.py",
+      "old_bytes": 15126,
+      "new_bytes": 15063,
+      "splices": 2,
+      "old_matches_exact_b332": true,
+      "new_matches_exact_4ed": true,
+      "reverse_and_forward_byte_exact": true
+    },
+    {
+      "path": "tools/qualify_hia_native_build_admission_callers.py",
+      "old_bytes": 11099,
+      "new_bytes": 11036,
+      "splices": 2,
+      "old_matches_exact_b332": true,
+      "new_matches_exact_4ed": true,
+      "reverse_and_forward_byte_exact": true
+    },
+    {
+      "path": "tools/qualify_hia_service_context_callers.py",
+      "old_bytes": 11944,
+      "new_bytes": 11881,
+      "splices": 2,
+      "old_matches_exact_b332": true,
+      "new_matches_exact_4ed": true,
+      "reverse_and_forward_byte_exact": true
+    },
+    {
+      "path": "tools/qualify_hia_store_artifact_profile_callers.py",
+      "old_bytes": 14932,
+      "new_bytes": 14867,
+      "splices": 2,
+      "old_matches_exact_b332": true,
+      "new_matches_exact_4ed": true,
+      "reverse_and_forward_byte_exact": true
+    },
+    {
+      "path": "tools/qualify_hia_store_lifecycle_callers.py",
+      "old_bytes": 10143,
+      "new_bytes": 10080,
+      "splices": 2,
+      "old_matches_exact_b332": true,
+      "new_matches_exact_4ed": true,
+      "reverse_and_forward_byte_exact": true
+    }
+  ],
+  "reviewed_head": "4ed7bf2817edda2fe38602a23a25b68a8c886a5b",
+  "predecessor_head": "b332b57fca954ef4ac908aef7431c039cecad09c",
+  "new_selection_helper_false_accept_found": false,
+  "physical_capture_preserved": true,
+  "caller_execution_claimed": false,
+  "findings": [
+    {
+      "kind": "function_boundary_hardening",
+      "path": "tests/hia_cold_caller_selection_history.py",
+      "function": "bind_adjustment",
+      "finding": "Caller sites keep entry path and proof path equal, but the standalone helper should explicitly require entry['path'] == proof['path']."
+    },
+    {
+      "kind": "existing_scope_limit",
+      "path": "tests/hia_installed_distribution_history.py",
+      "function": "predecessor/_records",
+      "finding": "The new selection helper forwards reader root and capture correctly. Existing nested installed-distribution and component-authoring readers still obtain their fixed fixtures from their module roots; those implicit reads are not evidence that an independent caller root supplied the fixtures."
+    }
+  ]
+}

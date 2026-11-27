@@ -127,6 +127,22 @@ class ColdCallerSelectionHistoryTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 history.bind_adjustment(prior, raw + b' ', proof)
 
+    def test_source_adjustment_refuses_a_different_or_missing_path(self):
+        names = tuple(history.EXPECTED)
+        for name in names:
+            raw = self.source(name)
+            original, proof = history.reviewed(name, raw)
+            prior = {'path': name, 'current_bytes': len(original),
+                     'current_sha256': sha256(original).hexdigest()}
+            for other in names:
+                if other != name:
+                    with self.assertRaises(ValueError):
+                        history.bind_adjustment({**prior, 'path': other}, raw, proof)
+            for changed in ({key: value for key, value in prior.items() if key != 'path'},
+                            {**prior, 'path': False}, {**prior, 'path': '../' + name}):
+                with self.assertRaises(ValueError):
+                    history.bind_adjustment(changed, raw, proof)
+
     def test_fresh_reader_imports_no_product_builder_generator_or_oracle(self):
         script = """import importlib.abc,sys
 sys.path.insert(0,sys.argv[1])

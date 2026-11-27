@@ -171,7 +171,8 @@ def bind_adjustment(entry, raw, proof):
     name = proof['path']
     expected = EXPECTED[name]
     prior = {'bytes': entry['current_bytes'], 'sha256': entry['current_sha256']}
-    if (pin(raw) != expected['new'] or proof['old'] != expected['old']
+    if (entry.get('path') != name
+            or pin(raw) != expected['new'] or proof['old'] != expected['old']
             or proof['new'] != expected['new']
             or prior not in (expected['old'], expected['new'])):
         raise ValueError('caller selection source adjustment lost its admitted predecessor')
