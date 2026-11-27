@@ -80,7 +80,12 @@ def source_map():
     paths = set(SOURCE_FILES) | {CONTRACT_PATH, str(Path(__file__).relative_to(ROOT)),
         "tools/generate_hia_slot_ledger.py", "tools/build_hia_slot_ledger.py",
         "examples/hia_bootstrap/slot_ledger.hepta", "hepta/hia_slot_ledger_native.py",
-        "tests/test_hia_slot_ledger_native.py"}
+        "tests/test_hia_slot_ledger_native.py",
+        "tools/hia_cold_compiler.py", "tools/hia_component_input_custody.py",
+        "tests/hia_component_install_fixture.py", "tests/test_hia_component_install_fixture.py",
+        "tests/hia_slot_integration_component_history.py",
+        "tests/fixtures/hia_slot_integration_component_history_v1.json",
+        "tests/test_hia_slot_integration_component_history.py"}
     return {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in sorted(paths)}
 
 
@@ -144,14 +149,16 @@ class SlotLedgerNativeIntegrationTests(unittest.TestCase):
             raise AssertionError("slot integration requires explicit matching cold or development compiler")
         cls.cold = Path(cold).resolve(strict=True) if cold else None
         cls.bindings = {}
+        cls.cold_inputs = None
         if cls.cold:
-            raw = cls.cold.read_bytes()
-            report = json.loads(raw)
-            nested_path = Path(report["nested_report"]).resolve(strict=True)
-            nested_raw = nested_path.read_bytes()
-            nested = json.loads(nested_raw)
-            cls.compiler = Path(nested["generations"][-1]["produced_image"]).resolve(strict=True)
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cold_inputs = read_cold_build_inputs(cls.cold)
+            cls.cold_inputs = cold_inputs
+            raw = cold_inputs.report_bytes
+            nested_path, nested_raw = cold_inputs.location_path, cold_inputs.location_bytes
+            cls.compiler = cold_inputs.compiler
             admit_cold_build(cls.compiler.read_bytes(), raw)
+            cls.bindings.update(cold_inputs.files)
             for name in COLD_SELECTORS:
                 if name in os.environ:
                     value = os.environ[name]
@@ -205,6 +212,13 @@ class SlotLedgerNativeIntegrationTests(unittest.TestCase):
 
     @classmethod
     def finish_custody(cls):
+        if cls.cold_inputs is not None:
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cls.cold_inputs.unchanged()
+            terminal_cold = read_cold_build_inputs(cls.cold)
+            if (terminal_cold.files != cls.cold_inputs.files
+                    or terminal_cold.sources != cls.cold_inputs.sources):
+                raise AssertionError("slot integration cold generation custody changed")
         after = source_map()
         write_json(cls.folder / "source-after.json", after)
         if cls.before_sources != after:
@@ -1296,6 +1310,11 @@ raise SystemExit(main(sys.argv[1:]))
         packaging = os.environ.get("HEPTA_HIA_TEST_PACKAGING_PYTHON", sys.executable)
         from tests.hia_distribution_fixture import stage_cold_sources
         stage_cold_sources(source)
+        from tests.hia_component_install_fixture import component_wheel, verify_component_install
+        component_started = time.monotonic()
+        component = component_wheel(source)
+        component_seconds = time.monotonic() - component_started
+        self.assertLess(component_seconds, 90, "component wheel construction exceeded the original wheel budget")
         self.run_recorded("sdist", [packaging, "-B", "setup.py", "sdist", "--dist-dir", str(self.root / "sdist")],
                           cwd=source, timeout=90)
         archive, = (self.root / "sdist").glob("*.tar.gz")
@@ -1303,12 +1322,25 @@ raise SystemExit(main(sys.argv[1:]))
             prefix = tar.getnames()[0].split("/")[0] + "/"
             for name in resources:
                 self.assertEqual(tar.extractfile(prefix + name).read(), (ROOT / name).read_bytes(), name)
+        wheel_remaining = 90 - component_seconds
+        self.assertGreater(wheel_remaining, 0)
+        wheel_copy_started = time.monotonic()
         self.run_recorded("wheel", [packaging, "-B", "-m", "pip", "wheel", "--no-deps", "--no-index",
-            "--no-build-isolation", "--wheel-dir", str(self.root / "wheels"), str(archive)], timeout=1800)
+            "--no-build-isolation", "--wheel-dir", str(self.root / "wheels"), str(component)], timeout=wheel_remaining)
+        wheel_seconds = component_seconds + time.monotonic() - wheel_copy_started
+        self.assertLessEqual(wheel_seconds, 90, "component construction and pip copy exceeded the original wheel budget")
+        write_json(self.root / "component-wheel-budget.json", {
+            "original_total_seconds": 90, "component_build_seconds": component_seconds,
+            "pip_copy_timeout_seconds": wheel_remaining, "actual_total_seconds": wheel_seconds,
+            "sdist_and_install_budgets_seconds": 90, "whole_native_delivery_qualified": False})
         wheel, = (self.root / "wheels").glob("*.whl")
         installed = self.root / "installed"
         self.run_recorded("install", [packaging, "-B", "-m", "pip", "install", "--no-deps", "--no-index",
-            "--target", str(installed), str(wheel)], timeout=90)
+            "--no-compile", "--target", str(installed), str(wheel)], timeout=90)
+        component_install = verify_component_install(component, installed, installed_from=wheel)
+        self.assertIs(component_install["component_install_verified"], True)
+        self.assertIs(component_install["whole_native_delivery_qualified"], False)
+        write_json(self.root / "component-installed-custody.json", component_install)
         script = r"""
 import importlib.abc, json, os, sys
 from pathlib import Path
@@ -1426,6 +1458,8 @@ print(json.dumps({"adopted": adopted, "rollback": rolled, "native_invocation": a
         self.assertEqual(after["contexts"], before["contexts"])
         self.assertEqual(after["execution_budgets"], before["execution_budgets"])
         self.assertEqual(after["slots"][0][2:4], ["0", "2"])
+        self.assertEqual(verify_component_install(component, installed, installed_from=wheel),
+                         component_install)
         self.observations.append({"installed_report": report, "rows_before": before, "rows_after": after})
 
 
