@@ -228,6 +228,10 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tests/test_hia_cnf_native.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
+    'tools/hia_scoped_caller_admission_history.py',
+    'tests/hia_scoped_selection_original_fixture.py',
+    'tests/test_hia_scoped_caller_admission_history.py',
+    'tests/fixtures/hia_scoped_selection_original_test_view_v1.json',
     'tests/fixtures/hia_scoped_evaluation_cold_preparation_v1.json',
     'tests/hia_scoped_evaluation_cold_preparation.py',
     'tests/test_hia_scoped_evaluation_cold_admission.py',
