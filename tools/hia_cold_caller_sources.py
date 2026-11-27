@@ -66,7 +66,10 @@ def journal_preparation_from_predecessor(root, physical, predecessor, expected):
     root = Path(root)
     if physical == predecessor:
         return journal_preparation_source(root, physical, expected)
-    captured = {name: (root / name).read_bytes() for name in journal.SOURCE_PATHS}
+    from tests.hia_installed_distribution_history import FIXTURE as installed_fixture
+    from tests.hia_component_authoring_history import FIXTURE as component_fixture
+    names = (*journal.SOURCE_PATHS, installed_fixture, component_fixture)
+    captured = {name: (root / name).read_bytes() for name in names}
     if captured[journal.PATH] != physical:
         raise ValueError('Journal physical source changed before historical admission')
     with TemporaryDirectory(prefix='hia-native-cold-caller-history-') as temporary:
