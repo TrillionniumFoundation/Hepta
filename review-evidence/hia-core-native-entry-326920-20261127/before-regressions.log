@@ -1,0 +1,116 @@
+test_admitted_view_retains_original_native_and_hosted_domains (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_admitted_view_retains_original_native_and_hosted_domains) ... ERROR
+test_duplicate_json_keys_cannot_override_failed_bindings (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_duplicate_json_keys_cannot_override_failed_bindings) ... ok
+test_every_original_input_is_reread_after_admission_and_at_use (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_every_original_input_is_reread_after_admission_and_at_use) ... 
+  test_every_original_input_is_reread_after_admission_and_at_use (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_every_original_input_is_reread_after_admission_and_at_use) (path='cold.json', phase='admission') ... FAIL
+test_every_original_input_is_reread_after_admission_and_at_use (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_every_original_input_is_reread_after_admission_and_at_use) ... ERROR
+test_generation_omission_order_aliases_and_type_confusion_are_rejected (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_generation_omission_order_aliases_and_type_confusion_are_rejected) ... ok
+test_index_cannot_qualify_an_unadmitted_report (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_index_cannot_qualify_an_unadmitted_report) ... FAIL
+test_missing_or_false_authority_fields_are_rejected (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_missing_or_false_authority_fields_are_rejected) ... ok
+test_old_nested_report_hash_is_checked_before_admission (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_old_nested_report_hash_is_checked_before_admission) ... ok
+test_physical_tamper_and_symlink_are_rejected_despite_index_claims (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_physical_tamper_and_symlink_are_rejected_despite_index_claims) ... ok
+test_report_byte_binding_and_exact_path_are_required (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_report_byte_binding_and_exact_path_are_required) ... ok
+test_three_original_images_are_read_with_no_hosted_report_synthesis (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_three_original_images_are_read_with_no_hosted_report_synthesis) ... ERROR
+test_source_suite_keeps_original_methods_and_both_explicit_supplements (tests.test_hia_native_cold_custody_readers.NativeColdCustodyReaderTests.test_source_suite_keeps_original_methods_and_both_explicit_supplements) ... ERROR
+
+======================================================================
+ERROR: test_admitted_view_retains_original_native_and_hosted_domains (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_admitted_view_retains_original_native_and_hosted_domains)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/test_hia_cold_compiler.py", line 67, in test_admitted_view_retains_original_native_and_hosted_domains
+    native = read_cold_build_inputs(self.cold)
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/hia_cold_compiler.py", line 177, in read_cold_build_inputs
+    images = read_native_locations(cold_path, cold_raw, index_raw)
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/hia_cold_compiler.py", line 99, in read_native_locations
+    _require(raw.startswith(b"\x7fELF") and len(raw) == row["produced_bytes"]
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             and sha256(raw).hexdigest() == row["produced_sha256"],
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             "physical native compiler bytes differ from the generation index")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/hia_cold_compiler.py", line 24, in _require
+    raise ValueError(message)
+ValueError: physical native compiler bytes differ from the generation index
+
+======================================================================
+ERROR: test_every_original_input_is_reread_after_admission_and_at_use (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_every_original_input_is_reread_after_admission_and_at_use)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/test_hia_cold_compiler.py", line 108, in test_every_original_input_is_reread_after_admission_and_at_use
+    admitted = read_cold_build_inputs(self.cold)
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/hia_cold_compiler.py", line 177, in read_cold_build_inputs
+    images = read_native_locations(cold_path, cold_raw, index_raw)
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/hia_cold_compiler.py", line 99, in read_native_locations
+    _require(raw.startswith(b"\x7fELF") and len(raw) == row["produced_bytes"]
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             and sha256(raw).hexdigest() == row["produced_sha256"],
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             "physical native compiler bytes differ from the generation index")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/hia_cold_compiler.py", line 24, in _require
+    raise ValueError(message)
+ValueError: physical native compiler bytes differ from the generation index
+
+======================================================================
+ERROR: test_three_original_images_are_read_with_no_hosted_report_synthesis (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_three_original_images_are_read_with_no_hosted_report_synthesis)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/test_hia_cold_compiler.py", line 47, in test_three_original_images_are_read_with_no_hosted_report_synthesis
+    images = self.read()
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/test_hia_cold_compiler.py", line 42, in read
+    return read_native_locations(self.cold, self.raw,
+                                 json.dumps(self.index if index is None else index).encode())
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/hia_cold_compiler.py", line 99, in read_native_locations
+    _require(raw.startswith(b"\x7fELF") and len(raw) == row["produced_bytes"]
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             and sha256(raw).hexdigest() == row["produced_sha256"],
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+             "physical native compiler bytes differ from the generation index")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/hia_cold_compiler.py", line 24, in _require
+    raise ValueError(message)
+ValueError: physical native compiler bytes differ from the generation index
+
+======================================================================
+ERROR: test_source_suite_keeps_original_methods_and_both_explicit_supplements (tests.test_hia_native_cold_custody_readers.NativeColdCustodyReaderTests.test_source_suite_keeps_original_methods_and_both_explicit_supplements)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/test_hia_native_cold_custody_readers.py", line 277, in test_source_suite_keeps_original_methods_and_both_explicit_supplements
+    self.assertEqual(bootstrap_reader.method_ids('source', captured), expected)
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/read_hia_service_bootstrap.py", line 997, in method_ids
+    integer(len(result),6 if suite=="source" else 12)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tools/read_hia_service_bootstrap.py", line 23, in integer
+    raise ValueError("exact integer field differs")
+ValueError: exact integer field differs
+
+======================================================================
+FAIL: test_every_original_input_is_reread_after_admission_and_at_use (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_every_original_input_is_reread_after_admission_and_at_use) (path='cold.json', phase='admission')
+----------------------------------------------------------------------
+ValueError: physical native compiler bytes differ from the generation index
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/test_hia_cold_compiler.py", line 104, in test_every_original_input_is_reread_after_admission_and_at_use
+    self.assertRaisesRegex(ValueError, "inputs changed"):
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "inputs changed" does not match "physical native compiler bytes differ from the generation index"
+
+======================================================================
+FAIL: test_index_cannot_qualify_an_unadmitted_report (tests.test_hia_cold_compiler.ColdCompilerLocationTests.test_index_cannot_qualify_an_unadmitted_report)
+----------------------------------------------------------------------
+ValueError: physical native compiler bytes differ from the generation index
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-core-wiring-20261127-2807/tests/test_hia_cold_compiler.py", line 58, in test_index_cannot_qualify_an_unadmitted_report
+    with self.assertRaisesRegex(ValueError, "complete actual cold report required"):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "complete actual cold report required" does not match "physical native compiler bytes differ from the generation index"
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.191s
+
+FAILED (failures=2, errors=4)

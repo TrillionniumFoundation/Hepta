@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 from pathlib import Path
 import sys
 import traceback
@@ -23,8 +24,12 @@ from tools.hia_cold_native_transport_bridge import SOURCE_INPUTS, SELECTOR, DEVE
 GATES = ROOT / "tests/fixtures/cold_native_transport_original_gates_v3.json"
 
 
-def _scope_inputs(capture):
-    return {name: data_pin(capture.raw(ROOT / name)) for name in sorted(SOURCE_INPUTS)}
+def _scope_inputs(capture, *, native_cold=False):
+    inputs = SOURCE_INPUTS
+    if native_cold:
+        from tools.hia_cold_native_transport_cold import TRANSPORT_INPUTS
+        inputs = TRANSPORT_INPUTS
+    return {name: data_pin(capture.raw(ROOT / name)) for name in sorted(inputs)}
 
 
 def _child_gates(output, selected, extra):
@@ -128,7 +133,7 @@ def qualify(output, *, scope, manifest=None, linked_cold_report=None, linked_dev
     output = Path(output).resolve()
     output.mkdir(mode=0o700)
     capture = Captures()
-    source_before = _scope_inputs(capture)
+    source_before = _scope_inputs(capture, native_cold=scope == "cold")
     runtime = Path(sys.executable).resolve(strict=True)
     capture.raw(runtime)
     commands, lanes = [], []
@@ -203,31 +208,55 @@ def qualify(output, *, scope, manifest=None, linked_cold_report=None, linked_dev
         elif scope == "cold":
             if manifest is not None or linked_cold_report is not None or linked_development_compiler is not None:
                 raise ValueError("fresh source cold cannot inherit any native transport/compiler image")
-            # Preserve the original 240-second outer owner, including source
-            # export; the inner qualification still enforces 180+3.
+            # Preserve the original complete cold-owned 240-second cap,
+            # including source construction/export. The HIA qualification
+            # owner independently enforces all 60 phases and 180+3.
             cold_path = output / "cold.json"
-            command = [*python, str(ROOT / "tools/replay_hia_selfhost_cold.py"),
-                       "--output", str(cold_path), "--native-transport"]
+            command = [*python, str(ROOT / "tools/replay_hia_native_cold.py"),
+                       "--output", str(cold_path)]
             result = run_owned(command, cwd=ROOT, directory=output / "cold-owned",
                                timeout_seconds=240, environment=environment)
             commands.append(result)
             raw = capture.raw(cold_path) if cold_path.exists() else None
             cold = None if raw is None else parse(raw)
             lanes.append({"lane": "fresh-cold", "report": None if raw is None else data_pin(raw)})
-            if (not successful_exit(result) or cold is None
-                    or cold.get("status") != "COLD_SELFHOST_REPLAY_PASS"
+            if (not successful_exit(result) or type(cold) is not dict
+                    or cold.get("schema") != "hepta.hia.selfhost-cold-replay.v2"
+                    or cold.get("status") != "NATIVE_COLD_SELFHOST_REPLAY_PASS"
                     or cold.get("qualification_wall_limit_seconds") != 180
-                    or cold.get("cleanup_wall_limit_seconds") != 3
-                    or cold.get("native_transport_selection") != {
-                        "mode": "fresh-source-export-build-after-B3",
-                        "inherited_native_images": False, "whole_native": False}):
-                raise ValueError("full original cold source replay did not qualify")
-            report["status"] = "COLD_PRODUCER_PASS_INDEPENDENT_FULL_RAW_READER_REQUIRED"
+                    or cold.get("cleanup_wall_limit_seconds") != 3):
+                raise ValueError("complete native source cold replay did not qualify")
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            from tools.build_hia_cold_native_transport import current_python_library
+            from tools.hia_cold_native_transport_cold import read_native_transport_binding
+            compiler = compiler_from_cold_report(cold_path)
+            compiler_raw = capture.raw(compiler)
+            capture.raw(cold_path.with_suffix(".generations.json"))
+            cc = shutil.which("gcc")
+            if cc is None:
+                raise ValueError("explicit development transport build requires gcc")
+            build_output = output / "native-transport-build"
+            command = [*python, str(ROOT / "tools/build_hia_cold_native_transport.py"),
+                       "--output", str(build_output), "--compiler", str(compiler),
+                       "--compiler-sha256", data_pin(compiler_raw)["sha256"],
+                       "--cold-report", str(cold_path), "--python-library", str(current_python_library()),
+                       "--cc", cc]
+            result = run_owned(command, cwd=ROOT, directory=output / "transport-build-owned",
+                               timeout_seconds=900, environment=environment)
+            commands.append(result)
+            if not successful_exit(result):
+                raise ValueError("native-cold-bound development transport build did not complete")
+            binding = read_native_transport_binding(build_output / "manifest.json", cold_path)
+            capture.raw(build_output / "manifest.json")
+            report["native_transport_binding"] = binding
+            report["development_orchestration_wall_limit_seconds"] = 900
+            report["host_bridge_is_native_release"] = False
+            report["status"] = "NATIVE_COLD_PASS_DEVELOPMENT_TRANSPORT_BUILT_INDEPENDENT_READER_REQUIRED"
             report["independent_cold_readback_required"] = True
         else:
             raise ValueError("unknown complete gate scope")
         capture.unchanged()
-        report["source_after"] = _scope_inputs(capture)
+        report["source_after"] = _scope_inputs(capture, native_cold=scope == "cold")
         if report["source_after"] != source_before:
             raise ValueError("native cold gate source changed")
         report["source_stable"] = True
