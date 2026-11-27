@@ -1200,13 +1200,20 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
             or diagnostic['original_native_budget_ms'] != 1):
         raise ValueError('delivery diagnostic existing deadline authority was not retained')
     restored, states, adjustments = {}, {}, {}
+    scoped_histories = []
     for path in DIAGNOSTIC_PATHS:
         raw, record = capture(path), value['files'][path]
         expected = DIAGNOSTIC_RECORDS[path]
         from tests.hia_installed_distribution_history import predecessor
         from tests.hia_cold_caller_selection_history import reviewed as review_selection, bind_adjustment
-        native_source, native_proof, prior_take = _cold_view(path, raw,
-            take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+        from tools import hia_scoped_caller_admission_history as scoped_history
+        physical_take = lambda name: capture(name.relative_to(ROOT).as_posix())
+        projected, scoped = scoped_history.prepare(ROOT, {path: raw}, take=physical_take)
+        if scoped is not None:
+            scoped_histories.append(scoped)
+        scoped_source = projected[path]
+        native_source, native_proof, prior_take = _cold_view(path, scoped_source,
+            take=physical_take if scoped is None else scoped['prior_take'])
         selected, result_history = native_source, None
         if (path == 'tests/test_hia_agent_native_tools.py'
                 and _pin(native_source) == {'bytes': 47052, 'sha256':
@@ -1256,25 +1263,35 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
                     'complete_original_inverse_verified': True,
                     'complete_current_forward_replay_verified': True,
                     'production_source_exception': False}
+                # Bind the inner admitted source before restoring the outer physical source.
                 if caller_update:
-                    adjustments[path].update(current_bytes=len(raw), current_sha256=sha256(raw).hexdigest(),
+                    adjustments[path].update(current_bytes=len(native_source), current_sha256=sha256(native_source).hexdigest(),
                                              original_evaluation_callers_verified=183)
                 if boundary:
                     adjustments[path].update({
-                        'current_bytes': len(raw), 'current_sha256': sha256(raw).hexdigest(),
+                        'current_bytes': len(native_source), 'current_sha256': sha256(native_source).hexdigest(),
                         'sqlite_boundary_successor': {
                             'authority': {'path': SQLITE_BOUNDARY_FIXTURE, **SQLITE_BOUNDARY_FIXTURE_PIN},
                             'restores_reviewed_diagnostic_source_exactly': True,
                         },
                     })
                 if result_history is not None:
-                    adjustments[path].update(current_bytes=len(raw), current_sha256=sha256(raw).hexdigest(),
+                    adjustments[path].update(current_bytes=len(native_source), current_sha256=sha256(native_source).hexdigest(),
                                              native_result_source_history=result_history)
                 adjustments[path] = bind_adjustment(adjustments[path], native_source, selection_proof)
-                adjustments[path] = _bind_cold(adjustments[path], raw, native_proof)
+                adjustments[path] = _bind_cold(adjustments[path], scoped_source, native_proof)
+                if scoped is not None:
+                    entry = adjustments[path]
+                    if (entry['current_bytes'] != len(scoped_source)
+                            or entry['current_sha256'] != sha256(scoped_source).hexdigest()):
+                        raise ValueError('delivery scoped caller predecessor review differs')
+                    entry.update(current_bytes=len(raw), current_sha256=sha256(raw).hexdigest(),
+                                 scoped_caller_source_history=scoped['review'])
     if (set(adjustments) - set(authorities[original_kind]['unchanged_files'])
             or set(adjustments) & set(prior['source_adjustments'])):
         raise ValueError('delivery diagnostic source adjustment escaped or overlapped its fixed scope')
+    for scoped in scoped_histories:
+        scoped_history.verify_unchanged(scoped)
     for path, raw in captured.items():
         if (ROOT / path).read_bytes() != raw:
             raise ValueError('delivery diagnostic captured bytes changed at terminal reread: ' + path)
@@ -1799,12 +1816,16 @@ def _admit_build_inventory_control(inventory, prior):
 
 
 def delivery_sources(root, inventory, prior):
-    """Bind newly installed-test sources to the original complete delivery inventory."""
-    from tests.hia_installed_distribution_history import FIXTURE, FIXTURE_SHA256, _records, predecessor
+    """Bind complete cold and installation histories to the original inventory."""
+    from tests.hia_installed_distribution_history import FIXTURE_SHA256, _records
+    from tools.hia_native_cold_caller_history import KNOWN_CURRENT
+    from tools import hia_native_cold_composition_history as composition
 
     root = Path(root)
     adjustments = dict(prior['source_adjustments'])
-    captured = {}
+    captured, compositions = {}, []
+    shared = dict(prior.get('shared_dependency_review', {}))
+    shared_adjustments = dict(prior.get('shared_adjustments', {}))
 
     def capture(path):
         name = path.relative_to(root).as_posix()
@@ -1816,18 +1837,54 @@ def delivery_sources(root, inventory, prior):
 
     records = _records(root=root, take=capture)
     for name, old in inventory['unchanged_files'].items():
-        if name not in records or name in adjustments:
+        if name in adjustments:
+            continue
+        if name not in records and name not in KNOWN_CURRENT and name not in composition.CURRENT:
             continue
         data = capture(root / name)
-        previous = _installed_predecessor(name, data, root=root, take=capture)
+        projected, composed = composition.prepare(root, {name: data}, take=capture)
+        if composed is not None:
+            compositions.append(composed)
+        outer = projected[name]
+        selected, native_proof, view = _cold_view(name, outer, root=root,
+            take=capture if composed is None else composed['prior_take'])
+        previous = _installed_predecessor(name, selected, root=root, take=view)
         if previous == data or _pin(previous) != old:
             continue
-        adjustments[name] = {
+        adjustment = {
             'path': name, 'original_sha256': old['sha256'], 'original_bytes': old['bytes'],
-            'current_sha256': sha256(data).hexdigest(), 'current_bytes': len(data),
-            'scope': 'normal offline installation with original component qualification',
-            'reversible_patch_fixture_sha256': FIXTURE_SHA256,
+            'current_sha256': sha256(outer).hexdigest(), 'current_bytes': len(outer),
+            'scope': 'complete fixed source predecessors bound to the original inventory',
+            'reversible_patch_fixture_sha256': (FIXTURE_SHA256 if previous != selected
+                else native_proof['authority']['sha256'] if native_proof is not None
+                else composition.FIXTURE_PIN['sha256']),
         }
+        adjustment = _bind_cold(adjustment, outer, native_proof)
+        if composed is not None:
+            if (adjustment['current_bytes'] != len(outer)
+                    or adjustment['current_sha256'] != sha256(outer).hexdigest()):
+                raise ValueError('installed caller composition lost its complete predecessor')
+            adjustment.update(current_bytes=len(data), current_sha256=sha256(data).hexdigest(),
+                              native_composition_source_history=composed['review'])
+        adjustments[name] = adjustment
+    for name, old in inventory.get('shared_dependency_review', {}).items():
+        if name in shared or name not in KNOWN_CURRENT:
+            continue
+        data = capture(root / name)
+        previous, native_proof, _ = _cold_view(name, data, root=root, take=capture)
+        if native_proof is None or _pin(previous) != old:
+            continue
+        entry = {
+            'path': name, 'original_bytes': old['bytes'], 'original_sha256': old['sha256'],
+            'current_bytes': len(previous), 'current_sha256': sha256(previous).hexdigest(),
+            'scope': 'complete fixed cold selection of an original shared dependency',
+            'reversible_patch_fixture_sha256': native_proof['authority']['sha256'],
+        }
+        shared_adjustments[name] = _bind_cold(entry, data, native_proof)
+        shared[name] = dict(native_proof['physical_current'])
+    for composed in compositions:
+        composition.verify_unchanged(composed)
     if any((root / name).read_bytes() != data for name, data in captured.items()):
         raise ValueError('the installed caller source changed before finishing delivery admission')
-    return {**prior, 'source_adjustments': adjustments}
+    return {**prior, 'source_adjustments': adjustments, 'shared_dependency_review': shared,
+            'shared_adjustments': shared_adjustments}
