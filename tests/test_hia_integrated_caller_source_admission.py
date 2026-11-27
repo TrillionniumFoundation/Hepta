@@ -12,6 +12,7 @@ from tools import qualify_hia_cost_ledger_callers as cost
 from tools import qualify_hia_service_context_callers as context
 from tools import qualify_hia_store_lifecycle_callers as lifecycle
 from tools import hia_frozen_component_sources as history
+from tools import hia_current_caller_source_history as current_history
 
 ROOT = Path(__file__).resolve().parents[1]
 SUBJECTS = (cost, context, lifecycle)
@@ -33,7 +34,9 @@ def pins(proof):
 class IntegratedCallerSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        names = {cost._INTEGRATED_HELPER, cost._INTEGRATED_AUTHORITY,
+        names = {'tools/hia_current_caller_source_history.py', current_history.RESULT_HELPER,
+                 current_history.RESULT_FIXTURE,
+                 cost._INTEGRATED_HELPER, cost._INTEGRATED_AUTHORITY,
                  cost._DIAGNOSTICS_HELPER, cost._DIAGNOSTICS_AUTHORITY}
         for subject in SUBJECTS:
             names.add(subject.FIXTURE_NAME)
@@ -83,7 +86,12 @@ class IntegratedCallerSourceTests(unittest.TestCase):
                 integrated = proof['reviewed_integrated_source_adjustments']
                 self.assertEqual(set(integrated), set(cost._INTEGRATED_CURRENT) & set(pins(proof)))
                 for name, entry in integrated.items():
-                    self.assertEqual(entry['physical'], cost._INTEGRATED_CURRENT[name])
+                    self.assertEqual(entry['physical'], {'bytes': len(self.sources[name]),
+                                                       'sha256': sha256(self.sources[name]).hexdigest()})
+                    if name == current_history.RESULT_PATH:
+                        self.assertEqual(entry['native_result_source_history']['assertion_revision'],
+                                         {'function_results': {'old': 3, 'new': 6}, 'changed_bytes': 1})
+                        self.assertFalse(entry['native_result_source_history']['deadline_methods_changed'])
                     self.assertEqual(entry['reviewed_predecessor'], cost._INTEGRATED_REVIEWED[name])
                     self.assertEqual(pins(proof)[name], sha256(self.sources[name]).hexdigest())
                     self.assertFalse(entry['whole_native_delivery_qualified'])
@@ -153,7 +161,7 @@ class IntegratedCallerSourceTests(unittest.TestCase):
 
     def test_07_old_source_domains_do_not_gain_history_captures_or_proofs(self):
         for name in cost._INTEGRATED_CURRENT:
-            restored = history.reviewed_source(ROOT, name, self.sources[name])
+            restored = current_history.reviewed_source(ROOT, name, self.sources[name])
             (self.root / name).write_bytes(restored)
         for subject in SUBJECTS:
             _, proof = admit(subject, self.root)

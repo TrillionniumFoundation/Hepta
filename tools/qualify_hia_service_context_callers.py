@@ -64,6 +64,21 @@ def _admit_integrated_source(root, capture, name, raw):
     def pin(value):
         return {'bytes': len(value), 'sha256': sha256(value).hexdigest()}
 
+    physical, result_history = raw, None
+    if (name == 'tests/test_hia_agent_native_tools.py'
+            and pin(raw) == {'bytes': 47052, 'sha256':
+                '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2'}):
+        source_history_name = 'tools/hia_current_caller_source_history.py'
+        source_history_raw = capture(source_history_name)
+        if pin(source_history_raw) != {'bytes': 3838, 'sha256':
+                '9f773647bacc0a59f8ddff7b45e27f9d5474bb96a7f2368fa7e18a2a98141558'}:
+            raise ValueError('native result caller composition helper differs')
+        from tools import hia_current_caller_source_history as current_history
+        if Path(current_history.__file__).read_bytes() != source_history_raw:
+            raise ValueError('native result caller imported a different composition helper')
+        raw, result_history = current_history.result_predecessor(
+            root, name, raw,
+            take=lambda path: capture(Path(path).relative_to(root).as_posix()))
     if pin(raw) != _INTEGRATED_CURRENT.get(name):
         return raw, None
     helper, authority = capture(_INTEGRATED_HELPER), capture(_INTEGRATED_AUTHORITY)
@@ -78,7 +93,8 @@ def _admit_integrated_source(root, capture, name, raw):
     if pin(restored) != _INTEGRATED_REVIEWED[name]:
         raise ValueError('integrated caller did not restore its complete reviewed source')
     return restored, {
-        'path': name, 'physical': pin(raw), 'reviewed_predecessor': pin(restored),
+        'path': name, 'physical': pin(physical), 'reviewed_predecessor': pin(restored),
+        **({'native_result_source_history': result_history} if result_history is not None else {}),
         'helper': {'path': _INTEGRATED_HELPER, **pin(helper)},
         'authority': {'path': _INTEGRATED_AUTHORITY, **pin(authority)},
         'complete_source_history_only': True, 'whole_native_delivery_qualified': False,

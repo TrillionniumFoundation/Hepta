@@ -23,8 +23,10 @@ if __package__ in (None, ''):
 from tools.hia_native_cold_admission import SCHEMA as NATIVE_COLD_SCHEMA
 from tools.hia_component_cold_readback import native_cold_compiler, read_component_inputs
 from tools.hia_frozen_component_sources import (
-    history_inverse, restore_reader_evaluation_test, reviewed_source,
+    history_inverse, restore_reader_evaluation_test,
 )
+from tools import hia_current_caller_source_history as current_history
+from tools.hia_current_caller_source_history import reviewed_source
 
 CONTRACT = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
 COLD_PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
@@ -625,9 +627,20 @@ def original_callers(repository, captures, *, terminal_evidence=None):
         known_diagnostic = name == _DIAGNOSTIC_PATH and pin(raw) == _DIAGNOSTIC_CURRENT
         if not (count_only or known_terminal or known_diagnostic):
             physical = raw
+            if (name == current_history.RESULT_PATH
+                    and pin(raw) == current_history.RESULT_CURRENT):
+                helper = captures.take(relative(repository, 'tools/hia_current_caller_source_history.py'))
+                require(pin(helper) == {'bytes': 3838, 'sha256':
+                            '9f773647bacc0a59f8ddff7b45e27f9d5474bb96a7f2368fa7e18a2a98141558'}
+                        and Path(current_history.__file__).read_bytes() == helper,
+                        'current caller source composition helper differs')
+            raw, result_history = current_history.result_predecessor(
+                repository, name, raw, take=captures.take)
             raw = reviewed_source(repository, name, raw, take=captures.take)
             successor_sources[name] = {'physical': pin(physical), 'reviewed': pin(raw),
-                                      'fixed_complete_source_relation': True}
+                                      'fixed_complete_source_relation': True,
+                                      **({'native_result_source_history': result_history}
+                                         if result_history is not None else {})}
             if digest(raw) == expected:
                 continue
         if name == _DIAGNOSTIC_PATH:

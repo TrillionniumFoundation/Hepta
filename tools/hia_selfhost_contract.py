@@ -2866,6 +2866,9 @@ SOURCE_FILES = (
     'tools/hia_artifact_caller_source_history.py',
     'tests/fixtures/hia_artifact_assembly_source_successor_v1.json',
     'tests/test_hia_artifact_caller_source_history.py',
+    'tools/hia_current_caller_source_history.py',
+    'tests/test_hia_current_caller_source_history.py',
+    'tests/fixtures/hia_cold_caller_selection_history_v3.json',
 )
 
 

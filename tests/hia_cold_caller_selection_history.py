@@ -1,7 +1,7 @@
 """Exact source history for strict native-cold selection in seven caller qualifiers.
 
-The fixed v1 selection relation and a separate immutable v2 source-admission
-relation are reversed in order. Every prior full-file inventory, method,
+The fixed v1 selection relation and separate immutable v2/v3 source-admission
+relations are reversed in order. Every prior full-file inventory, method,
 assertion, budget and terminal-capture check remains active.
 This data-only helper grants source-history admission, never caller execution.
 """
@@ -163,9 +163,65 @@ def _review_selection(name, raw, *, root=None, take=Path.read_bytes):
     }
 
 
-INTEGRATED_FIXTURE = 'tests/fixtures/hia_cold_caller_selection_history_v2.json'
-INTEGRATED_FIXTURE_PIN = {'bytes': 33797, 'sha256': '4746d645ffb37c63f7fb7cb20eaa3c884d6e1a7b364da5b97f31dc162e1f31f7'}
+INTEGRATED_FIXTURE = 'tests/fixtures/hia_cold_caller_selection_history_v3.json'
+INTEGRATED_FIXTURE_PIN = {
+    "bytes": 27749,
+    "sha256": "6a2d1a5881b2bc4ca54901c15fd37e0770cae55a86244657682a3f5a53dd37d5"
+}
 INTEGRATED_EXPECTED = {
+    "tools/qualify_hia_cost_ledger_callers.py": {
+        "old": {
+            "bytes": 10465,
+            "sha256": "bd9682ab67948b2632523b55d595becfed7fe1f860b2544bd8449f1c052a20a1"
+        },
+        "new": {
+            "bytes": 14304,
+            "sha256": "e196780a77f544d4563b60af646383616045eb5ecda4e912c236e4ba1ec46f60"
+        }
+    },
+    "tools/qualify_hia_service_context_callers.py": {
+        "old": {
+            "bytes": 11881,
+            "sha256": "c4de90f655d57d0036313f5a454863bfd85b40adfbe73a16efb16ce13eff2d6f"
+        },
+        "new": {
+            "bytes": 15720,
+            "sha256": "a91d034b5f556e5918a51d74d7fc71b83d2d681360eea24f895a61dad718f8df"
+        }
+    },
+    "tools/qualify_hia_store_lifecycle_callers.py": {
+        "old": {
+            "bytes": 10080,
+            "sha256": "2d49a7ae102d1ac11015a394a4bdf5cb71a3642b4d6818755097a699e65c3a04"
+        },
+        "new": {
+            "bytes": 14213,
+            "sha256": "39ef0387ce4a6883432f1b3d616a49f638ab800fc624739b4d24414a696761c1"
+        }
+    }
+}
+INTEGRATED_METADATA = {
+    "schema": "hepta.hia.integrated-caller-source-admission-history.v3",
+    "predecessor_commit": "241551d273c98561225263750ba98d11d93bf81c",
+    "source_commits": {
+        "integrated_admission": "dd8f96ca7f2fa97f7711dc96dba5d5f43fbad2a4",
+        "native_result_assertion": "546c7fe9db30f493400929fc6d7fdc6e500d7591",
+        "prior_history": "fddafe612d75e84232c6b35b7503d1c2d7efc5ce"
+    },
+    "source_kind": "HOST_QUALIFIER_SOURCE_ADMISSION_ONLY",
+    "original_callers": {
+        "tools/qualify_hia_cost_ledger_callers.py": 81,
+        "tools/qualify_hia_service_context_callers.py": 50,
+        "tools/qualify_hia_store_lifecycle_callers.py": 50
+    },
+    "whole_native_delivery_qualified": False
+}
+LEGACY_INTEGRATED_FIXTURE = 'tests/fixtures/hia_cold_caller_selection_history_v2.json'
+LEGACY_INTEGRATED_FIXTURE_PIN = {
+    'bytes': 33797,
+    'sha256': '4746d645ffb37c63f7fb7cb20eaa3c884d6e1a7b364da5b97f31dc162e1f31f7',
+}
+LEGACY_INTEGRATED_EXPECTED = {
     "tools/qualify_hia_cost_ledger_callers.py": {
         "old": {
             "bytes": 10465,
@@ -197,6 +253,18 @@ INTEGRATED_EXPECTED = {
         }
     }
 }
+LEGACY_INTEGRATED_METADATA = {
+    "schema": "hepta.hia.integrated-caller-source-admission-history.v2",
+    "predecessor_commit": "241551d273c98561225263750ba98d11d93bf81c",
+    "successor_commit": "dd8f96ca7f2fa97f7711dc96dba5d5f43fbad2a4",
+    "source_kind": "HOST_QUALIFIER_SOURCE_ADMISSION_ONLY",
+    "original_callers": {
+        "tools/qualify_hia_cost_ledger_callers.py": 81,
+        "tools/qualify_hia_service_context_callers.py": 50,
+        "tools/qualify_hia_store_lifecycle_callers.py": 50
+    },
+    "whole_native_delivery_qualified": False
+}
 INTEGRATED_CALLERS = {
     'tools/qualify_hia_cost_ledger_callers.py': 81,
     'tools/qualify_hia_service_context_callers.py': 50,
@@ -212,13 +280,23 @@ def current_pin(name):
     """Return an explicitly frozen complete current qualifier identity."""
     return dict(INTEGRATED_EXPECTED.get(name, EXPECTED[name])['new'])
 
-def _integrated_proof(name):
-    expected = INTEGRATED_EXPECTED[name]
+def _integrated_version(version):
+    if type(version) is not int or version not in (2, 3):
+        raise ValueError('unknown integrated caller history version')
+    if version == 3:
+        return (INTEGRATED_FIXTURE, INTEGRATED_FIXTURE_PIN,
+                INTEGRATED_EXPECTED, INTEGRATED_METADATA)
+    return (LEGACY_INTEGRATED_FIXTURE, LEGACY_INTEGRATED_FIXTURE_PIN,
+            LEGACY_INTEGRATED_EXPECTED, LEGACY_INTEGRATED_METADATA)
+
+def _integrated_proof(name, version=3):
+    fixture, fixture_pin, versions, _ = _integrated_version(version)
+    expected = versions[name]
     return {
-        'schema': 'hepta.hia.integrated-caller-source-admission-review.v2',
+        'schema': 'hepta.hia.integrated-caller-source-admission-review.v' + str(version),
         'path': name,
         'old': dict(expected['old']), 'new': dict(expected['new']),
-        'fixture': {'path': INTEGRATED_FIXTURE, **INTEGRATED_FIXTURE_PIN},
+        'fixture': {'path': fixture, **fixture_pin},
         'inverse_helper': {'path': INVERSE_HELPER, **INVERSE_HELPER_PIN},
         'original_caller_count': INTEGRATED_CALLERS[name],
         'complete_predecessor_restored': True, 'complete_successor_replayed': True,
@@ -226,9 +304,14 @@ def _integrated_proof(name):
     }
 
 def _integrated_predecessor(name, raw, root, take):
-    expected = INTEGRATED_EXPECTED.get(name)
-    if expected is None or pin(raw) != expected['new']:
+    actual = pin(raw)
+    version = next((number for number in (3, 2)
+                    if name in _integrated_version(number)[2]
+                    and actual == _integrated_version(number)[2][name]['new']), None)
+    if version is None:
         return raw, None, {}
+    fixture_name, fixture_pin, versions, metadata = _integrated_version(version)
+    expected = versions[name]
     saved = {}
     def capture(selected):
         value = take(root / selected)
@@ -238,22 +321,16 @@ def _integrated_predecessor(name, raw, root, take):
         return value
     if capture(name) != raw:
         raise ValueError('integrated caller history differs from selected-root source')
-    frozen, helper = capture(INTEGRATED_FIXTURE), capture(INVERSE_HELPER)
-    if pin(frozen) != INTEGRATED_FIXTURE_PIN or pin(helper) != INVERSE_HELPER_PIN:
+    frozen, helper = capture(fixture_name), capture(INVERSE_HELPER)
+    if pin(frozen) != fixture_pin or pin(helper) != INVERSE_HELPER_PIN:
         raise ValueError('integrated caller history fixed fixture or inverse helper differs')
     value = json.loads(frozen, object_pairs_hook=_pairs)
-    if (type(value) is not dict
-            or set(value) != {'schema', 'predecessor_commit', 'successor_commit',
-                             'source_kind', 'original_callers',
-                             'whole_native_delivery_qualified', 'files'}
-            or value['schema'] != 'hepta.hia.integrated-caller-source-admission-history.v2'
-            or value['predecessor_commit'] != '241551d273c98561225263750ba98d11d93bf81c'
-            or value['successor_commit'] != 'dd8f96ca7f2fa97f7711dc96dba5d5f43fbad2a4'
-            or value['source_kind'] != 'HOST_QUALIFIER_SOURCE_ADMISSION_ONLY'
+    if (type(value) is not dict or set(value) != set(metadata) | {'files'}
+            or {key: value[key] for key in metadata} != metadata
             or value['original_callers'] != INTEGRATED_CALLERS
             or value['whole_native_delivery_qualified'] is not False
             or type(value['files']) is not dict
-            or set(value['files']) != set(INTEGRATED_EXPECTED)):
+            or set(value['files']) != set(versions)):
         raise ValueError('integrated caller history scope differs')
     record = value['files'][name]
     if (type(record) is not dict or set(record) != {'old', 'new', 'hunks'}
@@ -268,7 +345,7 @@ def _integrated_predecessor(name, raw, root, take):
         'new_bytes': record['new']['bytes'], 'new_sha256': record['new']['sha256'],
         'hunks': record['hunks'],
     }, expected['old'])
-    return selected, _integrated_proof(name), saved
+    return selected, _integrated_proof(name, version), saved
 
 def reviewed(name, raw, *, root=None, take=Path.read_bytes):
     """Restore exact integrated admission, then the unchanged v1 selection."""
@@ -284,7 +361,7 @@ def reviewed(name, raw, *, root=None, take=Path.read_bytes):
         if take(root / path) != captured:
             raise ValueError('integrated caller history terminal source capture differs')
     return original, {
-        **proof, 'new': dict(INTEGRATED_EXPECTED[name]['new']),
+        **proof, 'new': dict(integrated['new']),
         'integrated_source_admission': integrated,
     }
 
@@ -304,14 +381,16 @@ def bind_adjustment(entry, raw, proof):
     if integrated is None:
         current = expected['new']
     else:
-        if (name not in INTEGRATED_EXPECTED or type(integrated) is not dict
-                or integrated != _integrated_proof(name)
+        version = next((number for number in (3, 2)
+                        if name in _integrated_version(number)[2]
+                        and integrated == _integrated_proof(name, number)), None)
+        if (version is None or type(integrated) is not dict
                 or integrated.get('complete_predecessor_restored') is not True
                 or integrated.get('complete_successor_replayed') is not True
                 or integrated.get('terminal_reread_identical') is not True
                 or integrated.get('whole_native_delivery_qualified') is not False):
             raise ValueError('caller selection integrated source proof differs')
-        current = INTEGRATED_EXPECTED[name]['new']
+        current = _integrated_version(version)[2][name]['new']
     prior = {'bytes': entry.get('current_bytes'), 'sha256': entry.get('current_sha256')}
     if (entry.get('path') != name
             or actual != current or proof.get('old') != expected['old']
