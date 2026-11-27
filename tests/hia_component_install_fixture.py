@@ -542,6 +542,12 @@ def component_wheel(source):
         _require(_read(item["custody_path"].parent, item["custody_path"].name)
                  == item["custody_bytes"], "the built component custody changed")
         _checked_wheel(path, item["wheel_bytes"], snapshot)
+        _staged_inputs(source, snapshot)
+        _verify_snapshot(snapshot)
+        _require(_read(path.parent, path.name) == item["wheel_bytes"],
+                 "component wheel changed during cached readback")
+        _require(_read(item["custody_path"].parent, item["custody_path"].name)
+                 == item["custody_bytes"], "component custody changed during cached readback")
         return path
 
 
@@ -608,6 +614,8 @@ def verify_component_install(component, installed, *, installed_from):
                  and _read(copied.parent, copied.name) == item["wheel_bytes"],
                  "wheel changed during installed readback")
         _verify_snapshot(item["snapshot"])
+        _require(_read(item["custody_path"].parent, item["custody_path"].name)
+                 == item["custody_bytes"], "component custody changed during installed readback")
         return {"schema": SCHEMA, "scope": SCOPE, "source_head": item["snapshot"]["custody"]["source_head"],
                 "wheel_sha256": sha256(item["wheel_bytes"]).hexdigest(),
                 "native_authority_input_count": len(item["snapshot"]["custody"]["native_authority"]),

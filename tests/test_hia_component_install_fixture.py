@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 from tests import hia_component_install_fixture as fixture
@@ -255,9 +256,41 @@ class ComponentWheelControls(unittest.TestCase):
             controls.append("unknown-partial-stage-rejected-even-after-cache")
         finally:
             (stage / "unexpected").unlink()
+        def reject_late_mutation(label, boundary, target, call):
+            original_call = getattr(fixture, boundary)
+            before = target.read_bytes()
+            mode = target.stat().st_mode & 0o777
+            mutated = False
+            def change_after_real_check(*args, **kwargs):
+                nonlocal mutated
+                value = original_call(*args, **kwargs)
+                target.chmod(mode | 0o200)
+                target.write_bytes(before + b"\n# late custody mutation\n")
+                self.assertNotEqual(target.read_bytes(), before)
+                mutated = True
+                return value
+            try:
+                with patch.object(fixture, boundary, change_after_real_check):
+                    with self.assertRaises(ValueError, msg=label):
+                        call()
+                self.assertTrue(mutated, "the actual validation boundary was not reached: " + label)
+                controls.append(label)
+            finally:
+                target.write_bytes(before)
+                target.chmod(mode)
+        reject_late_mutation("installed-terminal-sidecar", "_verify_installed", custody,
+                             lambda: fixture.verify_component_install(
+                                 component, installed, installed_from=wheel))
+        for label, target in (
+                ("cached-terminal-partial-stage", staged),
+                ("cached-terminal-git-source", ROOT / member),
+                ("cached-terminal-wheel", component),
+                ("cached-terminal-custody", custody)):
+            reject_late_mutation(label, "_checked_wheel", target,
+                                 lambda: fixture.component_wheel(stage))
         final = fixture.verify_component_install(component, installed, installed_from=wheel)
         self.assertEqual(report, final)
-        self.assertEqual(len(controls), 14)
+        self.assertEqual(len(controls), 19)
         (work / "qualification.json").write_text(json.dumps({
             "positive": report, "negative_controls": controls,
             "original_command_timeout_seconds": 60,
