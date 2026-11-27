@@ -9,6 +9,7 @@ from pathlib import Path
 import json
 from tools.generate_hia_native_controller_release import ControllerRecipe, BOOT, FILTER_POLICY
 from tools.hia_native_value_profiles import value_profile
+from tools.hia_native_future_profiles import TRUTH_SOURCES, TRUTH_PACKER, admitted_truth_capsule
 
 ROOT = Path(__file__).resolve().parents[1]
 RECIPE = BOOT + 'release_stage_future.hiastd'
@@ -62,6 +63,9 @@ def build_recipe():
     if has_cleanup:
         assert receipt['public_roles'] == ['owner','carrier','timeout','log','cell','kernel','value','notify','cleanup']
         assert receipt['future_kind_qualification']['path'] in receipt['source_files']
+    capsule = admitted_truth_capsule(receipt)
+    if capsule is not None:
+        assert has_cleanup
     r = ControllerRecipe()
     paths = sorted(row['source_path'] for row in receipt['modules'])
     assert len(paths) == len(set(paths)) and BOOT + FILTER_POLICY in paths
@@ -85,8 +89,10 @@ def build_recipe():
     equal_digest(r, r.small_builder, receipt['native_filter_kit']['dag_frame_sha256'])
     r.node(8, (r.length(r.small_builder), r.q(receipt['native_filter_kit']['dag_frame_bytes'])))
     packers = {}
-    for name in (value_packer, public_packer, ADAPTER,
-                 'publication_cancellation_packer'):
+    packer_names = (value_packer, public_packer, ADAPTER, 'publication_cancellation_packer')
+    if capsule is not None:
+        packer_names += (TRUTH_PACKER,)
+    for name in packer_names:
         image = r.native_filter(r.compiled[BOOT + name + '.hepta'], wide=False)
         expected = receipt['wrappers'][name]
         equal_digest(r, image, expected['sha256'])
@@ -112,7 +118,15 @@ def build_recipe():
     notify = publish('hia-future-notify.core.bin', r.run(packers[ADAPTER], wire, 0))
     parts = [flat(name) for name in PUBLIC_ROLES] + [value, notify]
     if has_cleanup:
-        parts.append(flat('background_optimizer_future_public_cleanup'))
+        cleanup = flat('background_optimizer_future_public_cleanup')
+        if capsule is not None:
+            children = [flat(name) for name in TRUTH_SOURCES]
+            wire = r.concat(r.literal(b'HIABFTPK'), r.q(2),
+                            *(r.length(child) for child in children), *children)
+            cleanup = r.run(packers[TRUTH_PACKER], wire, 0)
+            equal_digest(r, cleanup, capsule['product']['sha256'])
+            r.node(8, (r.length(cleanup), r.q(capsule['product']['bytes'])))
+        parts.append(cleanup)
     wire = r.concat(r.literal(public_protocol.encode('ascii')), r.q(len(parts)), *(r.length(p) for p in parts), r.q(1), *parts)
     publish('hia-future-public.core.bin', r.run(packers[public_packer], wire, 0))
     parts = [flat('background_optimizer_future_public_observers'),

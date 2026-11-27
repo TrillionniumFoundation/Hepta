@@ -7,6 +7,9 @@ from pathlib import Path
 import argparse,ctypes as C,hashlib,importlib,json,platform,struct,subprocess,sys
 from tools import qualify_hia_future_value_kinds as kinds
 from tools.hia_native_value_profiles import qualified_value_profile, qualified_value_sources
+from tools.hia_native_future_profiles import (
+ TRUTH_SOURCES,TRUTH_PACKER,TRUTH_PRODUCT,TRUTH_BRIDGE,truth_capsule_record,
+)
 
 ROOT=Path(__file__).resolve().parents[1]
 BOOT=ROOT/'examples/hia_bootstrap'
@@ -25,6 +28,10 @@ AUTHORS=(
  'tools/hia_background_optimizer_future_public_cleanup_bridge.S',
  'tools/qualify_hia_future_retirement.py','tools/qualify_hia_future_value_kinds.py',
  'tools/hia_native_value_profiles.py',
+ 'tools/hia_native_future_profiles.py',
+ 'tools/generate_hia_background_optimizer_future_public_truth.py',
+ 'tools/generate_hia_background_optimizer_future_public_truth_packer.py',
+ TRUTH_BRIDGE,
  'hepta/hia_background_optimizer.py','hepta/hia_multiversion.py',
 )
 def digest(raw):return hashlib.sha256(raw).hexdigest()
@@ -101,7 +108,7 @@ def build(compiler,output,*,value_qualification_path=None):
   value_qualification={'path':str(qp.relative_to(ROOT)),'sha256':digest(qraw),'product':q['construction']['products']['value-component.flat']}
   assert value_qualification['product']['native_pack'] is True and value_qualification['product']['independent_byte_comparison'] is True
  value_reference=importlib.import_module('tools.generate_hia_'+value_packer).reference_flat
- extras=(value_packer,)+EXTRA[1:]
+ extras=(value_packer,)+EXTRA[1:]+(TRUTH_SOURCES[1],TRUTH_PACKER)
  flats={};rows=[]
  for name in value_roles+PUBLIC+extras:
   path=BOOT/(name+'.hepta');source=path.read_bytes();source_files[str(path.relative_to(ROOT))]=digest(source)
@@ -130,7 +137,13 @@ def build(compiler,output,*,value_qualification_path=None):
   expected=value_qualification['product'];assert pin(value)=={'bytes':expected['bytes'],'sha256':expected['sha256']}
  n=flats['background_optimizer_future_public_observers_notify']
  notify=pack('background_optimizer_future_public_observers_notify_packer',b'HIABFNPK'+struct.pack('<3Q',len(n),0,0)+n,True)
- parts=[flats[n]for n in PUBLIC]+[value,notify,flats['background_optimizer_future_public_cleanup']]
+ children=[flats[n]for n in TRUTH_SOURCES]
+ cleanup=pack(TRUTH_PACKER,b'HIABFTPK'+struct.pack('<3Q',2,*map(len,children))+b''.join(children))
+ capsule_reference=importlib.import_module('tools.generate_hia_'+TRUTH_PACKER).reference_flat
+ assert cleanup==capsule_reference(children) and len(cleanup)<=4194304
+ (output/TRUTH_PRODUCT).write_bytes(cleanup)
+ capsule=truth_capsule_record(pin(cleanup))
+ parts=[flats[n]for n in PUBLIC]+[value,notify,cleanup]
  wire=lambda mode:b'HIABFPP3'+struct.pack('<11Q',9,*map(len,parts),mode)+b''.join(parts)
  public=pack('background_optimizer_future_public_cleanup_packer',wire(1))
  obj=pack('background_optimizer_future_public_cleanup_packer',wire(0))
@@ -142,6 +155,7 @@ def build(compiler,output,*,value_qualification_path=None):
  result={'schema':'hepta.hia.future-retirement-build.v1','compiler':pin(compiler_raw),'modules':rows,
          'source_files':source_files,'products':{n:pin(b)for n,b in products.items()},'roles':ROLES,
          'value_protocol':value_protocol,'value_roles':list(value_roles),'value_packer':value_packer,'value_qualification':value_qualification,
+         'public_cleanup_capsule':capsule,
          'native_compile_and_pack':True,'independent_object_and_flat_comparison':True,
          'native_packer_controls':native_packer_controls(output)}
  save(output/'build.json',result);return result
@@ -242,6 +256,7 @@ def main():
          'products':result['products'],'roles':ROLES,'value_image_sha256':result['products']['hia-result-value.core.bin']['sha256'],
          'value_protocol':result.get('value_protocol','HIABVP04'),'value_roles':result.get('value_roles',list(kinds.VALUE)),
          'value_packer':result.get('value_packer','result_value_records_packer'),'value_qualification':result.get('value_qualification'),
+         'public_cleanup_capsule':result['public_cleanup_capsule'],
          'public_product':result['products']['hia-future-public.core.bin'],
          'original_value_kind_cases':original,'retirement_cases':retirement,
          'native_packer_controls':result['native_packer_controls'],

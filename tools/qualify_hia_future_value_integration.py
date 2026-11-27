@@ -104,9 +104,11 @@ def main():
 
     sys.path.insert(0, str(source))
     from tools.hia_native_value_profiles import value_profile
+    from tools.hia_native_future_profiles import TRUTH_PRODUCT, admitted_truth_capsule
     profile = value_profile(result['value_protocol'])
     assert result['value_roles'] == list(profile.roles)
     assert result['value_packer'] == profile.packer
+    cleanup_capsule = admitted_truth_capsule(result)
     has_cleanup = result.get('public_has_cleanup', False)
     public_name = result.get('public_packer', 'background_optimizer_future_public_packer')
     public_author = importlib.import_module('tools.generate_hia_' + public_name)
@@ -185,7 +187,12 @@ def main():
     roles.append(dict(role='notify', **record(notify_path)))
     if has_cleanup:
         cleanup_path = public_dir / 'cleanup.flat'
-        write(cleanup_path, (build / 'background_optimizer_future_public_cleanup.flat').read_bytes())
+        cleanup_source = build / ('background_optimizer_future_public_cleanup.flat'
+                                 if cleanup_capsule is None else TRUTH_PRODUCT)
+        cleanup_bytes = cleanup_source.read_bytes()
+        if cleanup_capsule is not None:
+            assert dict(bytes=len(cleanup_bytes), sha256=digest(cleanup_bytes)) == cleanup_capsule['product']
+        write(cleanup_path, cleanup_bytes)
         roles.append(dict(role='cleanup', **record(cleanup_path)))
     assert tuple(row['role'] for row in roles) == public_author.ROLES
     role_bytes = [Path(row['path']).read_bytes() for row in roles]

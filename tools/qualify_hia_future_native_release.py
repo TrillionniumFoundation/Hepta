@@ -14,6 +14,9 @@ from pathlib import Path
 import struct
 import subprocess
 from tools.hia_native_value_profiles import qualified_value_profile, qualified_value_sources
+from tools.hia_native_future_profiles import (
+    TRUTH_SOURCES, TRUTH_PACKER, TRUTH_PRODUCT, admitted_truth_capsule,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 BOOT = 'examples/hia_bootstrap/'
@@ -147,6 +150,10 @@ def admitted_future_kind_qualification(path, value_qualification):
         packer = 'background_optimizer_future_public_cleanup_packer'
         magic = 'HIABFPP3'
         bridge_path = 'tools/hia_background_optimizer_future_public_cleanup_bridge.S'
+    capsule = admitted_truth_capsule(receipt)
+    if capsule is not None:
+        assert retirement, 'truth continuation requires the explicit cleanup profile'
+        names += (TRUTH_SOURCES[1], TRUTH_PACKER)
     rows = {row['source_path']: row for row in receipt['modules']}
     assert len(rows) == len(receipt['modules'])
     admitted = {}
@@ -168,6 +175,7 @@ def admitted_future_kind_qualification(path, value_qualification):
     return dict(path=path.relative_to(ROOT).as_posix(), sha256=digest(receipt_bytes),
                 rows=admitted, module_pins=module_pins, product=product,
                 has_cleanup=retirement, public_packer=packer, public_protocol=magic,
+                cleanup_capsule=capsule,
                 bridge_path=bridge_path,
                 mechanical_sources={name: pin for name, pin in receipt.get('source_files', {}).items() if name.endswith('.S')},
                 development_sources={name: pin for name, pin in receipt.get('source_files', {}).items() if name.endswith('.py')})
@@ -185,6 +193,8 @@ def source_paths(value_qualification=None, future_kind_qualification=None):
         existing = {row['path'] for row in inherited_rows}
         additional = set(replacements) - existing
         allowed = {BOOT + name + '.hepta' for name in ('background_optimizer_future_public_cleanup', 'background_optimizer_future_public_cleanup_packer')} if future_kind_qualification['has_cleanup'] else set()
+        if future_kind_qualification['cleanup_capsule'] is not None:
+            allowed.update(BOOT + name + '.hepta' for name in (TRUTH_SOURCES[1], TRUTH_PACKER))
         assert additional.issubset(allowed), sorted(additional - allowed)
         inherited_rows = [replacements.get(row['path'], row) for row in inherited_rows]
         inherited_rows += [replacements[name] for name in sorted(additional)]
@@ -363,7 +373,19 @@ def qualify(compiler, output, *, value_qualification_path=None, future_kind_qual
     public_magic = ('HIABFPP2' if future_kind_qualification is None
                     else future_kind_qualification['public_protocol'])
     if has_cleanup:
-        public_parts.append(flats['background_optimizer_future_public_cleanup'])
+        cleanup = flats['background_optimizer_future_public_cleanup']
+        capsule = future_kind_qualification['cleanup_capsule']
+        if capsule is not None:
+            children = [flats[name] for name in TRUTH_SOURCES]
+            wire = b'HIABFTPK' + struct.pack('<3Q', 2, *map(len, children)) + b''.join(children)
+            cleanup = run_filter(TRUTH_PACKER, wire)
+            assert cleanup == packed(TRUTH_PACKER, wire)
+            reference = importlib.import_module('tools.generate_hia_' + TRUTH_PACKER).reference_flat
+            assert cleanup == reference(children)
+            assert dict(bytes=len(cleanup), sha256=digest(cleanup)) == capsule['product']
+            (output / TRUTH_PRODUCT).write_bytes(cleanup)
+            checks.append('native cleanup/truth continuation matches its exact two-role capsule and independent layout')
+        public_parts.append(cleanup)
     def public_frame(mode):
         return public_magic.encode('ascii') + struct.pack('<' + str(len(public_parts) + 2) + 'Q',
             len(public_parts), *(len(part) for part in public_parts), mode) + b''.join(public_parts)
@@ -487,6 +509,7 @@ def qualify(compiler, output, *, value_qualification_path=None, future_kind_qual
                   value_protocol=value_magic.decode('ascii'), value_roles=list(value_roles),
                   value_packer=value_packer, public_protocol=public_magic, public_packer=public_packer,
                   public_has_cleanup=has_cleanup,
+                  public_cleanup_capsule=(None if not has_cleanup else future_kind_qualification['cleanup_capsule']),
                   public_roles=['owner','carrier','timeout','log','cell','kernel','value','notify'] + (['cleanup'] if has_cleanup else []),
                   value_qualification=(None if value_qualification is None else
                       {key: value_qualification[key] for key in ('path', 'sha256')}),
