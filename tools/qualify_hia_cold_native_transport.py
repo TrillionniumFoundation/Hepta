@@ -208,14 +208,14 @@ def qualify(output, *, scope, manifest=None, linked_cold_report=None, linked_dev
         elif scope == "cold":
             if manifest is not None or linked_cold_report is not None or linked_development_compiler is not None:
                 raise ValueError("fresh source cold cannot inherit any native transport/compiler image")
-            # Native source construction is separate development orchestration.
-            # This outer campaign cap covers preseed/build/export; the actual
-            # HIA qualification owner still enforces all 60 phases and 180+3.
+            # Preserve the original complete cold-owned 240-second cap,
+            # including source construction/export. The HIA qualification
+            # owner independently enforces all 60 phases and 180+3.
             cold_path = output / "cold.json"
             command = [*python, str(ROOT / "tools/replay_hia_native_cold.py"),
                        "--output", str(cold_path)]
             result = run_owned(command, cwd=ROOT, directory=output / "cold-owned",
-                               timeout_seconds=900, environment=environment)
+                               timeout_seconds=240, environment=environment)
             commands.append(result)
             raw = capture.raw(cold_path) if cold_path.exists() else None
             cold = None if raw is None else parse(raw)

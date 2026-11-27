@@ -194,14 +194,15 @@ class NativeTransportColdBindingTests(unittest.TestCase):
         native = {**self.report, "status": "NATIVE_COLD_SELFHOST_REPLAY_PASS",
                   "qualification_wall_limit_seconds": 180, "cleanup_wall_limit_seconds": 3}
         def run(command, **kwargs):
-            self.assertEqual(kwargs["timeout_seconds"], 900)
             cold_path = output / "cold.json"
             if Path(command[4]).name == "replay_hia_native_cold.py":
+                self.assertEqual(kwargs["timeout_seconds"], 240)
                 cold_raw = json.dumps(native).encode()
                 cold_path.write_bytes(cold_raw)
                 index = {**self.index, "native_report": {"path": str(cold_path), **data_pin(cold_raw)}}
                 cold_path.with_suffix(".generations.json").write_text(json.dumps(index))
             else:
+                self.assertEqual(kwargs["timeout_seconds"], 900)
                 self.assertEqual(Path(command[4]).name, "build_hia_cold_native_transport.py")
                 self.assertEqual(command[command.index("--cold-report") + 1], str(cold_path))
                 self.assertNotIn("--development", command)
@@ -242,7 +243,7 @@ class NativeTransportCampaignTests(unittest.TestCase):
                 def run(command, **kwargs):
                     self.assertEqual(Path(command[4]).name, "replay_hia_native_cold.py")
                     self.assertNotIn("--native-transport", command)
-                    self.assertEqual(kwargs["timeout_seconds"], 900)
+                    self.assertEqual(kwargs["timeout_seconds"], 240)
                     if returned is not None:
                         (output / "cold.json").write_text(json.dumps(returned))
                     return success if returned is not None else {**success, "exit_code": 1}
