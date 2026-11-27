@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 
 from hepta import hia_native_helpers as authority
@@ -32,7 +33,8 @@ def build(output, *, base_bundle, base_sha256, page_bundle, portable=False):
     if (authority._read(base.path, authority.MAX_BUNDLE_BYTES) != base
             or authority._read(page.path, 8192) != page):
         raise ValueError('Worker composition inputs changed')
-    with output.open('xb') as stream:
+    fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC, 0o600)
+    with os.fdopen(fd, 'wb') as stream:
         stream.write(raw)
     if (output.read_bytes() != raw or authority._read(base.path, authority.MAX_BUNDLE_BYTES) != base
             or authority._read(page.path, 8192) != page):

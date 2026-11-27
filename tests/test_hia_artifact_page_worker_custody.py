@@ -131,7 +131,8 @@ class ArtifactPageWorkerNativeTests(unittest.TestCase):
             'hepta/hia_artifact_page_native.py', 'hepta/hia_artifact_page_policy_native.py',
             'hepta/hia_artifact_page_worker_bundle.py', 'hepta/hia_worker_bundle.py',
             'hepta/hia_native_helpers.py', 'tools/generate_hia_artifact_page_manifest.py',
-            'tools/build_hia_artifact_page_worker.py',
+            'tools/build_hia_artifact_page_worker.py', 'tools/build_hia_artifact_page.py',
+            'tests/test_hia_artifact_page_worker_custody.py',
             'examples/hia_bootstrap/artifact_page.hepta',
             'examples/hia_bootstrap/json_wire.hepta',
             'examples/hia_bootstrap/source_artifact_page_manifest.hepta',
@@ -178,6 +179,10 @@ class ArtifactPageWorkerNativeTests(unittest.TestCase):
         value = json.loads(cls.native_manifest.read_bytes())
         cls.framer = NativeHiaJsonImage(
             (cls.native_manifest.parent / value['image_path']).read_bytes(), value['image_sha256'])
+        # These are actual owned Worker inputs, not group-writable scratch.
+        for created in cls.output.rglob('*'):
+            if created.is_file():
+                created.chmod(0o600)
         cls.serial = 0
 
     @classmethod
@@ -218,11 +223,15 @@ class ArtifactPageWorkerNativeTests(unittest.TestCase):
         target = self.output / (str(type(self).serial) + '-' + label)
         target.mkdir()
         shutil.copytree(self.manifest.parent, target / 'page')
+        for created in (target / 'page').rglob('*'):
+            if created.is_file():
+                created.chmod(0o600)
         base = self.report_wrapper if report else self.base
         from tools.build_hia_artifact_page_worker import build
         wrapper = build(target / 'page-worker.json', base_bundle=base,
                         base_sha256=sha256(base.read_bytes()).hexdigest(),
                         page_bundle=target / 'page/manifest.json')
+        self.assertEqual(wrapper.stat().st_mode & 0o777, 0o600)
         return target, wrapper
 
     def _rebind(self, wrapper):
@@ -290,7 +299,7 @@ class ArtifactPageWorkerNativeTests(unittest.TestCase):
 
     def test_bad_pins_paths_and_compiler_disagreement_fail_before_selection(self):
         for failure in ('bundle-pin', 'child-pin', 'parent-path', 'mixed-compilers',
-                        'missing-wire', 'recursive-base'):
+                        'missing-wire', 'recursive-base', 'group-writable'):
             with self.subTest(case=failure):
                 folder, wrapper = self._workspace(failure)
                 page_path = folder / 'page/manifest.json'
@@ -313,12 +322,15 @@ class ArtifactPageWorkerNativeTests(unittest.TestCase):
                 elif failure == 'recursive-base':
                     recursive = folder / 'recursive.json'
                     recursive.write_bytes(wrapper.read_bytes())
+                    recursive.chmod(0o600)
                     wrapper_value['base_bundle'] = str(recursive)
                     wrapper_value['base_bundle_sha256'] = sha256(recursive.read_bytes()).hexdigest()
                 page_path.write_bytes(encoded(value))
                 if failure != 'bundle-pin':
                     wrapper_value['page_bundle_sha256'] = sha256(page_path.read_bytes()).hexdigest()
                 wrapper.write_bytes(encoded(wrapper_value))
+                if failure == 'group-writable':
+                    wrapper.chmod(0o660)
                 with clean_selection(), self.assertRaises((ValueError, OSError)):
                     with self._scope(wrapper):
                         self.fail('invalid Page Worker entered scope')
