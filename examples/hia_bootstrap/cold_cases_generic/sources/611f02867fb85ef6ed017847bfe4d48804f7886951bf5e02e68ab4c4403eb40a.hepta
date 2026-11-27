@@ -1,0 +1,18 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:mutbuf = borrow.mut(v1)
+  v4:readbuf = borrow.read(v3)
+  v5:readbuf = borrow.read(v3)
+  v6:usize = const() {"value":0}
+  v7:u8 = buffer.load(v4,v6)
+  v8:u32 = int.cast(v7) {"mode":"wrap"}
+  v9:usize = const() {"value":1}
+  v10:u8 = buffer.load(v5,v9)
+  v11:u32 = int.cast(v10) {"mode":"wrap"}
+  v12:u32 = int.add.wrap(v8,v11)
+  _ = loan.end(v4)
+  _ = loan.end(v5)
+  _ = loan.end(v3)
+  ret(v12)
+end

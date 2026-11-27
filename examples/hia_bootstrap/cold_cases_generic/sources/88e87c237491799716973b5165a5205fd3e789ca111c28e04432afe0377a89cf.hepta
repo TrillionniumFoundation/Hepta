@@ -1,0 +1,22 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost_elf
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(alloc,read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:usize = const() {"value":1}
+  v4:buffer = buffer.new(v3)
+  v5:mutbuf = borrow.mut(v4)
+  v6:mutbuf = call(v5) {"function":"f1"}
+  v7:usize = const() {"value":0}
+  v8:u8 = buffer.load(v0,v7)
+  _ = buffer.store(v6,v7,v8)
+  v9:u8 = buffer.load(v6,v7)
+  _ = buffer.store(v1,v7,v9)
+  _ = loan.end(v6)
+  _ = loan.end(v5)
+  _ = owner.drop(v4)
+  v10:u32 = const() {"value":0}
+  ret(v10)
+end
+fn f1(v0:mutbuf) -> (mutbuf) effects(read,write,trap) entry(b0) return_loans(["v0"])
+block b0(v0:mutbuf)
+  ret(v0)
+end

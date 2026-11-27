@@ -1,0 +1,19 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:usize = const() {"value":0}
+  v4:usize = const() {"value":1}
+  v5:u8 = buffer.load(v0,v3)
+  v6:u8 = buffer.load(v0,v4)
+  v7:u8 = const() {"value":0}
+  v8:bool = compare.ne(v5,v7)
+  v9:bool = compare.ne(v6,v7)
+  v10:bool = compare.eq(v8,v9,v8)
+  branch v10 b1() b2()
+block b1()
+  v11:u32 = const() {"value":1}
+  ret(v11)
+block b2()
+  v12:u32 = const() {"value":0}
+  ret(v12)
+end

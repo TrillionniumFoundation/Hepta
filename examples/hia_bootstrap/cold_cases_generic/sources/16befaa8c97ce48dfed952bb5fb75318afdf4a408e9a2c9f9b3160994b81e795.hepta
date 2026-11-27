@@ -1,0 +1,33 @@
+hia-asm.v1 hepta.hia.program.v8 swap_reference
+fn f0() -> (u8,u8,u8,u8) effects(alloc,read,write,trap) entry(b0)
+block b0()
+  v0:usize = const() {"value":4}
+  v1:buffer = buffer.new(v0)
+  v2:mutbuf = borrow.mut(v1)
+  v3:usize = const() {"value":0}
+  v4:u8 = const() {"value":10}
+  _ = buffer.store(v2,v3,v4)
+  v5:usize = const() {"value":1}
+  v6:u8 = const() {"value":20}
+  _ = buffer.store(v2,v5,v6)
+  v7:usize = const() {"value":2}
+  v8:u8 = const() {"value":30}
+  _ = buffer.store(v2,v7,v8)
+  v9:usize = const() {"value":3}
+  v10:u8 = const() {"value":40}
+  _ = buffer.store(v2,v9,v10)
+  v11:usize = const() {"value":4}
+  v12:usize = const() {"value":1}
+  _ = buffer.swap(v2,v11,v12)
+  v13:usize = const() {"value":0}
+  v14:u8 = buffer.load(v2,v13)
+  v15:usize = const() {"value":1}
+  v16:u8 = buffer.load(v2,v15)
+  v17:usize = const() {"value":2}
+  v18:u8 = buffer.load(v2,v17)
+  v19:usize = const() {"value":3}
+  v20:u8 = buffer.load(v2,v19)
+  _ = loan.end(v2)
+  _ = owner.drop(v1)
+  ret(v14,v16,v18,v20)
+end

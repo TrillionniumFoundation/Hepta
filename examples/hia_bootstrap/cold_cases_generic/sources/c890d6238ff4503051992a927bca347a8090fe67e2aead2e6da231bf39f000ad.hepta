@@ -1,0 +1,55 @@
+hia-asm.v1 hepta.hia.program.v8 bulk_reference
+fn reference_entry() -> (u32) effects(alloc,read,write,trap) entry(b0)
+block b0()
+  v0:usize = const() {"value":8}
+  v1:buffer = buffer.new(v0)
+  v2:mutbuf = borrow.mut(v1)
+  v3:usize = const() {"value":0}
+  v4:u8 = const() {"value":101}
+  _ = buffer.store(v2,v3,v4)
+  v5:usize = const() {"value":1}
+  v6:u8 = const() {"value":102}
+  _ = buffer.store(v2,v5,v6)
+  v7:usize = const() {"value":2}
+  v8:u8 = const() {"value":103}
+  _ = buffer.store(v2,v7,v8)
+  v9:usize = const() {"value":3}
+  v10:u8 = const() {"value":104}
+  _ = buffer.store(v2,v9,v10)
+  v11:usize = const() {"value":4}
+  v12:u8 = const() {"value":105}
+  _ = buffer.store(v2,v11,v12)
+  v13:usize = const() {"value":5}
+  v14:u8 = const() {"value":106}
+  _ = buffer.store(v2,v13,v14)
+  v15:usize = const() {"value":6}
+  v16:u8 = const() {"value":107}
+  _ = buffer.store(v2,v15,v16)
+  v17:usize = const() {"value":7}
+  v18:u8 = const() {"value":108}
+  _ = buffer.store(v2,v17,v18)
+  v19:usize = const() {"value":0}
+  v20:buffer = buffer.new(v19)
+  v21:mutbuf = borrow.mut(v20)
+  v22:usize = const() {"value":0}
+  v23:buffer = buffer.new(v22)
+  v24:mutbuf = borrow.mut(v23)
+  _ = loan.end(v2)
+  v25:readbuf = borrow.read(v1)
+  v26:u32 = call(v25,v21,v24) {"function":"f0"}
+  v27:u32 = const() {"value":0}
+  _ = loan.end(v25)
+  _ = loan.end(v21)
+  _ = loan.end(v24)
+  _ = owner.drop(v1)
+  _ = owner.drop(v20)
+  _ = owner.drop(v23)
+  ret(v27)
+end
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:u8 = const() {"value":255}
+  _ = buffer.fill(v1,v3)
+  v4:u32 = const() {"value":0}
+  ret(v4)
+end

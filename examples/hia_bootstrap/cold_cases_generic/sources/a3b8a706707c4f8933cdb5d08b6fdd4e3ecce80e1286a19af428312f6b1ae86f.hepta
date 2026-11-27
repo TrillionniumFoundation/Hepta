@@ -1,0 +1,25 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:usize = const() {"value":0}
+  v4:u32 = const() {"value":0}
+  v5:u32 = call(v0,v1,v3,v4) {"function":"f1"}
+  ret(v5)
+end
+fn f1(v0:readbuf,v1:mutbuf,v2:usize,v3:u32) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:usize,v3:u32)
+  v4:usize = buffer.len(v0)
+  v5:bool = compare.ge(v2,v4)
+  branch v5 b1(v0,v1,v3) b2(v0,v1,v2,v3)
+block b1(v6:readbuf,v7:mutbuf,v8:u32)
+  ret(v8)
+block b2(v9:readbuf,v10:mutbuf,v11:usize,v12:u32)
+  v13:u8 = buffer.load(v9,v11)
+  _ = buffer.store(v10,v11,v13)
+  v14:u32 = int.cast(v13) {"mode":"wrap"}
+  v15:u32 = int.add.wrap(v12,v14)
+  v16:usize = const() {"value":1}
+  v17:usize = int.add.wrap(v11,v16)
+  v18:u32 = call(v9,v10,v17,v15) {"function":"f1"}
+  ret(v18)
+end
