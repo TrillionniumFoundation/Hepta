@@ -28,3 +28,13 @@ uncommitted-authoring refusal are retained in the accompanying evidence.
 Actual component/source readback and the real complete 112-method caller
 execution are recorded separately. This change alone claims neither a
 successful 112-method execution nor whole-product closure.
+
+The exact b3fd09ae source completed the real native component build in
+1.157 seconds and a fresh data-only component/source readback in 1.594 seconds.
+The independent read captured 3,054 hosted source files and 1,284 native
+authority files, all 17 original caller sources and all 112 ordered identities.
+No product, test helper, builder, generator or oracle module was imported by
+that readback process. The source inventory exactly matched the original
+producer. All prior failures and the full successful raw records are retained
+in the accompanying archive. The complete 112-method execution remains a
+separate required gate.
