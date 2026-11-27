@@ -16,6 +16,16 @@ import re
 import stat
 import sys
 
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in (None, ''):
+    sys.path.insert(0, str(ROOT))
+
+from tools.hia_native_cold_admission import SCHEMA as NATIVE_COLD_SCHEMA
+from tools.hia_component_cold_readback import native_cold_compiler, read_component_inputs
+from tools.hia_frozen_component_sources import (
+    history_inverse, restore_reader_evaluation_test, reviewed_source,
+)
+
 CONTRACT = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
 COLD_PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
 FIXTURE = 'tests/fixtures/hia_emission_original_73f1634/original-freeze.json'
@@ -131,6 +141,61 @@ def source_map(repository, captures):
     return {**files, CONTRACT: digest(contract_raw)}
 
 
+WORKER_CALLER = 'tests/test_hia_worker_native_helpers.py'
+WORKER_CALLER_FIXTURE = 'tests/fixtures/store_caller_worker_helpers_successor.json'
+WORKER_CALLER_FIXTURE_SHA256 = '168ef69fadf672e41f3dd717d3d79e54fcd1af70105d2e3552687b72af824904'
+WORKER_CALLER_CURRENT_SHA256 = '4fef9e2f0a8188f5f3a6c81e522b5babd3a1f0c0a88f58e286cdf762433caab3'
+
+
+def hosted_source_map(repository, captures, original):
+    """Reproduce the producer's hosted source inventory without importing it."""
+    declared = literal_assignment(captures.take(repository / 'tools/hia_selfhost_contract.py'),
+                                  'SOURCE_FILES')
+    require(type(declared) in (tuple, list) and all(type(name) is str for name in declared),
+            'hosted SOURCE_FILES declaration differs')
+    names = set(declared) | {
+        path.relative_to(repository).as_posix() for path in (repository / 'hepta').rglob('*.py')}
+    shadow = repository / 'rust/hia-core-shadow'
+    names.update(path.relative_to(repository).as_posix() for path in shadow.rglob('*.rs')
+                 if path.relative_to(shadow).parts[0] != 'target')
+    names.update((shadow / name).relative_to(repository).as_posix()
+                 for name in ('Cargo.toml', 'Cargo.lock'))
+    names.update(builder_inputs(repository, captures))
+    names.update(row['path'] for row in original['callers'].values())
+    names.update((FIXTURE, QUALIFIER, 'tools/qualify_hia_emission_callers.py'))
+    require({READER, QUALIFIER, SOURCE} <= names,
+            'hosted source inventory omits caller, reader or authored HIA')
+    return {name: digest(captures.take(relative(repository, name))) for name in sorted(names)}
+
+
+def reviewed_terminal_source(repository, captures, name):
+    physical = captures.take(relative(repository, name))
+    known = (_TERMINAL_OLD[name], _TERMINAL_CURRENT[name])
+    if pin(physical) in known:
+        if name == _TERMINAL_EVALUATION:
+            restore_reader_evaluation_test(physical, root=repository, take=captures.take)
+        return physical
+    return reviewed_source(repository, name, physical, take=captures.take)
+
+
+def worker_caller_source(repository, captures, raw, expected):
+    """Restore the whole original helper caller from its fixed five-splice relation."""
+    frozen = captures.json(relative(repository, WORKER_CALLER_FIXTURE),
+                           WORKER_CALLER_FIXTURE_SHA256)
+    require(type(frozen) is dict
+            and set(frozen) == {'schema', 'path', 'original_commit', 'record'}
+            and frozen['schema'] == 'hepta.hia.store-caller-worker-helpers-successor.v1'
+            and frozen['path'] == WORKER_CALLER and frozen['original_commit'] == '73f16346',
+            'complete worker caller relation scope differs')
+    record = frozen['record']
+    original = {'bytes': record['old_bytes'], 'sha256': expected}
+    history_inverse(raw, record, original)
+    return {'physical': pin(raw), 'original': original,
+            'fixture': WORKER_CALLER_FIXTURE,
+            'fixture_sha256': WORKER_CALLER_FIXTURE_SHA256,
+            'whole_original_restored_and_replayed': True}
+
+
 def cold_build(cold_path, captures, current):
     cold = captures.json(cold_path)
     cold_raw = captures.raw[absolute(cold_path)]
@@ -204,7 +269,8 @@ def builder_inputs(repository, captures):
     return inputs
 
 
-def component_build(repository, evidence, captures, current, compiler, cold_sha):
+def component_build(repository, evidence, captures, current, compiler, cold_sha,
+                    *, native_cold_path=None, native_sources=None):
     directory = absolute(evidence / 'qualified')
     manifest = captures.json(directory / 'manifest.json')
     build = captures.json(directory / 'build.json')
@@ -212,12 +278,17 @@ def component_build(repository, evidence, captures, current, compiler, cold_sha)
             and build['schema'] == 'hepta.hia.store-file-capture-build.v2'
             and build['scope'] == 'MATCHING_SOURCE_COLD_COMPONENT'
             and build['cold_report_sha256'] == cold_sha
-            and canonical(build['source_manifest']) == canonical(current)
+            and canonical(build['source_manifest']) == canonical(
+                current if native_sources is None else native_sources)
             and canonical(build['manifest']) == canonical(manifest),
             'caller build is not the same current cold component')
     inputs = builder_inputs(repository, captures)
     require(canonical(build['component_inputs']) == canonical({name: current[name] for name in inputs}),
             'complete component inputs are not the same frozen source')
+    if native_cold_path is not None:
+        consumed = read_component_inputs(repository, build, compiler, native_cold_path,
+                                         read=captures.take)
+        require(set(consumed) == set(inputs), 'native custody omits or adds a builder input')
     source = captures.take(repository / SOURCE, current[SOURCE])
     image_path = relative(directory, manifest['image_path'])
     require(image_path.parent == directory, 'component image escapes its bundle')
@@ -336,7 +407,7 @@ def terminal_source_admission(repository, captures, original):
             == canonical(_TERMINAL_OLD[_TERMINAL_DELIVERY]),
             'terminal independent original Delivery pin differs')
     paths = (_TERMINAL_TRANSPORT, _TERMINAL_DELIVERY)
-    raw_pair = {name: captures.take(relative(repository, name)) for name in paths}
+    raw_pair = {name: reviewed_terminal_source(repository, captures, name) for name in paths}
     legacy = all(pin(raw_pair[name]) == _TERMINAL_OLD[name] for name in paths)
     allowed, provenance = {}, {}
     state = 'EXACT_LEGACY_PAIR'
@@ -373,7 +444,7 @@ def terminal_source_admission(repository, captures, original):
             'definition': '_child_store_worker', 'exact_splices': 1,
             'whole_original_restored_and_replayed': True, 'production_source_exception': False}
         state = 'EXACT_TERMINAL_V2_PAIR'
-    evaluation = captures.take(relative(repository, _TERMINAL_EVALUATION))
+    evaluation = reviewed_terminal_source(repository, captures, _TERMINAL_EVALUATION)
     if pin(evaluation) != _TERMINAL_OLD[_TERMINAL_EVALUATION]:
         require(not legacy, 'terminal Evaluation successor requires the complete new pair')
         path = relative(repository, _TERMINAL_EVALUATION_PROOF)
@@ -499,12 +570,28 @@ def original_callers(repository, captures, *, terminal_evidence=None):
     old_line = b'        self.assertEqual(len(HELPERS), 37)\n'
     current_line = ('        self.assertEqual(len(HELPERS), ' + str(len(keys)) + ')\n').encode('ascii')
     adjustments, caller_sources, diagnostic_sources = [], {}, {}
+    successor_sources = {}
     for record in original['callers'].values():
         name, expected = record['path'], record['sha256']
         raw = captures.take(relative(repository, name))
         caller_sources[name] = digest(raw)
         if digest(raw) == expected:
             continue
+        if name == WORKER_CALLER and digest(raw) == WORKER_CALLER_CURRENT_SHA256:
+            successor_sources[name] = worker_caller_source(repository, captures, raw, expected)
+            continue
+        # Keep the original count-only return API for historical fixtures.
+        count_only = (name == WORKER_CALLER and raw.count(current_line) == 1
+                      and digest(raw.replace(current_line, old_line, 1)) == expected)
+        known_terminal = name in terminal_sources and pin(raw) == terminal_sources[name]['current']
+        known_diagnostic = name == _DIAGNOSTIC_PATH and pin(raw) == _DIAGNOSTIC_CURRENT
+        if not (count_only or known_terminal or known_diagnostic):
+            physical = raw
+            raw = reviewed_source(repository, name, raw, take=captures.take)
+            successor_sources[name] = {'physical': pin(physical), 'reviewed': pin(raw),
+                                      'fixed_complete_source_relation': True}
+            if digest(raw) == expected:
+                continue
         if name == _DIAGNOSTIC_PATH:
             diagnostic_sources[name] = diagnostic_source_admission(raw, expected,
                 captures.take(relative(repository, _DIAGNOSTIC_FIXTURE)))
@@ -530,6 +617,8 @@ def original_callers(repository, captures, *, terminal_evidence=None):
             'terminal complete reviewed test-source consumption differs')
     terminal_proof['actual_original_source_sha256'] = dict(caller_sources)
     terminal_proof['reviewed_diagnostic_source_adjustments'] = diagnostic_sources
+    if successor_sources:
+        terminal_proof['complete_physical_source_successors'] = successor_sources
     if terminal_evidence is not None:
         terminal_evidence.append(terminal_proof)
     return original, planned, caller_sources, adjustments
@@ -628,9 +717,19 @@ def read_callers(repository, evidence, cold_path, producer_log):
     terminal_evidence = []
     original, planned, caller_sources, adjustments = original_callers(
         repository, captured, terminal_evidence=terminal_evidence)
-    current = source_map(repository, captured)
-    compiler, cold_sha = cold_build(cold_path, captured, current)
-    directory, manifest = component_build(repository, evidence, captured, current, compiler, cold_sha)
+    cold = captured.json(cold_path)
+    native = cold.get('schema') == NATIVE_COLD_SCHEMA
+    native_sources = None
+    if native:
+        current = hosted_source_map(repository, captured, original)
+        _, compiler, native_sources = native_cold_compiler(repository, cold_path, read=captured.take)
+        cold_sha = digest(captured.raw[cold_path])
+    else:
+        current = source_map(repository, captured)
+        compiler, cold_sha = cold_build(cold_path, captured, current)
+    directory, manifest = component_build(
+        repository, evidence, captured, current, compiler, cold_sha,
+        native_cold_path=cold_path if native else None, native_sources=native_sources)
     require(report['schema'] == 'hepta.hia.store-file-capture-nine-ordinary-callers.v1'
             and report['status'] == 'PASS'
             and report['scope'] == 'MATCHING_SOURCE_COLD_NINE_ORDINARY_STORE_FILE_CAPTURE_CALLER_MODULES',
@@ -652,7 +751,8 @@ def read_callers(repository, evidence, cold_path, producer_log):
                  'resource_qualification_inferred_from_caller_success',
                  'whole_project_dynamic_caller_closure_claimed', 'whole_native_delivery_qualified'):
         require(report[name] is False, 'producer scope or original budget predicate differs: ' + name)
-    expected_sources = {key: value for key, value in current.items() if key != CONTRACT}
+    expected_sources = (dict(current) if native else
+                        {key: value for key, value in current.items() if key != CONTRACT})
     expected_sources.update(caller_sources)
     require(canonical(report['source_pins']) == canonical(expected_sources)
             and report['original_baseline_commit'] == original['base_commit']
@@ -679,7 +779,14 @@ def read_callers(repository, evidence, cold_path, producer_log):
     captured.unchanged()
     require({str(absolute(path)) for path in directory.rglob('*') if path.is_file()} == set(files),
             'caller bundle membership changed during readback')
-    require(source_map(repository, captured) == current, 'complete source membership changed at terminal')
+    terminal_sources = (hosted_source_map(repository, captured, original) if native
+                        else source_map(repository, captured))
+    require(terminal_sources == current, 'complete hosted source membership changed at terminal')
+    if native:
+        _, terminal_compiler, terminal_native = native_cold_compiler(
+            repository, cold_path, read=captured.take)
+        require(terminal_compiler == compiler and terminal_native == native_sources,
+                'complete native cold authority changed at terminal')
     captured.unchanged()
     return {'schema': 'hepta.hia.store-file-capture-caller-readback.v1',
         'status': 'PASS_READBACK_ONLY', 'scope': report['scope'],
@@ -688,6 +795,9 @@ def read_callers(repository, evidence, cold_path, producer_log):
         'same_current_cold_report_sha256': cold_sha,
         'compiler_sha256': digest(compiler), 'native_image_sha256': manifest['image_sha256'],
         'complete_source_files': len(current),
+        'cold_source_domain': 'NATIVE_CORE_AUTHORITY' if native else 'LEGACY_COMPLETE_SOURCE',
+        'native_authority_source_files': None if native_sources is None else len(native_sources),
+        'native_component_host_custody_independently_verified': native,
         'original_registry_count_assertion_adjustments': adjustments,
         'original_terminal_test_source_admission': [
             {**value, 'terminal_reread_deferred_to_outer_captures': False,
