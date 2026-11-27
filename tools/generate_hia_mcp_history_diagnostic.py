@@ -173,18 +173,39 @@ def source_program():
         raise ValueError('invalid diagnostic Unicode ranges')
     if any(left[1] >= right[0] for left,right in zip(ranges,ranges[1:])):
         raise ValueError('unordered diagnostic Unicode ranges')
-    # Each independent seed frame retains at most 2048 scalar slots. Keep the
-    # constant initialization in small functions without changing that budget.
-    banks=[ranges[index:index+64] for index in range(0,len(ranges),64)]
+    # The pinned first 908 ranges fit a 32-bit low | span << 18 record. The
+    # last range has a wider span and keeps its original 64-bit representation.
+    # Write the compact constants first, then expand backwards in the same
+    # 7272-byte table. Every source word is read before an overlapping write;
+    # the final table and lookup are identical to the original Rust witness.
+    short = ranges[:-1]
+    if len(short) % 2 or any(low >= 1 << 18 or high - low >= 1 << 14
+                            for low, high in short):
+        raise ValueError('diagnostic Unicode compact range shape changed')
+    packed = [low | ((high - low) << 18) for low, high in short]
+    words = [packed[index] | (packed[index + 1] << 32)
+             for index in range(0, len(packed), 2)]
+    banks = [words[index:index + 64] for index in range(0, len(words), 64)]
     value = SOURCE + STREAM_SOURCE + '\ndef history_debug_init(w:mutbuf) -> u64:\n'
     for bank in range(len(banks)):
-        value += f'    history_debug_bank_{bank}(w)\n'
+        value += f'    history_debug_bank_{bank}(w,SCRATCH+{bank * 512})\n'
+    value += f'    index = {len(short)}\n'
+    value += '''    while index > 0:
+        index = index - 1
+        packed = getn(w, SCRATCH + index * 4, 4)
+        low = packed & 262143
+        high = low + (packed >> 18)
+        put(w, SCRATCH + index * 8, low | (high << 21))
+'''
+    low, high = ranges[-1]
+    value += f'    put(w,SCRATCH+{len(short) * 8},{low | (high << 21)})\n'
     value += '    return 0\n'
     for bank,rows in enumerate(banks):
-        value += f'\ndef history_debug_bank_{bank}(w:mutbuf) -> u64:\n'
-        for item,(low,high) in enumerate(rows):
-            index=bank*64+item
-            value += f'    put(w,SCRATCH+{index*8},{low | (high << 21)})\n'
+        value += f'\ndef history_debug_bank_{bank}(w:mutbuf,at:u64) -> u64:\n'
+        for item, word in enumerate(rows):
+            value += f'    put(w,at,{word})\n'
+            if item + 1 < len(rows):
+                value += '    at = at + 8\n'
         value += '    return 0\n'
     return value + '''
 def history_debug_escape(w:mutbuf, point:u64) -> bool:

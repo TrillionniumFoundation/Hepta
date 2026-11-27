@@ -1,0 +1,431 @@
+{
+  "schema": "hepta.hia.metadata-http-public.v1",
+  "passed": true,
+  "checks": [
+    {
+      "case": "empty-request_history",
+      "passed": true,
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "request_history",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"automatic_operation_retry\":false,\"cross_session_resume\":false,\"history_is_live\":true,\"next_after_id\":null,\"requests\":[],\"retention\":{\"global\":512,\"per_session\":128},\"session_scope\":\"native_mcp_session_only\",\"status_semantics\":\"native_request_dispatch_observation_not_side_effect_delivery_or_business_success\"}"
+            }
+          ],
+          "isError": false
+        }
+      },
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:03 GMT"
+        },
+        "bytes": 484,
+        "sha256": "d1bb3d3045317ca546696fdfcbf6415bdd8709a1107ca37746ba7c01ecddffa9",
+        "seconds": 0.10070833200006746
+      }
+    },
+    {
+      "case": "empty-request_archive",
+      "passed": true,
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "request_archive",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"archive_retention\":\"no_automatic_metadata_eviction\",\"automatic_operation_retry\":false,\"contains_parameters_or_output\":false,\"coverage\":\"metadata_retained_at_archive_introduction_and_subsequent_admitted_requests\",\"history_is_live\":true,\"next_after_id\":null,\"requests\":[],\"total\":0}"
+            }
+          ],
+          "isError": false
+        }
+      },
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:04 GMT"
+        },
+        "bytes": 451,
+        "sha256": "0044f8427c2e2899c93e7caff7ea87b1466ee0c5a52f7907d028f9f1b7faf160",
+        "seconds": 0.10087099598604254
+      }
+    },
+    {
+      "case": "empty-usage_stats",
+      "passed": true,
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "usage_stats",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"active\":0,\"completed\":0,\"contains_parameters_or_output\":false,\"coverage\":\"metadata_retained_at_archive_introduction_and_subsequent_admitted_requests\",\"failed\":0,\"first_accepted_unix_ms\":null,\"last_accepted_unix_ms\":null,\"retention\":\"archive_metadata_not_evicted_with_hot_cache\",\"schema\":\"hepta-private-usage-v1\",\"scope\":\"same_verified_credential_or_native_session\",\"semantics\":\"dispatch_observation_not_transport_delivery_or_business_success\",\"tool_counts\":{},\"total_requests\":0,\"unknown\":0}"
+            }
+          ],
+          "isError": false
+        }
+      },
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:04 GMT"
+        },
+        "bytes": 676,
+        "sha256": "d04bb81d4780e2990392a8b6a8028ee5a1156e4b55537f5d6702c758edb1a9fa",
+        "seconds": 0.10138770198682323
+      }
+    },
+    {
+      "case": "catalog-metadata-discovery",
+      "passed": true,
+      "names": [
+        "hia_adopt",
+        "hia_artifact",
+        "hia_candidate",
+        "hia_context",
+        "hia_describe",
+        "hia_emit",
+        "hia_evaluate",
+        "hia_inspect",
+        "hia_read",
+        "hia_rollback",
+        "hia_verify",
+        "request_history",
+        "request_archive",
+        "usage_stats"
+      ]
+    },
+    {
+      "case": "original-private-token-authentication-before-metadata",
+      "passed": true
+    },
+    {
+      "case": "request_history-ascii-over-1m",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:04 GMT"
+        },
+        "bytes": 1048785,
+        "sha256": "ee8d8d6255baecf9b7d6605bc7e53220accd74a855b022a20d1ea6c85743e8ab",
+        "seconds": 0.5643052530067507
+      },
+      "exact_original_error_equal": true,
+      "code": -32602,
+      "message_bytes": 1048648,
+      "message_sha256": "8971e55436ba0cb395d600c3d59c157870dcd02a8999aaebb95c236281b00452",
+      "error_json_sha256": "85d2ed4245365c000770b1b487205e71921082b1d16a7ab7496849378f12997f"
+    },
+    {
+      "case": "request_history-del-near-http-4m",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:05 GMT"
+        },
+        "bytes": 29353171,
+        "sha256": "d4ea784aea9777142d0fcc76b1d4b44acef7f8becbb430134ebab60ecad24e90",
+        "seconds": 2.1223168699943926
+      },
+      "exact_original_error_equal": true,
+      "code": -32602,
+      "message_bytes": 25159751,
+      "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+      "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+    },
+    {
+      "case": "request_history-del-near-http-4m-replay-0",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:08 GMT"
+        },
+        "bytes": 29353171,
+        "sha256": "d4ea784aea9777142d0fcc76b1d4b44acef7f8becbb430134ebab60ecad24e90",
+        "seconds": 0.0662423989851959
+      }
+    },
+    {
+      "case": "request_history-del-near-http-4m-replay-1",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:08 GMT"
+        },
+        "bytes": 29353143,
+        "sha256": "2bc03da7a8fb16f5bb5c55645ddfedeefc4ef4f4572b544e1b083853761117e1",
+        "seconds": 0.0663242410228122
+      }
+    },
+    {
+      "case": "request_history-del-near-http-4m-replay-2",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:08 GMT"
+        },
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.00010276198736391962
+      }
+    },
+    {
+      "case": "request_archive-ascii-over-1m",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:08 GMT"
+        },
+        "bytes": 1048785,
+        "sha256": "33b9ebeab6db4da23eabdaecc78c415f1dc851ab3256b2d87a21139dc05d0130",
+        "seconds": 0.5649346759892069
+      },
+      "exact_original_error_equal": true,
+      "code": -32602,
+      "message_bytes": 1048648,
+      "message_sha256": "8971e55436ba0cb395d600c3d59c157870dcd02a8999aaebb95c236281b00452",
+      "error_json_sha256": "85d2ed4245365c000770b1b487205e71921082b1d16a7ab7496849378f12997f"
+    },
+    {
+      "case": "request_archive-del-near-http-4m",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:09 GMT"
+        },
+        "bytes": 29353171,
+        "sha256": "5a24e9f97533534d3bd3cc2bb92f5a1acb832071f06e3d0c7d8cc02370652b1d",
+        "seconds": 2.0387644529982936
+      },
+      "exact_original_error_equal": true,
+      "code": -32602,
+      "message_bytes": 25159751,
+      "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+      "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+    },
+    {
+      "case": "request_archive-del-near-http-4m-replay-0",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:12 GMT"
+        },
+        "bytes": 29353171,
+        "sha256": "5a24e9f97533534d3bd3cc2bb92f5a1acb832071f06e3d0c7d8cc02370652b1d",
+        "seconds": 0.06485075000091456
+      }
+    },
+    {
+      "case": "request_archive-del-near-http-4m-replay-1",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:12 GMT"
+        },
+        "bytes": 29353143,
+        "sha256": "d4e02ab6e2efc8ee920bfe734d184011f052c75b880ff79ae34ecf5d1c023e1a",
+        "seconds": 0.06642620399361476
+      }
+    },
+    {
+      "case": "request_archive-del-near-http-4m-replay-2",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:12 GMT"
+        },
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "seconds": 0.00012815999798476696
+      }
+    },
+    {
+      "case": "usage-large-unknown",
+      "passed": true,
+      "exact_original_error_equal": true,
+      "code": -32602,
+      "message_bytes": 1048648,
+      "message_sha256": "040958028a482caf366e404f7f5e9a805ba07d69f1cfcf72213bd1371c2a9a8f",
+      "error_json_sha256": "0cefadbb227fe3dbd64cc63d74ec2e3d90f25af772c79b97fd1db9bac6d08c29"
+    },
+    {
+      "case": "stateless-complete-metadata",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "transfer-encoding": "chunked",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:15 GMT"
+        },
+        "bytes": 29353130,
+        "sha256": "1a8f637e09210ec8027c51782d0b9e0ba7b809613b6f3269d85685b08f5e77b3",
+        "seconds": 0.0653546339890454
+      },
+      "exact_original_error_equal": true,
+      "code": -32602,
+      "message_bytes": 25159751,
+      "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+      "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+    },
+    {
+      "case": "stateless-missing-capabilities",
+      "passed": true,
+      "http": {
+        "status": 400,
+        "headers": {
+          "content-type": "application/json",
+          "content-length": "193",
+          "connection": "close",
+          "date": "Fri, 27 Nov 2026 21:38:17 GMT"
+        },
+        "bytes": 193,
+        "sha256": "b709b2d2c26ee91982ce20624579f9e09e234a6b3633d007162b405f8a5110ad",
+        "seconds": 0.0002731709973886609
+      },
+      "original_metadata_validation_precedes_parameter_diagnostic": true
+    },
+    {
+      "case": "http10-large-complete",
+      "passed": true,
+      "http": {
+        "status": 200,
+        "headers": {
+          "content-type": "text/event-stream",
+          "cache-control": "no-cache",
+          "x-accel-buffering": "no",
+          "date": "Fri, 27 Nov 2026 21:38:17 GMT"
+        },
+        "bytes": 29353160,
+        "sha256": "2c0f3083f3f55350d96942a7dc6835e5fa76d7df5ca223db66b11b11f9d7b333",
+        "seconds": 2.148490710009355
+      },
+      "exact_original_error_equal": true,
+      "code": -32602,
+      "message_bytes": 25159751,
+      "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+      "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+    },
+    {
+      "case": "unchanged-exact-four-mib-http-input-and-one-byte-over-refusal",
+      "passed": true
+    },
+    {
+      "case": "partial-private-output-complete-seals-before-publication",
+      "passed": true,
+      "private_bytes": 65655,
+      "complete_error_equal": true,
+      "final_seals": 15,
+      "code": -32602,
+      "message_bytes": 25159751,
+      "message_sha256": "e5628f736951b11e6af593ac1bdb6629a89479e9b4fd1312eda0c4a47beff332",
+      "error_json_sha256": "2ba99178708c84d1642644293662b7e8e34ac181fc482e8dbf54b9e9f2afccc0"
+    },
+    {
+      "case": "cancel-partial-never-publishes-diagnostic-and-retains-original-tombstone",
+      "passed": true,
+      "private_bytes": 65656
+    },
+    {
+      "case": "absolute-three-second-query-deadline-and-stale-response-drain",
+      "passed": true,
+      "seconds": 3.1060642289812677
+    }
+  ],
+  "scope": "real native HTTP metadata routes and exact original diagnostics",
+  "executable_sha256": "729a33cb6092079353e7fd5ffedb44da790142e2763563740e333568b90ea0fd",
+  "manifest_sha256": "e97127b79c2a9aaa89bebb5dbb673cbf086274672d57a9443966aed1e782624c",
+  "original_source": "ae1c7ea593da45f7299c692a2acd44605c35be09",
+  "whole_cold_qualified": false,
+  "installed_worker_claimed": false,
+  "http_input_bytes": 4194304,
+  "query_budget_seconds": 3,
+  "references": {
+    "existing": "8ee3539beb7f9987785a6ba86622f9feb7c030fecc9fc6a731c00d12d3a53d44",
+    "http_large": "0f028dea059cbcef900673cdf8bdba16ad7a0859519139bdb4dc76a47f8d670e"
+  },
+  "passed_checks": 23
+}
