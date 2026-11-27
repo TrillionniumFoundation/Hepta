@@ -56,3 +56,27 @@ Clang must retain this failure and perform all original comparisons.
 
 No completed current-source cold compiler, release, installed native worker,
 whole-stack replacement or retirement follows from these controls.
+
+
+## Complete original caller gate on ROG
+
+The exact committed foundation `349232bd7c7c1f583cdcc8e56facb82bf72c46c6`
+then ran the same six modules on ROG with actual Clang 21.1.8. All 36 tests
+passed, including all three unchanged LLVM/native comparisons, with no skips,
+expected failures, errors, or filtering. The independent planned/started/stopped
+IDs match; source and bundle pins remained stable. The selected HIA memory
+implementation handled 1,733 fill and 1,692 move calls while the retained
+Python memory bodies were explicitly forbidden. The gate measured 4.267277265
+seconds and the complete command exited naturally with status zero. The owned
+checkout was clean before and after the run.
+
+`rog-original-six-callers-passed.tar.gz` retains every one of the 11 physical
+build/gate output files plus their complete manifest. Its 160,903 bytes have
+SHA-256 `e7765127e25d3dce07d4014eef503de726e1f1f8a50c5ab966449ce0442913d3`.
+Every member's original byte length and SHA-256 were independently checked
+again after transfer. `rog-original-callers-terminal.json` retains the actual
+terminal output and natural-exit observation. This is an explicit-development
+component PASS using the unchanged 641,344-byte B1 identified in the retained
+local construction evidence. Matching-source cold and whole-native-delivery
+qualification remain false; the original local missing-Clang failure above is
+preserved without relabeling it.
