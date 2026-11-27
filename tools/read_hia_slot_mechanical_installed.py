@@ -245,6 +245,42 @@ def verify(evidence, product_root, freeze, freeze_sha256, captured):
                 need(captured.raw(installed / name) == raw, "installed bytes differ from actual wheel")
                 files[name] = digest(raw)
     same(files, details["wheel_files"])
+    # Independently derive the explicit extra wheel data from captured source
+    # declarations; compare actual source, staging, RECORD and installed bytes.
+    declarations = {
+        "hepta/hia_executable_capture.py": ("PACKAGE_RESOURCES",),
+        "hepta/hia_nominal_program_native.py": ("PACKAGE_RESOURCES",),
+        "setup.py": ("VM_INTEGER_DIVREM_RESOURCES", "VM_INTEGER_ARITHMETIC_RESOURCES",
+                     "VM_INTEGER_SCALAR_RESOURCES", "NOMINAL_BYTE_BOUNDARY_RESOURCES"),
+    }
+    need(set(report["package_resource_declarations"]) == set(declarations),
+         "extra wheel declaration authority differs")
+    extra_names = []
+    for name, symbols in declarations.items():
+        raw = captured.raw(product_root / name, report["package_resource_declarations"][name])
+        tree = ast.parse(raw, filename=name)
+        for symbol in symbols:
+            nodes = [node for node in tree.body if isinstance(node, ast.Assign)
+                     and any(isinstance(target, ast.Name) and target.id == symbol
+                             for target in node.targets)]
+            need(len(nodes) == 1, "extra wheel resource declaration absent or repeated")
+            values = ast.literal_eval(nodes[0].value)
+            need(type(values) is tuple and len(values) == len(set(values))
+                 and all(type(value) is str and value
+                         and not PurePosixPath(value).is_absolute()
+                         and all(part not in ("", ".", "..") for part in value.split("/"))
+                         for value in values), "unsafe extra wheel resource declaration")
+            extra_names.extend(values)
+    need(len(extra_names) == len(set(extra_names))
+         and set(report["extra_package_resources"]) == set(extra_names),
+         "extra wheel resource inventory differs")
+    for name in extra_names:
+        raw = captured.raw(product_root / name, report["extra_package_resources"][name])
+        need(captured.raw(evidence / "source" / name) == raw,
+             "staged extra wheel source differs")
+        member = "hepta/_data/" + name
+        same(files[member], digest(raw))
+        need(captured.raw(installed / member) == raw, "installed extra wheel source differs")
     captured.raw(installed / record_name, details["installed_record"])
     identity = json.loads(outer["ordinary-installed-identity"][1], object_pairs_hook=unique_pairs)
     same(identity, report["source_identity"])

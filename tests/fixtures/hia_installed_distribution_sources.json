@@ -1847,8 +1847,8 @@
     },
     "tools/qualify_hia_slot_mechanical_installed.py": {
       "current": {
-        "bytes": 10703,
-        "sha256": "c65a8b898dad982b460fd4c4d4858e6871ff841a87b17db44b86e3b0fbbdca25"
+        "bytes": 13130,
+        "sha256": "b29604f53af4a0430bf22ae400107a0d76b8a70df4b228e3b04843032239f07d"
       },
       "original": {
         "bytes": 10340,
@@ -1856,9 +1856,39 @@
       },
       "splices": [
         {
+          "after": "import ast\n",
+          "before": "",
+          "offset": 422
+        },
+        {
+          "after": "def additional_package_resources(root):\n    \"\"\"Read the package's explicit extra tuples without importing setup.py.\n\n    These are source inputs to the current wheel, separate from the unchanged\n    Agent installation_manifest catalogue and original worker scenarios.\n    \"\"\"\n    declarations = {\n        'hepta/hia_executable_capture.py': ('PACKAGE_RESOURCES',),\n        'hepta/hia_nominal_program_native.py': ('PACKAGE_RESOURCES',),\n        'setup.py': ('VM_INTEGER_DIVREM_RESOURCES', 'VM_INTEGER_ARITHMETIC_RESOURCES',\n                     'VM_INTEGER_SCALAR_RESOURCES', 'NOMINAL_BYTE_BOUNDARY_RESOURCES'),\n    }\n    names, inputs = [], {}\n    for path, symbols in declarations.items():\n        raw = regular_bytes(root / path)\n        inputs[path] = {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}\n        tree = ast.parse(raw, filename=path)\n        for symbol in symbols:\n            rows = [node for node in tree.body if isinstance(node, ast.Assign)\n                    and any(isinstance(target, ast.Name) and target.id == symbol\n                            for target in node.targets)]\n            if len(rows) != 1:\n                raise ValueError('one explicit extra package resource tuple required: ' + symbol)\n            values = ast.literal_eval(rows[0].value)\n            if (type(values) is not tuple or len(values) != len(set(values))\n                    or any(type(name) is not str or not name\n                           or PurePosixPath(name).is_absolute()\n                           or any(part in ('', '.', '..') for part in name.split('/'))\n                           for name in values)):\n                raise ValueError('invalid explicit extra package resource tuple: ' + symbol)\n            names.extend(values)\n    if len(names) != len(set(names)):\n        raise ValueError('duplicate extra package resource')\n    return tuple(names), inputs\n\n\n",
+          "before": "",
+          "offset": 928
+        },
+        {
           "after": "    def run(label, command, seconds=60, *, cwd=ROOT):\n        result = run_owned(command, cwd=cwd, directory=args.evidence / label,\n",
           "before": "    def run(label, command, seconds=60):\n        result = run_owned(command, cwd=ROOT, directory=args.evidence / label,\n",
           "offset": 1590
+        },
+        {
+          "after": "    # The original identity catalogue is unchanged. Current setup.py also has\n    # explicit package data, which must reach staging before a real wheel build.\n",
+          "before": "    # Exact original resource catalogue; do not widen installation_manifest.\n",
+          "offset": 2000
+        },
+        {
+          "after": "    extra_resources, declarations = additional_package_resources(ROOT)\n    extra_pins = {name: pin(ROOT / name) for name in extra_resources}\n",
+          "before": "",
+          "offset": 2415
+        },
+        {
+          "after": "    for name in (*RESOURCES, *SDIST_SUPPORT_FILES, *extra_resources,\n                 'setup.py', 'pyproject.toml', 'MANIFEST.in'):\n",
+          "before": "    for name in (*RESOURCES, *SDIST_SUPPORT_FILES, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):\n",
+          "offset": 2575
+        },
+        {
+          "after": "        'package_resource_declarations': declarations, 'extra_package_resources': extra_pins,\n",
+          "before": "",
+          "offset": 2876
         },
         {
           "after": "        'original_scope_replaced': False, 'new_version': 5,\n               'wheel_profile': 'explicit-slot-mechanical-cpython-extension', 'source_identity': source_identity}\n",
@@ -1869,6 +1899,11 @@
           "after": "        # This fixture exercises the separately selected CPython mechanical extension.\n        # Build the same Python import-library component used by the release builder.\n        wheels = args.evidence / 'wheels'\n        wheels.mkdir()\n        run('wheel', [sys.executable, '-B', '-c',\n                      'from setuptools.build_meta import build_wheel; import sys; print(build_wheel(sys.argv[1]))',\n                      str(wheels.resolve())], cwd=staging)\n",
           "before": "        run('wheel', [sys.executable, '-B', '-m', 'pip', 'wheel', '--no-deps',\n            '--no-build-isolation', '--no-index', '--wheel-dir', str(args.evidence / 'wheels'), str(staging)])\n",
           "offset": 3191
+        },
+        {
+          "after": "    stable = (admit_product(ROOT, args.product_freeze, args.product_freeze_sha256) == before\n              and additional_package_resources(ROOT) == (extra_resources, declarations)\n              and all(pin(ROOT / name) == expected for name, expected in extra_pins.items()))\n",
+          "before": "    stable = admit_product(ROOT, args.product_freeze, args.product_freeze_sha256) == before\n",
+          "offset": 9799
         }
       ]
     },
@@ -1911,8 +1946,8 @@
     },
     "tools/read_hia_slot_mechanical_installed.py": {
       "current": {
-        "bytes": 25318,
-        "sha256": "cb5a68d6c967aa28b6959c7288bf6d2fb40ca8038f9b9da0ec6b6a08b3ab1c5e"
+        "bytes": 27544,
+        "sha256": "746bb74097b87a9f3451effa7643e7c2f31d473e15b225d0e86c043fe82e868a"
       },
       "original": {
         "bytes": 25318,
@@ -1923,6 +1958,11 @@
           "after": "    need(type(source_names) is tuple and len(source_names) == len(set(source_names)) == 12,\n         \"complete twelve-source closure differs\")\n",
           "before": "    need(type(source_names) is tuple and len(source_names) == len(set(source_names)) == 11,\n         \"complete eleven-source closure differs\")\n",
           "offset": 5993
+        },
+        {
+          "after": "    # Independently derive the explicit extra wheel data from captured source\n    # declarations; compare actual source, staging, RECORD and installed bytes.\n    declarations = {\n        \"hepta/hia_executable_capture.py\": (\"PACKAGE_RESOURCES\",),\n        \"hepta/hia_nominal_program_native.py\": (\"PACKAGE_RESOURCES\",),\n        \"setup.py\": (\"VM_INTEGER_DIVREM_RESOURCES\", \"VM_INTEGER_ARITHMETIC_RESOURCES\",\n                     \"VM_INTEGER_SCALAR_RESOURCES\", \"NOMINAL_BYTE_BOUNDARY_RESOURCES\"),\n    }\n    need(set(report[\"package_resource_declarations\"]) == set(declarations),\n         \"extra wheel declaration authority differs\")\n    extra_names = []\n    for name, symbols in declarations.items():\n        raw = captured.raw(product_root / name, report[\"package_resource_declarations\"][name])\n        tree = ast.parse(raw, filename=name)\n        for symbol in symbols:\n            nodes = [node for node in tree.body if isinstance(node, ast.Assign)\n                     and any(isinstance(target, ast.Name) and target.id == symbol\n                             for target in node.targets)]\n            need(len(nodes) == 1, \"extra wheel resource declaration absent or repeated\")\n            values = ast.literal_eval(nodes[0].value)\n            need(type(values) is tuple and len(values) == len(set(values))\n                 and all(type(value) is str and value\n                         and not PurePosixPath(value).is_absolute()\n                         and all(part not in (\"\", \".\", \"..\") for part in value.split(\"/\"))\n                         for value in values), \"unsafe extra wheel resource declaration\")\n            extra_names.extend(values)\n    need(len(extra_names) == len(set(extra_names))\n         and set(report[\"extra_package_resources\"]) == set(extra_names),\n         \"extra wheel resource inventory differs\")\n    for name in extra_names:\n        raw = captured.raw(product_root / name, report[\"extra_package_resources\"][name])\n        need(captured.raw(evidence / \"source\" / name) == raw,\n             \"staged extra wheel source differs\")\n        member = \"hepta/_data/\" + name\n        same(files[member], digest(raw))\n        need(captured.raw(installed / member) == raw, \"installed extra wheel source differs\")\n",
+          "before": "",
+          "offset": 12796
         }
       ]
     }
