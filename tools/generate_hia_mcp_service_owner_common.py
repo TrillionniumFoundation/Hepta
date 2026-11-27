@@ -23,7 +23,9 @@ C = dict(STATE_BYTES=STATE_BYTES, INPUT_BYTES=0, NONE=NONE,
          BRIDGE_IMAGE=288 << 20, BRIDGE_CAP=16 << 20,
          AUDIT_IMAGE=352 << 20, AUDIT_CAP=16 << 20,
          AUDIT_WIRE=368 << 20, AUDIT_REPLY=(368 << 20) + 8192,
-         AUDIT_ERROR=(368 << 20) + 16384)
+         AUDIT_ERROR=(368 << 20) + 16384, HISTORY_REPLY=369 << 20,
+         HISTORY_LIMIT=2176, HISTORY_STATUS=2184, HISTORY_REASON=2192,
+         HISTORY_REPLY_BYTES=2200)
 C.update(P_SESSION=0, P_REPLY=1, P_CANONICAL=2, P_CONFIG=3,
          P_ADMISSION=4, P_CATALOG=5, P_INPUT_SCHEMA=6, P_CONTROLLER_JSON=7,
          P_OUTPUT_SCHEMA=8, P_SDK=9)
@@ -42,7 +44,7 @@ SLOTS = (
     'worker_host', 'entry_path', 'ssh_target', 'remote_command',
     'config_dir', 'config_name', 'manifest_name', 'ssh_dir', 'ssh_name',
     'worker_state', 'working_directory', 'catalog_pin', 'bridge_name',
-    'audit_owner', 'audit_id',
+    'audit_owner', 'audit_id', 'history_after',
 )
 SLOT = {name: 32768 + index * 16 for index, name in enumerate(SLOTS)}
 FIELDS = ('profile', 'host', 'state_dir', 'aliases', 'native_jobs', 'entry', 'submit',
@@ -52,6 +54,7 @@ FIELDS = ('profile', 'host', 'state_dir', 'aliases', 'native_jobs', 'entry', 'su
           'error', 'request_key', 'timeout_seconds', 'python_executable')
 FIELDS += ('execution_mode', 'working_directory', 'state_root', 'worker_sha256',
            'backend_sha256', 'native_helpers_manifest', 'native_helpers_sha256')
+FIELDS += ('after_id', 'limit')
 FIELD = {name: index + 1 for index, name in enumerate(FIELDS)}
 
 # Filled from the reviewed scalar buffer and Linux plan helpers below. This is

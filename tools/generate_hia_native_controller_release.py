@@ -37,7 +37,7 @@ def specifications():
         (1, 'hia-mcp-job-bridge', bridge.PACKER_MAGIC, bridge.ROLES,
          {r: bridge.COMPANIONS.get(r, BOOT + 'mcp_job_bridge_' + r + '.hepta') for r in bridge.ROLES},
          'mcp_job_bridge_packer.hepta', 'tools/hia_mcp_job_bridge_syscalls.S', bridge.template, 16777216),
-        (2, 'hia-mcp-request-audit', b'HIARAU01', audit.ROLES,
+        (2, 'hia-mcp-request-audit', audit.PACK_MAGIC, audit.ROLES,
          {r: BOOT + 'mcp_request_audit_' + r + '.hepta' for r in audit.ROLES},
          'mcp_request_audit_packer.hepta', 'tools/hia_mcp_request_audit_syscalls.S', audit.template, 16777216),
         (3, 'hia-system-jobctl', jobctl.MAGIC, tuple(r for r, _ in jobctl.MODULES),

@@ -6,6 +6,9 @@ def advance(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     result = get(w,8)
     at = frame(w)
     if phase == 0:
+        if get(w,at+16) == 1:
+            save(w,1,1)
+            return step(w,3)
         save(w,0,0)
         save(w,1,choose(get(w,ACTIVECOUNT) != 0,1,0))
         if local(w,1) != 0:
@@ -38,6 +41,8 @@ def advance(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
             return done(w,NONE)
         put(w,HOTFD,get(w,48))
         put(w,HOT_OWNED,1)
+        if get(w,at+16) == 1:
+            return procedure(w,M_RETENTION,RETENTION_HISTORY,7,0,0,0,0,0,0,0,0)
         return procedure(w,M_ARCHIVE,ARCHIVE_OPEN,6,local(w,1),0,0,0,0,0,0,0)
     if phase == 6:
         if get(w,48) == NONE:

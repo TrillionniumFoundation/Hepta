@@ -1,6 +1,7 @@
 """Author MCP discovery, request admission and the exact native bridge frame."""
 from tools.generate_hia_mcp_service_owner_common import authored
 from tools.generate_hia_mcp_request import tool_names
+from tools.generate_hia_mcp_history_diagnostic import source_program as diagnostic_source, TEXT as DIAGNOSTIC_TEXT
 
 SOURCE = r'''
 def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -11,7 +12,7 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 0
         action = get(w, 256)
         if action == 1:
-            return control_reply(w, get(w, S_CATALOG_RESULT), get(w, S_CATALOG_RESULT + 8))
+            return history_catalog(w)
         if action == 3 or action == 4:
             if action == 3:
                 end = text_resources(w, PURE_OUTPUT)
@@ -21,8 +22,30 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if action != 2 and action != 5:
             return 0
         if action == 2:
+            if get(w, 264) == 13:
+                if get(w, 296) == 0:
+                    end = text_empty_object(w, PURE_INPUT)
+                    return pure(o, w, 30, P_CANONICAL, PURE_INPUT, end - PURE_INPUT, PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
+                return pure(o, w, 30, P_CANONICAL, get(w, 288), get(w, 296), PURE_OUTPUT, 8388608, PURE_WORK, W_CANONICAL)
             return audit(w, 3, 10, 1)
         return enter(w, 3, 10)
+    if phase == 30:
+        if result == 0 or result > 8388608:
+            return rpc_error(w, 1)
+        return decode(o, w, 31, PURE_OUTPUT, result)
+    if phase == 31:
+        if result < 128 or result > ARENA_BYTES:
+            return rpc_error(w, 1)
+        status = history_params(w)
+        if status == 1:
+            return enter(w, 5, 0)
+        if status == 2:
+            return history_unavailable(w)
+        return audit(w, 3, 32, 3)
+    if phase == 32:
+        if get(w, 2016) != 0:
+            return history_unavailable(w)
+        return history_reply(w, HISTORY_REPLY + 64, get(w, HISTORY_REPLY_BYTES) - 64, get(w, HISTORY_STATUS))
     if phase == 10:
         action = get(w, 256)
         if action == 2 and get(w, 2016) != 0:
@@ -120,13 +143,76 @@ def descriptor(w:mutbuf) -> bool:
     put(w, 296, size)
     bind(w, S_URI, REQUEST + at, choose(get(w, 256) == 5, size, 0))
     if get(w, 256) == 2 or get(w, 256) == 5:
-        if get(w, 264) < 1 or get(w, 264) > 12:
+        if get(w, 264) < 1 or get(w, 264) > 13 or (get(w, 256) == 5 and get(w, 264) != 12):
             return False
         start = get(w, 64)
         end = tool_json(w, get(w, 264), start)
         bind(w, S_TOOL, start, end - start)
         put(w, 64, end)
     return True
+
+def history_catalog(w:mutbuf) -> u32:
+    source = get(w, S_CATALOG_RESULT)
+    size = get(w, S_CATALOG_RESULT + 8)
+    if size < 12 or size > 1048576 or byte(w, source + size - 2) != 93 or byte(w, source + size - 1) != 125:
+        return 0
+    at = copy_state(w, source, PURE_OUTPUT, size - 2)
+    at = text_history_catalog(w, at)
+    return control_reply(w, PURE_OUTPUT, at - PURE_OUTPUT)
+
+def history_params(w:mutbuf) -> u64:
+    root = ARENA + 64
+    if get(w, root) != 6:
+        return history_parameter_fallback(w)
+    put(w, HISTORY_LIMIT, 32)
+    bind(w, S_HISTORY_AFTER, 0, 0)
+    child = get(w, root + 24)
+    while child != NONE:
+        row = ARENA + 64 + child * 72
+        key = key_id(w, ARENA + get(w, row + 40), get(w, row + 48))
+        if key != F_AFTER_ID and key != F_LIMIT:
+            return history_unknown_parameter(w, row)
+        if key == F_LIMIT and is_null(w, row) == False:
+            selected = number(w, row)
+            if selected > 65535:
+                return history_type_error(w, row, 1)
+            put(w, HISTORY_LIMIT, selected)
+        if key == F_AFTER_ID and is_null(w, row) == False:
+            if get(w, row) != 4:
+                return history_type_error(w, row, 2)
+            bind(w, S_HISTORY_AFTER, ARENA + get(w, row + 24), get(w, row + 32))
+        child = get(w, row + 16)
+    after = field(w, F_AFTER_ID)
+    if after != NONE and is_null(w, after) == False:
+        if get(w, S_HISTORY_AFTER + 8) != 64 or lowerhex(w, get(w, S_HISTORY_AFTER), 64) == False:
+            return 2
+    if get(w, HISTORY_LIMIT) == 0 or get(w, HISTORY_LIMIT) > 32:
+        return 2
+    return 0
+
+def history_unavailable(w:mutbuf) -> u32:
+    end = text_history_unavailable(w, PURE_OUTPUT)
+    return history_reply(w, PURE_OUTPUT, end - PURE_OUTPUT, 1)
+
+def history_reply(w:mutbuf, source:u64, size:u64, error:u64) -> u32:
+    if size > 65536 or error > 1:
+        return 0
+    at = text_control_prefix(w, SESSION_OUT)
+    at = cp(w, S_REQUEST_ID, at)
+    at = text_history_result(w, at)
+    at = quoted(w, at, source, size)
+    at = text_history_error(w, at)
+    if error == 0:
+        at = text_false(w, at)
+    else:
+        at = text_true(w, at)
+    if get(w, 272) == 1:
+        at = text_history_modern(w, at)
+    at = text_control_close(w, at)
+    put(w, 232, SESSION_OUT)
+    put(w, 240, at - SESSION_OUT)
+    put(w, 248, 0)
+    return enter(w, 2, 19)
 
 def control_reply(w:mutbuf, source:u64, size:u64) -> u32:
     if size < 2 or size > 1048576 or byte(w, source) != 123 or byte(w, source + size - 1) != 125:
@@ -228,6 +314,19 @@ def rpc_error(w:mutbuf, kind:u64) -> u32:
 
 
 def source():
+    import json
+    history_tool = {
+        'name': 'request_history',
+        'title': 'Read Native Session Request History',
+        'description': 'Read bounded redacted dispatch metadata owned by this native MCP session. Independent retained-record cursors; server request identity, canonical tool name, timing and observed status only. Unknown effects must never be replayed automatically. Records prove neither delivery nor business success. Transport-invalid requests and facade-local refusals are outside native dispatch history.',
+        'inputSchema': {'title': 'RequestHistoryParams', 'type': 'object', 'properties': {
+            'after_id': {'description': 'Last returned request id. Expired and other-owner cursors are refused.',
+                         'type': ['string', 'null'], 'default': None},
+            'limit': {'description': 'At most 32 metadata records; default 32. No parameters or output are returned.',
+                      'type': ['integer', 'null'], 'format': 'uint16', 'minimum': 0,
+                      'maximum': 65535, 'default': None}}, 'additionalProperties': False},
+        'annotations': {'readOnlyHint': True, 'destructiveHint': False,
+                        'idempotentHint': True, 'openWorldHint': False}}
     text = {'control_prefix': '{"jsonrpc":"2.0","id":', 'control_result': ',"result":',
         'control_close': '}}\n',
         'control_public': '"cacheScope":"public",', 'control_private': '"cacheScope":"private",',
@@ -239,9 +338,15 @@ def source():
         'invalid_uri': '{"code":-32602,"message":"Invalid HIA artifact URI"}',
         'audit_error': '{"code":-32603,"message":"request audit unavailable; dispatch refused"}',
         'resource_audit_error': '{"code":-32603,"message":"HIA resource audit unavailable; dispatch refused"}',
-        'bridge_error': '{"code":-32603,"message":"HIA native job bridge unavailable; repeat the identical request to observe its original binding"}'}
-    code = SOURCE + '\ndef tool_json(w:mutbuf, role:u64, at:u64) -> u64:\n'
-    for index, name in enumerate((*tool_names(), 'hia_resource_read'), 1):
+        'bridge_error': '{"code":-32603,"message":"HIA native job bridge unavailable; repeat the identical request to observe its original binding"}',
+        'history_catalog': ',' + json.dumps(history_tool, separators=(',', ':')) + ']}',
+        'history_unavailable': 'request history unavailable to this session or private metadata refused',
+        'history_result': ',"result":{"content":[{"type":"text","text":',
+        'history_error': '}],"isError":',
+        'history_modern': ',"resultType":"complete","_meta":{"io.modelcontextprotocol/serverInfo":{"name":"hepta-hia","version":"1"}}'}
+    text.update(DIAGNOSTIC_TEXT)
+    code = SOURCE + diagnostic_source() + '\ndef tool_json(w:mutbuf, role:u64, at:u64) -> u64:\n'
+    for index, name in enumerate((*tool_names(), 'hia_resource_read', 'request_history'), 1):
         text['tool_' + str(index)] = '"' + name + '"'
         code += f'    if role == {index}:\n        return text_tool_{index}(w, at)\n'
     code += '    return at\n\ndef bridge_role(index:u64) -> u64:\n'

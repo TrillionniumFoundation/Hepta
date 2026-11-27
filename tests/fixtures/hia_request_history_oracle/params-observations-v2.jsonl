@@ -1,0 +1,73 @@
+{"id":"empty","parameters":"accepted","value":{}}
+{"id":"all","parameters":"accepted","value":{}}
+{"id":"page-one","parameters":"accepted","value":{"limit":2}}
+{"id":"page-two","parameters":"accepted","value":{"after_id":"0000000000000000000000000000000000000000000000000000000000000003","limit":2}}
+{"id":"end","parameters":"accepted","value":{"after_id":"0000000000000000000000000000000000000000000000000000000000000007"}}
+{"id":"foreign","parameters":"accepted","value":{"after_id":"0000000000000000000000000000000000000000000000000000000000000004"}}
+{"id":"expired","parameters":"accepted","value":{"after_id":"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}}
+{"id":"other-owner","parameters":"accepted","value":{}}
+{"id":"active-state","parameters":"accepted","value":{}}
+{"id":"nulls","parameters":"accepted","value":{"after_id":null,"limit":null}}
+{"id":"limit-zero","parameters":"accepted","value":{"limit":0}}
+{"id":"limit-33","parameters":"accepted","value":{"limit":33}}
+{"id":"limit-65535","parameters":"accepted","value":{"limit":65535}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid value: integer `65536`, expected u16"},"id":"limit-65536","value":{"limit":65536}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `1.0`, expected u16"},"id":"limit-float","value":{"limit":1.0}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `-0.0`, expected u16"},"id":"limit-neg-zero","value":{"limit":-0.0}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid value: integer `-1`, expected u16"},"id":"limit-negative","value":{"limit":-1}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: boolean `true`, expected u16"},"id":"limit-bool","value":{"limit":true}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"1\", expected u16"},"id":"limit-string","value":{"limit":"1"}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: unknown field `owner`, expected `after_id` or `limit`"},"id":"unknown","value":{"owner":"x"}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: integer `1`, expected a string"},"id":"after-number","value":{"after_id":1}}
+{"id":"after-short","parameters":"accepted","value":{"after_id":"a"}}
+{"id":"after-uppercase","parameters":"accepted","value":{"after_id":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}}
+{"id":"duplicate-last","parameters":"accepted","value":{"limit":2}}
+{"id":"duplicate-first","parameters":"accepted","value":{"limit":0}}
+{"id":"time-18446744073709551615","parameters":"accepted","value":{}}
+{"id":"time-18446744073709551616","parameters":"accepted","value":{}}
+{"id":"time-340282366920938463463374607431768211455","parameters":"accepted","value":{}}
+{"id":"elapsed-u64-max","parameters":"accepted","value":{}}
+{"id":"invalid-owner","parameters":"accepted","value":{}}
+{"id":"full-page-0","parameters":"accepted","value":{}}
+{"id":"full-page-1","parameters":"accepted","value":{"after_id":"000000000000000000000000000000000000000000000000000000000000007c"}}
+{"id":"full-page-2","parameters":"accepted","value":{"after_id":"00000000000000000000000000000000000000000000000000000000000000fc"}}
+{"id":"full-page-3","parameters":"accepted","value":{"after_id":"000000000000000000000000000000000000000000000000000000000000017c"}}
+{"id":"record-unknown","parameters":"accepted","value":{}}
+{"id":"record-duplicate","parameters":"accepted","value":{}}
+{"id":"record-time-overflow","parameters":"accepted","value":{}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: sequence, expected u16"},"id":"diagnostic-0","value":{"limit":[]}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: map, expected u16"},"id":"diagnostic-1","value":{"limit":{}}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: boolean `true`, expected a string"},"id":"diagnostic-2","value":{"after_id":true}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: boolean `false`, expected a string"},"id":"diagnostic-3","value":{"after_id":false}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: integer `-1`, expected a string"},"id":"diagnostic-4","value":{"after_id":-1}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `1.0`, expected a string"},"id":"diagnostic-5","value":{"after_id":1.0}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: sequence, expected a string"},"id":"diagnostic-6","value":{"after_id":[]}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: map, expected a string"},"id":"diagnostic-7","value":{"after_id":{}}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"a\\\\b\\n\\t\\0\\\"\", expected u16"},"id":"diagnostic-8","value":{"limit":"a\\b\n\t\u0000\""}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: unknown field `x\n\u0000\"`, expected `after_id` or `limit`"},"id":"diagnostic-9","value":{"x\n\u0000\"":1}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: integer `1`, expected a string"},"id":"diagnostic-10","value":{"after_id":1,"owner":1}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid value: integer `65536`, expected u16"},"id":"diagnostic-11","value":{"limit":65536,"zzz":1}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: integer `1`, expected a string"},"id":"diagnostic-12","value":{"after_id":1,"limit":65536}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `1e+16`, expected u16"},"id":"diagnostic-13","value":{"limit":1e+16}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `1e+20`, expected u16"},"id":"diagnostic-14","value":{"limit":1e+20}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `0.00001`, expected u16"},"id":"diagnostic-15","value":{"limit":0.00001}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `1e-6`, expected u16"},"id":"diagnostic-16","value":{"limit":1e-6}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `1.25e-7`, expected u16"},"id":"diagnostic-17","value":{"limit":1.25e-7}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `1.8446744073709552e+19`, expected u16"},"id":"diagnostic-18","value":{"limit":1.8446744073709552e+19}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `-9.223372036854776e+18`, expected u16"},"id":"diagnostic-19","value":{"limit":-9.223372036854776e+18}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `-0.0`, expected u16"},"id":"diagnostic-20","value":{"limit":-0.0}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `2.0`, expected u16"},"id":"diagnostic-21","value":{"limit":2.0}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: floating point `1.2345678901234567`, expected u16"},"id":"diagnostic-22","value":{"limit":1.2345678901234567}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: boolean `false`, expected u16"},"id":"diagnostic-23","value":{"limit":false}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: boolean `true`, expected u16"},"id":"diagnostic-24","value":{"after_id":null,"limit":true}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"\\u{85}\\u{200b}\\u{3000}é\", expected u16"},"id":"diagnostic-25","value":{"limit":"​　é"}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"a\\u{301}\", expected u16"},"id":"diagnostic-unicode-0","value":{"limit":"á"}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"\\u{301}\", expected u16"},"id":"diagnostic-unicode-1","value":{"limit":"́"}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"a\\u{200b}\", expected u16"},"id":"diagnostic-unicode-2","value":{"limit":"a​"}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"\\u{2028}\", expected u16"},"id":"diagnostic-unicode-3","value":{"limit":" "}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"\\u{7f}\", expected u16"},"id":"diagnostic-unicode-4","value":{"limit":""}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"\\u{9f}\", expected u16"},"id":"diagnostic-unicode-5","value":{"limit":""}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"\\u{feff}\", expected u16"},"id":"diagnostic-unicode-6","value":{"limit":"﻿"}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"'\", expected u16"},"id":"diagnostic-unicode-7","value":{"limit":"'"}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"\\u{8}\\u{c}\\n\\r\\t\\0\", expected u16"},"id":"diagnostic-unicode-8","value":{"limit":"\b\f\n\r\t\u0000"}}
+{"error":{"code":-32602,"message":"failed to deserialize parameters: invalid type: string \"𝄞中文é😀\", expected u16"},"id":"diagnostic-unicode-9","value":{"limit":"𝄞中文é😀"}}

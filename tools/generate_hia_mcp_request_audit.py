@@ -7,8 +7,9 @@ from tools.generate_hia_mcp_service import document
 from tools.generate_hia_json_decode import source_program as generic_json
 from tools.generate_hia_native_filter import LINK_SOURCE
 ROOT = Path(__file__).resolve().parents[1]
-COMPONENTS = ('session','files','records','archive','layout','retention','root','scan','write','recovery','leases','open','response','metadata','intent')
+COMPONENTS = ('session','files','records','archive','layout','retention','root','scan','write','recovery','leases','open','response','metadata','intent','history')
 ROLES = COMPONENTS + ('json',)
+PACK_MAGIC = b'HIARAU02'
 
 def adapter_source():
     source = '''/* Mechanical Linux syscall/byte-ABI translation. All request,
@@ -117,7 +118,7 @@ def template():
 def packer_source():
     prefix,holes=template(); count=len(ROLES); head=8+8*count
     code=f'''def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < {head+count} or uint(s,0,8) != {int.from_bytes(b'HIARAU01','little')}:
+    if length(s) < {head+count} or uint(s,0,8) != {int.from_bytes(PACK_MAGIC,'little')}:
         return 4294967295
     size = {len(prefix)}
     index = 0
