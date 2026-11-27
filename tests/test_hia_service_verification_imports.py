@@ -298,3 +298,9 @@ class ServiceVerificationImportSourceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# The original three methods and 308 faults remain unchanged in their complete
+# predecessor source view. Current eight-capsule controls have separate IDs.
+from tests.hia_behavior_original_preparation import bind_original_import_tests
+bind_original_import_tests(globals())

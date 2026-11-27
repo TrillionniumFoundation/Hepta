@@ -231,20 +231,49 @@ def _signatures_reference(program, foreign_buffer_exports=()):
 
 
 def _vm_observation(program, case, *, steps=1_000_000, heap=16 * 1024 * 1024,
-                    foreign_buffer_exports=()):
+                    foreign_buffer_exports=(), _execute=None):
     from .hia_program_runtime import execute_program, HIAProgramBudgetExceeded, HIAProgramTrap
     if case["function"] in dict(foreign_buffer_exports):
         from .hia_agent_buffers import reference_observation
         return reference_observation(program, case, foreign_buffer_exports,
                                      steps=10_000_000, heap=heap)
     try:
-        result = execute_program(program, case["function"], case["arguments"],
-                                 max_steps=steps, max_heap_bytes=heap)
+        result = (execute_program(program, case["function"], case["arguments"],
+                                  max_steps=steps, max_heap_bytes=heap) if _execute is None else
+                  _execute(case["function"], case["arguments"],
+                           max_steps=steps, max_heap_bytes=heap))
     except HIAProgramTrap as exc:
         return {"status": "trapped", "trap_code": exc.code, "ledger": exc.report}
     except HIAProgramBudgetExceeded as exc:
         return {"status": "budget_exceeded", "budget_code": exc.code, "ledger": exc.report}
     return {"status": "returned", "values": result["values"], "ledger": result}
+
+
+_REFERENCE_VM_OBSERVATION = _vm_observation
+
+
+def _behavior_source_snapshot(original, revised):
+    """Capture immutable byte identities, without granting program admission."""
+    sources = tuple((program.canonical_bytes, program.structured_bytes)
+                    for program in (original, revised))
+    if any(type(canonical) is not bytes or
+           structured is not None and type(structured) is not bytes
+           for canonical, structured in sources):
+        return None
+    return sources
+
+
+def _behavior_source_bound_result(inputs, result):
+    """Bind a conclusive result to its actual frozen execution and observations."""
+    if not inputs.current():
+        evidence = {"method": result[2].get("method", "behavior_equivalence"),
+                    "complete": False, "source_unchanged": False}
+        for key in ("checked", "required"):
+            if key in result[2]:
+                evidence[key] = result[2][key]
+        return ("unknown", "Core bytes or execution bindings changed during behavior-equivalence observation",
+                evidence)
+    return result
 
 
 def _value_observation(observation):
@@ -1394,13 +1423,23 @@ class HIAAgentService:
         if timeout_ms <= 0:
             return "unknown", "Verification cannot exceed the frozen context deadline", {
                 "method": "context_budget_exhausted", "reason": "context wall budget exhausted"}
-        if original.canonical_bytes == revised.canonical_bytes:
-            return "proved", "Reflexivity for the exact admitted canonical Core bytes, including resources and traps", {
-                "method": "canonical_core_identity", "base_sha256": original.sha256,
-                "candidate_sha256": revised.sha256, "all_inputs": True}
-        left, right = original.as_dict(), revised.as_dict()
-        signatures = _signatures(original)
-        finite = signatures == _signatures(revised) and bool(signatures)
+        sources = _behavior_source_snapshot(original, revised)
+        if sources is None:
+            return "unknown", "Behavior-equivalence inputs lack immutable byte identities", {
+                "method": "behavior_equivalence", "complete": False, "source_unchanged": False}
+        from .hia_behavior_inputs import BehaviorInputs
+        inputs = BehaviorInputs((original, revised), sources)
+        if sources[0][0] == sources[1][0]:
+            inputs.prepare()
+            return _behavior_source_bound_result(
+                inputs, (
+                "proved", "Reflexivity for the exact admitted canonical Core bytes, including resources and traps", {
+                "method": "canonical_core_identity", "base_sha256": sha256(sources[0][0]).hexdigest(),
+                "candidate_sha256": sha256(sources[1][0]).hexdigest(), "all_inputs": True}
+                ))
+        left, right = inputs.programs[0].as_dict(), inputs.programs[1].as_dict()
+        signatures = _signatures(inputs.programs[0])
+        finite = signatures == _signatures(inputs.programs[1]) and bool(signatures)
         # Only pure scalar functions without calls, allocation or ownership can
         # use finite value enumeration as complete semantic evidence. The
         # structural resource/effect checker is used for wider programs.
@@ -1446,14 +1485,17 @@ class HIAAgentService:
             transcript = sha256()
             checked = 0
             deadline = time.monotonic_ns() + min(10000, timeout_ms) * 1_000_000
+            inputs.prepare()
             for name, input_domains in domains.items():
                 for arguments in itertools.product(*input_domains):
                     if time.monotonic_ns() > deadline:
                         return "unknown", "Pure acyclic scalar finite domain; exhaustive enumeration deadline expired", {
                             "method": "finite_domain", "checked": checked, "required": total, "complete": False}
                     case = {"function": name, "arguments": list(arguments)}
-                    before = _vm_observation(original, case, steps=10000)
-                    after = _vm_observation(revised, case, steps=10000)
+                    before = inputs.observation(0, _vm_observation, _REFERENCE_VM_OBSERVATION,
+                                                case, steps=10000)
+                    after = inputs.observation(1, _vm_observation, _REFERENCE_VM_OBSERVATION,
+                                               case, steps=10000)
                     if "budget_exceeded" in {before["status"], after["status"]}:
                         return "unknown", "Pure acyclic scalar finite domain; reference budget prevented completeness", {
                             "method": "finite_domain", "checked": checked, "required": total, "complete": False}
@@ -1463,20 +1505,29 @@ class HIAAgentService:
                     transcript.update(wire({"case": case, "before": first, "after": second}))
                     checked += 1
                     if first != second:
-                        return "refuted", "All scalar inputs in a finite pure acyclic domain; return/first-trap/resource observations", {
+                        return _behavior_source_bound_result(
+                            inputs, (
+                            "refuted", "All scalar inputs in a finite pure acyclic domain; return/first-trap/resource observations", {
                             "method": "finite_domain", "counterexample": case, "before": first, "after": second,
                             "checked": checked, "required": total, "complete": False}
+                            ))
             if time.monotonic_ns() > deadline:
                 return "unknown", "Exhaustive scalar enumeration finished after its frozen verification deadline", {
                     "method": "finite_domain", "checked": checked, "required": total,
                     "complete": False, "deadline_met": False}
-            return "proved", "Exhaustive complete pure acyclic scalar domain (at most 12 total input bits), including first trap and resource ledger", {
+            return _behavior_source_bound_result(
+                inputs, (
+                "proved", "Exhaustive complete pure acyclic scalar domain (at most 12 total input bits), including first trap and resource ledger", {
                 "method": "finite_domain", "checked": checked, "required": total, "complete": True,
                 "all_inputs_in_declared_widths": True, "transcript_sha256": transcript.hexdigest(),
-                "base_sha256": original.sha256, "candidate_sha256": revised.sha256}
-        report = verify_optimization(original, revised, {**DEFAULT_POLICY, "timeout_ms": min(5000, timeout_ms)})
+                "base_sha256": sha256(sources[0][0]).hexdigest(), "candidate_sha256": sha256(sources[1][0]).hexdigest()}
+                ))
+        report = verify_optimization(inputs.programs[0], inputs.programs[1], {**DEFAULT_POLICY, "timeout_ms": min(5000, timeout_ms)})
         status = {"verified": "proved", "rejected": "refuted", "unknown": "unknown", "timeout": "unknown"}[report["status"]]
-        return status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report
+        return _behavior_source_bound_result(
+            inputs, (
+            status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report
+            ))
 
     def _behavior_equivalence_with_components(self, original, revised, timeout_ms):
         """A conservative proof decision, separate from workload testing."""
@@ -1487,13 +1538,23 @@ class HIAAgentService:
         if timeout_ms <= 0:
             return "unknown", "Verification cannot exceed the frozen context deadline", {
                 "method": "context_budget_exhausted", "reason": "context wall budget exhausted"}
-        if original.canonical_bytes == revised.canonical_bytes:
-            return "proved", "Reflexivity for the exact admitted canonical Core bytes, including resources and traps", {
-                "method": "canonical_core_identity", "base_sha256": original.sha256,
-                "candidate_sha256": revised.sha256, "all_inputs": True}
-        left, right = original.as_dict(), revised.as_dict()
-        signatures = _signatures(original)
-        finite = signatures == _signatures(revised) and bool(signatures)
+        sources = _behavior_source_snapshot(original, revised)
+        if sources is None:
+            return "unknown", "Behavior-equivalence inputs lack immutable byte identities", {
+                "method": "behavior_equivalence", "complete": False, "source_unchanged": False}
+        from .hia_behavior_inputs import BehaviorInputs
+        inputs = BehaviorInputs((original, revised), sources)
+        if sources[0][0] == sources[1][0]:
+            inputs.prepare()
+            return _behavior_source_bound_result(
+                inputs, (
+                "proved", "Reflexivity for the exact admitted canonical Core bytes, including resources and traps", {
+                "method": "canonical_core_identity", "base_sha256": sha256(sources[0][0]).hexdigest(),
+                "candidate_sha256": sha256(sources[1][0]).hexdigest(), "all_inputs": True}
+                ))
+        left, right = inputs.programs[0].as_dict(), inputs.programs[1].as_dict()
+        signatures = _signatures(inputs.programs[0])
+        finite = signatures == _signatures(inputs.programs[1]) and bool(signatures)
         # Only pure scalar functions without calls, allocation or ownership can
         # use finite value enumeration as complete semantic evidence. The
         # structural resource/effect checker is used for wider programs.
@@ -1533,6 +1594,7 @@ class HIAAgentService:
                 transcript = sha256()
             checked = 0
             deadline = time.monotonic_ns() + min(10000, timeout_ms) * 1_000_000
+            inputs.prepare()
             for name, (types, required) in domains.items():
                 if native is None:
                     input_domains = [[False, True] if typ == "bool" else
@@ -1547,8 +1609,10 @@ class HIAAgentService:
                         return "unknown", "Pure acyclic scalar finite domain; exhaustive enumeration deadline expired", {
                             "method": "finite_domain", "checked": checked, "required": total, "complete": False}
                     case = {"function": name, "arguments": list(arguments)}
-                    before = _vm_observation(original, case, steps=10000)
-                    after = _vm_observation(revised, case, steps=10000)
+                    before = inputs.observation(0, _vm_observation, _REFERENCE_VM_OBSERVATION,
+                                                case, steps=10000)
+                    after = inputs.observation(1, _vm_observation, _REFERENCE_VM_OBSERVATION,
+                                               case, steps=10000)
                     if "budget_exceeded" in {before["status"], after["status"]}:
                         return "unknown", "Pure acyclic scalar finite domain; reference budget prevented completeness", {
                             "method": "finite_domain", "checked": checked, "required": total, "complete": False}
@@ -1560,24 +1624,39 @@ class HIAAgentService:
                     same = (first == second if native is None else
                             native.same_observation(wire(first), wire(second)))
                     if not same:
-                        return "refuted", "All scalar inputs in a finite pure acyclic domain; return/first-trap/resource observations", {
+                        return _behavior_source_bound_result(
+                            inputs, (
+                            "refuted", "All scalar inputs in a finite pure acyclic domain; return/first-trap/resource observations", {
                             "method": "finite_domain", "counterexample": case, "before": first, "after": second,
                             "checked": checked, "required": total, "complete": False}
+                            ))
             if time.monotonic_ns() > deadline:
                 return "unknown", "Exhaustive scalar enumeration finished after its frozen verification deadline", {
                     "method": "finite_domain", "checked": checked, "required": total,
                     "complete": False, "deadline_met": False}
-            return "proved", "Exhaustive complete pure acyclic scalar domain (at most 12 total input bits), including first trap and resource ledger", {
+            return _behavior_source_bound_result(
+                inputs, (
+                "proved", "Exhaustive complete pure acyclic scalar domain (at most 12 total input bits), including first trap and resource ledger", {
                 "method": "finite_domain", "checked": checked, "required": total, "complete": True,
                 "all_inputs_in_declared_widths": True, "transcript_sha256": transcript.hexdigest(),
-                "base_sha256": original.sha256, "candidate_sha256": revised.sha256}
-        report = verify_optimization(original, revised, {**DEFAULT_POLICY, "timeout_ms": min(5000, timeout_ms)})
+                "base_sha256": sha256(sources[0][0]).hexdigest(), "candidate_sha256": sha256(sources[1][0]).hexdigest()}
+                ))
+        report = verify_optimization(inputs.programs[0], inputs.programs[1], {**DEFAULT_POLICY, "timeout_ms": min(5000, timeout_ms)})
         status = {"verified": "proved", "rejected": "refuted", "unknown": "unknown", "timeout": "unknown"}[report["status"]]
         if (report.get("solver") or {}).get("name") == "HIA":
-            return status, "HIA native Boolean obligations for scalar CFG transitions, returns and checked overflow over all declared inputs", report
+            return _behavior_source_bound_result(
+                inputs, (
+                status, "HIA native Boolean obligations for scalar CFG transitions, returns and checked overflow over all declared inputs", report
+                ))
         if left["schema"] == right["schema"] == NATIVE_CORE_SCHEMA:
-            return status, "The Core v8 scalar circuit profile did not establish a complete result", report
-        return status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report
+            return _behavior_source_bound_result(
+                inputs, (
+                status, "The Core v8 scalar circuit profile did not establish a complete result", report
+                ))
+        return _behavior_source_bound_result(
+            inputs, (
+            status, "Existing compositional v1-v7 scalar/effect/trap verifier with identical CFG/interface/ordered effects", report
+            ))
 
     def _subject(self, args, program):
         subject = args["subject"]
@@ -3671,6 +3750,11 @@ def _service_verification_import_behavior_widths(self, original, revised, timeou
     return WIDTHS, integer_range
 
 
+def _service_verification_import_behavior_inputs(self, original, revised, timeout_ms):
+    from .hia_behavior_inputs import BehaviorInputs
+    return BehaviorInputs
+
+
 def _service_verification_import_subject_layout(self, args, program):
     from .hia_program_native import validate_block_layout_plan
     return validate_block_layout_plan
@@ -3700,6 +3784,7 @@ def _service_verification_import_check_elf(self, evidence, subject, context, pro
 _SERVICE_VERIFICATION_IMPORTS = {
     'behavior_optimization': _service_verification_import_behavior_optimization,
     'behavior_widths': _service_verification_import_behavior_widths,
+    'behavior_inputs': _service_verification_import_behavior_inputs,
     'subject_layout': _service_verification_import_subject_layout,
     'verify_emitter': _service_verification_import_verify_emitter,
     'verify_checks': _service_verification_import_verify_checks,

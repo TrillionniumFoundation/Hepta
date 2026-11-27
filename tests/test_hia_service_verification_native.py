@@ -301,3 +301,9 @@ class ServiceVerificationNativeTests(unittest.TestCase):
         self.assertEqual(observations['unknown_state']['request'],('running',))
         self.assertEqual(observations['unknown_state']['costs'],observations['lost_state']['costs']+1)
         self.assertTrue(report['runtime_authoring_imports_forbidden'])
+
+
+# The complete original methods and 446-port graph are a declared historical
+# domain. Current verified-input behavior has its independent native suite.
+from tests.hia_behavior_original_preparation import bind_original_verification_tests
+bind_original_verification_tests(globals())
