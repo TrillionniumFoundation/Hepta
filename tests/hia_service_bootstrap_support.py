@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -87,24 +88,77 @@ def identical_files(left, right, left_pin, right_pin):
     if not same(file_pin(left), left_pin) or not same(file_pin(right), right_pin):
         raise ValueError("original stream changed during its comparison")
     return True
+def _source_bytes(name):
+    """Read one physical source through stable, non-following descriptors."""
+    if type(name) is not str:
+        raise ValueError("bootstrap source name is not text")
+    relative = Path(name)
+    if (not name or relative.is_absolute() or relative.as_posix() != name
+            or any(part in (".", "..") for part in relative.parts)):
+        raise ValueError("bootstrap input leaves its source root")
+    if not ROOT.is_absolute():
+        raise ValueError("bootstrap source root is not absolute")
+    descriptors, directories = [], []
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+    try:
+        parent = os.open(ROOT.anchor, directory_flags)
+        descriptors.append(parent)
+        for part in ROOT.parts[1:] + relative.parts[:-1]:
+            child = os.open(part, directory_flags, dir_fd=parent)
+            descriptors.append(child)
+            directories.append((parent, part, child))
+            parent = child
+        descriptor = os.open(relative.name, os.O_RDONLY | os.O_NOFOLLOW
+                             | os.O_CLOEXEC | os.O_NONBLOCK, dir_fd=parent)
+        descriptors.append(descriptor)
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise ValueError("bootstrap source must be one regular physical file")
+        def identity(value):
+            return (value.st_dev, value.st_ino, value.st_mode, value.st_nlink,
+                    value.st_size, value.st_mtime_ns, value.st_ctime_ns)
+        chunks = []
+        while True:
+            chunk = os.read(descriptor, 1 << 20)
+            if not chunk:
+                break
+            chunks.append(chunk)
+        raw = b"".join(chunks)
+        if (len(raw) != before.st_size or identity(os.fstat(descriptor)) != identity(before)
+                or identity(os.stat(relative.name, dir_fd=parent, follow_symlinks=False))
+                != identity(before)):
+            raise ValueError("bootstrap physical source changed while captured")
+        for ancestor, part, child in directories:
+            opened = os.fstat(child)
+            current = os.stat(part, dir_fd=ancestor, follow_symlinks=False)
+            if ((opened.st_dev, opened.st_ino, opened.st_mode)
+                    != (current.st_dev, current.st_ino, current.st_mode)):
+                raise ValueError("bootstrap source directory changed while captured")
+        return raw
+    except OSError as error:
+        raise ValueError("bootstrap physical source cannot be captured: " + name) from error
+    finally:
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
+
 def source_snapshot():
-    path = ROOT / "tools/build_hia_service_bootstrap.py"
-    raw = path.read_bytes()
+    builder_name = "tools/build_hia_service_bootstrap.py"
+    raw = _source_bytes(builder_name)
     tree = ast.parse(raw)
     node = next(n for n in tree.body if isinstance(n, ast.Assign)
                 and any(isinstance(t, ast.Name) and t.id == "INPUTS" for t in n.targets))
     names = ast.literal_eval(node.value)
-    if type(names) is not tuple or any(type(name) is not str for name in names):
+    if (type(names) is not tuple or any(type(name) is not str for name in names)
+            or len(names) != len(set(names))):
         raise ValueError("bootstrap INPUTS must be its explicit literal source tuple")
     result = {}
     for name in names:
-        if Path(name).is_absolute() or ".." in Path(name).parts:
-            raise ValueError("bootstrap input leaves its source root")
-        item = (ROOT / name).read_bytes()
+        item = _source_bytes(name)
         result[name] = bytes_pin(item)
-    if result["tools/build_hia_service_bootstrap.py"] != bytes_pin(raw):
+    if result[builder_name] != bytes_pin(raw):
         raise ValueError("builder changed while reading its source closure")
-    exact_reread(path, raw)
+    if _source_bytes(builder_name) != raw:
+        raise ValueError("builder changed after reading its source closure")
     return result
 def assert_snapshot(before):
     if not same(source_snapshot(), before):
