@@ -87,7 +87,7 @@ def managed_ledger(o:mutbuf) -> u64:
 def execution_source(entry):
     C=dict(execution.C);C.update(COMMON);C.update(managed.MAGICS)
     C.update(magics(MAGIC="HIABEXQ3",REPLY="HIABER03",CONTEXT="HIABEXC3",REPORT_INPUT="HIABRP03",
-      IO_INPUT="HIABIQ03",IO_REPLY="HIABIO03",IO_CONTEXT="HIABIC03"))
+      IO_INPUT="HIABIQ03",IO_REPLY="HIABIO03",IO_CONTEXT="HIABIC03",DECISION_INPUT="HIABDO03",DECISION_REPLY="HIABDRP3"))
     C.update(D_QUEUE=1168,D_UNKNOWN=1176,D_VOP=1184,R_PENDING=1192,R_MODE=1200)
     parts={}
     for oldentry in ("execute_owner","publish_owner"):
@@ -97,6 +97,12 @@ def execution_source(entry):
     text="\n\n".join(parts.values())+"\n"
     text=text.replace("def execute_owner(","def execute_managed(").replace("def publish_owner(","def publish_managed(")
     text=text.replace("length(w)<16384","length(w)<49152")
+    # Only the checked private bridge paths are converted for rank JSON.
+    # The public BG retains the original real PosixPath objects and identity.
+    C.update(D_PATH_INDEX=1208)
+    text=replace(text,"        if index==4:\n            return lookup(o,17,INPUTS,8,TEMP,0)",
+        "        if index==3:\n            return again(o,60)\n        if index==4:\n            return lookup(o,17,INPUTS,8,TEMP,0)")
+    text=replace(text,"    if phase==22:\n        request(o,JOB_INPUT,8)",BRIDGE_ARGUMENT+"    if phase==22:\n        request(o,JOB_INPUT,8)")
     text=replace(text,"            from_work(w,o,8576,IO_WORK,256)",
         "            from_work(w,o,8576,IO_WORK,256)\n            from_work(w,o,16384,REPORT_WORK,32768)")
     text=replace(text,"    to_work(o,w,IO_WORK,8576,256)",
@@ -111,8 +117,166 @@ def execution_source(entry):
         "        if managed_pending(o,IO_OUT,72,80,88,96)==0:\n            return bound_quarantine(o,w,2,1982)\n        if get(o,IO_WORK+32)!=0 or get(o,IO_WORK+40)!=0 or get(o,IO_WORK+64)!=0 or get(o,IO_WORK+88)!=0 or get(o,IO_WORK+96)!=0 or get(o,IO_WORK+104)!=0:\n            return bound_quarantine(o,w,2,1982)")
     text=replace(text,"    put(o,88,get(o,ERROR_FORMAT))",
         "    put(o,88,get(o,ERROR_FORMAT))\n    put(o,128,get(o,D_QUEUE))\n    put(o,136,get(o,VALUE_PENDING))\n    put(o,144,get(o,D_UNKNOWN))\n    put(o,152,1)")
-    text=managed.apply(text)+REPORT_HELPER
+    before="""        if get(o,DECISION_OUT+88)!=0:
+            return bound_quarantine(o,w,nested_kind(o,DECISION_OUT,88,112,120),106)
+        put(o,NESTED,0)
+        status=get(o,DECISION_OUT+8)
+        if get(o,DECISION_OUT+24)!=0:
+            within(o,SOURCE_RECORD,DECISION_OUT+24,24)
+        if get(o,DECISION_OUT+56)!=0:
+            within(o,DECISION_ERROR,DECISION_OUT+56,24)"""
+    after="""        if managed_decision(o)==0:
+            return bound_quarantine(o,w,2,106)
+        if get(o,DECISION_OUT+88)!=0:
+            return bound_quarantine(o,w,nested_kind(o,DECISION_OUT,88,112,120),106)
+        put(o,NESTED,0)
+        status=get(o,DECISION_OUT+8)"""
+    text=replace(text,before,after)
+    before="""        if get(o,DECISION_OUT+88)!=0:
+            return bound_quarantine(o,w,nested_kind(o,DECISION_OUT,88,112,120),1980)
+        if get(o,DECISION_OUT+24)!=0:
+            if get(o,SOURCE_RECORD)!=0:
+                return quarantine(o,w,1980)
+            within(o,SOURCE_RECORD,DECISION_OUT+24,24)
+        if get(o,DECISION_OUT+56)!=0:
+            if get(o,DECISION_ERROR)!=0:
+                return quarantine(o,w,1980)
+            within(o,DECISION_ERROR,DECISION_OUT+56,24)"""
+    after="""        if managed_decision(o)==0:
+            return bound_quarantine(o,w,2,1980)
+        if get(o,DECISION_OUT+88)!=0:
+            return bound_quarantine(o,w,nested_kind(o,DECISION_OUT,88,112,120),1980)"""
+    text=replace(text,before,after)
+    text=managed.apply(text)+REPORT_HELPER+DECISION_HELPER
     return managed.render(text,C,entry)
+
+BRIDGE_ARGUMENT = r'''
+    if phase==60:
+        request(o,VALUE_INPUT,4)
+        return values(o,w,61,128)
+    if phase==61:
+        if take_value(o,TEMP)!=0:
+            return fail(o,value_failure(o),61)
+        put(o,D_PATH_INDEX,0)
+        return again(o,62)
+    if phase==62:
+        if get(o,D_PATH_INDEX)==2:
+            return again(o,17)
+        request(o,VALUE_INPUT,2)
+        put(o,RQ+104,4)
+        if get(o,D_PATH_INDEX)==0:
+            put(o,RQ+128,133532167858530)
+            put(o,RQ+96,6)
+            return values(o,w,63,134)
+        put(o,RQ+128,7310010030095955298)
+        put(o,RQ+136,500102161763)
+        put(o,RQ+96,13)
+        return values(o,w,63,141)
+    if phase==63:
+        if take_value(o,KEY)!=0:
+            return fail(o,value_failure(o),63)
+        request(o,VALUE_INPUT,9)
+        from_work(w,o,384,RQ+24,24)
+        within(o,RQ+48,KEY,24)
+        return values(o,w,64,128)
+    if phase==64:
+        if take_value(o,TEMP2)!=0:
+            return fail(o,value_failure(o),64)
+        request(o,VALUE_INPUT,26)
+        within(o,RQ+24,TEMP2,24)
+        return values(o,w,65,128)
+    if phase==65:
+        if valid(o,RP,VALUE_REPLY)==0 or get(o,RP+8)!=0:
+            return fail(o,value_failure(o),65)
+        # These are three actual strong children of a native object. Record
+        # all three before inspecting its private Path layout.
+        within(o,TEMP3,RP+8224,24)
+        within(o,CMP_VALUE,RP+8248,24)
+        within(o,CANDIDATE_TEMP,RP+8272,24)
+        if get(o,RP+16)!=8 or get(o,RP+8200)!=14:
+            return fail(o,7,65)
+        if get(o,TEMP3)==0 or get(o,CMP_VALUE)==0 or get(o,CANDIDATE_TEMP)==0:
+            return fail(o,7,65)
+        return drop_value(o,w,66,TEMP2)
+    if phase==66:
+        if cleared(o,TEMP2)==0:
+            return quarantine(o,w,66)
+        return drop_value(o,w,75,TEMP3)
+    if phase==75:
+        if cleared(o,TEMP3)==0:
+            return quarantine(o,w,75)
+        request(o,VALUE_INPUT,7)
+        within(o,RQ+24,CMP_VALUE,24)
+        return values(o,w,67,128)
+    if phase==67:
+        # The checked constructor's PosixPath factory owns exactly one
+        # already-resolved path string. Do not resolve it again at rank time.
+        if valid(o,RP,VALUE_REPLY)==0 or get(o,RP+8)!=0 or get(o,RP+16)!=5 or get(o,RP+48)!=1:
+            return fail(o,7,67)
+        # Indexing takes a real integer Value, not a wire offset.
+        request(o,VALUE_INPUT,2)
+        put(o,RQ+104,2)
+        put(o,RQ+96,1)
+        store(o,RQ+128,48)
+        return values(o,w,76,129)
+    if phase==76:
+        if take_value(o,TEMP3)!=0:
+            return fail(o,value_failure(o),76)
+        request(o,VALUE_INPUT,12)
+        within(o,RQ+24,CMP_VALUE,24)
+        within(o,RQ+48,TEMP3,24)
+        return values(o,w,68,128)
+    if phase==68:
+        if take_value(o,TEMP2)!=0:
+            return fail(o,value_failure(o),68)
+        if get(o,RP+16)!=4:
+            return fail(o,7,68)
+        request(o,VALUE_INPUT,10)
+        within(o,RQ+24,TEMP,24)
+        within(o,RQ+48,KEY,24)
+        within(o,RQ+72,TEMP2,24)
+        return values(o,w,69,128)
+    if phase==69:
+        if valid(o,RP,VALUE_REPLY)==0 or get(o,RP+8)!=0:
+            return fail(o,value_failure(o),69)
+        return drop_value(o,w,70,KEY)
+    if phase==70:
+        if cleared(o,KEY)==0:
+            return quarantine(o,w,70)
+        return drop_value(o,w,71,TEMP2)
+    if phase==71:
+        if cleared(o,TEMP2)==0:
+            return quarantine(o,w,71)
+        return drop_value(o,w,72,TEMP3)
+    if phase==72:
+        if cleared(o,TEMP3)==0:
+            return quarantine(o,w,72)
+        return drop_value(o,w,73,CMP_VALUE)
+    if phase==73:
+        if cleared(o,CMP_VALUE)==0:
+            return quarantine(o,w,73)
+        return drop_value(o,w,74,CANDIDATE_TEMP)
+    if phase==74:
+        if cleared(o,CANDIDATE_TEMP)==0:
+            return quarantine(o,w,74)
+        put(o,D_PATH_INDEX,get(o,D_PATH_INDEX)+1)
+        return again(o,62)
+'''
+
+DECISION_HELPER=r"""
+def managed_decision(o:mutbuf) -> u64:
+    if get(o,DECISION_OUT+24)!=0:
+        if get(o,SOURCE_RECORD)!=0:
+            put(o,D_UNKNOWN,1)
+            return 0
+        within(o,SOURCE_RECORD,DECISION_OUT+24,24)
+    if get(o,DECISION_OUT+56)!=0:
+        if get(o,DECISION_ERROR)!=0:
+            put(o,D_UNKNOWN,1)
+            return 0
+        within(o,DECISION_ERROR,DECISION_OUT+56,24)
+    return managed_pending(o,DECISION_OUT,192,200,208,216)
+"""
 
 def main():
     for name,source in [("account_managed",account_source()),("execution_managed",execution_source("execute_managed")),

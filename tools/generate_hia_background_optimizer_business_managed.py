@@ -22,7 +22,8 @@ C.update({k:int.from_bytes(v.encode(),"little")for k,v in dict(
  REPORT_INPUT="HIABRP03",REPORT_REPLY="HIABRR02",REPORT_CONTEXT="HIABRC02",REPORT_RETRY="HIABRP05").items()})
 C.update(D_QUEUE=1200,D_UNKNOWN=1208,D_VOP=1216,MW_STATUS=1224,
  MW_PAIR=1232,MW_RETURN=1240,MW_PENDING_NEXT=1248,MW_PAIR_DONE=1256,MW_CLOSING=1264,
- MW_GLOBAL_PENDING=1272,MW_REPORT_PENDING=1280,MW_REPORT_MODE=1288,MW_BG=4864,MW_EDGE=4888,MW_PIN=4912)
+ MW_GLOBAL_PENDING=1272,MW_REPORT_PENDING=1280,MW_REPORT_MODE=1288,MW_ROOT_CHECKED=1296,
+ MW_BG=4864,MW_EDGE=4888,MW_PIN=4912,MW_WORK_ROOT=4936,MW_ROOT_ZERO=4960)
 replace=managed.replace
 replace_def=managed.replace_def
 
@@ -76,8 +77,19 @@ def source_template():
         "    if phase==315:\n        if get(o,MW_BG)!=0:\n            request(o,D_PRIVATE,77)\n            within(o,RQ+24,MW_BG,24)\n            within(o,RQ+48,FAIL_COPY,24)\n            return values(o,w,5004,128)\n        return again(o,317)\n    if phase==317:\n        request(o,QUEUE_INPUT,10)")
     text=replace(text,"        if get(o,POST_EXIT)!=0:\n            put(w,464,0)",
         "        if get(o,MW_PENDING_NEXT)!=0:\n            next=get(o,MW_PENDING_NEXT)\n            put(o,MW_PENDING_NEXT,0)\n            return again(o,next)\n        if get(o,MW_PAIR_DONE)==0:\n            put(o,MW_PAIR,0)\n            put(o,MW_RETURN,4060)\n            return again(o,5010)\n        if get(o,POST_EXIT)!=0:\n            put(w,464,0)")
+    # Check the work batch only after real settlement and local cleanup.
+    # Enqueue and the last settlement use the same queue transaction, so a
+    # concurrent submit either reuses the current root or installs a new one.
     text=replace(text,"def terminal(o:mutbuf,w:mutbuf,status:u64) -> u32:\n    zero(o,0,128)",
-        "def terminal(o:mutbuf,w:mutbuf,status:u64) -> u32:\n    if get(w,464)==0 and get(o,MW_BG)!=0:\n        put(o,MW_STATUS,status)\n        return drop_value(o,w,5012,MW_BG)\n    zero(o,0,128)")
+        "def terminal(o:mutbuf,w:mutbuf,status:u64) -> u32:\n"
+        "    if get(w,464)==0 and get(o,MW_BG)!=0 and get(o,MW_ROOT_CHECKED)==0:\n"
+        "        if get(o,LOCK)!=0:\n            return quarantine(o,w,5020)\n"
+        "        put(o,MW_STATUS,status)\n        request(o,QUEUE_INPUT,10)\n        return queue_owner(o,w,5020)\n"
+        "    if get(w,464)==0 and get(o,MW_WORK_ROOT)!=0:\n"
+        "        put(o,MW_STATUS,status)\n        return drop_value(o,w,5014,MW_WORK_ROOT)\n"
+        "    if get(w,464)==0 and get(o,MW_BG)!=0:\n"
+        "        put(o,MW_STATUS,status)\n        return drop_value(o,w,5012,MW_BG)\n"
+        "    zero(o,0,128)")
     text=replace(text,"    put(o,24,get(o,DETAIL))\n    if get(w,464)==0:",
         "    put(o,24,get(o,DETAIL))\n    put(o,32,get(o,D_QUEUE))\n    put(o,40,get(o,VALUE_PENDING))\n    put(o,48,get(o,D_UNKNOWN))\n    put(o,56,1)\n    put(o,64,get(o,MW_GLOBAL_PENDING))\n    if get(w,464)==0:")
     # Report continuation has a fixed third policy, preserving the original budget.
@@ -190,6 +202,42 @@ def managed_step(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
             return again(o,4060)
         return again(o,5013)
     if phase==5013:
+        return terminal(o,w,get(o,MW_STATUS))
+    if phase==5014:
+        if cleared(o,MW_WORK_ROOT)==0:
+            return quarantine(o,w,5014)
+        if get(o,VALUE_PENDING)!=0:
+            put(o,MW_PENDING_NEXT,5013)
+            return again(o,4060)
+        return again(o,5013)
+    if phase==5020:
+        if queue_valid(o)==0 or get(o,RP+56)!=0 or get(o,RP+64)!=0:
+            return quarantine(o,w,5020)
+        put(o,LOCK,1)
+        if get(o,RP+32)!=0:
+            return again(o,5023)
+        if get(o,RP+40)!=0 or get(o,RP+48)!=MAX or get(o,MW_WORK_ROOT)!=0:
+            return quarantine(o,w,5020)
+        return memory(o,5021,0,get(w,320)+888,3,MW_WORK_ROOT,24)
+    if phase==5021:
+        if get(o,MW_WORK_ROOT)==0:
+            if get(o,MW_WORK_ROOT+8)!=0 or get(o,MW_WORK_ROOT+16)!=0:
+                return quarantine(o,w,5021)
+            return again(o,5023)
+        if get(o,MW_WORK_ROOT+8)==0 and get(o,MW_WORK_ROOT+16)==0:
+            return quarantine(o,w,5021)
+        zero(o,MW_ROOT_ZERO,24)
+        return memory(o,5022,3,MW_ROOT_ZERO,0,get(w,320)+888,24)
+    if phase==5022:
+        return again(o,5023)
+    if phase==5023:
+        request(o,QUEUE_INPUT,11)
+        return queue_owner(o,w,5024)
+    if phase==5024:
+        if queue_valid(o)==0:
+            return quarantine(o,w,5024)
+        put(o,LOCK,0)
+        put(o,MW_ROOT_CHECKED,1)
         return terminal(o,w,get(o,MW_STATUS))
     return quarantine(o,w,phase)
 '''

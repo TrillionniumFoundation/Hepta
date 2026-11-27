@@ -313,7 +313,10 @@ def drop_values(o:mutbuf,w:mutbuf,phase:u64) -> u32:
         if get(w,152)!=0:
             request(o,VPRIVATE,93)
             return values(o,w,411)
-        put(w,56,get(w,56)&(MAX-66))
+        # All child owners and every local Value capability were actually
+        # consumed above. Managed-edge registration is now only a completed
+        # binding marker; retain it until this point, then retire it too.
+        put(w,56,get(w,56)&(MAX-1090))
         if get(w,56)!=0:
             return finish(o,w,11,410)
         put(w,64,4)

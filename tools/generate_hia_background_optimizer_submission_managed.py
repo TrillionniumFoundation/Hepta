@@ -70,6 +70,16 @@ def source_template():
                  'if get(w,at)!=0 or get(w,at+24)!=0 or get(w,at+48)!=0 or get(w,at+72)!=0:')
     text=replace(text,'        to_work(o,w,FBG,at+48,24)\n        zero(o,JOB,24)',
                  '        to_work(o,w,FBG,at+48,24)\n        to_work(o,w,SM_EDGE,at+72,24)\n        zero(o,SM_EDGE,24)\n        put(o,SM_EDGE_ADOPT,0)\n        put(o,SM_META_ADOPT,0)\n        zero(o,JOB,24)')
+    # The accepted work batch is a native external owner. Transfer the
+    # already-retained BG cap while the same queue transaction is held.
+    # The final settled worker takes this exact token under that same lock.
+    text=replace(text,'        to_work(o,w,JOB,at,24)',
+        '        if get(w,888)==0:\n'
+        '            if get(w,896)!=0 or get(w,904)!=0 or get(o,SM_BG)==0:\n'
+        '                return quarantine(o,w,602)\n'
+        '            to_work(o,w,SM_BG,888,24)\n'
+        '            zero(o,SM_BG,24)\n'
+        '        to_work(o,w,JOB,at,24)')
     text=replace(text,'(at==FUSER and get(o,ERROR)==0 and get(o,OP)==0)','at==FUSER')
     text=replace(text,'        if at==FUSER or at==FBG:','        if at==FBG:')
     text=replace(text,'        return again(o,790)\n    if phase==761:',
