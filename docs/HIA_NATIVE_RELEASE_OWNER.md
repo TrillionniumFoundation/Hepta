@@ -7,7 +7,7 @@ bounded state offsets into buffer addresses, and invokes those HIA images.
 
 The owner admits five sealed capabilities, audits every admitted source,
 rebuilds the native seed, checks the complete cold replay and source contract,
-compiles ordinary members, executes the four special-stage DAGs, audits the
+compiles ordinary members, executes the eight registered special-stage DAGs, audits the
 complete source set again, and invokes the native release finalizer. Each
 subprocess is a sealed ELF executed by `hia-subprocess`; its bounded captures,
 wait result, durable receipt and reaping are checked before use.
@@ -104,8 +104,11 @@ is not a published release.
 
 ## Special-stage program
 
-The four pinned `HIASTD01` resources run in Safe proof, constructor, Core,
-additional-stage order. Each resource begins with its node count and exact
+The eight pinned `HIASTD01` resources run in Safe proof, constructor, Core,
+additional-stage, controller, runtime, Future, and GenerationLease order.
+Their shared source table describes fourteen stages and eighty-four published
+outputs. The GenerationLease stage consumes the actual stage-13 Value product.
+Each resource begins with its node count and exact
 publication count. Nodes contain operation, result handle, argument count,
 payload length, arguments and payload. Results may refer only to existing
 handles. Effect operations 7 through 10 use result handle zero.

@@ -98,8 +98,29 @@ def registration(paths,resources,published):
     return rows
 
 
+def register_stage(paths,resources,published,*,root=ROOT):
+    """Retain the other stages and derive the complete shared-table header."""
+    from tools.hia_native_release_dependencies import read_source_table
+    table=Path(root)/BOOT/'release_stage_sources.tsv'
+    lines=table.read_text('ascii').splitlines()
+    if not lines or len(lines[0].split('\t'))!=3 or lines[0].split('\t')[0]!='stage':
+        raise ValueError('missing native release source table header')
+    records=[line for line in lines[1:] if int(line.split('\t')[1])!=14]
+    before=[line for line in records if int(line.split('\t')[1])<14]
+    after=[line for line in records if int(line.split('\t')[1])>14]
+    records=before+registration(paths,resources,published)+after
+    stages=max(int(line.split('\t')[1]) for line in records)
+    outputs=sum(line.startswith('output\t') for line in records)
+    raw=('\n'.join([f'stage\t{stages}\t{outputs}',*records])+'\n').encode('ascii')
+    read_source_table(raw)
+    if len(raw)>262144:
+        raise ValueError('native release source table exceeds its retained byte budget')
+    table.write_bytes(raw)
+
+
 def main():
     r,paths,resources=build_recipe();(ROOT/RECIPE).write_bytes(r.binary())
+    register_stage(paths,resources,r.published)
     print(json.dumps(dict(recipe=RECIPE,bytes=len(r.binary()),nodes=len(r.nodes),
                           handles=r.next_handle-1,source_count=len(paths),
                           registration=registration(paths,resources,r.published)),indent=2))
