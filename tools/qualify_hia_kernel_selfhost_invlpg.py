@@ -695,6 +695,49 @@ def text_bytes(output, label, data):
     subprocess.run(["objcopy", "-O", "binary", "--only-section=.text", str(obj), str(raw)], check=True)
     return raw.read_bytes()
 
+
+def instruction_occurrences(output, label, machine, oracle):
+    """Count complete independently decoded instructions, never operand bytes."""
+    import re
+    if (type(machine) is not bytes or not machine or type(oracle) is not bytes
+            or not 1 <= len(oracle) <= 15):
+        raise ValueError("instruction oracle requires exact nonempty machine bytes")
+    raw_path = output / (label + ".instruction-oracle.bin")
+    raw_path.write_bytes(machine)
+    command = ["objdump", "-D", "-b", "binary", "-m", "i386:x86-64",
+               "--insn-width=15", str(raw_path)]
+    result = subprocess.run(command, capture_output=True, timeout=30, check=True)
+    (output / (label + ".instruction-oracle.stdout")).write_bytes(result.stdout)
+    (output / (label + ".instruction-oracle.stderr")).write_bytes(result.stderr)
+    if result.stderr:
+        raise AssertionError("independent instruction decoder emitted diagnostics")
+    rows = []
+    cursor = 0
+    expression = re.compile(r"^\s*([0-9a-f]+):\s*((?:[0-9a-f]{2}\s+)+)(\S.*)$")
+    for line in result.stdout.decode("ascii").splitlines():
+        found = expression.fullmatch(line)
+        if found is None:
+            continue
+        offset = int(found[1], 16)
+        raw = bytes.fromhex(found[2])
+        mnemonic = found[3].strip()
+        if (offset != cursor or not 1 <= len(raw) <= 15
+                or machine[offset:offset + len(raw)] != raw
+                or mnemonic.startswith(("(bad)", ".byte"))):
+            raise AssertionError("independent instruction coverage is inexact")
+        rows.append({"offset": offset, "bytes_hex": raw.hex(), "instruction": mnemonic})
+        cursor += len(raw)
+    if cursor != len(machine) or raw_path.read_bytes() != machine:
+        raise AssertionError("independent decoder did not consume the exact full text")
+    positions = [row["offset"] for row in rows if bytes.fromhex(row["bytes_hex"]) == oracle]
+    (output / (label + ".instruction-oracle.json")).write_text(json.dumps({
+        "schema": "hepta.hia.kernel-independent-instruction-oracle.v1",
+        "machine_bytes": len(machine), "machine_sha256": digest(machine),
+        "oracle_hex": oracle.hex(), "instruction_offsets": positions,
+        "complete_text_coverage": True, "instructions": rows,
+    }, sort_keys=True) + "\n")
+    return positions
+
 def capacity_subject(blocks, instructions):
     """Exact-sized, independently executable scalar CFG. Every block is live."""
     sizes = [min(256, blocks - i) for i in range(0, blocks, 256)]
@@ -1404,8 +1447,9 @@ def run(output):
         oracle_object = output / (label + "-oracle.o")
         subprocess.run(["as", "--64", "-o", str(oracle_object), str(asm)], check=True)
         irq_oracle = text_bytes(output, label + "-oracle-copy", oracle_object.read_bytes())
-        if irq_oracle != bytes.fromhex(hexcode) or obj_text.count(irq_oracle) != 1:
-            raise AssertionError(label + " GNU as oracle mismatch")
+        locations = instruction_occurrences(output, label, obj_text, irq_oracle)
+        if irq_oracle != bytes.fromhex(hexcode) or len(locations) != 1:
+            raise AssertionError(label + " GNU as instruction oracle mismatch")
         bad = {
             "no-effect": program(effect="", op=operation),
             "legacy": program(profile=LEGACY, effect="", op=operation),
