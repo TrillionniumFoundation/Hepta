@@ -228,6 +228,7 @@ SCALAR_REFERENCE_SDIST_FILES = (
     'tests/test_hia_cnf_native.py',
 )
 WORKER_REQUEST_SDIST_FILES = (
+    'tests/fixtures/hia_native_cold_control_object_preparation_v2.json',
     'tests/fixtures/hia_native_cold_control_object_preparation_v1.json',
     'tests/fixtures/hia_current_store_broad_cold_v1.json',
     'tests/fixtures/hia_native_cold_caller_integration_20261127.json',

@@ -78,11 +78,11 @@ def methods(raw):
 
 class NativeColdOriginalFixtureCustodyTests(unittest.TestCase):
     def test_original_terminal_controls_keep_all_assertions_and_method_bodies(self):
-        name = 'tests/fixtures/hia_native_cold_control_object_preparation_v1.json'
+        name = 'tests/fixtures/hia_native_cold_control_object_preparation_v2.json'
         raw = (ROOT / name).read_bytes()
-        self.assertEqual(preparation.pin(raw), {"bytes":2642,"sha256":"d6f979faeb6d218d63699698d8251ef63fd025faa838ad9913ffd99e4167f645"})
+        self.assertEqual(preparation.pin(raw), {"bytes":2973,"sha256":"05c69cbb83514fd7451bee797d8b1e2b55da2da50d0af2ff6bdee0266f0d6838"})
         fixed = json.loads(raw)
-        versions = {"tests/test_hia_current_caller_source_history.py":{"before":{"bytes":9414,"sha256":"74219a669420ed0e72f3c88b3888a5a94318c2a0daca7e9c85ce08b08225f1cb"},"after":{"bytes":9610,"sha256":"6582781686612aeb68ed68464540feb429b2b9442a1f3ef26256d373e6660f49"},"tests":7},"tests/test_hia_current_terminal_admission_history.py":{"before":{"bytes":5872,"sha256":"75e1c1bdbc44962dd6b6cab309c34dc89042b7b495da618541a46ce7bedc4231"},"after":{"bytes":6210,"sha256":"0756aee47159e209af58873127af84cd6d542554b932c32b5602972d673c3941"},"tests":7}}
+        versions = {"tests/test_hia_current_caller_source_history.py":{"before":{"bytes":9414,"sha256":"74219a669420ed0e72f3c88b3888a5a94318c2a0daca7e9c85ce08b08225f1cb"},"after":{"bytes":9626,"sha256":"dd18087e95d00f30efdaca32f1201bd7c6e95fc16c1cb2298c55368f9160129b"},"tests":7},"tests/test_hia_current_terminal_admission_history.py":{"before":{"bytes":5872,"sha256":"75e1c1bdbc44962dd6b6cab309c34dc89042b7b495da618541a46ce7bedc4231"},"after":{"bytes":6210,"sha256":"0756aee47159e209af58873127af84cd6d542554b932c32b5602972d673c3941"},"tests":7}}
         self.assertEqual(set(fixed['files']), set(versions))
         class NormalizeNewCaptureCollections(ast.NodeTransformer):
             def __init__(self):
