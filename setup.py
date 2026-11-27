@@ -106,4 +106,5 @@ class ColdSourceDistribution(sdist):
 
 setup(cmdclass={'build_py':AgentResourceBuild, 'build_ext':MechanicalBuildExt, 'sdist':ColdSourceDistribution},
       ext_modules=extensions(),
-      package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py']})
+      package_data={'hepta': ['native/slot_mechanical.c', 'native/slot_mechanical_build.py',
+                             'hia_bounded_read_abi.json']})
