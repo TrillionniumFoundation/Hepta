@@ -1,0 +1,79 @@
+{
+  "schema": "hia.http-b3-independent-public-regression.v1",
+  "source_head": "66f2cdec48442b7e9f8bed278b54906a041916f6",
+  "source_tree": "c6aa9aff38d61810e63ad16d9e1754ae816c4597",
+  "steps": [
+    {
+      "name": "native-history",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_request_history",
+        "--image",
+        "/tmp/hia-http-b3-public-20261127-2807-v2/native/hia-mcp-request-audit",
+        "--output",
+        "/tmp/hia-http-b3-public-20261127-2807-v3/native-history"
+      ],
+      "timeout_seconds": 240,
+      "returncode": 0,
+      "seconds": 0.7157061530160718,
+      "stdout": {
+        "bytes": 1969,
+        "sha256": "54214bea825cb832dac378afe755b33cd920b528775769212ecd75baa0a2f91e"
+      },
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "qualification": {
+        "path": "/tmp/hia-http-b3-public-20261127-2807-v3/native-history/qualification.json",
+        "sha256": "e40be4caf8420483919031f04f45b5f6600e608aca0ae15ff138b627fbf5e186"
+      },
+      "complete_output_archive": {
+        "path": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v3/native-history.tar.gz",
+        "bytes": 65468,
+        "sha256": "655a3c8ecc8ac8ea1a9750ba504745d9257349c59859125da34384f5642b5928"
+      }
+    },
+    {
+      "name": "history-public",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "tools.qualify_hia_mcp_request_history_public",
+        "--bundle",
+        "/tmp/hia-http-b3-public-20261127-2807-v2/public/controller",
+        "--cases",
+        "/tmp/hia-http-b3-public-20261127-2807-v3/history-reference/oracle-cases.jsonl",
+        "--oracle",
+        "/tmp/hia-http-b3-public-20261127-2807-v3/history-reference/original-observations.json",
+        "--output",
+        "/tmp/hia-http-b3-public-20261127-2807-v3/history-public"
+      ],
+      "timeout_seconds": 600,
+      "returncode": 1,
+      "seconds": 48.205220267002005,
+      "stdout": {
+        "bytes": 3348,
+        "sha256": "a2966f0ab877c309f55345d91fd05295cb65777ca2e1b858d0e1221099b1a86c"
+      },
+      "stderr": {
+        "bytes": 1494,
+        "sha256": "d166d20308d85050095d6ab8b7dc3d1971fa3d2c9fc4dfd661db09b95fe4e73a"
+      },
+      "qualification": {
+        "path": "/tmp/hia-http-b3-public-20261127-2807-v3/history-public/qualification.json",
+        "sha256": "b8ae0d5d1491e039d74576574a72bb5ee1fb344f372ca30e0f2c9e196681dfac"
+      },
+      "complete_output_archive": {
+        "path": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v3/history-public.tar.gz",
+        "bytes": 161628,
+        "sha256": "427ead5fdbbeb92d7cea31c98a8379253da078e5ca123b0d5f94e81565244ff8"
+      }
+    }
+  ],
+  "passed": false,
+  "whole_runtime_qualified": false,
+  "public_fixture_filesystem": "ROG /tmp tmpfs; original product deadline retained",
+  "durable_output": "/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-http-b3-compat-20261127-2807/public-regression-v3"
+}
