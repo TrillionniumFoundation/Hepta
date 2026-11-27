@@ -1,9 +1,7 @@
 from pathlib import Path
 import os,sys,struct,json,ctypes as C,time,hashlib,threading,runpy,argparse
-B=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z');V=B/'native-multiversion-source';sys.path.insert(0,str(V))
-h=runpy.run_path(str(B/'qualify-runtime-handles-smoke-v2.py'))
-d=runpy.run_path(str(B/'qualify-runtime-decimal-view-v2.py'))
-inner=h['inner'];scalar_program=h['scalar_program'];rawdoc=h['rawdoc'];sealed=h['sealed'];NONE=h['NONE'];get=h['get'];Token=d['Token']
+ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
+from tools.hia_multiversion_strict_qualification_support import inner,scalar_program,rawdoc,sealed,NONE,get,Token
 sha=lambda b:hashlib.sha256(b).hexdigest()
 def control(op,data=b''):
  q=bytearray(128);struct.pack_into('<8sQ',q,0,b'HIAMVBC1',op);struct.pack_into('<Q',q,72,len(data));return bytes(q)+data
@@ -36,8 +34,8 @@ class Provider:
   frame=bytearray(control(1,bytes(raw)));frame[:8]=b'HIAMVBC2'
   return self.call(bytes(frame))['cap']
 def main():
- ap=argparse.ArgumentParser();ap.add_argument('--component',type=Path,required=True);ap.add_argument('--output',type=Path,required=True);a=ap.parse_args();D=a.output;D.mkdir(exist_ok=False);parent=D/'native';parent.mkdir(mode=0o700)
- paths=[Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125/normalizer-84619bd.bin'),B/'native-primitive-proof-absolute-v2/hia-native-scalar-proof',Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125/production-p3/products/hia-build-object-539ce9.bin')]
+ ap=argparse.ArgumentParser();ap.add_argument('--component',type=Path,required=True);ap.add_argument('--output',type=Path,required=True);[ap.add_argument('--'+name,type=Path,required=True) for name in ('normalizer','proof','builder','future')];a=ap.parse_args();D=a.output;D.mkdir(exist_ok=False);parent=D/'native';parent.mkdir(mode=0o700)
+ paths=[a.normalizer,a.proof,a.builder]
  files=[(sealed(p.read_bytes()),p.read_bytes()) for p in paths];rows=[];checks=[];r=Provider(a.component,rows);r.call(control(0));before=set(os.listdir('/proc/self/fd'))
  def mark(name,**kw):
   checks.append(dict(name=name,**kw));(D/'calls.json').write_text(json.dumps(rows,indent=2)+'\n');(D/'checks.json').write_text(json.dumps(checks,indent=2)+'\n');print('PROVIDER_GATE',name,flush=True)
@@ -45,7 +43,7 @@ def main():
  snap=r.q(1,cap);z=snap['payload'];assert z[:8]==b'HIAMVBS1' and get(z,16)==6 and z[256:]==b'00';assert get(z,24)==get(z,32)==1;mark('actual-lock-consistent-snapshot')
  clone=r.q(3,cap)['cap'];assert clone!=cap and clone[0];r.q(4,cap);r.q(1,cap,want=3)
  assert C.string_at(snap['pointer'],len(z))==z;mark('independent-strong-reference-and-stale-cap')
- future=C.CDLL(str(B/'native-multiversion-future-v2/future-component.so'));token=Token(future)
+ future=C.CDLL(str(a.future));token=Token(future)
  pub=r.q(2,clone,token=token.address,gen=b'0',epoch=b'0',raw=rawdoc(scalar_program('bit.xor')))
  assert get(pub['header'],64)==1 and get(token.w,64)==2
  doc=json.loads(pub['payload']);assert doc['generation']['generation']==1 and doc['selection_epoch']==1,doc

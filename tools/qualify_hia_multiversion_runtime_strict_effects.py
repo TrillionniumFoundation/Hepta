@@ -1,7 +1,7 @@
 """Actual original runtime versus fixed HIA effects; no supplied effect facts."""
 from pathlib import Path
 import sys,os,json,struct,fcntl,ctypes as C,mmap,time,hashlib,threading,concurrent.futures,argparse,copy
-B=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z');V=B/'native-multiversion-source';sys.path.insert(0,str(V))
+ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from tools.qualify_hia_multiversion_prepare_process import sealed,NONE
 from tools.qualify_hia_multiversion_runtime_generation import scalar_program,rawdoc
 from hepta.hia_multiversion import ScalarMultiversionRuntime,MultiversionRejected
@@ -136,9 +136,9 @@ def differences(a,b,path=''):
  return [] if a==b else [(path,'value',a,b)]
 
 def main():
- p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--component',type=Path,required=True);a=p.parse_args();d=a.output;d.mkdir(exist_ok=False)
- paths=[Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125/normalizer-84619bd.bin'),B/'native-primitive-proof-absolute-v2/hia-native-scalar-proof',Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125/production-p3/products/hia-build-object-539ce9.bin')]
- files=[(sealed(p.read_bytes()),p.read_bytes()) for p in paths];lib=C.CDLL(str(a.component));identity=C.CDLL(str(B/'native-multiversion-runtime-identity-v5/identity-component.so'))
+ p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--component',type=Path,required=True);[p.add_argument('--'+name,type=Path,required=True) for name in ('normalizer','proof','builder','identity')];a=p.parse_args();d=a.output;d.mkdir(exist_ok=False)
+ paths=[a.normalizer,a.proof,a.builder]
+ files=[(sealed(p.read_bytes()),p.read_bytes()) for p in paths];lib=C.CDLL(str(a.component));identity=C.CDLL(str(a.identity))
  pnative=d/'native';poriginal=d/'original';pnative.mkdir(mode=0o700);poriginal.mkdir(mode=0o700)
  rows=[];views=[];full_views=[];native=Runtime(lib,identity,files,pnative,rows);base=scalar_program(None);equiv=scalar_program('bit.xor');orig=ScalarMultiversionRuntime(base,poriginal)
  def compare(name):

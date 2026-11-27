@@ -1,7 +1,9 @@
 from pathlib import Path
-import sys,os,ctypes as C,struct,json,hashlib,subprocess,runpy,time,fcntl
-B=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z');V=B/'native-multiversion-source';D=B/'native-multiversion-prepare-admission-v1';sys.path.insert(0,str(V))
-q=runpy.run_path(str(B/'qualify-runtime-prepare-admission-strict-v1.py'));Intake=q['Intake'];get=q['get'];sealed=q['sealed'];sha=q['sha'];strict=q['packet'];legacy=q['ns']['packet']
+import sys,os,ctypes as C,struct,json,hashlib,subprocess,time,fcntl,argparse
+ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
+ap=argparse.ArgumentParser();ap.add_argument('--directory',type=Path,required=True);ap.add_argument('--normalizer',type=Path,required=True);args=ap.parse_args();D=args.directory
+from tools import qualify_hia_multiversion_prepare_admission_strict as _client
+q=vars(_client);Intake=q['Intake'];get=q['get'];sealed=q['sealed'];sha=q['sha'];strict=q['packet'];legacy=q['ns']['packet']
 from tools import generate_hia_multiversion_prepare_admission_packer as p
 from tools.qualify_hia_multiversion_components import Image
 build=json.loads((D/'build.json').read_text());parts=[]
@@ -92,7 +94,7 @@ rows.append(dict(case='legacy-real-deadline',status=rc,detail=get(out,16),elapse
 rc,out,streams,elapsed=native.run(strict(raw,fd));assert rc==0 and elapsed>=450_000_000
 rows.append(dict(case='strict-original-verification-has-no-invented-deadline',status=rc,elapsed_ns=elapsed,reaped_pid=reaped(),fresh_canonical_sha256=sha(core),qa_fixture_only=True))
 os.close(fd)
-actual=Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125/normalizer-84619bd.bin').read_bytes()
+actual=args.normalizer.read_bytes()
 for label,body,mode,seal in [('unsealed',actual,0o500,0),('nonexec',actual,0o600,15),('bad-elf',b'bad',0o500,15),('empty',b'',0o500,15)]:
  fd=sealed(body,mode,seal)
  rc,out,streams,elapsed=native.run(strict(raw,fd));assert rc==7 and get(out,248)==2,(label,rc,get(out,248));os.fstat(fd);os.close(fd)

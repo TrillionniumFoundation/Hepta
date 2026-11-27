@@ -1,7 +1,9 @@
 from pathlib import Path
-import ctypes as C,mmap,struct,sys,json,hashlib,runpy
-B=Path("/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z");D=B/'native-multiversion-runtime-strict-admission-v1'
-h=runpy.run_path(str(B/'qualify-runtime-handles-smoke-v2.py'));rows=[]
+import ctypes as C,mmap,struct,sys,json,hashlib,argparse
+ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
+p=argparse.ArgumentParser();p.add_argument('--directory',type=Path,required=True);D=p.parse_args().directory
+from tools import hia_multiversion_strict_qualification_support as _client
+h=vars(_client);rows=[]
 base=bytearray(h['inner'](0,files=[(0,b'')]*3,parent=b'/tmp/no-private-guard-effects',raw=h['rawdoc'](h['scalar_program'](None))))
 base[:8]=b'HIAMVEX5';struct.pack_into('<Q',base,240,4300)
 cases=[]

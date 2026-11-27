@@ -51,7 +51,7 @@ ROLES=[
   },
   {
     "role": "gen_intake_prepare",
-    "path": "examples/hia_bootstrap/multiversion_prepare_intake.hepta"
+    "path": "examples/hia_bootstrap/multiversion_prepare_admission.hepta"
   },
   {
     "role": "gen_intake_process",
@@ -84,6 +84,10 @@ ROLES=[
   {
     "role": "gen_intake_abi",
     "path": "examples/hia_bootstrap/multiversion_abi.hepta"
+  },
+  {
+    "role": "gen_intake_raw",
+    "path": "examples/hia_bootstrap/background_optimizer_verify_raw.hepta"
   },
   {
     "role": "gen_proof_prepare",
@@ -277,7 +281,7 @@ def carrier_image(flats,out,public=True,capture=None):
         rows.append({'role':role['role'],'path':'examples/hia_bootstrap/'+name+'.hepta',
                      'flat_bytes':len(raw),'flat_sha256':sha(raw)})
         bodies.append(raw)
-    frame=struct.pack('<'+str(2+len(bodies))+'Q',int.from_bytes(b'HIAMVHK2','little'),
+    frame=struct.pack('<'+str(2+len(bodies))+'Q',int.from_bytes(b'HIAMVHK3','little'),
                       len(bodies),*map(len,bodies))+b''.join(bodies)
     obj=run_packer(flats['multiversion_runtime_handles_packer'],frame)
     image=run_packer(flats['multiversion_runtime_linker'],obj)

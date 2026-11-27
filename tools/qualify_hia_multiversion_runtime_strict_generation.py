@@ -1,18 +1,18 @@
 """Actual original raw admission versus the captured strict MV profile."""
 from pathlib import Path
 import os,sys,ctypes as C,struct,json,hashlib,time
-B=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z');V=B/'native-multiversion-source';sys.path.insert(0,str(V))
-source=(V/'tools/qualify_hia_multiversion_prepare_intake.py').read_text().replace('hia_mv_prepare_intake','hia_mv_prepare_admission')
-ns={'__name__':'qualified_client'};exec(compile(source,'<qualified-admission-client>','exec'),ns)
+ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
+from tools import qualify_hia_multiversion_prepare_admission_legacy as _client
+ns=vars(_client)
 OldIntake=ns['Intake'];get=ns['get'];sealed=ns['sealed'];sha=ns['sha'];verify_program=ns['verify_program'];HIAProgramRejected=ns['HIAProgramRejected'];MultiversionRejected=ns['MultiversionRejected'];REASONS=ns['REASONS'];basic=ns['basic'];abi_bytes=ns['abi_bytes']
 from tools.qualify_hia_multiversion_runtime_generation import Generation,request
 import mmap
 class Intake:
- def __init__(self,path):
+ def __init__(self,path,proof,builder):
   self.lib=C.CDLL(str(path));self.g=Generation(self.lib);self.w=self.g.w
   self.o=C.create_string_buffer(16793600)
-  t=Path('/home/qian-qi/.local/state/hia-native-final-custody-20261125')
-  self.dependencies=[(sealed(p.read_bytes()),p.read_bytes()) for p in (B/'native-primitive-proof-absolute-v2/hia-native-scalar-proof',t/'production-p3/products/hia-build-object-539ce9.bin')]
+  self.dependency_sources=[(p,p.read_bytes()) for p in (proof,builder)]
+  self.dependencies=[(sealed(raw),raw) for p,raw in self.dependency_sources]
  def run(self,req):
   assert req[:8]==b'HIAMVNQ2'
   raw=req[128:];digits=get(req,48);fd=get(req,16);total=bool(get(req,8))
@@ -35,6 +35,7 @@ class Intake:
   assert get(self.w,(500<<20)+2600)==1 and get(self.w,(500<<20)+2608)==digits
   return rc,out,streams,elapsed
  def close(self):
+  assert all(p.read_bytes()==raw for p,raw in self.dependency_sources)
   for fd,_ in self.dependencies:os.close(fd)
   del self.w
   self.g.close_memory()
@@ -44,8 +45,8 @@ def packet(raw,fd,total=False,digits=4300):
 MESSAGES={201:'E_HIA_LIMIT: program exceeds byte budget',202:'E_HIA_FORMAT: invalid/deep UTF-8 JSON',203:'E_HIA_LIMIT: program exceeds structural budget before JSON allocation',205:'E_HIA_VERSION_COLLISION: historical nominal v2 requires import_legacy_composite_v2; the primitive v2 namespace cannot infer a producer profile'}
 def main():
  import argparse
- p=argparse.ArgumentParser();p.add_argument('--directory',type=Path,required=True);p.add_argument('--normalizer',type=Path,required=True);a=p.parse_args();D=a.directory
- native=Intake(D/'runtime-generation.so');image=a.normalizer.read_bytes();fd=sealed(image);_,profile=ns['original_functions']();rows=[];cases={}
+ p=argparse.ArgumentParser();p.add_argument('--directory',type=Path,required=True);p.add_argument('--normalizer',type=Path,required=True);p.add_argument('--proof',type=Path,required=True);p.add_argument('--builder',type=Path,required=True);a=p.parse_args();D=a.directory
+ native=Intake(D/'runtime-generation.so',a.proof,a.builder);image=a.normalizer.read_bytes();fd=sealed(image);_,profile=ns['original_functions']();rows=[];cases={}
  def add(label,raw,total=False,digits=4300):
   if len(raw)>8388608:return  # The generation packet has the original private 8 MiB Core extent; the raw leaf separately covers +1.
   key=sha(raw),total,digits

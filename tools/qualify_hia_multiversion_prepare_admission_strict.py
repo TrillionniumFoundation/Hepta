@@ -1,9 +1,9 @@
 """Actual original raw admission versus the captured strict MV profile."""
 from pathlib import Path
 import os,sys,ctypes as C,struct,json,hashlib,time
-B=Path('/home/qian-qi/.local/state/hia-azi5-b843-qa/cleanup-audit-20261124T0745Z');V=B/'native-multiversion-source';sys.path.insert(0,str(V))
-source=(V/'tools/qualify_hia_multiversion_prepare_intake.py').read_text().replace('hia_mv_prepare_intake','hia_mv_prepare_admission')
-ns={'__name__':'qualified_client'};exec(compile(source,'<qualified-admission-client>','exec'),ns)
+ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
+from tools import qualify_hia_multiversion_prepare_admission_legacy as _client
+ns=vars(_client)
 Intake=ns['Intake'];get=ns['get'];sealed=ns['sealed'];sha=ns['sha'];verify_program=ns['verify_program'];HIAProgramRejected=ns['HIAProgramRejected'];MultiversionRejected=ns['MultiversionRejected'];REASONS=ns['REASONS'];basic=ns['basic'];abi_bytes=ns['abi_bytes']
 def packet(raw,fd,total=False,digits=4300):
  return struct.pack('<8s15Q',b'HIAMVNQ2',int(total),fd,0,0,len(raw),digits,*([0]*9))+raw
