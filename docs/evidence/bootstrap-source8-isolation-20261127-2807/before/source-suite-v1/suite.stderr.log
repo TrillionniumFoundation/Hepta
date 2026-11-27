@@ -1,0 +1,43 @@
+test_complete_protocol_graph_and_effect_set (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_complete_protocol_graph_and_effect_set) ... ok
+test_five_original_definitions_signatures_and_retained_prefix (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_five_original_definitions_signatures_and_retained_prefix) ... ok
+test_historical_service_inverse_refuses_changed_physical_input (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_historical_service_inverse_refuses_changed_physical_input) ... ok
+test_packaged_source_and_complete_original_caller_scope (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_packaged_source_and_complete_original_caller_scope) ... ok
+test_reviewed_scope_proof_matches_physical_captures_and_independent_reader (tests.test_hia_service_bootstrap_sources.ServiceBootstrapStaticSourceTests.test_reviewed_scope_proof_matches_physical_captures_and_independent_reader) ... ok
+test_01_generated_complete_graph_original_sources_and_actual_profile_limits (tests.test_hia_service_bootstrap_qualification.ServiceBootstrapQualificationSourceTests.test_01_generated_complete_graph_original_sources_and_actual_profile_limits) ... ok
+test_02_complete_prior_originals_and_all_derived_faults_through_VM (tests.test_hia_service_bootstrap_qualification.ServiceBootstrapQualificationSourceTests.test_02_complete_prior_originals_and_all_derived_faults_through_VM) ... ERROR
+test_03_complete_unselected_public_domain_and_lazy_empty_refusal (tests.test_hia_service_bootstrap_qualification.ServiceBootstrapQualificationSourceTests.test_03_complete_unselected_public_domain_and_lazy_empty_refusal) ... ERROR
+
+======================================================================
+ERROR: test_02_complete_prior_originals_and_all_derived_faults_through_VM (tests.test_hia_service_bootstrap_qualification.ServiceBootstrapQualificationSourceTests.test_02_complete_prior_originals_and_all_derived_faults_through_VM)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-closure-20261127-2807/src/tests/test_hia_service_bootstrap_qualification.py", line 90, in test_02_complete_prior_originals_and_all_derived_faults_through_VM
+    report=compare_candidate(self.authority,self.authority_pin,self.root/"complete-vm",lane="vm")
+  File "/home/qian-qi/hia-bootstrap-closure-20261127-2807/src/tools/qualify_hia_service_bootstrap_finite.py", line 332, in compare_candidate
+    record,report,candidate_captures=child(output,"candidate",lane,
+                                     ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+        Path(authority_path).parent/"complete-inputs.json",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        authority=authority_path,authority_pin=authority_pin,manifest=manifest)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-closure-20261127-2807/src/tools/qualify_hia_service_bootstrap_finite.py", line 195, in child
+    receipt,checkpoint,raw=support.run_child(parent,label,command,seconds=seconds)
+                           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-bootstrap-closure-20261127-2807/src/tests/hia_service_bootstrap_support.py", line 208, in run_child
+    raise RuntimeError("complete owned bootstrap child failed: " + label)
+RuntimeError: complete owned bootstrap child failed: candidate
+
+======================================================================
+ERROR: test_03_complete_unselected_public_domain_and_lazy_empty_refusal (tests.test_hia_service_bootstrap_qualification.ServiceBootstrapQualificationSourceTests.test_03_complete_unselected_public_domain_and_lazy_empty_refusal)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-bootstrap-closure-20261127-2807/src/tests/test_hia_service_bootstrap_qualification.py", line 96, in test_03_complete_unselected_public_domain_and_lazy_empty_refusal
+    report=compare_candidate(self.authority,self.authority_pin,self.root/"complete-unselected",lane="unselected")
+  File "/home/qian-qi/hia-bootstrap-closure-20261127-2807/src/tools/qualify_hia_service_bootstrap_finite.py", line 377, in compare_candidate
+    raise ValueError("complete process-terminal late channels differ; every raw difference retained")
+ValueError: complete process-terminal late channels differ; every raw difference retained
+
+----------------------------------------------------------------------
+Ran 8 tests in 1430.664s
+
+FAILED (errors=2)

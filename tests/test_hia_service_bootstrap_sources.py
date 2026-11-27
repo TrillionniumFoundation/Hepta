@@ -102,18 +102,34 @@ class ServiceBootstrapStaticSourceTests(unittest.TestCase):
             captured = []
             self.assertEqual(reader._read_caller_source_admission(name, scope, observed, captured), proof)
             reader.unchanged(captured)
-            with TemporaryDirectory() as directory, patch.object(reader, 'ROOT', Path(directory)):
-                stage = Path(directory)
+            with TemporaryDirectory() as directory, patch.object(reader, 'ROOT', Path(directory).resolve()):
+                stage = Path(directory).resolve()
                 for path, data in captured:
                     target = stage / path.relative_to(ROOT)
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(data)
                 for path in histories:
                     with self.subTest(scope=name, path=path):
-                        altered = deepcopy(observed)
-                        altered['caller_source_admission']['reviewed_scope_predecessors'][path]['predecessor']['sha256'] = '0' * 64
-                        with self.assertRaises(ValueError):
-                            reader._read_caller_source_admission(name, scope, altered, [])
+                        def digest_paths(value, prefix=()):
+                            if type(value) is dict:
+                                for key, item in value.items():
+                                    if key == 'sha256':
+                                        yield prefix + (key,)
+                                    else:
+                                        yield from digest_paths(item, prefix + (key,))
+                            elif type(value) is list:
+                                for index, item in enumerate(value):
+                                    yield from digest_paths(item, prefix + (index,))
+                        addresses = list(digest_paths(histories[path]))
+                        self.assertTrue(addresses)
+                        for address in addresses:
+                            altered = deepcopy(observed)
+                            target = altered['caller_source_admission']['reviewed_scope_predecessors'][path]
+                            for key in address[:-1]:
+                                target = target[key]
+                            target[address[-1]] = '0' * 64
+                            with self.subTest(proof_field=address), self.assertRaises(ValueError):
+                                reader._read_caller_source_admission(name, scope, altered, [])
                         target = stage / path
                         raw = target.read_bytes()
                         for index in (0, len(raw) // 2, len(raw) - 1):

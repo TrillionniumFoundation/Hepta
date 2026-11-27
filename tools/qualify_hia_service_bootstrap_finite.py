@@ -308,6 +308,34 @@ def read_originals(authority_path, authority_pin):
         raise ValueError("original authority parsed values changed")
     return authority,authority_raw,input_value,input_raw,captured,lanes
 
+def current_dispatch_child(output, lane, source, *, manifest=None):
+    """Keep current public controls outside the completed historical process."""
+    output = Path(output)
+    command = [sys.executable, "-I", "-B",
+               str(ROOT / "tests/hia_bootstrap_current_dispatch.py"),
+               "--lane", lane, "--output", str(output / "current-dispatch")]
+    if manifest is not None:
+        command += ["--manifest", str(manifest)]
+    result, report, raw = support.run_child(
+        output, "current-dispatch", command, seconds=60)
+    if (report["schema"] != "hepta.hia.bootstrap-current-dispatch-process.v1"
+            or report["status"] != "PASS_CURRENT_INIT_AND_PROGRAM_PROCESS_ONLY"
+            or report["lane"] != lane or report["source_before"] != source
+            or report["source_after"] != source
+            or report["whole_native_stack_qualified"] is not False):
+        raise ValueError("current dispatcher process does not bind its actual source")
+    record = {
+        "label": "current-dispatch",
+        "start": support.file_pin(output / "current-dispatch.start.json"),
+        "result": support.file_pin(output / "current-dispatch.result.json"),
+        "report": support.bytes_pin(raw),
+    }
+    captures = [(output / "current-dispatch" / "report.json", raw)]
+    for name in ("current-dispatch.start.json", "current-dispatch.result.json"):
+        captures.append((output / name, (output / name).read_bytes()))
+    return record, captures
+
+
 def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
     if lane not in ("unselected","vm","native"):
         raise ValueError("candidate lane must explicitly name unselected, VM or Native")
@@ -344,12 +372,16 @@ def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
         output/"candidate/late-events.jsonl",expected_directory/"late-events.jsonl",
         report["files"]["late-events.jsonl"],expected_report["files"]["late-events.jsonl"],
         output/"terminal-late-differences.jsonl")
+    current_record, current_captures = None, []
+    if late_count == 0:
+        current_record, current_captures = current_dispatch_child(
+            output, lane, source_before, manifest=manifest)
     source_after=support.source_snapshot()
     if source_before!=source_after:
         raise ValueError("candidate component source changed")
     support.exact_reread(authority_path,authority_raw)
     support.exact_reread(Path(authority_path).parent/"complete-inputs.json",input_raw)
-    for path,raw in (*captured,*candidate_captures):
+    for path,raw in (*captured,*candidate_captures,*current_captures):
         support.exact_reread(path,raw)
     if manifest_raw is not None:
         support.exact_reread(manifest,manifest_raw)
@@ -360,6 +392,7 @@ def compare_candidate(authority_path,authority_pin,output,*,lane,manifest=None):
            "complete_inputs":authority["complete_inputs"],
            "count":authority["count"],"ordered_ids":authority["ordered_ids"],
            "candidate":record,"candidate_report":record["report"],
+           "current_dispatch":current_record,
            "candidate_terminal":record["terminal"],
            "original_terminal":expected_report["process_terminal"],
            "original_observations":original_pin,"actual_observations":actual_pin,

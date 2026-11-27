@@ -44,7 +44,7 @@ class EntryCounter:
 
 class Backend:
     """Actual public code, explicit fixture namespace, genuine image/VM entry."""
-    def __init__(self, lane, manifest):
+    def __init__(self, lane, manifest, *, compatibility=False):
         from hepta import hia_agent_service as api, hia_service_bootstrap_native as native
         self.api, self.native, self.lane = api, native, lane
         self.manifest = None if manifest is None else str(manifest)
@@ -68,24 +68,35 @@ class Backend:
             value.__kwdefaults__ = None if function.__kwdefaults__ is None else dict(function.__kwdefaults__)
             return value
         self.imports = {name:clone(function) for name, function in api._SERVICE_BOOTSTRAP_IMPORT_PORTS.items()}
-        self.layouts = dict(api._SERVICE_BOOTSTRAP_LOCAL_LAYOUTS)
-        self.references = {mode:clone(function) for mode, function in api._SERVICE_BOOTSTRAP_REFERENCES.items()}
-        for mode, method in enumerate(oracle.METHODS, 1):
-            if self.references[mode].__code__.co_varnames != oracle.ORIGINALS[method].__code__.co_varnames:
-                raise ValueError("candidate local layout differs from the exact original body")
+        self.layouts = dict(native.GRAPH_LOCAL_LAYOUTS)
+        self.compatibility_proof, self.history_captures = None, {}
+        if compatibility:
+            from tests.hia_bootstrap_compatibility import functions
+            self.references, public, self.compatibility_proof, self.history_captures = functions(ROOT, self.namespace, api)
+            for mode, method in enumerate(oracle.METHODS, 1):
+                if (self.references[mode].__code__.co_varnames != oracle.ORIGINALS[method].__code__.co_varnames
+                        or self.layouts[mode] != oracle.ORIGINALS[method].__code__.co_varnames):
+                    raise ValueError("candidate local layout differs from the exact original body")
+        else:
+            self.references = {mode:clone(function) for mode, function in api._SERVICE_BOOTSTRAP_REFERENCES.items()}
+            public = {name:clone(getattr(api.HIAAgentService, name)) for name in oracle.METHODS}
         self.poison_calls = []
         def poison(*args, **kwargs):
             self.poison_calls.append("retained-body")
             raise AssertionError("selected bootstrap called a retained complete body")
         self.poison = {mode:poison for mode in self.references}
         self.selection = {"HEPTA_HIA_SERVICE_BOOTSTRAP_MANIFEST":str(manifest or "independent-VM")}
+        self.frame_arguments = []
         backend = self
-        def frame(selected, mode, initial):
+        def frame(selected, mode, initial, *, service_options=None):
             if selected is not backend.image:
                 raise AssertionError("public dispatcher changed the admitted image")
+            if service_options is not None:
+                backend.frame_arguments.append({"mode":mode,"service_options":dict(service_options)})
             return native.ServiceBootstrapFrame(selected, mode, initial,
                 namespace=backend.namespace, global_builtins=backend.captured_builtins,
-                import_ports=backend.imports, local_layouts=backend.layouts)
+                import_ports=backend.imports, local_layouts=backend.layouts,
+                service_options=service_options)
         def installed(path):
             if not path:
                 raise ValueError("native service bootstrap selector must not be empty")
@@ -108,7 +119,7 @@ class Backend:
             "_SERVICE_BOOTSTRAP_LOADER":loader,
             "_service_bootstrap_os":types.SimpleNamespace(environ=self.selection),
         })
-        self.functions = {name:clone(getattr(api.HIAAgentService, name)) for name in oracle.METHODS}
+        self.functions = public
         self.public_code = {name:sha256(function.__code__.co_code).hexdigest()
                             for name, function in self.functions.items()}
         self.unselected_cases = []
@@ -124,8 +135,9 @@ class Backend:
 
 class UnselectedBackend:
     """Actual unselected public wrappers; importing the optional owner is forbidden."""
-    def __init__(self):
+    def __init__(self, *, compatibility=False):
         from hepta import hia_agent_service as api
+        self.api = api
         owner_name = "hepta.hia_service_bootstrap_native"
         if owner_name in sys.modules:
             raise AssertionError("fresh absent-owner lane already imported its optional adapter")
@@ -137,13 +149,23 @@ class UnselectedBackend:
                                         function.__defaults__, function.__closure__)
             result.__kwdefaults__ = None if function.__kwdefaults__ is None else dict(function.__kwdefaults__)
             return result
-        references = {mode:clone(fn) for mode,fn in api._SERVICE_BOOTSTRAP_REFERENCES.items()}
+        self.compatibility_proof, self.history_captures = None, {}
+        if compatibility:
+            from tests.hia_bootstrap_compatibility import functions
+            references, public, self.compatibility_proof, self.history_captures = functions(ROOT, self.namespace, api)
+            for mode, method in enumerate(oracle.METHODS, 1):
+                if references[mode].__code__.co_varnames != oracle.ORIGINALS[method].__code__.co_varnames:
+                    raise ValueError("unselected historical local layout differs from the original")
+        else:
+            references = {mode:clone(fn) for mode,fn in api._SERVICE_BOOTSTRAP_REFERENCES.items()}
+            public = {name:clone(getattr(api.HIAAgentService,name)) for name in oracle.METHODS}
+        self.frame_arguments = []
         def forbidden(name):
             raise AssertionError("unselected public route tried to import its optional owner")
         self.namespace.update({"_SERVICE_BOOTSTRAP_REFERENCES":references,
             "_SERVICE_BOOTSTRAP_LOADER":forbidden,
             "_service_bootstrap_os":types.SimpleNamespace(environ={})})
-        self.functions = {name:clone(getattr(api.HIAAgentService,name)) for name in oracle.METHODS}
+        self.functions = public
         self.public_code = {name:sha256(fn.__code__.co_code).hexdigest() for name,fn in self.functions.items()}
         self.image = types.SimpleNamespace(_entry=types.SimpleNamespace(calls=0))
         self.poison_calls, self.unselected_cases = [], []
@@ -433,7 +455,9 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
             "complete_original_count":len(cases),
             "all_original_bytes_admitted_before_candidate_import":True})
         ordering.append("all-original-bytes-admitted")
-        backend = UnselectedBackend() if lane == "unselected" else Backend(lane, manifest)
+        backend = (UnselectedBackend(compatibility=True) if lane == "unselected"
+                   else Backend(lane, manifest, compatibility=True))
+        support.write_json(output/"historical-source-binding.json", backend.compatibility_proof)
         ordering.append("candidate-import-and-image")
     support.write_json(output/"ordering.json", ordering)
     streams = {name:output_stream(output/name) for name in (
@@ -516,6 +540,9 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
     source_after = support.source_snapshot()
     if source_after != source_before:
         raise ValueError("bootstrap source changed during complete finite observations")
+    if backend is not None:
+        from tools.hia_bootstrap_source_history import unchanged
+        unchanged(ROOT, backend.history_captures)
     support.write_json(output/"source-after.json",source_after)
     support.exact_reread(inputs_path,input_raw)
     for path, raw in captured_authority:
@@ -538,6 +565,7 @@ def run(lane, inputs_path, output, *, expected=None, expected_pin=None, manifest
         "native_or_VM_entries":total_entries,"files":files,
         "expected_authority":expected_pin,
         "public_code_binding":None if backend is None else backend.public_code,
+        "candidate_source_domain":None if backend is None else "HISTORICAL_FIVE_BODY_COMPATIBILITY",
         "explicit_unselected_cases":[] if backend is None else backend.unselected_cases,
         "original_code_objects_shared_within_lane":True,
         "scope":"finite frozen original methods and explicit provider namespace; raw traceback frames are separately retained, never normalized",
