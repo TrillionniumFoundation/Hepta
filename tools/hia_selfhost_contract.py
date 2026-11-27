@@ -3162,6 +3162,17 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/source_artifact_page_manifest.hepta',
     'examples/hia_bootstrap/artifact_page_manifest_tables.hiastd',
     'docs/HIA_ARTIFACT_PAGE_MANIFEST_RECORDS.json',
+    'examples/hia_bootstrap/agent_native_metadata.hepta',
+    'examples/hia_bootstrap/agent_json_wire.hepta',
+    'hepta/hia_agent_native_metadata_native.py',
+    'hepta/hia_agent_json_wire_native.py',
+    'tools/generate_hia_agent_native_metadata.py',
+    'tools/generate_hia_agent_json_wire.py',
+    'tools/build_hia_agent_native_metadata.py',
+    'tools/build_hia_agent_json_wire.py',
+    'tests/test_hia_agent_native_metadata.py',
+    'tests/test_hia_agent_native_metadata_integration.py',
+    'tests/test_hia_agent_json_wire.py',
 )
 
 
