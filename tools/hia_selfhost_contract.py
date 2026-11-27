@@ -1014,6 +1014,9 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 
 SOURCE_FILES = (
     'tests/test_hia_artifact_page_worker_custody.py',
+    'tools/hia_artifact_page_source_history.py',
+    'tests/fixtures/hia_artifact_page_shared_source_history_v1.json',
+    'tests/test_hia_artifact_page_source_history.py',
     'hepta/hia_artifact_page_policy_native.py',
     'hepta/hia_artifact_page_worker_bundle.py',
     'tools/build_hia_artifact_page_worker.py',
