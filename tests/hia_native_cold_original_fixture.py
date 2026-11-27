@@ -261,6 +261,22 @@ def original_view(root):
     names.update((SELF, FIXTURE, ENGINE, cold.HISTORY_SOURCE, *cold.DEPENDENCIES,
                   'tools/hia_selfhost_contract.py'))
     sources = {name: capture(name) for name in sorted(names)}
+    # Original data readers name additional fixed authorities outside the
+    # compiler source tuple. Copy those existing local data files as explicit
+    # fixture inputs; each consumer still validates its own unchanged pin.
+    import ast
+    authority_names = set()
+    for name, raw in sources.items():
+        if not name.endswith('.py') or not name.startswith(('tools/', 'tests/hia_')):
+            continue
+        for node in ast.walk(ast.parse(raw)):
+            if (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                    and node.value.startswith('tests/fixtures/')
+                    and node.value.endswith('.json')
+                    and (root / node.value).is_file()):
+                authority_names.add(node.value)
+    for name in sorted(authority_names):
+        sources[name] = capture(name)
     projected = dict(sources)
     for name, expected in VERSIONS.items():
         physical = sources[name]
