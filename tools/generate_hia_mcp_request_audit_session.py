@@ -62,6 +62,7 @@ def receive(o:mutbuf,w:mutbuf) -> u32:
         put(w,CURRENT_PHASE,0)
         put(w,ID_PRESENT,0)
         put(w,HOT_OWNED,0)
+        put(w,QUERY_BYTES,0)
         return call(o,w,11,0,0,INPUT,4609,0,0,0,12)
     if phase == 11:
         if result == NEG4:
@@ -77,10 +78,16 @@ def receive(o:mutbuf,w:mutbuf) -> u32:
             return enter(w,M_SESSION,20)
         if get(w,READY) != 1 or shared_ok(w) == False:
             return session_error(w,30,0)
+        if get(w,CURRENT_PHASE) >= 4:
+            return call(o,w,14,228,1,frame(w)+2048,0,0,0,0,12)
         flock_bytes(w,271600,1,0)
         return call(o,w,12,72,get(w,DAEMON_AUDITFD),7,271600,0,0,0,48)
     if phase == 12:
+        if get(w,CURRENT_PHASE) >= 4 and (result == 18446744073709551605 or result == 18446744073709551603):
+            return call(o,w,15,7,0,0,10,0,0,0,0)
         if result == NEG4:
+            if get(w,CURRENT_PHASE) >= 4:
+                return call(o,w,14,228,1,frame(w)+2048,0,0,0,0,12)
             flock_bytes(w,271600,1,0)
             return call(o,w,12,72,get(w,DAEMON_AUDITFD),7,271600,0,0,0,48)
         if failed(result):
@@ -90,13 +97,50 @@ def receive(o:mutbuf,w:mutbuf) -> u32:
     if phase == 13:
         if get(w,48) == NONE:
             return enter(w,M_RESPONSE,0)
+        if get(w,STORE_POISONED) != 0:
+            return session_error(w,36,0)
         if get(w,CURRENT_PHASE) == 1:
             return enter(w,M_SESSION,100)
+        if get(w,CURRENT_PHASE) == 3:
+            return enter(w,M_HISTORY,0)
+        if get(w,CURRENT_PHASE) >= 4:
+            return enter(w,M_ARCHIVE_QUERY,0)
         return enter(w,M_SESSION,200)
+    if phase == 14:
+        if failed(result):
+            return session_error(w,38,0)
+        seconds = get(w,frame(w)+2048)
+        nanos = get(w,frame(w)+2056)
+        deadline = get(w,INPUT+256)
+        fraction = get(w,INPUT+264)
+        if seconds > deadline or (seconds == deadline and nanos >= fraction):
+            return session_error(w,37,0)
+        if deadline > seconds+3 or (deadline == seconds+3 and fraction > nanos):
+            return session_error(w,38,0)
+        flock_bytes(w,271600,1,0)
+        return call(o,w,12,72,get(w,DAEMON_AUDITFD),6,271600,0,0,0,48)
+    if phase == 15:
+        if failed(result) and result != NEG4:
+            return session_error(w,38,0)
+        return call(o,w,14,228,1,frame(w)+2048,0,0,0,0,12)
     return call(o,w,19,60,74,0,0,0,0,0,0)
 
 def protocol(w:mutbuf) -> bool:
     size = get(w,PACKET_SIZE)
+    if size >= 8 and (get(w,INPUT) == ARCHIVE_QUERY_MAGIC or get(w,INPUT) == USAGE_QUERY_MAGIC):
+        put(w,CURRENT_PHASE,choose(get(w,INPUT) == USAGE_QUERY_MAGIC,5,4))
+        if size >= 72:
+            put(w,CURRENT_SLOT,get(w,INPUT+48))
+            put(w,CURRENT_GEN,get(w,INPUT+64))
+            put(w,CURRENT_WORKER,get(w,INPUT+56))
+        return archive_query_protocol(w,size)
+    if size >= 8 and get(w,INPUT) == HISTORY_MAGIC:
+        put(w,CURRENT_PHASE,3)
+        if size >= 72:
+            put(w,CURRENT_SLOT,get(w,INPUT+48))
+            put(w,CURRENT_GEN,get(w,INPUT+64))
+            put(w,CURRENT_WORKER,get(w,INPUT+56))
+        return history_protocol(w,size)
     if size == 128 and get(w,INPUT) == FINISH_MAGIC:
         if get(w,INPUT+8) != 1 or get(w,INPUT+16) != 2 or get(w,INPUT+24) != 128 or get(w,INPUT+32) > 2:
             return False
@@ -127,6 +171,47 @@ def protocol(w:mutbuf) -> bool:
     if target == 0 and zeroes(w,INPUT+256,64) == False:
         return False
     if target == 64 and lowerhex(w,INPUT+256,64) == False:
+        return False
+    return get(w,INPUT+32) == get(w,STATE_FD) and get(w,INPUT+40) == get(w,DAEMON_AUDITFD) and path == get(w,ROOT_PATH_LEN) and equal(w,INPUT+512,ROOT_PATH,path)
+
+def history_protocol(w:mutbuf,size:u64) -> bool:
+    if size < 512 or get(w,INPUT+8) != 1 or get(w,INPUT+16) != 3 or get(w,INPUT+24) != size:
+        return False
+    path = get(w,INPUT+80)
+    if path == 0 or path > 4096 or size != 512+path or zeroes(w,INPUT+104,24) == False or zeroes(w,INPUT+256,256) == False:
+        return False
+    if get(w,CURRENT_SLOT) >= 32 or get(w,CURRENT_GEN) == 0 or get(w,CURRENT_WORKER) <= 1 or get(w,INPUT+72) != get(w,DAEMON_CONTROLLER):
+        return False
+    if get(w,INPUT+88) == 0 or get(w,INPUT+88) > 32 or lowerhex(w,INPUT+128,64) == False:
+        return False
+    cursor = get(w,INPUT+96)
+    if cursor != 0 and cursor != 64:
+        return False
+    if cursor == 0 and zeroes(w,INPUT+192,64) == False:
+        return False
+    if cursor == 64 and lowerhex(w,INPUT+192,64) == False:
+        return False
+    return get(w,INPUT+32) == get(w,STATE_FD) and get(w,INPUT+40) == get(w,DAEMON_AUDITFD) and path == get(w,ROOT_PATH_LEN) and equal(w,INPUT+512,ROOT_PATH,path)
+
+def archive_query_protocol(w:mutbuf,size:u64) -> bool:
+    if size < 512 or get(w,INPUT+8) != 1 or get(w,INPUT+16) != get(w,CURRENT_PHASE) or get(w,INPUT+24) != size:
+        return False
+    path = get(w,INPUT+80)
+    if path == 0 or path > 4096 or size != 512+path or zeroes(w,INPUT+104,24) == False or zeroes(w,INPUT+272,240) == False:
+        return False
+    if get(w,CURRENT_SLOT) >= 32 or get(w,CURRENT_GEN) == 0 or get(w,CURRENT_WORKER) <= 1 or get(w,INPUT+72) != get(w,DAEMON_CONTROLLER):
+        return False
+    limit = get(w,INPUT+88)
+    if (get(w,CURRENT_PHASE) == 4 and (limit == 0 or limit > 32)) or (get(w,CURRENT_PHASE) == 5 and (limit != 0 or get(w,INPUT+96) != 0)):
+        return False
+    if lowerhex(w,INPUT+128,64) == False or get(w,INPUT+256) > 9223372036854775804 or get(w,INPUT+264) >= 1000000000:
+        return False
+    cursor = get(w,INPUT+96)
+    if cursor != 0 and cursor != 64:
+        return False
+    if cursor == 0 and zeroes(w,INPUT+192,64) == False:
+        return False
+    if cursor == 64 and lowerhex(w,INPUT+192,64) == False:
         return False
     return get(w,INPUT+32) == get(w,STATE_FD) and get(w,INPUT+40) == get(w,DAEMON_AUDITFD) and path == get(w,ROOT_PATH_LEN) and equal(w,INPUT+512,ROOT_PATH,path)
 
@@ -374,4 +459,7 @@ def session_error(w:mutbuf,reason:u64,error:u64) -> u32:
 def source():
     return authored(SOURCE,extra={'BEGIN_MAGIC':int.from_bytes(b'HIAAUD01','little'),
         'FINISH_MAGIC':int.from_bytes(b'HIAAUF01','little'),
+        'HISTORY_MAGIC':int.from_bytes(b'HIAAHQ01','little'),
+        'ARCHIVE_QUERY_MAGIC':int.from_bytes(b'HIARQY01','little'),
+        'USAGE_QUERY_MAGIC':int.from_bytes(b'HIAUSQ01','little'),
         'SHARED_MAGIC':int.from_bytes(b'HIAAUS01','little')})

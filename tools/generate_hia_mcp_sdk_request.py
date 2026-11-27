@@ -634,7 +634,8 @@ def sdk_finite(s:readbuf, w:mutbuf, at:u64, size:u64) -> u64:
 
 
 def program():
-    tokens = tuple(dict.fromkeys((*KEYS, *METHODS, *STANDARD, *tool_names(), *VERSIONS, '2.0', 'light', 'dark', 'ref/resource', 'ref/prompt')))
+    public_tools = (*tool_names(), 'request_history', 'request_archive', 'usage_stats')
+    tokens = tuple(dict.fromkeys((*KEYS, *METHODS, *STANDARD, *public_tools, *VERSIONS, '2.0', 'light', 'dark', 'ref/resource', 'ref/prompt')))
     token = {name: i + 1 for i, name in enumerate(tokens)}
     source = SOURCE
     replacements = {**{'K_' + k: token[k] for k in KEYS if '/' not in k},
@@ -660,7 +661,7 @@ def program():
             lines.extend((f'    if size == {len(raw)}:', '        difference = ' + ' | '.join(differences), '        if difference == 0:', f'            return {token[value]}'))
         lines.append('    return 0'); tables.append('\n'.join(lines))
     dispatch.append('    return 0'); tables.append('\n'.join(dispatch))
-    for fn, values in [('sdk_role', METHODS), ('sdk_tool', tool_names()), ('sdk_version', VERSIONS)]:
+    for fn, values in [('sdk_role', METHODS), ('sdk_tool', public_tools), ('sdk_version', VERSIONS)]:
         lines = [f'def {fn}(value:u64) -> u64:']
         for index, value in enumerate(values, 1):
             lines.extend((f'    if value == {token[value]}:', f'        return {index}'))

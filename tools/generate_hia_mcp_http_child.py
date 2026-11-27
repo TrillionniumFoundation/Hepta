@@ -163,7 +163,10 @@ def scheduler_source():
       'error_prefix':'{"jsonrpc":"2.0","id":',
       'error_suffix':',"error":{"code":-32603,"message":"Native HIA request observation unavailable; repeat only the original request"}}\n',
       'cancel_suffix':',"error":{"code":-32800,"message":"Request cancelled"}}\n'},
-      extra={'OUTPUT_MAGIC':int.from_bytes(b'HIAHCO01','little')})
+      # HTTP delivery/cache retain their independently qualified output bound.
+      # The larger stdio publication branch is unreachable for this transport.
+      extra={'OUTPUT_MAGIC':int.from_bytes(b'HIAHCO01','little'),
+             'METADATA_REPLY_MAX':8389120,'PUBLISH_CHUNK':(128 << 20)+66000})
 
 def render():
     return {name:render_assembly(document(source(),'mcp_http_'+name)) for name,source in (

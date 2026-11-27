@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RequestHistoryParams",
+  "type": "object",
+  "properties": {
+    "after_id": {
+      "description": "Last returned request id. Expired and other-owner cursors are refused.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "limit": {
+      "description": "At most 32 metadata records; default 32. No parameters or output are returned.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint16",
+      "default": null,
+      "maximum": 65535,
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false
+}
