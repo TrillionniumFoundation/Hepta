@@ -10,9 +10,7 @@ import ast, importlib, inspect, json, traceback
 from hepta import hia_agent_assembly as assembly
 from hepta import hia_program as program
 ROOT=Path(__file__).resolve().parents[1]
-DATA=ROOT/'examples/hia_bootstrap/cold_cases_generic'
-SOURCE=DATA/'sources'
-SOURCE.mkdir(parents=True,exist_ok=True)
+DATA=None
 ASSEMBLE=assembly.assemble_program
 EXECUTE=program.execute_program
 SIGNATURE=inspect.signature(EXECUTE)
@@ -80,8 +78,6 @@ def execute(*args,**kwargs):
     row['expect']={'status':result['status'],'values':result.get('values',[])}
     references.append(row)
     return result
-assembly.assemble_program=checked
-program.execute_program=execute
 FAMILIES=[
  ('signed','hia_selfhost_signed_cases','independent_reference'),
  ('scalar-casts','hia_selfhost_scalar_casts','independent_reference'),
@@ -96,9 +92,20 @@ FAMILIES=[
  ('tail','hia_selfhost_tailcalls','independent_tail_reference'),
  ('capacity','hia_selfhost_capacity','independent_capacity_reference'),
  ('explicit-traps','hia_selfhost_traps','independent_reference')]
-def generate(output):
-    global CURRENT
-    output=Path(output);summary={'passed':False,'families':{}}
+def generate(output, *, data):
+    global CURRENT, DATA
+    output=Path(output).resolve();DATA=Path(data).resolve()
+    if output.is_relative_to(ROOT) or DATA.is_relative_to(ROOT):
+        raise ValueError("development outputs must be outside the source tree")
+    if output.exists() or DATA.exists():
+        raise ValueError("development outputs must be new directories")
+    output.mkdir(mode=0o700,parents=True)
+    (DATA/'sources').mkdir(mode=0o700,parents=True)
+    (DATA/'documents').mkdir(mode=0o700)
+    source_map.clear();sources.clear();admissions.clear();references.clear();CURRENT=''
+    previous_assembly=assembly.assemble_program;previous_execute=program.execute_program
+    assembly.assemble_program=checked;program.execute_program=execute
+    summary={'passed':False,'families':{}}
     try:
       for name,module,function in FAMILIES:
         CURRENT=name;before=len(references);mod=importlib.import_module('tools.'+module)
@@ -128,7 +135,14 @@ def generate(output):
       summary['passed']=True
       (DATA/'inventory.json').write_text(json.dumps({'schema':'hia.native.cold.generic-inventory.v1','sources':sources,'families':summary['families']},indent=2)+'\n')
     except BaseException:summary['error']=traceback.format_exc();raise
-    finally:(output/'author-status.json').write_text(json.dumps(summary,indent=2))
+    finally:
+        assembly.assemble_program=previous_assembly
+        program.execute_program=previous_execute
+        (output/'author-status.json').write_text(json.dumps(summary,indent=2))
 if __name__=='__main__':
-    import sys
-    generate(sys.argv[1])
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--data',type=Path,required=True)
+    args=parser.parse_args()
+    generate(args.output,data=args.data)

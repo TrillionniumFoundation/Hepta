@@ -1008,6 +1008,28 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    # Development-only recovery of the canonical generic native pools.
+    'tools/generate_hia_cold_cases_generic.py',
+    'tools/generate_hia_cold_cases_native.py',
+    'tools/hia_cold_cases_generic_plan.py',
+    'tools/restore_hia_cold_generic_corpus.py',
+    'tests/test_hia_cold_generic_canonical_pool.py',
+    'tests/fixtures/hia_cold_generic_canonical_pool_v1.json',
+    'tests/fixtures/hia_cold_generic_original_authors_v1.json',
+    'examples/hia_bootstrap/cold_cases_generic/bulk.json',
+    'examples/hia_bootstrap/cold_cases_generic/capacity.json',
+    'examples/hia_bootstrap/cold_cases_generic/cfg.json',
+    'examples/hia_bootstrap/cold_cases_generic/effects.json',
+    'examples/hia_bootstrap/cold_cases_generic/explicit-traps.json',
+    'examples/hia_bootstrap/cold_cases_generic/inventory.json',
+    'examples/hia_bootstrap/cold_cases_generic/keyword.json',
+    'examples/hia_bootstrap/cold_cases_generic/loan.json',
+    'examples/hia_bootstrap/cold_cases_generic/multi.json',
+    'examples/hia_bootstrap/cold_cases_generic/resource.json',
+    'examples/hia_bootstrap/cold_cases_generic/scalar-casts.json',
+    'examples/hia_bootstrap/cold_cases_generic/select.json',
+    'examples/hia_bootstrap/cold_cases_generic/signed.json',
+    'examples/hia_bootstrap/cold_cases_generic/tail.json',
     'tests/fixtures/hia_current_store_consumers_v1.json',
     'tools/hia_current_store_source_history.py',
     'tests/fixtures/hia_current_store_readback_preparation_v1.json',

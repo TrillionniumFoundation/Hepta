@@ -3,7 +3,7 @@ from pathlib import Path
 from hashlib import sha256
 import importlib,json,sys
 ROOT=Path(__file__).resolve().parents[1]
-DATA=ROOT/'examples/hia_bootstrap/cold_cases_generic'
+DATA=None
 def put(source):
     raw=source.encode() if isinstance(source,str) else bytes(source)
     name='sources/'+sha256(raw).hexdigest()+'.hepta';path=DATA/name
@@ -11,8 +11,14 @@ def put(source):
     else:path.write_bytes(raw)
     return name
 def module(name):return importlib.import_module('tools.hia_selfhost_'+name)
-def normalize(folder):
-    folder=Path(folder);summary={}
+def normalize(folder, *, data):
+    global DATA
+    folder=Path(folder).resolve();DATA=Path(data).resolve()
+    if folder.is_relative_to(ROOT) or DATA.is_relative_to(ROOT):
+        raise ValueError("development outputs must be outside the source tree")
+    if not folder.is_dir() or not DATA.is_dir():
+        raise ValueError("explicit authoring and data directories are required")
+    summary={}
     names=['signed','scalar-casts','multi','keyword','effects','cfg','bulk','loan','resource','select','tail','capacity','explicit-traps']
     for family in names:
       original=json.loads((folder/(family+'-original-authoring.json')).read_text())
@@ -135,4 +141,10 @@ def normalize(folder):
     inventory['native_gates']=summary
     (DATA/'inventory.json').write_text(json.dumps(inventory,indent=2)+'\n')
     (folder/'native-normalization.json').write_text(json.dumps({'passed':True,'families':summary},indent=2))
-if __name__=='__main__':normalize(sys.argv[1])
+if __name__=='__main__':
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--data',type=Path,required=True)
+    args=parser.parse_args()
+    normalize(args.output,data=args.data)
