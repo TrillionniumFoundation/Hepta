@@ -176,9 +176,16 @@ GENERATION_ORACLE = (ORACLE.replace("xorq %rax,%rax\nmovl $1,%edx\nlock cmpxchgq
     .replace("cmpq %r14,%rsp\nguard je\n", "cmpq %r14,%rsp\nguard je\n"+'movl $0xc0000101,%ecx\nrdmsr\nshlq $32,%rdx\norq %rdx,%rax\ncmpq %r12,%rax\nguard je\n')
     .replace("movl $1,%eax\nxorq %rdx,%rdx\nlock cmpxchgq %rdx,24(%r12)\nguard je\n", 'movq %rbp,%rax\nleaq 1(%rbp),%rdx\nlock cmpxchgq %rdx,24(%r12)\nguard je\n'))
 
+BOUND_WORD = "x86.irq.dispatch_bound_stack"
+_BOUND_ANCHOR = bytes.fromhex("4989c4")
+_BOUND_CHECK = bytes.fromhex("b91b0000000f3285d274020f0b25fffeffff3d0008e0fe74020f0bba2000e0fe8b12c1ea1883fa0176020f0b4189d3b9000100c00f3248c1e2204809d04885c075020f0ba81f74020f0b4889c248c1ea2f74020f0b488d503f48c1ea2f74020f0b49c1e3054c01d84c39e074020f0b")
+assert GENERATION_ENCODING.count(_BOUND_ANCHOR) == 1
+BOUND_ENCODING = GENERATION_ENCODING.replace(_BOUND_ANCHOR,_BOUND_ANCHOR+_BOUND_CHECK)
+BOUND_ORACLE = GENERATION_ORACLE.replace("movq %rax,%r12\n", "movq %rax,%r12\n"+'/* r12 = GS candidate; rdi = untouched original frame.\n   FS_BASE is a separately boot-provisioned trusted dense table root. */\nmovl $0x1b,%ecx\nrdmsr\ntestl %edx,%edx\nguard jz\nandl $0xfffffeff,%eax\ncmpl $0xfee00800,%eax\nguard je\nmovl $0xfee00020,%edx\nmovl (%rdx),%edx\nshrl $24,%edx\ncmpl $1,%edx\nguard jbe\nmovl %edx,%r11d\nmovl $0xc0000100,%ecx\nrdmsr\nshlq $32,%rdx\norq %rdx,%rax\ntestq %rax,%rax\nguard jnz\ntestb $31,%al\nguard jz\nmovq %rax,%rdx\nshrq $47,%rdx\nguard jz\nleaq 63(%rax),%rdx\nshrq $47,%rdx\nguard jz\nshlq $5,%r11\naddq %r11,%rax\ncmpq %r12,%rax\nguard je\n')
+
 def emission_segments():
     rest=ENCODING
-    for old,new in ((_OLD_ACQUIRE,_GENERATION_ACQUIRE),(_AFTER_CALLBACK,_AFTER_CALLBACK+_GENERATION_GS),(_OLD_RELEASE,_GENERATION_RELEASE)):
+    for old,new in ((_BOUND_ANCHOR,_BOUND_ANCHOR+_BOUND_CHECK),(_OLD_ACQUIRE,_GENERATION_ACQUIRE),(_AFTER_CALLBACK,_AFTER_CALLBACK+_GENERATION_GS),(_OLD_RELEASE,_GENERATION_RELEASE)):
         head,rest=rest.split(old,1)
         yield head
         yield (old,new)
@@ -187,22 +194,28 @@ def emission_segments():
 def extend_source(source, replace_once):
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
+    if op == @x86.irq.dispatch_bound_stack@:
+        return 62
     if op == @x86.irq.dispatch_gen_stack@:
         return 62
     if op == @x86.irq.dispatch_on_stack@:
         return 62""")
     source = replace_once(source,
         "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_kernel_frame@:",
-        "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_gen_stack@:")
+        "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_bound_stack@:")
     sig = ("def mmio_instruction(s:readbuf, o:mutbuf, w:mutbuf, op:u64, n:u64, "
            "at:u64, t:u64, v:u64, bt:u64, a:u64, b:u64) -> u64:")
     source = replace_once(source, sig, sig + """
+    if op == @x86.irq.dispatch_bound_stack@:
+        return irq_stack_instruction(s, w, n, t, 6)
     if op == @x86.irq.dispatch_gen_stack@:
         return irq_stack_instruction(s, w, n, t, 5)
     if op == @x86.irq.dispatch_on_stack@:
         return irq_stack_instruction(s, w, n, t, 4)""")
     anchor = "def export_wrapper(o:mutbuf, w:mutbuf, record:u64) -> u64:"
     source = replace_once(source, anchor, anchor + """
+    if get(w, 200) == 6:
+        return irq_stack_export(o, w, record)
     if get(w, 200) == 5:
         return irq_stack_export(o, w, record)
     if get(w, 200) == 4:
@@ -227,27 +240,35 @@ def irq_stack_export(o:mutbuf, w:mutbuf, record:u64) -> u64:
     put(w, record + 32, get(w, 56))
 """
     def emit(data, indent):
-        return "".join(f"{indent}emit_bytes(o, w, {int.from_bytes(data[off:off+8],'little')}, {len(data[off:off+8])})\n" for off in range(0,len(data),8))
+        chunks = []
+        while len(data) >= 16:
+            a,b = (int.from_bytes(data[k:k+8],"little") for k in (0,8))
+            chunks.append(f"{indent}irq_emit_pair(o, w, {a}, {b})\n")
+            data=data[16:]
+        for off in range(0,len(data),8):
+            part=data[off:off+8]
+            chunks.append(f"{indent}emit_bytes(o, w, {int.from_bytes(part,'little')}, {len(part)})\n")
+        return "".join(chunks)
     for segment in emission_segments():
         if isinstance(segment, tuple):
             old,new = segment
-            source += "    if get(w, 200) == 5:\n" + emit(new,"        ") + "    else:\n" + emit(old,"        ")
+            source += ("    if get(w, 200) == 6:\n" if old == _BOUND_ANCHOR else "    if get(w, 200) >= 5:\n") + emit(new,"        ") + "    else:\n" + emit(old,"        ")
         else:
             source += emit(segment,"    ")
-    return source+"    put(w, record + 40, get(w, 56) - get(w, record + 32))\n    return 0\n"
+    return source+"    put(w, record + 40, get(w, 56) - get(w, record + 32))\n    return 0\n\ndef irq_emit_pair(o:mutbuf, w:mutbuf, a:u64, b:u64) -> u64:\n    emit_bytes(o, w, a, 8)\n    emit_bytes(o, w, b, 8)\n    return 0\n"
 
 def program(profile, **kw):
     kw.setdefault("effects", EFFECTS)
     return irq.program(profile, **kw).replace(b"x86.irq.dispatch_kernel_frame",WORD.encode())
 
-def qualify(exe, output, profile, legacy, compile_cli, text_bytes, digest, generation=False):
+def qualify(exe, output, profile, legacy, compile_cli, text_bytes, digest, generation=False, bound=False):
     import subprocess
-    tag = "irq-generation-stack" if generation else "irq-stack"
-    encoding = GENERATION_ENCODING if generation else ENCODING
-    dispatch_oracle = GENERATION_ORACLE if generation else ORACLE
+    tag = "irq-bound-stack" if bound else "irq-generation-stack" if generation else "irq-stack"
+    encoding = BOUND_ENCODING if bound else GENERATION_ENCODING if generation else ENCODING
+    dispatch_oracle = BOUND_ORACLE if bound else GENERATION_ORACLE if generation else ORACLE
     def p(*args, **kwargs):
         result=program(*args, **kwargs)
-        return result.replace(WORD.encode(),GENERATION_WORD.encode()) if generation else result
+        return result.replace(WORD.encode(),BOUND_WORD.encode()) if bound else result.replace(WORD.encode(),GENERATION_WORD.encode()) if generation else result
     subject = p(profile)
     obj = compile_cli(exe, subject, output, tag+"-1")
     assert obj == compile_cli(exe, subject, output, tag+"-2")
