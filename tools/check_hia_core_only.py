@@ -103,10 +103,21 @@ def check(root=ROOT):
                         if not n.module:names+=['hepta.'+a.name for a in n.names]
                     else:names=[n.module or '']
                     if n.module=='hepta':names+=['hepta.'+a.name for a in n.names]
+                    # tools is a namespace package: imported members name
+                    # source modules, not attributes of an __init__ module.
+                    if not n.level and n.module=='tools':
+                        names+=['tools.'+a.name for a in n.names if a.name!='*']
                 for name in names:
                     parts=name.split('.')
                     if len(parts)>1 and parts[0]=='hepta' and parts[1] in FORBIDDEN_MODULES:
                         problems.append(f'{p.relative_to(root)}:{n.lineno}: deleted-language import {name}')
+                    if directory=='tools' and len(parts)>1 and parts[0]=='tools':
+                        # Resolve against the source tree being admitted. An
+                        # installed checkout or PYTHONPATH must not supply a
+                        # generator omitted from a clean release checkout.
+                        target=root.joinpath(*parts)
+                        if not target.with_suffix('.py').is_file() and not target.is_dir():
+                            problems.append(f'{p.relative_to(root)}:{n.lineno}: absent tool import {name}')
                 # Historical gate inventories used strings, not Python imports.
                 # Validate the authored selectors; never filter missing tests at run time.
                 if directory=='tools' and isinstance(n,ast.Constant) and type(n.value)is str:

@@ -9,6 +9,47 @@ import unittest
 from tools.check_hia_core_only import check, ROOT
 
 class CoreOnlyTests(unittest.TestCase):
+    def test_missing_generator_dependency_is_refused_from_the_checked_source_tree(self):
+        # This dependency exists in the running checkout. It must still be
+        # rejected when it was omitted from the source tree being checked.
+        for statement in (
+                'import tools.generate_hia_shared_linker as shared',
+                'from tools import generate_hia_shared_linker as shared',
+                'from tools.generate_hia_shared_linker import generate',
+                'def generate():\n    from tools import generate_hia_shared_linker',
+                'from tools import present, generate_hia_shared_linker'):
+            with self.subTest(statement=statement), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                for name in ('pyproject.toml', 'docs/HIA_CORE_ONLY_SCOPE.json'):
+                    target = root / name
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(ROOT / name, target)
+                (root / 'tools').mkdir()
+                (root / 'tools/present.py').write_text('VALUE = 1\n')
+                (root / 'tools/generate.py').write_text(statement + '\n')
+                with self.assertRaisesRegex(ValueError, 'absent tool import tools.generate_hia_shared_linker'):
+                    check(root)
+
+    def test_generator_dependency_check_preserves_symbols_and_never_executes_modules(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in ('pyproject.toml', 'docs/HIA_CORE_ONLY_SCOPE.json'):
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / name, target)
+            (root / 'tools/nested').mkdir(parents=True)
+            (root / 'tools/present.py').write_text(
+                "raise AssertionError('source checks must not import generators')\n"
+                'def generate():\n    return None\n')
+            (root / 'tools/nested/child.py').write_text('VALUE = 1\n')
+            (root / 'tools/generate.py').write_text(
+                'import json\n'
+                'import tools.present as present\n'
+                'from tools import present as renamed\n'
+                'from tools.present import generate as emit\n'
+                'import tools.nested.child as child\n')
+            self.assertEqual(check(root)['status'], 'PASS')
+
     def test_removed_source_fixture_is_refused_without_any_deleted_import(self):
         import shutil
         with tempfile.TemporaryDirectory(prefix='hia-removed-fixture-') as folder:
