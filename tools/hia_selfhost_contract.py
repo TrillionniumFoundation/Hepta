@@ -1013,6 +1013,15 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tests/test_hia_artifact_page_worker_custody.py',
+    'hepta/hia_artifact_page_policy_native.py',
+    'hepta/hia_artifact_page_worker_bundle.py',
+    'tools/build_hia_artifact_page_worker.py',
+    'tools/generate_hia_artifact_page_manifest.py',
+    'tools/hia_artifact_page_worker_recipe.py',
+    'examples/hia_bootstrap/source_artifact_page_manifest.hepta',
+    'examples/hia_bootstrap/artifact_page_manifest_tables.hiastd',
+    'docs/HIA_ARTIFACT_PAGE_MANIFEST_RECORDS.json',
     'examples/hia_bootstrap/artifact_page.hepta',
     'hepta/hia_artifact_page_native.py',
     'tools/generate_hia_artifact_page.py',

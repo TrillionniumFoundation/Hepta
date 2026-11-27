@@ -26,7 +26,9 @@ INPUTS = (
     'tools/generate_hia_selfhost.py', 'tools/generate_hia_sha256.py',
     'tools/generate_hia_worker_request.py', 'tools/qualify_hia_selfhost.py',
     'tools/build_hia_source_build.py', 'tools/build_hia_json_preflight.py',
-    'hepta/hia_artifact_page_native.py', 'hepta/hia_json_wire_native.py',
+    'hepta/hia_artifact_page_native.py', 'hepta/hia_artifact_page_policy_native.py',
+    'hepta/hia_artifact_page_worker_bundle.py', 'tools/build_hia_artifact_page_worker.py',
+    'hepta/hia_worker_bundle.py', 'hepta/hia_json_wire_native.py',
     'hepta/hia_json_preflight_native.py', 'hepta/hia_native_delivery.py',
     'hepta/hia_agent_store.py', 'hepta/hia_agent_store_native.py',
     'hepta/hia_agent_service.py', 'hepta/hia_agent_contract.py',
@@ -70,9 +72,13 @@ def _build(output, compiler, cold_report=None):
         if _check_pack_output(receipt, full, artifact=compiler_raw,
                               source=captured[source_name]) != image_raw:
             raise ValueError('artifact-page native compile output differs')
+        installed_name = ('artifact-page-policy' if name == 'policy' else 'json-wire') + '.image.bin'
+        installed_image = target / installed_name
+        installed_image.write_bytes(image_raw)
+        observed[installed_image] = image_raw
         manifest = {
             'schema': schema, 'source_sha256': sha256(captured[source_name]).hexdigest(),
-            'image_path': image.name, 'image_sha256': sha256(image_raw).hexdigest(),
+            'image_path': installed_image.name, 'image_sha256': sha256(image_raw).hexdigest(),
             'compiler_sha256': sha256(compiler_raw).hexdigest(),
         }
         path = target / 'manifest.json'

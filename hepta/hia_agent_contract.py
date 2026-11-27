@@ -30,6 +30,8 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/source_artifact_page_manifest.hepta',
+    'examples/hia_bootstrap/artifact_page_manifest_tables.hiastd',
     'examples/hia_bootstrap/artifact_page.hepta',
     'examples/hia_bootstrap/service_verification.hepta',
     'examples/hia_bootstrap/service_artifact.hepta',

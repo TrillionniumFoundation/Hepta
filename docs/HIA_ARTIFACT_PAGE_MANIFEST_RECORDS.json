@@ -1,0 +1,63 @@
+{
+  "records": [
+    {
+      "mode": 1,
+      "output": "page/policy/manifest.json",
+      "pieces": [
+        "source",
+        "image",
+        "compiler",
+        "tables"
+      ],
+      "role": 1,
+      "slot_count": 3,
+      "validator_count": 3
+    },
+    {
+      "mode": 1,
+      "output": "page/wire/manifest.json",
+      "pieces": [
+        "source",
+        "image",
+        "compiler",
+        "tables"
+      ],
+      "role": 2,
+      "slot_count": 3,
+      "validator_count": 3
+    },
+    {
+      "mode": 2,
+      "output": "page/manifest.json",
+      "pieces": [
+        "policy_manifest",
+        "wire_manifest",
+        "tables"
+      ],
+      "role": 0,
+      "slot_count": 2,
+      "validator_count": 5
+    },
+    {
+      "mode": 3,
+      "output": "page-worker.json",
+      "pieces": [
+        "scheduler_base",
+        "page_manifest",
+        "tables"
+      ],
+      "role": 0,
+      "slot_count": 2,
+      "validator_count": 3
+    }
+  ],
+  "request": "HIAPMF01",
+  "scheduler_admission": "opaque exact bytes; the scheduler owner independently validates the bound base",
+  "schema": "hepta.hia.artifact-page-manifest-records.v1",
+  "source_bytes": 114755,
+  "source_path": "examples/hia_bootstrap/source_artifact_page_manifest.hepta",
+  "source_sha256": "bc8b29ce1756942fa90db0b0e4aa9f772cff2ed3a0690f0c2728a645da865b27",
+  "table_bytes": 2261,
+  "table_path": "examples/hia_bootstrap/artifact_page_manifest_tables.hiastd",
+  "table_sha256": "c6071ec8e1e8dfb7f52258b2572e28dc38f9ac8df6d1aa69e93312ed0ab72d8a"
+}
