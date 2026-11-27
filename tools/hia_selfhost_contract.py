@@ -275,6 +275,8 @@ WORKER_REQUEST_SDIST_FILES = (
     'tests/fixtures/hia_component_authoring_successor_v1.json',
     'tools/hia_component_input_custody.py',
     'tools/hia_cold_compiler.py',
+    'tools/hia_component_cold_readback.py',
+    'tests/test_hia_component_cold_readback.py',
     'tools/hia_frozen_component_sources.py',
     'tests/fixtures/hia_frozen_component_source_relations.json',
 )
