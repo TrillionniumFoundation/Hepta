@@ -49,7 +49,7 @@ def add(name,edit=None,contract_edit=None,inventory_edit=None,cold_text=None,con
  if wire_edit:wire=wire_edit(wire)
  ok=True
  try:
-  declared=json.loads(cr)
+  declared=json.loads(cr.decode("utf-8"))
   if declared!=expected_contract:raise ValueError('full support contract mismatch')
   expected={**files,CONTRACT_PATH:sha256(cr).hexdigest()}
   if inv!=expected:raise ValueError('inventory mismatch')
@@ -61,6 +61,38 @@ def add(name,edit=None,contract_edit=None,inventory_edit=None,cold_text=None,con
  except (ValueError,TypeError,KeyError):ok=False
  cases.append((name,wire,ok))
 add('valid-current-snapshot')
+# json.loads(bytes) recognizes both BOM and BOM-less UTF-16/32.
+for enc,bom in [('utf-16-le','fffe'),('utf-16-be','feff'),('utf-32-le','fffe0000'),('utf-32-be','0000feff')]:
+ def wide(raw,enc=enc):return raw.decode('utf-8').encode(enc,errors='surrogatepass')
+ add('valid-cold-'+enc,cold_text=lambda raw,q,wide=wide:wide(raw))
+ add('valid-cold-'+enc+'-bom',cold_text=lambda raw,q,wide=wide,bom=bom:bytes.fromhex(bom)+wide(raw))
+ add('invalid-cold-'+enc+'-truncated',cold_text=lambda raw,q,wide=wide:wide(raw)[:-1])
+ add('valid-cold-'+enc+'-unicode',edit=lambda q:q.update(extra='中文😀'),cold_text=lambda raw,q,wide=wide:wide(raw))
+ add('valid-cold-'+enc+'-raw-surrogate',cold_text=lambda raw,q,enc=enc:('{"extra":"'+chr(0xd800)+'",'+raw.decode().lstrip()[1:]).encode(enc,errors='surrogatepass'))
+ add('invalid-cold-'+enc+'-wrong-schema',edit=lambda q:q.update(schema='wrong'),cold_text=lambda raw,q,wide=wide:wide(raw))
+# Wide encodings are only accepted for report bytes, never the strict contract.
+for enc,bom in [('utf-16-le','fffe'),('utf-16-be','feff'),('utf-32-le','fffe0000'),('utf-32-be','0000feff')]:
+ add('invalid-cold-'+enc+'-double-bom',cold_text=lambda raw,q,enc=enc,bom=bom:bytes.fromhex(bom)*2+raw.decode().encode(enc))
+ add('invalid-cold-'+enc+'-wrong-check',edit=lambda q:q['checks'].update({check_names[0]:False}),cold_text=lambda raw,q,enc=enc:raw.decode().encode(enc))
+ add('invalid-contract-'+enc,contract_text=lambda raw,c,enc=enc:raw.decode().encode(enc))
+for enc,order in [('utf-32-le','little'),('utf-32-be','big')]:
+ add('invalid-cold-'+enc+'-out-of-range-scalar',cold_text=lambda raw,q,enc=enc,order=order:'{"extra":"'.encode(enc)+(0x110000).to_bytes(4,order)+'",'.encode(enc)+raw.decode().lstrip()[1:].encode(enc))
+add('valid-cold-utf8-bom',cold_text=lambda raw,q:bytes.fromhex('efbbbf')+raw)
+add('invalid-cold-double-bom',cold_text=lambda raw,q:bytes.fromhex('efbbbfefbbbf')+raw)
+add('invalid-cold-partial-bom',cold_text=lambda raw,q:bytes.fromhex('efbb')+raw)
+add('invalid-cold-bom-after-space',cold_text=lambda raw,q:b' '+bytes.fromhex('efbbbf')+raw)
+# Cold report bytes use surrogatepass; unrelated observations may contain
+# lone escaped or raw surrogates, but required values still must match.
+def extra_string(raw, encoded):
+ return b'{"extra": "'+encoded+b'", '+raw.strip()[1:]
+add('valid-cold-lone-high-surrogate',cold_text=lambda raw,q:extra_string(raw,b'\\ud800'))
+add('valid-cold-lone-low-surrogate',cold_text=lambda raw,q:extra_string(raw,b'\\udfff'))
+add('valid-cold-high-before-nonlow',cold_text=lambda raw,q:extra_string(raw,b'\\ud800\\u0041'))
+add('valid-cold-raw-surrogate-utf8',cold_text=lambda raw,q:extra_string(raw,bytes.fromhex('eda080')))
+add('valid-cold-paired-surrogate',cold_text=lambda raw,q:extra_string(raw,b'\\ud83d\\ude00'))
+add('invalid-cold-malformed-utf8',cold_text=lambda raw,q:extra_string(raw,bytes.fromhex('ed2080')))
+add('invalid-cold-surrogate-schema',cold_text=lambda raw,q:raw.replace(b'hepta.hia.selfhost-cold-replay.v1',b'hepta.hia.selfhost-cold-replay.\\ud800'))
+add('invalid-cold-surrogate-check',cold_text=lambda raw,q:raw.replace(b'export_manifest_matches_qualification',b'export_manifest_matches_qualification\\ud800'))
 def reverse(value):
  if isinstance(value,dict):return {k:reverse(value[k]) for k in reversed(list(value))}
  if isinstance(value,list):return [reverse(x) for x in value]

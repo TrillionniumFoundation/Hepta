@@ -56,9 +56,14 @@ def native_authority_contract(root, authority_path):
     return contract
 
 
-def render(root, *, native_source_authority=None):
+def render(root, *, native_source_authority=None, hosted_report_encodings=True):
     F = root
     base = SOURCE
+    if hosted_report_encodings:
+        original = "    root = json_parse(s, o, w, 64, 64 + cold)"
+        compatible = "    cold_start = 64\n    if cold >= 3 and uint(s, 64, 3) == 12565487:\n        cold_start = 67\n    root = json_parse(s, o, w, cold_start, 64 + cold)"
+        assert base.count(original) == 1
+        base = base.replace(original, compatible, 1)
     base = base.replace('put(w, OUTPUT_SIZE_SLOT, 48)\n    return 3', 'put(w, 88, 48)\n    return 0', 1)
     base = base.replace('pins(s, w, 64 + cold, inventory)', 'pins(s, o, w, 64 + cold, inventory)', 1)
     base = base.replace('def pins(s:readbuf, w:mutbuf, at:u64, size:u64)', 'def pins(s:readbuf, o:mutbuf, w:mutbuf, at:u64, size:u64)', 1)
@@ -109,6 +114,17 @@ def render(root, *, native_source_authority=None):
             for f in ast.parse(value).body:
                 if f.name in ('decoded', 'hex4'):
                     decoder += '\n' + ast.get_source_segment(value, f) + '\n'
+    if hosted_report_encodings:
+        # json.loads(bytes) uses surrogatepass for the cold report. Keep the
+        # contract's text decoder strict, and only relax the report's own range.
+        def replace_decoder(old, new, count=1):
+            nonlocal decoder
+            assert decoder.count(old) == count, old
+            decoder = decoder.replace(old, new)
+        replace_decoder('    size = length(s)\n', '    size = length(s)\n    cold_string = 0\n    if index >= 64 and index < 64 + uint(s, 8, 8):\n        cold_string = 1\n')
+        replace_decoder('                return (6 << 32) | 1114113\n', '                if cold_string != 0:\n                    return (index << 32) | cp\n                return (6 << 32) | 1114113\n', 3)
+        replace_decoder('                return (7 << 32) | 1114113\n', '                if cold_string != 0:\n                    return (index << 32) | cp\n                return (7 << 32) | 1114113\n')
+        replace_decoder('    if cp >= 55296 and cp <= 57343:\n        return (20 << 32) | 1114113\n', '    if cp >= 55296 and cp <= 57343 and cold_string == 0:\n        return (20 << 32) | 1114113\n')
     sha_nodes = [n for n in ast.parse(source_program()).body if n.name != 'stream']
     sha_names = {n.name: 'sha_' + n.name for n in sha_nodes}
 
@@ -191,6 +207,38 @@ def render(root, *, native_source_authority=None):
     source = base + constants + decoder + digest + sha_helpers + numeric + binary_helpers
     for name, value in {'MAGIC_ADC': int.from_bytes(b'HIAADC01', 'little'), 'MAGIC_CLD': int.from_bytes(b'HIACLD01', 'little'), 'MAGIC_SPI': int.from_bytes(b'HIASPI01', 'little'), 'EXPECTED_SOURCE_COUNT': len(names)}.items():
         source = source.replace(name, str(value))
+    if hosted_report_encodings:
+        # Only JSON token access uses tagged logical positions. The frame, inventory,
+        # original contract bytes and digest paths continue to use physical positions.
+        old = '    cold_start = 64\n    if cold >= 3 and uint(s, 64, 3) == 12565487:\n        cold_start = 67\n    root = json_parse(s, o, w, cold_start, 64 + cold)'
+        new = '    cold_start = report_start(s)\n    cold_limit = report_end(s)\n    if cold_start >= cold_limit:\n        return 0\n    root = json_parse(s, o, w, cold_start, cold_limit)'
+        assert source.count(old) == 1
+        source = source.replace(old, new)
+        logical_byte_functions = {'json_value','json_separator','number_end','whitespace','zero_integer','decoded','hex4'}
+        class LogicalTokens(ast.NodeTransformer):
+            def visit_FunctionDef(self, node):
+                if node.name not in logical_byte_functions:
+                    return node
+                self.current = node.name
+                return self.generic_visit(node)
+            def visit_Call(self, node):
+                node = self.generic_visit(node)
+                if isinstance(node.func, ast.Name) and node.args and isinstance(node.args[0], ast.Name) and node.args[0].id == 's':
+                    if node.func.id == 'byte':
+                        node.func.id = 'json_byte'
+                    elif node.func.id == 'uint' and self.current == 'json_value':
+                        node.func.id = 'json_uint'
+                    elif node.func.id == 'length' and self.current in {'decoded','hex4'}:
+                        node.func.id = 'json_size'
+                        node.args.append(ast.Name(id='index',ctx=ast.Load()))
+                return node
+        source = source.replace('if index >= 64 and index < 64 + uint(s, 8, 8):', 'if index >= 268435456 or (index >= 64 and index < 64 + uint(s, 8, 8)):')
+        needle = '    if ch < 128:\n        return (index << 32) | ch\n    needed = 0'
+        wide = '    if index >= 268435456:\n        if ch > 1114111:\n            return (20 << 32) | 1114113\n        if index < 805306368 and ch >= 55296 and ch <= 56319 and index < size:\n            low = byte(s, index)\n            if low >= 56320 and low <= 57343:\n                ch = 65536 + (ch - 55296) * 1024 + low - 56320\n                index = index + 1\n        return (index << 32) | ch\n'
+        assert source.count(needle) == 1
+        source = source.replace(needle, wide + needle)
+        source = ast.unparse(ast.fix_missing_locations(LogicalTokens().visit(ast.parse(source)))) + '\n'
+        source += '\ndef report_tag(s:readbuf) -> u64:\n    n = uint(s, 8, 8)\n    if n >= 4:\n        if uint(s, 64, 4) == 65279:\n            return 805306368\n        if uint(s, 64, 4) == 4294836224:\n            return 1073741824\n    if n >= 2:\n        if uint(s, 64, 2) == 65279:\n            return 268435456\n        if uint(s, 64, 2) == 65534:\n            return 536870912\n    if n >= 4:\n        if byte(s, 64) == 0:\n            if byte(s, 65) == 0:\n                return 1073741824\n            return 536870912\n        if byte(s, 65) == 0:\n            if byte(s, 66) == 0 and byte(s, 67) == 0:\n                return 805306368\n            return 268435456\n    elif n >= 2:\n        if byte(s, 64) == 0:\n            return 536870912\n        if byte(s, 65) == 0:\n            return 268435456\n    return 0\n\ndef report_start(s:readbuf) -> u64:\n    tag = report_tag(s)\n    if tag == 0:\n        if uint(s, 8, 8) >= 3 and uint(s, 64, 3) == 12565487:\n            return 67\n        return 64\n    if tag == 805306368 and uint(s, 64, 4) == 65279:\n        return tag + 1\n    if tag == 1073741824 and uint(s, 64, 4) == 4294836224:\n        return tag + 1\n    if tag == 268435456 and uint(s, 64, 2) == 65279:\n        return tag + 1\n    if tag == 536870912 and uint(s, 64, 2) == 65534:\n        return tag + 1\n    return tag\n\ndef report_end(s:readbuf) -> u64:\n    tag = report_tag(s)\n    n = uint(s, 8, 8)\n    if tag == 0:\n        return 64 + n\n    width = choose(tag < 805306368, 2, 4)\n    if (n & (width - 1)) != 0:\n        return 0\n    return tag + (n >> choose(width == 2, 1, 2))\n\ndef json_size(s:readbuf, at:u64) -> u64:\n    if at >= 268435456:\n        return report_end(s)\n    if at >= 64 and at < 64 + uint(s, 8, 8):\n        return 64 + uint(s, 8, 8)\n    return length(s)\n\ndef json_byte(s:readbuf, at:u64) -> u64:\n    if at < 268435456:\n        return byte(s, at)\n    tag = at & 4026531840\n    width = choose(tag < 805306368, 2, 4)\n    offset = (at & 268435455) * width\n    if offset + width > uint(s, 8, 8):\n        return 1114113\n    pos = 64 + offset\n    if tag == 268435456 or tag == 805306368:\n        return uint(s, pos, width)\n    value = 0\n    i = 0\n    while i < width:\n        value = (value << 8) | byte(s, pos + i)\n        i = i + 1\n    return value\n\ndef json_uint(s:readbuf, at:u64, n:u64) -> u64:\n    if at < 268435456:\n        return uint(s, at, n)\n    i = 0\n    value = 0\n    while i < n:\n        ch = json_byte(s, at + i)\n        if ch > 127:\n            return 18446744073709551615\n        value = value | (ch << (i * 8))\n        i = i + 1\n    return value\n'
     nodes = ast.parse(source).body
     function_names = {n.name: f'f{i}' for i, n in enumerate(nodes)}
     assert len(function_names) == len(nodes)

@@ -1,0 +1,147 @@
+{
+  "actual_after": {
+    "added_encoding_cases": 50,
+    "all_refusals_exact_native_status_16_empty_stdout_stderr": true,
+    "failed": 0,
+    "negative": 65,
+    "original_case_request_bytes_and_expectations_unchanged": true,
+    "original_cases_preserved": 50,
+    "passed": 100,
+    "positive": 35
+  },
+  "actual_before": {
+    "UTF8_BOM_expected_success_actually_refused_16": true,
+    "successful_unchanged_snapshot": true
+  },
+  "candidate_before": "e0cf34e25a37eb14447e402c062c660b482d77f2",
+  "current_v2_generator_isolation": "The v2 author specializes the legacy renderer AST. Keep original SOURCE bytes and call render(hosted_report_encodings=False) from the v2 specializer. V1-only transformations default on only for the retained compatibility renderer. Final actual --check reproduces the frozen production policy byte-for-byte.",
+  "final_v2_source_check": {
+    "actual_returncode": 0,
+    "argv": [
+      "python",
+      "-B",
+      "-m",
+      "tools.generate_hia_source_release_cold_admit",
+      "--native-source-authority",
+      "docs/HIA_NATIVE_SOURCE_AUTHORITY.json",
+      "--check"
+    ],
+    "production_policy_not_written": true,
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 648,
+      "sha256": "86fe2efd8c84adc1cd844032ea605397c228b61c8b466df60e0e80df60479d9f"
+    },
+    "wall_seconds": 3.658557404000021
+  },
+  "full_original_evidence": {
+    "bytes": 1276017,
+    "files": 72,
+    "path": "docs/evidence/branch-consolidation/cold-v1-compatibility-recovery-20261127-589c.tar.gz",
+    "sha256": "3513f1643086240b8117d8bd258774c45cfb5698e9fe2970af1308932d576781",
+    "uncompressed_bytes": 10439046
+  },
+  "initial_unisolated_v2_check_failure_preserved": {
+    "bytes": 516,
+    "sha256": "c3a18f934c24f06c328e5445e906321e6db60f4f9c5b059e4b452a74e0df5255"
+  },
+  "legacy_retired": false,
+  "native_authority_contract_and_cli_dispatch_AST_unchanged": true,
+  "native_source_preservation": {
+    "all_files_exact_original_mode_blob_bytes": true,
+    "distribution_commit": "10d5d035788cf61cad9db5cb83063d4d0e777fa7",
+    "distribution_files": 15,
+    "native_source_files": 1278,
+    "source_commit": "5622dafbcfa10ad0c6f99214994ee7dcf71523e0",
+    "whole_cold_qualified": false
+  },
+  "original_observer": {
+    "commands": [
+      {
+        "actual_returncode": 1,
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "tools.qualify_hia_release_cold_admit",
+          "--image",
+          "/tmp/hepta-cold-compat-recovery-589c/before-native.elf",
+          "--compiler",
+          "/tmp/hepta-slot-recovered-branches-589c/lifecycle-evidence/B1.image.bin",
+          "--output",
+          "/tmp/hepta-cold-compat-recovery-589c/before-cases",
+          "--contract-root",
+          "/workspace/scratch/589c0a6dd85b/Hepta",
+          "--native-source-authority",
+          "/workspace/scratch/589c0a6dd85b/Hepta/docs/HIA_NATIVE_SOURCE_AUTHORITY.json",
+          "--case",
+          "valid-current-snapshot",
+          "--case",
+          "valid-cold-utf8-bom"
+        ],
+        "cwd": "/workspace/scratch/589c0a6dd85b/Hepta",
+        "stderr": {
+          "bytes": 696,
+          "path": "before.stderr",
+          "sha256": "ff73fc6427d1654f57184056108f91f48e082abd067a29d57a94c1aa7b31c4ca"
+        },
+        "stdout": {
+          "bytes": 552,
+          "path": "before.stdout",
+          "sha256": "87e2e3c593c1dac0d31824a50466a1098450cbefb999f1688a612aebbe6d5731"
+        },
+        "wall_seconds": 2.1198323400021764
+      },
+      {
+        "actual_returncode": 0,
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "tools.qualify_hia_release_cold_admit",
+          "--image",
+          "/tmp/hepta-cold-compat-recovery-589c/after-native.elf",
+          "--compiler",
+          "/tmp/hepta-slot-recovered-branches-589c/lifecycle-evidence/B1.image.bin",
+          "--output",
+          "/tmp/hepta-cold-compat-recovery-589c/after-cases",
+          "--contract-root",
+          "/workspace/scratch/589c0a6dd85b/Hepta",
+          "--native-source-authority",
+          "/workspace/scratch/589c0a6dd85b/Hepta/docs/HIA_NATIVE_SOURCE_AUTHORITY.json"
+        ],
+        "cwd": "/workspace/scratch/589c0a6dd85b/Hepta",
+        "stderr": {
+          "bytes": 0,
+          "path": "after.stderr",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stdout": {
+          "bytes": 26639,
+          "path": "after.stdout",
+          "sha256": "ef9851b16aa35642c71ea69576a8cb7e6a9f9c69e1667fc07d7eae2acb986ca6"
+        },
+        "wall_seconds": 20.283542650002346
+      }
+    ],
+    "schema": "hia-cold-v1-encoding-component-observer-v1",
+    "whole_cold_qualified": false,
+    "whole_rewrite_qualified": false
+  },
+  "recovered_semantics": [
+    "UTF-8 BOM",
+    "UTF-16 LE/BE with or without BOM",
+    "UTF-32 LE/BE with or without BOM",
+    "report-only surrogatepass",
+    "strict UTF-8 contract",
+    "malformed encoding and required-field refusals"
+  ],
+  "schema": "hia-cold-v1-compatibility-recovery-v1",
+  "scope": "Retained v1 compatibility component; explicitly development-seeded native compilation and actual ELF execution. Not source-only cold or whole native delivery.",
+  "source_branch": "31de5da7ffcfcefc35a54b87d415d3af66d69791",
+  "whole_cold_qualified": false,
+  "whole_rewrite_qualified": false
+}

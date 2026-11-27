@@ -364,7 +364,7 @@ def render(root,catalog,*,native_source_authority=None):
             return node
     scope={**vars(legacy),'SOURCE':source,'NATIVE_STRINGS':strings,'support_contract':lambda _:copy.deepcopy(contract)}
     exec(compile(ast.fix_missing_locations(Specialize().visit(tree)),__file__,'exec'),scope)
-    text,record=scope['render'](root)
+    text,record=scope['render'](root,hosted_report_encodings=False)
     record.update(schema='hepta.hia.native_cold_report_admit.v2',phase_count=len(catalog),qualification_families=len(FAMILIES),native_checks=len(CHECKS))
     if native_source_authority is not None:
         record.update(native_source_authority_sha256=sha256(Path(native_source_authority).read_bytes()).hexdigest(),
