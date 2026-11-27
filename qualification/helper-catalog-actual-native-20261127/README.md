@@ -1,0 +1,7 @@
+# Actual native helper catalog regression
+
+At exact source 7c60c268c58371e1bf82490d83ee4a3e2bc573b2, all 32 unchanged original and extension methods pass, zero skips, with 480 actual native subprocess calls. The owner completed in 53.591 seconds inside the original 180-second driver and 3-second cleanup bounds. Native subprocess and compiler limits remain 30 and 180 seconds. The Linux owner records reaping and final ECHILD; all physical source files, seed, compiler and Artifact descriptor are unchanged.
+
+The first compiler-capacity preparation failure and the second 31-pass/one-original-table-input failure remain complete. The final run explicitly selects the complete immutable original 10-stage/66-publication table for the unchanged original Stage methods, then restores the binding. The physical current 15-stage/92-publication catalog stays unchanged and is independently source-validated. This is a development compiler result, not matching-source cold qualification.
+
+The native custody archive stores all 5,341 complete files and their original typed paths and modes using content-addressed chunks. Every complete file is reconstructed and SHA256-checked on ROG and Mac. This is full file retention, not selected lines or extracted test cases. Complete source trees remain reachable through their retained ancestor commits; exact tree and physical source manifests are included. Only reproducible Git transport packs and duplicate source checkouts are excluded from the compact evidence copy. Nothing expanded has been deleted by this commit.
