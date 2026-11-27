@@ -13,6 +13,7 @@ import importlib
 import json
 import os
 from pathlib import Path
+from tests.hia_store_source_history import SOURCE_HISTORY_INPUTS
 import subprocess
 import sys
 import tempfile
@@ -93,6 +94,7 @@ def admit_originals():
     value['registry_count_adjustments'] = adjustments
     value['successor_source_adjustments'] = successors
     value['shared_source_adjustments'] = composition['shared_adjustments']
+    value['source_history_review'] = composition.get('source_history_review')
     value['shared_dependency_review'] = dict(composition['shared_dependency_review'])
     value['shared_dependency_review'].update(terminal['shared_dependency_review'])
     value['transport_terminal_successor'] = terminal
@@ -123,7 +125,7 @@ def definition_pins(raw):
 def source_pins():
     from tools.hia_selfhost_contract import file_digests
     inventory = original_inventory()
-    names = set(inventory['unchanged_files']) | set(inventory['shared_dependency_review']) | set(NEW_INPUTS)
+    names = set(inventory['unchanged_files']) | set(inventory['shared_dependency_review']) | set(NEW_INPUTS) | set(SOURCE_HISTORY_INPUTS)
     names.update(('hepta/hia_store_artifact_profile_native.py', 'tools/build_hia_store_artifact_profile.py'))
     return {**file_digests(), **{name: sha256((ROOT / name).read_bytes()).hexdigest()
                                for name in sorted(names)}}

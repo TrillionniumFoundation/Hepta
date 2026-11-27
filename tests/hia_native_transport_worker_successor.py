@@ -153,6 +153,8 @@ def _reverse_sqlite_boundary(path, raw, fixed, predecessor, previous_fixture, pr
 
 def restore_evaluation_store(raw, fixture):
     from tests.hia_store_delivery_successor import reverse_exact
+    from tests.hia_store_source_history import restore_evaluation_test
+    raw = restore_evaluation_test(raw, root=ROOT)
 
     from tests.hia_installed_distribution_history import predecessor
     raw = predecessor(EVALUATION, raw)
