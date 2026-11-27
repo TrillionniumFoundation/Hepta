@@ -159,9 +159,8 @@ class NominalJSONNativeTests(unittest.TestCase):
         cold = os.environ.get(COLD_REPORT)
         if cold:
             from tools.build_hia_nominal_json import build
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            cls.compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.compiler = compiler_from_cold_report(Path(cold))
             cls.manifest = build(cls.folder / 'cold-built', cls.compiler, Path(cold))
             cls.scope = 'MATCHING_SOURCE_COLD'
             built = json.loads((cls.manifest.parent / 'build.json').read_bytes())

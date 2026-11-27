@@ -116,9 +116,8 @@ class NativeAdmissionIONativeTests(unittest.TestCase):
         cls.root = evidence_directory(NATIVE_EVIDENCE, 'native')
         cls.before = current_sources();cls.cold = cold
         if cold is not None:
-            raw = Path(cold).read_bytes();outer = json.loads(raw)
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
-            cls.compiler = Path(nested['generations'][-1]['produced_image'])
+            raw = Path(cold).read_bytes();from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.compiler = compiler_from_cold_report(Path(cold))
             cls.cold_raw = raw
         else:
             cls.compiler = Path(development);cls.cold_raw = None

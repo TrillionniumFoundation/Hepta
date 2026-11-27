@@ -176,8 +176,8 @@ class NativeMappingNativeTests(unittest.TestCase):
         if cold:
             from tools.build_hia_json_preflight import admit_cold_build
             cls.cold_bytes = Path(cold).read_bytes()
-            report = json.loads(cls.cold_bytes)
-            nested = json.loads(Path(report['nested_report']).read_bytes())
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(Path(cold)); report = _cold_inputs.report
+            nested = _cold_inputs.location
             compiler = Path(nested['generations'][-1]['produced_image'])
             admit_cold_build(compiler.read_bytes(), cls.cold_bytes)
             cls.scope = 'MATCHING_SOURCE_COLD_COMPONENT'

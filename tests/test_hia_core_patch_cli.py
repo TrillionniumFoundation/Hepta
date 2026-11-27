@@ -100,9 +100,9 @@ class CorePatchCliNativeTests(unittest.TestCase):
         selected = os.environ.get('HEPTA_HIA_CORE_PATCH_CLI_COLD_REPORT')
         cls.cold = Path(selected) if selected else None
         if cls.cold:
-            report = json.loads(cls.cold.read_bytes())
-            assert report['status'] == 'COLD_SELFHOST_REPLAY_PASS' and all(report['checks'].values())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(cls.cold); report = _cold_inputs.report
+            assert _cold_inputs.native or (report['status'] == 'COLD_SELFHOST_REPLAY_PASS' and all(report['checks'].values()))
+            nested = _cold_inputs.location
             compiler = Path(nested['generations'][-1]['produced_image'])
             assert report['generation_sha256'] == [sha256(compiler.read_bytes()).hexdigest()] * 3
             cls.executable = build(cls.folder / 'qualified', compiler, cls.cold)

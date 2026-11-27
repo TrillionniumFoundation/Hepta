@@ -79,8 +79,8 @@ class NativeTests(unittest.TestCase):
     def setUpClass(cls):
         cold, raw = joint_cold_report()
         from tools.build_hia_json_preflight import admit_cold_build, build
-        report = json.loads(raw)
-        nested = json.loads(Path(report['nested_report']).read_bytes())
+        from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(cold); report = _cold_inputs.report
+        nested = _cold_inputs.location
         compiler = Path(nested['generations'][-1]['produced_image'])
         compiler_bytes = compiler.read_bytes()
         # Refuse stale source, profile or incomplete cold evidence before any

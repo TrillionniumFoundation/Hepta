@@ -81,8 +81,8 @@ def main():
             temporary = fixtures.enter_context(tempfile.TemporaryDirectory(prefix='hia-machine-plan-callers-'))
         if args.cold_report:
             from tools.build_hia_machine_plan import build
-            report = json.loads(args.cold_report.read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(args.cold_report); report = _cold_inputs.report
+            nested = _cold_inputs.location
             manifest = build(Path(temporary) / 'build',
                 Path(nested['generations'][-1]['produced_image']), args.cold_report)
             scope = 'MATCHING_SOURCE_COLD_SELECTED_CALLERS'

@@ -243,9 +243,8 @@ class ServiceInspectionNativeTests(unittest.TestCase):
         cls.cold, cls.manifests = cold, {}
         cls.sources = current_sources()
         if cold is not None:
-            outer = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
         else:
             compiler = Path(development)
         cls.compiler, cls.compiler_raw = compiler, compiler.read_bytes()

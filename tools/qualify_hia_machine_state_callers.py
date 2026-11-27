@@ -100,6 +100,19 @@ def cold_accounting_context(path):
     from tools.build_hia_json_preflight import admit_cold_build
     path = Path(path).resolve(strict=True)
     cold_raw, outer = _read_json(path)
+    if outer.get('schema') == 'hepta.hia.selfhost-cold-replay.v2':
+        from tools.hia_cold_compiler import read_cold_build_inputs
+        cold_inputs = read_cold_build_inputs(path)
+        _require(cold_inputs.report_bytes == cold_raw, 'native accounting cold report changed')
+        pins = source_pins()
+        captured = {name:(ROOT / name).read_bytes() for name in pins}
+        _require(all(sha256(raw).hexdigest() == pins[name] for name,raw in captured.items()),
+                 'native accounting authoring source changed during capture')
+        custody = cold_inputs.capture_custody(captured,root=ROOT)
+        return {'source_manifest':cold_inputs.sources,'cold_sha256':sha256(cold_raw).hexdigest(),
+                'compiler_sha256':sha256(cold_inputs.compiler_bytes).hexdigest(),
+                'files':[_file_binding(p,raw) for p,raw in cold_inputs.files],
+                'host_authoring_custody':custody}
     nested_path = Path(outer['nested_report']).resolve(strict=True)
     nested_raw, nested = _read_json(nested_path)
     _require(sha256(nested_raw).hexdigest() == outer.get('nested_report_sha256'),
@@ -120,7 +133,11 @@ def native_group_binding(manifests, context, sources):
     """Read each group's own actual files; do not borrow another instance's pins."""
     _require(source_pins() == sources, 'source changed before native group binding')
     if context is not None:
-        _require(context['source_manifest'] == sources, 'native group cold source differs')
+        if 'host_authoring_custody' in context:
+            _require(cold_accounting_context(context['files'][0]['path']) == context,
+                     'native group cold or authoring custody differs')
+        else:
+            _require(context['source_manifest'] == sources, 'native group cold source differs')
     owners, inputs = {}, []
     for kind, requested in manifests.items():
         source_name, protocol, version = _NATIVE_BUILD_SPECS[kind]
@@ -148,7 +165,7 @@ def native_group_binding(manifests, context, sources):
             build_raw, build = _read_json(build_path)
             _require(build.get('schema') == 'hepta.hia.' + protocol + '-build.v1'
                      and build.get('status') == 'NATIVE_CANDIDATE_BUILT'
-                     and build.get('source_manifest') == sources
+                     and build.get('source_manifest') == context['source_manifest']
                      and build.get('cold_report_sha256') == context['cold_sha256']
                      and build.get('manifest') == manifest
                      and build.get('production_activated') is False
@@ -322,9 +339,8 @@ def main():
         if args.cold_report:
             from tools.build_hia_machine_state import build
             from tools.build_hia_machine_encoding import build as build_encoding
-            outer = json.loads(args.cold_report.read_bytes())
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(args.cold_report)
             state_manifest = build(directory / 'state', compiler, args.cold_report)
             encoding_manifest = build_encoding(directory / 'encoding', compiler, args.cold_report)
         else:

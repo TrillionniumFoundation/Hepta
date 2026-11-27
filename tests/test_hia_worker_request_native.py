@@ -108,9 +108,8 @@ class WorkerRequestNativeTests(unittest.TestCase):
             cls.manifest = Path(development)
         elif cold:
             from tools.build_hia_json_preflight import build
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
             cls.manifest = build(cls.folder / 'qualified', compiler, Path(cold), candidate='worker-request')
         else:
             from tools.qualify_hia_selfhost import build_seed, compile_stage

@@ -352,9 +352,8 @@ class MachineStateNativeTests(unittest.TestCase):
         if cold:
             from tools.build_hia_machine_state import build
             from tools.build_hia_machine_encoding import build as build_encoding
-            outer = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
             cls.manifest = build(cls.folder / 'state', compiler, Path(cold))
             cls.encoding_manifest = build_encoding(cls.folder / 'encoding', compiler, Path(cold))
             cls.scope = 'MATCHING_SOURCE_COLD_BUILD'

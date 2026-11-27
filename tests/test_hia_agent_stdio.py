@@ -220,9 +220,9 @@ class AgentStdioNativeTests(unittest.TestCase):
             cls.cold=cls.root/'cold.json'
             actual=cold_replay(cls.cold)
             assert actual['status']=='COLD_SELFHOST_REPLAY_PASS',actual
-        outer=json.loads(cls.cold.read_bytes())
-        assert outer['status']=='COLD_SELFHOST_REPLAY_PASS' and all(outer['checks'].values())
-        actual=json.loads(Path(outer['nested_report']).read_bytes())
+        from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(cls.cold); outer = _cold_inputs.report
+        assert _cold_inputs.native or (outer['status']=='COLD_SELFHOST_REPLAY_PASS' and all(outer['checks'].values()))
+        actual = _cold_inputs.location
         cls.compiler=Path(actual['generations'][-1]['produced_image'])
         assert all(h==sha256(cls.compiler.read_bytes()).hexdigest() for h in outer['generation_sha256'])
         cls.executables={profile:build(cls.root/profile,cls.compiler,cls.cold,output_profile=profile)

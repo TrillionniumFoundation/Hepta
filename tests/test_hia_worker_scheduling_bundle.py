@@ -73,9 +73,8 @@ class WorkerSchedulingNativeTests(unittest.TestCase):
             from tools.build_hia_native_continuation import build
             from tools.build_hia_worker_report import build as report_build, bind_worker_bundle
             from tools.build_hia_json_preflight import build as request_build
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
             cls.manifests = {kind: str(build(cls.folder / kind, compiler, Path(cold),
                                              in_process=True, kind=kind)) for kind in FAMILIES}
             request = request_build(cls.folder / 'request', compiler, Path(cold), candidate='worker-request')

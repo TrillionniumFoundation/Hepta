@@ -1417,14 +1417,24 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
     integer(len(scope['ordered_ids']), {'ordinary': 112, 'journal': 21, 'context': 15}[scope_name])
     integer(scope['outer_seconds'], 1800)
     from tests.hia_bootstrap_caller_predecessors import bootstrap_caller_predecessor
+    from tools import hia_cold_caller_sources as cold_history
+    relation_raw = take(cold_history.FIXTURE)
+    relation_reader = take(cold_history.SOURCE)
+    if Path(cold_history.__file__).read_bytes() != relation_reader:
+        raise ValueError('native cold caller relation reader differs from captured source')
+    cold_relations = cold_history.read_relations(relation_raw)
+    cold_adjustments = {}
 
     adjustments = {}
     journal_adjustments = {}
     predecessors = {}
     for name, old_pin in scope['files'].items():
         physical = take(name)
-        raw = bootstrap_caller_predecessor(ROOT, name, physical, old_pin, take)
-        if raw != physical:
+        cold_predecessor = cold_history.restore_caller_source(name, physical, cold_relations)
+        if cold_predecessor != physical:
+            cold_adjustments[name] = {'physical': s.bytes_pin(physical), 'predecessor': s.bytes_pin(cold_predecessor)}
+        raw = bootstrap_caller_predecessor(ROOT, name, cold_predecessor, old_pin, take)
+        if raw != cold_predecessor:
             predecessors[name] = {'physical': s.bytes_pin(physical), 'predecessor': s.bytes_pin(raw)}
         if s.same(s.bytes_pin(raw), old_pin):
             continue
@@ -1486,6 +1496,8 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
         'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
         'production_source_exceptions': [], 'whole_native': False,
     }
+    if cold_adjustments:
+        proof['reviewed_native_cold_caller_adjustments'] = cold_adjustments
     if predecessors:
         proof['reviewed_scope_predecessors'] = predecessors
     if journal_adjustments:
@@ -1493,7 +1505,7 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
     if 'caller_source_admission' in inner:
         equal(inner['caller_source_admission'], proof,
               'caller producer source proof differs from independent full-source readback')
-    elif adjustments or journal_adjustments or predecessors:
+    elif adjustments or journal_adjustments or predecessors or cold_adjustments:
         raise ValueError('a current caller successor requires its exact source proof')
     # Original unmodified callers still admit the prior v2 report with no new
     # proof field. A changed caller cannot obtain that legacy path.

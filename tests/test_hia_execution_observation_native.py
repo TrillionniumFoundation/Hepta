@@ -189,9 +189,8 @@ class ExecutionObservationNativeTests(unittest.TestCase):
             cls.addClassCleanup(temporary.cleanup);cls.folder=Path(temporary.name)
         if cold:
             from tools.build_hia_execution_observation import build
-            report=json.loads(Path(cold).read_bytes())
-            nested=json.loads(Path(report['nested_report']).read_bytes())
-            path=build(cls.folder/'qualified',Path(nested['generations'][-1]['produced_image']),Path(cold))
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            path=build(cls.folder/'qualified',compiler_from_cold_report(Path(cold)),Path(cold))
         if not path:raise unittest.SkipTest('requires own cold or explicit development image')
         cls.manifest=Path(path).resolve(strict=True)
         cls.owner=installed_execution_observation(str(cls.manifest),vars(original))

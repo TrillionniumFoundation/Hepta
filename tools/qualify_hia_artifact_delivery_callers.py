@@ -159,12 +159,11 @@ def main():
     bind_admission_to_source_capture(source_admission, before)
     cold_pin = compiler_pin = None
     if cold_path is not None:
-        cold_raw = cold_path.read_bytes()
-        cold = json.loads(cold_raw)
-        nested_path = Path(cold['nested_report'])
-        nested_raw = nested_path.read_bytes()
-        nested = json.loads(nested_raw)
-        compiler = Path(nested['generations'][-1]['produced_image'])
+        from tools.hia_cold_compiler import read_cold_build_inputs
+        cold_inputs = read_cold_build_inputs(cold_path)
+        cold_raw = cold_inputs.report_bytes
+        nested_path, nested_raw = cold_inputs.location_path, cold_inputs.location_bytes
+        compiler = cold_inputs.compiler
         compiler_pin = {'path': str(compiler), 'sha256': sha256(compiler.read_bytes()).hexdigest()}
         cold_pin = {'path': str(cold_path), 'sha256': sha256(cold_raw).hexdigest(),
                     'nested_path': str(nested_path), 'nested_sha256': sha256(nested_raw).hexdigest()}
@@ -281,6 +280,7 @@ def main():
         stable = stable and sha256(cold_path.read_bytes()).hexdigest() == cold_pin['sha256']
         stable = stable and sha256(Path(cold_pin['nested_path']).read_bytes()).hexdigest() == cold_pin['nested_sha256']
         stable = stable and sha256(Path(compiler_pin['path']).read_bytes()).hexdigest() == compiler_pin['sha256']
+        stable = stable and all(path.read_bytes() == raw for path, raw in cold_inputs.files)
     anomaly_keys = ('errors', 'failures', 'skipped', 'expected_failures', 'unexpected_successes')
     clean = all(g['was_successful'] and g['actual_tests'] == len(g['planned'])
                 and all(not g[key] for key in anomaly_keys) for g in groups)

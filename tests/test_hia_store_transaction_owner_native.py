@@ -76,8 +76,8 @@ class StoreTransactionOwnerNativeTests(unittest.TestCase):
         cls.cold = cold
         cls.cold_raw = None if cold is None else Path(cold).read_bytes()
         if cold is not None:
-            outer = json.loads(cls.cold_raw)
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(Path(cold)); outer = _cold_inputs.report
+            nested = _cold_inputs.location
             cls.compiler = Path(nested['generations'][-1]['produced_image'])
         else:
             cls.compiler = Path(development).resolve(strict=True)

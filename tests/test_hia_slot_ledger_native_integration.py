@@ -145,13 +145,13 @@ class SlotLedgerNativeIntegrationTests(unittest.TestCase):
         cls.cold = Path(cold).resolve(strict=True) if cold else None
         cls.bindings = {}
         if cls.cold:
-            raw = cls.cold.read_bytes()
-            report = json.loads(raw)
-            nested_path = Path(report["nested_report"]).resolve(strict=True)
-            nested_raw = nested_path.read_bytes()
-            nested = json.loads(nested_raw)
-            cls.compiler = Path(nested["generations"][-1]["produced_image"]).resolve(strict=True)
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cold_inputs = read_cold_build_inputs(cls.cold)
+            raw = cold_inputs.report_bytes
+            nested_path, nested_raw = cold_inputs.location_path, cold_inputs.location_bytes
+            cls.compiler = cold_inputs.compiler
             admit_cold_build(cls.compiler.read_bytes(), raw)
+            cls.bindings.update(cold_inputs.files)
             for name in COLD_SELECTORS:
                 if name in os.environ:
                     value = os.environ[name]

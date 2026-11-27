@@ -479,12 +479,12 @@ class SlotLedgerNativeTests(unittest.TestCase):
         cls.temporary = None
         if cls.cold:
             from tools.build_hia_json_preflight import admit_cold_build
-            cold_bytes = cls.cold.read_bytes()
-            report = json.loads(cold_bytes)
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cold_inputs = read_cold_build_inputs(cls.cold)
+            cold_bytes = cold_inputs.report_bytes
             try:
-                nested_bytes = Path(report['nested_report']).read_bytes()
-                nested = json.loads(nested_bytes)
-                cls.compiler = Path(nested['generations'][-1]['produced_image'])
+                nested_bytes = cold_inputs.location_bytes
+                cls.compiler = cold_inputs.compiler
             except (KeyError, IndexError, TypeError) as error:
                 raise ValueError('slot ledger cold report lacks a compiler') from error
             compiler_bytes = cls.compiler.read_bytes()
@@ -507,8 +507,9 @@ class SlotLedgerNativeTests(unittest.TestCase):
             image_path = cls.manifest.parent / record['image_path']
             receipt = json.loads((cls.manifest.parent / 'build.json').read_bytes())['native_compile_receipt']
             mode = 'MATCHING_CURRENT_SOURCE_COLD_BUILD'
+            cold_inputs.unchanged()
             if (cls.cold.read_bytes() != cold_bytes
-                    or Path(report['nested_report']).read_bytes() != nested_bytes
+                    or cold_inputs.location_path.read_bytes() != nested_bytes
                     or admit_cold_build(compiler_bytes, cold_bytes) != admitted):
                 raise AssertionError('slot ledger fixture cold evidence changed')
         else:

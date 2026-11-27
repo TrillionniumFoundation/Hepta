@@ -176,9 +176,9 @@ class ExecutionBudgetNativeTests(unittest.TestCase):
             from tools.build_hia_execution_budget import admit_cold_build
             cold = Path(cold)
             cold_bytes = cold.read_bytes()
-            report = json.loads(cold_bytes)
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(cold); report = _cold_inputs.report
             try:
-                nested = json.loads(Path(report['nested_report']).read_bytes())
+                nested = _cold_inputs.location
                 compiler = Path(nested['generations'][-1]['produced_image'])
             except (KeyError, IndexError, TypeError) as error:
                 raise ValueError('execution budget cold report lacks a compiler') from error

@@ -35,9 +35,8 @@ def encoded(value):
 
 
 def selected_compiler(cold):
-    report = json.loads(Path(cold).read_bytes())
-    nested = json.loads(Path(report['nested_report']).read_bytes())
-    return Path(nested['generations'][-1]['produced_image'])
+    from tools.hia_cold_compiler import compiler_from_cold_report
+    return compiler_from_cold_report(Path(cold))
 
 
 class WorkerHelperSourceTests(unittest.TestCase):

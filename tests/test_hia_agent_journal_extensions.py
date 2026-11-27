@@ -92,9 +92,8 @@ class JournalExtensionNativeTests(unittest.TestCase):
         selected_cold = os.environ.get(COLD)
         cls.cold = Path(selected_cold) if selected_cold else None
         if cls.cold is not None:
-            report = json.loads(cls.cold.read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            cls.compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.compiler = compiler_from_cold_report(cls.cold)
 
     @classmethod
     def tearDownClass(cls):

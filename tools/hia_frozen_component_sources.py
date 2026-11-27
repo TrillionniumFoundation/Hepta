@@ -16,13 +16,84 @@ def _relations(raw):
     return json.loads(raw)['files']
 
 
+COLD_CALLER_HELPER_PIN = {'bytes': 11616, 'sha256': '533ac5680937b82ffe3b951bd568e8cf4e103b08b8f302297f442b4119f17480'}
+
+
+def cold_caller_source(root, name, raw, *, take=Path.read_bytes):
+    """Validate a new physical caller, then return a distinct predecessor view."""
+    from tools import hia_cold_caller_sources as cold
+    root = Path(root)
+    if name not in cold.PATHS:
+        return raw, None
+    try:
+        frozen = take(root / cold.FIXTURE)
+    except FileNotFoundError:
+        # Missing new authority grants no source exception. The unchanged
+        # historical complete-file gates retain responsibility for this input.
+        return raw, None
+    previous = take(root / cold.PREVIOUS_FIXTURE)
+    records = cold.read_relations(frozen, previous_raw=previous)
+    record = records[name]
+    if history_pin(raw) != record['current']:
+        return raw, None
+    physical = take(root / name)
+    helper = take(root / cold.SOURCE)
+    if (physical != raw or history_pin(helper) != COLD_CALLER_HELPER_PIN
+            or Path(cold.__file__).read_bytes() != helper):
+        raise ValueError('native cold caller physical source or helper differs')
+    prior = cold.restore_caller_source(name, raw, records)
+    pieces, end, displacement = [], 0, 0
+    for item in record['splices']:
+        current = bytes.fromhex(item['current_hex'])
+        predecessor = bytes.fromhex(item['predecessor_hex'])
+        at = item['offset'] + displacement
+        if at < end or prior[at:at + len(predecessor)] != predecessor:
+            raise ValueError('native cold caller forward predecessor differs')
+        pieces.extend((prior[end:at], current))
+        end = at + len(predecessor)
+        displacement += len(predecessor) - len(current)
+    if b''.join((*pieces, prior[end:])) != raw:
+        raise ValueError('native cold caller complete forward replay differs')
+    captured = {name: raw, cold.FIXTURE: frozen, cold.PREVIOUS_FIXTURE: previous,
+                cold.SOURCE: helper}
+    for path, data in captured.items():
+        if take(root / path) != data:
+            raise ValueError('native cold caller physical input changed at terminal: ' + path)
+    return prior, {
+        'schema': 'hepta.hia.native-cold-caller-source-admission.v1',
+        'path': name, 'physical_current': history_pin(raw),
+        'predecessor': dict(record['predecessor']),
+        'authority': {'path': cold.FIXTURE, **history_pin(frozen)},
+        'original_authority': {'path': cold.PREVIOUS_FIXTURE, **history_pin(previous)},
+        'helper': {'path': cold.SOURCE, **COLD_CALLER_HELPER_PIN},
+        'complete_predecessor_restored': True, 'complete_current_replayed': True,
+        'actual_captured_files': {path: history_pin(data) for path, data in captured.items()},
+        'terminal_reread_identical': True, 'whole_native_delivery_qualified': False,
+    }
+
+
+def bind_cold_caller_adjustment(entry, physical, proof):
+    if proof is None:
+        return entry
+    current = history_pin(physical)
+    previous = {'bytes': entry['current_bytes'], 'sha256': entry['current_sha256']}
+    if (entry.get('path') != proof['path'] or current != proof['physical_current']
+            or previous not in (proof['predecessor'], proof['physical_current'])):
+        raise ValueError('native cold caller adjustment lost its complete predecessor')
+    return {**entry, 'current_bytes': current['bytes'], 'current_sha256': current['sha256'],
+            'native_cold_caller_source': proof}
+
+
 def reviewed_source(root, name, raw, *, take=Path.read_bytes):
     if name == 'tests/test_hia_evaluation_native.py':
         raw = restore_reader_evaluation_test(raw, root=root, take=take)
     relation = _relations(take(root / FIXTURE)).get(name)
     if relation is None:
-        return raw
+        return cold_caller_source(root, name, raw, take=take)[0]
     actual = sha256(raw).hexdigest()
+    if actual not in (relation['physical_sha256'], relation['reviewed_sha256']):
+        raw, _ = cold_caller_source(root, name, raw, take=take)
+        actual = sha256(raw).hexdigest()
     # f377c5de keeps the v5 owner from importing an unselected store profile.
     # Reverse only its complete reviewed physical file, then retain the frozen
     # predecessor relation and original reviewed bytes below unchanged.
@@ -49,6 +120,19 @@ def reviewed_source(root, name, raw, *, take=Path.read_bytes):
         actual = sha256(raw).hexdigest()
         if actual != '4ee6a95691db4266c71fbb01543c81ed66fdbf382e9a7ff35797c368a8cb8da1':
             raise ValueError('Slot deferred-store source predecessor differs')
+    # 72740bd bound Evaluate's retained oracle to its exact candidate capture.
+    # Reconstruct only this complete reviewed successor before the unchanged
+    # original component relation; production service/callers are never edited.
+    if (name == 'tests/test_hia_evaluation_native.py' and actual ==
+            'ee3a01914f902f92cb5f440acd224926c92322d346e76e14fde081516b51fbe5'):
+        splice = (b"        from tests.hia_evaluation_capture_successor import original_reference\n"
+                  b"        retained = original_reference(retained)\n")
+        if raw.count(splice) != 1:
+            raise ValueError('evaluation capture source predecessor is ambiguous')
+        raw = raw.replace(splice, b'', 1)
+        actual = sha256(raw).hexdigest()
+        if actual != '732379cfe3bcb3d41688669d83d6b610ca63e4954d56b9c2398b5e0f5291fe6b':
+            raise ValueError('evaluation capture whole source predecessor differs')
     if actual == relation['reviewed_sha256']:
         return raw
     if actual != relation['physical_sha256']:
@@ -190,13 +274,26 @@ def restore(captured, *, root=None, take=Path.read_bytes):
     """
     root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
     source = dict(captured)
-    if not any(name in source and history_pin(source[name]) == expected
+    saved, native_proofs, reviewed = {}, {}, {}
+
+    def native_view(name, raw):
+        if history_pin(raw) == CURRENT[name]:
+            return raw
+        prior, proof = cold_caller_source(root, name, raw,
+            take=lambda path: _history_capture(root, path.relative_to(root).as_posix(), take, saved))
+        if proof is not None:
+            native_proofs[name] = proof
+        return prior
+
+    selected = {name: native_view(name, raw) if name in CURRENT else raw
+                for name, raw in source.items()}
+    if not any(name in selected and history_pin(selected[name]) == expected
                for name, expected in CURRENT.items()):
         return source, None
-    saved = {}
     for name, expected in CURRENT.items():
         raw = _history_capture(root, name, take, saved)
-        if (name in source and source[name] != raw) or history_pin(raw) != expected:
+        reviewed[name] = native_view(name, raw)
+        if (name in source and source[name] != raw) or history_pin(reviewed[name]) != expected:
             raise ValueError('Store history partially reverted or unreviewed composition: ' + name)
     frozen = _history_capture(root, SOURCE_HISTORY_FIXTURE, take, saved)
     if sha256(frozen).hexdigest() != SOURCE_HISTORY_FIXTURE_SHA256:
@@ -213,7 +310,7 @@ def restore(captured, *, root=None, take=Path.read_bytes):
                 'host_fd_ownership': 'e0cf34e25a37eb14447e402c062c660b482d77f2',
                 'evaluation_capture': '72740bdbc2e755e3f1c087327854cc2b6b390f4e'}):
         raise ValueError('Store history fixed relation scope differs')
-    prior = {name: history_inverse(saved[name], value['files'][name], PREDECESSORS[name])
+    prior = {name: history_inverse(reviewed[name], value['files'][name], PREDECESSORS[name])
              for name in CURRENT}
     host = _history_capture(root, HOST_SUPPORT, take, saved)
     qualifier = _history_capture(root, EVALUATION_QUALIFIER, take, saved)
@@ -240,6 +337,10 @@ def restore(captured, *, root=None, take=Path.read_bytes):
         'original_caller_and_definition_inventories_changed': False,
         'terminal_reread_identical': False,
     }
+    if native_proofs:
+        review['native_cold_caller_sources'] = native_proofs
+        review['actual_physical_current'] = {name: history_pin(saved[name]) for name in CURRENT}
+        review['historical_current_inputs'] = dict(CURRENT)
     result = {'review': review, 'captures': saved, 'root': root, 'take': take}
     verify_unchanged(result)
     return source, result

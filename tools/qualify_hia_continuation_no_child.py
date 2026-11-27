@@ -66,8 +66,8 @@ def main():
     before=file_digests(ROOT);args.evidence.mkdir(mode=0o700,parents=True,exist_ok=False)
     if args.cold_report:
         from tools.build_hia_native_continuation import build
-        cold=json.loads(args.cold_report.read_bytes());nested=json.loads(Path(cold['nested_report']).read_bytes())
-        compiler=Path(nested['generations'][-1]['produced_image'])
+        from tools.hia_cold_compiler import compiler_from_cold_report
+        compiler=compiler_from_cold_report(args.cold_report)
         manifests={kind:str(build(args.evidence/kind,compiler,args.cold_report,in_process=True,kind=kind)) for kind in FAMILIES}
         scope='MATCHING_SOURCE_COLD_TWO_ORIGINAL_INNER_SCRIPTS_NOT_FULL_MODULES'
     else:

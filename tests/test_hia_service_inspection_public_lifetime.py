@@ -93,8 +93,8 @@ class ServiceInspectionPublicLifetimeNativeTests(unittest.TestCase):
         if cold is None:
             compiler = Path(development)
         else:
-            outer = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(Path(cold)); outer = _cold_inputs.report
+            nested = _cold_inputs.location
             compiler = Path(nested['generations'][-1]['produced_image'])
         compiler_raw = compiler.read_bytes()
         manifests = {}

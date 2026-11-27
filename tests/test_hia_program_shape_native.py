@@ -60,9 +60,9 @@ class ProgramShapeNativeTests(unittest.TestCase):
         from tools.qualify_hia_selfhost import build_seed,compile_stage
         cold=os.environ.get('HEPTA_HIA_PROGRAM_SHAPE_COLD_REPORT')
         if cold:
-            report=json.loads(Path(cold).read_bytes())
-            assert report['status']=='COLD_SELFHOST_REPLAY_PASS' and all(report['checks'].values())
-            nested=json.loads(Path(report['nested_report']).read_bytes())
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(Path(cold)); report = _cold_inputs.report
+            assert _cold_inputs.native or (report['status']=='COLD_SELFHOST_REPLAY_PASS' and all(report['checks'].values()))
+            nested = _cold_inputs.location
             compiler=Path(nested['generations'][-1]['produced_image'])
             assert report['generation_sha256']==[sha256(compiler.read_bytes()).hexdigest()]*3
         else:
