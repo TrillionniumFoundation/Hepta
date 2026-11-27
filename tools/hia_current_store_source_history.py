@@ -31,7 +31,15 @@ UNCHANGED = {
     name: dict(identity) for name, identity in frozen.CURRENT.items()
     if name not in WINDOW_CURRENT
 }
-PHYSICAL_CURRENT = {**deepcopy(frozen.CURRENT), **deepcopy(WINDOW_CURRENT)}
+COLD_HELPER = 'tools/hia_evaluation_cold_source_history.py'
+COLD_HELPER_PIN = {
+    'bytes': 8539, 'sha256': 'd3d1375b2fcd4ab670cb7a2611d36077c9a31acd9b0d2290c8bc482d6077d91c',
+}
+COLD_FIXTURE = 'tests/fixtures/hia_evaluation_native_cold_history_v1.json'
+COLD_CURRENT = {**deepcopy(WINDOW_CURRENT), 'tests/test_hia_evaluation_native.py': {
+    'bytes': 50368, 'sha256': '8e55e6c0adda8629c5c484173262b63f726c727b2eeefbaf4926622e59a6cec0'}}
+WINDOW_PHYSICAL_CURRENT = {**deepcopy(frozen.CURRENT), **deepcopy(WINDOW_CURRENT)}
+PHYSICAL_CURRENT = {**deepcopy(frozen.CURRENT), **deepcopy(COLD_CURRENT)}
 NATIVE_TOOLS = 'tests/test_hia_agent_native_tools.py'
 NATIVE_TOOLS_CURRENT = {
     'bytes': 47052, 'sha256': '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2',
@@ -67,7 +75,7 @@ def _view(captured, root, take):
         return raw
 
     use_window = any(name in source and pin(source[name]) == identity
-                     for name, identity in WINDOW_CURRENT.items())
+                     for name, identity in (*WINDOW_CURRENT.items(), *COLD_CURRENT.items()))
     if not use_window and any(name in source and pin(source[name]) == identity
                               for name, identity in UNCHANGED.items()):
         # The older reader also requires the complete group for these members.
@@ -87,8 +95,22 @@ def _view(captured, root, take):
     if Path(window.__file__).read_bytes() != helper:
         raise ValueError('current Store imported another evaluation source reader')
     affected = {name: raw for name, raw in source.items() if name in frozen.CURRENT}
+    cold_history = None
     try:
-        projected, history = window.prepare(root, affected, take=capture)
+        selected_take = capture
+        evaluation = capture(root / frozen.EVALUATION_TEST)
+        if pin(evaluation) == COLD_CURRENT[frozen.EVALUATION_TEST]:
+            cold_raw = capture(root / COLD_HELPER)
+            if pin(cold_raw) != COLD_HELPER_PIN:
+                raise ValueError('current Store evaluation cold reader differs')
+            from tools import hia_evaluation_cold_source_history as cold
+            if Path(cold.__file__).read_bytes() != cold_raw:
+                raise ValueError('current Store imported another evaluation cold reader')
+            affected, cold_history = cold.prepare(root, affected, take=capture)
+            selected_take = cold_history['prior_take']
+        projected, history = window.prepare(root, affected, take=selected_take)
+        if cold_history is not None:
+            history['evaluation_cold_history'] = cold_history
     except ValueError as error:
         raise ValueError('Store history partially reverted or unreviewed composition: '
                          + str(error)) from error
@@ -102,6 +124,10 @@ def _reread(root, take, saved, window_history=None):
     if window_history is not None:
         from tools import hia_evaluation_window_history as window
         window.verify_unchanged(window_history)
+        cold_history = window_history.get('evaluation_cold_history')
+        if cold_history is not None:
+            from tools import hia_evaluation_cold_source_history as cold
+            cold.verify_unchanged(cold_history)
     for name, raw in saved.items():
         if take(root / name) != raw:
             raise ValueError('current Store physical source changed at terminal: ' + name)
@@ -120,7 +146,7 @@ def restore(captured, *, root=None, take=Path.read_bytes):
         review = deepcopy(prior_history['review'])
         review.update(
             schema=SCHEMA,
-            complete_current=deepcopy(window_history['review']['physical']),
+            complete_current={name: pin(saved[name]) for name in frozen.CURRENT},
             prior_source_history_review=deepcopy(prior_history['review']),
             evaluation_window_review=deepcopy(window_history['review']),
             physical_capture_rewritten=False,
@@ -128,6 +154,9 @@ def restore(captured, *, root=None, take=Path.read_bytes):
             current_source_reader={'path': SELF, **pin(saved[SELF])},
             terminal_reread_identical=False,
         )
+        if window_history.get('evaluation_cold_history') is not None:
+            review['evaluation_cold_review'] = deepcopy(
+                window_history['evaluation_cold_history']['review'])
         history = {'review': review, 'root': root, 'take': take, 'captures': saved,
                    'window_history': window_history, 'prior_history': prior_history}
         verify_unchanged(history)
@@ -144,8 +173,15 @@ def verify_unchanged(history):
         frozen.verify_unchanged(history)
         return
     review = history['review']
-    physical = {name: pin(history['captures'][name]) for name in PHYSICAL_CURRENT}
-    if (review.get('schema') != SCHEMA or physical != PHYSICAL_CURRENT
+    physical = {name: pin(history['captures'][name]) for name in frozen.CURRENT}
+    cold_history = history['window_history'].get('evaluation_cold_history')
+    expected = PHYSICAL_CURRENT if cold_history is not None else WINDOW_PHYSICAL_CURRENT
+    if cold_history is not None and (
+            cold_history['review'].get('physical') != COLD_CURRENT
+            or cold_history['review'].get('prior_projection') != WINDOW_CURRENT
+            or review.get('evaluation_cold_review') != cold_history['review']):
+        raise ValueError('current Store lost its actual evaluation cold source review')
+    if (review.get('schema') != SCHEMA or physical != expected
             or review.get('complete_current') != physical
             or review.get('complete_predecessors') != frozen.PREDECESSORS
             or review.get('physical_capture_rewritten') is not False
@@ -159,6 +195,8 @@ def verify_unchanged(history):
     _reread(history['root'], history['take'], history['captures'], history['window_history'])
     history['review']['prior_source_history_review'] = deepcopy(history['prior_history']['review'])
     history['review']['evaluation_window_review'] = deepcopy(history['window_history']['review'])
+    if cold_history is not None:
+        history['review']['evaluation_cold_review'] = deepcopy(cold_history['review'])
     history['review']['terminal_reread_identical'] = True
 
 

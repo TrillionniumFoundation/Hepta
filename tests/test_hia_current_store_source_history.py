@@ -16,13 +16,41 @@ from unittest.mock import patch
 from tools import hia_current_store_source_history as current
 from tools import hia_frozen_component_sources as frozen
 from tools import hia_evaluation_window_history as window
+from tools import hia_evaluation_cold_source_history as cold
 
 ROOT = Path(__file__).resolve().parents[1]
 DEPENDENCIES = (
     current.SELF, current.WINDOW_HELPER, window.FIXTURE, current.ENGINE,
     frozen.SOURCE_HISTORY_FIXTURE, frozen.HOST_SUPPORT, frozen.EVALUATION_QUALIFIER,
+    current.COLD_HELPER, current.COLD_FIXTURE,
 )
 PATHS = (*frozen.CURRENT, *DEPENDENCIES, frozen.FIXTURE)
+
+
+COMPOSITION_FIXTURE = 'tests/fixtures/hia_current_store_evaluation_cold_v1.json'
+COMPOSITION_PIN = {"bytes":10114,"sha256":"1b2cea5f51d3f023f02ea7f64f3e07cc86b7aaa1995ebaa4a95c506a7ec7ce4c"}
+COMPOSITION_PATHS = {'tools/hia_current_store_source_history.py',
+                     'tests/test_hia_store_source_history.py'}
+
+
+def composition_predecessor(name, physical):
+    path = ROOT / COMPOSITION_FIXTURE
+    raw = path.read_bytes()
+    if current.pin(raw) != COMPOSITION_PIN:
+        raise ValueError('current Store evaluation composition authority differs')
+    value = json.loads(raw)
+    if (value.get('schema') != 'hepta.hia.current-store-evaluation-cold-composition.v1'
+            or value.get('original_sixteen_test_methods_modified') is not False
+            or value.get('original_fixed_fixtures_modified') is not False
+            or value.get('prior_projection_is_physical_source') is not False
+            or set(value.get('files', {})) != COMPOSITION_PATHS):
+        raise ValueError('current Store evaluation composition scope differs')
+    row = value['files'][name]
+    reviewed = frozen.history_inverse(physical, row,
+        {'bytes': row['old_bytes'], 'sha256': row['old_sha256']})
+    if path.read_bytes() != raw or (ROOT / name).read_bytes() != physical:
+        raise ValueError('current Store evaluation composition changed during readback')
+    return reviewed
 
 
 def forward(raw, row):
@@ -48,9 +76,11 @@ class CurrentStoreSourceCompositionTests(unittest.TestCase):
         group = {name: cls.live[name] for name in frozen.CURRENT}
         if all(current.pin(group[name]) == identity
                for name, identity in current.PHYSICAL_CURRENT.items()):
-            projected, history = window.prepare(ROOT, group)
+            group, cold_history = cold.prepare(ROOT, group)
+            projected, history = window.prepare(ROOT, group, take=cold_history['prior_take'])
             cls.previous.update(projected)
             window.verify_unchanged(history)
+            cold.verify_unchanged(cold_history)
         if any(current.pin(cls.previous[name]) != identity
                for name, identity in frozen.CURRENT.items()):
             raise ValueError('source controls require the complete current or prior five-file group')
@@ -58,6 +88,9 @@ class CurrentStoreSourceCompositionTests(unittest.TestCase):
         cls.successor = dict(cls.previous)
         for name, row in value['files'].items():
             cls.successor[name] = forward(cls.previous[name], row)
+        value = json.loads(cls.live[cold.FIXTURE])
+        for name, row in value['files'].items():
+            cls.successor[name] = forward(cls.successor[name], row)
 
     @classmethod
     def tearDownClass(cls):
@@ -247,7 +280,8 @@ assert current.pin(result)['sha256']=='673b1e330b48df5915a4a544188397e33055ac023
             'tools/read_hia_store_file_capture_callers.py'})
         for name, row in value['files'].items():
             physical = (ROOT / name).read_bytes()
-            reviewed = physical
+            reviewed = (composition_predecessor(name, physical)
+                        if name in COMPOSITION_PATHS else physical)
             if name == 'tools/read_hia_store_file_capture_callers.py':
                 core_path = ROOT / 'tests/fixtures/hia_current_store_core_reader_v1.json'
                 core_raw = core_path.read_bytes()
@@ -292,7 +326,9 @@ assert current.pin(result)['sha256']=='673b1e330b48df5915a4a544188397e33055ac023
             'tests/test_hia_store_file_capture_native_readback.py'})
         for name, row in value['files'].items():
             physical = (ROOT / name).read_bytes()
-            original = frozen.history_inverse(physical, row,
+            reviewed = (composition_predecessor(name, physical)
+                        if name in COMPOSITION_PATHS else physical)
+            original = frozen.history_inverse(reviewed, row,
                 {'bytes': row['old_bytes'], 'sha256': row['old_sha256']})
             if name.startswith('tests/'):
                 def methods(source):

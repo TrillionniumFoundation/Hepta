@@ -27,9 +27,13 @@ class StoreSourceHistoryTests(unittest.TestCase):
             # These original sixteen controls exercise their unchanged v2
             # domain. Verify the actual successor first, then stage its
             # explicit prior bytes only in this test-owned historical fixture.
+            from tools import hia_evaluation_cold_source_history as cold
+            group = {name: actual[name] for name in history.CURRENT}
+            group, cold_history = cold.prepare(ROOT, group)
             projected, composition = window.prepare(
-                ROOT, {name: actual[name] for name in history.CURRENT})
+                ROOT, group, take=cold_history['prior_take'])
             window.verify_unchanged(composition)
+            cold.verify_unchanged(cold_history)
             actual.update(projected)
         for name in names:
             path = self.root / name
