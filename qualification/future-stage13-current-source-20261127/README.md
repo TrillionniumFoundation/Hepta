@@ -1,0 +1,11 @@
+# Current-source Future stage 13 and GenerationLease stage 14
+
+The original de14 cold gate and post-bootstrap gate passed. Its ordinary release exited 65. A complete native-owner diagnostic starting at phase zero located the refusal at Future DAG index 6, node 370: the retained receipt expected the preceding multiversion_runtime_handles source digest. No compiler failure or GenerationLease stage had occurred at that point.
+
+This successor retains every source, product, extent and behavior guard. PublicationCancellation was rebuilt with the current handles source and passed its entire original qualification. Its actual product identity replaces the preceding product identity in the Future qualification. The complete 27 original Future integration groups then passed, followed by a new 44-module double-compiled Future release build and a new GenerationLease receipt using that build's actual Value product.
+
+Both retained recipes were regenerated from those actual receipts. The unchanged HIA owner, DAG and SHA machine parts were each compiled twice and matched the original bytes. A separate mechanical component harness started at DAG index 6 with an empty publication inventory, executed 1075 Future nodes and 1488 GenerationLease nodes, and naturally reached phase 6000 with all ten exact expected products after 36.257024765 seconds. It did not borrow an earlier Value product. All 1289 current native source inputs were captured and reread unchanged at the end.
+
+The complete core archive contains 208 members, including the original failure state, request, diagnostics, original test outputs, new receipts and exact predecessor/current files. Every member and every retained original was independently hashed after archiving. The complete deduplicated physical archive remains at the path in qualification.json: 62,981,140 bytes, SHA256 bf56dd643a70938db1708007c41da1200c4d3f91886a3314e3cefdae4d16622f. Its complete path/content manifest is included here and inside both archives.
+
+These are component results on explicitly recorded current source. This commit does not claim a matching new cold gate, a successful ordinary whole release, installed reconstruction, public 19-role closure, or retirement. The unified source must be frozen again and pass the original complete chain before those claims are made.

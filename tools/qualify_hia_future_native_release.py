@@ -40,7 +40,7 @@ PRODUCTS = {
     'hia-future-public.core.bin': (1991586, '6615552f0a51de92ae2eba6294339167089572fa8db61ecd71751637aae4838f'),
     'hia-future-observers.core.bin': (301031, '640bda6bf540218f7e8b02c33b5c48c37681c19b2c74363b3ae5ceb46ef642ba'),
     'hia-future-iterable.core.bin': (513782, '5b4c98c6325abb9b597e70574f8cc7136af7db8758a7e2fde5910c3cd8d0fb9f'),
-    'hia-publication-cancellation.core.bin': (364751, '6458c979f848747478e4fc0fdfb15d74adec63e849558a9e22c800cb3b94ffe0'),
+    'hia-publication-cancellation.core.bin': (365653, 'b21c15d0cf683726f8a74a0cc5c9f7a5a0a809d748cea8bf82836166da6f9663'),
 }
 
 
