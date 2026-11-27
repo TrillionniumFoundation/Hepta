@@ -94,3 +94,52 @@ def historical_terminal_callers(root, sources, expected):
     if prior.count(old) != 1:
         raise ValueError('original terminal worker helper-count assertion differs')
     sources[name] = prior.replace(old, old.replace(b'37', str(len(HELPERS)).encode('ascii')), 1)
+
+
+def cold_control_source(root, name, raw, physical, adjustments):
+    """Recover a fixed caller view while retaining every actual physical input."""
+    from pathlib import Path
+    from tools import hia_cold_caller_sources as cold
+    from tools import hia_frozen_component_sources as frozen
+
+    if type(raw) is not bytes:
+        raise ValueError('cold control source must be complete immutable bytes')
+    if name not in cold.PATHS:
+        return raw
+    root = Path(root)
+    captured = {}
+
+    def take(path):
+        relative = path.relative_to(root).as_posix()
+        current = path.read_bytes()
+        if relative in physical and physical[relative] != current:
+            raise ValueError('cold control physical capture differs: ' + relative)
+        if relative in captured and captured[relative] != current:
+            raise ValueError('cold control physical input changed: ' + relative)
+        physical[relative] = current
+        captured[relative] = current
+        return current
+
+    if take(root / name) != raw:
+        raise ValueError('cold control argument differs from actual physical source')
+    helper = take(root / cold.SOURCE)
+    if (diagnostics.pin(helper) != frozen.COLD_CALLER_HELPER_PIN
+            or Path(cold.__file__).read_bytes() != helper):
+        raise ValueError('cold control source helper differs')
+    prior, proof = frozen.cold_caller_source(root, name, raw, take=take)
+    if proof is None:
+        # The generic compatibility reader leaves historical inputs to their
+        # callers. This source-control boundary admits only the fixed complete
+        # predecessor and never treats an unknown source as a historical one.
+        strict = cold.original_caller_source(root, name, raw, take=take)
+        if strict != raw:
+            raise ValueError('cold control current source lacks physical proof')
+        prior = strict
+    else:
+        if name in adjustments and adjustments[name] != proof:
+            raise ValueError('cold control source proof changed')
+        adjustments[name] = proof
+    for relative, current in tuple(captured.items()):
+        if take(root / relative) != current:
+            raise ValueError('cold control terminal physical reread differs')
+    return prior
