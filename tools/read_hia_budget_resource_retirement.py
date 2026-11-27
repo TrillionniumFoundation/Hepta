@@ -107,10 +107,10 @@ def authority(root,captured,*,require_cold):
     for name in inputs:
         raw=r.captured_bytes(ROOT/name,None,captured)
         r.equal(s.bytes_pin(raw)['sha256'],build['component_inputs'][name],'Slot component input differs')
-        if cold is not None:
-            r.equal(cold['source_manifest'].get(name),build['component_inputs'][name],
-                    'Slot input absent from same current cold')
     compiler=r.captured_bytes(value['compiler_path'],value['compiler'],captured)
+    from tools.hia_component_cold_readback import read_component_inputs
+    read_component_inputs(ROOT,build,compiler,None if cold is None else value['cold_report_path'],
+        read=lambda path:r.captured_bytes(path,None,captured))
     r.verify_pack(path,manifest,build,compiler,raw_source,raw_image,captured)
     bundle=r.capture(root/'bundle.json',value['bundle'],captured)
     r.equal(str(Path(value['bundle_path']).resolve()),str(root/'bundle.json'),'actual bundle path differs')

@@ -374,8 +374,8 @@ def literal_assignment(path,name,captured):
     raise ValueError("literal source declaration missing: "+name)
 
 def native_cold_inputs(path,cold,captured):
-    from tools.hia_cold_compiler import read_cold_build_inputs
-    inputs=read_cold_build_inputs(path)
+    from tools.hia_component_cold_readback import native_cold_inputs as read_inputs
+    inputs=read_inputs(ROOT,path,read=lambda member:captured_bytes(member,None,captured))
     if not inputs.native:
         raise ValueError("native readback cannot substitute a hosted cold domain")
     equal(inputs.report,cold,"native original cold report differs")
@@ -508,13 +508,12 @@ def construction(root,pin,captured,source,*,require_cold):
         elif build.get("source_manifest") is not None:
             raise ValueError("development builder invented cold source admission")
         if "component_inputs" in build:
-            for name,digest in build["component_inputs"].items():
-                if Path(name).is_absolute() or ".." in Path(name).parts:
-                    raise ValueError("builder input leaves its declared product root")
-                raw_input=captured_bytes(ROOT/name,None,captured)
-                equal(s.bytes_pin(raw_input)["sha256"],digest,"actual companion builder input differs")
-                if cold is not None and native_inputs is None and cold["source_manifest"].get(name)!=digest:
-                    raise ValueError("companion input is not in the same current cold")
+            from tools.hia_component_cold_readback import read_component_inputs
+            read_component_inputs(ROOT,build,compiler,None if cold is None else report["cold_report_path"],
+                read=lambda path:captured_bytes(path,None,captured))
+            if key=="bootstrap":
+                equal(build["component_inputs"],{name:value["sha256"] for name,value in source.items()},
+                      "complete bootstrap source snapshot differs from its builder inputs")
             if native_inputs is not None:
                 native_component_custody(build,native_inputs,captured)
         verify_pack(manifest_path,manifest,build,compiler,source_raw,image,captured)
@@ -1578,6 +1577,7 @@ def read_callers(directory,report_pin,*,require_cold):
         from tools.hia_native_cold_admission import SCHEMA
         if cold.get("schema")==SCHEMA:
             inputs=native_cold_inputs(cold_path,cold,captured)
+            compiler=inputs.compiler_bytes
             equal(s.bytes_pin(inputs.compiler_bytes)["sha256"],inner["compiler_sha256"],
                   "actual caller native compiler differs")
             from tools.hia_selfhost_contract import file_digests
@@ -1622,6 +1622,9 @@ def read_callers(directory,report_pin,*,require_cold):
             verify_pack(manifest_path,manifest,build,compiler,source_raw,image,captured)
             for name,digest in build["component_inputs"].items():
                 if expected_full.get(name)!=digest:raise ValueError("caller build input lacks exact cold identity")
+        from tools.hia_component_cold_readback import read_component_inputs
+        read_component_inputs(ROOT,build,compiler,cold_path,
+            read=lambda path:captured_bytes(path,None,captured))
     elif inner["qualification_mode"]=="DEVELOPMENT_COMPLETE_CALLERS":
         if require_cold:raise ValueError("DEV caller result is not current cold qualification")
     else:raise ValueError("undeclared caller construction scope")
