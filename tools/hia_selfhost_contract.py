@@ -2873,6 +2873,8 @@ SOURCE_FILES = (
     'tools/hia_terminal_admission_source_history.py',
     'tests/fixtures/hia_current_terminal_admission_history_v1.json',
     'tests/test_hia_current_terminal_admission_history.py',
+    'tools/hia_scoped_caller_source_history.py',
+    'tests/test_hia_scoped_caller_source_history.py',
 )
 
 

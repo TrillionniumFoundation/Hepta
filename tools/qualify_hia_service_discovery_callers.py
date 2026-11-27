@@ -41,6 +41,43 @@ def _source_pin(raw):
     return {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
 
 
+_SCOPED_HISTORY = 'tools/hia_scoped_caller_source_history.py'
+_SCOPED_HISTORY_PIN = {"bytes":7154,"sha256":"608b2a291cfe41d5314d15da320d835c03ee5453b9987e76d383a80ce94fe773"}
+_SCOPED_SOURCE_DIGESTS = {
+    'tests/test_hia_agent_native_tools.py': {
+        '64462e8735d8be3838396808dc05391e4437b2dba093fcc265468df6abb4cb70',
+        '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2'},
+    'tests/test_hia_agent_native_machine_validation.py': {
+        '0c03b958462d2d2b8f7304b52bf419a9832037c3db4e51fa940053176fad0cbb'},
+    'tests/test_hia_agent_native_proof_contract.py': {
+        'cb958dfdac9ae83b421a55c34109247dbda64af85171525969da55ad3a6d1f03'},
+    'tests/test_hia_agent_journal_native.py': {
+        '97dec702780d755cc5c2ffa59e5a798c98dc48a17735f9b8983bfdb610d2f263'},
+    'tests/test_hia_service_context_native.py': {
+        '94bba1ba99cfeb29baa9eb34072514803af288a11d964f950c46bea431e92c1b'},
+}
+
+
+def _review_scoped_caller(root, capture, name, raw, expected):
+    if sha256(raw).hexdigest() not in _SCOPED_SOURCE_DIGESTS.get(name, set()):
+        return raw, None
+    helper = capture(_SCOPED_HISTORY)
+    if {'bytes': len(helper), 'sha256': sha256(helper).hexdigest()} != _SCOPED_HISTORY_PIN:
+        raise ValueError('scoped caller complete source-history helper changed')
+    from tools import hia_scoped_caller_source_history as history
+    if Path(history.__file__).read_bytes() != helper:
+        raise ValueError('scoped caller imported another source-history helper')
+    saved = {name: raw, _SCOPED_HISTORY: helper}
+    def take(path):
+        relative = Path(path).relative_to(root).as_posix()
+        if relative not in saved:
+            saved[relative] = capture(relative)
+        elif (root / relative).read_bytes() != saved[relative]:
+            raise ValueError('scoped caller physical source changed between layers')
+        return saved[relative]
+    return history.predecessor(root, name, raw, expected, take=take)
+
+
 def admit_original_scope(root, scope_name):
     """Keep the fixed complete callers, with two explicit source-only successors."""
     allowed = {'ordinary': 112, 'journal': 21, 'context': 15}
@@ -61,9 +98,12 @@ def admit_original_scope(root, scope_name):
     scope = json.loads(frozen)['scopes'][scope_name]
     if len(scope['ordered_ids']) != allowed[scope_name]:
         raise ValueError('complete discovery caller count differs')
-    diagnostics, journals = {}, {}
+    diagnostics, journals, predecessors = {}, {}, {}
     for name, expected in scope['files'].items():
-        raw = capture(name)
+        physical = capture(name)
+        raw, predecessor_review = _review_scoped_caller(root, capture, name, physical, expected)
+        if predecessor_review is not None:
+            predecessors[name] = predecessor_review
         if _source_pin(raw) == expected:
             continue
         if name == _DIAGNOSTICS_CALLER:
@@ -82,10 +122,18 @@ def admit_original_scope(root, scope_name):
             from tests import hia_journal_installed_preparation as journal
             if Path(journal.__file__).read_bytes() != helper:
                 raise ValueError('discovery caller imported a different Journal admission')
-            proof = journal.admit_source(root, name, raw, expected)
+            if raw == physical:
+                proof = journal.admit_source(root, name, raw, expected)
+            else:
+                from tests.hia_installed_distribution_history import journal_preparation_source
+                proof = journal_preparation_source(root, physical, expected,
+                    take=lambda path: capture(Path(path).relative_to(root).as_posix()))
             for path, expected_capture in proof['captured_files'].items():
-                if _source_pin(capture(path)) != expected_capture:
+                selected = raw if path == name else capture(path)
+                if _source_pin(selected) != expected_capture:
                     raise ValueError('discovery Journal source changed after admission: ' + path)
+            if proof['original_method_ids'] != scope['ordered_ids']:
+                raise ValueError('discovery Journal source lost an original method')
             journals[name] = proof
         else:
             raise ValueError('an original complete caller module changed: ' + name)
@@ -100,6 +148,7 @@ def admit_original_scope(root, scope_name):
         'original_outer_seconds': scope['outer_seconds'],
         'reviewed_diagnostic_source_adjustments': diagnostics,
         'reviewed_journal_installed_preparation_source_adjustments': journals,
+        **({'reviewed_scope_predecessors': predecessors} if predecessors else {}),
         'captured_files': {name: _source_pin(raw) for name, raw in captured.items()},
         'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
         'production_source_exceptions': [], 'whole_native': False,
