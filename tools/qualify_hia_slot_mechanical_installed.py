@@ -7,6 +7,7 @@ records and complete original worker/journal scenarios.
 """
 from __future__ import annotations
 import argparse
+import ast
 import base64
 import csv
 from hashlib import sha256
@@ -24,6 +25,42 @@ from tests.hia_slot_operations_qualification_support import (
     canonical, clean_environment, regular_bytes, pin, run_owned,
     successful_exit, write_json, admit_product)
 from tools.build_hia_slot_mechanical_bundle import create
+
+
+def additional_package_resources(root):
+    """Read the package's explicit extra tuples without importing setup.py.
+
+    These are source inputs to the current wheel, separate from the unchanged
+    Agent installation_manifest catalogue and original worker scenarios.
+    """
+    declarations = {
+        'hepta/hia_executable_capture.py': ('PACKAGE_RESOURCES',),
+        'hepta/hia_nominal_program_native.py': ('PACKAGE_RESOURCES',),
+        'setup.py': ('VM_INTEGER_DIVREM_RESOURCES', 'VM_INTEGER_ARITHMETIC_RESOURCES',
+                     'VM_INTEGER_SCALAR_RESOURCES', 'NOMINAL_BYTE_BOUNDARY_RESOURCES'),
+    }
+    names, inputs = [], {}
+    for path, symbols in declarations.items():
+        raw = regular_bytes(root / path)
+        inputs[path] = {'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+        tree = ast.parse(raw, filename=path)
+        for symbol in symbols:
+            rows = [node for node in tree.body if isinstance(node, ast.Assign)
+                    and any(isinstance(target, ast.Name) and target.id == symbol
+                            for target in node.targets)]
+            if len(rows) != 1:
+                raise ValueError('one explicit extra package resource tuple required: ' + symbol)
+            values = ast.literal_eval(rows[0].value)
+            if (type(values) is not tuple or len(values) != len(set(values))
+                    or any(type(name) is not str or not name
+                           or PurePosixPath(name).is_absolute()
+                           or any(part in ('', '.', '..') for part in name.split('/'))
+                           for name in values)):
+                raise ValueError('invalid explicit extra package resource tuple: ' + symbol)
+            names.extend(values)
+    if len(names) != len(set(names)):
+        raise ValueError('duplicate extra package resource')
+    return tuple(names), inputs
 
 
 def main():
@@ -46,20 +83,25 @@ def main():
         if not successful_exit(result):
             raise AssertionError('v5 installed child did not naturally succeed: ' + label)
         return result
-    # Exact original resource catalogue; do not widen installation_manifest.
+    # The original identity catalogue is unchanged. Current setup.py also has
+    # explicit package data, which must reach staging before a real wheel build.
     from tests.test_hia_agent_installed_resources import RESOURCES, SDIST_SUPPORT_FILES
     from hepta.hia_agent_contract import installation_manifest
     source_identity = installation_manifest()
     if 'native_helpers_sha256' in source_identity:
         raise ValueError('installed driver must start outside any selected worker scope')
+    extra_resources, declarations = additional_package_resources(ROOT)
+    extra_pins = {name: pin(ROOT / name) for name in extra_resources}
     staging = args.evidence / 'source'
     staging.mkdir()
     shutil.copytree(ROOT / 'hepta', staging / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
-    for name in (*RESOURCES, *SDIST_SUPPORT_FILES, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+    for name in (*RESOURCES, *SDIST_SUPPORT_FILES, *extra_resources,
+                 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
         target = staging / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / name, target)
     started = {'schema': 'hepta.slot.mechanical.installed-driver.v2',
+        'package_resource_declarations': declarations, 'extra_package_resources': extra_pins,
         'terminal_source_authority': authority.summary(),
         'product_freeze': pin(args.product_freeze), 'source_before': before,
         'original_scope_replaced': False, 'new_version': 5,
@@ -165,7 +207,9 @@ def main():
                    'message': str(error), 'traceback': traceback.format_exc()}
         details = {}
     authority.finish()
-    stable = admit_product(ROOT, args.product_freeze, args.product_freeze_sha256) == before
+    stable = (admit_product(ROOT, args.product_freeze, args.product_freeze_sha256) == before
+              and additional_package_resources(ROOT) == (extra_resources, declarations)
+              and all(pin(ROOT / name) == expected for name, expected in extra_pins.items()))
     report = {**started, 'status': 'PASS' if failure is None and stable else 'HOLD',
         'failure': failure, 'source_stable': stable, 'commands': commands, 'details': details,
         'new_v5_scope_not_old_Native6_qualification': True,

@@ -1,0 +1,27 @@
+test_00_full_original248_derived7574_original_first_native_v5 (tests.test_hia_slot_mechanical_native.SlotMechanicalV5NativeTests.test_00_full_original248_derived7574_original_first_native_v5) ... ok
+test_01_full_public84_handled12_original_first_native_v5 (tests.test_hia_slot_mechanical_native.SlotMechanicalV5NativeTests.test_01_full_public84_handled12_original_first_native_v5) ... ok
+test_02_complete_actual_admission_and_sealed_loader_controls (tests.test_hia_slot_mechanical_native.SlotMechanicalV5NativeTests.test_02_complete_actual_admission_and_sealed_loader_controls) ... ok
+test_03_actual_wheel_original_worker_v5_source_and_unknown_replay (tests.test_hia_slot_mechanical_native.SlotMechanicalV5NativeTests.test_03_actual_wheel_original_worker_v5_source_and_unknown_replay) ... FAIL
+
+======================================================================
+FAIL: test_03_actual_wheel_original_worker_v5_source_and_unknown_replay (tests.test_hia_slot_mechanical_native.SlotMechanicalV5NativeTests.test_03_actual_wheel_original_worker_v5_source_and_unknown_replay)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/qian-qi/hia-slot-snapshot-20261127-2ac5/committed-764edf-v4/tests/test_hia_slot_mechanical_native.py", line 89, in test_03_actual_wheel_original_worker_v5_source_and_unknown_replay
+    self.run_complete("actual-wheel-v5", "tools/qualify_hia_slot_mechanical_installed.py", [
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "--controller", self.controller, "--decision", self.decision,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "--product-freeze", self.product_freeze,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "--product-freeze-sha256", self.product_freeze_sha256, "--evidence", evidence])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/hia-slot-snapshot-20261127-2ac5/committed-764edf-v4/tests/test_hia_slot_mechanical_native.py", line 47, in run_complete
+    self.assertTrue(successful_exit(result), result)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : {'command': {'argv': ['/usr/bin/python3', '-I', '-B', '/home/qian-qi/hia-slot-snapshot-20261127-2ac5/committed-764edf-v4/tools/qualify_hia_slot_mechanical_installed.py', '--controller', '/home/qian-qi/hia-slot-snapshot-20261127-2ac5/native4-764edf/suite/component/SlotMechanicalV5NativeTests/controller/manifest.json', '--decision', '/home/qian-qi/hia-slot-snapshot-20261127-2ac5/native4-764edf/suite/component/SlotMechanicalV5NativeTests/decision/manifest.json', '--product-freeze', '/home/qian-qi/hia-slot-snapshot-20261127-2ac5/native4-764edf/suite/component/SlotMechanicalV5NativeTests/qualification-source-freeze.json', '--product-freeze-sha256', 'f888d159a273ccc249c1dc3aecb92518cb555d4405128c9e6542a289bb451079', '--evidence', '/home/qian-qi/hia-slot-snapshot-20261127-2ac5/native4-764edf/suite/component/SlotMechanicalV5NativeTests/test_03_actual_wheel_original_worker_v5_source_and_unknown_replay/observations'], 'cwd': '/home/qian-qi/hia-slot-snapshot-20261127-2ac5/committed-764edf-v4', 'timeout_seconds': 1800, 'cleanup_seconds': 5, 'new_session': True, 'parent_pid': 1629781, 'environment': {'PATH': '/home/qian-qi/.cargo/bin:/home/qian-qi/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin'}, 'pid': 1645306, 'pgid': 1645306, 'owned_initial_members': [{'pid': 1645306, 'pgid': 1645306, 'sid': 1645306, 'state': 'R', 'start_ticks': 12011593}], 'effective_timeout_seconds': 1800}, 'pid': 1645306, 'exit_code': 1, 'timed_out': False, 'interruption': None, 'elapsed_seconds': 1.1742923319980036, 'owned_cleanup': {'before': [], 'middle': [], 'after': [], 'signals': [], 'reaped': True, 'cleanup_elapsed_seconds': 0.039693485989118926}, 'stdout': {'bytes': 0, 'sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}, 'stderr': {'bytes': 0, 'sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}}
+
+----------------------------------------------------------------------
+Ran 4 tests in 206.370s
+
+FAILED (failures=1)
