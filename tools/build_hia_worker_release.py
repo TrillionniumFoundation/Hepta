@@ -807,6 +807,8 @@ def build(output, compiler, cold_report, package, package_sha256, *, readonly_ar
         scheduled, _ = bind_scheduling_bundle(output / 'schedulers.json', wrapped, schedulers, portable=True)
         from tools.build_hia_artifact_page_worker import stage_installed as stage_page
         scheduled = stage_page(output, scratch, release, compiler, cold_report, scheduled)
+        from tools.build_hia_core_companion_worker import stage_installed as stage_core
+        scheduled = stage_core(output, scratch, release, compiler, cold_report, scheduled)
         reference = _copy_runtime_file(
             build_reference_executable(scratch / 'reference-cli', compiler, cold_report),
             output / 'reference' / 'hia-reference-wire')

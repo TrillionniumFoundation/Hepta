@@ -93,6 +93,8 @@ def report(r,m):
     r.publish('report.json',r.manifest(5,0,r.import_product('helpers.json'),bundle))
     from tools.hia_artifact_page_worker_recipe import publish_page
     publish_page(r)
+    from tools.hia_core_companion_worker_recipe import publish_core
+    publish_core(r)
 
 def scheduler(r,family):
     paths=[u['source'] for u in family['units']];r.compile_paths(paths+['examples/hia_bootstrap/continuation_policy.hepta']);manifests=[];images=[]
@@ -120,7 +122,9 @@ def profile(r,m):
         if name!='journal_cost':r.publish(path,raw,0o500)
     from tools.hia_artifact_page_worker_recipe import wrap_page
     page=wrap_page(r,scheduling)
-    value=r.bind(1,0,r.package(),page,*(r.import_product(name) for _,name,_ in PROFILE_IMAGES),*refs)
+    from tools.hia_core_companion_worker_recipe import wrap_core
+    core=wrap_core(r,page)
+    value=r.bind(1,0,r.package(),core,*(r.import_product(name) for _,name,_ in PROFILE_IMAGES),*refs)
     r.publish('worker.json',value)
 
 def backend_sources():

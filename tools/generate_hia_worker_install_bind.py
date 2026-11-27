@@ -436,7 +436,7 @@ def policy_source():
         'LIT_PIN_SEPARATOR': b'","',
     }.items(): literal(raw, name)
     profile = {'schema':'hepta.hia.native-helpers.v24','target':'linux-x86_64-lp64','abi':'hia-byte-six-argument-v1',
-               'base_bundle':'page-worker.json','base_bundle_sha256':'@1@','release_path':'store/@0@'}
+               'base_bundle':'core-worker.json','base_bundle_sha256':'@1@','release_path':'store/@0@'}
     for index, (field, _, _) in enumerate(PROFILE_IMAGES, 2): profile[field] = f'@{index}@'
     for index, (name, path) in enumerate(REFERENCES, 13):
         profile[name + '_path'] = path.replace('@PACKAGE@', '@0@')
