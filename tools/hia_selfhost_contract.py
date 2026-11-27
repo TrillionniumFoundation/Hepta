@@ -967,6 +967,8 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'examples/hia_bootstrap/mcp_request_audit_archive_query.hepta',
+    'examples/hia_bootstrap/mcp_request_audit_history.hepta',
     'examples/hia_bootstrap/mcp_http_admission.hepta',
     'examples/hia_bootstrap/mcp_http_bind.hepta',
     'examples/hia_bootstrap/mcp_http_body.hepta',
