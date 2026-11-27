@@ -1395,6 +1395,43 @@ def _restore_caller_journal_source(raw, provenance):
     return original
 
 
+_SCOPED_HISTORY = 'tools/hia_scoped_caller_source_history.py'
+_SCOPED_HISTORY_PIN = {"bytes":7154,"sha256":"608b2a291cfe41d5314d15da320d835c03ee5453b9987e76d383a80ce94fe773"}
+_SCOPED_SOURCE_DIGESTS = {
+    'tests/test_hia_agent_native_tools.py': {
+        '64462e8735d8be3838396808dc05391e4437b2dba093fcc265468df6abb4cb70',
+        '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2'},
+    'tests/test_hia_agent_native_machine_validation.py': {
+        '0c03b958462d2d2b8f7304b52bf419a9832037c3db4e51fa940053176fad0cbb'},
+    'tests/test_hia_agent_native_proof_contract.py': {
+        'cb958dfdac9ae83b421a55c34109247dbda64af85171525969da55ad3a6d1f03'},
+    'tests/test_hia_agent_journal_native.py': {
+        '97dec702780d755cc5c2ffa59e5a798c98dc48a17735f9b8983bfdb610d2f263'},
+    'tests/test_hia_service_context_native.py': {
+        '94bba1ba99cfeb29baa9eb34072514803af288a11d964f950c46bea431e92c1b'},
+}
+
+
+def _read_scoped_caller(root, capture, name, raw, expected):
+    if sha256(raw).hexdigest() not in _SCOPED_SOURCE_DIGESTS.get(name, set()):
+        return raw, None
+    helper = capture(_SCOPED_HISTORY)
+    if {'bytes': len(helper), 'sha256': sha256(helper).hexdigest()} != _SCOPED_HISTORY_PIN:
+        raise ValueError('scoped caller complete source-history helper changed')
+    from tools import hia_scoped_caller_source_history as history
+    if Path(history.__file__).read_bytes() != helper:
+        raise ValueError('scoped caller imported another source-history helper')
+    saved = {name: raw, _SCOPED_HISTORY: helper}
+    def take(path):
+        relative = Path(path).relative_to(root).as_posix()
+        if relative not in saved:
+            saved[relative] = capture(relative)
+        elif capture(relative) != saved[relative]:
+            raise ValueError('scoped caller selected source view changed between layers')
+        return saved[relative]
+    return history.predecessor(root, name, raw, expected, take=take)
+
+
 def _read_caller_source_admission(scope_name, declaration, inner, captured):
     """Recheck actual current callers and the optional exact successor proof."""
     if type(scope_name) is not str or scope_name not in ('ordinary', 'journal', 'context'):
@@ -1405,11 +1442,15 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
     consumed = {}
 
     def take(name, expected=None):
-        if name in consumed:
-            raise ValueError('duplicate caller source admission input')
         raw = captured_bytes(ROOT / name, expected, captured)
-        consumed[name] = s.bytes_pin(raw)
+        observed = s.bytes_pin(raw)
+        if name in consumed and consumed[name] != observed:
+            raise ValueError('caller physical source changed between layers')
+        consumed[name] = observed
         return raw
+
+    def take_path(path):
+        return take(Path(path).relative_to(ROOT).as_posix())
 
     frozen = take(_CALLER_SCOPE_AUTHORITY, _CALLER_SCOPE_AUTHORITY_PIN)
     scope = s.parse(frozen)['scopes'][scope_name]
@@ -1418,14 +1459,34 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
     integer(scope['outer_seconds'], 1800)
     from tests.hia_bootstrap_caller_predecessors import bootstrap_caller_predecessor
 
+    from tools import hia_native_cold_caller_history as native_history
+    cold_histories = []
+    cold_adjustments = {}
     adjustments = {}
     journal_adjustments = {}
     predecessors = {}
     for name, old_pin in scope['files'].items():
         physical = take(name)
-        raw = bootstrap_caller_predecessor(ROOT, name, physical, old_pin, take)
-        if raw != physical:
-            predecessors[name] = {'physical': s.bytes_pin(physical), 'predecessor': s.bytes_pin(raw)}
+        selected, selected_take, cold_history = physical, take_path, None
+        if s.bytes_pin(physical) == native_history.KNOWN_CURRENT.get(name):
+            projected, cold_history = native_history.prepare(
+                ROOT, {name: physical}, take=take_path)
+            selected, selected_take = projected[name], cold_history['prior_take']
+            cold_histories.append(cold_history)
+        def prior_take(relative):
+            return selected_take(ROOT / relative)
+        raw, predecessor_review = _read_scoped_caller(
+            ROOT, prior_take, name, selected, old_pin)
+        if predecessor_review is not None:
+            predecessors[name] = (predecessor_review if cold_history is None else {
+                'physical': s.bytes_pin(physical), 'predecessor': s.bytes_pin(raw),
+                'historical_input': s.bytes_pin(selected),
+                'prior_scope_review': predecessor_review,
+                'prior_projection_is_physical_source': False})
+        else:
+            raw = bootstrap_caller_predecessor(ROOT, name, selected, old_pin, prior_take)
+            if raw != selected:
+                predecessors[name] = {'physical': s.bytes_pin(physical), 'predecessor': s.bytes_pin(raw)}
         if s.same(s.bytes_pin(raw), old_pin):
             continue
         if name == _CALLER_JOURNAL_PATH:
@@ -1436,6 +1497,15 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
             take(_CALLER_JOURNAL_HELPER, _CALLER_JOURNAL_HELPER_PIN)
             provenance = take(_CALLER_JOURNAL_FIXTURE, _CALLER_JOURNAL_FIXTURE_PIN)
             archive = take(_CALLER_JOURNAL_ARCHIVE, _CALLER_JOURNAL_OLD)
+            if raw != physical:
+                installed = take('tests/fixtures/hia_installed_distribution_sources.json')
+                authoring = take('tests/fixtures/hia_component_authoring_successor_v1.json')
+                equal(s.bytes_pin(installed),
+                      {'bytes': 104444, 'sha256': '6b81c5c6f611e4b75fc3228936a32b1753ca33649706cda37bbae6007f69001d'},
+                      'Journal complete installed source authority differs')
+                equal(sha256(authoring).hexdigest(),
+                      '5aa32081d30e10ef29edec087c209031b21e617d9d00dcdb6338f404b01f2f5d',
+                      'Journal complete authoring source authority differs')
             if _restore_caller_journal_source(raw, provenance) != archive:
                 raise ValueError('Journal preparation original archive differs')
             authority = s.parse(provenance)
@@ -1457,6 +1527,23 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
                      _CALLER_JOURNAL_FIXTURE, _CALLER_JOURNAL_ARCHIVE)},
                 'terminal_reread_identical': True, 'production_source_exceptions': [],
             }
+            if cold_history is not None:
+                view_names = (_CALLER_JOURNAL_PATH, _CALLER_JOURNAL_HELPER,
+                    _CALLER_JOURNAL_FIXTURE, _CALLER_JOURNAL_ARCHIVE,
+                    'tests/fixtures/hia_installed_distribution_sources.json',
+                    'tests/fixtures/hia_component_authoring_successor_v1.json')
+                physical_names = (*view_names, native_history.FIXTURE,
+                                  native_history.PREVIOUS_FIXTURE)
+                journal_adjustments[name]['native_cold_source_projection'] = {
+                    'path': name, 'physical_current': s.bytes_pin(physical),
+                    'declared_predecessor': s.bytes_pin(selected),
+                    'actual_captured_files': {item: dict(consumed[item])
+                                              for item in physical_names},
+                    'historical_view_files': {item: (s.bytes_pin(selected)
+                        if item == name else dict(consumed[item])) for item in view_names},
+                    'terminal_reread_identical': True,
+                    'whole_native_delivery_qualified': False,
+                }
             continue
         if name != _CALLER_DIAGNOSTICS_PATH:
             raise ValueError('an original complete caller module changed: ' + name)
@@ -1474,6 +1561,12 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
             'original_deadline_seconds': 5, 'original_native_budget_ms': 1,
             'production_source_exception': False,
         }
+    for history in cold_histories:
+        native_history.verify_unchanged(history)
+        for name, review in history['review']['native_cold_caller_sources'].items():
+            if name in cold_adjustments and cold_adjustments[name] != review:
+                raise ValueError('independent native cold source reviews disagree')
+            cold_adjustments[name] = review
     proof = {
         'schema': 'hepta.hia.service-bootstrap-caller-source-admission.v1',
         'scope': scope_name,
@@ -1486,6 +1579,8 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
         'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
         'production_source_exceptions': [], 'whole_native': False,
     }
+    if cold_adjustments:
+        proof['reviewed_native_cold_caller_adjustments'] = cold_adjustments
     if predecessors:
         proof['reviewed_scope_predecessors'] = predecessors
     if journal_adjustments:
@@ -1493,7 +1588,7 @@ def _read_caller_source_admission(scope_name, declaration, inner, captured):
     if 'caller_source_admission' in inner:
         equal(inner['caller_source_admission'], proof,
               'caller producer source proof differs from independent full-source readback')
-    elif adjustments or journal_adjustments or predecessors:
+    elif adjustments or journal_adjustments or predecessors or cold_adjustments:
         raise ValueError('a current caller successor requires its exact source proof')
     # Original unmodified callers still admit the prior v2 report with no new
     # proof field. A changed caller cannot obtain that legacy path.

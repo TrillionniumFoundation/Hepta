@@ -75,9 +75,8 @@ class EvaluationCaptureTests(AgentToolCase):
         from tools.build_hia_json_preflight import admit_cold_build, current_sources
         cold_path = Path(cold)
         cold_raw = cold_path.read_bytes()
-        outer = json.loads(cold_raw)
-        nested = json.loads(Path(outer['nested_report']).read_bytes())
-        compiler = Path(nested['generations'][-1]['produced_image'])
+        from tools.hia_cold_compiler import compiler_from_cold_report
+        compiler = compiler_from_cold_report(cold_path)
         compiler_raw = compiler.read_bytes()
         # This is the existing cold domain, without a development override or
         # native-v2 alias. Unsupported current cold evidence must still refuse.

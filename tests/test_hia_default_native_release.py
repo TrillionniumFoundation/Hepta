@@ -147,9 +147,8 @@ class DefaultReleaseNativeTests(unittest.TestCase):
             cls.root = Path(cls.temporary.name)
             cls.addClassCleanup(cls.temporary.cleanup)
         if cold:
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
         else:
             compiler = Path(development)
         # Observe both unchanged arithmetic protocols in the independent VM

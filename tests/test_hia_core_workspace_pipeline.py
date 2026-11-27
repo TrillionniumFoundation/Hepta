@@ -162,9 +162,8 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         if cls.qualified_manifest is None:
             selected=os.environ.get('HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT')
             if not selected:self.skipTest('native public workspace custody requires matching cold report')
-            cold=Path(selected);report=json.loads(cold.read_bytes())
-            nested=json.loads(Path(report['nested_report']).read_bytes())
-            compiler=Path(nested['generations'][-1]['produced_image'])
+            cold=Path(selected);from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler=compiler_from_cold_report(cold)
             executable=build(cls.folder/'qualified-public-bridge',compiler,cold)
             cls.qualified_manifest=executable.parent/'build.json'
         return cls.qualified_manifest

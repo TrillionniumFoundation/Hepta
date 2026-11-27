@@ -137,9 +137,8 @@ class NativeDeliveryNativeTests(unittest.TestCase):
         if cold is None:
             compiler = Path(development)
         else:
-            outer = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
         cls.compiler, cls.compiler_raw, cls.cold = compiler, compiler.read_bytes(), cold
         cls.before, cls.manifests = source_pins(), {}
         for owner in OWNERS:

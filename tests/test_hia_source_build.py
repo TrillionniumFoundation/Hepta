@@ -345,8 +345,8 @@ class SourceBuilderNativeTests(unittest.TestCase):
         cls.generations = []
         if cold:
             from tools.build_hia_source_build import build
-            outer = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
+            from tools.hia_cold_compiler import read_cold_build_inputs; _cold_inputs = read_cold_build_inputs(Path(cold)); outer = _cold_inputs.report
+            nested = _cold_inputs.location
             cls.compiler = Path(nested['generations'][-1]['produced_image'])
             cls.app = build(cls.folder / 'cold-build', cls.compiler, Path(cold))
             cls.policy_image = (cls.app.parent / 'policy.image.bin').read_bytes()

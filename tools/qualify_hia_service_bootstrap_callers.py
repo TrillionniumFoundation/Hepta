@@ -98,8 +98,8 @@ def _review_scoped_caller(root, capture, name, raw, expected):
         relative = Path(path).relative_to(root).as_posix()
         if relative not in saved:
             saved[relative] = capture(relative)
-        elif (root / relative).read_bytes() != saved[relative]:
-            raise ValueError('scoped caller physical source changed between layers')
+        elif capture(relative) != saved[relative]:
+            raise ValueError('scoped caller selected source view changed between layers')
         return saved[relative]
     return history.predecessor(root, name, raw, expected, take=take)
 
@@ -138,17 +138,33 @@ def admit_original_scope(root, scope_name):
     scope = json.loads(frozen)['scopes'][scope_name]
     from tests.hia_bootstrap_caller_predecessors import bootstrap_caller_predecessor
 
+    from tools import hia_native_cold_caller_history as native_history
+    cold_histories = []
+    cold_adjustments = {}
     adjustments = {}
     journal_adjustments = {}
     predecessors = {}
     for name, expected in scope['files'].items():
         physical = capture(name)
-        raw, predecessor_review = _review_scoped_caller(root, capture, name, physical, expected)
+        selected, selected_take, cold_history = physical, capture_path, None
+        if _source_pin(physical) == native_history.KNOWN_CURRENT.get(name):
+            projected, cold_history = native_history.prepare(
+                root, {name: physical}, take=capture_path)
+            selected, selected_take = projected[name], cold_history['prior_take']
+            cold_histories.append(cold_history)
+        def prior_capture(relative):
+            return selected_take(root / relative)
+        raw, predecessor_review = _review_scoped_caller(
+            root, prior_capture, name, selected, expected)
         if predecessor_review is not None:
-            predecessors[name] = predecessor_review
+            predecessors[name] = (predecessor_review if cold_history is None else {
+                'physical': _source_pin(physical), 'predecessor': _source_pin(raw),
+                'historical_input': _source_pin(selected),
+                'prior_scope_review': predecessor_review,
+                'prior_projection_is_physical_source': False})
         else:
-            raw = bootstrap_caller_predecessor(root, name, physical, expected, capture)
-            if raw != physical:
+            raw = bootstrap_caller_predecessor(root, name, selected, expected, prior_capture)
+            if raw != selected:
                 predecessors[name] = {'physical': _source_pin(physical), 'predecessor': _source_pin(raw)}
         if _source_pin(raw) == expected:
             continue
@@ -166,7 +182,11 @@ def admit_original_scope(root, scope_name):
             from tests import hia_journal_installed_preparation as preparation
             if Path(preparation.__file__).read_bytes() != helper:
                 raise ValueError('bootstrap imported a different Journal preparation')
-            if raw == physical:
+            if cold_history is not None:
+                from tools import hia_cold_caller_sources as cold_sources
+                detail = cold_sources.journal_preparation_from_predecessor(
+                    root, physical, selected, expected, take=capture_path)
+            elif raw == physical:
                 detail = preparation.admit_source(root, name, raw, expected)
             else:
                 from tests.hia_installed_distribution_history import journal_preparation_source
@@ -194,6 +214,12 @@ def admit_original_scope(root, scope_name):
             raise ValueError('bootstrap caller diagnostic original identity differs')
         adjustments[name] = diagnostics.admit(
             name, raw, expected['sha256'], provenance)
+    for history in cold_histories:
+        native_history.verify_unchanged(history)
+        for name, review in history['review']['native_cold_caller_sources'].items():
+            if name in cold_adjustments and cold_adjustments[name] != review:
+                raise ValueError('bootstrap native cold source reviews disagree')
+            cold_adjustments[name] = review
     for name, raw in captured.items():
         if (root / name).read_bytes() != raw:
             raise ValueError('bootstrap caller captured bytes changed: ' + name)
@@ -212,6 +238,8 @@ def admit_original_scope(root, scope_name):
         'production_source_exceptions': [],
         'whole_native': False,
     }
+    if cold_adjustments:
+        proof['reviewed_native_cold_caller_adjustments'] = cold_adjustments
     if predecessors:
         proof['reviewed_scope_predecessors'] = predecessors
     if journal_adjustments:
@@ -252,9 +280,11 @@ def main():
     before=file_digests()
     bind_scope_admission_to_source_capture(source_admission,before)
     args.evidence.mkdir(mode=0o700,parents=True,exist_ok=False)
+    cold_inputs = None
     if args.cold_report is not None:
-        from tools.hia_cold_compiler import compiler_from_cold_report
-        compiler=compiler_from_cold_report(args.cold_report)
+        from tools.hia_cold_compiler import read_cold_build_inputs
+        cold_inputs = read_cold_build_inputs(args.cold_report)
+        compiler = cold_inputs.compiler
         manifest=build(args.evidence/'bootstrap',compiler,args.cold_report)
         mode='MATCHING_SOURCE_COLD_COMPLETE_CALLERS'
     else:
@@ -380,6 +410,8 @@ def main():
         suite,actual=load_declared_suite(scope['modules'])
         if list(actual)!=planned:raise ValueError('runtime TestLoader differs from the complete pinned caller inventory')
         result=unittest.TextTestRunner(verbosity=2,resultclass=Result).run(suite)
+    if cold_inputs is not None:
+        cold_inputs.unchanged()
     after=file_digests();stable=before==after
     stable=stable and compiler.read_bytes()==compiler_raw and manifest.read_bytes()==manifest_raw and (ROOT/FIXTURE).read_bytes()==raw
     success=(result.wasSuccessful() and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses

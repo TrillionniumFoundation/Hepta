@@ -1,8 +1,9 @@
 """Complete original Slot15 gate through the explicitly bound HIA controller.
 
-No original method, fixture, expected value, environment-clearing test, or
-deadline is changed. The decision image fixtures still build from their original
-matching cold report or the explicitly supplied development compiler. Run this
+The original methods, expected values, environment-clearing tests and deadlines
+remain unchanged. Exact whole-file history admits only the strict cold-selector
+setup changes. Decision images still use the original matching cold report or
+the explicitly supplied development compiler. Run this
 entry under the existing 1800-second owned gate supervisor.
 """
 from __future__ import annotations
@@ -49,31 +50,46 @@ def main():
     if (args.cold_report is not None and args.development_compiler is not None
             or args.development_manifest is not None and args.development_compiler is None):
         raise ValueError('choose matching cold or both explicit development controller and compiler')
-    if sha256((ROOT / ORIGINAL_FILE).read_bytes()).hexdigest() != ORIGINAL_SHA256:
-        raise ValueError('complete original Slot15 test file changed')
+    from tests.hia_slot_cold_selection_history import (
+        EXPECTED as HISTORY_FILES, FIXTURE as HISTORY_FIXTURE,
+        FIXTURE_SHA256 as HISTORY_FIXTURE_SHA256, reviewed)
     from tools.run_hia_unittest_gate import load_declared_suite
     from tools.hia_selfhost_contract import file_digests
     from tools.build_hia_slot_operations import INPUTS, build
     from tools.build_hia_json_preflight import admit_cold_build
+    from tools.hia_cold_compiler import compiler_from_cold_report
+
+    def pins():
+        specific = (*INPUTS, ORIGINAL_FILE, 'tools/qualify_hia_slot_operations_callers.py',
+                    'tests/hia_slot_operations_component_fixture.py',
+                    'tools/hia_cold_compiler.py', 'tests/hia_slot_cold_selection_history.py',
+                    'tests/fixtures/hia_slot_cold_selection_history_v1.json',
+                    'tests/test_hia_slot_cold_selection_history.py')
+        return {**file_digests(), **{name: sha256((ROOT / name).read_bytes()).hexdigest()
+                                   for name in specific}}
+    before = pins()
+    actual_test = (ROOT / ORIGINAL_FILE).read_bytes()
+    original_test, source_history = reviewed(ORIGINAL_FILE, actual_test, root=ROOT)
+    if sha256(original_test).hexdigest() != ORIGINAL_SHA256:
+        raise ValueError('complete original Slot15 test file changed')
+    version = 'new' if source_history is not None else 'old'
+    if (before[ORIGINAL_FILE] != sha256(actual_test).hexdigest()
+            or before[HISTORY_FIXTURE] != HISTORY_FIXTURE_SHA256
+            or any(before[name] != expected[version]['sha256']
+                   for name, expected in HISTORY_FILES.items())
+            or pins() != before):
+        raise ValueError('Slot15 source-history capture differs from initial source pins')
     suite, planned = load_declared_suite((ORIGINAL_MODULE,))
     planned = list(planned)
     if planned != list(ORIGINAL_IDS):
         raise ValueError('complete original Slot15 ordered method identities changed')
-
-    def pins():
-        specific = (*INPUTS, ORIGINAL_FILE, 'tools/qualify_hia_slot_operations_callers.py')
-        return {**file_digests(), **{name: sha256((ROOT / name).read_bytes()).hexdigest()
-                                   for name in specific}}
-    before = pins()
+    if pins() != before:
+        raise ValueError('complete Slot15 sources changed while loading the original suite')
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
     cold_bytes = nested_bytes = nested_path = None
     if args.cold_report is not None:
         cold_bytes = args.cold_report.read_bytes()
-        outer = json.loads(cold_bytes)
-        nested_path = Path(outer['nested_report']).resolve(strict=True)
-        nested_bytes = nested_path.read_bytes()
-        nested = json.loads(nested_bytes)
-        compiler = Path(nested['generations'][-1]['produced_image']).resolve(strict=True)
+        compiler = compiler_from_cold_report(args.cold_report)
         compiler_bytes = compiler.read_bytes()
         admitted = admit_cold_build(compiler_bytes, cold_bytes)
         manifest = build(args.evidence / 'controller', compiler, args.cold_report)
@@ -160,12 +176,16 @@ def main():
         os.environ.update(original_env)
     elapsed = time.monotonic() - started_at
     after = pins()
-    stable = (before == after and compiler.read_bytes() == compiler_bytes
+    terminal_test = (ROOT / ORIGINAL_FILE).read_bytes()
+    terminal_original, terminal_history = reviewed(ORIGINAL_FILE, terminal_test, root=ROOT)
+    stable = (before == after and terminal_test == actual_test
+              and terminal_original == original_test and terminal_history == source_history
+              and compiler.read_bytes() == compiler_bytes
               and manifest.read_bytes() == manifest_bytes and image_path.read_bytes() == image_bytes)
     if args.cold_report is not None:
         from tools.build_hia_json_preflight import current_sources
         stable = (stable and args.cold_report.read_bytes() == cold_bytes
-                  and nested_path.read_bytes() == nested_bytes
+                  and compiler_from_cold_report(args.cold_report) == compiler
                   and admit_cold_build(compiler_bytes, cold_bytes) == admitted
                   and current_sources() == admitted)
     anomalies = {name: getattr(result, name)
@@ -177,7 +197,9 @@ def main():
     report = {
         'schema': 'hepta.hia.slot-operations-original-slot15.v1',
         'status': 'PASS' if passed else 'HOLD', 'scope': scope,
-        'original_test_file_sha256': ORIGINAL_SHA256, 'planned': planned,
+        'original_test_file_sha256': ORIGINAL_SHA256,
+        'actual_test_file_sha256': sha256(actual_test).hexdigest(),
+        'strict_cold_selection_source_history': source_history, 'planned': planned,
         'started': started, 'stopped': stopped, 'actual_tests': result.testsRun,
         'errors': [(test.id(), error) for test, error in result.errors],
         'failures': [(test.id(), error) for test, error in result.failures],

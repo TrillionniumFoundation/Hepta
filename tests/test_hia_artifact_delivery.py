@@ -127,9 +127,13 @@ class ArtifactDeliveryNativeTests(unittest.TestCase):
         if cold is None:
             cls.compiler = Path(development)
         else:
-            cls.nested = Path(json.loads(cls.cold_raw)['nested_report'])
-            cls.nested_raw = cls.nested.read_bytes()
-            cls.compiler = Path(json.loads(cls.nested_raw)['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cls.cold_inputs = read_cold_build_inputs(cold)
+            if cls.cold_raw != cls.cold_inputs.report_bytes:
+                raise ValueError('artifact cold report changed during admission')
+            cls.nested = cls.cold_inputs.location_path
+            cls.nested_raw = cls.cold_inputs.location_bytes
+            cls.compiler = cls.cold_inputs.compiler
         cls.compiler_raw = cls.compiler.read_bytes(); cls.before = source_pins()
         cls.manifests = prepare(cls.root, cls.compiler, cold)
         cls.built = {str(path): sha256(path.read_bytes()).hexdigest()
@@ -143,7 +147,8 @@ class ArtifactDeliveryNativeTests(unittest.TestCase):
         stable = (after == cls.before and cls.compiler.read_bytes() == cls.compiler_raw
             and all(sha256(Path(path).read_bytes()).hexdigest() == digest for path, digest in cls.built.items())
             and (cls.cold is None or (Path(cls.cold).read_bytes() == cls.cold_raw
-                                      and cls.nested.read_bytes() == cls.nested_raw)))
+                                      and cls.nested.read_bytes() == cls.nested_raw
+                                      and all(path.read_bytes() == raw for path, raw in cls.cold_inputs.files))))
         record = {'schema': 'hepta.hia.artifact-delivery-component-custody.v1',
             'scope': 'DEVELOPMENT_COMPONENT' if cls.cold is None else 'MATCHING_SOURCE_COLD_COMPONENT',
             'matching_cold_report': cls.cold,

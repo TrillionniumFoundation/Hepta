@@ -8,6 +8,9 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
+_EXECUTED_SOURCE = Path(__file__).read_bytes()
+_SELF = 'tests/hia_caller_terminal_admission.py'
+
 FIXTURE = 'tests/fixtures/native_transport_worker_terminal_v2_provenance.json'
 FIXTURE_SHA256 = '15f48d98210006523a800be1a743a7f6ce8e427838fc24d157d9bf317d680957'
 TRANSPORT = 'tests/test_hia_native_transport_failures.py'
@@ -151,6 +154,8 @@ class _CapturedAdmission:
         self._captured = {}
         self._physical = {}
         self._result_source_history = {}
+        self._native_source_histories = {}
+        self._slot_source_history = {}
         self._consumed = []
         self._accepted = set()
         self._accepted_distribution = set()
@@ -198,12 +203,40 @@ class _CapturedAdmission:
                         '9f773647bacc0a59f8ddff7b45e27f9d5474bb96a7f2368fa7e18a2a98141558'}
                         or Path(current_history.__file__).read_bytes() != helper):
                     raise ValueError('caller terminal current source history helper differs')
+            selected, selected_take = physical, self._capture_path
+            from tools import hia_native_cold_caller_history as native_history
+            from tools import hia_frozen_component_sources as frozen
+            if name not in frozen.CURRENT and _pin(physical) == native_history.KNOWN_CURRENT.get(name):
+                if self._capture_path(self._root / _SELF) != _EXECUTED_SOURCE:
+                    raise ValueError('caller terminal executing reader differs from its current source')
+                projected, history = native_history.prepare(
+                    self._root, {name: physical}, take=self._capture_path)
+                selected, selected_take = projected[name], history['prior_take']
+                self._native_source_histories[name] = history
+            if (name == 'tests/test_hia_slot_ledger_native_integration.py'
+                    and _pin(physical) == {'bytes': 87678, 'sha256':
+                        'f270650c8b70ef1384d0941a85c15c68b788f8198ef88de7f3fa8c96805e853f'}):
+                if self._capture_path(self._root / _SELF) != _EXECUTED_SOURCE:
+                    raise ValueError('caller terminal executing reader differs from its current source')
+                helper = self._capture_path(
+                    self._root / 'tests/hia_slot_integration_component_history.py')
+                if _pin(helper) != {'bytes': 9108, 'sha256':
+                        '64b4b1f1ef9de781e4ef8119156ed873b89689d7aa7d6103b7ea6c1247bf5aa4'}:
+                    raise ValueError('caller terminal Slot component history differs')
+                from tests import hia_slot_integration_component_history as slot_history
+                if Path(slot_history.__file__).read_bytes() != helper:
+                    raise ValueError('caller terminal imported another Slot component history')
+                selected, slot_review = slot_history.reviewed(
+                    name, physical, root=self._root, take=self._capture_path)
+                self._slot_source_history[name] = slot_review
             selected, result_history = current_history.result_predecessor(
-                self._root, name, physical, take=self._capture_path)
+                self._root, name, selected, take=selected_take)
             if result_history is not None:
                 self._result_source_history[name] = result_history
             self._captured[name] = predecessor(
-                name, selected, root=self._root, take=self._capture_path)
+                name, selected, root=self._root, take=selected_take)
+            if name in self._native_source_histories:
+                native_history.verify_unchanged(self._native_source_histories[name])
         return self._captured[name]
 
     def _admit_pair_and_evaluation(self):
@@ -456,6 +489,9 @@ class _CapturedAdmission:
                 or self._accepted != set(self._allowed)
                 or self._accepted_diagnostics != set(self._diagnostics)):
             raise ValueError('caller terminal original source consumption is incomplete')
+        from tools import hia_native_cold_caller_history as native_history
+        for history in self._native_source_histories.values():
+            native_history.verify_unchanged(history)
         for name, raw in self._physical.items():
             if (self._root / name).read_bytes() != raw:
                 raise ValueError('caller terminal captured bytes changed: ' + name)
@@ -468,6 +504,11 @@ class _CapturedAdmission:
                 'reviewed_diagnostic_source_adjustments': dict(self._diagnostics),
                 **({'native_result_source_admission': dict(self._result_source_history)}
                    if self._result_source_history else {}),
+                **({'native_cold_caller_source_admission': {
+                    name: history['review'] for name, history in self._native_source_histories.items()}}
+                   if self._native_source_histories else {}),
+                **({'slot_integration_component_source_admission': dict(self._slot_source_history)}
+                   if self._slot_source_history else {}),
                 'captured_files': {name: _pin(raw) for name, raw in self._physical.items()},
                 'installed_distribution_predecessors': {name: _pin(raw) for name, raw in self._captured.items()
                                                        if raw != self._physical[name]},

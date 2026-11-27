@@ -362,12 +362,13 @@ class LinkedObserverNativeTests(unittest.TestCase):
         cls.cold_bytes=cls.cold_sources=None
         if cold:
             from tools.build_hia_json_preflight import admit_cold_build
-            cls.cold_bytes=Path(cold).read_bytes()
-            outer=json.loads(cls.cold_bytes);nested=json.loads(Path(outer["nested_report"]).read_bytes())
-            compiler=Path(nested["generations"][-1]["produced_image"])
-            cls.compiler_bytes=compiler.read_bytes()
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cls.cold_inputs=read_cold_build_inputs(cold)
+            cls.cold_bytes=cls.cold_inputs.report_bytes
+            compiler=cls.cold_inputs.compiler
+            cls.compiler_bytes=cls.cold_inputs.compiler_bytes
             cls.cold_sources=admit_cold_build(cls.compiler_bytes,cls.cold_bytes)
-            if any(name not in cls.cold_sources for name in OWNED):
+            if not cls.cold_inputs.native and any(name not in cls.cold_sources for name in OWNED):
                 raise ValueError("cold qualification does not bind every linked observer input")
             cls.scope="CURRENT_SOURCE_COLD_BUILT_COMPONENT"
         elif development:
@@ -387,6 +388,8 @@ class LinkedObserverNativeTests(unittest.TestCase):
         for folder in ("hepta","tools"):
             names.update(p.relative_to(ROOT).as_posix() for p in (ROOT/folder).rglob("*.py"))
         cls.inputs={name:(ROOT/name).read_bytes() for name in sorted(names)}
+        if cls.cold_bytes is not None and cls.cold_inputs.native:
+            cls.cold_inputs.capture_custody(cls.inputs,root=ROOT)
         (cls.root/"source-before.json").write_text(json.dumps({k:digest(v) for k,v in cls.inputs.items()},indent=2,sort_keys=True)+"\n")
         # This invocation always precedes NEW native compilation. Only the
         # default seed mode is literally before B0 in this test fixture.
@@ -411,6 +414,7 @@ class LinkedObserverNativeTests(unittest.TestCase):
         if cls.cold_bytes is not None:
             from tools.build_hia_json_preflight import current_sources
             held=held and Path(os.environ[COLD_REPORT]).read_bytes()==cls.cold_bytes and current_sources()==cls.cold_sources
+            held=held and all(path.read_bytes()==raw for path,raw in cls.cold_inputs.files)
         row={"schema":"hepta.hia.linked-observer-component-observations.v1","scope":cls.scope,
              "source_unchanged":unchanged,"held_inputs_unchanged":held,
              "new_native_entries":cls.new_entries,"retained_loader_entries":cls.old_entries,

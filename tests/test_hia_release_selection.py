@@ -258,9 +258,8 @@ class ReleaseSelectionKernelTests(unittest.TestCase):
         if cold_path:
             from tools.build_hia_release_selection import build
             from tools.build_hia_release_install import build as build_install
-            outer=json.loads(Path(cold_path).read_bytes())
-            inner=json.loads(Path(outer['nested_report']).read_bytes())
-            compiler=Path(inner['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler=compiler_from_cold_report(Path(cold_path))
             cls.app=build(cls.folder/'selection',compiler,Path(cold_path))
             cls.installer=build_install(cls.folder/'installer',compiler,Path(cold_path))
         else:

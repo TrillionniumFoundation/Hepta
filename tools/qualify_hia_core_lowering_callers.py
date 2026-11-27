@@ -349,9 +349,8 @@ def main():
     try:
         if args.cold_report:
             from tools.build_hia_core_lowering import build
-            outer = json.loads(args.cold_report.read_bytes())
-            nested = json.loads(Path(outer['nested_report']).read_bytes())
-            manifest = build(directory / 'build', Path(nested['generations'][-1]['produced_image']), args.cold_report)
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            manifest = build(directory / 'build', compiler_from_cold_report(args.cold_report), args.cold_report)
         else:
             source_manifest = args.development_manifest.resolve(strict=True)
             manifest = copy_bundle(source_manifest, directory / 'build')

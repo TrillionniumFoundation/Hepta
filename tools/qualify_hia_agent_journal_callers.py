@@ -79,9 +79,8 @@ def main():
     with tempfile.TemporaryDirectory(prefix='hia-journal-callers-') as tmp:
         if args.cold_report:
             from tools.build_hia_json_preflight import build
-            cold = json.loads(args.cold_report.read_bytes())
-            nested = json.loads(Path(cold['nested_report']).read_bytes())
-            manifest = build(Path(tmp) / 'build', Path(nested['generations'][-1]['produced_image']),
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            manifest = build(Path(tmp) / 'build', compiler_from_cold_report(args.cold_report),
                              args.cold_report, candidate='agent-journal')
             scope = 'MATCHING_SOURCE_COLD_SELECTED_CALLERS'
         else:

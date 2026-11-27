@@ -18,7 +18,11 @@ from tools.hia_selfhost_contract import PROFILE
 def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
-    sources = admit_cold_build(compiler_bytes, cold_bytes)
+    try:
+        sources = admit_cold_build(compiler_bytes, cold_bytes)
+    except ValueError as error:
+        raise ValueError('HIA slot-ledger build requires completed matching native cold: '
+                         + str(error)) from error
     name = 'examples/hia_bootstrap/slot_ledger.hepta'
     source_path = ROOT / name
     source = source_path.read_bytes()

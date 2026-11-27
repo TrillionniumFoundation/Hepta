@@ -97,13 +97,13 @@ class SlotOperationsResourceNativeTests(unittest.TestCase):
         cls.cold_path = Path(cold).resolve(strict=True) if cold else None
         cls.cold_bytes = cls.nested_bytes = cls.nested_path = cls.admitted = None
         if cls.cold_path is not None:
-            cls.cold_bytes = cls.cold_path.read_bytes()
-            report = json.loads(cls.cold_bytes)
-            cls.nested_path = Path(report['nested_report']).resolve(strict=True)
-            cls.nested_bytes = cls.nested_path.read_bytes()
-            nested = json.loads(cls.nested_bytes)
-            cls.compiler = Path(nested['generations'][-1]['produced_image']).resolve(strict=True)
-            cls.compiler_bytes = cls.compiler.read_bytes()
+            from tools.hia_cold_compiler import read_cold_build_inputs
+            cls.cold_inputs = read_cold_build_inputs(cls.cold_path)
+            cls.cold_bytes = cls.cold_inputs.report_bytes
+            cls.nested_path = cls.cold_inputs.location_path
+            cls.nested_bytes = cls.cold_inputs.location_bytes
+            cls.compiler = cls.cold_inputs.compiler
+            cls.compiler_bytes = cls.cold_inputs.compiler_bytes
             cls.admitted = admit_cold_build(cls.compiler_bytes, cls.cold_bytes)
         else:
             cls.compiler = Path(development).resolve(strict=True)
@@ -168,6 +168,7 @@ class SlotOperationsResourceNativeTests(unittest.TestCase):
                 or cls.nested_path.read_bytes() != cls.nested_bytes):
             raise AssertionError('Slot controller matching cold report changed')
         if cls.cold_path is not None:
+            cls.cold_inputs.unchanged()
             from tools.build_hia_json_preflight import admit_cold_build, current_sources
             if (admit_cold_build(cls.compiler_bytes, cls.cold_bytes) != cls.admitted
                     or current_sources() != cls.admitted):

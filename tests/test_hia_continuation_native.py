@@ -180,8 +180,8 @@ class ContinuationNativeTests(unittest.TestCase):
         cls.official_manifest=None
         if cold:
             from tools.build_hia_native_continuation import build
-            cold_report=json.loads(Path(cold).read_bytes());nested=json.loads(Path(cold_report['nested_report']).read_bytes())
-            compiler=Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler=compiler_from_cold_report(Path(cold))
             cls.build_directory=tempfile.TemporaryDirectory(prefix='hia-continuation-cold-build-');cls.addClassCleanup(cls.build_directory.cleanup)
             cls.official_manifest=build(Path(cls.build_directory.name)/'built',compiler,Path(cold))
             result=json.loads((cls.official_manifest.parent/'build.json').read_bytes())

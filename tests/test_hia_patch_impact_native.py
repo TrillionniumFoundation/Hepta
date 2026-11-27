@@ -176,9 +176,8 @@ class PatchImpactNativeTests(unittest.TestCase):
         if cold is not None:
             if not cold:
                 raise ValueError('patch impact cold selector must not be empty')
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
         elif development is not None:
             if not development:
                 raise ValueError('patch impact development compiler selector must not be empty')

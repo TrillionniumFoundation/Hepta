@@ -89,8 +89,8 @@ class StoreFileCaptureNativeTests(unittest.TestCase):
             raise ValueError('require exactly one current cold or explicit DEV compiler')
         cls.root,cls.temporary=directory(EVIDENCE);cls.cold=cold
         if cold is not None:
-            outer=json.loads(Path(cold).read_bytes());nested=json.loads(Path(outer['nested_report']).read_bytes())
-            cls.compiler=Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            cls.compiler=compiler_from_cold_report(Path(cold))
         else:cls.compiler=Path(development)
         cls.compiler_raw=cls.compiler.read_bytes();cls.sources=current_sources()
         cls.manifest=build(cls.root/'built',cls.compiler,cold,development=cold is None)

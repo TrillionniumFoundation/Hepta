@@ -26,6 +26,7 @@ class ComponentFixture:
         from tools.build_hia_slot_operations import INPUTS, build
         from tools.build_hia_slot_ledger import build as decision_build
         from tools.build_hia_json_preflight import admit_cold_build
+        from tools.hia_cold_compiler import compiler_from_cold_report
         from tools.build_hia_source_build import _check_pack_output
         from tools.qualify_hia_selfhost import compile_stage
         cold = os.environ.get(PREFIX + 'COLD_REPORT')
@@ -44,11 +45,7 @@ class ComponentFixture:
         cls.cold_bytes = cls.nested_bytes = cls.nested_path = cls.admitted = None
         if cls.cold_path is not None:
             cls.cold_bytes = cls.cold_path.read_bytes()
-            report = json.loads(cls.cold_bytes)
-            cls.nested_path = Path(report['nested_report']).resolve(strict=True)
-            cls.nested_bytes = cls.nested_path.read_bytes()
-            nested = json.loads(cls.nested_bytes)
-            cls.compiler = Path(nested['generations'][-1]['produced_image']).resolve(strict=True)
+            cls.compiler = compiler_from_cold_report(cls.cold_path)
             cls.compiler_bytes = cls.compiler.read_bytes()
             cls.admitted = admit_cold_build(cls.compiler_bytes, cls.cold_bytes)
         else:
@@ -113,13 +110,14 @@ class ComponentFixture:
 
     @classmethod
     def check_sources(cls):
+        from tools.hia_cold_compiler import compiler_from_cold_report
         if cls.compiler.read_bytes() != cls.compiler_bytes:
             raise AssertionError('Slot controller compiler changed')
         if any((ROOT / name).read_bytes() != raw for name, raw in cls.before.items()):
             raise AssertionError('Slot controller/component input changed')
         if cls.cold_path is not None and (
                 cls.cold_path.read_bytes() != cls.cold_bytes
-                or cls.nested_path.read_bytes() != cls.nested_bytes):
+                or compiler_from_cold_report(cls.cold_path) != cls.compiler):
             raise AssertionError('Slot controller matching cold report changed')
         if cls.cold_path is not None:
             from tools.build_hia_json_preflight import admit_cold_build, current_sources

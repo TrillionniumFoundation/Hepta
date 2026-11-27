@@ -88,9 +88,8 @@ def main():
             from tools.build_hia_machine_instructions import build
             from tools.build_hia_machine_state import build as build_state
             from tools.build_hia_machine_encoding import build as build_encoding
-            outer=json.loads(args.cold_report.read_bytes())
-            nested=json.loads(Path(outer['nested_report']).read_bytes())
-            compiler=Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler=compiler_from_cold_report(args.cold_report)
             manifest=build(directory/'instructions',compiler,args.cold_report)
             state_manifest=build_state(directory/'state',compiler,args.cold_report)
             encoding_manifest=build_encoding(directory/'encoding',compiler,args.cold_report)

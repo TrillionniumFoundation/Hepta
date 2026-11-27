@@ -109,9 +109,8 @@ def build_images(root, *, companions=False):
     if bool(cold) == bool(dev):
         raise ValueError('choose matching cold report or explicit development compiler')
     if cold:
-        outer = read_json(cold)
-        nested = read_json(outer['nested_report'])
-        compiler = Path(nested['generations'][-1]['produced_image'])
+        from tools.hia_cold_compiler import compiler_from_cold_report
+        compiler = compiler_from_cold_report(cold)
     else:
         compiler = Path(dev)
     from tools.build_hia_service_lease import build

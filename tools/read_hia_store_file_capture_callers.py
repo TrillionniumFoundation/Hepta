@@ -26,6 +26,7 @@ from tools.hia_component_cold_readback import (
 )
 from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS
 from tools.hia_frozen_component_sources import history_inverse
+from tools.hia_native_cold_caller_history import cold_caller_source
 from tools.hia_current_store_source_history import (
     restore_reader_evaluation_test, reviewed_source,
 )
@@ -650,9 +651,17 @@ def original_callers(repository, captures, *, terminal_evidence=None):
         caller_sources[name] = digest(raw)
         if digest(raw) == expected:
             continue
-        if name == WORKER_CALLER and digest(raw) == WORKER_CALLER_CURRENT_SHA256:
-            successor_sources[name] = worker_caller_source(repository, captures, raw, expected)
-            continue
+        if name == WORKER_CALLER:
+            physical = raw
+            raw, cold_proof = cold_caller_source(repository, name, raw, take=captures.take)
+            if digest(raw) == WORKER_CALLER_CURRENT_SHA256:
+                proof = worker_caller_source(repository, captures, raw, expected)
+                successor_sources[name] = proof if cold_proof is None else {
+                    'physical': pin(physical), 'reviewed': pin(raw),
+                    'native_cold_caller_source': cold_proof,
+                    'reviewed_worker_relation': proof,
+                    'fixed_complete_source_relation': True}
+                continue
         # Keep the original count-only return API for historical fixtures.
         count_only = (name == WORKER_CALLER and raw.count(current_line) == 1
                       and digest(raw.replace(current_line, old_line, 1)) == expected)

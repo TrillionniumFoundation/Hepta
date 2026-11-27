@@ -134,9 +134,8 @@ class ServiceSlotNativeTests(unittest.TestCase):
         cls.originals, cls.original_report = originals(cls.root)
         if cold is None: compiler = Path(dev)
         else:
-            outer = json.loads(Path(cold).read_bytes())
-            inner = json.loads(Path(outer['nested_report']).read_bytes())
-            compiler = Path(inner['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
         from tools.build_hia_json_preflight import current_sources
         cls.sources, cls.compiler_raw = current_sources(), compiler.read_bytes()
         cls.compiler, cls.cold = compiler, cold

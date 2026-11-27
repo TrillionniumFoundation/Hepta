@@ -292,9 +292,8 @@ class RetirementStateNativeTests(unittest.TestCase):
             from tools.build_hia_retirement_state import build
             report_path = Path(cold)
             report_bytes = report_path.read_bytes()
-            report = json.loads(report_bytes)
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(report_path)
             cls.manifest = build(cls.folder / 'qualified', compiler, report_path)
             if report_path.read_bytes() != report_bytes:
                 raise ValueError('retirement cold fixture report changed during admission')

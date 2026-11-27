@@ -130,13 +130,54 @@ def reverse_evaluation(raw, record):
     return restored
 
 
+def _installed_predecessor(name, raw, *, root=None, take=Path.read_bytes):
+    """Use canonical root-bound history only when its authorities are present."""
+    from tests.hia_installed_distribution_history import predecessor, FIXTURE as installed
+    from tests.hia_component_authoring_history import FIXTURE as component
+    root = ROOT if root is None else Path(root)
+    try:
+        take(root / installed)
+        take(root / component)
+    except FileNotFoundError:
+        # Original small mask fixtures intentionally contain no newer history.
+        # Return no exception; the original exact source gates still run.
+        return raw
+    if (name == 'tests/test_hia_evaluation_native.py'
+            and _pin(raw) == {'bytes': 50368, 'sha256':
+                '8e55e6c0adda8629c5c484173262b63f726c727b2eeefbaf4926622e59a6cec0'}):
+        helper = take(root / 'tools/hia_evaluation_cold_source_history.py')
+        if _pin(helper) != {'bytes': 8539, 'sha256':
+                'd3d1375b2fcd4ab670cb7a2611d36077c9a31acd9b0d2290c8bc482d6077d91c'}:
+            raise ValueError('installed Evaluation cold history reader differs')
+        from tools import hia_evaluation_cold_source_history as cold
+        if Path(cold.__file__).read_bytes() != helper:
+            raise ValueError('installed Evaluation imported another cold history reader')
+        projected, history = cold.prepare(root, {name: raw}, take=take)
+        try:
+            return predecessor(name, projected[name], root=root, take=history['prior_take'])
+        finally:
+            cold.verify_unchanged(history)
+    return predecessor(name, raw, root=root, take=take)
+
+
+def _cold_source(name, raw, *, take=Path.read_bytes):
+    from tools.hia_native_cold_caller_history import cold_caller_source
+    return cold_caller_source(ROOT, name, raw, take=take)
+
+
+def _bind_cold(entry, physical, proof):
+    from tools.hia_native_cold_caller_history import bind_cold_caller_adjustment
+    return bind_cold_caller_adjustment(entry, physical, proof)
+
+
 def _reverse_sqlite_boundary(path, raw, fixed, predecessor, previous_fixture, previous_pin,
                              *, take=Path.read_bytes):
     """Restore a fixed test-only predecessor before replaying its own inverse."""
     from tests.hia_store_delivery_successor import reverse_exact
 
     from tests.hia_installed_distribution_history import predecessor as installed_predecessor
-    raw = installed_predecessor(path, raw, root=ROOT, take=take)
+    raw, _ = _cold_source(path, raw, take=take)
+    raw = _installed_predecessor(path, raw, root=ROOT, take=take)
     if _pin(fixed) != SQLITE_BOUNDARY_FIXTURE_PIN:
         raise ValueError('transport SQLite boundary provenance changed')
     value = json.loads(fixed)
@@ -155,10 +196,10 @@ def _reverse_sqlite_boundary(path, raw, fixed, predecessor, previous_fixture, pr
 def restore_evaluation_store(raw, fixture, *, take=Path.read_bytes):
     from tests.hia_store_delivery_successor import reverse_exact
     from tests.hia_store_source_history import restore_evaluation_test
-    raw = restore_evaluation_test(raw, root=ROOT)
+    raw = restore_evaluation_test(raw, root=ROOT, take=take)
 
     from tests.hia_installed_distribution_history import predecessor
-    raw = predecessor(EVALUATION, raw, root=ROOT, take=take)
+    raw = _installed_predecessor(EVALUATION, raw, root=ROOT, take=take)
     if sha256(fixture).hexdigest() != EVALUATION_STORE_FIXTURE_SHA256:
         raise ValueError('evaluation typed Store test provenance changed')
     record = json.loads(fixture)
@@ -184,6 +225,8 @@ SQL_EFFECT_TEST = 'tests/hia_native_delivery_sql.py'
 
 def restore_sql_source(name, raw, capture, expected):
     from tests.hia_store_delivery_successor import reverse_exact
+    raw, _ = _cold_source(name, raw,
+        take=lambda path: capture(path.relative_to(ROOT).as_posix()))
 
     authority = capture(SQL_SOURCE_FIXTURE)
     if _pin(authority) != SQL_SOURCE_FIXTURE_PIN:
@@ -214,6 +257,7 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
         raise ValueError('transport successor independent original source pins differ')
     captured = {name: (ROOT / name).read_bytes() for name in PATHS}
     history_sources = {}
+    cold_proofs = {}
 
     def capture_history(path):
         name = path.relative_to(ROOT).as_posix()
@@ -248,7 +292,10 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
             raise ValueError('transport successor changes its exact reviewed scope')
         from tests.hia_installed_distribution_history import predecessor
         for name in PATHS:
-            current = predecessor(name, captured[name], root=ROOT, take=capture_history)
+            selected, proof = _cold_source(name, captured[name], take=capture_history)
+            if proof is not None:
+                cold_proofs[name] = proof
+            current = _installed_predecessor(name, selected, root=ROOT, take=capture_history)
             if name == TRANSPORT and _pin(current) == SQLITE_BOUNDARY_SOURCES[TRANSPORT]:
                 boundary = (ROOT / SQLITE_BOUNDARY_FIXTURE).read_bytes()
                 current = _reverse_sqlite_boundary(
@@ -259,6 +306,9 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
                 current = restore_sql_source(name, current, capture_sql, value['files'][name]['new'])
             reverse_one(current, value['files'][name], OLD[name])
     evaluation_raw = (ROOT / EVALUATION).read_bytes()
+    _, evaluation_cold = _cold_source(EVALUATION, evaluation_raw, take=capture_history)
+    if evaluation_cold is not None:
+        cold_proofs[EVALUATION] = evaluation_cold
     if any(_canonical(parsed[kind]['unchanged_files'][EVALUATION])
            != _canonical(EVALUATION_OLD) for kind in ORIGINALS):
         raise ValueError('evaluation successor independent original pins differ')
@@ -383,6 +433,18 @@ def _admit_terminal_sources_before_qualifiers(original_value, *, original_kind):
             })
         result['separate_test_successor_count'] = 3
         result['c019_unchanged_originals_after_both_reviews'] = 83
+    if cold_proofs:
+        physical = {**captured, **history_sources, EVALUATION: evaluation_raw}
+        for name, proof in cold_proofs.items():
+            scope = result['source_adjustments'] if name != DELIVERY else result['shared_adjustments']
+            if name in scope:
+                scope[name] = _bind_cold(scope[name], physical[name], proof)
+            if name == DELIVERY and name in result['shared_dependency_review']:
+                result['shared_dependency_review'][name] = _pin(physical[name])
+        result['native_cold_caller_source_admission'] = {
+            'sources': cold_proofs,
+            'actual_captured_files': {name: _pin(raw) for name, raw in physical.items()},
+            'terminal_reread_identical': True, 'original_inventories_unchanged': True}
     return result
 
 
@@ -586,6 +648,33 @@ CURRENT_TERMINAL_SOURCE_PIN = {"bytes":26873,"sha256":"0c902e969fdd89e27430c6108
 
 
 def _current_terminal_dependency(raw, capture):
+    if _pin(raw) == {"bytes":29791,"sha256":"46111a1e82ba4fbb7153162325ddbdda531d6e0d18de80a6ad58adcb6a3c0b0b"}:
+        helper_path = 'tools/hia_native_cold_composition_history.py'
+        helper = capture(helper_path)
+        if _pin(helper) != {"bytes":10987,"sha256":"c5a53a1adf23dfefb8f24f3a8cc82d7cf64324362746ac5d25be2f2a663d7b28"}:
+            raise ValueError('native cold terminal composition reader changed')
+        from tools import hia_native_cold_composition_history as composition
+        if Path(composition.__file__).read_bytes() != helper:
+            raise ValueError('native cold terminal imported another composition reader')
+        projected, current = composition.prepare(
+            ROOT, {QUALIFIER_DEPENDENCY_PATH: raw},
+            take=lambda path: capture(path.relative_to(ROOT).as_posix()))
+        try:
+            older, review = _current_terminal_dependency(
+                projected[QUALIFIER_DEPENDENCY_PATH],
+                lambda name: current['prior_take'](ROOT / name))
+            if review is None:
+                raise ValueError('native cold terminal lost its retained source admission')
+            composition.verify_unchanged(current)
+            return older, {
+                'schema': 'hepta.hia.native-cold-terminal-composition-review.v1',
+                'physical': _pin(raw), 'predecessor': _pin(older),
+                'composition_review': current['review'],
+                'historical_terminal_review': review,
+                'prior_projection_is_physical_source': False,
+                'terminal_reread_identical': True}
+        finally:
+            composition.verify_unchanged(current)
     if _pin(raw) != CURRENT_TERMINAL_SOURCE_PIN:
         return raw, None
     helper = capture(CURRENT_TERMINAL_HISTORY_HELPER)
@@ -601,7 +690,7 @@ def _current_terminal_dependency(raw, capture):
 def reviewed_qualifier_dependency(raw, capture):
     from tests.hia_installed_distribution_history import predecessor
     raw, _ = _current_terminal_dependency(raw, capture)
-    raw = predecessor(QUALIFIER_DEPENDENCY_PATH, raw, root=ROOT,
+    raw = _installed_predecessor(QUALIFIER_DEPENDENCY_PATH, raw, root=ROOT,
                       take=lambda name: capture(name.relative_to(ROOT).as_posix()))
     sql_successor = _pin(raw)['sha256'] == 'fb0c4be8fc93e0a1658c4672f2110ab1298f5cfde85c72988843a449477a56a8'
     if sql_successor:
@@ -709,6 +798,11 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
         if path not in captured:
             captured[path] = (ROOT / path).read_bytes()
         return captured[path]
+    previous_native = prior.get('native_cold_caller_source_admission')
+    if previous_native is not None:
+        for path, expected in previous_native['actual_captured_files'].items():
+            if _pin(capture(path)) != expected:
+                raise ValueError('qualifier native caller input changed after prior admission: ' + path)
     authorities = {}
     for kind, (path, expected) in ORIGINALS.items():
         raw = capture(path)
@@ -756,7 +850,9 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
         if _pin(raw) != expected:
             raise ValueError('qualifier prior terminal source changed after its admission')
     from tests.hia_cold_caller_selection_history import reviewed as review_selection, bind_adjustment
-    selection_records = {path: review_selection(path, capture(path), root=ROOT,
+    native_records = {path: _cold_source(path, capture(path),
+        take=lambda name: capture(name.relative_to(ROOT).as_posix())) for path in QUALIFIER_PATHS}
+    selection_records = {path: review_selection(path, native_records[path][0], root=ROOT,
         take=lambda name: capture(name.relative_to(ROOT).as_posix())) for path in QUALIFIER_PATHS}
     raw_sources = {path: entry[0] for path, entry in selection_records.items()}
     all_old = all(_pin(raw_sources[path]) == QUALIFIER_RECORDS[path]['old'] for path in QUALIFIER_PATHS)
@@ -785,8 +881,9 @@ def _admit_qualifier_sources(original_value, original_kind, prior, frozen):
                 'scope': QUALIFIER_SCOPE, 'exact_splice_count': 3,
                 'complete_original_inverse_verified': True, 'full_forward_replay_verified': True,
                 'production_source_exception': False}
-            adjustments[path] = bind_adjustment(adjustments[path], captured[path],
+            adjustments[path] = bind_adjustment(adjustments[path], native_records[path][0],
                                                 selection_records[path][1])
+            adjustments[path] = _bind_cold(adjustments[path], captured[path], native_records[path][1])
     if set(adjustments) - set(authorities[original_kind]['unchanged_files']):
         raise ValueError('qualifier source adjustment escaped its original caller inventory')
     if set(adjustments) & set(prior['source_adjustments']):
@@ -1042,9 +1139,11 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
         expected = DIAGNOSTIC_RECORDS[path]
         from tests.hia_installed_distribution_history import predecessor
         from tests.hia_cold_caller_selection_history import reviewed as review_selection, bind_adjustment
-        selected, result_history = raw, None
+        native_source, native_proof = _cold_source(path, raw,
+            take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+        selected, result_history = native_source, None
         if (path == 'tests/test_hia_agent_native_tools.py'
-                and _pin(raw) == {'bytes': 47052, 'sha256':
+                and _pin(native_source) == {'bytes': 47052, 'sha256':
                     '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2'}):
             from tools import hia_current_caller_source_history as current_history
             helper = capture('tools/hia_current_caller_source_history.py')
@@ -1052,11 +1151,11 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
                     '9f773647bacc0a59f8ddff7b45e27f9d5474bb96a7f2368fa7e18a2a98141558'}
                     or Path(current_history.__file__).read_bytes() != helper):
                 raise ValueError('delivery current caller composition helper differs')
-            selected, result_history = current_history.result_predecessor(ROOT, path, raw,
+            selected, result_history = current_history.result_predecessor(ROOT, path, native_source,
                 take=lambda name: capture(name.relative_to(ROOT).as_posix()))
         selected, selection_proof = review_selection(path, selected, root=ROOT,
             take=lambda name: capture(name.relative_to(ROOT).as_posix()))
-        reviewed = predecessor(path, selected, root=ROOT,
+        reviewed = _installed_predecessor(path, selected, root=ROOT,
                                take=lambda name: capture(name.relative_to(ROOT).as_posix()))
         caller_update = (path == 'tools/qualify_hia_evaluation_callers.py'
                          and sha256(reviewed).hexdigest() == '4ff2b72e17ff08e0016379cd5242b6293344ba644eb607ea490c85f3a4c1a339')
@@ -1104,7 +1203,8 @@ def _admit_diagnostic_sources(original_value, original_kind, prior, frozen):
                 if result_history is not None:
                     adjustments[path].update(current_bytes=len(raw), current_sha256=sha256(raw).hexdigest(),
                                              native_result_source_history=result_history)
-                adjustments[path] = bind_adjustment(adjustments[path], raw, selection_proof)
+                adjustments[path] = bind_adjustment(adjustments[path], native_source, selection_proof)
+                adjustments[path] = _bind_cold(adjustments[path], raw, native_proof)
     if (set(adjustments) - set(authorities[original_kind]['unchanged_files'])
             or set(adjustments) & set(prior['source_adjustments'])):
         raise ValueError('delivery diagnostic source adjustment escaped or overlapped its fixed scope')
@@ -1184,7 +1284,9 @@ def _admit_journal_preparation_sources(original_value, original_kind, prior, fro
                 raise ValueError('delivery literal Journal changed at terminal reread: ' + name)
         return prior
     from tests.hia_installed_distribution_history import journal_preparation_source, predecessor
-    previous_source = predecessor(JOURNAL_PREPARATION_PATH, source, root=ROOT,
+    native_source, native_proof = _cold_source(JOURNAL_PREPARATION_PATH, source,
+        take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+    previous_source = _installed_predecessor(JOURNAL_PREPARATION_PATH, native_source, root=ROOT,
                                   take=lambda name: capture(name.relative_to(ROOT).as_posix()))
     if _pin(previous_source) != JOURNAL_PREPARATION_NEW:
         raise ValueError('delivery Journal source is not the exact preparation successor')
@@ -1217,13 +1319,21 @@ def _admit_journal_preparation_sources(original_value, original_kind, prior, fro
     from tests import hia_journal_installed_preparation as journal
     if Path(journal.__file__).read_bytes() != helper:
         raise ValueError('delivery imported a different Journal preparation helper')
-    proof = journal_preparation_source(ROOT, source,
-        original['unchanged_files'][JOURNAL_PREPARATION_PATH],
-        take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+    if native_proof is not None:
+        from tools.hia_cold_caller_sources import journal_preparation_from_predecessor
+        proof = journal_preparation_from_predecessor(ROOT, source, native_source,
+            original['unchanged_files'][JOURNAL_PREPARATION_PATH],
+            take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+    else:
+        proof = journal_preparation_source(ROOT, source,
+            original['unchanged_files'][JOURNAL_PREPARATION_PATH],
+            take=lambda name: capture(name.relative_to(ROOT).as_posix()))
     for name, expected in proof['captured_files'].items():
         data = capture(name)
         if name == JOURNAL_PREPARATION_PATH:
-            data = predecessor(name, data, root=ROOT,
+            data, _ = _cold_source(name, data,
+                take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+            data = _installed_predecessor(name, data, root=ROOT,
                                take=lambda name: capture(name.relative_to(ROOT).as_posix()))
         if _canonical(_pin(data)) != _canonical(expected):
             raise ValueError('delivery Journal capture changed after preparation admission: ' + name)
@@ -1243,6 +1353,7 @@ def _admit_journal_preparation_sources(original_value, original_kind, prior, fro
         if (ROOT / name).read_bytes() != raw:
             raise ValueError('delivery Journal captured source changed at terminal reread: ' + name)
     result = dict(prior)
+    adjustment = _bind_cold(adjustment, source, native_proof)
     result['source_adjustments'] = {**prior['source_adjustments'], JOURNAL_PREPARATION_PATH: adjustment}
     result['journal_installed_preparation_source_admission'] = {
         'schema': 'hepta.hia.delivery-journal-installed-preparation-admission.v1',
@@ -1324,7 +1435,9 @@ def _admit_component_successors(original, prior):
         old = prior_pins[name]
         record = value['files'][name].get(old['sha256'])
         from tests.hia_installed_distribution_history import predecessor
-        reverse_exact(predecessor(name, captured[name], root=ROOT,
+        selected, native_proof = _cold_source(name, captured[name],
+            take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+        reverse_exact(_installed_predecessor(name, selected, root=ROOT,
                       take=lambda name: capture(name.relative_to(ROOT).as_posix())), record, old)
         adjustments[name] = {
             'path': name, 'original_bytes': old['bytes'], 'original_sha256': old['sha256'],
@@ -1332,6 +1445,7 @@ def _admit_component_successors(original, prior):
             'reversible_patch_fixture_sha256': COMPONENT_FIXTURE_SHA256,
             'scope': 'fixed integrated Journal, proof identity, ledger, Store or release custody successor',
         }
+        adjustments[name] = _bind_cold(adjustments[name], captured[name], native_proof)
     if ((ROOT / COMPONENT_FIXTURE).read_bytes() != frozen
             or any((ROOT / name).read_bytes() != raw for name, raw in captured.items())):
         raise ValueError('native Delivery component bytes changed during admission')
@@ -1440,7 +1554,9 @@ def _admit_ordinary_caller_sources(original_value, original_kind, prior, frozen)
     for path in ORDINARY_CALLER_PATHS:
         source, expected, record = capture(path), ORDINARY_CALLER_RECORDS[path], value['files'][path]
         from tests.hia_cold_caller_selection_history import reviewed as review_selection, bind_adjustment
-        selected, selection_proof = review_selection(path, source, root=ROOT,
+        native_source, native_proof = _cold_source(path, source,
+            take=lambda name: capture(name.relative_to(ROOT).as_posix()))
+        selected, selection_proof = review_selection(path, native_source, root=ROOT,
             take=lambda name: capture(name.relative_to(ROOT).as_posix()))
         if _pin(source) == expected['old']:
             preview = _ordinary_caller_transform(source, record, path, reverse=False)
@@ -1460,7 +1576,8 @@ def _admit_ordinary_caller_sources(original_value, original_kind, prior, frozen)
                 'complete_original_inverse_verified': True,
                 'complete_current_forward_replay_verified': True, 'production_source_exception': False,
             }
-            adjustments[path] = bind_adjustment(adjustments[path], source, selection_proof)
+            adjustments[path] = bind_adjustment(adjustments[path], native_source, selection_proof)
+            adjustments[path] = _bind_cold(adjustments[path], source, native_proof)
     if not adjustments:
         for path, raw in captured.items():
             if (ROOT / path).read_bytes() != raw:
@@ -1603,7 +1720,8 @@ def _admit_build_inventory_control(inventory, prior):
         captured[key] = data
         return data
 
-    reverse_exact(predecessor(name, raw, root=ROOT, take=capture), record, expected)
+    selected, native_proof = _cold_source(name, raw, take=capture)
+    reverse_exact(_installed_predecessor(name, selected, root=ROOT, take=capture), record, expected)
     if any((ROOT / path).read_bytes() != data for path, data in captured.items()):
         raise ValueError('build caller inventory proof changed during admission')
     if name in prior['source_adjustments']:
@@ -1613,6 +1731,7 @@ def _admit_build_inventory_control(inventory, prior):
                   'current_bytes': len(raw), 'current_sha256': sha256(raw).hexdigest(),
                   'reversible_patch_fixture_sha256': EVALUATE_FIXTURE_SHA256,
                   'scope': 'original caller order plus the exact independently reviewed address-space test'}
+    adjustment = _bind_cold(adjustment, raw, native_proof)
     return {**prior, 'source_adjustments': {**prior['source_adjustments'], name: adjustment}}
 
 
@@ -1637,7 +1756,7 @@ def delivery_sources(root, inventory, prior):
         if name not in records or name in adjustments:
             continue
         data = capture(root / name)
-        previous = predecessor(name, data, root=root, take=capture)
+        previous = _installed_predecessor(name, data, root=root, take=capture)
         if previous == data or _pin(previous) != old:
             continue
         adjustments[name] = {

@@ -266,9 +266,8 @@ class ScalarProfileNativeTests(unittest.TestCase):
                                    'output_hex': output.hex(), 'state_sha256': digest(state)})
         (cls.root / 'independent-reference.json').write_text(json.dumps(cls.references, indent=2, sort_keys=True) + '\n')
         if cold:
-            report = json.loads(Path(cold).read_bytes())
-            nested = json.loads(Path(report['nested_report']).read_bytes())
-            compiler = Path(nested['generations'][-1]['produced_image'])
+            from tools.hia_cold_compiler import compiler_from_cold_report
+            compiler = compiler_from_cold_report(Path(cold))
             cls.scope = 'MATCHING_SOURCE_COLD_COMPONENT'
         elif development:
             compiler = Path(development); cls.scope = 'RETAINED_COMPILER_DEVELOPMENT_COMPONENT'

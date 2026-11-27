@@ -31,6 +31,7 @@ def run_child(args):
     from tools.run_hia_unittest_gate import load_declared_suite
     from tools.hia_selfhost_contract import file_digests
     from tools.build_hia_service_lease import INPUTS
+    initial_sources = file_digests()
     from tools.qualify_hia_emission_callers import admit_original_sources
     raw = (ROOT / FIXTURE_NAME).read_bytes()
     if sha256(raw).hexdigest() != FIXTURE_SHA256:
@@ -42,11 +43,34 @@ def run_child(args):
     callers = json.loads(caller_path.read_bytes())
     modules = original['ordinary_modules'] if args.scope == 'ordinary' else callers['direct_modules']
     original_files = {record['path']: record['sha256'] for record in original['callers'].values()}
-    count_adjustments = admit_original_sources(ROOT, original)
+    terminal_evidence = []
+    count_adjustments = admit_original_sources(ROOT, original, terminal_evidence=terminal_evidence)
+    if len(terminal_evidence) != 1:
+        raise ValueError('Lease callers require one complete original source admission')
+    terminal_sources = terminal_evidence[0]['captured_files']
+    direct_capture = {}
     for name, record in callers['direct_sources'].items():
+        if (original_files.get(name) != record['sha256']
+                or type(record['bytes']) is not int or record['bytes'] <= 0
+                or record['old_inventory_matched'] is not True):
+            raise ValueError('Lease direct authority differs from the original complete caller inventory')
         raw_source = (ROOT / name).read_bytes()
-        if len(raw_source) != record['bytes'] or sha256(raw_source).hexdigest() != record['sha256']:
-            raise ValueError('original direct caller file changed: ' + name)
+        actual = {'bytes': len(raw_source), 'sha256': sha256(raw_source).hexdigest()}
+        if terminal_sources.get(name) != actual:
+            raise ValueError('Lease direct source differs from its complete source admission: ' + name)
+        direct_capture[name] = actual
+    direct_source_admission = {
+        'schema': 'hepta.hia.service-lease-direct-source-admission.v1',
+        'authority': {'path': 'tests/fixtures/hia_service_lease_original_r3/callers.json',
+            'sha256': '3e25dead1b040619826962762a40585dd956d280d2d19c9f0d4b6f2ee797df61'},
+        'original_direct_sources': {name: {'bytes': row['bytes'], 'sha256': row['sha256']}
+                                    for name, row in callers['direct_sources'].items()},
+        'physical_direct_sources': direct_capture,
+        'original_ordered_ids': list(callers['direct_ordered_ids']),
+        'complete_original_source_admission': terminal_evidence[0],
+        'original_test_budgets_changed': False,
+        'prior_projection_is_physical_source': False,
+    }
     if (len(original['ordinary_modules']) != 9 or original['ordinary_count'] != 112
             or len(original['ordinary_ordered_ids']) != 112
             or len(original['callers']) != 17
@@ -60,19 +84,25 @@ def run_child(args):
         raise ValueError('original complete caller inventory differs')
 
     def source_pins():
-        paths = {*INPUTS, *original_files, FIXTURE_NAME,
+        paths = {*INPUTS, *original_files, *terminal_sources, FIXTURE_NAME,
+                 'tests/fixtures/hia_service_lease_original_r3/callers.json',
                  'tools/qualify_hia_service_lease_callers.py',
                  'tools/qualify_hia_emission_callers.py'}
         return {**file_digests(), **{name: sha256((ROOT / name).read_bytes()).hexdigest()
                                     for name in sorted(paths)}}
 
     before = source_pins()
+    if (any(before.get(name) != digest for name, digest in initial_sources.items())
+            or any(before.get(name) != row['sha256'] for name, row in terminal_sources.items())):
+        raise ValueError('Lease source changed between admission, module loading and source seal')
     args.evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
+    cold_inputs = None
     if args.cold_report is not None:
         from tools.build_hia_service_lease import build
-        from tools.hia_cold_compiler import compiler_from_cold_report
+        from tools.hia_cold_compiler import read_cold_build_inputs
+        cold_inputs = read_cold_build_inputs(args.cold_report)
         manifest = build(args.evidence / 'qualified',
-            compiler_from_cold_report(args.cold_report), args.cold_report)
+            cold_inputs.compiler, args.cold_report)
         scope = 'MATCHING_SOURCE_COLD_COMPLETE_LEASE_CALLER_MODULES'
     else:
         manifest = args.development_manifest.resolve(strict=True)
@@ -119,14 +149,21 @@ def run_child(args):
         raise AssertionError('ordinary caller entered the retained Python service lease body')
 
     begin = time.monotonic()
+    runtime_environment = {native.SELECTOR: str(manifest)}
+    if args.scope == 'direct' and args.cold_report is not None:
+        runtime_environment['HEPTA_HIA_SLOT_LEDGER_COLD_REPORT'] = str(
+            args.cold_report.resolve(strict=True))
+        runtime_environment['HEPTA_HIA_SLOT_LEDGER_EVIDENCE'] = str(args.evidence / 'slot-original')
     with ExitStack() as stack:
-        stack.enter_context(patch.dict(os.environ, {native.SELECTOR: str(manifest)}))
+        stack.enter_context(patch.dict(os.environ, runtime_environment))
         for name in ('ACQUIRE', 'LEASE', 'INVOKE', 'RELEASE'):
             stack.enter_context(patch.object(api, '_SERVICE_LEASE_' + name + '_REFERENCE', forbidden))
         stack.enter_context(patch.object(native.ServiceLeaseFrame, '__init__', counted_frame))
         stack.enter_context(patch.object(image, '_entry', counted_entry))
         with (args.evidence / 'tests.log').open('x') as stream:
             result = unittest.TextTestRunner(stream=stream, verbosity=2, resultclass=Result).run(suite)
+    if cold_inputs is not None:
+        cold_inputs.unchanged()
     stable = source_pins() == before and all(
         sha256(Path(name).read_bytes()).hexdigest() == digest for name, digest in bundle.items())
     anomalies = ('errors', 'failures', 'skipped', 'expectedFailures', 'unexpectedSuccesses')
@@ -157,6 +194,7 @@ def run_child(args):
         'complete_direct_five_module_76_scope': args.scope == 'direct', 'original_test_budgets_changed': False,
         'source_and_bundle_unchanged': stable, 'source_pins': before, 'bundle_pins': bundle,
         'original_registry_count_assertion_adjustments': count_adjustments,
+        'direct_source_admission': direct_source_admission,
         'separate_original_administrator_scope_gates': original['separate_scope_modules'],
         'other_owner_or_artifact_provider_gates_replaced_by_112': False,
         'ledger_SQL_provider_native_qualification_inferred': False,
