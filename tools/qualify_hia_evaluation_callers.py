@@ -30,7 +30,7 @@ FIXTURE_SHA256 = '256e6c83a79fc2f237b4c12dd4bc2ae00d61bee03332b6adc794086b7e0813
 def admit_original_sources(root, records, *, source_proof=None):
     """Admit the fixed complete inventory and only its exact reviewed successors."""
     from hepta.hia_native_helpers import HELPERS
-    root = Path(root)
+    root = Path(root).resolve(strict=True)
     if source_proof is not None and (type(source_proof) is not dict or source_proof):
         raise ValueError('caller source proof must be a new exact dictionary')
     captured = {}
@@ -63,7 +63,12 @@ def admit_original_sources(root, records, *, source_proof=None):
                       'tests/test_hia_cost_ledger_native.py', 'tests/test_hia_worker_native_helpers.py'}
     reviewed = {}
     from tests.hia_installed_distribution_history import predecessor
-    installed_predecessors = {}
+    from tools import hia_native_cold_caller_history as native_history
+    from tools import hia_native_cold_composition_history as composition
+    installed_predecessors, cold_adjustments, composition_adjustments = {}, {}, {}
+    cold_histories, composition_histories = [], []
+    def capture_path(path):
+        return capture(Path(path).relative_to(root).as_posix())
     for name, digest in records.items():
         physical = capture(name)
         # The retained original, diagnostic and registry-count domains need
@@ -75,11 +80,32 @@ def admit_original_sources(root, records, *, source_proof=None):
             direct = direct or original_diagnostics.pin(physical) == original_diagnostics.CURRENT
         if name == 'tests/test_hia_worker_native_helpers.py' and physical.count(current_line) == 1:
             direct = direct or sha256(physical.replace(current_line, original_line, 1)).hexdigest() == digest
-        raw = physical
+        raw, installed_take = physical, capture_path
         if not direct:
             try:
-                raw = predecessor(name, physical, root=root,
-                    take=lambda path: capture(Path(path).relative_to(root).as_posix()))
+                selected, selected_take = physical, capture_path
+                identity = {'bytes': len(selected), 'sha256': sha256(selected).hexdigest()}
+                if identity == composition.CURRENT.get(name):
+                    projected, history = composition.prepare(
+                        root, {name: selected}, take=selected_take)
+                    if history is None:
+                        raise ValueError('evaluation current source composition lost its history')
+                    selected, selected_take = projected[name], history['prior_take']
+                    composition_histories.append(history)
+                    composition_adjustments[name] = history['review']
+                identity = {'bytes': len(selected), 'sha256': sha256(selected).hexdigest()}
+                if identity == native_history.KNOWN_CURRENT.get(name):
+                    projected, history = native_history.prepare(
+                        root, {name: selected}, take=selected_take)
+                    selected, selected_take = projected[name], history['prior_take']
+                    cold_histories.append(history)
+                raw = predecessor(name, selected, root=root, take=selected_take)
+                if raw != selected:
+                    from tests import hia_native_transport_worker_successor as delivery
+                    installed_take = delivery._prior_take(
+                        name, selected, raw, root=root, take=selected_take)
+                else:
+                    installed_take = selected_take
             except OSError as error:
                 raise ValueError('required evaluation caller source history is unavailable: ' + name) from error
         if raw != physical:
@@ -101,7 +127,8 @@ def admit_original_sources(root, records, *, source_proof=None):
                     raise ValueError('unreviewed diagnostic caller source changed')
                 projected = delivery._reverse_sqlite_boundary(name, raw,
                     capture(delivery.SQLITE_BOUNDARY_FIXTURE), delivery.DIAGNOSTIC_FIXTURE,
-                    capture(delivery.DIAGNOSTIC_FIXTURE), diagnostics.CURRENT)
+                    capture(delivery.DIAGNOSTIC_FIXTURE), diagnostics.CURRENT,
+                    root=root, take=installed_take)
             diagnostic_adjustments[name] = diagnostics.admit(
                 name, projected, digest, capture(diagnostics.FIXTURE))
             continue
@@ -126,6 +153,14 @@ def admit_original_sources(root, records, *, source_proof=None):
             'original_helper_count': 35, 'current_helper_count': count,
             'sole_permitted_change': 'one exact registry-count assertion decimal literal',
             'all_other_source_bytes_unchanged': True})
+    for history in cold_histories:
+        native_history.verify_unchanged(history)
+        for name, review in history['review']['native_cold_caller_sources'].items():
+            if name in cold_adjustments and cold_adjustments[name] != review:
+                raise ValueError('evaluation native cold source reviews disagree')
+            cold_adjustments[name] = review
+    for history in composition_histories:
+        composition.verify_unchanged(history)
     if any((root / name).read_bytes() != raw for name, raw in captured.items()):
         raise ValueError('evaluation caller sources changed at terminal reread')
     if source_proof is not None:
@@ -139,6 +174,10 @@ def admit_original_sources(root, records, *, source_proof=None):
             'reviewed_diagnostic_source_adjustments': diagnostic_adjustments,
             'reviewed_historical_callers': reviewed,
             'installed_distribution_predecessors': installed_predecessors,
+            **({'reviewed_native_cold_caller_adjustments': cold_adjustments}
+               if cold_adjustments else {}),
+            **({'reviewed_current_source_compositions': composition_adjustments}
+               if composition_adjustments else {}),
             'terminal_reread_identical': True, 'production_source_exceptions': []})
     return adjustments
 

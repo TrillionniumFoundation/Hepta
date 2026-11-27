@@ -37,6 +37,8 @@ def stage(root, data):
 class ScopedCallerSourceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        from tests.hia_scoped_evaluation_cold_preparation import install_view
+        install_view(cls, globals(), domain="scoped")
         cls.states = {}
         for domain, scope, count in CASES:
             caller = module(domain)
