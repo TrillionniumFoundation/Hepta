@@ -15,6 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ColdCallerSelectionHistoryTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from tests.hia_scoped_selection_original_fixture import install_class_view
+        install_class_view(cls, globals(), subjects=(history,))
+
     def source(self, name):
         return (ROOT / name).read_bytes()
 

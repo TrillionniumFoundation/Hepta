@@ -1,0 +1,13 @@
+# Scoped caller successors: physical admission and original source controls
+
+This change adds a data-only complete-file relation for the three qualifier successors authored in `636081d07c9cef5d22edf1f14c3b80d371a2a22e`. The immutable 40763-byte relation restores the exact earlier Evaluation, Discovery and Verification files. Current physical captures remain separate from the explicitly supplied `prior_take` view. The executing reader, immutable fixture, inverse engine, supplied current files and all subsequently read dependencies are checked before use and at terminal readback.
+
+The older selection reader deliberately returns unknown bytes without a historical proof. It did not authorize the new qualifier: the original tests were passing new bytes to an older declared domain. The new current-admission layer closes that production composition gap. A separate test fixture reconstructs only the exact old Evaluation qualifier in an owned temporary directory, with complete inverses for the three modified source-test files and unchanged original test-method ASTs. The installed Evaluation suite uses this view only for its one old fixed-pair relation test; its other ten original tests continue to use the current source root.
+
+The complete run passed all 66 methods in 9.661 seconds (9.857479292 seconds under the outer supervisor): 29 original selection/pair/installed controls, the previous 11 original scoped/Evaluation controls and 11 current controls, and 15 new physical/history-boundary controls. No tests were skipped or excluded. The tested source tree is `3b7fa511c3f6817b3f0edac65128d769b4afa931`, based on `0ab357a5a9583dbc03b00382a9e69576320e6549`; the seven changed host files were unchanged across the run.
+
+The archive retains the entire earlier 371-method failing log (117571 bytes, SHA-256 `e3e984eea09c5cd2d5a02af16bfc1a51a5e63322c85d42927e2f9e1cf485d491`), the first new run's fixture-only NameError, the complete corrected run, exact old and new source files, physical Git materialization records, and the original terminal readbacks. Every one of its 32 members was reread and checked against length, SHA-256 and file mode.
+
+`complete-source-evidence.tar.gz`: 666159 bytes, SHA-256 `db91f5c0dfbbdfc004fa322aabfe5bb441fa239de89b3ae5403f2beda2c7f08b`.
+
+The old fixed fixtures, 5991-byte installed-history helper, 26894-byte selection helper, 636 qualifier bodies, native product source and original deadlines remain byte-identical. This evidence qualifies the stated source-admission controls. Whole native cold qualification, native release, Worker installation and retirement remain separate gates.

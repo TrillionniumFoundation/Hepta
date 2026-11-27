@@ -23,6 +23,11 @@ def stage(root):
 
 
 class EvaluationCallerCaptureTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from tests.hia_scoped_selection_original_fixture import install_class_view
+        install_class_view(cls, globals(), subjects=(history,))
+
     def test_current_pair_restores_both_complete_files_before_the_original_selection(self):
         raw = (ROOT / NAME).read_bytes()
         selected, pair, saved = history._evaluation_capture_predecessor(NAME, raw, ROOT, Path.read_bytes)

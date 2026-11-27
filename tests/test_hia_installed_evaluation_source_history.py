@@ -30,6 +30,9 @@ class InstalledEvaluationHistoryTests(unittest.TestCase):
         cls.original = json.loads(cls.files[installed.FIXTURE])['files'][EVALUATION]['original']
 
     def setUp(self):
+        if self._testMethodName == 'test_fixed_capture_history_restores_both_complete_prior_source_files':
+            from tests.hia_scoped_selection_original_fixture import install_test_view
+            install_test_view(self, globals())
         temporary = tempfile.TemporaryDirectory(prefix='hia-installed-evaluation-history-')
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
