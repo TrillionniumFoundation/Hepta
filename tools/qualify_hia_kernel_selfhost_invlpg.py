@@ -104,11 +104,11 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64", "x86.mmio.read32", "x86.mmio.write32", *msr.WORDS, *idtr.WORDS, iretq.WORD, *tr.WORDS, kernel_frame.WORD, kernel_irq.WORD, irq_stack.WORD, irq_stack.GENERATION_WORD, irq_stack.BOUND_WORD, irq_stack.SLAB_WORD):
+    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64", "x86.mmio.read32", "x86.mmio.write32", *msr.WORDS, *idtr.WORDS, iretq.WORD, *tr.WORDS, kernel_frame.WORD, kernel_irq.WORD, irq_stack.WORD, irq_stack.GENERATION_WORD, irq_stack.BOUND_WORD, irq_stack.SLAB_WORD, irq_stack.FRAME_SLAB_WORD):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
-    if [words[x] - words[irq_stack.WORD] for x in (irq_stack.WORD, irq_stack.GENERATION_WORD, irq_stack.BOUND_WORD, irq_stack.SLAB_WORD)] != list(range(4)):
+    if [words[x] - words[irq_stack.WORD] for x in (irq_stack.WORD, irq_stack.GENERATION_WORD, irq_stack.BOUND_WORD, irq_stack.SLAB_WORD, irq_stack.FRAME_SLAB_WORD)] != list(range(5)):
         raise ValueError("raw stack token interval changed")
     # The sixteen experimental opcodes occupy a contiguous token interval.
     # Keep the native compiler within its audited candidate capacity.
@@ -392,6 +392,17 @@ def candidate_source():
     source = kernel_frame.extend_source(source, replace_once)
     source = kernel_irq.extend_source(source, replace_once)
     source = irq_stack.extend_source(source, replace_once)
+    # Compress consecutive fixed-width byte emission in the already-audited
+    # raw kernel entry. The helper performs the same ordered two writes.
+    import re
+    start = source.index("def kernel_irq_export(")
+    stop = source.index("\ndef ", start + 1)
+    segment = source[start:stop]
+    segment, pairs = re.subn(r"(?m)^    emit_bytes\(o, w, ([0-9]+), 8\)\n    emit_bytes\(o, w, ([0-9]+), 8\)\n",
+                             r"    irq_emit_pair(o, w, \1, \2)\n", segment)
+    if pairs < 8:
+        raise ValueError("raw kernel emission compression anchor changed")
+    source = source[:start] + segment + source[stop:]
     with patch.multiple(gen, SOURCE=source, W=words,
                         MAX_INSTRUCTIONS=CANDIDATE_INSTRUCTIONS,
                         MAX_RELOCATIONS=CANDIDATE_RELOCATIONS, **layout):
@@ -1293,6 +1304,7 @@ def run(output):
     irq_generation_stack_report = irq_stack.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest, generation=True)
     irq_bound_stack_report = irq_stack.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest, bound=True)
     irq_slab_stack_report = irq_stack.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest, slab=True)
+    irq_frame_slab_stack_report = irq_stack.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest, frame_slab=True)
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -1328,6 +1340,7 @@ def run(output):
         "irq_generation_stack": irq_generation_stack_report,
         "irq_bound_stack": irq_bound_stack_report,
         "irq_slab_stack": irq_slab_stack_report,
+        "irq_frame_slab_stack": irq_frame_slab_stack_report,
         "kernel_irq_authority_proved": False,
         "kernel_frame_authority_proved": False,
         "tr_authority_proved": False,

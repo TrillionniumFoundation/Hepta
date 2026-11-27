@@ -195,9 +195,17 @@ SLAB_ORACLE = BOUND_ORACLE.replace("cmpq %r12,%rax\nguard je\n", "cmpq %r12,%rax
     "subq %r11,%rax\ntestq $4095,%rax\nguard jz\nleaq 45055(%rax),%rdx\nshrq $47,%rdx\nguard jz\nimulq $640,%r11,%r11\nleaq 8192(%rax,%r11),%r11\n",1).replace(
     "movq 8(%r12),%r13\n","movq 8(%r12),%r13\ncmpq %r11,%r13\nguard je\n",1)
 
+FRAME_SLAB_WORD = "x86.irq.dispatch_frame_slab"
+_FRAME_PRE = bytes.fromhex("488d97a00000004839c2760e488d9000b000004839d773020f0b")
+_FRAME_POST = bytes.fromhex("4c89e0482500f0ffff498d97a00000004839c2760e488d9000b000004939d773020f0b")
+_FRAME_POST_ANCHOR = bytes.fromhex("4c39e2760c498d4c24204939cf73020f0b9c5a48f7c20002000074020f0b")
+assert SLAB_ENCODING.count(_SLAB_ROOT) == SLAB_ENCODING.count(_FRAME_POST_ANCHOR) == 1
+FRAME_SLAB_ENCODING = SLAB_ENCODING.replace(_SLAB_ROOT,_SLAB_ROOT+_FRAME_PRE).replace(_FRAME_POST_ANCHOR,_FRAME_POST_ANCHOR+_FRAME_POST)
+FRAME_SLAB_ORACLE = SLAB_ORACLE.replace("leaq 8192(%rax,%r11),%r11\n", "leaq 8192(%rax,%r11),%r11\n"+'leaq 160(%rdi),%rdx\ncmpq %rax,%rdx\njbe 9f\nleaq 45056(%rax),%rdx\ncmpq %rdx,%rdi\nguard jae\n9:\n',1).replace("pushfq\npopq %rdx\ntestq $0x200,%rdx\nguard jz\n", "pushfq\npopq %rdx\ntestq $0x200,%rdx\nguard jz\n"+'movq %r12,%rax\nandq $-4096,%rax\nleaq 160(%r15),%rdx\ncmpq %rax,%rdx\njbe 9f\nleaq 45056(%rax),%rdx\ncmpq %rdx,%r15\nguard jae\n9:\n',1)
+
 def emission_segments():
     rest=ENCODING
-    for old,new in ((_BOUND_ANCHOR,_BOUND_ANCHOR+_BOUND_CHECK),(_SLAB_LOW_ANCHOR,_SLAB_LOW_ANCHOR+_SLAB_LOW),(_OLD_ACQUIRE,_GENERATION_ACQUIRE),(_AFTER_CALLBACK,_AFTER_CALLBACK+_GENERATION_GS),(_OLD_RELEASE,_GENERATION_RELEASE)):
+    for old,new in ((_BOUND_ANCHOR,_BOUND_ANCHOR+_BOUND_CHECK),(_SLAB_LOW_ANCHOR,_SLAB_LOW_ANCHOR+_SLAB_LOW),(_OLD_ACQUIRE,_GENERATION_ACQUIRE),(_AFTER_CALLBACK,_AFTER_CALLBACK+_GENERATION_GS),(_FRAME_POST_ANCHOR,_FRAME_POST_ANCHOR+_FRAME_POST),(_OLD_RELEASE,_GENERATION_RELEASE)):
         head,rest=rest.split(old,1)
         yield head
         yield (old,new)
@@ -206,27 +214,27 @@ def emission_segments():
 def extend_source(source, replace_once):
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op >= @x86.irq.dispatch_on_stack@ and op <= @x86.irq.dispatch_slab_stack@:
+    if op >= @x86.irq.dispatch_on_stack@ and op <= @x86.irq.dispatch_frame_slab@:
         return 62""")
     source = replace_once(source,
         "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_kernel_frame@:",
-        "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_slab_stack@:")
+        "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_frame_slab@:")
     sig = ("def mmio_instruction(s:readbuf, o:mutbuf, w:mutbuf, op:u64, n:u64, "
            "at:u64, t:u64, v:u64, bt:u64, a:u64, b:u64) -> u64:")
     source = replace_once(source, sig, sig + """
-    if op >= @x86.irq.dispatch_on_stack@ and op <= @x86.irq.dispatch_slab_stack@:
+    if op >= @x86.irq.dispatch_on_stack@ and op <= @x86.irq.dispatch_frame_slab@:
         return irq_stack_instruction(s, w, n, t, op - @x86.irq.dispatch_on_stack@ + 4)""")
     anchor = "def export_wrapper(o:mutbuf, w:mutbuf, record:u64) -> u64:"
     source = replace_once(source, anchor, anchor + """
-    if get(w, 200) >= 4 and get(w, 200) <= 7:
+    if get(w, 200) >= 4 and get(w, 200) <= 8:
         return irq_stack_export(o, w, record)""")
     source += """
 def irq_stack_instruction(s:readbuf, w:mutbuf, n:u64, t:u64, mode:u64) -> u64:
     if get(w, 200) != 1 or (n | t | get(w, 288)) != 0:
         return fail(w, 65)
-    if get(w, 72) != 0 or get(w, 88) != 0 or get(w, 112) != 1 or get(w, 648) != 1:
+    if (get(w, 72) | get(w, 88)) != 0 or get(w, 112) != 1 or get(w, 648) != 1:
         return fail(w, 65)
-    if get(w, FBASE + 24) != 0 or get(w, FBASE + 184) != 0 or get(w, FBASE + 176) != 62:
+    if (get(w, FBASE + 24) | get(w, FBASE + 184)) != 0 or get(w, FBASE + 176) != 62:
         return fail(w, 65)
     expect(s, w, 10)
     if get(w, 8) != @trap@:
@@ -241,6 +249,10 @@ def irq_stack_export(o:mutbuf, w:mutbuf, record:u64) -> u64:
 """
     def emit(data, indent):
         chunks = []
+        while len(data) >= 32:
+            vals = [int.from_bytes(data[k:k+8],"little") for k in (0,8,16,24)]
+            chunks.append(f"{indent}irq_emit_quad(o, w, {', '.join(map(str,vals))})\n")
+            data=data[32:]
         while len(data) >= 16:
             a,b = (int.from_bytes(data[k:k+8],"little") for k in (0,8))
             chunks.append(f"{indent}irq_emit_pair(o, w, {a}, {b})\n")
@@ -254,27 +266,30 @@ def irq_stack_export(o:mutbuf, w:mutbuf, record:u64) -> u64:
             old,new = segment
             if old == _BOUND_ANCHOR:
                 source += emit(old,"    ") + "    if get(w, 200) >= 6:\n" + emit(_BOUND_CHECK,"        ")
-                source += "    if get(w, 200) == 7:\n" + emit(_SLAB_ROOT,"        ")
+                source += "    if get(w, 200) >= 7:\n" + emit(_SLAB_ROOT,"        ")
+                source += "    if get(w, 200) == 8:\n" + emit(_FRAME_PRE,"        ")
             elif old == _SLAB_LOW_ANCHOR:
-                source += emit(old,"    ") + "    if get(w, 200) == 7:\n" + emit(_SLAB_LOW,"        ")
+                source += emit(old,"    ") + "    if get(w, 200) >= 7:\n" + emit(_SLAB_LOW,"        ")
+            elif old == _FRAME_POST_ANCHOR:
+                source += emit(old,"    ") + "    if get(w, 200) == 8:\n" + emit(_FRAME_POST,"        ")
             else:
                 source += "    if get(w, 200) >= 5:\n" + emit(new,"        ") + "    else:\n" + emit(old,"        ")
         else:
             source += emit(segment,"    ")
-    return source+"    put(w, record + 40, get(w, 56) - get(w, record + 32))\n    return 0\n\ndef irq_emit_pair(o:mutbuf, w:mutbuf, a:u64, b:u64) -> u64:\n    emit_bytes(o, w, a, 8)\n    emit_bytes(o, w, b, 8)\n    return 0\n"
+    return source+"    put(w, record + 40, get(w, 56) - get(w, record + 32))\n    return 0\n\ndef irq_emit_pair(o:mutbuf, w:mutbuf, a:u64, b:u64) -> u64:\n    emit_bytes(o, w, a, 8)\n    emit_bytes(o, w, b, 8)\n    return 0\n\ndef irq_emit_quad(o:mutbuf, w:mutbuf, a:u64, b:u64, c:u64, d:u64) -> u64:\n    irq_emit_pair(o, w, a, b)\n    irq_emit_pair(o, w, c, d)\n    return 0\n"
 
 def program(profile, **kw):
     kw.setdefault("effects", EFFECTS)
     return irq.program(profile, **kw).replace(b"x86.irq.dispatch_kernel_frame",WORD.encode())
 
-def qualify(exe, output, profile, legacy, compile_cli, text_bytes, digest, generation=False, bound=False, slab=False):
+def qualify(exe, output, profile, legacy, compile_cli, text_bytes, digest, generation=False, bound=False, slab=False, frame_slab=False):
     import subprocess
-    tag = "irq-slab-stack" if slab else "irq-bound-stack" if bound else "irq-generation-stack" if generation else "irq-stack"
-    encoding = SLAB_ENCODING if slab else BOUND_ENCODING if bound else GENERATION_ENCODING if generation else ENCODING
-    dispatch_oracle = SLAB_ORACLE if slab else BOUND_ORACLE if bound else GENERATION_ORACLE if generation else ORACLE
+    tag = "irq-frame-slab-stack" if frame_slab else "irq-slab-stack" if slab else "irq-bound-stack" if bound else "irq-generation-stack" if generation else "irq-stack"
+    encoding = FRAME_SLAB_ENCODING if frame_slab else SLAB_ENCODING if slab else BOUND_ENCODING if bound else GENERATION_ENCODING if generation else ENCODING
+    dispatch_oracle = FRAME_SLAB_ORACLE if frame_slab else SLAB_ORACLE if slab else BOUND_ORACLE if bound else GENERATION_ORACLE if generation else ORACLE
     def p(*args, **kwargs):
         result=program(*args, **kwargs)
-        return result.replace(WORD.encode(),SLAB_WORD.encode()) if slab else result.replace(WORD.encode(),BOUND_WORD.encode()) if bound else result.replace(WORD.encode(),GENERATION_WORD.encode()) if generation else result
+        return result.replace(WORD.encode(),FRAME_SLAB_WORD.encode()) if frame_slab else result.replace(WORD.encode(),SLAB_WORD.encode()) if slab else result.replace(WORD.encode(),BOUND_WORD.encode()) if bound else result.replace(WORD.encode(),GENERATION_WORD.encode()) if generation else result
     subject = p(profile)
     obj = compile_cli(exe, subject, output, tag+"-1")
     assert obj == compile_cli(exe, subject, output, tag+"-2")
