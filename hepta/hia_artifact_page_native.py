@@ -28,15 +28,16 @@ from .hia_agent_store import AgentStore, uses_native_store
 from .hia_store_lifecycle_native import _regular_bytes
 
 from .hia_json_preflight_native import (
-    NativeHiaJsonImage, _load_manifest, _source_resource_path, _unique_manifest_pairs,
+    _load_manifest, _source_resource_path, _unique_manifest_pairs,
 )
 from .hia_json_wire_native import (
     ForeignGraphObserver, NativeJsonWire, SelectedBinary64Renderer,
     SOURCE as WIRE_SOURCE, SCHEMA as WIRE_SCHEMA, installed_json_wire,
 )
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/artifact_page.hepta')
-POLICY_SCHEMA = 'hepta.hia.artifact-page-native.v2'
+from .hia_artifact_page_policy_native import (
+    NativeArtifactPagePolicy, SOURCE, SCHEMA as POLICY_SCHEMA,
+)
 SCHEMA = 'hepta.hia.artifact-page-bundle.v2'
 SELECTOR = 'HEPTA_HIA_ARTIFACT_PAGE_MANIFEST'
 MAGIC = int.from_bytes(b'HIAAPG02', 'little')
@@ -382,6 +383,8 @@ def installed_artifact_page(path):
     if not path:
         raise ValueError('native artifact-page selector must not be empty')
     path = Path(path).absolute()
+    from .hia_native_helpers import pinned_bundle
+    selected_bundle = pinned_bundle(path, SCHEMA, NativeArtifactPage)
     raw = _regular_bytes(path, 8192)
     bundle = json.JSONDecoder(object_pairs_hook=_unique_manifest_pairs).decode(raw.decode('utf-8'))
     if (type(bundle) is not dict or set(bundle) != {'schema', 'policy_manifest', 'policy_manifest_sha256',
@@ -392,7 +395,7 @@ def installed_artifact_page(path):
     images = {}
     sources = {'policy': SOURCE, 'wire': WIRE_SOURCE}
     schemas = {'policy': POLICY_SCHEMA, 'wire': WIRE_SCHEMA}
-    factories = {'policy': NativeHiaJsonImage, 'wire': NativeJsonWire}
+    factories = {'policy': NativeArtifactPagePolicy, 'wire': NativeJsonWire}
     compiler = None
     from .hia_native_helpers import pinned_image
     for name in ('policy', 'wire'):
@@ -441,4 +444,10 @@ def installed_artifact_page(path):
         captured.update({child: child_raw, sources[name]: source_raw, image_path: image_raw})
     if any(_regular_bytes(p, max(1, len(data))) != data for p, data in captured.items()):
         raise ValueError('native artifact-page selection changed while loading')
+    if selected_bundle is not None:
+        if (type(selected_bundle) is not NativeArtifactPage
+                or selected_bundle.policy is not images['policy']
+                or selected_bundle.wire is not images['wire']):
+            raise ValueError('native artifact-page bundle differs from pinned Worker owner')
+        return selected_bundle
     return NativeArtifactPage(images['policy'], images['wire'])

@@ -190,12 +190,27 @@ class HelperExtensionSourceControls(unittest.TestCase):
         for name, raw in author.generated_files().items():
             self.assertEqual((ROOT / name).read_bytes(), raw)
         from tools.generate_hia_current_worker_manifest import generated_files, TABLE_PATH, MODEL_PATH
-        files, _ = generated_files()
+        declared_raw = (ROOT / MODEL_PATH).read_bytes()
+        declared = json.loads(declared_raw)
+        self.assertEqual(declared['schema'], 'hepta.hia.worker-manifest-records.v2')
+        native = declared['sources'].get('native_source_authority')
+        authority_path = None
+        authority_raw = None
+        if native is not None:
+            from tools.hia_native_worker_source_authority import load_native_source_authority, SCHEMA
+            self.assertEqual(native['schema'], SCHEMA)
+            authority_path = ROOT / 'docs/HIA_NATIVE_SOURCE_AUTHORITY.json'
+            authority_raw = authority_path.read_bytes()
+            self.assertEqual(list(load_native_source_authority(authority_path)), native['paths'])
+        files, _ = generated_files(authority_path)
         for name, raw in files.items():
             self.assertEqual((ROOT / name).read_bytes(), raw)
         self.assertEqual(files[TABLE_PATH][:8], b'HIAWMT02')
         spec = json.loads(files[MODEL_PATH])
         self.assertEqual(spec['request'], 'HIAWMF02')
+        self.assertEqual((ROOT / MODEL_PATH).read_bytes(), declared_raw)
+        if authority_path is not None:
+            self.assertEqual(authority_path.read_bytes(), authority_raw)
 
 
 if __name__ == '__main__':

@@ -178,6 +178,14 @@ def _read(path, limit):
 
 
 
+def _scheduling_owner_binding():
+    scheduling = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+    from .hia_artifact_page_worker_bundle import NativeArtifactPageWorkerBinding
+    if type(scheduling) is NativeArtifactPageWorkerBinding:
+        scheduling = scheduling.base_binding
+    return scheduling
+
+
 def check_native_scheduling_scope(owner=None, *, engine=None, constructing=False,
                                   host_scheduler=False, observing=False):
     """The existing v1/v2 worker pins do not register these five schedulers.
@@ -188,7 +196,7 @@ def check_native_scheduling_scope(owner=None, *, engine=None, constructing=False
     registered worker-report/wire companions use their existing v2 custody.
     """
     _check_scope_owner()
-    scheduling = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+    scheduling = _scheduling_owner_binding()
     bound = getattr(owner, '_worker_scheduling_binding', None)
     if bound is not None and (bound is not scheduling or _SCOPE_OWNER is None):
         raise ValueError('native scheduling owner belongs to its original worker scope')
@@ -212,7 +220,7 @@ def pinned_scheduling(manifest_path, kind, namespace):
     _check_scope_owner()
     if _SCOPE_OWNER is None:
         return None
-    scheduling = getattr(_ACTIVE, 'base_binding', _ACTIVE)
+    scheduling = _scheduling_owner_binding()
     lookup = getattr(scheduling, 'scheduling_owner', None)
     if lookup is None:
         raise ValueError('native scheduling bundle is outside the pinned worker bundle')
@@ -331,6 +339,9 @@ class NativeHelpersBinding:
 
 def _base_binding(captured, expected_sha256, record):
     schema = record.get('schema') if type(record) is dict else None
+    if schema == 'hepta.hia.artifact-page-worker-bundle.v1':
+        from .hia_artifact_page_worker_bundle import NativeArtifactPageWorkerBinding
+        return NativeArtifactPageWorkerBinding(captured, expected_sha256)
     if schema == 'hepta.hia.native-helpers.v3':
         from .hia_worker_scheduling_bundle import NativeWorkerSchedulingBinding
         return NativeWorkerSchedulingBinding(captured, expected_sha256)

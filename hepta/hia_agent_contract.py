@@ -138,6 +138,8 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/store_file_capture.hepta',
     'examples/hia_bootstrap/service_discovery.hepta',
     'examples/hia_bootstrap/service_bootstrap.hepta',
+    'examples/hia_bootstrap/source_artifact_page_manifest.hepta',
+    'examples/hia_bootstrap/artifact_page_manifest_tables.hiastd',
 )
 
 
