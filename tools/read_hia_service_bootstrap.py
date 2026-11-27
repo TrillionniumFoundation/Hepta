@@ -243,6 +243,7 @@ def read_finite(directory,authority_path,authority_pin,lane):
     candidate_path,report=receipt(directory,"candidate",comparison["candidate"],captured,source,lane=lane,seconds=1800)
     equal(report["expected_authority"],authority_pin,"candidate expected authority differs")
     equal(report["input"],authority["complete_inputs"],"candidate parsed input bytes differ")
+    _read_finite_source_domains(candidate_path, report, captured, source, lane)
     for _ in rows(candidate_path,report,cases):pass
     for channel in ("observations.jsonl","late-events.jsonl"):
         if not s.identical_files(original_path/channel,candidate_path/channel,
@@ -295,6 +296,140 @@ def read_finite(directory,authority_path,authority_pin,lane):
             "actual_full_raw_equal":True,"complete_late_equal":True,"raw_tracebacks_preserved":True,
             "whole_native_stack_qualified":False}
 
+
+
+def _read_current_dispatch_control(value, expected_code, lane):
+    if (type(value) is not dict or set(value) != {'schema', 'status', 'domain', 'lane',
+            'physical_source', 'actual_public_code', 'current_reference_code', 'option_names',
+            'init_cases', 'init_rows', 'program_cases', 'program_rows', 'current_source_unchanged',
+            'retained_poison_calls', 'complete_current_semantics_qualified', 'whole_native_stack_qualified'}
+            or value['schema'] != 'hepta.hia.bootstrap-current-dispatch-controls.v2'
+            or value['status'] != 'PASS_CURRENT_INIT_AND_PROGRAM_ONLY'
+            or value['domain'] != 'CURRENT_PHYSICAL_PUBLIC_DISPATCH' or value['lane'] != lane
+            or value['current_source_unchanged'] is not True
+            or value['retained_poison_calls'] != []
+            or value['complete_current_semantics_qualified'] is not False
+            or value['whole_native_stack_qualified'] is not False):
+        raise ValueError('current Bootstrap dispatcher scope or evidence differs')
+    equal(value['actual_public_code'], expected_code['public'], 'current public source code differs')
+    equal(value['current_reference_code'], expected_code['retained'], 'current reference source code differs')
+    equal(value['option_names'], ['native_store', 'native_edit_query', 'native_candidate_import'],
+          'current constructor option order differs')
+    integer(value['init_cases'], 8)
+    bits = [[a,b,c] for a in (False,True) for b in (False,True) for c in (False,True)]
+    if type(value['init_rows']) is not list or len(value['init_rows']) != 8:
+        raise ValueError('current constructor complete option combinations are missing')
+    init_events = ['selected_candidate_budget', 'selected_slot_ledger', 'catalog',
+                   'installation_manifest', 'AgentStore', 'profiles']
+    def entries(row, *, reference):
+        n = integer(row['entries'])
+        if reference or lane == 'unselected':
+            integer(n, 0)
+        elif n == 0:
+            raise ValueError('selected current dispatcher has no actual entry')
+    for row, combination in zip(value['init_rows'], bits):
+        if type(row) is not dict or set(row) != {'options', 'reference', 'current', 'actual_service_subclass'}:
+            raise ValueError('current constructor observation shape differs')
+        equal(row['options'], combination, 'current constructor combination order differs')
+        if row['actual_service_subclass'] is not True:
+            raise ValueError('current constructor did not use an actual Service subclass')
+        for key in ('reference', 'current'):
+            item = row[key]
+            if (type(item) is not dict or set(item) != {'events', 'entries', 'opaque_option_identity',
+                    'complete_state_identity', 'tool_role_and_item_identity', 'profile_calls',
+                    'explicit_store_keyword_preserved', 'frame_options_forwarded'}):
+                raise ValueError('current constructor result shape differs')
+            equal(item['events'], init_events, 'current constructor foreign effect order differs')
+            entries(item, reference=key == 'reference')
+            for field in ('opaque_option_identity', 'complete_state_identity',
+                          'tool_role_and_item_identity', 'explicit_store_keyword_preserved'):
+                if item[field] is not True:
+                    raise ValueError('current constructor identity or keyword semantics differ')
+            integer(item['profile_calls'], 1)
+            if item['frame_options_forwarded'] is not (key == 'current' and lane != 'unselected'):
+                raise ValueError('current frame option forwarding differs')
+    cases = (
+        'native-success', 'native-refusal-valid', 'native-refusal-invalid', 'native-throws',
+        'store-throws', 'native-getter-order', 'none-reference-override', 'native-reference-throws',
+        'none-admission-override', 'native-admission-override',
+        'none-reference-default', 'none-reference-invalid',
+    )
+    events = {
+        'native-success': ['store.get', 'native.retained_program'],
+        'native-refusal-valid': ['store.get', 'native.retained_program', 'reference_import'],
+        'native-refusal-invalid': ['store.get', 'native.retained_program', 'reference_import'],
+        'native-throws': ['store.get', 'native.retained_program'],
+        'store-throws': ['store.get'],
+        'native-getter-order': ['store.get', 'native.getter', 'native.getter', 'native.retained_program'],
+        'none-reference-override': ['store.get', 'reference_import'],
+        'native-reference-throws': ['store.get', 'native.retained_program', 'reference_import'],
+        'none-admission-override': ['store.get', 'admission-override'],
+        'native-admission-override': ['store.get', 'admission-override'],
+        'none-reference-default': ['store.get', 'reference_import'],
+        'none-reference-invalid': ['store.get', 'reference_import'],
+    }
+    integer(value['program_cases'], len(cases))
+    if type(value['program_rows']) is not list or len(value['program_rows']) != len(cases):
+        raise ValueError('current retained-program cases are incomplete')
+    opaque_returns = {'native-success', 'native-getter-order', 'none-reference-override',
+                      'none-admission-override', 'native-admission-override'}
+    opaque_errors = {'native-throws', 'store-throws', 'native-reference-throws'}
+    for row, case in zip(value['program_rows'], cases):
+        if (type(row) is not dict or set(row) != {'case', 'reference', 'current', 'actual_service_subclass'}
+                or row['case'] != case or row['actual_service_subclass'] is not True):
+            raise ValueError('current retained-program identity or case order differs')
+        for key in ('reference', 'current'):
+            item = row[key]
+            if type(item) is not dict or set(item) != {'events', 'outcome', 'entries'}:
+                raise ValueError('current retained-program result shape differs')
+            equal(item['events'], events[case], 'current retained-program effect/getter order differs')
+            entries(item, reference=key == 'reference')
+        equal(row['reference']['outcome'], row['current']['outcome'],
+              'current retained-program original and selected outcomes differ')
+        outcome = row['current']['outcome']
+        if case in opaque_returns:
+            equal(outcome, {'kind':'return','type':'object','opaque_identity':True},
+                  'current retained-program opaque return identity differs')
+        elif case == 'none-reference-default':
+            equal(outcome, {'kind':'return','type':'VerifiedProgram','opaque_identity':False,
+                            'default_program_exact':True}, 'current default program differs')
+        elif case in opaque_errors:
+            equal(outcome, {'kind':'raise','type':'LookupError','message':'opaque-provider-failure',
+                            'supplied_exception_identity':True}, 'current provider exception identity differs')
+        elif case == 'native-refusal-valid':
+            equal(outcome, {'kind':'raise','type':'ValueError',
+                            'message':'native Agent retained-program refusal disagrees with hosted admission',
+                            'supplied_exception_identity':False}, 'current native-refusal diagnostic differs')
+        elif (type(outcome) is not dict or set(outcome) != {'kind','type','message','supplied_exception_identity'}
+                or outcome['kind'] != 'raise' or outcome['type'] != 'HIAEditRejected'
+                or type(outcome['message']) is not str or not outcome['message']
+                or outcome['supplied_exception_identity'] is not False):
+            raise ValueError('current invalid-source reference diagnostic differs')
+    return value
+
+def _read_finite_source_domains(candidate_path, report, captured, source, lane):
+    from tools import hia_bootstrap_source_history as history
+    reader = captured_bytes(ROOT / history.HELPER, source[history.HELPER], captured)
+    if Path(history.__file__).read_bytes() != reader:
+        raise ValueError('Bootstrap source relation reader differs from captured bytes')
+    historical, expected, saved = history.capture(ROOT, take=lambda path:
+        captured_bytes(path, source[path.relative_to(ROOT).as_posix()], captured))
+    expected.update(history.graph_bindings(saved[history.SOURCE], historical))
+    equal(report['candidate_source_domain'],
+          'HISTORICAL_FIVE_BODY_COMPATIBILITY_WITH_CURRENT_DISPATCH_CONTROLS',
+          'Bootstrap candidate historical/current domain differs')
+    proof = capture(candidate_path/'historical-source-binding.json',
+                    report['files']['historical-source-binding.json'], captured)
+    equal(proof, expected, 'complete historical source binding differs')
+    equal(report['public_code_binding'], expected['historical_code']['public'],
+          'historical public wrappers do not match the restored full source')
+    current = capture(candidate_path/'current-dispatch.json',
+                      report['files']['current-dispatch.json'], captured)
+    equal(current['physical_source'], {'path':history.SOURCE, **history.CURRENT},
+          'current dispatcher physical source differs')
+    _read_current_dispatch_control(current, expected['current_code'], lane)
+    history.unchanged(ROOT, saved)
+    return {'historical_source': proof, 'current_dispatch': current}
 
 
 def owned_child(parent,label,filename,seconds,captured,*,fixed=None,stderr_empty=True):

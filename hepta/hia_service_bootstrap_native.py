@@ -244,6 +244,15 @@ def _bootstrap_generator(image, mode, iterator, namespace, global_builtins, impo
             # its final ACK; this alias belongs only to the suspended yield.
             del original_locals
 
+# Original graph storage names are fixed by the complete R12 five-body source.
+GRAPH_LOCAL_LAYOUTS = {
+    1: ("self", "state_root", "artifact_roots", "selected_candidate_budget", "NativeCandidateBudgetStore", "selected_slot_ledger", "NativeSlotLedgerStore", "candidate_budget_image", "slot_ledger_image", "t", "error", "cleanups", "cleanup", "failure"),
+    2: ("self",),
+    3: ("self", "TARGET", "PROFILE", "SUPPORTED_OPCODES", "CORE_SCHEMAS", "IMPORTS", "schema_registry", "ARTIFACT_PROFILE", "LIMITS", "common", "root", "bodies", "name", "body", "ref", "artifact", "filename", "macro_policy_guidance"),
+    4: ("self", "ref", "name"),
+    5: ("self", "ref", "data", "_"),
+}
+
 class ServiceBootstrapFrame:
     def __init__(self, image, mode, initial, *, namespace=None, global_builtins=None,
                  import_ports=None, local_layouts=None, service_options=None):
@@ -253,11 +262,14 @@ class ServiceBootstrapFrame:
             raise ValueError('unknown bootstrap mode')
         from . import hia_agent_service
         canonical_imports = hia_agent_service._SERVICE_BOOTSTRAP_IMPORT_PORTS
+        if local_layouts is None:
+            local_layouts = dict(GRAPH_LOCAL_LAYOUTS)
+        elif type(local_layouts) is not dict or local_layouts != GRAPH_LOCAL_LAYOUTS:
+            raise ValueError('bootstrap local layouts differ from the original graph storage')
         if namespace is None:
             namespace = vars(hia_agent_service)
             global_builtins = hia_agent_service._SERVICE_BOOTSTRAP_GLOBAL_BUILTINS
             import_ports = canonical_imports if import_ports is None else import_ports
-            local_layouts = hia_agent_service._SERVICE_BOOTSTRAP_LOCAL_LAYOUTS if local_layouts is None else local_layouts
         if type(global_builtins) is types.ModuleType:
             global_builtins = vars(global_builtins)
         if type(namespace) is not dict or type(global_builtins) is not dict:
@@ -721,7 +733,7 @@ class ServiceBootstrapFrame:
         d=self.data
         options = self.service_options
         service = d['self']
-        if options is None or options['native_store'] is None:
+        if options is None:
             self.import_ports['init_store'](service, d['state_root'])
         else:
             service.store = self.namespace['AgentStore'](d['state_root'], native_store=options['native_store'])
@@ -1056,7 +1068,7 @@ class ServiceBootstrapFrame:
         service, data = self.data['self'], self.data['data']
         from .hia_agent_service import HIAAgentService
 
-        if issubclass(type(service), HIAAgentService) and service._native_candidate_import is not None:
+        if issubclass(type(service), HIAAgentService):
             self.result = service._admit_retained_program(data)
         else:
             self.result = self.import_ports['program_verify'](data)
