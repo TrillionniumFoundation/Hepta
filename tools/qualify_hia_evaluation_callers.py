@@ -66,8 +66,22 @@ def admit_original_sources(root, records, *, source_proof=None):
     installed_predecessors = {}
     for name, digest in records.items():
         physical = capture(name)
-        raw = predecessor(name, physical, root=root,
-                          take=lambda path: capture(Path(path).relative_to(root).as_posix()))
+        # The retained original, diagnostic and registry-count domains need
+        # only their own fixed authorities. Successor history is read only
+        # when the physical source is outside those exact existing domains.
+        direct = sha256(physical).hexdigest() == digest
+        if name == 'tests/test_hia_agent_native_tools.py':
+            from tests import hia_caller_diagnostics_admission as original_diagnostics
+            direct = direct or original_diagnostics.pin(physical) == original_diagnostics.CURRENT
+        if name == 'tests/test_hia_worker_native_helpers.py' and physical.count(current_line) == 1:
+            direct = direct or sha256(physical.replace(current_line, original_line, 1)).hexdigest() == digest
+        raw = physical
+        if not direct:
+            try:
+                raw = predecessor(name, physical, root=root,
+                    take=lambda path: capture(Path(path).relative_to(root).as_posix()))
+            except OSError as error:
+                raise ValueError('required evaluation caller source history is unavailable: ' + name) from error
         if raw != physical:
             installed_predecessors[name] = sha256(raw).hexdigest()
         actual = sha256(raw).hexdigest()

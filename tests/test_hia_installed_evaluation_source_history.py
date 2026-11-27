@@ -138,8 +138,20 @@ class InstalledEvaluationHistoryTests(unittest.TestCase):
         }
         self.assertEqual(set(value['files']), set(expected))
         for name, old in expected.items():
-            restored = history_inverse((ROOT / name).read_bytes(), value['files'][name], old)
+            physical = (ROOT / name).read_bytes()
+            admitted = physical
+            if name == 'tools/qualify_hia_evaluation_callers.py':
+                successor = ROOT / 'tests/fixtures/hia_evaluation_original_source_domains_v1.json'
+                successor_raw = successor.read_bytes()
+                self.assertEqual(sha256(successor_raw).hexdigest(), 'ce9b082ed9d9496b5939767687df89e2c550b7d28419fa8f77f16626037bfe33')
+                current_record = json.loads(successor_raw)['files'][name]
+                admitted = history_inverse(physical, current_record, {
+                    'bytes': 15168,
+                    'sha256': '8a0f66a01385fce272205551af0722c31dc92197346f86e757693565d7952757'})
+                self.assertEqual(successor.read_bytes(), successor_raw)
+            restored = history_inverse(admitted, value['files'][name], old)
             self.assertEqual(window.pin(restored), old)
+            self.assertEqual((ROOT / name).read_bytes(), physical)
         self.assertEqual(path.read_bytes(), raw)
 
     def test_exact_qualifier_root_capture_preserves_original_complete_inventory(self):

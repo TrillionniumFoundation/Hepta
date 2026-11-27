@@ -11,7 +11,8 @@ from tests import hia_cold_caller_selection_history as history
 ROOT = Path(__file__).resolve().parents[1]
 NAME = history.EVALUATION_CAPTURE_PATH
 PATHS = (*history.EVALUATION_CAPTURE_EXPECTED,
-         history.EVALUATION_CAPTURE_FIXTURE, history.INVERSE_HELPER, history.FIXTURE)
+         history.EVALUATION_CAPTURE_FIXTURE, history.EVALUATION_DOMAINS_FIXTURE,
+         history.INVERSE_HELPER, history.FIXTURE)
 
 
 def stage(root):
@@ -77,8 +78,12 @@ class EvaluationCallerCaptureTests(unittest.TestCase):
             with self.subTest(partially_reverted=name), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 stage(root)
-                (root / name).write_bytes(history_inverse((root / name).read_bytes(),
-                    value['files'][name], expected['old']))
+                physical = (root / name).read_bytes()
+                if name == NAME:
+                    domains = json.loads((ROOT / history.EVALUATION_DOMAINS_FIXTURE).read_bytes())
+                    physical = history_inverse(physical, domains['files'][name],
+                        history.LEGACY_EVALUATION_CAPTURE_EXPECTED[name]['new'])
+                (root / name).write_bytes(history_inverse(physical, value['files'][name], expected['old']))
                 with self.assertRaises(ValueError):
                     history.reviewed(NAME, raw, root=root)
 
@@ -152,6 +157,30 @@ assert proof['evaluation_caller_capture']['original_complete_callers']==81
         result = subprocess.run([sys.executable, '-I', '-B', '-c', script, str(ROOT)],
                                 capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_previous_complete_pair_does_not_read_the_later_original_domain_fixture(self):
+        import json
+        from tools.hia_frozen_component_sources import history_inverse
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            stage(root)
+            domain = json.loads((root / history.EVALUATION_DOMAINS_FIXTURE).read_bytes())
+            old = history_inverse((root / NAME).read_bytes(), domain['files'][NAME],
+                history.LEGACY_EVALUATION_CAPTURE_EXPECTED[NAME]['new'])
+            (root / NAME).write_bytes(old)
+            (root / history.EVALUATION_DOMAINS_FIXTURE).unlink()
+            taken = []
+            def take(path):
+                taken.append(path)
+                return path.read_bytes()
+            restored, proof = history.reviewed(NAME, old, root=root, take=take)
+            self.assertEqual(history.pin(restored), history.EXPECTED[NAME]['old'])
+            self.assertEqual(proof['evaluation_caller_capture'], history._evaluation_capture_proof(1))
+            self.assertNotIn(root / history.EVALUATION_DOMAINS_FIXTURE, taken)
+            entry = {'path': NAME, 'current_bytes': len(restored),
+                     'current_sha256': history.pin(restored)['sha256']}
+            self.assertEqual(history.bind_adjustment(entry, old, proof)['current_sha256'],
+                             history.pin(old)['sha256'])
 
 
 if __name__ == '__main__':

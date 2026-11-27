@@ -306,15 +306,37 @@ EVALUATION_CAPTURE_EXPECTED = {
 }
 
 
-def _evaluation_capture_proof():
-    return {
-        'schema': 'hepta.hia.evaluation-caller-capture-source-review.v1',
+LEGACY_EVALUATION_CAPTURE_EXPECTED = EVALUATION_CAPTURE_EXPECTED
+EVALUATION_CAPTURE_EXPECTED = {
+    name: {version: dict(identity) for version, identity in pair.items()}
+    for name, pair in LEGACY_EVALUATION_CAPTURE_EXPECTED.items()
+}
+EVALUATION_CAPTURE_EXPECTED[EVALUATION_CAPTURE_PATH]['new'] = {
+    'bytes': 16120, 'sha256': '3360ffaa55764e6b521b954ec9aa6471dd7a08c9f76c896eb439df789711e4ec',
+}
+EVALUATION_DOMAINS_FIXTURE = 'tests/fixtures/hia_evaluation_original_source_domains_v1.json'
+EVALUATION_DOMAINS_FIXTURE_PIN = {
+    'bytes': 3187, 'sha256': 'ce9b082ed9d9496b5939767687df89e2c550b7d28419fa8f77f16626037bfe33',
+}
+
+
+def _evaluation_capture_versions(version):
+    if type(version) is not int or version not in (1, 2):
+        raise ValueError('unknown evaluation source-capture history version')
+    return (EVALUATION_CAPTURE_EXPECTED if version == 2
+            else LEGACY_EVALUATION_CAPTURE_EXPECTED)
+
+
+def _evaluation_capture_proof(version=2):
+    expected = _evaluation_capture_versions(version)
+    proof = {
+        'schema': 'hepta.hia.evaluation-caller-capture-source-review.v' + str(version),
         'path': EVALUATION_CAPTURE_PATH,
-        'old': dict(EVALUATION_CAPTURE_EXPECTED[EVALUATION_CAPTURE_PATH]['old']),
-        'new': dict(EVALUATION_CAPTURE_EXPECTED[EVALUATION_CAPTURE_PATH]['new']),
+        'old': dict(expected[EVALUATION_CAPTURE_PATH]['old']),
+        'new': dict(expected[EVALUATION_CAPTURE_PATH]['new']),
         'fixture': {'path': EVALUATION_CAPTURE_FIXTURE, **EVALUATION_CAPTURE_FIXTURE_PIN},
         'complete_pair': {path: {version: dict(identity) for version, identity in pair.items()}
-                          for path, pair in EVALUATION_CAPTURE_EXPECTED.items()},
+                          for path, pair in expected.items()},
         'original_complete_callers': 81,
         'complete_predecessor_restored': True,
         'complete_successor_replayed': True,
@@ -322,11 +344,24 @@ def _evaluation_capture_proof():
         'terminal_reread_identical': True,
         'whole_native_delivery_qualified': False,
     }
+    if version == 2:
+        proof['original_source_domains'] = {
+            'fixture': {'path': EVALUATION_DOMAINS_FIXTURE, **EVALUATION_DOMAINS_FIXTURE_PIN},
+            'complete_predecessor': dict(LEGACY_EVALUATION_CAPTURE_EXPECTED[EVALUATION_CAPTURE_PATH]['new']),
+            'complete_current': dict(EVALUATION_CAPTURE_EXPECTED[EVALUATION_CAPTURE_PATH]['new']),
+            'prior_projection_is_physical_source': False,
+            'original_sources_gain_new_dependencies': False,
+        }
+    return proof
 
 
 def _evaluation_capture_predecessor(name, raw, root, take):
-    if name != EVALUATION_CAPTURE_PATH or pin(raw) != EVALUATION_CAPTURE_EXPECTED[name]['new']:
+    version = next((number for number in (2, 1)
+                    if name == EVALUATION_CAPTURE_PATH
+                    and pin(raw) == _evaluation_capture_versions(number)[name]['new']), None)
+    if version is None:
         return raw, None, {}
+    expected_pair = _evaluation_capture_versions(version)
     saved = {}
     def capture(selected):
         value = take(root / selected)
@@ -334,7 +369,7 @@ def _evaluation_capture_predecessor(name, raw, root, take):
             raise ValueError('evaluation caller capture history changed during read')
         saved[selected] = value
         return value
-    for path, expected in EVALUATION_CAPTURE_EXPECTED.items():
+    for path, expected in expected_pair.items():
         physical = capture(path)
         if pin(physical) != expected['new'] or path == name and physical != raw:
             raise ValueError('evaluation caller capture pair is mixed or not physical')
@@ -350,16 +385,34 @@ def _evaluation_capture_predecessor(name, raw, root, take):
             or value['original_fixed_fixtures_modified'] is not False
             or value['historical_projection_is_physical_source'] is not False
             or type(value['files']) is not dict
-            or set(value['files']) != set(EVALUATION_CAPTURE_EXPECTED)
-            or EVALUATION_CAPTURE_EXPECTED[name]['old'] != EXPECTED[name]['new']):
+            or set(value['files']) != set(LEGACY_EVALUATION_CAPTURE_EXPECTED)
+            or LEGACY_EVALUATION_CAPTURE_EXPECTED[name]['old'] != EXPECTED[name]['new']):
         raise ValueError('evaluation caller capture history fixed scope differs')
     from tools import hia_frozen_component_sources as inverse
     if Path(inverse.__file__).read_bytes() != engine:
         raise ValueError('evaluation caller capture imported another inverse engine')
+    paired = {path: saved[path] for path in expected_pair}
+    if version == 2:
+        domains = capture(EVALUATION_DOMAINS_FIXTURE)
+        if pin(domains) != EVALUATION_DOMAINS_FIXTURE_PIN:
+            raise ValueError('evaluation original-domain source authority differs')
+        domain = json.loads(domains, object_pairs_hook=_pairs)
+        if (type(domain) is not dict or set(domain) != {
+                'schema', 'predecessor_commit', 'original_fixed_fixtures_modified',
+                'historical_projection_is_physical_source', 'files'}
+                or domain['schema'] != 'hepta.hia.evaluation-original-source-domains-history.v1'
+                or domain['predecessor_commit'] != '0751a6df47c46090de2ff1e303fed8d82a89de47'
+                or domain['original_fixed_fixtures_modified'] is not False
+                or domain['historical_projection_is_physical_source'] is not False
+                or type(domain['files']) is not dict
+                or set(domain['files']) != {EVALUATION_CAPTURE_PATH}):
+            raise ValueError('evaluation original-domain history scope differs')
+        paired[name] = inverse.history_inverse(paired[name], domain['files'][name],
+            LEGACY_EVALUATION_CAPTURE_EXPECTED[name]['new'])
     prior = {}
-    for path, expected in EVALUATION_CAPTURE_EXPECTED.items():
-        prior[path] = inverse.history_inverse(saved[path], value['files'][path], expected['old'])
-    return prior[name], _evaluation_capture_proof(), saved
+    for path, expected in LEGACY_EVALUATION_CAPTURE_EXPECTED.items():
+        prior[path] = inverse.history_inverse(paired[path], value['files'][path], expected['old'])
+    return prior[name], _evaluation_capture_proof(version), saved
 
 
 def current_pin(name):
@@ -473,8 +526,13 @@ def bind_adjustment(entry, raw, proof):
     integrated = proof.get('integrated_source_admission')
     evaluation = proof.get('evaluation_caller_capture')
     if evaluation is not None:
+        version = next((number for number in (2, 1)
+                        if type(evaluation) is dict
+                        and evaluation == _evaluation_capture_proof(number)
+                        and json.dumps(evaluation, sort_keys=True) ==
+                            json.dumps(_evaluation_capture_proof(number), sort_keys=True)), None)
         if (name != EVALUATION_CAPTURE_PATH or integrated is not None
-                or type(evaluation) is not dict or evaluation != _evaluation_capture_proof()
+                or version is None
                 or evaluation.get('complete_predecessor_restored') is not True
                 or evaluation.get('complete_successor_replayed') is not True
                 or evaluation.get('physical_capture_rewritten') is not False
@@ -482,7 +540,7 @@ def bind_adjustment(entry, raw, proof):
                 or evaluation.get('whole_native_delivery_qualified') is not False
                 or type(evaluation.get('original_complete_callers')) is not int):
             raise ValueError('caller selection evaluation capture proof differs')
-        current = EVALUATION_CAPTURE_EXPECTED[name]['new']
+        current = _evaluation_capture_versions(version)[name]['new']
     elif integrated is None:
         current = expected['new']
     else:

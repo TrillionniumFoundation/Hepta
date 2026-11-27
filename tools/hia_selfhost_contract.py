@@ -966,6 +966,9 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tools/hia_current_store_source_history.py',
+    'tests/test_hia_current_store_source_history.py',
+    'tests/fixtures/hia_evaluation_original_source_domains_v1.json',
     'tests/fixtures/hia_artifact_route_cold_selection_v1.json',
     'examples/hia_bootstrap/mcp_http_admission.hepta',
     'examples/hia_bootstrap/mcp_http_bind.hepta',
