@@ -46,9 +46,18 @@ def build(output, compiler, cold_report=None, *, development=False):
     captured = {name: (ROOT / name).read_bytes() for name in INPUTS}
     cold_bytes = None if development else Path(cold_report).read_bytes()
     sources = None if development else admit_cold_build(compiler_bytes, cold_bytes)
-    if sources is not None and any(sources.get(name) != sha256(raw).hexdigest()
-                                   for name, raw in captured.items()):
-        raise ValueError('Store transaction inputs are not bound by current cold source')
+    cold_inputs, custody, development_inputs = None, None, {}
+    if sources is not None:
+        from tools.hia_native_cold_admission import SCHEMA, read_json
+        if read_json(cold_bytes).get('schema') == SCHEMA:
+            from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS, read_cold_build_inputs
+            cold_inputs = read_cold_build_inputs(cold_report)
+            if cold_inputs.compiler_bytes != compiler_bytes or cold_inputs.sources != sources:
+                raise ValueError('component compiler or source differs from the admitted cold inputs')
+            development_inputs = {name: (ROOT / name).read_bytes() for name in NATIVE_CUSTODY_INPUTS}
+            custody = cold_inputs.capture_custody({**captured, **development_inputs}, root=ROOT)
+        elif any(sources.get(name) != sha256(raw).hexdigest() for name, raw in captured.items()):
+            raise ValueError('Store transaction inputs are not bound by current cold source')
     output.mkdir(mode=0o700)
     source = captured[SOURCE_NAME]
     image, receipt = compile_stage(output, 'store_transaction', compiler, source)
@@ -60,6 +69,9 @@ def build(output, compiler, cold_report=None, *, development=False):
             or (sources is not None and (Path(cold_report).read_bytes() != cold_bytes
                                         or current_sources() != sources))):
         raise ValueError('Store transaction construction inputs or output changed')
+    if cold_inputs is not None:
+        if custody != cold_inputs.capture_custody({**captured, **development_inputs}, root=ROOT):
+            raise ValueError('component native and development custody changed during construction')
     manifest = {'schema': 'hepta.hia.store-transaction.v1',
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image_bytes).hexdigest(),
@@ -87,6 +99,9 @@ def build(output, compiler, cold_report=None, *, development=False):
         'all_input_equivalence_proved': False,
         'whole_native_stack_qualified': False,
     }
+    if custody is not None:
+        report['component_input_custody'] = custody
+        report['development_inputs'] = {name: sha256(raw).hexdigest() for name, raw in development_inputs.items()}
     (output / 'build.json').write_text(json.dumps(report, sort_keys=True, indent=2) + '\n')
     return output / 'manifest.json'
 

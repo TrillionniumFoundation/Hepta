@@ -16,6 +16,10 @@ import re
 import stat
 import sys
 
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in (None, ''):
+    sys.path.insert(0, str(ROOT))
+
 CONTRACT = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
 COLD_PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
 FIXTURE = 'tests/fixtures/hia_emission_original_73f1634/original-freeze.json'
@@ -117,6 +121,15 @@ def source_map(repository, captures):
     contract_raw = captures.raw[absolute(repository / CONTRACT)]
     files = contract['source_identity']['files']
     require(type(files) is dict and files, 'current source contract is empty')
+    from tools.hia_release_contract import source_domain, validate_release_contract
+    if source_domain(contract) == 'native':
+        require(repository == ROOT and validate_release_contract(repository) == contract,
+                'native readback must bind this exact current source checkout')
+        for name, expected in files.items():
+            captures.take(relative(repository, name), expected)
+        require(SOURCE in files and READER not in files and QUALIFIER not in files,
+                'native implementation or separate host observation domain differs')
+        return {**files, CONTRACT: digest(contract_raw)}
     source_decl = captures.take(repository / 'tools/hia_selfhost_contract.py')
     declared = literal_assignment(source_decl, 'SOURCE_FILES')
     require(type(declared) in (tuple, list)
@@ -134,6 +147,16 @@ def source_map(repository, captures):
 def cold_build(cold_path, captures, current):
     cold = captures.json(cold_path)
     cold_raw = captures.raw[absolute(cold_path)]
+    from tools.hia_native_cold_admission import SCHEMA
+    if type(cold) is dict and cold.get('schema') == SCHEMA:
+        from tools.hia_cold_compiler import read_cold_build_inputs
+        inputs = read_cold_build_inputs(cold_path)
+        require(inputs.report_bytes == cold_raw and canonical(inputs.sources) == canonical(current),
+                'native cold source/report differs from the current readback')
+        for path, raw in inputs.files:
+            require(captures.take(path) == raw, 'native cold input changed during readback')
+        inputs.unchanged()
+        return inputs.compiler_bytes, digest(cold_raw)
     require(cold['schema'] == 'hepta.hia.selfhost-cold-replay.v1'
             and cold['profile'] == COLD_PROFILE
             and cold['status'] == 'COLD_SELFHOST_REPLAY_PASS',
@@ -204,7 +227,7 @@ def builder_inputs(repository, captures):
     return inputs
 
 
-def component_build(repository, evidence, captures, current, compiler, cold_sha):
+def component_build(repository, evidence, captures, current, compiler, cold_sha, *, cold_path=None):
     directory = absolute(evidence / 'qualified')
     manifest = captures.json(directory / 'manifest.json')
     build = captures.json(directory / 'build.json')
@@ -216,8 +239,27 @@ def component_build(repository, evidence, captures, current, compiler, cold_sha)
             and canonical(build['manifest']) == canonical(manifest),
             'caller build is not the same current cold component')
     inputs = builder_inputs(repository, captures)
-    require(canonical(build['component_inputs']) == canonical({name: current[name] for name in inputs}),
-            'complete component inputs are not the same frozen source')
+    from tools.hia_native_cold_admission import SCHEMA
+    cold = None if cold_path is None else captures.json(cold_path)
+    if type(cold) is dict and cold.get('schema') == SCHEMA:
+        from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS, read_cold_build_inputs
+        captured_inputs = {name: captures.take(repository / name) for name in inputs}
+        require(canonical(build['component_inputs']) == canonical(
+                    {name: digest(raw) for name, raw in captured_inputs.items()}),
+                'component input bytes differ from their declared fixed whitelist')
+        development_inputs = {name: captures.take(repository / name) for name in NATIVE_CUSTODY_INPUTS}
+        require(canonical(build.get('development_inputs')) == canonical(
+                    {name: digest(raw) for name, raw in development_inputs.items()}),
+                'native component development dependencies differ')
+        admitted = read_cold_build_inputs(cold_path)
+        require(admitted.compiler_bytes == compiler and admitted.sources == current,
+                'component compiler or source differs from its admitted native cold')
+        custody = admitted.capture_custody({**captured_inputs, **development_inputs}, root=repository)
+        require(canonical(build.get('component_input_custody')) == canonical(custody),
+                'native component and clean Git authoring custody differ')
+    else:
+        require(canonical(build['component_inputs']) == canonical({name: current[name] for name in inputs}),
+                'complete component inputs are not the same frozen source')
     source = captures.take(repository / SOURCE, current[SOURCE])
     image_path = relative(directory, manifest['image_path'])
     require(image_path.parent == directory, 'component image escapes its bundle')
@@ -630,7 +672,8 @@ def read_callers(repository, evidence, cold_path, producer_log):
         repository, captured, terminal_evidence=terminal_evidence)
     current = source_map(repository, captured)
     compiler, cold_sha = cold_build(cold_path, captured, current)
-    directory, manifest = component_build(repository, evidence, captured, current, compiler, cold_sha)
+    directory, manifest = component_build(repository, evidence, captured, current, compiler, cold_sha,
+                                         cold_path=cold_path)
     require(report['schema'] == 'hepta.hia.store-file-capture-nine-ordinary-callers.v1'
             and report['status'] == 'PASS'
             and report['scope'] == 'MATCHING_SOURCE_COLD_NINE_ORDINARY_STORE_FILE_CAPTURE_CALLER_MODULES',

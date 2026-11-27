@@ -373,43 +373,123 @@ def literal_assignment(path,name,captured):
             return ast.literal_eval(node.value)
     raise ValueError("literal source declaration missing: "+name)
 
+def native_cold_inputs(path,cold,captured):
+    from tools.hia_cold_compiler import read_cold_build_inputs
+    inputs=read_cold_build_inputs(path)
+    if not inputs.native:
+        raise ValueError("native readback cannot substitute a hosted cold domain")
+    equal(inputs.report,cold,"native original cold report differs")
+    for member,raw in inputs.files:
+        equal(captured_bytes(member,None,captured),raw,"actual native cold input changed")
+    inputs.unchanged()
+    return inputs
+
+def native_source_custody(inputs,source,captured):
+    from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS
+    values={name:captured_bytes(ROOT/name,pin,captured) for name,pin in source.items()}
+    values.update({name:captured_bytes(ROOT/name,None,captured) for name in NATIVE_CUSTODY_INPUTS})
+    return inputs.capture_custody(values,root=ROOT)
+
+def native_builder_input_names(path,captured):
+    """Read explicit source declarations without executing builders or products."""
+    raw=captured_bytes(path,None,captured)
+    names={}
+    def read(node,local):
+        if isinstance(node,ast.Constant) and type(node.value)is str:return node.value
+        if isinstance(node,ast.Name) and node.id in local:return local[node.id]
+        if isinstance(node,(ast.Tuple,ast.List)):
+            result=[]
+            for item in node.elts:
+                if isinstance(item,ast.Starred):result.extend(read(item.value,local))
+                else:result.append(read(item,local))
+            return tuple(result)
+        if isinstance(node,ast.BinOp) and isinstance(node.op,ast.Add):
+            return read(node.left,local)+read(node.right,local)
+        if isinstance(node,ast.JoinedStr):
+            return ''.join(read(part,local) for part in node.values)
+        if isinstance(node,ast.FormattedValue) and node.conversion==-1 and node.format_spec is None:
+            value=read(node.value,local)
+            if type(value)is str:return value
+        if isinstance(node,ast.GeneratorExp) and len(node.generators)==1:
+            clause=node.generators[0]
+            if isinstance(clause.target,ast.Name) and not clause.is_async and not clause.ifs:
+                return tuple(read(node.elt,{**local,clause.target.id:value})
+                             for value in read(clause.iter,local))
+        raise ValueError("unsupported explicit native builder input declaration")
+    for node in ast.parse(raw).body:
+        if isinstance(node,ast.Assign) and len(node.targets)==1 and isinstance(node.targets[0],ast.Name):
+            key=node.targets[0].id
+            if key in ("SOURCE_NAME","ORIGINAL_DIRECTORY","METHOD_NAMES","INPUTS"):
+                if key in names:raise ValueError("duplicate builder input declaration")
+                names[key]=read(node.value,names)
+    result=names.get("INPUTS")
+    if type(result)is not tuple or not result or len(result)!=len(set(result)) or any(
+            type(name)is not str or Path(name).is_absolute() or ".." in Path(name).parts for name in result):
+        raise ValueError("native builder input whitelist differs")
+    return result
+
+def native_component_custody(build,inputs,captured):
+    from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS
+    builders={"hepta.hia.service-bootstrap.v1":"service_bootstrap",
+              "hepta.hia.store-artifact-profile.v1":"store_artifact_profile",
+              "hepta.hia.store-transaction.v1":"store_transaction",
+              "hepta.hia.service-context-native.v1":"service_context"}
+    schema=build["manifest"]["schema"]
+    if schema not in builders:raise ValueError("undeclared native component custody owner")
+    names=native_builder_input_names(ROOT/("tools/build_hia_"+builders[schema]+".py"),captured)
+    values={name:captured_bytes(ROOT/name,None,captured) for name in names}
+    equal(build["component_inputs"],{name:s.bytes_pin(raw)["sha256"] for name,raw in values.items()},
+          "native component fixed input whitelist or actual bytes differ")
+    development={name:captured_bytes(ROOT/name,None,captured) for name in NATIVE_CUSTODY_INPUTS}
+    equal(build.get("development_inputs"),{name:s.bytes_pin(raw)["sha256"] for name,raw in development.items()},
+          "native component development dependencies differ")
+    custody=inputs.capture_custody({**values,**development},root=ROOT)
+    equal(build.get("component_input_custody"),custody,"native component source/Git custody differs")
+
 def construction(root,pin,captured,source,*,require_cold):
     root=Path(root)
     report=capture(root/"construction.json",pin,captured)
     compiler_path=Path(report["compiler_path"])
     compiler=captured_bytes(compiler_path,report["compiler"],captured)
-    cold=None
+    cold=None;native_inputs=None
     if report["scope"]=="MATCHING_SOURCE_COLD":
         cold=capture(report["cold_report_path"],report["cold_report"],captured)
-        required={
-            "export_manifest_matches_qualification","isolated_python_without_site",
-            "nested_full_qualification_pass","nested_process_exit_zero","no_ancestor_git_identity",
-            "no_bytecode_cache_created","no_inherited_home_or_python_cache",
-            "no_inherited_seed_or_successor_images","origin_hashes_preserved",
-            "owned_process_tree_cleanup_confirmed","source_export_hashes_preserved"}
-        profile=literal_assignment(ROOT/"tools/hia_selfhost_contract.py","PROFILE",captured)
-        if (cold["schema"]!="hepta.hia.selfhost-cold-replay.v1" or cold["profile"]!=profile
-                or cold["status"]!="COLD_SELFHOST_REPLAY_PASS" or set(cold["checks"])!=required
-                or any(v is not True for v in cold["checks"].values())):
-            raise ValueError("matching complete cold admission differs")
-        integer(cold["returncode"],0)
-        equal(cold["generation_sha256"],[report["compiler"]["sha256"]]*3,"cold compiler generations differ")
-        full=cold["source_manifest"]
-        contract_path=literal_assignment(ROOT/"tools/hia_selfhost_contract.py","CONTRACT_PATH",captured)
-        contract=capture(ROOT/contract_path,None,captured)
-        expected={**contract["source_identity"]["files"]}
-        expected[contract_path]=s.bytes_pin(next(raw for p,raw in reversed(captured) if p==ROOT/contract_path))["sha256"]
-        equal(full,expected,"cold full declared source map differs")
-        for name,digest in full.items():
-            if type(name) is not str or Path(name).is_absolute() or ".." in Path(name).parts:
-                raise ValueError("cold source leaves the product root")
-            raw_source=captured_bytes(ROOT/name,None,captured)
-            equal(s.bytes_pin(raw_source)["sha256"],digest,"cold current source bytes differ")
-        for name,value in source.items():
-            if full.get(name)!=value["sha256"]:raise ValueError("component source is not in this cold")
-        nested=capture(cold["nested_report"],None,captured)
-        if Path(nested["generations"][-1]["produced_image"]).resolve()!=compiler_path.resolve():
-            raise ValueError("cold compiler path differs")
+        from tools.hia_native_cold_admission import SCHEMA
+        if cold.get("schema")==SCHEMA:
+            native_inputs=native_cold_inputs(report["cold_report_path"],cold,captured)
+            if native_inputs.compiler!=compiler_path.absolute() or native_inputs.compiler_bytes!=compiler:
+                raise ValueError("native construction compiler path or bytes differ")
+            native_source_custody(native_inputs,source,captured)
+        else:
+            required={
+                "export_manifest_matches_qualification","isolated_python_without_site",
+                "nested_full_qualification_pass","nested_process_exit_zero","no_ancestor_git_identity",
+                "no_bytecode_cache_created","no_inherited_home_or_python_cache",
+                "no_inherited_seed_or_successor_images","origin_hashes_preserved",
+                "owned_process_tree_cleanup_confirmed","source_export_hashes_preserved"}
+            profile=literal_assignment(ROOT/"tools/hia_selfhost_contract.py","PROFILE",captured)
+            if (cold["schema"]!="hepta.hia.selfhost-cold-replay.v1" or cold["profile"]!=profile
+                    or cold["status"]!="COLD_SELFHOST_REPLAY_PASS" or set(cold["checks"])!=required
+                    or any(v is not True for v in cold["checks"].values())):
+                raise ValueError("matching complete cold admission differs")
+            integer(cold["returncode"],0)
+            equal(cold["generation_sha256"],[report["compiler"]["sha256"]]*3,"cold compiler generations differ")
+            full=cold["source_manifest"]
+            contract_path=literal_assignment(ROOT/"tools/hia_selfhost_contract.py","CONTRACT_PATH",captured)
+            contract=capture(ROOT/contract_path,None,captured)
+            expected={**contract["source_identity"]["files"]}
+            expected[contract_path]=s.bytes_pin(next(raw for p,raw in reversed(captured) if p==ROOT/contract_path))["sha256"]
+            equal(full,expected,"cold full declared source map differs")
+            for name,digest in full.items():
+                if type(name) is not str or Path(name).is_absolute() or ".." in Path(name).parts:
+                    raise ValueError("cold source leaves the product root")
+                raw_source=captured_bytes(ROOT/name,None,captured)
+                equal(s.bytes_pin(raw_source)["sha256"],digest,"cold current source bytes differ")
+            for name,value in source.items():
+                if full.get(name)!=value["sha256"]:raise ValueError("component source is not in this cold")
+            nested=capture(cold["nested_report"],None,captured)
+            if Path(nested["generations"][-1]["produced_image"]).resolve()!=compiler_path.resolve():
+                raise ValueError("cold compiler path differs")
     elif report["scope"]=="DEVELOPMENT_ONLY":
         if require_cold or report["cold_report"] is not None or report["cold_report_path"] is not None:
             raise ValueError("DEV evidence cannot satisfy matching-cold qualification")
@@ -433,8 +513,10 @@ def construction(root,pin,captured,source,*,require_cold):
                     raise ValueError("builder input leaves its declared product root")
                 raw_input=captured_bytes(ROOT/name,None,captured)
                 equal(s.bytes_pin(raw_input)["sha256"],digest,"actual companion builder input differs")
-                if cold is not None and cold["source_manifest"].get(name)!=digest:
+                if cold is not None and native_inputs is None and cold["source_manifest"].get(name)!=digest:
                     raise ValueError("companion input is not in the same current cold")
+            if native_inputs is not None:
+                native_component_custody(build,native_inputs,captured)
         verify_pack(manifest_path,manifest,build,compiler,source_raw,image,captured)
     unchanged(captured)
     return report,declarations,images
@@ -1475,34 +1557,53 @@ def read_callers(directory,report_pin,*,require_cold):
         if argv.count("--cold-report")!=1:raise ValueError("matching-cold caller command missing authority")
         cold_path=Path(argv[argv.index("--cold-report")+1])
         cold=capture(cold_path,None,captured)
-        contract_path=literal_assignment(ROOT/"tools/hia_selfhost_contract.py","CONTRACT_PATH",captured)
-        contract_raw=captured_bytes(ROOT/contract_path,None,captured)
-        expected_full={**inner["source_before"],contract_path:s.bytes_pin(contract_raw)["sha256"]}
-        equal(cold["source_manifest"],expected_full,"caller used another complete cold source")
-        required={"export_manifest_matches_qualification","isolated_python_without_site",
-            "nested_full_qualification_pass","nested_process_exit_zero","no_ancestor_git_identity",
-            "no_bytecode_cache_created","no_inherited_home_or_python_cache",
-            "no_inherited_seed_or_successor_images","origin_hashes_preserved",
-            "owned_process_tree_cleanup_confirmed","source_export_hashes_preserved"}
-        if (cold["schema"]!="hepta.hia.selfhost-cold-replay.v1"
-                or cold["status"]!="COLD_SELFHOST_REPLAY_PASS"
-                or cold["profile"]!=literal_assignment(ROOT/"tools/hia_selfhost_contract.py","PROFILE",captured)
-                or set(cold["checks"])!=required or any(value is not True for value in cold["checks"].values())):
-            raise ValueError("caller complete cold admission differs")
-        integer(cold["returncode"],0)
-        equal(cold["generation_sha256"],[inner["compiler_sha256"]]*3,"caller compiler differs from cold")
-        build=capture(manifest_path.parent/"build.json",None,captured)
-        equal(build["manifest"],manifest,"caller actual builder output differs")
-        equal(build["source_manifest"],cold["source_manifest"],"caller builder current cold source differs")
-        equal(build["cold_report_sha256"],s.bytes_pin(next(raw1 for p,raw1 in reversed(captured) if p==cold_path))["sha256"],
-              "caller cold raw identity differs")
-        nested=capture(cold["nested_report"],None,captured)
-        compiler=captured_bytes(Path(nested["generations"][-1]["produced_image"]),None,captured)
-        equal(s.bytes_pin(compiler)["sha256"],inner["compiler_sha256"],"actual caller cold compiler differs")
-        source_raw=captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap.hepta",None,captured)
-        verify_pack(manifest_path,manifest,build,compiler,source_raw,image,captured)
-        for name,digest in build["component_inputs"].items():
-            if expected_full.get(name)!=digest:raise ValueError("caller build input lacks exact cold identity")
+        from tools.hia_native_cold_admission import SCHEMA
+        if cold.get("schema")==SCHEMA:
+            inputs=native_cold_inputs(cold_path,cold,captured)
+            equal(s.bytes_pin(inputs.compiler_bytes)["sha256"],inner["compiler_sha256"],
+                  "actual caller native compiler differs")
+            from tools.hia_selfhost_contract import file_digests
+            equal(inner["source_before"],file_digests(ROOT),"complete current host observation source differs")
+            observer_source={name:s.bytes_pin(captured_bytes(ROOT/name,None,captured))
+                             for name in inner["source_before"]}
+            native_source_custody(inputs,observer_source,captured)
+            build=capture(manifest_path.parent/"build.json",None,captured)
+            equal(build["manifest"],manifest,"caller actual builder output differs")
+            equal(build["source_manifest"],inputs.sources,"caller builder native source differs")
+            equal(build["cold_report_sha256"],s.bytes_pin(inputs.report_bytes)["sha256"],
+                  "caller native cold raw identity differs")
+            native_component_custody(build,inputs,captured)
+            source_raw=captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap.hepta",None,captured)
+            verify_pack(manifest_path,manifest,build,inputs.compiler_bytes,source_raw,image,captured)
+        else:
+            contract_path=literal_assignment(ROOT/"tools/hia_selfhost_contract.py","CONTRACT_PATH",captured)
+            contract_raw=captured_bytes(ROOT/contract_path,None,captured)
+            expected_full={**inner["source_before"],contract_path:s.bytes_pin(contract_raw)["sha256"]}
+            equal(cold["source_manifest"],expected_full,"caller used another complete cold source")
+            required={"export_manifest_matches_qualification","isolated_python_without_site",
+                "nested_full_qualification_pass","nested_process_exit_zero","no_ancestor_git_identity",
+                "no_bytecode_cache_created","no_inherited_home_or_python_cache",
+                "no_inherited_seed_or_successor_images","origin_hashes_preserved",
+                "owned_process_tree_cleanup_confirmed","source_export_hashes_preserved"}
+            if (cold["schema"]!="hepta.hia.selfhost-cold-replay.v1"
+                    or cold["status"]!="COLD_SELFHOST_REPLAY_PASS"
+                    or cold["profile"]!=literal_assignment(ROOT/"tools/hia_selfhost_contract.py","PROFILE",captured)
+                    or set(cold["checks"])!=required or any(value is not True for value in cold["checks"].values())):
+                raise ValueError("caller complete cold admission differs")
+            integer(cold["returncode"],0)
+            equal(cold["generation_sha256"],[inner["compiler_sha256"]]*3,"caller compiler differs from cold")
+            build=capture(manifest_path.parent/"build.json",None,captured)
+            equal(build["manifest"],manifest,"caller actual builder output differs")
+            equal(build["source_manifest"],cold["source_manifest"],"caller builder current cold source differs")
+            equal(build["cold_report_sha256"],s.bytes_pin(next(raw1 for p,raw1 in reversed(captured) if p==cold_path))["sha256"],
+                  "caller cold raw identity differs")
+            nested=capture(cold["nested_report"],None,captured)
+            compiler=captured_bytes(Path(nested["generations"][-1]["produced_image"]),None,captured)
+            equal(s.bytes_pin(compiler)["sha256"],inner["compiler_sha256"],"actual caller cold compiler differs")
+            source_raw=captured_bytes(ROOT/"examples/hia_bootstrap/service_bootstrap.hepta",None,captured)
+            verify_pack(manifest_path,manifest,build,compiler,source_raw,image,captured)
+            for name,digest in build["component_inputs"].items():
+                if expected_full.get(name)!=digest:raise ValueError("caller build input lacks exact cold identity")
     elif inner["qualification_mode"]=="DEVELOPMENT_COMPLETE_CALLERS":
         if require_cold:raise ValueError("DEV caller result is not current cold qualification")
     else:raise ValueError("undeclared caller construction scope")

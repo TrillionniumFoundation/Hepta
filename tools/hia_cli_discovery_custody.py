@@ -116,11 +116,36 @@ def require_owner_sources(sources):
         require(sources.get(name) == digest, 'discovery input missing or changed in cold closure: ' + name)
 
 
+def _native_authority(inputs):
+    from tools.hia_cold_compiler import NATIVE_CUSTODY_INPUTS
+    captured = {name: (ROOT / name).read_bytes()
+                for name in dict.fromkeys((*OWNER_FILES, *NATIVE_CUSTODY_INPUTS))}
+    custody = inputs.capture_custody(captured, root=ROOT)
+    authority = {
+        'cold_report': str(inputs.report_path),
+        'cold_report_sha256': sha256(inputs.report_bytes).hexdigest(),
+        'compiler': str(inputs.compiler), 'compiler_sha256': sha256(inputs.compiler_bytes).hexdigest(),
+        'source_manifest': inputs.sources, 'component_input_custody': custody,
+        'input_bindings': [binding(path) for path in dict.fromkeys(
+            (*(path for path, _ in inputs.files), *(ROOT / name for name in captured)))],
+    }
+    inputs.unchanged()
+    require(custody == inputs.capture_custody(captured, root=ROOT),
+            'discovery native or development input custody changed')
+    return authority
+
+
 def admit_cold(cold_report):
     from tools.build_hia_json_preflight import admit_cold_build
     path = Path(cold_report).resolve(strict=True)
     raw = path.read_bytes()
     outer = read_json(raw)
+    from tools.hia_native_cold_admission import SCHEMA
+    if type(outer) is dict and outer.get('schema') == SCHEMA:
+        from tools.hia_cold_compiler import read_cold_build_inputs
+        inputs = read_cold_build_inputs(path)
+        require(inputs.report_bytes == raw, 'original discovery cold report changed')
+        return _native_authority(inputs)
     require(type(outer) is dict and outer.get('schema') == 'hepta.hia.selfhost-cold-replay.v1'
             and outer.get('status') == 'COLD_SELFHOST_REPLAY_PASS'
             and type(outer.get('returncode')) is int and outer['returncode'] == 0,
@@ -175,6 +200,14 @@ def admit_cold(cold_report):
 def guard_authority(authority):
     from tools.build_hia_json_preflight import current_sources
     check_bindings(authority['input_bindings'])
+    from tools.hia_native_cold_admission import SCHEMA
+    cold = read_json(Path(authority['cold_report']).read_bytes())
+    if type(cold) is dict and cold.get('schema') == SCHEMA:
+        from tools.hia_cold_compiler import read_cold_build_inputs
+        expected = _native_authority(read_cold_build_inputs(authority['cold_report']))
+        require(encoded(authority) == encoded(expected),
+                'discovery native and Git authoring authority differs')
+        return
     require(current_sources() == authority['source_manifest'], 'complete current cold source map changed')
     require_owner_sources(authority['source_manifest'])
 
