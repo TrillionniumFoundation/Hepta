@@ -966,6 +966,7 @@ NATIVE_RELEASE_LIFECYCLE_FILES = (
 )
 
 SOURCE_FILES = (
+    'tests/fixtures/hia_current_store_consumers_v1.json',
     'tools/hia_current_store_source_history.py',
     'tests/test_hia_current_store_source_history.py',
     'tests/fixtures/hia_evaluation_original_source_domains_v1.json',

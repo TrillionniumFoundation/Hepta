@@ -4,6 +4,8 @@ These source controls stage verified fixture bytes. They execute no product
 and do not claim that a source projection is a production build.
 """
 from copy import deepcopy
+from hashlib import sha256
+import ast
 from pathlib import Path
 import json
 import subprocess
@@ -229,6 +231,34 @@ assert current.pin(result)['sha256']=='673b1e330b48df5915a4a544188397e33055ac023
         proc = subprocess.run([sys.executable, '-I', '-B', '-c', script, str(ROOT), str(self.root)],
                               capture_output=True, text=True, timeout=20)
         self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_fixed_consumer_relation_keeps_all_sixteen_original_test_methods(self):
+        fixture = ROOT / 'tests/fixtures/hia_current_store_consumers_v1.json'
+        raw = fixture.read_bytes()
+        self.assertEqual({'bytes': len(raw), 'sha256': sha256(raw).hexdigest()},
+                         {"bytes":6157,"sha256":"842f695e691c4e17b045fe691474c47b20737f42e6a87bec2524513a793b01c8"})
+        value = json.loads(raw)
+        self.assertEqual(value['schema'], 'hepta.hia.current-store-consumer-source-history.v1')
+        self.assertIs(value['retained_engine_modified'], False)
+        self.assertIs(value['original_sixteen_test_methods_modified'], False)
+        self.assertIs(value['whole_native_delivery_qualified'], False)
+        self.assertEqual(set(value['files']), {
+            'tests/hia_store_source_history.py', 'tests/test_hia_store_source_history.py',
+            'tools/read_hia_store_file_capture_callers.py'})
+        for name, row in value['files'].items():
+            physical = (ROOT / name).read_bytes()
+            prior = frozen.history_inverse(physical, row,
+                {'bytes': row['old_bytes'], 'sha256': row['old_sha256']})
+            if name == 'tests/test_hia_store_source_history.py':
+                def methods(source):
+                    return {node.name: ast.dump(node, include_attributes=False)
+                            for cls in ast.parse(source).body if isinstance(cls, ast.ClassDef)
+                            for node in cls.body if isinstance(node, ast.FunctionDef)
+                            and node.name.startswith('test_')}
+                self.assertEqual(len(methods(prior)), 16)
+                self.assertEqual(methods(prior), methods(physical))
+            self.assertEqual((ROOT / name).read_bytes(), physical)
+        self.assertEqual(fixture.read_bytes(), raw)
 
 
 if __name__ == '__main__':

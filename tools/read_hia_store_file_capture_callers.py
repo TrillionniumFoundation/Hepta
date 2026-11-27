@@ -22,11 +22,11 @@ if __package__ in (None, ''):
 
 from tools.hia_native_cold_admission import SCHEMA as NATIVE_COLD_SCHEMA
 from tools.hia_component_cold_readback import native_cold_compiler, read_component_inputs
-from tools.hia_frozen_component_sources import (
-    history_inverse, restore_reader_evaluation_test,
+from tools.hia_frozen_component_sources import history_inverse
+from tools.hia_current_store_source_history import (
+    restore_reader_evaluation_test, reviewed_source,
 )
 from tools import hia_current_caller_source_history as current_history
-from tools.hia_current_caller_source_history import reviewed_source
 
 CONTRACT = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
 COLD_PROFILE = 'selfhost-core-linux-x86_64-v92p-native-closed-output-before-exec'
