@@ -890,6 +890,7 @@ NATIVE_WORKER_INSTALL_OWNER_FILES = (
     'tools/qualify_hia_worker_job_config_bind.py',
     'tools/qualify_hia_worker_install_sources.py',
     'tests/test_hia_worker_install_owner_generation.py',
+    "tests/test_hia_transport_history_views.py",
     'tools/qualify_hia_worker_install_launch.py',
     'examples/hia_bootstrap/source_worker_capsule_check_evaluate_full.hepta',
     'examples/hia_bootstrap/source_worker_capsule_check_evaluate_intake.hepta',
