@@ -1,9 +1,14 @@
-"""Author separate cold construction profiles with identity-edge elision.
+"""Author cold construction profiles with compact constants and identity edges.
 
 The original v1, word, endian, bulk and division profiles are unchanged. These
 two new profiles preserve their parent admission, instruction emission, call
-staging and ABI. Only a block edge's parallel assignment omits ``slot == index``
+staging and ABI. A block edge's parallel assignment omits ``slot == index``
 from both passes. All other sources are captured before any destination write.
+
+Constants below 2**32 use the original encoder's zero-extending 32-bit MOV
+form; all other u64 constants retain the 64-bit form. Both preserve flags and
+the complete register value. The original encoder and its validation are used
+unchanged, including the REX prefix required for registers eight to fifteen.
 
 Each destination index occurs once, so an omitted identity destination cannot
 be overwritten by another assignment. Its value remains available to every
@@ -60,6 +65,16 @@ def edge(s:readbuf,o:mutbuf,w:mutbuf,record:u64)->u64:
     return 0
 '''
 
+ORIGINAL_IMMEDIATE = '''
+def immediate(o:mutbuf,w:mutbuf,reg:u64,value:u64)->u64:
+    return enc(o,w,3,reg,0,value,0,0)
+'''
+
+COMPACT_IMMEDIATE = '''
+def immediate(o:mutbuf,w:mutbuf,reg:u64,value:u64)->u64:
+    return enc(o,w,3,reg,0,value,0,choose(value<4294967296,1,0))
+'''
+
 
 def specialize(source, profile):
     if profile not in PARENTS:
@@ -70,11 +85,15 @@ def specialize(source, profile):
                and node.name == 'seed_' + profile + '_backend']
     edges = [node for node in tree.body
              if isinstance(node, ast.FunctionDef) and node.name == 'edge']
-    if (len(entries) != 1 or len(edges) != 1
-            or ast.dump(edges[0]) != ast.dump(ast.parse(ORIGINAL_EDGE).body[0])):
-        raise ValueError('cold seed identity-edge source shape differs')
+    immediates = [node for node in tree.body
+                  if isinstance(node, ast.FunctionDef) and node.name == 'immediate']
+    if (len(entries) != 1 or len(edges) != 1 or len(immediates) != 1
+            or ast.dump(edges[0]) != ast.dump(ast.parse(ORIGINAL_EDGE).body[0])
+            or ast.dump(immediates[0]) != ast.dump(ast.parse(ORIGINAL_IMMEDIATE).body[0])):
+        raise ValueError('cold seed parent source shape differs')
     entries[0].name = 'seed_cold_' + profile + '_backend'
     tree.body[tree.body.index(edges[0])] = ast.parse(COLD_EDGE).body[0]
+    tree.body[tree.body.index(immediates[0])] = ast.parse(COMPACT_IMMEDIATE).body[0]
     return ast.unparse(ast.fix_missing_locations(tree)) + '\n'
 
 
