@@ -1,7 +1,7 @@
 """Isolated authoring and native bootstrap experiment for the kernel-tlb profile.
 
 No historical generator, source, lock, or native owner is replaced. Python
-authors a candidate Core v8 compiler and seeds B0 only; all following compiler
+authors a candidate from the current Core v9 compiler and seeds B0 only; all following compiler
 generations and subject objects are produced by the resulting HIA machine code.
 The experiment is deliberately not a CPL0 authority proof or Linux acceptance.
 """
@@ -32,7 +32,7 @@ from tools import hia_kernel_selfhost_irq_stack as irq_stack
 
 PROFILE = "hepta.hia.program.kernel-tlb.v1"
 LEGACY = "hepta.hia.program.v8"
-HEADER = b"hia-asm.v1 hepta.hia.program.v8 selfhost\n"
+HEADER = b"hia-asm.v1 hepta.hia.program.v9 selfhost\n"
 # The experimental compiler has a separate 2 MiB scratch envelope.
 # Source and output are still independently bounded at the historical 1 MiB.
 # No default Core v8 generator, binary ABI, or source/output limit is changed.
@@ -68,10 +68,14 @@ def candidate_layout():
     reserve("ssa", 2048 * 16, "VBASE")
     reserve("args", 1024, "ARGS")
     reserve("relocations", CANDIDATE_RELOCATIONS * RELOCATION_RECORD_BYTES, "FIXBASE")
-    reserve("call_graph", CANDIDATE_FUNCTIONS ** 2, "CBASE")
-    reserve("call_state", CANDIDATE_FUNCTIONS * 8, "CSTATE")
-    if layout["CSTATE"] != layout["CBASE"] + CANDIDATE_FUNCTIONS ** 2:
-        raise ValueError("call graph and marks are not contiguous")
+    # Current source has runtime call budgets rather than the removed
+    # call-graph matrix. Its six exact result-name slices must remain
+    # separate from relocations and the subsequent capability table.
+    reserve("result_names", gen.MAX_RESULTS * 16, "RESULT_NAMES")
+    # The experimental kernel profile retains its original static cyclic
+    # call refusal independently of ordinary v9's runtime recursive budgets.
+    reserve("kernel_call_graph", CANDIDATE_FUNCTIONS ** 2, "KERNEL_CALL_GRAPH")
+    reserve("kernel_call_state", CANDIDATE_FUNCTIONS * 8, "KERNEL_CALL_STATE")
     reserve("capabilities", 2048 * 24, "CAPBASE")
     reserve("kind", CANDIDATE_BLOCKS, "KBASE")
     reserve("cap_tmp", 16, "CAPTMP")
@@ -83,6 +87,10 @@ def candidate_layout():
         1004304: reserve("block_names", 256 * 24),
         1010448: reserve("exports", CANDIDATE_EXPORTS * 48),
     }
+    # The current v9 constant cache is per-function: values and presence
+    # bytes have independent full extents and must follow the export table.
+    reserve("constant_values", 2048 * 8, "CONST_VALUES")
+    reserve("constant_flags", 2048, "CONST_FLAGS")
     previous = 0
     for label, begin, stop in intervals:
         if begin < previous or stop <= begin or stop > CANDIDATE_WORKSPACE:
@@ -97,10 +105,139 @@ def candidate_layout():
         raise ValueError("candidate relocation capacity exceeded")
     return layout, names, intervals, relocation_bound
 
+KERNEL_CALL_CHECK = """def kernel_check_calls(w:mutbuf) -> u64:
+    n = get(w, 64)
+    step = 0
+    f = 0
+    target = 0
+    ready = 0
+    pending = 0
+    while step < n:
+        f = 0
+        pending = 0
+        while f < n:
+            # First scan every row, including already marked rows: malformed
+            # targets must never be hidden by caller-supplied readiness bytes.
+            # Thereafter this immutable graph cannot gain an invalid target,
+            # and readiness only changes from zero to one.
+            if step == 0 or get(w, KERNEL_CALL_STATE + f * 8) == 0:
+                ready = 1
+                target = 0
+                while target < 192:
+                    if byte(w, KERNEL_CALL_GRAPH + f * 192 + target) != 0:
+                        if target >= n:
+                            return fail(w, 55)
+                        if get(w, KERNEL_CALL_STATE + target * 8) == 0:
+                            ready = 0
+                    target = target + 1
+                if ready == 1:
+                    put(w, KERNEL_CALL_STATE + f * 8, 1)
+            if get(w, KERNEL_CALL_STATE + f * 8) == 0:
+                pending = pending + 1
+            f = f + 1
+        if pending == 0:
+            return 0
+        step = step + 1
+    f = 0
+    while f < n:
+        if get(w, KERNEL_CALL_STATE + f * 8) == 0:
+            return fail(w, 56)
+        f = f + 1
+    return 0
+"""
+
+
 def replace_once(source, old, new):
     if source.count(old) != 1:
         raise ValueError("authoring anchor not unique: " + old)
     return source.replace(old, new, 1)
+
+def compact_literal_emission(source):
+    """Combine only adjacent literal writes with the same source buffers.
+
+    emit_bytes retains the ordered per-byte prefix/cursor behavior even on
+    short output. No nonliteral expression, branch, label or helper body is
+    evaluated or removed. A full byte expansion is compared before/after.
+    """
+    import re
+    row = re.compile(r"^( +)(emit|emit_bytes|irq_emit_pair)\(o, w, ([0-9]+)(?:, ([0-9]+))?\)$")
+
+    def item(line):
+        match = row.fullmatch(line)
+        if match is None:
+            return None
+        indent, operation, value, count = match.groups()
+        if operation == "irq_emit_pair":
+            if count is None or not 0 <= int(value) < 1 << 64 or not 0 <= int(count) < 1 << 64:
+                return None
+            return indent, int(value).to_bytes(8, "little") + int(count).to_bytes(8, "little")
+        if (operation == "emit") != (count is None):
+            return None
+        count = 1 if count is None else int(count)
+        value = int(value)
+        if not 1 <= count <= 8 or not 0 <= value < 1 << 64:
+            return None
+        return indent, bytes((value >> (8 * i)) & 255 for i in range(count))
+
+    def expanded(lines):
+        result = []
+        for line in lines:
+            got = item(line)
+            result.extend([f"{got[0]}emit(o, w, {byte})" for byte in got[1]]
+                          if got is not None else [line])
+        return result
+
+    original = source.splitlines()
+    result = []
+    i = 0
+    joined = 0
+    while i < len(original):
+        first = item(original[i])
+        if first is None:
+            result.append(original[i])
+            i += 1
+            continue
+        indent, data = first
+        end = i + 1
+        while end < len(original):
+            following = item(original[end])
+            if (following is None or following[0] != indent
+                    or len(data) + len(following[1]) > 8):
+                break
+            data += following[1]
+            end += 1
+        if end == i + 1:
+            result.append(original[i])
+        else:
+            result.append(f"{indent}emit_bytes(o, w, {int.from_bytes(data, 'little')}, {len(data)})")
+            joined += end - i - 1
+        i = end
+    # Use the already present exact two-write helper for adjacent full
+    # words. The source body remains two ordered emit_bytes calls.
+    expected_helper = ("def irq_emit_pair(o:mutbuf, w:mutbuf, a:u64, b:u64) -> u64:\n"
+                       "    emit_bytes(o, w, a, 8)\n"
+                       "    emit_bytes(o, w, b, 8)\n"
+                       "    return 0\n")
+    if source.count(expected_helper) != 1:
+        raise ValueError("literal pair helper changed")
+    paired = []
+    i = 0
+    while i < len(result):
+        first = item(result[i])
+        second = item(result[i + 1]) if i + 1 < len(result) else None
+        if (first is not None and second is not None
+                and first[0] == second[0] and len(first[1]) == len(second[1]) == 8):
+            paired.append(f"{first[0]}irq_emit_pair(o, w, {int.from_bytes(first[1], 'little')}, {int.from_bytes(second[1], 'little')})")
+            joined += 1
+            i += 2
+        else:
+            paired.append(result[i])
+            i += 1
+    result = paired
+    if expanded(original) != expanded(result):
+        raise ValueError("literal emission changed the complete byte-expanded source")
+    return "\n".join(result) + ("\n" if source.endswith("\n") else ""), joined
+
 
 def candidate_source():
     words = dict(gen.W)
@@ -130,19 +267,46 @@ def candidate_source():
                 " 4d 8d 84 24 00 00 20 00 41 b9 00 00 10 00 e8")
     source = replace_once(source, _bytes(call_old),
                           _bytes(call_old.replace("41 b9 00 00 10 00", "41 b9 00 00 20 00")))
-    # All function admission sites and both call-graph strides change
-    # together; retain independent name-length and export-count limits.
+    # All three real function admission sites grow together. The current
+    # generator replaced the old call matrix with runtime call budgets;
+    # preserve that implementation and its six-result scratch by name.
+    # Independent name-length and export-count limits stay unchanged.
+    if any(name in source for name in ("CBASE", "CSTATE")):
+        raise ValueError("obsolete call-graph scratch is not this source version")
+    if not all(name in source for name in ("RESULT_NAMES", "CONST_VALUES", "CONST_FLAGS")):
+        raise ValueError("current result and constant scratch is missing")
     for old, new in (
         ("f != get(w, 64) or f >= 128", f"f != get(w, 64) or f >= {CANDIDATE_FUNCTIONS}"),
         ("if f >= 128:", f"if f >= {CANDIDATE_FUNCTIONS}:"),
         ("if x >= 128:", f"if x >= {CANDIDATE_FUNCTIONS}:"),
-        ("CBASE + get(w, 72) * 128 + x", f"CBASE + get(w, 72) * {CANDIDATE_FUNCTIONS} + x"),
-        ("while target < 128:", f"while target < {CANDIDATE_FUNCTIONS}:"),
-        ("CBASE + f * 128 + target", f"CBASE + f * {CANDIDATE_FUNCTIONS} + target"),
-        ("fill_range(w, CBASE, 17408, 0)",
-         f"fill_range(w, CBASE, {CANDIDATE_FUNCTIONS ** 2 + CANDIDATE_FUNCTIONS * 8}, 0)"),
     ):
         source = replace_once(source, old, new)
+    # Preserve the original candidate's exact cycle-refusal gate. Add its
+    # complete graph in separate scratch; ordinary compiler source stays
+    # unchanged, including its runtime stack/depth guards and self-tail test.
+    source = replace_once(source, "    fill_range(w, KBASE, 1536, 0)",
+        f"    fill_range(w, KERNEL_CALL_GRAPH, {CANDIDATE_FUNCTIONS ** 2 + CANDIDATE_FUNCTIONS * 8}, 0)\n"
+        "    fill_range(w, KBASE, 1536, 0)")
+    source = replace_once(source,
+        """        if phase == 0:
+            put(w, 1024, get(w, 64))
+        validate_exports(s, w)""",
+        """        if phase == 0:
+            put(w, 1024, get(w, 64))
+            if get(w, 432) == 0:
+                kernel_check_calls(w)
+                if get(w, 40) != 0:
+                    return 4294967295
+        validate_exports(s, w)""")
+    source = replace_once(source,
+        """                if get(w, 432) == 0 and x == get(w, 72):
+                    put(w, 256, tail_self_call(s, w))""",
+        f"""                if get(w, 432) == 0:
+                    if x == get(w, 72):
+                        put(w, 256, tail_self_call(s, w))
+                    if get(w, 48) == 0 and get(w, 256) == 0:
+                        store(w, KERNEL_CALL_GRAPH + get(w, 72) * {CANDIDATE_FUNCTIONS} + x, 1)""")
+    source += "\n" + KERNEL_CALL_CHECK
     # Both global block bounds and the global discovery-table clear grow.
     # The per-function 256-block name/queue admission stays unchanged.
     source = replace_once(source, "fill_range(w, KBASE, 1536, 0)",
@@ -186,12 +350,15 @@ def candidate_source():
             raise ValueError(("missing scratch table anchor", old))
         source = source.replace(str(old), str(new))
     source = replace_once(source,
-        "        expect(s, w, @hepta.hia.program.v8@)",
-        """        if get(w, 8) == @hepta.hia.program.kernel-tlb.v1@:
+        """        if schema - @hepta.hia.program.v6@ > 3 or byte(w, 32) != 0:
+            fail(w, 67)
+            return 4294967295""",
+        """        if schema == @hepta.hia.program.kernel-tlb.v1@ and byte(w, 32) == 0:
             put(w, 200, 1)
-            expect(s, w, @hepta.hia.program.kernel-tlb.v1@)
         else:
-            expect(s, w, @hepta.hia.program.v8@)""")
+            if schema - @hepta.hia.program.v6@ > 3 or byte(w, 32) != 0:
+                fail(w, 67)
+                return 4294967295""")
     source = replace_once(source, "        read_exports(s, w)",
         """        if get(w, 200) == 1 and get(w, 232) != 1:
             return 4294967295
@@ -403,9 +570,14 @@ def candidate_source():
     if pairs < 8:
         raise ValueError("raw kernel emission compression anchor changed")
     source = source[:start] + segment + source[stop:]
+    source, literal_joins = compact_literal_emission(source)
+    for key in ("KERNEL_CALL_GRAPH", "KERNEL_CALL_STATE"):
+        source = source.replace(key, str(layout[key]))
+    generator_layout = {key: value for key, value in layout.items()
+                        if key not in {"KERNEL_CALL_GRAPH", "KERNEL_CALL_STATE"}}
     with patch.multiple(gen, SOURCE=source, W=words,
                         MAX_INSTRUCTIONS=CANDIDATE_INSTRUCTIONS,
-                        MAX_RELOCATIONS=CANDIDATE_RELOCATIONS, **layout):
+                        MAX_RELOCATIONS=CANDIDATE_RELOCATIONS, **generator_layout):
         document, _ = gen.document()
     functions = document["functions"]
     blocks = [b for f in functions for b in f["blocks"]]
@@ -427,7 +599,7 @@ def candidate_source():
     result = render_assembly(document).encode()
     if not result.startswith(HEADER) or len(result) > 1 << 20:
         raise ValueError("candidate source exceeds bootstrap envelope")
-    return result, {"functions": len(functions), "blocks": len(blocks), "ops": ops}
+    return result, {"functions": len(functions), "blocks": len(blocks), "ops": ops, "literal_emission_joins": literal_joins}
 
 def candidate_child(output):
     # A derived, recorded observer only for this isolated experiment; retain
