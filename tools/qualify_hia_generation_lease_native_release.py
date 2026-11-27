@@ -10,7 +10,7 @@ from tools.build_hia_native_store_release import _kit_with_objects
 from tools.generate_hia_native_controller_release import BOOT,FILTER_POLICY,WIDE_FILTER
 from tools import generate_hia_generation_lease_owner_packer as owner
 from tools import generate_hia_generation_lease_native_release as declaration
-from tools.qualify_hia_generation_lease_owner import VALUE_ROLES
+from tools.qualify_hia_generation_lease_owner import VALUE_ROLES,VALUE_PACKER,VALUE_PROTOCOL
 
 ROOT=Path(__file__).resolve().parents[1]
 sha=lambda data:hashlib.sha256(data).hexdigest()
@@ -46,6 +46,8 @@ def main():
         component=json.loads(component_raw)
         assert component['schema']=='hepta.hia.generation-lease-owner.qualification.v1'
         assert component['passed'] and component['source_bound_enclosing_owner']
+        assert component['build']['value_roles']==len(VALUE_ROLES)==16
+        assert component['build']['value_protocol']==VALUE_PROTOCOL.decode('ascii')
         assert not component['final_aggregate_claimed'] and not component['production_activated']
         root=args.compiler.read_bytes()
         assert sha(root)==component['compiler_sha256']
@@ -119,7 +121,7 @@ def main():
                      'docs/HIA_NATIVE_FUTURE_RELEASE_BUILD.json'):
             source_files[path]=record((ROOT/path).read_bytes())
         source_files[declaration.OWNER_QUALIFICATION]=record(component_raw)
-        excluded={BOOT+name+'.hepta' for name in VALUE_ROLES}|{BOOT+'result_value_resources_packer.hepta'}
+        excluded={BOOT+name+'.hepta' for name in VALUE_ROLES}|{BOOT+VALUE_PACKER+'.hepta'}
         modules=[row for path,row in sorted(all_rows.items()) if path not in excluded]
         products={name:record((args.output/name).read_bytes()) for name in declaration.PUBLISHED[:2]}
         receipt=dict(schema='hepta.hia.generation-lease-native-release-build.v1',status='PASS',
@@ -131,6 +133,8 @@ def main():
                      compiler=record(root),modules=modules,source_files=source_files,
                      native_kit_composer=record(composer_bytes),kits=kits,wrappers=wrappers,
                      value_import=dict(stage=13,name=declaration.VALUE_PRODUCT,**record(imported)),
+                     value_profile=dict(protocol=VALUE_PROTOCOL.decode('ascii'),role_count=len(VALUE_ROLES),
+                                        packer=BOOT+VALUE_PACKER+'.hepta'),
                      owner_object=record(obj),products=products)
         for path,pin in source_files.items():
             if path!=declaration.OWNER_QUALIFICATION:

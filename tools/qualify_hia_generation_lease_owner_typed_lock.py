@@ -12,13 +12,14 @@ from tools import qualify_hia_native_seccomp_notify as notify
 from tools.qualify_hia_result_value_records import Values
 from tools import generate_hia_result_value_resources_packer as value_resources_spec
 from tools import generate_hia_result_value_protocols_packer as value_protocols_spec
+from tools import generate_hia_result_value_platform_packer as value_platform_spec
 from tools import generate_hia_generation_lease_owner_packer as owner_spec
 
 def actual_value_spec(entry):
-    # Both independently qualified fixed profiles retain their own exact bridge.
+    # Each independently qualified fixed profile retains its own exact bridge.
     prefix=C.string_at(entry,200)
-    matches=[spec for spec in (value_resources_spec,value_protocols_spec) if prefix==spec.BRIDGE[:200]]
-    assert len(matches)==1,'actual Value bridge is not a qualified 12/13-role profile'
+    matches=[spec for spec in (value_resources_spec,value_protocols_spec,value_platform_spec) if prefix==spec.BRIDGE[:200]]
+    assert len(matches)==1,'actual Value bridge is not a qualified 12/13/16-role profile'
     return matches[0]
 
 def run(path,files,parent):
@@ -145,6 +146,7 @@ def run(path,files,parent):
     assert owner.call(3)['status']==0
     assert set(os.listdir('/proc/self/fd'))==before and not list(parent.iterdir())
     return dict(actual_native_image=True,value_image_sha256=q.sha((path.parent/'hia-generation-lease-values.core.bin').read_bytes()),
+                value_role_count=len(value_spec.ROLES),
                 same_lease_mutex_held_during_typed_validation=True,actual_close_kernel_wait=kernel_wait,
                 actual_loaded_function_completed=71,caller_cap_drop_during_call_safe=True,
                 temporary_references_consumed=True,fd_set_unchanged=True,artifact_parent_empty=True,

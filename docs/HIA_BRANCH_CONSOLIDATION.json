@@ -4387,7 +4387,287 @@
     "tree_unchanged": true
   },
   "legacy_retired": false,
+  "native_installer_supersession": {
+    "additional_history_parent": "ddb2cbd7902640eebc3d02197b53dac4bd1b409c",
+    "branches_deleted": [],
+    "candidate_before": "1d03e414d78ed2e0eab54cced6495046004709cf",
+    "incoming_unique_states": [
+      {
+        "mode": "100644",
+        "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+        "sha": "2bbd9f84dce54460c42c1816ab2373309b2ea437",
+        "status": "M"
+      },
+      {
+        "mode": "100644",
+        "path": "tests/test_hia_native_store_release.py",
+        "sha": "0f03246ae3e2fe14ed8853901bb5abbc2e64ec9a",
+        "status": "M"
+      },
+      {
+        "mode": "100644",
+        "path": "tools/build_hia_native_store_release.py",
+        "sha": "c073224ae40c770bfd72ca2e35c36e0299a3dd08",
+        "status": "M"
+      }
+    ],
+    "legacy_retired": false,
+    "merge_base": "900b70bc5ab91088386f3fbfcc442dee20d24e37",
+    "resolution": "The incoming branch adds a Python post-install checker for exact 0500/0400 modes and nonregular entries. Current _pack_and_verify invokes the captured HIA installer for install and source attestation. Native installer tests cover mode drift, extra members, symlinks, hardlinks, content drift, and exact independent source inventory. Preserve the old checker and test in the history parent; do not reintroduce hosted verification into the current native install path.",
+    "source_branch": "chatgpt/azi5-native-store-install-integrity-run3",
+    "unreviewed_independent_heads_remaining": 130,
+    "validation": {
+      "elapsed_seconds": 6.623231876998034,
+      "log": {
+        "bytes": 510,
+        "sha256": "2366e21b3049b5bba9e0fcb4d151af3713cd366c83c78bd660531f2474e9ca08",
+        "text": "test_inventory_modes_symlinks_hardlinks_and_content_corruption (tests.test_hia_release_install.ReleaseInstallerKernelTests.test_inventory_modes_symlinks_hardlinks_and_content_corruption) ... ok\ntest_source_attestation_reads_native_files_and_rejects_invalid_inventories (tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 6.478s\n\nOK\n"
+      },
+      "native_observations": {
+        "executable_sha256": "36825058c4fbf7b705d6beb6eddafab00aa96819d4c29d4ac80287168a07cb1f",
+        "matching_cold_report": null,
+        "observations": [
+          {
+            "bundle_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_inventory_modes_symlinks_hardlinks_and_content_corruption",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "install",
+            "returncode": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": "{\"schema\":\"hepta.hia.release-install.v1\",\"sha256\":\"a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447\",\"files\":2,\"bytes\":1986,\"published\":true}\n"
+          },
+          {
+            "bundle_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_inventory_modes_symlinks_hardlinks_and_content_corruption",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "verify",
+            "returncode": 11,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_inventory_modes_symlinks_hardlinks_and_content_corruption",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "verify",
+            "returncode": 10,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_inventory_modes_symlinks_hardlinks_and_content_corruption",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "verify",
+            "returncode": 10,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_inventory_modes_symlinks_hardlinks_and_content_corruption",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "verify",
+            "returncode": 11,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_inventory_modes_symlinks_hardlinks_and_content_corruption",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "verify",
+            "returncode": 10,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "install",
+            "returncode": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": "{\"schema\":\"hepta.hia.release-install.v1\",\"sha256\":\"a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447\",\"files\":2,\"bytes\":1986,\"published\":true}\n"
+          },
+          {
+            "bundle_sha256": "a728c7feba3f17a8916de1b51f030e2c454405214e1fb608d7bf29046c84743c",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 0,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": "{\"schema\":\"hepta.hia.release-install.v1\",\"sha256\":\"a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447\",\"files\":2,\"bytes\":1986,\"published\":false,\"source_attested\":true}\n"
+          },
+          {
+            "bundle_sha256": "73c96163431e3d20db9d597e50ba8b67c692366ef7f8a4b88b271d69d3f2402c",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 11,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "2eddfcf1b4fb221935c1aac5e3ef9e09c106b890213ea0a0321f8249339fcc1e",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 11,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "3b0b7b6e0a9a6a58467c844b134976d468e7503c83b876669c0c711d1791fe5c",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 16,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "98ed62ed51e7caed43abb753869dd57cebd27bd195b69ce1c5e4614eb1def146",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 16,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "6bdf764b7f99fcafbb6e8d7c629870402826cb520f15962ddc344fe1c4034728",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 16,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "f8a3286960e75bc9beace934ec156b8dc1ddc8e48d0d6312b94aec3c05efb139",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 16,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "2f1e4093933f671fc2afa331a3427057b3951072dc0a6a7de8c0ef3b201bf914",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 16,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "c2ec1cb4ec3b59adf4104a55a0b337d0a9e332782a5009942f56e38a293c7f86",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 11,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "a728c7feba3f17a8916de1b51f030e2c454405214e1fb608d7bf29046c84743c",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "operation": "attest",
+            "returncode": 11,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "a728c7feba3f17a8916de1b51f030e2c454405214e1fb608d7bf29046c84743c",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 10,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "a728c7feba3f17a8916de1b51f030e2c454405214e1fb608d7bf29046c84743c",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 10,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          },
+          {
+            "bundle_sha256": "a728c7feba3f17a8916de1b51f030e2c454405214e1fb608d7bf29046c84743c",
+            "case": "tests.test_hia_release_install.ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories",
+            "expected_sha256": "a6f0aa4dd073951d8dd0ed7b90439832d8906c91a2ee3177adb34ac75d44d447",
+            "operation": "attest",
+            "returncode": 10,
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stdout": ""
+          }
+        ],
+        "schema": "hepta.hia.release-install-observations.v1",
+        "whole_native_delivery_qualified": false
+      },
+      "native_observations_file": {
+        "bytes": 10943,
+        "sha256": "e8e953f28504cb6e52c3cb0fb3161c7a42ccc18bb0dc2caf68738e661986cd74"
+      },
+      "returncode": 0,
+      "setup": "Original development setup: independent VM, hosted B0 construction, B1/B2 byte equality, and actual native HIA installer executable. This is component evidence and is not a matching source cold qualification.",
+      "tests": [
+        "ReleaseInstallerKernelTests.test_inventory_modes_symlinks_hardlinks_and_content_corruption",
+        "ReleaseInstallerKernelTests.test_source_attestation_reads_native_files_and_rejects_invalid_inventories"
+      ]
+    },
+    "whole_rewrite_qualified": false
+  },
   "previous_shallow_inventory_superseded": true,
+  "recovered_journal_sql_successor": {
+    "additional_history_parent": "77fb6986d6dfff01085929ba3a16dfcee0d7b4a8",
+    "branches_deleted": [],
+    "candidate_before": "1d03e414d78ed2e0eab54cced6495046004709cf",
+    "files": {
+      "tests/test_hia_journal_sql_successor.py": {
+        "bytes": 4084,
+        "exact_original_bytes": true,
+        "git_blob": "21983dadedd6bdc7b49a2249e5c74fa975200e99",
+        "sha256": "4282f8d70ec536f1d9e1e2d93d3e3c875960ae02f98772e417892590a71b444b"
+      },
+      "tools/qualify_hia_journal_sql_successor.py": {
+        "bytes": 8718,
+        "exact_original_bytes": true,
+        "git_blob": "447839943ff40f4e3db23314395846ada860dd3b",
+        "sha256": "8b8d4202d069a5377cd15a1a324ffddee0939240bd7ba29c6270a1d47306641b"
+      }
+    },
+    "legacy_retired": false,
+    "native_authority_inputs_changed": false,
+    "resolution": "Restore both unique, previously missing static source guards byte-for-byte. Current typed journal calls preserve all five frozen SQL effects and original method, argument order, fallback, typed opcode, indexed SQL, column layout, and atomic cost guard. These are development source controls; they do not qualify whole native delivery or retire the retained oracle.",
+    "source_branch": "hia/azi5-journal-sql-successor-20261123",
+    "source_commit": "77fb6986d6dfff01085929ba3a16dfcee0d7b4a8",
+    "unreviewed_independent_heads_remaining": 131,
+    "validation": {
+      "command": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "-v",
+        "tests.test_hia_journal_sql_successor"
+      ],
+      "log": {
+        "bytes": 719,
+        "sha256": "9b5b8553decfcf37d679b09a203c4eaaecee0d706ebb5a7411251ece08573c20",
+        "text": "test_each_typed_write_and_guard_rejects_argument_or_method_substitution (tests.test_hia_journal_sql_successor.JournalSqlSuccessorTests.test_each_typed_write_and_guard_rejects_argument_or_method_substitution) ... ok\ntest_five_frozen_sql_effects_preserved_in_typed_native_store (tests.test_hia_journal_sql_successor.JournalSqlSuccessorTests.test_five_frozen_sql_effects_preserved_in_typed_native_store) ... ok\ntest_frozen_inventory_and_fallback_or_native_dispatch_mutations_refuse (tests.test_hia_journal_sql_successor.JournalSqlSuccessorTests.test_frozen_inventory_and_fallback_or_native_dispatch_mutations_refuse) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.367s\n\nOK\n"
+      },
+      "returncode": 0,
+      "tests": 3
+    },
+    "whole_rewrite_qualified": false
+  },
   "recovered_regression": {
     "blob": "7048945f1ec12feae78376bf8cb4edafe16a8a13",
     "branch": "hia/azi5-evaluate-stress-20261123",

@@ -24,7 +24,10 @@ sha=old.sha
 VALUE_ROLES=('result_value_owner','result_value_core','result_value_import',
  'result_value_export','background_optimizer_json_capture','agent_binary64_format',
  'result_value_binary64','result_value_dict_iterator','result_value_classes',
- 'native_class_mro','result_value_records','result_value_resources','result_value_protocols')
+ 'native_class_mro','result_value_records','result_value_resources','result_value_protocols',
+ 'result_value_callables','result_value_invocations','result_value_platform')
+VALUE_PACKER='result_value_platform_packer'
+VALUE_PROTOCOL=b'HIABVP09'
 PRODUCTS=('hia-generation-lease-owner.so','hia-generation-lease-lifecycle.core.bin',
           'hia-generation-lease-values.core.bin')
 
@@ -164,7 +167,7 @@ def compile_all(compiler,out):
     names.update(VALUE_ROLES)
     names.update(('generation_lease_owner','generation_lease_owner_packer',
                   'generation_lease_public_lifecycle','generation_lease_public_lifecycle_packer',
-                  'multiversion_runtime_linker','result_value_protocols_packer','generation_lease_typed_policy','generation_lease_owner_finalizer'))
+                  'multiversion_runtime_linker',VALUE_PACKER,'generation_lease_typed_policy','generation_lease_owner_finalizer'))
     captured={name:(ROOT/BOOT/(name+'.hepta')).read_bytes() for name in sorted(names)}
     assert all((ROOT/BOOT/(name+'.hepta')).read_bytes()==raw for name,raw in captured.items()),'source changed during native capture'
     flats={};rows=[]
@@ -203,10 +206,10 @@ def bridge_identity(out):
 
 
 def build_images(flats,out):
-    from tools import generate_hia_result_value_protocols_packer as values
+    from tools import generate_hia_result_value_platform_packer as values
     parts=[flats[name] for name in VALUE_ROLES]
-    wire=struct.pack('<'+str(3+len(parts))+'Q',int.from_bytes(b'HIABVP06','little'),len(parts),*map(len,parts),1)+b''.join(parts)
-    value=old.run_packer(flats['result_value_protocols_packer'],wire)
+    wire=struct.pack('<'+str(3+len(parts))+'Q',int.from_bytes(VALUE_PROTOCOL,'little'),len(parts),*map(len,parts),1)+b''.join(parts)
+    value=old.run_packer(flats[VALUE_PACKER],wire)
     assert value==values.reference_flat(parts)
     (out/PRODUCTS[2]).write_bytes(value)
     body=[flats['generation_lease_owner'],flats['generation_lease_public_lifecycle'],value,
@@ -242,6 +245,7 @@ def build_images(flats,out):
         refusals.append('short-output')
     records={name:dict(bytes=(out/name).stat().st_size,sha256=sha((out/name).read_bytes())) for name in PRODUCTS}
     return out/PRODUCTS[0],dict(products=records,roles=54,carrier_roles=49,value_roles=len(VALUE_ROLES),
+                              value_protocol=VALUE_PROTOCOL.decode('ascii'),
                               native_pack=True,native_link=True,object_bytes=len(obj),
                               object_sha256=sha(obj),packer_refusals=refusals,lifecycle=facet)
 

@@ -183,7 +183,9 @@ def build_future(compiler,value_path,out):
     names=PUBLIC+('background_optimizer_future_public_cleanup',
                   'background_optimizer_future_public_observers_notify',
                   'background_optimizer_future_public_observers_notify_packer',
-                  'background_optimizer_future_public_cleanup_packer')
+                  'background_optimizer_future_public_cleanup_packer',
+                  'background_optimizer_future_public_truth',
+                  'background_optimizer_future_public_truth_packer')
     captured={name:(q.ROOT/'examples/hia_bootstrap'/(name+'.hepta')).read_bytes()for name in names}
     flats={};rows=[]
     for name,raw in captured.items():
@@ -198,14 +200,23 @@ def build_future(compiler,value_path,out):
     assert rc==0 and 0<q.get(work,0)<len(ob)
     notify=ob.raw[:q.get(work,0)]
     value=value_path.read_bytes()
-    pieces=[flats[name]for name in PUBLIC]+[value,notify,flats['background_optimizer_future_public_cleanup']]
+    from tools.generate_hia_background_optimizer_future_public_truth_packer import reference_flat as cleanup_reference
+    cleanup_parts=[flats['background_optimizer_future_public_cleanup'],flats['background_optimizer_future_public_truth']]
+    cleanup_wire=b'HIABFTPK'+struct.pack('<3Q',2,*map(len,cleanup_parts))+b''.join(cleanup_parts)
+    cleanup=q.old.run_packer(flats['background_optimizer_future_public_truth_packer'],cleanup_wire)
+    assert cleanup==cleanup_reference(cleanup_parts) and len(cleanup)<=4194304
+    (out/'future-cleanup-truth.flat').write_bytes(cleanup)
+    pieces=[flats[name]for name in PUBLIC]+[value,notify,cleanup]
     wire=b'HIABFPP3'+struct.pack('<11Q',9,*map(len,pieces),1)+b''.join(pieces)
     native=q.old.run_packer(flats['background_optimizer_future_public_cleanup_packer'],wire)
     assert native==reference_flat(pieces)
     path=out/'hia-future-owner-resource-coupled.core.bin';path.write_bytes(native)
     assert all((q.ROOT/'examples/hia_bootstrap'/(name+'.hepta')).read_bytes()==raw for name,raw in captured.items())
     record=dict(modules=rows,value_pin=pin(value),future_pin=pin(native),native_pack=True,
-                independent_reference_comparison=True,same_value_implementation=True)
+                independent_reference_comparison=True,same_value_implementation=True,
+                public_cleanup_capsule=dict(protocol='HIABFTPK',roles=['cleanup','truth'],
+                    packer='background_optimizer_future_public_truth_packer',product=pin(cleanup),
+                    native_pack=True,independent_byte_comparison=True))
     (out/'future-build.json').write_text(json.dumps(record,indent=2)+'\n')
     return path,record
 

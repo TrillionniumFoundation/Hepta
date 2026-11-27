@@ -51,6 +51,18 @@ EXPECTED_HELPERS = {
 OLD_VALUE_SHA = '6d769f3369ceaebed9602a784166548ed2cf48fed608a80a572b1a9c73cc3a7c'
 COMPILER_SHA = '494833999e25ac74ea6ad1de41235c01bfa036951f212604026cb8be686c78af'
 
+def rebind_original_root(text, original_prefix, target_prefix):
+    """Relocate pinned fixture text without retaining or conflating the old root."""
+    assert original_prefix.startswith('/') and original_prefix != '/'
+    assert target_prefix.startswith('/') and target_prefix != '/'
+    assert '\x00' not in original_prefix + target_prefix
+    assert original_prefix not in target_prefix
+    rebound = text.replace(original_prefix, target_prefix)
+    assert original_prefix not in rebound
+    assert rebound.replace(target_prefix, original_prefix) == text
+    return rebound
+
+
 def digest(raw): return sha256(raw).hexdigest()
 def record(path):
     raw = path.read_bytes()
@@ -66,6 +78,8 @@ def main():
     parser.add_argument('--compiler', type=Path, required=True)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--original-fixtures', type=Path, required=True)
+    parser.add_argument('--original-root-prefix', type=Path,
+                        help='original absolute prefix embedded in the pinned fixture text')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--receipt', type=Path, required=True)
     args = parser.parse_args()
@@ -75,6 +89,7 @@ def main():
     compiler = args.compiler.resolve()
     assert compiler.stat().st_size == 813129 and digest(compiler.read_bytes()) == COMPILER_SHA
     source, build, old, output = [p.resolve() for p in (args.source, args.build, args.original_fixtures, args.output)]
+    original_prefix = str(args.original_root_prefix) if args.original_root_prefix else str(old)
     receipt_path = args.receipt.resolve()
     receipt_path.relative_to(source)
     output.mkdir(mode=0o700)
@@ -119,7 +134,7 @@ def main():
     assert 0 < value_bridge_size <= (1 << 20)
     value_sha = products['hia-result-value.core.bin']['sha256']
     bindings = []
-    replacements = [(str(old), str(root)), (OLD_VALUE_SHA, value_sha)]
+    replacements = [(OLD_VALUE_SHA, value_sha)]
     # These are instruction-address custody bounds in ptrace fixtures, not semantic limits.
     if value_bridge_size != 577:
         replacements += [('+577]', '+'+str(value_bridge_size)+']'),
@@ -128,7 +143,12 @@ def main():
     def bind(relative, expected):
         original = old / relative
         raw = original.read_bytes(); assert digest(raw) == expected, str(relative)
-        text = raw.decode('utf-8'); adapted = text; changes=[]
+        text = raw.decode('utf-8')
+        adapted = rebind_original_root(text, original_prefix, str(root))
+        changes = []
+        if text.count(original_prefix):
+            changes.append(dict(before=original_prefix, after=str(root),
+                                occurrences=text.count(original_prefix)))
         for before, after in replacements:
             count = adapted.count(before)
             if count:
@@ -280,8 +300,11 @@ def main():
             original = old / relative
             expected = EXPECTED_FIXTURES.get(relative.name,EXPECTED_HELPERS.get(relative.name))
             raw = original.read_bytes(); assert digest(raw)==expected
-            text = raw.decode(); bound=text.replace(str(old),str(legacy)).replace(OLD_VALUE_SHA,value_sha)
-            assert bound.replace(str(legacy),str(old)).replace(value_sha,OLD_VALUE_SHA)==text
+            text = raw.decode()
+            bound = rebind_original_root(text, original_prefix, str(legacy)).replace(OLD_VALUE_SHA,value_sha)
+            reverse = bound.replace(value_sha,OLD_VALUE_SHA).replace(str(legacy),original_prefix)
+            assert reverse == text
+            assert ast.dump(ast.parse(reverse), include_attributes=False) == ast.dump(ast.parse(text), include_attributes=False)
             write(legacy/relative,bound.encode())
         legacy_author = importlib.import_module('tools.generate_hia_background_optimizer_future_public_packer')
         legacy_source = source / 'examples/hia_bootstrap/background_optimizer_future_public_packer.hepta'
@@ -369,6 +392,7 @@ def main():
         new_public_wire_profile=result.get('public_protocol','HIABFPP2'),
         new_wire_fixture_bindings=profile_bindings, preserved_legacy_packer_qualification=legacy_report,
         original_oracles=oracle_files, python_version=sys.version,
+        original_fixture_root_prefix=original_prefix, fixture_storage_root=str(old),
         qualification_driver=record(Path(__file__).resolve()),
         original_qualification_driver_sha256=ORIGINAL_DRIVER_SHA256,
         native_iterator_fixture=record(old/producer_rel/'producer.flat'),

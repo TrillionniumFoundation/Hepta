@@ -1,6 +1,6 @@
 """Author the source-bound GenerationLease owner as native release stage 14.
 
-Stage 13 supplies the already qualified twelve-role Value product. This recipe
+Stage 13 supplies the already qualified sixteen-role Value product. This recipe
 binds its bytes and embeds that exact image once; it does not publish a second
 Value implementation. All construction, source capture, hashing, packing and
 linking in the retained recipe are HIA operations.
@@ -31,6 +31,8 @@ def build_recipe():
     assert receipt['status']=='PASS' and receipt['native_construction_passed']
     assert receipt['source_bound_enclosing_owner'] and receipt['owner_behavior_passed']
     assert receipt['value_import']['stage']==13 and receipt['value_import']['name']==VALUE_PRODUCT
+    assert receipt['value_profile']==dict(protocol='HIABVP09',role_count=16,
+        packer=BOOT+'result_value_platform_packer.hepta')
     assert not receipt['full_release_pass'] and not receipt['production_activated']
     paths=sorted(row['path'] for row in receipt['modules'])
     assert len(paths)==len(set(paths))

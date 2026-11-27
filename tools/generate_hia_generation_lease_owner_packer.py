@@ -2,7 +2,7 @@
 
 The sole export constructs the actual fixed carrier and Value arena contexts.
 All 49 carrier roles remain ordered; only this new product selects the three
-public lifecycle variants. The complete twelve-role Value image is native packed
+public lifecycle variants. The complete sixteen-role Value image is native packed
 before insertion into its one fixed role. No callback comes from caller data.
 """
 from pathlib import Path
