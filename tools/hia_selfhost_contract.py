@@ -1350,6 +1350,9 @@ SOURCE_FILES = (
     'tools/build_hia_evaluation.py',
     'tools/qualify_hia_evaluation_callers.py',
     'tests/test_hia_evaluation_native.py',
+    'tools/hia_native_result_caller_history.py',
+    'tests/fixtures/hia_native_result_caller_history_v1.json',
+    'tests/test_hia_native_result_caller_history.py',
     'tests/hia_evaluation_oracle.py',
     'tests/hia_evaluation_scenarios.py',
     'tests/fixtures/hia_evaluate_19065.py.txt',
@@ -2860,6 +2863,9 @@ SOURCE_FILES = (
     'tools/qualify_hia_seed_cold_backend.py',
     'tests/test_hia_seed_cold_backend.py',
     'docs/HIA_COLD_SEED_EDGE_PROFILE.md',
+    'tools/hia_artifact_caller_source_history.py',
+    'tests/fixtures/hia_artifact_assembly_source_successor_v1.json',
+    'tests/test_hia_artifact_caller_source_history.py',
 )
 
 

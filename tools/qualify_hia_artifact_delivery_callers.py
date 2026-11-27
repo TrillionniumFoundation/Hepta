@@ -1,8 +1,10 @@
-"""Run all 63 original artifact tests plus the three complete additional modules.
+"""Run all 132 original artifact callers and two exact current successor tests.
 
-Original fixtures, method bodies, assertions and deadlines remain unchanged.
-Reference16 retains its original unselected policy. NDU19 and assembly18 use
-explicit generic publication; all NativeTools32 use the original supported
+Original fixtures, method identities and deadlines remain unchanged. The fixed
+current six-result discovery assertion is admitted by its complete source
+inverse and reported explicitly; it changes no runtime budget.
+Reference16 retains its original unselected policy. NDU19 and assembly18 retain
+explicit generic publication; the two pinned assembly successors also run; all NativeTools32 use the original supported
 Store selector, preserving the original sealed-child guard without exceptions.
 Missing original prerequisites and skips fail this gate. This command does not
 claim whole-project dynamic caller or installed-worker closure.
@@ -61,6 +63,139 @@ def bind_admission_to_source_capture(proof, source_digests):
             raise ValueError('caller admission differs from actual source capture: ' + name)
 
 
+_HISTORY_HELPER = 'tools/hia_artifact_caller_source_history.py'
+_HISTORY_HELPER_PIN = {'bytes': 10362, 'sha256': 'd2e9e9ee425e8be44023ca169c5d3a887a3bcbb0b7bab28e91b6f4642bc3fe1e'}
+_HISTORY_CURRENT = {
+    'tests/test_hia_agent_assembly.py': {
+        'bytes': 15006, 'sha256': '367ba5cf0280d2a0cca2f42d20387d81982b5b2b45f439d3898fb51905eff339'},
+    'tests/test_hia_artifact_publication_native.py': {
+        'bytes': 19607, 'sha256': 'de92f2dc85c187fb0834de801899801c6cb1c36ab03909dab07554bcf15ee0dc'},
+    'tests/test_hia_agent_native_tools.py': {
+        'bytes': 47052, 'sha256': '64462e8735d8be3838396808dc05391e4437b2dba093fcc265468df6abb4cb70'},
+}
+_HISTORY_NATIVE_SIX = {
+    'bytes': 47052, 'sha256': '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2'}
+
+
+def _history_current(name, actual):
+    return (actual == _HISTORY_CURRENT.get(name)
+            or (name == _DIAGNOSTICS_CALLER and actual == _HISTORY_NATIVE_SIX))
+
+
+_ASSEMBLY_PATH = 'tests/test_hia_agent_assembly.py'
+_ASSEMBLY_ADDED_IDS = (
+    'tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_package_renderer_keeps_independent_roundtrip_and_profile_errors',
+    'tests.test_hia_agent_assembly.HIAAgentAssemblyTests.test_package_syntax_document_still_requires_whole_core_admission',
+)
+
+
+def _admit_reviewed_source(root, capture, name, raw):
+    if not _history_current(name, _source_pin(raw)):
+        return raw, None
+    helper = capture(_HISTORY_HELPER)
+    if _source_pin(helper) != _HISTORY_HELPER_PIN:
+        raise ValueError('artifact caller complete source-history helper differs')
+    from tools import hia_artifact_caller_source_history as history
+    if Path(history.__file__).read_bytes() != helper:
+        raise ValueError('artifact caller imported different source history')
+    restored, proof = history.reviewed(
+        root, name, raw,
+        take=lambda path: capture(Path(path).relative_to(root).as_posix()))
+    if proof is None or proof['path'] != name or proof['physical'] != _source_pin(raw):
+        raise ValueError('artifact caller source history lost physical input identity')
+    return restored, proof
+
+
+def declared_execution_groups(original, admission):
+    """Keep all original identities and append only the two pinned actual methods."""
+    groups = [{'name': 'original-direct-63', 'modules': original['direct_modules'],
+               'ordered_ids': original['direct_ordered_ids'], 'count': 63, 'selector': None},
+              *original['additional_groups']]
+    groups = json.loads(json.dumps(groups))
+    original_ids = original['ordered_ids']
+    if (len(original_ids) != 132 or len(set(original_ids)) != 132
+            or sum((group['ordered_ids'] for group in groups), []) != original_ids
+            or admission['original_ordered_ids'] != original_ids):
+        raise ValueError('artifact original complete execution groups differ')
+    histories = admission.get('reviewed_integrated_source_adjustments', {})
+    if type(histories) is not dict or not set(histories) <= set(_HISTORY_CURRENT):
+        raise ValueError('artifact execution source-history members differ')
+    captured = admission['captured_files']
+    for name, proof in histories.items():
+        expected_added = list(_ASSEMBLY_ADDED_IDS) if name == _ASSEMBLY_PATH else []
+        if (proof['path'] != name or not _history_current(name, proof['physical'])
+                or captured.get(name) != proof['physical']
+                or captured.get(_HISTORY_HELPER) != _HISTORY_HELPER_PIN
+                or proof['added_ordered_ids'] != expected_added
+                or proof['complete_original_inverse_verified'] is not True
+                or proof['complete_current_forward_replay_verified'] is not True
+                or proof['terminal_reread_identical'] is not True
+                or proof['whole_native_delivery_qualified'] is not False):
+            raise ValueError('artifact execution history is not bound to exact captured source')
+        if name == _DIAGNOSTICS_CALLER:
+            has_six = proof['physical'] == _HISTORY_NATIVE_SIX
+            assertion = proof.get('native_result_assertion_successor')
+            if has_six != (assertion is not None):
+                raise ValueError('artifact native-result assertion history is missing or spurious')
+            if has_six:
+                expected_assertion = {
+                    'path': name, 'physical': _HISTORY_NATIVE_SIX,
+                    'predecessor': _HISTORY_CURRENT[name],
+                    'helper': {'path': 'tools/hia_native_result_caller_history.py',
+                        'bytes': 2868, 'sha256': 'e1e1edfcaeaf0f80f7b2b51604afff87908d45419f1aef87fbf8408589cc4248'},
+                    'authority': {'path': 'tests/fixtures/hia_native_result_caller_history_v1.json',
+                        'bytes': 1087, 'sha256': 'dccd8c04824fdaa3ac7cf638fd487622a8ecfd198236cf0108ef8dc2edb10130'},
+                    'definition': 'ArtifactContractTests.test_discovery_is_readable_and_source_bound',
+                    'assertion': 'support["limits"]["function_results"]',
+                    'previous_expected': 3, 'current_expected': 6, 'exact_byte_splices': 1,
+                    'complete_original_inverse_verified': True,
+                    'complete_current_forward_replay_verified': True,
+                    'original_deadlines_changed': False, 'original_runtime_budgets_changed': False,
+                }
+                if (assertion != expected_assertion
+                        or any(type(assertion[key]) is not int
+                               for key in ('previous_expected', 'current_expected', 'exact_byte_splices'))
+                        or any(type(assertion[key]) is not bool
+                               for key in ('complete_original_inverse_verified',
+                                           'complete_current_forward_replay_verified',
+                                           'original_deadlines_changed', 'original_runtime_budgets_changed'))
+                        or captured.get(assertion['helper']['path']) != {
+                            key: assertion['helper'][key] for key in ('bytes', 'sha256')}
+                        or captured.get(assertion['authority']['path']) != {
+                            key: assertion['authority'][key] for key in ('bytes', 'sha256')}):
+                    raise ValueError('artifact native-result assertion history differs')
+    for name in _HISTORY_CURRENT:
+        if _history_current(name, captured.get(name)) != (name in histories):
+            raise ValueError('artifact exact current source cannot omit its history')
+    assembly_current = captured.get(_ASSEMBLY_PATH) == _HISTORY_CURRENT[_ASSEMBLY_PATH]
+    if assembly_current != (_ASSEMBLY_PATH in histories):
+        raise ValueError('artifact current assembly cannot omit its successor identities')
+    added = list(_ASSEMBLY_ADDED_IDS) if assembly_current else []
+    if added:
+        records = {row['module']: row for row in original['modules']}
+        for group in groups:
+            old_ids = group['ordered_ids']
+            expanded = []
+            for module in group['modules']:
+                ids = list(records[module]['ordered_ids'])
+                if records[module]['path'] == _ASSEMBLY_PATH:
+                    if set(ids) & set(added):
+                        raise ValueError('artifact successor reuses an original identity')
+                    ids = sorted([*ids, *added])
+                expanded.extend(ids)
+            if [name for name in expanded if name in set(old_ids)] != old_ids:
+                raise ValueError('artifact successor displaced original ordered identities')
+            group['original_ordered_ids'] = old_ids
+            group['successor_added_ordered_ids'] = [name for name in expanded if name in added]
+            group['ordered_ids'], group['count'] = expanded, len(expanded)
+    planned = sum((group['ordered_ids'] for group in groups), [])
+    if (len(planned) != 132 + len(added) or len(set(planned)) != len(planned)
+            or [name for name in planned if name in set(original_ids)] != original_ids
+            or [name for name in planned if name not in set(original_ids)] != added):
+        raise ValueError('artifact complete original and successor execution table differs')
+    return groups, planned, added
+
+
 def admit_inventory(root=None, *, with_source_admission=False):
     # The original no-argument API still returns the unchanged complete fixture.
     root, captured = Path(ROOT if root is None else root), {}
@@ -84,9 +219,12 @@ def admit_inventory(root=None, *, with_source_admission=False):
         raise ValueError('independent original four-module artifact fixture changed')
     if json.loads(direct_raw)['declared_original_test_ids'] != value['direct_ordered_ids']:
         raise ValueError('independent original complete 63 IDs differ')
-    diagnostics = {}
+    diagnostics, histories = {}, {}
     for record in value['modules']:
         current = capture(record['path'])
+        current, history = _admit_reviewed_source(root, capture, record['path'], current)
+        if history is not None:
+            histories[record['path']] = history
         if len(current) != record['bytes'] or sha256(current).hexdigest() != record['sha256']:
             relation = _admit_diagnostic_source(capture, record['path'], current, record['sha256'])
             if relation['original']['bytes'] != record['bytes']:
@@ -110,6 +248,7 @@ def admit_inventory(root=None, *, with_source_admission=False):
         'original_direct_ordered_ids': list(value['direct_ordered_ids']),
         'original_additional_ordered_ids': list(value['additional_ordered_ids']),
         'reviewed_diagnostic_source_adjustments': diagnostics,
+        **({'reviewed_integrated_source_adjustments': histories} if histories else {}),
         'captured_files': {name: _source_pin(data) for name, data in captured.items()},
         'terminal_reread_identical': True, 'original_inventory_bytes_unchanged': True,
         'production_source_exceptions': [], 'whole_native': False,
@@ -138,9 +277,7 @@ def main():
     if evidence == ROOT or ROOT in evidence.parents:
         raise ValueError('caller evidence must be outside the original source tree')
     evidence.mkdir(mode=0o700, parents=True, exist_ok=False)
-    declared_groups = [{'name': 'original-direct-63', 'modules': original['direct_modules'],
-                        'ordered_ids': original['direct_ordered_ids'], 'count': 63, 'selector': None},
-                       *original['additional_groups']]
+    declared_groups, planned, added_ids = declared_execution_groups(original, source_admission)
     suites = []
     for group in declared_groups:
         suite, ids = load_declared_suite(group['modules'])
@@ -157,25 +294,50 @@ def main():
 
     before = source_pins()
     bind_admission_to_source_capture(source_admission, before)
+
     cold_pin = compiler_pin = None
+    native_cold_mode, cold_inputs, native_sources = False, {}, None
+
+    def take_cold(path):
+        path = Path(path)
+        raw = path.read_bytes()
+        if path in cold_inputs and cold_inputs[path] != raw:
+            raise ValueError('artifact caller cold input changed: ' + str(path))
+        cold_inputs[path] = raw
+        return raw
+
     if cold_path is not None:
-        cold_raw = cold_path.read_bytes()
+        cold_raw = take_cold(cold_path)
         cold = json.loads(cold_raw)
-        nested_path = Path(cold['nested_report'])
-        nested_raw = nested_path.read_bytes()
-        nested = json.loads(nested_raw)
-        compiler = Path(nested['generations'][-1]['produced_image'])
-        compiler_pin = {'path': str(compiler), 'sha256': sha256(compiler.read_bytes()).hexdigest()}
-        cold_pin = {'path': str(cold_path), 'sha256': sha256(cold_raw).hexdigest(),
-                    'nested_path': str(nested_path), 'nested_sha256': sha256(nested_raw).hexdigest()}
+        from tools.hia_native_cold_admission import SCHEMA as NATIVE_COLD_SCHEMA
+        native_cold_mode = cold.get('schema') == NATIVE_COLD_SCHEMA
+        if native_cold_mode:
+            from tools.hia_component_cold_readback import native_cold_compiler
+            compiler, compiler_bytes, native_sources = native_cold_compiler(
+                ROOT, cold_path, read=take_cold)
+            cold_pin = {'path': str(cold_path), 'sha256': sha256(cold_raw).hexdigest(),
+                        'source_domain': 'NATIVE_CORE_AUTHORITY',
+                        'captured_files': {str(path): _source_pin(raw)
+                                           for path, raw in cold_inputs.items()}}
+            compiler_pin = {'path': str(compiler), 'sha256': sha256(compiler_bytes).hexdigest()}
+        else:
+            nested_path = Path(cold['nested_report'])
+            nested_raw = nested_path.read_bytes()
+            nested = json.loads(nested_raw)
+            compiler = Path(nested['generations'][-1]['produced_image'])
+            compiler_pin = {'path': str(compiler), 'sha256': sha256(compiler.read_bytes()).hexdigest()}
+            cold_pin = {'path': str(cold_path), 'sha256': sha256(cold_raw).hexdigest(),
+                        'nested_path': str(nested_path), 'nested_sha256': sha256(nested_raw).hexdigest()}
         from tools.build_hia_artifact_publication import build
         executable = build(evidence / 'additional-selected-build', compiler, cold_path)
         manifest = executable.parent / 'build.json'
-        scope = 'MATCHING_SOURCE_COLD_ORIGINAL_ARTIFACT_63_PLUS_ADDITIONAL_69'
+        scope = ('MATCHING_SOURCE_COLD_ORIGINAL_ARTIFACT_132_PLUS_REVIEWED_SUCCESSOR_2'
+                 if added_ids else 'MATCHING_SOURCE_COLD_ORIGINAL_ARTIFACT_63_PLUS_ADDITIONAL_69')
     else:
         manifest = args.development_manifest.resolve(strict=True)
         executable = manifest.parent / 'hia-artifact'
-        scope = 'EXPLICIT_DEVELOPMENT_ORIGINAL_ARTIFACT_63_PLUS_ADDITIONAL_69'
+        scope = ('EXPLICIT_DEVELOPMENT_ORIGINAL_ARTIFACT_132_PLUS_REVIEWED_SUCCESSOR_2'
+                 if added_ids else 'EXPLICIT_DEVELOPMENT_ORIGINAL_ARTIFACT_63_PLUS_ADDITIONAL_69')
     from hepta import artifact_publication as publication
     from hepta import artifact_publication_native as native
     from hepta.hia_artifact_delivery import ArtifactInvocation
@@ -279,21 +441,41 @@ def main():
                                     for name, digest in application.items())
     if cold_pin is not None:
         stable = stable and sha256(cold_path.read_bytes()).hexdigest() == cold_pin['sha256']
-        stable = stable and sha256(Path(cold_pin['nested_path']).read_bytes()).hexdigest() == cold_pin['nested_sha256']
+        if native_cold_mode:
+            final_compiler, final_bytes, final_sources = native_cold_compiler(
+                ROOT, cold_path, read=take_cold)
+            stable = (stable and str(final_compiler) == compiler_pin['path']
+                      and sha256(final_bytes).hexdigest() == compiler_pin['sha256']
+                      and final_sources == native_sources
+                      and all(path.read_bytes() == raw for path, raw in cold_inputs.items()))
+        else:
+            stable = stable and sha256(Path(cold_pin['nested_path']).read_bytes()).hexdigest() == cold_pin['nested_sha256']
         stable = stable and sha256(Path(compiler_pin['path']).read_bytes()).hexdigest() == compiler_pin['sha256']
     anomaly_keys = ('errors', 'failures', 'skipped', 'expected_failures', 'unexpected_successes')
     clean = all(g['was_successful'] and g['actual_tests'] == len(g['planned'])
                 and all(not g[key] for key in anomaly_keys) for g in groups)
-    passed = (clean and stable and started == stopped == original['ordered_ids']
+    passed = (clean and stable and started == stopped == planned
               and not reference_calls
               and all(counts['acknowledged:' + operation] > 0 for operation in OPERATIONS)
               and all(counts['public-receipt:' + operation] > 0 for operation in OPERATIONS))
-    report = {'schema': 'hepta.hia.artifact-delivery-original-callers.v1',
+    assertion_successors = [
+        proof['native_result_assertion_successor']
+        for proof in source_admission.get('reviewed_integrated_source_adjustments', {}).values()
+        if 'native_result_assertion_successor' in proof]
+    report = {'schema': ('hepta.hia.artifact-delivery-original-callers.v2'
+                         if added_ids or native_cold_mode else 'hepta.hia.artifact-delivery-original-callers.v1'),
         'status': 'PASS' if passed else 'FAIL', 'scope': scope,
         'original_baseline_commit': original['base_commit'],
         'original_fixture_baseline_commit': original['direct_original_fixture_base'],
         'modules': [r['module'] for r in original['modules']],
-        'planned': original['ordered_ids'], 'started': started, 'stopped': stopped,
+        'planned': planned, 'started': started, 'stopped': stopped,
+        'original_planned': list(original['ordered_ids']),
+        'original_count': 132, 'reviewed_successor_added_ids': added_ids,
+        'reviewed_successor_added_count': len(added_ids),
+        'all_original_methods_executed_in_order':
+            [name for name in started if name in set(original['ordered_ids'])] == original['ordered_ids'],
+        'all_reviewed_successor_methods_executed':
+            [name for name in started if name in set(added_ids)] == added_ids,
         'actual_tests': sum(g['actual_tests'] for g in groups), 'groups': groups,
         'wall_seconds': time.monotonic() - begin,
         'source_before': before, 'source_after': after,
@@ -313,7 +495,10 @@ def main():
                                   'additional-generic-37': PUBLIC_SELECTOR,
                                   'additional-store-32': STORE_SELECTOR},
         'all_seven_modules_unfiltered': True,
-        'original_test_limits_deadlines_assertions_changed': False,
+        'original_test_limits_deadlines_assertions_changed': bool(assertion_successors),
+        'original_test_deadlines_changed': False,
+        'original_test_runtime_budgets_changed': False,
+        'reviewed_native_result_assertion_successors': assertion_successors,
         'new_aggregate_wall_limit_added': False,
         'whole_project_dynamic_caller_closure_claimed': False,
         'installed_worker_qualified_by_this_gate': False,
