@@ -16,7 +16,7 @@ class ColdCompilerLocationTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name).resolve()
         self.cold = self.root / "cold.json"
-        self.image = b"\x7fELFsynthetic physical pin control; not executable"
+        self.image = bytes.fromhex('554889e54883ec4048897dc0488975c8') + b'synthetic physical pin control'
         self.report = {"schema": "hepta.hia.selfhost-cold-replay.v2",
                        "generation_sha256": [sha256(self.image).hexdigest()] * 3}
         self.raw = json.dumps(self.report).encode()

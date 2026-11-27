@@ -136,8 +136,8 @@ def main():
     bind_scope_admission_to_source_capture(source_admission,before)
     args.evidence.mkdir(mode=0o700,parents=True,exist_ok=False)
     if args.cold_report is not None:
-        outer=json.loads(args.cold_report.read_bytes());nested=json.loads(Path(outer['nested_report']).read_bytes())
-        compiler=Path(nested['generations'][-1]['produced_image'])
+        from tools.hia_cold_compiler import compiler_from_cold_report
+        compiler=compiler_from_cold_report(args.cold_report)
         manifest=build(args.evidence/'verification',compiler,args.cold_report)
         mode='MATCHING_SOURCE_COLD_COMPLETE_CALLERS'
     else:

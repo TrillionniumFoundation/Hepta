@@ -6,7 +6,7 @@ report qualifies only its native source manifest; Python builders, retained
 models and tests are instead pinned to exact, clean Git blobs. Neither domain
 is allowed to impersonate the other.
 """
-from hashlib import sha256
+from hashlib import sha1, sha256
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -66,6 +66,71 @@ def _head(root):
     return raw.decode("ascii")
 
 
+def _git_object_identity(kind, raw):
+    """Recompute the existing SHA-1 repository's actual object name."""
+    return sha1(kind.encode("ascii") + b" " + str(len(raw)).encode("ascii")
+                + b"\0" + raw).hexdigest()
+
+
+def _git_object(root, identity, kind):
+    _require(re.fullmatch(r"[0-9a-f]{40}", identity) is not None,
+             "invalid component Git object name")
+    raw = _git(root, "cat-file", kind, identity)
+    _require(_git_object_identity(kind, raw) == identity,
+             "component Git " + kind + " identity differs from its raw bytes")
+    return raw
+
+
+def _head_tree(root, head):
+    raw = _git_object(root, head, "commit")
+    headers = raw.split(b"\n\n", 1)[0].split(b"\n")
+    match = re.fullmatch(rb"tree ([0-9a-f]{40})", headers[0])
+    _require(match is not None
+             and [line for line in headers if line.startswith(b"tree ")] == [headers[0]],
+             "component Git commit has no unique root tree")
+    return match[1].decode("ascii")
+
+
+def _tree_entries(root, identity):
+    raw = _git_object(root, identity, "tree")
+    cursor, entries = 0, {}
+    while cursor < len(raw):
+        space = raw.find(b" ", cursor)
+        end = raw.find(b"\0", space + 1) if space >= cursor else -1
+        _require(space > cursor and end > space + 1 and end + 21 <= len(raw),
+                 "truncated component Git tree entry")
+        mode, name = raw[cursor:space], raw[space + 1:end]
+        _require(mode in (b"40000", b"100644", b"100755", b"120000", b"160000")
+                 and b"/" not in name and name not in (b".", b"..")
+                 and name not in entries,
+                 "invalid or repeated component Git tree entry")
+        entries[name] = (mode.decode("ascii"), raw[end + 1:end + 21].hex())
+        cursor = end + 21
+    return entries
+
+
+def _captured_tree_entries(root, tree, captured):
+    """Follow verified directory objects; never trust ls-tree's object labels."""
+    cache, result = {}, {}
+    for name in sorted(captured):
+        parent = tree
+        parts = _name(name).split("/")
+        for index, part in enumerate(parts):
+            if parent not in cache:
+                cache[parent] = _tree_entries(root, parent)
+            entry = cache[parent].get(part.encode("ascii"))
+            _require(entry is not None, "component authoring input is untracked or missing: " + name)
+            mode, identity = entry
+            if index + 1 < len(parts):
+                _require(mode == "40000", "component input parent is not a Git directory: " + name)
+                parent = identity
+            else:
+                _require(mode in ("100644", "100755"),
+                         "component input is not a regular Git blob: " + name)
+                result[name] = (mode, identity)
+    return result
+
+
 def _regular_bytes(root, name, expected):
     """Walk every component without following symlinks; bound the final read."""
     parent = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
@@ -105,21 +170,10 @@ def _git_inputs(root, captured):
     _require(Path(os.fsdecode(_git(root, "rev-parse", "--show-toplevel").strip())) == root,
              "component authoring root is not the Git worktree root")
     head = _head(root)
-    tree = _git(root, "rev-parse", "HEAD^{tree}").strip().decode("ascii")
+    tree = _head_tree(root, head)
+    entries = _captured_tree_entries(root, tree, captured)
     _require(not _git(root, "status", "--porcelain=v1", "-z", "--untracked-files=no"),
              "component authoring has uncommitted tracked changes")
-    entries = {}
-    for row in _git(root, "ls-tree", "-r", "-z", head).split(b"\0"):
-        if not row:
-            continue
-        metadata, raw_name = row.split(b"\t", 1)
-        name = os.fsdecode(raw_name)
-        if name in captured:
-            mode, kind, blob = metadata.decode("ascii").split(" ")
-            _require(mode in ("100644", "100755") and kind == "blob",
-                     "component input is not a regular Git blob: " + name)
-            entries[name] = (mode, blob)
-    _require(set(entries) == set(captured), "component authoring input is untracked or missing")
     names = sorted(entries)
     batch = _git(root, "cat-file", "--batch", input_bytes=b"".join(
         (entries[name][1] + "\n").encode("ascii") for name in names))
@@ -137,6 +191,8 @@ def _git_inputs(root, captured):
                  and batch[cursor + len(raw):cursor + len(raw) + 1] == b"\n",
                  "component authoring bytes differ from the exact Git blob: " + name)
         cursor += len(raw) + 1
+        _require(_git_object_identity("blob", raw) == blob,
+                 "component Git blob identity differs from its raw bytes: " + name)
         executable = _regular_bytes(root, name, raw)
         _require(executable == (mode == "100755"),
                  "component input executable mode differs from Git: " + name)
