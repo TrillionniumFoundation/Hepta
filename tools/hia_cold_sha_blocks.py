@@ -37,7 +37,7 @@ def indent(source, amount):
 
 
 def helper_source():
-    group = 8
+    group = 4
     source = 'def compress_complete_blocks(s:readbuf,w:mutbuf,at:u64,end:u64) -> u64:\n'
     for j, name in enumerate('abcdefgh'):
         source += f'    chain_{name} = word_load(w, {1024 + j * 8})\n'

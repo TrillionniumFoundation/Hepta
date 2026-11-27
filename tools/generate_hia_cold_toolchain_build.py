@@ -34,6 +34,7 @@ PROFILE_SOURCE = {
     "bulk": "seed_bulk_backend", "div-bulk": "seed_div_bulk_backend",
     "word": "seed_word_backend", "endian": "seed_endian_backend",
     "cold-bulk": "seed_cold_bulk_backend", "cold-endian": "seed_cold_endian_backend",
+    "cold-endian-shift": "seed_cold_endian_shift_backend",
     "cold-bulk-word": "seed_cold_bulk_word_backend",
     "owned": "seed_owned_backend",
     "vm": "seed_vm_backend",
@@ -372,7 +373,7 @@ def stage_semantic(build):
 
 def cold_sha(s):
     fallback = s.flat("cold_sha256_stream", "word")
-    fast = s.flat("cold_sha256_nonalias", "cold-endian")
+    fast = s.flat("cold_sha256_nonalias", "cold-endian-shift")
     image = s.framed(s.tool("cold_sha256_alias_packer", "word"),
                     b"HIASHA01", [fallback, fast],
                     "cold-SHA-exact-alias-dispatch-and-independent-policies")

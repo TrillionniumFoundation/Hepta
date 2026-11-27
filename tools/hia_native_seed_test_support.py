@@ -53,7 +53,7 @@ class NativeSeeds:
     def backend(self, profile):
         if profile in self.profiles:
             return self.profiles[profile]
-        assert profile in ('word', 'endian', 'bulk', 'cold-bulk', 'cold-endian', 'cold-bulk-word')
+        assert profile in ('word', 'endian', 'bulk', 'cold-bulk', 'cold-endian', 'cold-endian-shift', 'cold-bulk-word')
         source = self.root / 'examples/hia_bootstrap' / ('seed_' + profile.replace('-', '_') + '_backend.hepta')
         flat = self.compile(source.read_bytes(), 'v1')
         if 'seed-packer' not in self.profiles:
