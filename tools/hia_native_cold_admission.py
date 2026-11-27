@@ -39,7 +39,8 @@ def integer(value, low, high):
 
 
 def digest(value):
-    return type(value) is str and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+    return (type(value) is str and value != "0" * 64
+            and re.fullmatch(r"[0-9a-f]{64}", value) is not None)
 
 
 def admit_native_report(compiler_bytes, cold_bytes, *, contract, sources,

@@ -4,6 +4,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from tools.hia_native_cold_admission import admit_native_report, read_json
 
@@ -125,6 +126,73 @@ class NativeColdAdmissionTests(unittest.TestCase):
                     b'{"phases":[{"sealed":false,"sealed":true}]}'):
             with self.subTest(raw=raw), self.assertRaises(ValueError):
                 read_json(raw)
+
+    def test_zero_native_identities_are_rejected_at_every_receipt_position(self):
+        mutations = []
+        changed = deepcopy(self.report)
+        changed['seed_sha256'] = '0' * 64
+        mutations.append(('seed', changed))
+        changed = deepcopy(self.report)
+        changed['modified_generation_sha256'][0] = '0' * 64
+        mutations.append(('modified-initial', changed))
+        changed = deepcopy(self.report)
+        changed['modified_generation_sha256'][1:] = ['0' * 64] * 2
+        mutations.append(('modified-fixed-point', changed))
+        for index, row in enumerate(self.report['phases']):
+            for field in ('journal_sha256', 'archive_sha256'):
+                changed = deepcopy(self.report)
+                changed['phases'][index][field] = '0' * 64
+                mutations.append((row['id'] + ':' + field, changed))
+        for position, changed in mutations:
+            with self.subTest(position=position), self.assertRaises(ValueError):
+                self.admit(changed)
+
+    def hosted_report(self):
+        checks = (
+            'export_manifest_matches_qualification', 'isolated_python_without_site',
+            'nested_full_qualification_pass', 'nested_process_exit_zero',
+            'no_ancestor_git_identity', 'no_bytecode_cache_created',
+            'no_inherited_home_or_python_cache', 'no_inherited_seed_or_successor_images',
+            'origin_hashes_preserved', 'owned_process_tree_cleanup_confirmed',
+            'source_export_hashes_preserved',
+        )
+        return {'schema': 'hepta.hia.selfhost-cold-replay.v1',
+                'status': 'COLD_SELFHOST_REPLAY_PASS', 'returncode': 0,
+                'profile': self.contract['profile'], 'source_manifest': self.sources,
+                'generation_sha256': self.report['generation_sha256'],
+                'checks': {name: True for name in checks}}
+
+    def builder_admit(self, report, roles):
+        from tools import build_hia_json_preflight as builder
+        contract = {**self.contract, 'source_identity': {'roles': roles}}
+        with (patch('tools.hia_release_contract.validate_release_contract', return_value=contract),
+              patch.object(builder, 'current_sources', return_value=self.sources),
+              patch('tools.generate_hia_native_observer.reference_image', return_value=self.observer)):
+            return builder.admit_cold_build(self.compiler, json.dumps(report).encode())
+
+    def test_native_source_domain_cannot_use_hosted_report_checks(self):
+        from tools.hia_release_contract import NATIVE_AUTHORITY
+        roles = {'authoring_authority': NATIVE_AUTHORITY}
+        with self.assertRaises(ValueError):
+            self.builder_admit(self.hosted_report(), roles)
+        self.assertEqual(self.builder_admit(self.report, roles), self.sources)
+
+    def test_hosted_source_domain_cannot_select_native_report(self):
+        from tools.hia_release_contract import HOSTED_SEED
+        roles = {'seed_entry': HOSTED_SEED}
+        with self.assertRaises(ValueError):
+            self.builder_admit(self.report, roles)
+        self.assertEqual(self.builder_admit(self.hosted_report(), roles), self.sources)
+        incomplete = self.hosted_report()
+        incomplete['checks'].pop('isolated_python_without_site')
+        with self.assertRaises(ValueError):
+            self.builder_admit(incomplete, roles)
+
+    def test_unknown_source_domain_cannot_enter_either_report_gate(self):
+        for report in (self.report, self.hosted_report()):
+            for roles in ({}, {'authoring_authority': 'foreign.json'}):
+                with self.subTest(schema=report['schema'], roles=roles), self.assertRaises(ValueError):
+                    self.builder_admit(report, roles)
 
 
 if __name__ == "__main__":
