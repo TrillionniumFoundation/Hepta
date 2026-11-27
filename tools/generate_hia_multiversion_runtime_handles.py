@@ -8,6 +8,7 @@ C={
 'MAGIC':int.from_bytes(b'HIAMVHQ1','little'),'REPLY':int.from_bytes(b'HIAMVHR1','little'),
 'STATE':int.from_bytes(b'HIAMVHW1','little'),'OBJECT':int.from_bytes(b'HIAMVHO1','little'),
 'NODE_MAGIC':int.from_bytes(b'HIAMVHN1','little'),'PIN_MAGIC':int.from_bytes(b'HIAMVHP1','little'),
+'STRICT_EFFECTS':int.from_bytes(b'HIAMVEX5','little'),
 'EFFECTS':int.from_bytes(b'HIAMVEX1','little'),'PUBLIC_EFFECTS':int.from_bytes(b'HIAMVEX3','little'),'EFFECT_REPLY':int.from_bytes(b'HIAMVER1','little'),
 'NONE':(1<<64)-1,'NEGATIVE':(1<<64)-4095,'OUT':96<<20,'MAX_FRAME':20<<20,
 'CHILD_O':1<<20,'CHILD_I':41<<20,'SAVED':64<<20,'SAVE_DATA':65<<20,
@@ -71,7 +72,7 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
         if used==False and word(s,i)!=0:
             return 4294967293
         i=i+8
-    if op==1 and ((word(s,128)!=EFFECTS and word(s,128)!=PUBLIC_EFFECTS) or word(s,136)!=0):
+    if op==1 and ((word(s,128)!=EFFECTS and word(s,128)!=PUBLIC_EFFECTS and word(s,128)!=STRICT_EFFECTS) or word(s,136)!=0):
         return 4294967293
     zero(o,64,8192-64)
     put(o,OP,op)

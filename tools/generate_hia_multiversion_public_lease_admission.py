@@ -45,10 +45,10 @@ def handles_source():
 
 def effects_source():
     source=effects.SOURCE
-    source=replace_once(source,'''    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST and word(s,0)!=PUBLIC_REQUEST and word(s,0)!=TIMED_REQUEST:
-''','''    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST and word(s,0)!=PUBLIC_REQUEST and word(s,0)!=TIMED_REQUEST and word(s,0)!=LEASE_ADMISSION:
+    source=replace_once(source,'''    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST and word(s,0)!=PUBLIC_REQUEST and word(s,0)!=TIMED_REQUEST and word(s,0)!=STRICT_REQUEST:
+''','''    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST and word(s,0)!=PUBLIC_REQUEST and word(s,0)!=TIMED_REQUEST and word(s,0)!=STRICT_REQUEST and word(s,0)!=LEASE_ADMISSION:
 ''')
-    source=replace_once(source,'''    public=word(s,0)==PUBLIC_REQUEST or word(s,0)==TIMED_REQUEST
+    source=replace_once(source,'''    public=word(s,0)==PUBLIC_REQUEST or word(s,0)==TIMED_REQUEST or strict
 ''','''    if word(s,0)==LEASE_ADMISSION:
         if length(s)!=256 or word(s,8)!=0:
             return 4294967293
@@ -57,7 +57,7 @@ def effects_source():
             if word(s,i)!=0:
                 return 4294967293
             i=i+8
-    public=word(s,0)==PUBLIC_REQUEST or word(s,0)==TIMED_REQUEST
+    public=word(s,0)==PUBLIC_REQUEST or word(s,0)==TIMED_REQUEST or strict
 ''')
     source=replace_once(source,'''    put(o,OP,word(s,8))
 ''','''    put(o,I_ADMISSION,choose(word(s,0)==LEASE_ADMISSION,1,0))

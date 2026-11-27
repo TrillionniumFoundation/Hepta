@@ -11,6 +11,8 @@ from tools.generate_hia_artifact_publication import document
 ROOT=Path(__file__).resolve().parents[1]
 C={
 
+'STRICT_REQUEST':int.from_bytes(b'HIAMVEX5','little'),
+'STRICT_GENREQ':int.from_bytes(b'HIAMVGX2','little'),
 'EXT_REQUEST':int.from_bytes(b'HIAMVEX2','little'),
 'PUBLIC_REQUEST':int.from_bytes(b'HIAMVEX3','little'),
 'TIMED_REQUEST':int.from_bytes(b'HIAMVEX4','little'),
@@ -94,9 +96,12 @@ def runtime_effects(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     return completing(s,o,w,phase)
 
 def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
-    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST and word(s,0)!=PUBLIC_REQUEST and word(s,0)!=TIMED_REQUEST:
+    if word(s,0)!=REQUEST and word(s,0)!=EXT_REQUEST and word(s,0)!=PUBLIC_REQUEST and word(s,0)!=TIMED_REQUEST and word(s,0)!=STRICT_REQUEST:
         return 4294967293
-    public=word(s,0)==PUBLIC_REQUEST or word(s,0)==TIMED_REQUEST
+    strict=word(s,0)==STRICT_REQUEST
+    public=word(s,0)==PUBLIC_REQUEST or word(s,0)==TIMED_REQUEST or strict
+    if strict and word(s,8)!=0:
+        return 4294967293
     if word(s,0)==TIMED_REQUEST and word(s,8)!=2:
         return 4294967293
     ext=word(s,0)==EXT_REQUEST or public
@@ -135,6 +140,11 @@ def begin(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     i=224
     if ext:
         i=240
+    if strict:
+        digits=word(s,240)
+        if digits!=0 and (digits<640 or digits>2147483647):
+            return 4294967293
+        i=248
     while i<256:
         if word(s,i)!=0:
             return 4294967293
@@ -187,6 +197,11 @@ def admission(s:readbuf,o:mutbuf,w:mutbuf,phase:u64) -> u32:
         put(w,0,STATE)
         put(w,8,pid)
         put(w,416,get(o,I_PUBLIC))
+        put(w,424,0)
+        put(w,432,0)
+        if word(s,0)==STRICT_REQUEST:
+            put(w,424,word(s,240))
+            put(w,432,1)
         put(w,64,NONE)
         put(w,72,NONE)
         put(w,80,NONE)
@@ -685,6 +700,10 @@ def begin_generation(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     put(o,FRAME+32,get(w,80))
     put(o,FRAME+40,get(w,192))
     put(o,FRAME+48,get(o,NOW)+120000000000)
+    if get(w,432)==1:
+        put(o,FRAME,STRICT_GENREQ)
+        put(o,FRAME+48,0)
+        put(o,FRAME+120,get(w,424))
     put(o,FRAME+56,get(o,NOW)+60000000000)
     put(o,FRAME+64,get(w,208))
     put(o,FRAME+72,choose(get(o,OP)==0,1,0))

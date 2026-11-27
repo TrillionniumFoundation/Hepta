@@ -1,7 +1,7 @@
 """Source-bound enclosing lease/Value owner, preserving all old carrier consumers.
 
 The sole export constructs the actual fixed carrier and Value arena contexts.
-All 49 carrier roles remain ordered; only this new product selects the three
+All 50 carrier roles remain ordered; only this new product selects the three
 public lifecycle variants. The complete sixteen-role Value image is native packed
 before insertion into its one fixed role. No callback comes from caller data.
 """
@@ -56,7 +56,7 @@ CARRIER_SOURCES=[
   },
   {
     "role": "gen_intake_prepare",
-    "path": "examples/hia_bootstrap/multiversion_prepare_intake.hepta"
+    "path": "examples/hia_bootstrap/multiversion_prepare_admission.hepta"
   },
   {
     "role": "gen_intake_process",
@@ -89,6 +89,10 @@ CARRIER_SOURCES=[
   {
     "role": "gen_intake_abi",
     "path": "examples/hia_bootstrap/multiversion_abi.hepta"
+  },
+  {
+    "role": "gen_intake_raw",
+    "path": "examples/hia_bootstrap/background_optimizer_verify_raw.hepta"
   },
   {
     "role": "gen_proof_prepare",
@@ -216,7 +220,10 @@ CARRIER_SOURCES=[
   }
 ]
 ROLES=('owner_policy','lease_policy','values','typed_policy','finalizer_policy')+carrier.ROLES
-MAGIC=int.from_bytes(b'HIAGLOP1','little')
+MAGIC=int.from_bytes(b'HIAGLOP2','little')
+assert len(CARRIER_SOURCES)==len(carrier.ROLES)==50
+assert tuple(row['role'] for row in CARRIER_SOURCES)==carrier.ROLES
+assert len(ROLES)==55
 IMPORTS=carrier.IMPORTS
 EXPORT_SIZE=len(OWNER)
 

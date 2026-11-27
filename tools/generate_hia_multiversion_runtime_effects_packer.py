@@ -20,7 +20,7 @@ OUTER_RELOCATIONS=((811, 'malloc'), (825, 'free'))
 SIZE_HOLE=OUTER_HOLES['mapping_size']
 IMPORTS=('dlopen','dlsym','dlclose','malloc','free')
 ROLES=('effects','state','retention','call','typed','information','information_capture')+tuple('gen_'+x for x in generation.ROLES)+tuple('identity_'+x for x in identity.ROLES)+('future',)+tuple('measurement_'+x for x in measurement.ROLES)+('snapshot','snapshot_capture','snapshot_number')
-MAGIC=int.from_bytes(b'HIAMVEK2','little')
+MAGIC=int.from_bytes(b'HIAMVEK3','little')
 EXPORT_SIZE=len(OUTER)
 def bridges():
     raw=bytearray(OUTER)

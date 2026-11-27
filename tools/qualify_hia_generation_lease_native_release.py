@@ -101,8 +101,8 @@ def main():
                images[BOOT+'generation_lease_public_lifecycle.hepta'],imported,
                images[BOOT+'generation_lease_typed_policy.hepta'],images[BOOT+'generation_lease_owner_finalizer.hepta']]
         parts.extend(images[row['path']] for row in owner.CARRIER_SOURCES)
-        assert len(parts)==54
-        wire=struct.pack('<56Q',owner.MAGIC,54,*map(len,parts))+b''.join(parts)
+        assert len(parts)==len(owner.ROLES)==55
+        wire=struct.pack('<57Q',owner.MAGIC,55,*map(len,parts))+b''.join(parts)
         obj=run(wrapperfds['generation_lease_owner_packer'],[],wire)
         assert obj==owner.reference_object(parts)
         assert obj==(args.owner_build/'generation-lease-owner.o').read_bytes()
@@ -131,6 +131,7 @@ def main():
                      typed_call_qualified=component['typed_call_qualified'],
                      generation_info_qualified=component['generation_info_qualified'],
                      compiler=record(root),modules=modules,source_files=source_files,
+                     owner_profile=dict(protocol='HIAGLOP2',role_count=55,carrier_role_count=50),
                      native_kit_composer=record(composer_bytes),kits=kits,wrappers=wrappers,
                      value_import=dict(stage=13,name=declaration.VALUE_PRODUCT,**record(imported)),
                      value_profile=dict(protocol=VALUE_PROTOCOL.decode('ascii'),role_count=len(VALUE_ROLES),
