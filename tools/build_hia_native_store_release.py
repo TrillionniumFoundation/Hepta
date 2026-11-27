@@ -212,6 +212,35 @@ def _stage_helper_images(work, seed, compile_sources, call, compiler, publish):
         publish(image_path, expected=expected['image_sha256'])
 
 
+def _stage_extended_helper_images(work, seed, compile_sources, call, compiler, publish):
+    """Rebuild only the explicit HIAHLM02 helper extension roles."""
+    from tools.build_hia_worker_release import EXTENDED_INSTALLED_HELPERS
+    builds = release_sources(seed, compile_sources, call)
+    author, kit_images, kit_sources = builds.kit_objects('source_helper_manifest.hepta', 'source_build_packer.hepta')
+    if kit_images['selfhost.hepta'] != compiler:
+        raise ValueError('flat helper compiler differs from the admitted cold compiler')
+    selfhost = kit_sources['selfhost.hepta']
+    names = [CANDIDATES[kind][0] + '.hepta' for _, kind in EXTENDED_INSTALLED_HELPERS]
+    _, images, sources = compile_sources({name: name for name in names})
+    compiler_sha = sha256(compiler).hexdigest()
+
+    for (role, kind), name in zip(EXTENDED_INSTALLED_HELPERS, names, strict=True):
+        source, image = sources[name], images[name]
+        frame = struct.pack('<8s5Q', b'HIAHLM02', role, len(source), len(image), len(selfhost), len(compiler))
+        raw = call(author, 'build', frame + source + image + selfhost + compiler)
+        protocol = CANDIDATES[kind][1]
+        image_name = protocol + '.image.bin'
+        expected = _image_manifest(kind, protocol, source, image, image_name, compiler_sha)
+        if json.loads(raw) != expected:
+            raise ValueError('native flat helper manifest differs from the admitted inputs: ' + kind)
+        manifest_path = work / (kind + '-manifest.json')
+        manifest_path.write_bytes(raw)
+        publish(manifest_path)
+        image_path = work / image_name
+        image_path.write_bytes(image)
+        publish(image_path, expected=expected['image_sha256'])
+
+
 def _stage_safe_proof(work, seed, compile_sources, call, admitted, publish):
     """Recompile and authenticate the five nested proof programs before publishing their verifier."""
     from tools.build_hia_agent_batch_commit import verify_placement
@@ -1021,6 +1050,7 @@ def _stage_source_members(work, stage, admitted, members, publish, *, compiler_b
         publish(output / 'hia-worker-scalar-implementation')
 
     _stage_helper_images(work, seed, builds, call, compiler_bytes, publish)
+    _stage_extended_helper_images(work, seed, builds, call, compiler_bytes, publish)
     _stage_agent_store(work, seed, builds, call, compiler_bytes, admitted, publish)
     _stage_agent_stdio(work, seed, captured('hia-catalog'), builds, call, compiler_bytes, publish)
     _stage_read_carrier(work, seed, builds, call, admitted, publish)
