@@ -235,7 +235,7 @@ def _package_tree(root, tree):
     return entries, result
 
 
-def _snapshot(root):
+def _snapshot(root, additional=()):
     root = Path(root).absolute()
     head = _head(root)
     tree = _head_tree(root, head)
@@ -261,7 +261,10 @@ def _snapshot(root):
              and authority["schema"] == "hepta.hia.native-source-authority.v1",
              "native source authority schema differs")
     native = checked_paths(authority["paths"])
-    names = set(initial) | set(package) | set(native)
+    additional = tuple(sorted(set(additional)))
+    for name in additional:
+        _name(name)
+    names = set(initial) | set(package) | set(native) | set(additional)
     for line in captured["MANIFEST.in"].decode("utf-8").splitlines():
         if not line or line.startswith("#"):
             continue
@@ -301,17 +304,18 @@ def _snapshot(root):
     custody = {
         "schema": SCHEMA, "scope": SCOPE, "source_head": head, "source_tree": tree,
         "native_authority": {name: pins[name] for name in native},
-        "packaging_inputs": pins,
+        "packaging_inputs": pins, "partial_staging_inputs": list(additional),
         "native_cold_qualified": False, "host_authoring_is_native_qualified": False,
         "whole_native_delivery_qualified": False,
         "resource_paths": list(resources), "package_members": expected,
     }
     return {"root": root, "captured": captured, "custody": custody,
-            "expected": expected, "licenses": licenses, "project": project["project"]}
+            "expected": expected, "licenses": licenses, "project": project["project"],
+            "additional": additional}
 
 
 def _verify_snapshot(snapshot):
-    current = _snapshot(snapshot["root"])
+    current = _snapshot(snapshot["root"], snapshot["additional"])
     _require(_encoded(current["custody"]) == _encoded(snapshot["custody"]),
              "Git/native/packaging source custody changed")
     _require(current["captured"] == snapshot["captured"], "source bytes changed")
@@ -327,6 +331,7 @@ def _staged_inputs(source, snapshot):
     names = _inventory(source)
     _require({"setup.py", "pyproject.toml", "MANIFEST.in"} <= names,
              "partial staging lacks its original package configuration")
+    _require(names == set(snapshot["additional"]), "partial staging membership changed")
     _require(names <= set(snapshot["captured"]), "partial staging has an unbound extra file")
     for name in sorted(names):
         _require(_read(source, name) == snapshot["captured"][name],
@@ -519,7 +524,11 @@ def _build(source, snapshot):
 def component_wheel(source):
     """Build the actual source-owned package for an explicit component test."""
     with _lock:
-        snapshot = _snapshot(ROOT)
+        staging = Path(source).absolute()
+        _require(not staging.is_symlink(), "partial staging root is redirected")
+        staging = staging.resolve(strict=True)
+        additional = () if staging == ROOT else tuple(sorted(_inventory(staging)))
+        snapshot = _snapshot(ROOT, additional)
         _staged_inputs(source, snapshot)
         key = sha256(_encoded(snapshot["custody"]) + sys.executable.encode()
                      + sys.version.encode()).hexdigest()
