@@ -1,0 +1,38 @@
+{
+  "audit_recorded": true,
+  "job": {
+    "args": [
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "ConnectTimeout=10",
+      "rog-ts",
+      "/usr/bin/python3 -I -B -c 'from pathlib import Path\nimport os,sys,json,time,hashlib,traceback\nspec=json.load(sys.stdin)\nroot=Path('\\''/home/qian-qi/hia-bootstrap-terminal-comparison-20261127-2807/src'\\'')\nout=Path('\\''/run/media/qian-qi/TOSHIBA_DEV_1TB/hia-bootstrap-terminal-comparison-20261127-2807/c-stack-unselected-v1'\\'')\nobserver=Path('\\''/home/qian-qi/hia-bootstrap-closure-20261127-2807/native-late-preload-v1'\\'')\ndef pin(raw):return {'\\''bytes'\\'':len(raw),'\\''sha256'\\'':hashlib.sha256(raw).hexdigest()}\nfor name,expected in spec['\\''source_pins'\\''].items():assert pin((root/name).read_bytes())==expected,name\nfor name,expected in spec['\\''observer_pins'\\''].items():assert pin((observer/name).read_bytes())==expected,name\nfor key in list(os.environ):\n if key.startswith(('\\''HEPTA_HIA_'\\'','\\''PYTHON'\\'','\\''HIA_BOOTSTRAP_DIAG_'\\'')) or key=='\\''LD_PRELOAD'\\'':del os.environ[key]\nout.mkdir(mode=0o700);temporary=out/'\\''temporary'\\'';temporary.mkdir(mode=0o700)\nos.environ['\\''TMPDIR'\\'']=str(temporary);os.chdir(root);sys.path.insert(0,str(root))\nfrom tests import hia_service_bootstrap_support as s\nfrom tools.qualify_hia_service_bootstrap_finite import read_originals\nbefore=s.source_snapshot();assert before==spec['\\''source_pins'\\'']\ns.write_json(out/'\\''invocation.json'\\'',spec)\nrecord={'\\''schema'\\'':'\\''hepta.hia.bootstrap-terminal-unselected-native-late-stack.v1'\\'',\n '\\''source_before'\\'':before,'\\''source_commit'\\'':spec['\\''source_commit'\\''],'\\''diagnostic_only'\\'':True,\n '\\''observer_source_unchanged'\\'':True,'\\''original_source_suite_executed'\\'':False,\n '\\''native_source_authority'\\'':False,'\\''whole_native_stack_qualified'\\'':False,\n '\\''observer_pins'\\'':spec['\\''observer_pins'\\''],'\\''new_home_bytes'\\'':0}\nstarted=time.monotonic()\ntry:\n authority,authority_raw,inputs,input_raw,captured,(original_dir,original_report)=read_originals(Path(spec['\\''authority'\\'']),spec['\\''authority_pin'\\''])\n assert authority['\\''base_count'\\'']==232 and authority['\\''count'\\'']==15830\n baseline=Path(spec['\\''baseline_unselected'\\''])\n baseline_late=(baseline/'\\''late-events.jsonl'\\'').read_bytes()\n assert pin(baseline_late)==spec['\\''baseline_unselected_late'\\'']\n assert s.file_pin(original_dir/'\\''observations.jsonl'\\'')==spec['\\''business_pin'\\'']\n environment=os.environ.copy()\n environment.update({'\\''LD_PRELOAD'\\'':str(observer/'\\''late-observer.so'\\''),\n  '\\''HIA_BOOTSTRAP_DIAG_LATE_FILE'\\'':str(out/'\\''candidate/late-events.jsonl'\\''),\n  '\\''HIA_BOOTSTRAP_DIAG_TRACE_FILE'\\'':str(out/'\\''candidate-stack.jsonl'\\'')})\n command=[sys.executable,'\\''-I'\\'','\\''-B'\\'','\\''tests/hia_service_bootstrap_observer.py'\\'',\n  '\\''--lane'\\'','\\''unselected'\\'','\\''--inputs'\\'',str(Path(spec['\\''authority'\\'']).parent/'\\''complete-inputs.json'\\''),\n  '\\''--output'\\'',str(out/'\\''candidate'\\''),'\\''--expected'\\'',spec['\\''authority'\\''],\n  '\\''--expected-sha256'\\'',spec['\\''authority_pin'\\'']['\\''sha256'\\''],'\\''--expected-bytes'\\'',str(spec['\\''authority_pin'\\'']['\\''bytes'\\''])]\n receipt,report,raw=s.run_child(out,'\\''candidate'\\'',command,seconds=1800,env=environment)\n assert report['\\''count'\\'']==15830 and report['\\''ordered_ids'\\'']==authority['\\''ordered_ids'\\''] and report['\\''input'\\'']==authority['\\''complete_inputs'\\'']\n assert report['\\''source_before'\\'']==before and report['\\''source_after'\\'']==before\n assert report['\\''native_or_VM_entries'\\'']==0 and report['\\''unraisables'\\'']==[]\n assert report['\\''differences'\\''] is None and report['\\''status'\\'']=='\\''CHECKPOINT_CANDIDATE_OBSERVED'\\''\n assert report['\\''business_comparison'\\'']=='\\''PENDING_PARENT_PROCESS_TERMINAL'\\''\n assert receipt['\\''returncode'\\'']==0 and receipt['\\''timeout'\\''] is False and receipt['\\''stderr'\\'']['\\''bytes'\\'']==0\n assert receipt['\\''cleanup'\\'']['\\''signals'\\'']==[] and receipt['\\''cleanup'\\'']['\\''after'\\'']==[]\n actual=s.file_pin(out/'\\''candidate/observations.jsonl'\\'')\n business=s.identical_files(original_dir/'\\''observations.jsonl'\\'',out/'\\''candidate/observations.jsonl'\\'',spec['\\''business_pin'\\''],actual)\n actual_late=(out/'\\''candidate/late-events.jsonl'\\'').read_bytes()\n late=(actual_late==baseline_late and pin(actual_late)==spec['\\''baseline_unselected_late'\\''])\n traces=[json.loads(row) for row in (out/'\\''candidate-stack.jsonl'\\'').read_bytes().splitlines()]\n late_rows=[json.loads(row) for row in actual_late.splitlines()]\n assert [row['\\''row'\\''] for row in traces]==late_rows\n record.update({'\\''business_baseline_exact'\\'':business,'\\''unselected_late_baseline_exact'\\'':late,\n  '\\''business'\\'':actual,'\\''late_events'\\'':pin(actual_late),'\\''traces'\\'':traces,\n  '\\''stack'\\'':s.file_pin(out/'\\''candidate-stack.jsonl'\\''),'\\''owned_receipt'\\'':s.file_pin(out/'\\''candidate.result.json'\\''),\n  '\\''checkpoint'\\'':s.bytes_pin(raw),'\\''candidate_seconds'\\'':receipt['\\''elapsed_seconds'\\'']})\n assert business and late,'\\''the C post-write observer changed a complete existing channel'\\''\n for path,content in captured:s.exact_reread(path,content)\n assert (baseline/'\\''late-events.jsonl'\\'').read_bytes()==baseline_late\n record['\\''status'\\'']='\\''DIAGNOSTIC_UNSELECTED_C_STACK_COMPLETE'\\''\nexcept BaseException as error:\n record.update({'\\''status'\\'':'\\''HOLD'\\'','\\''error'\\'':{'\\''type'\\'':type(error).__name__,'\\''message'\\'':str(error)}});traceback.print_exc()\nfinally:\n record['\\''source_after'\\'']=s.source_snapshot();assert record['\\''source_after'\\'']==before\n record['\\''seconds'\\'']=time.monotonic()-started\n s.write_json(out/'\\''observation.json'\\'',record)\n print(json.dumps({'\\''event'\\'':'\\''terminal_unselected_native_late_stack_terminal'\\'','\\''status'\\'':record['\\''status'\\''],\n  '\\''business_baseline_exact'\\'':record.get('\\''business_baseline_exact'\\''),\n  '\\''unselected_late_baseline_exact'\\'':record.get('\\''unselected_late_baseline_exact'\\''),\n  '\\''seconds'\\'':record['\\''seconds'\\''],'\\''error'\\'':record.get('\\''error'\\''),'\\''report'\\'':s.file_pin(out/'\\''observation.json'\\'')},sort_keys=True),flush=True)\nsys.exit(0 if record['\\''status'\\'']=='\\''DIAGNOSTIC_UNSELECTED_C_STACK_COMPLETE'\\'' else 1)\n'"
+    ],
+    "created_unix_ms": 1795814899252,
+    "cwd": null,
+    "env_keys": [],
+    "executable": "/usr/bin/ssh",
+    "execution_mode": "operator",
+    "host": "mac",
+    "id": "1a21ee8be34-ffbe-56a2",
+    "idempotency_key": "hia-bootstrap-db15-c-postwrite-unselected-stack-20261127-2807-v1",
+    "launch_error": null,
+    "launch_state": "launched",
+    "remote_job_dir": "/Users/qianqi/.local/state/hepta-runtime-mac-worker/jobs/1a21ee8be34-ffbe-56a2",
+    "request_digest": "4736f23a7538fc4ab28e0008bbd915530162a458e9dc9a2d384b7a7d491af640",
+    "request_fingerprint": 5131555158323952714,
+    "ssh_target": "hepta-mac-local",
+    "system_jobctl": false,
+    "unit": "hepta-runtime-job-1a21ee8be34-ffbe-56a2"
+  },
+  "launch": {
+    "backend": "detached",
+    "launcher_pid": 15502,
+    "ok": true,
+    "systemd_error": "systemd user units unavailable on this platform",
+    "unit": "hepta-runtime-job-1a21ee8be34-ffbe-56a2"
+  },
+  "local_record_pending": false,
+  "reused": false
+}
