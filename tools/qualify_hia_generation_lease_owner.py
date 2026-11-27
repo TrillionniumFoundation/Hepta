@@ -225,7 +225,7 @@ def build_images(flats,out):
     (out/PRODUCTS[1]).write_bytes((out/'generation-lease-lifecycle.flat').read_bytes())
     packer=Image(flats['generation_lease_owner_packer']);refusals=[]
     changes=[]
-    for name,offset,replacement in [('magic',0,0),('role-count-low',8,len(body)-1),
+    for name,offset,replacement in [('magic',0,0),('legacy-profile',0,int.from_bytes(b'HIAGLOP1','little')),('role-count-low',8,len(body)-1),
                                     ('role-count-high',8,len(body)+1),
                                     ('empty-role',16,0),('oversize-role',16,4194305)]:
         changed=bytearray(frame);struct.pack_into('<Q',changed,offset,replacement);changes.append((name,bytes(changed)))
@@ -244,7 +244,7 @@ def build_images(flats,out):
         assert rc==0xfffffffe and output[:128]==b'\xa5'*128
         refusals.append('short-output')
     records={name:dict(bytes=(out/name).stat().st_size,sha256=sha((out/name).read_bytes())) for name in PRODUCTS}
-    return out/PRODUCTS[0],dict(products=records,roles=54,carrier_roles=49,value_roles=len(VALUE_ROLES),
+    return out/PRODUCTS[0],dict(products=records,roles=len(spec.ROLES),carrier_roles=len(spec.CARRIER_SOURCES),value_roles=len(VALUE_ROLES),
                               value_protocol=VALUE_PROTOCOL.decode('ascii'),
                               native_pack=True,native_link=True,object_bytes=len(obj),
                               object_sha256=sha(obj),packer_refusals=refusals,lifecycle=facet)

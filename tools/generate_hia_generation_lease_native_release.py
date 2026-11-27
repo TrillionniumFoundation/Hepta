@@ -38,6 +38,7 @@ def pin_kit_body(r,kit,record):
 def build_recipe():
     raw=(ROOT/RECEIPT).read_bytes();receipt=json.loads(raw)
     assert receipt['schema']=='hepta.hia.generation-lease-native-release-build.v1'
+    assert receipt['owner_profile']==dict(protocol='HIAGLOP2',role_count=55,carrier_role_count=50)
     assert receipt['status']=='PASS' and receipt['native_construction_passed']
     assert receipt['source_bound_enclosing_owner'] and receipt['owner_behavior_passed']
     assert receipt['value_import']['stage']==13 and receipt['value_import']['name']==VALUE_PRODUCT
@@ -75,8 +76,8 @@ def build_recipe():
     parts=[flat('generation_lease_owner'),flat('generation_lease_public_lifecycle'),values,
            flat('generation_lease_typed_policy'),flat('generation_lease_owner_finalizer')]
     parts.extend(r.compiled[row['path']] for row in owner.CARRIER_SOURCES)
-    assert len(parts)==54 and tuple(row['role'] for row in owner.CARRIER_SOURCES)==owner.carrier.ROLES
-    wire=r.concat(r.literal(b'HIAGLOP1'),r.q(54),*(r.length(p) for p in parts),*parts)
+    assert len(parts)==len(owner.ROLES)==55 and tuple(row['role'] for row in owner.CARRIER_SOURCES)==owner.carrier.ROLES
+    wire=r.concat(r.literal(b'HIAGLOP2'),r.q(55),*(r.length(p) for p in parts),*parts)
     obj=r.run(wrappers['generation_lease_owner_packer'],wire,0)
     pin(r,obj,receipt['owner_object'])
     image=r.run(wrappers['multiversion_runtime_linker'],obj,0)
@@ -106,7 +107,7 @@ def registration(paths,resources,published):
              'kit\t14\t'+FILTER_POLICY+'\t'+WIDE_FILTER]
     rows += ['resource\t14\t'+path for path in resources]
     rows += ['output\t14\t'+name for name in published]
-    rows += ['framing\t14\t0\tHIAGLOP1\tsource-bound-owned-lease-and-stage13-values']
+    rows += ['framing\t14\t0\tHIAGLOP2\tsource-bound-owned-lease-and-stage13-values']
     return rows
 
 
