@@ -2859,6 +2859,9 @@ SOURCE_FILES = (
     'tools/qualify_hia_seed_cold_backend.py',
     'tests/test_hia_seed_cold_backend.py',
     'docs/HIA_COLD_SEED_EDGE_PROFILE.md',
+    'tools/hia_artifact_caller_source_history.py',
+    'tests/fixtures/hia_artifact_assembly_source_successor_v1.json',
+    'tests/test_hia_artifact_caller_source_history.py',
 )
 
 

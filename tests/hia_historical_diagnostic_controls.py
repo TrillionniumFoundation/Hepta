@@ -8,6 +8,11 @@ from tests import hia_native_transport_worker_successor as delivery
 
 def diagnostic_predecessor(root, raw):
     """Check the actual inherited source, then restore its reviewed predecessor."""
+    if diagnostics.pin(raw) == {
+            'bytes': 47052,
+            'sha256': '9af14ac9dc15cafcd60be2c4e8690fafa778b41bc66c73379e9490ac67376fc2'}:
+        from tools.hia_artifact_caller_source_history import predecessor
+        raw = predecessor(root, diagnostics.PATH, raw)
     if diagnostics.pin(raw) == diagnostics.CURRENT:
         return raw
     return delivery._reverse_sqlite_boundary(diagnostics.PATH, raw,
@@ -21,7 +26,12 @@ def historical_caller_dependencies(root, sources, expected):
 
     from tests.hia_installed_distribution_history import predecessor
     for name, raw in sources.items():
-        sources[name] = predecessor(name, raw)
+        sources[name] = predecessor(name, raw, root=root)
+    from tools.hia_artifact_caller_source_history import predecessor as artifact_predecessor
+    for name in ('tests/test_hia_agent_assembly.py',
+                 'tests/test_hia_artifact_publication_native.py'):
+        if name in expected and name in sources:
+            sources[name] = artifact_predecessor(root, name, sources[name])
     machine = delivery.MACHINE_RECEIPT_CALLER
     if machine in expected and diagnostics.pin(sources[machine])['sha256'] != expected[machine]:
         authority = (root / delivery.MACHINE_RECEIPT_FIXTURE).read_bytes()
@@ -54,7 +64,7 @@ def historical_terminal_pair(root, sources, current, physical):
         return physical[name]
 
     for name, expected in current.items():
-        raw = predecessor(name, sources[name])
+        raw = predecessor(name, sources[name], root=root)
         if diagnostics.pin(raw) != expected:
             if name == delivery.TRANSPORT:
                 raw = delivery._reverse_sqlite_boundary(
