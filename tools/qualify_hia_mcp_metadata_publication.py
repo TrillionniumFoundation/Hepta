@@ -1,8 +1,8 @@
 """Execute native scheduler continuation contracts for metadata publication.
 
 These controls execute the seed-built native images against syscall results.
-They do not claim HTTP process delivery; complete stdio publication is covered
-separately by real process, kernel seals and cancellation controls.
+They do not claim HTTP process delivery; both transports also have separate
+real process, kernel seal and cancellation observers.
 """
 from __future__ import annotations
 import argparse
@@ -85,7 +85,7 @@ def qualify(bootstrap, output):
             reset(result=(1 << 64)-5)
             expect(code, transport+'-stat-failure-refuses', fallback)
             reset()
-            expect(code, transport+'-metadata-large-bound', seal if transport=='stdio' else fallback)
+            expect(code, transport+'-metadata-large-bound', seal)
             reset(size=MAXIMUM+1)
             expect(code, transport+'-metadata-over-maximum-refuses', fallback)
             reset(phase=122, result=(1 << 64)-1)
@@ -107,7 +107,25 @@ def qualify(bootstrap, output):
         put(8, NEG4)
         expect(code, 'stdio-eintr-keeps-file-offset',
                (17, 10, SESSION_OUT, 65536, 100, 0, 0, 12))
-        assert len(rows) == 19
+        code = images['http']
+        from tools.generate_hia_mcp_http_common import C
+        header = C['H_CHILD_OUTPUT']
+        reset(phase=122)
+        put(ROW+72, 9)
+        expect(code, 'http-sealed-large-header-precedes-body', (1, 1, header, 64, 0, 0, 0, 12))
+        assert arena[header:header+64] == struct.pack('<8Q', int.from_bytes(b'HIAHCO01', 'little'),
+                                                    58_719_955, 0, 9, 0, 0, 0, 0)
+        put(8, 9)
+        expect(code, 'http-short-header-write-preserves-frame', (1, 1, header+9, 55, 0, 0, 0, 12))
+        put(8, NEG4)
+        expect(code, 'http-header-eintr-preserves-frame', (1, 1, header+9, 55, 0, 0, 0, 12))
+        put(8, 55)
+        expect(code, 'http-complete-header-then-first-bounded-read', (17, 10, SESSION_OUT, 65536, 0, 0, 0, 12))
+        put(8, 100)
+        expect(code, 'http-short-read-publishes-exact-chunk', (1, 1, SESSION_OUT, 100, 0, 0, 0, 12))
+        put(8, 40)
+        expect(code, 'http-short-body-write-preserves-chunk', (1, 1, SESSION_OUT+40, 60, 0, 0, 0, 12))
+        assert len(rows) == 25
         report.update(passed=True, passed_checks=len(rows))
         return report
     finally:
