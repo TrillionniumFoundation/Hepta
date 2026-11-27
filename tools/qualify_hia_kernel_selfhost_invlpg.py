@@ -104,10 +104,12 @@ def replace_once(source, old, new):
 
 def candidate_source():
     words = dict(gen.W)
-    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64", "x86.mmio.read32", "x86.mmio.write32", *msr.WORDS, *idtr.WORDS, iretq.WORD, *tr.WORDS, kernel_frame.WORD, kernel_irq.WORD, irq_stack.WORD, irq_stack.GENERATION_WORD, irq_stack.BOUND_WORD):
+    for word in (PROFILE, "privilege", "atomic", "x86.tlb.invlpg", "x86.cr0.write", "x86.cr3.write", "x86.cr4.write", "x86.cr0.read", "x86.cr2.read", "x86.cr3.read", "x86.cr4.read", "x86.irq.disable", "x86.irq.enable", "x86.io.in8", "x86.io.out8", "x86.io.in16", "x86.io.out16", "x86.io.in32", "x86.io.out32", "x86.fence.mfence", "x86.atomic.cmpxchg64", "x86.mmio.read32", "x86.mmio.write32", *msr.WORDS, *idtr.WORDS, iretq.WORD, *tr.WORDS, kernel_frame.WORD, kernel_irq.WORD, irq_stack.WORD, irq_stack.GENERATION_WORD, irq_stack.BOUND_WORD, irq_stack.SLAB_WORD):
         if word in words:
             raise ValueError("candidate keyword already present")
         words[word] = max(words.values()) + 1
+    if [words[x] - words[irq_stack.WORD] for x in (irq_stack.WORD, irq_stack.GENERATION_WORD, irq_stack.BOUND_WORD, irq_stack.SLAB_WORD)] != list(range(4)):
+        raise ValueError("raw stack token interval changed")
     # The sixteen experimental opcodes occupy a contiguous token interval.
     # Keep the native compiler within its audited candidate capacity.
     if [words[name] - words["x86.tlb.invlpg"] for name in
@@ -1290,6 +1292,7 @@ def run(output):
     irq_stack_report = irq_stack.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest)
     irq_generation_stack_report = irq_stack.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest, generation=True)
     irq_bound_stack_report = irq_stack.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest, bound=True)
+    irq_slab_stack_report = irq_stack.qualify(exe, output, PROFILE, LEGACY, compile_cli, text_bytes, digest, slab=True)
     legacy = compile_cli(exe, program(profile=LEGACY, effect="", op=""), output, "legacy-scalar")
     if not legacy.startswith(b"\x7fELF"):
         raise AssertionError("legacy scalar ELF failed")
@@ -1324,6 +1327,7 @@ def run(output):
         "irq_stack": irq_stack_report,
         "irq_generation_stack": irq_generation_stack_report,
         "irq_bound_stack": irq_bound_stack_report,
+        "irq_slab_stack": irq_slab_stack_report,
         "kernel_irq_authority_proved": False,
         "kernel_frame_authority_proved": False,
         "tr_authority_proved": False,

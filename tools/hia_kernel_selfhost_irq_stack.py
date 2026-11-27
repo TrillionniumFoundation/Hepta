@@ -183,9 +183,21 @@ assert GENERATION_ENCODING.count(_BOUND_ANCHOR) == 1
 BOUND_ENCODING = GENERATION_ENCODING.replace(_BOUND_ANCHOR,_BOUND_ANCHOR+_BOUND_CHECK)
 BOUND_ORACLE = GENERATION_ORACLE.replace("movq %rax,%r12\n", "movq %rax,%r12\n"+'/* r12 = GS candidate; rdi = untouched original frame.\n   FS_BASE is a separately boot-provisioned trusted dense table root. */\nmovl $0x1b,%ecx\nrdmsr\ntestl %edx,%edx\nguard jz\nandl $0xfffffeff,%eax\ncmpl $0xfee00800,%eax\nguard je\nmovl $0xfee00020,%edx\nmovl (%rdx),%edx\nshrl $24,%edx\ncmpl $1,%edx\nguard jbe\nmovl %edx,%r11d\nmovl $0xc0000100,%ecx\nrdmsr\nshlq $32,%rdx\norq %rdx,%rax\ntestq %rax,%rax\nguard jnz\ntestb $31,%al\nguard jz\nmovq %rax,%rdx\nshrq $47,%rdx\nguard jz\nleaq 63(%rax),%rdx\nshrq $47,%rdx\nguard jz\nshlq $5,%r11\naddq %r11,%rax\ncmpq %r12,%rax\nguard je\n')
 
+# A separate raw ABI: derive both stack identity and extent from the trusted
+# page-aligned boot slab before acquiring the local descriptor lease.
+SLAB_WORD = "x86.irq.dispatch_slab_stack"
+_SLAB_ROOT = bytes.fromhex("4c29d848a9ff0f000074020f0b488d90ffaf000048c1ea2f74020f0b4d69db800200004e8d9c1800200000")
+_SLAB_LOW_ANCHOR = bytes.fromhex("4d8b6c2408")
+_SLAB_LOW = bytes.fromhex("4d39dd74020f0b")
+assert BOUND_ENCODING.count(_SLAB_LOW_ANCHOR)==1
+SLAB_ENCODING = BOUND_ENCODING.replace(_BOUND_CHECK,_BOUND_CHECK+_SLAB_ROOT).replace(_SLAB_LOW_ANCHOR,_SLAB_LOW_ANCHOR+_SLAB_LOW)
+SLAB_ORACLE = BOUND_ORACLE.replace("cmpq %r12,%rax\nguard je\n", "cmpq %r12,%rax\nguard je\n"+
+    "subq %r11,%rax\ntestq $4095,%rax\nguard jz\nleaq 45055(%rax),%rdx\nshrq $47,%rdx\nguard jz\nimulq $640,%r11,%r11\nleaq 8192(%rax,%r11),%r11\n",1).replace(
+    "movq 8(%r12),%r13\n","movq 8(%r12),%r13\ncmpq %r11,%r13\nguard je\n",1)
+
 def emission_segments():
     rest=ENCODING
-    for old,new in ((_BOUND_ANCHOR,_BOUND_ANCHOR+_BOUND_CHECK),(_OLD_ACQUIRE,_GENERATION_ACQUIRE),(_AFTER_CALLBACK,_AFTER_CALLBACK+_GENERATION_GS),(_OLD_RELEASE,_GENERATION_RELEASE)):
+    for old,new in ((_BOUND_ANCHOR,_BOUND_ANCHOR+_BOUND_CHECK),(_SLAB_LOW_ANCHOR,_SLAB_LOW_ANCHOR+_SLAB_LOW),(_OLD_ACQUIRE,_GENERATION_ACQUIRE),(_AFTER_CALLBACK,_AFTER_CALLBACK+_GENERATION_GS),(_OLD_RELEASE,_GENERATION_RELEASE)):
         head,rest=rest.split(old,1)
         yield head
         yield (old,new)
@@ -194,35 +206,23 @@ def emission_segments():
 def extend_source(source, replace_once):
     source = replace_once(source, "def instruction_effects(op:u64) -> u64:",
         """def instruction_effects(op:u64) -> u64:
-    if op == @x86.irq.dispatch_bound_stack@:
-        return 62
-    if op == @x86.irq.dispatch_gen_stack@:
-        return 62
-    if op == @x86.irq.dispatch_on_stack@:
+    if op >= @x86.irq.dispatch_on_stack@ and op <= @x86.irq.dispatch_slab_stack@:
         return 62""")
     source = replace_once(source,
         "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_kernel_frame@:",
-        "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_bound_stack@:")
+        "    if op >= @x86.mmio.read32@ and op <= @x86.irq.dispatch_slab_stack@:")
     sig = ("def mmio_instruction(s:readbuf, o:mutbuf, w:mutbuf, op:u64, n:u64, "
            "at:u64, t:u64, v:u64, bt:u64, a:u64, b:u64) -> u64:")
     source = replace_once(source, sig, sig + """
-    if op == @x86.irq.dispatch_bound_stack@:
-        return irq_stack_instruction(s, w, n, t, 6)
-    if op == @x86.irq.dispatch_gen_stack@:
-        return irq_stack_instruction(s, w, n, t, 5)
-    if op == @x86.irq.dispatch_on_stack@:
-        return irq_stack_instruction(s, w, n, t, 4)""")
+    if op >= @x86.irq.dispatch_on_stack@ and op <= @x86.irq.dispatch_slab_stack@:
+        return irq_stack_instruction(s, w, n, t, op - @x86.irq.dispatch_on_stack@ + 4)""")
     anchor = "def export_wrapper(o:mutbuf, w:mutbuf, record:u64) -> u64:"
     source = replace_once(source, anchor, anchor + """
-    if get(w, 200) == 6:
-        return irq_stack_export(o, w, record)
-    if get(w, 200) == 5:
-        return irq_stack_export(o, w, record)
-    if get(w, 200) == 4:
+    if get(w, 200) >= 4 and get(w, 200) <= 7:
         return irq_stack_export(o, w, record)""")
     source += """
 def irq_stack_instruction(s:readbuf, w:mutbuf, n:u64, t:u64, mode:u64) -> u64:
-    if get(w, 200) != 1 or n != 0 or t != 0 or get(w, 288) != 0:
+    if get(w, 200) != 1 or (n | t | get(w, 288)) != 0:
         return fail(w, 65)
     if get(w, 72) != 0 or get(w, 88) != 0 or get(w, 112) != 1 or get(w, 648) != 1:
         return fail(w, 65)
@@ -252,7 +252,13 @@ def irq_stack_export(o:mutbuf, w:mutbuf, record:u64) -> u64:
     for segment in emission_segments():
         if isinstance(segment, tuple):
             old,new = segment
-            source += ("    if get(w, 200) == 6:\n" if old == _BOUND_ANCHOR else "    if get(w, 200) >= 5:\n") + emit(new,"        ") + "    else:\n" + emit(old,"        ")
+            if old == _BOUND_ANCHOR:
+                source += emit(old,"    ") + "    if get(w, 200) >= 6:\n" + emit(_BOUND_CHECK,"        ")
+                source += "    if get(w, 200) == 7:\n" + emit(_SLAB_ROOT,"        ")
+            elif old == _SLAB_LOW_ANCHOR:
+                source += emit(old,"    ") + "    if get(w, 200) == 7:\n" + emit(_SLAB_LOW,"        ")
+            else:
+                source += "    if get(w, 200) >= 5:\n" + emit(new,"        ") + "    else:\n" + emit(old,"        ")
         else:
             source += emit(segment,"    ")
     return source+"    put(w, record + 40, get(w, 56) - get(w, record + 32))\n    return 0\n\ndef irq_emit_pair(o:mutbuf, w:mutbuf, a:u64, b:u64) -> u64:\n    emit_bytes(o, w, a, 8)\n    emit_bytes(o, w, b, 8)\n    return 0\n"
@@ -261,14 +267,14 @@ def program(profile, **kw):
     kw.setdefault("effects", EFFECTS)
     return irq.program(profile, **kw).replace(b"x86.irq.dispatch_kernel_frame",WORD.encode())
 
-def qualify(exe, output, profile, legacy, compile_cli, text_bytes, digest, generation=False, bound=False):
+def qualify(exe, output, profile, legacy, compile_cli, text_bytes, digest, generation=False, bound=False, slab=False):
     import subprocess
-    tag = "irq-bound-stack" if bound else "irq-generation-stack" if generation else "irq-stack"
-    encoding = BOUND_ENCODING if bound else GENERATION_ENCODING if generation else ENCODING
-    dispatch_oracle = BOUND_ORACLE if bound else GENERATION_ORACLE if generation else ORACLE
+    tag = "irq-slab-stack" if slab else "irq-bound-stack" if bound else "irq-generation-stack" if generation else "irq-stack"
+    encoding = SLAB_ENCODING if slab else BOUND_ENCODING if bound else GENERATION_ENCODING if generation else ENCODING
+    dispatch_oracle = SLAB_ORACLE if slab else BOUND_ORACLE if bound else GENERATION_ORACLE if generation else ORACLE
     def p(*args, **kwargs):
         result=program(*args, **kwargs)
-        return result.replace(WORD.encode(),BOUND_WORD.encode()) if bound else result.replace(WORD.encode(),GENERATION_WORD.encode()) if generation else result
+        return result.replace(WORD.encode(),SLAB_WORD.encode()) if slab else result.replace(WORD.encode(),BOUND_WORD.encode()) if bound else result.replace(WORD.encode(),GENERATION_WORD.encode()) if generation else result
     subject = p(profile)
     obj = compile_cli(exe, subject, output, tag+"-1")
     assert obj == compile_cli(exe, subject, output, tag+"-2")
