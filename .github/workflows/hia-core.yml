@@ -32,6 +32,12 @@ jobs:
             tests.test_hia_selfhost_immediates.ImmediateSourceTests \
             tests.test_hia_static_budget_word_memory.StaticBudgetWordMemorySourceTests \
             tests.test_hia_slot_word_memory.SlotWordMemorySourceTests
+      - name: Versioned Slot snapshot capture and source controls
+        if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          python -B tools/run_hia_unittest_gate.py \
+            tests.test_hia_slot_observer_capture.SnapshotCaptureTests
       - name: Slot fixed-word original and complete packet Source controls
         if: ${{ !cancelled() && steps.source_prerequisites.outcome == 'success' }}
         timeout-minutes: 30

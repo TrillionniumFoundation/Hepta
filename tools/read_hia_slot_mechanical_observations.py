@@ -186,7 +186,41 @@ def mechanical_launch(directory, command, runtime, expected_bundle, source_root,
             'mechanical launch inputs changed during readback')
     return {'path': str(path), 'bytes': len(raw), 'sha256': sha(raw)}
 
-def child(directory, *, expected, input_pin, source_pins, product_pins, backend, group, parent_pid, mechanical_bundle=None, mechanical_root=None):
+def admit_capture_revision(report, runtime, product_pins, capture_version):
+    """Bind the declared snapshot protocol and implementation to source custody."""
+    require(capture_version in ('original-v1', 'deferred-json-snapshots-v3'),
+            'unknown supervising snapshot revision')
+    count = runtime['argv'].count('--capture-version')
+    if capture_version == 'original-v1':
+        require(report['original_observer_definitions_or_cases_modified'] is False
+                and report.get('observer_capture') == {
+                    'version': 'original-v1', 'changed_snapshot_expressions': 0,
+                    'changed_seal_statements': 0, 'changed_product_expressions': 0,
+                    'changed_case_inputs': 0},
+                'original observer revision differs')
+        require(count == 0 or (count == 1
+                and runtime['argv'][runtime['argv'].index('--capture-version') + 1:]
+                and runtime['argv'][runtime['argv'].index('--capture-version') + 1]
+                    == capture_version), 'actual original snapshot revision differs')
+    else:
+        name = 'tests/hia_slot_observer_capture.py'
+        require(name in product_pins,
+                'snapshot implementation is outside the frozen source closure')
+        require(report['original_observer_definitions_or_cases_modified'] is True
+                and report.get('observer_capture') == {
+                    'version': 'deferred-json-snapshots-v3', 'changed_snapshot_expressions': 2,
+                    'changed_seal_statements': 2, 'changed_product_expressions': 0,
+                    'changed_case_inputs': 0,
+                    'consumer_representation': 'canonical-json-bytes',
+                    'implementation': {'path': name, **product_pins[name]}},
+                'deferred snapshot revision or implementation pin differs')
+        require(count == 1
+                and runtime['argv'][runtime['argv'].index('--capture-version') + 1:]
+                and runtime['argv'][runtime['argv'].index('--capture-version') + 1]
+                    == capture_version, 'actual child snapshot revision differs')
+
+
+def child(directory, *, expected, input_pin, source_pins, product_pins, backend, group, parent_pid, mechanical_bundle=None, mechanical_root=None, capture_version='original-v1'):
     directory = Path(directory)
     observed = directory / 'observation'
     command, result = read_json(directory / 'command.json'), read_json(directory / 'result.json')
@@ -237,9 +271,9 @@ def child(directory, *, expected, input_pin, source_pins, product_pins, backend,
                 and typed_equal(read_json_at_pin(observed / after, raw_pins[after]), pins), 'source custody differs')
     require(report['source_stable'] is True and report['product_stable'] is True,
             'child did not retain source custody')
-    require(report['candidate_read_any_expected_observations'] is False
-            and report['original_observer_definitions_or_cases_modified'] is False,
-            'independent expectation boundary differs')
+    admit_capture_revision(report, runtime, product_pins, capture_version)
+    require(report['candidate_read_any_expected_observations'] is False,
+            'candidate read independent expectations')
     checked_int(report['actual_SQL'], 0)
     require(report['all_SQL_and_decision_providers_explicitly_fake'] is True,
             'finite provider scope differs')
@@ -351,6 +385,9 @@ def read_evidence(root, oracle_root, derived, product_freeze, freeze_sha, eviden
     require(plan['backends'] == ['native'], 'v5 requires its complete actual native lane')
     require(typed_equal(plan['mechanical_bundle'], bridge_pin), 'producer mechanical pin differs')
     require(plan['groups'] == ['original248', 'derived7574'], 'complete group inventory differs')
+    capture_version = plan.get('observer_capture_version', 'original-v1')
+    require(capture_version in ('original-v1', 'deferred-json-snapshots-v3'),
+            'unknown complete observation snapshot revision')
     require(frozen['schema'] == 'hepta.slot-mechanical.independent-expectations.v1',
             'missing independent expectation freeze')
     require(frozen['candidate_started'] is False, 'expectations were not frozen before candidate children')
@@ -363,7 +400,8 @@ def read_evidence(root, oracle_root, derived, product_freeze, freeze_sha, eviden
             name = group + '-original-' + str(repetition)
             originals.append(name)
             result[name] = child(evidence / name, expected=expected, input_pin=case_pin, source_pins=source,
-                product_pins=product, backend='original', group=group, parent_pid=plan['parent_pid'])
+                product_pins=product, backend='original', group=group, parent_pid=plan['parent_pid'],
+                capture_version=capture_version)
             require(result[name]['raw'] == frozen['groups'][group]['originals'][str(repetition)],
                     'frozen original raw files changed before/after candidates')
         first = evidence / originals[0] / 'observation'
@@ -380,7 +418,8 @@ def read_evidence(root, oracle_root, derived, product_freeze, freeze_sha, eviden
             name = group + '-' + backend
             result[name] = child(evidence / name, expected=expected, input_pin=case_pin, source_pins=source,
                 product_pins=product, backend=backend, group=group, parent_pid=plan['parent_pid'],
-                mechanical_bundle=bridge_pin, mechanical_root=root)
+                mechanical_bundle=bridge_pin, mechanical_root=root,
+                capture_version=capture_version)
             require(result[name]['runtime']['version'] == result[originals[0]]['runtime']['version']
                     and result[name]['runtime']['implementation'] == result[originals[0]]['runtime']['implementation'],
                     'candidate did not use its original expectations runtime')
@@ -419,6 +458,7 @@ def read_evidence(root, oracle_root, derived, product_freeze, freeze_sha, eviden
         'same_runtime_originals_generated_twice_before_candidates': True,
         'post_seal_gc_scope': 'raw retained diagnostics; not compared as handler observations',
         'all_original_per_case_fields_compared': True,
+        'observer_capture_version': capture_version,
         'raw_tracebacks_scope': 'complete files/IDs retained; candidate implementation stack frames may differ',
         'product_freeze': pin(product_freeze), 'expectations_freeze': frozen_pin,
         'no_product_code_imported_or_executed_by_reader': True}

@@ -53,6 +53,7 @@ class SlotMechanicalV5NativeTests(ComponentFixture, unittest.TestCase):
         evidence = self.folder / self._testMethodName / "observations"
         self.run_complete("complete-7822", "tools/qualify_hia_slot_mechanical_observations.py", [
             "--backend", "native", "--manifest", self.controller,
+            "--capture-version", "deferred-json-snapshots-v3",
             "--product-freeze", self.product_freeze,
             "--product-freeze-sha256", self.product_freeze_sha256,
             "--bridge-bundle", self.bundle, "--expected-bridge-sha256", self.bundle_pin["sha256"],
@@ -110,6 +111,7 @@ class SlotMechanicalV5NativeTests(ComponentFixture, unittest.TestCase):
                     "schema": "hepta.slot.mechanical.v5-component.v2",
                     "terminal_source_authority": terminal_authority.summary(),
                     "bundle": cls.bundle_pin, "new_commands": cls.new_commands,
+                    "observer_capture_version": "deferred-json-snapshots-v3",
                     "new_method_count": 4, "original_Source3_Native6_denominators_retained": True,
                     "worker_terminal_version_is_source_admitted": True,
                     "original_v1_method_not_replaced": True, "whole_native_stack_qualified": False})

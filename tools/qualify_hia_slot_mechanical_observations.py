@@ -35,6 +35,8 @@ def main(argv=None):
     parser.add_argument('--python', type=Path, default=Path(sys.executable))
     parser.add_argument('--backend', action='append', choices=('vm', 'native'), required=True)
     parser.add_argument('--manifest', type=Path)
+    parser.add_argument('--capture-version', choices=('original-v1', 'deferred-json-snapshots-v3'),
+                        default='original-v1')
     parser.add_argument('--bridge-bundle', type=Path, required=True)
     parser.add_argument('--expected-bridge-sha256', required=True)
     parser.add_argument('--evidence', type=Path, required=True)
@@ -72,6 +74,7 @@ def main(argv=None):
                                  'ordered_ids': [case['id'] for case in value[0]]}
                            for name, value in cases.items()},
         'same_runtime': str(options.python.resolve()),
+        'observer_capture_version': options.capture_version,
         'source_before': sources, 'product_before': product,
         'scope': 'explicit VM/native finite controls; original complete caller gates remain separate',
         'no_expected_read_by_candidate_children': True,
@@ -87,6 +90,7 @@ def main(argv=None):
                    str(root / 'tests/hia_slot_operations_observer.py'),
                    '--root', str(root), '--oracle-root', str(oracle_root),
                    '--derived-inputs', str(derived), '--group', group, '--backend', backend,
+                   '--capture-version', options.capture_version,
                    '--product-freeze', str(options.product_freeze.resolve()),
                    '--product-freeze-sha256', options.product_freeze_sha256,
                    '--output', str(evidence / name / 'observation')]
@@ -133,7 +137,8 @@ def main(argv=None):
             'schema': 'hepta.slot-mechanical.independent-expectations.v1',
             'candidate_started': False, 'groups': expected,
             'product_freeze': pin(options.product_freeze), 'source': sources,
-            'observer_expected_source': 'immutable original class and fake providers only'})
+            'observer_expected_source': 'immutable original product class and fake providers; declared snapshot revision',
+            'observer_capture_version': options.capture_version})
         frozen_bytes = regular_bytes(evidence / 'expectations-frozen.json')
         for backend in options.backend:
             for group in cases:
@@ -163,7 +168,8 @@ def main(argv=None):
             'source_stable': stable, 'product_after': product_after,
             'custody_failure': custody_failure,
             'comparison_pending_independent_reader': failure is None,
-            'old_deadlines_inputs_cases_tests_modified': False}
+            'old_deadlines_inputs_cases_tests_modified': False,
+            'observer_capture_version': options.capture_version}
         write_json(evidence / 'supervisor.json', report)
     if failure is not None or not stable:
         return 1
