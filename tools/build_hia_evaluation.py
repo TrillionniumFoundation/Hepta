@@ -21,7 +21,9 @@ INPUTS = ('tools/hia_component_input_custody.py', SOURCE_NAME, 'hepta/hia_native
           'hepta/hia_agent_service.py', 'hepta/hia_service_context_native.py',
           'tools/generate_hia_service_context.py', 'tools/hia_service_context_arithmetic.py',
           'hepta/hia_json_preflight_native.py', 'hepta/hia_store_lifecycle_native.py',
-          'tests/fixtures/hia_evaluate_19065.py.txt')
+          'tests/fixtures/hia_evaluate_19065.py.txt',
+          'tests/hia_component_install_fixture.py',
+          'tests/test_hia_component_install_fixture.py')
 
 
 def build(output, compiler, cold_report=None, *, development=False):

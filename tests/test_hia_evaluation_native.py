@@ -408,13 +408,15 @@ class EvaluationNativeTests(unittest.TestCase):
                                  result.stdout.decode(errors='replace') + result.stderr.decode(errors='replace'))
             return result
 
-        from tests.hia_distribution_fixture import ordinary_wheel
+        from tests.hia_component_install_fixture import component_wheel, verify_component_install
+        component = component_wheel(staging)
         run('wheel', ['-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                      '--wheel-dir', self.case / 'wheels', ordinary_wheel(staging)])
+                      '--wheel-dir', self.case / 'wheels', component])
         wheel, = (self.case / 'wheels').glob('*.whl')
         installed = self.case / 'installed'
         run('install', ['-m', 'pip', 'install', '--no-deps', '--no-index', '--no-compile',
                         '--target', installed, wheel])
+        verify_component_install(component, installed, installed_from=wheel)
         bundle = self.case / 'bundle.json'
         bundle.write_bytes(encoded({'schema': SCHEMA, 'target': TARGET, 'abi': ABI, 'helpers': [{
             'selector': native.SELECTOR, 'manifest_path': str(self.manifest),
