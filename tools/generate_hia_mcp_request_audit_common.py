@@ -32,10 +32,13 @@ C = dict(STATE_BYTES=32 << 20, ARENA=8 << 20, ARENA_BYTES=4 << 20,
          ARCHIVE_READ=3, ARCHIVE_SAVE=4, ARCHIVE_SEED=5,
          LAYOUT_OPEN=0, LAYOUT_FENCE=1,
          RETENTION_SNAPSHOT=0, RETENTION_ADMIT=1, RETENTION_TARGET=2,
+         RETENTION_HISTORY=3,
          O_DIRECTORY=65536, O_NOFOLLOW=131072, O_CLOEXEC=524288,
          O_PATH=2097152, O_NONBLOCK=2048,
          NEG2=(1 << 64)-2, NEG4=(1 << 64)-4, NEG17=(1 << 64)-17)
 C.update(M_LEASES=10, M_OPEN=11, M_RESPONSE=12, M_METADATA=13, M_INTENT=14,
+         M_HISTORY=15, QUERY_OUTPUT=16 << 20, QUERY_BYTES=400, STORE_POISONED=408,
+         QUERY_ROWS=(16 << 20) + 131072,
          INTENT_IDS=577536, INTENT_OLD=585728,
          DAEMON_AUDITFD=256, DAEMON_CONTROLLER=264, READY=272,
          ACTIVECOUNT=280, CURRENT_SLOT=288, CURRENT_GEN=296,
@@ -79,6 +82,10 @@ ERRORS = {
     30: 'request audit shared custody changed',
     31: 'request audit I/O unavailable',
     32: 'request archive shard initialization binding changed',
+    33: 'request history cursor expired or unavailable to this session',
+    34: 'request history wire page limit exceeded',
+    35: 'request history unavailable to this session',
+    36: 'request audit state lock unavailable',
 }
 TEXT = dict(hot='request-audit\0', legacy='request-archive-v11\0',
             anchor11='.request-archive-v11-anchor.json\0',
@@ -86,6 +93,7 @@ TEXT = dict(hot='request-audit\0', legacy='request-archive-v11\0',
             intent='.request-archive-v12-init.json\0', slash='/\0', dot='.\0',
             suffix='.json\0', tmp='.tmp\0', anchor_prefix='.archive-anchor-',
             init_prefix='.archive-v12-init-', shard_prefix='.archive-v12-anchor-')
+TEXT['history_unavailable'] = 'request history unavailable to this session or private metadata refused'
 TEXT.update({'audit_error_'+str(k): v for k,v in ERRORS.items()})
 
 COMMON = r'''

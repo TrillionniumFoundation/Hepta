@@ -20,6 +20,13 @@ def advance(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             finish_frame(w)
             return acquire_channel(o, w)
         put(w, 456, 0)
+        if mode == 3:
+            put(w, HISTORY_REPLY_BYTES, 0)
+            put(w, HISTORY_STATUS, 1)
+            put(w, HISTORY_REASON, 0)
+            if history_frame(w) == False or get(w, 1904) < 1 or get(w, 1864) < 3:
+                return audit_return(w)
+            return acquire_channel(o, w)
         if begin_frame(w) == False:
             return audit_return(w)
         if mode == 1:
@@ -126,7 +133,7 @@ def write_packet(o:mutbuf, w:mutbuf) -> u32:
     return call(o, w, 26, 44, get(w, 1864), AUDIT_WIRE, get(w, 1936), 16384, 0, 0, 12)
 
 def read_packet(o:mutbuf, w:mutbuf) -> u32:
-    return call(o, w, 40, 45, get(w, 1864), AUDIT_REPLY, 513, 0, 0, 0, 12)
+    return call(o, w, 40, 45, get(w, 1864), HISTORY_REPLY, 65601, 0, 0, 0, 12)
 
 def poll_channel(o:mutbuf, w:mutbuf, phase:u64, events:u64) -> u32:
     put(w, 50272, get(w, 1864) | (events << 32))
@@ -137,6 +144,10 @@ def received(o:mutbuf, w:mutbuf, result:u64) -> u32:
         return read_packet(o, w)
     if result == NEG11:
         return poll_channel(o, w, 41, 1)
+    if result >= 64 and result <= 65600 and get(w, HISTORY_REPLY) == HISTORY_RESPONSE_MAGIC:
+        return history_received(o, w, result)
+    if result == 512:
+        copy_state(w, HISTORY_REPLY, AUDIT_REPLY, 512)
     if result != 512 or response_shape(w) == False:
         return audit_fail(o, w)
     mode = get(w, 1920)
@@ -158,6 +169,27 @@ def received(o:mutbuf, w:mutbuf, result:u64) -> u32:
         put(w, 456, 1)
     else:
         put(w, 456, 0)
+    put(w, 2016, 0)
+    return release_channel(o, w, 50)
+
+def history_received(o:mutbuf, w:mutbuf, size:u64) -> u32:
+    if get(w, HISTORY_REPLY + 8) != 1 or get(w, HISTORY_REPLY + 16) != size or get(w, HISTORY_REPLY + 56) != 0 or size == 64:
+        return audit_fail(o, w)
+    status = get(w, HISTORY_REPLY + 24)
+    reason = get(w, HISTORY_REPLY + 32)
+    if status > 1 or (status == 0 and reason != 0) or (status == 1 and (reason == 0 or reason > 36)):
+        return audit_fail(o, w)
+    slot = get(w, HISTORY_REPLY + 40)
+    generation = get(w, HISTORY_REPLY + 48)
+    if get(w, 1920) == 0 or slot >= 32 or generation == 0:
+        return audit_fail(o, w)
+    if slot != get(w, 432) or generation != get(w, 448):
+        return read_packet(o, w)
+    if get(w, 1920) != 3:
+        return audit_fail(o, w)
+    put(w, HISTORY_REPLY_BYTES, size)
+    put(w, HISTORY_STATUS, status)
+    put(w, HISTORY_REASON, reason)
     put(w, 2016, 0)
     return release_channel(o, w, 50)
 
@@ -306,6 +338,32 @@ def finish_frame(w:mutbuf) -> u64:
     return 0
 
 
+def history_frame(w:mutbuf) -> bool:
+    if get(w, S_STATE_ROOT + 8) == 0 or get(w, S_STATE_ROOT + 8) > 4096 or get(w, S_AUDIT_OWNER + 8) != 64:
+        return False
+    if get(w, HISTORY_LIMIT) == 0 or get(w, HISTORY_LIMIT) > 32 or (get(w, S_HISTORY_AFTER + 8) != 0 and get(w, S_HISTORY_AFTER + 8) != 64):
+        return False
+    zero_frame(w, AUDIT_WIRE, 512)
+    put(w, AUDIT_WIRE, HISTORY_REQUEST_MAGIC)
+    put(w, AUDIT_WIRE + 8, 1)
+    put(w, AUDIT_WIRE + 16, 3)
+    put(w, AUDIT_WIRE + 24, 512 + get(w, S_STATE_ROOT + 8))
+    put(w, AUDIT_WIRE + 32, get(w, 384))
+    put(w, AUDIT_WIRE + 40, get(w, 416))
+    put(w, AUDIT_WIRE + 48, get(w, 432))
+    put(w, AUDIT_WIRE + 56, get(w, 32))
+    put(w, AUDIT_WIRE + 64, get(w, 448))
+    put(w, AUDIT_WIRE + 72, get(w, 424))
+    put(w, AUDIT_WIRE + 80, get(w, S_STATE_ROOT + 8))
+    put(w, AUDIT_WIRE + 88, get(w, HISTORY_LIMIT))
+    put(w, AUDIT_WIRE + 96, get(w, S_HISTORY_AFTER + 8))
+    cp(w, S_AUDIT_OWNER, AUDIT_WIRE + 128)
+    cp(w, S_HISTORY_AFTER, AUDIT_WIRE + 192)
+    cp(w, S_STATE_ROOT, AUDIT_WIRE + 512)
+    reset_io(w, 512 + get(w, S_STATE_ROOT + 8))
+    return True
+
+
 def reset_io(w:mutbuf, size:u64) -> u64:
     put(w, 1928, 0)
     put(w, 1936, size)
@@ -334,4 +392,6 @@ def source():
         'AUDIT_BEGIN_MAGIC': int.from_bytes(b'HIAAUD01', 'little'),
         'AUDIT_FINISH_MAGIC': int.from_bytes(b'HIAAUF01', 'little'),
         'AUDIT_RESPONSE_MAGIC': int.from_bytes(b'HIAAUO01', 'little'),
+        'HISTORY_REQUEST_MAGIC': int.from_bytes(b'HIAAHQ01', 'little'),
+        'HISTORY_RESPONSE_MAGIC': int.from_bytes(b'HIAAHO01', 'little'),
     })

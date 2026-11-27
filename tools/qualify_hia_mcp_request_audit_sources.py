@@ -20,7 +20,7 @@ def qualify(source, bootstrap, cold_receipt, output):
     cold_receipt=Path(cold_receipt).resolve(strict=True)
     output=Path(output).resolve();output.mkdir(mode=0o700)
     sys.path.insert(0,str(source))
-    from tools.generate_hia_mcp_request_audit import ROLES,adapter_source
+    from tools.generate_hia_mcp_request_audit import ROLES,PACK_MAGIC,adapter_source
     from tools.qualify_hia_selfhost import invoke
     from tools.build_hia_source_build import _check_pack_output
     adapter='tools/hia_mcp_request_audit_syscalls.S'
@@ -54,7 +54,7 @@ def qualify(source, bootstrap, cold_receipt, output):
     packed=_check_pack_output(receipt,raw,artifact=images['filter-packer'],source=small,capacity=1<<20)
     packer=output/'hia-mcp-request-audit-packer';packer.write_bytes(packed);packer.chmod(0o500)
     parts=[images[name] for name in ROLES]
-    packet=struct.pack('<8s'+str(len(parts))+'Q',b'HIARAU01',*map(len,parts))+b''.join(parts)
+    packet=struct.pack('<8s'+str(len(parts))+'Q',PACK_MAGIC,*map(len,parts))+b''.join(parts)
     run=subprocess.run([str(packer)],input=packet,capture_output=True,env={'PATH':''},timeout=120)
     if run.returncode or run.stderr:
         raise AssertionError(('native audit packer',run.returncode,run.stderr[:1000]))

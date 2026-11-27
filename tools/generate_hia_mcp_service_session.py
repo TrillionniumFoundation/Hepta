@@ -82,6 +82,8 @@ def service_session(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if role == 5:
         if session_get(w, 56) == 0:
             return tool_missing(o, session_id(s, o, w))
+        if session_get(w, 56) == 12:
+            return session_dispatch(o, w, 2, modern)
         status = widen(route(s, o, w))
         if status != 88:
             return tool_wire(o, session_id(s, o, w))
@@ -148,7 +150,10 @@ def session_dispatch(o:mutbuf, w:mutbuf, action:u64, modern:u64) -> u32:
     put(o, 8, action)
     put(o, 16, span_at(id))
     put(o, 24, span_size(id))
-    put(o, 32, choose(action == 5, 12, session_get(w, 56)))
+    tool = session_get(w, 56)
+    if action == 2 and tool == 12:
+        tool = 13
+    put(o, 32, choose(action == 5, 12, tool))
     put(o, 40, choose(args == 0, 0, span_at(args)))
     put(o, 48, span_size(args))
     put(o, 56, modern)
