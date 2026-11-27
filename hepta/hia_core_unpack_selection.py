@@ -110,7 +110,7 @@ def _load(path, raw, abi_raw, hashes, compiler_sha):
     with image_path.open('rb') as stream:
         image_raw = stream.read(1048577)
     image = NativeHiaJsonImage(image_raw, manifest['image_sha256'])
-    image._bind_manifest_source(manifest['source_sha256'])
+    image.admitted_source_sha256 = manifest['source_sha256']
     owner = primitive.NativeUnpack(image)
     owner._admitted_unpack = _Admitted(
         manifest['source_sha256'], manifest['abi_sha256'], manifest['bridge_sha256'],
@@ -131,6 +131,10 @@ def installed_unpack(path, compiler_sha):
     hashes = {name: sha256(data).hexdigest() for name, data in inputs.items()}
     checked_abi(inputs[ABI_SOURCE])
     _manifest(raw, hashes, compiler_sha)
+    from .hia_native_helpers import pinned_core_companion
+    pinned = pinned_core_companion(path, 'unpack', compiler_sha)
+    if pinned is not None:
+        return pinned
     return _load(str(path), raw, inputs[ABI_SOURCE], tuple(sorted(hashes.items())), compiler_sha)
 
 
